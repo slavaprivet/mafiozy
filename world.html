@@ -1145,9 +1145,9 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #leftCommandHud #hudPlayer .hud-ava{width:68px;height:68px;padding:2px;border-radius:2px;background:linear-gradient(145deg,#f3d98f,#705124);box-shadow:0 0 0 2px #0b0907,0 4px 12px #000}
 #leftCommandHud #hudPlayer #hudAvatar{width:64px;height:64px;border:0;border-radius:1px;background:#141414;image-rendering:pixelated;cursor:pointer}
 #leftCommandHud #hudPlayer .hud-lvl{position:static;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:30px;height:21px;padding:0 7px;border:1px solid #f1d68a;border-radius:7px;background:#651824;color:#fff0c7;font-size:10px;line-height:19px;box-shadow:0 2px 6px #000}
-#leftCommandHud #hudPlayer .hud-info{flex:1;justify-content:center;gap:7px}
-#leftCommandHud #hudPlayer .hud-identity{display:flex;align-items:center;gap:7px;min-width:0;padding-right:39px}
-#leftCommandHud #hudPlayer .hud-name{max-width:154px;color:#fff1c8;font-size:14px;text-transform:uppercase;letter-spacing:.65px;text-shadow:0 2px 2px #000;line-height:1.1}
+#leftCommandHud #hudPlayer .hud-info{flex:1;min-width:0;justify-content:center;gap:7px}
+#leftCommandHud #hudPlayer .hud-identity{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;min-width:0;padding-right:39px}
+#leftCommandHud #hudPlayer .hud-name{display:block;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff1c8;font-size:14px;text-transform:uppercase;letter-spacing:.65px;text-shadow:0 2px 2px #000;line-height:1.1}
 #leftCommandHud #hudPlayer .hp-row{display:grid;grid-template-columns:1fr auto;gap:4px 7px;align-items:center}
 #leftCommandHud #hudPlayer .hp-row .label{color:#f0d392;font-size:9px;letter-spacing:.75px;text-shadow:0 1px 2px #000}
 #leftCommandHud #hpBarBig{grid-column:1/-1;grid-row:2;height:13px;border:1px solid #776044;border-radius:2px;background:#07090c;box-shadow:inset 0 2px 4px #000,0 0 0 1px #000;overflow:hidden}
@@ -1159,10 +1159,10 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 @keyframes hudCriticalHp{to{filter:brightness(1.38);box-shadow:0 0 14px #ff2435}}
 #leftCommandHud #hudPlayer .hp-nums{font-size:11px;font-weight:900;color:#fff1db;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
 #leftCommandHud #hudPlayer .hp-nums #hpMaxVal{color:#a99c88}
-#leftCommandHud #hudPlayer .stat-row{gap:12px;color:#d3c29e;font-size:13px}
-#leftCommandHud #hudPlayer .stat-money{min-height:25px;border:1px solid rgba(194,155,71,.36);border-radius:7px;background:#171710;color:#f5d477;padding:3px 8px;font-size:14px;font-weight:1000;font-variant-numeric:tabular-nums;box-sizing:border-box}
+#leftCommandHud #hudPlayer .stat-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;color:#d3c29e;font-size:13px;min-width:0}
+#leftCommandHud #hudPlayer .stat-money{min-width:0;min-height:25px;border:1px solid rgba(194,155,71,.36);border-radius:7px;background:#171710;color:#f5d477;padding:3px 6px;font-size:clamp(11px,1.1vw,14px);font-weight:1000;font-variant-numeric:tabular-nums;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #leftCommandHud #hudPlayer .stat-money.exact{color:#fff0ad;border-color:#e5bd62;background:linear-gradient(180deg,#463718,#21190d);box-shadow:0 0 12px rgba(224,185,99,.25)}
-#leftCommandHud #hudPlayer .stat-time{min-height:25px;font-size:14px;font-weight:1000;font-variant-numeric:tabular-nums}
+#leftCommandHud #hudPlayer .stat-time{justify-self:end;min-height:25px;font-size:13px;font-weight:1000;font-variant-numeric:tabular-nums;white-space:nowrap}
 #leftCommandHud #hudPlayer .stat-time .clock{font-size:14px;font-weight:1000;letter-spacing:.25px}
 #leftCommandHud #modeHud,#leftCommandHud #missionHudBtn{
   position:relative!important;inset:auto!important;width:100%;min-height:31px;margin:0;padding:5px 7px;justify-content:center;
@@ -16798,7 +16798,7 @@ function renderApartmentControlPanel(){
   const currentKey=_apartmentOwnedKey(_buildingInt.r,_buildingInt.c),isThisHq=!!(_customGang&&_customGang.hq_apt_key===currentKey),gangColor=_customGang?.flag?.primary||'#934052',gangSymbol={crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}[_customGang?.flag?.emblem]||'♛';
   const gangHtml=_customGang?`<div class="aptctl-section gang" style="--gang-color:${gangColor}"><div class="aptctl-title"><span>🚩 ШТАБ БАНДЫ</span><span class="aptctl-flag" style="background:linear-gradient(110deg,${gangColor} 0 66%,${_customGang.flag?.secondary||'#e0b83e'} 66%)">${gangSymbol}</span></div><div class="aptctl-desc"><b style="color:#fff">${_escapeApartmentUi(_customGang.name)}</b><br>${isThisHq?'Этот дом — действующий штаб. Здесь находится центр управления бандой.':`Штаб расположен в доме ${_escapeApartmentUi(_customGang.hq_r)}-${_escapeApartmentUi(_customGang.hq_c)}.`}</div><button class="aptctl-secondary" data-aptctl-gang>${_customGang.role==='leader'?'Управление бандой и составом':'Открыть состав банды'}</button></div>`:`<div class="aptctl-section gang" style="--gang-color:#9b1f2d"><div class="aptctl-title"><span>🚩 СОЗДАТЬ БАНДУ</span><span class="aptctl-flag" style="background:linear-gradient(110deg,#9b1f2d 0 66%,#e0b83e 66%)">♛</span></div><div class="aptctl-desc">Сделай эту квартиру штабом: придумай название, выбери цвета и знак флага. Участники твоей пати вступят автоматически.</div><button class="aptctl-primary" data-aptctl-gang>Создать банду в этой квартире</button></div>`;
   const upgrades=Object.entries(APT_UPGRADES).map(([id,u])=>{const lvl=+info[id+'_level']||0,cost=apartmentUpgradeCost(id,lvl);return `<button class="aptctl-upgrade ${lvl>=3?'max':''}" data-aptctl-upgrade="${id}" ${lvl>=3?'disabled':''}><b>${u.label} · Lv.${lvl}/3</b><span>${lvl>=3?'Максимальный уровень':`Улучшить за $${cost.toLocaleString('ru')}`}</span></button>`;}).join('');
-  panel.querySelector('#aptctlBody').innerHTML=`${gangHtml}<div class="aptctl-section"><div class="aptctl-title"><span>🛠 УЛУЧШЕНИЯ КВАРТИРЫ</span></div><div class="aptctl-grid">${upgrades}</div></div><div class="aptctl-section"><div class="aptctl-title"><span>💰 НЕДВИЖИМОСТЬ</span><b style="color:#79e69b">$${apartmentSalePrice(info).toLocaleString('ru')}</b></div><div class="aptctl-desc">Продажа возвращает 90% стоимости. Действующий штаб продать нельзя.</div><button class="aptctl-danger" data-aptctl-sell>Продать квартиру</button></div>`;
+  panel.querySelector('#aptctlBody').innerHTML=`${gangHtml}<div class="aptctl-section"><div class="aptctl-title"><span>🛠 УЛУЧШЕНИЯ КВАРТИРЫ</span></div><div class="aptctl-grid">${upgrades}</div></div><div class="aptctl-section"><div class="aptctl-title"><span>💰 НЕДВИЖИМОСТЬ</span><b style="color:#79e69b">$${apartmentSalePrice(info).toLocaleString('ru')}</b></div><div class="aptctl-desc">Продажа возвращает 90% стоимости. Если это штаб, банда будет распущена, а метка исчезнет.</div><button class="aptctl-danger" data-aptctl-sell>Продать квартиру</button></div>`;
 }
 function openApartmentControlPanel(){renderApartmentControlPanel();_apartmentControlPanel().classList.add('show');}
 function closeApartmentControlPanel(){document.getElementById('apartmentControlPanel')?.classList.remove('show');}
@@ -16842,6 +16842,7 @@ async function buyCurrentApartment() {
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
+    await loadCustomGangState(true);
     const paid = Number(j.price) || price;
     showToast(`🏛️ Штаб создан за $${paid.toLocaleString('ru')}!`, '✅', 2800);
     openApartmentControlPanel();
@@ -16861,7 +16862,8 @@ async function sellCurrentApartment() {
   const info = key && _myApartments[key];
   if (!info) { showToast('🏠 Эта квартира тебе не принадлежит', '⚠️', 2000); return; }
   const refund = apartmentSalePrice(info);
-  if (!confirm(`Продать квартиру за $${refund.toLocaleString('ru')}?\n\nЭто 90% от цены покупки. Улучшения не возвращаются.`)) return;
+  const isHq=!!(_customGang&&_customGang.hq_apt_key===key);
+  if (!confirm(`Продать квартиру за $${refund.toLocaleString('ru')}?\n\nЭто 90% от цены покупки. Улучшения не возвращаются.${isHq?'\nШтаб и банда будут распущены, метка исчезнет.':''}`)) return;
   try {
     const r = await fetch(`${QP.api.replace(/\/+$/, '')}/apartment/${encodeURIComponent(QP.uid)}/sell`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -16874,6 +16876,8 @@ async function sellCurrentApartment() {
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
+    if(Array.isArray(j.headquarters))_customGangHqs=j.headquarters;
+    if(isHq){_customGang=null;_refreshMafiaPerks();renderJobStatus();}
     exitBuildingInterior();
     showToast(`🏠 Квартира продана за $${(+j.refund || refund).toLocaleString('ru')} · Квартира ${_apartmentCounterLabel()}`, '💰', 3000);
     if (_profileTab === 'status') renderProfileTab();
@@ -20069,6 +20073,7 @@ function handleEventPacket(d) {
       _npcActionSay(pending.ref,msg,3000);showToast(msg,'⚠️',2300);return;
     }
     if(+d.cooldown_until){_setNpcThreatCooldown(pending.key,+d.cooldown_until*1000);_setNpcRobCooldown(pending.key,+d.cooldown_until*1000);}
+    pending.ref._lastThreatId=String(d.threat_id||'');
     if(Number.isFinite(+d.cash))_applyNpcCash(+d.cash,+d.amount||0);
     _districtRepAdd(-2,'вымогательство у жителя',true);
     const amount=Math.max(0,+d.amount||0),outcome=String(d.outcome||'resist');
@@ -20078,11 +20083,20 @@ function handleEventPacket(d) {
     }else if(outcome==='snitch'){
       pending.ref._npcSurrenderUntil=performance.now()+7000;_npcActionSay(pending.ref,`Хорошо… вот $${amount}. Не трогай меня.`,3900);
       _npcActionFloat(`Вымогательство +$${amount}`,'#ffd06a');showToast(`Житель отдал $${amount} · но выглядит подозрительно`,'👀',3100);
-      setTimeout(()=>{if(!pending.ref||pending.ref.dead)return;markNpcSnitch(pending.ref,'Меня заставили отдать деньги!');showToast('Житель обманул тебя и побежал сообщать полиции','📞',3000);},2600);
+      setTimeout(()=>{if(!pending.ref||pending.ref.dead)return;markNpcSnitch(pending.ref,'Меня заставили отдать деньги!');showToast('Житель достал телефон и звонит полиции','📞',3000);},Math.max(0,(+d.report_delay_ms||4200)-1800));
     }else{
-      _npcActionSay(pending.ref,'Отойди от меня! Полиция!',3400);_npcActionCrime(pending.ref,0);pending.ref.snitching=false;pending.ref._witnessStage='reported';showToast('Житель не испугался и сразу вызвал полицию','🚨',3000);
+      markNpcSnitch(pending.ref,'Отойди от меня! Я звоню в полицию!');pending.ref._witnessCallUntil=performance.now()+Math.max(900,+d.report_delay_ms||1800);showToast('Житель достал телефон и вызывает полицию','📞',3000);
     }
     closeNpcActionMenu();
+  }else if(kind==='npc_threat_reported'){
+    if(String(d.target_uid||'')===String(QP.uid||'')){
+      myWanted=Math.max(myWanted,+d.wanted||1);
+      const pendingRef=NPCS.find(n=>n&&!n.dead&&String(n._lastThreatId||'')===String(d.threat_id||''))||_nearestCallingWitness?.();
+      if(pendingRef){pendingRef.snitching=false;pendingRef._witnessStage='reported';pendingRef._witnessCallUntil=0;}
+      const victim=pendingRef||{r:player.r,c:player.c,name:'Житель'};
+      _registerNpcRobberyIncident(victim,0,String(d.threat_id||`threat_${Date.now()}`),true);
+      showToast(`Полиция приняла вызов · розыск ${myWanted}★`,'🚔',3200);
+    }
   }else if(kind==='npc_robbery_state_reply'){
     for(const row of (Array.isArray(d.active)?d.active:[])){
       const robberyId=String(row.robbery_id||'');if(!robberyId||_murderIncidents.some(x=>x?.robberyId===robberyId&&!x.closedAt))continue;
@@ -22534,6 +22548,14 @@ function wsConnect() {
           updateMoneyHud();
         }
         const wasDead = myDead;
+        // The lethal cop-shot event and the following snapshot travel as
+        // separate websocket packets. If the event is dropped/reordered, the
+        // snapshot still carries the authoritative dead+jail state. Start the
+        // same physical pickup pipeline here so the prisoner cannot remain at
+        // 0 HP, walk or fire while the server already considers him jailed.
+        if(!_localDeath&&!_bankShield()&&!_murderPoliceArrest&&d.me.dead&&(+d.me.jail_in||0)>0){
+          _queueAnyPoliceDeathPickup(null,{serverAlreadyJailed:true,jailSeconds:+d.me.jail_in||60},performance.now());
+        }
         // При локальной смерти (охрана банка) сервер присылает dead=false —
         // не даём ему мгновенно «воскресить», респаун ведём сами в update().
         // ВНУТРИ БАНКА серверный dead/jail игнорируем полностью: сервер не
@@ -24489,11 +24511,12 @@ function selectGangNpcFrom3D(botId) {
 }
 function _showGangHireAction(bot) {
   if(!bot)return false;
-  _gtaActionKind='gang_hire';_gtaActionCarId=String(bot.id);
+  const canHire=!!(_mafiaState?.employed||_customGang);
+  _gtaActionKind=canHire?'gang_hire':'gang_hire_locked';_gtaActionCarId=String(bot.id);
   const bossHire=!!(bot.is_boss||bot.boss||String(bot.kind||'').includes('boss'));
   const hireCost=Math.max(50,Math.round((bossHire?800:GANG_HIRE_COST)*(_mafiaLevel()>=2?.85:1)));
   const botLevel=Math.max(1,Math.min(25,parseInt(bot.level)||1));
-  _gtaBtn.textContent=botLevel>=10&&_mafiaLevel()<4
+  _gtaBtn.textContent=!canHire?'🔒 Нанять · нужна банда':botLevel>=10&&_mafiaLevel()<4
     ? `🔒 Боец ${botLevel} ур. · мафия 4 ур.`
     : `🤝 Нанять ${bossHire?'босса':'бойца'} ${botLevel} ур. ($${hireCost})`;
   _gtaBtn.style.display='block';
@@ -24583,7 +24606,8 @@ function _npcActionDistrictLine(){
   return `${d.name}: ${lead}. Влияние — полиция ${police}, мафия ${mafia}.`;
 }
 function _registerNpcRobberyIncident(victim,amount,robberyId,interrogationArrest=null,now=performance.now()){
-  if(!victim||!amount)return null;
+  if(!victim)return null;
+  amount=Math.max(0,+amount||0);
   const activeInterior=_bankInt||_buildingInt,worldR=Number.isFinite(+activeInterior?.savedR)?+activeInterior.savedR:(+player.r||0),worldC=Number.isFinite(+activeInterior?.savedC)?+activeInterior.savedC:(+player.c||0);
   const incident={id:`robbery_${++_murderIncidentSeq}`,r:worldR,c:worldC,victim,
     source:{kind:'npc_robbery',robberyId:String(robberyId||''),amount},robberyAmount:amount,robberyId:String(robberyId||''),
@@ -24647,7 +24671,7 @@ function _npcActionButtons(kind,ref,view){
     return actions;
   }
   if(kind==='doctor')return [['talk','💬 Поговорить'],['heal','🩺 Лечиться']];
-  if(kind==='bandit')return [['talk','💬 Поговорить'],['price','📋 Узнать условия'],['hire','🤝 Нанять']];
+  if(kind==='bandit')return [['talk','💬 Поговорить'],['price','📋 Узнать условия'],['hire',(_mafiaState?.employed||_customGang)?'🤝 Нанять':'🔒 Нанять']];
   if(kind==='crew')return [['talk','💬 Поговорить'],['command','✋ Дать команду'],['dismiss','🚪 Отпустить из банды']];
   if(kind==='homeless'){
     const ready=_npcStreetErrand&&_npcStreetErrand.npc===ref&&districtAt(player.r,player.c)?.id===_npcStreetErrand.target;
@@ -24665,7 +24689,7 @@ function _npcActionDescription(id){
     give25:['Списывается $25 · репутация района +1','−$25'],give10:['Списывается $10 · человек запомнит помощь','−$10'],
     threaten:[threatLeft?`Житель уже напуган · повтор через ${Math.max(1,Math.ceil(threatLeft/60000))} мин.`:'Вымогательство $2–7: 50% молчит · 30% донесёт позже · 20% вызовет полицию сразу',threatLeft?'КУЛДАУН':'ТРИ ИСХОДА'],rob:[left?`Повторно можно через ${Math.max(1,Math.ceil(left/60000))} мин.`:'Добыча $1–10 · полиция приедет всегда · кулдаун 1 час',left?'КУЛДАУН':'ВЫСОКИЙ РИСК'],
     documents:['Проверка завершится сразу, если нет розыска','ПРОВЕРКА'],bribe:['75%: −1★, патруль уйдёт, 45 сек на отход · отказ: деньги останутся, +1★','ПОЛЬЗА + РИСК'],surrender:['Добровольное задержание без перестрелки','АРЕСТ'],
-    heal:['Полностью восстановить здоровье за деньги','ЛЕЧЕНИЕ'],price:['Показать цену и требования бойца','УСЛОВИЯ'],hire:['Нанять бойца в свою банду','НАЙМ'],
+    heal:['Полностью восстановить здоровье за деньги','ЛЕЧЕНИЕ'],price:['Показать цену и требования бойца','УСЛОВИЯ'],hire:(_mafiaState?.employed||_customGang)?['Нанять бойца в свою банду','НАЙМ']:['Чтобы приглашать, нужно быть членом мафии или создать свою.','🔒 ЗАКРЫТО'],
     command:['Приказать держаться рядом и прикрывать','КОМАНДА'],dismiss:['Навсегда отпустить бойца из текущей банды','ПОТЕРЯ БОЙЦА'],
     pay_silence:['Свидетель замолчит, если примет деньги','−$'],threaten_silence:['Может замолчать или ускорить вызов полиции','РИСК'],
     errand:['Получить небольшое поручение в другом районе','ЗАДАНИЕ'],finish_errand:['Награда $90 · репутация района +2','+$90']
@@ -24674,6 +24698,7 @@ function _npcActionDescription(id){
 function _appendNpcActionButton(grid,id,label){
   const [desc,badge]=_npcActionDescription(id),b=document.createElement('button');
   b.className='npc-act-btn'+(['rob','threaten','threaten_silence','dismiss'].includes(id)?' danger':'');b.dataset.npcAction=id;
+  if(id==='hire'&&!(_mafiaState?.employed||_customGang)){b.classList.add('locked');b.disabled=true;}
   const title=document.createElement('span'),note=document.createElement('span'),tag=document.createElement('span');
   title.className='npc-act-btn-title';title.textContent=label;note.className='npc-act-btn-note';note.textContent=desc;tag.className='npc-act-btn-tag';tag.textContent=badge;
   b.append(title,note,tag);grid.appendChild(b);
@@ -24684,7 +24709,7 @@ function _ensureNpcActionMenu(){
   #npcActionOverlay{position:fixed;inset:0;z-index:12050;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(3,7,10,.58);backdrop-filter:blur(3px);pointer-events:auto}
   #npcActionOverlay.show{display:flex}#npcActionCard{width:min(520px,calc(100vw - 28px));max-height:min(760px,calc(100vh - 28px));overflow:auto;border:1px solid #c5963b;border-radius:16px;background:linear-gradient(155deg,#191b1e,#090c10 72%);box-shadow:0 24px 80px #000e,0 0 0 1px #000 inset,0 0 34px #d39a2418;color:#eee6d5;font-family:system-ui,sans-serif}
   .npc-act-head{position:relative;display:flex;gap:13px;align-items:center;padding:17px 18px;border-bottom:1px solid #76511f;background:linear-gradient(100deg,#442615,#181a1e 66%)}.npc-act-head:after{content:'';position:absolute;left:76px;right:54px;bottom:-1px;height:1px;background:linear-gradient(90deg,#f0bd51,transparent)}.npc-act-seal{display:grid;place-items:center;width:48px;height:48px;border:1px solid #dfb14f;border-radius:10px;transform:rotate(45deg);background:#17100c;color:#f4c45f;font-size:20px;box-shadow:inset 0 0 16px #d38a231c}.npc-act-seal::first-letter{transform:rotate(-45deg)}.npc-act-title{flex:1}.npc-act-kicker{color:#c7a773;font:900 9px/1.2 system-ui;letter-spacing:2.2px;text-transform:uppercase}.npc-act-name{margin-top:4px;color:#ffe19a;font:900 21px/1.15 Georgia,serif;text-shadow:0 2px 10px #000}.npc-act-close{width:36px;height:36px;border:1px solid #65523c;border-radius:9px;background:#15171a;color:#dbc9ac;font-size:20px;cursor:pointer}.npc-act-close:hover{border-color:#dbad53;color:#fff}
-  .npc-act-status{padding:11px 18px;color:#b8c0c9;font:700 11px/1.45 system-ui;border-bottom:1px solid #ffffff0d;background:#05080b55}.npc-act-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:15px}.npc-act-btn{position:relative;min-height:83px;padding:11px 64px 12px 13px;border:1px solid #66502e;border-radius:10px;background:linear-gradient(145deg,#2b271f,#15181c);color:#f2dfb9;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}.npc-act-btn:hover{transform:translateY(-1px);border-color:#d6a748;background:linear-gradient(145deg,#382d1e,#1a1c20)}.npc-act-btn:active{transform:translateY(1px)}.npc-act-btn.danger{border-color:#77333a;background:linear-gradient(145deg,#31191c,#1c1215)}.npc-act-btn.danger:hover{border-color:#d25864;background:linear-gradient(145deg,#422026,#211317)}.npc-act-btn-title{display:block;color:#ffe4a6;font:900 13px/1.2 system-ui}.npc-act-btn.danger .npc-act-btn-title{color:#ffbdc2}.npc-act-btn-note{display:block;margin-top:7px;color:#9fa8b2;font:650 10px/1.35 system-ui}.npc-act-btn-tag{position:absolute;top:11px;right:10px;max-width:55px;padding:4px 6px;border:1px solid #6d5937;border-radius:6px;background:#0d0f12;color:#d9b86f;font:900 8px/1 system-ui;letter-spacing:.55px;text-align:center}.npc-act-btn.danger .npc-act-btn-tag{border-color:#74323a;color:#ff919b}.npc-act-btn:disabled{opacity:.48;cursor:wait}.npc-act-foot{padding:0 15px 15px;color:#7e8996;font:700 9px/1.3 system-ui;text-align:center}.npc-cash-flash{animation:npcCashHudFlash .42s ease 3}@keyframes npcCashHudFlash{50%{filter:brightness(1.8);transform:scale(1.05)}}@media(max-width:520px){#npcActionOverlay{align-items:flex-end;padding:8px}.npc-act-grid{grid-template-columns:1fr}.npc-act-btn{min-height:72px}}
+  .npc-act-status{padding:11px 18px;color:#b8c0c9;font:700 11px/1.45 system-ui;border-bottom:1px solid #ffffff0d;background:#05080b55}.npc-act-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:15px}.npc-act-btn{position:relative;min-height:83px;padding:11px 64px 12px 13px;border:1px solid #66502e;border-radius:10px;background:linear-gradient(145deg,#2b271f,#15181c);color:#f2dfb9;text-align:left;cursor:pointer;transition:transform .12s,border-color .12s,background .12s}.npc-act-btn:hover{transform:translateY(-1px);border-color:#d6a748;background:linear-gradient(145deg,#382d1e,#1a1c20)}.npc-act-btn:active{transform:translateY(1px)}.npc-act-btn.danger{border-color:#77333a;background:linear-gradient(145deg,#31191c,#1c1215)}.npc-act-btn.danger:hover{border-color:#d25864;background:linear-gradient(145deg,#422026,#211317)}.npc-act-btn-title{display:block;color:#ffe4a6;font:900 13px/1.2 system-ui}.npc-act-btn.danger .npc-act-btn-title{color:#ffbdc2}.npc-act-btn-note{display:block;margin-top:7px;color:#9fa8b2;font:650 10px/1.35 system-ui}.npc-act-btn-tag{position:absolute;top:11px;right:10px;max-width:55px;padding:4px 6px;border:1px solid #6d5937;border-radius:6px;background:#0d0f12;color:#d9b86f;font:900 8px/1 system-ui;letter-spacing:.55px;text-align:center}.npc-act-btn.danger .npc-act-btn-tag{border-color:#74323a;color:#ff919b}.npc-act-btn:disabled{opacity:.48;cursor:wait}.npc-act-btn.locked:disabled{opacity:.82;cursor:not-allowed;border-color:#59616b;background:linear-gradient(145deg,#24272b,#15171a)}.npc-act-btn.locked .npc-act-btn-title{color:#c9ced5}.npc-act-btn.locked .npc-act-btn-note{color:#aab0b7}.npc-act-foot{padding:0 15px 15px;color:#7e8996;font:700 9px/1.3 system-ui;text-align:center}.npc-cash-flash{animation:npcCashHudFlash .42s ease 3}@keyframes npcCashHudFlash{50%{filter:brightness(1.8);transform:scale(1.05)}}@media(max-width:520px){#npcActionOverlay{align-items:flex-end;padding:8px}.npc-act-grid{grid-template-columns:1fr}.npc-act-btn{min-height:72px}}
   `;document.head.appendChild(style);
   overlay=document.createElement('div');overlay.id='npcActionOverlay';overlay.innerHTML='<div id="npcActionCard"><div class="npc-act-head"><div class="npc-act-seal">◆</div><div class="npc-act-title"><div class="npc-act-kicker">Личное дело · взаимодействие</div><div class="npc-act-name"></div></div><button class="npc-act-close" aria-label="Закрыть">×</button></div><div class="npc-act-status"></div><div class="npc-act-grid"></div><div class="npc-act-foot">Во время разговора движение и оружие заблокированы · ESC — закрыть</div></div>';
   document.body.appendChild(overlay);overlay.addEventListener('pointerdown',e=>{e.stopPropagation();},true);overlay.addEventListener('click',e=>{e.stopPropagation();if(e.target===overlay||e.target.closest('.npc-act-close'))closeNpcActionMenu();const btn=e.target.closest('[data-npc-action]');if(btn)_runNpcAction(btn.dataset.npcAction);});return overlay;
@@ -24754,7 +24779,7 @@ function _runNpcAction(action){
   if(action==='threaten_silence'){_districtRepAdd(-2,'угроза свидетелю',true);if(Math.random()<.48){ref.snitching=false;ref._witnessStage='silent';ref._witnessCallUntil=0;_npcActionSay(ref,'Я ничего не видел…');finish('Свидетель отступил','🤫');}else{ref._witnessCallUntil=now+450;_npcActionSay(ref,'Полиция уже едет!');finish('Запугать свидетеля не удалось','📞');}return;}
   if(action==='heal'){const missing=Math.max(0,(PVP.max_hp||100)-myHp),cost=Math.max(50,Math.min(120,50+Math.ceil(missing*.7)));if(!missing){_npcActionSay(ref,'Вам не требуется лечение.');finish('Лечение не требуется','🩺');return;}if(!_npcActionSpend(cost)){_npcActionSay(ref,'У вас не хватает на лечение.');return;}myHp=PVP.max_hp||100;_npcActionSay(ref,'Готово. Постарайтесь не открывать рану.');finish(`Здоровье восстановлено · −$${cost}`,'🩺');return;}
   if(action==='price'){const boss=!!(ref.is_boss||ref.boss||String(ref.kind||'').includes('boss')),cost=Math.max(50,Math.round((boss?800:GANG_HIRE_COST)*(_mafiaLevel()>=2?.85:1)));_npcActionSay(ref,`Моя цена — $${cost}.`);finish(`Найм: $${cost} · уровень ${Math.max(1,+view.level||+ref.level||1)}`,'📋');return;}
-  if(action==='hire'){const sourceId=String(view.sourceId||ref.sourceId||ref.id||'');const found=_findLiveAggroBotById(sourceId);if(!found){_npcActionSay(ref,'Сейчас не могу.');finish('Этот боец сейчас недоступен','⚠️');return;}const b=found.bot;_npcActionSay(ref,'Договорились. Я с тобой.');closeNpcActionMenu();_hireGangMember(b.look,+b.y||0,+b.x||0,b.id,!!(b.is_boss||b.boss),+b.level||1,+b.max_hp||0,false,b.weapon,b.faction);return;}
+  if(action==='hire'){if(!(_mafiaState?.employed||_customGang)){showToast('Чтобы приглашать, нужно быть членом мафии или создать свою.','🔒',2600);return;}const sourceId=String(view.sourceId||ref.sourceId||ref.id||'');const found=_findLiveAggroBotById(sourceId);if(!found){_npcActionSay(ref,'Сейчас не могу.');finish('Этот боец сейчас недоступен','⚠️');return;}const b=found.bot;const hired=_hireGangMember(b.look,+b.y||0,+b.x||0,b.id,!!(b.is_boss||b.boss),+b.level||1,+b.max_hp||0,false,b.weapon,b.faction);if(hired){_npcActionSay(ref,'Договорились. Я с тобой.');closeNpcActionMenu();}return;}
   if(action==='command'){ref._npcCommandAt=now;_npcActionSay(ref,'Понял. Держусь рядом и прикрываю.');finish('Боец подтвердил команду','✋');return;}
   if(action==='dismiss'){_npcActionSay(ref,'Понял, босс. Я ухожу.');closeNpcActionMenu();_dismissGangMember(ref.id);return;}
   if(action==='errand'){const districts=(typeof DISTRICTS!=='undefined'?DISTRICTS:[]).filter(d=>d&&d.id!==districtAt(player.r,player.c)?.id);if(!districts.length){_npcActionSay(ref,'Сейчас для тебя поручений нет.');finish('Сейчас поручений нет','📦');return;}const target=districts[Math.floor(Math.random()*districts.length)];_npcStreetErrand={npc:ref,target:target.id,name:target.name||target.label||'другой район'};_npcActionSay(ref,`Загляни в ${_npcStreetErrand.name} и вернись ко мне.`);finish(`Поручение: посетить «${_npcStreetErrand.name}»`,'📦');return;}
@@ -25863,6 +25888,9 @@ _gtaBtn.addEventListener('click', () => {
   } else if (_gtaActionKind === 'custom_gang_player_invite') {
     if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'custom_gang_player_invite',d:{target_uid:String(_gtaActionCarId||'')}}));
     else showToast('Сервер не отвечает','⚠️',1800);
+  } else if (_gtaActionKind === 'gang_hire_locked') {
+    showToast('Чтобы приглашать, нужно быть членом мафии или создать свою.','🔒',2600);
+    _gtaActionKind=null;return;
   } else if (_gtaActionKind === 'gang_hire') {
     if(!_mafiaState?.employed&&!_customGang){showToast('Сначала вступи в мафию или создай свою банду','🕴️',2500);_gtaActionKind=null;return;}
     let hired = false;
@@ -60106,6 +60134,7 @@ function _threeCustomGangHqSnapshot() {
   return (_customGangHqs || []).map(h => ({
     id:h.id, r:+h.r||0, c:+h.c||0, name:h.name||'Банда',
     flag:h.flag||{}, memberCount:+h.member_count||0,
+    mine:String(h.leader_uid||'')===String(QP.uid||''),
   }));
 }
 const _threePlayerMotionSample={at:0,r:NaN,c:NaN,speed:0,accel:0,moveAng:0};
@@ -60709,6 +60738,7 @@ window.Mafiozi3DBridge = Object.freeze({
       said:!!x._said,important:!!(x._said||x._keyNpc||x._invulnerable),talkable:!!x._said,hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
       talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),
+      phoneCalling:!death.dead&&!!x.snitching&&x._witnessStage==='calling'&&fxNow<(+x._witnessCallUntil||0),
       gesture:String(x._lifeGesture||x.gesture||''),stateSince:+x._lifeStateSince||0,stateUntil:+x._lifeStateUntil||0,
       groupId:String(x._npcGroupId||''),groupRole:String(x._npcGroupRole||''),routine:String(x._npcRoutine||''),
       prisonStaff:!!x._prisonStaff,staffVariant:+x.staffVariant||0,prisonGear:x.prisonGear||'',shield:!!x.shield,
