@@ -168,3 +168,8 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Business owners should be authored in the gameplay source and bridged through the existing bounded interior NPC snapshot with a stable `visualRole`, wardrobe palette and hairstyle index. Do not infer ownership from a display name in the renderer.
 - Premium owner details remain instanced: lapels, pocket square and three reusable hairstyle accents add bounded draw calls without allocating a mesh per owner or per frame.
 - The normal pooled NPC label carries `ВЛАДЕЛЕЦ ЗАВЕДЕНИЯ` plus the owner's name. A shared fallback role texture is shown only while speech temporarily replaces that label, preserving identity without dynamic per-frame canvas painting.
+
+## Prison emergency lightbars (2026-08-11)
+
+- Keep emergency lightbar housings fixed. Animate lens emissive intensity, inner emitters and bounded additive glow with a double-flash red/blue cadence instead of rotating the entire fixture.
+- Preserve a constant scene-light count: only the two gate fixtures own zero-intensity `PointLight` slots, while tower fixtures use emissive meshes. Reusing shared housing geometry/materials keeps the six authored beacons inexpensive.
