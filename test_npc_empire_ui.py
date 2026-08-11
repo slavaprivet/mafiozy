@@ -36,6 +36,7 @@ def run() -> None:
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
     assert '"kind": "gang_war"' in PREVIEW and '"pact": "war"' in PREVIEW
     assert "_UP.has('previewempirewar')" in WORLD
+    assert "leftStage=_nearestEmpireWalkPoint(player.r-4" in WORLD
     assert "const empireHqs=inside?[]:_npcEmpires.filter" in WORLD
     assert "EMPIRE_HQ_CAP=19" in THREE and "server-owned-ring-flag-gang-label-v357" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE

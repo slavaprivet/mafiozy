@@ -17844,6 +17844,10 @@ async function loadNpcEmpireState(showError=false){
       const left=_npcEmpires[0],right=_npcEmpires[1],created_at=Math.floor(Date.now()/75000)*75;
       left.activity={kind:'gang_war',target_id:right.leader_id,target_r:+right.hq_r||0,target_c:+right.hq_c||0,phase:'engage',stance:'assault',force:3,created_at};
       right.activity={kind:'gang_war',target_id:left.leader_id,target_r:+left.hq_r||0,target_c:+left.hq_c||0,phase:'engage',stance:'defend',force:3,created_at};
+      const leftNpc=SPECIALIST_NPCS.find(n=>String(n._specialistId)===String(left.leader_id)),rightNpc=SPECIALIST_NPCS.find(n=>String(n._specialistId)===String(right.leader_id));
+      const leftStage=_nearestEmpireWalkPoint(player.r-4,player.c-3),rightStage=_nearestEmpireWalkPoint(player.r+4,player.c+3);
+      if(leftNpc&&leftStage){leftNpc.r=leftNpc.tr=leftStage.r;leftNpc.c=leftNpc.tc=leftStage.c;_clearNpcRoute(leftNpc);}
+      if(rightNpc&&rightStage){rightNpc.r=rightNpc.tr=rightStage.r;rightNpc.c=rightNpc.tc=rightStage.c;_clearNpcRoute(rightNpc);}
     }
     _npcEmpireById.clear();for(const empire of _npcEmpires)_npcEmpireById.set(String(empire.leader_id),empire);
     _ensureNpcSandboxButton();
