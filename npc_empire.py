@@ -13,7 +13,7 @@ import json
 import random
 import secrets
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import aiosqlite
 
@@ -69,6 +69,18 @@ PROFILES = (
     EmpireProfile('yana','Яна','Диспетчер','Бирюзовая линия','7,5','#17666a','#6de0d7','radio','yana_frequency','Частота','smg',36,82,86,76,8900),
     EmpireProfile('musa','Муса','Снабженец','Золотой караван','13,6','#6b5125','#e6c56a','crate','musa_caravan','Караван','rifle',48,92,64,86,13600),
 )
+
+MAFIA_BOSS_NAMES = {
+    'leila':'Лейла Беллини', 'rustam':'Билли Капоне', 'marco':'Марко Моретти',
+    'vera':'Вера Фальконе', 'arsen':'Энцо Барзини', 'damir':'Дамиано Коста',
+    'marat':'Марчелло Рицци', 'zara':'Джина Беллуччи', 'niko':'Нико Скарлетти',
+    'alisa':'Алисия Романо', 'boris':'Бруно Манчини', 'inga':'Ингрид Вентури',
+    'timur':'Тони Лучано', 'emil':'Эмилио Гамбино', 'roman':'Роман Витале',
+    'sofia':'София Кастеллано', 'viktor':'Виктор Ломбарди',
+    'yana':'Джанна Марино', 'musa':'Муса Карбоне',
+}
+PROFILES = tuple(replace(profile, leader_name=MAFIA_BOSS_NAMES[profile.leader_id])
+                 for profile in PROFILES)
 
 PROFILE_BY_ID = {p.leader_id: p for p in PROFILES}
 BUSINESS_INCOME = {
