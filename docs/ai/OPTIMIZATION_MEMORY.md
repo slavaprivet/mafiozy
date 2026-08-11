@@ -84,12 +84,41 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Render the phone as one pooled instanced part in `npcParts`. The call pose and phone visibility are derived from the same authoritative flag, so ending the report hides the prop without allocations or cleanup timers in the frame loop.
 - Police dispatch remains server-authoritative: a delayed report updates wanted state first, then the existing patrol and response-vehicle systems consume it. The visual animation never decides whether police respond.
 
-## Authoritative gang world and business control (2026-08-11)
+## Major-building assault anchors (2026-08-11)
 
-- Keep lair, roaming gangs, business operations and garrisons in the existing bounded `aggro`/city-gang snapshot. Never synthesize combat-capable fallback actors in the 3D bridge: disconnected mannequins look alive but cannot move, receive authoritative damage or return fire.
-- NPC business ownership is display-only on the client and must be applied once at snapshot start. It may draw rings, flags and operation phases, but must never overwrite the server-authoritative player/family business status.
-- Reuse the existing two-second landmark refresh for 3D business flags. The refresh signature contains only business ID, faction, guard ID/state and defense level, so unchanged snapshots allocate no new meshes and add no per-frame NPC scan.
-- Deterministic regression QA covered two three-member factions, one bounded reinforcement, police response, street control, business march/capture/garrison/takeover, Lair warning/alarm/grenade dodge/boss fall and reconnect payload. The focused suite completed in `3.3 s`; the authoritative hire check debited SQLite from `$1000` to `$500` and returned the same balance to the client.
+- A moved 3D landmark must update the authoritative assault coordinates in
+  `world.html`, `mafiozi_bot.py` and `_preview_ws_server.py` together. The
+  server validates the player's exterior position before opening the combat
+  interior; stale coordinates therefore look like a dead UI action but are
+  actually a `too_far` rejection.
+- The residence moved from `(66,36)` to `(136,16)`. A static cross-file check
+  protects all five major-object anchors against another 2D/3D drift.
+
+## Major-interior guard navigation (2026-08-11)
+
+- A shared combat loop must not reuse one landmark's authored patrol points or
+  obstacle list for every interior. Generate and cache walkable posts per room,
+  and build the flow field from the current interior's authoritative collision
+  function.
+- Use the same collision source for movement, route cells and line of fire.
+  Otherwise an NPC can see and shoot through furniture that its feet cannot
+  cross, then appear stuck while continuously selecting the impossible target.
+- Keep the existing bounded flow-field cache (one field shared by the assault
+  group) and reset it only after a guard's bounded no-progress watchdog fires.
+  The regression fixture produced 92 valid posts in a representative room and
+  confirmed a collision-safe route step plus blocked/open firing lanes.
+
+## 3D security identity and combat bridge (2026-08-11)
+
+- Interior combat NPCs must bridge weapon, last-shot time, alert state and active
+  speech together with position/HP. A visible projectile alone is insufficient:
+  without the timestamp the Three.js actor remains in its idle pose while firing.
+- Give security a role-specific cached palette and instanced vest/badge instead
+  of allocating unique meshes per guard. Major venues can select palette by the
+  existing interior id while all guards still share the same bounded NPC pools.
+- A persistent common role marker should use one shared canvas texture and a
+  fixed sprite pool. This keeps `ОХРАНА` visible even when the main identity label
+  temporarily becomes a speech bubble, without per-frame canvas work.
 
 ## Humanoid walking arm swing and combat priority (2026-08-11)
 
@@ -97,6 +126,58 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Apply a restrained opposing arm swing to the shared instanced NPC pose so civilians, gangs, police, guards and interior actors inherit it without per-role loops or allocations. Custom humanoid actors such as the Brigadir should use the same amplitude range.
 - Firing must remain the final arm-pose override, with reload, throwable, custody, injury and death layers retaining their existing higher priority. Telemetry distinguishes walking-arm NPCs from firing NPCs so QA can detect accidental pose mixing.
 - Local browser QA forced an unarmed walk and measured changing arm pitches (`0.011/-0.008` at the sampled frame), while 38 nearby humanoid NPCs used the shared walking pose. A retaliation run captured one firing police actor alongside 35 walking-arm actors; the firing actor stayed excluded from the walking-arm count and no Three.js error occurred.
+
+## 3D interior NPC picking and robbery HUD (2026-08-11)
+
+- `activeAimSurface` switches from the world `ground` to `interiorFloor` inside authored rooms. NPC picking must accept both surfaces and copy `camera.layers.mask`; forcing layer 0 makes visible interior actors unpickable.
+- A screen-space aim projected onto the floor is not accurate enough for a raised NPC, especially an owner behind a counter. After an instanced NPC pick, route the stable interior NPC id through the bridge and calculate the gameplay ray from the NPC's authoritative `r/c` coordinates.
+- Canvas-only mission HUD is hidden by the production Three.js canvas. Critical progress such as remaining guards and owner pressure needs a small bounded DOM HUD updated only when its state key changes; do not rebuild HTML every frame.
+
+## 3D business-owner identity (2026-08-11)
+
+- Business owners should be authored in the gameplay source and bridged through the existing bounded interior NPC snapshot with a stable `visualRole`, wardrobe palette and hairstyle index. Do not infer ownership from a display name in the renderer.
+- Premium owner details remain instanced: lapels, pocket square and three reusable hairstyle accents add bounded draw calls without allocating a mesh per owner or per frame.
+- The normal pooled NPC label carries `ВЛАДЕЛЕЦ ЗАВЕДЕНИЯ` plus the owner's name. A shared fallback role texture is shown only while speech temporarily replaces that label, preserving identity without dynamic per-frame canvas painting.
+
+## Vehicle hold-E prompt (2026-08-11)
+
+- Reuse the existing 140 ms `nearbyVehicleState` sample for both the ground ring and the projected DOM prompt. Do not add a vehicle scan or a layout read to the render loop.
+- While driving, bridge the current car as the same cached interaction with `kind: exit`; this keeps entry, hijack and exit on one hold-E state machine and one roof-anchored prompt.
+- Project one persistent DOM node from the cached ring position, snap its coordinates to whole pixels, and only animate the inner progress width. A 650 ms hold prevents accidental entry/exit while staying responsive.
+
+## Human-readable gang identity labels (2026-08-11)
+
+- Normalize legacy `yellow`/`purple` faction codes once in the world bridge to `Моретти`/`Беллини`; renderer labels must never expose transport/debug identifiers.
+- Carry the authoritative `mafia_family` beside the existing faction in aggro snapshots. Keep the legacy mapping as a compatibility fallback for already-running servers and old cached snapshots.
+- Reuse the existing NPC label texture update signature. Family-name changes rebuild only the affected pooled label texture and add no scan or per-frame allocation.
+
+## Desktop held-button mouse chords (2026-08-11)
+
+- A second physical mouse button is not guaranteed to produce another `pointerdown` while RMB remains held. Keep the accepted RMB aim state authoritative and support `mousedown` plus a deduplicated primary `click` fallback inside the 3D canvas.
+- The fallback must reject interactive DOM controls and use the last handled timestamp so the usual `pointerdown`/`mousedown` path and the late `click` cannot produce two shots from one press.
+
+## Batched outlines in transformed groups (2026-08-11)
+
+- Before baking a child mesh into a world-space outline batch, call `updateWorldMatrix(true, false)`. Calling only `updateMatrixWorld(true)` can leave a dirty parent group's translation unapplied, causing remote structures such as prison walls to appear as black wireframes near the city origin.
+
+## Stable projected prompts and roof occlusion (2026-08-11)
+
+- A world-anchored DOM prompt must be projected after the camera update on every rendered frame. Throttling only the interaction scan is safe; throttling the already-cached projection makes the label visibly step behind a smoothly moving camera.
+- Snap projected coordinates to whole pixels and move the prompt with one 2D `translate(...)`. Keep its appearance animation opacity-only: blur or animated scale/translation competes with the world projection and looks like shaking.
+- Keep building raycasts throttled, but retain occlusion state between samples. A short release hysteresis plus exponential opacity easing absorbs triangle-edge changes and prevents roof materials from flashing between opaque and transparent states.
+
+## Authoritative business-property markers (2026-08-11)
+
+- Ownership visuals must consume `myBusinesses` through the existing two-second landmark refresh. A successful purchase may update the local cache immediately, but later server synchronization remains authoritative and can remove the marker after ownership loss.
+- Reuse the cached roof-sign texture for the roof-mounted `СОБСТВЕННОСТЬ` plaque and one bounded instanced roof-contour batch for all purchasable businesses. On dynamic updates, compare a compact ownership signature and touch visibility/matrices only when that signature changes.
+- Carry `owned` in the cached nearby-building interaction so the existing `E` prompt can say that the player is entering their property. Do not add another proximity scan.
+
+## Authoritative gang world and business control (2026-08-11)
+
+- Keep lair, roaming gangs, business operations and garrisons in the existing bounded `aggro`/city-gang snapshot. Never synthesize combat-capable fallback actors in the 3D bridge: disconnected mannequins look alive but cannot move, receive authoritative damage or return fire.
+- NPC business ownership is display-only on the client and must be applied once at snapshot start. It may draw rings, flags and operation phases, but must never overwrite the server-authoritative player/family business status.
+- Reuse the existing two-second landmark refresh for 3D business flags. The refresh signature contains only business ID, faction, guard ID/state and defense level, so unchanged snapshots allocate no new meshes and add no per-frame NPC scan.
+- Deterministic regression QA covered two three-member factions, one bounded reinforcement, police response, street control, business march/capture/garrison/takeover, Lair warning/alarm/grenade dodge/boss fall and reconnect payload. The focused suite completed in `3.3 s`; the authoritative hire check debited SQLite from `$1000` to `$500` and returned the same balance to the client.
 
 ## NPC police custody (2026-08-11)
 
@@ -107,11 +188,6 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Release at the visible police-station exit. The original gang actor can rejoin its formation or use a short independent roaming waypoint window before normal AI resumes.
 - Fresh-main regression: all six embedded scripts pass `check_world.py`; `test_gang_world_ai.py`, `test_npc_life_system.py` and `test_npc_police_custody.py` pass. The snapshot-driven client path adds no new per-frame global NPC scan.
 
-## Desktop held-button mouse chords (2026-08-11)
-
-- A second physical mouse button is not guaranteed to produce another `pointerdown` while RMB remains held. Keep the accepted RMB aim state authoritative and support `mousedown` plus a deduplicated primary `click` fallback inside the 3D canvas.
-- The fallback must reject interactive DOM controls and use the last handled timestamp so the usual `pointerdown`/`mousedown` path and the late `click` cannot produce two shots from one press.
-
 ## NPC custody route stress (2026-08-11)
 
 - A passability check on one straight pursuit step is not pathfinding. In the first 120-position stress sweep, `29/120` NPC-murder responses stopped at building corners because officers never selected an alternate direction.
@@ -121,9 +197,23 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Post-fix end-to-end simulation completed all eight phases for `48/48` arrests with zero invalid outdoor escort/transport samples. Total simulated arrest-to-release time ranged from `86.9 s` to `116.0 s`, including the exact 60-second sentence.
 - A separate moving-offender sweep completed `40/40` pursuits with `0` stuck; the slowest moving target was cuffed after `7.2 s`. Cell-change replans remained bounded (maximum `14` total across the two responding officers during one chase).
 
-## Batched outlines in transformed groups (2026-08-11)
+## Prison emergency lightbars (2026-08-11)
 
-- Before baking a child mesh into a world-space outline batch, call `updateWorldMatrix(true, false)`. Calling only `updateMatrixWorld(true)` can leave a dirty parent group's translation unapplied, causing remote structures such as prison walls to appear as black wireframes near the city origin.
+- Keep emergency lightbar housings fixed. Animate lens emissive intensity, inner emitters and bounded additive glow with a double-flash red/blue cadence instead of rotating the entire fixture.
+- Preserve a constant scene-light count: only the two gate fixtures own zero-intensity `PointLight` slots, while tower fixtures use emissive meshes. Reusing shared housing geometry/materials keeps the six authored beacons inexpensive.
+
+## Roof-mounted exterior signs (2026-08-11)
+
+- A semantic building name must have exactly one exterior source. When a landmark already owns an authored sign, the generic POI/business loop must not add a second floating label; this removes the hospital, pizzeria, club, market and factory duplicates.
+- Use world-space sign geometry attached to the roof: opaque board, shallow frame, two supports and a depth-tested texture face. Camera-facing sprites with `depthTest:false` behave like HUD and visibly slide over the roof while the player walks.
+- Cache `CanvasTexture` instances by normalized label and accent color. The number of building names is bounded, so this avoids redrawing identical ownership/status textures without introducing a per-frame update.
+- Treat ownership as a secondary strip joined to the main roof sign, not another hovering title. Continue toggling it from the authoritative two-second ownership refresh and keep the instanced roof contour as the long-distance ownership cue.
+
+## Jail interaction boundary (2026-08-11)
+
+- Check active jail state before cached NPC selections and other early-return interaction branches. A late jail guard cannot hide a stale action when an earlier remembered target already returned from the function.
+- On entering or remaining in jail, clear the selected gang-bot id and expiry together with the visible action and target id. Do not merely hide the button: a delayed click or the next frame can otherwise revive the stale action.
+- Mirror the client gate in both production and preview WebSocket hire handlers. An active sentence or custody marker must return `reason: jailed` before distance, faction or payment logic can mutate the fighter.
 
 ## Network gang gunfire bridge (2026-08-11)
 
