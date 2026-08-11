@@ -605,3 +605,28 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   body, roof, hood and one shared four-wheel pool add two bounded static draw
   calls but no per-frame object creation or scans; transforms are written only
   when a streamed map obstacle is first registered.
+## Dirty decal colour buffers (2026-08-11, v345)
+
+- Bullet-hole and ground-blood matrices were already signature-cached, but
+  both active pools still called `setColorAt` for every slot and marked the
+  complete colour buffer dirty on every rendered frame. The local combat-FX
+  baseline confirmed the hot path with eight bullet holes and six blood decals.
+- Cache the exact rendered colour beside the existing matrix signature. A new
+  bridge snapshot still updates every authored fade step at full cadence; only
+  repeated render frames of the same snapshot skip identical colour writes and
+  GPU uploads. Include geometry/source state in the signature so slot reuse and
+  the first visible frame cannot inherit an incorrect colour.
+- Telemetry exposes `bulletHoleColorUpload`, `bloodColorUpload` and the
+  `bridge-snapshot-signature-v345` profile. This package must not claim an FPS
+  gain from noisy scene samples; its reliable result is removal of redundant
+  full colour-buffer uploads without changing resolution, effects or visible
+  animation cadence.
+- Final one-tab combat-FX QA kept four moving projectile profiles, eight bullet
+  holes and six blood decals visible while both colour-upload telemetry values
+  reported `cached`. Native pixel ratio, the locked quality policy and
+  real-time shadows remained enabled; gameplay bridge was connected, chat
+  local echo advanced and server-backed status remained `Гражданский`. The
+  final merged sample reported 20 FPS, `38.3 ms` frame work, `27.5 ms` render
+  work and 227 programs. It also preserved the incoming full-size parked-car
+  package (`89` collision visuals, `10` active static obstacle draw calls).
+  Do not use this noisy single-scene sample as an FPS comparison.
