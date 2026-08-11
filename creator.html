@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<title>Создай гангстера v3</title>
+<title>Мафиози — создание персонажа</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body {
@@ -261,29 +261,81 @@ h2 {
   text-align: center;
 }
 .exit-btn:active { transform: scale(0.97); }
+
+/* Steam / 3D showroom layout. Сам персонаж остаётся тем же игровым спрайтом,
+   поэтому сохранённый образ один в один используется в открытом городе. */
+:root { --gold:#d8b365; --red:#a82127; --panel:rgba(10,12,16,.94); }
+body { min-height:100vh; display:block; padding:0; color:#eee7d9; font-family:Inter,Segoe UI,Arial,sans-serif; background:#05070a; }
+body::before { content:""; position:fixed; inset:0; z-index:-3; background:
+  linear-gradient(90deg,rgba(3,5,8,.72),rgba(3,5,8,.28) 48%,rgba(3,5,8,.88)),
+  url('assets/loading/city-empire.webp?v=3d117') center/cover no-repeat; filter:saturate(.62) brightness(.55); }
+body::after { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; opacity:.16; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.38'/%3E%3C/svg%3E"); }
+.creator-topbar { height:64px; display:flex; align-items:center; gap:14px; padding:0 clamp(18px,4vw,54px); border-bottom:1px solid rgba(220,184,105,.2); background:rgba(4,6,9,.88); backdrop-filter:blur(12px); }
+.creator-brand { color:#fff0ca; font:950 22px/1 Georgia,serif; letter-spacing:.08em; }
+.creator-back { display:inline-flex; align-items:center; min-height:34px; padding:7px 11px; border:1px solid rgba(216,179,101,.4); border-radius:2px; background:#11141a; color:#e5c77e; cursor:pointer; font:900 9px/1 system-ui; letter-spacing:.1em; text-transform:uppercase; }
+.creator-back:hover,.creator-back:focus-visible { border-color:var(--gold); outline:none; }
+.creator-divider { width:1px; height:25px; background:rgba(255,255,255,.16); }
+.creator-section { color:#aeb4bd; font:850 10px/1 system-ui; letter-spacing:.2em; text-transform:uppercase; }
+.creator-step { margin-left:auto; color:#c8aa68; font:800 10px/1 system-ui; letter-spacing:.1em; }
+.creator-shell { width:min(1180px,calc(100% - 36px)); margin:0 auto; display:grid; grid-template-columns:minmax(330px,44%) minmax(430px,1fr); gap:clamp(22px,4vw,64px); padding:clamp(22px,4vh,46px) 0 38px; align-items:start; }
+.creator-stage { position:sticky; top:86px; min-height:650px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; overflow:hidden; border:1px solid rgba(216,179,101,.27); background:radial-gradient(circle at 50% 28%,rgba(152,37,34,.18),transparent 31%),linear-gradient(180deg,rgba(12,15,20,.62),rgba(5,7,10,.95)); box-shadow:0 30px 90px rgba(0,0,0,.48); }
+.creator-stage::before { content:""; position:absolute; inset:42% -25% -22%; background:repeating-linear-gradient(90deg,rgba(205,170,96,.16) 0 1px,transparent 1px 54px),repeating-linear-gradient(0deg,rgba(205,170,96,.12) 0 1px,transparent 1px 54px); transform:perspective(370px) rotateX(62deg); transform-origin:center top; mask-image:linear-gradient(#000,transparent 82%); }
+.creator-stage::after { content:""; position:absolute; width:280px; height:65px; bottom:76px; border-radius:50%; background:radial-gradient(ellipse,rgba(0,0,0,.92),transparent 70%); }
+.stage-label { position:absolute; z-index:5; left:18px; right:18px; top:17px; color:#b8bec7; font:850 9px/1.25 system-ui; letter-spacing:.18em; text-transform:uppercase; white-space:nowrap; }
+.stage-label::before { content:""; display:inline-block; width:24px; height:2px; margin:0 8px 3px 0; background:var(--red); }
+#preview-wrap { position:relative; z-index:2; width:100%; margin:0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; display:grid; place-items:end center; filter:drop-shadow(0 23px 26px rgba(0,0,0,.75)); cursor:grab; touch-action:none; user-select:none; }
+#preview-wrap.dragging { cursor:grabbing; }
+#preview,#preview3d { grid-area:1/1; width:min(430px,92%); height:auto; border-radius:0; animation:creatorIdle 3.8s ease-in-out infinite; }
+#preview3d { position:relative; z-index:2; opacity:0; transition:opacity .2s ease; }
+#preview-wrap.three-ready #preview3d { opacity:1; }
+#preview-wrap.three-ready #preview { opacity:0; }
+@keyframes creatorIdle { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+.rotation-wrap { position:relative; z-index:3; margin:0 0 20px; padding:8px; width:auto; border:1px solid rgba(216,179,101,.25); background:rgba(5,7,10,.82); backdrop-filter:blur(8px); }
+.rot-btn { width:38px; height:38px; border-radius:2px; background:#15171c; border-color:rgba(216,179,101,.42); }
+.rot-label { min-width:95px; color:#d7c8a5; font-weight:800; }
+.creator-controls { min-width:0; }
+#page-title { padding:0; margin:2px 0 8px; color:#fff0c9; text-align:left; font:950 clamp(30px,4vw,48px)/.98 Georgia,serif; letter-spacing:-.025em; text-transform:none; }
+.creator-lead { max-width:620px; margin-bottom:21px; color:#aeb4bd; font:650 13px/1.55 system-ui; }
+.identity-card { margin-bottom:13px; padding:14px; border-left:3px solid var(--red); background:rgba(8,10,14,.84); box-shadow:0 12px 34px rgba(0,0,0,.24); }
+.identity-card label { display:block; margin-bottom:7px; color:#c9a95e; font:850 9px/1 system-ui; letter-spacing:.2em; text-transform:uppercase; }
+#charName { width:100%; height:44px; padding:0 13px; border:1px solid rgba(216,179,101,.3); border-radius:2px; outline:none; background:#11141a; color:#fff1d1; font:800 15px system-ui; }
+#charName:focus { border-color:var(--gold); box-shadow:0 0 0 2px rgba(216,179,101,.12); }
+#editor-wrap { width:100%!important; padding:14px; border:1px solid rgba(216,179,101,.25); background:var(--panel); box-shadow:0 22px 60px rgba(0,0,0,.38); }
+.gender-toggle,.tabs,.panel,#view-mode-btns { max-width:none; padding-left:0; padding-right:0; }
+.gender-btn,.tab,.opt-btn,.randomize-btn,.change-look-btn,.exit-btn,#save-btn { border-radius:2px; }
+.gender-btn { background:#13161c; border-width:1px; border-color:#34373d; }
+.gender-btn.active { border-color:var(--gold); background:linear-gradient(100deg,rgba(126,30,34,.65),rgba(52,29,23,.7)); }
+.randomize-btn { max-width:none; width:100%; margin:0 0 10px; background:#15181e; }
+.tabs { gap:5px; }
+.tab { padding:10px 3px; background:#12151a; border-radius:2px; }
+.tab.active { background:linear-gradient(180deg,rgba(126,30,34,.75),rgba(45,20,22,.7)); border-color:#b68c43; }
+.panel { max-width:none; min-height:96px; padding:3px 0 0; }
+.options-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
+.opt-btn { border-width:1px; background:#11141a; }
+.opt-btn.selected { border-color:var(--gold); background:rgba(112,69,25,.22); box-shadow:0 0 0 1px rgba(216,179,101,.22),0 8px 20px rgba(0,0,0,.3); }
+#save-btn { max-width:none; width:100%; margin-top:14px; min-height:52px; color:#fff3d5; background:linear-gradient(100deg,#8b1e24,#40171a 68%,#17171b); border:1px solid #b88a3e; box-shadow:0 12px 30px rgba(92,15,20,.35); }
+#save-btn:disabled { opacity:.58; cursor:wait; }
+#save-status { min-height:18px; margin-top:10px; color:#b9c0ca; font:750 11px/1.4 system-ui; text-align:center; }
+#view-mode-btns { gap:8px; }
+.change-look-btn { background:linear-gradient(100deg,#791d22,#32171a); }
+.exit-btn { background:#11141a; }
+@media(max-width:820px){.creator-topbar{height:56px;padding:0 16px}.creator-step{display:none}.creator-shell{display:block;width:min(100% - 24px,620px);padding-top:14px}.creator-stage{position:relative;top:auto;min-height:410px;margin-bottom:20px}.stage-label{top:12px}.creator-stage::after{bottom:65px}.creator-controls{padding-bottom:20px}#preview,#preview3d{width:275px}.rotation-wrap{margin-bottom:11px}.options-grid{grid-template-columns:repeat(4,minmax(0,1fr))}#page-title{font-size:32px}}
+@media(prefers-reduced-motion:reduce){#preview,#preview3d{animation:none}}
 </style>
 </head>
 <body>
-<h2 id="page-title">🎩 Создай гангстера</h2>
-
-<div id="preview-wrap">
-  <canvas id="preview" width="220" height="280"></canvas>
-</div>
-
-<!-- Вращение -->
-<div class="rotation-wrap">
-  <button class="rot-btn" onclick="rotateLeft()">◀</button>
-  <div class="rot-label" id="rot-label">Спереди</div>
-  <button class="rot-btn" onclick="rotateRight()">▶</button>
-</div>
-
-<!-- Кнопки режима просмотра — показаны по умолчанию -->
-<div id="view-mode-btns">
-  <button class="change-look-btn" onclick="enterEditMode()">✏️ Сменить образ · 5 💎</button>
-  <button class="exit-btn" onclick="exitToMenu()">← Выйти в меню</button>
-</div>
-
-<!-- Редактор — скрыт по умолчанию, включается только при первом создании -->
+<header class="creator-topbar"><button class="creator-back" type="button" onclick="exitToMenu()">← Назад</button><div class="creator-brand">МАФИОЗИ</div><div class="creator-divider"></div><div class="creator-section">Создание персонажа</div><div class="creator-step">ШАГ 1 · ЛИЧНОЕ ДЕЛО</div></header>
+<main class="creator-shell">
+<section class="creator-stage">
+  <div class="stage-label">3D-примерочная · зажми ЛКМ и поверни персонажа</div>
+  <div id="preview-wrap"><canvas id="preview" width="300" height="390"></canvas><canvas id="preview3d" width="300" height="390" aria-label="Трёхмерное превью персонажа"></canvas></div>
+  <div class="rotation-wrap"><button class="rot-btn" onclick="rotateLeft()">◀</button><div class="rot-label" id="rot-label">Спереди</div><button class="rot-btn" onclick="rotateRight()">▶</button></div>
+</section>
+<section class="creator-controls">
+<h2 id="page-title">Создай персонажа</h2>
+<p class="creator-lead">Выбери внешность для своей истории. Этот образ будет одинаково выглядеть в городе, боях и совместной игре.</p>
+<div class="identity-card"><label for="charName">Имя персонажа</label><input id="charName" maxlength="24" autocomplete="off" placeholder="Введите имя"></div>
+<div id="view-mode-btns"><button class="change-look-btn" onclick="enterEditMode()">Сменить образ · 5 💎</button><button class="exit-btn" onclick="exitToMenu()">← Вернуться в меню</button></div>
 <div id="editor-wrap" style="display:none; width:100%">
 
 <div class="gender-toggle">
@@ -322,9 +374,12 @@ h2 {
   <div class="options-grid" id="hat-grid"></div>
 </div>
 
-<button id="save-btn" onclick="saveChar()">💾 Сохранить персонажа</button>
+<button id="save-btn" onclick="saveChar()">СОХРАНИТЬ ПЕРСОНАЖА</button>
+<div id="save-status" role="status" aria-live="polite"></div>
 
 </div><!-- #editor-wrap -->
+</section>
+</main>
 
 <script>
 const tg = window.Telegram?.WebApp;
@@ -333,6 +388,11 @@ if (tg) { tg.ready(); tg.expand(); }
 // ── STATE ──────────────────────────────────────────────────────────────────
 const state = { gender: 0, skin: 0, body: 0, face: 0, hair: 0, hat: 0 };
 const urlP = new URLSearchParams(location.search);
+const creatorApi = String(urlP.get('api') || '').replace(/\/$/,'');
+const creatorUid = String(urlP.get('uid') || '');
+const creatorAccount = String(urlP.get('account_uid') || creatorUid || '');
+const creatorReturn = urlP.get('return') || '';
+const initialName = (urlP.get('name') || 'Игрок').trim().slice(0,24);
 ['gender','skin','body','face','hair','hat'].forEach(k => {
   if (urlP.has(k)) state[k] = parseInt(urlP.get(k)) || 0;
 });
@@ -346,12 +406,8 @@ const isFirstTime = _newFlag || (!urlP.has('skin') && !_hasNew);
 const hasLook     = isFirstTime ? 0 : 1;
 const playerDia   = parseInt(urlP.get('dia')) || 0;
 let changeLookMode = false;   // режим смены образа (платный)
-let viewAngle      = 0;       // 0=спереди 1=вправо 2=сзади 3=влево
-
-// Боковые ракурсы (1 и 3) убраны — drawChar нативно их не рисует, был
-// просто сплющенный фронтальный кадр, выглядел плохо. Оставили
-// «Спереди»/«Сзади» (0/2) — переключаются обоими кнопками. По кругу.
-const ROT_LABELS = ['Спереди','Сзади'];
+let viewAngle = 0;            // непрерывный угол 3D-модели в радианах
+const ROT_LABELS = ['Спереди','Правый профиль','Сзади','Левый профиль'];
 
 // ── SKIN COLORS ────────────────────────────────────────────────────────────
 const SKINS = ['#FDDBB4','#F0C27F','#D4935A','#A0622A','#7A3B10','#C8A882'];
@@ -1065,22 +1121,42 @@ function drawHatBack(ctx, hatId, px, py, bd, headY, headH, sc) {
 // ── MAIN CANVAS ────────────────────────────────────────────────────────────
 const mainCanvas = document.getElementById('preview');
 const mainCtx = mainCanvas.getContext('2d');
+let creator3DPreview = null;
 
 function redraw() {
-  const W = 220, H = 280;
+  const W = mainCanvas.width, H = mainCanvas.height;
   mainCtx.clearRect(0, 0, W, H);
-  // 0 = спереди, 1 = сзади. Других ракурсов нет (см. ROT_LABELS).
-  if (viewAngle === 1) {
+  // Canvas остаётся аварийным fallback; полноценный 360° показывает WebGL.
+  if (Math.cos(viewAngle) < 0) {
     drawChar(mainCtx, W, H, {...state, _back: true});
   } else {
     drawChar(mainCtx, W, H, state);
   }
+  creator3DPreview?.setLook(state);
 }
 
 // ── ROTATION ──────────────────────────────────────────────────────────────
-// Теперь всего 2 ракурса (спереди/сзади). Обе кнопки крутят по кругу.
-function rotateLeft()  { viewAngle = (viewAngle + 1) % 2; document.getElementById('rot-label').textContent = ROT_LABELS[viewAngle]; redraw(); }
-function rotateRight() { viewAngle = (viewAngle + 1) % 2; document.getElementById('rot-label').textContent = ROT_LABELS[viewAngle]; redraw(); }
+function normalizeViewAngle(value){const circle=Math.PI*2;return ((value%circle)+circle)%circle;}
+function updateRotationLabel(){const quadrant=Math.round(normalizeViewAngle(viewAngle)/(Math.PI/2))%4;document.getElementById('rot-label').textContent=ROT_LABELS[quadrant];}
+function setPreviewAngle(next,refreshFallback=false){viewAngle=normalizeViewAngle(next);updateRotationLabel();creator3DPreview?.setAngle(viewAngle);if(refreshFallback)redraw();}
+function rotateLeft(){setPreviewAngle(viewAngle-Math.PI/2,true);}
+function rotateRight(){setPreviewAngle(viewAngle+Math.PI/2,true);}
+
+const previewDragSurface=document.getElementById('preview-wrap');
+let previewDragging=false,previewPointerId=null,previewLastX=0;
+previewDragSurface?.addEventListener('pointerdown',event=>{
+  if(event.pointerType==='mouse'&&event.button!==0)return;
+  previewDragging=true;previewPointerId=event.pointerId;previewLastX=event.clientX;
+  previewDragSurface.classList.add('dragging');previewDragSurface.setPointerCapture?.(event.pointerId);event.preventDefault();
+});
+previewDragSurface?.addEventListener('pointermove',event=>{
+  if(!previewDragging||event.pointerId!==previewPointerId)return;
+  const dx=event.clientX-previewLastX;previewLastX=event.clientX;
+  setPreviewAngle(viewAngle+dx*.012);event.preventDefault();
+});
+const stopPreviewDrag=event=>{if(!previewDragging||(event&&event.pointerId!==previewPointerId))return;previewDragging=false;previewPointerId=null;previewDragSurface?.classList.remove('dragging');};
+previewDragSurface?.addEventListener('pointerup',stopPreviewDrag);
+previewDragSurface?.addEventListener('pointercancel',stopPreviewDrag);
 
 // ── VIEW MODE ─────────────────────────────────────────────────────────────
 function initViewMode() {
@@ -1088,10 +1164,10 @@ function initViewMode() {
     // Первое создание — показываем редактор, скрываем кнопки просмотра
     document.getElementById('editor-wrap').style.display = 'block';
     document.getElementById('view-mode-btns').style.display = 'none';
-    document.getElementById('page-title').textContent = '🎩 Создай гангстера';
+    document.getElementById('page-title').textContent = 'Создай персонажа';
   } else {
     // Персонаж уже есть — редактор скрыт (по умолчанию), кнопки просмотра видны
-    document.getElementById('page-title').textContent = '🤵 Мой гангстер';
+    document.getElementById('page-title').textContent = 'Мой персонаж';
     if (tg && tg.BackButton) {
       tg.BackButton.onClick(exitToMenu);
       tg.BackButton.show();
@@ -1112,6 +1188,7 @@ function enterEditMode() {
 }
 
 function exitToMenu() {
+  if (creatorReturn) { window.location.href = creatorReturn; return; }
   try {
     const url = localStorage.getItem('hubUrl');
     if (url) { window.location.href = url; return; }
@@ -1126,7 +1203,7 @@ function setGender(g) {
   state.gender = g;
   document.getElementById('gbtn-m').classList.toggle('active', g===0);
   document.getElementById('gbtn-f').classList.toggle('active', g===1);
-  document.getElementById('page-title').textContent = g===0 ? '🎩 Создай гангстера' : '💄 Создай гангстершу';
+  document.getElementById('page-title').textContent = 'Создай персонажа';
   // Rebuild option grids so thumbnails show the right gender
   ['body','face','hair','hat'].forEach(type => {
     const gridId = `${type}-grid`;
@@ -1148,8 +1225,7 @@ function buildGrid(type, names, gridId) {
     btn.className = 'opt-btn' + (state[type] === i ? ' selected' : '');
     const cv = document.createElement('canvas');
     cv.width = 56; cv.height = 72;
-    const cxT = cv.getContext('2d');
-    drawChar(cxT, 56, 72, { ...state, [type]: i });
+    paintOption3D(cv,{ ...state, [type]: i },type);
     btn.appendChild(cv);
     const lbl = document.createElement('span');
     lbl.textContent = name;
@@ -1157,13 +1233,18 @@ function buildGrid(type, names, gridId) {
     btn.addEventListener('click', () => {
       state[type] = i;
       grid.querySelectorAll('.opt-btn').forEach((b, j) => b.classList.toggle('selected', j === i));
-      grid.querySelectorAll('.opt-btn canvas').forEach((c2, j) => {
-        drawChar(c2.getContext('2d'), 56, 72, { ...state, [type]: j });
-      });
+      grid.querySelectorAll('.opt-btn canvas').forEach((c2, j) => paintOption3D(c2,{ ...state, [type]: j },type));
       redraw();
     });
     grid.appendChild(btn);
   });
+}
+
+function paintOption3D(canvas,look,type){
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#0b0e13';ctx.fillRect(0,0,canvas.width,canvas.height);
+  const previewLook={...look};
+  if(type==='hair'||type==='face'||type==='body')previewLook.hat=0;
+  try{window.MafioziCharacter3D?.paint(canvas,previewLook,{crop:type==='face'||type==='hair'||type==='hat'?'face':'body'});}catch(e){}
 }
 
 function buildSkinGrid() {
@@ -1206,6 +1287,8 @@ function randomize() {
 }
 
 function initUI() {
+  const nameInput = document.getElementById('charName');
+  if (nameInput) nameInput.value = initialName;
   buildSkinGrid();
   ['body','face','hair','hat'].forEach(t => buildGrid(t, getNames(t), t + '-grid'));
 }
@@ -1213,11 +1296,24 @@ function initUI() {
 initUI();
 initViewMode();
 redraw();
+window.addEventListener('mafiozi:character3dready',()=>{
+  try{creator3DPreview=window.MafioziCharacter3D.attach(document.getElementById('preview3d'),state,{animate:true,angle:viewAngle});document.getElementById('preview-wrap')?.classList.add('three-ready');['body','face','hair','hat'].forEach(t=>buildGrid(t,getNames(t),t+'-grid'));}catch(e){}
+},{once:true});
 
 // ── SAVE ───────────────────────────────────────────────────────────────────
-function saveChar() {
+async function saveChar() {
+  try { const police=creatorUid?JSON.parse(localStorage.getItem(`mafiozi_police_missions_${creatorUid}`)||'null'):null;if(police?.employed){alert('👮 Полицейский не может работать без формы. Сначала увольтесь в полицейском участке.');return;} } catch(e) {}
+  const saveBtn = document.getElementById('save-btn');
+  const saveStatus = document.getElementById('save-status');
+  const playerName = String(document.getElementById('charName')?.value || '').trim().replace(/[<>]/g,'').slice(0,24);
+  if (playerName.length < 2) {
+    if (saveStatus) saveStatus.textContent = 'Имя должно содержать хотя бы 2 символа.';
+    document.getElementById('charName')?.focus();
+    return;
+  }
   const payload = {
     a:      'set_look',
+    name:   playerName,
     gender: state.gender,
     skin:   state.skin,
     body:   state.body,
@@ -1226,13 +1322,48 @@ function saveChar() {
     hat:    state.hat,
   };
   if (changeLookMode) payload.change_look = true;
+  if (creatorApi && /^\d+$/.test(creatorAccount) && (/^\d+$/.test(creatorUid) || !creatorUid)) {
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'СОХРАНЯЕМ…'; }
+    if (saveStatus) saveStatus.textContent = 'Записываем личное дело на сервере…';
+    try {
+      const creatingProfile = !creatorUid;
+      const endpoint = creatingProfile
+        ? `${creatorApi}/profiles/${encodeURIComponent(creatorAccount)}`
+        : `${creatorApi}/character/${encodeURIComponent(creatorUid)}/look`;
+      const response = await fetch(endpoint, {
+        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.message || 'Сервер не сохранил персонажа');
+      const savedCharacterId = String(result.profile?.character_id || creatorUid || '');
+      try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
+      if (saveStatus) saveStatus.textContent = 'Персонаж создан. Возвращаемся в главное меню…';
+      const target = new URL(creatorReturn || 'world.html',location.href);
+      target.searchParams.set('menu','characters');
+      target.searchParams.set('account_uid',creatorAccount);
+      target.searchParams.set('uid',savedCharacterId);
+      target.searchParams.set('character',savedCharacterId);
+      target.searchParams.set('has_look','1');
+      target.searchParams.set('name',playerName);
+      target.searchParams.set('lvl','1');
+      target.searchParams.set('cash','0');
+      Object.entries(state).forEach(([key,value]) => target.searchParams.set(key,String(value)));
+      setTimeout(() => { location.href = target.href; },450);
+      return;
+    } catch(e) {
+      if (saveStatus) saveStatus.textContent = e.message || 'Не удалось связаться с игровым сервером.';
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = changeLookMode ? 'СОХРАНИТЬ ОБРАЗ · 5 💎' : 'СОХРАНИТЬ ПЕРСОНАЖА'; }
+      return;
+    }
+  }
   if (tg && typeof tg.sendData === 'function') {
     tg.sendData(JSON.stringify(payload));
   } else {
-    alert('Открой создателя через кнопку «🎨 Создать гангстера» в чате бота!');
+    if (saveStatus) saveStatus.textContent = 'Нет соединения с игровым сервером. Запусти игру через Steam.';
   }
 }
 
 </script>
+<script type="module" src="character_3d_preview.js?v=6"></script>
 </body>
 </html>
