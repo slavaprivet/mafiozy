@@ -485,3 +485,33 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   fire (`accepted:true`, `blocked:false`) with continuing frames. The probe was
   removed, and every browser run used one tab which was closed together with
   the local server.
+
+## Dirty boss-weapon instance colours (2026-08-11, v339)
+
+- The four instanced signature parts of boss weapons (`rail`, `charm`, `stock`
+  and `muzzle`) previously forced `instanceColor.needsUpdate` from
+  `onBeforeRender`, uploading all four colour buffers on every rendered frame.
+  Their matrices and charm animation must still update every frame, but their
+  authored colour changes only when the NPC slot receives a different boss or
+  colour.
+- Precompute the nineteen weapon variant indices once and cache an
+  `id:colour` signature per NPC slot. Write all four instance colours and dirty
+  their buffers only when that signature changes. Clear the signature whenever
+  the weapon is hidden or its slot becomes inactive so the first visible frame
+  always restores the complete colour set and cannot show a stale/ghost colour.
+- Do not claim an FPS gain from the available samples: the baseline and result
+  had different NPC populations and the intervening main update added two new
+  weapon parts. The reliable result is removal of four unconditional colour
+  buffer uploads per rendered frame plus the per-NPC `Object.keys(...).indexOf`
+  allocation/search. On fresh main, the one-tab boss preview kept four nearby
+  bosses, real-time shadows, native `1.00` pixel ratio and the locked quality
+  policy; a representative sample was 18 FPS, `27.2 ms` frame work, `18.4 ms`
+  render and 225 programs, with no Three.js error.
+- Regression QA kept chat local echo (`12:<timestamp>`), accepted a normal-city
+  3D shot through the gameplay bridge (`confirmedShots:1`, route `firearm`),
+  and kept the real server status as `Гражданский`. Prison QA rejected pistol,
+  grenade and C4 without consuming ammunition/items and then completed a clean
+  staged release (`resumeFrames:3`). The local static server still emits the
+  known business/apartment JSON warnings because those API routes are absent;
+  they are harness-only and not game/Three.js errors. The single browser tab
+  was closed after the run.
