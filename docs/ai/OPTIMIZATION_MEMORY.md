@@ -457,6 +457,14 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Gang identity bands must use the same measured `pose.walking` state as the body. Reading stale `src.walking` separately makes the band bob while the character's planted feet remain still.
 - QA telemetry: `data-idle-npcs`, `data-idle-npc-leg-motion-max` (must be `0.0000`) and `data-npc-gait-activation=measured-displacement-with-stop-hysteresis-v332`.
 
+# Role-specific NPC idle stances (2026-08-11, v335)
+
+- Keep neutral idle life entirely in the existing instanced humanoid pools: small torso breathing/weight transfer, relaxed arm angles and a brief deterministic head-turn window. Never translate the actor root or feed idle values into legs and shoes.
+- Derive police, guard, gang and civilian stance variants from authoritative role flags already present on each snapshot. This adds character without new meshes, materials, timers or per-frame allocations.
+- Rare looks should use an entity-seeded cycle with a short active window rather than permanent sine-wave head scanning. Crowds then feel attentive without synchronized or restless motion.
+- Apply weapon firing last in pose priority. Its two-hand aim and recoil must replace every neutral arm stance, while idle body offsets evaluate to zero during a shot.
+- QA telemetry: `data-npc-idle-stances`, `data-npc-idle-lookers`, `data-npc-idle-stance-profile=planted-feet-role-breath-weight-rare-look-firing-priority-v335`; `data-idle-npc-leg-motion-max` must remain `0.0000`.
+
 ## Persistent HQ waypoint and authoritative role gate (2026-08-11)
 
 - A permanent personal-HQ indicator does not need a second world-object scan.
