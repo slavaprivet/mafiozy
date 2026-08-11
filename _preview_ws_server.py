@@ -1599,17 +1599,10 @@ def _preview_empire_text(value):
 
 
 def _preview_empire_activity(profile, now):
-    slot = int(now) // 60
-    seed = int.from_bytes(__import__('hashlib').sha256(
-        f'{profile.leader_id}:preview:{slot}'.encode()).digest()[:4], 'big')
-    hq_r, hq_c = npc_empire._hq_coords(profile.hq_key)
-    offsets = ((0, -8), (8, 0), (0, 8), (-8, 0), (0, 0))
-    dr, dc = offsets[seed % len(offsets)]
-    kinds = ('patrol', 'recruit', 'inspect', 'patrol', 'return_hq')
-    kind = kinds[seed % len(kinds)]
-    return {"kind": kind, "target_id": profile.hq_key, "target_r": hq_r + dr,
-            "target_c": hq_c + dc, "phase": "travel", "created_at": slot * 60,
-            "summary": f"{_preview_empire_text(profile.leader_name)} действует в городе"}
+    activity = npc_empire._visible_activity(
+        profile, {'hq_key': profile.hq_key}, [], int(now))
+    activity['summary'] = _preview_empire_text(activity.get('summary'))
+    return activity
 
 
 async def npc_empire_state(req):

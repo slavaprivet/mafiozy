@@ -1030,3 +1030,19 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   second per-frame label pass.
 - A family card may create its gradient only inside the signature-gated repaint
   branch. Never allocate gradients during unchanged animation frames.
+
+## City-wide empire roaming (2026-08-12, v361)
+
+- Peace-time boss orders must not orbit the headquarters. Choose one
+  deterministic destination per existing 75-second activity slot from a
+  bounded city-wide pool covering both city halves, the bridge, coast and
+  port. This changes only the server snapshot; never add a roaming timer or a
+  render-loop target search.
+- The empire walknet may use every connected public land tile
+  (`0/7/8/9/14/15/17/18/19`) while still respecting the shared pedestrian
+  collision probe and the authored prison, arena and lair exclusions. This is
+  what lets a family cross the bridge and reach the beach, pier and port
+  without walking through water, buildings or container stacks.
+- Preserve the 42,000-node route cap and the existing retry cadence. The full
+  180x200 map has fewer cells than that cap, so coast/port reachability does
+  not require a second pathfinder or per-frame work.

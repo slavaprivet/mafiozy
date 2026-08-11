@@ -23,6 +23,9 @@ def run() -> None:
     assert "data-ne-extra=\"apologize\"" in WORLD and "data-ne-extra=\"compensation\"" in WORLD
     assert "_empirePlayerWar" in WORLD and "Мы с тобой воюем!" in WORLD
     assert "activity.target_r" in WORLD and "empireBossMotion" in WORLD
+    assert "tile===14||tile===15||tile===17" in WORLD
+    assert "ri>0&&ri<MAP_ROWS-1&&ci>0&&ci<MAP_COLS-1&&!isBlockedPed(r,c)" in WORLD
+    assert "_visible_activity(" in PREVIEW
     assert "dataset.portraitMode" in WORLD and "2d-fallback" in WORLD
     assert "КАРТА КРИМИНАЛЬНОЙ ВЛАСТИ" in WORLD and "ИМПЕРИИ ГОРОДА" in WORLD
     assert "boss:true" in WORLD and "weapon:empire?.weapon_base" in WORLD

@@ -1,6 +1,7 @@
 """Focused integrity tests for the autonomous NPC empire system."""
 
 import asyncio
+import math
 import json
 import os
 import sqlite3
@@ -58,6 +59,20 @@ async def run() -> None:
         later_state = await ne.state_for(path, 101, now=2_000_000_000 + ne.VISIBLE_ACTIVITY_SECONDS)
         later_activity = next(x for x in later_state["empires"] if x["leader_id"] == "leila")["activity"]
         assert later_activity["created_at"] != leila_activity["created_at"]
+
+        # Peace-time orders are city-wide too: over a short deterministic
+        # window families visit the east city and the southern coast/port,
+        # instead of orbiting only eight tiles around their headquarters.
+        roam = [ne._visible_activity(profile, {'hq_key': profile.hq_key}, [],
+                                     slot * ne.VISIBLE_ACTIVITY_SECONDS)
+                for slot in range(24) for profile in ne.PROFILES]
+        assert any(float(a["target_c"]) >= 100 for a in roam)
+        assert any(float(a["target_r"]) >= 150 for a in roam)
+        assert any(math.hypot(float(a["target_r"])-ne._hq_coords(profile.hq_key)[0],
+                              float(a["target_c"])-ne._hq_coords(profile.hq_key)[1]) >= 40
+                   for slot in range(24) for profile in ne.PROFILES
+                   for a in [ne._visible_activity(profile, {'hq_key': profile.hq_key}, [],
+                                                  slot * ne.VISIBLE_ACTIVITY_SECONDS)])
 
         # A server NPC war becomes a shared physical order: both leaders choose
         # the opposing boss, carry a stance/force, and converge in the city.

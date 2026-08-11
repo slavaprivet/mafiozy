@@ -96,6 +96,12 @@ BUSINESS_PRICE = {
     'garage':18000, 'bar':28000, 'club':45000, 'warehouse':70000,
     'casino':120000, 'port':200000,
 }
+BUSINESS_COORDS = {
+    'coffee': (33, 13), 'carwash': (23, 25), 'barbershop': (53, 23),
+    'pizza': (53, 53), 'garage': (13, 63), 'bar': (43, 33),
+    'club': (63, 53), 'warehouse': (73, 23), 'casino': (13, 45),
+    'port': (181, 31),
+}
 DISTRICTS = {
     'poor': 'Бедный район', 'downtown': 'Центр', 'nightlife': 'Ночная улица',
     'rich': 'Богатый район', 'countryside': 'Пригород',
@@ -114,6 +120,18 @@ GENERIC_BUILDINGS = tuple(
         (10,1),(10,2),(10,3),(10,5),(11,1),(11,3),(11,5),(11,6),(12,2),
         (12,3),(12,5),(12,6),(13,1),(13,2),(13,3),(14,1),(14,2),(14,5),
     )
+)
+
+# Public stops deliberately cover both halves of the city, the bridge-side
+# avenues and the southern coast. They are movement targets, not ownership
+# records: the normal empire tick remains authoritative for actual captures.
+EMPIRE_PUBLIC_ROAM_POINTS = (
+    ('east_north_1', 12, 102), ('east_north_2', 32, 142),
+    ('east_bridge_1', 52, 122), ('east_bridge_2', 52, 162),
+    ('east_mid_1', 72, 102), ('east_mid_2', 92, 142),
+    ('east_south_1', 112, 122), ('east_south_2', 132, 162),
+    ('coast_west', 154, 18), ('coast_centre', 158, 52),
+    ('coast_east', 154, 102), ('port_approach', 168, 40),
 )
 
 
@@ -154,6 +172,28 @@ def _district_for_block(key: str) -> str:
     return 'poor'
 
 
+def _citywide_roam_target(profile: EmpireProfile, slot: int) -> dict:
+    """Choose a deterministic public destination across the complete map."""
+    targets = [
+        {'target_id': key, 'target_r': _hq_coords(key)[0],
+         'target_c': _hq_coords(key)[1], 'target_kind': 'building'}
+        for key in GENERIC_BUILDINGS
+    ]
+    targets.extend(
+        {'target_id': bid, 'target_r': coords[0], 'target_c': coords[1],
+         'target_kind': 'business'}
+        for bid, coords in BUSINESS_COORDS.items()
+    )
+    targets.extend(
+        {'target_id': f'roam:{key}', 'target_r': r, 'target_c': c,
+         'target_kind': 'street'}
+        for key, r, c in EMPIRE_PUBLIC_ROAM_POINTS
+    )
+    seed = int.from_bytes(hashlib.sha256(
+        f'{profile.leader_id}:citywide:{slot}'.encode()).digest()[:4], 'big')
+    return dict(targets[seed % len(targets)])
+
+
 def _holding_district(kind: str, holding_id: str) -> str:
     return BUSINESS_DISTRICTS.get(holding_id, 'downtown') if kind == 'business' else _district_for_block(holding_id)
 
@@ -165,29 +205,32 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
     hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
     businesses = sorted(str(h['holding_id']) for h in holdings if str(h['kind']) == 'business')
     buildings = sorted(str(h['holding_id']) for h in holdings if str(h['kind']) == 'building')
-    phase = seed % 5
-    if businesses and phase == 2:
-        target_id = businesses[(seed // 5) % len(businesses)]
-        return {'kind': 'collect', 'target_id': target_id, 'phase': 'travel',
+    phase = seed % 7
+    if phase == 0:
+        return {'kind': 'return_hq', 'target_id': str(row['hq_key'] or profile.hq_key),
+                'target_r': hq_r, 'target_c': hq_c, 'phase': 'travel',
                 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
-                'summary': f'{profile.leader_name} едет проверить доход бизнеса'}
-    if buildings and phase == 3:
-        target_id = buildings[(seed // 5) % len(buildings)]
-        return {'kind': 'inspect', 'target_id': target_id, 'phase': 'travel',
+                'summary': f'{profile.leader_name} возвращается в штаб'}
+    owned = ([('business', target_id) for target_id in businesses] +
+             [('building', target_id) for target_id in buildings])
+    if phase == 1 and owned:
+        target_kind, target_id = owned[(seed // 7) % len(owned)]
+        if target_kind == 'business':
+            target_r, target_c = BUSINESS_COORDS.get(target_id, (hq_r, hq_c))
+            kind, label = 'collect', 'проверяет доход своего бизнеса'
+        else:
+            target_r, target_c = _hq_coords(target_id)
+            kind, label = 'inspect', 'проверяет подконтрольное здание'
+        return {'kind': kind, 'target_id': target_id,
+                'target_r': target_r, 'target_c': target_c, 'phase': 'travel',
                 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
-                'summary': f'{profile.leader_name} проверяет подконтрольное здание'}
-    # New empires initially own only an HQ. Four street-side stops around it
-    # keep their leaders visibly active before the first expansion succeeds.
-    offsets = ((0, -8), (8, 0), (0, 8), (-8, 0))
-    dr, dc = offsets[(seed // 7) % len(offsets)]
-    kind = ('patrol', 'recruit', 'patrol', 'inspect', 'return_hq')[phase]
-    if kind == 'return_hq':
-        dr = dc = 0
-    label = {'patrol': 'патрулирует территорию', 'recruit': 'встречает новых бойцов',
-             'inspect': 'проверяет посты', 'return_hq': 'возвращается в штаб'}[kind]
-    return {'kind': kind, 'target_id': str(row['hq_key'] or profile.hq_key),
-            'target_r': hq_r + dr, 'target_c': hq_c + dc, 'phase': 'travel',
-            'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+                'summary': f'{profile.leader_name} {label}'}
+    target = _citywide_roam_target(profile, slot)
+    kind = 'inspect' if target['target_kind'] in {'building', 'business'} else 'patrol'
+    label = 'разведывает цель для захвата' if kind == 'inspect' else 'патрулирует дальний район'
+    return {'kind': kind, 'target_id': target['target_id'],
+            'target_r': target['target_r'], 'target_c': target['target_c'],
+            'phase': 'travel', 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
             'summary': f'{profile.leader_name} {label}'}
 
 

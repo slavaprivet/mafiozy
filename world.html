@@ -9087,13 +9087,14 @@ function _uniqueNpcCityPassable(r,c) {
 }
 const _saidCityPassable=_uniqueNpcCityPassable;
 
-// Empire bosses use the complete street network while carrying out a server
-// order. Ordinary unique NPCs remain on pavements as before.
+// Empire bosses use every connected public land surface while carrying out a
+// server order. That includes the bridge, east city, beach, pier and ship/port;
+// ordinary unique NPCs remain on city pavements as before.
 function _empireBossPassable(r,c) {
   const ri=Math.floor(r),ci=Math.floor(c),tile=MAP[ri]?.[ci];
-  return ri>0&&ri<Math.min(BEACH_R0,MAP_ROWS-1)&&ci>0&&ci<MAP_COLS-1&&
+  return ri>0&&ri<MAP_ROWS-1&&ci>0&&ci<MAP_COLS-1&&!isBlockedPed(r,c)&&
     !_inPrisonIslandRestrictedZone(r,c,.35)&&!inArena(ri,ci)&&!inLair(ri,ci)&&
-    (tile===0||tile===8||tile===9||tile===18||tile===19);
+    (tile===0||tile===7||tile===8||tile===9||tile===14||tile===15||tile===17||tile===18||tile===19);
 }
 function _nearestEmpireWalkPoint(r,c) {
   if(_npcBodyPassable(r,c,_empireBossPassable))return {r,c};
@@ -14727,8 +14728,9 @@ function updateNpcs(dt) {
       n._hostile=false;n._fighting=false;n._fightingMelee=false;
       const uniquePass=n._empireBoss&&n._empireAction?_empireBossPassable:_uniqueNpcCityPassable;
       if(!uniquePass(n.r,n.c)){
-        const safe=_uniqueNpcSafeCityPoint(n.r,n.c);
-        if(safe){_clearNpcRoute(n);n.r=n.tr=safe[0];n.c=n.tc=safe[1];pickNpcWaypoint(n);}
+        const empireSafe=n._empireBoss&&n._empireAction?_nearestEmpireWalkPoint(n.r,n.c):null;
+        const safe=empireSafe?[empireSafe.r,empireSafe.c]:_uniqueNpcSafeCityPoint(n.r,n.c);
+        if(safe){_clearNpcRoute(n);n.r=n.tr=safe[0];n.c=n.tc=safe[1];if(!n._empireBoss)pickNpcWaypoint(n);}
       }
     }
     if (n.dead) continue;
