@@ -34,9 +34,13 @@ def run() -> None:
     assert "_empireFieldCombatThink" in WORLD and "_hitEmpireCombatant" in WORLD
     assert "gang_war:'" in WORLD and "_empireEnemyLeaderId" in WORLD
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
+    assert "_empirePressUntil" in WORLD and "_empireTargetLockUntil" in WORLD
+    assert "confidence>=1.12" in WORLD and "powerRatio<.68" in WORLD
     assert '"kind": "gang_war"' in PREVIEW and '"pact": "war"' in PREVIEW
     assert "_UP.has('previewempirewar')" in WORLD
     assert "leftStage=_nearestEmpireWalkPoint(player.r-4" in WORLD
+    assert "ne-dossier-command" in WORLD and "КРИМИНАЛЬНОЕ ДОСЬЕ" in WORLD
+    assert "card.scrollTop=0" in WORLD and "uiMode='dossier'" in WORLD
     assert "const empireHqs=inside?[]:_npcEmpires.filter" in WORLD
     assert "EMPIRE_HQ_CAP=19" in THREE and "server-owned-ring-flag-gang-label-v357" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE

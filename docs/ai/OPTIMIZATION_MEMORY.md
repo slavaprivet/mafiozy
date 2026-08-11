@@ -1000,3 +1000,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Local preview seeds exactly one NPC-family war for immediate QA. Production
   never uses this fixture: its orders come from SQLite diplomacy and the
   five-minute empire tick.
+
+## Confidence-driven empire firefights and dossier UI (2026-08-12, v359)
+
+- Do not equate weapon ideal range with an automatic backward step. Compute a
+  bounded confidence value from local ally/enemy count, both families' server
+  strength and current combat HP. A confident squad presses or holds its firing
+  line; retreat is reserved for critical HP or a real power ratio below 0.68.
+- A confident shooter locks its current target for 3.2 seconds and enters a
+  short pressure window. This prevents target thrashing and the visible
+  shoot-one-round/backpedal cadence without adding searches: force counts are
+  cached during the already throttled 260-365 ms target scan.
+- Weapon cadence may tighten while pressing, but still uses the shared bullet,
+  muzzle and impact caps. Never emulate sustained fire with a new interval or
+  per-weapon timer.
+- The empire dossier is CSS/DOM UI, not a WebGL scene. Reuse its single portrait
+  canvas and style the surrounding command strip, bevels and action panels;
+  reset the card scroll position when switching from the dashboard so the
+  sticky header cannot cover the portrait and identity block.
