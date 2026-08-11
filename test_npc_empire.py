@@ -48,6 +48,19 @@ async def run() -> None:
 
         state = await ne.state_for(path, 101)
         assert len(state["empires"]) == 19
+        assert all(e["activity"]["kind"] in {
+            "recruit", "business_capture", "business_bought", "expand", "hq_expand",
+            "patrol", "war_won", "war_lost", "gang_destroyed", "comeback",
+        } for e in state["empires"])
+        assert all(e["activity"]["complete_at"] >= state["server_time"] for e in state["empires"])
+        assert len(ne.WEAPON_PROFILES) == 19
+        assert {p.weapon_id for p in ne.PROFILES} == set(ne.WEAPON_PROFILES)
+        assert len({p.weapon_name for p in ne.PROFILES}) == 19
+        assert all(e["weapon_profile"] == ne.WEAPON_PROFILES[e["weapon_id"]] for e in state["empires"])
+        assert ne.WEAPON_PROFILES["timur_express"]["effect"] == "arrow"
+        assert ne.WEAPON_PROFILES["rustam_wrench"]["effect"] == "nailed_bat"
+        assert ne.WEAPON_PROFILES["rustam_wrench"]["kind"] == "melee"
+        assert ne.WEAPON_PROFILES["marco_road"]["effect"] == "explosive"
         assert {x["leader_name"] for x in state["empires"]} == set(ne.MAFIA_BOSS_NAMES.values())
         assert next(x for x in state["empires"] if x["leader_id"] == "rustam")["leader_name"] == "Билли Капоне"
         assert len(state["leaderboard"]) == 19 and len(state["districts"]) == len(ne.DISTRICTS)
@@ -67,6 +80,8 @@ async def run() -> None:
         assert not too_far["ok"] and too_far["error"] == "too far"
         assault = await ne.prepare_assault(path, 101, "leila", 26, 16, now=2_000_001_001)
         assert assault["ok"] and 4 <= len(assault["guards"]) <= 14
+        assert all(g["weapon_id"] == "leila_mercy" and g["weapon_profile"] for g in assault["guards"])
+        assert assault["boss"]["weapon_profile"] == ne.WEAPON_PROFILES["leila_mercy"]
         token = assault["token"]
         blocked = await ne.assault_hit(path, 101, token, "boss", None, 35, now=2_000_001_001.2)
         assert not blocked["ok"] and blocked["error"] == "guards alive"
