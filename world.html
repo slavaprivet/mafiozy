@@ -17780,8 +17780,8 @@ function _npcEmpireOverlay(){
 }
 function _ensureNpcSandboxButton(){
   if(document.getElementById('npcSandboxButton'))return;
-  const style=document.createElement('style');style.textContent=`#npcSandboxButton{position:fixed;z-index:8990;left:max(12px,env(safe-area-inset-left));top:116px;border:1px solid #b9873f;border-radius:11px;padding:8px 11px;background:linear-gradient(135deg,#231810ef,#080c12ef);color:#ffe4a2;box-shadow:0 6px 22px #0009;font:900 10px Arial}.ns-rank{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:9px 4px;border-bottom:1px solid #ffffff12;cursor:pointer}.ns-rank .place{font:900 17px Georgia;color:#edc26c}.ns-rank small{display:block;color:#919dab;margin-top:3px}.ns-score{text-align:right;color:#ffe09a;font-weight:900}.ns-districts{display:grid;grid-template-columns:1fr 1fr;gap:7px}.ns-district{padding:9px;border:1px solid #ffffff14;border-radius:9px;background:#ffffff06;font-size:10px}.ns-district b{display:block;color:#f2cb78;margin-bottom:4px}.ns-district.contested{border-color:#b84b4b;background:#46171b55}@media(max-width:560px){#npcSandboxButton{top:105px}.ns-districts{grid-template-columns:1fr}}`;document.head.appendChild(style);
-  const button=document.createElement('button');button.id='npcSandboxButton';button.textContent='🏛️ ИМПЕРИИ';button.onclick=openNpcSandboxDashboard;document.body.appendChild(button);
+  const style=document.createElement('style');style.textContent=`#npcSandboxButton{position:fixed;z-index:8990;left:292px;top:126px;display:grid;grid-template-columns:42px 1fr auto;align-items:center;gap:9px;width:218px;min-height:58px;padding:7px 10px 7px 8px;overflow:hidden;border:1px solid #d6a742;border-radius:8px;background:radial-gradient(circle at 12% 25%,#8c5d2438,transparent 38%),linear-gradient(105deg,#24180fef,#090d13f5 72%);color:#ffe5a0;box-shadow:0 9px 28px #000c,inset 0 1px #ffe8a84d;text-align:left;cursor:pointer}.nis-crest{display:grid;place-items:center;width:38px;height:42px;border:1px solid #d8aa4f;border-radius:6px;background:linear-gradient(160deg,#684414,#17100b);font-size:23px;box-shadow:inset 0 0 12px #0008}.nis-copy small{display:block;color:#c9a45d;font:800 8px/1.1 Arial;letter-spacing:1.3px}.nis-copy b{display:block;margin-top:3px;color:#fff0bd;font:900 15px/1 Georgia;letter-spacing:.5px}.nis-count{display:grid;place-items:center;min-width:27px;height:27px;border:1px solid #a82f3b;border-radius:50%;background:#4a1119;color:#ffbdc2;font:900 11px Arial}#npcSandboxButton:hover{filter:brightness(1.16);transform:translateY(-1px)}.ns-rank{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:9px 4px;border-bottom:1px solid #ffffff12;cursor:pointer}.ns-rank .place{font:900 17px Georgia;color:#edc26c}.ns-rank small{display:block;color:#919dab;margin-top:3px}.ns-score{text-align:right;color:#ffe09a;font-weight:900}.ns-districts{display:grid;grid-template-columns:1fr 1fr;gap:7px}.ns-district{padding:9px;border:1px solid #ffffff14;border-radius:9px;background:#ffffff06;font-size:10px}.ns-district b{display:block;color:#f2cb78;margin-bottom:4px}.ns-district.contested{border-color:#b84b4b;background:#46171b55}@media(max-width:720px){#npcSandboxButton{left:12px;top:104px;width:176px;grid-template-columns:34px 1fr auto;min-height:50px}.nis-crest{width:31px;height:35px;font-size:18px}.nis-copy b{font-size:12px}.ns-districts{grid-template-columns:1fr}}`;document.head.appendChild(style);
+  const button=document.createElement('button');button.id='npcSandboxButton';button.innerHTML='<span class="nis-crest">♛</span><span class="nis-copy"><small>КАРТА КРИМИНАЛЬНОЙ ВЛАСТИ</small><b>ИМПЕРИИ ГОРОДА</b></span><span class="nis-count">19</span>';button.onclick=openNpcSandboxDashboard;document.body.appendChild(button);
 }
 function _npcEmpireStatus(empire){
   if(empire?.status==='offline')return 'Босс · серверная экономика загружается';
@@ -17832,10 +17832,13 @@ function _npcEmpireUiActivity(empire){
 }
 function _paintNpcEmpireUiPortraits(root=document){
   root.querySelectorAll?.('canvas[data-ne-portrait]').forEach(cv=>{
-    const look=_npcEmpireUiLook(cv.dataset.nePortrait),ctx=cv.getContext('2d');
-    try{ctx.clearRect(0,0,cv.width,cv.height);drawChar(ctx,cv.width,cv.height,look);}catch(e){}
-    try{window.MafioziCharacter3D?.paint(cv,look,{angle:0});}catch(e){}
+    const leaderId=String(cv.dataset.nePortrait||''),look=_npcEmpireUiLook(leaderId),empire=_npcEmpireById.get(leaderId),npc=SPECIALIST_NPCS.find(n=>String(n._specialistId||'')===leaderId),ctx=cv.getContext('2d');
+    let painted3d=false;
+    try{painted3d=!!window.MafioziCharacter3D?.paint(cv,look,{angle:0,boss:true,bossStyle:+npc?._empireStyle||0,suit:empire?.color||npc?._empireColor||look.suit,accent:empire?.accent||npc?._empireAccent||look.accent,weapon:empire?.weapon_base||npc?._empireWeaponBase||'pistol'});}catch(e){}
+    if(!painted3d)try{ctx.clearRect(0,0,cv.width,cv.height);drawChar(ctx,cv.width,cv.height,look);}catch(e){}
+    cv.dataset.portraitMode=painted3d?'3d':'2d-fallback';
   });
+  if(!window.MafioziCharacter3D&&!root._npcEmpire3dRetry){root._npcEmpire3dRetry=true;window.addEventListener('mafiozi:character3dready',()=>_paintNpcEmpireUiPortraits(root),{once:true});}
 }
 function _installReadableNpcEmpireUi(){
   if(document.getElementById('npcEmpireReadableUi'))return;
