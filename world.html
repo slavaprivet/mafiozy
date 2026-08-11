@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v268: browser QA verifies RMB aim plus LMB pistol, grenade and Molotov actions. -->
+<!DOCTYPE html><!-- v318: authoritative roaming gangs capture businesses, wage wars and can be hired. -->
+<!-- v268: browser QA verifies RMB aim plus LMB pistol, grenade and Molotov actions. -->
 <!-- v267: embedded WebViews can fire LMB while the RMB aim state remains authoritative. -->
 <!-- v266: major-building assault anchors stay synchronized with the authoritative server. -->
 <!-- v265: authored black-market facade, guarded animated entrance and collision-safe approach. -->
@@ -2762,6 +2763,19 @@ async function _fetchApiFallback() {
       /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+\//.test(j.base + '/') &&
       j.base !== 'https://api.trycloudflare.com';
     if (localPreviewApi || publicTunnelApi) {
+      // Указатель на Pages мог остаться от уже закрытого quick-туннеля.
+      // Меняем рабочий api из Telegram-ссылки только после startup health-check.
+      const probeCtl=(typeof AbortController!=='undefined')?new AbortController():null;
+      const probeTimer=probeCtl?setTimeout(()=>probeCtl.abort(),2200):0;
+      let reachable=false;
+      try{
+        const probe=await fetch(j.base.replace(/\/$/,'')+'/app/version?t='+Date.now(),{
+          cache:'no-store',signal:probeCtl?probeCtl.signal:undefined
+        });
+        reachable=probe.ok;
+      }catch(_e){}
+      if(probeTimer)clearTimeout(probeTimer);
+      if(!reachable)return QP.api||'';
       if (QP.api !== j.base) {
         try { console.log('[world] api refreshed:', QP.api || '(empty)', '→', j.base); } catch(e) {}
       }
@@ -17109,6 +17123,14 @@ function _gangSay(m, kind, chance = 1, combat = false) {
   return true;
 }
 
+const GANG_ORDER_LABELS={attack:'атаковать',retreat:'отступить',ceasefire:'не стрелять'};
+function _gangSquadMorale(){
+  const alive=_myGang.filter(g=>g&&g.hp>0&&!g.downed);
+  if(!alive.length)return 0;
+  const hp=alive.reduce((sum,g)=>sum+Math.max(0,+g.hp||0),0);
+  const maxHp=alive.reduce((sum,g)=>sum+Math.max(1,+g.max_hp||1),0);
+  return Math.max(0,Math.min(1,(alive.length/Math.max(1,GANG_MAX))*.55+(hp/maxHp)*.45));
+}
 function _tickGangChatter(now) {
   if (!_myGang.length || myDead || now < _gangNextIdleSpeechAt) return;
   const calm = _myGang.filter(g => g.hp > 0 && !g.targetKind && now > (g._threatUntil || 0));
@@ -17131,7 +17153,7 @@ const _GANG_NAMES = [
 ];
 function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false,
   botLevel = 1, botMaxHp = 0, serverConfirmed = false,
-  botWeapon = null, botFaction = null) {
+  botWeapon = null, botFaction = null, authoritativeCash = null) {
   if(!_mafiaState?.employed&&!_customGang){showToast('Сначала вступи в мафию или создай свою банду','🕴️',2200);return false;}
   const mafiaLevel=_mafiaLevel();
   botLevel=Math.max(1,Math.min(25,parseInt(botLevel)||1));
@@ -17141,7 +17163,7 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false,
   if (lvl < GANG_MIN_LVL) { showToast(`🔒 Нужен ранг ${GANG_MIN_LVL}+`, '⚠️', 1500); return false; }
   const hireCost=Math.max(50,Math.round((isBoss?800:GANG_HIRE_COST)*(mafiaLevel>=2?.85:1)));
   const cash = parseInt(QP.cash) || 0;
-  if (cash < hireCost) { showToast(`💸 Нужно $${hireCost}`, '❌', 1500); return false; }
+  if (!serverConfirmed && cash < hireCost) { showToast(`💸 Нужно $${hireCost}`, '❌', 1500); return false; }
   if (!serverConfirmed && sourceBotId != null) {
     const key=String(sourceBotId);
     if(_pendingGangHires.has(key)){showToast('Запрос на найм уже отправлен','⏳',1500);return 'pending';}
@@ -17155,7 +17177,9 @@ function _hireGangMember(botLook, r, c, sourceBotId = null, isBoss = false,
     showToast('Предлагаем бойцу вступить в бригаду…','🤝',1400);
     return 'pending';
   }
-  QP.cash = cash - hireCost; myCash = parseInt(QP.cash); updateMoneyHud();
+  QP.cash = serverConfirmed && Number.isFinite(+authoritativeCash)
+    ? Math.max(0,Math.floor(+authoritativeCash)) : cash - hireCost;
+  myCash = parseInt(QP.cash); updateMoneyHud();
   const look = Object.assign({}, botLook || { gender: 0, skin: 2, body: 1, face: 2, hair: 3, hat: 0 });
   const weapons = isBoss?['tommy_gun','rifle','shotgun']:(mafiaLevel>=3?['smg','shotgun','tommy_gun']:['pistol','smg','shotgun']);
   const gangName = _GANG_NAMES[Math.floor(Math.random() * _GANG_NAMES.length)];
@@ -20145,17 +20169,33 @@ function handleEventPacket(d) {
     }else showToast(({not_crew:'Только участники одной команды могут ходить в гости',owner_left:'Друг уже вышел из квартиры',too_far:'Подойди к жёлтому входу ближе'}[d.reason]||'Сейчас войти в гости нельзя'),'🔒',2600);
   }
   else if(kind==='gang_player_changed'){showToast(d.accepted?'Онлайн-игрок вступил в пати':'Приглашение отклонено',d.accepted?'◆':'👋',2400);}
+  else if(kind==='city_gang_surrender'||kind==='city_gang_retreat'){
+    showToast(kind==='city_gang_surrender'?'Банда сдаётся':'Банда отступает',
+      kind==='city_gang_surrender'?'🏳️':'💨',2200);
+  }
+  else if(kind==='city_gang_police_called'){
+    showToast('Очевидцы вызвали полицию на перестрелку банд','🚔',2200);
+  }
+  else if(kind==='city_gang_control'){
+    showToast('Победившая банда удерживает эту улицу','🚩',2400);
+  }
+  else if(kind==='npc_business_captured'){
+    showToast(`Банда захватила бизнес: ${d.biz_id||''}`,'🏴',2600);
+  }
+  else if(kind==='lair_boss_fallen'){
+    showToast('Главарь логова убит — часть банды дрогнула','☠️',2800);
+  }
   else if(kind==='gang_hire_reply'){
     const key=String(d.bot_id||''),pending=_pendingGangHires.get(key);
     _pendingGangHires.delete(key);
     if(!d.ok){
-      showToast(d.reason==='police_service'?'Коп не может нанимать банду — используй служебное подкрепление':d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 4 уровень мафии для найма сильных бойцов 10–25 уровня':d.reason==='too_far'?'Подойди к бойцу ближе':'Боец уже недоступен','⚠️',3000);
+      showToast(d.reason==='police_service'?'Коп не может нанимать банду — используй служебное подкрепление':d.reason==='not_mafia'?'Сначала вступи в мафию или создай свою банду':d.reason==='cash'?`Для найма нужно $${+d.cost||500}`:d.reason==='payment_failed'?'Сервер не смог провести оплату — деньги не списаны':d.reason==='district_defender'?'Охрану района нельзя нанять — досье нужно добыть в бою':d.reason==='mafia_level'?'Нужен 4 уровень мафии для найма сильных бойцов 10–25 уровня':d.reason==='too_far'?'Подойди к бойцу ближе':'Боец уже недоступен','⚠️',3000);
     }else if(pending){
       const hired=_hireGangMember(
         d.look||pending.botLook,pending.r,pending.c,pending.sourceBotId,
         !!d.is_boss,Math.max(1,+d.level||pending.botLevel||1),
         Math.max(0,+d.max_hp||pending.botMaxHp||0),true,
-        d.weapon||pending.botWeapon||null,d.faction||pending.botFaction||null
+        d.weapon||pending.botWeapon||null,d.faction||pending.botFaction||null,d.cash
       );
       if(hired===true)_hiredBotIds.add(key);
       if(hired===true && d.business_cleared && d.business_id){
@@ -22442,6 +22482,41 @@ function wsConnect() {
       const d = pkt.d || {};
       // Маркер для heartbeat-диагностики — sec since last snap
       try { _lastSnapT = performance.now(); } catch(e){}
+      // Стратегическое состояние банд применяется в начале снапшота: оно
+      // только рисуется и никогда не подменяет серверный статус владельца.
+      if (d.npc_business_controls !== undefined) {
+        const fresh = d.npc_business_controls || {};
+        for (const id of Object.keys(_npcBusinessControls)) {
+          if (!(id in fresh)) delete _npcBusinessControls[id];
+        }
+        for (const [id, control] of Object.entries(fresh)) {
+          _npcBusinessControls[id] = {...control};
+        }
+      }
+      if (d.npc_business_dominance !== undefined) {
+        _npcBusinessDominance = {
+          purple: Math.max(0, +d.npc_business_dominance?.purple || 0),
+          yellow: Math.max(0, +d.npc_business_dominance?.yellow || 0),
+        };
+        document.documentElement.dataset.npcBusinessDominance =
+          `purple:${_npcBusinessDominance.purple},yellow:${_npcBusinessDominance.yellow}`;
+      }
+      if (d.npc_gang_economy !== undefined) {
+        _npcGangEconomy = {
+          purple:{...(_npcGangEconomy.purple||{}),...(d.npc_gang_economy?.purple||{})},
+          yellow:{...(_npcGangEconomy.yellow||{}),...(d.npc_gang_economy?.yellow||{})},
+        };
+      }
+      if (d.npc_business_operations !== undefined) {
+        _npcBusinessOperations = Array.isArray(d.npc_business_operations)
+          ? d.npc_business_operations.map(operation=>({...operation})) : [];
+        document.documentElement.dataset.npcBusinessOperations =
+          String(_npcBusinessOperations.length);
+      }
+      if (d.street_control !== undefined) {
+        document.documentElement.dataset.streetControl =
+          JSON.stringify(d.street_control || {});
+      }
       _updateFactionWarHud(d.faction_war);
       if(d.prison_alarm!==undefined)_syncPrisonAlarmFromServer(d.prison_alarm,performance.now());
       // Reconcile серверной позиции с КЛИЕНТСКОЙ
@@ -23995,6 +24070,10 @@ let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир
 const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 const _robbedBusinessControls = {}; // biz_id → постоянный семейный владелец до отжима
+const _npcBusinessControls = {}; // автономная уличная банда и физический гарнизон
+let _npcBusinessDominance = {purple:0,yellow:0};
+let _npcGangEconomy = {purple:{treasury:0,businesses:0},yellow:{treasury:0,businesses:0}};
+let _npcBusinessOperations = [];
 const _businessFamilyWars = {}; // biz_id → открытая война семей
 let _businessWarScore = {
   bellini:{influence:0,treasury:0,captures:0,defenses:0,robberies:0,controlled:0},
@@ -39059,8 +39138,45 @@ function _nearestBusinessPoi() {
   return best;
 }
 
+function drawNpcBusinessOperation(b,p=w2s(b.r+.5,b.c+.5)){
+  const operation=_npcBusinessOperations.find(item=>String(item.biz_id)===String(b.id));
+  if(!operation)return;
+  const color=operation.faction==='yellow'?'#ffe34d':'#b887ff';
+  const phases={travel:'МАРШ',assault:'ШТУРМ',capture:'ЗАХВАТ'};
+  const phase=phases[operation.phase]||'ОПЕРАЦИЯ',pulse=(Math.sin(performance.now()*.009)+1)*.5;
+  ctx.save();ctx.strokeStyle=color;ctx.lineWidth=2.2;ctx.setLineDash([7,4]);ctx.globalAlpha=.72+.2*pulse;
+  ctx.beginPath();ctx.ellipse(p.x,p.y+9,61+pulse*4,28+pulse*2,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  ctx.font='900 9px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  const text=`⚔ ${phase} · ${Math.max(0,+operation.strength||0)}`;
+  ctx.fillStyle='rgba(5,7,12,.9)';ctx.fillRect(p.x-47,p.y-112,94,17);
+  ctx.strokeStyle=color;ctx.strokeRect(p.x-46.5,p.y-111.5,93,16);
+  ctx.fillStyle='#fff';ctx.fillText(text,p.x,p.y-103);ctx.restore();
+}
+
+function drawNpcBusinessControl(b, p = w2s(b.r + 0.5, b.c + 0.5)) {
+  drawNpcBusinessOperation(b,p);
+  const control = _npcBusinessControls[b.id];
+  if (!control) return;
+  const color = control.color || (control.faction === 'yellow' ? '#ffe34d' : '#b887ff');
+  const pulse = (Math.sin(performance.now() * .0045) + 1) * .5;
+  ctx.save();ctx.globalAlpha=.2+pulse*.08;ctx.fillStyle=color;
+  ctx.beginPath();ctx.ellipse(p.x,p.y+9,54+pulse*4,24+pulse*2,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=.86;ctx.strokeStyle=color;ctx.lineWidth=control.guarded?3:1.8;
+  ctx.setLineDash(control.guarded?[]:[6,4]);ctx.beginPath();ctx.ellipse(p.x,p.y+9,52,23,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
+  const roofY=p.y-88;ctx.strokeStyle='#d8c39a';ctx.lineWidth=2.2;
+  ctx.beginPath();ctx.moveTo(p.x,roofY+42);ctx.lineTo(p.x,roofY-16);ctx.stroke();
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(p.x+1,roofY-15);ctx.lineTo(p.x+38,roofY-7+Math.sin(performance.now()*.006)*2);ctx.lineTo(p.x+1,roofY+5);ctx.closePath();ctx.fill();
+  const defense=Math.max(0,Math.min(3,+control.defense_level||0));
+  const label=String(control.gang_name||(control.faction==='yellow'?'ЖЁЛТЫЕ':'ФИОЛЕТОВЫЕ')).toUpperCase();
+  ctx.font='900 9px system-ui,sans-serif';const labelW=Math.max(68,Math.min(126,ctx.measureText(label).width+18));
+  ctx.fillStyle='rgba(5,7,12,.9)';ctx.fillRect(p.x-labelW/2,roofY+44,labelW,17);
+  ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.strokeRect(p.x-labelW/2+.5,roofY+44.5,labelW-1,16);
+  ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(`${label}${defense?'  '+'◆'.repeat(defense):''}`,p.x,roofY+52.5);ctx.restore();
+}
+
 function drawBusinessPoi(b) {
   const p = w2s(b.r + 0.5, b.c + 0.5);
+  drawNpcBusinessControl(b, p);
   // Вблизи название, статус и цена уже показаны контекстными кнопками.
   // Освобождаем фасад небольшого здания от большой плашки со стрелкой.
   if (_businessInteractionDistance(b) < 5.5) return;
@@ -60262,6 +60378,19 @@ window.Mafiozi3DBridge = Object.freeze({
     };
   },
   getCustomGangHqs() { return _threeCustomGangHqSnapshot(); },
+  getNpcBusinessControls() {
+    return BUSINESS_POIS.map(biz => ({
+      id:String(biz.id),r:+biz.r,c:+biz.c,name:biz.name||biz.id,
+      businessControl:_npcBusinessControls[biz.id]
+        ? {..._npcBusinessControls[biz.id]} : null,
+    })).filter(item => item.businessControl);
+  },
+  getNpcBusinessOperations() {
+    return _npcBusinessOperations.map(operation=>{
+      const biz=BUSINESS_POIS.find(item=>String(item.id)===String(operation.biz_id));
+      return biz?{...operation,r:+biz.r,c:+biz.c,name:biz.name||biz.id}:null;
+    }).filter(Boolean);
+  },
   getInteriorState() {
     const src=_buildingInt||_bankInt||null;
     if(!src)return null;
@@ -60670,13 +60799,6 @@ window.Mafiozi3DBridge = Object.freeze({
       if(typeof beachgoers!=='undefined')for(const beachNpc of beachgoers.values()){if(!beachNpc||beachNpc._evacuated||beachNpc._carriedByAmbulance)continue;const pos=_beachgoerWorldPos(beachNpc);combat.push({...beachNpc,id:`beach_${beachNpc.id}`,r:beachNpc.dead?(beachNpc._deathR??pos.r):pos.r,c:beachNpc.dead?(beachNpc._deathC??pos.c):pos.c,role:'beach_civilian',name:beachNpc.name||'Отдыхающий'});}
       if(typeof cityCops!=='undefined')for(const cop of cityCops||[])if(cop)combat.push({...cop,_actionRef:cop,id:`city_cop_${cop.id}`,r:+cop.y||0,c:+cop.x||0,dead:cop.alive===false,role:'police',police:true,name:cop.name||'Полицейский'});
       if(typeof worldCops!=='undefined')for(const cop of worldCops||[])if(cop)combat.push({...cop,_actionRef:cop,id:`world_cop_${cop.id}`,r:+(cop.y??cop.r)||0,c:+(cop.x??cop.c)||0,dead:cop.alive===false||cop.dead===true,role:'police_response',police:true,name:cop.name||'Полиция'});
-      // When there is no authoritative aggro snapshot (plain browser launch),
-      // retain the old 2D lair population until real server fighters arrive.
-      if(typeof AGGRO_ZONES!=='undefined')for(const zoneDef of AGGRO_ZONES){
-        const liveZone=typeof aggroZones!=='undefined'?aggroZones[zoneDef.id]:null;
-        if((liveZone?.bots||[]).some(bot=>bot&&bot.alive!==false))continue;
-        for(let i=0;i<12;i++){const a=i/12*Math.PI*2+(i%3)*.17,rad=4+(i%4)*2.15;combat.push({id:`lair_fallback_${zoneDef.id}_${i}`,r:zoneDef.r+Math.sin(a)*rad,c:zoneDef.c+Math.cos(a)*rad,ang:a+Math.PI,walkPhase:0,walking:false,hp:80,max_hp:80,role:i===0?'gang_boss':'gang_fighter',gang:true,behavior:'guards_lair',faction:i%2?'yellow':'purple',name:i===0?'Главарь Логова':'Бандит Логова'});}
-      }
       if(typeof michaelGuards!=='undefined')for(const guard of michaelGuards.values())if(guard)combat.push({...guard,id:`michael_guard_${guard.id}`,r:+guard.y||0,c:+guard.x||0,dead:guard.alive===false,role:'guard',name:'Охрана Майкла'});
       // Static and ambient people below have their own 2D collections, so they
       // must be explicitly included in the 3D population snapshot.
@@ -64898,6 +65020,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d317-webview-rmb-lmb-chord"></script>
+<script type="module" src="three_preview.js?v=3d318-authoritative-gang-world"></script>
 </body>
 </html>
