@@ -310,6 +310,34 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   errors occurred; only expected missing-API warnings from the local static
   server were present.
 
+## Suspension bridge static instance batches (2026-08-11)
+
+- The authored suspension bridge reused materials but allocated separate mesh
+  objects for braces, cross-members, piers, capitals, balusters, road stripes,
+  vertical cable hangers and promenade lamps. Build one exact geometry per part
+  family and preserve every authored transform through `InstancedMesh` matrices.
+  Keep the original cast/receive-shadow flags per family.
+- The bridge now represents 201 repeated sources with 15 static instance
+  batches. No geometry resolution, material, light, shadow, distance or visible
+  detail was removed. Collision remains authoritative in `world.html` and is
+  unaffected by these render-only objects.
+- In the deterministic `previewbridge` camera, the control sample reported
+  1,637 draw calls, `30.0 ms` render and `53.2 ms` frame work with 60 NPCs. The
+  batched sample reported 1,219 calls, `18.7 ms` render and `30.7 ms` frame work
+  with 54 NPCs. Treat the exact 201-to-15 structural consolidation as the
+  reliable result; the 418-call and timing differences also include shadow
+  submissions and the six-NPC population difference.
+- A final visible-bridge sample after restoring the patch reported 1,291 calls,
+  `22.2 ms` render, `27.9 ms` frame work and 22 FPS with 55 NPCs. The bridge
+  retained its pylons, rails, cables, hangers, lamps, lane markings and shadows;
+  collision mismatches stayed at zero, real-time shadows remained on, the
+  server-backed `Гражданский` status remained visible, and the console had no
+  errors. After rebasing onto the v330 city-lighting and v331 police-transport
+  changes, the same bridge camera reported 1,356 calls, `17.7 ms` render and
+  `20.1 ms` frame work at 22 FPS with 54 NPCs; traffic-light halos, player
+  visibility and shadows remained intact. One browser tab was used at a time
+  and closed after each comparison.
+
 ## Static detail geometry batching (2026-08-11)
 
 - The next measured city bottleneck was render submission, not the JavaScript simulation: a production sample spent `26.3 ms` of `29.2 ms` frame work in `renderer.render`, at `1843` draw calls and about `1.18M` triangles.

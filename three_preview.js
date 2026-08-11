@@ -1,3 +1,4 @@
+// 3D render v331: repeated suspension-bridge details use identical instanced geometry.
 // 3D custody v331: police transport hides the local prisoner for the full in-vehicle phase.
 // 3D render v330: camera occlusion preserves readable facades and restores a selected building immediately.
 // 3D city lighting v330: readable traffic lenses and scheduled instanced street-lamp glow.
@@ -368,28 +369,35 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const canalWater=new THREE.Mesh(new THREE.PlaneGeometry((canal.c1-canal.c0)*WORLD_SCALE,(canal.r1-canal.r0)*WORLD_SCALE),canalWaterMat);canalWater.rotation.x=-Math.PI/2;canalWater.position.set(toX((canal.c0+canal.c1)/2),.09,toZ((canal.r0+canal.r1)/2));scene.add(canalWater);
         const bridgeWidth=(canal.c1-canal.c0+2)*WORLD_SCALE,bridgeDepth=(canal.bridge.r1-canal.bridge.r0)*WORLD_SCALE,bridgeX=toX((canal.c0+canal.c1)/2),bridgeZ=toZ((canal.bridge.r0+canal.bridge.r1)/2);
         const bridgeStoneMat=new THREE.MeshStandardMaterial({color:0x687078,roughness:.68,metalness:.2,envMap:cityEnvironment,envMapIntensity:.42}),bridgeDarkMat=new THREE.MeshStandardMaterial({color:0x172127,roughness:.3,metalness:.86,envMap:cityEnvironment,envMapIntensity:.88}),bridgeCableMat=new THREE.MeshStandardMaterial({color:0x242a2f,roughness:.24,metalness:.92,envMap:cityEnvironment,envMapIntensity:1.05}),bridgeHangerMat=new THREE.MeshStandardMaterial({color:0xb6b9b5,roughness:.26,metalness:.9}),bridgeGoldMat=new THREE.MeshStandardMaterial({color:0xd0a342,roughness:.22,metalness:.9}),bridgeRedMat=new THREE.MeshStandardMaterial({color:0xb52c31,roughness:.38,metalness:.48,envMap:cityEnvironment,envMapIntensity:.72}),bridgeJadeMat=new THREE.MeshStandardMaterial({color:0x184d46,roughness:.42,metalness:.35}),bridgeGlowMat=new THREE.MeshBasicMaterial({color:0xffd276,toneMapped:false}),bridgeRedGlowMat=new THREE.MeshBasicMaterial({color:0xff443d,toneMapped:false});
+        let bridgeBatchedSources=0,bridgeBatchedDrawCalls=0;
+        const addBridgeInstances=(geometry,material,poses,castShadow=true,receiveShadow=true,parent=scene)=>{const mesh=new THREE.InstancedMesh(geometry,material,poses.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),s=new THREE.Vector3();poses.forEach(([x,y,z,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0],i)=>{q.setFromEuler(new THREE.Euler(rx,ry,rz));m.compose(new THREE.Vector3(x,y,z),q,s.set(sx,sy,sz));mesh.setMatrixAt(i,m);});mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=castShadow;mesh.receiveShadow=receiveShadow;parent.add(mesh);bridgeBatchedSources+=poses.length;bridgeBatchedDrawCalls++;return mesh;};
         const bridgeDeck=box(bridgeX,bridgeZ,bridgeWidth,bridgeDepth,.68,new THREE.MeshStandardMaterial({color:0xa7afb4,map:asphaltTexture,roughness:.72,metalness:.18}));bridgeDeck.position.y=.72;bridgeDeck.receiveShadow=true;
         // Deep stone fascia and steel girders give the crossing weight when seen from the fixed camera.
+        const bridgeBracePos=[];
         for(const rr of [canal.bridge.r0+.22,canal.bridge.r1-.22]){
           const fascia=box(bridgeX,toZ(rr),bridgeWidth,.34,.72,bridgeDarkMat);fascia.position.y=.34;
           const lowerGirder=box(bridgeX,toZ(rr),bridgeWidth,.18,.22,bridgeGoldMat);lowerGirder.position.y=-.06;
-          for(let c=canal.c0-1;c<=canal.c1+1;c+=2.15){const brace=box(toX(c),toZ(rr),.16,.25,1.02,bridgeHangerMat);brace.position.y=.27;brace.rotation.z=(Math.floor(c*10)%2?1:-1)*.72;}
+          for(let c=canal.c0-1;c<=canal.c1+1;c+=2.15)bridgeBracePos.push([toX(c),.27,toZ(rr),1,1,1,0,0,(Math.floor(c*10)%2?1:-1)*.72]);
         }
-        for(let c=canal.c0-1;c<=canal.c1+1;c+=4){const cross=box(toX(c),bridgeZ,.22,bridgeDepth+.65,.3,bridgeDarkMat);cross.position.y=-.55;}
+        addBridgeInstances(new THREE.BoxGeometry(.16,1.02,.25),bridgeHangerMat,bridgeBracePos);
+        const bridgeCrossPos=[];for(let c=canal.c0-1;c<=canal.c1+1;c+=4)bridgeCrossPos.push([toX(c),-.55,bridgeZ]);
+        addBridgeInstances(new THREE.BoxGeometry(.22,.3,bridgeDepth+.65),bridgeDarkMat,bridgeCrossPos);
         // Only the two suspension towers touch the water; the open span remains light and readable.
         const suspensionTowerCs=[canal.c0+3.4,canal.c1-3.4],towerEdgeZ=[bridgeZ-bridgeDepth*.5+1.7,bridgeZ+bridgeDepth*.5-1.7],pierGeometry=new THREE.CylinderGeometry(.9,1.45,6.4,18),capitalGeometry=new THREE.CylinderGeometry(1.25,.92,.58,18);
-        for(const c of suspensionTowerCs)for(const pz of towerEdgeZ){const pier=new THREE.Mesh(pierGeometry,bridgeStoneMat);pier.position.set(toX(c),-2.25,pz);pier.castShadow=pier.receiveShadow=true;scene.add(pier);const capital=new THREE.Mesh(capitalGeometry,bridgeGoldMat);capital.position.set(toX(c),.98,pz);capital.castShadow=true;scene.add(capital);}
+        const pierPos=[],capitalPos=[];for(const c of suspensionTowerCs)for(const pz of towerEdgeZ){pierPos.push([toX(c),-2.25,pz]);capitalPos.push([toX(c),.98,pz]);}
+        addBridgeInstances(pierGeometry,bridgeStoneMat,pierPos,true,true);addBridgeInstances(capitalGeometry,bridgeGoldMat,capitalPos,true,false);
         const railY=1.72;
+        const balusterPos=[];
         for(const rr of [canal.bridge.r0+.38,canal.bridge.r1-.38]){
           const topRail=box(bridgeX,toZ(rr),bridgeWidth,.18,.2,bridgeGoldMat);topRail.position.y=railY;
           const lowerRail=box(bridgeX,toZ(rr),bridgeWidth,.12,.13,bridgeDarkMat);lowerRail.position.y=1.15;
-          for(let c=canal.c0-1;c<=canal.c1+1;c+=1.45){const baluster=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,.72,8),bridgeDarkMat);baluster.position.set(toX(c),1.36,toZ(rr));scene.add(baluster);}
+          for(let c=canal.c0-1;c<=canal.c1+1;c+=1.45)balusterPos.push([toX(c),1.36,toZ(rr)]);
         }
+        addBridgeInstances(new THREE.CylinderGeometry(.07,.1,.72,8),bridgeDarkMat,balusterPos,false,false);
         const seawallMat=new THREE.MeshStandardMaterial({color:0x68737a,roughness:.78,metalness:.18});for(const cc of [canal.c0-.15,canal.c1+.15]){const wall=box(toX(cc),toZ((canal.r0+canal.r1)/2),.45*WORLD_SCALE,(canal.r1-canal.r0)*WORLD_SCALE,1.15,seawallMat);wall.position.y=.28;}
-        const bridgeStripeMat=new THREE.MeshBasicMaterial({color:0xe7c75e});for(let c=canal.c0;c<canal.c1;c+=3){const stripe=box(toX(c+1),bridgeZ,1.5*WORLD_SCALE,.12*WORLD_SCALE,.045,bridgeStripeMat);stripe.position.y=1.135;}
+        const bridgeStripeMat=new THREE.MeshBasicMaterial({color:0xe7c75e}),bridgeStripePos=[];for(let c=canal.c0;c<canal.c1;c+=3)bridgeStripePos.push([toX(c+1),1.135,bridgeZ]);addBridgeInstances(new THREE.BoxGeometry(1.5*WORLD_SCALE,.045,.12*WORLD_SCALE),bridgeStripeMat,bridgeStripePos);
         // v198 deck detailing stays batched: promenades, red curbs, expansion
         // joints, reflectors and anchor blocks add four draw calls in total.
-        const addBridgeInstances=(geometry,material,poses)=>{const mesh=new THREE.InstancedMesh(geometry,material,poses.length),m=new THREE.Matrix4();poses.forEach(([x,y,z,sx=1,sy=1,sz=1],i)=>{m.compose(new THREE.Vector3(x,y,z),new THREE.Quaternion(),new THREE.Vector3(sx,sy,sz));mesh.setMatrixAt(i,m);});mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=mesh.receiveShadow=true;scene.add(mesh);return mesh;};
         const promenadeMat=new THREE.MeshStandardMaterial({color:0x8b7761,roughness:.76,metalness:.14}),curbMat=new THREE.MeshStandardMaterial({color:0x9f2028,roughness:.48,metalness:.35}),jointMat=new THREE.MeshStandardMaterial({color:0x222a2f,roughness:.3,metalness:.82}),reflectorMat=new THREE.MeshBasicMaterial({color:0xffd66e,toneMapped:false});
         const promenadeZ=[bridgeZ-bridgeDepth*.5+1.05,bridgeZ+bridgeDepth*.5-1.05];
         addBridgeInstances(new THREE.BoxGeometry(bridgeWidth-.9,.18,1.18),promenadeMat,promenadeZ.map(z=>[bridgeX,1.16,z]));
@@ -402,16 +410,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const pylonDeckY=1.12,pylonTopY=24.5,addSuspensionPylon=c=>{const px=toX(c);for(const pz of towerEdgeZ){const foot=box(px,pz,2.35,2.35,1.05,bridgeStoneMat);foot.position.y=1.35;const leg=box(px,pz,1.34,1.48,pylonTopY-pylonDeckY,bridgeRedMat);leg.position.y=(pylonTopY+pylonDeckY)/2;outline(leg);const inner=box(px,pz,1.56,1.7,.32,bridgeGoldMat);inner.position.y=18.25;const beacon=new THREE.Mesh(new THREE.SphereGeometry(.24,12,8),bridgeRedGlowMat);beacon.position.set(px,pylonTopY+.55,pz);scene.add(beacon);}for(const y of [10.5,18.25,24.15]){const beam=box(px,bridgeZ,1.18,bridgeDepth-3.1,y===24.15?.72:.58,y===18.25?bridgeGoldMat:bridgeRedMat);beam.position.y=y;outline(beam);}for(const sign of [-1,1]){const diagonal=box(px,bridgeZ+sign*bridgeDepth*.23,.54,bridgeDepth*.42,.42,bridgeHangerMat);diagonal.position.y=14.4;diagonal.rotation.x=sign*.62;}const crown=box(px,bridgeZ,1.7,bridgeDepth-2.65,.3,bridgeGoldMat);crown.position.y=pylonTopY+.18;};
         suspensionTowerCs.forEach(addSuspensionPylon);
         const cableGroup=new THREE.Group();cableGroup.name='premium-suspension-cables';scene.add(cableGroup);const addCable=(points,radius,material,segments=Math.max(24,points.length*5))=>{const curve=new THREE.CatmullRomCurve3(points,false,'centripetal'),mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,segments,radius,7,false),material);mesh.castShadow=true;cableGroup.add(mesh);return mesh;},towerX0=toX(suspensionTowerCs[0]),towerX1=toX(suspensionTowerCs[1]),anchorX0=toX(canal.c0-2.3),anchorX1=toX(canal.c1+2.3),cableTop=pylonTopY+.18,cableSag=5.65;
-        for(const pz of towerEdgeZ){const points=[new THREE.Vector3(anchorX0,2.15,pz),new THREE.Vector3((anchorX0+towerX0)*.5,12.2,pz),new THREE.Vector3(towerX0,cableTop,pz)];for(let i=1;i<20;i++){const u=i/20,x=THREE.MathUtils.lerp(towerX0,towerX1,u),y=cableSag+(cableTop-cableSag)*Math.pow(Math.abs(u-.5)*2,2);points.push(new THREE.Vector3(x,y,pz));}points.push(new THREE.Vector3(towerX1,cableTop,pz),new THREE.Vector3((towerX1+anchorX1)*.5,12.2,pz),new THREE.Vector3(anchorX1,2.15,pz));addCable(points,.18,bridgeCableMat,96);for(let i=1;i<20;i++){const u=i/20,x=THREE.MathUtils.lerp(towerX0,towerX1,u),y=cableSag+(cableTop-cableSag)*Math.pow(Math.abs(u-.5)*2,2),height=Math.max(.22,y-1.72),hanger=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,height,6),bridgeHangerMat);hanger.position.set(x,1.72+height/2,pz);cableGroup.add(hanger);}}
+        const bridgeHangerPos=[];for(const pz of towerEdgeZ){const points=[new THREE.Vector3(anchorX0,2.15,pz),new THREE.Vector3((anchorX0+towerX0)*.5,12.2,pz),new THREE.Vector3(towerX0,cableTop,pz)];for(let i=1;i<20;i++){const u=i/20,x=THREE.MathUtils.lerp(towerX0,towerX1,u),y=cableSag+(cableTop-cableSag)*Math.pow(Math.abs(u-.5)*2,2);points.push(new THREE.Vector3(x,y,pz));}points.push(new THREE.Vector3(towerX1,cableTop,pz),new THREE.Vector3((towerX1+anchorX1)*.5,12.2,pz),new THREE.Vector3(anchorX1,2.15,pz));addCable(points,.18,bridgeCableMat,96);for(let i=1;i<20;i++){const u=i/20,x=THREE.MathUtils.lerp(towerX0,towerX1,u),y=cableSag+(cableTop-cableSag)*Math.pow(Math.abs(u-.5)*2,2),height=Math.max(.22,y-1.72);bridgeHangerPos.push([x,1.72+height/2,pz,1,height,1]);}}
+        addBridgeInstances(new THREE.CylinderGeometry(.045,.045,1,6),bridgeHangerMat,bridgeHangerPos,false,false,cableGroup);
         // Side stays, tower-top cross cables and fine deck edge lines complete the engineered silhouette.
         for(const [tx,ax] of [[towerX0,anchorX0],[towerX1,anchorX1]])for(const pz of towerEdgeZ)addCable([new THREE.Vector3(tx,cableTop,pz),new THREE.Vector3(THREE.MathUtils.lerp(tx,ax,.48),13.4,pz),new THREE.Vector3(ax,2.15,pz)],.13,bridgeCableMat,28);
         for(const tx of [towerX0,towerX1])addCable([new THREE.Vector3(tx,cableTop,towerEdgeZ[0]),new THREE.Vector3(tx,cableTop+.5,bridgeZ),new THREE.Vector3(tx,cableTop,towerEdgeZ[1])],.11,bridgeGoldMat,24);
         renderer.domElement.dataset.bridgeStyle='premium-red-suspension';
         // Warm promenade lighting, plus a restrained under-deck glow reflected by the canal.
-        const lampPostGeometry=new THREE.CylinderGeometry(.1,.16,3.8,10),lampBulbGeometry=new THREE.SphereGeometry(.28,12,8);
-        for(let c=canal.c0;c<=canal.c1;c+=2.6)for(const rr of [canal.bridge.r0+.48,canal.bridge.r1-.48]){const post=new THREE.Mesh(lampPostGeometry,bridgeDarkMat);post.position.set(toX(c),3.05,toZ(rr));scene.add(post);const bulb=new THREE.Mesh(lampBulbGeometry,bridgeGlowMat);bulb.position.set(toX(c),5.02,toZ(rr));scene.add(bulb);const crown=box(toX(c),toZ(rr),.72,.72,.12,bridgeGoldMat);crown.position.y=4.72;}
+        const lampPostGeometry=new THREE.CylinderGeometry(.1,.16,3.8,10),lampBulbGeometry=new THREE.SphereGeometry(.28,12,8),bridgeLampPostPos=[],bridgeLampBulbPos=[],bridgeLampCrownPos=[];
+        for(let c=canal.c0;c<=canal.c1;c+=2.6)for(const rr of [canal.bridge.r0+.48,canal.bridge.r1-.48]){const x=toX(c),z=toZ(rr);bridgeLampPostPos.push([x,3.05,z]);bridgeLampBulbPos.push([x,5.02,z]);bridgeLampCrownPos.push([x,4.72,z]);}
+        addBridgeInstances(lampPostGeometry,bridgeDarkMat,bridgeLampPostPos,false,false);addBridgeInstances(lampBulbGeometry,bridgeGlowMat,bridgeLampBulbPos,false,false);addBridgeInstances(new THREE.BoxGeometry(.72,.12,.72),bridgeGoldMat,bridgeLampCrownPos);
         for(const rr of [canal.bridge.r0+.24,canal.bridge.r1-.24]){const glow=box(bridgeX,toZ(rr),bridgeWidth-.8,.08,.1,bridgeGlowMat);glow.position.y=-.7;}
         for(const c of [canal.c0+2,canal.c0+7,canal.c1-7,canal.c1-2]){const light=new THREE.PointLight(c>(canal.c0+canal.c1)/2?0xff5a3d:0xffc46b,1.1,15,2);light.position.set(toX(c),5.1,bridgeZ);light.castShadow=false;scene.add(light);}
+        renderer.domElement.dataset.bridgeStaticBatch=`${bridgeBatchedSources}:${bridgeBatchedDrawCalls}`;
       }
       if(worldSnapshot?.coast){
         const coast=worldSnapshot.coast,toX=c=>(c-originC)*WORLD_SCALE,toZ=r=>(r-originR)*WORLD_SCALE,coastWidth=worldCols*WORLD_SCALE,coastCenter=worldCols*.5,coastDepth=(coast.water.r1-coast.water.r0)*WORLD_SCALE;
