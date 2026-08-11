@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import time
 from aiohttp import web
+import npc_empire
 
 
 players = {}
@@ -64,6 +65,7 @@ preview_npc_robberies = {}
 preview_business_claims = {}
 preview_business_sabotage = {}
 preview_business_wars = {}
+preview_empire_relations = {}
 preview_connections = {}
 preview_apartments = {}
 preview_custom_gangs = {}
@@ -681,6 +683,7 @@ def race_day_roll():
 def cors(resp):
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return resp
 
 
@@ -1245,24 +1248,8 @@ async def apartment_sell(req):
     account = preview_account(uid)
     account["cash"] += refund
     del owned[apt_key]
-    removed_gang = False
-    gid = preview_custom_gang_by_uid.get(str(uid))
-    gang = preview_custom_gangs.get(gid)
-    if gang and str(gang.get("leader_uid")) == str(uid) and gang.get("hq_apt_key") == apt_key:
-        removed_gang = True
-        for member_uid in list(gang.get("members") or []):
-            preview_custom_gang_by_uid.pop(str(member_uid), None)
-            member = players.get(str(member_uid))
-            if member:
-                for key in ("custom_gang_id", "custom_gang_name", "custom_gang_role",
-                            "custom_gang_flag", "custom_gang_hq", "crew_id"):
-                    member.pop(key, None)
-        preview_custom_gangs.pop(gid, None)
     return cors(web.json_response({
         "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
-        "gang": None if removed_gang else preview_custom_gang_payload(uid),
-        "role_status": "civilian" if removed_gang else "",
-        "headquarters": preview_custom_gang_hqs(),
     }))
 
 
@@ -1596,6 +1583,91 @@ async def preview_three_module(_req):
     and browser QA silently exercised the 2D fallback instead of Three.js.
     """
     return web.FileResponse(Path("three_preview.js"))
+
+
+def _preview_empire_text(value):
+    value = str(value or "")
+    try:
+        return value.encode("cp1251").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return value
+
+
+def _preview_empire_activity(profile, now):
+    slot = int(now) // 60
+    seed = int.from_bytes(__import__('hashlib').sha256(
+        f'{profile.leader_id}:preview:{slot}'.encode()).digest()[:4], 'big')
+    hq_r, hq_c = npc_empire._hq_coords(profile.hq_key)
+    offsets = ((0, -8), (8, 0), (0, 8), (-8, 0), (0, 0))
+    dr, dc = offsets[seed % len(offsets)]
+    kinds = ('patrol', 'recruit', 'inspect', 'patrol', 'return_hq')
+    kind = kinds[seed % len(kinds)]
+    return {"kind": kind, "target_id": profile.hq_key, "target_r": hq_r + dr,
+            "target_c": hq_c + dc, "phase": "travel", "created_at": slot * 60,
+            "summary": f"{_preview_empire_text(profile.leader_name)} действует в городе"}
+
+
+async def npc_empire_state(req):
+    uid = str(req.match_info.get("uid") or "1")
+    now = int(time.time())
+    empires = []
+    for rank, profile in enumerate(npc_empire.PROFILES, 1):
+        relation, pact = preview_empire_relations.get((uid, profile.leader_id), (0, "none"))
+        hq_r, hq_c = npc_empire._hq_coords(profile.hq_key)
+        empires.append({
+            "leader_id": profile.leader_id,
+            "leader_name": _preview_empire_text(profile.leader_name),
+            "title": _preview_empire_text(profile.title),
+            "gang_name": _preview_empire_text(profile.gang_name),
+            "color": profile.color, "accent": profile.accent, "emblem": profile.emblem,
+            "weapon_id": profile.weapon_id, "weapon_name": _preview_empire_text(profile.weapon_name),
+            "weapon_base": profile.weapon_base, "treasury": profile.starting_cash,
+            "members": 8 + rank % 7, "strength": 90 + rank * 3, "status": "active",
+            "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
+            "relation": relation, "relation_band": npc_empire.relation_band(relation),
+            "pact": pact, "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
+                                           "income": 0, "defense": 80}],
+            "activity": _preview_empire_activity(profile, now),
+            "rank": rank, "wins": rank % 4, "losses": rank % 3, "knockouts": rank % 2,
+            "comebacks": 0, "dominance_score": 25 + rank, "district_count": rank % 3,
+            "peak_power": 140 + rank * 4, "war_pressure": None,
+        })
+    return cors(web.json_response({"ok": True, "empires": empires,
+        "leaderboard": [e["leader_id"] for e in empires], "districts": [],
+        "diplomacy": [], "events": [], "player_war_events": [], "server_time": now}))
+
+
+async def npc_empire_diplomacy(req):
+    uid = str(req.match_info.get("uid") or "1")
+    body = await req.json()
+    leader_id, action = str(body.get("leader_id") or ""), str(body.get("action") or "")
+    if leader_id not in npc_empire.PROFILE_BY_ID:
+        return cors(web.json_response({"ok": False, "error": "unknown leader"}, status=400))
+    score, pact = preview_empire_relations.get((uid, leader_id), (0, "none"))
+    rules = {"respect": (0, 3), "gift": (500, 12), "apologize": (0, 8),
+             "compensation": (1500, 30), "insult": (0, -10), "threaten": (0, -18),
+             "truce": (300, 8), "alliance": (1000, 5), "break_pact": (0, -20)}
+    if action == "declare_war":
+        if score >= 0:
+            return cors(web.json_response({"ok": False, "error": "war requires negative relation"}, status=409))
+        score, pact, cost = -100, "war", 0
+    elif action in rules:
+        cost, delta = rules[action]
+        account = preview_account(uid)
+        if account["cash"] < cost:
+            return cors(web.json_response({"ok": False, "error": "no cash"}, status=409))
+        account["cash"] -= cost
+        score = npc_empire.clamp_relation(score + delta)
+        if action == "truce" or (action == "compensation" and pact == "war" and score >= -60): pact = "truce"
+        elif action == "alliance": pact = "alliance"
+        elif action == "break_pact": pact = "none"
+    else:
+        return cors(web.json_response({"ok": False, "error": "bad action"}, status=400))
+    preview_empire_relations[(uid, leader_id)] = (score, pact)
+    cash = preview_account(uid)["cash"]
+    return cors(web.json_response({"ok": True, "leader_id": leader_id, "action": action,
+        "relation": score, "relation_band": npc_empire.relation_band(score),
+        "pact": pact, "cost": cost, "cash": cash}))
 
 
 def preview_online_gang(uid):
@@ -2233,10 +2305,7 @@ async def world_ws(req):
                 was_mafia = bool(p.get("mafia"));old_family=str(p.get("mafia_family") or "")
                 p["police"] = bool(d.get("police", False))
                 requested_family = str(d.get("mafia_family") or "")
-                blocked_by_custom_gang = bool(d.get("mafia", False) and p.get("custom_gang_id"))
-                wants_mafia=bool(d.get("mafia",False)) and not p["police"] and not blocked_by_custom_gang and requested_family in ("bellini","moretti")
-                if blocked_by_custom_gang:
-                    p["mafia_join_denied"] = "custom_gang_owner" if p.get("custom_gang_role") == "leader" else "custom_gang_member"
+                wants_mafia=bool(d.get("mafia",False)) and not p["police"] and not p.get("custom_gang_id") and requested_family in ("bellini","moretti")
                 if wants_mafia and time.time()<float(p.get("mafia_traitor_until",0)) and requested_family!=old_family:wants_mafia=False
                 if wants_mafia and not was_mafia:
                     same=sum(1 for q in players.values() if q.get("mafia") and q.get("mafia_family")==requested_family)
@@ -3238,6 +3307,8 @@ app.router.add_post("/custom-gang/{uid}/transfer", custom_gang_transfer)
 app.router.add_post("/custom-gang/{uid}/treasury", custom_gang_treasury)
 app.router.add_post("/custom-gang/{uid}/edit", custom_gang_edit)
 app.router.add_post("/custom-gang/{uid}/npcs/sync", custom_gang_npc_sync)
+app.router.add_get("/npc-empires/{uid}/state", npc_empire_state)
+app.router.add_post("/npc-empires/{uid}/diplomacy", npc_empire_diplomacy)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)
