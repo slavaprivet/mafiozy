@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v357: successful character creation enters the selected character's world directly. -->
+<!DOCTYPE html><!-- v358: creator direct-entry survives delayed profile reconciliation without reopening the menu. -->
+<!-- v357: successful character creation enters the selected character's world directly. -->
 <!-- v356: NPC forearms and role clothing pair with individually detailed weapon families. -->
 <!-- v355: NPC anatomy, tailoring, faces and deterministic micro-expressions receive a second detail pass. -->
 <!-- v354: saved creator avatars and all NPCs use the shared detailed rounded 3D character rig. -->
@@ -2930,6 +2931,7 @@ const QP = {
 };
 QP.account_uid = _UP.get('account_uid') || QP.uid;
 QP.character_uid = _UP.get('character') || (_UP.has('account_uid') ? QP.uid : '');
+const _gameMenuDirectEntry = _UP.get('menu') === 'enter' && !!QP.character_uid && QP.has_look === 1;
 
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
@@ -2958,7 +2960,7 @@ if (!QP.account_uid) QP.account_uid = QP.uid;
 const _gameMenuSettingsKey = `mafiozi_menu_settings_v1_${QP.account_uid || 'guest'}`;
 const _gameMenuSaveKey = `mafiozi_last_session_v1_${QP.character_uid || QP.uid || 'guest'}`;
 const _gameMenuCharacterKey = `mafiozi_character_ready_v1_${QP.character_uid || QP.uid || 'guest'}`;
-let _gameMenuOpen = true;
+let _gameMenuOpen = !_gameMenuDirectEntry;
 let _gameMenuSettings = { volume:50, vibration:true };
 let _gameMenuCharacterReady = !!QP.character_uid && QP.has_look === 1;
 let _gameMenuCharacterLookKey = '';
@@ -2966,6 +2968,10 @@ let _gameProfiles = [];
 let _gameProfilesLoaded = false;
 let _gameMenuPendingProfileId = '';
 try { if(QP.character_uid)_gameMenuCharacterReady = _gameMenuCharacterReady || localStorage.getItem(_gameMenuCharacterKey) === '1'; } catch(e) {}
+if(_gameMenuDirectEntry){
+  document.body.classList.remove('game-menu-open');
+  document.getElementById('gameMainMenu')?.classList.add('hidden');
+}
 try { _gameMenuSettings = Object.assign(_gameMenuSettings, JSON.parse(localStorage.getItem(_gameMenuSettingsKey) || '{}')); } catch(e) {}
 window.MafioziSettings = _gameMenuSettings;
 
@@ -3127,7 +3133,7 @@ async function _deleteGameProfile(characterId) {
     showToast(e.message||'Не удалось удалить персонажа','⚠️',3000);
   }
 }
-async function _loadGameProfiles() {
+async function _loadGameProfiles(attempt=0) {
   _gameProfilesLoaded=false;_renderGameProfiles();
   try{
     if(!QP.api)await _fetchApiFallback();
@@ -3135,18 +3141,33 @@ async function _loadGameProfiles() {
     const result=await response.json();if(!response.ok||!result.ok)throw new Error('profiles');
     _gameProfiles=Array.isArray(result.profiles)?result.profiles:[];_gameProfilesLoaded=true;
     const selected=_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid));
-    if(selected){QP.name=selected.name||QP.name;_setGameMenuCharacterReady(!!selected.has_look,selected.look);}
+    if(selected){
+      QP.name=selected.name||QP.name;
+      // The creator return already carries an acknowledged appearance. A
+      // briefly stale profile response must not revoke it and reopen the menu.
+      if(selected.has_look||!_gameMenuDirectEntry)_setGameMenuCharacterReady(!!selected.has_look,selected.look);
+    }
     const primary=document.getElementById('gmmPrimaryAction');
     if(primary)primary.innerHTML='НАЧАТЬ ИГРУ<small>Выбрать персонажа и продолжить историю</small>';
     _renderGameProfiles();_renderGameMenuCharacter();
     if(['play','enter','characters'].includes(_UP.get('menu'))){
       const menuMode=_UP.get('menu');
-      if(menuMode==='enter'&&selected&&selected.has_look)closeGameMainMenu();
+      if(menuMode==='enter'&&(_gameMenuDirectEntry||(selected&&selected.has_look)))closeGameMainMenu();
       else if(menuMode==='characters')_gameMenuPanel('characters');
       else if(selected&&selected.has_look)_gameMenuPanel('play');else _gameMenuPanel('characters');
       const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');history.replaceState(null,'',cleanUrl.href);
     }
-  }catch(e){_gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();showToast('Не удалось загрузить персонажей','⚠️',2600);}
+    if(_gameMenuDirectEntry&&(!selected||!selected.has_look)&&attempt<3){
+      const retryDelay=[700,1400,2800][attempt]||2800;
+      setTimeout(()=>_loadGameProfiles(attempt+1),retryDelay);
+    }
+  }catch(e){
+    _gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();
+    if(_gameMenuDirectEntry&&attempt<3){
+      const retryDelay=[700,1400,2800][attempt]||2800;
+      setTimeout(()=>_loadGameProfiles(attempt+1),retryDelay);
+    }else showToast('Не удалось загрузить персонажей','⚠️',2600);
+  }
 }
 function _openCharacterCreator(characterId='') {
   const url = new URL('creator.html',location.href);
@@ -3318,7 +3339,7 @@ function _bindGameMenuActions() {
   // An explicit creator return is allowed to reveal the ready character's
   // world immediately; the authoritative profile request still reconciles in
   // the background and can correct the supplied appearance afterwards.
-  if(_UP.get('menu')==='enter'&&_gameMenuCharacterReady)closeGameMainMenu();
+  if(_gameMenuDirectEntry)closeGameMainMenu();
   // Explicit localhost-only visual QA: keep production's character gate intact,
   // but allow the authored look in the URL to enter the rendered city directly.
   if(_LOCAL_PREVIEW&&_UP.has('previewcity')&&_gameMenuCharacterReady)closeGameMainMenu();
@@ -9035,12 +9056,17 @@ function _syncEmpireBossCrews(now=performance.now()){
   }
   for(const leader of leaders){
     const id=String(leader._specialistId),have=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id).length,want=desired.get(id)||0;
+    for(const crew of EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id)){
+      crew._empirePlayerWar=!!leader._empirePlayerWar;
+      if(!crew._empirePlayerWar&&crew._empireWarFighting){crew._empireWarFighting=false;crew._fighting=false;crew._nextShootAt=0;}
+    }
     for(let slot=have;slot<want&&EMPIRE_CREW_NPCS.length<12;slot++){
       const crew=spawnNpc(7000+(++_empireCrewSerial),{cityOnly:true});if(!crew)continue;
       const point=_nearestEmpireWalkPoint(leader.r+(slot+1)*.45,leader.c+(slot%2?-.65:.65))||{r:leader.r,c:leader.c};
       Object.assign(crew,{r:point.r,c:point.c,tr:point.r,tc:point.c,id:`empire_crew_${id}_${_empireCrewSerial}`,
         name:`Боец · ${leader._empireGang}`,role:'gang_member',gang:true,_empireCrew:true,_empireLeaderId:id,
         _empireCrewSlot:slot,_fightWeapon:leader._empireWeaponBase||'pistol',
+        _empirePlayerWar:!!leader._empirePlayerWar,
         _empireWeaponId:leader._empireWeaponId,_empireWeaponName:leader._empireWeaponName,
         _empireWeaponProfile:leader._empireWeaponProfile,speed:1.05+(slot%2)*.08});
       EMPIRE_CREW_NPCS.push(crew);NPCS.push(crew);
@@ -14664,6 +14690,17 @@ function updateNpcs(dt) {
     }
     if(n._npcHelpingTarget&&(n.snitching||n.panicUntil>now||n._hostile||n._fighting||n._fightingMelee))_npcCancelHelping(n);
 
+    // A declared player war is reused by the existing bounded NPC loop: no
+    // extra world scan. Bosses and their nearby crew open fire on sight.
+    if((n._empireBoss||n._empireCrew)&&n._empirePlayerWar&&!myDead&&!_buildingInt&&!_bankInt){
+      const warDistance=Math.hypot(player.r-n.r,player.c-n.c);
+      if(warDistance<=11){
+        n._fighting=true;n._empireWarFighting=true;
+        n._fightWeapon=n._empireWeaponBase||n._fightWeapon||'pistol_heavy';
+        if(now>=(n._empireWarCryAt||0)){n._empireWarCryAt=now+9000;n.cryText='Мы с тобой воюем!';n.cryUntil=now+1700;}
+      }
+    }
+
     if(n._empireCrew&&!n._hostile&&!n._fighting&&!n._fightingMelee&&!(n.panicUntil>now)){
       const leader=SPECIALIST_NPCS.find(b=>String(b._specialistId)===String(n._empireLeaderId));
       if(!leader||leader._hiddenByEmpire){n.walking=false;continue;}
@@ -14680,7 +14717,7 @@ function updateNpcs(dt) {
       continue;
     }
 
-    if(n._empireBoss&&n._empireAction){
+    if(n._empireBoss&&n._empireAction&&!n._fighting&&!n._hostile){
       const target=n._empireTarget||(_empireActivityTarget(_npcEmpireById.get(String(n._specialistId||''))||{
         hq_r:n._empireHqR,hq_c:n._empireHqC,activity:n._empireAction}));
       n._empireTarget=target;
@@ -16753,6 +16790,7 @@ let _npcEmpireDistricts = [];
 let _npcEmpireLeaderboard = [];
 let _npcEmpireBusy = false;
 let _npcEmpireAssaultToken = '';
+let _npcEmpireLastWarEventAt = 0;
 const _npcEmpireById = new Map();
 function _installNpcEmpireFallbacks(){
   for(const npc of SPECIALIST_NPCS){
@@ -17714,10 +17752,20 @@ async function loadNpcEmpireState(showError=false){
         npc._empireWeaponProfile=empire.weapon_profile||NPC_EMPIRE_WEAPON_PROFILES[npc._empireWeaponId]||npc._empireWeaponProfile;
         npc._empireColor=empire.color||npc.look?.suit;npc._empireAccent=empire.accent||npc.look?.accent;
         npc._empireMembers=Math.max(1,+empire.members||1);npc._empireHqR=+empire.hq_r||npc.r;npc._empireHqC=+empire.hq_c||npc.c;
+        npc._empireRelation=+empire.relation||0;npc._empireRelationBand=String(empire.relation_band||'neutral');npc._empirePact=String(empire.pact||'none');
+        const atWar=npc._empirePact==='war';npc._empirePlayerWar=atWar;
+        if(!atWar&&npc._empireWarFighting){npc._empireWarFighting=false;npc._fighting=false;npc._nextShootAt=0;}
         const action=empire.activity||null,actionKey=action?`${action.kind}:${action.target_id||empire.hq_key||''}:${action.created_at||0}`:'';
         if(actionKey!==npc._empireActionKey){npc._empireAction=action;npc._empireActionKey=actionKey;npc._empireTarget=_empireActivityTarget(empire);npc._empireActionArrived=false;npc._empireRouteRetryAt=0;_clearNpcRoute(npc);}
       }
       const at=NPCS.indexOf(npc);if(npc._hiddenByEmpire&&at>=0)NPCS.splice(at,1);else if(!npc._hiddenByEmpire&&at<0)NPCS.push(npc);
+    }
+    for(const event of (Array.isArray(j.player_war_events)?j.player_war_events:[])){
+      if((+event.created_at||0)<=_npcEmpireLastWarEventAt)continue;
+      _npcEmpireLastWarEventAt=+event.created_at||_npcEmpireLastWarEventAt;
+      const boss=_npcEmpireById.get(String(event.leader_id||''));
+      showEventBanner(event.kind==='player_business_bombed'?'💥 АТАКА НА БИЗНЕС':'⚠️ ДАВЛЕНИЕ БАНДЫ',event.summary||`${boss?.leader_name||'Босс'} начал действовать против тебя`,4200,'warn');
+      if(event.kind==='player_business_bombed'){_bizLastSync=0;syncMyBusinesses?.();}
     }
     if(document.getElementById('npcEmpireOverlay')?.classList.contains('show')){
       const id=document.getElementById('npcEmpireOverlay')?.dataset.leaderId;
@@ -17729,6 +17777,10 @@ async function loadNpcEmpireState(showError=false){
 
 function _npcEmpireRelationLabel(empire){
   return ({enemy:'Заклятый враг',hostile:'Враждебен',neutral:'Нейтрален',friendly:'Дружественен',ally:'Союзник'})[empire?.relation_band]||'Нейтрален';
+}
+function _npcEmpireAttitude(empire){
+  const score=+empire?.relation||0;
+  return score<0?{key:'negative',label:'НЕГАТИВНО',score}:score>0?{key:'positive',label:'ПОЛОЖИТЕЛЬНО',score}:{key:'neutral',label:'НЕЙТРАЛЬНО',score:0};
 }
 function _npcEmpireEsc(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));}
 function _npcEmpireOverlay(){
@@ -17817,7 +17869,8 @@ function _installReadableNpcEmpireUi(){
 #npcSandboxButton{font-size:12px!important;line-height:1.25!important}
 #npcEmpireOverlay .ne-body [style*="font-size:9px"],#npcEmpireOverlay .ne-body [style*="font-size:10px"]{font-size:13px!important;line-height:1.4}
 .ne-season{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:10px;margin-bottom:14px}.ne-season-main,.ne-season-stat{padding:14px;border:1px solid #ffffff18;border-radius:10px;background:linear-gradient(135deg,#2a1c18,#10141a);box-shadow:inset 3px 0 #b52c3b}.ne-season small{display:block;color:#aab2be;font-size:12px;font-weight:900;letter-spacing:.6px}.ne-season b{display:block;margin-top:6px;color:#ffe3a3;font:900 20px Georgia}
-.ne-rank-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.ns-rank.empire-card{position:relative;display:grid;grid-template-columns:86px minmax(0,1fr);min-height:132px;overflow:hidden;border:1px solid color-mix(in srgb,var(--boss,#b8863c) 55%,#414651);border-radius:11px;background:radial-gradient(circle at 12% 20%,color-mix(in srgb,var(--boss) 20%,transparent),transparent 45%),linear-gradient(145deg,#1b1b20,#0a0d12);cursor:pointer;box-shadow:0 7px 18px #0007;transition:transform .14s ease,filter .14s ease}.ns-rank.empire-card:hover{transform:translateY(-2px);filter:brightness(1.12);border-color:var(--boss)}.ns-rank.empire-card .place{position:absolute;z-index:2;left:7px;top:7px;display:flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 5px;border:1px solid #e7c36b6e;border-radius:6px;background:#120e0bdb;color:#f5d171;font:900 15px Georgia}.ns-rank-portrait{width:86px;height:132px;border-right:1px solid #ffffff12;background:linear-gradient(180deg,color-mix(in srgb,var(--boss) 18%,#11151b),#080a0d)}.ns-rank-portrait canvas{width:86px;height:132px;filter:drop-shadow(0 6px 5px #000)}.ns-rank-copy{min-width:0;padding:13px 10px 10px}.ns-rank-name{display:block;overflow:hidden;color:#fff1cc;font:900 17px/1.1 Georgia;text-overflow:ellipsis;white-space:nowrap}.ns-rank-gang{display:block;margin-top:4px;overflow:hidden;color:var(--boss);font-size:12px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}.ns-rank-role{margin-top:8px;color:#c8cbd0;font-size:13px;line-height:1.3}.ns-rank-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.ns-chip{padding:4px 6px;border:1px solid #ffffff18;border-radius:5px;background:#ffffff08;color:#bac2ce;font-size:12px}.ns-open{position:absolute;right:9px;bottom:8px;color:#e7c675;font-size:12px;font-weight:900}
+.ne-rank-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.ns-rank.empire-card{position:relative;display:grid;grid-template-columns:86px minmax(0,1fr);min-height:132px;overflow:hidden;border:1px solid color-mix(in srgb,var(--boss,#b8863c) 55%,#414651);border-radius:11px;background:radial-gradient(circle at 12% 20%,color-mix(in srgb,var(--boss) 20%,transparent),transparent 45%),linear-gradient(145deg,#1b1b20,#0a0d12);cursor:pointer;box-shadow:0 7px 18px #0007;transition:transform .14s ease,filter .14s ease}.ns-rank.empire-card:hover{transform:translateY(-2px);filter:brightness(1.12);border-color:var(--boss)}.ns-rank.empire-card .place{position:absolute;z-index:2;left:7px;top:7px;display:flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 5px;border:1px solid #e7c36b6e;border-radius:6px;background:#120e0bdb;color:#f5d171;font:900 15px Georgia}.ns-rank-portrait{width:86px;height:132px;border-right:1px solid #ffffff12;background:linear-gradient(180deg,color-mix(in srgb,var(--boss) 18%,#11151b),#080a0d)}.ns-rank-portrait canvas{width:86px;height:132px;filter:drop-shadow(0 6px 5px #000)}.ns-rank-copy{min-width:0;padding:13px 10px 10px}.ns-rank-title{display:flex;align-items:flex-start;justify-content:space-between;gap:7px}.ns-rank-name{display:block;min-width:0;overflow:hidden;color:#fff1cc;font:900 17px/1.1 Georgia;text-overflow:ellipsis;white-space:nowrap}.ns-attitude{flex:0 0 auto;padding:3px 5px;border:1px solid;border-radius:5px;font-size:9px;font-weight:900;letter-spacing:.35px}.ns-attitude.negative{border-color:#c84f57;background:#4d171d;color:#ff9da4}.ns-attitude.neutral{border-color:#8d939d;background:#282c32;color:#d1d5da}.ns-attitude.positive{border-color:#3c956c;background:#123b2a;color:#8be0b4}.ns-rank-gang{display:block;margin-top:4px;overflow:hidden;color:var(--boss);font-size:12px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}.ns-rank-role{margin-top:8px;color:#c8cbd0;font-size:13px;line-height:1.3}.ns-rank-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.ns-chip{padding:4px 6px;border:1px solid #ffffff18;border-radius:5px;background:#ffffff08;color:#bac2ce;font-size:12px}.ns-open{position:absolute;right:9px;bottom:8px;color:#e7c675;font-size:12px;font-weight:900}
+.ne-war-box{margin-top:14px;padding:14px;border:1px solid #9f353d;border-radius:11px;background:linear-gradient(135deg,#42171c,#170b0e)}.ne-war-box p{margin:0 0 10px;color:#e6c6c8;font-size:13px;line-height:1.45}.ne-war-box .ne-btn{width:100%;text-align:center}.ne-war-box.safe{border-color:#766a54;background:#191714}.ne-war-box.active{box-shadow:inset 4px 0 #e33f49}.ne-attitude-tag.negative{border-color:#c84f57;color:#ff9da4}.ne-attitude-tag.neutral{border-color:#8d939d;color:#d1d5da}.ne-attitude-tag.positive{border-color:#3c956c;color:#8be0b4}
 .ne-dossier-hero{display:grid;grid-template-columns:210px minmax(0,1fr);gap:17px;margin-bottom:14px}.ne-dossier-photo{min-height:270px;overflow:hidden;border:1px solid color-mix(in srgb,var(--ec) 75%,#d1b36d);border-radius:12px;background:radial-gradient(circle at 50% 26%,color-mix(in srgb,var(--ec) 35%,#202630),#090c11 66%)}.ne-dossier-photo canvas{width:100%;height:270px;filter:drop-shadow(0 10px 8px #000)}.ne-dossier-copy{padding:5px 2px}.ne-dossier-label{color:var(--ec);font-size:13px;font-weight:900;letter-spacing:1px}.ne-dossier-copy h3{margin:7px 0 4px;color:#fff0c7;font:900 clamp(25px,3vw,33px)/1 Georgia}.ne-dossier-gang{color:#d8bf88;font-size:15px;font-weight:900}.ne-dossier-bio{margin-top:15px;color:#c8ced7;font-size:15px;line-height:1.55}.ne-dossier-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}.ne-dossier-tag{padding:7px 9px;border:1px solid #ffffff1b;border-radius:6px;background:#ffffff08;color:#e0e3e8;font-size:13px}.ne-back{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-bottom:13px;padding:9px 14px;border:1px solid #b9954d;border-radius:9px;background:linear-gradient(180deg,#3a2a1d,#17130f);color:#ffe09a;font-size:14px;font-weight:900;letter-spacing:.5px;cursor:pointer}.ne-back:hover{filter:brightness(1.17)}
 @media(max-width:900px){.ne-rank-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ne-season{grid-template-columns:1fr 1fr}.ne-season-main{grid-column:1/-1}}
 @media(max-width:600px){#npcEmpireOverlay{padding:6px;font-size:14px}#npcEmpireOverlay .ne-card,#npcEmpireOverlay .ne-card.dashboard{width:calc(100vw - 12px);max-height:calc(100vh - 12px)}#npcEmpireOverlay .ne-head{padding:15px 50px 13px 15px}#npcEmpireOverlay .ne-body{padding:10px}.ne-rank-grid{grid-template-columns:1fr}.ne-season{grid-template-columns:1fr 1fr}.ne-dossier-hero{grid-template-columns:112px minmax(0,1fr);gap:11px}.ne-dossier-photo{min-height:184px}.ne-dossier-photo canvas{height:184px}.ne-dossier-copy h3{font-size:22px}.ne-dossier-bio{font-size:14px;line-height:1.45}.ne-dossier-tag{font-size:12px}}
@@ -17829,7 +17882,7 @@ openNpcSandboxDashboard=function(){
   const ov=_npcEmpireOverlay();ov.dataset.locked='0';ov.dataset.leaderId='';ov.dataset.allowAssault='0';ov.style.setProperty('--ec','#c69547');
   const ordered=(_npcEmpireLeaderboard.length?_npcEmpireLeaderboard:_npcEmpires.map(e=>e.leader_id)).map(id=>_npcEmpireById.get(String(id))).filter(Boolean);
   const active=ordered.filter(e=>e.status!=='ruined').length,contested=_npcEmpireDistricts.filter(d=>d.contested).length,leader=ordered[0];
-  const ranks=ordered.map((e,i)=>`<article class="ns-rank empire-card" style="--boss:${_npcEmpireEsc(e.accent||e.color||'#c69547')}" data-ns-leader="${_npcEmpireEsc(e.leader_id)}"><div class="place">${i+1}</div><div class="ns-rank-portrait"><canvas width="172" height="264" data-ne-portrait="${_npcEmpireEsc(e.leader_id)}"></canvas></div><div class="ns-rank-copy"><b class="ns-rank-name">${_npcEmpireEsc(e.leader_name)}</b><span class="ns-rank-gang">${_npcEmpireEsc(e.gang_name)}</span><div class="ns-rank-role">${_npcEmpireEsc(e.title||'Криминальный лидер')} · ${_npcEmpireEsc(_npcEmpireUiActivity(e))}</div><div class="ns-rank-meta"><span class="ns-chip">${+e.district_count||0} район.</span><span class="ns-chip">${+e.dominance_score||0} влияния</span><span class="ns-chip">${+e.members||0} бойцов</span></div><span class="ns-open">ОТКРЫТЬ ДОСЬЕ ›</span></div></article>`).join('');
+  const ranks=ordered.map((e,i)=>{const attitude=_npcEmpireAttitude(e);return `<article class="ns-rank empire-card" style="--boss:${_npcEmpireEsc(e.accent||e.color||'#c69547')}" data-ns-leader="${_npcEmpireEsc(e.leader_id)}"><div class="place">${i+1}</div><div class="ns-rank-portrait"><canvas width="172" height="264" data-ne-portrait="${_npcEmpireEsc(e.leader_id)}"></canvas></div><div class="ns-rank-copy"><div class="ns-rank-title"><b class="ns-rank-name">${_npcEmpireEsc(e.leader_name)}</b><span class="ns-attitude ${attitude.key}">${attitude.label} ${attitude.score>0?'+':''}${attitude.score}</span></div><span class="ns-rank-gang">${_npcEmpireEsc(e.gang_name)}</span><div class="ns-rank-role">${_npcEmpireEsc(e.title||'Криминальный лидер')} · ${_npcEmpireEsc(_npcEmpireUiActivity(e))}</div><div class="ns-rank-meta"><span class="ns-chip">${+e.district_count||0} район.</span><span class="ns-chip">${+e.dominance_score||0} влияния</span><span class="ns-chip">${+e.members||0} бойцов</span></div><span class="ns-open">ОТКРЫТЬ ДОСЬЕ ›</span></div></article>`;}).join('');
   const districts=_npcEmpireDistricts.map(d=>{const boss=_npcEmpireById.get(String(d.leader_id||'')),runner=_npcEmpireById.get(String(d.runner_up_id||''));return `<div class="ns-district ${d.contested?'contested':''}"><b>${_npcEmpireEsc(d.name)}</b>${boss?(d.contested?'⚔️ Спорный · ':'👑 ')+_npcEmpireEsc(boss.leader_name)+' ('+(+d.score||0)+')'+(runner?'<small> против '+_npcEmpireEsc(runner.leader_name)+' ('+(+d.runner_up_score||0)+')</small>':''):'Никем не занят'}</div>`;}).join('');
   const chronicle=_npcEmpireEvents.slice(0,14).map(e=>`<div class="ne-event">${['gang_destroyed','empire_ruined'].includes(e.kind)?'💀':e.kind==='comeback'?'🔥':e.kind==='war_won'?'⚔️':'◈'} ${_npcEmpireEsc(e.summary)}</div>`).join('')||'<div class="ne-event">Песочница только начала новую историю.</div>';
   ov.innerHTML=`<article class="ne-card dashboard"><header class="ne-head"><div class="ne-k">PVP · КАРТА КРИМИНАЛЬНОЙ ВЛАСТИ</div><h2>Империи города</h2><p>Живая война семей: боссы сами богатеют, захватывают районы, заключают союзы и возвращаются после разгрома.</p><button class="ne-x" data-ne-close aria-label="Закрыть империи">×</button></header><div class="ne-body"><div class="ne-season"><div class="ne-season-main"><small>ЛИДЕР СЕЗОНА</small><b>${_npcEmpireEsc(leader?.leader_name||'Власть не определена')}</b></div><div class="ne-season-stat"><small>АКТИВНЫЕ СЕМЬИ</small><b>${active}/${ordered.length}</b></div><div class="ne-season-stat"><small>РАЙОНЫ</small><b>${_npcEmpireDistricts.length}</b></div><div class="ne-season-stat"><small>ГОРЯЧИЕ ТОЧКИ</small><b>${contested}</b></div></div><section class="ne-section"><h3>БОССЫ · НАЖМИ, ЧТОБЫ ОТКРЫТЬ ДОСЬЕ</h3><div class="ne-rank-grid">${ranks}</div></section><section class="ne-section"><h3>КОНТРОЛЬ РАЙОНОВ</h3><div class="ns-districts">${districts||'<div class="ne-event">Данные районов загружаются…</div>'}</div></section><section class="ne-section"><h3>ЛЕТОПИСЬ ГОРОДА</h3>${chronicle}</section></div></article>`;
