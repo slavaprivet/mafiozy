@@ -61639,6 +61639,7 @@ window.Mafiozi3DBridge = Object.freeze({
       profiles.forEach(([weapon,color,bulletScale,trailScale],i)=>{const a=-.72+i*.48,dist=2.2+cycle*7.4;projectiles.unshift({id:`preview_${weapon}`,r:player.r+Math.sin(a)*dist,c:player.c+Math.cos(a)*dist,vr:Math.sin(a)*24,vc:Math.cos(a)*24,ang:a,color,weapon,fromPlayer:true,tracked:i===1,bulletScale,trailScale,startZ:0,endZ:0,dist,maxDist:10});});
       for(let i=0;i<8;i++){const a=i<4?0:Math.PI/2,offset=(i%4-1.5)*.62;bulletHoleFx.unshift({id:8800+i,r:player.r+(a?3.2:offset),c:player.c+(a?offset:3.2),ang:a,rot:(i*.47)%Math.PI,scale:i%3===0?1.18:.9,heavy:i%4===0,age:800+i*170});}
     }
+    if(_LOCAL_PREVIEW&&_UP.has('previewallprojectiles')){const ids=['pistol','nagan','revolver','pistol_heavy','pistol_gold','shotgun','smg','tommy_gun','golden_tommy','rifle','sniper','taser','rpg'],now=performance.now(),phase=now%1600,generation=Math.floor(now/1600),distance=phase<900?1.8+phase/900*5.8:7.6;ids.forEach((weapon,i)=>{const cfg=weaponProfile(weapon),a=-1.08+i*(2.16/(ids.length-1)),speed=cfg.bulletSpeed||24;projectiles.unshift({id:`preview_all_${generation}_${weapon}`,r:player.r+Math.sin(a)*distance,c:player.c+Math.cos(a)*distance,vr:Math.sin(a)*speed,vc:Math.cos(a)*speed,ang:a,color:cfg.color||'#ffd76b',weapon,fromPlayer:true,tracked:false,thick:!!cfg.thick,bulletScale:+cfg.bulletScale||1,trailScale:+cfg.trailScale||1,startZ:0,endZ:weapon==='rpg'?.12:0,dist:distance,maxDist:Math.max(distance,cfg.range||8)});});document.documentElement.dataset.previewAllProjectileWeapons=ids.join(',');}
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&(+x.life||0)>0&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     const goreFx=(typeof bodyPartFx!=='undefined'?bodyPartFx:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||8000)&&near(+x.r||0,+x.c||0)).slice(-12).map(x=>({
       id:String(x.id||''),r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,
@@ -65711,6 +65712,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d349-raised-npc-health-v348-settled-gore-v347-raised-labels"></script>
+<script type="module" src="three_preview.js?v=3d350-projectile-matrices-all-weapons-v349-raised-npc-health"></script>
 </body>
 </html>

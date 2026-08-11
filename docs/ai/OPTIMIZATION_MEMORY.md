@@ -706,3 +706,34 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   allocations.
 - Apply the same one-unit lift to standing and crawling poses so injury
   animation cannot push the framed indicator back onto the character model.
+## Projectile matrix snapshot signatures (2026-08-11, v350)
+
+- The four instanced projectile layers (body, trail, glow and core) previously
+  rewrote every active matrix and uploaded all four buffers on every rendered
+  frame. Projectile physics remains authoritative in `world.html`; the 3D
+  renderer receives discrete bridge snapshots every 45-70 ms, so render frames
+  between snapshots can contain byte-for-byte identical poses.
+- Cache a per-slot signature containing identity, position, elevation,
+  direction, body scale, trail length, glow scale and core scale. Every new
+  bridge position is still written immediately to all four layers; only a
+  repeated unchanged snapshot skips `setMatrixAt` and buffer uploads. This does
+  not interpolate, quantize or reduce the visible projectile cadence.
+- Full QA must cover all thirteen projectile weapon profiles (`pistol`,
+  `nagan`, `revolver`, `pistol_heavy`, `pistol_gold`, `shotgun`, `smg`,
+  `tommy_gun`, `golden_tommy`, `rifle`, `sniper`, `taser`, `rpg`) plus the
+  non-projectile `grenade`, `molotov`, `c4` and unarmed visual states. Verify
+  `projectileMatrixUpload` and
+  `bridge-snapshot-signature-all-firearms-v350`; do not infer an FPS gain from
+  unmatched scene samples.
+- A bounded localhost-only QA fixture now renders all thirteen projectile
+  profiles together with moving and held bridge phases; the existing model
+  audit covers seventeen primary states and sixteen aliases. Final one-tab QA
+  reported `17:16:0` (no model faults), kept all 13 projectile profiles visible
+  and observed both `dirty` and `cached` matrix-upload states. The final merged
+  run sampled 12 moving/dirty and eight unchanged/cached frames. Grenade,
+  Molotov, C4 and unarmed remained explicit non-projectile profiles. The
+  representative final sample was 22 FPS, `26.2 ms` frame work, `23.6 ms`
+  render work, a `34.5 ms` render maximum and 227 programs. Native pixel ratio,
+  locked quality, real-time shadows, the incoming raised framed-HP profile,
+  gameplay bridge, chat local echo and server-backed `Гражданский` status
+  remained intact with no Three.js error.
