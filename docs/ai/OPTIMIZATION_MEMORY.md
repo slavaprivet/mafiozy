@@ -515,3 +515,36 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   known business/apartment JSON warnings because those API routes are absent;
   they are harness-only and not game/Three.js errors. The single browser tab
   was closed after the run.
+
+## Inactive and settled instance matrices (2026-08-11, v340)
+
+- `InstancedMesh.count` already excludes inactive remote-player slots from
+  rendering. Do not zero-scale every unused slot or upload the three remote
+  body/head/hat matrix buffers when `count === 0`. Iterate only the active
+  prefix, clear inactive colour/speech signatures, and write every matrix on
+  the first visible frame so slot reuse remains complete.
+- Corpse blood expands for its authored first 2.4 seconds and must keep its
+  per-frame matrix updates during that interval. After the spread settles,
+  cache source identity and projected position; live slots cache their hidden
+  matrix. Clear signatures above the active NPC prefix so a reused slot cannot
+  inherit a hidden or settled transform.
+- The measured city/effect baseline had `r0`, no corpse pools and still reached
+  the unconditional remote/corpse upload paths. Final effect QA reported
+  `corpseBloodMatrixUpload=cached` with zero corpses and preserved four moving
+  projectile profiles, eight bullet holes, six blood decals and two gore
+  pieces. A separate ambulance fixture kept one visible settled corpse pool
+  while also reporting `cached`, proving the visible settled matrix survived.
+- Do not claim an FPS gain from the noisy samples: the effect baseline and
+  result had different populations (`46` versus `41` NPCs) and measured
+  `30.4/24.9 ms` versus `26.4/24.0 ms` frame/render work. The reliable result is
+  removal of three empty remote matrix uploads plus the empty/settled corpse
+  matrix upload; active remote motion and the blood-spread animation retain
+  their full cadence.
+- One-tab prison regression rejected pistol, grenade and C4 without consuming
+  ammunition/items, completed `clean:local-timer:staged-world-resume-v311`
+  with three resume frames, then accepted two consecutive exterior firearm
+  shots (`magazine 10 -> 8`, updated shot timestamp, no prison block). The real
+  server-backed status remained `Гражданский`, chat local echo advanced, native
+  pixel ratio and real-time shadows remained on, and there were no JavaScript
+  or Three.js console errors. The representative prison sample was `17 FPS`,
+  `31.6 ms` frame work and `22.0 ms` render work, with maxima `91.9/65.4 ms`.
