@@ -6062,12 +6062,12 @@ function _syncMajorAssaultStart(d) {
     })),
   };
   const H = _buildingInt.H, W = _buildingInt.W;
-  const casinoGuardSpawns=[];
-  if(d.object_id==='casino'){
-    casinoGuardSpawns.push(..._casinoGuardSpawnPoints(_buildingInt));
-  }
+  // Every major interior needs authored, walkable guard posts. Previously only
+  // the casino had them; guards in the other four buildings spawned on a rough
+  // grid (sometimes inside furniture) and had nowhere useful to patrol.
+  const majorGuardSpawns=_majorGuardSpawnPoints(_buildingInt);
   _buildingInt.npcs = (d.guards || []).map((g, i) => {
-    const spawn=casinoGuardSpawns[i%casinoGuardSpawns.length]||{
+    const spawn=majorGuardSpawns[i%majorGuardSpawns.length]||{
       r:4+(i%7)*Math.max(2.4,(H-8)/7),
       c:3+(Math.floor(i/7)%5)*Math.max(4.4,(W-8)/5),
     };
@@ -19237,10 +19237,10 @@ function spawnBullet(sr, sc, er, ec, opts) {
   // Вражеские трассеры должны показывать направление огня, а не закрывать
   // персонажей. Тяжёлые профили сохраняют мощный цвет/звук, но не размер ядра.
   const npcBulletScale = opts.fromNpc && resolvedBulletWeapon !== 'rpg'
-    ? Math.min(0.82, baseBulletScale * 0.58)
+    ? Math.max(0.72, Math.min(0.92, baseBulletScale * 0.72))
     : baseBulletScale;
   const npcTrailScale = opts.fromNpc && resolvedBulletWeapon !== 'rpg'
-    ? Math.min(0.72, baseTrailScale * 0.62)
+    ? Math.max(0.78, Math.min(0.96, baseTrailScale * 0.78))
     : baseTrailScale;
   _capArr(bullets, _MAX_BULLETS);
   bullets.push({
@@ -24196,12 +24196,12 @@ setInterval(_renderBusinessObjective,500);
 function _showBusinessChoiceReceipt({icon='✅',title='Решение выполнено',biz='',summary='',details='',next=''}){
   let ov=document.getElementById('businessChoiceReceipt');
   if(!ov){
-    const style=document.createElement('style');style.textContent=`#businessChoiceReceipt{position:fixed;inset:0;z-index:205;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(1,3,7,.82)}#businessChoiceReceipt.show{display:flex}#businessChoiceReceiptCard{width:min(510px,94vw);padding:20px;border:1px solid #d7aa45;border-radius:17px;background:linear-gradient(150deg,#17202b,#24150e);box-shadow:0 24px 80px #000;color:#ecf2fa;font:700 13px/1.5 system-ui}#businessChoiceReceiptCard h2{margin:0 0 4px;color:#ffe17c;font-size:21px}#businessChoiceReceiptCard .bcr-biz{color:#aab8c8;margin-bottom:14px}.bcr-row{margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.055)}.bcr-row b{display:block;color:#ffe7a3;font-size:11px;text-transform:uppercase;letter-spacing:.7px}.bcr-ok{width:100%;margin-top:13px;padding:12px;border:1px solid #e5ba55;border-radius:10px;background:linear-gradient(#d69b27,#9a5e12);color:#fff;font:900 13px system-ui;cursor:pointer}`;document.head.appendChild(style);
+    const style=document.createElement('style');style.textContent=`#businessChoiceReceipt{position:fixed;inset:0;z-index:205;display:none;align-items:center;justify-content:center;padding:16px;background:radial-gradient(circle at 50% 25%,rgba(108,40,18,.24),transparent 44%),rgba(1,3,6,.9);backdrop-filter:blur(6px)}#businessChoiceReceipt.show{display:flex}#businessChoiceReceiptCard{width:min(530px,94vw);padding:22px;border:1px solid #9d7740;border-radius:4px;background:linear-gradient(145deg,#202326,#141516 64%,#2a1710);box-shadow:0 26px 90px #000,0 0 0 7px rgba(0,0,0,.24);color:#e8e1d7;font:700 13px/1.5 system-ui}#businessChoiceReceiptCard h2{margin:0 0 4px;color:#f0ddb4;font:900 24px/1.15 Georgia,serif}#businessChoiceReceiptCard .bcr-biz{padding-bottom:12px;border-bottom:1px solid #59492f;color:#b6a477;margin-bottom:14px}.bcr-row{margin:7px 0;padding:10px 12px;border-left:2px solid #8c7046;background:linear-gradient(90deg,rgba(255,255,255,.055),transparent)}.bcr-row b{display:block;color:#c6a76e;font-size:9px;text-transform:uppercase;letter-spacing:1.35px}.bcr-ok{width:100%;margin-top:14px;padding:12px;border:1px solid #b88b45;border-radius:2px;background:linear-gradient(#85551d,#57320f);color:#f8e9cc;font:900 12px system-ui;letter-spacing:.7px;text-transform:uppercase;cursor:pointer}`;document.head.appendChild(style);
     ov=document.createElement('div');ov.id='businessChoiceReceipt';ov.innerHTML='<div id="businessChoiceReceiptCard"></div>';document.body.appendChild(ov);
     ov.addEventListener('click',e=>{if(e.target.closest?.('[data-bcr-close]'))ov.classList.remove('show');});
   }
-  _recordBusinessPersonalEvent(`${icon} ${title}${biz?` · «${biz}»`:''} · ${summary}`);
-  document.getElementById('businessChoiceReceiptCard').innerHTML=`<h2>${icon} ${title}</h2><div class="bcr-biz">${biz?`«${biz}»`:''}</div><div class="bcr-row"><b>Что произошло</b>${summary}</div><div class="bcr-row"><b>Последствие</b>${details}</div><div class="bcr-row"><b>Что делать дальше</b>${next}</div><button class="bcr-ok" data-bcr-close>Понятно</button>`;
+  _recordBusinessPersonalEvent(`${icon} ${title}${biz?` · ${biz}`:''} · ${summary}`);
+  document.getElementById('businessChoiceReceiptCard').innerHTML=`<h2>${icon} ${title}</h2><div class="bcr-biz">${biz||''}</div><div class="bcr-row"><b>Что произошло</b>${summary}</div><div class="bcr-row"><b>Последствие</b>${details}</div><div class="bcr-row"><b>Что делать дальше</b>${next}</div><button class="bcr-ok" data-bcr-close>Понятно</button>`;
   ov.classList.add('show');hapticHit();
 }
 const BUSINESS_WAR_UPGRADE_UI=Object.freeze({
@@ -24223,14 +24223,20 @@ function _canMafiaCaptureBusiness(){
 function _showBusinessWarChoice(data,biz){
   let ov=document.getElementById('businessChoiceOverlay');
   if(!ov){
-    const style=document.createElement('style');style.textContent=`#businessChoiceOverlay{position:fixed;inset:0;z-index:180;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(2,4,9,.78)}#businessChoiceOverlay.show{display:flex}#businessChoiceCard{width:min(590px,95vw);padding:18px;border:1px solid #dcad43;border-radius:16px;background:linear-gradient(145deg,#151b24,#24130c);box-shadow:0 22px 70px #000;color:#e1e7ef;font:700 12px/1.45 system-ui}#businessChoiceCard h2{margin:0 0 5px;color:#ffe176}.bc-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.bc-action{min-height:112px;padding:11px 9px;border:1px solid #5d6672;border-radius:11px;background:rgba(255,255,255,.045);color:#fff;text-align:left;font:800 11px/1.35 system-ui;cursor:pointer}.bc-action b{display:block;margin-bottom:5px;font-size:13px;color:#ffe18a}.bc-action.sabotage{border-color:#c76742}.bc-action.capture{border-color:#8b72e8}.bc-action:disabled{opacity:.38;cursor:default}.bc-timer{height:5px;margin-top:12px;border-radius:5px;background:#333;overflow:hidden}.bc-timer i{display:block;height:100%;background:#e4b947;transform-origin:left}@media(max-width:620px){.bc-actions{grid-template-columns:1fr}.bc-action{min-height:74px}}`;document.head.appendChild(style);
+    const style=document.createElement('style');style.textContent=`
+#businessChoiceOverlay{position:fixed;inset:0;z-index:180;display:none;align-items:center;justify-content:center;padding:14px;background:radial-gradient(circle at 50% 28%,rgba(91,33,18,.28),transparent 44%),rgba(2,4,7,.91);backdrop-filter:blur(7px)}
+#businessChoiceOverlay.show{display:flex}#businessChoiceCard{position:relative;width:min(720px,96vw);max-height:min(760px,92vh);overflow:auto;padding:0;border:1px solid #98733c;border-radius:5px;background:linear-gradient(135deg,rgba(29,32,34,.98),rgba(12,14,16,.99) 60%,rgba(34,20,14,.99));box-shadow:0 28px 100px #000,0 0 0 1px #000 inset;color:#e8e0d3;font:700 12px/1.45 system-ui}
+#businessChoiceCard:before{content:'';position:absolute;inset:7px;pointer-events:none;border:1px solid rgba(211,167,86,.2)}.bc-head{position:relative;padding:22px 24px 16px;border-bottom:1px solid #57462e;background:linear-gradient(90deg,rgba(128,28,15,.24),transparent 60%)}.bc-eyebrow{color:#c7a56c;font:900 10px/1.2 system-ui;letter-spacing:2.2px;text-transform:uppercase}.bc-title{display:flex;align-items:center;gap:10px;margin:5px 0 3px;color:#f4e7c8;font:900 clamp(20px,4.6vw,29px)/1.08 Georgia,serif;text-shadow:0 2px 0 #000}.bc-title-icon{display:grid;place-items:center;width:42px;height:42px;border:1px solid #a77a37;border-radius:50%;background:#17120d;box-shadow:0 0 20px rgba(220,145,46,.15)}.bc-subtitle{color:#9f9a91;font-size:11px}.bc-body{position:relative;padding:16px 24px 22px}.bc-payout{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:11px 13px;border-left:3px solid #55bd78;background:linear-gradient(90deg,rgba(44,118,65,.22),rgba(255,255,255,.025));color:#b7c2b9}.bc-payout strong{white-space:nowrap;color:#7fec9f;font:900 18px/1 Georgia,serif}.bc-section-label{margin:2px 0 9px;color:#b89a68;font-size:10px;letter-spacing:1.4px;text-transform:uppercase}.bc-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.bc-action{position:relative;min-height:154px;padding:14px 13px 12px;border:1px solid #4b4d4e;border-radius:3px;background:linear-gradient(150deg,rgba(255,255,255,.055),rgba(255,255,255,.018));color:#aaa69e;text-align:left;font:700 11px/1.4 system-ui;cursor:pointer;transition:transform .14s,border-color .14s,background .14s}.bc-action:hover:not(:disabled){transform:translateY(-2px);border-color:#c59a52;background:linear-gradient(150deg,rgba(199,153,76,.14),rgba(255,255,255,.025))}.bc-action:active:not(:disabled){transform:translateY(0)}.bc-action-icon{display:block;margin-bottom:7px;font-size:24px;filter:drop-shadow(0 3px 3px #000)}.bc-action b{display:block;margin-bottom:5px;color:#f0dfba;font:900 14px/1.15 Georgia,serif}.bc-impact{display:block;margin-top:9px;padding-top:7px;border-top:1px solid rgba(255,255,255,.09);color:#78d796;font-size:10px;letter-spacing:.15px}.bc-action.sabotage{border-color:#754231}.bc-action.sabotage .bc-impact{color:#ff9a72}.bc-action.capture{border-color:#564b79}.bc-action.capture .bc-impact{color:#bca8ff}.bc-action:disabled{opacity:.38;cursor:default;filter:grayscale(.55)}.bc-back{grid-column:1/-1;min-height:48px}.bc-timer-label{display:flex;justify-content:space-between;margin-top:14px;color:#7f7d78;font-size:9px;letter-spacing:1px;text-transform:uppercase}.bc-timer{height:3px;margin-top:5px;background:#292929;overflow:hidden}.bc-timer i{display:block;height:100%;background:linear-gradient(90deg,#8e1711,#e1b253);box-shadow:0 0 8px #dc9d36;transform-origin:left}
+@media(max-width:620px){#businessChoiceCard{max-height:94vh}.bc-head{padding:18px 17px 13px}.bc-body{padding:13px 17px 18px}.bc-actions{grid-template-columns:1fr}.bc-action{min-height:92px;padding-left:56px}.bc-action-icon{position:absolute;left:14px;top:16px}.bc-back{padding-left:14px}.bc-payout{align-items:flex-start}.bc-payout strong{font-size:16px}}`;document.head.appendChild(style);
     ov=document.createElement('div');ov.id='businessChoiceOverlay';ov.innerHTML='<div id="businessChoiceCard"></div>';document.body.appendChild(ov);
     ov.addEventListener('click',e=>{const back=e.target.closest?.('[data-sabotage-back]');if(back){ov.querySelector('.bc-main').style.display='grid';ov.querySelector('.bc-sabotage-menu').style.display='none';return;}const btn=e.target.closest?.('[data-business-choice]');if(!btn||btn.disabled||!_pendingBusinessWarChoice)return;if(btn.dataset.businessChoice==='submenu'){ov.querySelector('.bc-main').style.display='none';ov.querySelector('.bc-sabotage-menu').style.display='grid';return;}if(btn.dataset.businessChoice==='sabotage'){_confirmBusinessChoice(btn);return;}_sendBusinessChoice(btn);});
   }
   const seconds=Math.max(15,+data.business_choice_s||90),canCapture=!!data.can_capture&&_canMafiaCaptureBusiness();
   _pendingBusinessWarChoice={token:data.business_choice_token,biz_id:data.biz_id,money:+data.money||0,expiresAt:Date.now()+seconds*1000};
   const cash=+data.money||0,c4=Math.max(0,_myC4Count|0),c4Text=c4>0?`C4 есть: ${c4} шт. · будет потрачена 1 шт.`:'ТРЕБУЕТСЯ C4 · 1 ШТ.';
-  document.getElementById('businessChoiceCard').innerHTML=`<h2>${biz?.icon||'🏪'} Что сделать с «${biz?.name||'бизнесом'}»?</h2><div style="color:#9eacbe">Куш <b style="color:#79e69c">+$${cash.toLocaleString('ru')}</b> уже зачислен на твой счёт. Теперь выбери судьбу заведения.</div><div class="bc-actions bc-main"><button class="bc-action" data-business-choice="cash"><b>💰 Забрать куш · +$${cash.toLocaleString('ru')}</b>Подтвердить выплату и уйти. Владение не меняется.</button><button class="bc-action sabotage" data-business-choice="submenu"><b>💣 Совершить диверсию</b>${c4Text}</button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><b>🏴 Захватить для семьи</b>${canCapture?'Подготовка зависит от числа защитников онлайн.':'Сначала вступи в семью Беллини или Моретти.'}</button></div><div class="bc-actions bc-sabotage-menu" style="display:none"><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><b>⚡ Отключить электричество</b>12 мин полной остановки.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><b>🔥 Поджечь склад</b>20 мин без дохода.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><b>📡 Сломать сигнализацию</b>20 мин слабее защита этого здания.<br><span style="color:${c4?'#7ee6a2':'#ff786f'}">${c4Text}</span></button><button class="bc-action" data-sabotage-back><b>← Назад</b>Вернуться к решениям.</button></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
+  document.getElementById('businessChoiceCard').innerHTML=`<div class="bc-head"><div class="bc-eyebrow">Штурм завершён · объект под контролем</div><div class="bc-title"><span class="bc-title-icon">${biz?.icon||'🏪'}</span><span>Судьба «${biz?.name||'заведения'}»</span></div><div class="bc-subtitle">Решение окончательное. Город и владельцы узнают о последствиях.</div></div><div class="bc-body"><div class="bc-payout"><span>Деньги из кассы уже переведены на твой счёт</span><strong>+$${cash.toLocaleString('ru')}</strong></div><div class="bc-section-label">Выбери дальнейшее действие</div><div class="bc-actions bc-main"><button class="bc-action" data-business-choice="cash"><span class="bc-action-icon">💰</span><b>Забрать выплату</b>Уйти с добычей и не трогать само заведение.<span class="bc-impact">Владение не изменится</span></button><button class="bc-action sabotage" data-business-choice="submenu"><span class="bc-action-icon">💣</span><b>Подорвать здание</b>Выбрать узел для диверсии и надолго нарушить работу.<span class="bc-impact">${c4Text}</span></button><button class="bc-action capture" data-business-choice="capture" ${canCapture?'':'disabled'}><span class="bc-action-icon">🏴</span><b>Захватить для семьи</b>${canCapture?'Начать отжим и удержание точки бойцами семьи.':'Доступно только членам Беллини или Моретти.'}<span class="bc-impact">${canCapture?'Запустит семейный контроль':'Семья не выбрана'}</span></button></div><div class="bc-actions bc-sabotage-menu" style="display:none"><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="shutdown"><span class="bc-action-icon">⚡</span><b>Подорвать щитовую</b>Полностью остановить заведение на 12 минут.<span class="bc-impact">C4 −1 · доход и работа остановлены</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="arson"><span class="bc-action-icon">🔥</span><b>Взорвать склад</b>Лишить владельцев дохода на 20 минут и поднять тревогу.<span class="bc-impact">C4 −1 · самый долгий простой</span></button><button class="bc-action sabotage" data-business-choice="sabotage" data-sabotage-kind="alarm"><span class="bc-action-icon">📡</span><b>Вывести из строя охрану</b>Ослабить защиту здания на 20 минут без остановки работы.<span class="bc-impact">C4 −1 · облегчает следующий штурм</span></button><button class="bc-action bc-back" data-sabotage-back><b>← Вернуться к решениям</b></button></div><div class="bc-timer-label"><span>Время на решение</span><span>${seconds} сек.</span></div><div class="bc-timer"><i style="animation:bcChoiceTimer ${seconds}s linear forwards"></i></div></div><style>@keyframes bcChoiceTimer{to{transform:scaleX(0)}}</style>`;
+  const choiceTitle=ov.querySelector('.bc-title span:last-child');
+  if(choiceTitle)choiceTitle.textContent=`Судьба: ${biz?.name||'заведение'}`;
   ov.classList.add('show');
   setTimeout(()=>{if(_pendingBusinessWarChoice?.token===data.business_choice_token){_pendingBusinessWarChoice=null;ov.classList.remove('show');}},seconds*1000);
 }
@@ -24251,10 +24257,10 @@ function _confirmBusinessChoice(btn){
   if(_myC4Count<1){showEventBanner('🧨 ТРЕБУЕТСЯ C4','Для диверсии нужна C4 · 1 шт. Купи заряд на Чёрном рынке',3400,'lose');return;}
   const kind=btn.dataset.sabotageKind||'shutdown';
   const cfg={shutdown:{icon:'⚡',name:'Отключить электричество',effect:'Бизнес полностью остановится на 12 минут. Доход и обычная работа прекратятся.'},arson:{icon:'🔥',name:'Поджечь склад',effect:'Доход бизнеса остановится на 20 минут. Владельцы сразу получат тревогу.'},alarm:{icon:'📡',name:'Сломать сигнализацию',effect:'На 20 минут охрана здания станет слабее, но бизнес продолжит работать.'}}[kind];
-  let ov=document.getElementById('businessChoiceConfirm');if(!ov){ov=document.createElement('div');ov.id='businessChoiceConfirm';ov.style.cssText='position:fixed;inset:0;z-index:202;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(1,3,7,.86)';ov.innerHTML='<div id="businessChoiceConfirmCard" style="width:min(470px,94vw);padding:20px;border:1px solid #e06b45;border-radius:16px;background:linear-gradient(145deg,#1a2029,#2b110d);color:#eef3fa;font:700 13px/1.5 system-ui;box-shadow:0 22px 80px #000"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target.closest?.('[data-bcc-cancel]'))ov.style.display='none';const yes=e.target.closest?.('[data-bcc-confirm]');if(yes){const source=document.querySelector(`[data-business-choice="sabotage"][data-sabotage-kind="${yes.dataset.bccConfirm}"]`);if(source)_sendBusinessChoice(source);}});}
+  let ov=document.getElementById('businessChoiceConfirm');if(!ov){ov=document.createElement('div');ov.id='businessChoiceConfirm';ov.style.cssText='position:fixed;inset:0;z-index:202;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(1,3,7,.9);backdrop-filter:blur(6px)';ov.innerHTML='<div id="businessChoiceConfirmCard" style="width:min(470px,94vw);padding:22px;border:1px solid #a34831;border-radius:4px;background:linear-gradient(145deg,#202326,#2b110d);color:#eee4d8;font:700 13px/1.5 system-ui;box-shadow:0 22px 80px #000,0 0 0 7px #0005"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target.closest?.('[data-bcc-cancel]'))ov.style.display='none';const yes=e.target.closest?.('[data-bcc-confirm]');if(yes){const source=document.querySelector(`[data-business-choice="sabotage"][data-sabotage-kind="${yes.dataset.bccConfirm}"]`);if(source)_sendBusinessChoice(source);}});}
   document.getElementById('businessChoiceConfirmCard').innerHTML=`<h2 style="margin:0;color:#ffd27b">${cfg.icon} Подтвердить диверсию?</h2><p><b>${cfg.name}</b></p><div style="padding:11px;border-radius:10px;background:#ffffff0c">${cfg.effect}</div><p style="color:#ffca75">Будет безвозвратно потрачена C4 · 1 шт.<br>Сейчас в наличии: ${_myC4Count} шт.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button data-bcc-cancel style="padding:11px;border-radius:9px;border:1px solid #667180;background:#202936;color:#fff;font-weight:900">Назад</button><button data-bcc-confirm="${kind}" style="padding:11px;border-radius:9px;border:1px solid #ff8058;background:#9e301a;color:#fff;font-weight:900">Потратить C4 и выполнить</button></div>`;ov.style.display='flex';
 }
-if(_LOCAL_PREVIEW){const previewChoice=String(_UP.get('businesschoice')||'');if(previewChoice)setTimeout(()=>{const biz=BUSINESS_POIS.find(item=>item.id===previewChoice);if(biz)_showBusinessWarChoice({biz_id:biz.id,money:ROB_PAYOUT_PREVIEW[biz.id]?.money||600,business_choice_token:'preview-token',business_choice_s:300,can_capture:true,sabotage_s:720},biz);},1200);}
+if(_LOCAL_PREVIEW){const previewChoice=String(_UP.get('businesschoice')||'');if(previewChoice){const previewC4=Math.max(0,+_UP.get('previewc4')||0);if(previewC4)_myC4Count=Math.max(_myC4Count,previewC4);let tries=0;const timer=setInterval(()=>{tries++;if(ws?.readyState===1){clearInterval(timer);ws.send(JSON.stringify({t:'shop_rob',d:{biz_id:previewChoice,preview_choice:true}}));}else if(tries>=30)clearInterval(timer);},200);}}
 if(_LOCAL_PREVIEW){const visual=String(_UP.get('bizvisual')||'');if(visual)setTimeout(()=>{const id=String(_UP.get('previewpoi')||'coffee'),until=Date.now()+20*60000;if(['shutdown','arson','alarm'].includes(visual))_businessWarSabotage[id]={kind:visual,_untilAt:until,remaining_s:1200};else if(visual==='control')_robbedBusinessControls[id]={biz_id:id,mafia_family:String(_UP.get('previewmafia')||'bellini'),owner_name:'Игрок',persistent:true,expires_at:Date.now()/1000+315360000,income_per_member:60};else if(visual==='war')_businessFamilyWars[id]={biz_id:id,attacker_family:'bellini',previous_family:'moretti',preparing_until:Date.now()/1000+25,expires_at:Date.now()/1000+205,progress:24,hold_s:90,bellini:2,moretti:1};},700);}
 const BUSINESS_WAR_BONUS_INFO = Object.freeze({
   coffee:'☕ Кофейня · +5% семейного дохода',
@@ -32465,6 +32471,7 @@ function update(dt) {
       if (player.r >= biH - 0.6 && Math.abs(player.c - biW / 2) < 2.5) { exitBuildingInterior(); }
     }
     if (_buildingInt) _updateInteriorNpcs(_buildingInt, dt);
+    _updateBusinessRobberyHud();
     // В обычном интерьере используется тот же локальный боевой FX-цикл:
     // без этого патрон списывался, но пуля и вспышка оставались невидимыми.
     updateProjectiles(dt);
@@ -37463,6 +37470,30 @@ Object.assign(BUSINESS_INTERIORS, {
   major_mansion: {floor:['#d5c39d','#c6b28a'],wall:'#5a4635',accent:'#e7c15f',title:'РЕЗИДЕНЦИЯ',manager:'Дон Витторио',staff:['Дворецкий','Гость','Охранник'],props:['tables','booths','cashier','roulette']},
   major_port:    {floor:['#4f6068','#45555d'],wall:'#23343c',accent:'#ff9a3c',title:'ГРУЗОВОЙ ПОРТ',manager:'Капитан Риццо',staff:['Докер','Диспетчер','Охранник'],props:['containers','crates','barrels','radio']},
 });
+
+// Authoritative owner wardrobe. Every establishment keeps a stable, distinct
+// silhouette instead of inheriting the generic citizen randomizer in 3D.
+const BUSINESS_OWNER_LOOKS = {
+  coffee:       {skin:1,face:2,hair:0,ownerStyle:0,suit:'#202a3a',trousers:'#111722',accent:'#b52b3a',hairColor:'#38251b'},
+  carwash:      {skin:2,face:1,hair:1,ownerStyle:1,suit:'#243b52',trousers:'#14202d',accent:'#69cfe4',hairColor:'#191716'},
+  barbershop:   {skin:1,face:3,hair:2,ownerStyle:2,suit:'#4a2630',trousers:'#21151a',accent:'#e5c16e',hairColor:'#7a4b29'},
+  pizza:        {skin:2,face:0,hair:3,ownerStyle:3,suit:'#354238',trousers:'#18211b',accent:'#d8a638',hairColor:'#2b211a'},
+  garage:       {skin:3,face:1,hair:4,ownerStyle:4,suit:'#343941',trousers:'#181b20',accent:'#d8b05a',hairColor:'#151414'},
+  bar:          {skin:1,face:2,hair:5,ownerStyle:5,suit:'#351b2d',trousers:'#170d14',accent:'#d6a9c0',hairColor:'#33251e'},
+  club:         {skin:2,face:3,hair:6,ownerStyle:6,suit:'#2d2145',trousers:'#151020',accent:'#bd8aff',hairColor:'#17151a'},
+  warehouse:    {skin:3,face:0,hair:7,ownerStyle:7,suit:'#453b31',trousers:'#211d19',accent:'#d8b56e',hairColor:'#66503c'},
+  casino:       {skin:1,face:1,hair:8,ownerStyle:8,suit:'#17191f',trousers:'#090a0d',accent:'#e1bd55',hairColor:'#b9a486'},
+  port:         {skin:2,face:2,hair:9,ownerStyle:9,suit:'#24343d',trousers:'#121b20',accent:'#db8b45',hairColor:'#202329'},
+  major_casino: {skin:1,face:1,hair:3,ownerStyle:3,suit:'#15161b',trousers:'#08090b',accent:'#f0c756',hairColor:'#c7b28d'},
+  major_market: {skin:2,face:3,hair:1,ownerStyle:1,suit:'#43311f',trousers:'#21170e',accent:'#e0b654',hairColor:'#28201a'},
+  major_factory:{skin:3,face:0,hair:4,ownerStyle:4,suit:'#343b43',trousers:'#161b20',accent:'#d8893f',hairColor:'#151619'},
+  major_mansion:{skin:1,face:2,hair:2,ownerStyle:2,suit:'#ede5d3',trousers:'#26221d',accent:'#8e1e2a',hairColor:'#3b281c'},
+  major_port:   {skin:2,face:2,hair:9,ownerStyle:9,suit:'#20323c',trousers:'#111a20',accent:'#d98942',hairColor:'#202329'},
+};
+function _businessOwnerLook(bizId){
+  const look=BUSINESS_OWNER_LOOKS[bizId]||BUSINESS_OWNER_LOOKS.coffee;
+  return {gender:0,body:1,hat:0,...look};
+}
 
 // Collision geometry is frozen to origin/main@1d268cff layout v2.  Keep this
 // builder independent from visual revisions: detailed art must not silently
@@ -53429,14 +53460,17 @@ function _spawnInteriorNpcs(bi) {
       const owner = {
         r:2.25,c:bi.W/2,tr:2.25,tc:bi.W/2,ang:Math.PI,walkPhase:0,walking:false,
         name:cfg.manager,role:'owner',fixed:true,hp:100,maxHp:100,dead:false,
-        look:{gender:0,skin:1,body:1,face:2,hair:2,hat:0,suit:cfg.accent},
+        look:_businessOwnerLook(bi.bizId),ownerStyle:(BUSINESS_OWNER_LOOKS[bi.bizId]||BUSINESS_OWNER_LOOKS.coffee).ownerStyle,
         idleUntil:Infinity,speed:0,persona:BUSINESS_OWNER_PERSONAS[bi.bizId]||BUSINESS_OWNER_PERSONAS.coffee,
       };
       const guards=[];
+      const guardPosts=_majorGuardSpawnPoints(bi);
       for(let i=0;i<guardCount;i++){
-        const row=4.6+Math.floor(i/3)*2.5, lane=(i%3+1)*bi.W/4;
+        const fallback={r:Math.min(bi.H-2.5,4.6+Math.floor(i/3)*2.5),c:(i%3+1)*bi.W/4};
+        const post=guardPosts[i%guardPosts.length]||fallback;
         guards.push({
-          r:Math.min(bi.H-2.5,row),c:lane,tr:row,tc:lane,ang:Math.PI/2,
+          r:post.r,c:post.c,tr:post.r,tc:post.c,postR:post.r,postC:post.c,
+          patrolZone:post.zone||'',ang:Math.PI/2,
           walkPhase:0,walking:false,name:i%3===0?'Старший охранник':'Охранник',
           role:'biz_guard',fixed:false,hp:90+(guardCount>=5?30:0),maxHp:90+(guardCount>=5?30:0),dead:false,
           look:{gender:0,skin:1+(i%3),body:2,face:i%4,hair:i%3,hat:5,suit:i%3===0?'#171b24':'#273143'},
@@ -53461,7 +53495,8 @@ function _spawnInteriorNpcs(bi) {
       return {
         r, c, tr:r, tc:c, ang:Math.PI, walkPhase:0, walking:false,
         name, role: fixed ? 'manager' : 'staff', fixed,
-        look:{ gender:i===2?1:0, skin:1+(i%3), body:i===0?1:0, face:i%4, hair:i%6, hat:0, suit:suits[i%suits.length] },
+        look:fixed?_businessOwnerLook(bi.bizId):{ gender:i===2?1:0, skin:1+(i%3), body:0, face:i%4, hair:i%6, hat:0, suit:suits[i%suits.length] },
+        ownerStyle:fixed?(BUSINESS_OWNER_LOOKS[bi.bizId]||BUSINESS_OWNER_LOOKS.coffee).ownerStyle:undefined,
         idleUntil:performance.now()+Math.random()*2500, speed:1.05+Math.random()*.35,
       };
     });
@@ -53586,15 +53621,11 @@ function _casinoGuardBuildFlow(bi,now) {
   if(_casinoGuardNavCache?.bi===bi&&_casinoGuardNavCache.targetKey===targetKey&&
      now<_casinoGuardNavCache.until)return _casinoGuardNavCache;
   const blocked=new Uint8Array(size);
-  const navBlockers=MAJOR_CASINO_STATIC_BLOCKERS.filter(b=>_casinoPropAlive(b.id));
-  for(const safe of (_majorRaidLocal?.safes||[]))
-    navBlockers.push({r:safe.r,c:safe.c,w:2.35,d:2.1});
   for(let rr=0;rr<rows;rr++)for(let cc=0;cc<cols;cc++){
     const r=Math.min(bi.H-.35,(rr+.5)*cell),c=Math.min(bi.W-.35,(cc+.5)*cell);
-    const wallBlocked=_casinoInteriorBlocked(bi,r,c,.32);
-    const propBlocked=!wallBlocked&&navBlockers.some(b=>
-      Math.abs(r-b.r)<b.d/2+.32&&Math.abs(c-b.c)<b.w/2+.32);
-    blocked[rr*cols+cc]=wallBlocked||propBlocked?1:0;
+    // The flow field is shared by every major building, so it must be built
+    // from that building's collision layout (not from casino furniture).
+    blocked[rr*cols+cc]=_businessInteriorMovementBlocked(bi,r,c,.32)?1:0;
   }
   // Если игрок стоит у самой мебели, берём ближайшую свободную клетку.
   if(blocked[targetR*cols+targetC]){
@@ -53715,8 +53746,8 @@ function _casinoMoveMajorGuard(bi,n,moveR,moveC,step) {
 
 function _casinoPickGuardPatrolTarget(bi,n,now) {
   if (!bi || !n) return;
-  const allPoints = bi._casinoPatrolPoints ||
-    (bi._casinoPatrolPoints = _casinoGuardSpawnPoints(bi));
+  const allPoints = bi._majorPatrolPoints ||
+    (bi._majorPatrolPoints = _majorGuardSpawnPoints(bi));
   const sameZone = allPoints.filter(p =>
     !n.patrolZone || p.zone === n.patrolZone);
   const pool = sameZone.length ? sameZone : allPoints;
@@ -53880,6 +53911,30 @@ function _igniteInteriorCharacter(n,sourceR,sourceC) {
   n._burnSourceC=Number.isFinite(sourceC)?sourceC:n.c;
   n._sayText='ГОРЮ!';
   n._sayUntil=Math.max(n._sayUntil||0,now+1100);
+}
+
+function _updateBusinessRobberyHud() {
+  let hud=document.getElementById('businessRobberyHud3d');
+  const bi=_buildingInt;
+  const visible=!!(bi?.type==='business'&&bi.robbery&&document.getElementById('stage')?.classList.contains('three-mode'));
+  if(!visible){if(hud)hud.style.display='none';return;}
+  if(!hud){
+    hud=document.createElement('section');hud.id='businessRobberyHud3d';hud.setAttribute('aria-live','polite');
+    hud.style.cssText='position:fixed;z-index:44;left:50%;bottom:18px;transform:translateX(-50%);width:min(390px,66vw);pointer-events:none;padding:10px 13px 11px;border:1px solid #9d7139;border-radius:4px;background:linear-gradient(135deg,rgba(12,14,18,.96),rgba(39,18,15,.94));box-shadow:0 8px 30px #000b,0 0 0 1px #000 inset;color:#eee3ce;font:800 11px/1.25 system-ui;text-align:center';
+    hud.innerHTML='<div data-robbery-stage style="color:#f0c370;font:900 11px/1.2 Georgia,serif;letter-spacing:.7px"></div><div data-robbery-help style="margin-top:3px;color:#b7ada0;font-size:9px"></div><div style="height:7px;margin-top:8px;border:1px solid #50352e;background:#170d11;overflow:hidden"><i data-robbery-fill style="display:block;width:0;height:100%;background:linear-gradient(90deg,#d26b31,#f1394d);box-shadow:0 0 10px #f03a4a;transition:width .18s ease"></i></div>';
+    document.body.appendChild(hud);
+  }
+  const guards=(bi.npcs||[]).filter(n=>n.role==='biz_guard'&&!n.dead).length;
+  const owner=(bi.npcs||[]).find(n=>n.role==='owner');
+  const pressure=guards?0:Math.max(0,Math.min(99,Math.round(100-(+owner?.hp||100))));
+  const stateKey=`${guards}:${pressure}`;
+  if(hud.dataset.state!==stateKey){
+    hud.dataset.state=stateKey;
+    hud.querySelector('[data-robbery-stage]').textContent=guards?`ШТУРМ · ОХРАНА: ${guards}`:`ДАВЛЕНИЕ НА ВЛАДЕЛЬЦА · ${pressure}%`;
+    hud.querySelector('[data-robbery-help]').textContent=guards?'Устрани охрану, чтобы добраться до владельца':pressure>=70?'Владелец сломлен · подойди к нему и нажми E — «Ограбить бизнес»':'Наведи оружие на владельца и заставь его уступить';
+    hud.querySelector('[data-robbery-fill]').style.width=`${guards?Math.max(8,100/(guards+1)):pressure}%`;
+  }
+  hud.style.display='block';
 }
 
 function _updateInteriorNpcs(bi, dt) {
@@ -54064,23 +54119,24 @@ function _updateInteriorNpcs(bi, dt) {
         n._combatMoveUntil=now+900+Math.random()*1300;
         n._strafeDir=Math.random()<.5?-1:1;
       }
+      const hasLine=_majorInteriorLineClear(bi,n.r,n.c,combatTarget.r,combatTarget.c);
       const fy=dr/dist,fx=dc/dist,sy=-fx*(n._strafeDir||1),sx=fy*(n._strafeDir||1);
       let moveY=0,moveX=0,moveScale=1;
-      if(dist>weaponAi.ideal+1.1){moveY=fy;moveX=fx;}
+      if(!hasLine){const route=_casinoGuardFlowStep(bi,n,now);moveY=route?.r??fy;moveX=route?.c??fx;moveScale=1.08;}
+      else if(dist>weaponAi.ideal+1.1){moveY=fy;moveX=fx;}
       else if(dist<weaponAi.retreat){moveY=-fy+sy*.35;moveX=-fx+sx*.35;}
       else {const rangeBias=(dist-weaponAi.ideal)*.22;moveY=sy+fy*rangeBias;moveX=sx+fx*rangeBias;moveScale=.72;}
-      const moveLen=Math.hypot(moveY,moveX)||1,step=n.speed*moveScale*1.3*dt;
-      const nextR=Math.max(.8,Math.min(bi.H-.8,n.r+moveY/moveLen*step));
-      const nextC=Math.max(.8,Math.min(bi.W-.8,n.c+moveX/moveLen*step));
-      if(Math.hypot(nextR-n.r,nextC-n.c)>.001&&
-         !_businessInteriorMovementBlocked(bi,nextR,nextC,.3)){
-        n.r=nextR;n.c=nextC;n.walking=true;n.walkPhase+=dt*9;
+      const step=n.speed*moveScale*1.3*dt,oldR=n.r,oldC=n.c;
+      if(_casinoMoveMajorGuard(bi,n,moveY,moveX,step)){
+        n.walking=Math.hypot(n.r-oldR,n.c-oldC)>.002;
+        if(n.walking)n.walkPhase+=dt*9;
       }else {
         n.walking=false;n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);
+        _casinoGuardNavCache=null;
       }
       const targetAlive=combatTarget.kind==='gang'
         ?combatTarget.ref?.hp>0:!myDead;
-      if(dist<weaponAi.range&&targetAlive&&
+      if(hasLine&&dist<weaponAi.range&&targetAlive&&
           now>=(n._nextShotAt||0)){
         n._shotAt=now;
         n._nextShotAt=now+weaponAi.cooldown+Math.random()*240;
@@ -54124,7 +54180,9 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range, weapon = currentWeapon) 
     const along = dr * dirY + dc * dirX;
     if (along < .15 || along > range) continue;
     const perp = Math.abs(dr * dirX - dc * dirY);
-    if (perp > hitRadius) continue;
+    const targetRadius=npc.role==='owner'&&_buildingInt?.robbery&&document.getElementById('stage')?.classList.contains('three-mode')
+      ?Math.max(hitRadius,1.15):hitRadius;
+    if (perp > targetRadius) continue;
     if (!best || along < best.dist) {
       best = { npc, dist:along, point:{ r:sR + dirY * along, c:sC + dirX * along } };
     }
@@ -55120,6 +55178,32 @@ function _casinoGuardSpawnPoints(bi) {
   return points;
 }
 
+function _majorGuardSpawnPoints(bi) {
+  if(!bi)return [];
+  if(bi.bizId==='major_casino')return _casinoGuardSpawnPoints(bi);
+  if(bi._majorGuardSpawnPoints)return bi._majorGuardSpawnPoints;
+  const points=[];
+  const r0=1.65,r1=Math.max(r0,bi.H-1.65);
+  const c0=1.65,c1=Math.max(c0,bi.W-1.65);
+  // Interleave three broad sectors so a large assault does not form one clump.
+  const sectors=[[],[],[]];
+  for(let r=r0;r<=r1;r+=1.55)for(let c=c0;c<=c1;c+=1.85){
+    if(_businessInteriorMovementBlocked(bi,r,c,.46))continue;
+    const sector=Math.max(0,Math.min(2,Math.floor((c/Math.max(1,bi.W))*3)));
+    sectors[sector].push({r:+r.toFixed(2),c:+c.toFixed(2),zone:`sector_${sector}`});
+  }
+  const longest=Math.max(0,...sectors.map(group=>group.length));
+  for(let i=0;i<longest;i++)for(const group of sectors)if(group[i])points.push(group[i]);
+  // A malformed/very crowded layout must still yield at least one safe post.
+  if(!points.length){
+    for(let r=1;r<bi.H-1&&!points.length;r+=.5)
+      for(let c=1;c<bi.W-1;c+=.5)
+        if(!_businessInteriorMovementBlocked(bi,r,c,.28)){points.push({r,c,zone:'fallback'});break;}
+  }
+  bi._majorGuardSpawnPoints=points;
+  return points;
+}
+
 function _raycastCasinoProp(sR,sC,dirY,dirX,maxRange) {
   if(_buildingInt?.bizId!=='major_casino') return null;
   let best=null;
@@ -55211,6 +55295,17 @@ function _casinoLineClear(bi,r0,c0,r1,c1) {
   for(let i=1;i<steps;i++){
     const t=i/steps;
     if(_casinoInteriorBlocked(bi,r0+(r1-r0)*t,c0+(c1-c0)*t,.16)) return false;
+  }
+  return true;
+}
+
+function _majorInteriorLineClear(bi,r0,c0,r1,c1) {
+  if(!bi)return true;
+  const distance=Math.hypot(r1-r0,c1-c0),steps=Math.max(1,Math.ceil(distance/.2));
+  for(let i=1;i<steps;i++){
+    const t=i/steps,r=r0+(r1-r0)*t,c=c0+(c1-c0)*t;
+    if(r<.25||c<.25||r>bi.H-.25||c>bi.W-.25)return false;
+    if(_businessInteriorMovementBlocked(bi,r,c,.12))return false;
   }
   return true;
 }
@@ -60513,7 +60608,7 @@ window.Mafiozi3DBridge = Object.freeze({
       apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],ownerUid:String(src.apartmentOwnerUid||apartmentHost?.owner_uid||(_myApartments[apartmentKey]?QP.uid:'')),ownerName:String(src.apartmentOwnerName||apartmentHost?.name||(_myApartments[apartmentKey]?(QP.name||'Игрок'):'')),district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
       layout:casinoLayout,businessLayout,bank:bankState,
-      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`);return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role:n.role||n.type||'civilian',name:n.name||'',look:n.look||null,hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
+      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,visualRole:guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),weapon:n.weapon||'',_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
@@ -61159,7 +61254,15 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   fireAtNpc(npcId, muzzleR, muzzleC) {
     if(myDead||myMode==='pve'||!_isArmed())return false;
-    const key=String(npcId||''),cityCop=cityCops.find(c=>c?.alive&&key===`npc_city_cop_${c.id}`);
+    const key=String(npcId||''),interiorNpc=_buildingInt?.npcs?.find(n=>n&&!n.dead&&!n._allied&&String(n.id??_buildingInt.npcs.indexOf(n))===key);
+    if(interiorNpc){
+      const r=+interiorNpc.r||0,c=+interiorNpc.c||0,sr=Number.isFinite(muzzleR)?muzzleR:player.r,sc=Number.isFinite(muzzleC)?muzzleC:player.c;
+      if(Math.hypot(r-sr,c-sc)>(weaponProfile(currentWeapon).range||8)+1)return false;
+      const hpBefore=+interiorNpc.hp||0,accepted=_threeBridgeFireAccepted(Math.atan2(r-sr,c-sc),muzzleR,muzzleC);
+      document.documentElement.dataset.interiorNpcDirectAim=accepted?`${(+interiorNpc.hp||0)<hpBefore?'hit':'fired'}:${key}`:`rejected:${key}`;
+      return accepted;
+    }
+    const cityCop=cityCops.find(c=>c?.alive&&key===`npc_city_cop_${c.id}`);
     if(cityCop){
       const r=+cityCop.y||0,c=+cityCop.x||0,sr=Number.isFinite(muzzleR)?muzzleR:player.r,sc=Number.isFinite(muzzleC)?muzzleC:player.c;
       if(Math.hypot(r-sr,c-sc)>(weaponProfile(currentWeapon).range||8)+1)return false;
@@ -65097,6 +65200,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d323-outline-parent-transform"></script>
+<script type="module" src="three_preview.js?v=3d326-business-assault-owners"></script>
 </body>
 </html>

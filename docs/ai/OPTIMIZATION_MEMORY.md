@@ -130,3 +130,41 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - A server combat event must update both transient FX and the shooter's durable client actor state. Creating only a bullet and muzzle flash leaves the pooled 3D NPC in its idle arm pose; stamp `_shotAt`, `_shotWeapon` and `_shotSeq` on the already-cached gang bot at event time.
 - Reuse the prepared per-weapon audio buffers for remote NPC shots and attenuate gain from the cached player/shooter coordinates. Do not synthesize a new sound graph or scan actors in the render loop.
 - Inter-gang packets must carry the attacker's id, weapon and authoritative bullet speed. The server regression emitted pistol, shotgun and rifle shots at 14, 11 and 20 tiles/second, applied their damage only after flight, and confirmed that a player rifle hit reduced the targeted gang NPC's server HP.
+
+## Major-interior guard navigation (2026-08-11)
+
+- A shared combat loop must not reuse one landmark's authored patrol points or
+  obstacle list for every interior. Generate and cache walkable posts per room,
+  and build the flow field from the current interior's authoritative collision
+  function.
+- Use the same collision source for movement, route cells and line of fire.
+  Otherwise an NPC can see and shoot through furniture that its feet cannot
+  cross, then appear stuck while continuously selecting the impossible target.
+- Keep the existing bounded flow-field cache (one field shared by the assault
+  group) and reset it only after a guard's bounded no-progress watchdog fires.
+  The regression fixture produced 92 valid posts in a representative room and
+  confirmed a collision-safe route step plus blocked/open firing lanes.
+
+## 3D security identity and combat bridge (2026-08-11)
+
+- Interior combat NPCs must bridge weapon, last-shot time, alert state and active
+  speech together with position/HP. A visible projectile alone is insufficient:
+  without the timestamp the Three.js actor remains in its idle pose while firing.
+- Give security a role-specific cached palette and instanced vest/badge instead
+  of allocating unique meshes per guard. Major venues can select palette by the
+  existing interior id while all guards still share the same bounded NPC pools.
+- A persistent common role marker should use one shared canvas texture and a
+  fixed sprite pool. This keeps `ОХРАНА` visible even when the main identity label
+  temporarily becomes a speech bubble, without per-frame canvas work.
+
+## 3D interior NPC picking and robbery HUD (2026-08-11)
+
+- `activeAimSurface` switches from the world `ground` to `interiorFloor` inside authored rooms. NPC picking must accept both surfaces and copy `camera.layers.mask`; forcing layer 0 makes visible interior actors unpickable.
+- A screen-space aim projected onto the floor is not accurate enough for a raised NPC, especially an owner behind a counter. After an instanced NPC pick, route the stable interior NPC id through the bridge and calculate the gameplay ray from the NPC's authoritative `r/c` coordinates.
+- Canvas-only mission HUD is hidden by the production Three.js canvas. Critical progress such as remaining guards and owner pressure needs a small bounded DOM HUD updated only when its state key changes; do not rebuild HTML every frame.
+
+## 3D business-owner identity (2026-08-11)
+
+- Business owners should be authored in the gameplay source and bridged through the existing bounded interior NPC snapshot with a stable `visualRole`, wardrobe palette and hairstyle index. Do not infer ownership from a display name in the renderer.
+- Premium owner details remain instanced: lapels, pocket square and three reusable hairstyle accents add bounded draw calls without allocating a mesh per owner or per frame.
+- The normal pooled NPC label carries `ВЛАДЕЛЕЦ ЗАВЕДЕНИЯ` plus the owner's name. A shared fallback role texture is shown only while speech temporarily replaces that label, preserving identity without dynamic per-frame canvas painting.

@@ -27316,6 +27316,10 @@ async def _coop_http_app():
                                                     'duration_s': BUSINESS_FAMILY_WAR_DURATION_S,
                                                     'counterattack': counter, 'underdog_bonus': underdog}
                                 elif old_family == family:
+                                    # Capture is forbidden, but the post-raid decision is not
+                                    # consumed: the player may still leave with the payout or
+                                    # choose another valid action from the restored UI.
+                                    world._business_war_claims[str(uid)] = claim
                                     choice_reply={'ok':False,'reason':'same_family_owner',
                                                   'biz_id':biz_id,'biz_name':biz_name}
                                 else:
