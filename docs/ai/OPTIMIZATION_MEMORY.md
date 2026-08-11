@@ -486,3 +486,32 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   preview role-transition regression passed; the older broad custom-gang suite
   currently stops earlier on its pre-existing reference to the absent
   `authenticate_steam_ticket` helper.
+
+## Police partial-route backoff (2026-08-11)
+
+- A failed police BFS still returns the closest collision-valid prefix. The old
+  mover consumed that prefix, immediately treated its endpoint as a stall and
+  rebuilt the same unreachable route about every 590 ms. Mark partial routes
+  explicitly and hold their endpoint until the normal 2.6-second route expiry.
+  Direct passability is still checked every frame, and a target shift over two
+  tiles still invalidates immediately, so newly open movement and moving targets
+  remain responsive without changing obstacles or visible animation.
+- In the same 26-second prison-assault profile, route builds changed from `134`
+  to `118`, deferred requests from `233` to `53`, and stall recoveries from `47`
+  to `30`. The samples had 72 versus 70 NPCs. Frame/render samples varied from
+  `23.7/20.2 ms` to `25.3/21.7 ms`; the BFS maximum varied from `12.8` to
+  `15.1 ms`, so this does not claim an FPS or worst-spike improvement. The
+  reliable result is less repeated planning at unreachable endpoints.
+- A broader cache of route suffixes was tested and rejected: it produced only
+  eight suffix hits while route builds rose to `147` and the measured maximum
+  reached `18.8 ms`. It is not present in the final build; the existing shared
+  cache remains capped at 64 entries.
+- Final one-tab regression completed a four-unit prison assault as
+  `jailed:escorted-to-booking` with `delivered:1`, no escort-route resets and no
+  console errors. At 66 NPCs the completed run sampled `19.9 ms` frame work and
+  `17.3 ms` render at 22 FPS; real-time shadows stayed on and chat local echo
+  advanced. Clean release reported `resumeFrames:3`; a focused temporary QA
+  probe outside the restricted prison/causeway area confirmed renewed firearm
+  acceptance (`accepted:true`, `blocked:false`) and continuing frames. The probe
+  was removed after verification, and the only browser tab and preview server
+  were closed.

@@ -9264,7 +9264,7 @@ function updateCityCops(dt) {
   }
   _ensurePrisonStaffCops(now);
   _updatePrisonAssaultAlarm(now);
-  if(now>=_policeFootRouteDiagnosticsAt){_policeFootRouteDiagnosticsAt=now+500;document.documentElement.dataset.policeFootRoutePlans=String(_policeFootRoutePlanCount);document.documentElement.dataset.policeFootRouteCacheHits=String(_policeFootRouteCacheHits);document.documentElement.dataset.policeFootRouteCacheSize=String(_policeFootRouteSharedCache.size);document.documentElement.dataset.policeFootRouteDeferred=String(_policeFootRouteDeferredCount);document.documentElement.dataset.policeFootRouteMaxMs=_policeFootRouteMaxMs.toFixed(2);}
+  if(now>=_policeFootRouteDiagnosticsAt){_policeFootRouteDiagnosticsAt=now+500;document.documentElement.dataset.policeFootRoutePlans=String(_policeFootRoutePlanCount);document.documentElement.dataset.policeFootRouteCacheHits=String(_policeFootRouteCacheHits);document.documentElement.dataset.policeFootRouteCacheSize=String(_policeFootRouteSharedCache.size);document.documentElement.dataset.policeFootRouteDeferred=String(_policeFootRouteDeferredCount);document.documentElement.dataset.policeFootRouteMaxMs=_policeFootRouteMaxMs.toFixed(2);document.documentElement.dataset.policeFootRoutePartial=`${_policeFootRoutePartialPlans}:${_policeFootRoutePartialHolds}`;}
   document.documentElement.dataset.policeHqReplacementQueue=String(_cityCopReplacementQueue);
   document.documentElement.dataset.policePatrolLive=String(livePatrols);
   document.documentElement.dataset.policeLocalActors=String(cityCops.length);
@@ -10825,9 +10825,9 @@ function _policeCrewBodyPassable(r,c){
     _policeCrewPassable(r+pad,c+pad);
 }
 function _clearPoliceFootRoute(cop){
-  cop._policeFootRoute=null;cop._policeFootRouteIndex=0;cop._policeFootRouteUntil=0;cop._policeFootRouteRetryAt=0;
+  cop._policeFootRoute=null;cop._policeFootRouteIndex=0;cop._policeFootRouteUntil=0;cop._policeFootRouteRetryAt=0;cop._policeFootRoutePartial=false;cop._policeFootPartialHeld=false;
 }
-let _policeFootRouteFrame=-1,_policeFootRoutesThisFrame=0,_policeFootRouteDeferredCount=0,_policeFootRoutePlanCount=0,_policeFootRouteCacheHits=0,_policeFootRouteMaxMs=0,_policeFootRouteDiagnosticsAt=0;
+let _policeFootRouteFrame=-1,_policeFootRoutesThisFrame=0,_policeFootRouteDeferredCount=0,_policeFootRoutePlanCount=0,_policeFootRouteCacheHits=0,_policeFootRouteMaxMs=0,_policeFootRouteDiagnosticsAt=0,_policeFootRoutePartialPlans=0,_policeFootRoutePartialHolds=0;
 const _policeFootRouteSharedCache=new Map();
 function _reservePoliceFootRoute(now){
   const frame=Math.floor(now/16.667);if(frame!==_policeFootRouteFrame){_policeFootRouteFrame=frame;_policeFootRoutesThisFrame=0;}
@@ -10852,7 +10852,7 @@ function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
   const sr=Math.floor(cop.y),sc=Math.floor(cop.x),startKey=sr*MAP_COLS+sc;
   const sharedKey=`${startKey}:${targetR}:${targetC}`,shared=_policeFootRouteSharedCache.get(sharedKey);
   if(shared&&shared.until>now){
-    cop._policeFootRoute=shared.path;cop._policeFootRouteIndex=0;cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;
+    cop._policeFootRoute=shared.path;cop._policeFootRouteIndex=0;cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRoutePartial=!!shared.partial;cop._policeFootPartialHeld=false;
     cop._policeFootRouteUntil=now+2600;cop._policeFootRouteRetryAt=shared.path.length?now+240:now+620;_policeFootRouteCacheHits++;
     return shared.path.length>0;
   }
@@ -10869,16 +10869,16 @@ function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
       const node={r,c,key,parent:cur.key};nodes.set(key,node);queue.push(node);
     }
   }
-  goal=goal||best;const path=[];
+  const reachedGoal=!!goal;goal=goal||best;const path=[];
   while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
   path.reverse();cop._policeFootRoute=path;cop._policeFootRouteIndex=0;
-  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;
+  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRoutePartial=!reachedGoal;cop._policeFootPartialHeld=false;if(!reachedGoal)_policeFootRoutePartialPlans++;
   // Collision geometry is static and the mover still invalidates immediately
   // when the target shifts by two tiles or a waypoint makes no progress. Keep
   // a successful route long enough that stationary pursuits do not rebuild the
   // same BFS every 1.6 seconds for every officer around one obstacle.
   cop._policeFootRouteUntil=now+2600;cop._policeFootRouteRetryAt=path.length?now+240:now+620;
-  _policeFootRouteSharedCache.set(sharedKey,{path,until:now+2600});
+  _policeFootRouteSharedCache.set(sharedKey,{path,partial:!reachedGoal,until:now+2600});
   if(_policeFootRouteSharedCache.size>64){for(const [key,value] of _policeFootRouteSharedCache){if(value.until<=now||_policeFootRouteSharedCache.size>64)_policeFootRouteSharedCache.delete(key);else break;}}
   const routeMs=performance.now()-routeStartedAt;_policeFootRoutePlanCount++;_policeFootRouteMaxMs=Math.max(_policeFootRouteMaxMs,routeMs);
   return path.length>0;
@@ -10897,14 +10897,15 @@ function _movePoliceFootCop(cop,targetR,targetC,dt,mul=1){
   const tryStep=(wr,wc)=>{const d=Math.hypot(wr,wc)||1,rr=wr/d*step,cc=wc/d*step;
     if(!_policeCrewBodyPassable(cop.y+rr,cop.x+cc))return false;
     cop.y+=rr;cop.x+=cc;cop.ang=Math.atan2(rr,cc);cop.walking=true;cop.walkPhase=(cop.walkPhase||0)+dt*10*mul;
-    cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;return true;};
+    cop._policeFootBlockedSince=0;cop._policeFootLastMoveAt=now;cop._policeFootPartialHeld=false;return true;};
   if(!cop._policeFootRoute?.length&&tryStep(directR,directC))return false;
-  const routeStale=now>=(cop._policeFootRouteUntil||0)||Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0))>2;
-  if(routeStale||!cop._policeFootRoute?.length)_planPoliceFootRoute(cop,targetR,targetC,now);
+  const routeTargetShift=Math.hypot(targetR-(cop._policeFootRouteTargetR||0),targetC-(cop._policeFootRouteTargetC||0)),routeStale=now>=(cop._policeFootRouteUntil||0)||routeTargetShift>2;
+  if((routeStale||!cop._policeFootRoute?.length)&&!(cop._policeFootRoutePartial&&!routeStale))_planPoliceFootRoute(cop,targetR,targetC,now);
   const route=cop._policeFootRoute||[];let idx=Math.max(0,+cop._policeFootRouteIndex||0),wp=route[idx];
   while(wp&&Math.hypot(wp.r-cop.y,wp.c-cop.x)<.24){idx++;wp=route[idx];cop._policeFootRouteIndex=idx;}
   if(wp&&tryStep(wp.r-cop.y,wp.c-cop.x))return false;
   if(tryStep(directR,directC)){_clearPoliceFootRoute(cop);return false;}
+  if(cop._policeFootRoutePartial&&!routeStale){if(!cop._policeFootPartialHeld){cop._policeFootPartialHeld=true;_policeFootRoutePartialHolds++;}cop._policeFootBlockedSince=0;cop.walking=false;return false;}
   if(!cop._policeFootBlockedSince)cop._policeFootBlockedSince=now;
   const blockedFor=now-cop._policeFootBlockedSince;
   if(blockedFor>=520){
