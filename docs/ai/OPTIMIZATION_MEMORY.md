@@ -573,3 +573,24 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   custody/response variants so nearby character labels remain visually
   consistent. Large dialogue, boss and unique-NPC cards already have adequate
   scale and should remain unchanged.
+
+## Corpse marker and organic blood pool (2026-08-11, v343)
+
+- Death overrides the proximity-gated identity rule: every active dead NPC
+  reuses its existing pooled identity sprite for one compact `☠ МЁРТВ` card.
+  The card texture is repainted only when the slot receives a different dead
+  name, so the render loop adds no canvas work or new label objects per frame.
+- Keep corpse blood in the existing instanced pool and its settled-matrix
+  cache. One shared 192 px canvas texture supplies overlapping dark lobes,
+  coagulated centre shading, an irregular transparent edge and bounded splash
+  droplets. This improves the silhouette without particles, timers, extra
+  per-corpse meshes or another draw call.
+- A close local corpse fixture visually confirmed the readable two-line death
+  card above the fallen body. Final one-tab ambulance QA reported exactly one
+  dead label and one blood pool, `corpseBloodMatrixUpload=cached`, native pixel
+  ratio, real-time shadows and no JavaScript or Three.js errors. Chat local
+  echo advanced and the real server status remained `Гражданский`.
+- The representative final sample had 58 NPCs, `17 FPS`, `36.0 ms` frame work,
+  `24.3 ms` render work and a noisy `199.0 ms` render maximum during streaming.
+  Do not claim an FPS gain from this visual package; its reliable performance
+  property is reuse of the existing label/decal pools and settled matrix cache.
