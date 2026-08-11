@@ -115,8 +115,12 @@ def publish_coop_api_json(api_url: str):
     Использует .token (GitHub Personal Access Token) рядом с этим скриптом.
     Если токена нет — тихо скипаем (для деплоев без auto-publish можно
     хардкодить api в URL хаба, как раньше)."""
-    token_path = HERE / ".token"
-    if not token_path.exists():
+    token_path = next(
+        (directory / ".token" for directory in (HERE, *HERE.parents[:6])
+         if (directory / ".token").exists()),
+        None,
+    )
+    if token_path is None:
         log("[!] .token не найден — coop_api.json не публикуется.")
         log("    У друзей без бот-кнопки лобби работать не будет.")
         return
