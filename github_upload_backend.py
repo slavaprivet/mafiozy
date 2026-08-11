@@ -14,7 +14,7 @@ REPO = "slavaprivet/mafiozy"
 BRANCH = "main"
 # Без аргументов сохраняется прежнее поведение. Для точечной публикации:
 #   python github_upload_backend.py mafiozi_bot.py
-FILES = tuple(sys.argv[1:]) or ("mafiozi_bot.py", "_preview_ws_server.py")
+FILES = tuple(sys.argv[1:]) or ("mafiozi_bot.py", "npc_empire.py", "_preview_ws_server.py")
 
 
 def request(method, path, body=None):
