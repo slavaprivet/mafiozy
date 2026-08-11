@@ -1245,8 +1245,24 @@ async def apartment_sell(req):
     account = preview_account(uid)
     account["cash"] += refund
     del owned[apt_key]
+    removed_gang = False
+    gid = preview_custom_gang_by_uid.get(str(uid))
+    gang = preview_custom_gangs.get(gid)
+    if gang and str(gang.get("leader_uid")) == str(uid) and gang.get("hq_apt_key") == apt_key:
+        removed_gang = True
+        for member_uid in list(gang.get("members") or []):
+            preview_custom_gang_by_uid.pop(str(member_uid), None)
+            member = players.get(str(member_uid))
+            if member:
+                for key in ("custom_gang_id", "custom_gang_name", "custom_gang_role",
+                            "custom_gang_flag", "custom_gang_hq", "crew_id"):
+                    member.pop(key, None)
+        preview_custom_gangs.pop(gid, None)
     return cors(web.json_response({
         "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
+        "gang": None if removed_gang else preview_custom_gang_payload(uid),
+        "role_status": "civilian" if removed_gang else "",
+        "headquarters": preview_custom_gang_hqs(),
     }))
 
 
@@ -2217,7 +2233,10 @@ async def world_ws(req):
                 was_mafia = bool(p.get("mafia"));old_family=str(p.get("mafia_family") or "")
                 p["police"] = bool(d.get("police", False))
                 requested_family = str(d.get("mafia_family") or "")
-                wants_mafia=bool(d.get("mafia",False)) and not p["police"] and not p.get("custom_gang_id") and requested_family in ("bellini","moretti")
+                blocked_by_custom_gang = bool(d.get("mafia", False) and p.get("custom_gang_id"))
+                wants_mafia=bool(d.get("mafia",False)) and not p["police"] and not blocked_by_custom_gang and requested_family in ("bellini","moretti")
+                if blocked_by_custom_gang:
+                    p["mafia_join_denied"] = "custom_gang_owner" if p.get("custom_gang_role") == "leader" else "custom_gang_member"
                 if wants_mafia and time.time()<float(p.get("mafia_traitor_until",0)) and requested_family!=old_family:wants_mafia=False
                 if wants_mafia and not was_mafia:
                     same=sum(1 for q in players.values() if q.get("mafia") and q.get("mafia_family")==requested_family)

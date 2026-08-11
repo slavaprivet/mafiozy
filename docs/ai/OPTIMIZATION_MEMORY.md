@@ -395,3 +395,25 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - An idle breathing cycle may affect the torso, head and relaxed arms, but must never feed leg rotation or foot lift. Standing NPC leg swing/lift remains exactly zero, while cower, help, injury, death and firing layers keep their authored poses.
 - Gang identity bands must use the same measured `pose.walking` state as the body. Reading stale `src.walking` separately makes the band bob while the character's planted feet remain still.
 - QA telemetry: `data-idle-npcs`, `data-idle-npc-leg-motion-max` (must be `0.0000`) and `data-npc-gait-activation=measured-displacement-with-stop-hysteresis-v332`.
+
+## Persistent HQ waypoint and authoritative role gate (2026-08-11)
+
+- A permanent personal-HQ indicator does not need a second world-object scan.
+  Use the already cached custom-gang payload (`hq_r`, `hq_c`, flag and name),
+  update one small DOM overlay at a throttled 140 ms cadence, and leave the
+  nearby 2D/3D world marker culling unchanged. This keeps direction and distance
+  visible off-screen without adding per-frame layout work proportional to map size.
+- Load the custom-gang record into the authoritative WebSocket player before
+  accepting its first movement/role input. The parallel HTTP state request is a
+  presentation sync and must not decide whether an HQ owner may join Bellini or
+  Moretti. Reject that transition on the server until sale/disband removes the
+  gang, and preserve `cg:<id>` crew identity on ordinary civilian movement.
+- HQ sale is one user action: disband the gang, clear the live role for every
+  member, return the refreshed headquarters list and explicit civilian result,
+  then update the client HUD immediately from that response. The preview server
+  must mirror the same transition or local 3D QA can validate impossible states.
+- Local 1280x720 3D verification showed one 236x47 px waypoint at y=82 with
+  separate title/detail lines and no map-wide work. The focused production and
+  preview role-transition regression passed; the older broad custom-gang suite
+  currently stops earlier on its pre-existing reference to the absent
+  `authenticate_steam_ticket` helper.

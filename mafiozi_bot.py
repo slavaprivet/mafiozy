@@ -14782,14 +14782,24 @@ class WorldSim:
         was_mafia = bool(p.get('_mafia'))
         old_family = str(p.get('_mafia_family') or '')
         now_role = time.time()
+        custom_gang_role = str(p.get('_custom_gang_role') or '')
+        if requested_mafia and p.get('_custom_gang_id'):
+            requested_mafia = False
+            requested_family = ''
+            p['_mafia_join_denied'] = (
+                'custom_gang_owner' if custom_gang_role == 'leader'
+                else 'custom_gang_member'
+            )
         if was_mafia and not requested_mafia:
             p['_mafia_last_family'] = old_family
             p['_mafia_traitor_until'] = now_role + 300.0
-        if requested_mafia and float(p.get('_mafia_traitor_until') or 0) > now_role:
+        if (requested_mafia and not p.get('_custom_gang_id')
+                and float(p.get('_mafia_traitor_until') or 0) > now_role):
             requested_mafia = False
             requested_family = ''
             p['_mafia_join_denied'] = 'traitor'
-        if requested_mafia and not was_mafia and requested_family:
+        if (requested_mafia and not p.get('_custom_gang_id')
+                and not was_mafia and requested_family):
             family_counts = {
                 family: sum(1 for other_uid, other in self.players.items()
                             if str(other_uid) != str(uid) and other.get('_mafia')
@@ -14814,12 +14824,16 @@ class WorldSim:
         p['_police'] = requested_police
         p['_mafia'] = requested_mafia and not p['_police']
         p['_mafia_family'] = requested_family if p['_mafia'] else ''
-        if not p['_mafia']:
+        if not p['_mafia'] and not p.get('_custom_gang_id'):
             crew_id = str(p.pop('_crew_id', '') or '')
             if crew_id:
                 left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
                 if len(left) < 2:
                     for q in left: q.pop('_crew_id', None)
+        elif p.get('_custom_gang_id'):
+            # A civilian custom gang is still a real online crew. Movement
+            # packets must not erase it just because the player is not mafia.
+            p['_crew_id'] = f"cg:{p['_custom_gang_id']}"
         if p['_police'] and not was_police:
             # Форма несовместима с контролем улиц: при поступлении на службу
             # личные и совместные владения, а также незавершённые захваты снимаются.
@@ -24068,6 +24082,9 @@ async def _coop_http_app():
         apt_key = str(b.get('apt_key', '')).strip()[:32]
         if not apt_key or ',' not in apt_key:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
+        owned_before = await get_apartments_owned(uid)
+        if apt_key not in owned_before:
+            return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
         removed_members=[]
         gang=await get_custom_gang_for_user(uid)
         if gang and gang['role']=='leader' and gang['hq_apt_key']==apt_key:
@@ -24084,6 +24101,7 @@ async def _coop_http_app():
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
             'gang': None if removed_members else gang,
+            'role_status': 'civilian' if removed_members else '',
             'headquarters': await get_custom_gang_headquarters(),
         }))
 
@@ -25016,6 +25034,13 @@ async def _coop_http_app():
         p_ref = world.players.get(uid)
         if p_ref is not None:
             p_ref['_gang_leader'] = leader_id
+            # Resolve the authoritative gang role before the first movement
+            # packet, not after the parallel HTTP state request happens to win.
+            try:
+                apply_custom_gang_to_player(
+                    p_ref, await ensure_personal_gang_for_hq(uid_int))
+            except Exception:
+                pass
             # Кэшируем cash/diamonds в memory, чтобы HUD клиента видел
             # актуальные значения и реагировал на начисления без get_character
             # каждый раз.

@@ -391,14 +391,15 @@ async def run() -> None:
             async with session.post(
                 f"{base}/apartment/71001/sell", json={"apt_key": "tile:16,16"}
             ) as response:
-                blocked_sale = await response.json()
-                assert response.status == 409 and blocked_sale["error"] == "hq active"
-            async with session.post(f"{base}/custom-gang/71001/leave") as response:
-                leader_leave = await response.json()
-                assert response.status == 409 and leader_leave["error"] == "leader must disband"
-            async with session.post(f"{base}/custom-gang/71001/disband") as response:
-                removed_http = await response.json()
-                assert response.status == 200 and removed_http["ok"] and removed_http["headquarters"] == []
+                sold_hq = await response.json()
+                assert response.status == 200 and sold_hq["ok"]
+                assert sold_hq["gang"] is None and sold_hq["headquarters"] == []
+                assert sold_hq["role_status"] == "civilian"
+                assert not game._WORLD.players["71001"].get("_custom_gang_id")
+                assert not game._WORLD.players["71002"].get("_custom_gang_id")
+
+            # Recreate the property for the WebSocket authority tests below.
+            await own_apartment(71001, "tile:16,16")
 
             # Real WebSocket transitions: party authority and an invite whose
             # target changes faction while the confirmation dialog is open.
@@ -426,6 +427,16 @@ async def run() -> None:
             ) as response:
                 ws_created = await response.json()
                 assert response.status == 200 and ws_created["gang"]["member_count"] == 2
+
+            # A custom-gang leader remains a civilian crew and cannot spoof a
+            # Bellini/Moretti role through movement input while the HQ exists.
+            game._WORLD.apply_input("71001", {
+                "x": 20, "y": 20, "police": False,
+                "mafia": True, "mafia_family": "bellini",
+            })
+            assert not game._WORLD.players["71001"].get("_mafia")
+            assert game._WORLD.players["71001"]["_mafia_join_denied"] == "custom_gang_owner"
+            assert str(game._WORLD.players["71001"].get("_crew_id", "")).startswith("cg:")
 
             # Exercise the complete online hire path used by the 3D client:
             # WebSocket request -> authoritative payment -> street NPC removal
@@ -504,6 +515,12 @@ async def run() -> None:
 
             async with session.post(f"{base}/custom-gang/71001/disband") as response:
                 assert (await response.json())["ok"]
+            game._WORLD.apply_input("71001", {
+                "x": 20, "y": 20, "police": False,
+                "mafia": True, "mafia_family": "moretti",
+            })
+            assert game._WORLD.players["71001"].get("_mafia")
+            assert game._WORLD.players["71001"].get("_mafia_family") == "moretti"
             await ws1.close(); await ws2.close(); await ws3.close()
         await runner.cleanup()
         await asyncio.sleep(0.05)
@@ -526,6 +543,14 @@ async def run() -> None:
         assert preview_json["gang"]["flag"] == {
             "primary": "#9b1f2d", "secondary": "#e0b83e", "emblem": "crown"
         }
+        preview_sale = await preview.apartment_sell(PreviewRequest("81001", {
+            "apt_key": "tile:16,16",
+        }))
+        preview_sale_json = __import__("json").loads(preview_sale.text)
+        assert preview_sale.status == 200
+        assert preview_sale_json["gang"] is None
+        assert preview_sale_json["role_status"] == "civilian"
+        assert preview_sale_json["headquarters"] == []
 
         root = Path(__file__).resolve().parent
         world_source = (root / "world.html").read_text(encoding="utf-8")
@@ -534,6 +559,7 @@ async def run() -> None:
         for witness in (
             'id="cgPrimaryColors"', 'id="cgSecondaryColors"',
             "data-aptctl-gang", "Название банды", "drawCustomGangHeadquarters",
+            "customGangHqWaypoint", "СНАЧАЛА ПРОДАЙ ШТАБ",
             "flag:{primary:m.dataset.primary,secondary:m.dataset.secondary,emblem:m.dataset.emblem}",
             "function _gangHireEligibility", "function _gangMovementBlocked",
             "function _gangLineClear", "hireSelectedGangNpc()",
