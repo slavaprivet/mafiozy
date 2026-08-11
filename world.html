@@ -1,4 +1,8 @@
 <!DOCTYPE html><!-- v353: startup keeps one stable outdoor-light shader family instead of compiling a hidden-beacon duplicate. -->
+<!-- v344: male and female creator identities now have clearly distinct silhouettes and faces. -->
+<!-- v343: fitted hats preserve tucked hair and accessories no longer clip through clothing. -->
+<!-- v342: creator body proportions, detailed faces and hair now match the playable 3D character. -->
+<!-- v341: character creation returns to selection; confirmed deletion safely frees its slot. -->
 <!-- v352: expired combat FX sources and ballistic timers are lifecycle-bounded. -->
 <!-- v351: overhead identity cards fade from right to left as character health falls. -->
 <!-- v349: framed NPC health sits higher above the character head. -->
@@ -182,6 +186,117 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
   .cityLoadingHint { margin-top: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { #cityLoadingScreen, #cityLoadingBar, .cityLoadingSlide, .cityLoadingCard { transition: none; } }
+
+/* Главное меню появляется после загрузочной заставки и удерживает первый вход
+   в город до явного выбора игрока. Фон — уже загруженный живой город. */
+#gameMainMenu {
+  --menu-gold:#d9b568; --menu-red:#a91f25; position:fixed; inset:0; z-index:900; display:flex;
+  align-items:center; justify-content:center; padding:clamp(18px,5vw,72px);
+  background:
+    radial-gradient(circle at 70% 26%,rgba(177,42,36,.18),transparent 28%),
+    linear-gradient(90deg,rgba(3,5,8,.985) 0%,rgba(4,7,11,.92) 44%,rgba(3,5,8,.48) 73%,rgba(2,4,7,.82)),
+    url('assets/loading/city-empire.webp?v=3d117') center/cover no-repeat;
+  backdrop-filter:blur(5px) saturate(.7); transition:opacity .32s ease,visibility .32s ease;
+  touch-action:pan-y; overflow:auto;
+}
+#gameMainMenu.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+#gameMainMenu::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.19;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.36'/%3E%3C/svg%3E"); }
+.gmm-shell { position:relative; display:grid; grid-template-columns:minmax(360px,610px) minmax(260px,340px); gap:clamp(28px,5vw,80px); align-items:center; width:min(1050px,100%); color:#f6eedb; }
+.gmm-content { min-width:0; }
+.gmm-kicker { color:#bfc4cc; font:900 10px/1 system-ui; letter-spacing:.34em; text-transform:uppercase; }
+.gmm-logo { margin:9px 0 4px; font:950 clamp(43px,8vw,82px)/.88 Georgia,serif; letter-spacing:-.055em;
+  color:#fff4d7; text-shadow:0 5px 34px #000,0 0 36px rgba(192,44,40,.2); }
+.gmm-rule { width:118px; height:4px; margin:18px 0 24px; background:linear-gradient(90deg,#a91e24,var(--menu-gold),transparent); }
+.gmm-panel { display:none; width:min(550px,100%); }
+.gmm-panel.active { display:block; animation:gmmIn .24s ease both; }
+@keyframes gmmIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
+.gmm-actions { display:grid; gap:10px; max-width:430px; }
+.gmm-btn { position:relative; min-height:58px; padding:14px 18px 14px 22px; overflow:hidden; border:1px solid rgba(221,190,121,.34); border-radius:3px;
+  background:linear-gradient(95deg,rgba(42,31,23,.95),rgba(15,17,22,.9)); color:#f7edd5; text-align:left;
+  font:900 15px/1.15 system-ui; letter-spacing:.065em; cursor:pointer; box-shadow:0 12px 34px rgba(0,0,0,.3); transition:.18s ease; }
+.gmm-btn::before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--menu-gold); opacity:.38; transition:.18s ease; }
+.gmm-btn:hover,.gmm-btn:focus-visible { border-color:var(--menu-gold); transform:translateX(5px); outline:none; background:linear-gradient(95deg,rgba(69,49,28,.98),rgba(18,19,24,.94)); }
+.gmm-btn:hover::before,.gmm-btn:focus-visible::before { width:7px; opacity:1; }
+.gmm-btn.primary { border-color:#b98b36; background:linear-gradient(95deg,#7d1d20,#331418 68%,#17161a); }
+.gmm-btn.primary::before { background:#e8bd68; opacity:1; }
+.gmm-btn small { display:block; margin-top:5px; color:#aeb4be; font:700 10px/1.3 system-ui; letter-spacing:0; }
+.gmm-title { margin:0 0 14px; color:#f7e7bd; font:950 clamp(25px,5vw,37px)/1 Georgia,serif; }
+.gmm-save { padding:16px; border:1px solid rgba(216,180,104,.36); border-radius:7px; background:rgba(9,11,15,.82); }
+.gmm-save-head { display:flex; align-items:center; gap:12px; }
+.gmm-avatar { display:grid; place-items:center; width:48px; height:48px; flex:0 0 auto; border:1px solid #a77b36; border-radius:50%;
+  background:radial-gradient(circle at 35% 25%,#7d6950,#201a18 70%); font:900 21px Georgia; color:#ffe7ad; }
+.gmm-save-name { font:900 17px/1.15 system-ui; color:#fff4dc; }
+.gmm-save-meta { margin-top:4px; color:#aeb4be; font:700 11px/1.35 system-ui; }
+.gmm-slots { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin:13px 0; }
+.gmm-slot { min-width:0; padding:9px 6px; border:1px solid rgba(255,255,255,.12); border-radius:6px; background:rgba(255,255,255,.035); text-align:center; }
+.gmm-slot.filled { border-color:rgba(216,181,104,.52); background:rgba(132,94,35,.14); }
+.gmm-slot-icon { display:grid; place-items:center; width:31px; height:31px; margin:0 auto 5px; border-radius:50%; background:#1a1d24; color:#c99f52; font-weight:950; }
+.gmm-slot-avatar { display:block; width:42px; height:52px; margin:0 auto 4px; object-fit:contain; filter:drop-shadow(0 6px 5px #000); }
+.gmm-slot-name { overflow:hidden; color:#dfe2e7; font:800 9px/1.2 system-ui; white-space:nowrap; text-overflow:ellipsis; }
+.gmm-slot-meta { margin-top:3px; overflow:hidden; color:#a99a79; font:750 7px/1.25 system-ui; white-space:nowrap; text-overflow:ellipsis; }
+.gmm-hint { margin:10px 0 13px; color:#aab0ba; font:650 11px/1.45 system-ui; }
+.gmm-row { display:flex; flex-wrap:wrap; gap:8px; }
+.gmm-row .gmm-btn { flex:1 1 150px; text-align:center; }
+.gmm-back {
+  display:inline-flex; align-items:center; justify-content:center; min-height:38px;
+  margin-bottom:16px; padding:9px 15px; border:1px solid rgba(216,180,104,.55); border-radius:3px;
+  background:linear-gradient(100deg,rgba(44,31,20,.92),rgba(12,14,18,.92));
+  color:#f0d592; box-shadow:0 7px 20px #0006; cursor:pointer;
+  font:900 11px/1 system-ui; letter-spacing:.1em; text-transform:uppercase;
+  transition:border-color .16s ease,transform .16s ease,background .16s ease;
+}
+.gmm-back:hover,.gmm-back:focus-visible {
+  border-color:var(--menu-gold); background:linear-gradient(100deg,rgba(73,47,24,.96),rgba(20,20,20,.96));
+  outline:none; transform:translateX(-3px);
+}
+.gmm-setting { display:grid; grid-template-columns:1fr auto; align-items:center; gap:14px; padding:13px 0; border-bottom:1px solid rgba(255,255,255,.09); }
+.gmm-setting label { color:#ece7dc; font:800 13px system-ui; }
+.gmm-setting input[type=range] { width:150px; accent-color:#b98b36; }
+.gmm-toggle { min-width:82px; padding:8px 10px; border:1px solid #665d4e; border-radius:5px; background:#1b1d23; color:#d8dbe1; font-weight:850; cursor:pointer; }
+.gmm-toggle.on { border-color:#b98b36; background:#4b3419; color:#ffe6aa; }
+.gmm-side { position:relative; min-height:470px; display:flex; align-items:flex-end; justify-content:center; isolation:isolate; }
+.gmm-side::before { content:""; position:absolute; z-index:-2; width:330px; height:330px; left:50%; top:39%; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(circle,rgba(184,42,37,.2),rgba(176,132,57,.06) 45%,transparent 70%); filter:blur(2px); }
+.gmm-side::after { content:""; position:absolute; z-index:-1; left:4%; right:4%; bottom:40px; height:70px; border-radius:50%; background:radial-gradient(ellipse,rgba(0,0,0,.94),transparent 68%); transform:perspective(250px) rotateX(68deg); }
+.gmm-character { position:absolute; inset:0 0 68px; display:grid; place-items:end center; filter:drop-shadow(0 22px 24px rgba(0,0,0,.75)); }
+#gmmCharacterPreview { width:min(310px,100%); height:auto; image-rendering:auto; }
+.gmm-character.locked #gmmCharacterPreview { filter:grayscale(1) brightness(.19); opacity:.72; }
+.gmm-side-add { position:absolute; z-index:4; left:8px; top:38%; display:flex; align-items:center; gap:9px; min-height:47px; padding:7px 12px 7px 8px; border:1px dashed rgba(224,185,101,.72); border-radius:24px; background:linear-gradient(110deg,rgba(50,32,18,.96),rgba(9,12,17,.94)); color:#f1d48c; box-shadow:0 12px 28px #0009; cursor:pointer; text-align:left; transition:.16s ease; }
+.gmm-side-add strong { display:grid; place-items:center; width:31px; height:31px; border-radius:50%; background:#b58635; color:#17100a; font:950 23px/1 system-ui; }
+.gmm-side-add span { display:block; font:900 9px/1.2 system-ui; letter-spacing:.09em; text-transform:uppercase; }
+.gmm-side-add small { display:block; margin-top:3px; color:#aaa395; font:750 7px/1.1 system-ui; }
+.gmm-side-add:hover,.gmm-side-add:focus-visible { border-style:solid; border-color:#f0c76f; transform:translateY(-2px); outline:none; }
+.gmm-side-add[hidden] { display:none; }
+.gmm-character-next { position:absolute; z-index:5; right:-21px; top:43%; display:grid; place-items:center; width:54px; height:54px; border:1px solid rgba(224,185,101,.68); border-radius:50%; background:linear-gradient(145deg,rgba(76,46,22,.98),rgba(10,12,16,.96)); color:#f5d58e; box-shadow:0 13px 30px #000a; cursor:pointer; font:950 31px/1 Georgia,serif; transition:.16s ease; }
+.gmm-character-next:hover,.gmm-character-next:focus-visible { border-color:#ffd87d; transform:translateX(3px) scale(1.05); outline:none; }
+.gmm-character-next[hidden] { display:none; }
+.gmm-character-next small { position:absolute; top:58px; width:78px; color:#b9aa8b; font:850 7px/1 system-ui; letter-spacing:.08em; text-align:center; text-transform:uppercase; }
+.gmm-confirm { position:absolute; z-index:20; inset:0; display:grid; place-items:center; padding:24px; background:rgba(2,3,5,.78); backdrop-filter:blur(8px); }
+.gmm-confirm[hidden] { display:none; }
+.gmm-confirm-card { width:min(390px,100%); padding:23px; border:1px solid rgba(222,183,98,.6); border-left:3px solid var(--menu-red); background:linear-gradient(145deg,#171719,#080a0d); box-shadow:0 30px 80px #000d; text-align:center; }
+.gmm-confirm-kicker { color:#b8a77f; font:900 8px/1 system-ui; letter-spacing:.22em; text-transform:uppercase; }
+.gmm-confirm-question { margin:13px 0 19px; color:#fff0cb; font:950 24px/1.15 Georgia,serif; }
+.gmm-confirm-actions { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.gmm-profile-plate { position:relative; z-index:2; width:100%; padding:15px 17px; border:1px solid rgba(220,183,105,.42); border-left:3px solid var(--menu-red); background:linear-gradient(110deg,rgba(7,9,13,.97),rgba(18,17,17,.88)); box-shadow:0 18px 44px rgba(0,0,0,.58); backdrop-filter:blur(8px); }
+.gmm-profile-label { color:#b5bac2; font:850 9px/1 system-ui; letter-spacing:.22em; text-transform:uppercase; }
+.gmm-profile-name { margin-top:7px; color:#fff0c9; font:950 19px/1.1 Georgia,serif; letter-spacing:.03em; }
+.gmm-profile-state { margin-top:6px; color:#c7a75e; font:800 10px/1.35 system-ui; }
+.gmm-steam-mark { position:absolute; top:3px; right:3px; padding:6px 8px; border:1px solid rgba(255,255,255,.13); color:#bac4d2; background:rgba(7,10,15,.64); font:850 8px/1 system-ui; letter-spacing:.14em; }
+.gmm-profiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+.gmm-profile-card { position:relative; min-width:0; min-height:250px; padding:10px; overflow:hidden; border:1px solid rgba(216,181,104,.35); border-radius:3px; background:linear-gradient(155deg,rgba(24,25,29,.96),rgba(7,9,12,.98)); color:#eee5d2; cursor:pointer; transition:.18s ease; }
+.gmm-profile-card:hover,.gmm-profile-card:focus-visible { border-color:var(--menu-gold); transform:translateY(-3px); outline:none; box-shadow:0 17px 38px rgba(0,0,0,.4); }
+.gmm-profile-card.selected { border-color:#c49342; box-shadow:inset 0 0 0 1px rgba(211,173,91,.24); }
+.gmm-profile-canvas { display:block; width:100%; height:135px; margin-bottom:7px; object-fit:contain; filter:drop-shadow(0 12px 12px #000); }
+.gmm-profile-slot { color:#a78d5b; font:850 8px/1 system-ui; letter-spacing:.18em; text-transform:uppercase; }
+.gmm-profile-card-name { margin-top:5px; overflow:hidden; color:#fff1d0; font:950 15px/1.1 Georgia,serif; white-space:nowrap; text-overflow:ellipsis; }
+.gmm-profile-card-meta { margin-top:5px; color:#b7bdc5; font:750 9px/1.35 system-ui; }
+.gmm-profile-delete { position:absolute; z-index:3; top:7px; right:7px; width:27px; height:27px; padding:0; border:1px solid rgba(221,89,89,.4); border-radius:2px; background:rgba(42,10,13,.88); color:#dd8787; cursor:pointer; }
+.gmm-profile-create { display:grid; place-items:center; align-content:center; min-height:250px; border-style:dashed; color:#d1ae62; text-align:center; }
+.gmm-profile-create strong { display:block; font:950 30px/1 system-ui; }
+.gmm-profile-create small { margin-top:9px; color:#aeb4bd; font:800 9px/1.35 system-ui; letter-spacing:.08em; }
+body.game-menu-open #topBar,body.game-menu-open #joyL,body.game-menu-open #joyR,body.game-menu-open #chatToggle,
+body.game-menu-open #npcSandboxButton { visibility:hidden !important; pointer-events:none !important; }
+@media(max-width:780px){#gameMainMenu{align-items:flex-start;padding:calc(env(safe-area-inset-top,0px) + 24px) 18px 30px}.gmm-shell{display:block}.gmm-side{min-height:255px;margin-top:18px}.gmm-character{inset:-24px 0 51px}.gmm-character #gmmCharacterPreview{width:170px}.gmm-side-add{right:auto;left:0;top:30%;padding-right:9px}.gmm-side-add span{display:none}.gmm-character-next{right:0;top:33%;width:46px;height:46px}.gmm-character-next small{display:none}.gmm-profile-plate{max-width:390px}.gmm-logo{font-size:49px}.gmm-rule{margin:13px 0 18px}.gmm-slots{gap:5px}.gmm-slot{padding:8px 3px}.gmm-setting input[type=range]{width:120px}.gmm-profiles{grid-template-columns:repeat(2,minmax(0,1fr))}.gmm-profile-card,.gmm-profile-create{min-height:225px}}
 
 /* Левый стик движения */
 #joyL {
@@ -2592,6 +2707,77 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   </div>
 </div>
 
+<div id="gameMainMenu" aria-label="Главное меню игры">
+  <main class="gmm-shell">
+   <div class="gmm-content">
+    <div class="gmm-kicker">Открытый город · криминальная история</div>
+    <div class="gmm-logo">МАФИОЗИ</div>
+    <div class="gmm-rule"></div>
+
+    <section class="gmm-panel active" data-gmm-panel="root">
+      <div class="gmm-actions">
+        <button class="gmm-btn primary" id="gmmPrimaryAction" type="button">НАЧАТЬ ИГРУ<small>Выбрать персонажа и продолжить историю</small></button>
+        <button class="gmm-btn" type="button" data-gmm-open="settings">НАСТРОЙКИ<small>Звук и вибрация</small></button>
+        <button class="gmm-btn" type="button" data-gmm-exit>ВЫЙТИ ИЗ ИГРЫ<small>Закрыть игру</small></button>
+      </div>
+    </section>
+
+    <section class="gmm-panel" data-gmm-panel="characters">
+      <button class="gmm-back" type="button" data-gmm-open="root">← Назад</button>
+      <h2 class="gmm-title">Выбери персонажа</h2>
+      <div class="gmm-hint">До трёх отдельных историй. У каждого персонажа свои деньги, уровень, роль, имущество и прогресс.</div>
+      <div class="gmm-profiles" id="gmmProfiles"></div>
+    </section>
+
+    <section class="gmm-panel" data-gmm-panel="play">
+      <button class="gmm-back" type="button" data-gmm-open="root">← Назад</button>
+      <h2 class="gmm-title">Последняя игра</h2>
+      <div class="gmm-save">
+        <div class="gmm-save-head">
+          <div class="gmm-avatar" id="gmmAvatar">М</div>
+          <div><div class="gmm-save-name" id="gmmPlayerName">Игрок</div><div class="gmm-save-meta" id="gmmSaveMeta">Автосохранение загружается…</div></div>
+        </div>
+        <div class="gmm-slots" id="gmmSlots" aria-label="Слоты друзей"></div>
+        <div class="gmm-hint" id="gmmPartyHint">Можно войти одному или пригласить до трёх друзей. Членство в семье и собственной банде подтверждает сервер.</div>
+        <div class="gmm-row">
+          <button class="gmm-btn" type="button" data-gmm-invite>＋ ДРУЗЬЯ STEAM</button>
+          <button class="gmm-btn primary" type="button" data-gmm-start>ВОЙТИ В ГОРОД</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="gmm-panel" data-gmm-panel="settings">
+      <button class="gmm-back" type="button" data-gmm-open="root">← Назад</button>
+      <h2 class="gmm-title">Настройки</h2>
+      <div class="gmm-save">
+        <div class="gmm-setting"><label for="gmmVolume">Громкость эффектов</label><input id="gmmVolume" type="range" min="0" max="100" step="5" value="50"></div>
+        <div class="gmm-setting"><label>Вибрация</label><button class="gmm-toggle on" id="gmmVibration" type="button">ВКЛ</button></div>
+        <div class="gmm-hint">Настройки сохраняются на этом устройстве и применяются сразу.</div>
+      </div>
+    </section>
+   </div>
+
+   <aside class="gmm-side" aria-label="Профиль персонажа">
+     <div class="gmm-steam-mark">STEAM BUILD</div>
+     <div class="gmm-character locked" id="gmmCharacterStage"><canvas id="gmmCharacterPreview" width="300" height="390"></canvas></div>
+     <button class="gmm-side-add" id="gmmAddCharacter" type="button"><strong>+</strong><span>Новый персонаж<small id="gmmFreeSlotLabel">Свободный слот</small></span></button>
+     <button class="gmm-character-next" id="gmmNextCharacter" type="button" hidden aria-label="Следующий персонаж">›<small id="gmmCharacterCounter">1 / 1</small></button>
+     <div class="gmm-profile-plate">
+       <div class="gmm-profile-label">Личное дело</div>
+       <div class="gmm-profile-name" id="gmmProfileName">Персонаж не создан</div>
+       <div class="gmm-profile-state" id="gmmProfileState">Создай героя, чтобы начать историю</div>
+     </div>
+   </aside>
+  </main>
+  <div class="gmm-confirm" id="gmmCharacterConfirm" role="dialog" aria-modal="true" aria-labelledby="gmmCharacterConfirmQuestion" hidden>
+    <div class="gmm-confirm-card">
+      <div class="gmm-confirm-kicker">Подтверждение выбора</div>
+      <div class="gmm-confirm-question" id="gmmCharacterConfirmQuestion">Играть за персонажа?</div>
+      <div class="gmm-confirm-actions"><button class="gmm-btn primary" type="button" data-character-confirm="yes">ДА</button><button class="gmm-btn" type="button" data-character-confirm="no">НЕТ</button></div>
+    </div>
+  </div>
+</div>
+
 <div id="cityLoadingScreen" role="status" aria-live="polite" aria-label="Загрузка города">
   <div class="cityLoadingSlides" aria-hidden="true">
     <img class="cityLoadingSlide active" src="assets/loading/city-empire.webp?v=3d117" alt="" decoding="async" fetchpriority="high">
@@ -2640,6 +2826,9 @@ window.MafioziLoading = (() => {
     { slide:1, side:'right', title:'Снаряжение меняет бой', text:'Разные классы оружия отличаются дальностью, отдачей и поведением пули. Выбирай оружие под дистанцию.', hint:'Оружие • дальность • отдача' },
     { slide:2, side:'left', title:'Район нужно удержать', text:'Захват приносит влияние и доход, но соперники могут вернуть территорию. Оставляй бойцов на важных точках.', hint:'Захват • защита • доход' }
   ];
+  const bootParams=new URLSearchParams(location.search);
+  const menuOnlyBoot=['play','characters'].includes(bootParams.get('menu'));
+  if(menuOnlyBoot&&screen){screen.classList.add('done');screen.style.display='none';screen.setAttribute('aria-hidden','true');}
   let tipIndex = 0, tipTimer = 0;
   const previewHold = (location.hostname === '127.0.0.1' || location.hostname === 'localhost') && new URLSearchParams(location.search).get('loadingpreview') === '1';
   const showTip = index => {
@@ -2656,8 +2845,7 @@ window.MafioziLoading = (() => {
       card?.classList.remove('changing');
     }, 240);
   };
-  tipTimer = setInterval(() => showTip(tipIndex + 1), 4600);
-  const bootParams=new URLSearchParams(location.search);
+  if(!menuOnlyBoot)tipTimer = setInterval(() => showTip(tipIndex + 1), 4600);
   const isThree = bootParams.get('force3d')==='1'||bootParams.get('render') !== 'canvas';
   const set = (next, label) => {
     if (finished) return;
@@ -2736,6 +2924,8 @@ const QP = {
   // ?cash=1000000 без изменения реального аккаунта.
   cash: _LOCAL_PREVIEW ? _qInt('cash', 0) : 0,
 };
+QP.account_uid = _UP.get('account_uid') || QP.uid;
+QP.character_uid = _UP.get('character') || (_UP.has('account_uid') ? QP.uid : '');
 
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
@@ -2758,6 +2948,355 @@ try {
     if (tid) QP.uid = String(tid);
   }
 } catch(e) {}
+if (!QP.account_uid) QP.account_uid = QP.uid;
+
+// ── Главное меню, автосохранение и стартовая команда ───────────
+const _gameMenuSettingsKey = `mafiozi_menu_settings_v1_${QP.account_uid || 'guest'}`;
+const _gameMenuSaveKey = `mafiozi_last_session_v1_${QP.character_uid || QP.uid || 'guest'}`;
+const _gameMenuCharacterKey = `mafiozi_character_ready_v1_${QP.character_uid || QP.uid || 'guest'}`;
+let _gameMenuOpen = true;
+let _gameMenuSettings = { volume:50, vibration:true };
+let _gameMenuCharacterReady = !!QP.character_uid && QP.has_look === 1;
+let _gameMenuCharacterLookKey = '';
+let _gameProfiles = [];
+let _gameProfilesLoaded = false;
+let _gameMenuPendingProfileId = '';
+try { if(QP.character_uid)_gameMenuCharacterReady = _gameMenuCharacterReady || localStorage.getItem(_gameMenuCharacterKey) === '1'; } catch(e) {}
+try { _gameMenuSettings = Object.assign(_gameMenuSettings, JSON.parse(localStorage.getItem(_gameMenuSettingsKey) || '{}')); } catch(e) {}
+window.MafioziSettings = _gameMenuSettings;
+
+function _renderGameMenuCharacter() {
+  const cv = document.getElementById('gmmCharacterPreview');
+  const stage = document.getElementById('gmmCharacterStage');
+  const name = document.getElementById('gmmProfileName');
+  const state = document.getElementById('gmmProfileState');
+  const playActive=!!document.querySelector('[data-gmm-panel="play"].active'),profile=playActive?_gameMenuPendingProfile():_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid)),ready=profile?!!profile.has_look:_gameMenuCharacterReady,look=profile?.look||QP.look;
+  if (stage) stage.classList.toggle('locked', !ready);
+  if (name) name.textContent = ready ? (profile?.name||QP.name||'Игрок') : (QP.character_uid?'Персонаж не настроен':'Персонаж не выбран');
+  if (state) state.textContent = ready
+    ? `${_profileRole(profile||{})} · уровень ${profile?.level||QP.lvl||1} · $${Math.max(0,+profile?.cash||0).toLocaleString('ru-RU')}`
+    : (QP.character_uid?'Заверши создание внешности':'Выбери созданного героя или займи пустой слот');
+  if (!cv) return;
+  const ctx = cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+  try { drawChar(ctx,cv.width,cv.height,look); } catch(e) {}
+  try { window.MafioziCharacter3D?.paint(cv,look,{angle:0}); } catch(e) {}
+  const add=document.getElementById('gmmAddCharacter'),free=document.getElementById('gmmFreeSlotLabel'),used=new Set(_gameProfiles.map(p=>+p.slot)),freeSlot=[1,2,3].find(slot=>!used.has(slot));
+  if(add){add.hidden=_gameProfilesLoaded&&!freeSlot;add.disabled=!_gameProfilesLoaded;if(free)free.textContent=freeSlot?`Свободен слот ${freeSlot}`:'Все слоты заняты';}
+  const next=document.getElementById('gmmNextCharacter'),counter=document.getElementById('gmmCharacterCounter'),ordered=_gameProfiles.filter(p=>p.has_look).sort((a,b)=>(+a.slot||0)-(+b.slot||0)),profileIndex=Math.max(0,ordered.findIndex(p=>String(p.character_id)===String(profile?.character_id)));
+  if(next)next.hidden=!playActive||ordered.length<2;
+  if(counter)counter.textContent=ordered.length?`${profileIndex+1} / ${ordered.length}`:'0 / 0';
+}
+
+function _gameMenuPendingProfile(){
+  const ready=_gameProfiles.filter(p=>p.has_look).sort((a,b)=>(+a.slot||0)-(+b.slot||0));
+  if(!ready.length)return null;
+  let profile=ready.find(p=>String(p.character_id)===String(_gameMenuPendingProfileId));
+  if(!profile)profile=ready.find(p=>String(p.character_id)===String(QP.character_uid))||ready[0];
+  _gameMenuPendingProfileId=String(profile.character_id);return profile;
+}
+
+function _gameMenuNextCharacter(){
+  const ready=_gameProfiles.filter(p=>p.has_look).sort((a,b)=>(+a.slot||0)-(+b.slot||0));if(ready.length<2)return;
+  const current=_gameMenuPendingProfile(),index=Math.max(0,ready.findIndex(p=>String(p.character_id)===String(current?.character_id))),next=ready[(index+1)%ready.length];
+  _gameMenuPendingProfileId=String(next.character_id);_renderGameMenuCharacter();_renderGameMenuSave();
+}
+
+function _gameMenuConfirm(questionText,kickerText='Подтверждение выбора'){
+  const modal=document.getElementById('gmmCharacterConfirm'),question=document.getElementById('gmmCharacterConfirmQuestion'),kicker=modal?.querySelector('.gmm-confirm-kicker');
+  if(!modal)return Promise.resolve(false);
+  if(kicker)kicker.textContent=kickerText;
+  if(question)question.textContent=questionText;
+  modal.hidden=false;
+  return new Promise(resolve=>{
+    const finish=answer=>{modal.hidden=true;yes.onclick=no.onclick=null;resolve(answer);},yes=modal.querySelector('[data-character-confirm="yes"]'),no=modal.querySelector('[data-character-confirm="no"]');
+    yes.onclick=()=>finish(true);no.onclick=()=>finish(false);no.focus();
+  });
+}
+function _gameMenuConfirmCharacter(profile){return _gameMenuConfirm(`Играть за «${profile?.name||'персонажа'}»?`);}
+
+async function _gameMenuEnterSelected(){
+  const profile=_gameMenuPendingProfile();
+  if(!profile){_gameMenuPanel('characters');return;}
+  if(!await _gameMenuConfirmCharacter(profile))return;
+  _selectGameProfile(profile,'enter');
+}
+function _setGameMenuCharacterReady(ready, look) {
+  const nextLook = look && ready ? Object.assign({},QP.look,look) : QP.look;
+  const nextKey = [ready?1:0,nextLook.gender|0,nextLook.skin|0,nextLook.body|0,nextLook.face|0,nextLook.hair|0,nextLook.hat|0].join('.');
+  if (nextKey === _gameMenuCharacterLookKey) return;
+  _gameMenuCharacterLookKey = nextKey;
+  _gameMenuCharacterReady = !!ready;
+  QP.has_look = ready ? 1 : 0;
+  if (look && ready) QP.look = nextLook;
+  try { ready ? localStorage.setItem(_gameMenuCharacterKey,'1') : localStorage.removeItem(_gameMenuCharacterKey); } catch(e) {}
+  const primary = document.getElementById('gmmPrimaryAction');
+  if (primary) primary.innerHTML = 'НАЧАТЬ ИГРУ<small>Выбрать персонажа и продолжить историю</small>';
+  _renderGameMenuCharacter();
+}
+function _profileEsc(value) { return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function _profileRole(profile) {
+  try {
+    const police = JSON.parse(localStorage.getItem(`mafiozi_police_missions_${profile.character_id}`)||'null');
+    if (police?.employed) return 'Полицейский';
+    const mafia = JSON.parse(localStorage.getItem(`mafiozi_mafia_service_${profile.character_id}`)||'null');
+    if (mafia?.employed) return `Мафиози · ${mafia.family==='moretti'?'Моретти':'Беллини'}`;
+  } catch(e) {}
+  return profile.role || 'Гражданский';
+}
+function _renderGameProfiles() {
+  const host = document.getElementById('gmmProfiles'); if (!host) return;
+  if (!_gameProfilesLoaded) { host.innerHTML='<div class="gmm-hint">Загружаем личные дела…</div>'; return; }
+  const bySlot = new Map(_gameProfiles.map(p=>[+p.slot,p]));
+  host.innerHTML = [1,2,3].map(slot=>{
+    const p=bySlot.get(slot);
+    if(!p) return `<button class="gmm-profile-card gmm-profile-create" type="button" data-profile-create><strong>＋</strong><small>СОЗДАТЬ ПЕРСОНАЖА<br>СЛОТ ${slot}</small></button>`;
+    const selected=String(p.character_id)===String(QP.character_uid);
+    return `<div class="gmm-profile-card${selected?' selected':''}" role="button" tabindex="0" data-profile-select="${_profileEsc(p.character_id)}">
+      <button class="gmm-profile-delete" type="button" title="Удалить персонажа" aria-label="Удалить персонажа ${_profileEsc(p.name)}" data-profile-delete="${_profileEsc(p.character_id)}">×</button>
+      <canvas class="gmm-profile-canvas" width="150" height="185" data-profile-canvas="${_profileEsc(p.character_id)}"></canvas>
+      <div class="gmm-profile-slot">Слот ${slot}${selected?' · выбран':''}</div>
+      <div class="gmm-profile-card-name">${_profileEsc(p.name)}</div>
+      <div class="gmm-profile-card-meta">${_profileEsc(_profileRole(p))}<br>Уровень ${p.level||1} · $${Math.max(0,+p.cash||0).toLocaleString('ru-RU')}</div>
+    </div>`;
+  }).join('');
+  host.querySelectorAll('[data-profile-canvas]').forEach(cv=>{
+    const p=_gameProfiles.find(q=>String(q.character_id)===String(cv.dataset.profileCanvas));
+    try{drawChar(cv.getContext('2d'),cv.width,cv.height,p?.look||{});window.MafioziCharacter3D?.paint(cv,p?.look||{},{});}catch(e){}
+  });
+  host.querySelectorAll('[data-profile-create]').forEach(btn=>btn.addEventListener('click',()=>_openCharacterCreator()));
+  host.querySelectorAll('[data-profile-select]').forEach(btn=>btn.addEventListener('click',e=>{
+    if(e.target.closest('[data-profile-delete]'))return;
+    const p=_gameProfiles.find(q=>String(q.character_id)===String(btn.dataset.profileSelect)); if(p)_selectGameProfile(p);
+  }));
+  host.querySelectorAll('[data-profile-delete]').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();_deleteGameProfile(btn.dataset.profileDelete);}));
+}
+function _selectGameProfile(profile,menuMode='play') {
+  const url=new URL(location.href),look=profile.look||{};
+  url.searchParams.set('account_uid',String(QP.account_uid||''));
+  url.searchParams.set('uid',String(profile.character_id));
+  url.searchParams.set('character',String(profile.character_id));
+  url.searchParams.set('name',String(profile.name||'Игрок'));
+  url.searchParams.set('lvl',String(Math.max(1,+profile.level||1)));
+  url.searchParams.set('cash',String(Math.max(0,+profile.cash||0)));
+  url.searchParams.set('has_look',profile.has_look?'1':'0');
+  url.searchParams.set('menu',menuMode);
+  Object.entries(look).forEach(([key,value])=>url.searchParams.set(key,String(value|0)));
+  location.href=url.href;
+}
+async function _deleteGameProfile(characterId) {
+  const profile=_gameProfiles.find(p=>String(p.character_id)===String(characterId)); if(!profile)return;
+  if(!await _gameMenuConfirm(`Удалить «${profile.name}» без возможности восстановления?`,'Удаление личного дела'))return;
+  const deletingSelected=String(QP.character_uid)===String(characterId);
+  try{
+    if(deletingSelected){
+      _wsReconnectSuppressed=true;
+      if(_wsReconnectTimer!==null){clearTimeout(_wsReconnectTimer);_wsReconnectTimer=null;}
+      const socket=typeof ws!=='undefined'?ws:null;
+      if(socket&&socket.readyState<2){
+        await new Promise(resolve=>{
+          let settled=false;
+          const done=()=>{if(settled)return;settled=true;resolve();};
+          socket.addEventListener('close',done,{once:true});
+          try{socket.close(1000,'profile-delete');}catch(e){done();}
+          setTimeout(done,900);
+        });
+      }
+      // Даём серверному обработчику WebSocket убрать uid из connections.
+      await new Promise(resolve=>setTimeout(resolve,80));
+    }
+    const response=await fetch(`${QP.api}/profiles/${encodeURIComponent(QP.account_uid)}/${encodeURIComponent(characterId)}`,{method:'DELETE'});
+    const result=await response.json().catch(()=>({})); if(!response.ok||!result.ok)throw new Error(result.message||'Не удалось удалить персонажа');
+    try{for(const key of [`mafiozi_police_missions_${characterId}`,`mafiozi_mafia_service_${characterId}`,`mafiozi_last_session_v1_${characterId}`,`mafiozi_character_ready_v1_${characterId}`])localStorage.removeItem(key);}catch(e){}
+    if(deletingSelected){
+      const url=new URL(location.href),account=String(QP.account_uid||'');
+      url.searchParams.set('account_uid',account);url.searchParams.set('uid',account);url.searchParams.set('menu','characters');
+      for(const key of ['character','has_look','lvl','cash','gender','skin','body','face','hair','hat'])url.searchParams.delete(key);
+      location.href=url.href;return;
+    }
+    _gameProfiles=_gameProfiles.filter(p=>String(p.character_id)!==String(characterId));
+    _renderGameProfiles();_renderGameMenuCharacter();showToast('Персонаж удалён','✓',2200);
+  }catch(e){
+    if(deletingSelected){_wsReconnectSuppressed=false;wsConnect();}
+    showToast(e.message||'Не удалось удалить персонажа','⚠️',3000);
+  }
+}
+async function _loadGameProfiles() {
+  _gameProfilesLoaded=false;_renderGameProfiles();
+  try{
+    if(!QP.api)await _fetchApiFallback();
+    const response=await fetch(`${QP.api}/profiles/${encodeURIComponent(QP.account_uid)}`,{cache:'no-store'});
+    const result=await response.json();if(!response.ok||!result.ok)throw new Error('profiles');
+    _gameProfiles=Array.isArray(result.profiles)?result.profiles:[];_gameProfilesLoaded=true;
+    const selected=_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid));
+    if(selected){QP.name=selected.name||QP.name;_setGameMenuCharacterReady(!!selected.has_look,selected.look);}
+    const primary=document.getElementById('gmmPrimaryAction');
+    if(primary)primary.innerHTML='НАЧАТЬ ИГРУ<small>Выбрать персонажа и продолжить историю</small>';
+    _renderGameProfiles();_renderGameMenuCharacter();
+    if(['play','enter','characters'].includes(_UP.get('menu'))){
+      const menuMode=_UP.get('menu');
+      if(menuMode==='enter'&&selected&&selected.has_look)closeGameMainMenu();
+      else if(menuMode==='characters')_gameMenuPanel('characters');
+      else if(selected&&selected.has_look)_gameMenuPanel('play');else _gameMenuPanel('characters');
+      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');history.replaceState(null,'',cleanUrl.href);
+    }
+  }catch(e){_gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();showToast('Не удалось загрузить персонажей','⚠️',2600);}
+}
+function _openCharacterCreator(characterId='') {
+  const url = new URL('creator.html',location.href);
+  const back = new URL(location.href);
+  back.searchParams.delete('character');back.searchParams.delete('account_uid');back.searchParams.set('uid',String(QP.account_uid||QP.uid||''));back.searchParams.delete('has_look');
+  back.searchParams.set('menu','characters');
+  url.searchParams.set('new','1');
+  url.searchParams.set('render','3d');
+  url.searchParams.set('account_uid',String(QP.account_uid || QP.uid || ''));
+  if(characterId)url.searchParams.set('uid',String(characterId));
+  url.searchParams.set('name',String(QP.name || 'Игрок'));
+  if (QP.api) url.searchParams.set('api',QP.api);
+  url.searchParams.set('return',back.href);
+  location.href = url.href;
+}
+function _gameMenuPrimaryAction() {
+  if(!_gameProfilesLoaded)return;
+  _gameMenuPanel('characters');
+}
+
+function _gameMenuPanel(name) {
+  document.querySelectorAll('[data-gmm-panel]').forEach(p => p.classList.toggle('active', p.dataset.gmmPanel === name));
+  if(name==='play'){
+    _gameMenuPendingProfileId=String(_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid))?.character_id||_gameProfiles.find(p=>p.has_look)?.character_id||'');
+    _renderGameMenuSave();
+  }
+  _renderGameMenuCharacter();
+}
+function _gameMenuRoleLabel(save) {
+  if (save.police) return 'Полицейский';
+  if (save.mafia_family === 'bellini') return 'Мафиози · Беллини';
+  if (save.mafia_family === 'moretti') return 'Мафиози · Моретти';
+  if (save.custom_gang_name) return `${save.custom_gang_role === 'leader' ? 'Главарь' : 'Участник'} · ${save.custom_gang_name}`;
+  return 'Гражданский · без банды';
+}
+function _readGameMenuSave(characterId=QP.character_uid||QP.uid) {
+  try { return JSON.parse(localStorage.getItem(`mafiozi_last_session_v1_${characterId||'guest'}`) || '{}') || {}; } catch(e) { return {}; }
+}
+function _persistGameMenuSnapshot(me) {
+  if (!me) return;
+  let district = '';
+  try { district = districtAt(+me.y || player.r, +me.x || player.c)?.name || ''; } catch(e) {}
+  const save = {
+    at:Date.now(), name:QP.name, cash:+me.cash || 0, r:+me.y || 0, c:+me.x || 0, district,
+    police:!!me.police, mafia:!!me.mafia, mafia_family:String(me.mafia_family || ''),
+    custom_gang_name:String(me.custom_gang?.name || _customGang?.name || ''),
+    custom_gang_role:String(me.custom_gang?.role || _customGang?.role || '')
+  };
+  try { localStorage.setItem(_gameMenuSaveKey, JSON.stringify(save)); } catch(e) {}
+  if (_gameMenuOpen) _renderGameMenuSave();
+}
+function _renderGameMenuSave() {
+  const selectedProfile=_gameMenuPendingProfile()||_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid)),save = _readGameMenuSave(selectedProfile?.character_id);
+  const name = String(selectedProfile?.name||save.name || QP.name || 'Игрок');
+  const nameEl = document.getElementById('gmmPlayerName'), avatar = document.getElementById('gmmAvatar');
+  if (nameEl) nameEl.textContent = name;
+  if (avatar) avatar.textContent = (name.trim()[0] || 'М').toUpperCase();
+  const meta = document.getElementById('gmmSaveMeta');
+  if (meta) {
+    const when = save.at ? new Date(save.at).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : 'новая история';
+    const place = save.district ? ` · ${save.district}` : '';
+    const money = Number.isFinite(+(selectedProfile?.cash??save.cash)) ? ` · $${Math.max(0,+(selectedProfile?.cash??save.cash)).toLocaleString('ru-RU')}` : '';
+    meta.textContent = `${_profileRole(selectedProfile||{})}${place}${money} · ${when}`;
+  }
+  const slots = document.getElementById('gmmSlots');
+  if (slots) {
+    const online = (typeof _onlineGang !== 'undefined' && Array.isArray(_onlineGang?.members)) ? _onlineGang.members : [];
+    const selfStatus=_profileRole(selectedProfile||{});
+    const members = [{uid:String(selectedProfile?.character_id||QP.uid),name,look:selectedProfile?.look||QP.look,level:selectedProfile?.level||QP.lvl||1,status:selfStatus}, ...online.filter(m => String(m.uid) !== String(QP.uid))].slice(0,4);
+    slots.innerHTML = Array.from({length:4},(_,i) => {
+      const member = members[i], safeName = member ? String(member.name || 'Игрок').replace(/[<>&]/g,'') : 'Свободно';
+      return `<div class="gmm-slot${member?' filled':''}">${member?`<canvas class="gmm-slot-avatar" width="52" height="66" data-gmm-member="${i}"></canvas>`:'<div class="gmm-slot-icon">＋</div>'}<div class="gmm-slot-name">${safeName}</div>${member?`<div class="gmm-slot-meta">${_profileEsc(member.status||'Гражданский')} · ур. ${Math.max(1,+member.level||1)}</div>`:''}</div>`;
+    }).join('');
+    slots.querySelectorAll('[data-gmm-member]').forEach(cv=>{const member=members[+cv.dataset.gmmMember];try{drawChar(cv.getContext('2d'),cv.width,cv.height,member?.look||{});window.MafioziCharacter3D?.paint(cv,member?.look||{},{});}catch(e){}});
+  }
+  const hint = document.getElementById('gmmPartyHint');
+  if (hint) hint.textContent = _customGang ? `Постоянная банда «${_customGang.name}». В слотах показаны участники, которые сейчас онлайн.`
+    : (_mafiaState?.employed ? `Семья ${_mafiaState.family === 'moretti' ? 'Моретти' : 'Беллини'}: участник той же семьи становится союзником автоматически.`
+      : 'Сейчас ты гражданский. Для постоянной банды сначала купи квартиру и устрой в ней штаб.');
+}
+function _applyGameMenuSettings() {
+  const volume = Math.max(0,Math.min(100,+_gameMenuSettings.volume || 0));
+  const range = document.getElementById('gmmVolume'); if (range) range.value = String(volume);
+  const vib = document.getElementById('gmmVibration'); if (vib) { vib.classList.toggle('on',_gameMenuSettings.vibration !== false); vib.textContent = _gameMenuSettings.vibration === false ? 'ВЫКЛ' : 'ВКЛ'; }
+  try { _sfxVol = volume / 100; } catch(e) {}
+  window.MafioziSettings = _gameMenuSettings;
+  try { localStorage.setItem(_gameMenuSettingsKey,JSON.stringify(_gameMenuSettings)); } catch(e) {}
+}
+function openGameMainMenu(panel='root') {
+  _gameMenuOpen = true; document.body.classList.add('game-menu-open');
+  document.getElementById('gameMainMenu')?.classList.remove('hidden'); _gameMenuPanel(panel);
+  try { _resetSticksAndTime(); } catch(e) {}
+}
+function closeGameMainMenu() {
+  if (!_gameMenuCharacterReady) { _openCharacterCreator(); return; }
+  _gameMenuOpen = false; document.body.classList.remove('game-menu-open');
+  document.getElementById('gameMainMenu')?.classList.add('hidden');
+  try { _ac()?.resume?.(); } catch(e) {}
+}
+function _gameMenuExit() {
+  try { if (window.MafioziSteam?.quitGame) { window.MafioziSteam.quitGame(); return; } } catch(e) {}
+  try { if (window.electronAPI?.quitGame) { window.electronAPI.quitGame(); return; } } catch(e) {}
+  try { if (window.chrome?.webview?.postMessage) { window.chrome.webview.postMessage({type:'quit_game'}); return; } } catch(e) {}
+  window.close();
+}
+function _steamInvitePayload() {
+  const lobbyId = String(
+    window.MafioziSteam?.lobbyId ||
+    window.electronAPI?.steamLobbyId ||
+    new URLSearchParams(location.search).get('steam_lobby') || ''
+  );
+  return {
+    type: 'steam_invite_friends',
+    lobbyId,
+    playerUid: String(QP.uid || ''),
+    playerName: String(QP.name || ''),
+    crewId: String(_onlineGang?.crew_id || '')
+  };
+}
+function _gameMenuInviteFriends() {
+  const invite = _steamInvitePayload();
+  try {
+    if (window.MafioziSteam?.openInviteDialog) {
+      window.MafioziSteam.openInviteDialog(invite);
+      return;
+    }
+    if (window.MafioziSteam?.inviteFriends) {
+      window.MafioziSteam.inviteFriends(invite);
+      return;
+    }
+    if (window.electronAPI?.steamInviteFriends) {
+      window.electronAPI.steamInviteFriends(invite);
+      return;
+    }
+    if (window.chrome?.webview?.postMessage) {
+      window.chrome.webview.postMessage(invite);
+      return;
+    }
+  } catch(e) {
+    console.warn('Steam invite bridge error',e);
+  }
+  showToast('Запусти игру через Steam — в браузере список друзей недоступен','STEAM',3000);
+}
+window.addEventListener('load', () => {
+  document.body.classList.add('game-menu-open');
+  document.querySelectorAll('[data-gmm-open]').forEach(b => b.addEventListener('click',() => _gameMenuPanel(b.dataset.gmmOpen)));
+  document.querySelector('[data-gmm-start]')?.addEventListener('click',_gameMenuEnterSelected);
+  document.getElementById('gmmPrimaryAction')?.addEventListener('click',_gameMenuPrimaryAction);
+  document.querySelector('[data-gmm-exit]')?.addEventListener('click',_gameMenuExit);
+  document.querySelector('[data-gmm-invite]')?.addEventListener('click',_gameMenuInviteFriends);
+  document.getElementById('gmmAddCharacter')?.addEventListener('click',()=>{if(_gameProfilesLoaded&&_gameProfiles.length<3)_openCharacterCreator();});
+  document.getElementById('gmmNextCharacter')?.addEventListener('click',_gameMenuNextCharacter);
+  document.getElementById('gmmVolume')?.addEventListener('input',e => { _gameMenuSettings.volume=+e.target.value;_applyGameMenuSettings(); });
+  document.getElementById('gmmVibration')?.addEventListener('click',() => { _gameMenuSettings.vibration=!(_gameMenuSettings.vibration!==false);_applyGameMenuSettings(); });
+  window.addEventListener('mafiozi:character3dready',()=>{_renderGameMenuCharacter();_renderGameProfiles();_renderGameMenuSave();},{once:true});
+  _applyGameMenuSettings(); _renderGameMenuSave(); _setGameMenuCharacterReady(_gameMenuCharacterReady,QP.look); _loadGameProfiles();
+});
 // Fallback api из coop_api.json (тот же механизм что в hub.html).
 // ВАЖНО: обновляем QP.api ВСЕГДА, не только когда он пустой. Иначе после
 // перезапуска cloudflared world.html будет вечно стучаться в мёртвый старый
@@ -3121,8 +3660,15 @@ function _worldAngleToScreen(ang) {
 // момент прислал обновление образа из редактора.
 function _livePlayerLook(){
   const base=QP.look||{};
+  let identity=base;
+  try{
+    if(_policeState?.employed&&_policeState.civilianLook)identity=_policeState.civilianLook;
+    else if(_mafiaState?.employed&&_mafiaState.civilianLook)identity=_mafiaState.civilianLook;
+  }catch(e){}
+  const keepIdentity=outfit=>({...outfit,
+    gender:identity.gender|0,skin:identity.skin|0,face:identity.face|0,hair:identity.hair|0});
   if(typeof _effectivePrisonJailSeconds==='function'&&_effectivePrisonJailSeconds()>0)
-    return {...base,body:2,hat:0,suit:'#f07818',prisoner:true};
+    return keepIdentity({...base,body:2,hat:0,suit:'#f07818',prisoner:true});
   let live=base;
   try{
     if(_policeState&&_policeState.employed&&typeof _policeUniformLook==='function')
@@ -3131,7 +3677,7 @@ function _livePlayerLook(){
       live=_mafiaUniformLook(_mafiaState.civilianLook||base,_mafiaState.family);
   }catch(e){}
   const armor=typeof _equippedArmor!=='undefined' ? ARMOR_STYLES[_equippedArmor] : null;
-  return armor ? {...live,suit:armor.suit,hat:armor.hat==null?live.hat:armor.hat,armorStyle:_equippedArmor} : live;
+  return keepIdentity(armor ? {...live,suit:armor.suit,hat:armor.hat==null?live.hat:armor.hat,armorStyle:_equippedArmor} : live);
 }
 
 const ARMOR_STYLES={
@@ -20252,8 +20798,12 @@ let wsFailStreak = 0;
 // Ровно один таймер переподключения. Без этого несколько вызовов wsConnect()
 // создавали независимые цепочки reconnect, и нагрузка росла со временем.
 let _wsReconnectTimer = null;
+// Deleting the selected character intentionally closes its session first.
+// Reconnecting during that short window would make the server reject DELETE.
+let _wsReconnectSuppressed = false;
 
 function _scheduleWsReconnect(delayMs) {
+  if (_wsReconnectSuppressed) return;
   if (_wsReconnectTimer !== null) return;
   _wsReconnectTimer = setTimeout(() => {
     _wsReconnectTimer = null;
@@ -22885,7 +23435,7 @@ function switchModeFlow() {
 }
 
 function wsUrl() {
-  if (!QP.api) return '';
+  if (!QP.api || !QP.character_uid) return '';
   // QP.api это https?://... → ws(s)://...
   const base = QP.api.replace(/^http/, 'ws').replace(/\/+$/, '');
   const params = new URLSearchParams({ uid: QP.uid, mode: myMode || 'pvp' });
@@ -22939,6 +23489,7 @@ function wsConnect() {
   }
   const url = wsUrl();
   if (!url) {
+    if(!QP.character_uid){setConnecting(null);return;}
     setConnecting('⚠️ Сервер недоступен. Переподключаюсь…');
     // Через 6 сек ещё раз тянем coop_api.json — вдруг бот успел стартануть.
     _scheduleWsReconnect(6000);
@@ -23207,6 +23758,7 @@ function wsConnect() {
         // даже если hub.html не подсунул правильные параметры в URL.
         if (d.me.look && (d.me.look.skin !== undefined || d.me.look.hair !== undefined)) {
           const srv = d.me.look;
+          if (srv._saved !== undefined) _setGameMenuCharacterReady(!!srv._saved,srv);
           const mkKey = l => [l.gender|0, l.skin|0, l.body|0, l.face|0, l.hair|0, l.hat|0].join('.');
           // На службе серверный образ из редактора не снимает форму. Редактор
           // отдельно предупреждает игрока, а здесь держим форму до увольнения.
@@ -23299,7 +23851,8 @@ function wsConnect() {
         if(nextCustomGang&&_customGang&&+nextCustomGang.id===+_customGang.id)Object.assign(_customGang,nextCustomGang);
         else if(JSON.stringify(nextCustomGang)!==JSON.stringify(_customGang)){_customGang=nextCustomGang;_refreshMafiaPerks();renderJobStatus();}
         const nextOnlineGang=d.me.online_gang||null;
-        if(JSON.stringify(nextOnlineGang)!==JSON.stringify(_onlineGang)){_onlineGang=nextOnlineGang;_gangRosterUiKey='';syncGangRosterHud();}
+        if(JSON.stringify(nextOnlineGang)!==JSON.stringify(_onlineGang)){_onlineGang=nextOnlineGang;_gangRosterUiKey='';syncGangRosterHud();if(_gameMenuOpen)_renderGameMenuSave();}
+        _persistGameMenuSnapshot(d.me);
         _onlinePoliceArrest = d.me.police_arrest || null;
         _policeDowned = d.me.police_downed || null;
         if(typeof d.me.police_arrests_today==='number')_policeDailyCount=Math.max(0,d.me.police_arrests_today|0);
@@ -23656,6 +24209,10 @@ function wsConnect() {
     ws = null;
     const wasConnected = wsConnected;
     wsConnected = false;
+    if (_wsReconnectSuppressed) {
+      setConnecting(null);
+      return;
+    }
     if (wasConnected) wsFailStreak = 0;  // первый разрыв после успеха — это не серия
     wsFailStreak++;
     if (wsFailStreak <= 2) {
@@ -62231,14 +62788,9 @@ document.addEventListener('visibilitychange', () => {
 // То же при focus/pageshow (Telegram WebApp на iOS любит pageshow)
 window.addEventListener('pageshow', _resetSticksAndTime);
 
-// ── Кнопка возврата в хаб ──────────────────────────────────────
+// ── Кнопка игрового меню ───────────────────────────────────────
 document.getElementById('btnHome').addEventListener('click', () => {
-  if (QP.hubUrl) { window.location.href = decodeURIComponent(QP.hubUrl); return; }
-  // Fallback: t.me/<bot>?startapp=hub
-  try {
-    if (tg) { tg.close(); return; }
-  } catch(e) {}
-  window.history.back();
+  openGameMainMenu('root');
 });
 
 // ── Чат + быстрые смайлики ─────────────────────────────────────
@@ -65948,6 +66500,7 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d353-stable-light-programs-v352-effect-lifecycle-v351-health-cards"></script>
+<script type="module" src="character_3d_preview.js?v=6"></script>
+<script type="module" src="three_preview.js?v=3d353-character-creator-v352-effect-lifecycle-v351-health-cards"></script>
 </body>
 </html>
