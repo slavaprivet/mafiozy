@@ -812,3 +812,25 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   cap of 12 NPCs and a 1,800 ms membership refresh cadence.
 - Empire escorts are excluded from civilian population and respawn accounting.
   Otherwise hired fighters silently displace residents and alter city density.
+
+## Stable prison-light shader family (2026-08-11, v353)
+
+- Material colors are uniforms and were not the cause of the high program
+  count. A localhost-only compiled-source audit found 225 cached programs but
+  only 167 unique vertex/fragment GLSL pairs: 58 pairs were byte-identical.
+  Each duplicate cache key differed only by the outdoor PointLight count
+  (`1` versus `3`).
+- The startup warmup itself created the redundant family by rendering the
+  complete city once with both quiet prison-beacon roots visible and once with
+  those roots hidden. Gameplay already keeps the roots visible and switches
+  the two authored lights off with zero intensity, including normal, custody
+  and alarm transitions. Remove only the hidden-root warmup render; do not
+  detach, recolor or reduce the beacon lights.
+- In the same ordinary preview scene the cache settled at `114/114` unique
+  programs with no duplicate compiled sources, down from `225/167`. Forced
+  prison beacon animation plus all thirteen projectile profiles remained at
+  `114/114`; a confirmed pistol/laser-firearm shot settled at `113/113` with
+  no duplicate or late shader family. Real-time shadows, the gameplay bridge,
+  server-backed `Гражданский` status and all 17 weapon states/16 aliases
+  (`17:16:0`) remained intact. Do not claim an FPS gain from these unmatched
+  scene samples; the confirmed result is lower shader-cache/program pressure.

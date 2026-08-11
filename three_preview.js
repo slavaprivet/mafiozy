@@ -1,3 +1,4 @@
+// 3D optimization v353: startup avoids byte-identical hidden-beacon light-count shader variants.
 // 3D optimization v352: expired combat-FX sources and delayed ballistic callbacks are lifecycle-tracked.
 // 3D UI v351: identity cards themselves fade from right to left with health; separate bars are removed.
 // 3D UI v349: framed NPC health is raised into the clear gap below identity labels.
@@ -4101,11 +4102,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           // first use behind the loading screen instead of inside gameplay rAF.
           renderer.compile(scene,camera);
           renderer.render(scene,camera);
-          // Prison custody/alarm transitions briefly hide the two authored
-          // beacon light roots. Three includes visible light counts in every
-          // lit shader key, so the first shot otherwise recompiles the complete
-          // city from the three-point-light variant to the one-light variant.
-          // Warm that exact quiet/transition variant behind the loading screen.
+          // Keep the two authored prison PointLights in the scene graph even
+          // while quiet (their intensity is zero). Hiding their roots here used
+          // to compile a second, byte-identical one-point-light program for most
+          // city materials; gameplay now keeps both roots visible at all times.
           const prisonLightRoots=prisonAlarmBeacons.filter(beacon=>beacon.alarmLight).map(beacon=>beacon.root);
           if(prisonLightRoots.length){
             const prisonWarmStartedAt=performance.now(),previousShadowEnabled=renderer.shadowMap.enabled,prisonLightVisibility=prisonLightRoots.map(root=>root.visible),warmCarVisible=warmupCar?.visible,warmCarPosition=warmupCar?.position.clone(),shadowWarmX=sun.target.position.x,shadowWarmZ=sun.target.position.z;
@@ -4124,8 +4124,6 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             };
             try{
               renderer.shadowMap.enabled=realTimeShadows;
-              renderPrisonWarmFrame();
-              prisonLightRoots.forEach(root=>{root.visible=false;});
               renderPrisonWarmFrame();
             }finally{
               renderer.shadowMap.enabled=previousShadowEnabled;
@@ -4800,7 +4798,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         bootPlayerMarker.position.set(player.position.x,0,player.position.z);
         bootPlayerMarker.rotation.y=player.rotation.y;
         const programsBefore=renderer.info.programs?.length||0,renderStartedAt=performance.now();renderer.setRenderTarget(null);renderer.render(fullMaterialsReady?scene:bootScene,camera);const renderElapsed=performance.now()-renderStartedAt,programsAfter=renderer.info.programs?.length||0,previousRenderMax=+renderer.domElement.dataset.renderMaxMs||0;if(programsAfter>programsBefore){const lightKinds={},pointDetails=[],newProgramDetails=(renderer.info.programs||[]).slice(programsBefore).map(program=>String(program.cacheKey||program.name||program.id||'program').slice(-360));scene.traverseVisible?.(object=>{if(!object.isLight||!object.layers.test(camera.layers))return;lightKinds[object.type]=(lightKinds[object.type]||0)+1;if(object.isPointLight){const source=object===muzzle?'muzzle':streetLightSet.has(object)?'street':outdoorPointLights.includes(object)?'outdoor':'other';pointDetails.push(`${source}@${object.parent?.name||object.parent?.type||'root'}:${(+object.intensity||0).toFixed(1)}:${object.position.x.toFixed(0)},${object.position.z.toFixed(0)}`);}});renderer.domElement.dataset.lastProgramGrowth=`${programsBefore}>${programsAfter}:${playerArrestPhase||'normal'}:${renderer.domElement.dataset.activeWeaponFx||'none'}`;renderer.domElement.dataset.lastProgramGrowthKeys=newProgramDetails.join('|').slice(0,1800);renderer.domElement.dataset.lastProgramGrowthLights=Object.entries(lightKinds).map(([kind,count])=>`${kind}:${count}`).join(',');renderer.domElement.dataset.lastProgramGrowthPointLights=pointDetails.join('|').slice(0,1200);renderer.domElement.dataset.lastProgramGrowthMuzzle=String(muzzle.intensity||0);renderer.domElement.dataset.lastProgramGrowthCameraLayer=String(camera.layers.mask);}renderer.domElement.dataset.renderMs=renderElapsed.toFixed(1);if(renderElapsed>previousRenderMax){renderer.domElement.dataset.renderMaxMs=renderElapsed.toFixed(1);renderer.domElement.dataset.renderMaxPhase=playerArrestPhase||'normal';renderer.domElement.dataset.renderMaxFx=renderer.domElement.dataset.activeWeaponFx||'none';renderer.domElement.dataset.renderMaxPrograms=String(programsAfter);renderer.domElement.dataset.renderMaxProgramGrowth=`${programsBefore}>${programsAfter}`;renderer.domElement.dataset.renderMaxDeferredRoots=String(deferredRevealRoots.length);renderer.domElement.dataset.renderMaxAt=String(Math.round(t));renderer.domElement.dataset.renderMaxLights=renderer.domElement.dataset.lastProgramGrowthLights||'';renderer.domElement.dataset.renderMaxPointLights=renderer.domElement.dataset.lastProgramGrowthPointLights||'';}
-        if(telemetryDue)renderer.domElement.dataset.programCount=String(programsAfter);
+        if(telemetryDue){renderer.domElement.dataset.programCount=String(programsAfter);if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewprogramqa')){const list=renderer.info.programs||[],first=list[0],gl=renderer.getContext(),hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);},groups=new Map();for(const p of list){const sourceKey=`${hash(gl.getShaderSource(p.vertexShader)||'')}:${hash(gl.getShaderSource(p.fragmentShader)||'')}`,group=groups.get(sourceKey)||[];group.push({id:p.id,used:+p.usedTimes||0,key:String(p.cacheKey||'')});groups.set(sourceKey,group);}const duplicates=[...groups].filter(([,group])=>group.length>1).map(([source,group])=>({source,count:group.length,programs:group.map(p=>({id:p.id,used:p.used,key:p.key.slice(-420)}))}));renderer.domElement.dataset.programQaShape=first?Object.keys(first).join(','):'';renderer.domElement.dataset.programQaSources=`${groups.size}/${list.length}`;renderer.domElement.dataset.programQaDuplicateSources=JSON.stringify(duplicates).slice(0,48000);}}
         const frameWorkMs=Math.max(0,performance.now()-t);renderer.domElement.dataset.frameWorkMs=frameWorkMs.toFixed(1);renderer.domElement.dataset.maxFrameWorkMs=Math.max(frameWorkMs,+renderer.domElement.dataset.maxFrameWorkMs||0).toFixed(1);
         renderer.domElement.dataset.palettePipeline='direct-aces-srgb';
         if(!materialCompileStarted){renderer.domElement.dataset.materialCompile='queued';setTimeout(()=>onIdle(beginFullMaterialCompile),48);}
