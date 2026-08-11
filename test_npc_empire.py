@@ -73,6 +73,12 @@ async def run() -> None:
                    for slot in range(24) for profile in ne.PROFILES
                    for a in [ne._visible_activity(profile, {'hq_key': profile.hq_key}, [],
                                                   slot * ne.VISIBLE_ACTIVITY_SECONDS)])
+        for slot in range(6):
+            simultaneous = [ne._visible_activity(
+                profile, {'hq_key': profile.hq_key}, [],
+                slot * ne.VISIBLE_ACTIVITY_SECONDS) for profile in ne.PROFILES]
+            assert sum(float(a["target_c"]) >= 100 for a in simultaneous) >= 3
+            assert sum(float(a["target_r"]) >= 150 for a in simultaneous) >= 3
 
         # A server NPC war becomes a shared physical order: both leaders choose
         # the opposing boss, carry a stance/force, and converge in the city.

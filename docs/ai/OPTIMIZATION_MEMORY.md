@@ -1038,6 +1038,10 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   bounded city-wide pool covering both city halves, the bridge, coast and
   port. This changes only the server snapshot; never add a roaming timer or a
   render-loop target search.
+- Partition that pool into west, east and south bands by stable family ordinal
+  plus activity slot. Pure random selection can legally leave the coast empty
+  for a whole slot; the partition guarantees several concurrent distant crews
+  while still rotating each family between regions over time.
 - The empire walknet may use every connected public land tile
   (`0/7/8/9/14/15/17/18/19`) while still respecting the shared pedestrian
   collision probe and the authored prison, arena and lair exclusions. This is

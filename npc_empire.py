@@ -174,23 +174,36 @@ def _district_for_block(key: str) -> str:
 
 def _citywide_roam_target(profile: EmpireProfile, slot: int) -> dict:
     """Choose a deterministic public destination across the complete map."""
-    targets = [
+    west_targets = [
         {'target_id': key, 'target_r': _hq_coords(key)[0],
          'target_c': _hq_coords(key)[1], 'target_kind': 'building'}
         for key in GENERIC_BUILDINGS
     ]
-    targets.extend(
+    west_targets.extend(
         {'target_id': bid, 'target_r': coords[0], 'target_c': coords[1],
          'target_kind': 'business'}
-        for bid, coords in BUSINESS_COORDS.items()
+        for bid, coords in BUSINESS_COORDS.items() if bid != 'port'
     )
-    targets.extend(
+    east_targets = [
         {'target_id': f'roam:{key}', 'target_r': r, 'target_c': c,
          'target_kind': 'street'}
         for key, r, c in EMPIRE_PUBLIC_ROAM_POINTS
-    )
+        if key.startswith('east_')
+    ]
+    south_targets = [
+        {'target_id': f'roam:{key}', 'target_r': r, 'target_c': c,
+         'target_kind': 'street'}
+        for key, r, c in EMPIRE_PUBLIC_ROAM_POINTS
+        if not key.startswith('east_')
+    ]
+    port_r, port_c = BUSINESS_COORDS['port']
+    south_targets.append({'target_id': 'port', 'target_r': port_r,
+                          'target_c': port_c, 'target_kind': 'business'})
     seed = int.from_bytes(hashlib.sha256(
         f'{profile.leader_id}:citywide:{slot}'.encode()).digest()[:4], 'big')
+    profile_index = next(i for i, item in enumerate(PROFILES)
+                         if item.leader_id == profile.leader_id)
+    targets = (west_targets, east_targets, south_targets)[(profile_index + slot) % 3]
     return dict(targets[seed % len(targets)])
 
 
