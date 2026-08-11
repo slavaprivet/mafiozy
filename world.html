@@ -8360,11 +8360,32 @@ const UNIQUE_NPC_BLUEPRINTS = Object.freeze([
   {id:'musa',name:'Муса',title:'Снабженец',salary:1100,r:138.5,c:132.5,arc:'businessman',talk:'Нужная вещь ценнее денег, если она пришла вовремя. Ассортимент определим позже.',look:{gender:0,skin:3,body:2,face:0,hair:3,hat:3,suit:'#6b5125',trousers:'#241d12',hairColor:'#19120c',accent:'#e6c56a'}},
 ]);
 
+const MAFIA_BOSS_NAMES = Object.freeze({
+  leila:'Лейла Беллини',rustam:'Билли Капоне',marco:'Марко Моретти',
+  vera:'Вера Фальконе',arsen:'Энцо Барзини',damir:'Дамиано Коста',
+  marat:'Марчелло Рицци',zara:'Джина Беллуччи',niko:'Нико Скарлетти',
+  alisa:'Алисия Романо',boris:'Бруно Манчини',inga:'Ингрид Вентури',
+  timur:'Тони Лучано',emil:'Эмилио Гамбино',roman:'Роман Витале',
+  sofia:'София Кастеллано',viktor:'Виктор Ломбарди',
+  yana:'Джанна Марино',musa:'Муса Карбоне'
+});
+const MAFIA_BOSS_GANGS = Object.freeze({
+  leila:'Красный полумесяц',rustam:'Железные волки',marco:'Ночные колёса',
+  vera:'Белые перчатки',arsen:'Чёрная кузня',damir:'Зелёный круг',
+  marat:'Стальной щит',zara:'Золотая книга',niko:'Тихие глаза',
+  alisa:'Синяя сеть',boris:'Жёлтые крюки',inga:'Розовый ключ',
+  timur:'Синие стрелы',emil:'Красный ринг',roman:'Серые пластины',
+  sofia:'Жёлтая пресса',viktor:'Бесшумные',yana:'Бирюзовая линия',
+  musa:'Золотой караван'
+});
+for(const def of UNIQUE_NPC_BLUEPRINTS)def.name=MAFIA_BOSS_NAMES[def.id]||def.name;
+
 const SPECIALIST_NPCS = UNIQUE_NPC_BLUEPRINTS.map((def,index)=>({
   r:def.r,c:def.c,tr:def.r,tc:def.c,speed:.76+(index%5)*.025,ang:0,walkPhase:index*.73,idleUntil:0,
   hp:999999,max_hp:999999,look:{...def.look},id:`unique_${def.id}`,role:'unique_npc',name:def.name,
   _arcKey:def.arc||'businessman',_arc:null,_relation:1,_uniqueNpc:true,_specialistId:def.id,
   _specialistTitle:def.title,_salary:def.salary,_talkIntro:def.talk,_keyNpc:true,_invulnerable:true,_allowBeach:false,
+  _empireBoss:true,_empireGang:MAFIA_BOSS_GANGS[def.id]||'Криминальная семья',
 }));
 const ALL_UNIQUE_NPCS = Object.freeze([SAID_NPC,...SPECIALIST_NPCS]);
 const UNIQUE_NPC_BY_ID = new Map(ALL_UNIQUE_NPCS.map(n=>[String(n.id),n]));
@@ -15989,6 +16010,18 @@ let _npcEmpireLeaderboard = [];
 let _npcEmpireBusy = false;
 let _npcEmpireAssaultToken = '';
 const _npcEmpireById = new Map();
+function _installNpcEmpireFallbacks(){
+  for(const npc of SPECIALIST_NPCS){
+    const id=String(npc._specialistId||'');if(!id||_npcEmpireById.has(id))continue;
+    _npcEmpireById.set(id,{leader_id:id,leader_name:npc.name,title:npc._specialistTitle,
+      gang_name:npc._empireGang||'Криминальная семья',color:npc.look?.suit||'#6b2730',
+      accent:npc.look?.accent||'#e4bd63',weapon_name:'Уникальное оружие',
+      treasury:0,members:0,strength:0,status:'offline',relation:0,relation_band:'neutral',
+      pact:'none',holdings:[],wins:0,losses:0,knockouts:0,comebacks:0,
+      dominance_score:0,district_count:0,peak_power:0,rank:19,hq_key:''});
+  }
+}
+_installNpcEmpireFallbacks();
 const APARTMENT_OWNERSHIP_LIMIT = 1;
 // Цена квартиры зависит от класса квартала. Сервер использует ту же
 // таблицу и не доверяет сумме, присланной браузером.
@@ -16932,7 +16965,7 @@ async function loadNpcEmpireState(showError=false){
       if(id)openNpcEmpirePanel(id,document.getElementById('npcEmpireOverlay')?.dataset.allowAssault==='1');
     }
     return true;
-  }catch(e){if(showError)showToast('Не удалось получить состояние криминальных империй','⚠️',2400);return false;}
+  }catch(e){_installNpcEmpireFallbacks();if(!_npcEmpires.length)_npcEmpires=[..._npcEmpireById.values()];if(!_npcEmpireLeaderboard.length)_npcEmpireLeaderboard=_npcEmpires.map(e=>e.leader_id);_ensureNpcSandboxButton();if(showError)showToast('Сервер империй перезапускается — боссы показаны в автономном режиме','⚠️',2800);return false;}
 }
 
 function _npcEmpireRelationLabel(empire){
@@ -16950,6 +16983,7 @@ function _ensureNpcSandboxButton(){
   const button=document.createElement('button');button.id='npcSandboxButton';button.textContent='🏛️ ИМПЕРИИ';button.onclick=openNpcSandboxDashboard;document.body.appendChild(button);
 }
 function _npcEmpireStatus(empire){
+  if(empire?.status==='offline')return 'Босс · серверная экономика загружается';
   if(empire?.status==='ruined'){const left=Math.max(0,(+empire.comeback_at||0)-Math.floor(Date.now()/1000));return `Разгромлен · возвращение через ${Math.max(1,Math.ceil(left/60))} мин.`;}
   if(empire?.status==='rebuilding')return 'Начинает со дна';
   if(empire?.status==='vassal')return 'Подчинённая империя';
@@ -16972,6 +17006,10 @@ function openNpcEmpirePanel(leaderId,allowAssault=false){
   const rivalLog=_npcEmpireDiplomacy.filter(d=>d.leader_a===empire.leader_id||d.leader_b===empire.leader_id).sort((a,b)=>Math.abs(+b.score||0)-Math.abs(+a.score||0)).slice(0,4).map(d=>{const other=d.leader_a===empire.leader_id?d.leader_b:d.leader_a,boss=_npcEmpireById.get(String(other));return `<div class="ne-event"><b>${d.pact==='war'?'⚔️':d.pact==='alliance'?'🤝':'◈'} ${_npcEmpireEsc(boss?.leader_name||other)}</b> · ${+d.score>0?'+':''}${+d.score||0} · ${_npcEmpireEsc(d.pact||'none')}</div>`;}).join('');
   const events=(rivalLog?`<div style="color:#e8c471;font-size:9px;font-weight:900;margin-bottom:4px">ОТНОШЕНИЯ С ДРУГИМИ БОССАМИ</div>${rivalLog}<div style="color:#e8c471;font-size:9px;font-weight:900;margin:8px 0 4px">ХРОНИКА ИИ</div>`:'')+eventLog;
   const pactText=({none:'Нет договора',war:'Война',truce:'Перемирие',alliance:'Союз',vassal:'Подчинён'})[pact]||pact;
+  if(empire.status==='offline'){
+    ov.innerHTML=`<article class="ne-card"><header class="ne-head"><div class="ne-k">БОСС КРИМИНАЛЬНОЙ СЕМЬИ</div><h2>${_npcEmpireEsc(empire.leader_name)} · ${_npcEmpireEsc(empire.gang_name)}</h2><p>Сервер перезапускается — личность босса сохранена, экономика скоро подключится.</p><button class="ne-x" data-ne-close>×</button></header><div class="ne-body"><section class="ne-section"><h3>СТАТУС</h3><div class="ne-event">Это не обычный житель и не наёмный специалист. Это автономный босс: после восстановления сервера появятся его штаб, бойцы, казна, районы и дипломатия.</div></section><button class="ne-btn good" data-ne-retry style="width:100%;margin-top:10px">↻ ПОВТОРИТЬ ЗАГРУЗКУ</button></div></article>`;
+    ov.querySelector('[data-ne-retry]').onclick=async()=>{await loadNpcEmpireState(true);openNpcEmpirePanel(empire.leader_id,false);};ov.classList.add('show');return;
+  }
   if(empire.status==='ruined'){
     ov.innerHTML=`<article class="ne-card"><header class="ne-head"><div class="ne-k">ИМПЕРИЯ РАЗГРОМЛЕНА · ЛИДЕР ЖИВ</div><h2>${_npcEmpireEsc(empire.leader_name)} начинает со дна</h2><p>${_npcEmpireEsc(_npcEmpireStatus(empire))} · отношения со всеми снова нейтральные</p><button class="ne-x" data-ne-close>×</button></header><div class="ne-body"><div class="ne-grid"><div class="ne-stat"><small>МЕСТО</small><b>№${+empire.rank||19}</b></div><div class="ne-stat"><small>ВОЗВРАЩЕНИЯ</small><b>${+empire.comebacks||0}</b></div><div class="ne-stat"><small>ПОРАЖЕНИЯ</small><b>${+empire.losses||0}</b></div><div class="ne-stat"><small>ПИК СИЛЫ</small><b>${+empire.peak_power||0}</b></div></div><section class="ne-section"><h3>ЧТО ПОТЕРЯНО</h3><div class="ne-event">Штаб, казна, бойцы, владения и политическая репутация обнулены. После возвращения ${_npcEmpireEsc(empire.leader_name)} получит новый дешёвый штаб, двух бойцов и небольшой стартовый капитал.</div></section><section class="ne-section"><h3>ПРОШЛАЯ ХРОНИКА</h3>${events}</section></div></article>`;
     ov.classList.add('show');return;
@@ -25192,7 +25230,7 @@ function openNpcActionMenuFrom3D(entityId){
 }
 function openUniqueNpcMenuFrom2D(npcId){
   const ref=UNIQUE_NPC_BY_ID.get(String(npcId||''));if(!ref)return {ok:false,reason:'missing'};
-  const key=`world_${ref.id}`,view={id:key,r:ref.r,c:ref.c,role:ref.role,name:ref.name,look:ref.look,uniqueNpc:true,said:!!ref._said,specialistId:ref._specialistId,specialistTitle:ref._specialistTitle,salary:ref._salary};
+  const key=`world_${ref.id}`,view={id:key,r:ref.r,c:ref.c,role:ref.role,name:ref.name,look:ref.look,uniqueNpc:true,said:!!ref._said,specialistId:ref._specialistId,specialistTitle:ref._specialistTitle,salary:ref._salary,empireBoss:!!ref._empireBoss,empireGang:ref._empireGang||''};
   _threeNpcActionRefs.set(key,{ref,view});return openNpcActionMenuFrom3D(key);
 }
 function _runNpcAction(action){
@@ -40709,7 +40747,7 @@ function drawNpc(npc) {
   if ((npc._uniqueNpc||npc._said) && !npc.dead) {
     ctx.save();
     ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='900 11px system-ui, sans-serif';
-    const label=`⭐ ${npc.name} · Уникальный NPC`, tw=ctx.measureText(label).width+14, y=p.y-57;
+    const label=npc._empireBoss?`♛ ${npc.name} · БОСС`:`⭐ ${npc.name} · Уникальный NPC`, tw=ctx.measureText(label).width+14, y=p.y-57;
     ctx.fillStyle='rgba(15,20,28,.94)'; ctx.strokeStyle='#d7ae4c'; ctx.lineWidth=1;
     roundRect(p.x-tw/2,y-8,tw,17,7); ctx.fill(); ctx.stroke();
     ctx.fillStyle='#fff3bd'; ctx.fillText(label,p.x,y+.5); ctx.restore();
@@ -61465,7 +61503,7 @@ window.Mafiozi3DBridge = Object.freeze({
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:copSpeech||((+x.cryUntil||0)>fxNow?String(x.cryText||'').slice(0,84):''),hp,maxHp,
-      said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),
+      said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireGang:String(x._empireGang||''),
       important:!!(x._uniqueNpc||x._said||x._keyNpc||x._invulnerable),talkable:!!(x._uniqueNpc||x._said),hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
       talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),
@@ -65634,6 +65672,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d336-shared-wind-programs-v331-blue-police-patrols"></script>
+<script type="module" src="three_preview.js?v=3d331-blue-police-patrols"></script>
 </body>
 </html>
