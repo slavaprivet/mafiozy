@@ -1081,3 +1081,8 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - This is a constant-time predicate inside the existing collision calls. Do not
   add a bridge scan to the render loop. Local preview samples the centre line
   only when `previewbridge=1` and publishes a compact QA result in the DOM.
+# Pooled hospital-patient roof icons (2026-08-12)
+
+- For temporary 3D status markers, keep a fixed sprite/canvas pool. The empire hospital UI uses six preallocated sprites and only redraws a texture when the patient, family colors, hospital, or displayed second changes.
+- Pass compact hospital state through the existing dynamic bridge snapshot; do not create meshes or query the server from the render loop.
+- Stack patients assigned to the same hospital by pool order and determine roof height from the existing building bounds. This avoids z-fighting and keeps both hospital locations readable without a second scene graph scan.

@@ -66,6 +66,7 @@ preview_business_claims = {}
 preview_business_sabotage = {}
 preview_business_wars = {}
 preview_empire_relations = {}
+preview_empire_hospitals = {}
 preview_connections = {}
 preview_apartments = {}
 preview_custom_gangs = {}
@@ -1612,6 +1613,11 @@ async def npc_empire_state(req):
     for rank, profile in enumerate(npc_empire.PROFILES, 1):
         relation, pact = preview_empire_relations.get((uid, profile.leader_id), (0, "none"))
         hq_r, hq_c = npc_empire._hq_coords(profile.hq_key)
+        hospital = preview_empire_hospitals.get(profile.leader_id) or {}
+        hospital_until = int(hospital.get('hospital_until') or 0)
+        if hospital_until <= now:
+            hospital_until = 0
+            preview_empire_hospitals.pop(profile.leader_id, None)
         empires.append({
             "leader_id": profile.leader_id,
             "leader_name": _preview_empire_text(profile.leader_name),
@@ -1629,6 +1635,8 @@ async def npc_empire_state(req):
             "rank": rank, "wins": rank % 4, "losses": rank % 3, "knockouts": rank % 2,
             "comebacks": 0, "dominance_score": 25 + rank, "district_count": rank % 3,
             "peak_power": 140 + rank * 4, "war_pressure": None,
+            "hospital_until": hospital_until,
+            "hospital_id": str(hospital.get('hospital_id') or '') if hospital_until else '',
         })
     # The local preview always keeps one deterministic NPC-family war alive so
     # the physical sandbox (convergence, squads, bullets and retreats) can be
@@ -1686,6 +1694,24 @@ async def npc_empire_diplomacy(req):
     return cors(web.json_response({"ok": True, "leader_id": leader_id, "action": action,
         "relation": score, "relation_band": npc_empire.relation_band(score),
         "pact": pact, "cost": cost, "cash": cash}))
+
+
+async def npc_empire_hospitalize(req):
+    body = await req.json()
+    leader_id = str(body.get('leader_id') or '')
+    hospital_id = str(body.get('hospital_id') or 'hospital')
+    if leader_id not in npc_empire.PROFILE_BY_ID:
+        return cors(web.json_response({'ok': False, 'error': 'unknown_leader'}, status=400))
+    if hospital_id not in ('hospital', 'hospital_east'):
+        hospital_id = 'hospital'
+    now = int(time.time())
+    existing = preview_empire_hospitals.get(leader_id) or {}
+    until = int(existing.get('hospital_until') or 0)
+    if until <= now:
+        until = now + 60
+        preview_empire_hospitals[leader_id] = {'hospital_id': hospital_id, 'hospital_until': until}
+    return cors(web.json_response({'ok': True, 'leader_id': leader_id,
+        'hospital_id': hospital_id, 'hospital_until': until, 'duration': max(0, until-now)}))
 
 
 def preview_online_gang(uid):
@@ -3328,6 +3354,7 @@ app.router.add_post("/custom-gang/{uid}/edit", custom_gang_edit)
 app.router.add_post("/custom-gang/{uid}/npcs/sync", custom_gang_npc_sync)
 app.router.add_get("/npc-empires/{uid}/state", npc_empire_state)
 app.router.add_post("/npc-empires/{uid}/diplomacy", npc_empire_diplomacy)
+app.router.add_post("/npc-empires/{uid}/hospitalize", npc_empire_hospitalize)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)

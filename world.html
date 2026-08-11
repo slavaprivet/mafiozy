@@ -9036,17 +9036,18 @@ function _applyEmpireCrewStyle(crew,leader){
 }
 function _syncEmpireBossCrews(now=performance.now()){
   if(now<_nextEmpireCrewSyncAt)return;_nextEmpireCrewSyncAt=now+1800;
-  const leaders=SPECIALIST_NPCS.filter(n=>!n._hiddenByEmpire&&n._empireMembers>1)
+  const leaders=SPECIALIST_NPCS.filter(n=>!n._hiddenByEmpire&&!n.dead&&n._empireMembers>1)
     .sort((a,b)=>Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c))
     .filter(n=>Math.hypot(n.r-player.r,n.c-player.c)<38).slice(0,4);
   const desired=new Map(leaders.map(n=>[String(n._specialistId),Math.min(3,Math.max(1,Math.floor((n._empireMembers-1)/4)+1))]));
   for(let i=EMPIRE_CREW_NPCS.length-1;i>=0;i--){
     const crew=EMPIRE_CREW_NPCS[i],keep=desired.get(String(crew._empireLeaderId))||0;
+    if(crew.dead||crew._ambulanceDispatched||crew._ambulanceInTransit)continue;
     const ordinal=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===crew._empireLeaderId).indexOf(crew);
     if(ordinal>=keep){const at=NPCS.indexOf(crew);if(at>=0)NPCS.splice(at,1);EMPIRE_CREW_NPCS.splice(i,1);}
   }
   for(const leader of leaders){
-    const id=String(leader._specialistId),have=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id).length,want=desired.get(id)||0;
+    const id=String(leader._specialistId),have=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated).length,want=desired.get(id)||0;
     for(const crew of EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id)){
       crew._empirePlayerWar=!!leader._empirePlayerWar;
       crew._empireEnemyLeaderId=String(leader._empireEnemyLeaderId||'');
@@ -9139,7 +9140,7 @@ function _empireCombatReady(n,now=performance.now()){
   n._empireBattleMaxHp=max;
   if(!Number.isFinite(+n._empireBattleHp))n._empireBattleHp=max;
   if(n._empireDownUntil&&now>=n._empireDownUntil){n._empireDownUntil=0;n._knockedUntil=0;n._empireBattleHp=Math.round(max*.62);n._empireRetreatUntil=now+12000;n.cryText='ОТХОДИМ К ШТАБУ!';n.cryUntil=now+2200;}
-  return !(n._empireDownUntil>now);
+  return !n.dead&&!n._hiddenByEmpire;
 }
 function _hitEmpireCombatant(target,damage,source,weapon,dirY,dirX,now=performance.now()){
   if(!_empireCombatReady(target,now)||_empireLeaderIdOf(target)===_empireLeaderIdOf(source))return false;
@@ -9148,7 +9149,8 @@ function _hitEmpireCombatant(target,damage,source,weapon,dirY,dirX,now=performan
   _markCombatBleeding(target,target.r,target.c,damage,dirY,dirX,weapon);
   const nr=target.r+(+dirY||0)*.07,nc=target.c+(+dirX||0)*.07;if(_npcBodyPassable(nr,nc,_empireBossPassable)){target.r=nr;target.c=nc;}
   if(target._empireBattleHp>0)return false;
-  target._empireDownUntil=now+(target._empireBoss?18000:12000)+Math.random()*5000;target._knockedAt=now;target._knockedUntil=target._empireDownUntil;target.walking=false;target.walkPhase=0;target._empireCombatTarget=null;_clearNpcRoute(target);
+  target._empireDownUntil=0;target._knockedAt=now;target._knockedUntil=0;target.walking=false;target.walkPhase=0;target._empireCombatTarget=null;_clearNpcRoute(target);
+  target.hp=0;target.dead=true;target.deadAt=now;target._deathR=target.r;target._deathC=target.c;target._empireAwaitingAmbulance=true;
   target.cryText=target._empireBoss?'БОСС РАНЕН! ПРИКРОЙТЕ!':'Я РАНЕН!';target.cryUntil=now+1800;
   spawnFloatText(target.r,target.c,target._empireBoss?'БОСС ВЫБЫЛ':'БОЕЦ ВЫБЫЛ',{color:target._empireAccent||'#ffca72',size:target._empireBoss?15:12,life:1600});
   return true;
@@ -9740,14 +9742,16 @@ function maintainNpcPopulation(now) {
     _repairAmbulancePatientState(n,now);
     const incidentAt=n._medicalDowned?n._medicalDownedAt:n.deadAt;
     const delivered=!!n._ambulanceDeliveredAt&&(!incidentAt||n._ambulanceDeliveredAt>=incidentAt);
-    const timedOut=n.dead&&n.deadAt&&!n._ambulanceInTransit&&!n._evacuated&&now-n.deadAt>CORPSE_AUTO_REMOVE_MS;
-    const transientExpired=n.dead&&n.deadAt&&(n._botCorpse||n._transientCorpseId)&&now-n.deadAt>60000;
+    const empireCasualty=!!(n._empireBoss||n._empireCrew);
+    const timedOut=n.dead&&!empireCasualty&&n.deadAt&&!n._ambulanceInTransit&&!n._evacuated&&now-n.deadAt>CORPSE_AUTO_REMOVE_MS;
+    const transientExpired=n.dead&&!empireCasualty&&n.deadAt&&(n._botCorpse||n._transientCorpseId)&&now-n.deadAt>60000;
     if (delivered || (n.dead && timedOut) || transientExpired) {
       if(timedOut){n._corpseExpired=true;_corpseTimeoutCount++;document.documentElement.dataset.corpseTimeoutRemovals=String(_corpseTimeoutCount);document.documentElement.dataset.lastCorpseRemoval='timeout-180s';if(typeof _cancelAmbulanceCallForPatient==='function')_cancelAmbulanceCallForPatient(n);}
       else if(transientExpired)document.documentElement.dataset.lastCorpseRemoval='transient-timeout-60s';
       else document.documentElement.dataset.lastCorpseRemoval='hospital-delivery';
       const respawn=_isRespawnableResident(n);
       NPCS.splice(i, 1);
+      if(n._empireCrew){const ei=EMPIRE_CREW_NPCS.indexOf(n);if(ei>=0)EMPIRE_CREW_NPCS.splice(ei,1);}
       if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({_arcKey:n._arcKey,_beach:n._beach,_appearanceGeneration:(+n._appearanceGeneration||0)+1});
     } else if (n._guard && n._hostileUntil && now > n._hostileUntil + 5000) {
       NPCS.splice(i, 1);
@@ -11285,6 +11289,7 @@ function _completeAmbulanceHospitalDelivery(v,now=performance.now(),mode='road-a
     }
     patient._ambulanceInTransit=false;patient._carriedByAmbulance=false;patient._ambulanceLoading=false;
     patient._ambulanceDispatched=false;patient._evacuated=true;patient._evacuatedAt=now;patient._ambulanceDeliveredAt=now;
+    if(patient._empireBoss)_hospitalizeEmpireBoss(patient,v,now);
     _ambulanceDeliveryCount++;document.documentElement.dataset.ambulanceHospitalDeliveries=String(_ambulanceDeliveryCount);
     const road=mode==='road-arrival'&&v._ambulanceReturnMoveObserved===true,key=road?'ambulanceHospitalRoadDeliveries':'ambulanceHospitalEmergencyDeliveries';
     document.documentElement.dataset[key]=String((+document.documentElement.dataset[key]||0)+1);
@@ -13270,7 +13275,7 @@ function dispatchEmergencyServices() {
   // Dead residents are prioritized over wounded residents.
   _ensureAmbulanceFleet();
   const ambulanceQueue=NPCS.filter(n=>(n.dead||n._medicalDowned)&&!n._corpseExpired&&!n._evacuated&&!n._ambulanceInTransit&&!n._ambulanceDispatched)
-    .sort((a,b)=>(a.dead?0:1)-(b.dead?0:1)||((a._medicalDowned?a._medicalDownedAt:a.deadAt)||0)-((b._medicalDowned?b._medicalDownedAt:b.deadAt)||0));
+    .sort((a,b)=>(b._empireBoss?1:0)-(a._empireBoss?1:0)||(a.dead?0:1)-(b.dead?0:1)||((a._medicalDowned?a._medicalDownedAt:a.deadAt)||0)-((b._medicalDowned?b._medicalDownedAt:b.deadAt)||0));
   for (const n of ambulanceQueue) {
     const incidentAt=n._medicalDowned?n._medicalDownedAt:n.deadAt;
     if (!incidentAt || now - incidentAt < 1200) continue;
@@ -14720,7 +14725,7 @@ function updateNpcs(dt) {
     }
   }
   for (const n of NPCS) {
-    if(n?._uniqueNpc||n?._said){
+    if((n?._uniqueNpc||n?._said)&&!(n?._empireBoss&&(n.dead||n._empireHospitalUntil>Date.now()))){
       // Unique specialists are persistent story characters: no combat, fire,
       // medical or panic subsystem may remove them or strand them off walknet.
       n.dead=false;n.hp=n.max_hp=999999;n._burnUntil=0;n._medicalDowned=false;
@@ -17854,16 +17859,30 @@ async function loadNpcEmpireState(showError=false){
       if(leftNpc&&leftStage){leftNpc.r=leftNpc.tr=leftStage.r;leftNpc.c=leftNpc.tc=leftStage.c;_clearNpcRoute(leftNpc);}
       if(rightNpc&&rightStage){rightNpc.r=rightNpc.tr=rightStage.r;rightNpc.c=rightNpc.tc=rightStage.c;_clearNpcRoute(rightNpc);}
     }
+    if(_LOCAL_PREVIEW&&_UP.has('previewempirehospital')&&!document.documentElement.dataset.previewEmpireHospitalSeeded&&_npcEmpires.length){
+      const patientEmpire=_npcEmpires[0],patient=SPECIALIST_NPCS.find(n=>String(n._specialistId)===String(patientEmpire.leader_id)),point=_nearestEmpireWalkPoint(player.r+3,player.c+2);
+      if(patient&&point){patient.r=patient.tr=point.r;patient.c=patient.tc=point.c;patient.hp=0;patient.dead=true;patient.deadAt=performance.now()-2400;patient._deathR=point.r;patient._deathC=point.c;patient._empireBattleHp=0;patient._empireAwaitingAmbulance=true;document.documentElement.dataset.previewEmpireHospitalSeeded=String(patient._specialistId);}
+    }
     _npcEmpireById.clear();for(const empire of _npcEmpires)_npcEmpireById.set(String(empire.leader_id),empire);
     _ensureNpcSandboxButton();
     for(const npc of SPECIALIST_NPCS){
-      const empire=_npcEmpireById.get(String(npc._specialistId||''));npc._hiddenByEmpire=empire?.status==='ruined';
+      const empire=_npcEmpireById.get(String(npc._specialistId||'')),serverHospitalUntil=(+empire?.hospital_until||0)*1000,hospitalUntil=Math.max(serverHospitalUntil,+npc._empireHospitalUntil||0),hospitalized=hospitalUntil>Date.now();
+      npc._hiddenByEmpire=empire?.status==='ruined'||hospitalized;
       if(empire){npc._empireGang=empire.gang_name||npc._empireGang;npc._empireWeaponId=empire.weapon_id||npc._empireWeaponId;
         npc._empireWeaponName=empire.weapon_name||npc._empireWeaponName;npc._empireWeaponBase=empire.weapon_base||npc._empireWeaponBase;
         npc._empireWeaponProfile=empire.weapon_profile||NPC_EMPIRE_WEAPON_PROFILES[npc._empireWeaponId]||npc._empireWeaponProfile;
         npc._empireColor=empire.color||npc.look?.suit;npc._empireAccent=empire.accent||npc.look?.accent;
         npc._empireMembers=Math.max(1,+empire.members||1);npc._empireStrength=Math.max(20,+empire.strength||20);npc._empireHqR=+empire.hq_r||npc.r;npc._empireHqC=+empire.hq_c||npc.c;
         npc._empireRelation=+empire.relation||0;npc._empireRelationBand=String(empire.relation_band||'neutral');npc._empirePact=String(empire.pact||'none');
+        npc._empireHospitalUntil=hospitalUntil;if(empire.hospital_id)npc._empireHospitalId=String(empire.hospital_id);
+        if(hospitalized)npc._empireWasHospitalized=true;
+        else if(npc._empireWasHospitalized){
+          npc._empireWasHospitalized=false;npc._empireHospitalRequest=false;npc.dead=false;npc.deadAt=0;npc._evacuated=false;npc._ambulanceDeliveredAt=0;npc._empireBattleHp=npc._empireBattleMaxHp||220;
+          const exit=npc._empireHospitalId==='hospital_east'?_nearestEmpireWalkPoint(50,126):_nearestEmpireWalkPoint(30,46);
+          if(exit){npc.r=npc.tr=exit.r;npc.c=npc.tc=exit.c;_clearNpcRoute(npc);}
+          npc.cryText='Я ВЕРНУЛСЯ В ДЕЛО!';npc.cryUntil=performance.now()+2600;
+          showEventBanner('🏥 БОСС ВЫПИСАН',`${empire.leader_name} снова продолжает криминальный путь.`,3200,'neutral');
+        }
         const atWar=npc._empirePact==='war';npc._empirePlayerWar=atWar;
         if(!atWar&&npc._empireWarFighting){npc._empireWarFighting=false;npc._fighting=false;npc._nextShootAt=0;}
         const action=empire.activity||null,actionKey=action?`${action.kind}:${action.target_id||empire.hq_key||''}:${action.created_at||0}`:'';
@@ -17890,6 +17909,20 @@ async function loadNpcEmpireState(showError=false){
 
 function _npcEmpireRelationLabel(empire){
   return ({enemy:'Заклятый враг',hostile:'Враждебен',neutral:'Нейтрален',friendly:'Дружественен',ally:'Союзник'})[empire?.relation_band]||'Нейтрален';
+}
+
+async function _hospitalizeEmpireBoss(patient,v,now=performance.now()){
+  if(!patient?._empireBoss||patient._empireHospitalRequest)return;
+  patient._empireHospitalRequest=true;
+  const hospitalId=(+v?.homeC||0)>100?'hospital_east':'hospital';
+  patient._empireHospitalId=hospitalId;patient._empireHospitalUntil=Date.now()+60000;patient._hiddenByEmpire=true;
+  document.documentElement.dataset.empireBossHospitalized=`${patient._specialistId}:${hospitalId}:60`;
+  try{
+    const response=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/hospitalize`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:patient._specialistId,hospital_id:hospitalId})});
+    const result=await response.json();if(!response.ok||!result?.ok)throw new Error(result?.error||'hospitalize');
+    patient._empireHospitalUntil=(+result.hospital_until||0)*1000;patient._empireHospitalId=result.hospital_id||hospitalId;
+    loadNpcEmpireState();
+  }catch(_){patient._empireHospitalRequest=false;}
 }
 function _npcEmpireAttitude(empire){
   const score=+empire?.relation||0;
@@ -62838,8 +62871,13 @@ window.Mafiozi3DBridge = Object.freeze({
       leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),
       r:(+empire.hq_r||0)+.5,c:(+empire.hq_c||0)+.5,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67')
     }));
-    document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);
-    return {cars,npcs,empireHqs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
+    const hospitalPatientStates=_npcEmpires.filter(empire=>(+empire?.hospital_until||0)*1000>Date.now()).map(empire=>{
+      const east=String(empire.hospital_id||'')==='hospital_east';return {leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||''),color:empire.color||'#872f3b',accent:empire.accent||'#e8bd67',emblem:empire.emblem||'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((+empire.hospital_until||0)-Date.now()/1000))};
+    });
+    for(const boss of SPECIALIST_NPCS)if((+boss._empireHospitalUntil||0)>Date.now()&&!hospitalPatientStates.some(p=>p.leaderId===String(boss._specialistId))){const east=boss._empireHospitalId==='hospital_east';hospitalPatientStates.push({leaderId:String(boss._specialistId),leaderName:String(boss.name||'БОСС'),gangName:String(boss._empireGang||''),color:boss._empireColor||'#872f3b',accent:boss._empireAccent||'#e8bd67',emblem:'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((boss._empireHospitalUntil-Date.now())/1000))});}
+    const hospitalPatients=inside?[]:hospitalPatientStates.slice(0,6);
+    document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);document.documentElement.dataset.empireHospitalPatients=String(hospitalPatients.length);
+    return {cars,npcs,empireHqs,hospitalPatients,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
       effectLifecycle:{bullets:bullets.length,muzzles:muzzles.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,holes:bulletHoles.length,gore:bodyPartFx.length,explosions:explosionBursts.length,throwables:_thrownItems.length,fires:_firePools.length,pendingTimers:_pendingBallisticFxTimers},
       players:players.slice(0,24),objects:objects.slice(0,160)};
   },
@@ -66843,6 +66881,6 @@ function chatDuration(text) {
 </script>
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
-<script type="module" src="three_preview.js?v=3d362-visible-family-hq-flags"></script>
+<script type="module" src="three_preview.js?v=3d363-empire-hospital-cycle"></script>
 </body>
 </html>

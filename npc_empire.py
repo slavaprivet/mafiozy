@@ -296,6 +296,8 @@ async def ensure_schema(db_path: str) -> None:
             dominance_score INTEGER NOT NULL DEFAULT 0,
             district_count INTEGER NOT NULL DEFAULT 0,
             peak_power INTEGER NOT NULL DEFAULT 0,
+            hospital_until INTEGER NOT NULL DEFAULT 0,
+            hospital_id TEXT NOT NULL DEFAULT '',
             version INTEGER NOT NULL DEFAULT 1
         );
         CREATE TABLE IF NOT EXISTS npc_empire_relations (
@@ -378,6 +380,7 @@ async def ensure_schema(db_path: str) -> None:
             'wins': "INTEGER NOT NULL DEFAULT 0", 'losses': "INTEGER NOT NULL DEFAULT 0",
             'knockouts': "INTEGER NOT NULL DEFAULT 0", 'dominance_score': "INTEGER NOT NULL DEFAULT 0",
             'district_count': "INTEGER NOT NULL DEFAULT 0", 'peak_power': "INTEGER NOT NULL DEFAULT 0",
+            'hospital_until': "INTEGER NOT NULL DEFAULT 0", 'hospital_id': "TEXT NOT NULL DEFAULT ''",
         }
         for name, declaration in migrations.items():
             if name not in columns:
@@ -426,6 +429,43 @@ async def ensure_schema(db_path: str) -> None:
                     (leader_a, leader_b, score, now),
                 )
         await db.commit()
+
+
+async def hospitalize_boss(db_path: str, leader_id: str, hospital_id: str = 'hospital',
+                           now: int | None = None) -> dict:
+    """Place a defeated empire boss in authoritative treatment for 60 seconds."""
+    now = int(now or time.time())
+    leader_id = str(leader_id or '').strip()
+    hospital_id = str(hospital_id or 'hospital').strip()
+    if leader_id not in PROFILE_BY_ID:
+        return {'ok': False, 'error': 'unknown_leader'}
+    if hospital_id not in ('hospital', 'hospital_east'):
+        hospital_id = 'hospital'
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        row = await (await db.execute(
+            "SELECT hospital_until,hospital_id,status FROM npc_empires WHERE leader_id=?", (leader_id,)
+        )).fetchone()
+        if not row or str(row['status']) == 'ruined':
+            return {'ok': False, 'error': 'boss_unavailable'}
+        current_until = int(row['hospital_until'] or 0)
+        until = current_until if current_until > now else now + 60
+        chosen = str(row['hospital_id'] or hospital_id) if current_until > now else hospital_id
+        await db.execute(
+            "UPDATE npc_empires SET hospital_until=?,hospital_id=?,version=version+1 WHERE leader_id=?",
+            (until, chosen, leader_id),
+        )
+        if current_until <= now:
+            profile = PROFILE_BY_ID[leader_id]
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
+                (leader_id, 'hospital', chosen,
+                 f'{profile.leader_name} доставлен в больницу на 60 секунд', now),
+            )
+        await db.commit()
+    return {'ok': True, 'leader_id': leader_id, 'hospital_id': chosen,
+            'hospital_until': until, 'duration': max(0, until - now)}
 
 
 def _decision_roll(leader_id: str, tick_at: int) -> random.Random:
@@ -891,6 +931,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'dominance_score': int(row['dominance_score'] or 0),
             'district_count': int(row['district_count'] or 0),
             'peak_power': int(row['peak_power'] or 0),
+            'hospital_until': int(row['hospital_until'] or 0) if int(row['hospital_until'] or 0) > now else 0,
+            'hospital_id': str(row['hospital_id'] or '') if int(row['hospital_until'] or 0) > now else '',
             'relation': score, 'relation_band': relation_band(score),
             'pact': str(relation.get('pact') or 'none'),
             'war_pressure': war_rows.get(leader_id),

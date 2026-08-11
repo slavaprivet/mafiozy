@@ -54,6 +54,10 @@ def run() -> None:
     assert "redrawEmpireHqFlag(marker,src)" in THREE
     assert "marker.flagPivot.rotation.y=Math.atan2" in THREE
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
+    assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
+    assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
+    assert "3d363-empire-hospital-cycle" in WORLD
+    assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     print("npc_empire_ui: 3D cards, dossier, empire plaque, attitudes, routes and hostility OK")
 
 

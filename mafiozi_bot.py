@@ -1019,6 +1019,23 @@ async def init_db():
                 last_payout_at REAL NOT NULL DEFAULT 0
             )
         """)
+        # Один Steam/Telegram-аккаунт может иметь до трёх полностью отдельных
+        # персонажей. Весь игровой прогресс уже привязан к telegram_id, поэтому
+        # character_id становится игровым uid, а account_id используется только
+        # на экране выбора. Старый персонаж аккаунта автоматически занимает слот 1.
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS account_characters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL,
+                character_id INTEGER UNIQUE,
+                slot INTEGER NOT NULL CHECK(slot BETWEEN 1 AND 3),
+                created_at INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(account_id, slot)
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_account_characters_account "
+            "ON account_characters(account_id)")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS mafia_family_scores (
                 family TEXT PRIMARY KEY,
@@ -1786,6 +1803,126 @@ async def create_character(telegram_id: int, username: str, name: str, char_clas
             (telegram_id, username, name, char_class, cls["hp"], cls["hp"], cls["mana"], cls["mana"], cls["attack"], cls["defense"], 0)
         )
         await db.commit()
+
+PROFILE_CHARACTER_ID_BASE = 800_000_000_000_000
+PROFILE_MAX_CHARACTERS = 3
+
+async def ensure_account_profiles(account_id: int) -> None:
+    """Подхватывает старого единственного персонажа как слот 1."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        legacy = await (await db.execute(
+            "SELECT 1 FROM characters WHERE telegram_id=?", (int(account_id),))).fetchone()
+        if not legacy:
+            return
+        mapped = await (await db.execute(
+            "SELECT 1 FROM account_characters WHERE character_id=?", (int(account_id),))).fetchone()
+        if mapped:
+            return
+        occupied = {int(row[0]) for row in await (await db.execute(
+            "SELECT slot FROM account_characters WHERE account_id=?", (int(account_id),))).fetchall()}
+        slot = next((n for n in range(1, PROFILE_MAX_CHARACTERS + 1) if n not in occupied), None)
+        if slot is None:
+            return
+        await db.execute(
+            "INSERT OR IGNORE INTO account_characters(account_id,character_id,slot,created_at) "
+            "VALUES(?,?,?,?)", (int(account_id), int(account_id), slot, int(time.time())))
+        await db.commit()
+
+def _profile_look(char: dict) -> dict:
+    try:
+        look = json.loads(char.get('look_json') or '{}') or {}
+    except Exception:
+        look = {}
+    return {key: int(look.get(key, 0) or 0) for key in ('gender','skin','body','face','hair','hat')}
+
+async def list_account_profiles(account_id: int) -> list[dict]:
+    await ensure_account_profiles(account_id)
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await (await db.execute(
+            """SELECT ac.slot,ac.character_id,c.*,
+                      cg.name AS custom_gang_name,cgm.role AS custom_gang_role
+                 FROM account_characters ac
+                 JOIN characters c ON c.telegram_id=ac.character_id
+            LEFT JOIN custom_gang_members cgm ON cgm.telegram_id=c.telegram_id
+            LEFT JOIN custom_gangs cg ON cg.id=cgm.gang_id
+                WHERE ac.account_id=? ORDER BY ac.slot""",
+            (int(account_id),))).fetchall()
+    out = []
+    for raw in rows:
+        char = dict(raw)
+        family = str(char.get('mafia_family') or '')
+        custom_name = str(char.get('custom_gang_name') or '')
+        role = ('Банда · ' + custom_name) if custom_name else (
+            ('Мафиози · ' + ('Моретти' if family == 'moretti' else 'Беллини')) if family else 'Гражданский')
+        out.append({
+            'slot': int(char['slot']), 'character_id': str(char['character_id']),
+            'name': str(char.get('name') or 'Игрок')[:24],
+            'level': max(1, int(char.get('level') or 1)),
+            'cash': max(0, int(char.get('cash') or 0)),
+            'diamonds': max(0, int(char.get('diamonds') or 0)),
+            'role': role, 'mafia_family': family,
+            'custom_gang_name': custom_name,
+            'custom_gang_role': str(char.get('custom_gang_role') or ''),
+            'has_look': bool(char.get('look_json')), 'look': _profile_look(char),
+        })
+    return out
+
+async def create_account_profile(account_id: int, name: str, look: dict) -> dict:
+    await ensure_account_profiles(account_id)
+    cls = CLASSES['fixer']
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        occupied = {int(row[0]) for row in await (await db.execute(
+            "SELECT slot FROM account_characters WHERE account_id=?", (int(account_id),))).fetchall()}
+        slot = next((n for n in range(1, PROFILE_MAX_CHARACTERS + 1) if n not in occupied), None)
+        if slot is None:
+            await db.rollback()
+            raise ValueError('profile_limit')
+        cur = await db.execute(
+            "INSERT INTO account_characters(account_id,character_id,slot,created_at) VALUES(?,NULL,?,?)",
+            (int(account_id), slot, int(time.time())))
+        mapping_id = int(cur.lastrowid)
+        character_id = PROFILE_CHARACTER_ID_BASE + mapping_id
+        await db.execute("UPDATE account_characters SET character_id=? WHERE id=?",
+                         (character_id, mapping_id))
+        await db.execute(
+            """INSERT INTO characters
+               (telegram_id,username,name,class,hp,max_hp,mana,max_mana,attack,defense,cash,look_json)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (character_id, '', name, 'fixer', cls['hp'], cls['hp'], cls['mana'], cls['mana'],
+             cls['attack'], cls['defense'], 0, json.dumps(look, ensure_ascii=False)))
+        await db.commit()
+    return {'slot': slot, 'character_id': str(character_id)}
+
+async def delete_account_profile(account_id: int, character_id: int) -> bool:
+    """Удаляет ровно выбранное сохранение; выданные character_id не переиспользуются."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        owned = await (await db.execute(
+            "SELECT 1 FROM account_characters WHERE account_id=? AND character_id=?",
+            (int(account_id), int(character_id)))).fetchone()
+        if not owned:
+            return False
+        await db.execute('BEGIN IMMEDIATE')
+        tables = [row[0] for row in await (await db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+        )).fetchall()]
+        identity_columns = {'telegram_id','owner_uid','player_id','user_id','leader_uid'}
+        for table in tables:
+            if table in ('characters','account_characters'):
+                continue
+            safe_table = table.replace('"','""')
+            cols = {row[1] for row in await (await db.execute(
+                f'PRAGMA table_info("{safe_table}")')).fetchall()}
+            for col in sorted(cols & identity_columns):
+                safe_col = col.replace('"','""')
+                await db.execute(f'DELETE FROM "{safe_table}" WHERE "{safe_col}"=?',
+                                 (int(character_id),))
+        await db.execute("DELETE FROM characters WHERE telegram_id=?", (int(character_id),))
+        await db.execute("DELETE FROM account_characters WHERE account_id=? AND character_id=?",
+                         (int(account_id), int(character_id)))
+        await db.commit()
+    return True
 
 async def update_character(telegram_id: int, **kwargs):
     if not kwargs:
@@ -12789,9 +12926,17 @@ async def join_custom_gang_db(gang_id:int,target_uid:int,inviter_uid:int)->dict:
     if not target:return {'ok':False,'error':'no character'}
     if target.get('mafia_family'):return {'ok':False,'error':'mafia conflict'}
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('PRAGMA foreign_keys=ON')
+        await db.execute('BEGIN IMMEDIATE')
         try:
-            await db.execute("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,'member',?,?)",(gang_id,target_uid,int(time.time()),inviter_uid));await db.commit()
-        except aiosqlite.IntegrityError:return {'ok':False,'error':'already in gang'}
+            async with db.execute("SELECT COUNT(*) FROM custom_gang_members WHERE gang_id=?",(gang_id,)) as cur:
+                member_count=int((await cur.fetchone())[0])
+            if member_count>=CUSTOM_GANG_MAX_MEMBERS:
+                await db.rollback();return {'ok':False,'error':'full'}
+            await db.execute("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,'member',?,?)",(gang_id,target_uid,int(time.time()),inviter_uid))
+            await db.commit()
+        except aiosqlite.IntegrityError:
+            await db.rollback();return {'ok':False,'error':'already in gang'}
     return {'ok':True}
 
 
@@ -12807,10 +12952,28 @@ async def disband_custom_gang_db(uid:int)->dict:
 def apply_custom_gang_to_player(player:dict|None,gang:dict|None)->None:
     if player is None:return
     if not gang:
-        for key in ('_custom_gang_id','_custom_gang_name','_custom_gang_role','_custom_gang_flag','_custom_gang_hq'):player.pop(key,None)
+        for key in ('_custom_gang_id','_custom_gang_name','_custom_gang_role','_custom_gang_flag','_custom_gang_hq','_custom_gang_hq_r','_custom_gang_hq_c','_custom_gang_members','_custom_gang_max_members'):player.pop(key,None)
         if str(player.get('_crew_id') or '').startswith('cg:'):player.pop('_crew_id',None)
         return
-    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':gang['role'],'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_crew_id':f"cg:{gang['id']}"})
+    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':gang['role'],'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_custom_gang_hq_r':gang.get('hq_r',0),'_custom_gang_hq_c':gang.get('hq_c',0),'_custom_gang_members':list(gang.get('members') or []),'_custom_gang_max_members':int(gang.get('max_members') or CUSTOM_GANG_MAX_MEMBERS),'_crew_id':f"cg:{gang['id']}"})
+
+
+def custom_gang_player_payload(player:dict|None)->dict|None:
+    if not player or not player.get('_custom_gang_id'):
+        return None
+    members=list(player.get('_custom_gang_members') or [])
+    return {
+        'id':int(player['_custom_gang_id']),
+        'name':str(player.get('_custom_gang_name') or 'Банда'),
+        'role':str(player.get('_custom_gang_role') or 'member'),
+        'hq_apt_key':str(player.get('_custom_gang_hq') or ''),
+        'hq_r':int(player.get('_custom_gang_hq_r') or 0),
+        'hq_c':int(player.get('_custom_gang_hq_c') or 0),
+        'flag':dict(player.get('_custom_gang_flag') or {}),
+        'members':members,
+        'member_count':len(members) or 1,
+        'max_members':int(player.get('_custom_gang_max_members') or CUSTOM_GANG_MAX_MEMBERS),
+    }
 
 
 def _world_bot_passable(x: float, y: float, radius: float = 0.30) -> bool:
@@ -13579,6 +13742,7 @@ class WorldSim:
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
         self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
+        self.custom_gang_player_invites = {}  # target_uid -> {from_uid, gang_id, expires_at}
         self.alive           = True
         # Активное эмерджентное событие (dict) или None.
         self.event           = None
@@ -13884,6 +14048,9 @@ class WorldSim:
         self.gang_player_invites.pop(str(uid), None)
         for target_uid, inv in list(self.gang_player_invites.items()):
             if str(inv.get('from_uid') or '') == str(uid): self.gang_player_invites.pop(target_uid, None)
+        self.custom_gang_player_invites.pop(str(uid), None)
+        for target_uid, inv in list(self.custom_gang_player_invites.items()):
+            if str(inv.get('from_uid') or '') == str(uid): self.custom_gang_player_invites.pop(target_uid, None)
         self.connections.pop(uid, None)
         # Сессионные указатели не должны копиться после переподключений.
         self._last_dist_at.pop(str(uid), None)
@@ -14815,10 +14982,18 @@ class WorldSim:
             requested_police, requested_mafia = False, True
         elif requested_mafia and was_police:
             requested_police, requested_mafia = True, False
+        # Собственная постоянная банда несовместима со службой и мафиозной
+        # семьёй. Сначала игрок должен покинуть/распустить её через штаб.
+        if p.get('_custom_gang_id'):
+            requested_police = False
+            requested_mafia = False
+            requested_family = ''
         p['_police'] = requested_police
         p['_mafia'] = requested_mafia and not p['_police']
         p['_mafia_family'] = requested_family if p['_mafia'] else ''
-        if not p['_mafia']:
+        if p.get('_custom_gang_id'):
+            p['_crew_id'] = f"cg:{p['_custom_gang_id']}"
+        elif not p['_mafia']:
             crew_id = str(p.pop('_crew_id', '') or '')
             if crew_id:
                 left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
@@ -20397,6 +20572,11 @@ class WorldSim:
         mx, my = me['x'], me['y']
         crew_id = str(me.get('_crew_id') or '')
         crew_members = [{'uid':str(u),'name':q.get('name','Игрок'),
+                         'look':dict(q.get('look') or {}),
+                         'level':max(1,int(q.get('_level') or 1)),
+                         'status':('Полицейский' if q.get('_police') else
+                                   (('Мафиози · ' + ('Моретти' if str(q.get('_mafia_family') or '') == 'moretti' else 'Беллини')) if q.get('_mafia') else
+                                    (('Банда · ' + str(q.get('_custom_gang_name') or '')) if q.get('_custom_gang_id') else 'Гражданский'))),
                          'r':round(float(q.get('y') or 0),2),
                          'c':round(float(q.get('x') or 0),2),
                          'interior':str(q.get('_business_interior') or ''),
@@ -20483,6 +20663,9 @@ class WorldSim:
                 'police': bool(p.get('_police')),
                 'mafia': bool(p.get('_mafia')),
                 'mafia_family': str(p.get('_mafia_family') or ''),
+                'custom_gang_id': int(p.get('_custom_gang_id') or 0),
+                'custom_gang_name': str(p.get('_custom_gang_name') or ''),
+                'custom_gang_role': str(p.get('_custom_gang_role') or ''),
                 'crew_mate': bool(crew_id and str(p.get('_crew_id') or '')==crew_id),
                 'police_cuffed': bool(p.get('_police_cuffed_by')),
                 'police_stunned_in': max(0.0, float(p.get('_police_stunned_until') or 0) - time.time()),
@@ -21005,6 +21188,8 @@ class WorldSim:
                     'diamonds': int(me.get('_diamonds') or 0),
                     'police_xp': int(me.get('_police_xp') or 0),
                     'mafia_xp': int(me.get('_mafia_xp') or 0),
+                    'police': bool(me.get('_police')),
+                    'mafia': bool(me.get('_mafia')),
                     'mafia_family': str(me.get('_mafia_family') or ''),
                     'mafia_last_family': str(me.get('_mafia_last_family') or ''),
                     'mafia_traitor_left': max(0, int(math.ceil(
@@ -21012,7 +21197,8 @@ class WorldSim:
                     'mafia_join_denied': str(me.pop('_mafia_join_denied', '') or ''),
                     'mafia_family_counts': dict(me.get('_mafia_family_counts') or {}),
                     'spray_cans': int(me.get('_spray_cans') or 0),
-                    'online_gang': {'crew_id':crew_id,'members':crew_members,'max_players':3} if crew_id else None,
+                    'custom_gang': custom_gang_player_payload(me),
+                    'online_gang': {'crew_id':crew_id,'members':crew_members,'max_players':CUSTOM_GANG_MAX_MEMBERS if str(crew_id).startswith('cg:') else 4} if crew_id else None,
                     'apartment_hosts': apartment_hosts,
                     'police_arrests_today': int(me.get('_police_daily_count') or 0),
                     'police_arrest_limit': me.get('_police_daily_limit'),
@@ -22234,6 +22420,9 @@ async def _world_run_loop(world: 'WorldSim') -> None:
             for target_uid, invite in list(world.gang_player_invites.items()):
                 if float(invite.get('expires_at') or 0) <= t0:
                     world.gang_player_invites.pop(target_uid, None)
+            for target_uid, invite in list(world.custom_gang_player_invites.items()):
+                if float(invite.get('expires_at') or 0) <= t0:
+                    world.custom_gang_player_invites.pop(target_uid, None)
             # Эмерджентные события + копы — двигаем конвой и копов,
             # спавним новых, AI стрельбы. Возвращают list пакетов на
             # broadcast (inkassator_spawned/inkass_shot/inkassator_escaped/
@@ -22586,10 +22775,146 @@ async def _coop_http_app():
     async def _cors(resp):
         resp.headers['Access-Control-Allow-Origin']  = '*'
         resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
         return resp
 
     async def h_options(req):
         return await _cors(web.Response(status=204))
+
+    async def h_profiles(req):
+        account = str(req.match_info.get('account', '')).strip()
+        if not account.isdigit():
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_account'}, status=400))
+        profiles = await list_account_profiles(int(account))
+        return await _cors(web.json_response({
+            'ok': True, 'account_id': account, 'max_characters': PROFILE_MAX_CHARACTERS,
+            'profiles': profiles,
+        }))
+
+    async def h_profile_create(req):
+        account = str(req.match_info.get('account', '')).strip()
+        if not account.isdigit():
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_account'}, status=400))
+        try:
+            body = await req.json()
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_json'}, status=400))
+        limits = {'gender': 1, 'skin': 5, 'body': 3, 'face': 9, 'hair': 9, 'hat': 9}
+        try:
+            look = {key: max(0, min(upper, int(body.get(key, 0)))) for key, upper in limits.items()}
+        except (TypeError, ValueError):
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_look'}, status=400))
+        name = ''.join(ch for ch in str(body.get('name') or 'Игрок').strip() if ch.isprintable())[:24] or 'Игрок'
+        try:
+            created = await create_account_profile(int(account), name, look)
+        except ValueError as exc:
+            if str(exc) == 'profile_limit':
+                return await _cors(web.json_response({
+                    'ok': False, 'error': 'profile_limit',
+                    'message': 'Можно создать не больше трёх персонажей.'
+                }, status=409))
+            raise
+        return await _cors(web.json_response({'ok': True, 'profile': {
+            **created, 'name': name, 'level': 1, 'cash': 0, 'role': 'Гражданский',
+            'has_look': True, 'look': look,
+        }}))
+
+    async def h_profile_delete(req):
+        account = str(req.match_info.get('account', '')).strip()
+        character = str(req.match_info.get('character', '')).strip()
+        if not account.isdigit() or not character.isdigit():
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_id'}, status=400))
+        world = _WORLD
+        if world and str(character) in world.connections:
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'character_online',
+                'message': 'Сначала выйди этим персонажем из города.'
+            }, status=409))
+        deleted = await delete_account_profile(int(account), int(character))
+        if not deleted:
+            return await _cors(web.json_response({'ok': False, 'error': 'not_found'}, status=404))
+        return await _cors(web.json_response({'ok': True, 'deleted_character_id': character}))
+
+    async def h_character_state(req):
+        uid = str(req.match_info.get('uid', '')).strip()
+        if not uid.isdigit():
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_uid'}, status=400))
+        char = await get_character(int(uid))
+        if not char:
+            return await _cors(web.json_response({'ok': True, 'exists': False, 'has_look': False}))
+        look = {}
+        try:
+            look = json.loads(char.get('look_json') or '{}') or {}
+        except Exception:
+            look = {}
+        return await _cors(web.json_response({
+            'ok': True, 'exists': True, 'has_look': bool(char.get('look_json')),
+            'name': str(char.get('name') or 'Игрок')[:24], 'look': look,
+            'diamonds': int(char.get('diamonds') or 0),
+        }))
+
+    async def h_character_look(req):
+        uid = str(req.match_info.get('uid', '')).strip()
+        if not uid.isdigit():
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_uid'}, status=400))
+        try:
+            body = await req.json()
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_json'}, status=400))
+        limits = {'gender': 1, 'skin': 5, 'body': 3, 'face': 9, 'hair': 9, 'hat': 9}
+        look = {}
+        try:
+            for key, upper in limits.items():
+                look[key] = max(0, min(upper, int(body.get(key, 0))))
+        except (TypeError, ValueError):
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_look'}, status=400))
+        name = ''.join(ch for ch in str(body.get('name') or 'Игрок').strip() if ch.isprintable())[:24] or 'Игрок'
+        user_id = int(uid)
+        char = await get_character(user_id)
+        if not char:
+            await create_character(user_id, '', name, 'fixer')
+            char = await get_character(user_id) or {}
+        old_look = {}
+        try:
+            old_look = json.loads(char.get('look_json') or '{}') or {}
+        except Exception:
+            old_look = {}
+        change_look = bool(body.get('change_look'))
+        if char.get('look_json') and not change_look:
+            same = all(int(old_look.get(k, 0) or 0) == v for k, v in look.items())
+            if not same:
+                return await _cors(web.json_response({
+                    'ok': False, 'error': 'character_exists',
+                    'message': 'Персонаж уже создан. Смена образа стоит 5 бриллиантов.'
+                }, status=409))
+        if change_look and char.get('look_json'):
+            diamonds = int(char.get('diamonds') or 0)
+            if diamonds < 5:
+                return await _cors(web.json_response({
+                    'ok': False, 'error': 'not_enough_diamonds',
+                    'message': 'Для смены образа нужно 5 бриллиантов.'
+                }, status=409))
+            await update_character(user_id, diamonds=diamonds - 5,
+                                   look_json=json.dumps(look, ensure_ascii=False))
+        else:
+            updates = {'look_json': json.dumps(look, ensure_ascii=False)}
+            if not char.get('look_json'):
+                updates['name'] = name
+            await update_character(user_id, **updates)
+        # Сохранение в БД уже завершено; сбой живого WorldSim не должен
+        # превращать успешное создание персонажа в HTTP 500.
+        try:
+            world = _world_get()
+            online = world.players.get(uid)
+            if online is not None:
+                online['look'] = dict(look, _saved=True)
+                if name and not char.get('look_json'):
+                    online['name'] = name
+        except Exception as exc:
+            logger.warning("character look live sync failed uid=%s: %r", uid, exc)
+        return await _cors(web.json_response({
+            'ok': True, 'has_look': True, 'name': name, 'look': look,
+        }))
 
     async def h_create(req):
         try:
@@ -24134,6 +24459,13 @@ async def _coop_http_app():
         status=200 if result.get('ok') else (409 if result.get('error') in {'cooldown','relation too low'} else 400)
         return await _cors(web.json_response(result,status=status))
 
+    async def h_npc_empire_hospitalize(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.hospitalize_boss(
+            DB_PATH,str(body.get('leader_id') or '')[:32],str(body.get('hospital_id') or 'hospital')[:24])
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
     async def h_npc_empire_assault_prepare(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
@@ -25016,6 +25348,7 @@ async def _coop_http_app():
                 look = json.loads(char['look_json'])
             except Exception:
                 look = {}
+        look['_saved'] = bool(char.get('look_json'))
         # Флаг банды (1..30 или 0/пусто) прокидываем через look — он
         # летит всем клиентам и рисуется над захваченным зданием.
         try:
@@ -25072,6 +25405,7 @@ async def _coop_http_app():
             # каждый раз.
             try:
                 p_ref['_cash']     = int(char.get('cash') or 0)
+                p_ref['_level']    = max(1, int(char.get('level') or 1))
                 p_ref['_diamonds'] = int(char.get('diamonds') or 0)
                 p_ref['_police_xp'] = int(char.get('police_xp') or 0)
                 p_ref['_mafia_xp'] = int(char.get('mafia_xp') or 0)
@@ -25615,24 +25949,68 @@ async def _coop_http_app():
                         if not inviter.get('_mafia') or not target or not target.get('_mafia'): reason='mafia_only'
                         elif str(inviter.get('_mafia_family') or '') != str(target.get('_mafia_family') or ''): reason='other_family'
                         elif target_uid==str(uid): reason='self'
-                        elif target.get('_crew_id'): reason='already_in_gang'
-                        elif len(members)>=3: reason='full'
+                        elif target.get('_crew_id') or target.get('_custom_gang_id'): reason='already_in_gang'
+                        elif len(members)>=4: reason='full'
                         elif ((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)>3.2**2: reason='too_far'
                         if reason: await ws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_reply','ok':False,'reason':reason}},ensure_ascii=False))
                         else:
-                            world.gang_player_invites[target_uid]={'from_uid':str(uid),'expires_at':time.time()+25}
+                            # Участники одной официальной семьи уже союзники:
+                            # подтверждение не нужно, сервер сразу собирает их
+                            # в игровую команду из четырёх слотов.
+                            inviter['_crew_id']=crew_id;target['_crew_id']=crew_id
+                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_reply','ok':True,'target_name':target.get('name','Игрок')}},ensure_ascii=False))
                             tws=world.connections.get(target_uid)
-                            if tws: await tws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_invite','from_uid':str(uid),'from_name':inviter.get('name','Игрок')}},ensure_ascii=False))
-                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_reply','ok':True,'pending':True,'target_name':target.get('name','Игрок')}},ensure_ascii=False))
+                            if tws: await tws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':True}},ensure_ascii=False))
                     elif t == 'gang_player_answer':
                         inv=world.gang_player_invites.pop(str(uid),None); inviter=world.players.get(str(inv.get('from_uid'))) if inv else None; accept=bool(d.get('accept'))
                         if inv and inviter and time.time()<=float(inv.get('expires_at',0)):
                             crew_id=str(inviter.get('_crew_id') or inv.get('from_uid')); members=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                             same_family = str((world.players.get(uid) or {}).get('_mafia_family') or '') == str(inviter.get('_mafia_family') or '')
-                            if accept and same_family and (world.players.get(uid) or {}).get('_mafia') and inviter.get('_mafia') and len(members)<3: inviter['_crew_id']=crew_id;world.players[uid]['_crew_id']=crew_id
+                            if accept and same_family and (world.players.get(uid) or {}).get('_mafia') and inviter.get('_mafia') and len(members)<4: inviter['_crew_id']=crew_id;world.players[uid]['_crew_id']=crew_id
                             for member_uid in (str(inv.get('from_uid')),str(uid)):
                                 mws=world.connections.get(member_uid)
                                 if mws: await mws.send_str(json.dumps({'t':'event','d':{'kind':'gang_player_changed','accepted':accept}},ensure_ascii=False))
+                    elif t == 'custom_gang_player_invite':
+                        target_uid=str(d.get('target_uid') or '');inviter=world.players.get(uid) or {};target=world.players.get(target_uid)
+                        gang=await get_custom_gang_for_user(int(uid)) if str(uid).isdigit() else None
+                        if gang: apply_custom_gang_to_player(inviter,gang)
+                        reason=None
+                        if not gang: reason='headquarters_required'
+                        elif gang.get('role')!='leader': reason='leader_only'
+                        elif not target or target_uid==str(uid): reason='unavailable'
+                        elif target.get('_police') or target.get('_mafia'): reason='faction_conflict'
+                        elif target.get('_custom_gang_id') or await get_custom_gang_for_user(int(target_uid)): reason='already_in_gang'
+                        elif int(gang.get('member_count') or 0)>=CUSTOM_GANG_MAX_MEMBERS: reason='full'
+                        elif ((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)>3.2**2: reason='too_far'
+                        if reason:
+                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_reply','ok':False,'reason':reason}},ensure_ascii=False))
+                        else:
+                            world.custom_gang_player_invites[target_uid]={'from_uid':str(uid),'gang_id':int(gang['id']),'expires_at':time.time()+30}
+                            tws=world.connections.get(target_uid)
+                            if tws: await tws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_invite','from_uid':str(uid),'from_name':inviter.get('name','Игрок'),'gang_name':gang.get('name','Банда')}},ensure_ascii=False))
+                            await ws.send_str(json.dumps({'t':'event','d':{'kind':'custom_gang_player_reply','ok':True,'pending':True,'target_name':target.get('name','Игрок')}},ensure_ascii=False))
+                    elif t == 'custom_gang_player_answer':
+                        inv=world.custom_gang_player_invites.pop(str(uid),None);accept=bool(d.get('accept'));result={'ok':False,'error':'expired'}
+                        inviter=world.players.get(str(inv.get('from_uid'))) if inv else None
+                        target=world.players.get(str(uid))
+                        if inv and inviter and target and time.time()<=float(inv.get('expires_at',0)):
+                            near=((float(inviter.get('x',0))-float(target.get('x',0)))**2+(float(inviter.get('y',0))-float(target.get('y',0)))**2)<=3.8**2
+                            if not accept: result={'ok':True,'declined':True}
+                            elif not near: result={'ok':False,'error':'too far'}
+                            elif target.get('_police') or target.get('_mafia'): result={'ok':False,'error':'mafia conflict'}
+                            else: result=await join_custom_gang_db(int(inv['gang_id']),int(uid),int(inv['from_uid']))
+                        accepted=bool(accept and result.get('ok') and not result.get('declined'))
+                        if accepted:
+                            refreshed=await get_custom_gang_for_user(int(uid))
+                            if refreshed:
+                                for member in refreshed.get('members') or []:
+                                    member_uid=str(member.get('telegram_id') or '')
+                                    if member_uid in world.players: apply_custom_gang_to_player(world.players[member_uid],refreshed)
+                        reason=str(result.get('error') or '').replace(' ','_')
+                        payload={'kind':'custom_gang_player_changed','ok':bool(result.get('ok')),'accepted':accepted,'reason':reason}
+                        for member_uid in {str(uid),str(inv.get('from_uid') if inv else '')}:
+                            mws=world.connections.get(member_uid)
+                            if mws: await mws.send_str(json.dumps({'t':'event','d':payload},ensure_ascii=False))
                     elif t in ('gang_player_leave','gang_player_kick'):
                         actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
                         if crew_id and target and str(target.get('_crew_id') or '')==crew_id:
@@ -28626,6 +29004,11 @@ async def _coop_http_app():
 
     aio_app = web.Application()
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
+    aio_app.router.add_get   ('/profiles/{account}',             h_profiles)
+    aio_app.router.add_post  ('/profiles/{account}',             h_profile_create)
+    aio_app.router.add_delete('/profiles/{account}/{character}', h_profile_delete)
+    aio_app.router.add_get ('/character/{uid}',      h_character_state)
+    aio_app.router.add_post('/character/{uid}/look', h_character_look)
     aio_app.router.add_post('/coop/create',       h_create)
     aio_app.router.add_post('/coop/{sid}/join',   h_join)
     aio_app.router.add_get ('/coop/{sid}',        h_get)
@@ -28666,6 +29049,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/custom-gang/{uid}/disband',h_custom_gang_disband)
     aio_app.router.add_get ('/npc-empires/{uid}/state', h_npc_empire_state)
     aio_app.router.add_post('/npc-empires/{uid}/diplomacy', h_npc_empire_diplomacy)
+    aio_app.router.add_post('/npc-empires/{uid}/hospitalize', h_npc_empire_hospitalize)
     aio_app.router.add_post('/npc-empires/{uid}/assault/prepare', h_npc_empire_assault_prepare)
     aio_app.router.add_post('/npc-empires/{uid}/assault/hit', h_npc_empire_assault_hit)
     aio_app.router.add_post('/npc-empires/{uid}/assault/resolve', h_npc_empire_assault_resolve)

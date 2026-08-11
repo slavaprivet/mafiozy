@@ -68,6 +68,17 @@ async def run() -> None:
         later_activity = next(x for x in later_state["empires"] if x["leader_id"] == "leila")["activity"]
         assert later_activity["created_at"] != leila_activity["created_at"]
 
+        hospitalized = await ne.hospitalize_boss(path, "leila", "hospital_east", now=state_now)
+        assert hospitalized["ok"] and hospitalized["hospital_until"] == state_now + 60
+        duplicate_hospital = await ne.hospitalize_boss(path, "leila", "hospital", now=state_now + 10)
+        assert duplicate_hospital["hospital_until"] == state_now + 60
+        treatment_state = await ne.state_for(path, 101, now=state_now + 59)
+        treatment = next(x for x in treatment_state["empires"] if x["leader_id"] == "leila")
+        assert treatment["hospital_until"] == state_now + 60 and treatment["hospital_id"] == "hospital_east"
+        released_state = await ne.state_for(path, 101, now=state_now + 61)
+        released = next(x for x in released_state["empires"] if x["leader_id"] == "leila")
+        assert released["hospital_until"] == 0 and released["hospital_id"] == ""
+
         # Peace-time orders are city-wide too: over a short deterministic
         # window families visit the east city and the southern coast/port,
         # instead of orbiting only eight tiles around their headquarters.
@@ -239,7 +250,7 @@ async def run() -> None:
             path, "SELECT COUNT(*) FROM npc_empire_events WHERE kind='comeback' AND leader_id='leila'"
         ) == 1
         assert len(comeback["leaderboard"]) == 19 and len(comeback["districts"]) == len(ne.DISTRICTS)
-        print("npc_empire: endless sandbox, neutral reset, comeback, districts and rewards OK")
+        print("npc_empire: hospital, endless sandbox, neutral reset, comeback, districts and rewards OK")
     finally:
         try:
             os.remove(path)
