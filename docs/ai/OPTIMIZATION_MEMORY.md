@@ -630,3 +630,29 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   work and 227 programs. It also preserved the incoming full-size parked-car
   package (`89` collision visuals, `10` active static obstacle draw calls).
   Do not use this noisy single-scene sample as an FPS comparison.
+
+## Dirty shell matrix buffer (2026-08-11, v346)
+
+- Shell physics remains authoritative in `world.html`: position, height and
+  rotation advance on every simulation tick. The Three.js bridge samples that
+  state every 45-70 ms, but the renderer previously rewrote every active shell
+  matrix and uploaded the complete instance buffer on every rendered frame,
+  including repeated frames of one unchanged bridge snapshot.
+- Cache a slot signature containing source identity, position, height and exact
+  rotation. Every changed physics sample still updates on its first visible
+  frame at the existing cadence; only byte-for-byte equivalent repeated poses
+  skip `setMatrixAt` and `instanceMatrix.needsUpdate`. Reused slots are safe
+  because all render-affecting source fields participate in the signature.
+- A temporary local-only fixture confirmed the hot path with 12 active shells;
+  it was removed before the package. The baseline sample reported 21 FPS,
+  `28.8 ms` frame work, `26.5 ms` render work and 227 programs at native
+  quality with real-time shadows. Do not claim an FPS gain from that single
+  sample; use `shellMatrixUpload` and `bridge-snapshot-signature-v346` to verify
+  the structural result.
+- Final one-tab effect QA kept all 12 shell instances visible and reported
+  `shellMatrixUpload=cached`. The representative result sample was 20 FPS,
+  `30.9 ms` frame work, `27.3 ms` render work, a `42.3 ms` render maximum and
+  227 programs. Native pixel ratio, locked quality, real-time shadows and the
+  gameplay bridge remained intact; chat local echo advanced, server-backed
+  status stayed `Гражданский`, and no Three.js error was reported. The fixture,
+  browser tab and local server were all removed or closed after verification.
