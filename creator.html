@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v357: every successful save path enters world.html directly. -->
+<!DOCTYPE html><!-- v359: successful creation returns to character selection before the party menu and city. -->
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -1313,32 +1313,31 @@ function setSaveState(stateName, message) {
   }
   if (saveStatus) saveStatus.textContent = message || '';
 }
-function buildDirectWorldTarget(savedCharacterId, playerName) {
+function buildCharacterSelectionTarget() {
   let target;
   try { target = new URL(creatorReturn || 'world.html',location.href); }
   catch(e) { target = new URL('world.html',location.href); }
-  const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
-  target.searchParams.set('menu','enter');
-  target.searchParams.set('account_uid',creatorAccount||characterId);
-  target.searchParams.set('uid',characterId||creatorAccount);
-  target.searchParams.set('character',characterId||creatorAccount);
-  target.searchParams.set('has_look','1');
-  target.searchParams.set('name',playerName);
-  target.searchParams.set('lvl','1');
-  target.searchParams.set('cash','0');
-  Object.entries(state).forEach(([key,value]) => target.searchParams.set(key,String(value)));
+  const accountId=String(creatorAccount||creatorUid||'');
+  target.searchParams.set('menu','characters');
+  target.searchParams.set('uid',accountId);
+  target.searchParams.set('render','3d');
+  if(creatorApi)target.searchParams.set('api',creatorApi);
+  // No character is preselected: the next required action is an explicit
+  // choice in the dossier screen, followed by the friends/party screen.
+  target.searchParams.delete('account_uid');
+  for(const key of ['character','has_look','name','lvl','cash','gender','skin','body','face','hair','hat'])target.searchParams.delete(key);
   return target;
 }
-function enterCreatedWorld(savedCharacterId, playerName, delay=120) {
+function returnToCharacterSelection(savedCharacterId, delay=120) {
   const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
   try { if(characterId)localStorage.setItem(`mafiozi_character_ready_v1_${characterId}`,'1'); } catch(e) {}
-  const target=buildDirectWorldTarget(characterId,playerName);
-  document.documentElement.dataset.creatorDirectTarget=target.href;
+  const target=buildCharacterSelectionTarget();
+  document.documentElement.dataset.creatorSelectionTarget=target.href;
   setTimeout(()=>location.replace(target.href),delay);
   return target;
 }
-if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&urlP.has('creatordirectqa'))setTimeout(()=>{
-  enterCreatedWorld(urlP.get('creatordirectqa')||'123',initialName||'QA',0);
+if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&urlP.has('creatorselectionqa'))setTimeout(()=>{
+  returnToCharacterSelection(urlP.get('creatorselectionqa')||'123',0);
 },120);
 async function saveChar() {
   if (saveInFlight) return;
@@ -1383,8 +1382,8 @@ async function saveChar() {
       const savedCharacterId = String(result.profile?.character_id || creatorUid || '');
       try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
       if (saveBtn) saveBtn.textContent = 'СОХРАНЕНО ✓';
-      if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Входим в мир…' : 'Персонаж создан. Входим в мир…';
-      enterCreatedWorld(savedCharacterId,playerName);
+      if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Возвращаемся к выбору…' : 'Персонаж создан. Выбери его для продолжения…';
+      returnToCharacterSelection(savedCharacterId);
       return;
     } catch(e) {
       saveInFlight = false;
@@ -1394,12 +1393,10 @@ async function saveChar() {
     }
   }
   if (tg && typeof tg.sendData === 'function') {
-    // Telegram may close the mini-app after sendData; ordinary browsers do
-    // not. Queue the world route first so confirmation can never hang here.
-    enterCreatedWorld(creatorUid||creatorAccount,playerName,180);
+    returnToCharacterSelection(creatorUid||creatorAccount,180);
     try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
     if (saveBtn) saveBtn.textContent = 'ОТПРАВЛЕНО ✓';
-    if (saveStatus) saveStatus.textContent = 'Образ отправлен. Входим в мир…';
+    if (saveStatus) saveStatus.textContent = 'Образ отправлен. Возвращаемся к выбору…';
   } else {
     saveInFlight = false;
     setSaveState('error','Нет соединения с игровым сервером. Открой редактор из меню персонажей.');
