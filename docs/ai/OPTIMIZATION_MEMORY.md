@@ -548,3 +548,17 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   pixel ratio and real-time shadows remained on, and there were no JavaScript
   or Three.js console errors. The representative prison sample was `17 FPS`,
   `31.6 ms` frame work and `22.0 ms` render work, with maxima `91.9/65.4 ms`.
+
+# Proximity-gated NPC identity labels (2026-08-11, v341)
+
+- Reuse the existing throttled `nearbyNpcState` and brass foot ring as the only
+  focus source; do not add a second distance scan.
+- Civilian, police, gang and guard identity cards stay hidden until their exact
+  pool index is within 3.05 tiles and owns the visible foot ring. This keeps at
+  most one ordinary identity card visible at a time.
+- Dialogue, bosses and unique interaction NPCs remain exempt so required
+  conversations and authored characters do not lose their labels. Standalone
+  guard and owner role badges still obey proximity focus.
+- Healthy, unfocused NPC HP bars stay hidden; damaged actors keep their HP bar
+  visible. Telemetry records visible, hidden and focused identities under the
+  `nearby-ring-focus-only-priority-dialogue-v341` profile.
