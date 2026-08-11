@@ -8174,7 +8174,7 @@ const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
 let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
 function _isRespawnableResident(npc) {
   return !!npc&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
-    !npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
+    !npc._empireCrew&&!npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
 }
 function _residentCanVisitBuilding(npc,now=performance.now()) {
   return _isRespawnableResident(npc)&&!npc.dead&&!npc._beach&&!npc.snitching&&
@@ -8388,9 +8388,9 @@ const MAFIA_BOSS_GANGS = Object.freeze({
 // Внешность городского босса и его оружие не зависят от доступности API:
 // игрок всегда узнаёт лидера по силуэту, цвету и личному стволу.
 const MAFIA_BOSS_VISUALS = Object.freeze({
-  leila:{weaponId:'leila_mercy',weaponName:'Последний аргумент',weaponBase:'pistol_heavy',style:0},
-  rustam:{weaponId:'rustam_wrench',weaponName:'Сварщик',weaponBase:'shotgun',style:1},
-  marco:{weaponId:'marco_road',weaponName:'Дорожный Томми',weaponBase:'tommy_gun',style:2},
+  leila:{weaponId:'leila_mercy',weaponName:'Шприц милосердия',weaponBase:'pistol_heavy',style:0},
+  rustam:{weaponId:'rustam_wrench',weaponName:'Гвоздодёр',weaponBase:'shotgun',style:1},
+  marco:{weaponId:'marco_road',weaponName:'Розовый Томпсон',weaponBase:'tommy_gun',style:2},
   vera:{weaponId:'vera_verdict',weaponName:'Вердикт',weaponBase:'pistol_gold',style:3},
   arsen:{weaponId:'arsen_forge',weaponName:'Кузнечный гром',weaponBase:'rifle',style:4},
   damir:{weaponId:'damir_oath',weaponName:'Клятва',weaponBase:'smg',style:5},
@@ -8400,13 +8400,37 @@ const MAFIA_BOSS_VISUALS = Object.freeze({
   alisa:{weaponId:'alisa_signal',weaponName:'Сигнал',weaponBase:'smg',style:9},
   boris:{weaponId:'boris_tow',weaponName:'Буксир',weaponBase:'shotgun',style:10},
   inga:{weaponId:'inga_deed',weaponName:'Документ',weaponBase:'pistol_heavy',style:11},
-  timur:{weaponId:'timur_express',weaponName:'Экспресс',weaponBase:'smg',style:12},
-  emil:{weaponId:'emil_champion',weaponName:'Чемпион',weaponBase:'pistol_heavy',style:13},
+  timur:{weaponId:'timur_express',weaponName:'Синий арбалет',weaponBase:'smg',style:12},
+  emil:{weaponId:'emil_champion',weaponName:'Кулак чемпиона',weaponBase:'pistol_heavy',style:13},
   roman:{weaponId:'roman_plate',weaponName:'Пробойник',weaponBase:'rifle',style:14},
   sofia:{weaponId:'sofia_headline',weaponName:'Заголовок',weaponBase:'pistol',style:15},
   viktor:{weaponId:'viktor_night',weaponName:'Тень',weaponBase:'sniper',style:16},
   yana:{weaponId:'yana_frequency',weaponName:'Частота',weaponBase:'smg',style:17},
   musa:{weaponId:'musa_caravan',weaponName:'Караван',weaponBase:'rifle',style:18}
+});
+// Offline mirror of npc_empire.WEAPON_PROFILES. Live snapshots replace these
+// values with the server-authored profile; the mirror keeps local preview and a
+// temporarily disconnected city visually/mechanically complete.
+const NPC_EMPIRE_WEAPON_PROFILES = Object.freeze({
+  leila_mercy:{kind:'dart',effect:'tranquilizer',damage:7,cooldown:980,range:10.5,hit:.82,speed:18},
+  rustam_wrench:{kind:'melee',effect:'nailed_bat',damage:18,cooldown:1120,range:1.45,hit:.92,speed:0},
+  marco_road:{kind:'thompson',effect:'explosive',damage:7,cooldown:720,range:9.2,hit:.70,speed:23},
+  vera_verdict:{kind:'revolver',effect:'ricochet',damage:12,cooldown:1040,range:11,hit:.84,speed:29},
+  arsen_forge:{kind:'rifle',effect:'incendiary',damage:11,cooldown:930,range:12,hit:.78,speed:28},
+  damir_oath:{kind:'smg',effect:'burst',damage:6,cooldown:610,range:8.6,hit:.72,speed:25},
+  marat_wall:{kind:'shotgun',effect:'breach',damage:16,cooldown:1480,range:6.2,hit:.74,speed:22},
+  zara_dividend:{kind:'hand_cannon',effect:'gold_burst',damage:13,cooldown:990,range:10.2,hit:.81,speed:27},
+  niko_whisper:{kind:'sniper',effect:'poison',damage:20,cooldown:2050,range:15,hit:.87,speed:34},
+  alisa_signal:{kind:'smg',effect:'shock',damage:6,cooldown:680,range:9,hit:.74,speed:26},
+  boris_tow:{kind:'harpoon',effect:'pull',damage:15,cooldown:1680,range:10,hit:.78,speed:17},
+  inga_deed:{kind:'flechette',effect:'bleed',damage:10,cooldown:860,range:9.8,hit:.80,speed:28},
+  timur_express:{kind:'crossbow',effect:'arrow',damage:17,cooldown:1420,range:13,hit:.86,speed:16},
+  emil_champion:{kind:'melee',effect:'knockout',damage:21,cooldown:960,range:1.25,hit:.94,speed:0},
+  roman_plate:{kind:'rifle',effect:'armor_piercing',damage:14,cooldown:1100,range:12.5,hit:.82,speed:32},
+  sofia_headline:{kind:'pistol',effect:'flash',damage:8,cooldown:820,range:9,hit:.79,speed:25},
+  viktor_night:{kind:'sniper',effect:'shadow',damage:22,cooldown:2180,range:15.5,hit:.88,speed:36},
+  yana_frequency:{kind:'smg',effect:'sonic',damage:7,cooldown:650,range:9.2,hit:.73,speed:25},
+  musa_caravan:{kind:'rifle',effect:'scatter',damage:12,cooldown:1050,range:11.5,hit:.77,speed:27}
 });
 for(const def of UNIQUE_NPC_BLUEPRINTS)def.name=MAFIA_BOSS_NAMES[def.id]||def.name;
 
@@ -8417,8 +8441,37 @@ const SPECIALIST_NPCS = UNIQUE_NPC_BLUEPRINTS.map((def,index)=>{const visual=MAF
   _specialistTitle:def.title,_salary:def.salary,_talkIntro:def.talk,_keyNpc:true,_invulnerable:true,_allowBeach:false,
   _empireBoss:true,_empireGang:MAFIA_BOSS_GANGS[def.id]||'Криминальная семья',
   _empireWeaponId:visual.weaponId||'',_empireWeaponName:visual.weaponName||'Уникальное оружие',
-  _empireWeaponBase:visual.weaponBase||'pistol_heavy',_empireStyle:Number.isFinite(visual.style)?visual.style:index,
+  _empireWeaponBase:visual.weaponBase||'pistol_heavy',_empireWeaponProfile:NPC_EMPIRE_WEAPON_PROFILES[visual.weaponId]||null,
+  _empireStyle:Number.isFinite(visual.style)?visual.style:index,
 });});
+const EMPIRE_CREW_NPCS=[];
+let _nextEmpireCrewSyncAt=0,_empireCrewSerial=0;
+function _syncEmpireBossCrews(now=performance.now()){
+  if(now<_nextEmpireCrewSyncAt)return;_nextEmpireCrewSyncAt=now+1800;
+  const leaders=SPECIALIST_NPCS.filter(n=>!n._hiddenByEmpire&&n._empireMembers>1)
+    .sort((a,b)=>Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c))
+    .filter(n=>Math.hypot(n.r-player.r,n.c-player.c)<38).slice(0,4);
+  const desired=new Map(leaders.map(n=>[String(n._specialistId),Math.min(3,Math.max(1,Math.floor((n._empireMembers-1)/4)+1))]));
+  for(let i=EMPIRE_CREW_NPCS.length-1;i>=0;i--){
+    const crew=EMPIRE_CREW_NPCS[i],keep=desired.get(String(crew._empireLeaderId))||0;
+    const ordinal=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===crew._empireLeaderId).indexOf(crew);
+    if(ordinal>=keep){const at=NPCS.indexOf(crew);if(at>=0)NPCS.splice(at,1);EMPIRE_CREW_NPCS.splice(i,1);}
+  }
+  for(const leader of leaders){
+    const id=String(leader._specialistId),have=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id).length,want=desired.get(id)||0;
+    for(let slot=have;slot<want&&EMPIRE_CREW_NPCS.length<12;slot++){
+      const crew=spawnNpc(7000+(++_empireCrewSerial),{cityOnly:true});if(!crew)continue;
+      const point=_nearestEmpireWalkPoint(leader.r+(slot+1)*.45,leader.c+(slot%2?-.65:.65))||{r:leader.r,c:leader.c};
+      Object.assign(crew,{r:point.r,c:point.c,tr:point.r,tc:point.c,id:`empire_crew_${id}_${_empireCrewSerial}`,
+        name:`Боец · ${leader._empireGang}`,role:'gang_member',gang:true,_empireCrew:true,_empireLeaderId:id,
+        _empireCrewSlot:slot,_fightWeapon:leader._empireWeaponBase||'pistol',
+        _empireWeaponId:leader._empireWeaponId,_empireWeaponName:leader._empireWeaponName,
+        _empireWeaponProfile:leader._empireWeaponProfile,speed:1.05+(slot%2)*.08});
+      EMPIRE_CREW_NPCS.push(crew);NPCS.push(crew);
+    }
+  }
+  document.documentElement.dataset.empireVisibleCrew=String(EMPIRE_CREW_NPCS.length);
+}
 const ALL_UNIQUE_NPCS = Object.freeze([SAID_NPC,...SPECIALIST_NPCS]);
 const UNIQUE_NPC_BY_ID = new Map(ALL_UNIQUE_NPCS.map(n=>[String(n.id),n]));
 
@@ -8429,6 +8482,43 @@ function _uniqueNpcCityPassable(r,c) {
     (MAP[ri]?.[ci]===8||MAP[ri]?.[ci]===9);
 }
 const _saidCityPassable=_uniqueNpcCityPassable;
+
+// Empire bosses use the complete street network while carrying out a server
+// order. Ordinary unique NPCs remain on pavements as before.
+function _empireBossPassable(r,c) {
+  const ri=Math.floor(r),ci=Math.floor(c),tile=MAP[ri]?.[ci];
+  return ri>0&&ri<Math.min(BEACH_R0,MAP_ROWS-1)&&ci>0&&ci<MAP_COLS-1&&
+    !_inPrisonIslandRestrictedZone(r,c,.35)&&!inArena(ri,ci)&&!inLair(ri,ci)&&
+    (tile===0||tile===8||tile===9||tile===18||tile===19);
+}
+function _nearestEmpireWalkPoint(r,c) {
+  if(_npcBodyPassable(r,c,_empireBossPassable))return {r,c};
+  let best=null,bestD=Infinity;
+  for(let radius=1;radius<=12;radius++)for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
+    if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius)continue;
+    const rr=Math.floor(r+dr)+.5,cc=Math.floor(c+dc)+.5,d=Math.hypot(rr-r,cc-c);
+    if(d<bestD&&_npcBodyPassable(rr,cc,_empireBossPassable)){best={r:rr,c:cc};bestD=d;}
+  }
+  return best;
+}
+function _empireActivityTarget(empire) {
+  const activity=empire?.activity||{},id=String(activity.target_id||'');
+  const business=typeof BUSINESS_POIS!=='undefined'&&BUSINESS_POIS.find?.(b=>b.id===id);
+  if(business){
+    const anchor=typeof _businessInteractionAnchor==='function'?_businessInteractionAnchor(business):business;
+    return _nearestEmpireWalkPoint(anchor.r,anchor.c);
+  }
+  const coords=id.match(/^(\d+),(\d+)$/);
+  if(coords)return _nearestEmpireWalkPoint(+coords[1]*10+6,+coords[2]*10+6);
+  const rival=_npcEmpireById?.get?.(id);
+  if(rival)return _nearestEmpireWalkPoint(+rival.hq_r||0,+rival.hq_c||0);
+  return _nearestEmpireWalkPoint(+empire?.hq_r||0,+empire?.hq_c||0);
+}
+function _empireActivityLabel(activity) {
+  return ({recruit:'ВЕРБУЕТ БОЙЦОВ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
+    expand:'СТРОИТ ОПОРНЫЙ ШТАБ',hq_expand:'ИЩЕТ МЕСТО ДЛЯ ШТАБА',patrol:'ПРОВЕРЯЕТ ВЛАДЕНИЯ',
+    war_won:'ЗАКРЕПЛЯЕТ ТЕРРИТОРИЮ',war_lost:'ВОЗВРАЩАЕТСЯ В ШТАБ',comeback:'ВОССТАНАВЛИВАЕТ ШТАБ'})[activity?.kind]||'ДЕЛА БАНДЫ';
+}
 
 function _uniqueNpcSafeCityPoint(preferredR=86.5,preferredC=82.5,reserved=[]) {
   const free=(r,c)=>_npcBodyPassable(r,c,_uniqueNpcCityPassable)&&reserved.every(p=>Math.hypot(r-p[0],c-p[1])>=2.2);
@@ -8982,7 +9072,7 @@ function maintainNpcPopulation(now) {
   // This prevents the old instant replacement from appearing on a random street.
   // Story specialists are additive to the ambient population. Counting them
   // against this budget would quietly remove up to twenty ordinary citizens.
-  for (const n of NPCS) if (!(n._uniqueNpc||n._said) && (!n.dead||_isRespawnableResident(n))) alive++;
+  for (const n of NPCS) if (!(n._uniqueNpc||n._said||n._empireCrew) && (!n.dead||_isRespawnableResident(n))) alive++;
   // После смены лимита или долгой сессии мягко убираем только дальних
   // обычных прохожих. Важные NPC, цели, клиенты и участники боя остаются.
   const target=_targetNpcCount();
@@ -13909,6 +13999,7 @@ function triggerNpcPanic(srcR, srcC, radius, eventKind='bullet') {
 
 function updateNpcs(dt) {
   const now = performance.now();
+  _syncEmpireBossCrews(now);
   _tickPoliceMissions(now);
   _updateResidentsIndoors(now);
   maintainNpcPopulation(now);
@@ -13948,7 +14039,8 @@ function updateNpcs(dt) {
       n.dead=false;n.hp=n.max_hp=999999;n._burnUntil=0;n._medicalDowned=false;
       n._knockedUntil=0;n._forcedCrawl=false;n.snitching=false;n.panicUntil=0;
       n._hostile=false;n._fighting=false;n._fightingMelee=false;
-      if(!_uniqueNpcCityPassable(n.r,n.c)){
+      const uniquePass=n._empireBoss&&n._empireAction?_empireBossPassable:_uniqueNpcCityPassable;
+      if(!uniquePass(n.r,n.c)){
         const safe=_uniqueNpcSafeCityPoint(n.r,n.c);
         if(safe){_clearNpcRoute(n);n.r=n.tr=safe[0];n.c=n.tc=safe[1];pickNpcWaypoint(n);}
       }
@@ -13995,6 +14087,50 @@ function updateNpcs(dt) {
       _resumeNpcAfterPlayerConversation(n,!playerConversationInterrupted);
     }
     if(n._npcHelpingTarget&&(n.snitching||n.panicUntil>now||n._hostile||n._fighting||n._fightingMelee))_npcCancelHelping(n);
+
+    if(n._empireCrew&&!n._hostile&&!n._fighting&&!n._fightingMelee&&!(n.panicUntil>now)){
+      const leader=SPECIALIST_NPCS.find(b=>String(b._specialistId)===String(n._empireLeaderId));
+      if(!leader||leader._hiddenByEmpire){n.walking=false;continue;}
+      const slot=+n._empireCrewSlot||0,angle=(leader.ang||0)+Math.PI+(slot-1)*.7;
+      const target={r:leader.r+Math.sin(angle)*(1.25+slot*.18),c:leader.c+Math.cos(angle)*(1.25+slot*.18)};
+      const distance=Math.hypot(target.r-n.r,target.c-n.c);
+      if(distance>1.35&&now>=(n._empireRouteRetryAt||0)&&
+          (n._routeKind!=='empire_escort'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>2)){
+        _clearNpcRoute(n);if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,.75,6000,'empire_escort'))n._empireRouteRetryAt=now+1200;
+      }
+      const moved=_npcAdvanceRoute(n,dt,Math.max(1.12,(leader.speed||.8)*1.65),_empireBossPassable);
+      if(moved==='arrived'||distance<.8){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=leader.ang;}
+      else if(moved==='blocked'||moved===false){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n.walking=false;}
+      continue;
+    }
+
+    if(n._empireBoss&&n._empireAction){
+      const target=n._empireTarget||(_empireActivityTarget(_npcEmpireById.get(String(n._specialistId||''))||{
+        hq_r:n._empireHqR,hq_c:n._empireHqC,activity:n._empireAction}));
+      n._empireTarget=target;
+      if(target&&!n._empireActionArrived){
+        const routeWrong=n._routeKind!=='empire_action'||!n._route?.length||
+          Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.5;
+        if(routeWrong&&now>=(n._empireRouteRetryAt||0)){
+          _clearNpcRoute(n);
+          if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,.8,42000,'empire_action'))n._empireRouteRetryAt=now+4000;
+        }
+        const moved=_npcAdvanceRoute(n,dt,Math.max(1.18,(n.speed||.8)*1.55),_empireBossPassable);
+        if(moved==='arrived'||Math.hypot(n.r-target.r,n.c-target.c)<1.05){
+          _clearNpcRoute(n);n._empireActionArrived=true;n.walking=false;n.walkPhase=0;
+          n.cryText=_empireActivityLabel(n._empireAction);n.cryUntil=now+4200;
+        }else if(moved==='blocked'||moved===false){
+          _clearNpcRoute(n);n._empireRouteRetryAt=now+1200;n.walking=false;
+        }
+      }else{
+        n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
+        if(now>=(n._empireNextWorkTalkAt||0)){
+          n._empireNextWorkTalkAt=now+9000+Math.random()*7000;
+          n.cryText=_empireActivityLabel(n._empireAction);n.cryUntil=now+2400;
+        }
+      }
+      continue;
+    }
 
     // Сдающийся локальный бандит на несколько секунд прекращает бой и
     // показывает игроку пустые руки. Серверные награды этим не выдаются.
@@ -16044,14 +16180,19 @@ let _npcEmpireAssaultToken = '';
 const _npcEmpireById = new Map();
 function _installNpcEmpireFallbacks(){
   for(const npc of SPECIALIST_NPCS){
-    const id=String(npc._specialistId||'');if(!id||_npcEmpireById.has(id))continue;
-    _npcEmpireById.set(id,{leader_id:id,leader_name:npc.name,title:npc._specialistTitle,
+    const id=String(npc._specialistId||'');if(!id)continue;
+    if(!_npcEmpireById.has(id))_npcEmpireById.set(id,{leader_id:id,leader_name:npc.name,title:npc._specialistTitle,
       gang_name:npc._empireGang||'Криминальная семья',color:npc.look?.suit||'#6b2730',
       accent:npc.look?.accent||'#e4bd63',weapon_id:npc._empireWeaponId,
       weapon_name:npc._empireWeaponName,weapon_base:npc._empireWeaponBase,
-      treasury:0,members:0,strength:0,status:'offline',relation:0,relation_band:'neutral',
+      weapon_profile:npc._empireWeaponProfile||NPC_EMPIRE_WEAPON_PROFILES[npc._empireWeaponId]||null,
+      treasury:0,members:8,strength:100,status:'offline',relation:0,relation_band:'neutral',
       pact:'none',holdings:[],wins:0,losses:0,knockouts:0,comebacks:0,
-      dominance_score:0,district_count:0,peak_power:0,rank:19,hq_key:''});
+      dominance_score:0,district_count:0,peak_power:0,rank:19,hq_key:'',hq_r:npc.r,hq_c:npc.c,
+      activity:{kind:'patrol',target_id:'',phase:'travel',created_at:0,summary:'Проверяет бойцов и владения'}});
+    const empire=_npcEmpireById.get(id);npc._empireMembers=Math.max(1,+empire.members||1);
+    npc._empireHqR=+empire.hq_r||npc.r;npc._empireHqC=+empire.hq_c||npc.c;
+    if(!npc._empireAction){npc._empireAction=empire.activity;npc._empireActionKey=`${empire.activity?.kind||'patrol'}:${empire.activity?.target_id||''}:offline`;npc._empireTarget={r:npc.r,c:npc.c};}
   }
 }
 _installNpcEmpireFallbacks();
@@ -16994,7 +17135,12 @@ async function loadNpcEmpireState(showError=false){
       const empire=_npcEmpireById.get(String(npc._specialistId||''));npc._hiddenByEmpire=empire?.status==='ruined';
       if(empire){npc._empireGang=empire.gang_name||npc._empireGang;npc._empireWeaponId=empire.weapon_id||npc._empireWeaponId;
         npc._empireWeaponName=empire.weapon_name||npc._empireWeaponName;npc._empireWeaponBase=empire.weapon_base||npc._empireWeaponBase;
-        npc._empireColor=empire.color||npc.look?.suit;npc._empireAccent=empire.accent||npc.look?.accent;}
+        npc._empireWeaponProfile=empire.weapon_profile||NPC_EMPIRE_WEAPON_PROFILES[npc._empireWeaponId]||npc._empireWeaponProfile;
+        npc._empireColor=empire.color||npc.look?.suit;npc._empireAccent=empire.accent||npc.look?.accent;
+        npc._empireMembers=Math.max(1,+empire.members||1);npc._empireHqR=+empire.hq_r||npc.r;npc._empireHqC=+empire.hq_c||npc.c;
+        const action=empire.activity||null,actionKey=action?`${action.kind}:${action.target_id||empire.hq_key||''}:${action.created_at||0}`:'';
+        if(actionKey!==npc._empireActionKey){npc._empireAction=action;npc._empireActionKey=actionKey;npc._empireTarget=_empireActivityTarget(empire);npc._empireActionArrived=false;npc._empireRouteRetryAt=0;_clearNpcRoute(npc);}
+      }
       const at=NPCS.indexOf(npc);if(npc._hiddenByEmpire&&at>=0)NPCS.splice(at,1);else if(!npc._hiddenByEmpire&&at<0)NPCS.push(npc);
     }
     if(document.getElementById('npcEmpireOverlay')?.classList.contains('show')){
@@ -17095,7 +17241,10 @@ function _spawnNpcEmpireAssaultNpcs(bi){
       hp:+state.hp||1,maxHp:+state.max_hp||+state.hp||1,dead:(+state.hp||0)<=0,
       look:{gender:i%5===0?1:0,skin:1+i%4,body:i%3===0?2:0,face:i%4,hair:i%6,hat:i%3===0?5:2,suit:empire.color||'#293449',accent:empire.accent||'#d6a64f'},
       idleUntil:now+250+i*90,speed:1.18+(i%3)*.1,_hostile:true,_shotAt:0,_nextShotAt:now+600+i*115+Math.random()*500,
-      weapon:String(state.weapon||empire.weapon_base||'pistol_heavy')
+      weapon:String(state.weapon||empire.weapon_base||'pistol_heavy'),
+      uniqueWeaponId:String(state.weapon_id||empire.weapon_id||''),
+      uniqueWeaponName:String(state.weapon_name||empire.weapon_name||'Уникальное оружие'),
+      uniqueWeaponProfile:state.weapon_profile||empire.weapon_profile||NPC_EMPIRE_WEAPON_PROFILES[state.weapon_id||empire.weapon_id]||null
     });
   }
   const bossState=assault.boss||{},bossPost=posts[Math.min(posts.length-1,guards.length+4)]||{r:2.8,c:bi.W/2};
@@ -17107,7 +17256,8 @@ function _spawnNpcEmpireAssaultNpcs(bi){
     look:specialist?.look||{gender:0,skin:2,body:2,face:1,hair:1,hat:2,suit:empire.color||'#5b2530',accent:empire.accent||'#e6c45c'},
     idleUntil:now+900,speed:1.24,_hostile:true,_shotAt:0,_nextShotAt:now+1200,
     weapon:String(bossState.weapon||empire.weapon_base||'pistol_heavy'),uniqueWeaponId:String(bossState.weapon_id||empire.weapon_id||''),
-    uniqueWeaponName:String(bossState.weapon_name||empire.weapon_name||'Уникальное оружие')
+    uniqueWeaponName:String(bossState.weapon_name||empire.weapon_name||'Уникальное оружие'),
+    uniqueWeaponProfile:bossState.weapon_profile||empire.weapon_profile||NPC_EMPIRE_WEAPON_PROFILES[bossState.weapon_id||empire.weapon_id]||null
   };
   bi.npcs=[...guards,boss];bi.robbery=true;bi.robberyStarted=true;return true;
 }
@@ -19611,6 +19761,7 @@ function spawnBullet(sr, sc, er, ec, opts) {
     born: performance.now(),
     color: opts.color || wcfg.color || '#ffd76b',
     weapon: resolvedBulletWeapon,
+    projectileKind: String(opts.projectileKind||''),
     thick: opts.fromNpc && resolvedBulletWeapon !== 'rpg'
       ? false
       : (opts.thick != null ? opts.thick : !!wcfg.thick),
@@ -25267,7 +25418,7 @@ function openNpcActionMenuFrom3D(entityId){
 }
 function openUniqueNpcMenuFrom2D(npcId){
   const ref=UNIQUE_NPC_BY_ID.get(String(npcId||''));if(!ref)return {ok:false,reason:'missing'};
-  const key=`world_${ref.id}`,view={id:key,r:ref.r,c:ref.c,role:ref.role,name:ref.name,look:ref.look,uniqueNpc:true,said:!!ref._said,specialistId:ref._specialistId,specialistTitle:ref._specialistTitle,salary:ref._salary,empireBoss:!!ref._empireBoss,empireGang:ref._empireGang||'',uniqueWeaponId:ref._empireWeaponId||'',uniqueWeaponName:ref._empireWeaponName||'',weapon:ref._empireWeaponBase||'',bossStyle:+ref._empireStyle||0,bossColor:ref._empireColor||ref.look?.suit||'',bossAccent:ref._empireAccent||ref.look?.accent||''};
+  const key=`world_${ref.id}`,view={id:key,r:ref.r,c:ref.c,role:ref.role,name:ref.name,look:ref.look,uniqueNpc:true,said:!!ref._said,specialistId:ref._specialistId,specialistTitle:ref._specialistTitle,salary:ref._salary,empireBoss:!!ref._empireBoss,empireGang:ref._empireGang||'',uniqueWeaponId:ref._empireWeaponId||'',uniqueWeaponName:ref._empireWeaponName||'',uniqueWeaponProfile:ref._empireWeaponProfile||null,weapon:ref._empireWeaponBase||'',bossStyle:+ref._empireStyle||0,bossColor:ref._empireColor||ref.look?.suit||'',bossAccent:ref._empireAccent||ref.look?.accent||''};
   _threeNpcActionRefs.set(key,{ref,view});return openNpcActionMenuFrom3D(key);
 }
 function _runNpcAction(action){
@@ -48596,6 +48747,15 @@ function drawBullets() {
     const tailZ = (b.startZ || 0) + heightDelta * tailProgress;
     const hx = ph.x,           hy = ph.y - dy - isoH(headZ);
     const tx = pt.x,           ty = pt.y - dy - isoH(tailZ);
+    if (b.projectileKind === 'arrow' || b.projectileKind === 'harpoon' || b.projectileKind === 'dart') {
+      const a=Math.atan2(hy-ty,hx-tx),harpoon=b.projectileKind==='harpoon',dart=b.projectileKind==='dart';
+      ctx.save();ctx.translate(hx,hy);ctx.rotate(a);ctx.globalCompositeOperation='source-over';
+      ctx.strokeStyle=harpoon?'#5f4934':dart?'#f4f7f9':'#75502d';ctx.lineWidth=harpoon?4.2:dart?2:3;ctx.beginPath();ctx.moveTo(harpoon?-18:-14,0);ctx.lineTo(harpoon?8:7,0);ctx.stroke();
+      ctx.fillStyle=harpoon?'#d6dde1':dart?'#d73b58':'#d9e4ec';ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(5,-4);ctx.lineTo(6,4);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=dart?'#d73b58':'#3d6eaa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-12,0);ctx.lineTo(-17,-4);ctx.moveTo(-12,0);ctx.lineTo(-17,4);ctx.stroke();ctx.restore();
+      if (b._finished) bullets.splice(i, 1);
+      continue;
+    }
     if (b.weapon === 'rpg') {
       const a = Math.atan2(hy - ty, hx - tx);
       ctx.save();
@@ -54255,12 +54415,37 @@ function _majorGuardCombatTarget(bi,n) {
   return best;
 }
 
+function _npcEmpireWeaponProfile(n){
+  const id=String(n?.uniqueWeaponId||'');
+  return n?.uniqueWeaponProfile||NPC_EMPIRE_WEAPON_PROFILES[id]||null;
+}
+function _applyNpcEmpireWeaponHit(bi,n,victim,targetR,targetC,damage,profile){
+  const effect=String(profile?.effect||''),hurt=amount=>{
+    if(victim.kind==='gang')_hurtGangMemberInInterior(victim.ref,amount);
+    else _hurtLocal(amount,`${n.uniqueWeaponName||'оружие банды'} (${BUSINESS_INTERIORS[bi.bizId]?.title||'штаб'})`,true);
+  };
+  spawnImpact(targetR,targetC,n.weapon,true);hurt(damage);
+  if(effect==='explosive'){
+    _capArr(explosionBursts,10);explosionBursts.push({r:targetR,c:targetC,born:performance.now(),life:900,seed:Math.random()*1000,kind:'signature'});
+    spawnShockwave(targetR,targetC,{rad0:2,maxRad:36,life:340,color:'#ff79bd',thick:5});hurt(4);
+  }else if(effect==='incendiary'||effect==='poison'){
+    const tickDamage=effect==='incendiary'?3:2;
+    for(let tick=1;tick<=2;tick++)setTimeout(()=>{if(_buildingInt===bi&&victim.kind==='player'&&!myDead)hurt(tickDamage);else if(_buildingInt===bi&&victim.kind==='gang'&&victim.ref?.hp>0)hurt(tickDamage);},tick*650);
+  }else if(effect==='pull'&&victim.kind==='player'){
+    const dr=n.r-player.r,dc=n.c-player.c,d=Math.hypot(dr,dc)||1,nextR=player.r+dr/d*.7,nextC=player.c+dc/d*.7;
+    if(!_businessInteriorMovementBlocked(bi,nextR,nextC,.3)){player.r=nextR;player.c=nextC;}
+  }else if(effect==='shock'||effect==='flash'||effect==='sonic'){
+    spawnShockwave(targetR,targetC,{rad0:2,maxRad:effect==='sonic'?42:30,life:300,color:effect==='shock'?'#62c7ef':effect==='sonic'?'#6de0d7':'#fff4a1',thick:4});
+  }else if(effect==='knockout')hurt(3);
+}
 function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
   if(!bi||!n||n.dead)return;
   const victim=target||{kind:'player',r:player.r,c:player.c,ref:null};
   if(victim.kind==='player'&&myDead)return;
   if(victim.kind==='gang'&&(!victim.ref||victim.ref.hp<=0))return;
   const dr=victim.r-n.r,dc=victim.c-n.c,dist=Math.hypot(dr,dc)||1;
+  const signature=_npcEmpireWeaponProfile(n),melee=signature?.kind==='melee';
+  if(melee&&dist>(signature.range||1.35)+.25)return;
   const hit=Math.random()<hitChance;
   const missOffset=1.15+Math.random()*1.55;
   const side=Math.random()<.5?-1:1;
@@ -54274,15 +54459,19 @@ function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
     n._sayUntil=shotNow+850+Math.random()*450;
     n._combatSayAt=shotNow+3200+Math.random()*3600;
   }
-  const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
-  spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
-  spawnBullet(muzzle.r,muzzle.c,targetR,targetC,
-    {hit,fromNpc:true,weapon:n.weapon});
+  const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,melee?.42:.88);
+  if(!melee){
+    const projectileKind=signature?.effect==='arrow'?'arrow':signature?.effect==='pull'?'harpoon':signature?.kind==='dart'?'dart':'';
+    if(!projectileKind)spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
+    spawnBullet(muzzle.r,muzzle.c,targetR,targetC,{hit,fromNpc:true,weapon:n.weapon,
+      projectileKind,speed:signature?.speed||undefined,color:signature?.effect==='explosive'?'#ff79bd':signature?.effect==='shock'?'#62c7ef':undefined,
+      bulletScale:projectileKind?1.15:undefined,trailScale:projectileKind ? .25 : undefined});
+  }
   if(_majorInteriorObjectId)
     _gangAlertThreat(n.r,n.c,n.id,'interior_guard',n);
   if(!hit)return;
-  const speed=weaponProfile(n.weapon).bulletSpeed||BULLET_SPEED;
-  const flightMs=Math.max(35,Math.min(700,
+  const speed=signature?.speed||weaponProfile(n.weapon).bulletSpeed||BULLET_SPEED;
+  const flightMs=melee?170:Math.max(35,Math.min(900,
     Math.hypot(targetR-muzzle.r,targetC-muzzle.c)/speed*1000));
   setTimeout(()=>{
     if(_buildingInt!==bi)return;
@@ -54292,9 +54481,7 @@ function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
     if(victim.kind==='gang'&&(!victim.ref||victim.ref.hp<=0))return;
     if(Math.hypot(currentR-targetR,currentC-targetC)>.72)return;
     if(!_majorInteriorLineClear(bi,muzzle.r,muzzle.c,currentR,currentC))return;
-    spawnImpact(targetR,targetC,n.weapon,true);
-    if(victim.kind==='gang')_hurtGangMemberInInterior(victim.ref,damage);
-    else _hurtLocal(damage,`охрана ${BUSINESS_INTERIORS[bi.bizId]?.title||'объекта'}`,true);
+    _applyNpcEmpireWeaponHit(bi,n,victim,targetR,targetC,damage,signature);
   },flightMs);
 }
 
@@ -54308,7 +54495,12 @@ const INTERIOR_GUARD_WEAPON_AI = {
   rifle:        { ideal:7.2, retreat:4.8, range:12.0, cooldown:920,  damage:12, hit:.80 },
   sniper:       { ideal:9.0, retreat:6.0, range:15.0, cooldown:2100, damage:22, hit:.84 },
 };
-function _interiorGuardWeaponAi(weapon) {
+function _interiorGuardWeaponAi(weapon,signatureProfile=null) {
+  if(signatureProfile){
+    const range=Math.max(1,+signatureProfile.range||7),melee=signatureProfile.kind==='melee';
+    return {ideal:melee ? .85 : Math.max(2.5,range*.62),retreat:melee?0:Math.max(1.5,range*.32),range,
+      cooldown:Math.max(280,+signatureProfile.cooldown||900),damage:Math.max(1,+signatureProfile.damage||8),hit:Math.max(.2,Math.min(.98,+signatureProfile.hit||.72))};
+  }
   const key=resolveWeapon(weapon);
   return INTERIOR_GUARD_WEAPON_AI[key] || INTERIOR_GUARD_WEAPON_AI.pistol;
 }
@@ -54472,7 +54664,7 @@ function _updateInteriorNpcs(bi, dt) {
       }
       const fy=dr/dist,fx=dc/dist,sy=-fx*(n._strafeDir||1),sx=fy*(n._strafeDir||1);
       const hasLine=_majorInteriorLineClear(bi,n.r,n.c,combatTarget.r,combatTarget.c);
-      const weaponAi=_interiorGuardWeaponAi(n.weapon);
+      const weaponAi=_interiorGuardWeaponAi(n.weapon,_npcEmpireWeaponProfile(n));
       let moveY=0,moveX=0,scale=.82;
       if(!hasLine){
         const route=_casinoGuardFlowStep(bi,n,now);
@@ -54589,7 +54781,7 @@ function _updateInteriorNpcs(bi, dt) {
       const combatTarget=_majorGuardCombatTarget(bi,n);
       if(!combatTarget){n.walking=false;continue;}
       const dr=combatTarget.r-n.r,dc=combatTarget.c-n.c,dist=Math.hypot(dr,dc)||1;
-      const weaponAi=_interiorGuardWeaponAi(n.weapon);
+      const weaponAi=_interiorGuardWeaponAi(n.weapon,_npcEmpireWeaponProfile(n));
       n.ang=Math.atan2(dr,dc);n._hostile=true;
       // В бою охрана не превращается в неподвижную турель: дальних целей
       // преследует, от слишком близких отступает, на рабочей дистанции
@@ -61107,7 +61299,7 @@ window.Mafiozi3DBridge = Object.freeze({
       apartment:!src.type?{key:apartmentKey,owned:!!_myApartments[apartmentKey],ownerUid:String(src.apartmentOwnerUid||apartmentHost?.owner_uid||(_myApartments[apartmentKey]?QP.uid:'')),ownerName:String(src.apartmentOwnerName||apartmentHost?.name||(_myApartments[apartmentKey]?(QP.name||'Игрок'):'')),district:apartmentDistrictMarket(src.r,src.c)?.label||'Городская квартира',levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
       layout:casinoLayout,businessLayout,bank:bankState,
-      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss,visualRole:guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
+      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss,visualRole:guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
@@ -61541,8 +61733,8 @@ window.Mafiozi3DBridge = Object.freeze({
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:copSpeech||((+x.cryUntil||0)>fxNow?String(x.cryText||'').slice(0,84):''),hp,maxHp,
-      said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireGang:String(x._empireGang||''),
-      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),
+      said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireGang:String(x._empireGang||''),empireAction:x._empireBoss?_empireActivityLabel(x._empireAction):'',
+      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),uniqueWeaponProfile:x._empireWeaponProfile||x.uniqueWeaponProfile||null,bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),
       important:!!(x._uniqueNpc||x._said||x._keyNpc||x._invulnerable),talkable:!!(x._uniqueNpc||x._said),hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
       talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),
@@ -61551,7 +61743,7 @@ window.Mafiozi3DBridge = Object.freeze({
       groupId:String(x._npcGroupId||''),groupRole:String(x._npcGroupRole||''),routine:String(x._npcRoutine||''),
       prisonStaff:!!x._prisonStaff,staffVariant:+x.staffVariant||0,prisonGear:x.prisonGear||'',shield:!!x.shield,
       responseTier:Math.max(0,+x.responseTier||0),
-      weapon:x.weapon||'',_shotAt:+x._shotAt||+x._lastShotAt||+x.lastShotAt||0,_shotWeapon:x._shotWeapon||x.weapon||'',_shotSeq:+x._shotSeq||0,
+      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),_shotAt:+x._shotAt||+x._lastShotAt||+x.lastShotAt||0,_shotWeapon:x._shotWeapon||x._empireWeaponBase||x.weapon||'',_shotSeq:+x._shotSeq||0,
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:gang?_threeGangFamilyLabel(x):(x.family||x.mafiaFamily||''),faction:x.faction||x.gangFaction||'',
       gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
       burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
@@ -61562,7 +61754,7 @@ window.Mafiozi3DBridge = Object.freeze({
       medicAction:x._medicAction||'',medicActionProgress:+x._medicActionProgress||0,
     };_threeNpcActionRefs.set(String(id),{ref:x._actionRef||x,view});return view;});
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcactions')&&npcs[0]){npcs[0].r=player.r+1.5;npcs[0].c=player.c+.25;npcs[0].walking=npcs[0].moving=false;}
-    if(_LOCAL_PREVIEW&&_UP.has('previewbosses'))for(const [j,npc] of npcs.filter(x=>x.empireBoss).slice(0,8).entries()){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*4.6;npc.c=player.c+Math.cos(a)*4.6;npc.ang=a+Math.PI;npc.walking=npc.moving=j%2===0;}
+    if(_LOCAL_PREVIEW&&_UP.has('previewbosses'))for(const [j,npc] of npcs.filter(x=>x.empireBoss).slice(0,8).entries()){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*4.6;npc.c=player.c+Math.cos(a)*4.6;npc.ang=a+Math.PI;npc.walking=npc.moving=j%2===0;if(_UP.has('previewweaponmodels')){npc._shotAt=fxNow-(fxNow%900);npc._shotWeapon=npc.weapon;}}
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcwalk'))for(const [j,npc] of npcs.filter(x=>!x.dead).slice(0,6).entries()){const a=-1.05+j*.42;npc.r=player.r+Math.sin(a)*4.2;npc.c=player.c+Math.cos(a)*4.2;npc.ang=a+Math.PI;npc.hp=npc.maxHp;npc.forcedCrawl=false;npc.severMask=0;npc.walking=npc.moving=true;npc.speed=2.4;npc.look={...(npc.look||{}),suit:j===0?'#20b8aa':j===1?'#4a9bd8':j===2?'#e59b45':npc.look?.suit};}
     if(_LOCAL_PREVIEW&&_UP.has('previewlabels')){
@@ -61630,7 +61822,7 @@ window.Mafiozi3DBridge = Object.freeze({
     // эффект. Не добавляем её части в общий пул пуль: это убирает пунктир и
     // оставляет боевой лимит снарядов свободным.
     const serviceWater=[];
-    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
+    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',projectileKind:String(x.projectileKind||''),fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
@@ -61641,6 +61833,10 @@ window.Mafiozi3DBridge = Object.freeze({
       for(let i=0;i<8;i++){const a=i<4?0:Math.PI/2,offset=(i%4-1.5)*.62;bulletHoleFx.unshift({id:8800+i,r:player.r+(a?3.2:offset),c:player.c+(a?offset:3.2),ang:a,rot:(i*.47)%Math.PI,scale:i%3===0?1.18:.9,heavy:i%4===0,age:800+i*170});}
     }
     if(_LOCAL_PREVIEW&&_UP.has('previewallprojectiles')){const ids=['pistol','nagan','revolver','pistol_heavy','pistol_gold','shotgun','smg','tommy_gun','golden_tommy','rifle','sniper','taser','rpg'],now=performance.now(),phase=now%1600,generation=Math.floor(now/1600),distance=phase<900?1.8+phase/900*5.8:7.6;ids.forEach((weapon,i)=>{const cfg=weaponProfile(weapon),a=-1.08+i*(2.16/(ids.length-1)),speed=cfg.bulletSpeed||24;projectiles.unshift({id:`preview_all_${generation}_${weapon}`,r:player.r+Math.sin(a)*distance,c:player.c+Math.cos(a)*distance,vr:Math.sin(a)*speed,vc:Math.cos(a)*speed,ang:a,color:cfg.color||'#ffd76b',weapon,fromPlayer:true,tracked:false,thick:!!cfg.thick,bulletScale:+cfg.bulletScale||1,trailScale:+cfg.trailScale||1,startZ:0,endZ:weapon==='rpg'?.12:0,dist:distance,maxDist:Math.max(distance,cfg.range||8)});});document.documentElement.dataset.previewAllProjectileWeapons=ids.join(',');}
+    if(_LOCAL_PREVIEW&&_UP.has('previewweaponmodels')){
+      const cycle=(performance.now()%1600)/1600,signatureShots=[['arrow','#ffcf4d',16],['harpoon','#ffe06d',13],['dart','#d73b58',18]];
+      signatureShots.forEach(([projectileKind,color,speed],i)=>{const a=-.62+i*.62,dist=1.2+cycle*8.5;projectiles.unshift({id:`preview_signature_${projectileKind}`,r:player.r+Math.sin(a)*dist,c:player.c+Math.cos(a)*dist,vr:Math.sin(a)*speed,vc:Math.cos(a)*speed,ang:a,color,weapon:'pistol',projectileKind,fromNpc:true,bulletScale:1.1,trailScale:.25,startZ:0,endZ:0,dist,maxDist:10});});
+    }
     const bloodFx=(typeof bloodSplats!=='undefined'?bloodSplats:[]).filter(x=>x&&(+x.life||0)>0&&near(+x.r||0,+x.c||0)).slice(-48).map((x,i)=>({id:i,r:+x.r||0,c:+x.c||0,radius:+x.radius||5,rot:+x.rot||0,life:+x.life||0,max:+x.max||1,trail:!!x.trail,soot:!!x._isSoot,crater:!!x._isCrater}));
     const goreFx=(typeof bodyPartFx!=='undefined'?bodyPartFx:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||8000)&&near(+x.r||0,+x.c||0)).slice(-12).map(x=>({
       id:String(x.id||''),r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,

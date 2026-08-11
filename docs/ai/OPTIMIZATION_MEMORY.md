@@ -737,7 +737,6 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   locked quality, real-time shadows, the incoming raised framed-HP profile,
   gameplay bridge, chat local echo and server-backed `Гражданский` status
   remained intact with no Three.js error.
-
 ## Health-fading identity cards (2026-08-11, v351)
 
 - Use the existing player-name canvas and pooled NPC-label canvases as the
@@ -748,3 +747,43 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   repainted only when their existing signature or integer health percentage
   changes, and the player canvas follows the same bounded health signature, so
   the effect adds no per-frame texture creation, draw calls or population scan.
+## Nineteen signature gang weapons (2026-08-11, v345)
+
+- A single generic gun box with a firing pitch near `-1.16` rotated the barrel
+  through the NPC head. Author weapons along local `+Z`, keep the ranged root at
+  chest height (`y ~= 2.25`) with a near-horizontal pitch (`-0.055`), and move
+  both pooled arms onto the grip and fore-end. Melee weapons use a separate
+  bounded swing pose instead of reusing firearm recoil.
+- Do not build nineteen standalone Three.js groups. Ten shared instanced weapon
+  part pools (body, rail, stock, muzzle, grip, drum, blade, charm, two limbs and
+  four spikes per slot) produce the 19 silhouettes through fixed transforms and
+  per-instance colors. This adds six bounded instanced layers over the previous
+  four-part signature system, with no per-frame mesh/material allocation.
+- Arrow, harpoon and dart flight reuses three bounded projectile instance pools
+  (shaft, head and fletching, cap 48). Their transforms are written inside the
+  existing projectile pass, and all three pools are included in shader warmup;
+  do not create a mesh or compile a material when a crossbow first fires.
+- Combat parameters originate in `npc_empire.py` and travel in state/assault
+  snapshots. The JS table is only an offline/local-preview mirror. Guards and
+  bosses share their family's weapon id/profile, avoiding preview colors or a
+  stale base-gun profile replacing live server state.
+- Local QA at `previewzoom=2.6` showed ranged weapons held across the chest in
+  both idle and forced firing/recoil poses without crossing the head. The same
+  scene exercised three simultaneous signature projectiles with the bounded
+  budget `n72:r0:p3:s0:b0:g0`, native shadows and no browser/Three.js console
+  warnings or errors. This is a correctness/capacity result; no FPS gain is
+  claimed because the weapon preview intentionally changed actors/projectiles.
+
+## Long boss routes and visible crews (2026-08-11, v348)
+
+- A boss carrying out a server `activity` must not reuse the local civilian
+  wander target. Build the complete route only when the activity key changes
+  or a confirmed blockage requires a retry.
+- The boss walknet uses street tiles `0/8/9/18/19`; ordinary unique NPCs remain
+  restricted to pavements `8/9`. The long search is capped at 42,000 visited
+  cells and retries after 1.2-4 seconds, never on every rendered frame.
+- Do not visualize all server members for all nineteen families. The client
+  shows at most four nearest crews, one to three escorts each, with an absolute
+  cap of 12 NPCs and a 1,800 ms membership refresh cadence.
+- Empire escorts are excluded from civilian population and respawn accounting.
+  Otherwise hired fighters silently displace residents and alter city density.
