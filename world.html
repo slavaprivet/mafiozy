@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v331: every police patrol keeps a blue service identity and detailed 3D livery. -->
+<!DOCTYPE html><!-- v340: RMB-held aim keeps reliable LMB fire and hold-E always exits the current vehicle. -->
+<!-- v331: every police patrol keeps a blue service identity and detailed 3D livery. -->
 <!-- v330: nearby 3D buildings keep visible facades while roofs fade for camera occlusion. -->
 <!-- v330: 3D traffic signals stay readable and city lamps follow the 17:00-07:00 schedule. -->
 <!-- v329: jail state clears stale gang-hire UI and blocks recruitment client-side. -->
@@ -16581,11 +16582,12 @@ function activateNearbyVehicleFrom3D(preferredId='') {
   if (_buildingInt || _bankInt || myDead) return {ok:false,reason:'unavailable'};
   if (_threeVehicleEntrySequence) return {ok:true,kind:'vehicle_entering'};
   _ensureThreePreviewDriveCar();
-  // E also exits the current car, matching the same contextual GTA action.
+  // Holding E in 3D is an explicit vehicle action. Do not route it through
+  // the shared GTA button: refuelling or another nearby contextual action can
+  // temporarily replace that button and make the requested exit fail.
   if (myDrivingCarId) {
-    updateGtaInteractions();
-    if (_gtaActionKind === 'exit') {_gtaBtn.click();return {ok:true,kind:'vehicle_exit'};}
-    return {ok:false,reason:'driving'};
+    exitCar('manual');
+    return {ok:true,kind:'vehicle_exit'};
   }
   let best=null,bestD=Math.max(GTA_INTERACT_R+.15,THREE_VEHICLE_DETECT_R);
   const lockedId=String(preferredId||'');
