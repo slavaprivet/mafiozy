@@ -21085,6 +21085,8 @@ function handleEventPacket(d) {
     enterBuildingInterior(biz.r,biz.c,'business',biz.id,{robbery:true,guardBonus:bonus,attempt,robToken:d.rob_token||''});
     showEventBanner(`🔫 ПОПЫТКА ${attempt} ИЗ 3`,bonus?`Охрана усилилась: ещё ${bonus} бойцов`:'Обычная охрана заведения',2600,bonus?'lose':'warn');
     hapticHit();
+  } else if (kind === 'business_rob_state_reply') {
+    _restoreBusinessRobberyState(d);
   } else if (kind === 'shop_rob_reply') {
     // Ответ сервера на ограбление. ok → +money toast, fail → причина.
     if (d.ok) {
@@ -22497,6 +22499,12 @@ function wsConnect() {
     // first snapshot can reconcile against that temporary spawn; otherwise a
     // player who was already walking gets rubber-banded backwards.
     sendInput(true);
+    // Recover an unfinished assault or its post-raid decision after a socket
+    // reconnect. The server remains authoritative for guard deaths, pressure
+    // and the one-time decision token.
+    try { socket.send(JSON.stringify({t:'business_rob_state',d:{
+      last_choice_token:_businessChoiceInFlight?.choice?.token||_pendingBusinessWarChoice?.token||''
+    }})); } catch(e) {}
   };
   socket.onmessage = (ev) => {
     let pkt; try { pkt = JSON.parse(ev.data); } catch(e) { return; }
@@ -24232,6 +24240,59 @@ function _canMafiaCaptureBusiness(){
   const family=String(_mafiaState?.family||'');
   return !!_mafiaState?.employed&&(family==='bellini'||family==='moretti');
 }
+let _lastBusinessRobRestoreKey='';
+function _restoreBusinessRobberyState(data){
+  if(!data?.ok)return;
+  if(data.choice_result){
+    _pendingBusinessWarChoice=null;_businessChoiceInFlight=null;
+    document.getElementById('businessChoiceOverlay')?.classList.remove('show');
+    handleEventPacket({...data.choice_result,kind:'business_war_choice_reply',replayed:true});
+    return;
+  }
+  const active=data.active||null,choice=data.pending_choice||null;
+  if(choice?.business_choice_token){
+    const biz=BUSINESS_POIS.find(item=>item.id===choice.biz_id);
+    if(!_pendingBusinessWarChoice||_pendingBusinessWarChoice.token!==choice.business_choice_token){
+      _showBusinessWarChoice(choice,biz);
+      const key=`choice:${choice.business_choice_token}`;
+      if(_lastBusinessRobRestoreKey!==key){
+        _lastBusinessRobRestoreKey=key;
+        showEventBanner('📋 РЕШЕНИЕ ВОССТАНОВЛЕНО','Выбор судьбы заведения не потерян после переподключения.',3200,'neutral');
+      }
+    }
+    return;
+  }
+  if(!active?.rob_token||!active.biz_id)return;
+  const biz=BUSINESS_POIS.find(item=>item.id===active.biz_id);
+  if(!biz)return;
+  if(!_buildingInt){
+    const base=Math.max(1,+BUSINESS_ROB_TIERS[active.biz_id]?.guards||1);
+    enterBuildingInterior(biz.r,biz.c,'business',biz.id,{
+      robbery:true,autoStart:true,attempt:Math.max(1,+active.attempt||1),
+      guardBonus:Math.max(0,(+active.guard_count||base)-base),robToken:active.rob_token,
+      restoredAssault:true,
+    });
+  }
+  const bi=_buildingInt;
+  if(!bi||bi.type!=='business'||bi.bizId!==active.biz_id)return;
+  bi.robbery=true;bi.robberyStarted=true;bi.robToken=active.rob_token;
+  bi.ownerHitSeq=Math.max(0,+active.owner_hit_seq||0);
+  bi.expectedGuardCount=Math.max(1,+active.guard_count||1);
+  const down=new Set((active.guards_down||[]).map(Number));
+  const guards=bi.npcs.filter(n=>n.role==='biz_guard');
+  guards.forEach((guard,index)=>{
+    if(!down.has(index))return;
+    guard.hp=0;guard.dead=true;guard.walking=false;
+    guard.deadAt=guard.deadAt||performance.now();
+  });
+  const owner=bi.npcs.find(n=>n.role==='owner');
+  if(owner){owner.hp=Math.max(1,Math.min(owner.maxHp||100,100-(+active.owner_pressure||0)));owner.dead=false;}
+  const key=`active:${active.rob_token}:${down.size}:${Math.round(+active.owner_pressure||0)}`;
+  if(_lastBusinessRobRestoreKey!==key){
+    _lastBusinessRobRestoreKey=key;
+    showEventBanner('🔫 ШТУРМ ВОССТАНОВЛЕН',`Охрана: ${Math.max(0,(+active.guard_count||guards.length)-down.size)} · давление: ${Math.round(+active.owner_pressure||0)}%`,3200,'warn');
+  }
+}
 function _showBusinessWarChoice(data,biz){
   let ov=document.getElementById('businessChoiceOverlay');
   if(!ov){
@@ -24259,11 +24320,28 @@ function _sendBusinessChoice(btn){
   if(btn.dataset.businessChoice==='sabotage'&&_myC4Count<1){showEventBanner('🧨 ТРЕБУЕТСЯ C4','Для диверсии нужна C4 · 1 шт. Купи заряд на Чёрном рынке',3400,'lose');return;}
   if(!ws||ws.readyState!==1){showToast('Нет связи с сервером — решение не потеряно','⚠️',2200);return;}
   const choice=_pendingBusinessWarChoice;
-  _businessChoiceInFlight={choice,action,sabotageKind:btn.dataset.sabotageKind||'',sentAt:Date.now()};
+  _businessChoiceInFlight={choice,action,sabotageKind:btn.dataset.sabotageKind||'',sentAt:Date.now(),attempts:1};
   _pendingBusinessWarChoice=null;document.getElementById('businessChoiceOverlay')?.classList.remove('show');const confirmOv=document.getElementById('businessChoiceConfirm');if(confirmOv)confirmOv.style.display='none';
   showEventBanner(action==='cash'?'💰 ПОДТВЕРЖДАЕМ ВЫПЛАТУ':action==='sabotage'?'💣 ЗАКЛАДЫВАЕМ C4':'🏴 ОТПРАВЛЯЕМ ЗАЯВКУ','Ждём подтверждение сервера. Решение не будет применено дважды.',2600,'neutral');
-  ws.send(JSON.stringify({t:'business_war_choice',d:{action,token:choice.token,sabotage_kind:btn.dataset.sabotageKind||''}}));
-  setTimeout(()=>{if(_businessChoiceInFlight?.choice.token===choice.token){_pendingBusinessWarChoice=choice;_businessChoiceInFlight=null;document.getElementById('businessChoiceOverlay')?.classList.add('show');showEventBanner('⚠️ НЕТ ОТВЕТА СЕРВЕРА','Решение не потеряно. Проверь соединение и нажми ещё раз.',3800,'lose');}},7000);
+  const request={t:'business_war_choice',d:{action,token:choice.token,sabotage_kind:btn.dataset.sabotageKind||''}};
+  ws.send(JSON.stringify(request));
+  setTimeout(()=>{
+    const flight=_businessChoiceInFlight;
+    if(flight?.choice.token!==choice.token)return;
+    if(flight.attempts===1&&ws?.readyState===1){
+      flight.attempts=2;flight.sentAt=Date.now();ws.send(JSON.stringify(request));
+      showToast('Ответ задержался · безопасно повторяем запрос','🔄',2200);
+      setTimeout(()=>{
+        if(_businessChoiceInFlight?.choice.token!==choice.token)return;
+        _pendingBusinessWarChoice=choice;_businessChoiceInFlight=null;
+        document.getElementById('businessChoiceOverlay')?.classList.add('show');
+        showEventBanner('⚠️ НЕТ ОТВЕТА СЕРВЕРА','Решение сохранено. После восстановления связи сервер вернёт актуальный результат.',4200,'lose');
+      },5000);
+      return;
+    }
+    _pendingBusinessWarChoice=choice;_businessChoiceInFlight=null;
+    document.getElementById('businessChoiceOverlay')?.classList.add('show');
+  },4500);
 }
 function _confirmBusinessChoice(btn){
   if(_myC4Count<1){showEventBanner('🧨 ТРЕБУЕТСЯ C4','Для диверсии нужна C4 · 1 шт. Купи заряд на Чёрном рынке',3400,'lose');return;}
@@ -53925,11 +54003,66 @@ function _igniteInteriorCharacter(n,sourceR,sourceC) {
   n._sayUntil=Math.max(n._sayUntil||0,now+1100);
 }
 
+function _repairBusinessRobberyActors(bi,now=performance.now()) {
+  if(!bi?.robbery||bi.type!=='business'||now<(bi._robberyRepairAt||0))return;
+  bi._robberyRepairAt=now+1000;
+  if(!Array.isArray(bi.npcs))bi.npcs=[];
+  let owner=bi.npcs.find(n=>n?.role==='owner');
+  if(!owner){
+    const cfg=BUSINESS_INTERIORS[bi.bizId]||BUSINESS_INTERIORS.coffee;
+    owner={r:2.25,c:bi.W/2,tr:2.25,tc:bi.W/2,ang:Math.PI,walkPhase:0,walking:false,
+      name:cfg.manager,role:'owner',fixed:true,hp:100,maxHp:100,dead:false,
+      look:_businessOwnerLook(bi.bizId),ownerStyle:(BUSINESS_OWNER_LOOKS[bi.bizId]||BUSINESS_OWNER_LOOKS.coffee).ownerStyle,
+      idleUntil:Infinity,speed:0,persona:BUSINESS_OWNER_PERSONAS[bi.bizId]||BUSINESS_OWNER_PERSONAS.coffee};
+    bi.npcs.unshift(owner);
+    document.documentElement.dataset.businessRobberyRepair='owner-restored';
+  }else if(owner.dead||!Number.isFinite(owner.r)||!Number.isFinite(owner.c)){
+    owner.dead=false;owner.hp=Math.max(1,+owner.hp||1);owner.r=owner.tr=2.25;owner.c=owner.tc=bi.W/2;
+    document.documentElement.dataset.businessRobberyRepair='owner-revived';
+  }
+  const posts=_majorGuardSpawnPoints(bi);
+  let fallbackIndex=0;
+  for(const guard of bi.npcs.filter(n=>n?.role==='biz_guard'&&!n.dead)){
+    if(Number.isFinite(guard.r)&&Number.isFinite(guard.c)&&
+       !_businessInteriorMovementBlocked(bi,guard.r,guard.c,.28))continue;
+    const post=posts[fallbackIndex++%Math.max(1,posts.length)]||{r:bi.H/2,c:bi.W/2};
+    guard.r=guard.tr=guard.postR=post.r;guard.c=guard.tc=guard.postC=post.c;
+    guard._stalledAt=0;guard._lastProgressAt=now;
+    document.documentElement.dataset.businessRobberyRepair='guard-relocated';
+  }
+}
+
+function _recoverStalledBusinessGuard(bi,n,target,now) {
+  if(!bi||!n||n.dead)return false;
+  const phase=((bi.npcs||[]).indexOf(n)*1.61803398875)%1*Math.PI*2;
+  for(const radius of [.55,.9,1.3,1.8,2.35]){
+    for(let step=0;step<12;step++){
+      const ang=phase+step*Math.PI/6,r=n.r+Math.sin(ang)*radius,c=n.c+Math.cos(ang)*radius;
+      if(r<.8||c<.8||r>bi.H-.8||c>bi.W-.8)continue;
+      if(target&&Math.hypot(r-target.r,c-target.c)<1.45)continue;
+      if(_businessInteriorMovementBlocked(bi,r,c,.3))continue;
+      n.r=r;n.c=c;n.tr=r;n.tc=c;n.walking=true;n._lastProgressAt=now;n._stalledAt=0;
+      n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);_casinoGuardNavCache=null;
+      document.documentElement.dataset.businessGuardRecovery=`${bi.bizId}:${(bi.npcs||[]).indexOf(n)}:nudge`;
+      return true;
+    }
+  }
+  const post=_majorGuardSpawnPoints(bi).find(p=>
+    !_businessInteriorMovementBlocked(bi,p.r,p.c,.3)&&
+    (!target||Math.hypot(p.r-target.r,p.c-target.c)>1.8));
+  if(!post)return false;
+  n.r=n.tr=post.r;n.c=n.tc=post.c;n.walking=true;n._lastProgressAt=now;n._stalledAt=0;
+  _casinoGuardNavCache=null;
+  document.documentElement.dataset.businessGuardRecovery=`${bi.bizId}:${(bi.npcs||[]).indexOf(n)}:post`;
+  return true;
+}
+
 function _updateBusinessRobberyHud() {
   let hud=document.getElementById('businessRobberyHud3d');
   const bi=_buildingInt;
   const visible=!!(bi?.type==='business'&&bi.robbery&&document.getElementById('stage')?.classList.contains('three-mode'));
   if(!visible){if(hud)hud.style.display='none';return;}
+  _repairBusinessRobberyActors(bi);
   if(!hud){
     hud=document.createElement('section');hud.id='businessRobberyHud3d';hud.setAttribute('aria-live','polite');
     hud.style.cssText='position:fixed;z-index:44;left:50%;bottom:18px;transform:translateX(-50%);width:min(390px,66vw);pointer-events:none;padding:10px 13px 11px;border:1px solid #9d7139;border-radius:4px;background:linear-gradient(135deg,rgba(12,14,18,.96),rgba(39,18,15,.94));box-shadow:0 8px 30px #000b,0 0 0 1px #000 inset;color:#eee3ce;font:800 11px/1.25 system-ui;text-align:center';
@@ -54146,6 +54279,15 @@ function _updateInteriorNpcs(bi, dt) {
         n.walking=false;n._combatMoveUntil=0;n._strafeDir=-(n._strafeDir||1);
         _casinoGuardNavCache=null;
       }
+      const progressed=Math.hypot(n.r-oldR,n.c-oldC)>.012;
+      let recovered=false;
+      if(progressed){n._lastProgressAt=now;n._stalledAt=0;}
+      else {
+        n._stalledAt=n._stalledAt||now;
+        n._lastProgressAt=n._lastProgressAt||now;
+        if(now-n._lastProgressAt>2600)recovered=_recoverStalledBusinessGuard(bi,n,combatTarget,now);
+      }
+      if(recovered)continue;
       const targetAlive=combatTarget.kind==='gang'
         ?combatTarget.ref?.hp>0:!myDead;
       if(hasLine&&dist<weaponAi.range&&targetAlive&&

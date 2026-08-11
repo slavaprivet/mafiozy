@@ -13019,6 +13019,7 @@ class WorldSim:
         '_business_npc_occupations', '_business_npc_capture_cooldown',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
         '_business_owner_protected_until', '_business_rob_sessions',
+        '_business_war_choice_results',
         '_robbed_business_controls',
         '_business_family_wars',
         '_business_war_score',
@@ -13733,6 +13734,9 @@ class WorldSim:
         # uid -> серверное состояние текущего налёта. Финальный shop_rob
         # принимается только с одноразовым token и завершёнными этапами.
         self._business_rob_sessions = {}
+        # (uid, choice token) -> exact terminal reply. A reconnect or retry may
+        # safely request the same decision without repeating its side effects.
+        self._business_war_choice_results = {}
         # Пляжники — мирные NPC. Спавнятся когда есть игроки.
         self.beachgoers = []
         self._beachgoer_next_id = 1
@@ -22720,6 +22724,60 @@ async def _transfer_business_property(world:'WorldSim',biz_id:str,new_uid:str,ne
         new_state.setdefault('_biz_guards',{})[biz_id]=0
     return {'old_owner_uid':old_uid,'old_owner_name':old_name,'new_owner_uid':str(new_uid),'new_owner_name':str(new_name)[:24],'level':level}
 
+def _business_choice_cached_reply(world: 'WorldSim', uid, token: str,
+                                  now: float | None = None) -> dict | None:
+    now = time.time() if now is None else float(now)
+    result = world._business_war_choice_results.get((str(uid), str(token or '')))
+    if not result or float(result.get('_cached_until') or 0) <= now:
+        return None
+    return {key:value for key,value in result.items()
+            if not str(key).startswith('_')}
+
+
+def _business_rob_state_payload(world: 'WorldSim', uid,
+                                requested_choice_token: str = '',
+                                now: float | None = None) -> dict:
+    now = time.time() if now is None else float(now)
+    uid_key = str(uid)
+    session = world._business_rob_sessions.get(uid_key) or {}
+    claim = world._business_war_claims.get(uid_key) or {}
+    if session and float(session.get('expires_at') or 0) <= now:
+        world._business_rob_sessions.pop(uid_key, None)
+        session = {}
+    if claim and float(claim.get('expires_at') or 0) <= now:
+        world._business_war_claims.pop(uid_key, None)
+        claim = {}
+    active = None
+    if session:
+        active = {
+            'biz_id': str(session.get('biz_id') or ''),
+            'rob_token': str(session.get('token') or ''),
+            'guard_count': int(session.get('guard_count') or 0),
+            'guards_down': sorted(int(x) for x in session.get('guards_down') or ()),
+            'owner_pressure': float(session.get('owner_pressure') or 0),
+            'owner_hit_seq': int(session.get('owner_hit_seq') or 0),
+            'attempt': int(session.get('attempt') or 1),
+            'expires_s': max(0, int(float(session.get('expires_at') or 0)-now)),
+        }
+    pending_choice = None
+    if claim:
+        pending_choice = {
+            'biz_id': str(claim.get('biz_id') or ''),
+            'money': int(claim.get('money') or 0),
+            'mafia_family': str(claim.get('family') or ''),
+            'business_choice_token': str(claim.get('token') or ''),
+            'business_choice_s': max(1, int(float(claim.get('expires_at') or 0)-now)),
+            'can_capture': str(claim.get('family') or '') in ('bellini','moretti'),
+            'sabotage_s': BUSINESS_WAR_SABOTAGE_S,
+        }
+    return {
+        'active': active,
+        'pending_choice': pending_choice,
+        'choice_result': _business_choice_cached_reply(
+            world, uid_key, requested_choice_token, now),
+    }
+
+
 async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
     """Pay family income, then run the open-war window for expired controls."""
     now = time.time()
@@ -22727,6 +22785,9 @@ async def _tick_robbed_business_controls(world: 'WorldSim') -> list[dict]:
     for claim_uid, claim in list(world._business_war_claims.items()):
         if float(claim.get('expires_at') or 0) <= now:
             world._business_war_claims.pop(claim_uid, None)
+    for result_key, result in list(world._business_war_choice_results.items()):
+        if float(result.get('_cached_until') or 0) <= now:
+            world._business_war_choice_results.pop(result_key, None)
     for biz_id, sabotage in list(world._business_war_sabotage.items()):
         if float(sabotage.get('until_at') or 0) <= now:
             world._business_war_sabotage.pop(biz_id, None)
@@ -27163,11 +27224,26 @@ async def _coop_http_app():
                                     key: until for key, until in world._business_aggro_until.items()
                                     if until > now_ts
                                 }
+                    elif t == 'business_rob_state':
+                        state_payload = d if isinstance(d, dict) else {}
+                        requested_choice_token = str(state_payload.get('last_choice_token') or '')
+                        recovery = _business_rob_state_payload(
+                            world, uid, requested_choice_token)
+                        await ws.send_str(json.dumps({'t':'event','d':{
+                            'kind':'business_rob_state_reply','ok':True,
+                            **recovery,
+                        }}, ensure_ascii=False))
                     elif t == 'business_war_choice':
                         p = world.players.get(uid) or {}
                         claim = world._business_war_claims.get(str(uid)) or {}
                         action = str(d.get('action') or '')
                         token = str(d.get('token') or '')
+                        cached_reply = _business_choice_cached_reply(world, uid, token)
+                        if token and cached_reply:
+                            await ws.send_str(json.dumps({'t':'event','d':dict(
+                                cached_reply, kind='business_war_choice_reply', replayed=True)},
+                                ensure_ascii=False))
+                            continue
                         biz_id = str(claim.get('biz_id') or '')
                         family = str(p.get('_mafia_family') or '')
                         claim_family = str(claim.get('family') or '')
@@ -27343,6 +27419,18 @@ async def _coop_http_app():
                                                         'biz_id': biz_id, 'biz_name': biz_name,
                                                         'family': family, 'income_per_member': income,
                                                         'war_score': score,'property_transfer':transfer}
+                        # Cache terminal outcomes before sending. If the socket drops after
+                        # the DB commit, the same token replays this reply instead of
+                        # applying capture/sabotage or inventory effects twice.
+                        if (valid and token and str(uid) not in world._business_war_claims and
+                                (choice_reply.get('ok') or
+                                 choice_reply.get('reason') == 'ownership_changed')):
+                            world._business_war_choice_results[(str(uid), token)] = {
+                                **choice_reply, '_cached_until': time.time() + 300.0}
+                            if len(world._business_war_choice_results) > 1000:
+                                oldest = min(world._business_war_choice_results,
+                                             key=lambda key: float(world._business_war_choice_results[key].get('_cached_until') or 0))
+                                world._business_war_choice_results.pop(oldest, None)
                         try:
                             await ws.send_str(json.dumps({'t':'event','d':dict(
                                 choice_reply, kind='business_war_choice_reply')}, ensure_ascii=False))
@@ -27524,6 +27612,7 @@ async def _coop_http_app():
                                 'guard_count': guard_count, 'guards_down': set(),
                                 'owner_pressure': 0.0,
                                 'owner_hit_seq': 0,
+                                'attempt': completed + 1,
                             }
                             if control_family and int(owner_upgrades.get('alarm') or 0) > 0:
                                 alert = json.dumps({'t':'event','d':{

@@ -212,3 +212,18 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Warm the matte paint with a single retained material proxy alongside the two already-required prison light warmup frames. Do not mutate the live car and do not add extra full-city renders. Removing the proxy is safe, but disposing its one material immediately releases the only GPU-program reference and makes the first explosion compile the variants again.
 - Deterministic `previewprisonreleaseqa + previewcarexplosion` verification kept three visible point lights, reported the clean staged release, retained all explosion/fire layers and showed no explosion-time program growth. The sampled render maximum was `32.2 ms` (`22 FPS`, current frame work `20.5 ms`). A final rerun after rebasing onto the WebView RMB/LMB changes also had no explosion-time growth and measured a `36.6 ms` render maximum at `20 FPS`.
 - The ordinary-city regression moved the player `0.193` tiles with a held `W`, rendered `37` live NPCs with `compact-readable-v264` labels and real-time shadows on, and sampled `27.1 ms` frame work / `23.5 ms` render. Server-backed status remained `Гражданский`; local chat submission advanced `chatLocalEcho`. Browser console had no runtime errors (only expected local static-server warnings for unavailable JSON API endpoints). One tab was used at a time and all tabs and the preview server were closed afterward.
+
+## Business-assault reconnect and stall recovery (2026-08-11)
+
+- Keep guard deaths, owner pressure, hit sequence and the one-time post-raid
+  token in the existing server assault session. On reconnect, return this small
+  bounded state instead of rebuilding progress from client visuals.
+- Cache a terminal decision reply by `(uid, token)` for a short bounded window.
+  A retry after a lost WebSocket response must replay the exact result without
+  charging C4, transferring ownership or applying a payout twice.
+- The client may make one timed retry only after the server cache exists. A
+  second timeout restores the decision UI and waits for reconnect recovery.
+- Stall recovery stays inside the already-bounded interior NPC list. Track
+  per-guard progress, invalidate the shared route cache first, then perform a
+  collision-checked local nudge; use an authored post only as the last fallback.
+  Do not add a city-wide scan or allocate recovery work every render frame.
