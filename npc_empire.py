@@ -26,6 +26,8 @@ COMEBACK_MAX_SECONDS = 90 * 60
 RELATION_MIN = -100
 RELATION_MAX = 100
 NPC_OWNER_BASE = -900_000
+PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
+PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
 
 
 @dataclass(frozen=True)
@@ -49,9 +51,9 @@ class EmpireProfile:
 
 
 PROFILES = (
-    EmpireProfile('leila','Лейла','Врач','Красный полумесяц','2,1','#f1f4f7','#d73b58','cross','leila_mercy','Шприц милосердия','pistol_heavy',28,72,78,84,8800),
-    EmpireProfile('rustam','Рустам','Механик','Железные волки','8,6','#264d58','#e58b32','gear','rustam_wrench','Гвоздодёр','shotgun',52,76,42,82,7600),
-    EmpireProfile('marco','Марко','Водитель','Ночные колёса','5,7','#6f1d2b','#f0c85b','wheel','marco_road','Розовый Томпсон','tommy_gun',58,62,48,70,6200),
+    EmpireProfile('leila','Лейла','Врач','Красный полумесяц','2,1','#f1f4f7','#d73b58','cross','leila_mercy','Последний аргумент','pistol_heavy',28,72,78,84,8800),
+    EmpireProfile('rustam','Рустам','Механик','Железные волки','8,6','#264d58','#e58b32','gear','rustam_wrench','Сварщик','shotgun',52,76,42,82,7600),
+    EmpireProfile('marco','Марко','Водитель','Ночные колёса','5,7','#6f1d2b','#f0c85b','wheel','marco_road','Дорожный Томми','tommy_gun',58,62,48,70,6200),
     EmpireProfile('vera','Вера','Адвокат','Белые перчатки','2,5','#30234f','#b58cff','scales','vera_verdict','Вердикт','pistol_gold',24,88,92,64,11200),
     EmpireProfile('arsen','Арсен','Оружейник','Чёрная кузня','11,2','#4a3d2b','#d18b42','anvil','arsen_forge','Кузнечный гром','rifle',74,66,32,88,8200),
     EmpireProfile('damir','Дамир','Вербовщик','Зелёный круг','13,5','#174b3e','#79d6a8','ring','damir_oath','Клятва','smg',46,58,82,94,7000),
@@ -61,8 +63,8 @@ PROFILES = (
     EmpireProfile('alisa','Алиса','Информатор','Синяя сеть','12,7','#1d4d70','#62c7ef','web','alisa_signal','Сигнал','smg',38,70,88,56,6800),
     EmpireProfile('boris','Борис','Эвакуаторщик','Жёлтые крюки','8,7','#c06b16','#ffe06d','hook','boris_tow','Буксир','shotgun',68,64,28,78,6500),
     EmpireProfile('inga','Инга','Риелтор','Розовый ключ','1,7','#b24b72','#ffd0df','key','inga_deed','Документ','pistol_heavy',22,94,84,58,12500),
-    EmpireProfile('timur','Тимур','Курьер','Синие стрелы','9,3','#3d6eaa','#ffcf4d','arrow','timur_express','Синий арбалет','smg',55,68,50,74,6100),
-    EmpireProfile('emil','Эмиль','Тренер','Красный ринг','6,7','#8f2525','#f5e7d0','fist','emil_champion','Кулак чемпиона','pistol_heavy',82,38,30,92,7200),
+    EmpireProfile('timur','Тимур','Курьер','Синие стрелы','9,3','#3d6eaa','#ffcf4d','arrow','timur_express','Экспресс','smg',55,68,50,74,6100),
+    EmpireProfile('emil','Эмиль','Тренер','Красный ринг','6,7','#8f2525','#f5e7d0','fist','emil_champion','Чемпион','pistol_heavy',82,38,30,92,7200),
     EmpireProfile('roman','Роман','Бронник','Серые пластины','10,4','#535c66','#bcd0dc','armor','roman_plate','Пробойник','rifle',64,60,36,90,8300),
     EmpireProfile('sofia','София','Журналист','Жёлтая пресса','3,3','#d7c33e','#fff4a1','press','sofia_headline','Заголовок','pistol',18,74,96,44,5200),
     EmpireProfile('viktor','Виктор «Тень»','Налётчик','Бесшумные','12,1','#211f27','#9d76c9','shadow','viktor_night','Тень','sniper',96,34,16,68,9600),
@@ -83,37 +85,6 @@ PROFILES = tuple(replace(profile, leader_name=MAFIA_BOSS_NAMES[profile.leader_id
                  for profile in PROFILES)
 
 PROFILE_BY_ID = {p.leader_id: p for p in PROFILES}
-
-# Server-authored combat/visual contract for every crime-family signature weapon.
-# The browser may provide a matching offline fallback, but assault snapshots always
-# carry this profile so damage cadence and special effects cannot be substituted by
-# stale preview state.
-WEAPON_PROFILES = {
-    'leila_mercy':    {'kind':'dart','effect':'tranquilizer','damage':7,'cooldown':980,'range':10.5,'hit':.82,'speed':18},
-    'rustam_wrench':  {'kind':'melee','effect':'nailed_bat','damage':18,'cooldown':1120,'range':1.45,'hit':.92,'speed':0},
-    'marco_road':     {'kind':'thompson','effect':'explosive','damage':7,'cooldown':720,'range':9.2,'hit':.70,'speed':23},
-    'vera_verdict':   {'kind':'revolver','effect':'ricochet','damage':12,'cooldown':1040,'range':11.0,'hit':.84,'speed':29},
-    'arsen_forge':    {'kind':'rifle','effect':'incendiary','damage':11,'cooldown':930,'range':12.0,'hit':.78,'speed':28},
-    'damir_oath':     {'kind':'smg','effect':'burst','damage':6,'cooldown':610,'range':8.6,'hit':.72,'speed':25},
-    'marat_wall':     {'kind':'shotgun','effect':'breach','damage':16,'cooldown':1480,'range':6.2,'hit':.74,'speed':22},
-    'zara_dividend':  {'kind':'hand_cannon','effect':'gold_burst','damage':13,'cooldown':990,'range':10.2,'hit':.81,'speed':27},
-    'niko_whisper':   {'kind':'sniper','effect':'poison','damage':20,'cooldown':2050,'range':15.0,'hit':.87,'speed':34},
-    'alisa_signal':   {'kind':'smg','effect':'shock','damage':6,'cooldown':680,'range':9.0,'hit':.74,'speed':26},
-    'boris_tow':      {'kind':'harpoon','effect':'pull','damage':15,'cooldown':1680,'range':10.0,'hit':.78,'speed':17},
-    'inga_deed':      {'kind':'flechette','effect':'bleed','damage':10,'cooldown':860,'range':9.8,'hit':.80,'speed':28},
-    'timur_express':  {'kind':'crossbow','effect':'arrow','damage':17,'cooldown':1420,'range':13.0,'hit':.86,'speed':16},
-    'emil_champion':  {'kind':'melee','effect':'knockout','damage':21,'cooldown':960,'range':1.25,'hit':.94,'speed':0},
-    'roman_plate':    {'kind':'rifle','effect':'armor_piercing','damage':14,'cooldown':1100,'range':12.5,'hit':.82,'speed':32},
-    'sofia_headline': {'kind':'pistol','effect':'flash','damage':8,'cooldown':820,'range':9.0,'hit':.79,'speed':25},
-    'viktor_night':   {'kind':'sniper','effect':'shadow','damage':22,'cooldown':2180,'range':15.5,'hit':.88,'speed':36},
-    'yana_frequency': {'kind':'smg','effect':'sonic','damage':7,'cooldown':650,'range':9.2,'hit':.73,'speed':25},
-    'musa_caravan':   {'kind':'rifle','effect':'scatter','damage':12,'cooldown':1050,'range':11.5,'hit':.77,'speed':27},
-}
-
-
-def weapon_profile(profile: EmpireProfile) -> dict:
-    """Return a fresh JSON-safe profile for API responses."""
-    return dict(WEAPON_PROFILES[profile.weapon_id])
 BUSINESS_INCOME = {
     'coffee': 175, 'carwash': 260, 'barbershop': 350, 'pizza': 525,
     'garage': 775, 'bar': 1200, 'club': 1900, 'warehouse': 2850,
@@ -281,6 +252,17 @@ async def ensure_schema(db_path: str) -> None:
             last_hit_at REAL NOT NULL DEFAULT 0,
             resolution TEXT DEFAULT NULL
         );
+        CREATE TABLE IF NOT EXISTS npc_empire_player_wars (
+            leader_id TEXT NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            next_attack_at INTEGER NOT NULL DEFAULT 0,
+            attacks INTEGER NOT NULL DEFAULT 0,
+            last_business_id TEXT NOT NULL DEFAULT '',
+            last_attack_at INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (leader_id, telegram_id)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_empire_player_wars_due
+            ON npc_empire_player_wars(telegram_id,next_attack_at);
         """)
         now = int(time.time())
         columns = {str(r[1]) for r in await (await db.execute("PRAGMA table_info(npc_empires)")).fetchall()}
@@ -494,19 +476,16 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             rng = _decision_roll(leader_id, int(row['last_tick']) + ticks * TICK_SECONDS)
             recruit_cost = 180 + members * 14
             target_members = 5 + (profile.aggression + profile.loyalty) // 12
-            strategic_action = False
-            if members < target_members and treasury >= recruit_cost:
+            if members < target_members and treasury >= recruit_cost and rng.random() < .72:
                 hired = min(3, target_members - members, treasury // recruit_cost)
                 if hired:
                     members += hired
                     treasury -= hired * recruit_cost
                     strength += hired * (11 + profile.aggression // 12)
                     events.append({'leader_id': leader_id, 'kind': 'recruit', 'summary': f'Нанято бойцов: {hired}'})
-                    strategic_action = True
             building_count = sum(1 for h in holdings if h['kind'] == 'building')
             expansion_cost = 1100 + building_count * 650
-            has_business = any(h['kind'] == 'business' for h in holdings)
-            if not strategic_action and has_business and treasury >= expansion_cost and building_count < 4:
+            if treasury >= expansion_cost and building_count < 4 and rng.random() < (.16 + profile.aggression / 500):
                 choices = [key for key in GENERIC_BUILDINGS if key not in building_owner and key != profile.hq_key]
                 if choices:
                     key = choices[rng.randrange(len(choices))]
@@ -520,15 +499,14 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     )
                     treasury -= expansion_cost
                     events.append({'leader_id': leader_id, 'kind': 'expand', 'target_id': key,
-                                   'summary': f'{profile.gang_name} создали опорный штаб {key}'})
-                    strategic_action = True
+                                   'summary': f'{profile.gang_name} заняли здание {key}'})
             # A faction may buy a neutral business. Player-owned property is
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
             owned_businesses = [h for h in holdings if h['kind'] == 'business']
             neutral_businesses = [bid for bid in BUSINESS_PRICE
                                   if bid not in property_owned and bid not in business_owner]
-            if not strategic_action and neutral_businesses and len(owned_businesses) < 2:
+            if neutral_businesses and len(owned_businesses) < 2 and rng.random() < .14:
                 neutral_businesses.sort(key=lambda bid: BUSINESS_PRICE[bid])
                 affordable = [bid for bid in neutral_businesses
                               if treasury >= int(BUSINESS_PRICE[bid] * .65)]
@@ -548,15 +526,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         (bid, npc_owner_uid(leader_id), profile.gang_name, now, now+300),
                     )
                     events.append({'leader_id':leader_id,'kind':'business_bought','target_id':bid,
-                                   'summary':f'{profile.gang_name} захватили бизнес {bid}'})
-                    strategic_action = True
-            if not strategic_action:
-                patrol = next((h for h in holdings if h['kind'] == 'business'), None)
-                patrol = patrol or next((h for h in holdings if h['kind'] in ('building', 'hq')), None)
-                if patrol:
-                    events.append({'leader_id': leader_id, 'kind': 'patrol',
-                                   'target_id': str(patrol['holding_id']),
-                                   'summary': f'{profile.gang_name} проверяют владение {patrol["holding_id"]}'})
+                                   'summary':f'{profile.gang_name} купили бизнес {bid}'})
             # Autonomous wars only move NPC-controlled holdings here. Battles
             # involving a player are created as explicit defendable sessions.
             if rng.random() < (.025 + profile.aggression/1600):
@@ -639,9 +609,89 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
     return events
 
 
+def _player_war_interval(profile: EmpireProfile) -> int:
+    """Aggressive families strike more often, but never on a render/game loop."""
+    return 20 * 60 + max(0, 100 - profile.aggression) * 12
+
+
+async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -> list[dict]:
+    """Resolve due, server-authoritative attacks against one player's businesses."""
+    events: list[dict] = []
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        wars = await (await db.execute(
+            "SELECT r.leader_id FROM npc_empire_relations r JOIN npc_empires e ON e.leader_id=r.leader_id "
+            "WHERE r.telegram_id=? AND r.pact='war' AND e.status NOT IN ('ruined','vassal')",
+            (telegram_id,),
+        )).fetchall()
+        active = {str(row['leader_id']) for row in wars}
+        if active:
+            await db.executemany(
+                "INSERT OR IGNORE INTO npc_empire_player_wars(leader_id,telegram_id,next_attack_at) VALUES(?,?,?)",
+                [(leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS) for leader_id in active],
+            )
+        stale = await (await db.execute(
+            "SELECT leader_id FROM npc_empire_player_wars WHERE telegram_id=?", (telegram_id,)
+        )).fetchall()
+        for row in stale:
+            if str(row['leader_id']) not in active:
+                await db.execute(
+                    "DELETE FROM npc_empire_player_wars WHERE leader_id=? AND telegram_id=?",
+                    (str(row['leader_id']), telegram_id),
+                )
+        has_businesses = bool(await (await db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='player_businesses'"
+        )).fetchone())
+        businesses = []
+        if has_businesses:
+            businesses = await (await db.execute(
+                "SELECT biz_id FROM player_businesses WHERE telegram_id=? ORDER BY biz_id", (telegram_id,)
+            )).fetchall()
+        due = await (await db.execute(
+            "SELECT leader_id,attacks FROM npc_empire_player_wars "
+            "WHERE telegram_id=? AND next_attack_at<=? ORDER BY next_attack_at,leader_id",
+            (telegram_id, now),
+        )).fetchall()
+        for row in due:
+            leader_id = str(row['leader_id'])
+            if leader_id not in active:
+                continue
+            profile = PROFILE_BY_ID[leader_id]
+            biz_id = ''
+            if businesses:
+                biz_id = str(businesses[int(row['attacks']) % len(businesses)]['biz_id'])
+                blocked_until = now + PLAYER_WAR_BUSINESS_BLOCK_SECONDS
+                notice = f'{profile.gang_name} атаковала бизнес. Работа остановлена на 10 минут.'
+                await db.execute(
+                    "UPDATE player_businesses SET blocked_until=MAX(COALESCE(blocked_until,0),?),"
+                    "last_event_at=?,pending_notice=? WHERE telegram_id=? AND biz_id=?",
+                    (blocked_until, now, notice, telegram_id, biz_id),
+                )
+                summary = f'{profile.leader_name} и {profile.gang_name} разбомбили бизнес {biz_id}'
+                kind = 'player_business_bombed'
+            else:
+                summary = f'{profile.leader_name} прислал людей запугать игрока, но бизнесов у цели нет'
+                kind = 'player_harassed'
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
+                (leader_id, kind, str(telegram_id), summary, now),
+            )
+            await db.execute(
+                "UPDATE npc_empire_player_wars SET attacks=attacks+1,last_business_id=?,last_attack_at=?,"
+                "next_attack_at=? WHERE leader_id=? AND telegram_id=?",
+                (biz_id, now, now + _player_war_interval(profile), leader_id, telegram_id),
+            )
+            events.append({'leader_id': leader_id, 'kind': kind, 'business_id': biz_id,
+                           'summary': summary, 'created_at': now})
+        await db.commit()
+    return events
+
+
 async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> dict:
     now = int(now or time.time())
     await advance(db_path, now)
+    player_war_events = await _apply_player_war_pressure(db_path, telegram_id, now)
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         rows = await (await db.execute("SELECT * FROM npc_empires ORDER BY leader_id")).fetchall()
@@ -657,25 +707,17 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         recent = [dict(r) for r in await (await db.execute(
             "SELECT leader_id,kind,target_id,summary,created_at FROM npc_empire_events ORDER BY id DESC LIMIT 30"
         )).fetchall()]
-        latest_rows = [dict(r) for r in await (await db.execute(
-            "SELECT e.leader_id,e.kind,e.target_id,e.summary,e.created_at FROM npc_empire_events e "
-            "WHERE e.id=(SELECT MAX(x.id) FROM npc_empire_events x WHERE x.leader_id=e.leader_id)"
-        )).fetchall()]
-        property_owned = {str(r[0]) for r in await (await db.execute(
-            "SELECT biz_id FROM business_property_owners"
-        )).fetchall()}
         district_rows = [dict(r) for r in await (await db.execute(
             "SELECT district_id,leader_id,score,runner_up_id,runner_up_score,contested,changed_at "
             "FROM npc_empire_districts ORDER BY district_id"
         )).fetchall()]
+        war_rows = {str(r['leader_id']): dict(r) for r in await (await db.execute(
+            "SELECT leader_id,next_attack_at,attacks,last_business_id,last_attack_at "
+            "FROM npc_empire_player_wars WHERE telegram_id=?", (telegram_id,)
+        )).fetchall()}
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
         holdings.setdefault(str(row['leader_id']), []).append(dict(row))
-    latest_event: dict[str, dict] = {}
-    for event in latest_rows:
-        latest_event.setdefault(str(event['leader_id']), event)
-    business_owner = {str(row['holding_id']) for row in holdings_rows if row['kind'] == 'business'}
-    building_owner = {str(row['holding_id']) for row in holdings_rows if row['kind'] == 'building'}
     result = []
     for row in rows:
         leader_id = str(row['leader_id'])
@@ -684,40 +726,11 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         score = clamp_relation(relation.get('score', 0))
         hq_key = str(row['hq_key'] or '')
         hq_r, hq_c = _hq_coords(hq_key) if hq_key else (0, 0)
-        owned = holdings.get(leader_id, [])
-        event = latest_event.get(leader_id)
-        if event and now - int(event.get('created_at') or 0) <= TICK_SECONDS:
-            activity = {**event, 'phase': 'working', 'complete_at': int(row['next_action_at'] or now)}
-        else:
-            target_members = 5 + (profile.aggression + profile.loyalty) // 12
-            recruit_cost = 180 + int(row['members'] or 0) * 14
-            neutral = [bid for bid in BUSINESS_PRICE if bid not in property_owned and bid not in business_owner
-                       and int(row['treasury'] or 0) >= int(BUSINESS_PRICE[bid] * .65)]
-            buildings = sorted(key for key in GENERIC_BUILDINGS
-                               if key not in building_owner and key != hq_key)
-            if int(row['members'] or 0) < target_members and int(row['treasury'] or 0) >= recruit_cost:
-                activity = {'kind': 'recruit', 'target_id': hq_key, 'phase': 'travel',
-                            'summary': 'Вербует новых бойцов в штабе'}
-            elif neutral and len([h for h in owned if h['kind'] == 'business']) < 2:
-                activity = {'kind': 'business_capture', 'target_id': sorted(neutral, key=BUSINESS_PRICE.get)[0],
-                            'phase': 'travel', 'summary': 'Едет захватывать нейтральный бизнес'}
-            elif any(h['kind'] == 'business' for h in owned) and buildings:
-                activity = {'kind': 'hq_expand', 'target_id': buildings[0], 'phase': 'travel',
-                            'summary': 'Выбирает место для нового опорного штаба'}
-            else:
-                target = next((str(h['holding_id']) for h in owned if h['kind'] == 'business'), hq_key)
-                activity = {'kind': 'patrol', 'target_id': target, 'phase': 'travel',
-                            'summary': 'Проверяет бойцов и владения'}
-            # Stable for the whole economic interval so a 30-second client poll
-            # cannot reset a boss who is halfway through a cross-city route.
-            activity['created_at'] = int(row['last_tick'] or now)
-            activity['complete_at'] = int(row['next_action_at'] or now + TICK_SECONDS)
         result.append({
             'leader_id': leader_id, 'leader_name': profile.leader_name, 'title': profile.title,
             'gang_name': profile.gang_name, 'color': profile.color, 'accent': profile.accent,
             'emblem': profile.emblem, 'weapon_id': profile.weapon_id,
             'weapon_name': profile.weapon_name, 'weapon_base': profile.weapon_base,
-            'weapon_profile': weapon_profile(profile),
             'traits': {'aggression':profile.aggression,'commerce':profile.commerce,
                        'diplomacy':profile.diplomacy,'loyalty':profile.loyalty,
                        'intelligence':(profile.commerce+profile.diplomacy+profile.loyalty)//3},
@@ -732,8 +745,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'peak_power': int(row['peak_power'] or 0),
             'relation': score, 'relation_band': relation_band(score),
             'pact': str(relation.get('pact') or 'none'),
+            'war_pressure': war_rows.get(leader_id),
             'holdings': holdings.get(leader_id, []),
-            'activity': activity,
         })
     leaderboard = sorted(result, key=lambda e: (
         -e['district_count'], -e['dominance_score'], -e['strength'],
@@ -747,6 +760,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     } for row in district_rows]
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],
             'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent,
+            'player_war_events': player_war_events,
             'server_time': now, 'tick_seconds': TICK_SECONDS}
 
 
@@ -758,6 +772,8 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
     rules = {
         'respect': (0, 3, 3600),
         'gift': (500, 12, 0),
+        'apologize': (0, 8, 3 * 3600),
+        'compensation': (1500, 30, 0),
         'insult': (0, -10, 900),
         'threaten': (0, -18, 1800),
         'declare_war': (0, -200, 0),
@@ -786,6 +802,10 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': 60}
         if action == 'truce' and score < -60:
             await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': -60}
+        if action == 'declare_war' and score >= 0:
+            await db.rollback(); return {'ok': False, 'error': 'war requires negative relation', 'required': -1}
+        if action == 'declare_war' and pact == 'war':
+            await db.rollback(); return {'ok': False, 'error': 'already at war'}
         char = await (await db.execute("SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,))).fetchone()
         cash = int(char['cash'] if char else 0)
         if cost and cash < cost:
@@ -798,13 +818,24 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
         elif action == 'break_pact': score = clamp_relation(score + delta); pact = 'none'
         else:
             score = clamp_relation(score + delta)
-            if score <= -61: pact = 'war'
+            if action == 'compensation' and pact == 'war' and score >= -60: pact = 'truce'
             elif pact == 'war' and score > -21: pact = 'none'
         await db.execute(
             "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?,?,?,?,?) "
             "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,pact=excluded.pact,last_action_at=excluded.last_action_at",
             (leader_id, telegram_id, score, pact, now),
         )
+        if pact == 'war':
+            await db.execute(
+                "INSERT INTO npc_empire_player_wars(leader_id,telegram_id,next_attack_at) VALUES(?,?,?) "
+                "ON CONFLICT(leader_id,telegram_id) DO NOTHING",
+                (leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS),
+            )
+        else:
+            await db.execute(
+                "DELETE FROM npc_empire_player_wars WHERE leader_id=? AND telegram_id=?",
+                (leader_id, telegram_id),
+            )
         summary = f'{action}: отношение {score:+d}'
         await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
@@ -853,18 +884,20 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
             (leader_id, telegram_id, now),
         )
         await db.execute(
+            "INSERT INTO npc_empire_player_wars(leader_id,telegram_id,next_attack_at) VALUES(?,?,?) "
+            "ON CONFLICT(leader_id,telegram_id) DO NOTHING",
+            (leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS),
+        )
+        await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
             (leader_id, 'assault_started', str(telegram_id), f'Начат штурм штаба {profile.gang_name}', now),
         )
         await db.commit()
     return {'ok': True, 'token': token, 'leader_id': leader_id, 'leader_name': profile.leader_name,
             'gang_name': profile.gang_name, 'hq_r': hq_r, 'hq_c': hq_c,
-            'guards': [{'id':i,'hp':hp,'max_hp':hp,'weapon':profile.weapon_base,
-                        'weapon_id':profile.weapon_id,'weapon_name':profile.weapon_name,
-                        'weapon_profile':weapon_profile(profile)} for i,hp in enumerate(guards)],
+            'guards': [{'id':i,'hp':hp,'max_hp':hp,'weapon':profile.weapon_base} for i,hp in enumerate(guards)],
             'boss': {'hp':boss_max,'max_hp':boss_max,'weapon':profile.weapon_base,
-                     'weapon_id':profile.weapon_id,'weapon_name':profile.weapon_name,
-                     'weapon_profile':weapon_profile(profile)},
+                     'weapon_id':profile.weapon_id,'weapon_name':profile.weapon_name},
             'expires_at': now+ASSAULT_SECONDS}
 
 
