@@ -1,7 +1,5 @@
 <!DOCTYPE html><!-- v318: authoritative roaming gangs capture businesses, wage wars and can be hired. -->
 <!-- v327: prison alarm uses fixed professional double-pulse lightbars. -->
-<!-- v325: high-volume 3D diagnostics publish on the shared 250 ms cadence. -->
-<!-- v324: standard opaque static detail geometries share spatial render batches. -->
 <!-- v323: grouped static outlines retain their parent world transform. -->
 <!-- v320: desktop RMB aim keeps a deduplicated LMB click fallback for reliable firing. -->
 <!-- v319: unarmed player and every walking humanoid NPC use a restrained arm swing. -->
@@ -10239,7 +10237,11 @@ function _setAmbulanceCrewPose(v, centerR, centerC, ang, walking, carrying, dt) 
 }
 
 function _deathWasCausedByPlayer(source){
-  const kind=String(source?.kind||'player').toLowerCase();
+  // A corpse discovered later by the service scan can have no attacker at all
+  // (gang crossfire, police or environment). Missing attribution must never
+  // manufacture a player murder/wanted signal.
+  if(!source)return false;
+  const kind=String(source.kind||'').toLowerCase();
   return !['city_cop','police','npc','world_cop','murder_police'].includes(kind);
 }
 let _lastAnyNpcPlayerKillAt=0;
@@ -10863,12 +10865,7 @@ function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
   goal=goal||best;const path=[];
   while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
   path.reverse();cop._policeFootRoute=path;cop._policeFootRouteIndex=0;
-  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;
-  // Collision geometry is static and the mover still invalidates immediately
-  // when the target shifts by two tiles or a waypoint makes no progress. Keep
-  // a successful route long enough that stationary pursuits do not rebuild the
-  // same BFS every 1.6 seconds for every officer around one obstacle.
-  cop._policeFootRouteUntil=now+2600;cop._policeFootRouteRetryAt=path.length?now+240:now+620;
+  cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;cop._policeFootRouteUntil=now+1600;cop._policeFootRouteRetryAt=path.length?now+240:now+520;
   const routeMs=performance.now()-routeStartedAt;_policeFootRoutePlanCount++;_policeFootRouteMaxMs=Math.max(_policeFootRouteMaxMs,routeMs);
   return path.length>0;
 }
@@ -19997,20 +19994,20 @@ function _syncNpcCustodies(fresh){
   const bots=[];
   for(const q of _npcCustodies){
     if(!q||q.hidden_in_vehicle)continue;
-    const jailed=q.phase==='jailed',released=q.phase==='released';
+    const jailed=q.phase==='jailed',released=q.phase==='released',wounded=q.phase==='wounded';
     const look=jailed?{...(q.look||{}),body:2,hat:0,suit:'#f07818',prisoner:true}:{...(q.look||{})};
     bots.push({id:`custody_${q.bot_id}`,x:+q.x||0,y:+q.y||0,ang:+q.ang||0,
       tx:+q.x||0,ty:+q.y||0,tAng:+q.ang||0,hp:100,max_hp:100,level:1,
       kind:jailed?'prisoner':(q.kind||'gang_fighter'),role:jailed?'prisoner':'gang_fighter',
-      faction:q.faction||'purple',weapon:'none',look,act:released?'walk':'idle',
-      _lifeState:jailed?'prisoner':released?'walk':'surrender',_policeCuffed:!!q.cuffed,
+      faction:q.faction||'purple',weapon:'none',look,act:released?'walk':wounded?'hurt':'idle',
+      _lifeState:jailed?'prisoner':released?'walk':wounded?'downed':'surrender',_policeCuffed:!!q.cuffed,
       prisoner:jailed,jailIn:+q.jail_in||0,custodyPhase:q.phase,name:q.name||'Задержанный'});
   }
   if(bots.length)aggroZones.npc_custody={state:'custody',bots,covers:[],cap_left:0,next_respawn:0,faction:'prisoner',is_npc_custody:true};
   else delete aggroZones.npc_custody;
   const liveVehicles=new Set();
   for(const q of _npcCustodies){
-    if(!['escort','loading','transport','unloading'].includes(String(q.phase||'')))continue;
+    if(q.mode==='foot'||!['escort','loading','transport','unloading'].includes(String(q.phase||'')))continue;
     const id=`npc_custody_vehicle_${q.id}`;liveVehicles.add(id);
     let v=serviceVehicles.find(x=>x?._npcCustodyRemote&&x.id===id);
     if(!v){v={id,kind:'police',state:'police_arrest_scene',_npcCustodyRemote:true,_policeTier:0,
@@ -65208,6 +65205,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d327-lightbars-v325-telemetry-static-geometry-matte-wreck"></script>
+<script type="module" src="three_preview.js?v=3d327-prison-professional-lightbars"></script>
 </body>
 </html>
