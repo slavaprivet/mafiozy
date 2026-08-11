@@ -121,8 +121,8 @@ def publish_coop_api_json(api_url: str):
         log("    У друзей без бот-кнопки лобби работать не будет.")
         return
     token = token_path.read_text(encoding="utf-8").strip()
-    if not token.startswith("ghp_"):
-        log("[!] .token не похож на GitHub PAT (нет 'ghp_' префикса).")
+    if not token.startswith(("ghp_", "github_pat_")):
+        log("[!] .token не похож на GitHub PAT (ожидался ghp_ или github_pat_).")
         return
 
     repo   = "slavaprivet/mafiozi-battle"
