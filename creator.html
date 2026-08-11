@@ -388,7 +388,7 @@ if (tg) { tg.ready(); tg.expand(); }
 // ── STATE ──────────────────────────────────────────────────────────────────
 const state = { gender: 0, skin: 0, body: 0, face: 0, hair: 0, hat: 0 };
 const urlP = new URLSearchParams(location.search);
-const creatorApi = String(urlP.get('api') || '').replace(/\/$/,'');
+let creatorApi = String(urlP.get('api') || '').replace(/\/$/,'');
 const creatorUid = String(urlP.get('uid') || '');
 const creatorAccount = String(urlP.get('account_uid') || creatorUid || '');
 const creatorReturn = urlP.get('return') || '';
@@ -1313,6 +1313,38 @@ function setSaveState(stateName, message) {
   }
   if (saveStatus) saveStatus.textContent = message || '';
 }
+async function refreshCreatorApi() {
+  const manifests=[new URL('coop_api.json',location.href),new URL('https://slavaprivet.github.io/mafiozy/coop_api.json')];
+  for(const manifestUrl of manifests){
+    try {
+      manifestUrl.searchParams.set('t',String(Date.now()));
+      const response=await fetch(manifestUrl.href,{cache:'no-store'});
+      const manifest=await response.json();
+      const fresh=String(manifest?.base||'').replace(/\/$/,'');
+      const valid=/^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(fresh)||/^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(fresh);
+      if(!response.ok||!valid)continue;
+      creatorApi=fresh;
+      document.documentElement.dataset.creatorApi=fresh;
+      return fresh;
+    } catch(e) {}
+  }
+  return '';
+}
+async function postCharacterLook(apiBase, creatingProfile, payload, timeoutMs=15000) {
+  const endpoint = creatingProfile
+    ? `${apiBase}/profiles/${encodeURIComponent(creatorAccount)}`
+    : `${apiBase}/character/${encodeURIComponent(creatorUid)}/look`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(),timeoutMs);
+  try {
+    const response = await fetch(endpoint, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:controller.signal
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.message || 'Сервер не сохранил персонажа');
+    return result;
+  } finally { clearTimeout(timeout); }
+}
 function buildCharacterSelectionTarget(savedCharacterId='') {
   let target;
   try { target = new URL(creatorReturn || 'world.html',location.href); }
@@ -1374,19 +1406,16 @@ async function saveChar() {
   if (creatorApi && /^\d+$/.test(creatorAccount) && (/^\d+$/.test(creatorUid) || !creatorUid)) {
     try {
       const creatingProfile = !creatorUid;
-      const endpoint = creatingProfile
-        ? `${creatorApi}/profiles/${encodeURIComponent(creatorAccount)}`
-        : `${creatorApi}/character/${encodeURIComponent(creatorUid)}/look`;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(),15000);
-      let response;
+      let result;
       try {
-        response = await fetch(endpoint, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:controller.signal
-        });
-      } finally { clearTimeout(timeout); }
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result.ok) throw new Error(result.message || 'Сервер не сохранил персонажа');
+        result=await postCharacterLook(creatorApi,creatingProfile,payload,5000);
+      } catch(firstError) {
+        const failedApi=creatorApi;
+        const freshApi=await refreshCreatorApi();
+        if(!freshApi||freshApi===failedApi)throw firstError;
+        setSaveState('saving','Туннель обновился. Повторяем сохранение…');
+        result=await postCharacterLook(freshApi,creatingProfile,payload);
+      }
       const savedCharacterId = String(result.profile?.character_id || creatorUid || '');
       try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
       if (saveBtn) saveBtn.textContent = 'СОХРАНЕНО ✓';
