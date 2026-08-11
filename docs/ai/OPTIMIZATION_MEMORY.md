@@ -929,3 +929,51 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   view naturally rose to 2,043 calls / `26.1 ms` render while retaining 22 FPS;
   compare like-for-like camera views and remember that only the selected weapon
   exposes its detail subset.
+
+## Player wars with autonomous bosses (2026-08-11)
+
+- Keep durable war pressure on the server tick/state path. A declared war stores
+  one `next_attack_at` row per boss/player pair; a due strike blocks one owned
+  business and immediately advances the deadline in the same transaction. This
+  prevents duplicate bombing rewards/effects when several clients poll together.
+- Do not add a new proximity timer for hostile bosses. Mark the boss and its
+  already bounded escort pool from the 30-second empire snapshot, then activate
+  fire inside the existing NPC update pass. The crew synchronizer remains capped
+  at 12 visible members and runs at its existing 1.8-second cadence.
+- A relation score and a war pact are different state. Negative sentiment alone
+  must not silently start a war; the explicit declaration is allowed only below
+  zero. This distinction is also important for UI labels and for cleaning stale
+  scheduled attacks after compensation, truce, alliance or an empire collapse.
+- Regression measurement: the server integrity scenario (schema, declaration
+  guard, one due business strike, deduplication state and truce cleanup) completes
+  in the same test batch in about 1.5 seconds. Inline `world.html` syntax checks
+  pass across all 6 script blocks; the change adds no render objects or draw calls.
+- A boss needs a concrete world destination, not just an economic event label.
+  Derive one deterministic `activity` per 75-second server slot and include its
+  target in the existing 30-second state snapshot. Do not create a movement
+  timer per boss. A live browser sample showed the selected boss move 5.11 tiles
+  in 6 seconds and finish a 14-node route while the existing escort pool stayed
+  capped at 12 and the world simulation held its configured 30 FPS.
+- UI portraits must not silently remain on the 2D fallback in a 3D preview.
+  Every relative module referenced by `/preview/world.html` needs a matching
+  `/preview/...` route. The dossier renderer reuses one offscreen WebGL snapshot
+  scene for all static canvases, rebuilding only the selected character between
+  draws; do not allocate 19 simultaneous renderers. Browser QA confirmed the
+  first six empire cards and the opened dossier all reported `portraitMode=3d`.
+
+## Empire ownership colours, headquarters and work loops (2026-08-11, v357)
+
+- Keep family identity on the existing 72-slot NPC instancing path. Bosses and
+  their bounded escorts carry the same server-authored primary/accent pair;
+  reuse the existing gang aura and clothing instance colours instead of adding
+  a mesh or material per fighter.
+- Headquarters are a fixed pool of 19 marker groups. The dynamic bridge sends
+  only active, nearby, server-owned HQs; losing `hq_key` or entering `ruined`
+  removes the ring, rooftop flag and gang-name label on the next snapshot.
+  Label canvases repaint only when ownership, name, colour or coordinates change.
+- Reaching an activity target must not leave a boss idle until the next
+  75-second server slot. After a short visible inspection dwell, reuse the
+  collision-safe route planner for deterministic nearby work waypoints. Do not
+  add timers or a second NPC scan. Browser QA observed Sofia move 10.74 tiles in
+  nine seconds while her route shrank from 45 to 13 nodes; the bounded scene
+  exposed 11 escorts and 12 active nearby HQ markers.

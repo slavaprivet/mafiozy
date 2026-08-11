@@ -9028,6 +9028,12 @@ const SPECIALIST_NPCS = UNIQUE_NPC_BLUEPRINTS.map((def,index)=>{const visual=MAF
 });});
 const EMPIRE_CREW_NPCS=[];
 let _nextEmpireCrewSyncAt=0,_empireCrewSerial=0;
+function _applyEmpireCrewStyle(crew,leader){
+  const primary=leader._empireColor||leader.look?.suit||'#872f3b',accent=leader._empireAccent||leader.look?.accent||'#e8bd67';
+  crew._empireColor=primary;crew._empireAccent=accent;crew._empireStyle=leader._empireStyle;crew._empireGang=leader._empireGang;
+  const sig=`${primary}:${accent}`;
+  if(crew._empireOutfitSig!==sig){crew._empireOutfitSig=sig;crew.look={...(crew.look||{}),suit:primary,trousers:accent,accent};}
+}
 function _syncEmpireBossCrews(now=performance.now()){
   if(now<_nextEmpireCrewSyncAt)return;_nextEmpireCrewSyncAt=now+1800;
   const leaders=SPECIALIST_NPCS.filter(n=>!n._hiddenByEmpire&&n._empireMembers>1)
@@ -9043,6 +9049,7 @@ function _syncEmpireBossCrews(now=performance.now()){
     const id=String(leader._specialistId),have=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id).length,want=desired.get(id)||0;
     for(const crew of EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id)){
       crew._empirePlayerWar=!!leader._empirePlayerWar;
+      _applyEmpireCrewStyle(crew,leader);
       if(!crew._empirePlayerWar&&crew._empireWarFighting){crew._empireWarFighting=false;crew._fighting=false;crew._nextShootAt=0;}
     }
     for(let slot=have;slot<want&&EMPIRE_CREW_NPCS.length<12;slot++){
@@ -9054,6 +9061,7 @@ function _syncEmpireBossCrews(now=performance.now()){
         _empirePlayerWar:!!leader._empirePlayerWar,
         _empireWeaponId:leader._empireWeaponId,_empireWeaponName:leader._empireWeaponName,
         _empireWeaponProfile:leader._empireWeaponProfile,speed:1.05+(slot%2)*.08});
+      _applyEmpireCrewStyle(crew,leader);
       EMPIRE_CREW_NPCS.push(crew);NPCS.push(crew);
     }
   }
@@ -9106,6 +9114,16 @@ function _empireActivityTarget(empire) {
   const rival=_npcEmpireById?.get?.(id);
   if(rival)return _nearestEmpireWalkPoint(+rival.hq_r||0,+rival.hq_c||0);
   return _nearestEmpireWalkPoint(+empire?.hq_r||0,+empire?.hq_c||0);
+}
+function _empireBossWorkWaypoint(n){
+  const base=n._empireActivityBaseTarget||n._empireTarget;if(!base)return null;
+  const step=(n._empireWorkStep=(+n._empireWorkStep||0)+1),style=Math.max(0,+n._empireStyle||0);
+  for(let retry=0;retry<6;retry++){
+    const angle=(style*.73+step*1.91+retry*.82)%(Math.PI*2),radius=1.7+(step+retry)%3*.75;
+    const point=_nearestEmpireWalkPoint(base.r+Math.sin(angle)*radius,base.c+Math.cos(angle)*radius);
+    if(point&&Math.hypot(point.r-n.r,point.c-n.c)>1.15)return point;
+  }
+  return base;
 }
 function _empireActivityLabel(activity) {
   return ({recruit:'ВЕРБУЕТ БОЙЦОВ',collect:'ПРОВЕРЯЕТ ДОХОД',inspect:'ПРОВЕРЯЕТ ПОСТЫ',return_hq:'ВОЗВРАЩАЕТСЯ В ШТАБ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
@@ -14721,13 +14739,18 @@ function updateNpcs(dt) {
         }
         const moved=_npcAdvanceRoute(n,dt,Math.max(1.18,(n.speed||.8)*1.55),_empireBossPassable);
         if(moved==='arrived'||Math.hypot(n.r-target.r,n.c-target.c)<1.05){
-          _clearNpcRoute(n);n._empireActionArrived=true;n.walking=false;n.walkPhase=0;
+          _clearNpcRoute(n);n._empireActionArrived=true;n._empireActionArrivedAt=now;n._empireNextWorkMoveAt=now+2600+(Math.max(0,+n._empireStyle||0)%5)*430;n.walking=false;n.walkPhase=0;
           n.cryText=_empireActivityLabel(n._empireAction);n.cryUntil=now+4200;
         }else if(moved==='blocked'||moved===false){
           _clearNpcRoute(n);n._empireRouteRetryAt=now+1200;n.walking=false;
         }
       }else{
         n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
+        if(target&&now>=(n._empireNextWorkMoveAt||Infinity)){
+          const workTarget=_empireBossWorkWaypoint(n);
+          if(workTarget){n._empireTarget=workTarget;n._empireActionArrived=false;n._empireRouteRetryAt=0;continue;}
+          n._empireNextWorkMoveAt=now+4200;
+        }
         if(now>=(n._empireNextWorkTalkAt||0)){
           n._empireNextWorkTalkAt=now+9000+Math.random()*7000;
           n.cryText=_empireActivityLabel(n._empireAction);n.cryUntil=now+2400;
@@ -16797,7 +16820,7 @@ function _installNpcEmpireFallbacks(){
       activity:{kind:'patrol',target_id:'',phase:'travel',created_at:0,summary:'Проверяет бойцов и владения'}});
     const empire=_npcEmpireById.get(id);npc._empireMembers=Math.max(1,+empire.members||1);
     npc._empireHqR=+empire.hq_r||npc.r;npc._empireHqC=+empire.hq_c||npc.c;
-    if(!npc._empireAction){npc._empireAction=empire.activity;npc._empireActionKey=`${empire.activity?.kind||'patrol'}:${empire.activity?.target_id||''}:offline`;npc._empireTarget={r:npc.r,c:npc.c};}
+    if(!npc._empireAction){npc._empireAction=empire.activity;npc._empireActionKey=`${empire.activity?.kind||'patrol'}:${empire.activity?.target_id||''}:offline`;npc._empireTarget={r:npc.r,c:npc.c};npc._empireActivityBaseTarget=npc._empireTarget;}
   }
 }
 _installNpcEmpireFallbacks();
@@ -16963,7 +16986,7 @@ function drawNpcEmpireHoldings(r0,r1,c0,c1){
       const point=_npcEmpireHoldingPoint(empire,holding);if(!point||point.r<r0-4||point.r>r1+4||point.c<c0-4||point.c>c1+4)continue;
       const p=w2s(point.r,point.c),isHq=holding.kind==='hq',primary=empire.color||'#872f3b',accent=empire.accent||'#e8bd67',wave=Math.sin(now*.004+String(empire.leader_id).length)*3;
       ctx.save();ctx.lineCap='round';ctx.strokeStyle='#d4bd88';ctx.lineWidth=isHq?3:2;ctx.shadowColor=primary;ctx.shadowBlur=isHq?16:8;ctx.beginPath();ctx.moveTo(p.x,p.y-(isHq?72:56));ctx.lineTo(p.x,p.y-(isHq?151:104));ctx.stroke();ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(p.x,p.y-(isHq?148:102));ctx.lineTo(p.x+(isHq?50:31),p.y-(isHq?139:96)+wave);ctx.lineTo(p.x+(isHq?42:27),p.y-(isHq?117:81));ctx.lineTo(p.x,p.y-(isHq?125:87));ctx.closePath();ctx.fill();ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(p.x,p.y-(isHq?132:91));ctx.lineTo(p.x+(isHq?46:29),p.y-(isHq?126:86)+wave*.6);ctx.lineTo(p.x+(isHq?42:27),p.y-(isHq?117:81));ctx.lineTo(p.x,p.y-(isHq?125:87));ctx.closePath();ctx.fill();ctx.shadowBlur=0;
-      if(isHq){ctx.font='900 11px Arial';ctx.textAlign='center';ctx.textBaseline='middle';const label=`🏛️ ШТАБ · ${String(empire.leader_name||'БОСС').toUpperCase()}`,tw=Math.min(250,ctx.measureText(label).width+24);ctx.fillStyle='rgba(7,9,13,.95)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-181,tw,24,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff1cf';ctx.fillText(label,p.x,p.y-169);}
+      if(isHq){ctx.font='900 11px Arial';ctx.textAlign='center';ctx.textBaseline='middle';const label=`🚩 ШТАБ · ${String(empire.gang_name||empire.leader_name||'БАНДА').toUpperCase()}`,tw=Math.min(250,ctx.measureText(label).width+24);ctx.fillStyle='rgba(7,9,13,.95)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-181,tw,24,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff1cf';ctx.fillText(label,p.x,p.y-169);}
       ctx.restore();
     }
   }
@@ -17747,7 +17770,7 @@ async function loadNpcEmpireState(showError=false){
         const atWar=npc._empirePact==='war';npc._empirePlayerWar=atWar;
         if(!atWar&&npc._empireWarFighting){npc._empireWarFighting=false;npc._fighting=false;npc._nextShootAt=0;}
         const action=empire.activity||null,actionKey=action?`${action.kind}:${action.target_id||empire.hq_key||''}:${action.created_at||0}`:'';
-        if(actionKey!==npc._empireActionKey){npc._empireAction=action;npc._empireActionKey=actionKey;npc._empireTarget=_empireActivityTarget(empire);npc._empireActionArrived=false;npc._empireRouteRetryAt=0;_clearNpcRoute(npc);}
+        if(actionKey!==npc._empireActionKey){npc._empireAction=action;npc._empireActionKey=actionKey;npc._empireTarget=_empireActivityTarget(empire);npc._empireActivityBaseTarget=npc._empireTarget;npc._empireActionArrived=false;npc._empireActionArrivedAt=0;npc._empireNextWorkMoveAt=0;npc._empireWorkStep=0;npc._empireRouteRetryAt=0;_clearNpcRoute(npc);}
       }
       const at=NPCS.indexOf(npc);if(npc._hiddenByEmpire&&at>=0)NPCS.splice(at,1);else if(!npc._hiddenByEmpire&&at<0)NPCS.push(npc);
     }
@@ -41683,6 +41706,10 @@ function drawNpcLifePose2D(p,npc,now){
 function drawNpc(npc) {
   const p = w2s(npc.r, npc.c);
   const _drawNow=performance.now(),_knocked=!!(npc._knockedUntil&&npc._knockedUntil>_drawNow);
+  if(!npc.dead&&(npc._empireBoss||npc._empireCrew)){
+    const primary=npc._empireColor||npc.look?.suit||'#d43d55',accent=npc._empireAccent||npc.look?.accent||primary;
+    ctx.save();ctx.translate(p.x,p.y+1);ctx.scale(1,.42);ctx.beginPath();ctx.arc(0,0,npc._empireBoss?19:16,0,Math.PI*2);ctx.fillStyle=primary;ctx.globalAlpha=.22;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=primary;ctx.lineWidth=npc._empireBoss?4:3;ctx.shadowColor=accent;ctx.shadowBlur=npc._empireBoss?12:7;ctx.stroke();ctx.restore();
+  }
   const _lifePoseArms=!npc.dead&&!_knocked&&[
     NPC_LIFE_STATES.PANIC,NPC_LIFE_STATES.COWER,NPC_LIFE_STATES.SURRENDER,
     NPC_LIFE_STATES.HELPING,NPC_LIFE_STATES.SOCIAL,
@@ -62508,7 +62535,7 @@ window.Mafiozi3DBridge = Object.freeze({
       id,r,c,ang:+x.ang||0,walking:!death.dead&&(declaredMoving||targetMoving),moving:!death.dead&&(declaredMoving||targetMoving),walkPhase:+x.walkPhase||0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:copSpeech||((+x.cryUntil||0)>fxNow?String(x.cryText||'').slice(0,84):''),hp,maxHp,
-      said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireGang:String(x._empireGang||''),empireAction:x._empireBoss?_empireActivityLabel(x._empireAction):'',
+      said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireCrew:!!x._empireCrew,empireLeaderId:String(x._empireLeaderId||x._specialistId||''),empireGang:String(x._empireGang||''),empireAction:x._empireBoss?_empireActivityLabel(x._empireAction):'',
       weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),uniqueWeaponProfile:x._empireWeaponProfile||x.uniqueWeaponProfile||null,bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),
       important:!!(x._uniqueNpc||x._said||x._keyNpc||x._invulnerable),talkable:!!(x._uniqueNpc||x._said),hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
@@ -62692,7 +62719,12 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.prisonStaff=String(prisonStaff.length);
     document.documentElement.dataset.prisonStaffCombat=`live:${prisonStaff.filter(n=>!n.dead).length}:attackable-response-respawn-v265`;
     document.documentElement.dataset.prisonCivilians=String(npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&n.visualRole==='civilian').length);
-    return {cars,npcs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
+    const empireHqs=inside?[]:_npcEmpires.filter(empire=>empire&&empire.status!=='ruined'&&empire.hq_key&&near((+empire.hq_r||0)+.5,(+empire.hq_c||0)+.5)).slice(0,19).map(empire=>({
+      leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),
+      r:(+empire.hq_r||0)+.5,c:(+empire.hq_c||0)+.5,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67')
+    }));
+    document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);
+    return {cars,npcs,empireHqs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
       effectLifecycle:{bullets:bullets.length,muzzles:muzzles.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,holes:bulletHoles.length,gore:bodyPartFx.length,explosions:explosionBursts.length,throwables:_thrownItems.length,fires:_firePools.length,pendingTimers:_pendingBallisticFxTimers},
       players:players.slice(0,24),objects:objects.slice(0,160)};
   },
@@ -66696,6 +66728,6 @@ function chatDuration(text) {
 </script>
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
-<script type="module" src="three_preview.js?v=3d356-articulated-npcs-detailed-weapons"></script>
+<script type="module" src="three_preview.js?v=3d357-empire-colors-hq-work-loops"></script>
 </body>
 </html>
