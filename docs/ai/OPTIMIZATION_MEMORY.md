@@ -444,32 +444,14 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   a new HQ, exactly two comeback fighters, a single comeback event, nineteen
   ranked leaders and all eight district standings.
 
-## Shared wind shader programs (2026-08-11, v336)
+## Boss identity during backend reconnects (2026-08-11)
 
-- Foliage colour is a standard `MeshStandardMaterial.color` uniform and does
-  not change the injected wind GLSL. Do not include that colour in
-  `customProgramCacheKey`: eight leaf tints and four trunk tints otherwise
-  compile identical source separately. Keep the two actual shader variants
-  distinct by their authored leaf/trunk bend constants; colour, geometry,
-  animation cadence, shadows and distance remain unchanged.
-- On the latest main after the NPC-empire/blue-police updates, the same active
-  prison-assault profile changed from 325 WebGL programs with 72 NPCs to 300
-  programs with 71 NPCs. Current frame/render samples were effectively equal
-  (`26.6/21.5 ms` versus `26.0/21.1 ms`), so this does not claim an FPS gain.
-  The reliable result is 25 fewer resident programs in that scene.
-- The first prison-combat shader expansion is still a major remaining spike:
-  the two samples measured `1749.9/1746.1 ms` maximum frame/render before and
-  `1498.8/1391.6 ms` after. Different arrest phases and populations make that
-  timing comparison noisy; do not call the spike fixed. The reduced program
-  count only makes the transition lighter without changing visible content.
-  A fresh-main visual check preserved the separate green tree shades and
-  real-time shadows at native quality; it reported 227 programs and no console
-  errors.
-- Final one-tab regression completed the four-unit escort as
-  `jailed:escorted-to-booking` with `delivered:1`, kept compact NPC labels,
-  `idleNpcLegMotionMax=0.0000`, chat local echo and real-time shadows, and had no
-  JavaScript or Three.js errors. Clean release remained staged (`resumeFrames:3`)
-  and a temporary focused probe outside the prison/causeway confirmed renewed
-  fire (`accepted:true`, `blocked:false`) with continuing frames. The probe was
-  removed, and every browser run used one tab which was closed together with
-  the local server.
+- Authored empire leaders must carry a small static client identity (boss name
+  and gang) in addition to their authoritative economy snapshot. If the backend
+  is restarting, never downgrade them to the old specialist/service label.
+- Keep the fallback bounded to the same nineteen roster entries. It may render
+  boss labels and an offline dossier, but must not invent treasury, ownership,
+  diplomacy mutations or assault results.
+- Pass one boss flag and gang string through the existing 3D NPC snapshot. The
+  pooled label canvas can then switch from the specialist card to the boss card
+  without adding sprites, meshes or per-frame world scans.
