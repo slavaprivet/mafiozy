@@ -62,6 +62,8 @@ quest_cars = {}
 preview_accounts = {}
 preview_npc_robberies = {}
 preview_business_claims = {}
+preview_business_sabotage = {}
+preview_business_wars = {}
 preview_connections = {}
 preview_apartments = {}
 preview_custom_gangs = {}
@@ -84,7 +86,7 @@ PREVIEW_MAJOR = {
     "casino":{"r":46,"c":16,"name":"Казино","boss":"Сальваторе Беллини","guards":20,"total":40,"income":2400},
     "market":{"r":16,"c":16,"name":"Рынок","boss":"Риккардо Торри","guards":20,"total":34,"income":1200},
     "factory":{"r":46,"c":56,"name":"Промзона","boss":"Борис Шлак","guards":24,"total":40,"income":3000},
-    "mansion":{"r":66,"c":36,"name":"Резиденция","boss":"Дон Витторио","guards":28,"total":40,"income":4200},
+    "mansion":{"r":136,"c":16,"name":"Резиденция","boss":"Дон Витторио","guards":28,"total":40,"income":4200},
     "port":{"r":165,"c":38,"name":"Порт","boss":"Капитан Риццо","guards":22,"total":38,"income":2600},
 }
 preview_major_raids = {}
@@ -2081,6 +2083,9 @@ async def world_ws(req):
                 continue
             if t == "shop_rob":
                 biz_id = str(d.get("biz_id") or "coffee")
+                if d.get("preview_choice"):
+                    preview_account(uid)["consumables"]["c4"] = max(
+                        3, int(preview_account(uid)["consumables"].get("c4", 0)))
                 money = {"coffee":600,"carwash":900,"barbershop":1200,"pizza":1500,
                          "garage":1800,"bar":2200,"club":2000,"warehouse":3200,
                          "casino":5000,"port":8000}.get(biz_id,600)
@@ -2093,6 +2098,7 @@ async def world_ws(req):
                 robber_family = str(robber.get("mafia_family") or "")
                 can_capture = bool(robber.get("mafia") and
                                    robber_family in ("bellini", "moretti"))
+                preview_account(uid)["cash"] += money
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"shop_rob_reply","ok":True,"biz_id":biz_id,
                     "money":money,"difficulty":1,"closed_s":300,
@@ -2132,42 +2138,73 @@ async def world_ws(req):
                         "reason":"no_c4","biz_id":"coffee"
                     }}, ensure_ascii=False))
                     continue
+                sabotage_kind = str(d.get("sabotage_kind") or "shutdown")
+                sabotage_durations = {"shutdown":720, "arson":1200, "alarm":1200}
+                if sabotage_kind not in sabotage_durations:
+                    sabotage_kind = "shutdown"
                 if action == "sabotage":
                     account["consumables"]["c4"] -= 1
                 choice_biz_id = str(claim.get("biz_id") or "coffee")
                 choice_money = max(1, int(claim.get("money") or 600))
                 income_per_member = max(1, choice_money // 10)
                 property_transfer = {}
+                reply_action = action
+                if action == "sabotage":
+                    preview_business_sabotage[choice_biz_id] = {
+                        "biz_id": choice_biz_id, "family": family,
+                        "actor_uid": str(uid), "kind": sabotage_kind,
+                        "until_at": time.time() + sabotage_durations[sabotage_kind],
+                    }
                 if action == "capture":
                     old_owner = preview_business_owners.get(choice_biz_id) or {}
                     old_uid = str(old_owner.get("uid") or "")
-                    old_info = preview_owned_businesses(old_uid).pop(choice_biz_id, {}) if old_uid else {}
-                    preview_owned_businesses(uid)[choice_biz_id] = {
-                        "level":max(1,int(old_info.get("level") or 1)),"guards":0,
-                        "last_collect":time.time(),"bought_at":time.time()}
-                    preview_business_owners[choice_biz_id] = {
-                        "uid":str(uid),"name":players.get(str(uid),{}).get("name",f"Игрок {uid}"),
-                        "protected_until":time.time()+120}
-                    property_transfer={"old_owner_uid":old_uid,
-                        "old_owner_name":str(old_owner.get("name") or ""),
-                        "new_owner_uid":str(uid),"new_owner_name":preview_business_owners[choice_biz_id]["name"]}
+                    old_family = str(old_owner.get("mafia_family") or "")
+                    if old_family == family:
+                        preview_business_claims[str(uid)] = claim
+                        await ws.send_str(json.dumps({"t":"event","d":{
+                            "kind":"business_war_choice_reply","ok":False,
+                            "reason":"same_family_owner","biz_id":choice_biz_id
+                        }}, ensure_ascii=False))
+                        continue
+                    if old_family and old_family != family:
+                        preparation_s = 20
+                        preview_business_wars[choice_biz_id] = {
+                            "biz_id": choice_biz_id, "attacker_family": family,
+                            "previous_family": old_family,
+                            "preparing_until": time.time() + preparation_s,
+                        }
+                        reply_action = "preparation"
+                    else:
+                        old_info = preview_owned_businesses(old_uid).pop(choice_biz_id, {}) if old_uid else {}
+                        preview_owned_businesses(uid)[choice_biz_id] = {
+                            "level":max(1,int(old_info.get("level") or 1)),"guards":0,
+                            "last_collect":time.time(),"bought_at":time.time()}
+                        preview_business_owners[choice_biz_id] = {
+                            "uid":str(uid),"name":players.get(str(uid),{}).get("name",f"Игрок {uid}"),
+                            "mafia_family":family,"protected_until":time.time()+120}
+                        property_transfer={"old_owner_uid":old_uid,
+                            "old_owner_name":str(old_owner.get("name") or ""),
+                            "new_owner_uid":str(uid),"new_owner_name":preview_business_owners[choice_biz_id]["name"]}
                 await ws.send_str(json.dumps({"t":"event","d":{
                     "kind":"business_war_choice_reply","ok":True,
-                    "action":action,"biz_id":choice_biz_id,"money":choice_money,
+                    "action":reply_action,"biz_id":choice_biz_id,"money":choice_money,
                     "income_per_member":income_per_member if action == "capture" else 0,
                     "family":family,
                     "c4_left":int(account["consumables"].get("c4", 0)),
-                    "sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
-                    "sabotage_s":720,
+                    "sabotage_kind":sabotage_kind,
+                    "sabotage_s":sabotage_durations[sabotage_kind],
+                    "preparation_s":20 if reply_action == "preparation" else 0,
                     "biz_name":PREVIEW_BUSINESSES.get(choice_biz_id,(0,0,0,"",choice_biz_id))[4],
                     "property_transfer":property_transfer
                 }}, ensure_ascii=False))
                 if action == "sabotage":
                     await ws.send_str(json.dumps({"t":"event","d":{
                         "kind":"business_sabotaged","ok":True,"action":action,
-                        "biz_id":"coffee","biz_name":"Кофейня «У Дона»",
-                        "actor_name":"Игрок","sabotage_kind":str(d.get("sabotage_kind") or "shutdown"),
-                        "sabotage_label":"заведение выведено из строя","sabotage_s":720
+                        "biz_id":choice_biz_id,
+                        "biz_name":PREVIEW_BUSINESSES.get(choice_biz_id,(0,0,0,"",choice_biz_id))[4],
+                        "actor_name":"Игрок","sabotage_kind":sabotage_kind,
+                        "sabotage_label":"заведение выведено из строя",
+                        "sabotage_s":sabotage_durations[sabotage_kind]
                     }}, ensure_ascii=False))
                 continue
             if t == "input":
@@ -2459,7 +2496,8 @@ async def world_ws(req):
                 hire_cost=800 if is_boss else 500
                 role_ok=bool(p.get("mafia") or p.get("custom_gang_id"))
                 close_enough=bool(found and math.hypot(float(p.get("x",0))-found["x"],float(p.get("y",0))-found["y"])<=4.4)
-                ok=bool(found and found_gang and not p.get("police") and role_ok and close_enough)
+                jailed=float(p.get("jail_until") or 0)>time.time()
+                ok=bool(found and found_gang and not jailed and not p.get("police") and role_ok and close_enough)
                 npc=None;reason=None
                 if ok and int(account.get("cash",0))<hire_cost:ok=False;reason="cash"
                 if ok and p.get("custom_gang_id"):
@@ -2486,7 +2524,7 @@ async def world_ws(req):
                     "level":max(1,int(found.get("level") or 1)) if ok else None,
                     "faction":found_gang.get("faction") if ok else None,
                     "x":found.get("x") if ok else None,"y":found.get("y") if ok else None,
-                    "npc":npc,"cost":hire_cost,"cash":account["cash"],"reason":None if ok else (reason or ("district_defender" if found_did else "police_service" if p.get("police") else "not_mafia" if found and not role_ok else "too_far" if found and not close_enough else "gone"))}}, ensure_ascii=False))
+                    "npc":npc,"cost":hire_cost,"cash":account["cash"],"reason":None if ok else (reason or ("jailed" if jailed else "district_defender" if found_did else "police_service" if p.get("police") else "not_mafia" if found and not role_ok else "too_far" if found and not close_enough else "gone"))}}, ensure_ascii=False))
             elif t == "major_assault_start":
                 oid=str(d.get("object_id") or "")[:24];cfg=PREVIEW_MAJOR.get(oid);p=players.get(uid,{})
                 own=preview_major_owners.get(oid);raid=preview_major_raids.get(oid)
