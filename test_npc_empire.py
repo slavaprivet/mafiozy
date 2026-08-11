@@ -48,6 +48,8 @@ async def run() -> None:
 
         state = await ne.state_for(path, 101)
         assert len(state["empires"]) == 19
+        assert {x["leader_name"] for x in state["empires"]} == set(ne.MAFIA_BOSS_NAMES.values())
+        assert next(x for x in state["empires"] if x["leader_id"] == "rustam")["leader_name"] == "Билли Капоне"
         assert len(state["leaderboard"]) == 19 and len(state["districts"]) == len(ne.DISTRICTS)
         assert all(x["relation"] == 0 and x["relation_band"] == "neutral" for x in state["empires"])
 
