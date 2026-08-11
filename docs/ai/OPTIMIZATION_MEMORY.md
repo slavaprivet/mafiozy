@@ -835,23 +835,6 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   (`17:16:0`) remained intact. Do not claim an FPS gain from these unmatched
   scene samples; the confirmed result is lower shader-cache/program pressure.
 
-## Shared 3D portraits for dense boss lists (2026-08-11, v356)
-
-- Do not allocate a separate `WebGLRenderer` or animation loop for every boss
-  card. Nineteen independent contexts are wasteful and may exceed mobile
-  browser WebGL limits.
-- Render portrait snapshots through one shared offscreen scene and renderer,
-  then copy the finished frame into each ordinary 2D canvas. The same detailed
-  character builder is reused by the creator, city and dossier UI.
-- Paint portraits only when the empire overlay opens. Keep the cheap Canvas
-  character as an immediate fallback and repaint once on
-  `mafiozi:character3dready`; this prevents an empty dossier while the Three.js
-  module is still loading.
-- Confirmed in the 19-card dashboard and the full boss dossier: all portraits
-  are 3D snapshots, while the city keeps a single gameplay render loop. No FPS
-  gain is claimed because this check validates resource sharing and appearance,
-  not a matched performance benchmark.
-
 ## Creator anatomy and city body-profile parity (2026-08-11, v342)
 
 - Keep free creator rotation transform-only: pointer dragging updates the existing character group's Y angle and label, never rebuilds the rig or option-card snapshots. Rebuild geometry only when a saved look field actually changes.
@@ -870,3 +853,29 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - A single uniform width multiplier does not make creator gender readable. Keep shoulder, waist, hip, limb and depth multipliers separate so the same four body profiles remain recognisable while male/female silhouettes differ.
 - Reuse one female face-detail group and one body silhouette group in the city rig. Toggle and rescale those existing meshes only when the authoritative look signature changes; do not build geometry in the animation loop.
 - Creator and city must apply the same semantic shape: narrower shoulders and waist, wider hips, a tailored chest, slimmer limbs, lashes, lips and earrings.
+
+## Shared creator-grade city character rig (2026-08-11, v354)
+
+- Keep the saved creator look authoritative and map the same `gender`, `body`,
+  `face`, `hair` and `hat` meanings onto both the playable city avatar and every
+  NPC. In particular, creator ids `5`, `6` and `9` are glasses, eye patch and
+  chain; they must not be treated as generic fitted hats.
+- Rounded body/limb capsules, hands, layered shirt, face parts, gender details
+  and all ten hair/accessory meanings remain bounded shared `InstancedMesh`
+  pools for the 72-NPC render cap. Reuse the existing owner hair pools for long
+  hair, quiffs and fringes; separate shoulder, elbow, lapel and duplicate-hand
+  pools pushed the clean close-view sample down to 14 FPS and were removed.
+  Do not build a standalone Three.js object tree per resident and do not allocate
+  geometry or materials in the animation loop.
+- A localhost visual pass checked both a full female/chain/curls look and a
+  heavy male/glasses/long-hair look beside the unique Said NPC. The city exposed
+  70 stable appearance variants in the measured population. After consolidating
+  the redundant pools, the steady close-NPC view reported 22 FPS, `19.7 ms`
+  current frame work, `15.2 ms` current render work and 710 view-dependent draw
+  calls, with no browser console errors. Earlier samples of the same optimized
+  rig varied to 669 calls / `15.7 ms` render as the streamed and shadowed scene
+  changed, so compare structural pool count rather than promising a fixed draw
+  count for every camera position.
+- Local `previewcity=1` may bypass the character menu only on localhost and only
+  when the URL already supplies `character` plus `has_look=1`. Production keeps
+  the server-backed character gate unchanged.
