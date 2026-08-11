@@ -13014,7 +13014,7 @@ class WorldSim:
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         '_city_gang_encounters', '_gang_throwables', '_street_control',
-        '_npc_business_controls', '_npc_gang_economy',
+        '_npc_business_controls', '_npc_gang_economy', '_npc_custodies',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
         '_business_npc_occupations', '_business_npc_capture_cooldown',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
@@ -13339,6 +13339,18 @@ class WorldSim:
     CITY_GANG_CHASE_SPEED   = 1.5
     CITY_GANG_FIRE_R        = 7.0
     CITY_GANG_COPS_PER_GANG = 3       # копов спавним когда банда hostile
+    NPC_CUSTODY_JAIL_S       = 60.0
+    NPC_CUSTODY_CUFF_S       = 2.2
+    NPC_CUSTODY_ESCORT_S     = 3.2
+    NPC_CUSTODY_LOAD_S       = 1.5
+    NPC_CUSTODY_UNLOAD_S     = 1.8
+    NPC_CUSTODY_PRISON_ESCORT_S = 5.0
+    NPC_CUSTODY_JAIL_X       = 89.5
+    NPC_CUSTODY_JAIL_Y       = 97.0
+    NPC_CUSTODY_GATE_X       = 80.5
+    NPC_CUSTODY_GATE_Y       = 69.55
+    NPC_CUSTODY_RELEASE_X    = 89.5
+    NPC_CUSTODY_RELEASE_Y    = 67.7
     CITY_GANG_GRENADE_NOTICE_R = 7.2
     CITY_GANG_GRENADE_SAFE_R   = 5.0
     CITY_GANG_MOLOTOV_SAFE_R   = 5.7
@@ -13670,6 +13682,10 @@ class WorldSim:
             }
             for faction in ('purple', 'yellow')
         }
+        # Server-authoritative physical custody for NPC offenders.  The
+        # offender remains owned by its original gang, but is excluded from
+        # combat/patrol while police cuff, load, transport and jail it.
+        self._npc_custodies = {}
         # Короткоживущие опасные зоны от гранат и Молотова используются
         # тем же ограниченным AI-тиком, без отдельного покадрового обхода.
         self._gang_throwables = []
@@ -16598,6 +16614,22 @@ class WorldSim:
         for cop in self.cops:
             if not cop['alive']:
                 continue
+            # Gang-response cops do not have a player target.  Keep them alive
+            # until their assigned offender is arrested or the gang vanishes.
+            if cop.get('target_gang_id'):
+                gang = next((g for g in self.city_gangs
+                             if str(g.get('id')) == str(cop.get('target_gang_id'))), None)
+                if gang is None:
+                    gang = self.aggro.get(str(cop.get('target_gang_id')))
+                if gang is None:
+                    gang = next((g for g in self.gang_nests
+                                 if str(g.get('id')) == str(cop.get('target_gang_id'))), None)
+                if gang and (str(gang.get('state') or '') == 'hostile' or
+                             any(b.get('alive') and
+                                 (b.get('_npc_murder_wanted') or b.get('_custody_id'))
+                                 for b in gang.get('bots', []))):
+                    survivors.append(cop)
+                continue
             t = self.players.get(cop['target_uid'])
             cur_lvl = self._wanted_level(t) if t else 0
             # Патруль с 1★: если игрок не стрелял COP_PATROL_WARN_S сек
@@ -16834,24 +16866,58 @@ class WorldSim:
         pkts = []
         now = time.time()
         gid = cop.get('target_gang_id')
+        custody = self._npc_custodies.get(str(cop.get('npc_custody_id') or ''))
+        if custody:
+            if custody.get('phase') in ('cuffing','escort','loading'):
+                ang = float(custody.get('ang') or 0)
+                cop['x'] = float(custody.get('x') or 0) - _m.cos(ang) * .62
+                cop['y'] = float(custody.get('y') or 0) - _m.sin(ang) * .62
+                cop['ang'] = ang
+                return pkts
+            cop['alive'] = False
+            return [{'kind':'cop_leave','cop_id':cop['id']}]
         g = next((x for x in self.city_gangs if x['id'] == gid), None)
+        if g is None:
+            g = self.aggro.get(str(gid))
+            if g is not None and not g.get('id'):
+                g = {**g, 'id': str(gid), 'faction': 'lair'}
+        if g is None:
+            g = next((x for x in self.gang_nests if x.get('id') == gid), None)
         if not g:
             # Группы больше нет → коп уезжает
             self.cops.remove(cop)
             pkts.append({'kind': 'cop_leave', 'cop_id': cop['id']})
             return pkts
-        alive_bots = [b for b in g['bots'] if b['alive']]
-        if not alive_bots or g['state'] == 'patrol':
+        alive_bots = [b for b in g['bots'] if b['alive'] and not b.get('_custody_id')]
+        wanted_bots = [b for b in alive_bots if b.get('_npc_murder_wanted')]
+        if not alive_bots or (g.get('state') == 'patrol' and not wanted_bots):
             # Все мертвы или сдались (вернулись в patrol после таймаута)
             self.cops.remove(cop)
             pkts.append({'kind': 'cop_leave', 'cop_id': cop['id']})
             return pkts
-        target = min(alive_bots,
+        target = min(wanted_bots or alive_bots,
                      key=lambda b: (b['x']-cop['x'])**2 + (b['y']-cop['y'])**2)
         dx = target['x'] - cop['x']; dy = target['y'] - cop['y']
         dist = (dx*dx + dy*dy) ** 0.5
         if dist > 0.05:
             cop['ang'] = _m.atan2(dy, dx)
+        if target.get('_npc_murder_wanted'):
+            # Murderers are taken alive.  Officers close the final metres,
+            # cuff the exact shooter and hand it to the custody convoy.
+            if dist > 1.15:
+                step = min(dist - 1.0, self.COP_CHASE_SPEED * 1.15 * dt)
+                nx, ny = dx / max(dist, .001), dy / max(dist, .001)
+                tx, ty = cop['x'] + nx * step, cop['y'] + ny * step
+                if _world_bot_passable(tx, ty):
+                    cop['x'], cop['y'] = tx, ty
+            elif not target.get('_custody_id'):
+                custody = self._begin_npc_custody(g, target, cop, now)
+                if custody:
+                    pkts.append({'kind':'npc_custody_started',
+                                 'custody_id':custody['id'], 'gid':gid,
+                                 'bot_id':target['id'], 'cop_id':cop['id'],
+                                 'x':round(target['x'],2),'y':round(target['y'],2)})
+            return pkts
         # Боевое сближение с тем же strafe-AI что и при бое с игроком
         opt = self.COP_OPT_RANGE
         cop['_strafe_t'] = max(0.0, cop.get('_strafe_t', 0.0) - dt)
@@ -17273,6 +17339,9 @@ class WorldSim:
                     target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
                     target['deaths'] = int(target.get('deaths', 0)) + 1
                     killed = True
+                    self._flag_npc_murderer_by_ids(
+                        str(s.get('tid') or ''), str(s.get('bot_id') or ''),
+                        victim_kind='player')
             pkts.append({
                 'kind':       'aggro_apply',
                 'tid':        s['tid'],
@@ -17305,7 +17374,7 @@ class WorldSim:
             st  = self.aggro[tid]
             rad = td.get('radius', self.TERR_RADIUS)
             cx, cy = td['c'], td['r']
-            alive_bots = [b for b in st['bots'] if b['alive']]
+            alive_bots = [b for b in st['bots'] if b['alive'] and not b.get('_custody_id')]
             boss_alive = any(bot.get('alive') and bot.get('kind') == 'aggro_boss'
                              for bot in st['bots'])
             if st.get('_boss_alive_last', True) and not boss_alive and alive_bots:
@@ -17872,7 +17941,7 @@ class WorldSim:
     def _city_gang_business_guard_alive(self, control: dict) -> bool:
         gid = str(control.get('guard_gid') or '')
         return any(str(g.get('id')) == gid and any(
-            b.get('alive') for b in g.get('bots', [])) for g in self.city_gangs)
+            b.get('alive') and not b.get('_custody_id') for b in g.get('bots', [])) for g in self.city_gangs)
 
     def _npc_business_strategy_blocked(self, biz_id: str, now: float) -> bool:
         """Keep NPC racket AI separate from player/family ownership workflows."""
@@ -18010,8 +18079,9 @@ class WorldSim:
                 guard = next((g for g in self.city_gangs
                               if str(g.get('id')) == str(control.get('guard_gid') or '')), None)
                 defenders = sum(1 for bot in (guard or {}).get('bots', [])
-                                if bot.get('alive'))
-                attackers = sum(1 for bot in gang.get('bots', []) if bot.get('alive'))
+                                if bot.get('alive') and not bot.get('_custody_id'))
+                attackers = sum(1 for bot in gang.get('bots', [])
+                                if bot.get('alive') and not bot.get('_custody_id'))
                 fortification = max(0, int(control.get('defense_level') or 0))
                 score += (attackers - defenders) * 8.0
                 score -= fortification * 7.0 / max(.5, float(profile['aggression']))
@@ -18036,7 +18106,8 @@ class WorldSim:
     def _city_gang_set_business_target(self, gang: dict, biz_id: str,
                                        now: float) -> bool:
         rc = BUSINESS_POIS_RC.get(str(biz_id))
-        alive = [bot for bot in gang.get('bots', []) if bot.get('alive')]
+        alive = [bot for bot in gang.get('bots', [])
+                 if bot.get('alive') and not bot.get('_custody_id')]
         if (not rc or not alive or
                 self._npc_business_strategy_blocked(str(biz_id), now)):
             return False
@@ -18175,7 +18246,8 @@ class WorldSim:
                 continue
             if self._city_gang_business_id(rival) != biz_id:
                 continue
-            rivals = [bot for bot in rival.get('bots', []) if bot.get('alive')]
+            rivals = [bot for bot in rival.get('bots', [])
+                      if bot.get('alive') and not bot.get('_custody_id')]
             if not rivals:
                 continue
             rx = sum(float(bot.get('x') or 0) for bot in rivals) / len(rivals)
@@ -18246,7 +18318,8 @@ class WorldSim:
 
     def _spawn_city_gang_reinforcement(self, gang: dict, count: int = 1) -> list:
         """Adds bounded reinforcements near the surviving squad."""
-        alive = [bot for bot in gang.get('bots', []) if bot.get('alive')]
+        alive = [bot for bot in gang.get('bots', [])
+                 if bot.get('alive') and not bot.get('_custody_id')]
         if not alive:
             return []
         spawned = []
@@ -18374,7 +18447,8 @@ class WorldSim:
         if not cops:
             return []
         for bot in sorted(bots, key=lambda b: float(b.get('_shot_t') or 0)):
-            if (not bot.get('alive') or now < float(bot.get('_reload_until') or 0)
+            if (not bot.get('alive') or bot.get('_custody_id')
+                    or now < float(bot.get('_reload_until') or 0)
                     or now < float(bot.get('_dodging_until') or 0)):
                 continue
             cop = min(cops, key=lambda c: (float(c.get('x') or 0)-float(bot.get('x') or 0))**2
@@ -18406,6 +18480,9 @@ class WorldSim:
             killed = cop['hp'] <= 0
             if killed:
                 cop['alive'] = False
+                self._flag_npc_murderer_by_ids(
+                    str(gang.get('id') or ''), str(bot.get('id') or ''),
+                    victim_kind='police_npc')
             return [{'kind':'gang_shot_cop', 'gid':gang['id'],
                      'bot_id':bot['id'], 'cop_id':cop['id'], 'weapon':weapon,
                      'sx':round(bot['x'],2), 'sy':round(bot['y'],2),
@@ -18652,6 +18729,7 @@ class WorldSim:
         pkts = []
         now = time.time()
         pkts.extend(self._tick_npc_gang_economy(now))
+        pkts.extend(self._tick_npc_custodies(dt, now))
         self._street_control = {
             sector: control for sector, control in self._street_control.items()
             if float(control.get('expires_at') or 0) > now
@@ -18708,7 +18786,7 @@ class WorldSim:
             else:
                 self._city_gang_next_spawn_at = now + 15.0
         for g in self.city_gangs:
-            alive_bots = [b for b in g['bots'] if b['alive']]
+            alive_bots = [b for b in g['bots'] if b['alive'] and not b.get('_custody_id')]
             if not alive_bots:
                 continue
             fire_flee_ids = set()
@@ -18792,14 +18870,17 @@ class WorldSim:
                     rival for rival in self.city_gangs
                     if rival is not g and not rival.get('district_did')
                     and rival.get('faction','purple') != g.get('faction','purple')
-                    and any(bot.get('alive') for bot in rival.get('bots', []))]
+                    and any(bot.get('alive') and not bot.get('_custody_id')
+                            for bot in rival.get('bots', []))]
                 candidates.sort(key=lambda rival: min(
                     _m.hypot(float(bot.get('x') or 0)-cx,
                              float(bot.get('y') or 0)-cy)
-                    for bot in rival.get('bots', []) if bot.get('alive')))
+                    for bot in rival.get('bots', [])
+                    if bot.get('alive') and not bot.get('_custody_id')))
                 target_rival = candidates[0] if candidates else None
                 if target_rival:
-                    rival_bots = [bot for bot in target_rival['bots'] if bot.get('alive')]
+                    rival_bots = [bot for bot in target_rival['bots']
+                                  if bot.get('alive') and not bot.get('_custody_id')]
                     rx = sum(bot['x'] for bot in rival_bots) / len(rival_bots)
                     ry = sum(bot['y'] for bot in rival_bots) / len(rival_bots)
                     if _m.hypot(rx-cx, ry-cy) <= self.CITY_GANG_RIVAL_SEEK_R:
@@ -18836,7 +18917,8 @@ class WorldSim:
                     continue
                 if rival.get('faction', 'purple') == g.get('faction', 'purple'):
                     continue
-                rivals = [b for b in rival.get('bots', []) if b.get('alive')]
+                rivals = [b for b in rival.get('bots', [])
+                          if b.get('alive') and not b.get('_custody_id')]
                 if not rivals:
                     continue
                 rx = sum(b['x'] for b in rivals) / len(rivals)
@@ -18873,10 +18955,17 @@ class WorldSim:
                 killed = victim['hp'] <= 0
                 if killed:
                     victim['alive'] = False
+                    self._flag_npc_murderer_by_ids(
+                        str(g.get('id') or ''), str(attacker.get('id') or ''),
+                        victim_kind='gang_npc')
                 if not encounter.get('police_called'):
                     encounter['police_called'] = True
-                    self._dispatch_cops_on_gang(g, cx, cy, count=2)
-                    self._dispatch_cops_on_gang(rival, rx, ry, count=2)
+                    if not any(str(c.get('target_gang_id')) == str(g['id'])
+                               for c in self.cops if c.get('alive')):
+                        self._dispatch_cops_on_gang(g, cx, cy, count=2)
+                    if not any(str(c.get('target_gang_id')) == str(rival['id'])
+                               for c in self.cops if c.get('alive')):
+                        self._dispatch_cops_on_gang(rival, rx, ry, count=2)
                     pkts.append({'kind':'city_gang_police_called',
                                  'x':round((cx+rx)/2,2), 'y':round((cy+ry)/2,2),
                                  'gangs':[g['id'], rival['id']]})
@@ -19116,6 +19205,20 @@ class WorldSim:
                 for bot_i, bot in enumerate(alive_bots):
                     if str(bot['id']) in fire_flee_ids:
                         continue
+                    if now < float(bot.get('_released_roam_until') or 0):
+                        rwx, rwy = bot.get('_released_roam_wp') or (bot['x'], bot['y'])
+                        rdx, rdy = rwx-bot['x'], rwy-bot['y']
+                        rdist = _m.hypot(rdx, rdy)
+                        if rdist < .7:
+                            bot['_released_roam_wp'] = (
+                                max(3.0, min(WORLD_MAP_COLS-3.0, bot['x']+random.uniform(-16,16))),
+                                max(3.0, min(WORLD_MAP_ROWS-3.0, bot['y']+random.uniform(-16,16))))
+                        elif rdist > .01:
+                            step=min(rdist,self.CITY_GANG_PATROL_SPEED*dt)
+                            rang=_m.atan2(rdy,rdx);nx=bot['x']+_m.cos(rang)*step;ny=bot['y']+_m.sin(rang)*step
+                            if _world_bot_passable(nx,ny):bot['x'],bot['y'],bot['ang']=nx,ny,rang
+                        bot['_act']='walk'
+                        continue
                     # Боты не в режиме 'walk' стоят на месте (пьют/тегят/
                     # пристают к NPC — клиент рисует визуал).
                     if bot.get('_act') != 'walk':
@@ -19224,6 +19327,166 @@ class WorldSim:
                 })
             if g.get('state') == 'patrol' and not g.get('district_did'):
                 pkts.extend(self._city_gang_fire_on_cops(g, alive_bots, now))
+        return pkts
+
+    def _npc_gang_and_bot(self, gang_id: str, bot_id: str):
+        """Resolve an offender without scanning unrelated world actors."""
+        gang_id, bot_id = str(gang_id or ''), str(bot_id or '')
+        for gang in self.city_gangs:
+            if str(gang.get('id') or '') == gang_id:
+                bot = next((b for b in gang.get('bots', [])
+                            if str(b.get('id') or '') == bot_id), None)
+                return gang, bot
+        state = self.aggro.get(gang_id)
+        if state is not None:
+            bot = next((b for b in state.get('bots', [])
+                        if str(b.get('id') or '') == bot_id), None)
+            return state, bot
+        nest = next((g for g in self.gang_nests
+                     if str(g.get('id') or '') == gang_id), None)
+        if nest is not None:
+            bot = next((b for b in nest.get('bots', [])
+                        if str(b.get('id') or '') == bot_id), None)
+            return nest, bot
+        return None, None
+
+    def _flag_npc_murderer_by_ids(self, gang_id: str, bot_id: str,
+                                  victim_kind: str = 'npc') -> bool:
+        """Mark the actual shooter; police must never arrest a random member."""
+        gang, bot = self._npc_gang_and_bot(gang_id, bot_id)
+        if not gang or not bot or not bot.get('alive') or bot.get('_custody_id'):
+            return False
+        now = time.time()
+        bot['_npc_murder_wanted'] = True
+        bot['_npc_murder_at'] = now
+        bot['_npc_murder_victim_kind'] = str(victim_kind or 'npc')[:24]
+        bot['_combat_state'] = 'wanted'
+        gang['_cops_dispatched'] = True
+        dispatch_group = gang if gang.get('id') else {**gang, 'id': gang_id}
+        self._dispatch_cops_on_gang(
+            dispatch_group, float(bot.get('x') or 0), float(bot.get('y') or 0), count=2)
+        return True
+
+    def _begin_npc_custody(self, gang: dict, bot: dict, cop: dict,
+                           now: float | None = None) -> dict | None:
+        if not gang or not bot or not bot.get('alive') or bot.get('_custody_id'):
+            return None
+        now = time.time() if now is None else float(now)
+        gang_id = str(gang.get('id') or cop.get('target_gang_id') or '')
+        cid = f"npc_custody_{bot.get('id')}"
+        custody = {
+            'id': cid, 'gang_id': gang_id,
+            'bot_id': str(bot.get('id') or ''), 'faction': str(gang.get('faction') or 'lair'),
+            'kind': str(bot.get('kind') or 'gang_fighter'),
+            'name': str(bot.get('boss_name') or bot.get('name') or 'Бандит')[:32],
+            'look': dict(bot.get('look') or {}), 'phase': 'cuffing',
+            'phase_at': now, 'x': float(bot.get('x') or 0),
+            'y': float(bot.get('y') or 0), 'ang': float(bot.get('ang') or 0),
+            'cop_id': str(cop.get('id') or ''), 'vehicle_x': float(cop.get('x') or 0),
+            'vehicle_y': float(cop.get('y') or 0), 'vehicle_ang': float(cop.get('ang') or 0),
+            'route': [], 'route_i': 0, 'release_mode': (
+                'roam' if sum(ord(ch) for ch in str(bot.get('id') or '')) % 2 else 'gang'),
+            'jail_until': 0.0,
+        }
+        bot['_custody_id'] = cid
+        bot['_npc_murder_wanted'] = False
+        bot['_combat_state'] = 'cuffing'
+        bot['_moving'] = False
+        self._npc_custodies[cid] = custody
+        cop['npc_custody_id'] = cid
+        cop['target_gang_id'] = gang_id
+        return custody
+
+    @staticmethod
+    def _npc_custody_move(q: dict, tx: float, ty: float,
+                          speed: float, dt: float) -> bool:
+        dx, dy = tx - float(q.get('x') or 0), ty - float(q.get('y') or 0)
+        dist = math.hypot(dx, dy)
+        if dist <= .08:
+            q['x'], q['y'] = float(tx), float(ty)
+            return True
+        step = min(dist, max(0.0, speed * dt))
+        q['ang'] = math.atan2(dy, dx)
+        q['x'] += dx / dist * step
+        q['y'] += dy / dist * step
+        return step >= dist
+
+    def _tick_npc_custodies(self, dt: float, now: float) -> list:
+        """Bounded phase machine: cuff → car → prison → 60 s → station exit."""
+        pkts = []
+        for cid, q in list(self._npc_custodies.items()):
+            gang, bot = self._npc_gang_and_bot(q['gang_id'], q['bot_id'])
+            if not gang or not bot:
+                self._npc_custodies.pop(cid, None)
+                continue
+            phase, age = q['phase'], now - float(q.get('phase_at') or now)
+            cop = next((c for c in self.cops if str(c.get('id')) == str(q.get('cop_id'))), None)
+            if phase == 'cuffing' and age >= self.NPC_CUSTODY_CUFF_S:
+                q['phase'], q['phase_at'] = 'escort', now
+            elif phase == 'escort':
+                # The arresting officer escorts the cuffed NPC to a physical
+                # patrol car staged behind the officer.
+                if cop:
+                    q['vehicle_x'] = float(cop.get('x') or q['x']) - math.cos(float(cop.get('ang') or 0)) * 1.8
+                    q['vehicle_y'] = float(cop.get('y') or q['y']) - math.sin(float(cop.get('ang') or 0)) * 1.8
+                    q['vehicle_ang'] = float(cop.get('ang') or 0)
+                self._npc_custody_move(q, q['vehicle_x'], q['vehicle_y'], 1.45, dt)
+                if age >= self.NPC_CUSTODY_ESCORT_S:
+                    q['phase'], q['phase_at'] = 'loading', now
+            elif phase == 'loading' and age >= self.NPC_CUSTODY_LOAD_S:
+                q['phase'], q['phase_at'] = 'transport', now
+                q['x'], q['y'] = q['vehicle_x'], q['vehicle_y']
+                q['route'] = (_world_bot_path(q['vehicle_x'], q['vehicle_y'],
+                                               self.NPC_CUSTODY_GATE_X,
+                                               self.NPC_CUSTODY_GATE_Y) or
+                              [(self.NPC_CUSTODY_GATE_X, self.NPC_CUSTODY_GATE_Y)])
+                q['route_i'] = 0
+            elif phase == 'transport':
+                route = q.get('route') or []
+                idx = min(int(q.get('route_i') or 0), max(0, len(route)-1))
+                tx, ty = route[idx] if route else (self.NPC_CUSTODY_GATE_X,
+                                                   self.NPC_CUSTODY_GATE_Y)
+                vehicle = {'x': q['vehicle_x'], 'y': q['vehicle_y'], 'ang': q['vehicle_ang']}
+                reached = self._npc_custody_move(vehicle, tx, ty, 3.6, dt)
+                q['vehicle_x'], q['vehicle_y'], q['vehicle_ang'] = vehicle['x'], vehicle['y'], vehicle['ang']
+                q['x'], q['y'], q['ang'] = vehicle['x'], vehicle['y'], vehicle['ang']
+                if reached and idx + 1 < len(route):
+                    q['route_i'] = idx + 1
+                elif reached:
+                    q['phase'], q['phase_at'] = 'unloading', now
+            elif phase == 'unloading':
+                q['x'], q['y'] = self.NPC_CUSTODY_GATE_X, self.NPC_CUSTODY_GATE_Y
+                if age >= self.NPC_CUSTODY_UNLOAD_S:
+                    q['phase'], q['phase_at'] = 'prison_escort', now
+            elif phase == 'prison_escort':
+                self._npc_custody_move(q, self.NPC_CUSTODY_JAIL_X,
+                                       self.NPC_CUSTODY_JAIL_Y, 4.8, dt)
+                if age >= self.NPC_CUSTODY_PRISON_ESCORT_S:
+                    q['phase'], q['phase_at'] = 'jailed', now
+                    q['x'], q['y'] = self.NPC_CUSTODY_JAIL_X, self.NPC_CUSTODY_JAIL_Y
+                    q['jail_until'] = now + self.NPC_CUSTODY_JAIL_S
+                    bot['hp'] = max(1, int(bot.get('max_hp') or 100))
+            elif phase == 'jailed' and now >= float(q.get('jail_until') or 0):
+                q['phase'], q['phase_at'] = 'released', now
+                q['x'], q['y'] = self.NPC_CUSTODY_RELEASE_X, self.NPC_CUSTODY_RELEASE_Y
+            elif phase == 'released' and age >= 1.2:
+                bot['x'], bot['y'], bot['ang'] = q['x'], q['y'], q['ang']
+                bot.pop('_custody_id', None)
+                bot.pop('_npc_murder_wanted', None)
+                bot['_combat_state'] = 'patrol'
+                bot['_act'] = 'walk'
+                if q.get('release_mode') == 'roam':
+                    bot['_released_roam_until'] = now + 45.0
+                    bot['_released_roam_wp'] = (
+                        max(3.0, min(WORLD_MAP_COLS-3.0, q['x'] + random.uniform(-18, 18))),
+                        max(3.0, min(WORLD_MAP_ROWS-3.0, q['y'] + random.uniform(8, 24))))
+                self._npc_custodies.pop(cid, None)
+                pkts.append({'kind':'npc_custody_released','bot_id':q['bot_id'],
+                             'gang_id':q['gang_id'],'mode':q.get('release_mode','gang'),
+                             'x':round(q['x'],2),'y':round(q['y'],2)})
+                continue
+            bot['x'], bot['y'], bot['ang'] = q['x'], q['y'], q['ang']
+            bot['_combat_state'] = q['phase']
         return pkts
 
     def _dispatch_cops_on_gang(self, g: dict, cx: float, cy: float,
@@ -19500,7 +19763,7 @@ class WorldSim:
         # Удаляем зачищенные / истёкшие
         surviving = []
         for ne in self.gang_nests:
-            alive_bots = [b for b in ne['bots'] if b['alive']]
+            alive_bots = [b for b in ne['bots'] if b['alive'] and not b.get('_custody_id')]
             if not alive_bots:
                 business_id = str(ne.get('business_id') or '')
                 cooldown_until = int(now + NPC_BUSINESS_CAPTURE_COOLDOWN) if business_id else 0
@@ -19533,7 +19796,7 @@ class WorldSim:
         self.gang_nests = surviving
         # AI каждого гнезда
         for ne in self.gang_nests:
-            alive_bots = [b for b in ne['bots'] if b['alive']]
+            alive_bots = [b for b in ne['bots'] if b['alive'] and not b.get('_custody_id')]
             for bot in alive_bots:
                 bot['_moving'] = False
             ar, ac = ne['anchor_r'], ne['anchor_c']
@@ -19586,7 +19849,7 @@ class WorldSim:
                             'tx':bot['x'], 'ty':bot['y'],
                             'damage':damage, 'hp':bot['hp'], 'killed':killed,
                         })
-                alive_bots = [b for b in ne['bots'] if b.get('alive')]
+                alive_bots = [b for b in ne['bots'] if b.get('alive') and not b.get('_custody_id')]
                 for index, bot in enumerate(alive_bots):
                     if str(bot['id']) in fire_flee_ids:
                         continue
@@ -19632,7 +19895,7 @@ class WorldSim:
                             'tx':guard['x'], 'ty':guard['y'],
                             'damage':damage, 'hp':guard['hp'], 'killed':killed,
                         })
-                alive_bots = [b for b in ne['bots'] if b.get('alive')]
+                alive_bots = [b for b in ne['bots'] if b.get('alive') and not b.get('_custody_id')]
                 alive_guards = [
                     g for g in ne.get('defenders', []) if g.get('alive')]
             # Оккупанты охраняют красный периметр: PvP-игрок, вошедший в него,
@@ -21307,6 +21570,8 @@ class WorldSim:
                 'target_uid': cop.get('target_uid') or '',
                 'kind':       cop.get('kind') or 'patrol',
                 'weapon':     cop.get('weapon') or 'pistol',
+                'target_gang_id': str(cop.get('target_gang_id') or ''),
+                'npc_custody_id': str(cop.get('npc_custody_id') or ''),
             })
         # Захват районов: владельцы + активный прогресс. Передаём всем
         # клиентам одинаково (5 районов — копеечный объём).
@@ -21434,7 +21699,7 @@ class WorldSim:
         for tid, st in self.aggro.items():
             bots_out = []
             for bot in st['bots']:
-                if not bot.get('alive'):
+                if not bot.get('alive') or bot.get('_custody_id'):
                     continue
                 bots_out.append({
                     'id':      bot['id'],
@@ -21488,7 +21753,7 @@ class WorldSim:
         for g in self.city_gangs:
             g_bots = []
             for bot in g['bots']:
-                if not bot.get('alive'):
+                if not bot.get('alive') or bot.get('_custody_id'):
                     continue
                 b_out = {
                     'id':      bot['id'],
@@ -21536,7 +21801,7 @@ class WorldSim:
         for ne in self.gang_nests:
             n_bots = []
             for bot in ne['bots']:
-                if not bot.get('alive'):
+                if not bot.get('alive') or bot.get('_custody_id'):
                     continue
                 n_bots.append({
                     'id':      bot['id'],
@@ -21744,6 +22009,27 @@ class WorldSim:
                 'districts':       districts_payload,
                 'world_c4':        world_c4_payload,
                 'aggro':           aggro_payload,
+                'npc_custodies': [{
+                    'id': str(q.get('id') or ''),
+                    'gang_id': str(q.get('gang_id') or ''),
+                    'bot_id': str(q.get('bot_id') or ''),
+                    'faction': str(q.get('faction') or ''),
+                    'kind': str(q.get('kind') or 'gang_fighter'),
+                    'name': str(q.get('name') or 'Бандит'),
+                    'look': dict(q.get('look') or {}),
+                    'phase': str(q.get('phase') or ''),
+                    'x': round(float(q.get('x') or 0), 2),
+                    'y': round(float(q.get('y') or 0), 2),
+                    'ang': round(float(q.get('ang') or 0), 2),
+                    'vehicle_x': round(float(q.get('vehicle_x') or 0), 2),
+                    'vehicle_y': round(float(q.get('vehicle_y') or 0), 2),
+                    'vehicle_ang': round(float(q.get('vehicle_ang') or 0), 2),
+                    'hidden_in_vehicle': str(q.get('phase') or '') == 'transport',
+                    'cuffed': str(q.get('phase') or '') not in ('jailed','released'),
+                    'prisoner': str(q.get('phase') or '') == 'jailed',
+                    'jail_in': max(0, int(round(float(q.get('jail_until') or 0) - now_t))),
+                    'release_mode': str(q.get('release_mode') or 'gang'),
+                } for q in self._npc_custodies.values()],
                 'gang_nests':      nests_payload,
                 'npc_business_controls': {
                     biz_id: {
@@ -21786,7 +22072,7 @@ class WorldSim:
                         'faction': str(gang.get('faction') or ''),
                         'phase': str(gang.get('_business_mode') or 'travel'),
                         'strength': sum(1 for bot in gang.get('bots', [])
-                                        if bot.get('alive')),
+                                        if bot.get('alive') and not bot.get('_custody_id')),
                         'morale': round(float(gang.get('_morale') or 1.0), 2),
                         'started_at': float(gang.get('_business_operation_started') or now_t),
                     }
