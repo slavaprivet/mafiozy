@@ -367,6 +367,38 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   labels, real-time shadows and chat local echo remained active. The tab and
   local test server were closed after verification.
 
+## Actor slot visibility and matrix uploads (2026-08-11)
+
+- Pooled NPC accessories, wounds, weapons, gang markers and empty remote-player
+  slots repeatedly composed the same hidden matrix every frame. Cache visible
+  versus hidden state per mesh slot: a visible-to-hidden transition writes the
+  hidden matrix once, while a hidden-to-visible transition always receives the
+  complete current matrix before rendering. This is required to prevent ghost
+  accessories when pool slots are reused.
+- Track the meshes that actually received a matrix write and upload only those
+  instance buffers after all NPC, appearance, death and remote-player passes.
+  Visible body animation remains full cadence. Cached `npcParts` and
+  `remoteParts` arrays also remove repeated `Object.entries`/`Object.values`
+  allocations from the frame loop.
+- Temporary instrumentation in the ordinary-city camera measured 3,222 matrix
+  writes per rendered frame, including 2,455 calls that hid parts, with 47 NPCs
+  before the change. The visibility cache reduced actual writes to 930 while
+  2,464 hide requests were made with 46 NPCs, about a 71% reduction. The sample
+  changed from `30.2 ms` frame / `26.8 ms` render to `27.0 ms` / `23.4 ms`;
+  population and shadow submissions still vary, so the write-count reduction
+  is the reliable result. The temporary counters were removed from the final
+  build.
+- Final one-tab regression exercised pool reuse from the ordinary city into a
+  61-67 NPC prison response. Police helmets, shields, weapons, wounds and
+  hidden civilian accessories transitioned without ghost instances; compact
+  labels and real-time shadows stayed active. The assault spawned four units,
+  reached `shadowed:3`, progressed through `prison_escort` and completed as
+  `jailed:escorted-to-booking` with `delivered:1`. Weapon/grenade/C4 blocking,
+  clean release, renewed fire and chat local echo all remained functional, with
+  no JavaScript or Three.js console errors. A final rebuild check with 65 NPCs
+  reported `22.5 ms` frame / `19.0 ms` render at 22 FPS and `shadowed:3`.
+  The tab and server were closed.
+
 ## Static detail geometry batching (2026-08-11)
 
 - The next measured city bottleneck was render submission, not the JavaScript simulation: a production sample spent `26.3 ms` of `29.2 ms` frame work in `renderer.render`, at `1843` draw calls and about `1.18M` triangles.
