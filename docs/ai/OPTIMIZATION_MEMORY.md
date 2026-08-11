@@ -671,3 +671,29 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Hide the health indicator for dead NPCs. Healthy focused targets and damaged
   living targets keep the established visibility rule, while the fill colour
   continues to communicate healthy, warning and critical thresholds.
+## Settled gore matrix buffers (2026-08-11, v348)
+
+- Detached limbs and their two pooled chunks use an analytic ballistic flight.
+  The renderer clamps flight time at `flightEnd`; after that point position,
+  height, spin and both chunk offsets are mathematically constant, but both
+  complete instance-matrix buffers were still uploaded on every rendered frame.
+- Keep all airborne `setMatrixAt` writes and uploads at full frame cadence. Once
+  a slot reaches `flightEnd`, cache the exact final limb/chunk pose signature;
+  the landing frame is written before subsequent identical frames become
+  cached. Identity, final position, spin and limb scale participate in the
+  signature so a reused slot cannot inherit a wrong settled transform.
+- The existing `previewgore` baseline confirmed two active limbs (and four
+  chunks) at native quality with real-time shadows. Its representative sample
+  was 18 FPS, `34.5 ms` frame work, `26.3 ms` render work, a `44.1 ms` render
+  maximum and 227 programs. Do not claim an FPS gain from this noisy scene;
+  verify the structural result through `settledGoreInstances`,
+  `goreMatrixUpload` and `full-flight-settled-signature-v348`.
+- Final one-tab QA on the merged raised-label/framed-health build sampled a
+  complete preview cycle: eight samples stayed `dirty` while at least one limb
+  was airborne (`settled=0/1`), then 24 samples became `cached` only after both
+  limbs landed (`settled=2`). The final noisy sample reported 22 FPS, `27.2 ms`
+  frame work, `25.2 ms` render work, a streaming-affected `138.6 ms` render
+  maximum and 227 programs, so it is not an FPS comparison. Native pixel ratio,
+  locked quality, real-time shadows, the new shared framed HP profile, gameplay
+  bridge, chat local echo and server-backed `Гражданский` status remained intact
+  with no Three.js error.

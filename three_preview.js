@@ -2350,7 +2350,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         mansion:[0x351f29,0x181319,0xc7a16a],port:[0x203b4f,0x122430,0x68b9d4],
         generic:[0x2a3440,0x171d24,0xcaa452]
       });
-      const projectileColorSignatures=new Array(BULLET_CAP).fill(''),shellMatrixSignatures=new Array(30).fill(''),bulletHoleMatrixSignatures=new Array(32).fill(''),bulletHoleColorSignatures=new Array(32).fill(''),bloodMatrixSignatures=new Array(48).fill(''),bloodColorSignatures=new Array(48).fill(''),goreColorSignatures=new Array(12).fill('');
+      const projectileColorSignatures=new Array(BULLET_CAP).fill(''),shellMatrixSignatures=new Array(30).fill(''),bulletHoleMatrixSignatures=new Array(32).fill(''),bulletHoleColorSignatures=new Array(32).fill(''),bloodMatrixSignatures=new Array(48).fill(''),bloodColorSignatures=new Array(48).fill(''),goreColorSignatures=new Array(12).fill(''),goreMatrixSignatures=new Array(12).fill('');
       const remoteParts={body:makeInstances(new THREE.BoxGeometry(1.45,2.15,.9),new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,toneMapped:false}),REMOTE_CAP),head:makeInstances(new THREE.SphereGeometry(.53,14,10),new THREE.MeshBasicMaterial({color:0xc58c68,toneMapped:false}),REMOTE_CAP),hat:makeInstances(new THREE.CylinderGeometry(.68,.68,.28,14),new THREE.MeshBasicMaterial({color:0xffffff,vertexColors:true,toneMapped:false}),REMOTE_CAP)},remotePartMeshes=Object.values(remoteParts);
       const createPlayerSpeechEntry=()=>{const canvas=document.createElement('canvas');canvas.width=768;canvas.height=192;const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));sprite.scale.set(16.8,4.2,1);sprite.renderOrder=62;sprite.layers.enable(1);sprite.visible=false;scene.add(sprite);return {canvas,texture,sprite,sig:''};};
       const localPlayerSpeech=createPlayerSpeechEntry(),remotePlayerSpeech=Array.from({length:REMOTE_CAP},createPlayerSpeechEntry);
@@ -4484,32 +4484,31 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           impactPool.forEach((impact,i)=>{const src=dynamic.impactFx[i];if(!impact.visible||!src?.glass||src.vehicle)return;const pct=Math.max(0,Math.min(1,src.life/src.max));impact.userData.core.position.y=1.92;impact.userData.core.scale.setScalar(.16+pct*.82);impact.userData.core.material.color.set(0xcff7ff);impact.userData.sparks.forEach((spark,s)=>{if(!spark.visible)return;const scale=.36+pct*.76;spark.position.y=.85+Math.sin(pct*Math.PI)*(1.35+(s%4)*.24);spark.scale.set(scale,scale*1.08,scale);});});
           let bulletHoleMatricesDirty=false,bulletHoleColorsDirty=false;for(let i=0;i<activeBulletHoleInstances;i++){const src=dynamic.bulletHoleFx[i],ang=+src.ang||0,size=(src.heavy?1.12:.68)*(+src.scale||1),fade=Math.max(.48,1-Math.max(0,+src.age||0)/120000),height=1.82+((+src.id||i)*.37%1)*.72,matrixSig=`${src.id??i}:${src.r}:${src.c}:${ang}:${src.rot||0}:${size}`;if(bulletHoleMatrixSignatures[i]!==matrixSig){bulletHoleMatrixSignatures[i]=matrixSig;instanceQuat.setFromEuler(instanceEuler.set(0,-Math.PI/2-ang,+src.rot||0));instanceMatrix.compose(instancePosition.set((src.c-originC)*WORLD_SCALE-Math.cos(ang)*.055,height,(src.r-originR)*WORLD_SCALE-Math.sin(ang)*.055),instanceQuat,instanceScale.set(size,size,1));bulletHoleDecals.setMatrixAt(i,instanceMatrix);bulletHoleMatricesDirty=true;}const colorSig=`${matrixSig}:${fade}`;if(bulletHoleColorSignatures[i]!==colorSig){bulletHoleColorSignatures[i]=colorSig;bulletHoleDecals.setColorAt(i,instanceColor.setRGB(.52*fade,.46*fade,.39*fade));bulletHoleColorsDirty=true;}}if(bulletHoleMatricesDirty)bulletHoleDecals.instanceMatrix.needsUpdate=true;if(bulletHoleColorsDirty&&bulletHoleDecals.instanceColor)bulletHoleDecals.instanceColor.needsUpdate=true;
           let bloodMatricesDirty=false,bloodColorsDirty=false;for(let i=0;i<activeBloodInstances;i++){const src=dynamic.bloodFx[i],fade=Math.max(.12,Math.min(1,(+src.life||0)/Math.max(1,+src.max||1))),scale=Math.max(.28,Math.min(1.65,(+src.radius||5)*.105)),sx=src.trail?scale*.72:scale,sy=src.trail?scale*1.42:scale,matrixSig=`${src.id??i}:${src.r}:${src.c}:${src.rot||0}:${sx}:${sy}`;if(bloodMatrixSignatures[i]!==matrixSig){bloodMatrixSignatures[i]=matrixSig;instanceQuat.setFromEuler(instanceEuler.set(-Math.PI/2,0,+src.rot||0));instanceMatrix.compose(instancePosition.set((src.c-originC)*WORLD_SCALE,.045,(src.r-originR)*WORLD_SCALE),instanceQuat,instanceScale.set(sx,sy,1));bloodDecals.setMatrixAt(i,instanceMatrix);bloodMatricesDirty=true;}const colorSig=`${matrixSig}:${src.soot?1:0}:${src.crater?1:0}:${fade}`;if(bloodColorSignatures[i]!==colorSig){bloodColorSignatures[i]=colorSig;src.soot?bloodDecals.setColorAt(i,instanceColor.setRGB(src.crater?.025:.045,src.crater?.022:.038,src.crater?.02:.03)):bloodDecals.setColorAt(i,instanceColor.setRGB(.28+.22*fade,.008,.014));bloodColorsDirty=true;}}if(bloodMatricesDirty)bloodDecals.instanceMatrix.needsUpdate=true;if(bloodColorsDirty&&bloodDecals.instanceColor)bloodDecals.instanceColor.needsUpdate=true;if(telemetryDue){renderer.domElement.dataset.bloodDecals=String(activeBloodInstances);renderer.domElement.dataset.bulletHoleColorUpload=bulletHoleColorsDirty?'dirty':'cached';renderer.domElement.dataset.bloodColorUpload=bloodColorsDirty?'dirty':'cached';renderer.domElement.dataset.decalColorUploadProfile='bridge-snapshot-signature-v345';}
-          let goreColorsDirty=false;for(let i=0;i<activeGoreInstances;i++){
+          let goreColorsDirty=false,goreMatricesDirty=false,settledGoreInstances=0;for(let i=0;i<activeGoreInstances;i++){
             const src=dynamic.goreFx[i];
             const age=Math.max(0,+src.age||0)/1000,vz=Math.max(1,+src.vz||4);
             const flightEnd=(vz+Math.sqrt(vz*vz+33.32))/9.8,flight=Math.min(age,flightEnd);
             const x=(+src.c+(+src.vc||0)*flight-originC)*WORLD_SCALE;
             const z=(+src.r+(+src.vr||0)*flight-originR)*WORLD_SCALE;
             const y=Math.max(.18,1.7+vz*flight-4.9*flight*flight);
-            const leg=String(src.part||'').includes('Leg'),spin=(+src.spin||0)*flight;
-            instanceQuat.setFromEuler(instanceEuler.set(spin,spin*.63,spin*.38));
-            instanceMatrix.compose(instancePosition.set(x,y,z),instanceQuat,instanceScale.set(1,leg?1.08:.86,1));
-            goreLimbs.setMatrixAt(i,instanceMatrix);
+            const leg=String(src.part||'').includes('Leg'),spin=(+src.spin||0)*flight,settled=age>=flightEnd,matrixSig=settled?`${String(src.id||i)}:${x}:${y}:${z}:${spin}:${leg?1:0}`:'';
+            if(settled)settledGoreInstances++;
             const role=String(src.role||'').toLowerCase(),faction=String(src.faction||'').toLowerCase();
             const limbColor=leg?0x34363f:role.includes('police')||role.includes('cop')?0x3478b8:role.includes('gang')||role.includes('guard')?(faction.includes('purple')?0x7447aa:faction.includes('yellow')?0xd5c39c:0xb84a5d):[0x52b8ee,0xf0717f,0x8acb63,0xefae46][i%4];
             const goreColorSig=`${limbColor}`;if(goreColorSignatures[i]!==goreColorSig){goreColorSignatures[i]=goreColorSig;goreLimbs.setColorAt(i,instanceColor.setHex(limbColor));goreColorsDirty=true;}
+            if(!settled||goreMatrixSignatures[i]!==matrixSig){goreMatrixSignatures[i]=matrixSig;instanceQuat.setFromEuler(instanceEuler.set(spin,spin*.63,spin*.38));instanceMatrix.compose(instancePosition.set(x,y,z),instanceQuat,instanceScale.set(1,leg?1.08:.86,1));goreLimbs.setMatrixAt(i,instanceMatrix);
             for(let k=0;k<2;k++){
               const ci=i*2+k,a=spin*.32+k*Math.PI,spread=.18+k*.13;
               instanceQuat.setFromEuler(instanceEuler.set(spin*(1.2+k*.25),spin*.7+k,spin*.45));
               instanceMatrix.compose(instancePosition.set(x+Math.cos(a)*spread,y+.12+k*.08,z+Math.sin(a)*spread),instanceQuat,instanceScale.setScalar(k?.72:.9));
               goreChunks.setMatrixAt(ci,instanceMatrix);
               if(goreColorsDirty)goreChunks.setColorAt(ci,instanceColor.setHex(k?0x68070b:0xc51b24));
-            }
+            }goreMatricesDirty=true;}
           }
-          if(activeGoreInstances){goreLimbs.instanceMatrix.needsUpdate=true;goreChunks.instanceMatrix.needsUpdate=true;}
+          if(goreMatricesDirty){goreLimbs.instanceMatrix.needsUpdate=true;goreChunks.instanceMatrix.needsUpdate=true;}
           if(goreColorsDirty&&goreLimbs.instanceColor)goreLimbs.instanceColor.needsUpdate=true;
           if(goreColorsDirty&&goreChunks.instanceColor)goreChunks.instanceColor.needsUpdate=true;
-          if(telemetryDue)renderer.domElement.dataset.detachedLimbs=String(dynamic.goreFx?.length||0);
+          if(telemetryDue){renderer.domElement.dataset.detachedLimbs=String(dynamic.goreFx?.length||0);renderer.domElement.dataset.settledGoreInstances=String(settledGoreInstances);renderer.domElement.dataset.goreMatrixUpload=goreMatricesDirty?'dirty':'cached';renderer.domElement.dataset.goreMatrixProfile='full-flight-settled-signature-v348';}
           explosionPool.forEach((blast,i)=>{
             const src=dynamic.explosionFx[i];blast.visible=!!src;if(!src)return;
             const pct=Math.max(0,Math.min(1,src.age/src.life)),burst=Math.sin(Math.min(1,pct*1.5)*Math.PI),seed=+src.seed||i,vehicle=src.kind==='vehicle';
