@@ -10,10 +10,11 @@ function material(color,roughness=.62){return new THREE.MeshStandardMaterial({co
 function part(geometry,mat,x,y,z,parent,cast=true){const mesh=new THREE.Mesh(geometry,mat);mesh.position.set(x,y,z);mesh.castShadow=cast;parent.add(mesh);return mesh;}
 function disposeObject(root){root.traverse(o=>{o.geometry?.dispose?.();if(Array.isArray(o.material))o.material.forEach(m=>m.dispose?.());else o.material?.dispose?.();});}
 
-function buildCharacter(rawLook={}){
+function buildCharacter(rawLook={},options={}){
   const look={gender:+rawLook.gender||0,skin:+rawLook.skin||0,body:+rawLook.body||0,face:+rawLook.face||0,hair:+rawLook.hair||0,hat:+rawLook.hat||0};
   const root=new THREE.Group(),female=look.gender===1,bodyId=Math.abs(look.body)%4,faceId=Math.abs(look.face)%10,hairId=Math.abs(look.hair)%10,hatId=Math.abs(look.hat)%10;
-  const skin=material(SKINS[Math.abs(look.skin)%SKINS.length],.68),skinDark=material(new THREE.Color(SKINS[Math.abs(look.skin)%SKINS.length]).multiplyScalar(.72),.8),suit=material(SUITS[Math.abs(look.body)%SUITS.length],.54),suitDark=material(new THREE.Color(SUITS[Math.abs(look.body)%SUITS.length]).multiplyScalar(.56),.66),shirt=material(female?0xf0d9d8:0xe8e5dc,.72),trousers=material(TROUSERS[Math.abs(look.body)%TROUSERS.length],.68),hairMat=material(HAIRS[hairId],.82),hatMat=material(HATS[hatId],.58),metal=material(0xd1a84b,.24),black=material(0x111318,.8),white=new THREE.MeshBasicMaterial({color:0xf8f8f3}),iris=new THREE.MeshBasicMaterial({color:[0x24384a,0x4b3829,0x31543a,0x202124][faceId%4]}),red=material(female?0xa92f44:0x603029,.7);
+  const authoredSuit=options.suit||SUITS[Math.abs(look.body)%SUITS.length],authoredAccent=options.accent||HATS[hatId];
+  const skin=material(SKINS[Math.abs(look.skin)%SKINS.length],.68),skinDark=material(new THREE.Color(SKINS[Math.abs(look.skin)%SKINS.length]).multiplyScalar(.72),.8),suit=material(authoredSuit,.54),suitDark=material(new THREE.Color(authoredSuit).multiplyScalar(.56),.66),shirt=material(female?0xf0d9d8:0xe8e5dc,.72),trousers=material(options.boss?new THREE.Color(authoredSuit).multiplyScalar(.25):TROUSERS[Math.abs(look.body)%TROUSERS.length],.68),hairMat=material(HAIRS[hairId],.82),hatMat=material(options.boss?authoredAccent:HATS[hatId],.58),metal=material(options.boss?authoredAccent:0xd1a84b,.24),black=material(0x111318,.8),white=new THREE.MeshBasicMaterial({color:0xf8f8f3}),iris=new THREE.MeshBasicMaterial({color:[0x24384a,0x4b3829,0x31543a,0x202124][faceId%4]}),red=material(female?0xa92f44:0x603029,.7);
   const profiles=[
     {shoulder:1.30,waist:1.02,hip:1.08,depth:.76,arm:.31,leg:.39,torsoY:.98},
     {shoulder:1.62,waist:1.36,hip:1.34,depth:.96,arm:.42,leg:.49,torsoY:1},
@@ -88,6 +89,15 @@ function buildCharacter(rawLook={}){
   else if(hatId===5){for(const sx of [-.25,.25]){const lens=part(new THREE.TorusGeometry(.2,.035,8,18),black,sx,4.42,.72,root,false);lens.scale.y=.82;}part(new THREE.BoxGeometry(.18,.035,.035),black,0,4.42,.72,root,false);}
   else if(hatId===6){part(new THREE.CylinderGeometry(.71,.71,.13,22),red,0,4.56,0,root);}
   else if(hatId===9){const chainFront=Math.max(.62,shape.depth*depthScale*.63+.17),chain=part(new THREE.TorusGeometry(.5,.055,8,24,Math.PI),metal,0,3.6,chainFront,root,false);chain.scale.x=Math.min(1.22,shape.shoulder*shoulderScale/1.55);chain.rotation.z=Math.PI;}
+  if(options.boss){
+    const weapon=String(options.weapon||'pistol'),longGun=/rifle|sniper|shotgun|tommy|smg/.test(weapon),gun=new THREE.Group();root.add(gun);
+    gun.position.set(.72,2.12,.62);gun.rotation.z=longGun?-.22:-.08;
+    part(new THREE.BoxGeometry(longGun?.22:.26,longGun?1.12:.58,.18),black,0,0,0,gun);
+    part(new THREE.CylinderGeometry(longGun?.055:.045,longGun?.055:.045,longGun?.88:.45,10),metal,0,longGun?.94:.48,0,gun);
+    const grip=part(new THREE.BoxGeometry(.18,.42,.14),suitDark,-.06,longGun?-.65:-.38,0,gun);grip.rotation.z=.25;
+    if(longGun)part(new THREE.BoxGeometry(.34,.58,.2),material(authoredSuit,.52),0,-.83,0,gun);
+    for(const sx of [-1,1]){const lapel=part(new THREE.BoxGeometry(.25,.92,.07),metal,sx*.29,3.05,garmentFront+.06,root,false);lapel.rotation.z=sx*.38;}
+  }
   root.userData.look=look;
   return root;
 }
@@ -109,15 +119,15 @@ function paint(canvas,look={},options={}){
   if(!canvas)return false;
   if(!snapshot){const source=document.createElement('canvas');source.width=300;source.height=390;const base=makeScene();snapshot={source,renderer:createRenderer(source),...base,character:null};}
   const width=Math.max(48,canvas.width||300),height=Math.max(64,canvas.height||390),close=options.crop==='face';snapshot.source.width=width;snapshot.source.height=height;snapshot.renderer.setSize(width,height,false);snapshot.camera.aspect=width/height;snapshot.camera.position.set(0,close?4.34:3.05,close?7.1:13.2);snapshot.camera.lookAt(0,close?4.18:2.55,0);snapshot.camera.updateProjectionMatrix();
-  if(snapshot.character){snapshot.scene.remove(snapshot.character);disposeObject(snapshot.character);}snapshot.character=buildCharacter(look);snapshot.character.rotation.y=Number.isFinite(+options.angle)?+options.angle:0;snapshot.scene.add(snapshot.character);snapshot.renderer.render(snapshot.scene,snapshot.camera);
+  if(snapshot.character){snapshot.scene.remove(snapshot.character);disposeObject(snapshot.character);}snapshot.character=buildCharacter(look,options);snapshot.character.rotation.y=Number.isFinite(+options.angle)?+options.angle:0;snapshot.scene.add(snapshot.character);snapshot.renderer.render(snapshot.scene,snapshot.camera);
   const ctx=canvas.getContext('2d');ctx.clearRect(0,0,width,height);ctx.drawImage(snapshot.source,0,0,width,height);return true;
 }
 
 function attach(canvas,look={},options={}){
-  const renderer=createRenderer(canvas),base=makeScene();let character=buildCharacter(look),angle=+options.angle||0,disposed=false,frame=0;character.rotation.y=angle;base.scene.add(character);
+  const renderer=createRenderer(canvas),base=makeScene();let character=buildCharacter(look,options),angle=+options.angle||0,disposed=false,frame=0;character.rotation.y=angle;base.scene.add(character);
   const resize=()=>{const width=Math.max(1,canvas.width||300),height=Math.max(1,canvas.height||390);renderer.setSize(width,height,false);base.camera.aspect=width/height;base.camera.updateProjectionMatrix();};resize();
   const render=()=>{if(disposed)return;character.rotation.y=angle+(options.idle===false?0:Math.sin(performance.now()*.00055)*.08);renderer.render(base.scene,base.camera);if(options.animate!==false)frame=requestAnimationFrame(render);};render();
-  return {setLook(next){base.scene.remove(character);disposeObject(character);character=buildCharacter(next||{});character.rotation.y=angle;base.scene.add(character);if(options.animate===false)render();},setAngle(next){angle=+next||0;if(options.animate===false)render();},dispose(){disposed=true;cancelAnimationFrame(frame);base.scene.remove(character);disposeObject(character);renderer.dispose();}};
+  return {setLook(next){base.scene.remove(character);disposeObject(character);character=buildCharacter(next||{},options);character.rotation.y=angle;base.scene.add(character);if(options.animate===false)render();},setAngle(next){angle=+next||0;if(options.animate===false)render();},dispose(){disposed=true;cancelAnimationFrame(frame);base.scene.remove(character);disposeObject(character);renderer.dispose();}};
 }
 
 window.MafioziCharacter3D=Object.freeze({paint,attach});
