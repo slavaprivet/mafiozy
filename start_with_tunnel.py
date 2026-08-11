@@ -108,7 +108,7 @@ def start_tunnel():
 
 
 def publish_coop_api_json(api_url: str):
-    """Записывает coop_api.json в GitHub-репо mafiozi-battle (GitHub Pages).
+    """Записывает coop_api.json в основной GitHub-репо mafiozy (GitHub Pages).
     Содержимое: {"base": "<api_url>", "ts": <unix>}. hub.html у юзеров
     без api= в URL читает этот файл и использует base как COOP_API_BASE.
 
@@ -129,7 +129,7 @@ def publish_coop_api_json(api_url: str):
         log("[!] .token не похож на GitHub PAT (ожидался ghp_ или github_pat_).")
         return
 
-    repo   = "slavaprivet/mafiozi-battle"
+    repo   = "slavaprivet/mafiozy"
     branch = "main"
     fname  = "coop_api.json"
     body   = {"base": api_url, "ts": int(time.time())}
@@ -171,7 +171,7 @@ def publish_coop_api_json(api_url: str):
     # На Windows-cp1251 unicode-стрелки/значки в print падают с
     # 'charmap' codec error — обходим через ASCII-safe формат.
     if code in (200, 201):
-        log(f"coop_api.json published OK: https://slavaprivet.github.io/mafiozi-battle/{fname}")
+        log(f"coop_api.json published OK: https://slavaprivet.github.io/mafiozy/{fname}")
     else:
         msg = str(resp)[:200].encode("ascii", "replace").decode("ascii")
         log(f"[!] coop_api.json PUT HTTP {code}: {msg}")
