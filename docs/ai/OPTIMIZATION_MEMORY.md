@@ -562,3 +562,14 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Healthy, unfocused NPC HP bars stay hidden; damaged actors keep their HP bar
   visible. Telemetry records visible, hidden and focused identities under the
   `nearby-ring-focus-only-priority-dialogue-v341` profile.
+
+## Readable focused character labels (2026-08-11, v342)
+
+- Once ordinary identity cards are proximity-gated to one ring-focused NPC,
+  their world-space scale can increase by about 15% without returning to the
+  former screen-wide overlap. Keep the existing 768x192 pooled canvas and only
+  change sprite transforms; this adds no textures, draw calls or frame scans.
+- Apply the same restrained increase to the local player name and the compact
+  custody/response variants so nearby character labels remain visually
+  consistent. Large dialogue, boss and unique-NPC cards already have adequate
+  scale and should remain unchanged.
