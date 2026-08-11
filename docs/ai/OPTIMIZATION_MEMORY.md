@@ -737,3 +737,14 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   locked quality, real-time shadows, the incoming raised framed-HP profile,
   gameplay bridge, chat local echo and server-backed `Гражданский` status
   remained intact with no Three.js error.
+
+## Health-fading identity cards (2026-08-11, v351)
+
+- Use the existing player-name canvas and pooled NPC-label canvases as the
+  health indicator. At full health their black backing is complete; on damage
+  the dark background recedes from right to left through a soft transparent
+  edge while bright text and the role-coloured frame remain readable.
+- Remove the separate player and NPC health sprites entirely. NPC canvases are
+  repainted only when their existing signature or integer health percentage
+  changes, and the player canvas follows the same bounded health signature, so
+  the effect adds no per-frame texture creation, draw calls or population scan.
