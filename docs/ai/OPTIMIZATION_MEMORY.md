@@ -605,6 +605,7 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   body, roof, hood and one shared four-wheel pool add two bounded static draw
   calls but no per-frame object creation or scans; transforms are written only
   when a streamed map obstacle is first registered.
+
 ## Dirty decal colour buffers (2026-08-11, v345)
 
 - Bullet-hole and ground-blood matrices were already signature-cached, but
@@ -656,3 +657,17 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   gameplay bridge remained intact; chat local echo advanced, server-backed
   status stayed `Гражданский`, and no Three.js error was reported. The fixture,
   browser tab and local server were all removed or closed after verification.
+
+## Raised labels and framed NPC health (2026-08-11, v347)
+
+- Raise living-character label transforms and the nearby action-prompt anchor
+  together. This preserves their vertical separation without adding another
+  NPC scan or projection pass; corpse labels intentionally remain close to the
+  ground.
+- A richer health indicator can retain the existing two-sprite NPC pool. Share
+  one frame texture and one fill texture across every slot, then resize and
+  offset the fill sprite for a left-anchored value. Do not create a canvas or a
+  texture per NPC or redraw the frame every animation tick.
+- Hide the health indicator for dead NPCs. Healthy focused targets and damaged
+  living targets keep the established visibility rule, while the fill colour
+  continues to communicate healthy, warning and critical thresholds.
