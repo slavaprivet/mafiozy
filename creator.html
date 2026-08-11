@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- v357: every successful save path enters world.html directly. -->
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -1313,6 +1313,33 @@ function setSaveState(stateName, message) {
   }
   if (saveStatus) saveStatus.textContent = message || '';
 }
+function buildDirectWorldTarget(savedCharacterId, playerName) {
+  let target;
+  try { target = new URL(creatorReturn || 'world.html',location.href); }
+  catch(e) { target = new URL('world.html',location.href); }
+  const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
+  target.searchParams.set('menu','enter');
+  target.searchParams.set('account_uid',creatorAccount||characterId);
+  target.searchParams.set('uid',characterId||creatorAccount);
+  target.searchParams.set('character',characterId||creatorAccount);
+  target.searchParams.set('has_look','1');
+  target.searchParams.set('name',playerName);
+  target.searchParams.set('lvl','1');
+  target.searchParams.set('cash','0');
+  Object.entries(state).forEach(([key,value]) => target.searchParams.set(key,String(value)));
+  return target;
+}
+function enterCreatedWorld(savedCharacterId, playerName, delay=120) {
+  const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
+  try { if(characterId)localStorage.setItem(`mafiozi_character_ready_v1_${characterId}`,'1'); } catch(e) {}
+  const target=buildDirectWorldTarget(characterId,playerName);
+  document.documentElement.dataset.creatorDirectTarget=target.href;
+  setTimeout(()=>location.replace(target.href),delay);
+  return target;
+}
+if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&urlP.has('creatordirectqa'))setTimeout(()=>{
+  enterCreatedWorld(urlP.get('creatordirectqa')||'123',initialName||'QA',0);
+},120);
 async function saveChar() {
   if (saveInFlight) return;
   try { const police=creatorUid?JSON.parse(localStorage.getItem(`mafiozi_police_missions_${creatorUid}`)||'null'):null;if(police?.employed){alert('👮 Полицейский не может работать без формы. Сначала увольтесь в полицейском участке.');return;} } catch(e) {}
@@ -1356,18 +1383,8 @@ async function saveChar() {
       const savedCharacterId = String(result.profile?.character_id || creatorUid || '');
       try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
       if (saveBtn) saveBtn.textContent = 'СОХРАНЕНО ✓';
-      if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Возвращаемся в меню…' : 'Персонаж создан. Возвращаемся в главное меню…';
-      const target = new URL(creatorReturn || 'world.html',location.href);
-      target.searchParams.set('menu','characters');
-      target.searchParams.set('account_uid',creatorAccount);
-      target.searchParams.set('uid',savedCharacterId);
-      target.searchParams.set('character',savedCharacterId);
-      target.searchParams.set('has_look','1');
-      target.searchParams.set('name',playerName);
-      target.searchParams.set('lvl','1');
-      target.searchParams.set('cash','0');
-      Object.entries(state).forEach(([key,value]) => target.searchParams.set(key,String(value)));
-      setTimeout(() => { location.href = target.href; },450);
+      if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Входим в мир…' : 'Персонаж создан. Входим в мир…';
+      enterCreatedWorld(savedCharacterId,playerName);
       return;
     } catch(e) {
       saveInFlight = false;
@@ -1377,9 +1394,12 @@ async function saveChar() {
     }
   }
   if (tg && typeof tg.sendData === 'function') {
-    tg.sendData(JSON.stringify(payload));
+    // Telegram may close the mini-app after sendData; ordinary browsers do
+    // not. Queue the world route first so confirmation can never hang here.
+    enterCreatedWorld(creatorUid||creatorAccount,playerName,180);
+    try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
     if (saveBtn) saveBtn.textContent = 'ОТПРАВЛЕНО ✓';
-    if (saveStatus) saveStatus.textContent = 'Образ отправлен в игру.';
+    if (saveStatus) saveStatus.textContent = 'Образ отправлен. Входим в мир…';
   } else {
     saveInFlight = false;
     setSaveState('error','Нет соединения с игровым сервером. Открой редактор из меню персонажей.');
