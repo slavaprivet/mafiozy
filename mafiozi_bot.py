@@ -13347,8 +13347,10 @@ class WorldSim:
     NPC_CUSTODY_PRISON_ESCORT_S = 5.0
     NPC_CUSTODY_JAIL_X       = 89.5
     NPC_CUSTODY_JAIL_Y       = 97.0
-    NPC_CUSTODY_GATE_X       = 80.5
-    NPC_CUSTODY_GATE_Y       = 69.55
+    # Road stop outside the prison gate. The visible gate itself is a wall
+    # tile in the shared base map and cannot be an A* vehicle destination.
+    NPC_CUSTODY_GATE_X       = 78.5
+    NPC_CUSTODY_GATE_Y       = 69.5
     NPC_CUSTODY_RELEASE_X    = 89.5
     NPC_CUSTODY_RELEASE_Y    = 67.7
     CITY_GANG_GRENADE_NOTICE_R = 7.2
@@ -16858,6 +16860,66 @@ class WorldSim:
                     })
         return pkts
 
+    def _move_cop_to_npc_offender(self, cop: dict, target: dict,
+                                  dt: float, now: float) -> bool:
+        """Collision-safe cached route for the final arrest approach.
+
+        A straight-line step leaves officers pinned to the first building
+        corner.  Reuse the bounded pedestrian A* and replan only when the
+        offender changes cells or a progress watchdog expires.
+        """
+        tx, ty = float(target.get('x') or 0), float(target.get('y') or 0)
+        cx, cy = float(cop.get('x') or 0), float(cop.get('y') or 0)
+        if math.hypot(tx-cx, ty-cy) <= 1.15:
+            return True
+        goal_cell = (int(ty), int(tx))
+        old_goal = cop.get('_npc_route_goal')
+        route = cop.get('_npc_route') or []
+        route_i = int(cop.get('_npc_route_i') or 0)
+        needs_route = (not route or route_i >= len(route)
+                       or old_goal != goal_cell
+                       or now >= float(cop.get('_npc_route_replan_at') or 0))
+        if needs_route:
+            route = _world_bot_path(cx, cy, tx, ty)
+            cop['_npc_route'] = route
+            cop['_npc_route_i'] = 0
+            cop['_npc_route_goal'] = goal_cell
+            cop['_npc_route_replan_at'] = now + 1.35
+            cop['_npc_route_replans'] = int(cop.get('_npc_route_replans') or 0) + 1
+            cop.setdefault('_npc_route_progress_at', now)
+            route_i = 0
+        waypoint = route[route_i] if route_i < len(route) else (tx, ty)
+        wx, wy = float(waypoint[0]), float(waypoint[1])
+        dx, dy = wx-cx, wy-cy
+        dist = math.hypot(dx, dy)
+        if dist <= .28 and route_i < len(route)-1:
+            route_i += 1
+            cop['_npc_route_i'] = route_i
+            wx, wy = route[route_i]
+            dx, dy, dist = wx-cx, wy-cy, math.hypot(wx-cx, wy-cy)
+        elif dist <= .28:
+            wx, wy = tx, ty
+            dx, dy, dist = wx-cx, wy-cy, math.hypot(wx-cx, wy-cy)
+        if dist > .001:
+            step = min(dist, self.COP_CHASE_SPEED * 1.15 * dt)
+            ang = math.atan2(dy, dx)
+            nx, ny = cx + math.cos(ang)*step, cy + math.sin(ang)*step
+            if _world_bot_passable(nx, ny):
+                cop['x'], cop['y'], cop['ang'] = nx, ny, ang
+        moved = math.hypot(float(cop.get('x') or 0)-cx,
+                           float(cop.get('y') or 0)-cy)
+        if moved > .025:
+            cop['_npc_route_progress_at'] = now
+            cop['_npc_route_last_x'], cop['_npc_route_last_y'] = cop['x'], cop['y']
+        elif now-float(cop.get('_npc_route_progress_at') or now) >= 2.2:
+            cop['_npc_route'] = []
+            cop['_npc_route_i'] = 0
+            cop['_npc_route_replan_at'] = 0.0
+            cop['_npc_route_progress_at'] = now
+            cop['_npc_route_stalls'] = int(cop.get('_npc_route_stalls') or 0) + 1
+        return math.hypot(tx-float(cop.get('x') or 0),
+                          ty-float(cop.get('y') or 0)) <= 1.15
+
     def _tick_cop_vs_gang(self, cop: dict, dt: float) -> list:
         """Коп с target_gang_id атакует ближайшего живого бойца группы.
         Если группа уничтожена или ушла в patrol — копу нечего делать,
@@ -16904,13 +16966,8 @@ class WorldSim:
         if target.get('_npc_murder_wanted'):
             # Murderers are taken alive.  Officers close the final metres,
             # cuff the exact shooter and hand it to the custody convoy.
-            if dist > 1.15:
-                step = min(dist - 1.0, self.COP_CHASE_SPEED * 1.15 * dt)
-                nx, ny = dx / max(dist, .001), dy / max(dist, .001)
-                tx, ty = cop['x'] + nx * step, cop['y'] + ny * step
-                if _world_bot_passable(tx, ty):
-                    cop['x'], cop['y'] = tx, ty
-            elif not target.get('_custody_id'):
+            reached = self._move_cop_to_npc_offender(cop, target, dt, now)
+            if reached and not target.get('_custody_id'):
                 custody = self._begin_npc_custody(g, target, cop, now)
                 if custody:
                     pkts.append({'kind':'npc_custody_started',
@@ -19374,6 +19431,32 @@ class WorldSim:
         now = time.time() if now is None else float(now)
         gang_id = str(gang.get('id') or cop.get('target_gang_id') or '')
         cid = f"npc_custody_{bot.get('id')}"
+        cop_x, cop_y, cop_ang = (float(cop.get('x') or 0),
+                                 float(cop.get('y') or 0),
+                                 float(cop.get('ang') or 0))
+        vehicle_x, vehicle_y, vehicle_ang, vehicle_route, escort_route = cop_x, cop_y, cop_ang, [], []
+        # A fixed point behind the officer can land inside the neighbouring
+        # building. Accept only a passable staging point with a prison route.
+        for radius in (1.8, 2.5, 3.2, 4.0):
+            found = False
+            for turn in (math.pi, math.pi-.55, math.pi+.55,
+                         math.pi-1.1, math.pi+1.1, 0.0):
+                ang = cop_ang + turn
+                vx, vy = cop_x + math.cos(ang)*radius, cop_y + math.sin(ang)*radius
+                if not _world_bot_passable(vx, vy):
+                    continue
+                route = _world_bot_path(vx, vy, self.NPC_CUSTODY_GATE_X,
+                                        self.NPC_CUSTODY_GATE_Y)
+                to_vehicle = _world_bot_path(float(bot.get('x') or 0),
+                                             float(bot.get('y') or 0), vx, vy)
+                if route and to_vehicle:
+                    vehicle_x, vehicle_y = vx, vy
+                    vehicle_route = route
+                    escort_route = to_vehicle
+                    found = True
+                    break
+            if found:
+                break
         custody = {
             'id': cid, 'gang_id': gang_id,
             'bot_id': str(bot.get('id') or ''), 'faction': str(gang.get('faction') or 'lair'),
@@ -19382,9 +19465,11 @@ class WorldSim:
             'look': dict(bot.get('look') or {}), 'phase': 'cuffing',
             'phase_at': now, 'x': float(bot.get('x') or 0),
             'y': float(bot.get('y') or 0), 'ang': float(bot.get('ang') or 0),
-            'cop_id': str(cop.get('id') or ''), 'vehicle_x': float(cop.get('x') or 0),
-            'vehicle_y': float(cop.get('y') or 0), 'vehicle_ang': float(cop.get('ang') or 0),
-            'route': [], 'route_i': 0, 'release_mode': (
+            'cop_id': str(cop.get('id') or ''), 'vehicle_x': vehicle_x,
+            'vehicle_y': vehicle_y, 'vehicle_ang': vehicle_ang,
+            'route': vehicle_route, 'route_i': 0,
+            'escort_vehicle_route': escort_route, 'escort_vehicle_i': 0,
+            'release_mode': (
                 'roam' if sum(ord(ch) for ch in str(bot.get('id') or '')) % 2 else 'gang'),
             'jail_until': 0.0,
         }
@@ -19426,23 +19511,28 @@ class WorldSim:
             elif phase == 'escort':
                 # The arresting officer escorts the cuffed NPC to a physical
                 # patrol car staged behind the officer.
-                if cop:
-                    q['vehicle_x'] = float(cop.get('x') or q['x']) - math.cos(float(cop.get('ang') or 0)) * 1.8
-                    q['vehicle_y'] = float(cop.get('y') or q['y']) - math.sin(float(cop.get('ang') or 0)) * 1.8
-                    q['vehicle_ang'] = float(cop.get('ang') or 0)
-                self._npc_custody_move(q, q['vehicle_x'], q['vehicle_y'], 1.45, dt)
-                if age >= self.NPC_CUSTODY_ESCORT_S:
+                route = q.get('escort_vehicle_route') or []
+                idx = min(int(q.get('escort_vehicle_i') or 0), max(0, len(route)-1))
+                tx, ty = route[idx] if route else (q['vehicle_x'], q['vehicle_y'])
+                reached = self._npc_custody_move(q, tx, ty, 1.45, dt)
+                if reached and idx + 1 < len(route):
+                    q['escort_vehicle_i'] = idx + 1
+                elif reached:
                     q['phase'], q['phase_at'] = 'loading', now
             elif phase == 'loading' and age >= self.NPC_CUSTODY_LOAD_S:
                 q['phase'], q['phase_at'] = 'transport', now
                 q['x'], q['y'] = q['vehicle_x'], q['vehicle_y']
-                q['route'] = (_world_bot_path(q['vehicle_x'], q['vehicle_y'],
-                                               self.NPC_CUSTODY_GATE_X,
-                                               self.NPC_CUSTODY_GATE_Y) or
-                              [(self.NPC_CUSTODY_GATE_X, self.NPC_CUSTODY_GATE_Y)])
+                q['route'] = (q.get('route') or
+                              _world_bot_path(q['vehicle_x'], q['vehicle_y'],
+                                              self.NPC_CUSTODY_GATE_X,
+                                              self.NPC_CUSTODY_GATE_Y))
                 q['route_i'] = 0
             elif phase == 'transport':
                 route = q.get('route') or []
+                if not route:
+                    q['phase'], q['phase_at'] = 'loading', now
+                    q['vehicle_route_failed'] = int(q.get('vehicle_route_failed') or 0) + 1
+                    continue
                 idx = min(int(q.get('route_i') or 0), max(0, len(route)-1))
                 tx, ty = route[idx] if route else (self.NPC_CUSTODY_GATE_X,
                                                    self.NPC_CUSTODY_GATE_Y)
@@ -19459,9 +19549,19 @@ class WorldSim:
                 if age >= self.NPC_CUSTODY_UNLOAD_S:
                     q['phase'], q['phase_at'] = 'prison_escort', now
             elif phase == 'prison_escort':
-                self._npc_custody_move(q, self.NPC_CUSTODY_JAIL_X,
-                                       self.NPC_CUSTODY_JAIL_Y, 4.8, dt)
-                if age >= self.NPC_CUSTODY_PRISON_ESCORT_S:
+                # Authored path through the visible western gate and intake
+                # corridor. The 3D prison overlays the base map, so generic
+                # city A* cannot represent these interior walkways.
+                escort_route = q.setdefault('escort_route', [
+                    (81.32, 69.55), (81.22, 80.82),
+                    (89.5, 89.95), (89.5, 91.72),
+                    (self.NPC_CUSTODY_JAIL_X, self.NPC_CUSTODY_JAIL_Y)])
+                escort_i = min(int(q.get('escort_route_i') or 0), len(escort_route)-1)
+                ex, ey = escort_route[escort_i]
+                escorted = self._npc_custody_move(q, ex, ey, 4.8, dt)
+                if escorted and escort_i < len(escort_route)-1:
+                    q['escort_route_i'] = escort_i + 1
+                elif escorted:
                     q['phase'], q['phase_at'] = 'jailed', now
                     q['x'], q['y'] = self.NPC_CUSTODY_JAIL_X, self.NPC_CUSTODY_JAIL_Y
                     q['jail_until'] = now + self.NPC_CUSTODY_JAIL_S
@@ -21572,6 +21672,10 @@ class WorldSim:
                 'weapon':     cop.get('weapon') or 'pistol',
                 'target_gang_id': str(cop.get('target_gang_id') or ''),
                 'npc_custody_id': str(cop.get('npc_custody_id') or ''),
+                'npc_route_nodes': max(0, len(cop.get('_npc_route') or [])
+                                       - int(cop.get('_npc_route_i') or 0)),
+                'npc_route_replans': int(cop.get('_npc_route_replans') or 0),
+                'npc_route_stalls': int(cop.get('_npc_route_stalls') or 0),
             })
         # Захват районов: владельцы + активный прогресс. Передаём всем
         # клиентам одинаково (5 районов — копеечный объём).
