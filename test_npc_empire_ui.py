@@ -45,11 +45,15 @@ def run() -> None:
     assert "ne-dossier-command" in WORLD and "КРИМИНАЛЬНОЕ ДОСЬЕ" in WORLD
     assert "card.scrollTop=0" in WORLD and "uiMode='dossier'" in WORLD
     assert "const empireHqs=inside?[]:_npcEmpires.filter" in WORLD
-    assert "EMPIRE_HQ_CAP=19" in THREE and "server-owned-ring-flag-gang-label-v357" in THREE
+    assert "EMPIRE_HQ_CAP=19" in THREE and "camera-facing-two-tone-family-banner-v362" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE
     assert "empire-family-card-v360" in THREE
     assert "empireCrew?familyPrimary" in THREE and "empireCrew?familyAccent" in THREE
     assert "empireMember&&src.bossColor" in THREE
+    assert "camera-facing-two-tone-family-banner-v362" in THREE
+    assert "redrawEmpireHqFlag(marker,src)" in THREE
+    assert "marker.flagPivot.rotation.y=Math.atan2" in THREE
+    assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     print("npc_empire_ui: 3D cards, dossier, empire plaque, attitudes, routes and hostility OK")
 
 

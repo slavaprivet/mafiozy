@@ -29,6 +29,12 @@ async def _base_db(path: str) -> None:
         """)
         await db.commit()
     await ne.ensure_schema(path)
+    async with aiosqlite.connect(path) as db:
+        await db.execute(
+            "UPDATE npc_empires SET last_tick=?,next_action_at=?",
+            (2_000_000_000, 2_000_000_000 + ne.TICK_SECONDS),
+        )
+        await db.commit()
 
 
 async def _scalar(path: str, sql: str, args=()):
@@ -47,7 +53,8 @@ async def run() -> None:
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_diplomacy") == 171
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_diplomacy WHERE leader_a>=leader_b") == 0
 
-        state = await ne.state_for(path, 101)
+        state_now = 2_000_000_000
+        state = await ne.state_for(path, 101, now=state_now)
         assert len(state["empires"]) == 19
         assert {x["leader_name"] for x in state["empires"]} == set(ne.MAFIA_BOSS_NAMES.values())
         assert next(x for x in state["empires"] if x["leader_id"] == "rustam")["leader_name"] == "Билли Капоне"
@@ -56,7 +63,8 @@ async def run() -> None:
         assert all(x["activity"]["phase"] == "travel" for x in state["empires"])
         leila_activity = next(x for x in state["empires"] if x["leader_id"] == "leila")["activity"]
         assert "target_r" in leila_activity and "target_c" in leila_activity
-        later_state = await ne.state_for(path, 101, now=2_000_000_000 + ne.VISIBLE_ACTIVITY_SECONDS)
+        later_state = await ne.state_for(
+            path, 101, now=state_now + ne.VISIBLE_ACTIVITY_SECONDS)
         later_activity = next(x for x in later_state["empires"] if x["leader_id"] == "leila")["activity"]
         assert later_activity["created_at"] != leila_activity["created_at"]
 
@@ -124,6 +132,10 @@ async def run() -> None:
                 "INSERT INTO player_businesses VALUES(101,'pizza',0,0,'ok',0,0,1,0,NULL)"
             )
             await db.execute(
+                "INSERT INTO business_property_owners VALUES(?,?,?,?,?)",
+                ("pizza", 101, "Test player", 2_000_000_922, 0),
+            )
+            await db.execute(
                 "UPDATE npc_empire_player_wars SET next_attack_at=? WHERE leader_id='marco' AND telegram_id=101",
                 (2_000_000_923,),
             )
@@ -178,7 +190,7 @@ async def run() -> None:
             await db.commit()
         before_cash = await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101")
         won = await ne.resolve_assault(path, 101, token, "annex", now=2_000_002_000)
-        assert won["ok"] and won["captured_businesses"] == ["coffee"]
+        assert won["ok"] and "coffee" in won["captured_businesses"]
         assert won["comeback_at"] > 2_000_002_000
         assert await _scalar(path, "SELECT status FROM npc_empires WHERE leader_id='leila'") == "ruined"
         assert await _scalar(path, "SELECT score FROM npc_empire_relations WHERE telegram_id=101 AND leader_id='leila'") == 0

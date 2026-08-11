@@ -1050,3 +1050,24 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Preserve the 42,000-node route cap and the existing retry cadence. The full
   180x200 map has fewer cells than that cap, so coast/port reachability does
   not require a second pathfinder or per-frame work.
+
+## Readable family headquarters flags (2026-08-12, v362)
+
+- A vertical HQ plane must rotate through a pole-mounted pivot toward the
+  camera's horizontal position. Copying one Euler component from the pitched
+  isometric camera can leave the banner edge-on and make its family colour look
+  absent.
+- Keep the existing fixed pool of 19 HQ markers and one flag draw call per
+  visible headquarters. A small per-marker canvas carries the primary field,
+  accent border and emblem on the same double-sided plane; repaint it only when
+  the existing ownership signature changes.
+- Do not add animated cloth subdivisions or per-frame canvas drawing. The only
+  frame update is the existing bounded pivot rotation and subtle scale pulse.
+- Dynamic HQ updates run outside the initial static-world builder, so they must
+  not call its block-scoped `roofAnchorAt` helper. Resolve roof height from the
+  already-built `buildingPickables` collection only inside the ownership
+  signature branch; an out-of-scope call aborts the animation frame before any
+  banner can appear.
+- Bump the `three_preview.js` query key when fixing the banner after a failed
+  preview. Reusing the original key can leave an embedded browser on the broken
+  module even though the source file on disk has been corrected.
