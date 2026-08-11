@@ -747,6 +747,31 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   repainted only when their existing signature or integer health percentage
   changes, and the player canvas follows the same bounded health signature, so
   the effect adds no per-frame texture creation, draw calls or population scan.
+
+## Expired combat-effect source cleanup (2026-08-11, v352)
+
+- Shells, muzzle flashes, blood splats, impact particles, explosions,
+  throwables and Molotov fire already expire in the simulation and all combat
+  pools have hard caps. Bullet holes are intentionally persistent but remain
+  bounded to 32. The confirmed retention was `bodyPartFx`: detached limbs
+  stopped reaching the 3D bridge after their authored eight-second life, but
+  their source objects stayed in the 12-slot array until later sever events.
+- Prune expired detached-limb sources on the existing 250 ms effect telemetry
+  cadence. Do not shorten their visible life or landing animation. Track the
+  four delayed wall/RPG impact paths through one `try/finally` scheduler so QA
+  can prove every pending callback releases its counter after firing.
+- The localhost lifecycle fixture reached `g12:q24` (twelve expired source
+  records and 24 pending callbacks) and then settled to `g0:q0`. A static
+  listener audit found no effect-spawn or update-loop path that registers new
+  listeners; the active map editor revision installs its handlers once, while
+  legacy revisions are not initialized.
+- Final one-tab QA on the reconciled health-card/NPC-empire main kept the v351
+  health-fading identity cards, chat local echo, the server-backed
+  `Гражданский` status, native `1.00` pixel ratio, locked quality and real-time
+  shadows. The representative noisy sample was 19 FPS, `39.7 ms` frame work,
+  `28.1 ms` render work, `54.4 ms` render maximum and 225 programs. This is not
+  an FPS comparison. No JavaScript or Three.js error occurred; only the known
+  missing business/apartment API warnings from the static server were present.
 ## Nineteen signature gang weapons (2026-08-11, v345)
 
 - A single generic gun box with a firing pitch near `-1.16` rotated the barrel

@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v351: overhead identity cards fade from right to left as character health falls. -->
+<!DOCTYPE html><!-- v352: expired combat FX sources and ballistic timers are lifecycle-bounded. -->
+<!-- v351: overhead identity cards fade from right to left as character health falls. -->
 <!-- v349: framed NPC health sits higher above the character head. -->
 <!-- v347: overhead labels sit higher and NPC health uses a framed shared-texture indicator. -->
 <!-- v344: decorative collision cars are full-sized parked vehicles with complete silhouettes. -->
@@ -19422,6 +19423,7 @@ const bloodSplats = [];   // {r,c,radius,life,max,rot}
 const bodyPartFx = [];    // bounded detached limbs animated by the 3D renderer
 const _MAX_BODY_PART_FX = 12;
 let _bodyPartFxSeq = 0;
+let _nextBodyPartFxPruneAt = 0, _pendingBallisticFxTimers = 0;
 // Жёсткие потолки массивов visual-эффектов: в долгой перестрелке (банда
 // + копы шлют десятки 'aggro_shot'/'cop_shot' пакетов в секунду) без
 // капов impacts/bloodSplats/bullets разрастаются до тысяч и фризят
@@ -29923,6 +29925,14 @@ function _spawnBulletWallImpact(r, c, weapon) {
   impacts.push({ r, c, parts });
 }
 
+function _scheduleBallisticFx(delay, callback) {
+  _pendingBallisticFxTimers++;
+  setTimeout(() => {
+    try { callback(); }
+    finally { _pendingBallisticFxTimers = Math.max(0, _pendingBallisticFxTimers - 1); }
+  }, Math.max(0, +delay || 0));
+}
+
 function _interiorNpcHitRadius(weapon = currentWeapon) {
   const resolved = resolveWeapon(weapon);
   // Нарисованный человек шире старой математической точки 0.42 тайла.
@@ -30096,7 +30106,7 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
   for (let i = 0; i < impactCount; i++) {
     const idx = impactCount === 1 ? 0 : Math.round(i * (wallImpacts.length - 1) / (impactCount - 1));
     const hit = wallImpacts[idx];
-    setTimeout(() => _spawnBulletWallImpact(hit.r, hit.c, 'shotgun'), hit.delay);
+    _scheduleBallisticFx(hit.delay, () => _spawnBulletWallImpact(hit.r, hit.c, 'shotgun'));
   }
   if (remoteHit) _sendRemoteWeaponHit(remote, currentWeapon);
   document.documentElement.dataset.lastShotPattern =
@@ -30144,7 +30154,7 @@ function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
   });
   if (wallD < range - 0.08) {
     const delay = wallD / (cfg.bulletSpeed || 30) * 1000;
-    setTimeout(() => _spawnBulletWallImpact(sR + dirY*wallD, sC + dirX*wallD, weapon), delay);
+    _scheduleBallisticFx(delay, () => _spawnBulletWallImpact(sR + dirY*wallD, sC + dirX*wallD, weapon));
   }
   if (hits.length) {
     triggerHitStop(weapon === 'sniper' ? 42 : (isNagan && _naganShotCrit ? 34 : 24));
@@ -30224,7 +30234,7 @@ function _fireRpgRound(sR, sC, dirY, dirX, range, remote) {
   }
   const ir = sR + dirY*impactD, ic = sC + dirX*impactD;
   spawnBullet(sR, sC, ir, ic, { hit:true, fromPlayer:true, weapon:'rpg', thick:true });
-  setTimeout(() => _spawnRpgExplosion(ir, ic, remote, firedWeapon), impactD/(cfg.bulletSpeed||15)*1000);
+  _scheduleBallisticFx(impactD/(cfg.bulletSpeed||15)*1000, () => _spawnRpgExplosion(ir, ic, remote, firedWeapon));
 }
 
 function placeWorldC4(){
@@ -30951,7 +30961,7 @@ function fire(angle = null) {
     { hit: false, fromPlayer: true, weapon: currentWeapon });
   if (range < (wcfg.range || 8) - 0.08) {
     const delay = range / (wcfg.bulletSpeed || 26) * 1000;
-    setTimeout(() => _spawnBulletWallImpact(sR + dirY*range, sC + dirX*range, resolvedWeapon), delay);
+    _scheduleBallisticFx(delay, () => _spawnBulletWallImpact(sR + dirY*range, sC + dirX*range, resolvedWeapon));
   }
 }
 // ── Удар кулаком (без оружия) ────────────────────────────────────────
@@ -47711,6 +47721,18 @@ function updateProjectiles(dt) {
     const b=explosionBursts[i];
     if(!b||burnNow-(+b.born||0)>=Math.max(1,+b.life||1550))explosionBursts.splice(i,1);
   }
+  // Detached limbs have an authored eight-second life. The 3D bridge stopped
+  // rendering them on time, but the source objects stayed retained forever
+  // until another sever event displaced them from the bounded array.
+  if(burnNow>=_nextBodyPartFxPruneAt){
+    _nextBodyPartFxPruneAt=burnNow+250;
+    for(let i=bodyPartFx.length-1;i>=0;i--){
+      const part=bodyPartFx[i];
+      if(!part||burnNow-(+part.born||burnNow)>=Math.max(1,+part.life||8000))bodyPartFx.splice(i,1);
+    }
+    document.documentElement.dataset.effectLifecycle=`b${bullets.length}:m${muzzles.length}:s${shells.length}:i${impacts.length}:d${bloodSplats.length}:h${bulletHoles.length}:g${bodyPartFx.length}:x${explosionBursts.length}:t${_thrownItems.length}:f${_firePools.length}:q${_pendingBallisticFxTimers}`;
+    document.documentElement.dataset.effectLifecycleProfile='bounded-source-expiry-v352';
+  }
   // Throwable/fire lifetime belongs to simulation, not Canvas drawing. Pure 3D
   // skips drawAimLaser(), so draw-only cleanup used to retain every Molotov and
   // rescan the ever-growing _firePools array in the 3D bridge each frame.
@@ -61917,7 +61939,17 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.prisonStaff=String(prisonStaff.length);
     document.documentElement.dataset.prisonStaffCombat=`live:${prisonStaff.filter(n=>!n.dead).length}:attackable-response-respawn-v265`;
     document.documentElement.dataset.prisonCivilians=String(npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&n.visualRole==='civilian').length);
-    return {cars,npcs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,players:players.slice(0,24),objects:objects.slice(0,160)};
+    return {cars,npcs,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
+      effectLifecycle:{bullets:bullets.length,muzzles:muzzles.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,holes:bulletHoles.length,gore:bodyPartFx.length,explosions:explosionBursts.length,throwables:_thrownItems.length,fires:_firePools.length,pendingTimers:_pendingBallisticFxTimers},
+      players:players.slice(0,24),objects:objects.slice(0,160)};
+  },
+  effectLifecycleQa(action='sample') {
+    if(!_LOCAL_PREVIEW)return null;
+    if(action==='seed-expired-gore'){
+      const now=performance.now();bodyPartFx.length=0;
+      for(let i=0;i<_MAX_BODY_PART_FX;i++)bodyPartFx.push({id:`qa_expired_${i}`,r:player.r,c:player.c,vr:0,vc:0,vz:4,spin:0,part:i&1?'leftLeg':'leftArm',born:now-9000,life:8000,role:'civilian',faction:'',skin:0});
+    }
+    return {bullets:bullets.length,muzzles:muzzles.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,holes:bulletHoles.length,gore:bodyPartFx.length,explosions:explosionBursts.length,throwables:_thrownItems.length,fires:_firePools.length,pendingTimers:_pendingBallisticFxTimers};
   },
   throwSelected(kind, angle, throwRange) {
     kind=String(kind||'').toLowerCase();
@@ -62006,6 +62038,12 @@ window.Mafiozi3DBridge = Object.freeze({
   openBrigadirActions() { return openBrigadirActionCardFrom3D(); },
   canStand(r, c) { return Number.isFinite(r) && Number.isFinite(c) && !isBlocked(r, c); },
 });
+if(_LOCAL_PREVIEW&&_UP.has('previeweffectlifecycleqa'))setTimeout(()=>{
+  const seeded=window.Mafiozi3DBridge.effectLifecycleQa('seed-expired-gore');
+  for(let i=0;i<24;i++)_scheduleBallisticFx(80+(i%6)*80,()=>{});
+  document.documentElement.dataset.previewEffectLifecycleQa=`seeded:g${seeded.gore}:q${_pendingBallisticFxTimers}`;
+  setTimeout(()=>{const final=window.Mafiozi3DBridge.effectLifecycleQa('sample');document.documentElement.dataset.previewEffectLifecycleQa=`settled:g${final.gore}:q${final.pendingTimers}`;},900);
+},1800);
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewblackmarket'))setTimeout(()=>window.Mafiozi3DBridge.previewBlackmarketEntryAudit(_UP.get('previewblackmarket'),_UP.get('previewblackmarketenter')!=='0'),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
@@ -65909,6 +65947,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d351-health-fading-identity-cards-v350-projectile-matrices-v349-raised-labels"></script>
+<script type="module" src="three_preview.js?v=3d352-effect-lifecycle-v351-health-cards-v350-projectiles"></script>
 </body>
 </html>
