@@ -3141,11 +3141,11 @@ async function _loadGameProfiles() {
     if(primary)primary.innerHTML='НАЧАТЬ ИГРУ<small>Выбрать персонажа и продолжить историю</small>';
     _renderGameProfiles();_renderGameMenuCharacter();
     if(['play','enter','characters'].includes(_UP.get('menu'))){
-      const menuMode=_UP.get('menu');
+      const menuMode=_UP.get('menu')||(_UP.get('flow')==='creator'?'play':'');
       if(menuMode==='enter'&&selected&&selected.has_look)closeGameMainMenu();
       else if(menuMode==='characters')_gameMenuPanel('characters');
       else if(selected&&selected.has_look)_gameMenuPanel('play');else _gameMenuPanel('characters');
-      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');history.replaceState(null,'',cleanUrl.href);
+      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');cleanUrl.searchParams.delete('flow');history.replaceState(null,'',cleanUrl.href);
     }
   }catch(e){_gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();showToast('Не удалось загрузить персонажей','⚠️',2600);}
 }
@@ -3317,7 +3317,7 @@ function _bindGameMenuActions() {
   window.addEventListener('mafiozi:character3dready',()=>{_renderGameMenuCharacter();_renderGameProfiles();_renderGameMenuSave();},{once:true});
   // Route to the requested menu before the profiles request completes. A slow
   // or temporarily unavailable API must never bounce creator returns to root.
-  const requestedMenu=_UP.get('menu');
+  const requestedMenu=_UP.get('menu')||(_UP.get('flow')==='creator'?'play':'');
   if(requestedMenu==='characters')_gameMenuPanel('characters');
   else if(requestedMenu==='play')_gameMenuPanel('play');
   _applyGameMenuSettings(); _renderGameMenuSave(); _setGameMenuCharacterReady(_gameMenuCharacterReady,QP.look); _loadGameProfiles();

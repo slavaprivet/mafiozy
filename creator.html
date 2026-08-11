@@ -1313,25 +1313,33 @@ function setSaveState(stateName, message) {
   }
   if (saveStatus) saveStatus.textContent = message || '';
 }
-function buildCharacterSelectionTarget() {
+function buildCharacterSelectionTarget(savedCharacterId='') {
   let target;
   try { target = new URL(creatorReturn || 'world.html',location.href); }
   catch(e) { target = new URL('world.html',location.href); }
   const accountId=String(creatorAccount||creatorUid||'');
-  target.searchParams.set('menu','characters');
-  target.searchParams.set('uid',accountId);
+  const characterId=String(savedCharacterId||creatorUid||'');
+  const playerName=String(document.getElementById('charName')?.value||'Игрок').trim().replace(/[<>]/g,'').slice(0,24)||'Игрок';
+  target.searchParams.set('menu','play');
+  target.searchParams.set('flow','creator');
+  target.searchParams.set('account_uid',accountId);
+  target.searchParams.set('uid',characterId||accountId);
   target.searchParams.set('render','3d');
   if(creatorApi)target.searchParams.set('api',creatorApi);
-  // No character is preselected: the next required action is an explicit
-  // choice in the dossier screen, followed by the friends/party screen.
-  target.searchParams.delete('account_uid');
-  for(const key of ['character','has_look','name','lvl','cash','gender','skin','body','face','hair','hat'])target.searchParams.delete(key);
+  if(characterId){
+    target.searchParams.set('character',characterId);
+    target.searchParams.set('has_look','1');
+  }
+  target.searchParams.set('name',playerName);
+  target.searchParams.set('lvl',urlP.get('lvl')||'1');
+  target.searchParams.set('cash',urlP.get('cash')||'0');
+  Object.entries(state).forEach(([key,value])=>target.searchParams.set(key,String(value|0)));
   return target;
 }
 function returnToCharacterSelection(savedCharacterId, delay=120) {
   const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
   try { if(characterId)localStorage.setItem(`mafiozi_character_ready_v1_${characterId}`,'1'); } catch(e) {}
-  const target=buildCharacterSelectionTarget();
+  const target=buildCharacterSelectionTarget(characterId);
   document.documentElement.dataset.creatorSelectionTarget=target.href;
   setTimeout(()=>location.replace(target.href),delay);
   return target;
