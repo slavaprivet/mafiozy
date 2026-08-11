@@ -28,6 +28,7 @@ RELATION_MAX = 100
 NPC_OWNER_BASE = -900_000
 PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
 PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
+VISIBLE_ACTIVITY_SECONDS = 75
 
 
 @dataclass(frozen=True)
@@ -155,6 +156,39 @@ def _district_for_block(key: str) -> str:
 
 def _holding_district(kind: str, holding_id: str) -> str:
     return BUSINESS_DISTRICTS.get(holding_id, 'downtown') if kind == 'business' else _district_for_block(holding_id)
+
+
+def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int) -> dict:
+    """Give the client one concrete, slowly changing destination for this boss."""
+    slot = now // VISIBLE_ACTIVITY_SECONDS
+    seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:walk:{slot}'.encode()).digest()[:4], 'big')
+    hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
+    businesses = sorted(str(h['holding_id']) for h in holdings if str(h['kind']) == 'business')
+    buildings = sorted(str(h['holding_id']) for h in holdings if str(h['kind']) == 'building')
+    phase = seed % 5
+    if businesses and phase == 2:
+        target_id = businesses[(seed // 5) % len(businesses)]
+        return {'kind': 'collect', 'target_id': target_id, 'phase': 'travel',
+                'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+                'summary': f'{profile.leader_name} едет проверить доход бизнеса'}
+    if buildings and phase == 3:
+        target_id = buildings[(seed // 5) % len(buildings)]
+        return {'kind': 'inspect', 'target_id': target_id, 'phase': 'travel',
+                'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+                'summary': f'{profile.leader_name} проверяет подконтрольное здание'}
+    # New empires initially own only an HQ. Four street-side stops around it
+    # keep their leaders visibly active before the first expansion succeeds.
+    offsets = ((0, -8), (8, 0), (0, 8), (-8, 0))
+    dr, dc = offsets[(seed // 7) % len(offsets)]
+    kind = ('patrol', 'recruit', 'patrol', 'inspect', 'return_hq')[phase]
+    if kind == 'return_hq':
+        dr = dc = 0
+    label = {'patrol': 'патрулирует территорию', 'recruit': 'встречает новых бойцов',
+             'inspect': 'проверяет посты', 'return_hq': 'возвращается в штаб'}[kind]
+    return {'kind': kind, 'target_id': str(row['hq_key'] or profile.hq_key),
+            'target_r': hq_r + dr, 'target_c': hq_c + dc, 'phase': 'travel',
+            'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+            'summary': f'{profile.leader_name} {label}'}
 
 
 def _comeback_delay(profile: EmpireProfile, defeats: int) -> int:
@@ -726,6 +760,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         score = clamp_relation(relation.get('score', 0))
         hq_key = str(row['hq_key'] or '')
         hq_r, hq_c = _hq_coords(hq_key) if hq_key else (0, 0)
+        leader_holdings = holdings.get(leader_id, [])
         result.append({
             'leader_id': leader_id, 'leader_name': profile.leader_name, 'title': profile.title,
             'gang_name': profile.gang_name, 'color': profile.color, 'accent': profile.accent,
@@ -746,7 +781,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'relation': score, 'relation_band': relation_band(score),
             'pact': str(relation.get('pact') or 'none'),
             'war_pressure': war_rows.get(leader_id),
-            'holdings': holdings.get(leader_id, []),
+            'holdings': leader_holdings,
+            'activity': _visible_activity(profile, row, leader_holdings, now),
         })
     leaderboard = sorted(result, key=lambda e: (
         -e['district_count'], -e['dominance_score'], -e['strength'],
