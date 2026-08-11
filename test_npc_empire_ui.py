@@ -44,6 +44,9 @@ def run() -> None:
     assert "const empireHqs=inside?[]:_npcEmpires.filter" in WORLD
     assert "EMPIRE_HQ_CAP=19" in THREE and "server-owned-ring-flag-gang-label-v357" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE
+    assert "empire-family-card-v360" in THREE
+    assert "empireCrew?familyPrimary" in THREE and "empireCrew?familyAccent" in THREE
+    assert "empireMember&&src.bossColor" in THREE
     print("npc_empire_ui: 3D cards, dossier, empire plaque, attitudes, routes and hostility OK")
 
 

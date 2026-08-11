@@ -1018,3 +1018,15 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   canvas and style the surrounding command strip, bevels and action panels;
   reset the card scroll position when switching from the dashboard so the
   sticky header cannot cover the portrait and identity block.
+
+## Family-colored empire fighter labels (2026-08-12, v360)
+
+- Empire crew identity cards must consume the same authoritative `bossColor`
+  and `bossAccent` already used by their clothes and ground aura. Include both
+  colors in the cached canvas signature so a changed family style repaints once
+  instead of becoming stale.
+- Reuse the fixed NPC label sprite pool and the existing proximity-ring
+  materials. Updating their colors does not justify new sprites, meshes or a
+  second per-frame label pass.
+- A family card may create its gradient only inside the signature-gated repaint
+  branch. Never allocate gradients during unchanged animation frames.
