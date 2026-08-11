@@ -1585,6 +1585,11 @@ async def preview_three_module(_req):
     return web.FileResponse(Path("three_preview.js"))
 
 
+async def preview_character_module(_req):
+    """Serve the 3D portrait renderer used by dossiers and empire cards."""
+    return web.FileResponse(Path("character_3d_preview.js"))
+
+
 def _preview_empire_text(value):
     value = str(value or "")
     try:
@@ -3283,6 +3288,7 @@ app = web.Application()
 app.router.add_route("OPTIONS", "/{tail:.*}", options)
 app.router.add_get("/preview/world.html", preview_world)
 app.router.add_get("/preview/three_preview.js", preview_three_module)
+app.router.add_get("/preview/character_3d_preview.js", preview_character_module)
 app.router.add_get("/coop_api.json", coop_api)
 app.router.add_get("/world/sim", world_ws)
 app.router.add_get("/inv/{uid}/list", inv_list)
