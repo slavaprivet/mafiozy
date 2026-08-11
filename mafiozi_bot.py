@@ -13328,7 +13328,7 @@ class WorldSim:
     # в город. Сами НЕ стреляют, при подходе игрока бросают threat-фразы
     # («Чё уставился?»). Если атакуют — становятся hostile и отвечают
     # огнём. Хостильную банду атакуют копы — расстреливают за минуту.
-    CITY_GANG_MAX           = 4       # по городу одновременно бродят до 4 групп
+    CITY_GANG_MAX           = 4       # общий лимит уличных групп, включая гарнизоны бизнесов
     CITY_GANG_SIZE          = 3       # бойцов в группе
     CITY_GANG_SPAWN_GAP_S   = 120.0   # 2 мин между заменой уничтоженных патрулей
     CITY_GANG_FORMATION_GAP_S = 8.0   # быстро собираем все четыре патруля
@@ -13340,6 +13340,8 @@ class WorldSim:
     CITY_GANG_FIRE_R        = 7.0
     CITY_GANG_COPS_PER_GANG = 3       # копов спавним когда банда hostile
     NPC_CUSTODY_JAIL_S       = 60.0
+    NPC_CUSTODY_ARREST_CHANCE = 0.30
+    NPC_CUSTODY_MAX_ACTIVE   = 10
     NPC_CUSTODY_CUFF_S       = 2.2
     NPC_CUSTODY_ESCORT_S     = 3.2
     NPC_CUSTODY_LOAD_S       = 1.5
@@ -16930,10 +16932,17 @@ class WorldSim:
         gid = cop.get('target_gang_id')
         custody = self._npc_custodies.get(str(cop.get('npc_custody_id') or ''))
         if custody:
-            if custody.get('phase') in ('cuffing','escort','loading'):
+            if custody.get('phase') == 'wounded':
+                _gang, offender = self._npc_gang_and_bot(
+                    custody.get('gang_id'), custody.get('bot_id'))
+                if offender and self._move_cop_to_npc_offender(cop, offender, dt, now):
+                    custody['phase'], custody['phase_at'] = 'cuffing', now
+                return pkts
+            if custody.get('phase') in ('cuffing','foot_escort','prison_escort'):
                 ang = float(custody.get('ang') or 0)
-                cop['x'] = float(custody.get('x') or 0) - _m.cos(ang) * .62
-                cop['y'] = float(custody.get('y') or 0) - _m.sin(ang) * .62
+                lead = .72 if custody.get('phase') != 'cuffing' else -.62
+                cop['x'] = float(custody.get('x') or 0) + _m.cos(ang) * lead
+                cop['y'] = float(custody.get('y') or 0) + _m.sin(ang) * lead
                 cop['ang'] = ang
                 return pkts
             cop['alive'] = False
@@ -16963,18 +16972,6 @@ class WorldSim:
         dist = (dx*dx + dy*dy) ** 0.5
         if dist > 0.05:
             cop['ang'] = _m.atan2(dy, dx)
-        if target.get('_npc_murder_wanted'):
-            # Murderers are taken alive.  Officers close the final metres,
-            # cuff the exact shooter and hand it to the custody convoy.
-            reached = self._move_cop_to_npc_offender(cop, target, dt, now)
-            if reached and not target.get('_custody_id'):
-                custody = self._begin_npc_custody(g, target, cop, now)
-                if custody:
-                    pkts.append({'kind':'npc_custody_started',
-                                 'custody_id':custody['id'], 'gid':gid,
-                                 'bot_id':target['id'], 'cop_id':cop['id'],
-                                 'x':round(target['x'],2),'y':round(target['y'],2)})
-            return pkts
         # Боевое сближение с тем же strafe-AI что и при бое с игроком
         opt = self.COP_OPT_RANGE
         cop['_strafe_t'] = max(0.0, cop.get('_strafe_t', 0.0) - dt)
@@ -17014,10 +17011,20 @@ class WorldSim:
                     tx = target['x']; ty = target['y']
                 target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
                 killed = False
+                wounded = False
                 if target['hp'] <= 0:
-                    target['hp']    = 0
-                    target['alive'] = False
-                    killed = True
+                    may_arrest = (len(self._npc_custodies) < self.NPC_CUSTODY_MAX_ACTIVE
+                                  and random.random() < self.NPC_CUSTODY_ARREST_CHANCE)
+                    if may_arrest:
+                        target['hp'] = 1
+                        custody = self._begin_npc_custody(
+                            g, target, cop, now, initial_phase='wounded')
+                        wounded = bool(custody)
+                    if not wounded:
+                        target['hp'] = 0
+                        target['alive'] = False
+                        target.pop('_npc_murder_wanted', None)
+                        killed = True
                 pkts.append({
                     'kind':       'cop_shot_bot',
                     'cop_id':     cop['id'],
@@ -17030,8 +17037,16 @@ class WorldSim:
                     'ty':         round(ty, 2),
                     'dmg':        int(dmg),
                     'killed':     killed,
+                    'wounded':    wounded,
+                    'custody_id': (custody['id'] if wounded else ''),
                     'miss':       bool(miss),
                 })
+                if wounded:
+                    pkts.append({'kind':'npc_custody_started',
+                                 'custody_id':custody['id'], 'gid':gid,
+                                 'bot_id':target['id'], 'cop_id':cop['id'],
+                                 'x':round(target['x'],2),'y':round(target['y'],2),
+                                 'wounded':True, 'mode':'foot'})
         return pkts
 
     def apply_cop_shoot(self, uid: str, cop_id: str,
@@ -18811,10 +18826,12 @@ class WorldSim:
         self.city_gangs = [g for g in self.city_gangs
                             if any(b['alive'] for b in g['bots'])]
         # Спавн новой группы если их меньше CITY_GANG_MAX
-        # Garrison squads remain visible but do not consume roaming slots.
+        # Garrison squads remain visible and therefore consume city actor slots.
+        # Гарнизон остаётся полноценной видимой уличной группой. Раньше он
+        # выпадал из квоты, после чего сервер создавал ему замену-патруль:
+        # 4 патруля + каждый захваченный бизнес = толпа без формальной утечки.
         normal_gang_count = sum(1 for g in self.city_gangs
-                                if not g.get('district_did')
-                                and g.get('_business_mode') != 'guard')
+                                if not g.get('district_did'))
         if (self.players
                 and normal_gang_count < self.CITY_GANG_MAX
                 and now >= self._city_gang_next_spawn_at):
@@ -19431,8 +19448,11 @@ class WorldSim:
         return True
 
     def _begin_npc_custody(self, gang: dict, bot: dict, cop: dict,
-                           now: float | None = None) -> dict | None:
+                           now: float | None = None,
+                           initial_phase: str = 'cuffing') -> dict | None:
         if not gang or not bot or not bot.get('alive') or bot.get('_custody_id'):
+            return None
+        if len(self._npc_custodies) >= self.NPC_CUSTODY_MAX_ACTIVE:
             return None
         now = time.time() if now is None else float(now)
         gang_id = str(gang.get('id') or cop.get('target_gang_id') or '')
@@ -19440,48 +19460,28 @@ class WorldSim:
         cop_x, cop_y, cop_ang = (float(cop.get('x') or 0),
                                  float(cop.get('y') or 0),
                                  float(cop.get('ang') or 0))
-        vehicle_x, vehicle_y, vehicle_ang, vehicle_route, escort_route = cop_x, cop_y, cop_ang, [], []
-        # A fixed point behind the officer can land inside the neighbouring
-        # building. Accept only a passable staging point with a prison route.
-        for radius in (1.8, 2.5, 3.2, 4.0):
-            found = False
-            for turn in (math.pi, math.pi-.55, math.pi+.55,
-                         math.pi-1.1, math.pi+1.1, 0.0):
-                ang = cop_ang + turn
-                vx, vy = cop_x + math.cos(ang)*radius, cop_y + math.sin(ang)*radius
-                if not _world_bot_passable(vx, vy):
-                    continue
-                route = _world_bot_path(vx, vy, self.NPC_CUSTODY_GATE_X,
-                                        self.NPC_CUSTODY_GATE_Y)
-                to_vehicle = _world_bot_path(float(bot.get('x') or 0),
-                                             float(bot.get('y') or 0), vx, vy)
-                if route and to_vehicle:
-                    vehicle_x, vehicle_y = vx, vy
-                    vehicle_route = route
-                    escort_route = to_vehicle
-                    found = True
-                    break
-            if found:
-                break
+        bot_x, bot_y = float(bot.get('x') or 0), float(bot.get('y') or 0)
+        foot_route = _world_bot_path(bot_x, bot_y, self.NPC_CUSTODY_GATE_X,
+                                     self.NPC_CUSTODY_GATE_Y)
         custody = {
             'id': cid, 'gang_id': gang_id,
             'bot_id': str(bot.get('id') or ''), 'faction': str(gang.get('faction') or 'lair'),
             'kind': str(bot.get('kind') or 'gang_fighter'),
             'name': str(bot.get('boss_name') or bot.get('name') or 'Бандит')[:32],
-            'look': dict(bot.get('look') or {}), 'phase': 'cuffing',
-            'phase_at': now, 'x': float(bot.get('x') or 0),
-            'y': float(bot.get('y') or 0), 'ang': float(bot.get('ang') or 0),
-            'cop_id': str(cop.get('id') or ''), 'vehicle_x': vehicle_x,
-            'vehicle_y': vehicle_y, 'vehicle_ang': vehicle_ang,
-            'route': vehicle_route, 'route_i': 0,
-            'escort_vehicle_route': escort_route, 'escort_vehicle_i': 0,
+            'look': dict(bot.get('look') or {}),
+            'mode': 'foot', 'phase': str(initial_phase or 'cuffing'),
+            'phase_at': now, 'x': bot_x, 'y': bot_y,
+            'ang': float(bot.get('ang') or 0),
+            'cop_id': str(cop.get('id') or ''),
+            'foot_route': foot_route, 'foot_route_i': 0,
+            'foot_route_replans': 0, 'last_progress_at': now,
             'release_mode': (
                 'roam' if sum(ord(ch) for ch in str(bot.get('id') or '')) % 2 else 'gang'),
             'jail_until': 0.0,
         }
         bot['_custody_id'] = cid
         bot['_npc_murder_wanted'] = False
-        bot['_combat_state'] = 'cuffing'
+        bot['_combat_state'] = str(initial_phase or 'cuffing')
         bot['_moving'] = False
         self._npc_custodies[cid] = custody
         cop['npc_custody_id'] = cid
@@ -19503,7 +19503,7 @@ class WorldSim:
         return step >= dist
 
     def _tick_npc_custodies(self, dt: float, now: float) -> list:
-        """Bounded phase machine: cuff → car → prison → 60 s → station exit."""
+        """Bounded phase machine: wounded → cuff → foot escort → jail → exit."""
         pkts = []
         for cid, q in list(self._npc_custodies.items()):
             gang, bot = self._npc_gang_and_bot(q['gang_id'], q['bot_id'])
@@ -19512,47 +19512,28 @@ class WorldSim:
                 continue
             phase, age = q['phase'], now - float(q.get('phase_at') or now)
             cop = next((c for c in self.cops if str(c.get('id')) == str(q.get('cop_id'))), None)
-            if phase == 'cuffing' and age >= self.NPC_CUSTODY_CUFF_S:
-                q['phase'], q['phase_at'] = 'escort', now
-            elif phase == 'escort':
-                # The arresting officer escorts the cuffed NPC to a physical
-                # patrol car staged behind the officer.
-                route = q.get('escort_vehicle_route') or []
-                idx = min(int(q.get('escort_vehicle_i') or 0), max(0, len(route)-1))
-                tx, ty = route[idx] if route else (q['vehicle_x'], q['vehicle_y'])
-                reached = self._npc_custody_move(q, tx, ty, 1.45, dt)
-                if reached and idx + 1 < len(route):
-                    q['escort_vehicle_i'] = idx + 1
-                elif reached:
-                    q['phase'], q['phase_at'] = 'loading', now
-            elif phase == 'loading' and age >= self.NPC_CUSTODY_LOAD_S:
-                q['phase'], q['phase_at'] = 'transport', now
-                q['x'], q['y'] = q['vehicle_x'], q['vehicle_y']
-                q['route'] = (q.get('route') or
-                              _world_bot_path(q['vehicle_x'], q['vehicle_y'],
-                                              self.NPC_CUSTODY_GATE_X,
-                                              self.NPC_CUSTODY_GATE_Y))
-                q['route_i'] = 0
-            elif phase == 'transport':
-                route = q.get('route') or []
-                if not route:
-                    q['phase'], q['phase_at'] = 'loading', now
-                    q['vehicle_route_failed'] = int(q.get('vehicle_route_failed') or 0) + 1
-                    continue
-                idx = min(int(q.get('route_i') or 0), max(0, len(route)-1))
+            if phase == 'wounded':
+                pass  # arresting officer closes the distance in _tick_cop_vs_gang
+            elif phase == 'cuffing' and age >= self.NPC_CUSTODY_CUFF_S:
+                q['phase'], q['phase_at'] = 'foot_escort', now
+            elif phase == 'foot_escort':
+                route = q.get('foot_route') or []
+                if not route or now-float(q.get('last_progress_at') or now) >= 3.0:
+                    route = _world_bot_path(q['x'], q['y'], self.NPC_CUSTODY_GATE_X,
+                                            self.NPC_CUSTODY_GATE_Y)
+                    q['foot_route'], q['foot_route_i'] = route, 0
+                    q['foot_route_replans'] = int(q.get('foot_route_replans') or 0) + 1
+                    q['last_progress_at'] = now
+                idx = min(int(q.get('foot_route_i') or 0), max(0, len(route)-1))
                 tx, ty = route[idx] if route else (self.NPC_CUSTODY_GATE_X,
                                                    self.NPC_CUSTODY_GATE_Y)
-                vehicle = {'x': q['vehicle_x'], 'y': q['vehicle_y'], 'ang': q['vehicle_ang']}
-                reached = self._npc_custody_move(vehicle, tx, ty, 3.6, dt)
-                q['vehicle_x'], q['vehicle_y'], q['vehicle_ang'] = vehicle['x'], vehicle['y'], vehicle['ang']
-                q['x'], q['y'], q['ang'] = vehicle['x'], vehicle['y'], vehicle['ang']
+                before = (q['x'], q['y'])
+                reached = self._npc_custody_move(q, tx, ty, 1.28, dt)
+                if math.hypot(q['x']-before[0], q['y']-before[1]) > .02:
+                    q['last_progress_at'] = now
                 if reached and idx + 1 < len(route):
-                    q['route_i'] = idx + 1
+                    q['foot_route_i'] = idx + 1
                 elif reached:
-                    q['phase'], q['phase_at'] = 'unloading', now
-            elif phase == 'unloading':
-                q['x'], q['y'] = self.NPC_CUSTODY_GATE_X, self.NPC_CUSTODY_GATE_Y
-                if age >= self.NPC_CUSTODY_UNLOAD_S:
                     q['phase'], q['phase_at'] = 'prison_escort', now
             elif phase == 'prison_escort':
                 # Authored path through the visible western gate and intake
@@ -19601,7 +19582,11 @@ class WorldSim:
         target_gang_id — в tick_cops он будет атаковать бойцов банды,
         а не игрока."""
         import math as _m
-        for i in range(self.CITY_GANG_COPS_PER_GANG if count is None else max(0, int(count))):
+        desired = self.CITY_GANG_COPS_PER_GANG if count is None else max(0, int(count))
+        existing = sum(1 for cop in self.cops
+                       if cop.get('alive')
+                       and str(cop.get('target_gang_id') or '') == str(g.get('id') or ''))
+        for i in range(max(0, desired-existing)):
             for _try in range(8):
                 ang  = random.random() * 2 * _m.pi
                 dist = 9 + random.random() * 4
@@ -22127,6 +22112,7 @@ class WorldSim:
                     'kind': str(q.get('kind') or 'gang_fighter'),
                     'name': str(q.get('name') or 'Бандит'),
                     'look': dict(q.get('look') or {}),
+                    'mode': str(q.get('mode') or 'vehicle'),
                     'phase': str(q.get('phase') or ''),
                     'x': round(float(q.get('x') or 0), 2),
                     'y': round(float(q.get('y') or 0), 2),
@@ -22135,7 +22121,7 @@ class WorldSim:
                     'vehicle_y': round(float(q.get('vehicle_y') or 0), 2),
                     'vehicle_ang': round(float(q.get('vehicle_ang') or 0), 2),
                     'hidden_in_vehicle': str(q.get('phase') or '') == 'transport',
-                    'cuffed': str(q.get('phase') or '') not in ('jailed','released'),
+                    'cuffed': str(q.get('phase') or '') not in ('wounded','jailed','released'),
                     'prisoner': str(q.get('phase') or '') == 'jailed',
                     'jail_in': max(0, int(round(float(q.get('jail_until') or 0) - now_t))),
                     'release_mode': str(q.get('release_mode') or 'gang'),
