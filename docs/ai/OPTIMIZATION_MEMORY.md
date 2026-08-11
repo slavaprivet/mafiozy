@@ -389,3 +389,9 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   custody vehicle and adds no NPC or vehicle scan to the render loop.
 - Whenever the 3D module changes, advance its script query key in `world.html`.
   A fresh HTML build alone does not invalidate a previously cached module URL.
+# Stationary NPC foot planting (2026-08-11, v332)
+
+- Do not use a server `walking` boolean by itself to activate gait. Long-lived gang, resident and service snapshots can retain that hint after the actor has stopped; actual sampled displacement plus a short stop hysteresis is the authoritative visual trigger.
+- An idle breathing cycle may affect the torso, head and relaxed arms, but must never feed leg rotation or foot lift. Standing NPC leg swing/lift remains exactly zero, while cower, help, injury, death and firing layers keep their authored poses.
+- Gang identity bands must use the same measured `pose.walking` state as the body. Reading stale `src.walking` separately makes the band bob while the character's planted feet remain still.
+- QA telemetry: `data-idle-npcs`, `data-idle-npc-leg-motion-max` (must be `0.0000`) and `data-npc-gait-activation=measured-displacement-with-stop-hysteresis-v332`.
