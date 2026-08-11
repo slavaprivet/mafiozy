@@ -1,3 +1,4 @@
+// 3D render v323: batched outlines update parent transforms before entering world space.
 // 3D input v320: held-RMB aiming accepts a deduplicated LMB click fallback inside the canvas.
 // 3D animation v319: every walking humanoid gets a restrained arm swing while firing/reload poses keep priority.
 // 3D input v317: RMB-held aim accepts LMB even when an embedded WebView reports an incomplete buttons bitmask.
@@ -274,7 +275,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const outline = mesh => {
         const edgeGeometry=new THREE.EdgesGeometry(mesh.geometry,24);
         if(batchStaticOutlines&&mesh.layers.mask!==2){
-          mesh.updateMatrixWorld(true);
+          mesh.updateWorldMatrix(true,false);
           edgeGeometry.applyMatrix4(mesh.matrixWorld);
           staticOutlineGeometries.push(edgeGeometry);
           return null;
@@ -1860,6 +1861,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           staticOutlines.receiveShadow=false;
           scene.add(staticOutlines);
           renderer.domElement.dataset.batchedOutlineGeometries=String(staticOutlineGeometries.length);
+          renderer.domElement.dataset.outlineTransformProfile='parent-chain-world-matrix-v323';
         }
         staticOutlineGeometries.forEach(g=>g.dispose());
       }
