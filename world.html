@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v358: creator direct-entry survives delayed profile reconciliation without reopening the menu. -->
+<!DOCTYPE html><!-- v359: creator returns to character selection, then party menu, then enters the city. -->
 <!-- v357: successful character creation enters the selected character's world directly. -->
 <!-- v356: NPC forearms and role clothing pair with individually detailed weapon families. -->
 <!-- v355: NPC anatomy, tailoring, faces and deterministic micro-expressions receive a second detail pass. -->
@@ -2931,7 +2931,6 @@ const QP = {
 };
 QP.account_uid = _UP.get('account_uid') || QP.uid;
 QP.character_uid = _UP.get('character') || (_UP.has('account_uid') ? QP.uid : '');
-const _gameMenuDirectEntry = _UP.get('menu') === 'enter' && !!QP.character_uid && QP.has_look === 1;
 
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
@@ -2960,7 +2959,7 @@ if (!QP.account_uid) QP.account_uid = QP.uid;
 const _gameMenuSettingsKey = `mafiozi_menu_settings_v1_${QP.account_uid || 'guest'}`;
 const _gameMenuSaveKey = `mafiozi_last_session_v1_${QP.character_uid || QP.uid || 'guest'}`;
 const _gameMenuCharacterKey = `mafiozi_character_ready_v1_${QP.character_uid || QP.uid || 'guest'}`;
-let _gameMenuOpen = !_gameMenuDirectEntry;
+let _gameMenuOpen = true;
 let _gameMenuSettings = { volume:50, vibration:true };
 let _gameMenuCharacterReady = !!QP.character_uid && QP.has_look === 1;
 let _gameMenuCharacterLookKey = '';
@@ -2968,10 +2967,6 @@ let _gameProfiles = [];
 let _gameProfilesLoaded = false;
 let _gameMenuPendingProfileId = '';
 try { if(QP.character_uid)_gameMenuCharacterReady = _gameMenuCharacterReady || localStorage.getItem(_gameMenuCharacterKey) === '1'; } catch(e) {}
-if(_gameMenuDirectEntry){
-  document.body.classList.remove('game-menu-open');
-  document.getElementById('gameMainMenu')?.classList.add('hidden');
-}
 try { _gameMenuSettings = Object.assign(_gameMenuSettings, JSON.parse(localStorage.getItem(_gameMenuSettingsKey) || '{}')); } catch(e) {}
 window.MafioziSettings = _gameMenuSettings;
 
@@ -3133,7 +3128,7 @@ async function _deleteGameProfile(characterId) {
     showToast(e.message||'Не удалось удалить персонажа','⚠️',3000);
   }
 }
-async function _loadGameProfiles(attempt=0) {
+async function _loadGameProfiles() {
   _gameProfilesLoaded=false;_renderGameProfiles();
   try{
     if(!QP.api)await _fetchApiFallback();
@@ -3141,33 +3136,18 @@ async function _loadGameProfiles(attempt=0) {
     const result=await response.json();if(!response.ok||!result.ok)throw new Error('profiles');
     _gameProfiles=Array.isArray(result.profiles)?result.profiles:[];_gameProfilesLoaded=true;
     const selected=_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid));
-    if(selected){
-      QP.name=selected.name||QP.name;
-      // The creator return already carries an acknowledged appearance. A
-      // briefly stale profile response must not revoke it and reopen the menu.
-      if(selected.has_look||!_gameMenuDirectEntry)_setGameMenuCharacterReady(!!selected.has_look,selected.look);
-    }
+    if(selected){QP.name=selected.name||QP.name;_setGameMenuCharacterReady(!!selected.has_look,selected.look);}
     const primary=document.getElementById('gmmPrimaryAction');
     if(primary)primary.innerHTML='НАЧАТЬ ИГРУ<small>Выбрать персонажа и продолжить историю</small>';
     _renderGameProfiles();_renderGameMenuCharacter();
     if(['play','enter','characters'].includes(_UP.get('menu'))){
       const menuMode=_UP.get('menu');
-      if(menuMode==='enter'&&(_gameMenuDirectEntry||(selected&&selected.has_look)))closeGameMainMenu();
+      if(menuMode==='enter'&&selected&&selected.has_look)closeGameMainMenu();
       else if(menuMode==='characters')_gameMenuPanel('characters');
       else if(selected&&selected.has_look)_gameMenuPanel('play');else _gameMenuPanel('characters');
       const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');history.replaceState(null,'',cleanUrl.href);
     }
-    if(_gameMenuDirectEntry&&(!selected||!selected.has_look)&&attempt<3){
-      const retryDelay=[700,1400,2800][attempt]||2800;
-      setTimeout(()=>_loadGameProfiles(attempt+1),retryDelay);
-    }
-  }catch(e){
-    _gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();
-    if(_gameMenuDirectEntry&&attempt<3){
-      const retryDelay=[700,1400,2800][attempt]||2800;
-      setTimeout(()=>_loadGameProfiles(attempt+1),retryDelay);
-    }else showToast('Не удалось загрузить персонажей','⚠️',2600);
-  }
+  }catch(e){_gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();showToast('Не удалось загрузить персонажей','⚠️',2600);}
 }
 function _openCharacterCreator(characterId='') {
   const url = new URL('creator.html',location.href);
@@ -3335,11 +3315,15 @@ function _bindGameMenuActions() {
   document.getElementById('gmmVolume')?.addEventListener('input',e => { _gameMenuSettings.volume=+e.target.value;_applyGameMenuSettings(); });
   document.getElementById('gmmVibration')?.addEventListener('click',() => { _gameMenuSettings.vibration=!(_gameMenuSettings.vibration!==false);_applyGameMenuSettings(); });
   window.addEventListener('mafiozi:character3dready',()=>{_renderGameMenuCharacter();_renderGameProfiles();_renderGameMenuSave();},{once:true});
+  // Route to the requested menu before the profiles request completes. A slow
+  // or temporarily unavailable API must never bounce creator returns to root.
+  const requestedMenu=_UP.get('menu');
+  if(requestedMenu==='characters')_gameMenuPanel('characters');
+  else if(requestedMenu==='play')_gameMenuPanel('play');
   _applyGameMenuSettings(); _renderGameMenuSave(); _setGameMenuCharacterReady(_gameMenuCharacterReady,QP.look); _loadGameProfiles();
   // An explicit creator return is allowed to reveal the ready character's
   // world immediately; the authoritative profile request still reconciles in
   // the background and can correct the supplied appearance afterwards.
-  if(_gameMenuDirectEntry)closeGameMainMenu();
   // Explicit localhost-only visual QA: keep production's character gate intact,
   // but allow the authored look in the URL to enter the rendered city directly.
   if(_LOCAL_PREVIEW&&_UP.has('previewcity')&&_gameMenuCharacterReady)closeGameMainMenu();
