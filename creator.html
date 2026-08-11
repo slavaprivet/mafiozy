@@ -374,7 +374,7 @@ body::after { content:""; position:fixed; inset:0; z-index:-2; pointer-events:no
   <div class="options-grid" id="hat-grid"></div>
 </div>
 
-<button id="save-btn" onclick="saveChar()">СОХРАНИТЬ ПЕРСОНАЖА</button>
+<button type="button" id="save-btn">СОХРАНИТЬ ПЕРСОНАЖА</button>
 <div id="save-status" role="status" aria-live="polite"></div>
 
 </div><!-- #editor-wrap -->
@@ -1301,16 +1301,31 @@ window.addEventListener('mafiozi:character3dready',()=>{
 },{once:true});
 
 // ── SAVE ───────────────────────────────────────────────────────────────────
+let saveInFlight = false;
+function setSaveState(stateName, message) {
+  const saveBtn = document.getElementById('save-btn');
+  const saveStatus = document.getElementById('save-status');
+  const normalLabel = changeLookMode ? 'СОХРАНИТЬ ОБРАЗ · 5 💎' : 'СОХРАНИТЬ ПЕРСОНАЖА';
+  if (saveBtn) {
+    saveBtn.disabled = stateName === 'saving';
+    saveBtn.setAttribute('aria-busy', stateName === 'saving' ? 'true' : 'false');
+    saveBtn.textContent = stateName === 'saving' ? 'СОХРАНЯЕМ…' : stateName === 'error' ? 'ОШИБКА · ПОВТОРИТЬ' : normalLabel;
+  }
+  if (saveStatus) saveStatus.textContent = message || '';
+}
 async function saveChar() {
+  if (saveInFlight) return;
   try { const police=creatorUid?JSON.parse(localStorage.getItem(`mafiozi_police_missions_${creatorUid}`)||'null'):null;if(police?.employed){alert('👮 Полицейский не может работать без формы. Сначала увольтесь в полицейском участке.');return;} } catch(e) {}
   const saveBtn = document.getElementById('save-btn');
   const saveStatus = document.getElementById('save-status');
   const playerName = String(document.getElementById('charName')?.value || '').trim().replace(/[<>]/g,'').slice(0,24);
   if (playerName.length < 2) {
-    if (saveStatus) saveStatus.textContent = 'Имя должно содержать хотя бы 2 символа.';
+    setSaveState('error','Имя должно содержать хотя бы 2 символа.');
     document.getElementById('charName')?.focus();
     return;
   }
+  saveInFlight = true;
+  setSaveState('saving','Записываем личное дело на сервере…');
   const payload = {
     a:      'set_look',
     name:   playerName,
@@ -1323,21 +1338,25 @@ async function saveChar() {
   };
   if (changeLookMode) payload.change_look = true;
   if (creatorApi && /^\d+$/.test(creatorAccount) && (/^\d+$/.test(creatorUid) || !creatorUid)) {
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'СОХРАНЯЕМ…'; }
-    if (saveStatus) saveStatus.textContent = 'Записываем личное дело на сервере…';
     try {
       const creatingProfile = !creatorUid;
       const endpoint = creatingProfile
         ? `${creatorApi}/profiles/${encodeURIComponent(creatorAccount)}`
         : `${creatorApi}/character/${encodeURIComponent(creatorUid)}/look`;
-      const response = await fetch(endpoint, {
-        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(),15000);
+      let response;
+      try {
+        response = await fetch(endpoint, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:controller.signal
+        });
+      } finally { clearTimeout(timeout); }
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.ok) throw new Error(result.message || 'Сервер не сохранил персонажа');
       const savedCharacterId = String(result.profile?.character_id || creatorUid || '');
       try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
-      if (saveStatus) saveStatus.textContent = 'Персонаж создан. Возвращаемся в главное меню…';
+      if (saveBtn) saveBtn.textContent = 'СОХРАНЕНО ✓';
+      if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Возвращаемся в меню…' : 'Персонаж создан. Возвращаемся в главное меню…';
       const target = new URL(creatorReturn || 'world.html',location.href);
       target.searchParams.set('menu','characters');
       target.searchParams.set('account_uid',creatorAccount);
@@ -1351,17 +1370,22 @@ async function saveChar() {
       setTimeout(() => { location.href = target.href; },450);
       return;
     } catch(e) {
-      if (saveStatus) saveStatus.textContent = e.message || 'Не удалось связаться с игровым сервером.';
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = changeLookMode ? 'СОХРАНИТЬ ОБРАЗ · 5 💎' : 'СОХРАНИТЬ ПЕРСОНАЖА'; }
+      saveInFlight = false;
+      const message = e?.name === 'AbortError' ? 'Сервер не ответил за 15 секунд. Попробуй ещё раз.' : (e.message || 'Не удалось связаться с игровым сервером.');
+      setSaveState('error',message);
       return;
     }
   }
   if (tg && typeof tg.sendData === 'function') {
     tg.sendData(JSON.stringify(payload));
+    if (saveBtn) saveBtn.textContent = 'ОТПРАВЛЕНО ✓';
+    if (saveStatus) saveStatus.textContent = 'Образ отправлен в игру.';
   } else {
-    if (saveStatus) saveStatus.textContent = 'Нет соединения с игровым сервером. Запусти игру через Steam.';
+    saveInFlight = false;
+    setSaveState('error','Нет соединения с игровым сервером. Открой редактор из меню персонажей.');
   }
 }
+document.getElementById('save-btn')?.addEventListener('click',saveChar);
 
 </script>
 <script type="module" src="character_3d_preview.js?v=6"></script>
