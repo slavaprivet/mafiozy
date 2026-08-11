@@ -9057,6 +9057,11 @@ function _syncEmpireBossCrews(now=performance.now()){
     }
   }
   document.documentElement.dataset.empireVisibleCrew=String(EMPIRE_CREW_NPCS.length);
+  const motionSample=leaders[0]||SPECIALIST_NPCS.find(n=>!n._hiddenByEmpire);
+  if(motionSample)document.documentElement.dataset.empireBossMotion=[
+    motionSample._specialistId,(+motionSample.r||0).toFixed(2),(+motionSample.c||0).toFixed(2),
+    motionSample._routeKind||'idle',motionSample._empireAction?.kind||'none',motionSample._route?.length||0
+  ].join(':');
 }
 const ALL_UNIQUE_NPCS = Object.freeze([SAID_NPC,...SPECIALIST_NPCS]);
 const UNIQUE_NPC_BY_ID = new Map(ALL_UNIQUE_NPCS.map(n=>[String(n.id),n]));
@@ -9089,6 +9094,7 @@ function _nearestEmpireWalkPoint(r,c) {
 }
 function _empireActivityTarget(empire) {
   const activity=empire?.activity||{},id=String(activity.target_id||'');
+  if(Number.isFinite(+activity.target_r)&&Number.isFinite(+activity.target_c))return _nearestEmpireWalkPoint(+activity.target_r,+activity.target_c);
   const business=typeof BUSINESS_POIS!=='undefined'&&BUSINESS_POIS.find?.(b=>b.id===id);
   if(business){
     const anchor=typeof _businessInteractionAnchor==='function'?_businessInteractionAnchor(business):business;
@@ -9101,7 +9107,7 @@ function _empireActivityTarget(empire) {
   return _nearestEmpireWalkPoint(+empire?.hq_r||0,+empire?.hq_c||0);
 }
 function _empireActivityLabel(activity) {
-  return ({recruit:'ВЕРБУЕТ БОЙЦОВ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
+  return ({recruit:'ВЕРБУЕТ БОЙЦОВ',collect:'ПРОВЕРЯЕТ ДОХОД',inspect:'ПРОВЕРЯЕТ ПОСТЫ',return_hq:'ВОЗВРАЩАЕТСЯ В ШТАБ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
     expand:'СТРОИТ ОПОРНЫЙ ШТАБ',hq_expand:'ИЩЕТ МЕСТО ДЛЯ ШТАБА',patrol:'ПРОВЕРЯЕТ ВЛАДЕНИЯ',
     war_won:'ЗАКРЕПЛЯЕТ ТЕРРИТОРИЮ',war_lost:'ВОЗВРАЩАЕТСЯ В ШТАБ',comeback:'ВОССТАНАВЛИВАЕТ ШТАБ'})[activity?.kind]||'ДЕЛА БАНДЫ';
 }
