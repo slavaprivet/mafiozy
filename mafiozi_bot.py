@@ -9,6 +9,7 @@ import urllib.parse
 import os
 import secrets
 import re
+import npc_empire
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import Forbidden, BadRequest
@@ -1506,6 +1507,9 @@ async def init_db():
             "WHERE job IS NOT NULL AND job NOT IN ('newspapers','bikes','shawarma_runner','lookout','stall_tax','thimblerig','moonshine','car_jacker','blackmail','arson','smuggling','forger','boss_car','bank_heist','prosecutor_car')"
         )
         await db.commit()
+    # Autonomous bosses share the same SQLite database, but keep their schema
+    # and deterministic tick engine isolated from Telegram command handlers.
+    await npc_empire.ensure_schema(DB_PATH)
 
 
 POLICE_LEVEL_XP = (0, 300, 800, 1600, 2800)
@@ -14782,24 +14786,14 @@ class WorldSim:
         was_mafia = bool(p.get('_mafia'))
         old_family = str(p.get('_mafia_family') or '')
         now_role = time.time()
-        custom_gang_role = str(p.get('_custom_gang_role') or '')
-        if requested_mafia and p.get('_custom_gang_id'):
-            requested_mafia = False
-            requested_family = ''
-            p['_mafia_join_denied'] = (
-                'custom_gang_owner' if custom_gang_role == 'leader'
-                else 'custom_gang_member'
-            )
         if was_mafia and not requested_mafia:
             p['_mafia_last_family'] = old_family
             p['_mafia_traitor_until'] = now_role + 300.0
-        if (requested_mafia and not p.get('_custom_gang_id')
-                and float(p.get('_mafia_traitor_until') or 0) > now_role):
+        if requested_mafia and float(p.get('_mafia_traitor_until') or 0) > now_role:
             requested_mafia = False
             requested_family = ''
             p['_mafia_join_denied'] = 'traitor'
-        if (requested_mafia and not p.get('_custom_gang_id')
-                and not was_mafia and requested_family):
+        if requested_mafia and not was_mafia and requested_family:
             family_counts = {
                 family: sum(1 for other_uid, other in self.players.items()
                             if str(other_uid) != str(uid) and other.get('_mafia')
@@ -14824,16 +14818,12 @@ class WorldSim:
         p['_police'] = requested_police
         p['_mafia'] = requested_mafia and not p['_police']
         p['_mafia_family'] = requested_family if p['_mafia'] else ''
-        if not p['_mafia'] and not p.get('_custom_gang_id'):
+        if not p['_mafia']:
             crew_id = str(p.pop('_crew_id', '') or '')
             if crew_id:
                 left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
                 if len(left) < 2:
                     for q in left: q.pop('_crew_id', None)
-        elif p.get('_custom_gang_id'):
-            # A civilian custom gang is still a real online crew. Movement
-            # packets must not erase it just because the player is not mafia.
-            p['_crew_id'] = f"cg:{p['_custom_gang_id']}"
         if p['_police'] and not was_police:
             # Форма несовместима с контролем улиц: при поступлении на службу
             # личные и совместные владения, а также незавершённые захваты снимаются.
@@ -24082,9 +24072,6 @@ async def _coop_http_app():
         apt_key = str(b.get('apt_key', '')).strip()[:32]
         if not apt_key or ',' not in apt_key:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
-        owned_before = await get_apartments_owned(uid)
-        if apt_key not in owned_before:
-            return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
         removed_members=[]
         gang=await get_custom_gang_for_user(uid)
         if gang and gang['role']=='leader' and gang['hq_apt_key']==apt_key:
@@ -24101,7 +24088,6 @@ async def _coop_http_app():
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
             'gang': None if removed_members else gang,
-            'role_status': 'civilian' if removed_members else '',
             'headquarters': await get_custom_gang_headquarters(),
         }))
 
@@ -24132,6 +24118,53 @@ async def _coop_http_app():
         if _WORLD:
             for member_uid in result['member_uids']:apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)),None)
         return await _cors(web.json_response({'ok':True,'gang':None,'headquarters':await get_custom_gang_headquarters()}))
+
+    # ── AUTONOMOUS NPC EMPIRES ─────────────────────────────────────────
+    async def h_npc_empire_state(req):
+        try: uid=int(req.match_info['uid'])
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad uid'},status=400))
+        state=await npc_empire.state_for(DB_PATH,uid)
+        return await _cors(web.json_response({'ok':True,**state}))
+
+    async def h_npc_empire_diplomacy(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.diplomacy_action(
+            DB_PATH,uid,str(body.get('leader_id') or '')[:32],str(body.get('action') or '')[:24])
+        status=200 if result.get('ok') else (409 if result.get('error') in {'cooldown','relation too low'} else 400)
+        return await _cors(web.json_response(result,status=status))
+
+    async def h_npc_empire_assault_prepare(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        live=_WORLD.players.get(str(uid)) if _WORLD else None
+        # Live world coordinates are authoritative. Explicit coordinates are a
+        # local-preview fallback only when the player is not connected.
+        r=float(live.get('y',0) if live else body.get('r',0) or 0)
+        c=float(live.get('x',0) if live else body.get('c',0) or 0)
+        result=await npc_empire.prepare_assault(
+            DB_PATH,uid,str(body.get('leader_id') or '')[:32],r,c)
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
+    async def h_npc_empire_assault_hit(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.assault_hit(
+            DB_PATH,uid,str(body.get('token') or '')[:64],str(body.get('target') or '')[:12],
+            body.get('target_id'),int(body.get('damage') or 1))
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
+    async def h_npc_empire_assault_resolve(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.resolve_assault(
+            DB_PATH,uid,str(body.get('token') or '')[:64],str(body.get('choice') or '')[:16])
+        if result.get('ok') and _WORLD:
+            player_state=_WORLD.players.get(str(uid))
+            if player_state:
+                player_state['cash']=int(result.get('cash') or player_state.get('cash') or 0)
+                player_state.setdefault('_owned_biz',set()).update(result.get('captured_businesses') or [])
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
     async def h_shop_list(req):
@@ -25034,13 +25067,6 @@ async def _coop_http_app():
         p_ref = world.players.get(uid)
         if p_ref is not None:
             p_ref['_gang_leader'] = leader_id
-            # Resolve the authoritative gang role before the first movement
-            # packet, not after the parallel HTTP state request happens to win.
-            try:
-                apply_custom_gang_to_player(
-                    p_ref, await ensure_personal_gang_for_hq(uid_int))
-            except Exception:
-                pass
             # Кэшируем cash/diamonds в memory, чтобы HUD клиента видел
             # актуальные значения и реагировал на начисления без get_character
             # каждый раз.
@@ -28638,6 +28664,11 @@ async def _coop_http_app():
     aio_app.router.add_get ('/custom-gang/{uid}/state', h_custom_gang_state)
     aio_app.router.add_post('/custom-gang/{uid}/create',h_custom_gang_create)
     aio_app.router.add_post('/custom-gang/{uid}/disband',h_custom_gang_disband)
+    aio_app.router.add_get ('/npc-empires/{uid}/state', h_npc_empire_state)
+    aio_app.router.add_post('/npc-empires/{uid}/diplomacy', h_npc_empire_diplomacy)
+    aio_app.router.add_post('/npc-empires/{uid}/assault/prepare', h_npc_empire_assault_prepare)
+    aio_app.router.add_post('/npc-empires/{uid}/assault/hit', h_npc_empire_assault_hit)
+    aio_app.router.add_post('/npc-empires/{uid}/assault/resolve', h_npc_empire_assault_resolve)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
