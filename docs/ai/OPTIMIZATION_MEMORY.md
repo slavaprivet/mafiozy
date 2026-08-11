@@ -283,6 +283,32 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Final local regression kept one browser tab and closed it afterwards. Pooled projectile/bullet-hole/blood/gore effects, compact NPC labels, chat local echo, real-time shadows and the server-backed `Гражданский` status remained intact. Prison assault reached `4:0` reinforcement state and `shadowed:3`; escort later progressed to `server-rejected` rather than sticking. Prison release reported `clean:local-timer:staged-world-resume-v311`, and repeated post-release fire produced a bullet hole without a runtime or Three.js console error.
 - Remaining risk: the prison-return view still compiled two `mfz-wind-v3` programs (`227 -> 229`) during live rendering. The observed render maximum was `220.5 ms` after this package versus `384.8 ms` in the baseline run, but this is not considered fixed. The program growth happened with no active projectile effect, so future work should audit deferred-root wind shader warmup rather than degrade foliage, shadows or resolution.
 
+## Shared police foot-route results (2026-08-11)
+
+- Police officers can request the same cardinal BFS from the same map cell to
+  the same half-tile target during one response. Cache that immutable path for
+  2.6 seconds under the exact start/target key; each officer still owns its
+  route index, expiry and retry time. Keep the cache bounded to 64 entries.
+- Cache lookup happens before the one-BFS-per-frame reservation. Direct body
+  collision checks still run on every movement tick, target movement still
+  invalidates the officer route, and the existing 520 ms no-progress watchdog
+  clears a path that cannot be followed. The change therefore does not bypass
+  collision or turn shared state into a shared actor position.
+- In a 20.066-second warmed city sample with 34 live NPCs, the cache served 29
+  identical requests (`1.45/s`) while 108 real BFS builds remained (`5.38/s`):
+  about 21% of otherwise required builds were avoided. The scene remained
+  render-bound at 22 FPS and roughly 1,877 draw calls, so this is a CPU-spike
+  reduction rather than a claimed average-FPS increase. One noisy run still
+  recorded a `64.8 ms` route maximum during a `140.2 ms` render spike; do not
+  present the maximum as solved without a controlled trace.
+- The one-tab prison regression kept the clean staged release, server-backed
+  `Гражданский` status, weapon confiscation, four-unit alarm response,
+  `shadowed:3`, compact labels and real-time shadows. Input remained responsive
+  after release; the preview spawn was still on the prison island, so attempted
+  fire remained correctly rejected as `inside-prison`. No JavaScript or Three.js
+  errors occurred; only expected missing-API warnings from the local static
+  server were present.
+
 ## Static detail geometry batching (2026-08-11)
 
 - The next measured city bottleneck was render submission, not the JavaScript simulation: a production sample spent `26.3 ms` of `29.2 ms` frame work in `renderer.render`, at `1843` draw calls and about `1.18M` triangles.

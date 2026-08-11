@@ -1,5 +1,6 @@
 <!DOCTYPE html><!-- v329: jail state clears stale gang-hire UI and blocks recruitment client-side. -->
 <!-- v328: exterior building names use one roof-mounted architectural sign without duplicate labels. -->
+<!-- v328: identical police foot-route requests share a bounded short-lived BFS result. -->
 <!-- v327: prison alarm uses fixed professional double-pulse lightbars. -->
 <!-- v325: high-volume 3D diagnostics publish on the shared 250 ms cadence. -->
 <!-- v324: standard opaque static detail geometries share spatial render batches. -->
@@ -9258,7 +9259,7 @@ function updateCityCops(dt) {
   }
   _ensurePrisonStaffCops(now);
   _updatePrisonAssaultAlarm(now);
-  if(now>=_policeFootRouteDiagnosticsAt){_policeFootRouteDiagnosticsAt=now+500;document.documentElement.dataset.policeFootRoutePlans=String(_policeFootRoutePlanCount);document.documentElement.dataset.policeFootRouteDeferred=String(_policeFootRouteDeferredCount);document.documentElement.dataset.policeFootRouteMaxMs=_policeFootRouteMaxMs.toFixed(2);}
+  if(now>=_policeFootRouteDiagnosticsAt){_policeFootRouteDiagnosticsAt=now+500;document.documentElement.dataset.policeFootRoutePlans=String(_policeFootRoutePlanCount);document.documentElement.dataset.policeFootRouteCacheHits=String(_policeFootRouteCacheHits);document.documentElement.dataset.policeFootRouteCacheSize=String(_policeFootRouteSharedCache.size);document.documentElement.dataset.policeFootRouteDeferred=String(_policeFootRouteDeferredCount);document.documentElement.dataset.policeFootRouteMaxMs=_policeFootRouteMaxMs.toFixed(2);}
   document.documentElement.dataset.policeHqReplacementQueue=String(_cityCopReplacementQueue);
   document.documentElement.dataset.policePatrolLive=String(livePatrols);
   document.documentElement.dataset.policeLocalActors=String(cityCops.length);
@@ -10821,7 +10822,8 @@ function _policeCrewBodyPassable(r,c){
 function _clearPoliceFootRoute(cop){
   cop._policeFootRoute=null;cop._policeFootRouteIndex=0;cop._policeFootRouteUntil=0;cop._policeFootRouteRetryAt=0;
 }
-let _policeFootRouteFrame=-1,_policeFootRoutesThisFrame=0,_policeFootRouteDeferredCount=0,_policeFootRoutePlanCount=0,_policeFootRouteMaxMs=0,_policeFootRouteDiagnosticsAt=0;
+let _policeFootRouteFrame=-1,_policeFootRoutesThisFrame=0,_policeFootRouteDeferredCount=0,_policeFootRoutePlanCount=0,_policeFootRouteCacheHits=0,_policeFootRouteMaxMs=0,_policeFootRouteDiagnosticsAt=0;
+const _policeFootRouteSharedCache=new Map();
 function _reservePoliceFootRoute(now){
   const frame=Math.floor(now/16.667);if(frame!==_policeFootRouteFrame){_policeFootRouteFrame=frame;_policeFootRoutesThisFrame=0;}
   if(_policeFootRoutesThisFrame>=1)return false;_policeFootRoutesThisFrame++;return true;
@@ -10840,9 +10842,18 @@ function _recoverPoliceFootCop(cop){
   return false;
 }
 function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
-  if(now<(cop._policeFootRouteRetryAt||0)||!_reservePoliceFootRoute(now)){_policeFootRouteDeferredCount++;return false;}
-  const routeStartedAt=performance.now();targetR=Math.round(targetR*2)/2;targetC=Math.round(targetC*2)/2;
+  if(now<(cop._policeFootRouteRetryAt||0)){_policeFootRouteDeferredCount++;return false;}
+  targetR=Math.round(targetR*2)/2;targetC=Math.round(targetC*2)/2;
   const sr=Math.floor(cop.y),sc=Math.floor(cop.x),startKey=sr*MAP_COLS+sc;
+  const sharedKey=`${startKey}:${targetR}:${targetC}`,shared=_policeFootRouteSharedCache.get(sharedKey);
+  if(shared&&shared.until>now){
+    cop._policeFootRoute=shared.path;cop._policeFootRouteIndex=0;cop._policeFootRouteTargetR=targetR;cop._policeFootRouteTargetC=targetC;
+    cop._policeFootRouteUntil=now+2600;cop._policeFootRouteRetryAt=shared.path.length?now+240:now+620;_policeFootRouteCacheHits++;
+    return shared.path.length>0;
+  }
+  if(shared)_policeFootRouteSharedCache.delete(sharedKey);
+  if(!_reservePoliceFootRoute(now)){_policeFootRouteDeferredCount++;return false;}
+  const routeStartedAt=performance.now();
   const queue=[{r:sr,c:sc,key:startKey}],nodes=new Map([[startKey,queue[0]]]),dirs=[[1,0],[-1,0],[0,1],[0,-1]];
   let best=queue[0],bestD=Math.hypot(sr+.5-targetR,sc+.5-targetC),goal=null;
   for(let qi=0;qi<queue.length&&nodes.size<5200;qi++){
@@ -10862,6 +10873,8 @@ function _planPoliceFootRoute(cop,targetR,targetC,now=performance.now()){
   // a successful route long enough that stationary pursuits do not rebuild the
   // same BFS every 1.6 seconds for every officer around one obstacle.
   cop._policeFootRouteUntil=now+2600;cop._policeFootRouteRetryAt=path.length?now+240:now+620;
+  _policeFootRouteSharedCache.set(sharedKey,{path,until:now+2600});
+  if(_policeFootRouteSharedCache.size>64){for(const [key,value] of _policeFootRouteSharedCache){if(value.until<=now||_policeFootRouteSharedCache.size>64)_policeFootRouteSharedCache.delete(key);else break;}}
   const routeMs=performance.now()-routeStartedAt;_policeFootRoutePlanCount++;_policeFootRouteMaxMs=Math.max(_policeFootRouteMaxMs,routeMs);
   return path.length>0;
 }
