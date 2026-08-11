@@ -1,3 +1,4 @@
+// 3D custody v331: police transport hides the local prisoner for the full in-vehicle phase.
 // 3D render v330: camera occlusion preserves readable facades and restores a selected building immediately.
 // 3D city lighting v330: readable traffic lenses and scheduled instanced street-lamp glow.
 // 3D prison v327: fixed professional lightbars use double-pulse red/blue lenses and soft glow.
@@ -4506,8 +4507,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         let moving=false,playerArrestPhase='',playerArrestProgress=0,playerArrestCuffed=false,playerArrestHidden=false,playerVoluntarySurrender=false,playerAnimationLayer='locomotion',playerTeleported=false;animationActionLocked=false;
         if(bridge){
           bridge.updateDistrictEntry?.();
-          const state=bridge.getPlayerState();playerDead=!!state.dead;updatePlayerSpeech(localPlayerSpeech,state.chat,player.position.x,playerFloorElevation+8.15,player.position.z);
-          playerArrestPhase=String(state.arrestPhase||'');activeArrestLabelPhase=playerArrestPhase;if(telemetryDue)renderer.domElement.dataset.custodyLabelMode=activeArrestLabelPhase||'normal';playerArrestProgress=Math.max(0,Math.min(1,+state.arrestProgress||0));playerArrestCuffed=!!state.cuffed;playerArrestHidden=!!state.arrestHidden;playerVoluntarySurrender=!!state.voluntarySurrender;playerAnimationLayer=resolvePlayerAnimationLayer(state);animationActionLocked=playerAnimationLayer==='death'||playerAnimationLayer==='driving'||playerAnimationLayer==='vehicle-entry'||playerAnimationLayer.startsWith('arrest-');if(animationActionLocked){triggerHeld=false;if(throwAimHeld){throwAimHeld=false;throwAimLine.visible=throwLandingRing.visible=false;renderer.domElement.dataset.throwAim='cancelled:animation-state';}}
+          const state=bridge.getPlayerState();playerDead=!!state.dead;
+          playerArrestPhase=String(state.arrestPhase||'');activeArrestLabelPhase=playerArrestPhase;if(telemetryDue)renderer.domElement.dataset.custodyLabelMode=activeArrestLabelPhase||'normal';playerArrestProgress=Math.max(0,Math.min(1,+state.arrestProgress||0));playerArrestCuffed=!!state.cuffed;playerArrestHidden=!!state.arrestHidden||!!state.custodyVehicleId;playerVoluntarySurrender=!!state.voluntarySurrender;playerAnimationLayer=resolvePlayerAnimationLayer(state);animationActionLocked=playerAnimationLayer==='death'||playerAnimationLayer==='driving'||playerAnimationLayer==='vehicle-entry'||playerAnimationLayer.startsWith('arrest-');if(animationActionLocked){triggerHeld=false;if(throwAimHeld){throwAimHeld=false;throwAimLine.visible=throwLandingRing.visible=false;renderer.domElement.dataset.throwAim='cancelled:animation-state';}}
+          updatePlayerSpeech(localPlayerSpeech,playerArrestHidden?'':state.chat,player.position.x,playerFloorElevation+8.15,player.position.z);
           if(prisonReleaseGate){
             const gateTarget=Math.max(0,Math.min(1,+state.jailGateProgress||0)),gateAlpha=1-Math.exp(-dt*5.4);prisonReleaseGateVisual=THREE.MathUtils.lerp(prisonReleaseGateVisual,gateTarget,gateAlpha);
             const easedGate=prisonReleaseGateVisual*prisonReleaseGateVisual*(3-2*prisonReleaseGateVisual);prisonReleaseGate.position.y=.68+easedGate*5.35;
@@ -4585,7 +4587,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             if(cameraZoomMode!=='world'){cameraZoomMode='world';cameraZoomKey='';camera.zoom=worldZoom;camera.updateProjectionMatrix();}
             if(!state.interior)interiorSignature='';
           }
-          player.visible=!state.driving&&!playerArrestHidden;
+          player.visible=!state.driving&&!playerArrestHidden;if(telemetryDue){renderer.domElement.dataset.playerCustodyVisibility=playerArrestHidden?`hidden-in:${state.custodyVehicleId||'police-transport'}`:'visible';renderer.domElement.dataset.playerVisible=player.visible?'1':'0';}
           let targetR=+state.r||0,targetC=+state.c||0;if(state.vehicleEntry){const p=Math.max(0,Math.min(1,+state.vehicleEntry.progress||0)),sideFade=p<.52?1:Math.max(0,1-(p-.52)/.4),side=.7*sideFade;targetR=(+state.vehicleEntry.r||targetR)+Math.cos(+state.vehicleEntry.ang||0)*side;targetC=(+state.vehicleEntry.c||targetC)-Math.sin(+state.vehicleEntry.ang||0)*side;}const tx=(targetC-originC)*WORLD_SCALE,tz=(targetR-originR)*WORLD_SCALE;
           const delta=Math.hypot(tx-player.position.x,tz-player.position.z);playerTeleported=!!state.teleported||delta>24;
           if(playerTeleported){player.position.x=tx;player.position.z=tz;playerAnim.speed=playerAnim.gait=playerAnim.accel=0;playerAnim.stepBucket=-1;}else{player.position.x=THREE.MathUtils.lerp(player.position.x,tx,Math.min(1,dt*14));player.position.z=THREE.MathUtils.lerp(player.position.z,tz,Math.min(1,dt*14));}syncMouseAim();

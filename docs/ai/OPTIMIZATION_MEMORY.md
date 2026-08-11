@@ -350,3 +350,14 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Traffic-signal state was already correct (`55` active fixtures and a changing `ew:ns` phase), but tiny flat-color lenses were visually unreadable from the isometric camera. A small radial-gradient halo texture plus a slightly larger lens preserves one draw call per color while making the active lens legible in daylight.
 - Street lamps now use the explicit authored schedule: on from `17:00` through `06:59`, off from `07:00` through `16:59`. Do not infer fixture power only from the continuous sky daylight curve; twilight grading and the gameplay schedule are different concerns.
 - QA telemetry: `data-traffic-signal-light-profile`, `data-street-lamp-schedule`, `data-street-lamp-power`, and `data-street-lamp-count`. Local time QA remains available through `preview=1&previewtimeoffset=<hours>`.
+
+## Police vehicle custody visibility (2026-08-11)
+
+- Treat “inside the police vehicle” as durable custody state, not as a visual
+  inference from one transient phase string. Set it when loading completes and
+  clear it only when the authored prison handoff starts.
+- Hide the local player in both the Three.js bridge and the legacy canvas
+  fallback for that complete interval. The bridge reuses the already-selected
+  custody vehicle and adds no NPC or vehicle scan to the render loop.
+- Whenever the 3D module changes, advance its script query key in `world.html`.
+  A fresh HTML build alone does not invalidate a previously cached module URL.
