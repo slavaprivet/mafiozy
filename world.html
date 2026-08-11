@@ -1,4 +1,5 @@
-<!DOCTYPE html><!-- v356: NPC forearms and role clothing pair with individually detailed weapon families. -->
+<!DOCTYPE html><!-- v357: successful character creation enters the selected character's world directly. -->
+<!-- v356: NPC forearms and role clothing pair with individually detailed weapon families. -->
 <!-- v355: NPC anatomy, tailoring, faces and deterministic micro-expressions receive a second detail pass. -->
 <!-- v354: saved creator avatars and all NPCs use the shared detailed rounded 3D character rig. -->
 <!-- v353: startup keeps one stable outdoor-light shader family instead of compiling a hidden-beacon duplicate. -->
@@ -3314,6 +3315,10 @@ function _bindGameMenuActions() {
   document.getElementById('gmmVibration')?.addEventListener('click',() => { _gameMenuSettings.vibration=!(_gameMenuSettings.vibration!==false);_applyGameMenuSettings(); });
   window.addEventListener('mafiozi:character3dready',()=>{_renderGameMenuCharacter();_renderGameProfiles();_renderGameMenuSave();},{once:true});
   _applyGameMenuSettings(); _renderGameMenuSave(); _setGameMenuCharacterReady(_gameMenuCharacterReady,QP.look); _loadGameProfiles();
+  // An explicit creator return is allowed to reveal the ready character's
+  // world immediately; the authoritative profile request still reconciles in
+  // the background and can correct the supplied appearance afterwards.
+  if(_UP.get('menu')==='enter'&&_gameMenuCharacterReady)closeGameMainMenu();
   // Explicit localhost-only visual QA: keep production's character gate intact,
   // but allow the authored look in the URL to enter the rendered city directly.
   if(_LOCAL_PREVIEW&&_UP.has('previewcity')&&_gameMenuCharacterReady)closeGameMainMenu();
@@ -8959,9 +8964,9 @@ const MAFIA_BOSS_GANGS = Object.freeze({
 // Внешность городского босса и его оружие не зависят от доступности API:
 // игрок всегда узнаёт лидера по силуэту, цвету и личному стволу.
 const MAFIA_BOSS_VISUALS = Object.freeze({
-  leila:{weaponId:'leila_mercy',weaponName:'Шприц милосердия',weaponBase:'pistol_heavy',style:0},
-  rustam:{weaponId:'rustam_wrench',weaponName:'Гвоздодёр',weaponBase:'shotgun',style:1},
-  marco:{weaponId:'marco_road',weaponName:'Розовый Томпсон',weaponBase:'tommy_gun',style:2},
+  leila:{weaponId:'leila_mercy',weaponName:'Последний аргумент',weaponBase:'pistol_heavy',style:0},
+  rustam:{weaponId:'rustam_wrench',weaponName:'Сварщик',weaponBase:'shotgun',style:1},
+  marco:{weaponId:'marco_road',weaponName:'Дорожный Томми',weaponBase:'tommy_gun',style:2},
   vera:{weaponId:'vera_verdict',weaponName:'Вердикт',weaponBase:'pistol_gold',style:3},
   arsen:{weaponId:'arsen_forge',weaponName:'Кузнечный гром',weaponBase:'rifle',style:4},
   damir:{weaponId:'damir_oath',weaponName:'Клятва',weaponBase:'smg',style:5},
@@ -8971,8 +8976,8 @@ const MAFIA_BOSS_VISUALS = Object.freeze({
   alisa:{weaponId:'alisa_signal',weaponName:'Сигнал',weaponBase:'smg',style:9},
   boris:{weaponId:'boris_tow',weaponName:'Буксир',weaponBase:'shotgun',style:10},
   inga:{weaponId:'inga_deed',weaponName:'Документ',weaponBase:'pistol_heavy',style:11},
-  timur:{weaponId:'timur_express',weaponName:'Синий арбалет',weaponBase:'smg',style:12},
-  emil:{weaponId:'emil_champion',weaponName:'Кулак чемпиона',weaponBase:'pistol_heavy',style:13},
+  timur:{weaponId:'timur_express',weaponName:'Экспресс',weaponBase:'smg',style:12},
+  emil:{weaponId:'emil_champion',weaponName:'Чемпион',weaponBase:'pistol_heavy',style:13},
   roman:{weaponId:'roman_plate',weaponName:'Пробойник',weaponBase:'rifle',style:14},
   sofia:{weaponId:'sofia_headline',weaponName:'Заголовок',weaponBase:'pistol',style:15},
   viktor:{weaponId:'viktor_night',weaponName:'Тень',weaponBase:'sniper',style:16},
@@ -17771,6 +17776,76 @@ function openNpcEmpirePanel(leaderId,allowAssault=false){
   ov.innerHTML=`<article class="ne-card"><header class="ne-head"><div class="ne-k">АВТОНОМНАЯ КРИМИНАЛЬНАЯ ИМПЕРИЯ</div><h2>${_npcEmpireEsc(empire.leader_name)} · ${_npcEmpireEsc(empire.gang_name)}</h2><p>${_npcEmpireEsc(empire.title)} · ${_npcEmpireRelationLabel(empire)} (${relation>0?'+':''}${relation}) · ${pactText}</p><button class="ne-x" data-ne-close>×</button></header><div class="ne-body"><div class="ne-grid"><div class="ne-stat"><small>КАЗНА</small><b>$${(+empire.treasury||0).toLocaleString('ru')}</b></div><div class="ne-stat"><small>БОЙЦЫ</small><b>${+empire.members||0}</b></div><div class="ne-stat"><small>СИЛА</small><b>${+empire.strength||0}</b></div><div class="ne-stat"><small>ОРУЖИЕ БОССА</small><b>${_npcEmpireEsc(empire.weapon_name)}</b></div></div><section class="ne-section"><h3>ДИПЛОМАТИЯ</h3><div class="ne-actions"><button class="ne-btn good" data-ne-action="respect">🤝 Проявить уважение<small>Отношение +3 · раз в час</small></button><button class="ne-btn good" data-ne-action="gift">💵 Подарок $500<small>Отношение +12</small></button><button class="ne-btn" data-ne-action="insult">🗯️ Оскорбить<small>Отношение −10</small></button><button class="ne-btn war" data-ne-action="threaten">🔪 Угрожать<small>Отношение −18</small></button>${relation>=60&&pact!=='alliance'?'<button class="ne-btn good" data-ne-action="alliance">🕊️ Предложить союз<small>$1000 · требуется +60</small></button>':''}${relation>=-60&&pact==='war'?'<button class="ne-btn good" data-ne-action="truce">📜 Предложить перемирие<small>$300</small></button>':''}${pact!=='war'?'<button class="ne-btn war" data-ne-action="declare_war">⚔️ Объявить войну<small>Отношение станет −100</small></button>':''}${pact!=='none'&&pact!=='war'?'<button class="ne-btn war" data-ne-action="break_pact">💔 Разорвать договор<small>Отношение −20</small></button>':''}</div></section><section class="ne-section"><h3>ВЛАДЕНИЯ · ${(empire.holdings||[]).length}</h3>${holdings}</section><section class="ne-section"><h3>ПОСЛЕДНИЕ РЕШЕНИЯ ИИ</h3>${events}</section>${allowAssault&&empire.status!=='defeated'?`<button class="ne-btn assault" data-ne-assault>⚔️ НАЧАТЬ ШТУРМ ШТАБА<br><small>Внутри ${Math.max(4,Math.min(14,3+Math.floor((+empire.members||0)/2)))} вооружённых защитников и босс</small></button>`:''}</div></article>`;
   ov.querySelectorAll('[data-ne-action]').forEach(b=>b.onclick=()=>runNpcEmpireDiplomacy(empire.leader_id,b.dataset.neAction));ov.querySelector('[data-ne-assault]')?.addEventListener('click',()=>startNpcEmpireAssault(empire.leader_id));ov.classList.add('show');
 }
+
+// Expanded empire browser: readable typography, visual boss cards and an in-menu
+// back route. Keep the server-authoritative diplomacy/assault panel above as the
+// source of all actions; this layer only enriches its presentation.
+const _npcEmpirePanelBase=openNpcEmpirePanel;
+function _npcEmpireUiLook(leaderId){
+  return SPECIALIST_NPCS.find(n=>String(n._specialistId||'')===String(leaderId||''))?.look||{};
+}
+function _npcEmpireUiActivity(empire){
+  const action=empire?.activity||{},kind=String(action.kind||'patrol');
+  return ({patrol:'Проверяет владения',collect:'Собирает доход',recruit:'Нанимает бойцов',capture:'Готовит захват',attack:'Ведёт войну',defend:'Укрепляет штаб',recover:'Восстанавливает силы',invest:'Расширяет бизнес'})[kind]||action.summary||'Действует автономно';
+}
+function _paintNpcEmpireUiPortraits(root=document){
+  root.querySelectorAll?.('canvas[data-ne-portrait]').forEach(cv=>{
+    const look=_npcEmpireUiLook(cv.dataset.nePortrait),ctx=cv.getContext('2d');
+    try{ctx.clearRect(0,0,cv.width,cv.height);drawChar(ctx,cv.width,cv.height,look);}catch(e){}
+    try{window.MafioziCharacter3D?.paint(cv,look,{angle:0});}catch(e){}
+  });
+}
+function _installReadableNpcEmpireUi(){
+  if(document.getElementById('npcEmpireReadableUi'))return;
+  const style=document.createElement('style');style.id='npcEmpireReadableUi';style.textContent=`
+#npcEmpireOverlay{padding:18px;background:radial-gradient(circle at 50% 30%,#17202c99,#020407ed 70%);backdrop-filter:blur(9px) saturate(.75);-webkit-backdrop-filter:blur(9px) saturate(.75);font-family:"Segoe UI",Arial,sans-serif;font-size:14px}
+#npcEmpireOverlay .ne-card{position:relative;width:min(840px,calc(100vw - 28px));border-radius:16px;background:radial-gradient(circle at 12% 4%,color-mix(in srgb,var(--ec) 21%,transparent),transparent 32%),linear-gradient(145deg,#231a18,#0b0e13 48%,#080b10);box-shadow:0 32px 100px #000,0 0 0 4px #020305aa,inset 0 1px #ffe5a51c}
+#npcEmpireOverlay .ne-card.dashboard{width:min(1120px,calc(100vw - 28px))}
+#npcEmpireOverlay .ne-head{min-height:78px;padding:19px 62px 16px 24px;box-shadow:0 9px 24px #0008}
+#npcEmpireOverlay .ne-k{font-size:12px;line-height:1.3;letter-spacing:2px}
+#npcEmpireOverlay .ne-head h2{font-size:clamp(26px,3vw,36px);line-height:1.05}
+#npcEmpireOverlay .ne-head p{font-size:14px;line-height:1.45}
+#npcEmpireOverlay .ne-body{padding:18px}
+#npcEmpireOverlay .ne-stat small{font-size:12px;line-height:1.25}
+#npcEmpireOverlay .ne-stat b{font-size:17px;line-height:1.25}
+#npcEmpireOverlay .ne-section{margin-top:14px;padding:15px}
+#npcEmpireOverlay .ne-section h3{font-size:14px;line-height:1.35;letter-spacing:.7px}
+#npcEmpireOverlay .ne-btn{min-height:52px;padding:12px 14px;font-size:15px;line-height:1.25}
+#npcEmpireOverlay .ne-btn small,#npcEmpireOverlay .ne-btn.assault small{font-size:12px;line-height:1.35}
+#npcEmpireOverlay .ne-holding,#npcEmpireOverlay .ne-event,#npcEmpireOverlay .ns-district{padding:9px 2px;font-size:14px;line-height:1.45}
+#npcEmpireOverlay .ns-district small{font-size:12px;line-height:1.4}
+#npcSandboxButton{font-size:12px!important;line-height:1.25!important}
+#npcEmpireOverlay .ne-body [style*="font-size:9px"],#npcEmpireOverlay .ne-body [style*="font-size:10px"]{font-size:13px!important;line-height:1.4}
+.ne-season{display:grid;grid-template-columns:1.3fr repeat(3,1fr);gap:10px;margin-bottom:14px}.ne-season-main,.ne-season-stat{padding:14px;border:1px solid #ffffff18;border-radius:10px;background:linear-gradient(135deg,#2a1c18,#10141a);box-shadow:inset 3px 0 #b52c3b}.ne-season small{display:block;color:#aab2be;font-size:12px;font-weight:900;letter-spacing:.6px}.ne-season b{display:block;margin-top:6px;color:#ffe3a3;font:900 20px Georgia}
+.ne-rank-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.ns-rank.empire-card{position:relative;display:grid;grid-template-columns:86px minmax(0,1fr);min-height:132px;overflow:hidden;border:1px solid color-mix(in srgb,var(--boss,#b8863c) 55%,#414651);border-radius:11px;background:radial-gradient(circle at 12% 20%,color-mix(in srgb,var(--boss) 20%,transparent),transparent 45%),linear-gradient(145deg,#1b1b20,#0a0d12);cursor:pointer;box-shadow:0 7px 18px #0007;transition:transform .14s ease,filter .14s ease}.ns-rank.empire-card:hover{transform:translateY(-2px);filter:brightness(1.12);border-color:var(--boss)}.ns-rank.empire-card .place{position:absolute;z-index:2;left:7px;top:7px;display:flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 5px;border:1px solid #e7c36b6e;border-radius:6px;background:#120e0bdb;color:#f5d171;font:900 15px Georgia}.ns-rank-portrait{width:86px;height:132px;border-right:1px solid #ffffff12;background:linear-gradient(180deg,color-mix(in srgb,var(--boss) 18%,#11151b),#080a0d)}.ns-rank-portrait canvas{width:86px;height:132px;filter:drop-shadow(0 6px 5px #000)}.ns-rank-copy{min-width:0;padding:13px 10px 10px}.ns-rank-name{display:block;overflow:hidden;color:#fff1cc;font:900 17px/1.1 Georgia;text-overflow:ellipsis;white-space:nowrap}.ns-rank-gang{display:block;margin-top:4px;overflow:hidden;color:var(--boss);font-size:12px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}.ns-rank-role{margin-top:8px;color:#c8cbd0;font-size:13px;line-height:1.3}.ns-rank-meta{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.ns-chip{padding:4px 6px;border:1px solid #ffffff18;border-radius:5px;background:#ffffff08;color:#bac2ce;font-size:12px}.ns-open{position:absolute;right:9px;bottom:8px;color:#e7c675;font-size:12px;font-weight:900}
+.ne-dossier-hero{display:grid;grid-template-columns:210px minmax(0,1fr);gap:17px;margin-bottom:14px}.ne-dossier-photo{min-height:270px;overflow:hidden;border:1px solid color-mix(in srgb,var(--ec) 75%,#d1b36d);border-radius:12px;background:radial-gradient(circle at 50% 26%,color-mix(in srgb,var(--ec) 35%,#202630),#090c11 66%)}.ne-dossier-photo canvas{width:100%;height:270px;filter:drop-shadow(0 10px 8px #000)}.ne-dossier-copy{padding:5px 2px}.ne-dossier-label{color:var(--ec);font-size:13px;font-weight:900;letter-spacing:1px}.ne-dossier-copy h3{margin:7px 0 4px;color:#fff0c7;font:900 clamp(25px,3vw,33px)/1 Georgia}.ne-dossier-gang{color:#d8bf88;font-size:15px;font-weight:900}.ne-dossier-bio{margin-top:15px;color:#c8ced7;font-size:15px;line-height:1.55}.ne-dossier-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}.ne-dossier-tag{padding:7px 9px;border:1px solid #ffffff1b;border-radius:6px;background:#ffffff08;color:#e0e3e8;font-size:13px}.ne-back{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-bottom:13px;padding:9px 14px;border:1px solid #b9954d;border-radius:9px;background:linear-gradient(180deg,#3a2a1d,#17130f);color:#ffe09a;font-size:14px;font-weight:900;letter-spacing:.5px;cursor:pointer}.ne-back:hover{filter:brightness(1.17)}
+@media(max-width:900px){.ne-rank-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ne-season{grid-template-columns:1fr 1fr}.ne-season-main{grid-column:1/-1}}
+@media(max-width:600px){#npcEmpireOverlay{padding:6px;font-size:14px}#npcEmpireOverlay .ne-card,#npcEmpireOverlay .ne-card.dashboard{width:calc(100vw - 12px);max-height:calc(100vh - 12px)}#npcEmpireOverlay .ne-head{padding:15px 50px 13px 15px}#npcEmpireOverlay .ne-body{padding:10px}.ne-rank-grid{grid-template-columns:1fr}.ne-season{grid-template-columns:1fr 1fr}.ne-dossier-hero{grid-template-columns:112px minmax(0,1fr);gap:11px}.ne-dossier-photo{min-height:184px}.ne-dossier-photo canvas{height:184px}.ne-dossier-copy h3{font-size:22px}.ne-dossier-bio{font-size:14px;line-height:1.45}.ne-dossier-tag{font-size:12px}}
+`;document.head.appendChild(style);
+}
+_installReadableNpcEmpireUi();
+
+openNpcSandboxDashboard=function(){
+  const ov=_npcEmpireOverlay();ov.dataset.locked='0';ov.dataset.leaderId='';ov.dataset.allowAssault='0';ov.style.setProperty('--ec','#c69547');
+  const ordered=(_npcEmpireLeaderboard.length?_npcEmpireLeaderboard:_npcEmpires.map(e=>e.leader_id)).map(id=>_npcEmpireById.get(String(id))).filter(Boolean);
+  const active=ordered.filter(e=>e.status!=='ruined').length,contested=_npcEmpireDistricts.filter(d=>d.contested).length,leader=ordered[0];
+  const ranks=ordered.map((e,i)=>`<article class="ns-rank empire-card" style="--boss:${_npcEmpireEsc(e.accent||e.color||'#c69547')}" data-ns-leader="${_npcEmpireEsc(e.leader_id)}"><div class="place">${i+1}</div><div class="ns-rank-portrait"><canvas width="172" height="264" data-ne-portrait="${_npcEmpireEsc(e.leader_id)}"></canvas></div><div class="ns-rank-copy"><b class="ns-rank-name">${_npcEmpireEsc(e.leader_name)}</b><span class="ns-rank-gang">${_npcEmpireEsc(e.gang_name)}</span><div class="ns-rank-role">${_npcEmpireEsc(e.title||'Криминальный лидер')} · ${_npcEmpireEsc(_npcEmpireUiActivity(e))}</div><div class="ns-rank-meta"><span class="ns-chip">${+e.district_count||0} район.</span><span class="ns-chip">${+e.dominance_score||0} влияния</span><span class="ns-chip">${+e.members||0} бойцов</span></div><span class="ns-open">ОТКРЫТЬ ДОСЬЕ ›</span></div></article>`).join('');
+  const districts=_npcEmpireDistricts.map(d=>{const boss=_npcEmpireById.get(String(d.leader_id||'')),runner=_npcEmpireById.get(String(d.runner_up_id||''));return `<div class="ns-district ${d.contested?'contested':''}"><b>${_npcEmpireEsc(d.name)}</b>${boss?(d.contested?'⚔️ Спорный · ':'👑 ')+_npcEmpireEsc(boss.leader_name)+' ('+(+d.score||0)+')'+(runner?'<small> против '+_npcEmpireEsc(runner.leader_name)+' ('+(+d.runner_up_score||0)+')</small>':''):'Никем не занят'}</div>`;}).join('');
+  const chronicle=_npcEmpireEvents.slice(0,14).map(e=>`<div class="ne-event">${['gang_destroyed','empire_ruined'].includes(e.kind)?'💀':e.kind==='comeback'?'🔥':e.kind==='war_won'?'⚔️':'◈'} ${_npcEmpireEsc(e.summary)}</div>`).join('')||'<div class="ne-event">Песочница только начала новую историю.</div>';
+  ov.innerHTML=`<article class="ne-card dashboard"><header class="ne-head"><div class="ne-k">PVP · КАРТА КРИМИНАЛЬНОЙ ВЛАСТИ</div><h2>Империи города</h2><p>Живая война семей: боссы сами богатеют, захватывают районы, заключают союзы и возвращаются после разгрома.</p><button class="ne-x" data-ne-close aria-label="Закрыть империи">×</button></header><div class="ne-body"><div class="ne-season"><div class="ne-season-main"><small>ЛИДЕР СЕЗОНА</small><b>${_npcEmpireEsc(leader?.leader_name||'Власть не определена')}</b></div><div class="ne-season-stat"><small>АКТИВНЫЕ СЕМЬИ</small><b>${active}/${ordered.length}</b></div><div class="ne-season-stat"><small>РАЙОНЫ</small><b>${_npcEmpireDistricts.length}</b></div><div class="ne-season-stat"><small>ГОРЯЧИЕ ТОЧКИ</small><b>${contested}</b></div></div><section class="ne-section"><h3>БОССЫ · НАЖМИ, ЧТОБЫ ОТКРЫТЬ ДОСЬЕ</h3><div class="ne-rank-grid">${ranks}</div></section><section class="ne-section"><h3>КОНТРОЛЬ РАЙОНОВ</h3><div class="ns-districts">${districts||'<div class="ne-event">Данные районов загружаются…</div>'}</div></section><section class="ne-section"><h3>ЛЕТОПИСЬ ГОРОДА</h3>${chronicle}</section></div></article>`;
+  ov.querySelectorAll('[data-ns-leader]').forEach(row=>row.onclick=()=>openNpcEmpirePanel(row.dataset.nsLeader,false));ov.classList.add('show');_paintNpcEmpireUiPortraits(ov);
+};
+
+openNpcEmpirePanel=function(leaderId,allowAssault=false){
+  _npcEmpirePanelBase(leaderId,allowAssault);
+  const empire=_npcEmpireById.get(String(leaderId||'')),ov=document.getElementById('npcEmpireOverlay'),body=ov?.querySelector('.ne-body');
+  if(!empire||!ov||!body)return;
+  ov.dataset.locked='1';
+  ov.querySelector('.ne-x')?.remove();
+  const back=document.createElement('button');back.type='button';back.className='ne-back';back.dataset.neBack='1';back.textContent='← К СПИСКУ БОССОВ';back.onclick=openNpcSandboxDashboard;body.prepend(back);
+  const hero=document.createElement('div');hero.className='ne-dossier-hero';hero.innerHTML=`<div class="ne-dossier-photo"><canvas width="300" height="390" data-ne-portrait="${_npcEmpireEsc(empire.leader_id)}"></canvas></div><div class="ne-dossier-copy"><div class="ne-dossier-label">ДОСЬЕ · ${_npcEmpireEsc(empire.title||'КРИМИНАЛЬНЫЙ ЛИДЕР')}</div><h3>${_npcEmpireEsc(empire.leader_name)}</h3><div class="ne-dossier-gang">♛ ${_npcEmpireEsc(empire.gang_name)}</div><div class="ne-dossier-bio">Автономный босс со своей семьёй, штабом, экономикой и планами на город. Его решения зависят от силы, владений, отношений и текущей войны.</div><div class="ne-dossier-tags"><span class="ne-dossier-tag">🎯 ${_npcEmpireEsc(_npcEmpireUiActivity(empire))}</span><span class="ne-dossier-tag">🔫 ${_npcEmpireEsc(empire.weapon_name||'Личное оружие')}</span><span class="ne-dossier-tag">🏛️ ${_npcEmpireEsc(_npcEmpireStatus(empire))}</span></div></div>`;back.insertAdjacentElement('afterend',hero);
+  _paintNpcEmpireUiPortraits(ov);
+};
 async function runNpcEmpireDiplomacy(leaderId,action){
   if(_npcEmpireBusy)return;_npcEmpireBusy=true;const ov=_npcEmpireOverlay();ov.querySelectorAll('button').forEach(b=>b.disabled=true);
   try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/diplomacy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:leaderId,action})}),j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'failed');if(j.cash!=null){myCash=+j.cash||0;QP.cash=myCash;updateMoneyHud();}await loadNpcEmpireState();showEventBanner('🤝 ДИПЛОМАТИЯ',`${_npcEmpireById.get(leaderId)?.leader_name||leaderId}: отношение ${j.relation>0?'+':''}${j.relation}`,2400,j.relation<0?'warn':'win');}
@@ -25923,7 +25998,7 @@ function _applyNpcPoliceBribeRelief(reply={}){
   document.documentElement.dataset.policeBribe=`cover:${Math.round(coverMs/1000)}:wanted:${myWanted}:case:${robberyId||'none'}`;
 }
 function _npcActionButtons(kind,ref,view){
-  if(kind==='said')return [['talk','💬 Поговорить'],[_saidState.hired?'said_hired':'said_hire',_saidState.hired?'✅ Саид уже нанят':'🤝 Нанять Саида']];
+  if(kind==='said')return _saidState.hired?[['talk','💬 Поговорить'],['said_collect_all','💰 Собрать всё'],['said_fire','👋 Уволить Саида']]:[['talk','💬 Поговорить'],['said_hire','🤝 Нанять Саида']];
   if(kind==='specialist')return [['talk','💬 Поговорить'],['empire_diplomacy','🤝 Дипломатия'],['empire_dossier','🏴 Досье банды']];
   if(kind==='witness')return [['pay_silence','🤝 Заплатить за молчание'],['threaten_silence','🔪 Пригрозить']];
   if(kind==='police'){
@@ -25956,7 +26031,8 @@ function _npcActionDescription(id){
     pay_silence:['Свидетель замолчит, если примет деньги','−$'],threaten_silence:['Может замолчать или ускорить вызов полиции','РИСК'],
     errand:['Получить небольшое поручение в другом районе','ЗАДАНИЕ'],finish_errand:['Награда $90 · репутация района +2','+$90']
     ,said_hire:['Саид собирает всю выручку со всех твоих бизнесов одним кликом · зарплата $500 в день','$500/ДЕНЬ']
-    ,said_hired:['Нажми на любой свой бизнес с выручкой — Саид соберёт деньги со всех точек','НАНЯТ']
+    ,said_collect_all:['Забрать доступную выручку сразу со всех твоих бизнесов','СОБРАТЬ ВСЁ']
+    ,said_fire:['Прекратить работу Саида · уже оплаченная зарплата не возвращается','УВОЛИТЬ']
     ,empire_diplomacy:['Отношения, подарки, угрозы, перемирия и союзы','ОТ −100 ДО +100']
     ,empire_dossier:['Казна, бойцы, сила, штаб, владения и уникальное оружие','РАЗВЕДДАННЫЕ']
   })[id]||['Выполнить выбранное действие','ДЕЙСТВИЕ'];
@@ -26010,6 +26086,12 @@ function _runNpcAction(action){
   if(action==='talk'){const text=kind==='specialist'?(ref._talkIntro||'Мои услуги появятся позже. Пока можем познакомиться.'):kind==='said'?(_saidState.hired?'Я на связи. Нажми на любой свой бизнес — заберу выручку со всех точек.':'У тебя есть бизнесы — у меня есть люди. За $500 в день соберу всю выручку одним кликом.'):kind==='police'?(myWanted?'Остановитесь. Вы подходите под описание.':'Не нарушайте порядок.'):kind==='doctor'?'Берегите себя. Улицы сегодня неспокойные.':kind==='bandit'?'Деньги вперёд. Верность потом.':kind==='crew'?'Я рядом, босс.':kind==='homeless'?'Город говорит с теми, кто умеет слушать.':'Добрый день. Здесь всякое бывает.';_npcActionSay(ref,text,(kind==='said'||kind==='specialist')?3900:2600);finish((kind==='said'||kind==='specialist')?text:'');return;}
   if(action==='said_hire'){
     saidHire(ref);return;
+  }
+  if(action==='said_collect_all'){
+    saidCollectAll().then(j=>{if(j)closeNpcActionMenu();});return;
+  }
+  if(action==='said_fire'){
+    saidFire().then(j=>{if(j){_npcActionSay(ref,'Без обид. Если снова понадоблюсь — найдёшь меня в городе.',3200);closeNpcActionMenu();}});return;
   }
   if(action==='empire_diplomacy'||action==='empire_dossier'){const leaderId=String(ref?._specialistId||view?.specialistId||'');closeNpcActionMenu();openNpcEmpirePanel(leaderId,false);return;}
   if(action==='rumor'){const text=_npcActionDistrictLine();_npcActionSay(ref,text,3600);finish(text,'🗞️');return;}
@@ -27693,20 +27775,32 @@ function collectBusinessHere(biz_id) {
 }
 
 let _saidBusy = false;
+async function _saidApiPost(endpoint) {
+  if(!QP.api||!QP.uid)throw new Error('server unavailable');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    // Simple POST avoids a CORS preflight in Telegram WebView.
+    const r=await fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/${endpoint}`,{
+      method:'POST',body:'{}',cache:'no-store',signal:controller.signal
+    });
+    let j=null;try{j=await r.json();}catch(_){throw new Error(`http ${r.status}`);}
+    if(!r.ok||!j?.ok)throw new Error(j?.error||`http ${r.status}`);
+    return j;
+  }finally{clearTimeout(timer);}
+}
+function _applySaidReply(j){
+  if(j?.said)_saidState={..._saidState,...j.said};
+  if(Number.isFinite(Number(j?.cash))){myCash=Number(j.cash);QP.cash=myCash;updateMoneyHud();}
+  document.documentElement.dataset.saidStatus=_saidState.hired?'hired':'not-hired';
+  _bizLastSync=0;syncMyBusinesses();
+  if(_profileTab==='biz')renderProfileTab();
+}
 async function _saidPost(action) {
   if (_saidBusy || !QP.api || !QP.uid) return null;
   _saidBusy = true;
   try {
-    const r = await fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/said/${action}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
-    });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || 'request failed');
-    if (j.said) _saidState = { ..._saidState, ...j.said };
-    if (Number.isFinite(Number(j.cash))) { myCash = Number(j.cash); QP.cash = myCash; updateMoneyHud(); }
-    _bizLastSync = 0;
-    syncMyBusinesses();
-    if (_profileTab === 'biz') renderProfileTab();
+    const j=await _saidApiPost(`said/${action}`);
+    _applySaidReply(j);
     return j;
   } catch (e) {
     const msg = e.message === 'no business' ? 'Сначала купи хотя бы один бизнес'
@@ -27763,17 +27857,14 @@ async function saidFire() {
   const modalOpen = document.getElementById('saidModal')?.style.display === 'flex';
   const j = await _saidPost('fire');
   if (j) { showToast('Саид уволен', '👋', 2000); if (modalOpen) openSaidMenu(); }
+  return j;
 }
 async function saidCollectAll() {
-  if (_saidBusy || !_saidState.hired) return;
+  if (_saidBusy || !_saidState.hired) return null;
   const modalOpen = document.getElementById('saidModal')?.style.display === 'flex';
   _saidBusy = true;
   try {
-    const r = await fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/collect`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ via_said: true })
-    });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || 'collect failed');
+    const j=await _saidApiPost('collect');
     const got = Number(j.collected) || 0;
     if (Number.isFinite(Number(j.cash))) { myCash = Number(j.cash); QP.cash = myCash; updateMoneyHud(); }
     myBusinesses.forEach(v => { if (v && v.owned) v.pending = 0; });
@@ -27782,8 +27873,10 @@ async function saidCollectAll() {
     _bizLastSync = 0; syncMyBusinesses();
     if (_profileTab === 'biz') renderProfileTab();
     if (modalOpen) openSaidMenu();
+    return j;
   } catch (e) {
     showToast(e.message === 'said not hired' ? 'Сначала найми Саида' : 'Не удалось собрать кассу', '⚠️', 2400);
+    return null;
   } finally { _saidBusy = false; }
 }
 
@@ -27800,8 +27893,10 @@ function openSaidMenu() {
   const hired = !!_saidState.hired;
   modal.innerHTML = `<div style="width:min(390px,94vw);border:1px solid #d7ae4c;border-radius:18px;background:linear-gradient(160deg,#171b25,#0b0d13);box-shadow:0 18px 70px #000;padding:20px;color:#fff">
     <div style="display:flex;align-items:center;gap:13px"><div style="font-size:44px">👔</div><div style="flex:1"><div style="font-size:21px;font-weight:900">Саид</div><div style="font-size:12px;color:#aeb7c7">правая рука · зарплата $500 в день</div></div><button onclick="document.getElementById('saidModal').style.display='none'" style="border:0;background:#2a2e38;color:#fff;border-radius:50%;width:34px;height:34px;font-size:18px">×</button></div>
+    <div data-said-hire-status="${hired?'hired':'not-hired'}" style="margin:12px 0 0;padding:9px 10px;border:1px solid ${hired?'#397657':'#66552d'};border-radius:9px;background:${hired?'#10251b':'#211d14'};color:${hired?'#8dffb1':'#e9d49b'};font-size:13px;font-weight:900;text-align:center;letter-spacing:.08em">${hired?'🟢 НАНЯТ':'⚪ НЕ НАНЯТ'}</div>
     <div style="margin:14px 0;padding:13px;border-radius:12px;background:#111722;color:#ccd5e5;line-height:1.5">${hired ? `Я на связи. Во всех кассах сейчас <b style="color:#7eff9a">$${pending.toLocaleString('ru')}</b>. Скажи — соберу всё.` : 'Доверь мне бизнесы. Одним звонком соберу деньги со всех точек и привезу тебе.'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="showToast('${hired?'Я на связи. Нажми на любой свой бизнес — соберу выручку со всех точек.':'За $500 в день соберу выручку со всех твоих бизнесов.'}','💬',3200)" style="padding:13px;border:1px solid #66502e;border-radius:11px;background:#23231f;color:#ffe4a6;font-weight:900">💬 Поговорить</button>${hired?`<button onclick="saidCollectAll()" ${pending>0?'':'disabled'} style="padding:13px;border:0;border-radius:11px;background:#23874c;color:#fff;font-weight:900;opacity:${pending>0?1:.45}">💰 Собрать со всех · $${pending.toLocaleString('ru')}</button>`:`<button onclick="saidHire()" style="padding:13px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);color:#211506;font-weight:900">🤝 Нанять · $500/день</button>`}</div>
+    ${hired?`<button type="button" data-said-fire onclick="saidFire()" style="width:100%;margin-top:9px;padding:11px;border:1px solid #743b3b;border-radius:10px;background:#30191d;color:#ffaaaa;font-weight:900">👋 Уволить Саида</button>`:''}
     ${hired?`<div style="margin-top:9px;color:#8f9bab;font-size:11px;text-align:center">Нажми на любой свой бизнес в городе — Саид соберёт выручку со всех точек.</div>`:''}
   </div>`;
   modal.style.display = 'flex';
@@ -40357,6 +40452,7 @@ function syncMyBusinesses() {
     .then(j => {
       if (j.said) {
         _saidState = { ..._saidState, ...j.said };
+        document.documentElement.dataset.saidStatus=_saidState.hired?'hired':'not-hired';
         if (j.said.auto_fired && !_saidAutoFireShown) {
           _saidAutoFireShown = true;
           showToast('Саид ушёл: на зарплату не хватило $500', '👋', 3200);
@@ -41526,8 +41622,8 @@ function drawNpc(npc) {
   if ((npc._uniqueNpc||npc._said) && !npc.dead) {
     ctx.save();
     ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='900 11px system-ui, sans-serif';
-    const label=npc._empireBoss?`♛ ${npc.name} · БОСС`:`⭐ ${npc.name} · Уникальный NPC`, tw=ctx.measureText(label).width+14, y=p.y-57;
-    ctx.fillStyle='rgba(15,20,28,.94)'; ctx.strokeStyle='#d7ae4c'; ctx.lineWidth=1;
+    const label=npc._empireBoss?`♛ ${npc.name} · БОСС`:npc._said?`👔 САИД · ${_saidState.hired?'НАНЯТ':'НЕ НАНЯТ'}`:`⭐ ${npc.name} · Уникальный NPC`, tw=ctx.measureText(label).width+14, y=p.y-57;
+    ctx.fillStyle=npc._said?(_saidState.hired?'rgba(10,43,28,.96)':'rgba(48,25,20,.96)'):'rgba(15,20,28,.94)'; ctx.strokeStyle=npc._said?(_saidState.hired?'#59e88d':'#e3a35e'):'#d7ae4c'; ctx.lineWidth=1;
     roundRect(p.x-tw/2,y-8,tw,17,7); ctx.fill(); ctx.stroke();
     ctx.fillStyle='#fff3bd'; ctx.fillText(label,p.x,y+.5); ctx.restore();
   }
