@@ -19007,7 +19007,12 @@ class WorldSim:
                 encounter['shot_at'] = now
                 attacker = random.choice(alive_bots)
                 victim = random.choice(rivals)
-                damage = random.randint(12, 24)
+                weapon = attacker.get('weapon') or 'pistol'
+                weapon_stats = self.AGGRO_WEAPON_STATS.get(
+                    weapon, self.AGGRO_WEAPON_STATS['pistol'])
+                base_damage = self._bandit_damage(
+                    int(weapon_stats['dmg']), int(attacker.get('level') or 1))
+                damage = max(1, int(round(base_damage * random.uniform(.88, 1.12))))
                 victim['hp'] = max(0, int(victim.get('hp', 0)) - damage)
                 killed = victim['hp'] <= 0
                 if killed:
@@ -19031,8 +19036,9 @@ class WorldSim:
                                  'radius':14.0})
                 pkts.append({
                     'kind':'aggro_hit', 'tid':rival['id'],
+                    'attacker_gid':g['id'],
                     'bot_id':victim['id'], 'shooter_bot_id':attacker['id'],
-                    'weapon':attacker.get('weapon') or 'pistol',
+                    'weapon':weapon, 'bullet_speed':float(weapon_stats['speed']),
                     'attacker_faction':g.get('faction','purple'),
                     'victim_faction':rival.get('faction','purple'),
                     'sx':round(attacker['x'],2), 'sy':round(attacker['y'],2),
