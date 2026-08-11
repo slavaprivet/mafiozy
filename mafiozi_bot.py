@@ -1400,6 +1400,30 @@ async def init_db():
                 PRIMARY KEY (uid, biz_id)
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gangs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                leader_uid INTEGER NOT NULL UNIQUE,
+                name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+                flag_primary TEXT NOT NULL DEFAULT '#9b1f2d',
+                flag_secondary TEXT NOT NULL DEFAULT '#e0b83e',
+                flag_emblem TEXT NOT NULL DEFAULT 'crown',
+                hq_apt_key TEXT NOT NULL UNIQUE,
+                created_at INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gang_members (
+                gang_id INTEGER NOT NULL,
+                telegram_id INTEGER NOT NULL UNIQUE,
+                role TEXT NOT NULL DEFAULT 'member',
+                joined_at INTEGER NOT NULL DEFAULT 0,
+                invited_by INTEGER DEFAULT NULL,
+                PRIMARY KEY (gang_id, telegram_id),
+                FOREIGN KEY (gang_id) REFERENCES custom_gangs(id) ON DELETE CASCADE
+            )
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS ix_custom_gang_members_gang ON custom_gang_members(gang_id,joined_at)")
         # Ограбления жителей сохраняются между WebSocket-сессиями. Иначе
         # обновление страницы стирало ориентировку и позволяло оставить добычу.
         await db.execute("""
@@ -12667,6 +12691,124 @@ def _world_is_wall(r: int, c: int) -> bool:
     return True
 
 
+CUSTOM_GANG_MAX_MEMBERS = 12
+CUSTOM_GANG_FLAG_COLORS = {'#9b1f2d','#cf303d','#e77b28','#e0b83e','#287f55','#2386a8','#3154a5','#6438a8','#a23482','#151922','#ece5d5','#7a4b2a'}
+CUSTOM_GANG_FLAG_EMBLEMS = {'crown','skull','diamond','wolf','eagle','star'}
+
+
+def normalize_custom_gang_name(value: str) -> str | None:
+    name = re.sub(r'\s+', ' ', str(value or '').strip())
+    return name if 3 <= len(name) <= 24 and re.fullmatch(r"[0-9A-Za-zА-Яа-яЁё _\-]+", name) else None
+
+
+def normalize_custom_gang_flag(primary, secondary, emblem) -> dict:
+    p, s, e = str(primary or '').lower(), str(secondary or '').lower(), str(emblem or '').lower()
+    if p not in CUSTOM_GANG_FLAG_COLORS: p = '#9b1f2d'
+    if s not in CUSTOM_GANG_FLAG_COLORS or s == p: s = '#e0b83e'
+    if s == p: s = '#ece5d5' if p != '#ece5d5' else '#151922'
+    if e not in CUSTOM_GANG_FLAG_EMBLEMS: e = 'crown'
+    return {'primary':p,'secondary':s,'emblem':e}
+
+
+async def get_custom_gang_for_user(uid: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT g.*,m.role FROM custom_gang_members m JOIN custom_gangs g ON g.id=m.gang_id WHERE m.telegram_id=?",(uid,)) as cur:
+            row = await cur.fetchone()
+        if not row: return None
+        gang = dict(row)
+        async with db.execute("SELECT m.telegram_id,m.role,m.joined_at,COALESCE(c.name,'Игрок') name FROM custom_gang_members m LEFT JOIN characters c ON c.telegram_id=m.telegram_id WHERE m.gang_id=? ORDER BY CASE m.role WHEN 'leader' THEN 0 ELSE 1 END,m.joined_at",(gang['id'],)) as cur:
+            members = [dict(x) for x in await cur.fetchall()]
+    coords = apartment_coords_from_key(str(gang['hq_apt_key'])) or (0,0)
+    return {'id':int(gang['id']),'name':str(gang['name']),'leader_uid':str(gang['leader_uid']),'role':str(gang['role']),
+            'hq_apt_key':str(gang['hq_apt_key']),'hq_r':int(coords[0]),'hq_c':int(coords[1]),
+            'flag':{'primary':str(gang['flag_primary']),'secondary':str(gang['flag_secondary']),'emblem':str(gang['flag_emblem'])},
+            'members':[{**m,'telegram_id':str(m['telegram_id'])} for m in members],
+            'member_count':len(members),'max_members':CUSTOM_GANG_MAX_MEMBERS,'created_at':int(gang['created_at'] or 0)}
+
+
+async def get_custom_gang_headquarters() -> list:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT g.*,COUNT(m.telegram_id) member_count FROM custom_gangs g LEFT JOIN custom_gang_members m ON m.gang_id=g.id GROUP BY g.id") as cur:
+            rows = [dict(x) for x in await cur.fetchall()]
+    out=[]
+    for row in rows:
+        coords=apartment_coords_from_key(str(row['hq_apt_key']))
+        if coords: out.append({'id':int(row['id']),'name':str(row['name']),'leader_uid':str(row['leader_uid']),'apt_key':str(row['hq_apt_key']),'r':int(coords[0]),'c':int(coords[1]),'member_count':int(row['member_count'] or 0),'flag':{'primary':row['flag_primary'],'secondary':row['flag_secondary'],'emblem':row['flag_emblem']}})
+    return out
+
+
+async def create_custom_gang_db(leader_uid:int, apt_key:str, name:str, flag:dict, party_uids:list[int]) -> dict:
+    members=list(dict.fromkeys([leader_uid,*[int(x) for x in party_uids]]))
+    if len(members)>CUSTOM_GANG_MAX_MEMBERS:return {'ok':False,'error':'party too large'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row; await db.execute('PRAGMA foreign_keys=ON'); await db.execute('BEGIN IMMEDIATE')
+        marks=','.join('?' for _ in members)
+        async with db.execute(f"SELECT telegram_id,mafia_family FROM characters WHERE telegram_id IN ({marks})",members) as cur: chars={int(x['telegram_id']):dict(x) for x in await cur.fetchall()}
+        if len(chars)!=len(members): await db.rollback(); return {'ok':False,'error':'party member missing'}
+        if any(str(x.get('mafia_family') or '') for x in chars.values()): await db.rollback(); return {'ok':False,'error':'mafia conflict'}
+        async with db.execute("SELECT 1 FROM apartments_owned WHERE telegram_id=? AND apt_key=?",(leader_uid,apt_key)) as cur:
+            if not await cur.fetchone(): await db.rollback(); return {'ok':False,'error':'hq not owned'}
+        try:
+            cur=await db.execute("INSERT INTO custom_gangs(leader_uid,name,flag_primary,flag_secondary,flag_emblem,hq_apt_key,created_at) VALUES(?,?,?,?,?,?,?)",(leader_uid,name,flag['primary'],flag['secondary'],flag['emblem'],apt_key,int(time.time())))
+            gang_id=int(cur.lastrowid); now=int(time.time())
+            await db.executemany("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,?,?,?)",[(gang_id,x,'leader' if x==leader_uid else 'member',now,leader_uid) for x in members]); await db.commit()
+        except aiosqlite.IntegrityError:
+            await db.rollback(); return {'ok':False,'error':'already in gang'}
+    return {'ok':True,'gang_id':gang_id,'member_uids':[str(x) for x in members]}
+
+
+async def ensure_personal_gang_for_hq(uid:int) -> dict | None:
+    """Legacy migration: an already-owned HQ always means its owner owns a gang."""
+    gang=await get_custom_gang_for_user(uid)
+    if gang:return gang
+    owned=await get_apartments_owned(uid)
+    if not owned:return None
+    char=await get_character(uid); base=re.sub(r'[^0-9A-Za-zА-Яа-яЁё _-]','',str((char or {}).get('name') or 'Игрок')).strip()
+    base=(f"Банда {base}" if base else f"Банда {uid}")[:24]
+    flag=normalize_custom_gang_flag(None,None,None)
+    for suffix in ('',' 2',' 3',f' {uid%1000}'):
+        name=(base[:24-len(suffix)]+suffix)
+        result=await create_custom_gang_db(uid,next(iter(owned)),name,flag,[])
+        if result.get('ok'):return await get_custom_gang_for_user(uid)
+        if result.get('error')!='already in gang':continue
+        gang=await get_custom_gang_for_user(uid)
+        if gang:return gang
+    return None
+
+
+async def join_custom_gang_db(gang_id:int,target_uid:int,inviter_uid:int)->dict:
+    gang=await get_custom_gang_for_user(inviter_uid)
+    if not gang or gang['id']!=gang_id or gang['role']!='leader':return {'ok':False,'error':'leader only'}
+    target=await get_character(target_uid)
+    if not target:return {'ok':False,'error':'no character'}
+    if target.get('mafia_family'):return {'ok':False,'error':'mafia conflict'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            await db.execute("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,'member',?,?)",(gang_id,target_uid,int(time.time()),inviter_uid));await db.commit()
+        except aiosqlite.IntegrityError:return {'ok':False,'error':'already in gang'}
+    return {'ok':True}
+
+
+async def disband_custom_gang_db(uid:int)->dict:
+    gang=await get_custom_gang_for_user(uid)
+    if not gang or gang['role']!='leader':return {'ok':False,'error':'leader only'}
+    ids=[m['telegram_id'] for m in gang['members']]
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=?",(gang['id'],));await db.execute("DELETE FROM custom_gangs WHERE id=?",(gang['id'],));await db.commit()
+    return {'ok':True,'member_uids':ids}
+
+
+def apply_custom_gang_to_player(player:dict|None,gang:dict|None)->None:
+    if player is None:return
+    if not gang:
+        for key in ('_custom_gang_id','_custom_gang_name','_custom_gang_role','_custom_gang_flag','_custom_gang_hq'):player.pop(key,None)
+        if str(player.get('_crew_id') or '').startswith('cg:'):player.pop('_crew_id',None)
+        return
+    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':gang['role'],'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_crew_id':f"cg:{gang['id']}"})
+
+
 def _world_bot_passable(x: float, y: float, radius: float = 0.30) -> bool:
     """Keep an NPC's whole body out of walls, not only its center point."""
     return all(
@@ -16431,13 +16573,14 @@ class WorldSim:
             # 1★-патруль уже отработал к этому игроку (подошёл-предупредил-
             # уехал). На COP_PATROL_REDO_S сек больше патрули не выезжают.
             if kind == 'patrol':
+                civilian_report_active = now < float(target.get('_civilian_report_until') or 0)
                 done_at = self._patrol_done_at.get(str(target['uid']), 0)
-                if done_at and (now - done_at) < self.COP_PATROL_REDO_S:
+                if not civilian_report_active and done_at and (now - done_at) < self.COP_PATROL_REDO_S:
                     continue
                 # А если игрок СЕЙЧАС в зоне района — стрельба легальна,
                 # копы 1★ не суются туда (PvP-зона = «как бы своя территория»).
                 in_terr_tid, _ = self._territory_at(target.get('x', 0), target.get('y', 0))
-                if in_terr_tid:
+                if in_terr_tid and not civilian_report_active:
                     continue
             need = self._cops_needed_for_level(lvl)
             # Сколько копов нужного типа уже едут на этого таргета?
@@ -17314,7 +17457,7 @@ class WorldSim:
     def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
         """Убирает нанятого бойца из уличной банды или рейда на бизнес."""
         player = self.players.get(str(uid))
-        if player and (player.get('_police') or not player.get('_mafia')):
+        if player and (player.get('_police') or not (player.get('_mafia') or player.get('_custom_gang_id'))):
             return {'kind':'gang_hire_reply','ok':False,'reason':'police_service','bot_id':bot_id}
         if not player or player.get('dead'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
@@ -23510,6 +23653,13 @@ async def _coop_http_app():
         apt_key = str(b.get('apt_key', '')).strip()[:32]
         if not apt_key or ',' not in apt_key:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
+        removed_members=[]
+        gang=await get_custom_gang_for_user(uid)
+        if gang and gang['role']=='leader' and gang['hq_apt_key']==apt_key:
+            removed=(await disband_custom_gang_db(uid))
+            removed_members=removed.get('member_uids',[]) if removed.get('ok') else []
+            if _WORLD:
+                for member_uid in removed_members: apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)),None)
         sale = await sell_apartment_db(uid, apt_key)
         if not sale:
             return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
@@ -23518,7 +23668,37 @@ async def _coop_http_app():
             _WORLD.players[str(uid)]['_owned_apartments'] = set(owned.keys())
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
+            'gang': None if removed_members else gang,
+            'headquarters': await get_custom_gang_headquarters(),
         }))
+
+    async def h_custom_gang_state(req):
+        try: uid=int(req.match_info['uid'])
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad uid'},status=400))
+        gang=await ensure_personal_gang_for_hq(uid)
+        if _WORLD:apply_custom_gang_to_player(_WORLD.players.get(str(uid)),gang)
+        return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters()}))
+
+    async def h_custom_gang_create(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        name=normalize_custom_gang_name(body.get('name'));apt_key=str(body.get('apt_key') or '')[:32];flag_in=body.get('flag') if isinstance(body.get('flag'),dict) else {}
+        if not name or apartment_price_for_key(apt_key) is None:return await _cors(web.json_response({'ok':False,'error':'bad name or hq'},status=400))
+        flag=normalize_custom_gang_flag(flag_in.get('primary'),flag_in.get('secondary'),flag_in.get('emblem'))
+        result=await create_custom_gang_db(uid,apt_key,name,flag,[])
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        gang=await get_custom_gang_for_user(uid)
+        if _WORLD:apply_custom_gang_to_player(_WORLD.players.get(str(uid)),gang)
+        return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters()}))
+
+    async def h_custom_gang_disband(req):
+        try:uid=int(req.match_info['uid'])
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad uid'},status=400))
+        result=await disband_custom_gang_db(uid)
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        if _WORLD:
+            for member_uid in result['member_uids']:apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)),None)
+        return await _cors(web.json_response({'ok':True,'gang':None,'headquarters':await get_custom_gang_headquarters()}))
 
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
     async def h_shop_list(req):
@@ -26510,7 +26690,24 @@ async def _coop_http_app():
                                         p['_cash'] = cash
                                         reply = {'ok': True, 'threat_id': threat_id, 'outcome': outcome,
                                                  'amount': amount, 'cash': cash,
-                                                 'cooldown_until': cooldown_until}
+                                                 'cooldown_until': cooldown_until,
+                                                 'report_delay_ms': 0 if outcome == 'silent' else (1800 if outcome == 'resist' else 4200)}
+                                        if outcome != 'silent':
+                                            async def report_threat_after_call(target_uid=str(uid), report_id=threat_id,
+                                                                               delay=reply['report_delay_ms']/1000):
+                                                await asyncio.sleep(delay)
+                                                target=world.players.get(target_uid)
+                                                if not target or target.get('dead'): return
+                                                wanted=min(3.0,max(1.0,float(target.get('_wanted') or 0)+1.0))
+                                                target['_wanted']=wanted;target['_last_shot_t']=time.time();target['_police_bribe_cover_until']=0
+                                                target['_civilian_report_until']=time.time()+90
+                                                try: await update_character(int(target_uid),wanted_stars=int(wanted))
+                                                except Exception: pass
+                                                packet={'kind':'npc_threat_reported','threat_id':report_id,'target_uid':target_uid,'wanted':wanted}
+                                                for client in list(world.connections.values()):
+                                                    try: await client.send_str(json.dumps({'t':'event','d':packet},ensure_ascii=False))
+                                                    except Exception: pass
+                                            asyncio.create_task(report_threat_after_call())
                             except Exception:
                                 reply.update(reason='db_error')
                         try:
@@ -27966,6 +28163,9 @@ async def _coop_http_app():
     aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
     aio_app.router.add_post('/apartment/{uid}/upgrade', h_apartment_upgrade)
     aio_app.router.add_post('/apartment/{uid}/sell',    h_apartment_sell)
+    aio_app.router.add_get ('/custom-gang/{uid}/state', h_custom_gang_state)
+    aio_app.router.add_post('/custom-gang/{uid}/create',h_custom_gang_create)
+    aio_app.router.add_post('/custom-gang/{uid}/disband',h_custom_gang_disband)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
