@@ -60814,6 +60814,12 @@ window.Mafiozi3DBridge = Object.freeze({
     player.vr=0;player.vc=0;player.walking=false;window._studioTeleportUntil=Date.now()+10000;
     return {r:player.r,c:player.c};
   },
+  previewApproachCoast() {
+    if(!_LOCAL_PREVIEW)return false;
+    player.r=BEACH_R0+3.5;player.c=40.5;player.vr=0;player.vc=0;player.walking=false;
+    window._studioTeleportUntil=Date.now()+10000;
+    return {r:player.r,c:player.c};
+  },
   previewApproachJunkyard() {
     if(!_LOCAL_PREVIEW)return false;
     player.r=JUNKYARD_R+4.5;player.c=JUNKYARD_C;player.vr=0;player.vc=0;player.walking=false;
@@ -65308,6 +65314,6 @@ function chatDuration(text) {
 })();
 </script>
 
-<script type="module" src="three_preview.js?v=3d332-npc-idle-feet-v331-bridge-batches-police-custody-visible-buildings-city-lights"></script>
+<script type="module" src="three_preview.js?v=3d333-coast-spatial-batches-npc-idle-feet-v331-bridge-batches-police-custody-visible-buildings-city-lights"></script>
 </body>
 </html>

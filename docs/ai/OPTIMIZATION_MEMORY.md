@@ -338,6 +338,35 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   visibility and shadows remained intact. One browser tab was used at a time
   and closed after each comparison.
 
+## Coast promenade spatial instance batches (2026-08-11)
+
+- The coast constructor allocated separate meshes for six benches and their
+  legs, six promenade lamp posts/bulbs, and twelve umbrella poles/shades. Keep
+  these exact meshes and shadow flags, but bucket them in 20-tile spatial
+  sections so batching does not turn the full 80-tile waterfront into one
+  always-visible frustum-culling unit.
+- The 54 authored static sources now use 24 local instance batches. Umbrella
+  shades retain their four authored colours through `instanceColor`; do not
+  also enable material `vertexColors` unless the cone geometry owns a vertex
+  colour attribute, because the extra missing colour channel multiplied the
+  instance tint to black in browser verification.
+- In the deterministic `previewcoast` camera, the fresh-main control reported
+  624 draw calls, `12.1 ms` render and `14.2 ms` frame work with 36 NPCs. The
+  corrected batch build reported 588 calls, `13.1 ms` render and `17.0 ms`
+  frame work with 42 NPCs. Treat `54 -> 24` and the 36-call sample reduction as
+  the reliable results; the timings are population-sensitive and do not prove
+  an FPS gain. Both samples held 22 FPS with native quality and real-time
+  shadows. Final visual inspection preserved the bench geometry, lamp shapes,
+  all four umbrella colours and their shadows, with zero collision mismatches
+  and no browser console errors.
+- The final one-tab prison regression rejected firearm, grenade and C4 input
+  without consuming ammunition, completed release through
+  `clean:local-timer:staged-world-resume-v311`, then accepted a renewed prison
+  assault and spawned four response units. The settled 66-NPC sample reported
+  1,533 calls, `19.3 ms` render and `24.1 ms` frame work at 22 FPS; compact NPC
+  labels, real-time shadows and chat local echo remained active. The tab and
+  local test server were closed after verification.
+
 ## Static detail geometry batching (2026-08-11)
 
 - The next measured city bottleneck was render submission, not the JavaScript simulation: a production sample spent `26.3 ms` of `29.2 ms` frame work in `renderer.render`, at `1843` draw calls and about `1.18M` triangles.
