@@ -835,6 +835,23 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   (`17:16:0`) remained intact. Do not claim an FPS gain from these unmatched
   scene samples; the confirmed result is lower shader-cache/program pressure.
 
+## Shared 3D portraits for dense boss lists (2026-08-11, v356)
+
+- Do not allocate a separate `WebGLRenderer` or animation loop for every boss
+  card. Nineteen independent contexts are wasteful and may exceed mobile
+  browser WebGL limits.
+- Render portrait snapshots through one shared offscreen scene and renderer,
+  then copy the finished frame into each ordinary 2D canvas. The same detailed
+  character builder is reused by the creator, city and dossier UI.
+- Paint portraits only when the empire overlay opens. Keep the cheap Canvas
+  character as an immediate fallback and repaint once on
+  `mafiozi:character3dready`; this prevents an empty dossier while the Three.js
+  module is still loading.
+- Confirmed in the 19-card dashboard and the full boss dossier: all portraits
+  are 3D snapshots, while the city keeps a single gameplay render loop. No FPS
+  gain is claimed because this check validates resource sharing and appearance,
+  not a matched performance benchmark.
+
 ## Creator anatomy and city body-profile parity (2026-08-11, v342)
 
 - Keep free creator rotation transform-only: pointer dragging updates the existing character group's Y angle and label, never rebuilds the rig or option-card snapshots. Rebuild geometry only when a saved look field actually changes.
