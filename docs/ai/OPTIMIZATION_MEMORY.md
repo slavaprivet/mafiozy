@@ -189,6 +189,13 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Release at the visible police-station exit. The original gang actor can rejoin its formation or use a short independent roaming waypoint window before normal AI resumes.
 - Fresh-main regression: all six embedded scripts pass `check_world.py`; `test_gang_world_ai.py`, `test_npc_life_system.py` and `test_npc_police_custody.py` pass. The snapshot-driven client path adds no new per-frame global NPC scan.
 
+## Bounded police visual escalation (2026-08-11)
+
+- An interactive quest car can be a police patrol even when it uses a civilian model. Preserve `police_patrol` as an authoritative render flag and override civilian paint before the 3D snapshot reaches the vehicle pool.
+- Build patrol door panels, badges, push bars, tactical steps and heavy armor once inside the existing bounded vehicle slots. Wave changes only toggle nested groups; never allocate a new livery when a response car enters the radius.
+- Keep every response tier in a recognizable blue family. Escalation should be communicated by silhouette (sedan, tactical unit, armored van, roof gun), equipment and scale instead of recoloring late waves almost black or red.
+- Officer belts, radios, badges, shoulder patches and vests belong in the existing instanced NPC parts. This adds bounded draw calls and avoids one mesh hierarchy per officer.
+
 ## NPC custody route stress (2026-08-11)
 
 - A passability check on one straight pursuit step is not pathfinding. In the first 120-position stress sweep, `29/120` NPC-murder responses stopped at building corners because officers never selected an alternate direction.
@@ -310,95 +317,6 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   errors occurred; only expected missing-API warnings from the local static
   server were present.
 
-## Suspension bridge static instance batches (2026-08-11)
-
-- The authored suspension bridge reused materials but allocated separate mesh
-  objects for braces, cross-members, piers, capitals, balusters, road stripes,
-  vertical cable hangers and promenade lamps. Build one exact geometry per part
-  family and preserve every authored transform through `InstancedMesh` matrices.
-  Keep the original cast/receive-shadow flags per family.
-- The bridge now represents 201 repeated sources with 15 static instance
-  batches. No geometry resolution, material, light, shadow, distance or visible
-  detail was removed. Collision remains authoritative in `world.html` and is
-  unaffected by these render-only objects.
-- In the deterministic `previewbridge` camera, the control sample reported
-  1,637 draw calls, `30.0 ms` render and `53.2 ms` frame work with 60 NPCs. The
-  batched sample reported 1,219 calls, `18.7 ms` render and `30.7 ms` frame work
-  with 54 NPCs. Treat the exact 201-to-15 structural consolidation as the
-  reliable result; the 418-call and timing differences also include shadow
-  submissions and the six-NPC population difference.
-- A final visible-bridge sample after restoring the patch reported 1,291 calls,
-  `22.2 ms` render, `27.9 ms` frame work and 22 FPS with 55 NPCs. The bridge
-  retained its pylons, rails, cables, hangers, lamps, lane markings and shadows;
-  collision mismatches stayed at zero, real-time shadows remained on, the
-  server-backed `Гражданский` status remained visible, and the console had no
-  errors. After rebasing onto the v330 city-lighting and v331 police-transport
-  changes, the same bridge camera reported 1,356 calls, `17.7 ms` render and
-  `20.1 ms` frame work at 22 FPS with 54 NPCs; traffic-light halos, player
-  visibility and shadows remained intact. One browser tab was used at a time
-  and closed after each comparison.
-
-## Coast promenade spatial instance batches (2026-08-11)
-
-- The coast constructor allocated separate meshes for six benches and their
-  legs, six promenade lamp posts/bulbs, and twelve umbrella poles/shades. Keep
-  these exact meshes and shadow flags, but bucket them in 20-tile spatial
-  sections so batching does not turn the full 80-tile waterfront into one
-  always-visible frustum-culling unit.
-- The 54 authored static sources now use 24 local instance batches. Umbrella
-  shades retain their four authored colours through `instanceColor`; do not
-  also enable material `vertexColors` unless the cone geometry owns a vertex
-  colour attribute, because the extra missing colour channel multiplied the
-  instance tint to black in browser verification.
-- In the deterministic `previewcoast` camera, the fresh-main control reported
-  624 draw calls, `12.1 ms` render and `14.2 ms` frame work with 36 NPCs. The
-  corrected batch build reported 588 calls, `13.1 ms` render and `17.0 ms`
-  frame work with 42 NPCs. Treat `54 -> 24` and the 36-call sample reduction as
-  the reliable results; the timings are population-sensitive and do not prove
-  an FPS gain. Both samples held 22 FPS with native quality and real-time
-  shadows. Final visual inspection preserved the bench geometry, lamp shapes,
-  all four umbrella colours and their shadows, with zero collision mismatches
-  and no browser console errors.
-- The final one-tab prison regression rejected firearm, grenade and C4 input
-  without consuming ammunition, completed release through
-  `clean:local-timer:staged-world-resume-v311`, then accepted a renewed prison
-  assault and spawned four response units. The settled 66-NPC sample reported
-  1,533 calls, `19.3 ms` render and `24.1 ms` frame work at 22 FPS; compact NPC
-  labels, real-time shadows and chat local echo remained active. The tab and
-  local test server were closed after verification.
-
-## Actor slot visibility and matrix uploads (2026-08-11)
-
-- Pooled NPC accessories, wounds, weapons, gang markers and empty remote-player
-  slots repeatedly composed the same hidden matrix every frame. Cache visible
-  versus hidden state per mesh slot: a visible-to-hidden transition writes the
-  hidden matrix once, while a hidden-to-visible transition always receives the
-  complete current matrix before rendering. This is required to prevent ghost
-  accessories when pool slots are reused.
-- Track the meshes that actually received a matrix write and upload only those
-  instance buffers after all NPC, appearance, death and remote-player passes.
-  Visible body animation remains full cadence. Cached `npcParts` and
-  `remoteParts` arrays also remove repeated `Object.entries`/`Object.values`
-  allocations from the frame loop.
-- Temporary instrumentation in the ordinary-city camera measured 3,222 matrix
-  writes per rendered frame, including 2,455 calls that hid parts, with 47 NPCs
-  before the change. The visibility cache reduced actual writes to 930 while
-  2,464 hide requests were made with 46 NPCs, about a 71% reduction. The sample
-  changed from `30.2 ms` frame / `26.8 ms` render to `27.0 ms` / `23.4 ms`;
-  population and shadow submissions still vary, so the write-count reduction
-  is the reliable result. The temporary counters were removed from the final
-  build.
-- Final one-tab regression exercised pool reuse from the ordinary city into a
-  61-67 NPC prison response. Police helmets, shields, weapons, wounds and
-  hidden civilian accessories transitioned without ghost instances; compact
-  labels and real-time shadows stayed active. The assault spawned four units,
-  reached `shadowed:3`, progressed through `prison_escort` and completed as
-  `jailed:escorted-to-booking` with `delivered:1`. Weapon/grenade/C4 blocking,
-  clean release, renewed fire and chat local echo all remained functional, with
-  no JavaScript or Three.js console errors. A final rebuild check with 65 NPCs
-  reported `22.5 ms` frame / `19.0 ms` render at 22 FPS and `shadowed:3`.
-  The tab and server were closed.
-
 ## Static detail geometry batching (2026-08-11)
 
 - The next measured city bottleneck was render submission, not the JavaScript simulation: a production sample spent `26.3 ms` of `29.2 ms` frame work in `renderer.render`, at `1843` draw calls and about `1.18M` triangles.
@@ -440,78 +358,88 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Street lamps now use the explicit authored schedule: on from `17:00` through `06:59`, off from `07:00` through `16:59`. Do not infer fixture power only from the continuous sky daylight curve; twilight grading and the gameplay schedule are different concerns.
 - QA telemetry: `data-traffic-signal-light-profile`, `data-street-lamp-schedule`, `data-street-lamp-power`, and `data-street-lamp-count`. Local time QA remains available through `preview=1&previewtimeoffset=<hours>`.
 
-## Police vehicle custody visibility (2026-08-11)
+## Special NPC actions and delegated business collection (2026-08-11)
 
-- Treat “inside the police vehicle” as durable custody state, not as a visual
-  inference from one transient phase string. Set it when loading completes and
-  clear it only when the authored prison handoff starts.
-- Hide the local player in both the Three.js bridge and the legacy canvas
-  fallback for that complete interval. The bridge reuses the already-selected
-  custody vehicle and adds no NPC or vehicle scan to the render loop.
-- Whenever the 3D module changes, advance its script query key in `world.html`.
-  A fresh HTML build alone does not invalidate a previously cached module URL.
-# Stationary NPC foot planting (2026-08-11, v332)
+- Route a unique NPC from the authoritative bridge flag/role before the generic
+  civilian classifier. Reuse the existing cached NPC pick and action overlay;
+  do not add another renderer-side proximity scan or a duplicate 3D prompt.
+- A delegated business action may aggregate the already-synchronized bounded
+  `myBusinesses` map to label the interaction, but the server must revalidate
+  assistant employment/salary, ownership and collectible income atomically.
+- A recurring-cost NPC hire needs one explicit confirmation surface shared by
+  every entry point. Show the immediate charge, daily cadence and projected
+  balance, while keeping the server authoritative: the `$500` conditional debit
+  and assistant insert remain in one `BEGIN IMMEDIATE` transaction.
+- Static regression executed the real action-classifier/button functions for
+  both hired states and checked both business-entry paths plus the server-backed
+  collect-all dispatch. All six embedded `world.html` scripts passed syntax
+  compilation; no new per-frame renderer work was introduced.
+- Disposable SQLite verification confirmed `$1200 -> $700`; a `$400` balance
+  stayed unchanged and could not create the hire. The confirmation is created
+  only on demand and adds no render-loop work.
 
-- Do not use a server `walking` boolean by itself to activate gait. Long-lived gang, resident and service snapshots can retain that hint after the actor has stopped; actual sampled displacement plus a short stop hysteresis is the authoritative visual trigger.
-- An idle breathing cycle may affect the torso, head and relaxed arms, but must never feed leg rotation or foot lift. Standing NPC leg swing/lift remains exactly zero, while cower, help, injury, death and firing layers keep their authored poses.
-- Gang identity bands must use the same measured `pose.walking` state as the body. Reading stale `src.walking` separately makes the band bob while the character's planted feet remain still.
-- QA telemetry: `data-idle-npcs`, `data-idle-npc-leg-motion-max` (must be `0.0000`) and `data-npc-gait-activation=measured-displacement-with-stop-hysteresis-v332`.
+## Unique specialist roster (2026-08-11)
 
-# Role-specific NPC idle stances (2026-08-11, v335)
+- Keep authored specialists in one fixed blueprint roster and reuse the normal
+  four-connected pedestrian route planner. A unique passability predicate may
+  narrow destinations to city pavement, but it must not create a second AI or
+  movement loop.
+- Persistent specialists are additive to the ambient population budget. Exclude
+  them when counting ordinary resident slots, otherwise adding twenty story
+  actors silently removes twenty citizens from the city.
+- Bridge identity, title, salary and authored look through the existing bounded
+  NPC snapshot. The renderer reuses its instanced body parts and pooled label;
+  unique actors do not receive standalone meshes, materials or per-frame canvas
+  painting.
+- Until a specialist has an implemented server-authoritative service, show the
+  quoted daily price but keep hiring disabled and perform no debit. This avoids
+  charging for placeholder behavior or creating client-only employment state.
+- Static QA confirmed 19 blueprints, 19 unique ids, names, looks and start
+  points, complete required fields, and salaries from `$300` to `$1200`. Seven
+  embedded `world.html` scripts and `three_preview.js` passed Node syntax checks.
 
-- Keep neutral idle life entirely in the existing instanced humanoid pools: small torso breathing/weight transfer, relaxed arm angles and a brief deterministic head-turn window. Never translate the actor root or feed idle values into legs and shoes.
-- Derive police, guard, gang and civilian stance variants from authoritative role flags already present on each snapshot. This adds character without new meshes, materials, timers or per-frame allocations.
-- Rare looks should use an entity-seeded cycle with a short active window rather than permanent sine-wave head scanning. Crowds then feel attentive without synchronized or restless motion.
-- Apply weapon firing last in pose priority. Its two-hand aim and recoil must replace every neutral arm stance, while idle body offsets evaluate to zero during a shot.
-- QA telemetry: `data-npc-idle-stances`, `data-npc-idle-lookers`, `data-npc-idle-stance-profile=planted-feet-role-breath-weight-rare-look-firing-priority-v335`; `data-idle-npc-leg-motion-max` must remain `0.0000`.
+## Autonomous NPC empires and headquarters assaults (2026-08-11)
 
-## Persistent HQ waypoint and authoritative role gate (2026-08-11)
+- Simulate faction economy and territorial decisions in bounded five-minute
+  server ticks, never in the render loop. Catch-up is capped at 72 ticks so a
+  long-offline player cannot trigger unbounded work on first load.
+- Keep one authoritative ownership row for businesses. NPC factions use stable
+  negative owner ids, which preserves the existing property UI/API without
+  inventing a second ownership source or colliding with Telegram ids.
+- Headquarters combat is tokenized and server-authoritative. Guard HP, the
+  guard-before-boss gate, hit-rate limit, boss HP and final resolution all live
+  in SQLite transactions; the client only predicts animation and reconciles the
+  returned values.
+- A terminal assault choice is single-use. Annexation, looting or vassalization
+  transfers cash/ownership and marks the token resolved in the same
+  `BEGIN IMMEDIATE` transaction, preventing double rewards after retries.
+- Reuse the existing bounded interior NPC/guard AI and the existing instanced
+  3D humanoid pool. Unique boss guns add two instanced detail parts with a
+  19-color signature table; do not allocate a standalone model per boss or per
+  frame.
+- Static and disposable-SQLite QA confirmed 19 unique empires/HQs, all 171
+  ordered boss-to-boss diplomacy pairs, exact `$500` diplomacy debit, unchanged
+  balance on insufficient funds, guard gating, and single application of the
+  headquarters reward/business transfer.
 
-- A permanent personal-HQ indicator does not need a second world-object scan.
-  Use the already cached custom-gang payload (`hq_r`, `hq_c`, flag and name),
-  update one small DOM overlay at a throttled 140 ms cadence, and leave the
-  nearby 2D/3D world marker culling unchanged. This keeps direction and distance
-  visible off-screen without adding per-frame layout work proportional to map size.
-- Load the custom-gang record into the authoritative WebSocket player before
-  accepting its first movement/role input. The parallel HTTP state request is a
-  presentation sync and must not decide whether an HQ owner may join Bellini or
-  Moretti. Reject that transition on the server until sale/disband removes the
-  gang, and preserve `cg:<id>` crew identity on ordinary civilian movement.
-- HQ sale is one user action: disband the gang, clear the live role for every
-  member, return the refreshed headquarters list and explicit civilian result,
-  then update the client HUD immediately from that response. The preview server
-  must mirror the same transition or local 3D QA can validate impossible states.
-- Local 1280x720 3D verification showed one 236x47 px waypoint at y=82 with
-  separate title/detail lines and no map-wide work. The focused production and
-  preview role-transition regression passed; the older broad custom-gang suite
-  currently stops earlier on its pre-existing reference to the absent
-  `authenticate_steam_ticket` helper.
+## Endless NPC-empire sandbox lifecycle (2026-08-11)
 
-## Police partial-route backoff (2026-08-11)
-
-- A failed police BFS still returns the closest collision-valid prefix. The old
-  mover consumed that prefix, immediately treated its endpoint as a stall and
-  rebuilt the same unreachable route about every 590 ms. Mark partial routes
-  explicitly and hold their endpoint until the normal 2.6-second route expiry.
-  Direct passability is still checked every frame, and a target shift over two
-  tiles still invalidates immediately, so newly open movement and moving targets
-  remain responsive without changing obstacles or visible animation.
-- In the same 26-second prison-assault profile, route builds changed from `134`
-  to `118`, deferred requests from `233` to `53`, and stall recoveries from `47`
-  to `30`. The samples had 72 versus 70 NPCs. Frame/render samples varied from
-  `23.7/20.2 ms` to `25.3/21.7 ms`; the BFS maximum varied from `12.8` to
-  `15.1 ms`, so this does not claim an FPS or worst-spike improvement. The
-  reliable result is less repeated planning at unreachable endpoints.
-- A broader cache of route suffixes was tested and rejected: it produced only
-  eight suffix hits while route builds rose to `147` and the measured maximum
-  reached `18.8 ms`. It is not present in the final build; the existing shared
-  cache remains capped at 64 entries.
-- Final one-tab regression completed a four-unit prison assault as
-  `jailed:escorted-to-booking` with `delivered:1`, no escort-route resets and no
-  console errors. At 66 NPCs the completed run sampled `19.9 ms` frame work and
-  `17.3 ms` render at 22 FPS; real-time shadows stayed on and chat local echo
-  advanced. Clean release reported `resumeFrames:3`; a focused temporary QA
-  probe outside the restricted prison/causeway area confirmed renewed firearm
-  acceptance (`accepted:true`, `blocked:false`) and continuing frames. The probe
-  was removed after verification, and the only browser tab and preview server
-  were closed.
+- Never permanently delete an authored boss after an HQ defeat. Collapse the
+  faction into a bounded ruined state, remove its holdings/economy/army, reset
+  all player and NPC diplomacy to neutral, and store one server comeback time.
+- Comebacks are processed inside the existing five-minute empire tick. A due
+  leader receives one free unoccupied HQ, two fighters, low strength and a
+  small trait-based bankroll; no timers or simulation work are added to the
+  client render loop.
+- District control is a cached aggregation of the already-bounded holdings
+  table. Headquarters, buildings and businesses carry fixed weights; eight
+  district rows plus cached leader totals are recomputed once per server tick.
+- A decisive NPC war may collapse a rival only after its final non-HQ holding
+  falls. The victim is excluded from the remainder of the same tick to prevent
+  stale-row resurrection or post-defeat actions.
+- The client receives the leaderboard, district standings and recent chronicle
+  with the normal empire snapshot. Its sandbox dashboard is event-driven and
+  creates no new world scans or per-frame allocations.
+- Disposable-SQLite QA verifies ruined to rebuilding, neutral reputation reset,
+  a new HQ, exactly two comeback fighters, a single comeback event, nineteen
+  ranked leaders and all eight district standings.
