@@ -343,3 +343,9 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   per-guard progress, invalidate the shared route cache first, then perform a
   collision-checked local nudge; use an authored post only as the last fallback.
   Do not add a city-wide scan or allocate recovery work every render frame.
+# City traffic and street-light readability (2026-08-11, v330)
+
+- A city-wide lighting pass must not create one `PointLight` per fixture. Keep the nearest-player point-light pool bounded (four in this scene) and render the full network with instanced emissive bulbs, instanced additive head halos, and instanced ground glows.
+- Traffic-signal state was already correct (`55` active fixtures and a changing `ew:ns` phase), but tiny flat-color lenses were visually unreadable from the isometric camera. A small radial-gradient halo texture plus a slightly larger lens preserves one draw call per color while making the active lens legible in daylight.
+- Street lamps now use the explicit authored schedule: on from `17:00` through `06:59`, off from `07:00` through `16:59`. Do not infer fixture power only from the continuous sky daylight curve; twilight grading and the gameplay schedule are different concerns.
+- QA telemetry: `data-traffic-signal-light-profile`, `data-street-lamp-schedule`, `data-street-lamp-power`, and `data-street-lamp-count`. Local time QA remains available through `preview=1&previewtimeoffset=<hours>`.
