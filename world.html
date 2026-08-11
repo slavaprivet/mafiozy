@@ -19820,12 +19820,18 @@ function applyCopsTargets(newCops) {
       o.ang   = nc.ang;
       o.hp    = nc.hp; o.max_hp = nc.max_hp;
       o.alive = nc.alive !== false;
+      o.npc_route_nodes=+nc.npc_route_nodes||0;
+      o.npc_route_replans=+nc.npc_route_replans||0;
+      o.npc_route_stalls=+nc.npc_route_stalls||0;
       next.push(o);
     } else {
       next.push({ ...nc, tx: nc.x, ty: nc.y });
     }
   }
   worldCops = next;
+  const routed=worldCops.filter(c=>c.npc_route_nodes>0||c.npc_route_replans>0);
+  document.documentElement.dataset.npcPoliceRoutes=routed.map(c=>
+    `${c.id}:${c.npc_route_nodes||0}:${c.npc_route_replans||0}:${c.npc_route_stalls||0}`).join(',')||'idle';
 }
 
 // applyAggroTargets — то же что applyCopsTargets, но для банды Логова.
