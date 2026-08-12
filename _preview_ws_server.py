@@ -1129,6 +1129,7 @@ def preview_owned_apartments(uid):
     return preview_apartments.setdefault(str(uid), {})
 
 
+APARTMENT_OWNERSHIP_LIMIT = 5
 APARTMENT_DISTRICT_PRICES = {
     "poor": 3500, "lair": 5500, "industrial": 7000,
     "countryside": 8500, "nightlife": 14000, "downtown": 18000,
@@ -1146,7 +1147,7 @@ def apartment_coords_from_key(apt_key):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 200 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
 
 
 def apartment_district_id(r, c):
@@ -1166,39 +1167,9 @@ def apartment_price_for_key(apt_key):
     return None if coords is None else APARTMENT_DISTRICT_PRICES[apartment_district_id(*coords)]
 
 
-def preview_apartment_block_key(apt_key):
-    coords = apartment_coords_from_key(apt_key)
-    return f"{coords[0] // 10},{coords[1] // 10}" if coords else None
-
-
-def preview_player_properties():
-    rows = []
-    for uid, owned in preview_apartments.items():
-        gang = preview_custom_gangs.get(preview_custom_gang_by_uid.get(str(uid)))
-        player = players.get(str(uid), {})
-        family = str(player.get("mafia_family") or "")
-        family_name = "Семья Моретти" if family == "moretti" else "Семья Беллини"
-        for apt_key, info in owned.items():
-            coords = apartment_coords_from_key(apt_key)
-            if not coords: continue
-            operation = npc_empire.BUILDING_OPERATIONS.get(str(info.get("operation_type") or ""), {})
-            color, accent = (("#e7e1d4", "#aa823e") if family == "moretti" else ("#303c73", "#d2b15d"))
-            if gang:
-                family_name = gang["name"]; color = gang["flag"]["primary"]; accent = gang["flag"]["secondary"]
-            rows.append({"owner_uid":str(uid),"owner_name":player.get("name","Игрок"),"apt_key":apt_key,
-                "building_key":preview_apartment_block_key(apt_key),"r":coords[0],"c":coords[1],
-                "property_kind":info.get("property_kind","hq"),"operation_type":info.get("operation_type",""),
-                "operation_name":operation.get("name", ""),"operation_icon":operation.get("icon", ""),
-                "income_per_minute":int(info.get("income_per_minute") or 0),"gang_name":family_name,
-                "color":color,"accent":accent,"flag":gang.get("flag") if gang else None})
-    return rows[:101]
-
-
 async def apartment_state(req):
     return cors(web.json_response({
         "ok": True, "owned": preview_owned_apartments(req.match_info.get("uid", "1")),
-        "properties": preview_player_properties(), "operations": npc_empire.BUILDING_OPERATIONS,
-        "limit": None,
     }))
 
 
@@ -1209,8 +1180,6 @@ async def apartment_buy(req):
     except Exception:
         body = {}
     apt_key = str(body.get("apt_key") or "").strip()[:32]
-    property_kind = str(body.get("property_kind") or "business").lower()
-    operation_type = str(body.get("operation_type") or "").lower()
     price = apartment_price_for_key(apt_key)
     if price is None:
         return cors(web.json_response({"ok": False, "error": "bad apt"}, status=400))
@@ -1218,15 +1187,11 @@ async def apartment_buy(req):
     account = preview_account(uid)
     if apt_key in owned:
         return cors(web.json_response({"ok": True, "already": True, "cash": account["cash"], "owned": owned}))
-    if property_kind not in ("business", "hq") or (property_kind == "business" and operation_type not in npc_empire.BUILDING_OPERATIONS):
-        return cors(web.json_response({"ok": False, "error": "bad property kind"}, status=400))
-    if property_kind == "hq" and (any(x.get("property_kind", "hq") == "hq" for x in owned.values()) or uid in preview_custom_gang_by_uid):
-        return cors(web.json_response({"ok": False, "error": "hq limit"}, status=409))
-    block_key = preview_apartment_block_key(apt_key)
-    area = int(npc_empire.BUILDING_AREAS.get(block_key or "", 0))
-    occupied = {preview_apartment_block_key(key) for props in preview_apartments.values() for key in props}
-    if not area or block_key in occupied:
-        return cors(web.json_response({"ok": False, "error": "building occupied"}, status=409))
+    if len(owned) >= APARTMENT_OWNERSHIP_LIMIT:
+        return cors(web.json_response({
+            "ok": False, "error": "apartment limit",
+            "count": len(owned), "limit": APARTMENT_OWNERSHIP_LIMIT, "owned": owned,
+        }))
     if account["cash"] < price:
         return cors(web.json_response({
             "ok": False, "error": "no cash", "cash": account["cash"], "price": price,
@@ -1235,37 +1200,11 @@ async def apartment_buy(req):
     owned[apt_key] = {
         "price": price, "bought_at": int(time.time()),
         "safe_level": 0, "weapon_rack_level": 0, "garage_level": 0,
-        "property_kind": property_kind,
-        "operation_type": operation_type if property_kind == "business" else "",
-        "area": area,
-        "income_per_minute": npc_empire.building_operation_income(operation_type, area) if property_kind == "business" else 0,
-        "last_income_at": int(time.time()), "income_ready": 0,
         "cameras_level": 0, "repair_level": 0, "stolen_bags": 0,
     }
     return cors(web.json_response({
         "ok": True, "cash": account["cash"], "price": price, "owned": owned,
-        "properties": preview_player_properties(),
     }))
-
-
-async def apartment_collect(req):
-    uid = req.match_info.get("uid", "1")
-    body = await req.json()
-    apt_key = str(body.get("apt_key") or "")[:32]
-    info = preview_owned_apartments(uid).get(apt_key)
-    if not info or info.get("property_kind") != "business":
-        return cors(web.json_response({"ok": False, "error": "not business"}, status=409))
-    now = int(time.time())
-    elapsed = max(0, now - int(info.get("last_income_at") or now))
-    minutes = min(1440, elapsed // 60)
-    payout = minutes * min(200, int(info.get("income_per_minute") or 0))
-    if minutes:
-        info["last_income_at"] = now - elapsed % 60
-        preview_account(uid)["cash"] += payout
-    info["income_ready"] = 0
-    return cors(web.json_response({"ok": True, "collected": payout, "minutes": minutes,
-        "cash": preview_account(uid)["cash"], "owned": preview_owned_apartments(uid),
-        "properties": preview_player_properties()}))
 
 
 async def apartment_upgrade(req):
@@ -1344,13 +1283,13 @@ def preview_custom_gang_hqs():
 
 async def custom_gang_state(req):
     uid=req.match_info.get("uid","1")
-    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs(),"properties":preview_player_properties()}))
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
 
 
 async def custom_gang_create(req):
     global preview_custom_gang_seq
     uid=str(req.match_info.get("uid","1")); body=await req.json(); name=" ".join(str(body.get("name") or "").split())[:24]; apt_key=str(body.get("apt_key") or "")[:32]
-    if len(name)<3 or preview_owned_apartments(uid).get(apt_key,{}).get("property_kind")!="hq": return cors(web.json_response({"ok":False,"error":"bad name or hq"},status=409))
+    if len(name)<3 or apt_key not in preview_owned_apartments(uid): return cors(web.json_response({"ok":False,"error":"bad name or hq"},status=409))
     if uid in preview_custom_gang_by_uid: return cors(web.json_response({"ok":False,"error":"already in gang"},status=409))
     if any(str(g["name"]).casefold()==name.casefold() for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"name taken"},status=409))
     if any(g["hq_apt_key"]==apt_key for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"hq taken"},status=409))
@@ -1362,8 +1301,8 @@ async def custom_gang_create(req):
     if emblem not in CUSTOM_GANG_FLAG_EMBLEMS: emblem="crown"
     flag={"primary":primary,"secondary":secondary,"emblem":emblem}
     now=int(time.time());preview_custom_gangs[gid]={"name":name,"leader_uid":uid,"hq_apt_key":apt_key,"flag":flag,"members":[uid],"treasury":0,"edited_at":0,"npcs":[],"history":[{"actor_uid":uid,"action":"create","details":{"name":name},"created_at":now}],"created_at":now};preview_custom_gang_by_uid[uid]=gid
-    if uid in players: players[uid].update({"mafia":0,"mafia_family":"","custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key,"crew_id":f"cg:{gid}"})
-    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs(),"properties":preview_player_properties()}))
+    if uid in players: players[uid].update({"custom_gang_id":gid,"custom_gang_name":name,"custom_gang_role":"leader","custom_gang_flag":flag,"custom_gang_hq":apt_key,"crew_id":f"cg:{gid}"})
+    return cors(web.json_response({"ok":True,"gang":preview_custom_gang_payload(uid),"headquarters":preview_custom_gang_hqs()}))
 
 
 async def custom_gang_leave(req):
@@ -1671,14 +1610,6 @@ async def npc_empire_state(req):
     uid = str(req.match_info.get("uid") or "1")
     now = int(time.time())
     empires = []
-    # Keep converted buildings around the normal world spawn so one-tab
-    # visual QA exercises flags, signs and facade recoloring immediately.
-    preview_buildings = sorted(
-        npc_empire.BUILDING_AREAS.items(),
-        key=lambda item: abs(int(item[0].split(',')[0]) * 10 + 5 - 40)
-                         + abs(int(item[0].split(',')[1]) * 10 + 5 - 40),
-    )
-    preview_operations = list(npc_empire.BUILDING_OPERATIONS.items())
     for rank, profile in enumerate(npc_empire.PROFILES, 1):
         relation, pact = preview_empire_relations.get((uid, profile.leader_id), (0, "none"))
         hq_r, hq_c = npc_empire._hq_coords(profile.hq_key)
@@ -1687,8 +1618,6 @@ async def npc_empire_state(req):
         if hospital_until <= now:
             hospital_until = 0
             preview_empire_hospitals.pop(profile.leader_id, None)
-        building_key, building_area = preview_buildings[(rank - 1) % len(preview_buildings)]
-        operation_type, operation_meta = preview_operations[(rank - 1) % len(preview_operations)]
         empires.append({
             "leader_id": profile.leader_id,
             "leader_name": _preview_empire_text(profile.leader_name),
@@ -1701,13 +1630,7 @@ async def npc_empire_state(req):
             "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
             "relation": relation, "relation_band": npc_empire.relation_band(relation),
             "pact": pact, "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
-                                           "income": 0, "defense": 80},
-                {"kind":"building","holding_id":building_key,
-                 "income":npc_empire.building_operation_income(operation_type, building_area),
-                 "defense":55,"operation_type":operation_type,
-                 "operation_name":operation_meta["name"],"operation_icon":operation_meta["icon"],
-                 "income_unit":"minute","area":building_area,
-                 "size_class":"large" if building_area>=24 else "medium" if building_area>=16 else "small"}],
+                                           "income": 0, "defense": 80}],
             "activity": _preview_empire_activity(profile, now),
             "rank": rank, "wins": rank % 4, "losses": rank % 3, "knockouts": rank % 2,
             "comebacks": 0, "dominance_score": 25 + rank, "district_count": rank % 3,
@@ -1749,6 +1672,7 @@ async def npc_empire_diplomacy(req):
     score, pact = preview_empire_relations.get((uid, leader_id), (0, "none"))
     rules = {"respect": (0, 3), "gift": (500, 12), "apologize": (0, 8),
              "compensation": (1500, 30), "insult": (0, -10), "threaten": (0, -18),
+             "street_attack": (0, -12),
              "truce": (300, 8), "alliance": (1000, 5), "break_pact": (0, -20)}
     if action == "declare_war":
         if score >= 0:
@@ -1761,6 +1685,7 @@ async def npc_empire_diplomacy(req):
             return cors(web.json_response({"ok": False, "error": "no cash"}, status=409))
         account["cash"] -= cost
         score = npc_empire.clamp_relation(score + delta)
+        if action == "street_attack": score, pact = min(-1, score), "war"
         if action == "truce" or (action == "compensation" and pact == "war" and score >= -60): pact = "truce"
         elif action == "alliance": pact = "alliance"
         elif action == "break_pact": pact = "none"
@@ -3418,7 +3343,6 @@ app.router.add_get("/world/newspaper", newspaper)
 app.router.add_get("/world/district_status/{uid}", district_status)
 app.router.add_get("/apartment/{uid}/state", apartment_state)
 app.router.add_post("/apartment/{uid}/buy", apartment_buy)
-app.router.add_post("/apartment/{uid}/collect", apartment_collect)
 app.router.add_post("/apartment/{uid}/upgrade", apartment_upgrade)
 app.router.add_post("/apartment/{uid}/sell", apartment_sell)
 app.router.add_get("/custom-gang/{uid}/state", custom_gang_state)
