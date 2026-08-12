@@ -6952,7 +6952,8 @@ function _renderDistrictRep(d,force=false){
   const bossColor=leader?.color||'#6e1d2b',bossAccent=leader?.accent||'#d0a944',bossName=leader?.leader_name||'Власть не определена',gangName=leader?.gang_name||(_npcEmpires.length?'Район пока свободен':'Сводка с сервера недоступна'),emblem=leader?.emblem||'◇',state=leader?(contested?'ВЛИЯНИЕ ОСПАРИВАЕТСЯ':'ДОМИНИРУЕТ В РАЙОНЕ'):'НЕЙТРАЛЬНАЯ ТЕРРИТОРИЯ',rivalName=rival?.leader_name||(leader?'Соперников нет':'Нет подтверждённых данных');
   ui.style.setProperty('--dr-boss',bossColor);ui.style.setProperty('--dr-accent',bossAccent);
   ui.innerHTML=`<div class="dr-shell"><div class="dr-kicker">КРИМИНАЛЬНАЯ СВОДКА</div><div class="dr-district">${esc(d.icon||'🏙️')} ${esc(d.name)}</div><div class="dr-main"><div class="dr-seal">${esc(emblem)}</div><div><span class="dr-state">${state}</span><strong class="dr-boss">${esc(bossName)}</strong><span class="dr-gang">${esc(gangName)}</span></div><b class="dr-percent">${leader?leaderPct:'—'}${leader?'%':''}<small>ВЛИЯНИЕ</small></b></div><div class="dr-influence" title="Соотношение влияния лидера и ближайшего соперника"><i style="width:${leaderPct}%"></i><em style="width:${rivalPct}%"></em></div><div class="dr-rival"><span>БЛИЖАЙШИЙ СОПЕРНИК</span><b>${esc(rivalName)}${rival?` · ${rivalScore}`:''}</b></div><div class="dr-rep"><span>${tier.icon} ЖИТЕЛИ: <b style="color:${tier.color}">${esc(tier.name)}</b></span><span>РЕПУТАЦИЯ <b style="color:${tier.color}">${value>0?'+':''}${value}</b></span></div><button class="dr-info" type="button" title="Как работает район" aria-label="Информация о районе">?</button></div>`;
-  if(force){ui.classList.add('show');_districtRepHideAt=performance.now()+4200;}
+  // Это постоянный отчёт о власти в текущем районе, а не временный тост.
+  ui.classList.add('show');
 }
 function _openDistrictInfo(d){
   if(!d)return;let ov=document.getElementById('districtInfoOverlay');if(!ov){ov=document.createElement('div');ov.id='districtInfoOverlay';ov.innerHTML='<div id="districtInfoCard"></div>';document.body.appendChild(ov);ov.addEventListener('click',e=>{if(e.target===ov||e.target.id==='districtInfoClose')ov.classList.remove('show');});}
@@ -6970,7 +6971,6 @@ function _districtRepAdd(amount,reason,quiet=false){
 function _districtWitnessChance(base){const d=districtAt(player.r,player.c),rep=d?_districtRepValue(d.id):0,cameraBonus=_mafiaState?.employed?_hqLvl('mafia','cameras')*.05:0,controlBonus=(_mafiaState?.employed&&_localFactionControls('mafia')) ? .08 : 0;return Math.max(.08,Math.min(1,base-rep*.004-cameraBonus-controlBonus));}
 function _tickDistrictReputation(now){
   const d=districtAt(player.r,player.c),id=d?.id||'';if(id!==_districtRepLastId){_districtRepLastId=id;if(d)_renderDistrictRep(d,true);}
-  if(_districtRepUi&&now>_districtRepHideAt)_districtRepUi.classList.remove('show');
 }
 let _factionWarSig='',_factionWarState={police:0,mafia:0,districts:{}};
 function _localFactionInfluence(r=player.r,c=player.c){const d=districtAt(r,c),v=d&&_factionWarState.districts?.[d.id];return{district:d,police:Math.max(0,+v?.police||0),mafia:Math.max(0,+v?.mafia||0)};}
@@ -24224,7 +24224,7 @@ function setConnecting(msg) {
   if (!ov) return;
   // Потеря сети не должна закрывать игроку весь мир. Переподключение идёт
   // в фоне, а карта и локальная симуляция остаются доступными.
-  const backgroundReconnect = msg && /недоступ|потеря|не отвеч|не запущ/i.test(msg);
+  const backgroundReconnect = msg && /ищу сервер|подключ|недоступ|потеря|не отвеч|не запущ/i.test(msg);
   if (backgroundReconnect) {
     ov.classList.add('hide');
     return;
@@ -63711,7 +63711,9 @@ function chatDuration(text) {
   await _fetchApiFallback();
   // До определения свежего API ранний loadMyWeapons() ничего не загружает.
   // Повторяем запрос здесь, чтобы оружие сразу появлялось в мире и превью.
-  await Promise.all([loadMyWeapons(), loadInventoryItems()]);
+  // Инвентарь и оружие догружаются независимо: медленный/упавший туннель не
+  // имеет права затемнять уже работающий локальный город бесконечным спиннером.
+  void Promise.allSettled([loadMyWeapons(), loadInventoryItems()]);
   if (!QP.api) {
     setConnecting('Сервер недоступен. Попробуй зайти чуть позже.');
     return;
