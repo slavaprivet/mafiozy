@@ -108,25 +108,21 @@ def start_tunnel():
 
 
 def publish_coop_api_json(api_url: str):
-    """Записывает coop_api.json в основной GitHub-репо mafiozy (GitHub Pages).
+    """Записывает coop_api.json в актуальный GitHub Pages-репозиторий mafiozy.
     Содержимое: {"base": "<api_url>", "ts": <unix>}. hub.html у юзеров
     без api= в URL читает этот файл и использует base как COOP_API_BASE.
 
     Использует .token (GitHub Personal Access Token) рядом с этим скриптом.
     Если токена нет — тихо скипаем (для деплоев без auto-publish можно
     хардкодить api в URL хаба, как раньше)."""
-    token_path = next(
-        (directory / ".token" for directory in (HERE, *HERE.parents[:6])
-         if (directory / ".token").exists()),
-        None,
-    )
-    if token_path is None:
+    token_path = HERE / ".token"
+    if not token_path.exists():
         log("[!] .token не найден — coop_api.json не публикуется.")
         log("    У друзей без бот-кнопки лобби работать не будет.")
         return
     token = token_path.read_text(encoding="utf-8").strip()
-    if not token.startswith(("ghp_", "github_pat_")):
-        log("[!] .token не похож на GitHub PAT (ожидался ghp_ или github_pat_).")
+    if not token.startswith("ghp_"):
+        log("[!] .token не похож на GitHub PAT (нет 'ghp_' префикса).")
         return
 
     repo   = "slavaprivet/mafiozy"
