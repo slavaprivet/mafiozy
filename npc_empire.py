@@ -30,6 +30,7 @@ PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
 PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
 VISIBLE_ACTIVITY_SECONDS = 75
 NPC_EMPIRE_MAX_FIGHTERS = 20
+RECRUITMENT_SECONDS = 180
 
 
 @dataclass(frozen=True)
@@ -135,6 +136,39 @@ EMPIRE_PUBLIC_ROAM_POINTS = (
     ('coast_east', 154, 102), ('port_approach', 168, 40),
 )
 
+# Every family recruits at the Lair. Candidates leave its crowded northern
+# camp and meet the boss at the gate; only a completed server timer turns them
+# into armed family members. This makes growth observable instead of spawning
+# fighters beside the boss out of thin air.
+RECRUITMENT_VENUE = ('Логово', 106, 40, 101, 40)
+
+
+def _recruitment_venue(profile: EmpireProfile) -> tuple[str, int, int, int, int]:
+    del profile
+    return RECRUITMENT_VENUE
+
+
+def _row_field(row, key: str, default=0):
+    try:
+        value = row[key]
+    except (KeyError, IndexError, TypeError):
+        return default
+    return default if value is None else value
+
+
+def _recruitment_state(profile: EmpireProfile, row, now: int) -> dict | None:
+    pending = max(0, int(_row_field(row, 'pending_recruits', 0)))
+    ready_at = max(0, int(_row_field(row, 'recruit_ready_at', 0)))
+    if pending <= 0 or ready_at <= now:
+        return None
+    venue, source_r, source_c, meeting_r, meeting_c = _recruitment_venue(profile)
+    return {
+        'pending': pending, 'started_at': int(_row_field(row, 'recruit_started_at', 0)),
+        'ready_at': ready_at, 'venue': venue,
+        'source_r': source_r, 'source_c': source_c,
+        'meeting_r': meeting_r, 'meeting_c': meeting_c,
+    }
+
 
 def npc_owner_uid(leader_id: str) -> int:
     """Stable negative uid that cannot collide with Telegram ids."""
@@ -214,6 +248,14 @@ def _holding_district(kind: str, holding_id: str) -> str:
 
 def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int) -> dict:
     """Give the client one concrete, slowly changing destination for this boss."""
+    recruitment = _recruitment_state(profile, row, now)
+    if recruitment:
+        return {
+            'kind': 'recruit', 'target_id': f'recruit:{profile.leader_id}',
+            'target_r': recruitment['meeting_r'], 'target_c': recruitment['meeting_c'],
+            'phase': 'meeting', 'created_at': recruitment['started_at'],
+            'summary': f'{profile.leader_name} проводит набор в семью: {recruitment["venue"]}',
+        }
     slot = now // VISIBLE_ACTIVITY_SECONDS
     seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:walk:{slot}'.encode()).digest()[:4], 'big')
     hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
@@ -299,6 +341,9 @@ async def ensure_schema(db_path: str) -> None:
             peak_power INTEGER NOT NULL DEFAULT 0,
             hospital_until INTEGER NOT NULL DEFAULT 0,
             hospital_id TEXT NOT NULL DEFAULT '',
+            pending_recruits INTEGER NOT NULL DEFAULT 0,
+            recruit_started_at INTEGER NOT NULL DEFAULT 0,
+            recruit_ready_at INTEGER NOT NULL DEFAULT 0,
             version INTEGER NOT NULL DEFAULT 1
         );
         CREATE TABLE IF NOT EXISTS npc_empire_relations (
@@ -382,6 +427,9 @@ async def ensure_schema(db_path: str) -> None:
             'knockouts': "INTEGER NOT NULL DEFAULT 0", 'dominance_score': "INTEGER NOT NULL DEFAULT 0",
             'district_count': "INTEGER NOT NULL DEFAULT 0", 'peak_power': "INTEGER NOT NULL DEFAULT 0",
             'hospital_until': "INTEGER NOT NULL DEFAULT 0", 'hospital_id': "TEXT NOT NULL DEFAULT ''",
+            'pending_recruits': "INTEGER NOT NULL DEFAULT 0",
+            'recruit_started_at': "INTEGER NOT NULL DEFAULT 0",
+            'recruit_ready_at': "INTEGER NOT NULL DEFAULT 0",
         }
         for name, declaration in migrations.items():
             if name not in columns:
@@ -491,7 +539,8 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
     await db.execute(
         "UPDATE npc_empires SET status='ruined',treasury=0,members=0,strength=0,hq_key=NULL,"
         "defeated_at=?,defeated_by=?,comeback_at=?,losses=losses+1,dominance_score=0,"
-        "district_count=0,version=version+1 WHERE leader_id=?",
+        "district_count=0,pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,"
+        "version=version+1 WHERE leader_id=?",
         (now, defeated_by, comeback_at, leader_id),
     )
     # A fall erases the boss's political capital. Every player and NPC meets
@@ -531,7 +580,8 @@ async def _revive_due_empires(db, now: int, events: list[dict]) -> None:
         strength = 35 + profile.loyalty // 3
         await db.execute(
             "UPDATE npc_empires SET status='rebuilding',treasury=?,members=2,strength=?,hq_key=?,"
-            "comeback_at=0,comebacks=?,defeated_by=NULL,last_tick=?,next_action_at=?,version=version+1 "
+            "comeback_at=0,comebacks=?,defeated_by=NULL,pending_recruits=0,recruit_started_at=0,"
+            "recruit_ready_at=0,last_tick=?,next_action_at=?,version=version+1 "
             "WHERE leader_id=?",
             (treasury, strength, hq_key, comeback_no, now, now + TICK_SECONDS, leader_id),
         )
@@ -593,6 +643,33 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
         rows = await (await db.execute(
             "SELECT * FROM npc_empires WHERE status IN ('active','rebuilding','vassal')"
         )).fetchall()
+        # Candidates are not counted as fighters until their visible recruitment
+        # window has elapsed. Completion is processed independently of the
+        # five-minute economy tick so a state poll can finish the hiring on time.
+        for row in rows:
+            pending = max(0, int(row['pending_recruits'] or 0))
+            if pending <= 0 or int(row['recruit_ready_at'] or 0) > now:
+                continue
+            leader_id = str(row['leader_id']); profile = PROFILE_BY_ID[leader_id]
+            room = max(0, NPC_EMPIRE_MAX_FIGHTERS - int(row['members'] or 0))
+            completed = min(pending, room)
+            if completed:
+                await db.execute(
+                    "UPDATE npc_empires SET members=members+?,strength=strength+?,"
+                    "pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,version=version+1 "
+                    "WHERE leader_id=?",
+                    (completed, completed * (11 + profile.aggression // 12), leader_id),
+                )
+                events.append({'leader_id': leader_id, 'kind': 'recruit_completed',
+                               'summary': f'{completed} новичков принесли клятву семье {profile.gang_name}'})
+            else:
+                await db.execute(
+                    "UPDATE npc_empires SET pending_recruits=0,recruit_started_at=0,recruit_ready_at=0 "
+                    "WHERE leader_id=?", (leader_id,),
+                )
+        rows = await (await db.execute(
+            "SELECT * FROM npc_empires WHERE status IN ('active','rebuilding','vassal')"
+        )).fetchall()
         empire_row_by_id = {str(row['leader_id']): row for row in rows}
         diplomacy_state = {}
         for relation in await (await db.execute(
@@ -631,22 +708,28 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             treasury = max(0, int(row['treasury'] or 0) + ticks * (per_tick - upkeep))
             members = max(1, int(row['members'] or 1))
             strength = max(20, int(row['strength'] or 20))
+            pending_recruits = max(0, int(row['pending_recruits'] or 0))
+            recruit_started_at = max(0, int(row['recruit_started_at'] or 0))
+            recruit_ready_at = max(0, int(row['recruit_ready_at'] or 0))
             rng = _decision_roll(leader_id, int(row['last_tick']) + ticks * TICK_SECONDS)
             recruit_cost = 180 + members * 14
-            # A successful boss can grow a full street army. The hard cap is
+            # A successful boss can grow a full street army.  The hard cap is
             # shared with world.html so one leader never materialises more than
             # twenty armed followers around himself.
             target_members = min(
                 NPC_EMPIRE_MAX_FIGHTERS,
                 8 + (profile.aggression + profile.loyalty) // 10,
             )
-            if members < target_members and treasury >= recruit_cost and rng.random() < .72:
+            if pending_recruits == 0 and members < target_members and treasury >= recruit_cost and rng.random() < .72:
                 hired = min(3, target_members - members, treasury // recruit_cost)
                 if hired:
-                    members += hired
                     treasury -= hired * recruit_cost
-                    strength += hired * (11 + profile.aggression // 12)
-                    events.append({'leader_id': leader_id, 'kind': 'recruit', 'summary': f'Нанято бойцов: {hired}'})
+                    pending_recruits = hired
+                    recruit_started_at = now
+                    recruit_ready_at = now + RECRUITMENT_SECONDS
+                    venue, _, _, _, _ = _recruitment_venue(profile)
+                    events.append({'leader_id': leader_id, 'kind': 'recruit_started',
+                                   'summary': f'{profile.leader_name} ищет {hired} бойцов: {venue}'})
             building_count = sum(1 for h in holdings if h['kind'] == 'building')
             expansion_cost = 1100 + building_count * 650
             army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
@@ -788,8 +871,10 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                        'summary':f'{rival.gang_name} отбили нападение {profile.gang_name}'})
             next_status = 'active' if row['status'] == 'rebuilding' and (members >= 4 or treasury >= 1500) else str(row['status'])
             await db.execute(
-                "UPDATE npc_empires SET treasury=?,members=?,strength=?,status=?,last_tick=?,next_action_at=?,version=version+1 WHERE leader_id=?",
-                (treasury, members, strength, next_status, int(row['last_tick']) + ticks*TICK_SECONDS,
+                "UPDATE npc_empires SET treasury=?,members=?,strength=?,status=?,pending_recruits=?,"
+                "recruit_started_at=?,recruit_ready_at=?,last_tick=?,next_action_at=?,version=version+1 WHERE leader_id=?",
+                (treasury, members, strength, next_status, pending_recruits,
+                 recruit_started_at, recruit_ready_at, int(row['last_tick']) + ticks*TICK_SECONDS,
                  now + TICK_SECONDS, leader_id),
             )
         for event in events:
@@ -924,6 +1009,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         hq_key = str(row['hq_key'] or '')
         hq_r, hq_c = _hq_coords(hq_key) if hq_key else (0, 0)
         leader_holdings = holdings.get(leader_id, [])
+        recruitment = _recruitment_state(profile, row, now)
         result.append({
             'leader_id': leader_id, 'leader_name': profile.leader_name, 'title': profile.title,
             'gang_name': profile.gang_name, 'color': profile.color, 'accent': profile.accent,
@@ -943,6 +1029,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'peak_power': int(row['peak_power'] or 0),
             'hospital_until': int(row['hospital_until'] or 0) if int(row['hospital_until'] or 0) > now else 0,
             'hospital_id': str(row['hospital_id'] or '') if int(row['hospital_until'] or 0) > now else '',
+            'recruitment': recruitment,
             'relation': score, 'relation_band': relation_band(score),
             'pact': str(relation.get('pact') or 'none'),
             'war_pressure': war_rows.get(leader_id),
