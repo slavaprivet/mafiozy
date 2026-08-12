@@ -1131,3 +1131,12 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Refresh an open dashboard through the existing 30-second empire snapshot.
   A single bounded timeout at the nearest known discharge time may remove the
   visual state promptly; it must not become a per-card or render-loop timer.
+
+## Dimensional boss dossier shell (2026-08-12)
+
+- A boss dossier can feel native to the 3D city without creating another
+  renderer: enlarge the existing offscreen portrait canvas and frame it with
+  family-coloured DOM lighting, a podium, crest and rank plaque.
+- Reuse the authoritative family `color` and `accent` as CSS custom properties.
+  The dimensional frame, larger action controls and readable text add no scene
+  objects, texture allocations, render-loop work or extra polling.
