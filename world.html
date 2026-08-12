@@ -9260,7 +9260,7 @@ function _empireSquadOrder(n,now=performance.now()){
   else if(enemyBoss&&enemyBossHealth<.55&&ratio>=.84)type='focus';
   else if(setback<2&&own.length>=4&&enemy.length>=2&&ratio>=.78&&ratio<1.34)type='flank';
   else if(setback<2&&ratio>=1.34)type='press';
-  const order={type,ratio,losses,enemyLosses,peakOwn,peakEnemy,setback,lastCasualtyAt,center,enemyBoss,until:now+EMPIRE_SQUAD_ORDER_MS,announcedAt:+previous?.announcedAt||0};
+  const order={type,ratio,losses,enemyLosses,peakOwn,peakEnemy,setback,lastCasualtyAt,center,ownBoss,enemyBoss,until:now+EMPIRE_SQUAD_ORDER_MS,announcedAt:+previous?.announcedAt||0};
   _empireSquadOrders.set(key,order);
   document.documentElement.dataset.empireSquadOrder=type;document.documentElement.dataset.empireSquadSetback=String(setback);
   if(type!==previous?.type&&ownBoss&&now-order.announcedAt>5000){
@@ -9268,6 +9268,16 @@ function _empireSquadOrder(n,now=performance.now()){
     _empireSpeak(ownBoss,mood,now,2100,true);ownBoss._empireLastOrder=type;order.announcedAt=now;
   }
   return order;
+}
+function _empireTacticalRole(n,order){
+  if(n?._empireBoss)return 'commander';
+  const health=(+n?._empireBattleHp||1)/Math.max(1,+n?._empireBattleMaxHp||1),slot=Math.max(0,+n?._empireCrewSlot||0);
+  if(health<.36)return 'reserve';
+  if(order?.ownBoss&&slot<2)return 'bodyguard';
+  const profile=n?._empireWeaponProfile||NPC_EMPIRE_WEAPON_PROFILES[n?._empireWeaponId]||{},range=Math.max(0,+profile.range||0),kind=String(profile.kind||n?._fightWeapon||'');
+  if(range>=10.5&&!kind.includes('shotgun')&&slot%3===0)return 'marksman';
+  if(order?.type==='flank'&&slot>=2&&slot%3!==0)return 'flanker';
+  return 'assault';
 }
 function _empireSeparationVector(n,radius=1.35){
   let r=0,c=0,neighbors=0;
@@ -9319,7 +9329,7 @@ function _empireFieldTarget(n,now){
   if((now<(n._empireThinkAt||0)||now<(n._empireTargetLockUntil||0))&&_empireCombatReady(n._empireCombatTarget,now))return n._empireCombatTarget;
   n._empireThinkAt=now+EMPIRE_FIELD_THINK_MS+(Math.max(0,+n._empireStyle||0)%4)*35;
   const enemyId=String(n._empireEnemyLeaderId||'');if(!enemyId)return n._empireCombatTarget=null;
-  let best=null,bestScore=Infinity,allies=0,enemies=0;const pool=_empireCombatPool(),order=_empireSquadOrder(n,now);
+  let best=null,bestScore=Infinity,allies=0,enemies=0;const pool=_empireCombatPool(),order=_empireSquadOrder(n,now),role=_empireTacticalRole(n,order);
   for(const candidate of pool){
     if(candidate===n||!_empireCombatReady(candidate,now))continue;
     const candidateId=_empireLeaderIdOf(candidate),d=Math.hypot(candidate.r-n.r,candidate.c-n.c);
@@ -9329,8 +9339,10 @@ function _empireFieldTarget(n,now){
     // Bosses remain valuable targets, but fire teams distribute across living
     // enemies instead of all twenty shooting the same nearest pixel.
     const laneBias=n._empireBoss?0:Math.abs(((+n._empireCrewSlot||0)%5)-(String(candidate.id||'').length%5))*.09;
-    const bossPriority=candidate._empireBoss?(order.type==='focus'?4.8:1.25):0;
-    const score=d-bossPriority+assigned*(order.type==='focus'?.72:1.35)+laneBias+((+candidate._empireBattleHp||1)/(+candidate._empireBattleMaxHp||1))*.55;
+    const bossPriority=candidate._empireBoss?(order.type==='focus'?4.8:1.25):0,healthRatio=(+candidate._empireBattleHp||1)/Math.max(1,+candidate._empireBattleMaxHp||1);
+    const bossThreat=role==='bodyguard'&&order.ownBoss?Math.hypot(candidate.r-order.ownBoss.r,candidate.c-order.ownBoss.c)*1.35:0;
+    const finisherBias=role==='marksman'?healthRatio*1.45:healthRatio*.55,assignmentWeight=role==='flanker'?1.05:(order.type==='focus'?.72:1.35);
+    const score=d-bossPriority+assigned*assignmentWeight+laneBias+finisherBias+bossThreat;
     if(score<bestScore){best=candidate;bestScore=score;}
   }
   n._empireLocalAllies=allies+1;n._empireLocalEnemies=enemies;
@@ -9350,18 +9362,22 @@ function _empireFieldCombatThink(n,now,dt){
   if(n._empireRetreatUntil>now)return _empireRetreatStep(n,now,dt);
   const order=_empireSquadOrder(n,now);
   if(order.type==='withdraw'){n._empireRetreatUntil=Math.max(+n._empireRetreatUntil||0,now+12000);_clearNpcRoute(n);return _empireRetreatStep(n,now,dt);}
+  const role=_empireTacticalRole(n,order);n._empireTacticalRole=role;
+  if(role==='reserve'){n._empireRetreatUntil=now+9000;_clearNpcRoute(n);return _empireRetreatStep(n,now,dt);}
   const target=_empireFieldTarget(n,now);if(!target)return false;
   const allies=Math.max(1,+n._empireLocalAllies||1),enemies=Math.max(0,+n._empireLocalEnemies||0),force=_empireActiveForce(_empireLeaderIdOf(n),n,12),overwhelming=force>=10;
   const health=(+n._empireBattleHp||0)/Math.max(1,+n._empireBattleMaxHp||1);
   const enemyStrength=Math.max(20,+target._empireStrength||80),ownStrength=Math.max(20,+n._empireStrength||80),powerRatio=(ownStrength*allies)/(enemyStrength*Math.max(1,enemies)),confidence=powerRatio*(.58+health*.62),orderedAssault=n._empireWarStance==='assault',pressing=order.type==='press'||order.type==='focus'||overwhelming||now<(n._empirePressUntil||0)||confidence>=1.12||(orderedAssault&&confidence>=.88);
   if((health<(n._empireBoss ? .09 : .12))||(!overwhelming&&health<.3&&powerRatio<.68)){n._empireRetreatUntil=now+10000+Math.random()*7000;_empireSpeak(n,'retreat',now,1800,true);_clearNpcRoute(n);return _empireRetreatStep(n,now,dt);}
   const dr=target.r-n.r,dc=target.c-n.c,d=Math.hypot(dr,dc)||.001,profile=n._empireWeaponProfile||NPC_EMPIRE_WEAPON_PROFILES[n._empireWeaponId]||{kind:n._fightWeapon||'pistol',damage:10,cooldown:1050,range:10,hit:.72};
-  const weapon=profile.kind||n._empireWeaponBase||n._fightWeapon||'pistol',ideal=pressing?2.8:Math.max(3.2,Math.min(+profile.range||10,8.5))*.7;
+  const weapon=profile.kind||n._empireWeaponBase||n._fightWeapon||'pistol',weaponRange=Math.max(3.2,+profile.range||10),ideal=role==='marksman'?Math.min(11.5,weaponRange*.84):(role==='bodyguard'?Math.min(5.2,weaponRange*.58):(pressing?2.8:Math.min(weaponRange,8.5)*.7));
   n.ang=Math.atan2(dr,dc);
   if(now>=(n._empireCombatMoveAt||0)){n._empireCombatMoveAt=now+650+Math.random()*700;n._empireStrafeDir=order.type==='flank'?((+n._empireCrewSlot||0)%2?1:-1):(Math.random()<.5?-1:1);}
   let moveR=0,moveC=0;
-  if(order.type==='regroup'&&Math.hypot(order.center.r-n.r,order.center.c-n.c)>2.2){const ar=order.center.r-n.r,ac=order.center.c-n.c,al=Math.hypot(ar,ac)||1;moveR=ar/al;moveC=ac/al;}
+  if(role==='bodyguard'&&order.ownBoss&&Math.hypot(order.ownBoss.r-n.r,order.ownBoss.c-n.c)>3.2){const ar=order.ownBoss.r-n.r,ac=order.ownBoss.c-n.c,al=Math.hypot(ar,ac)||1;moveR=ar/al;moveC=ac/al;}
+  else if(order.type==='regroup'&&Math.hypot(order.center.r-n.r,order.center.c-n.c)>2.2){const ar=order.center.r-n.r,ac=order.center.c-n.c,al=Math.hypot(ar,ac)||1;moveR=ar/al;moveC=ac/al;}
   else if(now<(n._empireScatterUntil||0)){moveR=Math.sin(n._empireScatterAngle||0)*1.4;moveC=Math.cos(n._empireScatterAngle||0)*1.4;}
+  else if(role==='flanker'&&d>ideal*.72){const side=(+n._empireCrewSlot||0)%2?1:-1;moveR=dr/d*.58-dc/d*side*.92;moveC=dc/d*.58+dr/d*side*.92;}
   else if(d>ideal+(pressing ? .25 : 1)){moveR=dr/d;moveC=dc/d;}else if(d<(pressing ? 1.35 : 1.85)){moveR=-dr/d-dc/d*(n._empireStrafeDir||1)*.18;moveC=-dc/d+dr/d*(n._empireStrafeDir||1)*.18;}else{const strafe=pressing ? .2 : 1;moveR=-dc/d*(n._empireStrafeDir||1)*strafe;moveC=dr/d*(n._empireStrafeDir||1)*strafe;}
   const separation=_empireSeparationVector(n,1.42);moveR+=separation.r*1.85;moveC+=separation.c*1.85;
   const step=Math.min(.11,Math.max(.65,n.speed||.8)*dt*(d>ideal+1?1.45:.72)),len=Math.hypot(moveR,moveC)||1,nr=n.r+moveR/len*step,nc=n.c+moveC/len*step;
@@ -63078,7 +63094,7 @@ window.Mafiozi3DBridge = Object.freeze({
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:copSpeech||((+x.cryUntil||0)>fxNow?String(x.cryText||'').slice(0,84):''),hp,maxHp,
       said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireCrew:!!x._empireCrew,empireLeaderId:String(x._empireLeaderId||x._specialistId||''),empireGang:String(x._empireGang||''),empireAction:x._empireBoss?_empireActivityLabel(x._empireAction):'',
-      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),uniqueWeaponProfile:x._empireWeaponProfile||x.uniqueWeaponProfile||null,bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),
+      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),uniqueWeaponProfile:x._empireWeaponProfile||x.uniqueWeaponProfile||null,bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),empireTacticalRole:String(x._empireTacticalRole||''),
       important:!!(x._uniqueNpc||x._said||x._keyNpc||x._invulnerable),talkable:!!(x._uniqueNpc||x._said),hired:!!(x._said&&_saidState?.hired),
       lifeState:lifeState||'',panic,cowering,surrendering,surrendered:surrendering,helping,
       talking:social,social,alerted:!death.dead&&(lifeState==='alert'||x._alertUntil>fxNow),

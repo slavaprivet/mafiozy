@@ -1240,3 +1240,15 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Expose the learned lesson in the dossier so the decision remains explainable.
   These calculations run only when server state or the shared order refreshes,
   not once per fighter or rendered frame.
+
+## Dynamic combat roles under one boss order (2026-08-12)
+
+- Derive each fighter's role from existing health, weapon range, crew slot and
+  the cached squad order. Do not add another roster scan: commander, bodyguard,
+  marksman, flanker, assault and wounded reserve are constant-time decisions.
+- Bodyguards prioritize enemies closest to their boss and return to his side;
+  marksmen keep weapon-appropriate distance and finish wounded targets;
+  flankers use deterministic left/right lanes. Fighters below 36% health leave
+  the firing line and use the existing retreat/healing route.
+- Pass the role through the existing bounded 3D NPC snapshot for diagnostics.
+  The renderer does not run its own tactical AI and no new timers are created.
