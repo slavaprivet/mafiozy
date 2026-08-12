@@ -44,6 +44,7 @@ async def _scalar(path: str, sql: str, args=()):
 
 
 async def run() -> None:
+    assert ne.NPC_EMPIRE_MAX_FIGHTERS == 20
     fd, path = tempfile.mkstemp(prefix="npc_empire_", suffix=".db")
     os.close(fd)
     try:
@@ -113,7 +114,7 @@ async def run() -> None:
         rustam_war = next(x for x in war_state["empires"] if x["leader_id"] == "rustam")["activity"]
         assert leila_war["kind"] == rustam_war["kind"] == "gang_war"
         assert leila_war["target_id"] == "rustam" and rustam_war["target_id"] == "leila"
-        assert leila_war["stance"] in {"assault", "harass"} and 2 <= leila_war["force"] <= 4
+        assert leila_war["stance"] in {"assault", "harass"} and 2 <= leila_war["force"] <= 20
         async with aiosqlite.connect(path) as db:
             await db.execute(
                 "UPDATE npc_empire_diplomacy SET score=0,pact='none',tension=0 "
