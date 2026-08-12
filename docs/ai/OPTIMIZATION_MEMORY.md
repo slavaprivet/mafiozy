@@ -1140,3 +1140,27 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Reuse the authoritative family `color` and `accent` as CSS custom properties.
   The dimensional frame, larger action controls and readable text add no scene
   objects, texture allocations, render-loop work or extra polling.
+
+## Captured-apartment business skins (2026-08-12, v364)
+
+- Send converted apartment buildings through the existing dynamic world
+  snapshot as a compact, distance-sorted list capped at 24. The server remains
+  authoritative for family, operation, area and per-minute income; the renderer
+  must not invent ownership or poll another endpoint.
+- Give every primary residential building a stable `empireBuildingKey` while
+  the static snapshot is built. Maintain a key-to-mesh map as streamed sectors
+  enter and leave instead of searching all `buildingPickables` every frame.
+- Flags, operation signs and neon roof bands use one fixed 24-slot pool. Canvas
+  textures and facade colours change only when the ownership signature changes;
+  unchanged frames perform only bounded camera-facing flag rotation and a small
+  emissive pulse.
+- Cache the map-connected apartment bounds in `world.html`. Re-running the
+  connected-component scan in every bridge snapshot is avoidable CPU and GC
+  work, especially when several families own neighbouring buildings.
+- Same-spawn local QA at `(40,40)`, 57 streamed buildings and 19 visible
+  converted apartments produced no browser warnings/errors. Eight one-second
+  samples stayed at 22.1 FPS and 29.3 ms average render time versus 22.1 FPS and
+  29.8 ms on clean `15968a9`; the dynamic scene's draw-call average was 2116.6
+  versus 2308.1. Treat the lower draw count as normal moving-scene variance,
+  not a claimed optimization; the confirmed result is no measurable frame-time
+  regression with the full marker pool visible.

@@ -17214,14 +17214,31 @@ function drawCustomGangHeadquarters(r0,r1,c0,c1){
     ctx.font='900 12px Arial';const label=`🚩 ${String(hq.name||'Банда').toUpperCase()}`,tw=Math.min(230,ctx.measureText(label).width+26);ctx.fillStyle='rgba(8,9,14,.94)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-181,tw,25,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff4d2';ctx.fillText(label,p.x,p.y-168);ctx.restore();
   }
 }
+const _npcEmpireBuildingMetaCache=new Map();
+const _npcEmpireOperationFallbacks=Object.freeze({
+  beer_bar:{name:'Пивной бар',icon:'🍺'},pawnshop:{name:'Скупка краденого',icon:'💎'},
+  bookmaker:{name:'Букмекерская',icon:'🎟️'},strip_club:{name:'Стрип-клуб',icon:'💃'},
+  gun_shop:{name:'Оружейная лавка',icon:'🔫'},chop_shop:{name:'Авторазборка',icon:'🔧'},
+  poker_club:{name:'Подпольный покер',icon:'♠️'},print_shop:{name:'Фальшивая типография',icon:'🖨️'}
+});
+function _npcEmpireBuildingMeta(key){
+  key=String(key||'');if(_npcEmpireBuildingMetaCache.has(key))return _npcEmpireBuildingMetaCache.get(key);
+  const cells=key.split(',').map(Number);if(cells.length!==2||!cells.every(Number.isFinite))return null;
+  const r0=cells[0]*BLOCK,c0=cells[1]*BLOCK,parts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS));
+  const primary=parts.slice().sort((a,b)=>((b.maxR-b.minR+1)*(b.maxC-b.minC+1))-((a.maxR-a.minR+1)*(a.maxC-a.minC+1)))[0];
+  const meta=primary?{key,r:(primary.minR+primary.maxR+1)/2,c:(primary.minC+primary.maxC+1)/2,
+    minR:primary.minR,maxR:primary.maxR,minC:primary.minC,maxC:primary.maxC,
+    area:parts.reduce((sum,p)=>sum+(p.maxR-p.minR+1)*(p.maxC-p.minC+1),0)}:
+    {key,r:r0+6.5,c:c0+6.5,area:0};
+  _npcEmpireBuildingMetaCache.set(key,meta);return meta;
+}
 function _npcEmpireHoldingPoint(empire,holding){
   if(holding?.kind==='hq')return {r:+empire.hq_r+.5,c:+empire.hq_c+.5};
   if(holding?.kind==='business'){
     const biz=BUSINESS_POIS.find(b=>String(b.id)===String(holding.holding_id));
     return biz?{r:+biz.r+.5,c:+biz.c+.5}:null;
   }
-  const parts=String(holding?.holding_id||'').split(',').map(Number);
-  return parts.length===2&&parts.every(Number.isFinite)?{r:parts[0]*BLOCK+6.5,c:parts[1]*BLOCK+6.5}:null;
+  return _npcEmpireBuildingMeta(holding?.holding_id);
 }
 function _npcEmpireHqAt(r,c,radius=1.8){
   let best=null,bestD=radius;
@@ -17237,7 +17254,8 @@ function drawNpcEmpireHoldings(r0,r1,c0,c1){
       const point=_npcEmpireHoldingPoint(empire,holding);if(!point||point.r<r0-4||point.r>r1+4||point.c<c0-4||point.c>c1+4)continue;
       const p=w2s(point.r,point.c),isHq=holding.kind==='hq',primary=empire.color||'#872f3b',accent=empire.accent||'#e8bd67',wave=Math.sin(now*.004+String(empire.leader_id).length)*3;
       ctx.save();ctx.lineCap='round';ctx.strokeStyle='#d4bd88';ctx.lineWidth=isHq?3:2;ctx.shadowColor=primary;ctx.shadowBlur=isHq?16:8;ctx.beginPath();ctx.moveTo(p.x,p.y-(isHq?72:56));ctx.lineTo(p.x,p.y-(isHq?151:104));ctx.stroke();ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(p.x,p.y-(isHq?148:102));ctx.lineTo(p.x+(isHq?50:31),p.y-(isHq?139:96)+wave);ctx.lineTo(p.x+(isHq?42:27),p.y-(isHq?117:81));ctx.lineTo(p.x,p.y-(isHq?125:87));ctx.closePath();ctx.fill();ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(p.x,p.y-(isHq?132:91));ctx.lineTo(p.x+(isHq?46:29),p.y-(isHq?126:86)+wave*.6);ctx.lineTo(p.x+(isHq?42:27),p.y-(isHq?117:81));ctx.lineTo(p.x,p.y-(isHq?125:87));ctx.closePath();ctx.fill();ctx.shadowBlur=0;
-      if(isHq){ctx.font='900 11px Arial';ctx.textAlign='center';ctx.textBaseline='middle';const label=`🚩 ШТАБ · ${String(empire.gang_name||empire.leader_name||'БАНДА').toUpperCase()}`,tw=Math.min(250,ctx.measureText(label).width+24);ctx.fillStyle='rgba(7,9,13,.95)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-181,tw,24,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff1cf';ctx.fillText(label,p.x,p.y-169);}
+      const operation=_npcEmpireOperationFallbacks[holding.operation_type]||{},operationLabel=holding.operation_name||operation.name;
+      if(isHq||operationLabel){ctx.font='900 11px Arial';ctx.textAlign='center';ctx.textBaseline='middle';const label=isHq?`🚩 ШТАБ · ${String(empire.gang_name||empire.leader_name||'БАНДА').toUpperCase()}`:`${holding.operation_icon||operation.icon||'🏴'} ${String(operationLabel).toUpperCase()} · $${+holding.income||0}/МИН`,tw=Math.min(280,ctx.measureText(label).width+24);ctx.fillStyle='rgba(7,9,13,.95)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-(isHq?181:133),tw,24,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff1cf';ctx.fillText(label,p.x,p.y-(isHq?169:121));}
       ctx.restore();
     }
   }
@@ -18132,7 +18150,7 @@ function openNpcSandboxDashboard(){
 function openNpcEmpirePanel(leaderId,allowAssault=false){
   const empire=_npcEmpireById.get(String(leaderId||''));if(!empire){showToast('Данные босса ещё загружаются','⏳',1700);loadNpcEmpireState();return;}
   const ov=_npcEmpireOverlay(),relation=+empire.relation||0,pact=String(empire.pact||'none');ov.dataset.locked='0';ov.dataset.leaderId=empire.leader_id;ov.dataset.allowAssault=allowAssault?'1':'0';ov.style.setProperty('--ec',empire.color||'#b8863c');
-  const holdings=(empire.holdings||[]).map(h=>`<div class="ne-holding"><span>${h.kind==='hq'?'🏛️ Штаб':h.kind==='business'?'🏪 Бизнес':'🏢 Здание'} · ${_npcEmpireEsc(h.holding_id)}</span><b>+$${(+h.income||0).toLocaleString('ru')}</b></div>`).join('')||'<div style="color:#8993a0;font-size:10px">Владений нет</div>';
+  const holdings=(empire.holdings||[]).map(h=>{const op=_npcEmpireOperationFallbacks[h.operation_type]||{},converted=h.kind==='building';return `<div class="ne-holding"><span>${h.kind==='hq'?'🏛️ Штаб':h.kind==='business'?'🏪 Готовый бизнес':(h.operation_icon||op.icon||'🏴')+' '+(h.operation_name||op.name||'Захваченное здание')} · ${_npcEmpireEsc(h.holding_id)}${converted?` · ${+h.area||0} клет.`:''}</span><b>+$${(+h.income||0).toLocaleString('ru')}${converted?'/мин':''}</b></div>`;}).join('')||'<div style="color:#8993a0;font-size:10px">Владений нет</div>';
   const eventLog=_npcEmpireEvents.filter(e=>String(e.leader_id)===String(empire.leader_id)).slice(0,5).map(e=>`<div class="ne-event">${_npcEmpireEsc(e.summary)}</div>`).join('')||'<div style="color:#8993a0;font-size:10px">Недавних событий нет</div>';
   const rivalLog=_npcEmpireDiplomacy.filter(d=>d.leader_a===empire.leader_id||d.leader_b===empire.leader_id).sort((a,b)=>Math.abs(+b.score||0)-Math.abs(+a.score||0)).slice(0,4).map(d=>{const other=d.leader_a===empire.leader_id?d.leader_b:d.leader_a,boss=_npcEmpireById.get(String(other));return `<div class="ne-event"><b>${d.pact==='war'?'⚔️':d.pact==='alliance'?'🤝':'◈'} ${_npcEmpireEsc(boss?.leader_name||other)}</b> · ${+d.score>0?'+':''}${+d.score||0} · ${_npcEmpireEsc(d.pact||'none')}</div>`;}).join('');
   const events=(rivalLog?`<div style="color:#e8c471;font-size:9px;font-weight:900;margin-bottom:4px">ОТНОШЕНИЯ С ДРУГИМИ БОССАМИ</div>${rivalLog}<div style="color:#e8c471;font-size:9px;font-weight:900;margin:8px 0 4px">ХРОНИКА ИИ</div>`:'')+eventLog;
@@ -62691,7 +62709,8 @@ window.Mafiozi3DBridge = Object.freeze({
       }
       const buildingParts=cachedBuildingParts
         .filter(q=>!(JAIL_ISLAND_3D_ENABLED&&JAIL_CENTER_R>=q.minR&&JAIL_CENTER_R<=q.maxR&&JAIL_CENTER_C>=q.minC&&JAIL_CENTER_C<=q.maxC))
-        .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
+        .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread),
+          empireBuildingKey:`${Math.floor(r0/BLOCK)},${Math.floor(c0/BLOCK)}`}));
       blocks.push({
         r0,c0,styleId,buildings,roads,pavement,grass,sand,water,seed,
         building: buildingParts[0]||null,buildingParts,
@@ -63125,13 +63144,29 @@ window.Mafiozi3DBridge = Object.freeze({
       leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),
       r:(+empire.hq_r||0)+.5,c:(+empire.hq_c||0)+.5,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67')
     }));
+    const empireBuildings=[];
+    if(!inside)for(const empire of _npcEmpires){
+      if(!empire||empire.status==='ruined')continue;
+      for(const holding of (empire.holdings||[])){
+        if(holding?.kind!=='building')continue;
+        const meta=_npcEmpireBuildingMeta(holding.holding_id);if(!meta||!near(meta.r,meta.c))continue;
+        const fallback=_npcEmpireOperationFallbacks[holding.operation_type]||{};
+        empireBuildings.push({buildingKey:String(holding.holding_id||''),leaderId:String(empire.leader_id||''),
+          gangName:String(empire.gang_name||'Криминальная семья'),r:meta.r,c:meta.c,area:+holding.area||meta.area||0,
+          operationType:String(holding.operation_type||'beer_bar'),operationName:String(holding.operation_name||fallback.name||'Пивной бар'),
+          operationIcon:String(holding.operation_icon||fallback.icon||'🍺'),incomePerMinute:Math.min(200,Math.max(0,+holding.income||0)),
+          color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67')});
+      }
+    }
+    empireBuildings.sort((a,b)=>Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c));
+    if(empireBuildings.length>24)empireBuildings.length=24;
     const hospitalPatientStates=_npcEmpires.filter(empire=>(+empire?.hospital_until||0)*1000>Date.now()).map(empire=>{
       const east=String(empire.hospital_id||'')==='hospital_east';return {leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||''),color:empire.color||'#872f3b',accent:empire.accent||'#e8bd67',emblem:empire.emblem||'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((+empire.hospital_until||0)-Date.now()/1000))};
     });
     for(const boss of SPECIALIST_NPCS)if((+boss._empireHospitalUntil||0)>Date.now()&&!hospitalPatientStates.some(p=>p.leaderId===String(boss._specialistId))){const east=boss._empireHospitalId==='hospital_east';hospitalPatientStates.push({leaderId:String(boss._specialistId),leaderName:String(boss.name||'БОСС'),gangName:String(boss._empireGang||''),color:boss._empireColor||'#872f3b',accent:boss._empireAccent||'#e8bd67',emblem:'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((boss._empireHospitalUntil-Date.now())/1000))});}
     const hospitalPatients=inside?[]:hospitalPatientStates.slice(0,6);
-    document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);document.documentElement.dataset.empireHospitalPatients=String(hospitalPatients.length);
-    return {cars,npcs,empireHqs,hospitalPatients,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
+    document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);document.documentElement.dataset.empireBusinessBuildings=String(empireBuildings.length);document.documentElement.dataset.empireHospitalPatients=String(hospitalPatients.length);
+    return {cars,npcs,empireHqs,empireBuildings,hospitalPatients,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
       effectLifecycle:{bullets:bullets.length,muzzles:muzzles.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,holes:bulletHoles.length,gore:bodyPartFx.length,explosions:explosionBursts.length,throwables:_thrownItems.length,fires:_firePools.length,pendingTimers:_pendingBallisticFxTimers},
       players:players.slice(0,24),objects:objects.slice(0,160)};
   },
@@ -67135,6 +67170,6 @@ function chatDuration(text) {
 </script>
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
-<script type="module" src="three_preview.js?v=3d363-empire-hospital-cycle"></script>
+<script type="module" src="three_preview.js?v=3d364-building-rackets"></script>
 </body>
 </html>
