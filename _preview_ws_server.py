@@ -1610,6 +1610,14 @@ async def npc_empire_state(req):
     uid = str(req.match_info.get("uid") or "1")
     now = int(time.time())
     empires = []
+    # Keep converted buildings around the normal world spawn so one-tab
+    # visual QA exercises flags, signs and facade recoloring immediately.
+    preview_buildings = sorted(
+        npc_empire.BUILDING_AREAS.items(),
+        key=lambda item: abs(int(item[0].split(',')[0]) * 10 + 5 - 40)
+                         + abs(int(item[0].split(',')[1]) * 10 + 5 - 40),
+    )
+    preview_operations = list(npc_empire.BUILDING_OPERATIONS.items())
     for rank, profile in enumerate(npc_empire.PROFILES, 1):
         relation, pact = preview_empire_relations.get((uid, profile.leader_id), (0, "none"))
         hq_r, hq_c = npc_empire._hq_coords(profile.hq_key)
@@ -1618,6 +1626,8 @@ async def npc_empire_state(req):
         if hospital_until <= now:
             hospital_until = 0
             preview_empire_hospitals.pop(profile.leader_id, None)
+        building_key, building_area = preview_buildings[(rank - 1) % len(preview_buildings)]
+        operation_type, operation_meta = preview_operations[(rank - 1) % len(preview_operations)]
         empires.append({
             "leader_id": profile.leader_id,
             "leader_name": _preview_empire_text(profile.leader_name),
@@ -1630,7 +1640,13 @@ async def npc_empire_state(req):
             "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
             "relation": relation, "relation_band": npc_empire.relation_band(relation),
             "pact": pact, "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
-                                           "income": 0, "defense": 80}],
+                                           "income": 0, "defense": 80},
+                {"kind":"building","holding_id":building_key,
+                 "income":npc_empire.building_operation_income(operation_type, building_area),
+                 "defense":55,"operation_type":operation_type,
+                 "operation_name":operation_meta["name"],"operation_icon":operation_meta["icon"],
+                 "income_unit":"minute","area":building_area,
+                 "size_class":"large" if building_area>=24 else "medium" if building_area>=16 else "small"}],
             "activity": _preview_empire_activity(profile, now),
             "rank": rank, "wins": rank % 4, "losses": rank % 3, "knockouts": rank % 2,
             "comebacks": 0, "dominance_score": 25 + rank, "district_count": rank % 3,

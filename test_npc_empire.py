@@ -45,6 +45,28 @@ async def _scalar(path: str, sql: str, args=()):
 
 async def run() -> None:
     assert ne.NPC_EMPIRE_MAX_FIGHTERS == 20
+    assert len(ne.BUILDING_OPERATIONS) == 8
+    assert len(ne.BUILDING_AREAS) == 101
+    assert not set(ne.BUILDING_AREAS).intersection(p.hq_key for p in ne.PROFILES)
+    assert ne.building_operation_income("print_shop", 27) == 200
+    assert ne.building_operation_income("print_shop", 4) == 175
+    assert ne.building_operation_income("beer_bar", 27) > ne.building_operation_income("beer_bar", 4)
+    assert {ne.choose_building_operation(p, key, 2_000_000_000)
+            for p, key in zip(ne.PROFILES, ne.BUILDING_AREAS)} <= set(ne.BUILDING_OPERATIONS)
+    root = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(root, "world.html"), encoding="utf-8") as source:
+        world_source = source.read()
+    with open(os.path.join(root, "three_preview.js"), encoding="utf-8") as source:
+        three_source = source.read()
+    assert "empireBuildings.length>24" in world_source
+    assert "3d364-building-rackets" in world_source
+    assert "const EMPIRE_BUILDING_CAP=24" in three_source
+    assert "empireBuildingObjects.get" in three_source
+    assert "visibleEmpireBusinessBuildings" in three_source
+    assert set(ne.BUILDING_OPERATIONS) <= {
+        operation_id for operation_id in ne.BUILDING_OPERATIONS
+        if operation_id in world_source and operation_id in three_source
+    }
     fd, path = tempfile.mkstemp(prefix="npc_empire_", suffix=".db")
     os.close(fd)
     try:
@@ -68,6 +90,25 @@ async def run() -> None:
             path, 101, now=state_now + ne.VISIBLE_ACTIVITY_SECONDS)
         later_activity = next(x for x in later_state["empires"] if x["leader_id"] == "leila")["activity"]
         assert later_activity["created_at"] != leila_activity["created_at"]
+
+        # A captured apartment is converted into one of eight criminal
+        # operations.  The API exposes its skin/name and per-minute economy.
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "INSERT INTO npc_empire_holdings"
+                "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
+                "VALUES('building','0,3','leila',200,60,?,'print_shop',27)",
+                (state_now,),
+            )
+            await db.commit()
+        converted_state = await ne.state_for(path, 101, now=state_now)
+        converted = next(h for h in next(
+            e for e in converted_state["empires"] if e["leader_id"] == "leila"
+        )["holdings"] if h["kind"] == "building")
+        assert converted["operation_name"] == "Фальшивая типография"
+        assert converted["operation_icon"] == "🖨️"
+        assert converted["income"] == 200 and converted["income_unit"] == "minute"
+        assert converted["size_class"] == "large"
 
         hospitalized = await ne.hospitalize_boss(path, "leila", "hospital_east", now=state_now)
         assert hospitalized["ok"] and hospitalized["hospital_until"] == state_now + 60
@@ -225,7 +266,10 @@ async def run() -> None:
                     "INSERT INTO npc_empire_assaults(token,telegram_id,leader_id,guard_hp_json,boss_hp,boss_max_hp,status,started_at,expires_at,last_hit_at) VALUES(?,?,?,'[0]',0,300,'active',?,?,?)",
                     (extra_token, 101, leader, 2_000_002_000, 2_000_010_000, 2_000_002_000.0),
                 )
-            await db.execute("INSERT OR REPLACE INTO npc_empire_holdings VALUES('business','bar','rustam',1200,90,?)", (2_000_002_000,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_holdings"
+                "(kind,holding_id,leader_id,income,defense,acquired_at) "
+                "VALUES('business','bar','rustam',1200,90,?)", (2_000_002_000,))
             await db.execute("INSERT OR REPLACE INTO business_property_owners VALUES(?,?,?,?,?)", ("bar", ne.npc_owner_uid("rustam"), "Железные волки", 2_000_002_000, 0))
             await db.commit()
         looted = await ne.resolve_assault(path, 101, "won-loot", "loot", now=2_000_002_100)

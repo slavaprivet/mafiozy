@@ -22,7 +22,7 @@ def run() -> None:
     assert "_npcEmpireAttitude" in WORLD and "НЕГАТИВНО" in WORLD and "ПОЛОЖИТЕЛЬНО" in WORLD
     assert "data-ne-declare-war" in WORLD and "НУЖНО НИЖЕ 0" in WORLD
     assert "data-ne-extra=\"apologize\"" in WORLD and "data-ne-extra=\"compensation\"" in WORLD
-    assert "_empirePlayerWar" in WORLD and "Мы с тобой воюем!" in WORLD
+    assert "_empirePlayerWar" in WORLD and "_empireSpeak(n,'playerWar'" in WORLD
     assert "activity.target_r" in WORLD and "empireBossMotion" in WORLD
     assert "tile===14||tile===15||tile===17" in WORLD
     assert "ri>0&&ri<MAP_ROWS-1&&ci>0&&ci<MAP_COLS-1&&!isBlockedPed(r,c)" in WORLD
@@ -43,7 +43,7 @@ def run() -> None:
     assert "EMPIRE_MAX_ESCORTS=20" in WORLD and "EMPIRE_VISIBLE_CREW_CAP=60" in WORLD
     assert "_empireFormationOffset" in WORLD and "2.3999632297" in WORLD
     assert "_empireSeparationVector" in WORLD and "_empireScatterSquad" in WORLD
-    assert "ВРОССЫПНУЮ! НЕ СТОЯТЬ КУЧЕЙ!" in WORLD
+    assert "_empireSpeak(target,'scatter'" in WORLD
     assert "overwhelming=force>=10" in WORLD and "assigned*1.35" in WORLD
     assert "npc.walking?npc.walkPhase:0" in WORLD
     assert "walking:!death.dead&&declaredMoving" in WORLD
@@ -64,7 +64,7 @@ def run() -> None:
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d363-empire-hospital-cycle" in WORLD
+    assert "3d364-building-rackets" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD
     assert 'class="ns-hospital-mark"' in WORLD and 'class="ns-hospital-cross"' in WORLD
