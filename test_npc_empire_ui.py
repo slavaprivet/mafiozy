@@ -103,6 +103,8 @@ def run() -> None:
     assert "(?!api\\.)" in TUNNEL and "TUNNEL_ATTEMPTS = 3" in TUNNEL
     assert "wait_for_public_api(api_url)" in TUNNEL
     assert "cloudflare-dns.com/dns-query" in TUNNEL and "CREATE_NO_WINDOW" in TUNNEL
+    assert "TUNNEL_HEALTH_INTERVAL = 30" in TUNNEL
+    assert "Публичный туннель потерян" in TUNNEL and "os.execv(" in TUNNEL
     assert TUNNEL.index("wait_for_public_api(api_url)") < TUNNEL.index("publish_coop_api_json(api_url)", TUNNEL.index("def main"))
     print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 

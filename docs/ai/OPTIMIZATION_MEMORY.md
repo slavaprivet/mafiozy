@@ -1261,3 +1261,6 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - A missing first empire snapshot must produce deterministic walkable patrol
   targets, not an `offline` action anchored to each boss's current position.
   If a prior server snapshot exists, retain its last activity during outages.
+- Quick tunnels have no uptime guarantee. Supervise `/world/online` every 30
+  seconds and atomically restart the bot+tunnel pair when the public endpoint
+  disappears; publish only the newly verified replacement address.

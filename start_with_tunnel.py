@@ -29,6 +29,7 @@ CFD_URL = "https://github.com/cloudflare/cloudflared/releases/latest/download/cl
 PORT = 8080
 URL_RE = re.compile(rb"https://(?!api\.)[a-z0-9\-]+\.trycloudflare\.com")
 TUNNEL_ATTEMPTS = 3
+TUNNEL_HEALTH_INTERVAL = 30
 
 
 def log(msg, prefix="[tunnel]"):
@@ -262,7 +263,26 @@ def main():
                 log(f"[!] Публикация coop_api.json упала: {_e}")
         elif api_url:
             log("[!] Непроверенный URL не записан в coop_api.json.")
-        rc = bot_proc.wait()
+        while bot_proc.poll() is None:
+            time.sleep(TUNNEL_HEALTH_INTERVAL)
+            if api_url and not wait_for_public_api(api_url, timeout=20):
+                log("[!] Публичный туннель потерян. Автоматически получаю новый адрес...")
+                try:
+                    bot_proc.terminate()
+                    bot_proc.wait(timeout=8)
+                except Exception:
+                    try:
+                        bot_proc.kill()
+                    except Exception:
+                        pass
+                if tun_proc and tun_proc.poll() is None:
+                    try:
+                        tun_proc.terminate()
+                    except Exception:
+                        pass
+                time.sleep(2)
+                os.execv(sys.executable, [sys.executable, str(Path(__file__).resolve())])
+        rc = bot_proc.returncode or 0
     except Exception as e:
         crashed = True
         log(f"[!] Бот упал с исключением: {e}")
