@@ -2708,7 +2708,6 @@ async def sell_property_db(telegram_id: int, item_id: str):
 # не под конкретные дома на карте). apt_key — координаты ГОРОДСКОГО БЛОКА
 # ("br,bc"), не буквального тайла входа — см. _aptBlockKey в world.html.
 
-APARTMENT_OWNERSHIP_LIMIT = 5
 PLAYER_BUILDING_INCOME_CATCHUP_MINUTES = 24 * 60
 APARTMENT_DISTRICT_PRICES = {
     "poor": 3500, "lair": 5500, "industrial": 7000,
@@ -2728,7 +2727,7 @@ def apartment_coords_from_key(apt_key: str):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 200 else None
 
 
 def apartment_district_id(r: int, c: int) -> str:
@@ -2906,8 +2905,6 @@ async def buy_apartment_db(telegram_id: int, apt_key: str, price: int,
             await db.rollback(); return {'ok': False, 'error': 'no character'}
         async with db.execute("SELECT apt_key,property_kind FROM apartments_owned WHERE telegram_id=?", (telegram_id,)) as cur:
             mine = await cur.fetchall()
-        if len(mine) >= APARTMENT_OWNERSHIP_LIMIT:
-            await db.rollback(); return {'ok': False, 'error': 'apartment limit'}
         if property_kind == 'hq' and any(str(row[1] or 'hq') == 'hq' for row in mine):
             await db.rollback(); return {'ok': False, 'error': 'hq limit'}
         async with db.execute("SELECT 1 FROM custom_gang_members WHERE telegram_id=?", (telegram_id,)) as cur:
@@ -24465,7 +24462,7 @@ async def _coop_http_app():
             'ok': True, 'owned': owned,
             'properties': await get_player_building_properties(),
             'operations': npc_empire.BUILDING_OPERATIONS,
-            'limit': APARTMENT_OWNERSHIP_LIMIT,
+            'limit': None,
         }))
 
     async def h_apartment_buy(req):

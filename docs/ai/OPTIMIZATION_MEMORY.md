@@ -11,7 +11,7 @@
   distance sort preserves the 64-nearest cap and the existing signature-only
   flag/sign updates.
 - Headquarters and businesses are separate server-authoritative property kinds.
-  A player may hold up to five converted buildings but only one HQ; a block can
+  A player may hold any number of converted buildings but only one HQ; a block can
   belong to either an NPC empire or one player, never both. NPC expansion and
   comeback candidate selection now reserve all player-owned blocks.
 - Business income is computed once from the shared eight-operation table and

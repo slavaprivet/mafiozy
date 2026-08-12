@@ -17077,7 +17077,6 @@ function _installNpcEmpireFallbacks(){
   }
 }
 _installNpcEmpireFallbacks();
-const APARTMENT_OWNERSHIP_LIMIT = 5;
 const PLAYER_BUILDING_OPERATIONS=Object.freeze({
   beer_bar:{name:'Пивной бар',icon:'🍺',base:70},pawnshop:{name:'Скупка краденого',icon:'💎',base:85},
   bookmaker:{name:'Букмекерская',icon:'🎟️',base:95},strip_club:{name:'Стрип-клуб',icon:'💃',base:120},
@@ -17101,7 +17100,7 @@ function _apartmentOwnedCount() {
   return Object.keys(_myApartments || {}).length;
 }
 function _apartmentCounterLabel() {
-  return `${Math.min(_apartmentOwnedCount(), APARTMENT_OWNERSHIP_LIMIT)}/${APARTMENT_OWNERSHIP_LIMIT}`;
+  const count=_apartmentOwnedCount();return `${count} ${count===1?'здание':(count>=2&&count<=4?'здания':'зданий')}`;
 }
 // Каждый тайл внутри городского квадрата 4×4 — отдельное мини-здание.
 // Новый ключ хранит точный тайл входа. Старые записи формата "br,bc"
@@ -18554,7 +18553,6 @@ async function buyCurrentApartment() {
   if (!_buildingInt || _buildingInt.type) return;
   const key = _aptTileKey(_buildingInt.r, _buildingInt.c);
   if (_myApartments[key]) { showToast('Это здание уже твоё', '✅', 1800); return; }
-  if (_apartmentOwnedCount() >= APARTMENT_OWNERSHIP_LIMIT) {showToast(`Лимит недвижимости: ${APARTMENT_OWNERSHIP_LIMIT} зданий`,'⚠️',2500);return;}
   openPlayerBuildingChoice();
 }
 async function _buyCurrentApartment(propertyKind,operationType) {
@@ -18572,7 +18570,6 @@ async function _buyCurrentApartment(propertyKind,operationType) {
     const j = await r.json();
     if (!j.ok) {
       const msg = j.error === 'no cash' ? '💸 Недостаточно денег'
-        : j.error === 'apartment limit' ? `Лимит недвижимости: ${APARTMENT_OWNERSHIP_LIMIT}`
         : j.error === 'hq limit' ? 'У твоей мафии уже есть штаб'
         : j.error === 'mafia required' ? 'Покупка доступна только мафиози'
         : j.error === 'building occupied' ? 'Это здание уже занято другой семьёй'
@@ -26910,9 +26907,7 @@ function updateGtaInteractions() {
         const price = apartmentPrice(_buildingInt.r, _buildingInt.c);
         const market = apartmentDistrictMarket(_buildingInt.r, _buildingInt.c);
         _gtaActionKind = 'apt_buy'; _gtaActionCarId = null;
-        _gtaBtn.textContent = _apartmentOwnedCount() >= APARTMENT_OWNERSHIP_LIMIT
-          ? '🏛️ Штаб уже создан · лимит 1/1'
-          : `🏛️ Создать штаб · ${market.label} · $${price.toLocaleString('ru')}`;
+        _gtaBtn.textContent = `🏛️ Купить здание · ${market.label} · $${price.toLocaleString('ru')}`;
         _gtaBtn.style.display = 'block'; return;
       } else {
         _gtaActionKind = 'apt_upgrade'; _gtaActionCarId = null;

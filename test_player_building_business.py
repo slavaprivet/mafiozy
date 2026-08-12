@@ -46,8 +46,13 @@ async def run():
             1, 'tile:6,46', 3500, 'hq'))['ok']
         assert (await bot.buy_apartment_db(
             1, 'tile:6,56', 3500, 'hq'))['error'] == 'hq limit'
+        for apt_key in ('tile:6,56', 'tile:6,66', 'tile:6,76', 'tile:6,116'):
+            result = await bot.buy_apartment_db(
+                1, apt_key, 3500, 'business', 'pawnshop')
+            assert result['ok'], result
+        assert len(await bot.get_apartments_owned(1)) == 6
         assert (await bot.buy_apartment_db(
-            2, 'tile:6,66', 3500, 'business', 'poker_club'))['error'] == 'mafia required'
+            2, 'tile:6,156', 3500, 'business', 'poker_club'))['error'] == 'mafia required'
 
         with sqlite3.connect(path) as db:
             db.execute(
@@ -58,7 +63,7 @@ async def run():
         payout = await bot.collect_apartment_income_db(1, 'tile:6,36')
         assert payout['collected'] == 166
         properties = await bot.get_player_building_properties()
-        assert len(properties) == 2
+        assert len(properties) == 6
         assert properties[0]['family'] == 'moretti'
         print('player building business: OK')
     finally:

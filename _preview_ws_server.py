@@ -1129,7 +1129,6 @@ def preview_owned_apartments(uid):
     return preview_apartments.setdefault(str(uid), {})
 
 
-APARTMENT_OWNERSHIP_LIMIT = 5
 APARTMENT_DISTRICT_PRICES = {
     "poor": 3500, "lair": 5500, "industrial": 7000,
     "countryside": 8500, "nightlife": 14000, "downtown": 18000,
@@ -1147,7 +1146,7 @@ def apartment_coords_from_key(apt_key):
             r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
     except (AttributeError, TypeError, ValueError):
         return None
-    return (r, c) if 0 <= r < 200 and 0 <= c < 80 else None
+    return (r, c) if 0 <= r < 200 and 0 <= c < 200 else None
 
 
 def apartment_district_id(r, c):
@@ -1199,7 +1198,7 @@ async def apartment_state(req):
     return cors(web.json_response({
         "ok": True, "owned": preview_owned_apartments(req.match_info.get("uid", "1")),
         "properties": preview_player_properties(), "operations": npc_empire.BUILDING_OPERATIONS,
-        "limit": APARTMENT_OWNERSHIP_LIMIT,
+        "limit": None,
     }))
 
 
@@ -1219,11 +1218,6 @@ async def apartment_buy(req):
     account = preview_account(uid)
     if apt_key in owned:
         return cors(web.json_response({"ok": True, "already": True, "cash": account["cash"], "owned": owned}))
-    if len(owned) >= APARTMENT_OWNERSHIP_LIMIT:
-        return cors(web.json_response({
-            "ok": False, "error": "apartment limit",
-            "count": len(owned), "limit": APARTMENT_OWNERSHIP_LIMIT, "owned": owned,
-        }))
     if property_kind not in ("business", "hq") or (property_kind == "business" and operation_type not in npc_empire.BUILDING_OPERATIONS):
         return cors(web.json_response({"ok": False, "error": "bad property kind"}, status=400))
     if property_kind == "hq" and (any(x.get("property_kind", "hq") == "hq" for x in owned.values()) or uid in preview_custom_gang_by_uid):
