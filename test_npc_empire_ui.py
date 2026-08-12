@@ -6,6 +6,7 @@ from pathlib import Path
 WORLD = (Path(__file__).resolve().parent / "world.html").read_text(encoding="utf-8")
 THREE = (Path(__file__).resolve().parent / "three_preview.js").read_text(encoding="utf-8")
 PREVIEW = (Path(__file__).resolve().parent / "_preview_ws_server.py").read_text(encoding="utf-8")
+NPC_EMPIRE = (Path(__file__).resolve().parent / "npc_empire.py").read_text(encoding="utf-8")
 
 
 def run() -> None:
@@ -85,6 +86,11 @@ def run() -> None:
     assert "type==='withdraw'" in WORLD and "type==='regroup'" in WORLD
     assert "type==='focus'" in WORLD and "type==='flank'" in WORLD
     assert "dataset.empireSquadOrder" in WORLD and "now-order.announcedAt>5000" in WORLD
+    assert "newOwnLosses" in WORLD and "newEnemyLosses" in WORLD and "setback>=4" in WORLD
+    assert "setbackRecovery" in WORLD and "now-lastCasualtyAt>=5000" in WORLD
+    assert "dataset.empireSquadSetback" in WORLD
+    assert "ВЫУЧЕННЫЙ УРОК" in WORLD and "brain.adaptation" in WORLD
+    assert "_boss_adaptation(" in NPC_EMPIRE and "'adaptation': adaptation" in NPC_EMPIRE
     print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 
 

@@ -112,6 +112,28 @@ async def run() -> None:
             active_wars=1, neutral_buildings=0, affordable_businesses=0,
         )
         assert revenge_plan["strategy"] == "retaliate"
+        learned_plan = ne._boss_brain(
+            ne.PROFILE_BY_ID["viktor"],
+            {"treasury": 9000, "members": 12, "strength": 170,
+             "status": "active", "hospital_until": 0},
+            [{"kind": "building", "holding_id": "2,2"}],
+            [{"kind": "war_lost", "summary": "loss 2", "created_at": state_now},
+             {"kind": "war_lost", "summary": "loss 1", "created_at": state_now - 60}],
+            state_now, active_wars=1, neutral_buildings=4, affordable_businesses=0,
+        )
+        assert learned_plan["adaptation"]["mode"] == "cautious"
+        assert learned_plan["adaptation"]["loss_streak"] == 2
+        assert learned_plan["strategy"] in {"fortify", "recruit", "recover"}
+        bold_lesson = ne._boss_adaptation([
+            {"kind": "war_won", "created_at": state_now},
+            {"kind": "gang_destroyed", "created_at": state_now - 60},
+        ], state_now)
+        assert bold_lesson["mode"] == "bold" and bold_lesson["win_streak"] == 2
+        forgotten_lesson = ne._boss_adaptation([
+            {"kind": "war_lost", "created_at": state_now - 25 * 3600},
+            {"kind": "war_lost", "created_at": state_now - 26 * 3600},
+        ], state_now)
+        assert forgotten_lesson["mode"] == "balanced"
         assert len(state["leaderboard"]) == 19 and len(state["districts"]) == len(ne.DISTRICTS)
         assert all(x["relation"] == 0 and x["relation_band"] == "neutral" for x in state["empires"])
         assert all(x["activity"]["phase"] == "travel" for x in state["empires"])

@@ -419,6 +419,46 @@ def _boss_memory_cards(events: list[dict], now: int, limit: int = 5) -> list[dic
     return cards[:limit]
 
 
+def _boss_adaptation(events: list[dict], now: int) -> dict:
+    """Extract a bounded tactical lesson from recent persistent outcomes."""
+    wins = {'war_won', 'gang_destroyed'}
+    defeats = {'war_lost', 'empire_ruined'}
+    recent = [event for event in events
+              if max(0, now - int(event.get('created_at') or now)) <= 24 * 3600]
+    recent.sort(key=lambda event: int(event.get('created_at') or 0), reverse=True)
+    streak_kind = ''
+    streak = 0
+    for event in recent:
+        kind = str(event.get('kind') or '')
+        outcome = 'win' if kind in wins else 'loss' if kind in defeats else ''
+        if not outcome:
+            continue
+        if not streak_kind:
+            streak_kind = outcome
+        if outcome != streak_kind:
+            break
+        streak += 1
+    wounds = sum(1 for event in recent
+                 if str(event.get('kind') or '') == 'hospitalized')
+    loss_streak = streak if streak_kind == 'loss' else 0
+    win_streak = streak if streak_kind == 'win' else 0
+    if loss_streak >= 2 or wounds >= 2:
+        mode = 'cautious'
+        lesson = (f'После {loss_streak} поражений подряд босс избегает нового фронта.'
+                  if loss_streak >= 2 else
+                  f'После {wounds} ранений босс бережёт себя и усиливает охрану.')
+    elif win_streak >= 2:
+        mode = 'bold'
+        lesson = f'{win_streak} победы подряд убедили босса развивать успех.'
+    else:
+        mode = 'balanced'
+        lesson = 'Недавние исходы не требуют менять привычный стиль.'
+    return {
+        'mode': mode, 'lesson': lesson, 'loss_streak': loss_streak,
+        'win_streak': win_streak, 'recent_wounds': wounds,
+    }
+
+
 def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[dict],
                 now: int, *, active_wars: int = 0, neutral_buildings: int = 0,
                 affordable_businesses: int = 0) -> dict:
@@ -431,6 +471,7 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
     business_count = sum(1 for h in holdings if str(h['kind']) == 'business')
     target_members = min(NPC_EMPIRE_MAX_FIGHTERS, 8 + (profile.aggression + profile.loyalty) // 10)
     memories = _boss_memory_cards(events, now)
+    adaptation = _boss_adaptation(events, now)
     remembered = {memory['kind'] for memory in memories}
     recent_humiliation = sum(memory['importance'] for memory in memories
                              if memory['kind'] in {'player_attack', 'war_lost', 'empire_ruined', 'hospitalized'})
@@ -443,6 +484,20 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
         'expand': profile.aggression * .24 + profile.commerce * .20 + building_count * -4 + min(20, treasury / 2200),
         'consolidate': 22 + profile.diplomacy * .16 + len(holdings) * 2 + (18 if treasury < 1200 else 0),
     }
+    # Outcomes change future decisions instead of serving as decorative text.
+    # Defeat streaks pull the family toward recovery and defense; a successful
+    # streak creates controlled momentum without overriding hard constraints.
+    loss_streak = int(adaptation['loss_streak'])
+    win_streak = int(adaptation['win_streak'])
+    wounds = int(adaptation['recent_wounds'])
+    scores['recover'] += loss_streak * 20 + wounds * 9
+    scores['recruit'] += loss_streak * 16 + wounds * 5
+    scores['fortify'] += loss_streak * 18 + wounds * 8
+    scores['retaliate'] -= loss_streak * 22 + wounds * 8
+    scores['expand'] -= loss_streak * 15
+    scores['retaliate'] += win_streak * 7
+    scores['expand'] += win_streak * 12
+    scores['acquire'] += win_streak * 4
     if int(row['hospital_until'] or 0) > now:
         scores['recover'] += 180
     if members >= target_members or treasury < 180 + members * 14:
@@ -460,7 +515,9 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
     second = ranked[1][1]
     confidence = max(52, min(96, int(58 + max(0, best - second) * .8)))
     power_per_member = strength / max(1, members)
-    risk_value = active_wars * 24 + max(0, 8 - members) * 5 + max(0, 11 - power_per_member) * 3
+    risk_value = (active_wars * 24 + max(0, 8 - members) * 5
+                  + max(0, 11 - power_per_member) * 3
+                  + loss_streak * 12 + wounds * 6 - win_streak * 4)
     risk = 'высокий' if risk_value >= 55 else 'средний' if risk_value >= 25 else 'низкий'
     labels = {
         'recover': 'Собрать семью заново', 'recruit': 'Усилить состав',
@@ -484,7 +541,7 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
         'strategy': strategy, 'label': labels[strategy], 'reason': reasons[strategy],
         'confidence': confidence, 'risk': risk, 'temperament': dominant,
         'scores': [{'strategy': key, 'score': round(value, 1)} for key, value in ranked[:3]],
-        'decided_at': now, 'memory_count': len(memories),
+        'decided_at': now, 'memory_count': len(memories), 'adaptation': adaptation,
     }
 
 

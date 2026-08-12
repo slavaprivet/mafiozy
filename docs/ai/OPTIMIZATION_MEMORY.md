@@ -1227,3 +1227,16 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Announce only real order changes and enforce a five-second speech cooldown.
   Tactical state remains client-side and bounded; no database calls, new timers
   or Three.js frame scans are added.
+
+## Outcome-driven boss adaptation (2026-08-12)
+
+- Derive one bounded adaptation record from the existing recent event query;
+  never add a second database read. Consecutive defeats and recent boss wounds
+  bias the strategic scores toward recovery, recruitment and fortification,
+  while consecutive victories permit controlled expansion.
+- Carry own/enemy casualty peaks inside the existing 900 ms squad-order cache.
+  A tactic that loses fighters without inflicting losses accumulates setback:
+  the squad regroups, then withdraws, instead of repeating the failed push.
+- Expose the learned lesson in the dossier so the decision remains explainable.
+  These calculations run only when server state or the shared order refreshes,
+  not once per fighter or rendered frame.

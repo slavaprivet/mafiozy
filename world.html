@@ -9246,23 +9246,26 @@ function _empireSquadOrder(n,now=performance.now()){
   const ownBoss=own.find(x=>x._empireBoss),enemyBoss=enemy.find(x=>x._empireBoss);
   const healthWeight=x=>Math.max(.12,(+x._empireBattleHp||+x._empireBattleMaxHp||1)/Math.max(1,+x._empireBattleMaxHp||1));
   const force=team=>team.reduce((sum,x)=>sum+healthWeight(x)*Math.max(24,+x._empireStrength||80),0);
-  const ratio=force(own)/Math.max(24,force(enemy)),peakOwn=Math.max(+previous?.peakOwn||0,own.length),losses=Math.max(0,peakOwn-own.length);
+  const ratio=force(own)/Math.max(24,force(enemy)),peakOwn=Math.max(+previous?.peakOwn||0,own.length),peakEnemy=Math.max(+previous?.peakEnemy||0,enemy.length),losses=Math.max(0,peakOwn-own.length),enemyLosses=Math.max(0,peakEnemy-enemy.length);
+  const newOwnLosses=Math.max(0,losses-(+previous?.losses||0)),newEnemyLosses=Math.max(0,enemyLosses-(+previous?.enemyLosses||0));
+  const lastCasualtyAt=(newOwnLosses||newEnemyLosses)?now:(+previous?.lastCasualtyAt||now),setbackRecovery=previous&&now-lastCasualtyAt>=5000?1:0;
+  const setback=Math.max(0,Math.min(8,(+previous?.setback||0)+newOwnLosses*2-newEnemyLosses-setbackRecovery));
   const center=own.length?own.reduce((a,x)=>(a.r+=x.r,a.c+=x.c,a),{r:0,c:0}):{r:n.r,c:n.c};center.r/=Math.max(1,own.length);center.c/=Math.max(1,own.length);
   const spread=own.reduce((max,x)=>Math.max(max,Math.hypot(x.r-center.r,x.c-center.c)),0);
   const closestEnemy=enemy.reduce((best,x)=>Math.min(best,Math.hypot(x.r-center.r,x.c-center.c)),Infinity);
   const bossHealth=ownBoss?healthWeight(ownBoss):0,enemyBossHealth=enemyBoss?healthWeight(enemyBoss):1;
   let type='hold';
-  if(!ownBoss||(bossHealth<.24&&ratio<1.08)||(peakOwn>=4&&losses>=Math.ceil(peakOwn*.5)&&ratio<.82))type='withdraw';
-  else if(spread>6.2&&closestEnemy>4.4)type='regroup';
+  if(!ownBoss||(bossHealth<.24&&ratio<1.08)||(peakOwn>=4&&losses>=Math.ceil(peakOwn*.5)&&ratio<.82)||(setback>=4&&ratio<1.12))type='withdraw';
+  else if((setback>=2&&ratio<1.3)||(spread>6.2&&closestEnemy>4.4))type='regroup';
   else if(enemyBoss&&enemyBossHealth<.55&&ratio>=.84)type='focus';
-  else if(own.length>=4&&enemy.length>=2&&ratio>=.78&&ratio<1.34)type='flank';
-  else if(ratio>=1.34)type='press';
-  const order={type,ratio,losses,peakOwn,center,enemyBoss,until:now+EMPIRE_SQUAD_ORDER_MS,announcedAt:+previous?.announcedAt||0};
+  else if(setback<2&&own.length>=4&&enemy.length>=2&&ratio>=.78&&ratio<1.34)type='flank';
+  else if(setback<2&&ratio>=1.34)type='press';
+  const order={type,ratio,losses,enemyLosses,peakOwn,peakEnemy,setback,lastCasualtyAt,center,enemyBoss,until:now+EMPIRE_SQUAD_ORDER_MS,announcedAt:+previous?.announcedAt||0};
   _empireSquadOrders.set(key,order);
+  document.documentElement.dataset.empireSquadOrder=type;document.documentElement.dataset.empireSquadSetback=String(setback);
   if(type!==previous?.type&&ownBoss&&now-order.announcedAt>5000){
     const mood=type==='withdraw'?'retreat':type==='regroup'?'return':type==='focus'?'playerWar':type==='flank'?'scatter':'war';
     _empireSpeak(ownBoss,mood,now,2100,true);ownBoss._empireLastOrder=type;order.announcedAt=now;
-    document.documentElement.dataset.empireSquadOrder=type;
   }
   return order;
 }
@@ -18421,7 +18424,8 @@ openNpcEmpirePanel=function(leaderId,allowAssault=false){
     const priorities=(brain.scores||[]).map((item,index)=>`<span class="ne-brain-chip">${index===0?'ПРИКАЗ':'ВАРИАНТ'} · <b>${_npcEmpireEsc(String(item.strategy||'').toUpperCase())}</b> ${Number.isFinite(+item.score)?Math.round(+item.score):''}</span>`).join('');
     const memories=(empire.memory||[]).slice(0,4).map(item=>`<div class="ne-memory-card ${_npcEmpireEsc(item.tone||'neutral')}"><b>${_npcEmpireEsc(item.title||'Событие семьи')}</b>${_npcEmpireEsc(item.summary||'')}</div>`).join('');
     brainBoard=document.createElement('section');brainBoard.className='ne-brain-board';
-    brainBoard.innerHTML=`<div class="ne-brain-head"><div><div class="ne-brain-kicker">МОЗГ БОССА · ТЕКУЩИЙ ЗАМЫСЕЛ</div><div class="ne-brain-title">${_npcEmpireEsc(brain.label||'Оценить обстановку')}</div></div><div class="ne-brain-confidence">УВЕРЕННОСТЬ <b>${Math.max(0,Math.min(100,+brain.confidence||0))}%</b></div></div><p class="ne-brain-reason">${_npcEmpireEsc(brain.reason||'Босс собирает сведения и выбирает следующий ход.')}</p><div class="ne-brain-chips"><span class="ne-brain-chip">РИСК · <b>${_npcEmpireEsc(String(brain.risk||'неизвестен').toUpperCase())}</b></span><span class="ne-brain-chip">ХАРАКТЕР · <b>${_npcEmpireEsc(String(brain.temperament||'расчёт').toUpperCase())}</b></span>${priorities}</div>${memories?`<div class="ne-brain-memory">${memories}</div>`:''}`;
+    const adaptation=brain.adaptation||{},lesson=adaptation.lesson?`<p class="ne-brain-reason"><b>ВЫУЧЕННЫЙ УРОК:</b> ${_npcEmpireEsc(adaptation.lesson)}</p>`:'';
+    brainBoard.innerHTML=`<div class="ne-brain-head"><div><div class="ne-brain-kicker">МОЗГ БОССА · ТЕКУЩИЙ ЗАМЫСЕЛ</div><div class="ne-brain-title">${_npcEmpireEsc(brain.label||'Оценить обстановку')}</div></div><div class="ne-brain-confidence">УВЕРЕННОСТЬ <b>${Math.max(0,Math.min(100,+brain.confidence||0))}%</b></div></div><p class="ne-brain-reason">${_npcEmpireEsc(brain.reason||'Босс собирает сведения и выбирает следующий ход.')}</p>${lesson}<div class="ne-brain-chips"><span class="ne-brain-chip">РИСК · <b>${_npcEmpireEsc(String(brain.risk||'неизвестен').toUpperCase())}</b></span><span class="ne-brain-chip">ХАРАКТЕР · <b>${_npcEmpireEsc(String(brain.temperament||'расчёт').toUpperCase())}</b></span><span class="ne-brain-chip">АДАПТАЦИЯ · <b>${_npcEmpireEsc(String(adaptation.mode||'balanced').toUpperCase())}</b></span>${priorities}</div>${memories?`<div class="ne-brain-memory">${memories}</div>`:''}`;
     hero.insertAdjacentElement('afterend',brainBoard);
   }
   ov.querySelector('[data-ne-action="declare_war"]')?.remove();
