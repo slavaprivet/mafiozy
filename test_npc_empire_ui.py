@@ -15,7 +15,8 @@ def run() -> None:
     assert 'class="ne-rank-grid"' in WORLD
     assert 'data-ne-portrait=' in WORLD
     assert "← К СПИСКУ БОССОВ" in WORLD
-    assert "ov.querySelector('.ne-x')?.remove()" in WORLD
+    assert "close.classList.add('ne-dossier-close')" in WORLD
+    assert "close.setAttribute('aria-label'" in WORLD
     assert "ov.dataset.locked='1'" in WORLD
     assert "back.onclick=openNpcSandboxDashboard" in WORLD
     assert "_npcEmpireAttitude" in WORLD and "НЕГАТИВНО" in WORLD and "ПОЛОЖИТЕЛЬНО" in WORLD
@@ -65,7 +66,12 @@ def run() -> None:
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
     assert "3d363-empire-hospital-cycle" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
-    print("npc_empire_ui: 3D cards, dossier, empire plaque, attitudes, routes and hostility OK")
+    assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD
+    assert 'class="ns-hospital-mark"' in WORLD and 'class="ns-hospital-cross"' in WORLD
+    assert "hospitalUntil=(+e.hospital_until||0)*1000" in WORLD
+    assert "dataset.hospitalizedCount" in WORLD and "_hospitalTimer=setTimeout" in WORLD
+    assert "uiMode==='dashboard')openNpcSandboxDashboard()" in WORLD
+    print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 
 
 if __name__ == "__main__":
