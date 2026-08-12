@@ -30,7 +30,7 @@ PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
 PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
 VISIBLE_ACTIVITY_SECONDS = 75
 NPC_EMPIRE_MAX_FIGHTERS = 20
-RECRUITMENT_SECONDS = 180
+RECRUITMENT_SECONDS = 0
 
 
 @dataclass(frozen=True)
@@ -114,62 +114,15 @@ BUSINESS_DISTRICTS = {
     'pizza':'nightlife', 'garage':'industrial', 'bar':'nightlife',
     'club':'downtown', 'warehouse':'industrial', 'casino':'downtown', 'port':'coast',
 }
-# Every real non-landmark apartment block from the deterministic city map.
-# Values are occupied tile areas and therefore remain authoritative for the
-# small size bonus. POIs, existing businesses, banks and the nineteen HQ
-# blocks are deliberately absent.
-BUILDING_AREAS = dict((
-    ('0,3',16),('0,4',4),('0,5',16),('0,6',16),('0,7',16),('0,11',20),('0,15',20),
-    ('1,0',16),('1,2',16),('1,11',27),('1,12',20),('1,13',27),('1,15',27),('1,16',20),('1,17',27),
-    ('2,0',16),('2,3',16),('2,7',16),('2,13',20),('2,17',20),
-    ('3,2',16),('3,5',16),('3,7',16),('3,10',20),('3,11',27),('3,13',27),('3,14',20),('3,15',27),('3,17',27),
-    ('4,0',16),('4,2',16),('4,4',16),('4,6',16),('4,11',20),('4,15',20),
-    ('5,0',16),('5,1',16),('5,11',27),('5,12',20),('5,13',27),('5,15',27),('5,16',20),('5,17',27),
-    ('6,0',16),('6,1',16),('6,3',16),('6,4',16),('6,6',16),('6,13',20),('6,17',20),
-    ('7,0',16),('7,3',16),('7,4',16),('7,6',12),('7,10',20),('7,11',27),('7,13',27),('7,14',20),('7,15',27),('7,17',27),
-    ('8,0',16),('8,1',16),('8,3',16),('8,5',16),('8,11',20),('8,15',20),
-    ('9,0',16),('9,1',16),('9,2',16),('9,4',16),('9,11',27),('9,12',20),('9,13',27),('9,15',27),('9,16',20),('9,17',27),
-    ('10,0',16),('10,1',16),('10,13',20),('10,17',20),
-    ('11,1',16),('11,6',16),('11,7',16),('11,10',20),('11,11',27),('11,13',27),('11,14',20),('11,15',27),('11,17',27),
-    ('12,0',16),('12,6',16),('12,11',20),('12,15',20),
-    ('13,0',16),('13,7',16),('13,11',27),('13,12',20),('13,13',27),('13,15',27),('13,16',20),('13,17',27),
-))
-GENERIC_BUILDINGS = tuple(BUILDING_AREAS)
-
-BUILDING_OPERATIONS = {
-    'beer_bar': {'name': 'Пивной бар', 'icon': '🍺', 'base_income': 70},
-    'pawnshop': {'name': 'Скупка краденого', 'icon': '💎', 'base_income': 85},
-    'bookmaker': {'name': 'Букмекерская', 'icon': '🎟️', 'base_income': 95},
-    'strip_club': {'name': 'Стрип-клуб', 'icon': '💃', 'base_income': 120},
-    'gun_shop': {'name': 'Оружейная лавка', 'icon': '🔫', 'base_income': 130},
-    'chop_shop': {'name': 'Авторазборка', 'icon': '🔧', 'base_income': 145},
-    'poker_club': {'name': 'Подпольный покер', 'icon': '♠️', 'base_income': 160},
-    'print_shop': {'name': 'Фальшивая типография', 'icon': '🖨️', 'base_income': 175},
-}
-
-
-def building_operation_income(operation_type: str, area: int) -> int:
-    """Per-minute income with a restrained footprint bonus, hard-capped at $200."""
-    base = int(BUILDING_OPERATIONS.get(
-        operation_type, BUILDING_OPERATIONS['beer_bar'])['base_income'])
-    size_bonus = round(max(0, min(27, int(area or 4)) - 4) * 25 / 23)
-    return min(200, base + size_bonus)
-
-
-def choose_building_operation(profile: EmpireProfile, building_key: str,
-                              capture_nonce: int = 0) -> str:
-    """The autonomous family chooses a fitting racket after every capture."""
-    if profile.aggression >= 70:
-        preferred = ('gun_shop', 'chop_shop', 'poker_club', 'strip_club')
-    elif profile.commerce >= 84:
-        preferred = ('print_shop', 'poker_club', 'strip_club', 'bookmaker')
-    elif profile.diplomacy >= 80:
-        preferred = ('bookmaker', 'beer_bar', 'pawnshop', 'strip_club')
-    else:
-        preferred = ('pawnshop', 'beer_bar', 'chop_shop', 'gun_shop')
-    seed = int.from_bytes(hashlib.sha256(
-        f'{profile.leader_id}:{building_key}:{int(capture_nonce)}'.encode()).digest()[:4], 'big')
-    return preferred[seed % len(preferred)]
+GENERIC_BUILDINGS = tuple(
+    f'{r},{c}' for r, c in (
+        (1,1),(1,2),(1,3),(1,5),(2,2),(2,3),(2,6),(3,1),(3,5),(3,6),
+        (4,1),(4,2),(4,5),(5,1),(5,2),(5,5),(6,1),(6,3),(6,5),(7,1),
+        (7,2),(7,3),(7,6),(8,1),(8,2),(8,3),(8,5),(9,1),(9,2),(9,5),
+        (10,1),(10,2),(10,3),(10,5),(11,1),(11,3),(11,5),(11,6),(12,2),
+        (12,3),(12,5),(12,6),(13,1),(13,2),(13,3),(14,1),(14,2),(14,5),
+    )
+)
 
 # Public stops deliberately cover both halves of the city, the bridge-side
 # avenues and the southern coast. They are movement targets, not ownership
@@ -183,10 +136,9 @@ EMPIRE_PUBLIC_ROAM_POINTS = (
     ('coast_east', 154, 102), ('port_approach', 168, 40),
 )
 
-# Every family recruits at the Lair. Candidates leave its crowded northern
-# camp and meet the boss at the gate; only a completed server timer turns them
-# into armed family members. This makes growth observable instead of spawning
-# fighters beside the boss out of thin air.
+# Every family recruits at the Lair. A paid hire becomes an armed family member
+# immediately, but its visible reinforcement still starts at the crowded
+# northern camp instead of spawning beside a distant boss out of thin air.
 RECRUITMENT_VENUE = ('Логово', 106, 40, 101, 40)
 
 
@@ -206,12 +158,16 @@ def _row_field(row, key: str, default=0):
 def _recruitment_state(profile: EmpireProfile, row, now: int) -> dict | None:
     pending = max(0, int(_row_field(row, 'pending_recruits', 0)))
     ready_at = max(0, int(_row_field(row, 'recruit_ready_at', 0)))
-    if pending <= 0 or ready_at <= now:
+    last_count = max(0, int(_row_field(row, 'last_recruit_count', 0)))
+    last_at = max(0, int(_row_field(row, 'last_recruit_at', 0)))
+    visible_completed = last_count > 0 and now < last_at + VISIBLE_ACTIVITY_SECONDS
+    if (pending <= 0 or ready_at <= now) and not visible_completed:
         return None
     venue, source_r, source_c, meeting_r, meeting_c = _recruitment_venue(profile)
     return {
-        'pending': pending, 'started_at': int(_row_field(row, 'recruit_started_at', 0)),
-        'ready_at': ready_at, 'venue': venue,
+        'pending': pending, 'started_at': last_at if visible_completed else int(_row_field(row, 'recruit_started_at', 0)),
+        'ready_at': ready_at, 'completed': visible_completed,
+        'count': last_count if visible_completed else pending, 'venue': venue,
         'source_r': source_r, 'source_c': source_c,
         'meeting_r': meeting_r, 'meeting_c': meeting_c,
     }
@@ -365,7 +321,6 @@ def _comeback_delay(profile: EmpireProfile, defeats: int) -> int:
 
 async def ensure_schema(db_path: str) -> None:
     async with aiosqlite.connect(db_path) as db:
-        db.row_factory = aiosqlite.Row
         await db.executescript("""
         CREATE TABLE IF NOT EXISTS npc_empires (
             leader_id TEXT PRIMARY KEY,
@@ -392,6 +347,8 @@ async def ensure_schema(db_path: str) -> None:
             pending_recruits INTEGER NOT NULL DEFAULT 0,
             recruit_started_at INTEGER NOT NULL DEFAULT 0,
             recruit_ready_at INTEGER NOT NULL DEFAULT 0,
+            last_recruit_count INTEGER NOT NULL DEFAULT 0,
+            last_recruit_at INTEGER NOT NULL DEFAULT 0,
             version INTEGER NOT NULL DEFAULT 1
         );
         CREATE TABLE IF NOT EXISTS npc_empire_relations (
@@ -419,8 +376,6 @@ async def ensure_schema(db_path: str) -> None:
             income INTEGER NOT NULL DEFAULT 0,
             defense INTEGER NOT NULL DEFAULT 0,
             acquired_at INTEGER NOT NULL,
-            operation_type TEXT NOT NULL DEFAULT '',
-            area INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (kind, holding_id)
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_holdings_leader
@@ -480,19 +435,12 @@ async def ensure_schema(db_path: str) -> None:
             'pending_recruits': "INTEGER NOT NULL DEFAULT 0",
             'recruit_started_at': "INTEGER NOT NULL DEFAULT 0",
             'recruit_ready_at': "INTEGER NOT NULL DEFAULT 0",
+            'last_recruit_count': "INTEGER NOT NULL DEFAULT 0",
+            'last_recruit_at': "INTEGER NOT NULL DEFAULT 0",
         }
         for name, declaration in migrations.items():
             if name not in columns:
                 await db.execute(f"ALTER TABLE npc_empires ADD COLUMN {name} {declaration}")
-        holding_columns = {str(r[1]) for r in await (
-            await db.execute("PRAGMA table_info(npc_empire_holdings)")).fetchall()}
-        for name, declaration in {
-            'operation_type': "TEXT NOT NULL DEFAULT ''",
-            'area': "INTEGER NOT NULL DEFAULT 0",
-        }.items():
-            if name not in holding_columns:
-                await db.execute(
-                    f"ALTER TABLE npc_empire_holdings ADD COLUMN {name} {declaration}")
         await db.execute(
             "UPDATE npc_empires SET status='ruined',comeback_at=CASE WHEN comeback_at=0 THEN ? ELSE comeback_at END "
             "WHERE status='defeated'", (now + COMEBACK_MIN_SECONDS,)
@@ -525,24 +473,6 @@ async def ensure_schema(db_path: str) -> None:
                     (str(seeded[1]), profile.leader_id, 0,
                      80 + profile.loyalty + profile.aggression // 2, now),
                 )
-        legacy_buildings = await (await db.execute(
-            "SELECT holding_id,leader_id,acquired_at,operation_type,area "
-            "FROM npc_empire_holdings WHERE kind='building'"
-        )).fetchall()
-        for holding in legacy_buildings:
-            key = str(holding['holding_id'])
-            profile = PROFILE_BY_ID.get(str(holding['leader_id']))
-            if not profile:
-                continue
-            area = int(holding['area'] or BUILDING_AREAS.get(key, 4))
-            operation = str(holding['operation_type'] or
-                            choose_building_operation(
-                                profile, key, int(holding['acquired_at'] or 0)))
-            await db.execute(
-                "UPDATE npc_empire_holdings SET operation_type=?,area=?,income=? "
-                "WHERE kind='building' AND holding_id=?",
-                (operation, area, building_operation_income(operation, area), key),
-            )
         for ai, left in enumerate(PROFILES):
             for right in PROFILES[ai+1:]:
                 leader_a, leader_b = sorted((left.leader_id, right.leader_id))
@@ -616,7 +546,7 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
     await db.execute(
         "UPDATE npc_empires SET status='ruined',treasury=0,members=0,strength=0,hq_key=NULL,"
         "defeated_at=?,defeated_by=?,comeback_at=?,losses=losses+1,dominance_score=0,"
-        "district_count=0,pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,"
+        "district_count=0,pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,last_recruit_count=0,last_recruit_at=0,"
         "version=version+1 WHERE leader_id=?",
         (now, defeated_by, comeback_at, leader_id),
     )
@@ -658,7 +588,7 @@ async def _revive_due_empires(db, now: int, events: list[dict]) -> None:
         await db.execute(
             "UPDATE npc_empires SET status='rebuilding',treasury=?,members=2,strength=?,hq_key=?,"
             "comeback_at=0,comebacks=?,defeated_by=NULL,pending_recruits=0,recruit_started_at=0,"
-            "recruit_ready_at=0,last_tick=?,next_action_at=?,version=version+1 "
+            "recruit_ready_at=0,last_recruit_count=0,last_recruit_at=0,last_tick=?,next_action_at=?,version=version+1 "
             "WHERE leader_id=?",
             (treasury, strength, hq_key, comeback_no, now, now + TICK_SECONDS, leader_id),
         )
@@ -777,16 +707,10 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             if ticks <= 0:
                 continue
             holdings = await (await db.execute(
-                "SELECT kind,holding_id,income,defense,operation_type,area "
-                "FROM npc_empire_holdings WHERE leader_id=?",
+                "SELECT kind,holding_id,income,defense FROM npc_empire_holdings WHERE leader_id=?",
                 (leader_id,),
             )).fetchall()
-            holding_profit = sum(
-                int(h['income'] or 0) * 5 if h['kind'] == 'building'
-                else int(h['income'] or 0) // 288
-                for h in holdings
-            )
-            per_tick = 18 + profile.commerce // 3 + holding_profit
+            per_tick = 18 + profile.commerce // 3 + sum(int(h['income'] or 0) for h in holdings) // 288
             upkeep = max(4, int(row['members'] or 0) * 3)
             treasury = max(0, int(row['treasury'] or 0) + ticks * (per_tick - upkeep))
             members = max(1, int(row['members'] or 1))
@@ -803,38 +727,37 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 NPC_EMPIRE_MAX_FIGHTERS,
                 8 + (profile.aggression + profile.loyalty) // 10,
             )
+            last_recruit_count = max(0, int(row['last_recruit_count'] or 0))
+            last_recruit_at = max(0, int(row['last_recruit_at'] or 0))
             if pending_recruits == 0 and members < target_members and treasury >= recruit_cost and rng.random() < .72:
                 hired = min(3, target_members - members, treasury // recruit_cost)
                 if hired:
                     treasury -= hired * recruit_cost
-                    pending_recruits = hired
-                    recruit_started_at = now
-                    recruit_ready_at = now + RECRUITMENT_SECONDS
+                    members += hired
+                    strength += hired * (11 + profile.aggression // 12)
+                    last_recruit_count = hired
+                    last_recruit_at = now
                     venue, _, _, _, _ = _recruitment_venue(profile)
-                    events.append({'leader_id': leader_id, 'kind': 'recruit_started',
-                                   'summary': f'{profile.leader_name} ищет {hired} бойцов: {venue}'})
+                    events.append({'leader_id': leader_id, 'kind': 'recruit_completed',
+                                   'summary': f'{profile.leader_name} сразу принял {hired} бойцов: {venue}'})
             building_count = sum(1 for h in holdings if h['kind'] == 'building')
             expansion_cost = 1100 + building_count * 650
             army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
-            if treasury >= expansion_cost and building_count < 12 and rng.random() < (.18 + profile.aggression / 430 + army_pressure * .16):
+            if treasury >= expansion_cost and building_count < 8 and rng.random() < (.18 + profile.aggression / 430 + army_pressure * .16):
                 choices = [key for key in GENERIC_BUILDINGS if key not in building_owner and key != profile.hq_key]
                 if choices:
                     key = choices[rng.randrange(len(choices))]
                     building_owner[key] = leader_id
-                    area = BUILDING_AREAS[key]
-                    operation = choose_building_operation(profile, key, now)
-                    income = building_operation_income(operation, area)
+                    income = 45 + profile.commerce
                     defense = 35 + profile.loyalty // 2
                     await db.execute(
                         "INSERT OR REPLACE INTO npc_empire_holdings"
-                        "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
-                        "VALUES('building',?,?,?,?,?,?,?)",
-                        (key, leader_id, income, defense, now, operation, area),
+                        "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('building',?,?,?,?,?)",
+                        (key, leader_id, income, defense, now),
                     )
                     treasury -= expansion_cost
-                    operation_name = BUILDING_OPERATIONS[operation]['name']
                     events.append({'leader_id': leader_id, 'kind': 'expand', 'target_id': key,
-                                   'summary': f'{profile.gang_name} захватили дом {key} и открыли «{operation_name}»'})
+                                   'summary': f'{profile.gang_name} заняли здание {key}'})
             # A faction may buy a neutral business. Player-owned property is
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
@@ -897,7 +820,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 rivals.sort(key=lambda item: (item[0], item[1].leader_id))
                 rival = rivals[0][1] if rivals else None
                 target_rows = await (await db.execute(
-                    "SELECT kind,holding_id,income,defense,operation_type,area FROM npc_empire_holdings "
+                    "SELECT kind,holding_id,income,defense FROM npc_empire_holdings "
                     "WHERE leader_id=? AND kind IN ('building','business') ORDER BY kind DESC",
                     (rival.leader_id if rival else '__none__',),
                 )).fetchall()
@@ -918,31 +841,19 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         (now,a,b),
                     )
                     if attack_power > defense_power:
-                        target_kind = str(target['kind'])
-                        target_id = str(target['holding_id'])
-                        operation = str(target['operation_type'] or '')
-                        area = int(target['area'] or BUILDING_AREAS.get(target_id, 0))
-                        target_income = int(target['income'] or 0)
-                        if target_kind == 'building':
-                            operation = choose_building_operation(profile, target_id, now)
-                            target_income = building_operation_income(operation, area)
                         await db.execute(
-                            "UPDATE npc_empire_holdings SET leader_id=?,income=?,defense=?,acquired_at=?,"
-                            "operation_type=?,area=? WHERE kind=? AND holding_id=?",
-                            (leader_id,target_income,45+profile.loyalty//2,now,operation,area,
-                             target_kind,target_id),
+                            "UPDATE npc_empire_holdings SET leader_id=?,defense=?,acquired_at=? WHERE kind=? AND holding_id=?",
+                            (leader_id,45+profile.loyalty//2,now,str(target['kind']),str(target['holding_id'])),
                         )
-                        if target_kind=='business':
-                            business_owner[target_id]=leader_id
+                        if target['kind']=='business':
+                            business_owner[str(target['holding_id'])]=leader_id
                             await db.execute(
                                 "UPDATE business_property_owners SET owner_uid=?,owner_name=?,acquired_at=?,protected_until=? WHERE biz_id=?",
-                                (npc_owner_uid(leader_id),profile.gang_name,now,now+300,target_id),
+                                (npc_owner_uid(leader_id),profile.gang_name,now,now+300,str(target['holding_id'])),
                             )
-                        else: building_owner[target_id]=leader_id
-                        captured_name = (BUILDING_OPERATIONS[operation]['name']
-                                         if target_kind == 'building' else target_kind)
+                        else: building_owner[str(target['holding_id'])]=leader_id
                         events.append({'leader_id':leader_id,'kind':'war_won','target_id':rival.leader_id,
-                                       'summary':f'{profile.gang_name} отбили {captured_name} {target_id} у {rival.gang_name}'})
+                                       'summary':f'{profile.gang_name} отбили {target["kind"]} {target["holding_id"]} у {rival.gang_name}'})
                         await db.execute(
                             "UPDATE npc_empires SET wins=wins+1 WHERE leader_id=?", (leader_id,)
                         )
@@ -971,9 +882,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             next_status = 'active' if row['status'] == 'rebuilding' and (members >= 4 or treasury >= 1500) else str(row['status'])
             await db.execute(
                 "UPDATE npc_empires SET treasury=?,members=?,strength=?,status=?,pending_recruits=?,"
-                "recruit_started_at=?,recruit_ready_at=?,last_tick=?,next_action_at=?,version=version+1 WHERE leader_id=?",
+                "recruit_started_at=?,recruit_ready_at=?,last_recruit_count=?,last_recruit_at=?,last_tick=?,next_action_at=?,version=version+1 WHERE leader_id=?",
                 (treasury, members, strength, next_status, pending_recruits,
-                 recruit_started_at, recruit_ready_at, int(row['last_tick']) + ticks*TICK_SECONDS,
+                 recruit_started_at, recruit_ready_at, last_recruit_count, last_recruit_at, int(row['last_tick']) + ticks*TICK_SECONDS,
                  now + TICK_SECONDS, leader_id),
             )
         for event in events:
@@ -1080,8 +991,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT * FROM npc_empire_relations WHERE telegram_id=?", (telegram_id,)
         )).fetchall()}
         holdings_rows = await (await db.execute(
-            "SELECT kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area "
-            "FROM npc_empire_holdings"
+            "SELECT kind,holding_id,leader_id,income,defense,acquired_at FROM npc_empire_holdings"
         )).fetchall()
         diplomacy_rows = [dict(r) for r in await (await db.execute(
             "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
@@ -1099,20 +1009,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         )).fetchall()}
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
-        item = dict(row)
-        if str(item['kind']) == 'building':
-            operation = str(item.get('operation_type') or 'beer_bar')
-            operation_meta = BUILDING_OPERATIONS.get(
-                operation, BUILDING_OPERATIONS['beer_bar'])
-            item.update({
-                'operation_type': operation,
-                'operation_name': operation_meta['name'],
-                'operation_icon': operation_meta['icon'],
-                'income_unit': 'minute',
-                'size_class': ('large' if int(item.get('area') or 0) >= 24 else
-                               'medium' if int(item.get('area') or 0) >= 16 else 'small'),
-            })
-        holdings.setdefault(str(row['leader_id']), []).append(item)
+        holdings.setdefault(str(row['leader_id']), []).append(dict(row))
     result = []
     for row in rows:
         leader_id = str(row['leader_id'])
