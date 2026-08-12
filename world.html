@@ -18115,8 +18115,45 @@ function _installReadableNpcEmpireUi(){
 #npcEmpireOverlay .ne-card.dossier .ne-btn.war{border-color:#8f3740;background:linear-gradient(180deg,#4d181e,#270e12);box-shadow:inset 3px 0 #c73c48,0 3px 8px #0006}
 #npcEmpireOverlay .ne-card.dossier .ne-war-box{clip-path:none;border-radius:4px}
 #npcEmpireOverlay .ne-card.dossier .ne-back{clip-path:none;border-radius:4px;background:#14191e;box-shadow:inset 3px 0 #d0a039,0 4px 12px #0008}
+/* Boss dossier v2: compact in-world command panel, matching the left HUD and action cards. */
+#npcEmpireOverlay .ne-card.dossier{width:min(780px,calc(100vw - 30px));max-height:min(90vh,860px);overflow:auto;border-color:#ad8737;border-radius:3px!important;background:radial-gradient(circle at 78% 8%,rgba(126,31,39,.16),transparent 30%),linear-gradient(150deg,#171a1e,#07090c 58%,#12100e);box-shadow:0 30px 95px #000,0 0 0 3px #030405,0 0 34px rgba(128,32,38,.2)}
+#npcEmpireOverlay .ne-card.dossier:before{width:4px;background:linear-gradient(#b52935 0 42%,#d0a340 42% 72%,#244a35 72%)}
+#npcEmpireOverlay .ne-card.dossier .ne-head{min-height:70px;padding:13px 58px 12px 64px;background:linear-gradient(100deg,#55161c,#241015 54%,#090c10);border-bottom:1px solid #b88c34;box-shadow:0 7px 20px #000a}
+#npcEmpireOverlay .ne-card.dossier .ne-head:before{left:16px;top:14px;width:34px;height:34px;font-size:20px}
+#npcEmpireOverlay .ne-card.dossier .ne-head h2{margin:3px 0 1px;font-size:clamp(24px,3vw,31px);line-height:1.03}
+#npcEmpireOverlay .ne-card.dossier .ne-head p{font-size:12px;color:#b7ada0}
+#npcEmpireOverlay .ne-card.dossier .ne-k{font-size:10px;letter-spacing:1.8px}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-close{display:block;right:13px;top:13px;width:36px;height:36px;border:1px solid #c89a3f;border-radius:3px;background:#11151a;color:#f4d98f;font:400 25px/31px Arial;box-shadow:inset 3px 0 #972832,0 4px 12px #000;cursor:pointer;z-index:12}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-close:hover{background:#641b23;color:#fff;border-color:#e1b451}
+#npcEmpireOverlay .ne-card.dossier .ne-body{padding:11px 14px 15px;background-size:30px 30px}
+#npcEmpireOverlay .ne-card.dossier .ne-back{min-height:34px;margin:0 0 9px;padding:6px 11px;border-color:#655329;background:linear-gradient(180deg,#1c2227,#0c1014);color:#d9bc77;font-size:11px;letter-spacing:.8px;box-shadow:inset 3px 0 #a22b35,0 3px 9px #0008}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-command{display:none}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-hero{grid-template-columns:160px minmax(0,1fr);gap:14px;margin-bottom:9px;padding:9px;border-color:#5c4d2c;background:linear-gradient(105deg,rgba(100,27,34,.22),#0b0f13 46%,#15120e);box-shadow:inset 3px 0 #9e2934,0 7px 20px #0008}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-photo{min-height:208px;border-color:#8f7133;background:radial-gradient(circle at 50% 24%,color-mix(in srgb,var(--ec) 30%,#263039),#07090c 70%);box-shadow:inset 0 0 0 3px #090705,inset 0 0 0 4px #8b692f}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-photo canvas{height:208px}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-copy{padding:5px 3px}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-label{font-size:10px;letter-spacing:1.5px}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-copy h3{margin:5px 0 3px;font-size:clamp(24px,3vw,30px)}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-gang{font-size:13px}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-bio{margin-top:10px;padding:9px 10px;font-size:12px;line-height:1.45}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-tags{gap:5px;margin-top:8px}
+#npcEmpireOverlay .ne-card.dossier .ne-dossier-tag{padding:5px 7px;border-radius:3px;font-size:10px}
+#npcEmpireOverlay .ne-card.dossier .ne-war-box{margin:8px 0;padding:9px 11px;border-color:#71432d;background:linear-gradient(105deg,#321317,#120d0e 58%,#101318);box-shadow:inset 3px 0 #a32d38}
+#npcEmpireOverlay .ne-card.dossier .ne-war-box p{margin:0 0 7px;font-size:11px;line-height:1.4}
+#npcEmpireOverlay .ne-card.dossier .ne-grid{gap:5px}
+#npcEmpireOverlay .ne-card.dossier .ne-stat{min-height:45px;padding:7px 9px}
+#npcEmpireOverlay .ne-card.dossier .ne-stat small{font-size:9px;letter-spacing:.8px}
+#npcEmpireOverlay .ne-card.dossier .ne-stat b{margin-top:3px;font-size:14px}
+#npcEmpireOverlay .ne-card.dossier .ne-section{margin-top:8px;padding:10px;border-color:#51462f;background:linear-gradient(145deg,#12171c,#090c10);box-shadow:inset 3px 0 #77232c,0 4px 13px #0005}
+#npcEmpireOverlay .ne-card.dossier .ne-section h3{margin:0 0 7px;font-size:11px;letter-spacing:1.2px}
+#npcEmpireOverlay .ne-card.dossier .ne-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+#npcEmpireOverlay .ne-card.dossier .ne-btn{min-height:45px;padding:8px 24px 7px 10px;font-size:12px;line-height:1.15}
+#npcEmpireOverlay .ne-card.dossier .ne-btn small{margin-top:3px;font-size:9px;line-height:1.2}
+#npcEmpireOverlay .ne-card.dossier .ne-btn:after{right:9px;font-size:18px}
+#npcEmpireOverlay .ne-card.dossier .ne-holding,#npcEmpireOverlay .ne-card.dossier .ne-event{padding:6px 2px;font-size:11px;line-height:1.35}
 @media(max-width:900px){.ne-rank-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ne-season{grid-template-columns:1fr 1fr}.ne-season-main{grid-column:1/-1}}
-@media(max-width:600px){#npcEmpireOverlay{padding:6px;font-size:14px}#npcEmpireOverlay .ne-card,#npcEmpireOverlay .ne-card.dashboard{width:calc(100vw - 12px);max-height:calc(100vh - 12px)}#npcEmpireOverlay .ne-head{padding:15px 50px 13px 15px}#npcEmpireOverlay .ne-body{padding:10px}.ne-rank-grid{grid-template-columns:1fr}.ne-season{grid-template-columns:1fr 1fr}.ne-dossier-command{grid-template-columns:48px 1fr 1fr}.ne-dossier-command-stat:nth-last-child(-n+2){display:none}.ne-dossier-hero{grid-template-columns:112px minmax(0,1fr);gap:11px}.ne-dossier-photo{min-height:184px}.ne-dossier-photo canvas{height:184px}.ne-dossier-copy h3{font-size:22px}.ne-dossier-bio{font-size:14px;line-height:1.45}.ne-dossier-tag{font-size:12px}}
+@media(max-width:760px){#npcEmpireOverlay .ne-card.dossier .ne-actions{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){#npcEmpireOverlay{padding:5px;font-size:13px}#npcEmpireOverlay .ne-card,#npcEmpireOverlay .ne-card.dashboard{width:calc(100vw - 10px);max-height:calc(100vh - 10px)}#npcEmpireOverlay .ne-head{padding:13px 48px 11px 13px}#npcEmpireOverlay .ne-body{padding:8px}.ne-rank-grid{grid-template-columns:1fr}.ne-season{grid-template-columns:1fr 1fr}.ne-dossier-command{grid-template-columns:48px 1fr 1fr}.ne-dossier-command-stat:nth-last-child(-n+2){display:none}#npcEmpireOverlay .ne-card.dossier .ne-head{padding-left:52px}#npcEmpireOverlay .ne-card.dossier .ne-head:before{left:10px}#npcEmpireOverlay .ne-card.dossier .ne-dossier-hero{grid-template-columns:112px minmax(0,1fr);gap:8px;padding:7px}#npcEmpireOverlay .ne-card.dossier .ne-dossier-photo{min-height:174px}#npcEmpireOverlay .ne-card.dossier .ne-dossier-photo canvas{height:174px}#npcEmpireOverlay .ne-card.dossier .ne-dossier-copy h3{font-size:21px}#npcEmpireOverlay .ne-card.dossier .ne-dossier-bio{font-size:10px;line-height:1.35}#npcEmpireOverlay .ne-card.dossier .ne-dossier-tag{font-size:9px}#npcEmpireOverlay .ne-card.dossier .ne-actions{grid-template-columns:1fr}}
 `;document.head.appendChild(style);
 }
 _installReadableNpcEmpireUi();
@@ -18140,7 +18177,8 @@ openNpcEmpirePanel=function(leaderId,allowAssault=false){
   const card=ov.querySelector('.ne-card');card?.classList.add('dossier');if(card)card.scrollTop=0;ov.scrollTop=0;ov.dataset.uiMode='dossier';
   const attitude=_npcEmpireAttitude(empire),relation=+empire.relation||0,pact=String(empire.pact||'none');
   ov.dataset.locked='1';
-  ov.querySelector('.ne-x')?.remove();
+  const close=ov.querySelector('.ne-x');
+  if(close){close.classList.add('ne-dossier-close');close.setAttribute('aria-label','Закрыть досье');close.title='Закрыть';close.onclick=e=>{e.stopPropagation();ov.dataset.locked='0';ov.classList.remove('show');};}
   const back=document.createElement('button');back.type='button';back.className='ne-back';back.dataset.neBack='1';back.textContent='← К СПИСКУ БОССОВ';back.onclick=openNpcSandboxDashboard;body.prepend(back);
   const command=document.createElement('div');command.className='ne-dossier-command';command.innerHTML=`<div class="ne-dossier-seal">♛</div><div class="ne-dossier-command-main"><small>КРИМИНАЛЬНОЕ ДОСЬЕ · ${_npcEmpireEsc(empire.leader_id).toUpperCase()}</small><b>${_npcEmpireEsc(empire.gang_name)}</b></div><div class="ne-dossier-command-stat"><small>РЕЙТИНГ</small><b>№${+empire.rank||19}</b></div><div class="ne-dossier-command-stat"><small>БОЕВАЯ СИЛА</small><b>${+empire.strength||0}</b></div><div class="ne-dossier-command-stat"><small>БОЙЦЫ</small><b>${+empire.members||0}</b></div>`;back.insertAdjacentElement('afterend',command);
   const hero=document.createElement('div');hero.className='ne-dossier-hero';hero.innerHTML=`<div class="ne-dossier-photo"><canvas width="300" height="390" data-ne-portrait="${_npcEmpireEsc(empire.leader_id)}"></canvas></div><div class="ne-dossier-copy"><div class="ne-dossier-label">ДОСЬЕ · ${_npcEmpireEsc(empire.title||'КРИМИНАЛЬНЫЙ ЛИДЕР')}</div><h3>${_npcEmpireEsc(empire.leader_name)}</h3><div class="ne-dossier-gang">♛ ${_npcEmpireEsc(empire.gang_name)}</div><div class="ne-dossier-bio">Автономный босс со своей семьёй, штабом, экономикой и планами на город. Его решения зависят от силы, владений, отношений и текущей войны.</div><div class="ne-dossier-tags"><span class="ne-dossier-tag ne-attitude-tag ${attitude.key}">${attitude.label} · ${attitude.score>0?'+':''}${attitude.score}</span><span class="ne-dossier-tag">🎯 ${_npcEmpireEsc(_npcEmpireUiActivity(empire))}</span><span class="ne-dossier-tag">🔫 ${_npcEmpireEsc(empire.weapon_name||'Личное оружие')}</span><span class="ne-dossier-tag">🏛️ ${_npcEmpireEsc(_npcEmpireStatus(empire))}</span></div></div>`;command.insertAdjacentElement('afterend',hero);
