@@ -52,19 +52,19 @@ def run() -> None:
     assert "leftStage=_nearestEmpireWalkPoint(player.r-4" in WORLD
     assert "ne-dossier-command" in WORLD and "КРИМИНАЛЬНОЕ ДОСЬЕ" in WORLD
     assert "card.scrollTop=0" in WORLD and "uiMode='dossier'" in WORLD
-    assert "const empireHqs=inside?[]:_npcEmpires.filter" in WORLD
-    assert "EMPIRE_HQ_CAP=19" in THREE and "camera-facing-two-tone-family-banner-v362" in THREE
+    assert "const empireFlags=inside?[]:_npcEmpireFlagSites" in WORLD
+    assert "EMPIRE_FLAG_CAP=64" in THREE and "pooled-all-owned-building-flags-v364" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE
     assert "empire-family-card-v360" in THREE
     assert "empireCrew?familyPrimary" in THREE and "empireCrew?familyAccent" in THREE
     assert "empireMember&&src.bossColor" in THREE
-    assert "camera-facing-two-tone-family-banner-v362" in THREE
+    assert "pooled-all-owned-building-flags-v364" in THREE
     assert "redrawEmpireHqFlag(marker,src)" in THREE
     assert "marker.flagPivot.rotation.y=Math.atan2" in THREE
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d364-building-rackets" in WORLD
+    assert "3d365-player-empire-businesses" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD
     assert 'class="ns-hospital-mark"' in WORLD and 'class="ns-hospital-cross"' in WORLD

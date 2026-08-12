@@ -58,14 +58,12 @@ async def run() -> None:
         world_source = source.read()
     with open(os.path.join(root, "three_preview.js"), encoding="utf-8") as source:
         three_source = source.read()
-    assert "empireBuildings.length>24" in world_source
-    assert "3d364-building-rackets" in world_source
-    assert "const EMPIRE_BUILDING_CAP=24" in three_source
-    assert "empireBuildingObjects.get" in three_source
-    assert "visibleEmpireBusinessBuildings" in three_source
+    assert "empireFlags" in world_source and ".slice(0,64)" in world_source
+    assert "3d365-player-empire-businesses" in world_source
+    assert "const EMPIRE_FLAG_CAP=64" in three_source
+    assert "src.operationName" in three_source and "incomePerMinute" in three_source
     assert set(ne.BUILDING_OPERATIONS) <= {
-        operation_id for operation_id in ne.BUILDING_OPERATIONS
-        if operation_id in world_source and operation_id in three_source
+        operation_id for operation_id in ne.BUILDING_OPERATIONS if operation_id in world_source
     }
     fd, path = tempfile.mkstemp(prefix="npc_empire_", suffix=".db")
     os.close(fd)

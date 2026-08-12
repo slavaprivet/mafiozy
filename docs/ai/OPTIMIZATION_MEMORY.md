@@ -1,5 +1,30 @@
 # Mafiozi 3D optimization memory
 
+## Player-selected empire businesses and single HQ (2026-08-12)
+
+- Feed player-owned converted buildings through the same bounded `empireFlags`
+  bridge and fixed 64-marker pool used by NPC holdings. The server apartment
+  snapshot supplies the operation, family/custom-gang colours, area and income;
+  the renderer must not scan players, apartments or the map every frame.
+- Resolve and cache building geometry through the existing
+  `_npcEmpireBuildingMeta` cache. Combining NPC and player holdings before the
+  distance sort preserves the 64-nearest cap and the existing signature-only
+  flag/sign updates.
+- Headquarters and businesses are separate server-authoritative property kinds.
+  A player may hold up to five converted buildings but only one HQ; a block can
+  belong to either an NPC empire or one player, never both. NPC expansion and
+  comeback candidate selection now reserve all player-owned blocks.
+- Business income is computed once from the shared eight-operation table and
+  stored at purchase (`base + bounded area bonus`, hard cap `$200/min`). Server
+  collection advances only whole minutes, preserves the partial minute, and
+  caps offline catch-up at 24 hours; no client timer mutates cash.
+- Fresh-main verification compiled all six embedded scripts, compiled the three
+  Python modules, and exercised real preview HTTP purchases: a 16-tile print
+  shop returned `$188/min`, the second HQ was rejected with `hq limit`, and
+  creating the mafia returned the buyer as `leader` with the selected HQ.
+  Transaction-level SQLite verification also confirmed `$83/min` for a 16-tile
+  beer bar and an exact `$166` payout for two completed minutes.
+
 The canonical file was missing from the working root on 2026-08-10. The latest
 recovered historical baseline remains available at
 `_github3d_impact_20260810/docs/ai/OPTIMIZATION_MEMORY.md` and must be read for

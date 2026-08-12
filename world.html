@@ -17047,6 +17047,7 @@ let _pendingApartmentGuest = null;
 let _apartmentStateLoaded = false;
 let _customGang = null;
 let _customGangHqs = [];
+let _playerBuildingProperties = [];
 let _customGangBusy = false;
 let _npcEmpires = [];
 let _npcEmpireEvents = [];
@@ -17076,7 +17077,13 @@ function _installNpcEmpireFallbacks(){
   }
 }
 _installNpcEmpireFallbacks();
-const APARTMENT_OWNERSHIP_LIMIT = 1;
+const APARTMENT_OWNERSHIP_LIMIT = 5;
+const PLAYER_BUILDING_OPERATIONS=Object.freeze({
+  beer_bar:{name:'Пивной бар',icon:'🍺',base:70},pawnshop:{name:'Скупка краденого',icon:'💎',base:85},
+  bookmaker:{name:'Букмекерская',icon:'🎟️',base:95},strip_club:{name:'Стрип-клуб',icon:'💃',base:120},
+  gun_shop:{name:'Оружейная лавка',icon:'🔫',base:130},chop_shop:{name:'Авторазборка',icon:'🔧',base:145},
+  poker_club:{name:'Подпольный покер',icon:'♠️',base:160},print_shop:{name:'Фальшивая типография',icon:'🖨️',base:175}
+});
 // Цена квартиры зависит от класса квартала. Сервер использует ту же
 // таблицу и не доверяет сумме, присланной браузером.
 const APARTMENT_DISTRICT_MARKET = Object.freeze({
@@ -17224,14 +17231,28 @@ function _npcEmpireHoldingPoint(empire,holding){
   const parts=String(holding?.holding_id||'').split(',').map(Number);
   return parts.length===2&&parts.every(Number.isFinite)?{r:parts[0]*BLOCK+6.5,c:parts[1]*BLOCK+6.5}:null;
 }
+const _playerEmpireBuildingMetaCache=new Map();
+function _playerEmpireBuildingMeta(key){
+  key=String(key||'');if(_playerEmpireBuildingMetaCache.has(key))return _playerEmpireBuildingMetaCache.get(key);
+  const cells=key.split(',').map(Number);if(cells.length!==2||!cells.every(Number.isFinite))return null;
+  const r0=cells[0]*BLOCK,c0=cells[1]*BLOCK,parts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS));
+  const primary=parts.slice().sort((a,b)=>((b.maxR-b.minR+1)*(b.maxC-b.minC+1))-((a.maxR-a.minR+1)*(a.maxC-a.minC+1)))[0];
+  const meta=primary?{key,r:(primary.minR+primary.maxR+1)/2,c:(primary.minC+primary.maxC+1)/2,area:parts.reduce((sum,p)=>sum+(p.maxR-p.minR+1)*(p.maxC-p.minC+1),0)}:{key,r:r0+6.5,c:c0+6.5,area:4};
+  _playerEmpireBuildingMetaCache.set(key,meta);return meta;
+}
 function _rebuildNpcEmpireFlagSites(){
   const sites=[];
   for(const empire of _npcEmpires){
     if(!empire||empire.status==='ruined')continue;
     for(const holding of (empire.holdings||[])){
       const point=_npcEmpireHoldingPoint(empire,holding);if(!point)continue;
-      sites.push({leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),holdingId:String(holding.holding_id||''),kind:String(holding.kind||'building'),isHq:holding.kind==='hq',r:point.r,c:point.c,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67')});
+      const operation=_npcEmpireOperationFallbacks[holding.operation_type]||{};
+      sites.push({leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),holdingId:String(holding.holding_id||''),kind:String(holding.kind||'building'),isHq:holding.kind==='hq',r:point.r,c:point.c,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income||0))});
     }
+  }
+  for(const holding of _playerBuildingProperties){
+    const point=_playerEmpireBuildingMeta(holding.building_key);if(!point)continue;const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
+    sites.push({leaderId:`player:${holding.owner_uid||''}`,leaderName:String(holding.owner_name||'Игрок'),gangName:String(holding.gang_name||holding.owner_name||'Мафия игрока'),holdingId:String(holding.building_key||holding.apt_key||''),kind:String(holding.property_kind||'business'),isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#7d2938'),accent:String(holding.accent||'#e0b83e'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0))});
   }
   _npcEmpireFlagSites=sites;
   document.documentElement.dataset.empireOwnedBuildings=String(sites.filter(site=>!site.isHq).length);
@@ -18001,13 +18022,15 @@ async function loadApartmentState() {
     const j = await r.json();
     if (j && j.ok && j.owned) {
       _myApartments = j.owned || {};
+      _playerBuildingProperties = Array.isArray(j.properties) ? j.properties : _playerBuildingProperties;
+      _rebuildNpcEmpireFlagSites();
       if (_profileTab === 'status') renderProfileTab();
     }
   } catch (e) { console.warn('apartment state load failed', e); }
 }
 async function loadCustomGangState(showError=false){
   if(!QP.api||!QP.uid)return;
-  try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/state`,{cache:'no-store'}),j=await r.json();if(j?.ok){_customGang=j.gang||null;_customGangHqs=Array.isArray(j.headquarters)?j.headquarters:[];_refreshMafiaPerks();renderJobStatus();if(document.getElementById('apartmentControlPanel')?.classList.contains('show'))renderApartmentControlPanel();if(_profileTab==='status')renderProfileTab();}}
+  try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/state`,{cache:'no-store'}),j=await r.json();if(j?.ok){_customGang=j.gang||null;_customGangHqs=Array.isArray(j.headquarters)?j.headquarters:[];if(Array.isArray(j.properties)){_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();}_refreshMafiaPerks();renderJobStatus();if(document.getElementById('apartmentControlPanel')?.classList.contains('show'))renderApartmentControlPanel();if(_profileTab==='status')renderProfileTab();}}
   catch(e){if(showError)showToast('Не удалось загрузить состояние банды','⚠️',2200);}
 }
 
@@ -18091,6 +18114,15 @@ async function loadNpcEmpireState(showError=false){
 
 function _npcEmpireRelationLabel(empire){
   return ({enemy:'Заклятый враг',hostile:'Враждебен',neutral:'Нейтрален',friendly:'Дружественен',ally:'Союзник'})[empire?.relation_band]||'Нейтрален';
+}
+function drawPlayerBuildingBusinesses(r0,r1,c0,c1){
+  const now=performance.now();
+  for(const holding of _playerBuildingProperties){
+    if(holding?.property_kind!=='business')continue;const meta=_playerEmpireBuildingMeta(holding.building_key);if(!meta||meta.r<r0-4||meta.r>r1+4||meta.c<c0-4||meta.c>c1+4)continue;
+    const p=w2s(meta.r,meta.c),primary=holding.color||'#7d2938',accent=holding.accent||'#e0b83e',wave=Math.sin(now*.004+String(holding.owner_uid).length)*3;
+    ctx.save();ctx.lineCap='round';ctx.strokeStyle='#d4bd88';ctx.lineWidth=2;ctx.shadowColor=primary;ctx.shadowBlur=9;ctx.beginPath();ctx.moveTo(p.x,p.y-56);ctx.lineTo(p.x,p.y-104);ctx.stroke();ctx.fillStyle=primary;ctx.beginPath();ctx.moveTo(p.x,p.y-102);ctx.lineTo(p.x+31,p.y-96+wave);ctx.lineTo(p.x+27,p.y-81);ctx.lineTo(p.x,p.y-87);ctx.closePath();ctx.fill();ctx.fillStyle=accent;ctx.beginPath();ctx.moveTo(p.x,p.y-91);ctx.lineTo(p.x+29,p.y-86+wave*.6);ctx.lineTo(p.x+27,p.y-81);ctx.lineTo(p.x,p.y-87);ctx.closePath();ctx.fill();ctx.shadowBlur=0;
+    const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};ctx.font='900 11px Arial';ctx.textAlign='center';ctx.textBaseline='middle';const label=`${holding.operation_icon||operation.icon||'🏴'} ${String(holding.operation_name||operation.name||'БИЗНЕС').toUpperCase()} · $${Math.min(200,+holding.income_per_minute||0)}/МИН`,tw=Math.min(280,ctx.measureText(label).width+24);ctx.fillStyle='rgba(7,9,13,.95)';ctx.strokeStyle=primary;ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-133,tw,24,8);ctx.fill();ctx.stroke();ctx.fillStyle='#fff1cf';ctx.fillText(label,p.x,p.y-121);ctx.restore();
+  }
 }
 
 async function _hospitalizeEmpireBoss(patient,v,now=performance.now()){
@@ -18472,7 +18504,7 @@ function _apartmentControlPanel(){
   let panel=document.getElementById('apartmentControlPanel');if(panel)return panel;
   const style=document.createElement('style');style.textContent=`#apartmentControlPanel{position:fixed;z-index:10022;right:max(14px,env(safe-area-inset-right));top:132px;width:min(370px,calc(100vw - 28px));max-height:calc(100vh - 160px);overflow:auto;display:none;color:#f8f1df;background:linear-gradient(145deg,rgba(25,19,18,.98),rgba(7,10,15,.98));border:1px solid #a87a3e;border-radius:20px;box-shadow:0 24px 80px #000,0 0 32px #d59a3b25;backdrop-filter:blur(10px);font-family:Arial,sans-serif}#apartmentControlPanel.show{display:block}.aptctl-head{position:sticky;top:0;z-index:2;padding:16px 18px 13px;background:linear-gradient(110deg,#2c1b17,#10131a);border-bottom:1px solid #76552f}.aptctl-k{color:#e9b95e;font-size:10px;font-weight:900;letter-spacing:2.6px}.aptctl-head h3{margin:5px 30px 3px 0;font:900 21px Georgia;color:#fff2d3}.aptctl-head p{margin:0;color:#9fa7b4;font-size:11px}.aptctl-close{position:absolute;right:12px;top:12px;width:31px;height:31px;border:1px solid #ffffff24;border-radius:50%;background:#0c0e13;color:#fff;font-size:18px}.aptctl-body{padding:14px}.aptctl-section{padding:14px;margin-bottom:12px;border:1px solid #ffffff16;border-radius:14px;background:rgba(255,255,255,.035)}.aptctl-section.gang{border-color:var(--gang-color,#934052);background:linear-gradient(135deg,color-mix(in srgb,var(--gang-color,#934052) 22%,#0b0d12),#0b0d12)}.aptctl-title{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:900;color:#ffe3a3}.aptctl-desc{margin:7px 0 11px;color:#bfc5cf;font-size:11px;line-height:1.45}.aptctl-primary,.aptctl-secondary,.aptctl-danger,.aptctl-upgrade{border:0;border-radius:10px;padding:10px 12px;font-weight:900;cursor:pointer}.aptctl-primary{width:100%;background:linear-gradient(#f0cb70,#b97b29);color:#1c1107;box-shadow:0 7px 20px #c18d3533}.aptctl-secondary{width:100%;background:#292832;color:#f5ead4;border:1px solid #ffffff18}.aptctl-danger{width:100%;background:#3b171b;color:#ffb7b7;border:1px solid #8c3941}.aptctl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.aptctl-upgrade{min-height:61px;text-align:left;background:#171b23;color:#fff;border:1px solid #ffffff12}.aptctl-upgrade b{display:block;color:#f2cc7a;font-size:11px}.aptctl-upgrade span{display:block;margin-top:4px;color:#aeb6c3;font-size:10px}.aptctl-upgrade.max{opacity:.62}.aptctl-flag{display:inline-flex;align-items:center;justify-content:center;width:34px;height:22px;border-radius:3px;color:#fff;text-shadow:0 1px 3px #000;font:900 15px Georgia;box-shadow:0 3px 10px #0008}@media(max-width:700px){#apartmentControlPanel{top:118px;right:10px;width:calc(100vw - 20px);max-height:calc(100vh - 145px)}}`;document.head.appendChild(style);
   panel=document.createElement('section');panel.id='apartmentControlPanel';panel.setAttribute('aria-label','Управление квартирой');panel.innerHTML='<div class="aptctl-head"><div class="aptctl-k">ЛИЧНОЕ ПОМЕЩЕНИЕ</div><h3 id="aptctlName">Моя квартира</h3><p id="aptctlMeta"></p><button class="aptctl-close" data-aptctl-close>×</button></div><div class="aptctl-body" id="aptctlBody"></div>';document.body.appendChild(panel);
-  panel.addEventListener('click',e=>{if(e.target.closest('[data-aptctl-close]'))closeApartmentControlPanel();const up=e.target.closest('[data-aptctl-upgrade]');if(up&&!up.disabled)upgradeCurrentApartment(up.dataset.aptctlUpgrade);if(e.target.closest('[data-aptctl-gang]'))openCustomGangModal();if(e.target.closest('[data-aptctl-sell]'))sellCurrentApartment();});return panel;
+  panel.addEventListener('click',e=>{if(e.target.closest('[data-aptctl-close]'))closeApartmentControlPanel();const up=e.target.closest('[data-aptctl-upgrade]');if(up&&!up.disabled)upgradeCurrentApartment(up.dataset.aptctlUpgrade);if(e.target.closest('[data-aptctl-gang]'))openCustomGangModal();if(e.target.closest('[data-aptctl-collect]'))collectCurrentApartmentIncome();if(e.target.closest('[data-aptctl-sell]'))sellCurrentApartment();});return panel;
 }
 function renderApartmentControlPanel(){
   const panel=_apartmentControlPanel();if(!_buildingInt||_buildingInt.type){panel.classList.remove('show');return;}
@@ -18482,8 +18514,11 @@ function renderApartmentControlPanel(){
   const currentKey=_apartmentOwnedKey(_buildingInt.r,_buildingInt.c),isThisHq=!!(_customGang&&_customGang.hq_apt_key===currentKey),gangColor=_customGang?.flag?.primary||'#934052',gangSymbol={crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}[_customGang?.flag?.emblem]||'♛';
   const gangHtml=_customGang?`<div class="aptctl-section gang" style="--gang-color:${gangColor}"><div class="aptctl-title"><span>🚩 ШТАБ БАНДЫ</span><span class="aptctl-flag" style="background:linear-gradient(110deg,${gangColor} 0 66%,${_customGang.flag?.secondary||'#e0b83e'} 66%)">${gangSymbol}</span></div><div class="aptctl-desc"><b style="color:#fff">${_escapeApartmentUi(_customGang.name)}</b><br>${isThisHq?'Этот дом — действующий штаб. Здесь находится центр управления бандой.':`Штаб расположен в доме ${_escapeApartmentUi(_customGang.hq_r)}-${_escapeApartmentUi(_customGang.hq_c)}.`}</div><button class="aptctl-secondary" data-aptctl-gang>${_customGang.role==='leader'?'Управление бандой и составом':'Открыть состав банды'}</button></div>`:`<div class="aptctl-section gang" style="--gang-color:#9b1f2d"><div class="aptctl-title"><span>🚩 СОЗДАТЬ БАНДУ</span><span class="aptctl-flag" style="background:linear-gradient(110deg,#9b1f2d 0 66%,#e0b83e 66%)">♛</span></div><div class="aptctl-desc">Сделай эту квартиру штабом: придумай название, выбери цвета и знак флага. Участники твоей пати вступят автоматически.</div><button class="aptctl-primary" data-aptctl-gang>Создать банду в этой квартире</button></div>`;
   const upgrades=Object.entries(APT_UPGRADES).map(([id,u])=>{const lvl=+info[id+'_level']||0,cost=apartmentUpgradeCost(id,lvl);return `<button class="aptctl-upgrade ${lvl>=3?'max':''}" data-aptctl-upgrade="${id}" ${lvl>=3?'disabled':''}><b>${u.label} · Lv.${lvl}/3</b><span>${lvl>=3?'Максимальный уровень':`Улучшить за $${cost.toLocaleString('ru')}`}</span></button>`;}).join('');
-  panel.querySelector('#aptctlBody').innerHTML=`${gangHtml}<div class="aptctl-section"><div class="aptctl-title"><span>🛠 УЛУЧШЕНИЯ КВАРТИРЫ</span></div><div class="aptctl-grid">${upgrades}</div></div><div class="aptctl-section"><div class="aptctl-title"><span>💰 НЕДВИЖИМОСТЬ</span><b style="color:#79e69b">$${apartmentSalePrice(info).toLocaleString('ru')}</b></div><div class="aptctl-desc">Продажа возвращает 90% стоимости. Если это штаб, банда будет распущена, а метка исчезнет.</div><button class="aptctl-danger" data-aptctl-sell>Продать квартиру</button></div>`;
+  const propertyKind=String(info.property_kind||'hq'),operation=PLAYER_BUILDING_OPERATIONS[info.operation_type]||{name:info.operation_name||'Криминальный бизнес',icon:info.operation_icon||'🏴'},ready=Math.max(0,+info.income_ready||0);
+  const businessHtml=`<div class="aptctl-section gang" style="--gang-color:#537a48"><div class="aptctl-title"><span>${operation.icon} ${_escapeApartmentUi(operation.name).toUpperCase()}</span><b style="color:#79e69b">$${+info.income_per_minute||0}/мин</b></div><div class="aptctl-desc">Доход копится на сервере до 24 часов. Размер здания уже учтён в ставке.</div><button class="aptctl-primary" data-aptctl-collect>${ready?`Забрать $${ready.toLocaleString('ru')}`:'Проверить кассу'}</button></div>`;
+  panel.querySelector('#aptctlBody').innerHTML=`${propertyKind==='hq'?gangHtml:businessHtml}<div class="aptctl-section"><div class="aptctl-title"><span>🛠 УЛУЧШЕНИЯ ЗДАНИЯ</span></div><div class="aptctl-grid">${upgrades}</div></div><div class="aptctl-section"><div class="aptctl-title"><span>💰 НЕДВИЖИМОСТЬ</span><b style="color:#79e69b">$${apartmentSalePrice(info).toLocaleString('ru')}</b></div><div class="aptctl-desc">Продажа возвращает 90% стоимости. Действующий штаб сначала нужно освободить, распустив мафию.</div><button class="aptctl-danger" data-aptctl-sell>Продать здание</button></div>`;
 }
+async function collectCurrentApartmentIncome(){if(!_buildingInt||_buildingInt.type)return;const key=_apartmentOwnedKey(_buildingInt.r,_buildingInt.c);try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/apartment/${encodeURIComponent(QP.uid)}/collect`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apt_key:key})}),j=await r.json();if(!j.ok)throw new Error(j.error||'collect');if(j.owned)_myApartments=j.owned;if(Array.isArray(j.properties)){_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();}if(j.cash!==undefined){QP.cash=j.cash;myCash=+j.cash||0;updateMoneyHud();}renderApartmentControlPanel();showToast(j.collected?`Касса: +$${(+j.collected).toLocaleString('ru')}`:'Доход начисляется раз в минуту','💰',2300);}catch(e){showToast('Не удалось забрать доход','⚠️',2200);}}
 function openApartmentControlPanel(){renderApartmentControlPanel();_apartmentControlPanel().classList.add('show');}
 function closeApartmentControlPanel(){document.getElementById('apartmentControlPanel')?.classList.remove('show');}
 function _customGangModal(){
@@ -18492,21 +18527,39 @@ function _customGangModal(){
   m=document.createElement('div');m.id='customGangModal';m.innerHTML='<div class="cg-card"><div class="cg-k">СОБСТВЕННАЯ ОРГАНИЗАЦИЯ</div><h2 id="cgTitle"></h2><p id="cgText"></p><div id="cgForm"><label class="cg-label">НАЗВАНИЕ БАНДЫ</label><input id="cgName" maxlength="24" placeholder="Северные волки"><label class="cg-label">ОСНОВНОЙ ЦВЕТ ФЛАГА</label><div class="cg-picks" id="cgPrimaryColors"></div><label class="cg-label">ЦВЕТ ПОЛОСЫ И ЗНАКА</label><div class="cg-picks" id="cgSecondaryColors"></div><label class="cg-label">ЗНАК</label><div class="cg-picks" id="cgEmblems"></div><div class="cg-preview" id="cgPreview"></div></div><div id="cgMembers"></div><div class="cg-actions" id="cgActions"></div></div>';document.body.appendChild(m);return m;
 }
 function openCustomGangModal(){
+  if(!_customGang){const hqKey=_buildingInt&&!_buildingInt.type?_apartmentOwnedKey(_buildingInt.r,_buildingInt.c):null;if(!hqKey||String(_myApartments[hqKey]?.property_kind||'hq')!=='hq'){showToast('Сначала купи это здание именно как штаб','🚩',2300);return;}}
   const m=_customGangModal(),form=m.querySelector('#cgForm'),members=m.querySelector('#cgMembers'),actions=m.querySelector('#cgActions');
   if(_customGang){m.querySelector('#cgTitle').textContent=_customGang.name;m.querySelector('#cgText').textContent=`Штаб: дом ${_customGang.hq_r}-${_customGang.hq_c} · ${_customGang.member_count}/${_customGang.max_members} участников`;form.style.display='none';members.innerHTML=(_customGang.members||[]).map(x=>`<div class="cg-member"><span>${x.role==='leader'?'♛':'◆'} ${String(x.name||'Игрок').replace(/[<>&]/g,'')}</span><b>${x.role==='leader'?'Лидер':'Участник'}</b></div>`).join('');actions.innerHTML=`<button class="cg-no" data-close>Закрыть</button><button class="cg-danger" data-${_customGang.role==='leader'?'disband':'leave'}>${_customGang.role==='leader'?'Распустить':'Покинуть'}</button>`;}
   else{const key=_buildingInt&&!_buildingInt.type?_apartmentOwnedKey(_buildingInt.r,_buildingInt.c):null;if(!key){showToast('Штаб создаётся только в своей квартире','🏠',2300);return;}m.dataset.aptKey=key;m.dataset.primary='#9b1f2d';m.dataset.secondary='#e0b83e';m.dataset.emblem='crown';m.querySelector('#cgTitle').textContent='Создать банду';m.querySelector('#cgText').textContent='Квартира станет постоянным штабом. Все участники твоей пати вступят автоматически.';form.style.display='block';members.innerHTML='';actions.innerHTML='<button class="cg-no" data-close>Отмена</button><button class="cg-ok" data-create>Учредить банду</button>';const colors=['#9b1f2d','#cf303d','#e77b28','#e0b83e','#287f55','#2386a8','#3154a5','#6438a8','#a23482','#151922','#ece5d5','#7a4b2a'],buttons=(kind,selected)=>colors.map(c=>`<button class="cg-color ${c===selected?'on':''}" data-${kind}="${c}" style="background:${c}" title="${c}"></button>`).join('');m.querySelector('#cgPrimaryColors').innerHTML=buttons('primary','#9b1f2d');m.querySelector('#cgSecondaryColors').innerHTML=buttons('secondary','#e0b83e');m.querySelector('#cgEmblems').innerHTML=Object.entries({crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}).map(([k,v],i)=>`<button class="cg-emblem ${i?'':'on'}" data-emblem="${k}">${v}</button>`).join('');}
   const update=()=>{const pv=m.querySelector('#cgPreview');if(!pv)return;pv.style.setProperty('--a',m.dataset.primary);pv.style.setProperty('--b',m.dataset.secondary);pv.style.color=m.dataset.secondary;pv.textContent=`${{crown:'♛',skull:'☠',diamond:'◆',wolf:'W',eagle:'♜',star:'★'}[m.dataset.emblem]||'♛'} ${(m.querySelector('#cgName').value||'НОВАЯ БАНДА').toUpperCase()}`;};m.onclick=e=>{if(e.target===m||e.target.closest('[data-close]'))m.classList.remove('show');const p=e.target.closest('[data-primary]');if(p){m.querySelectorAll('[data-primary]').forEach(x=>x.classList.remove('on'));p.classList.add('on');m.dataset.primary=p.dataset.primary;if(m.dataset.secondary===m.dataset.primary){const alt=m.querySelector('[data-secondary]:not([data-secondary="'+m.dataset.primary+'"])');if(alt){m.querySelectorAll('[data-secondary]').forEach(x=>x.classList.remove('on'));alt.classList.add('on');m.dataset.secondary=alt.dataset.secondary;}}update();}const s=e.target.closest('[data-secondary]');if(s){if(s.dataset.secondary===m.dataset.primary){showToast('Основной цвет и полоса должны отличаться','🎨',1800);return;}m.querySelectorAll('[data-secondary]').forEach(x=>x.classList.remove('on'));s.classList.add('on');m.dataset.secondary=s.dataset.secondary;update();}const em=e.target.closest('[data-emblem]');if(em){m.querySelectorAll('.cg-emblem').forEach(x=>x.classList.remove('on'));em.classList.add('on');m.dataset.emblem=em.dataset.emblem;update();}if(e.target.closest('[data-create]'))createCustomGang();if(e.target.closest('[data-leave]'))endCustomGang('leave');if(e.target.closest('[data-disband]'))endCustomGang('disband');};m.querySelector('#cgName')?.addEventListener('input',update);update();m.classList.add('show');
 }
-async function createCustomGang(){const m=_customGangModal(),name=m.querySelector('#cgName').value.trim();if(name.length<3){showToast('Название — от 3 до 24 символов','⚠️',2200);return;}if(_customGangBusy)return;_customGangBusy=true;try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apt_key:m.dataset.aptKey,name,flag:{primary:m.dataset.primary,secondary:m.dataset.secondary,emblem:m.dataset.emblem}})}),j=await r.json();if(!j.ok)throw new Error(j.error||'create');_customGang=j.gang;_customGangHqs=j.headquarters||[];m.classList.remove('show');_refreshMafiaPerks();renderJobStatus();renderApartmentControlPanel();showEventBanner('🚩 БАНДА СОЗДАНА',`${_customGang.name} · штаб учреждён`,4300,'win');}catch(e){showToast({'party leader only':'Только лидер пати может создать банду','faction conflict':'Сначала покинь службу или мафиозную семью','name taken':'Название уже занято','hq taken':'В этом доме уже есть штаб'}[e.message]||'Не удалось создать банду','⚠️',3000);}finally{_customGangBusy=false;}}
+async function createCustomGang(){const m=_customGangModal(),name=m.querySelector('#cgName').value.trim();if(name.length<3){showToast('Название — от 3 до 24 символов','⚠️',2200);return;}if(_customGangBusy)return;_customGangBusy=true;try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/create`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apt_key:m.dataset.aptKey,name,flag:{primary:m.dataset.primary,secondary:m.dataset.secondary,emblem:m.dataset.emblem}})}),j=await r.json();if(!j.ok)throw new Error(j.error||'create');_customGang=j.gang;_customGangHqs=j.headquarters||[];if(Array.isArray(j.properties))_playerBuildingProperties=j.properties;if(_mafiaState?.employed){_mafiaState.employed=false;_mafiaState.family=null;_saveMafiaState();}m.classList.remove('show');_refreshMafiaPerks();renderJobStatus();renderApartmentControlPanel();showEventBanner('🚩 МАФИЯ СОЗДАНА',`${_customGang.name} · ты владелец · штаб учреждён`,4300,'win');}catch(e){showToast({'party leader only':'Только лидер пати может создать банду','faction conflict':'Участники пати должны покинуть чужие семьи','name taken':'Название уже занято','hq taken':'В этом доме уже есть штаб','hq not owned':'Сначала купи здание именно как штаб'}[e.message]||'Не удалось создать мафию','⚠️',3000);}finally{_customGangBusy=false;}}
 async function endCustomGang(action){if(_customGangBusy||!confirm(action==='disband'?'Распустить банду навсегда?':'Покинуть банду?'))return;_customGangBusy=true;try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/custom-gang/${encodeURIComponent(QP.uid)}/${action}`,{method:'POST'}),j=await r.json();if(!j.ok)throw 0;_customGang=null;_customGangHqs=j.headquarters||[];_customGangModal().classList.remove('show');_refreshMafiaPerks();renderJobStatus();renderApartmentControlPanel();showToast(action==='disband'?'Банда распущена':'Ты покинул банду','🚪',2400);}catch(e){showToast('Действие не выполнено','⚠️',2200);}finally{_customGangBusy=false;}}
+function _playerBuildingChoiceModal(){
+  let modal=document.getElementById('playerBuildingChoice');if(modal)return modal;
+  const style=document.createElement('style');style.textContent=`#playerBuildingChoice{position:fixed;inset:0;z-index:10031;display:none;align-items:center;justify-content:center;background:#020409d9;backdrop-filter:blur(8px)}#playerBuildingChoice.show{display:flex}.pbc-card{width:min(620px,calc(100vw - 24px));max-height:calc(100vh - 34px);overflow:auto;padding:22px;border:1px solid #a87a3e;border-radius:22px;background:linear-gradient(145deg,#211713,#080b11);color:#fff2d7;box-shadow:0 28px 100px #000}.pbc-card h2{margin:5px 0 8px;font:900 27px Georgia}.pbc-card p{margin:0 0 15px;color:#b9b2a8;font:600 13px/1.5 Arial}.pbc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pbc-pick{padding:13px;text-align:left;border:1px solid #ffffff18;border-radius:13px;background:#171b22;color:#fff;cursor:pointer;font:800 13px Arial}.pbc-pick b{display:block;margin-bottom:5px;color:#f2cc7a;font-size:14px}.pbc-pick span{color:#aeb7c4;font-size:11px}.pbc-hq{grid-column:1/-1;border-color:#a95663;background:linear-gradient(120deg,#35171d,#171017)}.pbc-close{width:100%;margin-top:11px;padding:11px;border:0;border-radius:11px;background:#2a2930;color:#fff;font-weight:900}@media(max-width:560px){.pbc-grid{grid-template-columns:1fr}}`;document.head.appendChild(style);
+  modal=document.createElement('div');modal.id='playerBuildingChoice';modal.innerHTML='<div class="pbc-card"><div style="color:#e7b65e;font:900 10px Arial;letter-spacing:2.5px">EMPIRE BUSINESS</div><h2>Что открыть в здании?</h2><p id="pbcMeta"></p><div class="pbc-grid" id="pbcGrid"></div><button class="pbc-close" data-pbc-close>Отмена</button></div>';document.body.appendChild(modal);
+  modal.onclick=e=>{if(e.target===modal||e.target.closest('[data-pbc-close]'))modal.classList.remove('show');const pick=e.target.closest('[data-operation],[data-hq]');if(!pick)return;modal.classList.remove('show');_buyCurrentApartment(pick.dataset.hq?'hq':'business',pick.dataset.operation||'');};return modal;
+}
+function openPlayerBuildingChoice(){
+  if(!_mafiaState?.employed&&!_customGang){showToast('Покупать криминальные заведения может только мафиози','🕴️',2500);return;}
+  const modal=_playerBuildingChoiceModal(),blockKey=_legacyAptBlockKey(_buildingInt.r,_buildingInt.c),area=_playerEmpireBuildingMeta(blockKey)?.area||4;
+  const income=op=>Math.min(200,op.base+Math.round(Math.max(0,Math.min(27,area)-4)*25/23));
+  const hasHq=!!_customGang||Object.values(_myApartments).some(x=>String(x.property_kind||'hq')==='hq');
+  modal.querySelector('#pbcMeta').textContent=`Большой дом приносит чуть больше. Площадь: ${area} · недвижимость ${_apartmentCounterLabel()}.`;
+  modal.querySelector('#pbcGrid').innerHTML=Object.entries(PLAYER_BUILDING_OPERATIONS).map(([id,op])=>`<button class="pbc-pick" data-operation="${id}"><b>${op.icon} ${op.name}</b><span>$${income(op)}/мин · доход до $200/мин</span></button>`).join('')+(!hasHq?'<button class="pbc-pick pbc-hq" data-hq="1"><b>🚩 Штаб собственной мафии</b><span>Дохода не даёт · после покупки выберешь название и флаг · у семьи может быть только один штаб</span></button>':'');
+  modal.classList.add('show');
+}
 async function buyCurrentApartment() {
   if (!_buildingInt || _buildingInt.type) return;
   const key = _aptTileKey(_buildingInt.r, _buildingInt.c);
-  if (_myApartments[key]) { showToast('🏛️ Этот штаб уже твой', '✅', 1800); return; }
-  if (_apartmentOwnedCount() >= APARTMENT_OWNERSHIP_LIMIT) {
-    showToast('🏛️ У тебя уже есть штаб. Одновременно можно владеть только одним зданием.', '⚠️', 3000);
-    return;
-  }
+  if (_myApartments[key]) { showToast('Это здание уже твоё', '✅', 1800); return; }
+  if (_apartmentOwnedCount() >= APARTMENT_OWNERSHIP_LIMIT) {showToast(`Лимит недвижимости: ${APARTMENT_OWNERSHIP_LIMIT} зданий`,'⚠️',2500);return;}
+  openPlayerBuildingChoice();
+}
+async function _buyCurrentApartment(propertyKind,operationType) {
+  if (!_buildingInt || _buildingInt.type) return;
+  const key = _aptTileKey(_buildingInt.r, _buildingInt.c);
   const price = apartmentPrice(_buildingInt.r, _buildingInt.c);
   if ((parseInt(QP.cash) || 0) < price) {
     showToast(`💸 Нужно $${price.toLocaleString('ru')}`, '❌', 2200); return;
@@ -18514,22 +18567,27 @@ async function buyCurrentApartment() {
   try {
     const r = await fetch(`${QP.api.replace(/\/+$/, '')}/apartment/${encodeURIComponent(QP.uid)}/buy`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apt_key: key, price }),
+      body: JSON.stringify({ apt_key: key, property_kind:propertyKind, operation_type:operationType }),
     });
     const j = await r.json();
     if (!j.ok) {
       const msg = j.error === 'no cash' ? '💸 Недостаточно денег'
-        : j.error === 'apartment limit' ? '🏛️ У тебя уже есть штаб. Сначала продай прежний.'
-        : '❌ Не удалось создать штаб';
+        : j.error === 'apartment limit' ? `Лимит недвижимости: ${APARTMENT_OWNERSHIP_LIMIT}`
+        : j.error === 'hq limit' ? 'У твоей мафии уже есть штаб'
+        : j.error === 'mafia required' ? 'Покупка доступна только мафиози'
+        : j.error === 'building occupied' ? 'Это здание уже занято другой семьёй'
+        : '❌ Не удалось купить здание';
       showToast(msg, '❌', 2600);
       return;
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
-    await loadCustomGangState(true);
+    if(Array.isArray(j.properties)){_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();}
     const paid = Number(j.price) || price;
-    showToast(`🏛️ Штаб создан за $${paid.toLocaleString('ru')}!`, '✅', 2800);
+    const info=_myApartments[key]||{},op=PLAYER_BUILDING_OPERATIONS[operationType];
+    showToast(propertyKind==='hq'?`🚩 Штаб куплен за $${paid.toLocaleString('ru')}`:`${op?.icon||'🏴'} ${op?.name||'Бизнес'} открыт · $${+info.income_per_minute||0}/мин`,'✅',3000);
     openApartmentControlPanel();
+    if(propertyKind==='hq')openCustomGangModal();
     if (_profileTab === 'status') renderProfileTab();
   } catch (e) { showToast('⚠️ Ошибка связи с сервером', '❌', 2200); }
 }
@@ -48670,6 +48728,7 @@ if (d.kind === 'plank_path') {
   drawOwnedApartmentWorldMarkers(r0, r1, c0, c1);
   drawCustomGangHeadquarters(r0, r1, c0, c1);
   drawNpcEmpireHoldings(r0, r1, c0, c1);
+  drawPlayerBuildingBusinesses(r0, r1, c0, c1);
   drawOwnedBusinessWorldMarkers(r0, r1, c0, c1);
   drawNearbyBusinessInteractionSquare();
   drawActiveBuildingEntryMarker();
@@ -67146,6 +67205,6 @@ function chatDuration(text) {
 </script>
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
-<script type="module" src="three_preview.js?v=3d364-all-empire-building-flags"></script>
+<script type="module" src="three_preview.js?v=3d365-player-empire-businesses"></script>
 </body>
 </html>

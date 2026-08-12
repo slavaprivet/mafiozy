@@ -2708,7 +2708,8 @@ async def sell_property_db(telegram_id: int, item_id: str):
 # не под конкретные дома на карте). apt_key — координаты ГОРОДСКОГО БЛОКА
 # ("br,bc"), не буквального тайла входа — см. _aptBlockKey в world.html.
 
-APARTMENT_OWNERSHIP_LIMIT = 1
+APARTMENT_OWNERSHIP_LIMIT = 5
+PLAYER_BUILDING_INCOME_CATCHUP_MINUTES = 24 * 60
 APARTMENT_DISTRICT_PRICES = {
     "poor": 3500, "lair": 5500, "industrial": 7000,
     "countryside": 8500, "nightlife": 14000, "downtown": 18000,
@@ -2746,6 +2747,25 @@ def apartment_price_for_key(apt_key: str):
     coords = apartment_coords_from_key(apt_key)
     return None if coords is None else APARTMENT_DISTRICT_PRICES[apartment_district_id(*coords)]
 
+
+def apartment_empire_building_key(apt_key: str) -> str | None:
+    """Map an exact apartment entrance to the block used by NPC empires."""
+    coords = apartment_coords_from_key(apt_key)
+    if coords is None:
+        return None
+    return f"{int(coords[0]) // 10},{int(coords[1]) // 10}"
+
+
+def apartment_operation_payload(operation_type: str, area: int) -> dict | None:
+    meta = npc_empire.BUILDING_OPERATIONS.get(str(operation_type or ''))
+    if not meta:
+        return None
+    return {
+        'operation_type': str(operation_type), 'operation_name': str(meta['name']),
+        'operation_icon': str(meta['icon']),
+        'income_per_minute': npc_empire.building_operation_income(operation_type, area),
+    }
+
 async def ensure_apartment_tables():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
@@ -2760,15 +2780,28 @@ async def ensure_apartment_tables():
                 cameras_level INTEGER DEFAULT 0,
                 repair_level INTEGER DEFAULT 0,
                 stolen_bags INTEGER DEFAULT 0,
+                property_kind TEXT DEFAULT 'hq',
+                operation_type TEXT DEFAULT '',
+                area INTEGER DEFAULT 4,
+                income_per_minute INTEGER DEFAULT 0,
+                last_income_at INTEGER DEFAULT 0,
                 PRIMARY KEY (telegram_id, apt_key)
             )
         """)
         async with db.execute("PRAGMA table_info(apartments_owned)") as cur:
             apartment_columns = {str(row[1]) for row in await cur.fetchall()}
-        if "stolen_bags" not in apartment_columns:
-            await db.execute(
-                "ALTER TABLE apartments_owned ADD COLUMN stolen_bags INTEGER DEFAULT 0"
-            )
+        migrations = {
+            "stolen_bags": "INTEGER DEFAULT 0",
+            # Every property in older builds was sold as a headquarters.
+            "property_kind": "TEXT DEFAULT 'hq'",
+            "operation_type": "TEXT DEFAULT ''",
+            "area": "INTEGER DEFAULT 4",
+            "income_per_minute": "INTEGER DEFAULT 0",
+            "last_income_at": "INTEGER DEFAULT 0",
+        }
+        for column, declaration in migrations.items():
+            if column not in apartment_columns:
+                await db.execute(f"ALTER TABLE apartments_owned ADD COLUMN {column} {declaration}")
         await db.commit()
 
 async def get_apartments_owned(telegram_id: int) -> dict:
@@ -2777,7 +2810,9 @@ async def get_apartments_owned(telegram_id: int) -> dict:
         async with db.execute(
             """
             SELECT apt_key, price, bought_at, safe_level, weapon_rack_level,
-                   garage_level, cameras_level, repair_level, stolen_bags
+                   garage_level, cameras_level, repair_level, stolen_bags,
+                   property_kind, operation_type, area, income_per_minute,
+                   last_income_at
             FROM apartments_owned
             WHERE telegram_id=?
             """,
@@ -2795,22 +2830,138 @@ async def get_apartments_owned(telegram_id: int) -> dict:
             "cameras_level": int(r[6] or 0),
             "repair_level": int(r[7] or 0),
             "stolen_bags": int(r[8] or 0),
+            "property_kind": str(r[9] or 'hq'),
+            "operation_type": str(r[10] or ''),
+            "area": int(r[11] or 4),
+            "income_per_minute": int(r[12] or 0),
+            "last_income_at": int(r[13] or 0),
         }
+        operation = apartment_operation_payload(out[str(r[0])]["operation_type"], out[str(r[0])]["area"])
+        if operation:
+            out[str(r[0])].update(operation)
+            elapsed = max(0, int(time.time()) - out[str(r[0])]["last_income_at"])
+            out[str(r[0])]["income_ready"] = min(
+                PLAYER_BUILDING_INCOME_CATCHUP_MINUTES, elapsed // 60
+            ) * out[str(r[0])]["income_per_minute"]
     return out
 
-async def buy_apartment_db(telegram_id: int, apt_key: str, price: int):
+
+async def get_player_building_properties() -> list:
+    """Small authoritative world snapshot for player-owned converted buildings."""
+    await ensure_apartment_tables()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await (await db.execute(
+            "SELECT a.telegram_id,a.apt_key,a.property_kind,a.operation_type,a.area,a.income_per_minute,"
+            "COALESCE(c.name,'Игрок') owner_name,c.mafia_family,g.id gang_id,g.name gang_name,"
+            "g.flag_primary,g.flag_secondary,g.flag_emblem "
+            "FROM apartments_owned a LEFT JOIN characters c ON c.telegram_id=a.telegram_id "
+            "LEFT JOIN custom_gang_members m ON m.telegram_id=a.telegram_id "
+            "LEFT JOIN custom_gangs g ON g.id=m.gang_id ORDER BY a.bought_at LIMIT 101"
+        )).fetchall()
+    out = []
+    family_style = {
+        'moretti': ('Семья Моретти', '#e7e1d4', '#aa823e'),
+        'bellini': ('Семья Беллини', '#303c73', '#d2b15d'),
+    }
+    for row in rows:
+        coords = apartment_coords_from_key(str(row['apt_key']))
+        if not coords:
+            continue
+        operation = apartment_operation_payload(str(row['operation_type'] or ''), int(row['area'] or 4))
+        family = str(row['mafia_family'] or '')
+        default_name, default_color, default_accent = family_style.get(
+            family, (f"Банда {row['owner_name']}", '#7d2938', '#e0b83e'))
+        flag = None
+        if row['gang_id'] is not None:
+            default_name = str(row['gang_name'] or default_name)
+            default_color = str(row['flag_primary'] or default_color)
+            default_accent = str(row['flag_secondary'] or default_accent)
+            flag = {'primary': default_color, 'secondary': default_accent,
+                    'emblem': str(row['flag_emblem'] or 'crown')}
+        out.append({
+            'owner_uid': str(row['telegram_id']), 'owner_name': str(row['owner_name']),
+            'apt_key': str(row['apt_key']), 'building_key': apartment_empire_building_key(str(row['apt_key'])),
+            'r': int(coords[0]), 'c': int(coords[1]), 'property_kind': str(row['property_kind'] or 'hq'),
+            'family': family, 'gang_id': int(row['gang_id']) if row['gang_id'] is not None else None,
+            'gang_name': default_name, 'color': default_color, 'accent': default_accent,
+            'flag': flag, **(operation or {}),
+        })
+    return out
+
+async def buy_apartment_db(telegram_id: int, apt_key: str, price: int,
+                           property_kind: str, operation_type: str = ''):
+    await ensure_apartment_tables()
+    now = int(time.time())
+    block_key = apartment_empire_building_key(apt_key)
+    area = int(npc_empire.BUILDING_AREAS.get(block_key or '', 0))
+    operation = apartment_operation_payload(operation_type, area) if property_kind == 'business' else None
+    if not block_key or not area or (property_kind == 'business' and not operation):
+        return {'ok': False, 'error': 'bad apt'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("BEGIN IMMEDIATE")
+        async with db.execute("SELECT cash,mafia_family FROM characters WHERE telegram_id=?", (telegram_id,)) as cur:
+            char = await cur.fetchone()
+        if not char:
+            await db.rollback(); return {'ok': False, 'error': 'no character'}
+        async with db.execute("SELECT apt_key,property_kind FROM apartments_owned WHERE telegram_id=?", (telegram_id,)) as cur:
+            mine = await cur.fetchall()
+        if len(mine) >= APARTMENT_OWNERSHIP_LIMIT:
+            await db.rollback(); return {'ok': False, 'error': 'apartment limit'}
+        if property_kind == 'hq' and any(str(row[1] or 'hq') == 'hq' for row in mine):
+            await db.rollback(); return {'ok': False, 'error': 'hq limit'}
+        async with db.execute("SELECT 1 FROM custom_gang_members WHERE telegram_id=?", (telegram_id,)) as cur:
+            in_custom_gang = bool(await cur.fetchone())
+        if not str(char[1] or '') and not in_custom_gang:
+            await db.rollback(); return {'ok': False, 'error': 'mafia required'}
+        if property_kind == 'hq' and in_custom_gang:
+            await db.rollback(); return {'ok': False, 'error': 'hq limit'}
+        async with db.execute("SELECT apt_key FROM apartments_owned") as cur:
+            occupied_blocks = {apartment_empire_building_key(str(row[0])) for row in await cur.fetchall()}
+        async with db.execute("SELECT 1 FROM npc_empire_holdings WHERE kind IN ('hq','building') AND holding_id=?", (block_key,)) as cur:
+            npc_taken = bool(await cur.fetchone())
+        if block_key in occupied_blocks or npc_taken:
+            await db.rollback(); return {'ok': False, 'error': 'building occupied'}
+        cash = int(char[0] or 0)
+        if cash < price:
+            await db.rollback(); return {'ok': False, 'error': 'no cash', 'cash': cash, 'price': price}
+        await db.execute("UPDATE characters SET cash=? WHERE telegram_id=?", (cash - price, telegram_id))
+        await db.execute(
+            "INSERT INTO apartments_owned "
+            "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
+            (telegram_id, apt_key, price, now, property_kind, operation_type if operation else '',
+             area, int((operation or {}).get('income_per_minute') or 0), now),
+        )
+        await db.commit()
+    return {'ok': True, 'cash': cash - price, 'price': price}
+
+
+async def collect_apartment_income_db(telegram_id: int, apt_key: str) -> dict:
     await ensure_apartment_tables()
     now = int(time.time())
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """
-            INSERT OR IGNORE INTO apartments_owned
-            (telegram_id, apt_key, price, bought_at)
-            VALUES (?,?,?,?)
-            """,
-            (telegram_id, apt_key, price, now)
-        )
+        await db.execute("BEGIN IMMEDIATE")
+        async with db.execute(
+            "SELECT property_kind,income_per_minute,last_income_at FROM apartments_owned "
+            "WHERE telegram_id=? AND apt_key=?", (telegram_id, apt_key),
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback(); return {'ok': False, 'error': 'not owned'}
+        if str(row[0] or '') != 'business':
+            await db.rollback(); return {'ok': False, 'error': 'not business'}
+        minutes = min(PLAYER_BUILDING_INCOME_CATCHUP_MINUTES, max(0, now - int(row[2] or now)) // 60)
+        payout = minutes * max(0, min(200, int(row[1] or 0)))
+        if minutes:
+            # Keep the partial minute instead of discarding it on collection.
+            new_last = now - max(0, now - int(row[2] or now)) % 60
+            await db.execute("UPDATE apartments_owned SET last_income_at=? WHERE telegram_id=? AND apt_key=?", (new_last, telegram_id, apt_key))
+            await db.execute("UPDATE characters SET cash=COALESCE(cash,0)+? WHERE telegram_id=?", (payout, telegram_id))
+        async with db.execute("SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,)) as cur:
+            cash_row = await cur.fetchone()
         await db.commit()
+    return {'ok': True, 'collected': payout, 'minutes': minutes, 'cash': int((cash_row or [0])[0] or 0)}
 
 async def sell_apartment_db(telegram_id: int, apt_key: str):
     """Atomically remove an apartment and credit 90% of its stored purchase price."""
@@ -12888,12 +13039,15 @@ async def create_custom_gang_db(leader_uid:int, apt_key:str, name:str, flag:dict
         marks=','.join('?' for _ in members)
         async with db.execute(f"SELECT telegram_id,mafia_family FROM characters WHERE telegram_id IN ({marks})",members) as cur: chars={int(x['telegram_id']):dict(x) for x in await cur.fetchall()}
         if len(chars)!=len(members): await db.rollback(); return {'ok':False,'error':'party member missing'}
-        if any(str(x.get('mafia_family') or '') for x in chars.values()): await db.rollback(); return {'ok':False,'error':'mafia conflict'}
-        async with db.execute("SELECT 1 FROM apartments_owned WHERE telegram_id=? AND apt_key=?",(leader_uid,apt_key)) as cur:
+        # Buying an HQ is the explicit transition from a served NPC family to
+        # owning a personal mafia. Only the founder leaves that old family.
+        if any(str(x.get('mafia_family') or '') for uid,x in chars.items() if uid != leader_uid): await db.rollback(); return {'ok':False,'error':'mafia conflict'}
+        async with db.execute("SELECT 1 FROM apartments_owned WHERE telegram_id=? AND apt_key=? AND property_kind='hq'",(leader_uid,apt_key)) as cur:
             if not await cur.fetchone(): await db.rollback(); return {'ok':False,'error':'hq not owned'}
         try:
             cur=await db.execute("INSERT INTO custom_gangs(leader_uid,name,flag_primary,flag_secondary,flag_emblem,hq_apt_key,created_at) VALUES(?,?,?,?,?,?,?)",(leader_uid,name,flag['primary'],flag['secondary'],flag['emblem'],apt_key,int(time.time())))
             gang_id=int(cur.lastrowid); now=int(time.time())
+            await db.execute("UPDATE characters SET mafia_family='' WHERE telegram_id=?", (leader_uid,))
             await db.executemany("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,?,?,?)",[(gang_id,x,'leader' if x==leader_uid else 'member',now,leader_uid) for x in members]); await db.commit()
         except aiosqlite.IntegrityError:
             await db.rollback(); return {'ok':False,'error':'already in gang'}
@@ -12901,22 +13055,8 @@ async def create_custom_gang_db(leader_uid:int, apt_key:str, name:str, flag:dict
 
 
 async def ensure_personal_gang_for_hq(uid:int) -> dict | None:
-    """Legacy migration: an already-owned HQ always means its owner owns a gang."""
-    gang=await get_custom_gang_for_user(uid)
-    if gang:return gang
-    owned=await get_apartments_owned(uid)
-    if not owned:return None
-    char=await get_character(uid); base=re.sub(r'[^0-9A-Za-zА-Яа-яЁё _-]','',str((char or {}).get('name') or 'Игрок')).strip()
-    base=(f"Банда {base}" if base else f"Банда {uid}")[:24]
-    flag=normalize_custom_gang_flag(None,None,None)
-    for suffix in ('',' 2',' 3',f' {uid%1000}'):
-        name=(base[:24-len(suffix)]+suffix)
-        result=await create_custom_gang_db(uid,next(iter(owned)),name,flag,[])
-        if result.get('ok'):return await get_custom_gang_for_user(uid)
-        if result.get('error')!='already in gang':continue
-        gang=await get_custom_gang_for_user(uid)
-        if gang:return gang
-    return None
+    """Compatibility wrapper; owning an HQ no longer auto-creates a named mafia."""
+    return await get_custom_gang_for_user(uid)
 
 
 async def join_custom_gang_db(gang_id:int,target_uid:int,inviter_uid:int)->dict:
@@ -24321,7 +24461,12 @@ async def _coop_http_app():
         except Exception:
             return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
         owned = await get_apartments_owned(uid)
-        return await _cors(web.json_response({'ok': True, 'owned': owned}))
+        return await _cors(web.json_response({
+            'ok': True, 'owned': owned,
+            'properties': await get_player_building_properties(),
+            'operations': npc_empire.BUILDING_OPERATIONS,
+            'limit': APARTMENT_OWNERSHIP_LIMIT,
+        }))
 
     async def h_apartment_buy(req):
         try:
@@ -24333,29 +24478,41 @@ async def _coop_http_app():
         except Exception:
             b = {}
         apt_key = str(b.get('apt_key', '')).strip()[:32]
+        property_kind = str(b.get('property_kind') or 'business').strip().lower()
+        operation_type = str(b.get('operation_type') or '').strip().lower()
+        if property_kind not in ('business', 'hq'):
+            return await _cors(web.json_response({'ok': False, 'error': 'bad property kind'}, status=400))
         price = apartment_price_for_key(apt_key)
         if price is None:
             return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
-        char = await get_character(uid)
-        if not char:
-            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
         owned = await get_apartments_owned(uid)
         if apt_key in owned:
-            return await _cors(web.json_response({'ok': True, 'already': True, 'cash': char.get('cash') or 0, 'owned': owned}))
-        if len(owned) >= APARTMENT_OWNERSHIP_LIMIT:
-            return await _cors(web.json_response({
-                'ok': False, 'error': 'apartment limit',
-                'count': len(owned), 'limit': APARTMENT_OWNERSHIP_LIMIT, 'owned': owned,
-            }))
-        cash = int(char.get('cash') or 0)
-        if cash < price:
-            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash, 'price': price}))
-        await update_character(uid, cash=cash - price)
-        await buy_apartment_db(uid, apt_key, price)
+            char = await get_character(uid)
+            return await _cors(web.json_response({'ok': True, 'already': True, 'cash': (char or {}).get('cash') or 0, 'owned': owned}))
+        result = await buy_apartment_db(uid, apt_key, price, property_kind, operation_type)
+        if not result.get('ok'):
+            status = 404 if result.get('error') == 'no character' else 409
+            return await _cors(web.json_response(result, status=status))
         owned = await get_apartments_owned(uid)
         if _WORLD is not None and str(uid) in _WORLD.players:
             _WORLD.players[str(uid)]['_owned_apartments'] = set(owned.keys())
-        return await _cors(web.json_response({'ok': True, 'cash': cash - price, 'price': price, 'owned': owned}))
+        return await _cors(web.json_response({
+            **result, 'owned': owned, 'properties': await get_player_building_properties(),
+        }))
+
+    async def h_apartment_collect(req):
+        try:
+            uid = int(req.match_info['uid']); b = await req.json()
+        except Exception:
+            return await _cors(web.json_response({'ok': False, 'error': 'bad request'}, status=400))
+        apt_key = str(b.get('apt_key') or '').strip()[:32]
+        result = await collect_apartment_income_db(uid, apt_key)
+        if not result.get('ok'):
+            return await _cors(web.json_response(result, status=409))
+        return await _cors(web.json_response({
+            **result, 'owned': await get_apartments_owned(uid),
+            'properties': await get_player_building_properties(),
+        }))
 
     async def h_apartment_upgrade(req):
         try:
@@ -24414,6 +24571,7 @@ async def _coop_http_app():
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
             'gang': None if removed_members else gang,
             'headquarters': await get_custom_gang_headquarters(),
+            'properties': await get_player_building_properties(),
         }))
 
     async def h_custom_gang_state(req):
@@ -24421,7 +24579,7 @@ async def _coop_http_app():
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad uid'},status=400))
         gang=await ensure_personal_gang_for_hq(uid)
         if _WORLD:apply_custom_gang_to_player(_WORLD.players.get(str(uid)),gang)
-        return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters()}))
+        return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters(),'properties':await get_player_building_properties()}))
 
     async def h_custom_gang_create(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
@@ -24432,8 +24590,10 @@ async def _coop_http_app():
         result=await create_custom_gang_db(uid,apt_key,name,flag,[])
         if not result.get('ok'):return await _cors(web.json_response(result,status=409))
         gang=await get_custom_gang_for_user(uid)
-        if _WORLD:apply_custom_gang_to_player(_WORLD.players.get(str(uid)),gang)
-        return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters()}))
+        if _WORLD:
+            player=_WORLD.players.get(str(uid));apply_custom_gang_to_player(player,gang)
+            if player is not None: player['_mafia']=False;player['_mafia_family']=''
+        return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters(),'properties':await get_player_building_properties()}))
 
     async def h_custom_gang_disband(req):
         try:uid=int(req.match_info['uid'])
@@ -29042,6 +29202,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/biz/{uid}/restore',  h_biz_restore)
     aio_app.router.add_get ('/apartment/{uid}/state',   h_apartment_state)
     aio_app.router.add_post('/apartment/{uid}/buy',     h_apartment_buy)
+    aio_app.router.add_post('/apartment/{uid}/collect', h_apartment_collect)
     aio_app.router.add_post('/apartment/{uid}/upgrade', h_apartment_upgrade)
     aio_app.router.add_post('/apartment/{uid}/sell',    h_apartment_sell)
     aio_app.router.add_get ('/custom-gang/{uid}/state', h_custom_gang_state)
