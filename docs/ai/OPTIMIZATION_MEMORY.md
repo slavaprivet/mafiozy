@@ -1109,3 +1109,16 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Keep the fallback static and bounded. Restoring the endpoint must reactivate
   the existing server snapshots and fixed NPC pools; do not add polling loops,
   fake wars, synthetic ownership or render-loop work to mask connectivity.
+
+## Compact boss dossier navigation (2026-08-12)
+
+- The boss dossier is an in-world command panel, not a long web document. Keep
+  the portrait, identity, war state, stats and diplomacy visible in a compact
+  black/burgundy/gold frame; avoid repeating the same ranking strip above the
+  already-present stat row.
+- A dossier opened from the empire dashboard needs two distinct exits: a back
+  control that returns to the boss list and a persistent header close control
+  that dismisses the whole overlay immediately. The close control must work
+  even while the dossier locks backdrop clicks during actions.
+- This remains DOM/CSS UI. Reuse the existing portrait canvas and server state;
+  do not create a second renderer, animation loop or polling path for styling.
