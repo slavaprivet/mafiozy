@@ -2895,6 +2895,10 @@ window.MafioziLoading.set(15, 'Читаем карту и районы…');
 // ════════════════════════════════════════════════════════════════
 
 const _UP = new URLSearchParams(location.search);
+// Explicit owner/testing link: enter the authored 3D city immediately with
+// the identity/look already present in the URL. Normal player links keep the
+// server-backed profile gate and character creator unchanged.
+const _DIRECT_WORLD_ENTRY = _UP.get('direct') === '1';
 // 3D is the production renderer. Preserve an explicit Canvas rollback, but
 // canonicalize old/plain links so every gameplay subsystem sees render=3d.
 if(_UP.get('force3d')==='1'||!_UP.has('render')){
@@ -2931,6 +2935,7 @@ const QP = {
 };
 QP.account_uid = _UP.get('account_uid') || QP.uid;
 QP.character_uid = _UP.get('character') || (_UP.has('account_uid') ? QP.uid : '');
+if (_DIRECT_WORLD_ENTRY && !QP.character_uid) QP.character_uid = QP.uid;
 
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
@@ -2961,7 +2966,7 @@ const _gameMenuSaveKey = `mafiozi_last_session_v1_${QP.character_uid || QP.uid |
 const _gameMenuCharacterKey = `mafiozi_character_ready_v1_${QP.character_uid || QP.uid || 'guest'}`;
 let _gameMenuOpen = true;
 let _gameMenuSettings = { volume:50, vibration:true };
-let _gameMenuCharacterReady = !!QP.character_uid && QP.has_look === 1;
+let _gameMenuCharacterReady = _DIRECT_WORLD_ENTRY || (!!QP.character_uid && QP.has_look === 1);
 let _gameMenuCharacterLookKey = '';
 let _gameProfiles = [];
 let _gameProfilesLoaded = false;
@@ -3026,6 +3031,7 @@ async function _gameMenuEnterSelected(){
   _selectGameProfile(profile,'enter');
 }
 function _setGameMenuCharacterReady(ready, look) {
+  if (_DIRECT_WORLD_ENTRY) ready = true;
   const nextLook = look && ready ? Object.assign({},QP.look,look) : QP.look;
   const nextKey = [ready?1:0,nextLook.gender|0,nextLook.skin|0,nextLook.body|0,nextLook.face|0,nextLook.hair|0,nextLook.hat|0].join('.');
   if (nextKey === _gameMenuCharacterLookKey) return;
@@ -3326,7 +3332,10 @@ function _bindGameMenuActions() {
   // the background and can correct the supplied appearance afterwards.
   // Explicit localhost-only visual QA: keep production's character gate intact,
   // but allow the authored look in the URL to enter the rendered city directly.
-  if(_LOCAL_PREVIEW&&_UP.has('previewcity')&&_gameMenuCharacterReady)closeGameMainMenu();
+  if(_DIRECT_WORLD_ENTRY&&_gameMenuCharacterReady){
+    document.documentElement.dataset.directWorldEntry='active';
+    closeGameMainMenu();
+  } else if(_LOCAL_PREVIEW&&_UP.has('previewcity')&&_gameMenuCharacterReady)closeGameMainMenu();
 }
 _bindEarlyAddCharacter();
 window.addEventListener('load',_bindGameMenuActions,{once:true});
@@ -14771,7 +14780,7 @@ function updateNpcs(dt) {
     }
   }
   for (const n of NPCS) {
-    // Movement is declared afresh every simulation frame. This prevents a
+    // Movement is declared afresh every simulation frame.  This prevents a
     // stale route target or a previous frame's flag from keeping idle NPC legs
     // cycling after the character has already stopped.
     n.walking=false;
