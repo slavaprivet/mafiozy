@@ -27,7 +27,8 @@ BOT  = HERE / "mafiozi_bot.py"
 
 CFD_URL = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
 PORT = 8080
-URL_RE = re.compile(rb"https://[a-z0-9\-]+\.trycloudflare\.com")
+URL_RE = re.compile(rb"https://(?!api\.)[a-z0-9\-]+\.trycloudflare\.com")
+TUNNEL_ATTEMPTS = 3
 
 
 def log(msg, prefix="[tunnel]"):
@@ -51,7 +52,7 @@ def download_cloudflared():
         sys.exit(2)
 
 
-def start_tunnel():
+def _start_tunnel_once():
     log(f"Стартую Cloudflare-туннель на http://localhost:{PORT} ...")
     log("(используем HTTP/2 — обходим блокировку UDP/QUIC у провайдера)")
     proc = subprocess.Popen(
@@ -65,7 +66,7 @@ def start_tunnel():
     )
 
     url = None
-    deadline = time.time() + 120
+    deadline = time.time() + 45
     while time.time() < deadline:
         line = proc.stdout.readline()
         if not line:
@@ -84,8 +85,7 @@ def start_tunnel():
             break
 
     if not url:
-        log("[!] Не удалось получить URL туннеля за 120 секунд.")
-        log("    Проверь cloudflared.log. Запускаю бота без туннеля.")
+        log("[!] Cloudflare не выдал корректный игровой URL за 45 секунд.")
         try:
             proc.terminate()
         except Exception:
@@ -96,15 +96,19 @@ def start_tunnel():
     log(f"ТУННЕЛЬ ГОТОВ: {url}")
     log("Теперь открой мини-апп в Telegram — найм/увольнение НЕ закроют его.")
     log("=" * 60)
-    # Публикуем актуальный URL на GitHub Pages: hub.html у друзей, которые
-    # пришли по share-ссылке (там в URL нет ?api=), теперь сможет подтянуть
-    # его автоматически через fetch coop_api.json. Без этого «Бот без туннеля».
-    try:
-        publish_coop_api_json(url)
-    except Exception as _e:
-        log(f"[!] Публикация coop_api.json упала: {_e}")
-        log("    Кооп-инвайты через share-ссылку могут не работать у новых юзеров.")
     return url, proc
+
+
+def start_tunnel():
+    """Retry quick-tunnel creation without ever accepting Cloudflare's API URL."""
+    for attempt in range(1, TUNNEL_ATTEMPTS + 1):
+        url, proc = _start_tunnel_once()
+        if url:
+            return url, proc
+        log(f"Повтор создания туннеля: {attempt}/{TUNNEL_ATTEMPTS}")
+        time.sleep(2)
+    log("[!] Туннель не создан после трёх попыток. Ложный URL не публикуется.")
+    return None, None
 
 
 def publish_coop_api_json(api_url: str):
@@ -179,8 +183,42 @@ def start_bot(api_url):
         env["COOP_API_BASE"] = api_url
         log(f"COOP_API_BASE = {api_url}")
     log("Запускаю бота...")
-    # Передаём управление боту — текущее окно становится консолью бота.
-    return subprocess.call([sys.executable, str(BOT)], env=env)
+    return subprocess.Popen([sys.executable, str(BOT)], env=env)
+
+
+def wait_for_public_api(api_url: str, timeout: int = 45) -> bool:
+    """Publish a tunnel only after the actual game API answers through it."""
+    if not api_url:
+        return False
+    deadline = time.time() + timeout
+    probe = api_url.rstrip('/') + '/world/online'
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(probe, timeout=8) as response:
+                if response.status == 200:
+                    log(f"Игровой API проверен: {probe}")
+                    return True
+        except Exception:
+            # Some Windows/provider DNS setups block trycloudflare hostnames
+            # even while browsers resolve them through secure DNS. Verify via
+            # curl DoH before rejecting an otherwise healthy public tunnel.
+            curl = shutil.which("curl.exe") or shutil.which("curl")
+            if curl:
+                try:
+                    checked = subprocess.run(
+                        [curl, "--doh-url", "https://cloudflare-dns.com/dns-query",
+                         "--silent", "--show-error", "--fail", "--max-time", "15", probe],
+                        capture_output=True, timeout=20,
+                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    )
+                    if checked.returncode == 0 and b'"ok"' in checked.stdout:
+                        log(f"Игровой API проверен через secure DNS: {probe}")
+                        return True
+                except Exception:
+                    pass
+            time.sleep(2)
+    log(f"[!] Игровой API не ответил через туннель за {timeout} секунд.")
+    return False
 
 
 def _hold_window(reason: str):
@@ -214,12 +252,26 @@ def main():
     api_url, tun_proc = start_tunnel()
     rc = 1
     crashed = False
+    bot_proc = None
     try:
-        rc = start_bot(api_url)
+        bot_proc = start_bot(api_url)
+        if api_url and wait_for_public_api(api_url):
+            try:
+                publish_coop_api_json(api_url)
+            except Exception as _e:
+                log(f"[!] Публикация coop_api.json упала: {_e}")
+        elif api_url:
+            log("[!] Непроверенный URL не записан в coop_api.json.")
+        rc = bot_proc.wait()
     except Exception as e:
         crashed = True
         log(f"[!] Бот упал с исключением: {e}")
     finally:
+        if bot_proc and bot_proc.poll() is None:
+            try:
+                bot_proc.terminate()
+            except Exception:
+                pass
         if tun_proc and tun_proc.poll() is None:
             log("Гашу туннель...")
             try:

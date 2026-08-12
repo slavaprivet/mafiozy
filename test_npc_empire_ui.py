@@ -7,6 +7,7 @@ WORLD = (Path(__file__).resolve().parent / "world.html").read_text(encoding="utf
 THREE = (Path(__file__).resolve().parent / "three_preview.js").read_text(encoding="utf-8")
 PREVIEW = (Path(__file__).resolve().parent / "_preview_ws_server.py").read_text(encoding="utf-8")
 NPC_EMPIRE = (Path(__file__).resolve().parent / "npc_empire.py").read_text(encoding="utf-8")
+TUNNEL = (Path(__file__).resolve().parent / "start_with_tunnel.py").read_text(encoding="utf-8")
 
 
 def run() -> None:
@@ -97,6 +98,12 @@ def run() -> None:
     assert "bossThreat" in WORLD and "finisherBias" in WORLD
     assert "role==='reserve'" in WORLD and "role==='bodyguard'" in WORLD
     assert "role==='flanker'" in WORLD and "empireTacticalRole:String" in WORLD
+    assert "offlineActivity={kind:'patrol'" in WORLD
+    assert "_empireTarget=_empireActivityTarget({activity:npc._empireAction})" in WORLD
+    assert "(?!api\\.)" in TUNNEL and "TUNNEL_ATTEMPTS = 3" in TUNNEL
+    assert "wait_for_public_api(api_url)" in TUNNEL
+    assert "cloudflare-dns.com/dns-query" in TUNNEL and "CREATE_NO_WINDOW" in TUNNEL
+    assert TUNNEL.index("wait_for_public_api(api_url)") < TUNNEL.index("publish_coop_api_json(api_url)", TUNNEL.index("def main"))
     print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 
 

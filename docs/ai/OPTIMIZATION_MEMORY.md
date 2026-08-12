@@ -1252,3 +1252,12 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   the firing line and use the existing retreat/healing route.
 - Pass the role through the existing bounded 3D NPC snapshot for diagnostics.
   The renderer does not run its own tactical AI and no new timers are created.
+
+## Tunnel-safe autonomous empire orders (2026-08-12)
+
+- Never treat `api.trycloudflare.com` from a quick-tunnel error as the public
+  game URL. Accept only a generated subdomain, retry boundedly, start the bot,
+  and publish `coop_api.json` only after `/world/online` answers through it.
+- A missing first empire snapshot must produce deterministic walkable patrol
+  targets, not an `offline` action anchored to each boss's current position.
+  If a prior server snapshot exists, retain its last activity during outages.

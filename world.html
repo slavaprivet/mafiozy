@@ -17140,6 +17140,9 @@ async function _recordNpcEmpireStreetAttack(leaderId,damage=1,now=performance.no
 function _installNpcEmpireFallbacks(){
   for(const npc of SPECIALIST_NPCS){
     const id=String(npc._specialistId||'');if(!id)continue;
+    const style=Math.max(0,+npc._empireStyle||0),angle=(style*1.73+id.length*.91)%(Math.PI*2),distance=10+(style%5)*2.4;
+    const patrolPoint=_nearestEmpireWalkPoint(npc.r+Math.sin(angle)*distance,npc.c+Math.cos(angle)*distance)||{r:npc.r,c:npc.c};
+    const offlineActivity={kind:'patrol',target_id:`offline:${id}`,target_r:patrolPoint.r,target_c:patrolPoint.c,phase:'travel',created_at:0,summary:`${npc.name} патрулирует район автономно`};
     if(!_npcEmpireById.has(id))_npcEmpireById.set(id,{leader_id:id,leader_name:npc.name,title:npc._specialistTitle,
       gang_name:npc._empireGang||'Криминальная семья',color:npc.look?.suit||'#6b2730',
       accent:npc.look?.accent||'#e4bd63',weapon_id:npc._empireWeaponId,
@@ -17148,10 +17151,10 @@ function _installNpcEmpireFallbacks(){
       treasury:0,members:8,strength:100,status:'offline',relation:0,relation_band:'neutral',
       pact:'none',holdings:[],wins:0,losses:0,knockouts:0,comebacks:0,
       dominance_score:0,district_count:0,peak_power:0,rank:19,hq_key:'',hq_r:npc.r,hq_c:npc.c,
-      activity:{kind:'offline',target_id:'',phase:'offline',created_at:0,summary:'Нет связи с сервером'}});
+      activity:offlineActivity});
     const empire=_npcEmpireById.get(id);npc._empireMembers=Math.max(1,+empire.members||1);
     npc._empireHqR=+empire.hq_r||npc.r;npc._empireHqC=+empire.hq_c||npc.c;
-    if(!npc._empireAction){npc._empireAction=empire.activity;npc._empireActionKey=`${empire.activity?.kind||'patrol'}:${empire.activity?.target_id||''}:offline`;npc._empireTarget={r:npc.r,c:npc.c};npc._empireActivityBaseTarget=npc._empireTarget;}
+    if(!npc._empireAction){npc._empireAction=empire.activity||offlineActivity;npc._empireActionKey=`${npc._empireAction?.kind||'patrol'}:${npc._empireAction?.target_id||''}:offline`;npc._empireTarget=_empireActivityTarget({activity:npc._empireAction})||patrolPoint;npc._empireActivityBaseTarget=npc._empireTarget;npc._empireActionArrived=false;npc._empireRouteRetryAt=0;}
   }
 }
 _installNpcEmpireFallbacks();
