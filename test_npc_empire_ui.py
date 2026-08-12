@@ -71,6 +71,10 @@ def run() -> None:
     assert "hospitalUntil=(+e.hospital_until||0)*1000" in WORLD
     assert "dataset.hospitalizedCount" in WORLD and "_hospitalTimer=setTimeout" in WORLD
     assert "uiMode==='dashboard')openNpcSandboxDashboard()" in WORLD
+    assert "Boss dossier v3" in WORLD
+    assert 'class="ne-photo-rank"' in WORLD and 'class="ne-photo-plaque"' in WORLD
+    assert 'class="ne-family-seal"' in WORLD and "--ea" in WORLD
+    assert "min-height:66px" in WORLD and "font-size:14px;line-height:1.25" in WORLD
     print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 
 
