@@ -59,9 +59,11 @@ async def run() -> None:
     with open(os.path.join(root, "three_preview.js"), encoding="utf-8") as source:
         three_source = source.read()
     assert "empireFlags" in world_source and ".slice(0,64)" in world_source
-    assert "3d365-player-empire-businesses" in world_source
+    assert "3d368-visible-empire-flags" in world_source
     assert "const EMPIRE_FLAG_CAP=64" in three_source
     assert "src.operationName" in three_source and "incomePerMinute" in three_source
+    assert "empireHqRoofBox.setFromObject(object)" in three_source
+    assert "depthTest:false,depthWrite:false" in three_source
     assert set(ne.BUILDING_OPERATIONS) <= {
         operation_id for operation_id in ne.BUILDING_OPERATIONS if operation_id in world_source
     }

@@ -1,5 +1,15 @@
 # Mafiozi 3D optimization memory
 
+## Reliable empire flags on streamed buildings (2026-08-12)
+
+- Roof markers must use a reusable `THREE.Box3.setFromObject()` after updating
+  the building's world matrix. Local geometry bounds ignore parent transforms
+  and can place a flag inside a streamed or scaled building.
+- Keep the fixed 64-marker pool and update roof bounds only when a marker's
+  signature changes. The cloth and text use depth-independent materials so a
+  roof LOD cannot hide ownership, while no new per-frame allocations or map
+  scans are introduced.
+
 ## Player-selected empire businesses and single HQ (2026-08-12)
 
 - Feed player-owned converted buildings through the same bounded `empireFlags`

@@ -40,7 +40,7 @@ def run() -> None:
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
     assert "_empirePressUntil" in WORLD and "_empireTargetLockUntil" in WORLD
     assert "confidence>=1.12" in WORLD and "powerRatio<.68" in WORLD
-    assert "EMPIRE_MAX_ESCORTS=20" in WORLD and "EMPIRE_VISIBLE_CREW_CAP=60" in WORLD
+    assert "EMPIRE_MAX_ESCORTS=20" in WORLD and "EMPIRE_VISIBLE_CREW_CAP=36" in WORLD
     assert "_empireFormationOffset" in WORLD and "2.3999632297" in WORLD
     assert "_empireSeparationVector" in WORLD and "_empireScatterSquad" in WORLD
     assert "_empireSpeak(target,'scatter'" in WORLD
@@ -53,18 +53,20 @@ def run() -> None:
     assert "ne-dossier-command" in WORLD and "КРИМИНАЛЬНОЕ ДОСЬЕ" in WORLD
     assert "card.scrollTop=0" in WORLD and "uiMode='dossier'" in WORLD
     assert "const empireFlags=inside?[]:_npcEmpireFlagSites" in WORLD
-    assert "EMPIRE_FLAG_CAP=64" in THREE and "pooled-all-owned-building-flags-v364" in THREE
+    assert "EMPIRE_FLAG_CAP=64" in THREE and "world-roof-visible-flags-v368" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE
     assert "empire-family-card-v360" in THREE
     assert "empireCrew?familyPrimary" in THREE and "empireCrew?familyAccent" in THREE
     assert "empireMember&&src.bossColor" in THREE
-    assert "pooled-all-owned-building-flags-v364" in THREE
+    assert "empireHqRoofBox.setFromObject(object)" in THREE
+    assert "depthTest:false,depthWrite:false" in THREE
     assert "redrawEmpireHqFlag(marker,src)" in THREE
     assert "marker.flagPivot.rotation.y=Math.atan2" in THREE
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d365-player-empire-businesses" in WORLD
+    assert "3d368-visible-empire-flags" in WORLD
+    assert "_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD
     assert 'class="ns-hospital-mark"' in WORLD and 'class="ns-hospital-cross"' in WORLD

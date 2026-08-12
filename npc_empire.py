@@ -115,15 +115,66 @@ BUSINESS_DISTRICTS = {
     'pizza':'nightlife', 'garage':'industrial', 'bar':'nightlife',
     'club':'downtown', 'warehouse':'industrial', 'casino':'downtown', 'port':'coast',
 }
-GENERIC_BUILDINGS = tuple(
-    f'{r},{c}' for r, c in (
-        (1,1),(1,2),(1,3),(1,5),(2,2),(2,3),(2,6),(3,1),(3,5),(3,6),
-        (4,1),(4,2),(4,5),(5,1),(5,2),(5,5),(6,1),(6,3),(6,5),(7,1),
-        (7,2),(7,3),(7,6),(8,1),(8,2),(8,3),(8,5),(9,1),(9,2),(9,5),
-        (10,1),(10,2),(10,3),(10,5),(11,1),(11,3),(11,5),(11,6),(12,2),
-        (12,3),(12,5),(12,6),(13,1),(13,2),(13,3),(14,1),(14,2),(14,5),
-    )
-)
+BUILDING_AREAS = dict((
+    ('0,3',16),('0,4',4),('0,5',16),('0,6',16),('0,7',16),('0,11',20),('0,15',20),
+    ('1,0',16),('1,2',16),('1,11',27),('1,12',20),('1,13',27),('1,15',27),('1,16',20),('1,17',27),
+    ('2,0',16),('2,3',16),('2,7',16),('2,13',20),('2,17',20),('3,2',16),('3,5',16),('3,7',16),
+    ('3,10',20),('3,11',27),('3,13',27),('3,14',20),('3,15',27),('3,17',27),
+    ('4,0',16),('4,2',16),('4,4',16),('4,6',16),('4,11',20),('4,15',20),
+    ('5,0',16),('5,1',16),('5,11',27),('5,12',20),('5,13',27),('5,15',27),('5,16',20),('5,17',27),
+    ('6,0',16),('6,1',16),('6,3',16),('6,4',16),('6,6',16),('6,13',20),('6,17',20),
+    ('7,0',16),('7,3',16),('7,4',16),('7,6',12),('7,10',20),('7,11',27),('7,13',27),('7,14',20),('7,15',27),('7,17',27),
+    ('8,0',16),('8,1',16),('8,3',16),('8,5',16),('8,11',20),('8,15',20),
+    ('9,0',16),('9,1',16),('9,2',16),('9,4',16),('9,11',27),('9,12',20),('9,13',27),('9,15',27),('9,16',20),('9,17',27),
+    ('10,0',16),('10,1',16),('10,13',20),('10,17',20),
+    ('11,1',16),('11,6',16),('11,7',16),('11,10',20),('11,11',27),('11,13',27),('11,14',20),('11,15',27),('11,17',27),
+    ('12,0',16),('12,6',16),('12,11',20),('12,15',20),
+    ('13,0',16),('13,7',16),('13,11',27),('13,12',20),('13,13',27),('13,15',27),('13,16',20),('13,17',27),
+))
+GENERIC_BUILDINGS = tuple(BUILDING_AREAS)
+BUILDING_OPERATIONS = {
+    'beer_bar': {'name': 'Пивной бар', 'icon': '🍺', 'base_income': 70},
+    'pawnshop': {'name': 'Скупка краденого', 'icon': '💎', 'base_income': 85},
+    'bookmaker': {'name': 'Букмекерская', 'icon': '🎟️', 'base_income': 95},
+    'strip_club': {'name': 'Стрип-клуб', 'icon': '💃', 'base_income': 120},
+    'gun_shop': {'name': 'Оружейная лавка', 'icon': '🔫', 'base_income': 130},
+    'chop_shop': {'name': 'Авторазборка', 'icon': '🔧', 'base_income': 145},
+    'poker_club': {'name': 'Подпольный покер', 'icon': '♠️', 'base_income': 160},
+    'print_shop': {'name': 'Фальшивая типография', 'icon': '🖨️', 'base_income': 175},
+}
+
+
+def building_operation_income(operation_type: str, area: int) -> int:
+    base = int(BUILDING_OPERATIONS.get(operation_type, BUILDING_OPERATIONS['beer_bar'])['base_income'])
+    return min(200, base + round(max(0, min(27, int(area or 4)) - 4) * 25 / 23))
+
+
+def choose_building_operation(profile: EmpireProfile, building_key: str,
+                              capture_nonce: int = 0) -> str:
+    preferred = ('gun_shop','chop_shop','poker_club','strip_club') if profile.aggression >= 70 else ('print_shop','poker_club','strip_club','bookmaker') if profile.commerce >= 84 else tuple(BUILDING_OPERATIONS)
+    seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:{building_key}:{capture_nonce}'.encode()).digest()[:4], 'big')
+    return preferred[seed % len(preferred)]
+
+
+async def _player_owned_building_keys(db) -> set[str]:
+    """Reserve apartment blocks bought by players; older databases may lack the table."""
+    try:
+        rows = await (await db.execute("SELECT apt_key FROM apartments_owned")).fetchall()
+    except Exception:
+        return set()
+    occupied = set()
+    for row in rows:
+        key = str(row[0] or '')
+        try:
+            if key.startswith('tile:'):
+                r_text, c_text = key[5:].split(',', 1)
+                occupied.add(f'{int(r_text) // 10},{int(c_text) // 10}')
+            else:
+                br_text, bc_text = key.split(',', 1)
+                occupied.add(f'{int(br_text)},{int(bc_text)}')
+        except (TypeError, ValueError):
+            continue
+    return occupied
 
 # Public stops deliberately cover both halves of the city, the bridge-side
 # avenues and the southern coast. They are movement targets, not ownership
@@ -377,6 +428,8 @@ async def ensure_schema(db_path: str) -> None:
             income INTEGER NOT NULL DEFAULT 0,
             defense INTEGER NOT NULL DEFAULT 0,
             acquired_at INTEGER NOT NULL,
+            operation_type TEXT NOT NULL DEFAULT '',
+            area INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (kind, holding_id)
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_holdings_leader
@@ -442,6 +495,25 @@ async def ensure_schema(db_path: str) -> None:
         for name, declaration in migrations.items():
             if name not in columns:
                 await db.execute(f"ALTER TABLE npc_empires ADD COLUMN {name} {declaration}")
+        holding_columns = {str(r[1]) for r in await (await db.execute(
+            "PRAGMA table_info(npc_empire_holdings)")).fetchall()}
+        for name, declaration in {'operation_type': "TEXT NOT NULL DEFAULT ''", 'area': "INTEGER NOT NULL DEFAULT 0"}.items():
+            if name not in holding_columns:
+                await db.execute(f"ALTER TABLE npc_empire_holdings ADD COLUMN {name} {declaration}")
+        legacy_buildings = await (await db.execute(
+            "SELECT holding_id,leader_id,operation_type,area FROM npc_empire_holdings WHERE kind='building'"
+        )).fetchall()
+        for holding in legacy_buildings:
+            key, leader_id = str(holding[0]), str(holding[1])
+            area = int(holding[3] or BUILDING_AREAS.get(key, 4))
+            profile = PROFILE_BY_ID.get(leader_id)
+            operation = str(holding[2] or '')
+            if operation not in BUILDING_OPERATIONS:
+                operation = choose_building_operation(profile, key) if profile else 'beer_bar'
+            await db.execute(
+                "UPDATE npc_empire_holdings SET operation_type=?,area=?,income=? WHERE kind='building' AND holding_id=?",
+                (operation, area, building_operation_income(operation, area), key),
+            )
         await db.execute(
             "UPDATE npc_empires SET status='ruined',comeback_at=CASE WHEN comeback_at=0 THEN ? ELSE comeback_at END "
             "WHERE status='defeated'", (now + COMEBACK_MIN_SECONDS,)
@@ -576,6 +648,7 @@ async def _revive_due_empires(db, now: int, events: list[dict]) -> None:
     used = {str(r[0]) for r in await (await db.execute(
         "SELECT holding_id FROM npc_empire_holdings WHERE kind IN ('hq','building')"
     )).fetchall()}
+    used.update(await _player_owned_building_keys(db))
     for row in due:
         leader_id = str(row['leader_id']); profile = PROFILE_BY_ID[leader_id]
         candidates = [key for key in GENERIC_BUILDINGS if key not in used]
@@ -691,6 +764,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
         building_owner = {str(r['holding_id']):str(r['leader_id']) for r in await (await db.execute(
             "SELECT holding_id,leader_id FROM npc_empire_holdings WHERE kind='building'"
         )).fetchall()}
+        for player_key in await _player_owned_building_keys(db):
+            building_owner.setdefault(player_key, 'player')
         business_owner = {str(r['holding_id']):str(r['leader_id']) for r in await (await db.execute(
             "SELECT holding_id,leader_id FROM npc_empire_holdings WHERE kind='business'"
         )).fetchall()}
@@ -708,7 +783,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             if ticks <= 0:
                 continue
             holdings = await (await db.execute(
-                "SELECT kind,holding_id,income,defense FROM npc_empire_holdings WHERE leader_id=?",
+                "SELECT kind,holding_id,income,defense,operation_type,area FROM npc_empire_holdings WHERE leader_id=?",
                 (leader_id,),
             )).fetchall()
             per_tick = 18 + profile.commerce // 3 + sum(int(h['income'] or 0) for h in holdings) // 288
@@ -749,16 +824,18 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 if choices:
                     key = choices[rng.randrange(len(choices))]
                     building_owner[key] = leader_id
-                    income = 45 + profile.commerce
+                    area = BUILDING_AREAS[key]
+                    operation = choose_building_operation(profile, key, now)
+                    income = building_operation_income(operation, area)
                     defense = 35 + profile.loyalty // 2
                     await db.execute(
                         "INSERT OR REPLACE INTO npc_empire_holdings"
-                        "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('building',?,?,?,?,?)",
-                        (key, leader_id, income, defense, now),
+                        "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) VALUES('building',?,?,?,?,?,?,?)",
+                        (key, leader_id, income, defense, now, operation, area),
                     )
                     treasury -= expansion_cost
                     events.append({'leader_id': leader_id, 'kind': 'expand', 'target_id': key,
-                                   'summary': f'{profile.gang_name} заняли здание {key}'})
+                                   'summary': f"{profile.gang_name} захватили дом {key} и открыли «{BUILDING_OPERATIONS[operation]['name']}»"})
             # A faction may buy a neutral business. Player-owned property is
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
@@ -821,7 +898,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 rivals.sort(key=lambda item: (item[0], item[1].leader_id))
                 rival = rivals[0][1] if rivals else None
                 target_rows = await (await db.execute(
-                    "SELECT kind,holding_id,income,defense FROM npc_empire_holdings "
+                    "SELECT kind,holding_id,income,defense,operation_type,area FROM npc_empire_holdings "
                     "WHERE leader_id=? AND kind IN ('building','business') ORDER BY kind DESC",
                     (rival.leader_id if rival else '__none__',),
                 )).fetchall()
@@ -1023,7 +1100,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT * FROM npc_empire_relations WHERE telegram_id=?", (telegram_id,)
         )).fetchall()}
         holdings_rows = await (await db.execute(
-            "SELECT kind,holding_id,leader_id,income,defense,acquired_at FROM npc_empire_holdings"
+            "SELECT kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area FROM npc_empire_holdings"
         )).fetchall()
         diplomacy_rows = [dict(r) for r in await (await db.execute(
             "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
@@ -1041,7 +1118,15 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         )).fetchall()}
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
-        holdings.setdefault(str(row['leader_id']), []).append(dict(row))
+        item = dict(row)
+        operation = str(item.get('operation_type') or '')
+        if item.get('kind') == 'building' and operation in BUILDING_OPERATIONS:
+            item['operation_name'] = BUILDING_OPERATIONS[operation]['name']
+            item['operation_icon'] = BUILDING_OPERATIONS[operation]['icon']
+            item['income_unit'] = 'minute'
+            area = int(item.get('area') or 4)
+            item['size_class'] = 'large' if area >= 24 else 'medium' if area >= 16 else 'small'
+        holdings.setdefault(str(row['leader_id']), []).append(item)
     result = []
     for row in rows:
         leader_id = str(row['leader_id'])
