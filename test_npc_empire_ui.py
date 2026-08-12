@@ -12,6 +12,17 @@ TUNNEL = (Path(__file__).resolve().parent / "start_with_tunnel.py").read_text(en
 
 def run() -> None:
     assert "id='npcEmpireReadableUi'" in WORLD
+    assert "КРИМИНАЛЬНАЯ СВОДКА" in WORLD
+    assert "ДОМИНИРУЕТ В РАЙОНЕ" in WORLD
+    assert "_npcEmpireDistricts.find" in WORLD and "runner_up_id" in WORLD
+    assert 'class="dr-influence"' in WORLD and 'class="dr-rival"' in WORLD
+    assert "currentDistrict=districtAt(player.r,player.c)" in WORLD
+    assert "ui.classList.add('show');" in WORLD
+    assert "_districtRepUi.classList.remove('show')" not in WORLD
+    assert "/ищу сервер|подключ|недоступ|потеря|не отвеч|не запущ/i" in WORLD
+    assert "void Promise.allSettled([loadMyWeapons(), loadInventoryItems()])" in WORLD
+    assert "setTimeout(_installNpcEmpireFallbacks,0)" in WORLD
+    assert "\n_installNpcEmpireFallbacks();\n" not in WORLD
     assert "font-size:14px" in WORLD
     assert "font-size:15px;line-height:1.55" in WORLD
     assert 'class="ne-rank-grid"' in WORLD

@@ -1264,3 +1264,17 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Quick tunnels have no uptime guarantee. Supervise `/world/online` every 30
   seconds and atomically restart the bot+tunnel pair when the public endpoint
   disappears; publish only the newly verified replacement address.
+
+## District dominance HUD (2026-08-13)
+
+- Build the current-district boss card from the already cached empire snapshot.
+  Resolve only the current district and its leader/runner-up when the player
+  enters a district or a server snapshot arrives; never scan districts per frame.
+- Keep server authority visible: if no district snapshot exists, show that the
+  influence is unconfirmed instead of inventing a client-side owner.
+- Defer the first autonomous fallback installation until the current script has
+  initialized the complete collision graph. Calling route selection inline
+  before later `const` collision tables exist aborts both 3D and direct entry.
+- The district dominance card is persistent UI. Do not reuse the old reputation
+  toast's four-second hide timer. Network discovery and inventory fetches must
+  continue in the background so a slow tunnel never blocks local city control.
