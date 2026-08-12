@@ -17157,7 +17157,10 @@ function _installNpcEmpireFallbacks(){
     if(!npc._empireAction){npc._empireAction=empire.activity||offlineActivity;npc._empireActionKey=`${npc._empireAction?.kind||'patrol'}:${npc._empireAction?.target_id||''}:offline`;npc._empireTarget=_empireActivityTarget({activity:npc._empireAction})||patrolPoint;npc._empireActivityBaseTarget=npc._empireTarget;npc._empireActionArrived=false;npc._empireRouteRetryAt=0;}
   }
 }
-_installNpcEmpireFallbacks();
+// Let the complete world collision graph initialize before autonomous bosses
+// ask it for walkable patrol targets. A synchronous call here hits later const
+// declarations during their temporal dead zone and aborts direct world entry.
+setTimeout(_installNpcEmpireFallbacks,0);
 const PLAYER_BUILDING_OPERATIONS=Object.freeze({
   beer_bar:{name:'Пивной бар',icon:'🍺',base:70},pawnshop:{name:'Скупка краденого',icon:'💎',base:85},
   bookmaker:{name:'Букмекерская',icon:'🎟️',base:95},strip_club:{name:'Стрип-клуб',icon:'💃',base:120},
