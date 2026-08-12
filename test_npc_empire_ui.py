@@ -77,6 +77,10 @@ def run() -> None:
     assert 'class="ne-photo-rank"' in WORLD and 'class="ne-photo-plaque"' in WORLD
     assert 'class="ne-family-seal"' in WORLD and "--ea" in WORLD
     assert "min-height:66px" in WORLD and "font-size:14px;line-height:1.25" in WORLD
+    assert "МОЗГ БОССА · ТЕКУЩИЙ ЗАМЫСЕЛ" in WORLD
+    assert "ne-brain-board" in WORLD and "ne-brain-confidence" in WORLD
+    assert "empire.brain" in WORLD and "empire.memory" in WORLD
+    assert "_boss_brain(" in PREVIEW and "['brain']" in PREVIEW
     print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 
 

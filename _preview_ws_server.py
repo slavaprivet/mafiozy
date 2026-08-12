@@ -1699,6 +1699,17 @@ async def npc_empire_state(req):
             "hospital_until": hospital_until,
             "hospital_id": str(hospital.get('hospital_id') or '') if hospital_until else '',
         })
+        preview_row = {
+            'treasury': profile.starting_cash, 'members': 8 + rank % 7,
+            'strength': 90 + rank * 3, 'status': 'active',
+            'hospital_until': hospital_until,
+        }
+        empires[-1]['memory'] = []
+        empires[-1]['brain'] = npc_empire._boss_brain(
+            profile, preview_row, empires[-1]['holdings'], [], now,
+            active_wars=1 if rank <= 2 else 0,
+            neutral_buildings=8, affordable_businesses=3,
+        )
     # The local preview always keeps one deterministic NPC-family war alive so
     # the physical sandbox (convergence, squads, bullets and retreats) can be
     # inspected without waiting for a five-minute production economy tick.

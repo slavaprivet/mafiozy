@@ -81,6 +81,37 @@ async def run() -> None:
         assert len(state["empires"]) == 19
         assert {x["leader_name"] for x in state["empires"]} == set(ne.MAFIA_BOSS_NAMES.values())
         assert next(x for x in state["empires"] if x["leader_id"] == "rustam")["leader_name"] == "Билли Капоне"
+        assert all(x["brain"]["strategy"] in {
+            "recover", "recruit", "fortify", "retaliate", "acquire", "expand", "consolidate"
+        } for x in state["empires"])
+        assert all(52 <= x["brain"]["confidence"] <= 96 and x["brain"]["reason"]
+                   for x in state["empires"])
+        assert all(isinstance(x["memory"], list) for x in state["empires"])
+
+        weak_plan = ne._boss_brain(
+            ne.PROFILE_BY_ID["leila"],
+            {"treasury": 5000, "members": 2, "strength": 38,
+             "status": "active", "hospital_until": 0},
+            [], [], state_now, neutral_buildings=0, affordable_businesses=0,
+        )
+        assert weak_plan["strategy"] == "recruit"
+        trader_plan = ne._boss_brain(
+            ne.PROFILE_BY_ID["zara"],
+            {"treasury": 100000, "members": 20, "strength": 280,
+             "status": "active", "hospital_until": 0},
+            [{"kind": "building", "holding_id": "1,1"}], [], state_now,
+            neutral_buildings=0, affordable_businesses=4,
+        )
+        assert trader_plan["strategy"] == "acquire"
+        revenge_plan = ne._boss_brain(
+            ne.PROFILE_BY_ID["viktor"],
+            {"treasury": 9000, "members": 20, "strength": 250,
+             "status": "active", "hospital_until": 0},
+            [], [{"kind": "player_attack", "summary": "Игрок открыл огонь",
+                  "created_at": state_now, "target_id": "101"}], state_now,
+            active_wars=1, neutral_buildings=0, affordable_businesses=0,
+        )
+        assert revenge_plan["strategy"] == "retaliate"
         assert len(state["leaderboard"]) == 19 and len(state["districts"]) == len(ne.DISTRICTS)
         assert all(x["relation"] == 0 and x["relation_band"] == "neutral" for x in state["empires"])
         assert all(x["activity"]["phase"] == "travel" for x in state["empires"])

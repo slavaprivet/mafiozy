@@ -1199,3 +1199,17 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   versus 2308.1. Treat the lower draw count as normal moving-scene variance,
   not a claimed optimization; the confirmed result is no measurable frame-time
   regression with the full marker pool visible.
+
+## Explainable boss strategy without render-loop AI (2026-08-12)
+
+- Compute one boss priority during the existing five-minute server economy
+  tick and when composing the infrequent empire snapshot. Never evaluate
+  strategic utility in NPC movement, combat or Three.js animation frames.
+- Reuse the bounded persistent event log as memory: at most 240 recent global
+  events are grouped once per snapshot, then only five high-importance memories
+  per boss are sent to the dossier. Routine memories decay by age while defeats,
+  attacks and major victories remain relevant longer.
+- Make the chosen priority gate recruitment, expansion, purchases and wars so
+  a boss does not perform several contradictory random actions in one tick.
+  Target selection may sort the already bounded candidate lists by proximity,
+  yield, defense and relative force; it must not add map-wide frame scans.

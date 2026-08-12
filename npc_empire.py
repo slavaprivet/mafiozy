@@ -301,7 +301,8 @@ def _holding_district(kind: str, holding_id: str) -> str:
     return BUSINESS_DISTRICTS.get(holding_id, 'downtown') if kind == 'business' else _district_for_block(holding_id)
 
 
-def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int) -> dict:
+def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int,
+                      brain: dict | None = None) -> dict:
     """Give the client one concrete, slowly changing destination for this boss."""
     recruitment = _recruitment_state(profile, row, now)
     if recruitment:
@@ -310,6 +311,43 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
             'target_r': recruitment['meeting_r'], 'target_c': recruitment['meeting_c'],
             'phase': 'meeting', 'created_at': recruitment['started_at'],
             'summary': f'{profile.leader_name} проводит набор в семью: {recruitment["venue"]}',
+        }
+    strategy = str((brain or {}).get('strategy') or '')
+    strategic_slot_at = (now // VISIBLE_ACTIVITY_SECONDS) * VISIBLE_ACTIVITY_SECONDS
+    if strategy in {'recover', 'recruit'}:
+        return {
+            'kind': 'recruit', 'target_id': f'plan:{profile.leader_id}:lair',
+            'target_r': 101, 'target_c': 40, 'phase': 'travel', 'created_at': strategic_slot_at,
+            'summary': f'{profile.leader_name} едет в Логово искать надёжных людей',
+        }
+    if strategy == 'fortify' and holdings:
+        target = min(holdings, key=lambda item: (int(item.get('defense') or 0),
+                                                str(item.get('holding_id') or '')))
+        target_id, target_kind = str(target.get('holding_id') or ''), str(target.get('kind') or '')
+        target_r, target_c = (BUSINESS_COORDS.get(target_id, (0, 0))
+                              if target_kind == 'business' else _hq_coords(target_id))
+        return {
+            'kind': 'defend', 'target_id': target_id, 'target_r': target_r,
+            'target_c': target_c, 'phase': 'travel', 'created_at': strategic_slot_at,
+            'summary': f'{profile.leader_name} лично проверяет слабое место обороны',
+        }
+    if strategy == 'acquire':
+        owned = {str(item.get('holding_id') or '') for item in holdings}
+        targets = [bid for bid in BUSINESS_PRICE if bid not in owned]
+        if targets:
+            target_id = max(targets, key=lambda bid: (BUSINESS_INCOME[bid] / BUSINESS_PRICE[bid], bid))
+            target_r, target_c = BUSINESS_COORDS[target_id]
+            return {
+                'kind': 'invest', 'target_id': target_id, 'target_r': target_r,
+                'target_c': target_c, 'phase': 'travel', 'created_at': strategic_slot_at,
+                'summary': f'{profile.leader_name} оценивает бизнес перед сделкой',
+            }
+    if strategy == 'retaliate':
+        hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
+        return {
+            'kind': 'attack', 'target_id': f'plan:{profile.leader_id}:revenge',
+            'target_r': hq_r, 'target_c': hq_c, 'phase': 'rally', 'created_at': strategic_slot_at,
+            'summary': f'{profile.leader_name} собирает семью для ответного удара',
         }
     slot = now // VISIBLE_ACTIVITY_SECONDS
     seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:walk:{slot}'.encode()).digest()[:4], 'big')
@@ -343,6 +381,111 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
             'target_r': target['target_r'], 'target_c': target['target_c'],
             'phase': 'travel', 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
             'summary': f'{profile.leader_name} {label}'}
+
+
+MEMORY_KINDS = {
+    'player_attack': ('Личная обида', 'negative', 100),
+    'player_business_bombed': ('Удар по бизнесу игрока', 'hostile', 82),
+    'player_business_captured': ('Захваченный бизнес игрока', 'positive', 88),
+    'war_lost': ('Неудачное нападение', 'negative', 78),
+    'war_won': ('Победа в войне', 'positive', 74),
+    'gang_destroyed': ('Уничтоженная семья', 'positive', 96),
+    'empire_ruined': ('Разгром империи', 'negative', 100),
+    'comeback': ('Возвращение со дна', 'positive', 92),
+    'business_bought': ('Новый источник дохода', 'positive', 58),
+    'expand': ('Новое владение', 'positive', 54),
+    'recruit_completed': ('Новые бойцы', 'positive', 46),
+    'hospitalized': ('Ранение босса', 'negative', 86),
+}
+
+
+def _boss_memory_cards(events: list[dict], now: int, limit: int = 5) -> list[dict]:
+    """Turn the persistent event log into a small, useful long-term memory."""
+    cards = []
+    for event in events:
+        kind = str(event.get('kind') or '')
+        title, tone, importance = MEMORY_KINDS.get(kind, ('Событие семьи', 'neutral', 30))
+        age = max(0, now - int(event.get('created_at') or now))
+        effective = importance - min(importance - 12, age // 3600)
+        if effective < 18:
+            continue
+        cards.append({
+            'kind': kind, 'title': title, 'tone': tone,
+            'importance': int(effective), 'summary': str(event.get('summary') or ''),
+            'target_id': str(event.get('target_id') or ''),
+            'created_at': int(event.get('created_at') or 0),
+        })
+    cards.sort(key=lambda item: (-item['importance'], -item['created_at'], item['kind']))
+    return cards[:limit]
+
+
+def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[dict],
+                now: int, *, active_wars: int = 0, neutral_buildings: int = 0,
+                affordable_businesses: int = 0) -> dict:
+    """Choose one explainable strategic priority instead of unrelated random actions."""
+    treasury = max(0, int(row['treasury'] or 0))
+    members = max(0, int(row['members'] or 0))
+    strength = max(0, int(row['strength'] or 0))
+    status = str(row['status'] or 'active')
+    building_count = sum(1 for h in holdings if str(h['kind']) == 'building')
+    business_count = sum(1 for h in holdings if str(h['kind']) == 'business')
+    target_members = min(NPC_EMPIRE_MAX_FIGHTERS, 8 + (profile.aggression + profile.loyalty) // 10)
+    memories = _boss_memory_cards(events, now)
+    remembered = {memory['kind'] for memory in memories}
+    recent_humiliation = sum(memory['importance'] for memory in memories
+                             if memory['kind'] in {'player_attack', 'war_lost', 'empire_ruined', 'hospitalized'})
+    scores = {
+        'recover': (110 if status == 'rebuilding' else 0) + max(0, 5 - members) * 15 + max(0, 55 - strength) * .35,
+        'recruit': max(0, target_members - members) * 7 + profile.loyalty * .24 + profile.aggression * .14,
+        'fortify': active_wars * 32 + building_count * 2 + profile.loyalty * .27 + recent_humiliation * .18,
+        'retaliate': active_wars * 38 + profile.aggression * .38 + recent_humiliation * .34,
+        'acquire': profile.commerce * .48 + business_count * -5 + min(24, treasury / 1800),
+        'expand': profile.aggression * .24 + profile.commerce * .20 + building_count * -4 + min(20, treasury / 2200),
+        'consolidate': 22 + profile.diplomacy * .16 + len(holdings) * 2 + (18 if treasury < 1200 else 0),
+    }
+    if int(row['hospital_until'] or 0) > now:
+        scores['recover'] += 180
+    if members >= target_members or treasury < 180 + members * 14:
+        scores['recruit'] = -999
+    if not holdings:
+        scores['fortify'] -= 30
+    if not active_wars and 'player_attack' not in remembered:
+        scores['retaliate'] -= 28
+    if not affordable_businesses or business_count >= 5:
+        scores['acquire'] = -999
+    if not neutral_buildings or building_count >= 8:
+        scores['expand'] = -999
+    ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+    strategy, best = ranked[0]
+    second = ranked[1][1]
+    confidence = max(52, min(96, int(58 + max(0, best - second) * .8)))
+    power_per_member = strength / max(1, members)
+    risk_value = active_wars * 24 + max(0, 8 - members) * 5 + max(0, 11 - power_per_member) * 3
+    risk = 'высокий' if risk_value >= 55 else 'средний' if risk_value >= 25 else 'низкий'
+    labels = {
+        'recover': 'Собрать семью заново', 'recruit': 'Усилить состав',
+        'fortify': 'Удержать свои владения', 'retaliate': 'Ответить на угрозу',
+        'acquire': 'Купить прибыльный бизнес', 'expand': 'Расширить территорию',
+        'consolidate': 'Накопить казну',
+    }
+    dominant = max((('напор', profile.aggression), ('расчёт', profile.commerce),
+                    ('переговоры', profile.diplomacy), ('верность', profile.loyalty)),
+                   key=lambda item: item[1])[0]
+    reasons = {
+        'recover': f'После потерь {profile.leader_name} бережёт остатки семьи и восстанавливает силу.',
+        'recruit': f'В строю {members} из желаемых {target_members}; без людей новый приказ слишком рискован.',
+        'fortify': f'У семьи {len(holdings)} владений и {active_wars} активных войн: сначала нужна оборона.',
+        'retaliate': f'Босс помнит недавнюю угрозу и считает, что без ответа авторитет семьи упадёт.',
+        'acquire': f'В казне ${treasury:,}; коммерческая хватка подсказывает вложиться в доход, а не в перестрелку.',
+        'expand': f'Сила {strength}, бойцов {members}: семья готова занять ближайшую удобную точку.',
+        'consolidate': f'Сейчас выгоднее переждать, собрать доход и не открывать лишний фронт.',
+    }
+    return {
+        'strategy': strategy, 'label': labels[strategy], 'reason': reasons[strategy],
+        'confidence': confidence, 'risk': risk, 'temperament': dominant,
+        'scores': [{'strategy': key, 'score': round(value, 1)} for key, value in ranked[:3]],
+        'decided_at': now, 'memory_count': len(memories),
+    }
 
 
 def _war_activity(profile: EmpireProfile, row, enemy: dict, now: int) -> dict:
@@ -761,6 +904,13 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
         player_war_leaders = {str(row[0]) for row in await (await db.execute(
             "SELECT DISTINCT leader_id FROM npc_empire_player_wars"
         )).fetchall()}
+        memory_rows = await (await db.execute(
+            "SELECT leader_id,kind,target_id,summary,created_at FROM npc_empire_events "
+            "ORDER BY id DESC LIMIT 240"
+        )).fetchall()
+        memories_by_leader: dict[str, list[dict]] = {profile.leader_id: [] for profile in PROFILES}
+        for memory_row in memory_rows:
+            memories_by_leader.setdefault(str(memory_row['leader_id']), []).append(dict(memory_row))
         building_owner = {str(r['holding_id']):str(r['leader_id']) for r in await (await db.execute(
             "SELECT holding_id,leader_id FROM npc_empire_holdings WHERE kind='building'"
         )).fetchall()}
@@ -803,9 +953,36 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 NPC_EMPIRE_MAX_FIGHTERS,
                 8 + (profile.aggression + profile.loyalty) // 10,
             )
+            building_count = sum(1 for h in holdings if h['kind'] == 'building')
+            owned_businesses = [h for h in holdings if h['kind'] == 'business']
+            neutral_building_choices = [key for key in GENERIC_BUILDINGS
+                                        if key not in building_owner and key != profile.hq_key]
+            neutral_businesses = [bid for bid in BUSINESS_PRICE
+                                  if bid not in property_owned and bid not in business_owner]
+            affordable = [bid for bid in neutral_businesses
+                          if treasury >= int(BUSINESS_PRICE[bid] * .65)]
+            active_wars = sum(1 for pair, state in diplomacy_state.items()
+                              if leader_id in pair and state[0] == 'war')
+            if leader_id in player_war_leaders:
+                active_wars += 1
+            brain_row = {
+                'treasury': treasury, 'members': members, 'strength': strength,
+                'status': str(row['status']),
+                'hospital_until': int(row['hospital_until'] or 0),
+            }
+            brain = _boss_brain(
+                profile, brain_row, [dict(h) for h in holdings],
+                memories_by_leader.get(leader_id, []), now,
+                active_wars=active_wars,
+                neutral_buildings=len(neutral_building_choices),
+                affordable_businesses=len(affordable),
+            )
+            strategy = str(brain['strategy'])
+            strategic_action_taken = False
             last_recruit_count = max(0, int(row['last_recruit_count'] or 0))
             last_recruit_at = max(0, int(row['last_recruit_at'] or 0))
-            if pending_recruits == 0 and members < target_members and treasury >= recruit_cost and rng.random() < .72:
+            recruit_chance = .96 if strategy in {'recover', 'recruit', 'fortify'} else .22
+            if pending_recruits == 0 and members < target_members and treasury >= recruit_cost and rng.random() < recruit_chance:
                 hired = min(3, target_members - members, treasury // recruit_cost)
                 if hired:
                     treasury -= hired * recruit_cost
@@ -816,13 +993,24 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     venue, _, _, _, _ = _recruitment_venue(profile)
                     events.append({'leader_id': leader_id, 'kind': 'recruit_completed',
                                    'summary': f'{profile.leader_name} сразу принял {hired} бойцов: {venue}'})
-            building_count = sum(1 for h in holdings if h['kind'] == 'building')
+                    strategic_action_taken = True
             expansion_cost = 1100 + building_count * 650
             army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
-            if treasury >= expansion_cost and building_count < 8 and rng.random() < (.18 + profile.aggression / 430 + army_pressure * .16):
-                choices = [key for key in GENERIC_BUILDINGS if key not in building_owner and key != profile.hq_key]
+            expand_chance = .90 if strategy == 'expand' else .035
+            if (not strategic_action_taken and treasury >= expansion_cost and building_count < 8
+                    and rng.random() < expand_chance):
+                choices = neutral_building_choices
                 if choices:
-                    key = choices[rng.randrange(len(choices))]
+                    anchors = [_hq_coords(str(row['hq_key'] or profile.hq_key))]
+                    anchors.extend(_hq_coords(str(h['holding_id'])) for h in holdings
+                                   if str(h['kind']) == 'building')
+                    def building_utility(key: str) -> tuple:
+                        target_r, target_c = _hq_coords(key)
+                        distance = min(abs(target_r-r) + abs(target_c-c) for r, c in anchors)
+                        tie = int.from_bytes(hashlib.sha256(
+                            f'{leader_id}:{key}'.encode()).digest()[:2], 'big')
+                        return distance, tie
+                    key = min(choices, key=building_utility)
                     building_owner[key] = leader_id
                     area = BUILDING_AREAS[key]
                     operation = choose_building_operation(profile, key, now)
@@ -836,18 +1024,22 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     treasury -= expansion_cost
                     events.append({'leader_id': leader_id, 'kind': 'expand', 'target_id': key,
                                    'summary': f"{profile.gang_name} захватили дом {key} и открыли «{BUILDING_OPERATIONS[operation]['name']}»"})
+                    strategic_action_taken = True
             # A faction may buy a neutral business. Player-owned property is
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
-            owned_businesses = [h for h in holdings if h['kind'] == 'business']
-            neutral_businesses = [bid for bid in BUSINESS_PRICE
-                                  if bid not in property_owned and bid not in business_owner]
-            if neutral_businesses and len(owned_businesses) < 5 and rng.random() < (.14 + army_pressure * .14):
-                neutral_businesses.sort(key=lambda bid: BUSINESS_PRICE[bid])
-                affordable = [bid for bid in neutral_businesses
-                              if treasury >= int(BUSINESS_PRICE[bid] * .65)]
+            acquire_chance = .92 if strategy == 'acquire' else .025
+            if (not strategic_action_taken and neutral_businesses and len(owned_businesses) < 5
+                    and rng.random() < acquire_chance):
                 if affordable:
-                    bid = affordable[min(len(affordable)-1, rng.randrange(min(3,len(affordable))))]
+                    hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
+                    def business_utility(bid: str) -> tuple:
+                        income_yield = BUSINESS_INCOME[bid] / max(1, BUSINESS_PRICE[bid])
+                        target_r, target_c = BUSINESS_COORDS[bid]
+                        distance = abs(target_r-hq_r) + abs(target_c-hq_c)
+                        score = income_yield * (150000 + profile.commerce * 1200) - distance * (2.2-profile.commerce/100)
+                        return -score, bid
+                    bid = min(affordable, key=business_utility)
                     cost = int(BUSINESS_PRICE[bid] * .65)
                     treasury -= cost
                     business_owner[bid] = leader_id; property_owned.add(bid)
@@ -863,11 +1055,33 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     )
                     events.append({'leader_id':leader_id,'kind':'business_bought','target_id':bid,
                                    'summary':f'{profile.gang_name} купили бизнес {bid}'})
+                    strategic_action_taken = True
+            if not strategic_action_taken and strategy == 'fortify' and holdings:
+                fortify_cost = 420 + len(holdings) * 45
+                if treasury >= fortify_cost:
+                    weak = min(holdings, key=lambda item: (
+                        int(item['defense'] or 0), -int(item['income'] or 0),
+                        str(item['holding_id'])))
+                    defense_gain = 10 + profile.loyalty // 8
+                    await db.execute(
+                        "UPDATE npc_empire_holdings SET defense=MIN(240,defense+?) "
+                        "WHERE kind=? AND holding_id=? AND leader_id=?",
+                        (defense_gain, str(weak['kind']), str(weak['holding_id']), leader_id),
+                    )
+                    treasury -= fortify_cost
+                    events.append({
+                        'leader_id': leader_id, 'kind': 'fortify',
+                        'target_id': str(weak['holding_id']),
+                        'summary': f'{profile.leader_name} усилил оборону владения {weak["holding_id"]}',
+                    })
+                    strategic_action_taken = True
             # Autonomous wars only move NPC-controlled holdings here. Battles
             # involving a player are created as explicit defendable sessions.
             # Large formations stop behaving like small raiding parties: once
             # the boss has a real army, it continually pressures rival assets.
-            if rng.random() < (.035 + profile.aggression/1250 + army_pressure * .12):
+            war_chance = .82 if strategy == 'retaliate' else (.018 + profile.aggression / 3000)
+            if (not strategic_action_taken and leader_id not in player_war_leaders
+                    and rng.random() < war_chance):
                 holding_counts: dict[str, int] = {}
                 for owner in list(building_owner.values()) + list(business_owner.values()):
                     holding_counts[owner] = holding_counts.get(owner, 0) + 1
@@ -907,7 +1121,11 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     (rival.leader_id if rival else '__none__',),
                 )).fetchone()
                 if target_rows and rival_state and rival_state['status'] in ('active','rebuilding','vassal') and rival.leader_id not in ruined_this_tick:
-                    target = target_rows[rng.randrange(len(target_rows))]
+                    target = max(target_rows, key=lambda item: (
+                        int(item['income'] or 0) * (1 + profile.commerce / 180)
+                        - int(item['defense'] or 0) * (1.25 - profile.aggression / 180),
+                        str(item['holding_id']),
+                    ))
                     attack_power = strength * (.72 + rng.random()*.58) + profile.aggression
                     defense_power = int(rival_state['strength']) * (.78 + rng.random()*.52) + int(target['defense'])
                     casualty = max(1, int((attack_power+defense_power)/180))
@@ -1106,7 +1324,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
         )).fetchall()]
         recent = [dict(r) for r in await (await db.execute(
-            "SELECT leader_id,kind,target_id,summary,created_at FROM npc_empire_events ORDER BY id DESC LIMIT 30"
+            "SELECT leader_id,kind,target_id,summary,created_at FROM npc_empire_events ORDER BY id DESC LIMIT 240"
         )).fetchall()]
         district_rows = [dict(r) for r in await (await db.execute(
             "SELECT district_id,leader_id,score,runner_up_id,runner_up_score,contested,changed_at "
@@ -1127,6 +1345,11 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             area = int(item.get('area') or 4)
             item['size_class'] = 'large' if area >= 24 else 'medium' if area >= 16 else 'small'
         holdings.setdefault(str(row['leader_id']), []).append(item)
+    events_by_leader: dict[str, list[dict]] = {p.leader_id: [] for p in PROFILES}
+    for event in recent:
+        events_by_leader.setdefault(str(event.get('leader_id') or ''), []).append(event)
+    owned_buildings = {str(item['holding_id']) for item in holdings_rows if str(item['kind']) == 'building'}
+    owned_businesses = {str(item['holding_id']) for item in holdings_rows if str(item['kind']) == 'business'}
     result = []
     for row in rows:
         leader_id = str(row['leader_id'])
@@ -1137,6 +1360,22 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         hq_r, hq_c = _hq_coords(hq_key) if hq_key else (0, 0)
         leader_holdings = holdings.get(leader_id, [])
         recruitment = _recruitment_state(profile, row, now)
+        leader_events = events_by_leader.get(leader_id, [])
+        memory = _boss_memory_cards(leader_events, now)
+        active_wars = sum(1 for pact_row in diplomacy_rows
+                          if str(pact_row.get('pact') or '') == 'war'
+                          and leader_id in {str(pact_row.get('leader_a')), str(pact_row.get('leader_b'))})
+        if leader_id in war_rows:
+            active_wars += 1
+        neutral_buildings = sum(1 for key in GENERIC_BUILDINGS
+                                if key not in owned_buildings and key != profile.hq_key)
+        affordable_businesses = sum(1 for bid, price in BUSINESS_PRICE.items()
+                                    if bid not in owned_businesses and int(row['treasury'] or 0) >= int(price * .65))
+        brain = _boss_brain(
+            profile, row, leader_holdings, leader_events, now,
+            active_wars=active_wars, neutral_buildings=neutral_buildings,
+            affordable_businesses=affordable_businesses,
+        )
         result.append({
             'leader_id': leader_id, 'leader_name': profile.leader_name, 'title': profile.title,
             'gang_name': profile.gang_name, 'color': profile.color, 'accent': profile.accent,
@@ -1161,7 +1400,9 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'pact': str(relation.get('pact') or 'none'),
             'war_pressure': war_rows.get(leader_id),
             'holdings': leader_holdings,
-            'activity': _visible_activity(profile, row, leader_holdings, now),
+            'brain': brain,
+            'memory': memory,
+            'activity': _visible_activity(profile, row, leader_holdings, now, brain),
         })
     leaderboard = sorted(result, key=lambda e: (
         -e['district_count'], -e['dominance_score'], -e['strength'],
@@ -1200,7 +1441,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         'contested': bool(row['contested']),
     } for row in district_rows]
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],
-            'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent,
+            'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent[:60],
             'player_war_events': player_war_events,
             'server_time': now, 'tick_seconds': TICK_SECONDS}
 
@@ -1283,7 +1524,8 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                    if action == 'street_attack' else f'{action}: отношение {score:+d}')
         await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
-            (leader_id, 'diplomacy', str(telegram_id), summary, now),
+            (leader_id, 'player_attack' if action == 'street_attack' else 'diplomacy',
+             str(telegram_id), summary, now),
         )
         await db.commit()
     return {'ok': True, 'leader_id': leader_id, 'action': action, 'relation': score,
