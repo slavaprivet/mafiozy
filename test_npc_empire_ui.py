@@ -39,6 +39,13 @@ def run() -> None:
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
     assert "_empirePressUntil" in WORLD and "_empireTargetLockUntil" in WORLD
     assert "confidence>=1.12" in WORLD and "powerRatio<.68" in WORLD
+    assert "EMPIRE_MAX_ESCORTS=20" in WORLD and "EMPIRE_VISIBLE_CREW_CAP=60" in WORLD
+    assert "_empireFormationOffset" in WORLD and "2.3999632297" in WORLD
+    assert "_empireSeparationVector" in WORLD and "_empireScatterSquad" in WORLD
+    assert "ВРОССЫПНУЮ! НЕ СТОЯТЬ КУЧЕЙ!" in WORLD
+    assert "overwhelming=force>=10" in WORLD and "assigned*1.35" in WORLD
+    assert "npc.walking?npc.walkPhase:0" in WORLD
+    assert "walking:!death.dead&&declaredMoving" in WORLD
     assert '"kind": "gang_war"' in PREVIEW and '"pact": "war"' in PREVIEW
     assert "_UP.has('previewempirewar')" in WORLD
     assert "leftStage=_nearestEmpireWalkPoint(player.r-4" in WORLD
