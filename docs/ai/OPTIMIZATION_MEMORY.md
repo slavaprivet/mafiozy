@@ -1122,3 +1122,12 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   even while the dossier locks backdrop clicks during actions.
 - This remains DOM/CSS UI. Reuse the existing portrait canvas and server state;
   do not create a second renderer, animation loop or polling path for styling.
+
+## Authoritative hospital state in the boss dashboard (2026-08-12)
+
+- Derive the hospitalized card state only from the server-provided
+  `hospital_until` timestamp. Grayscale the already-rendered portrait with CSS
+  and overlay one DOM medical badge; do not redraw portraits or add WebGL work.
+- Refresh an open dashboard through the existing 30-second empire snapshot.
+  A single bounded timeout at the nearest known discharge time may remove the
+  visual state promptly; it must not become a per-card or render-loop timer.
