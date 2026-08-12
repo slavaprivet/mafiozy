@@ -1086,3 +1086,26 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - For temporary 3D status markers, keep a fixed sprite/canvas pool. The empire hospital UI uses six preallocated sprites and only redraws a texture when the patient, family colors, hospital, or displayed second changes.
 - Pass compact hospital state through the existing dynamic bridge snapshot; do not create meshes or query the server from the render loop.
 - Stack patients assigned to the same hospital by pool order and determine roof height from the existing building bounds. This avoids z-fighting and keeps both hospital locations readable without a second scene graph scan.
+
+## Explicit direct-world owner link (2026-08-12)
+
+- Production keeps the normal server-backed character gate unless the URL
+  explicitly contains `direct=1`. This owner/testing link accepts the existing
+  URL identity and look, closes the menu during startup and never redirects to
+  `creator.html` when the profile API or tunnel is unavailable.
+- Direct entry changes only startup gating. It must not synthesize role,
+  faction, business ownership or other server state, and it adds no render-loop
+  work, geometry, material, texture, scan or timer.
+
+## Empire runtime endpoint and honest offline state (2026-08-12)
+
+- The browser receives authoritative empire wars, diplomacy and hospital state
+  through `coop_api.json`. The tunnel launcher must publish that file to the
+  same `slavaprivet/mafiozy` repository that serves `world.html`; publishing it
+  to an obsolete Pages repository silently strands every boss in fallback.
+- An offline fallback must be visually explicit (`status: offline`, no server
+  connection). Never label every offline boss as patrolling or checking
+  holdings: that looks like valid AI activity and hides a dead endpoint.
+- Keep the fallback static and bounded. Restoring the endpoint must reactivate
+  the existing server snapshots and fixed NPC pools; do not add polling loops,
+  fake wars, synthetic ownership or render-loop work to mask connectivity.
