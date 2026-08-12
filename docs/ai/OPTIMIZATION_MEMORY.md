@@ -1213,3 +1213,17 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   a boss does not perform several contradictory random actions in one tick.
   Target selection may sort the already bounded candidate lists by proximity,
   yield, defense and relative force; it must not add map-wide frame scans.
+
+## Cached squad-level combat orders (2026-08-12)
+
+- Keep the existing per-NPC target and movement think, but calculate the shared
+  family order at most once per 900 ms. The first fighter requesting an expired
+  order scans the already bounded visible empire pool; every other fighter
+  reuses the cached result.
+- Base the order on living force, weighted health, boss condition, formation
+  spread and casualties. A family can regroup, hold, flank, focus the enemy
+  boss, press an advantage or withdraw together instead of making twenty
+  contradictory individual choices.
+- Announce only real order changes and enforce a five-second speech cooldown.
+  Tactical state remains client-side and bounded; no database calls, new timers
+  or Three.js frame scans are added.

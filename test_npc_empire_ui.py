@@ -44,7 +44,7 @@ def run() -> None:
     assert "_empireFormationOffset" in WORLD and "2.3999632297" in WORLD
     assert "_empireSeparationVector" in WORLD and "_empireScatterSquad" in WORLD
     assert "_empireSpeak(target,'scatter'" in WORLD
-    assert "overwhelming=force>=10" in WORLD and "assigned*1.35" in WORLD
+    assert "overwhelming=force>=10" in WORLD and "assigned*(order.type==='focus'?.72:1.35)" in WORLD
     assert "npc.walking?npc.walkPhase:0" in WORLD
     assert "walking:!death.dead&&declaredMoving" in WORLD
     assert '"kind": "gang_war"' in PREVIEW and '"pact": "war"' in PREVIEW
@@ -81,6 +81,10 @@ def run() -> None:
     assert "ne-brain-board" in WORLD and "ne-brain-confidence" in WORLD
     assert "empire.brain" in WORLD and "empire.memory" in WORLD
     assert "_boss_brain(" in PREVIEW and "['brain']" in PREVIEW
+    assert "_empireSquadOrder" in WORLD and "EMPIRE_SQUAD_ORDER_MS=900" in WORLD
+    assert "type==='withdraw'" in WORLD and "type==='regroup'" in WORLD
+    assert "type==='focus'" in WORLD and "type==='flank'" in WORLD
+    assert "dataset.empireSquadOrder" in WORLD and "now-order.announcedAt>5000" in WORLD
     print("npc_empire_ui: 3D cards, dossier, hospital state, attitudes, routes and hostility OK")
 
 
