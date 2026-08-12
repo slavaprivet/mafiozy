@@ -29,6 +29,7 @@ NPC_OWNER_BASE = -900_000
 PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
 PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
 VISIBLE_ACTIVITY_SECONDS = 75
+NPC_EMPIRE_MAX_FIGHTERS = 20
 
 
 @dataclass(frozen=True)
@@ -258,7 +259,7 @@ def _war_activity(profile: EmpireProfile, row, enemy: dict, now: int) -> dict:
         'target_r': float(enemy.get('hq_r') or 0),
         'target_c': float(enemy.get('hq_c') or 0),
         'phase': 'engage', 'stance': stance,
-        'force': min(4, max(2, int(row['members'] or 1) // 4 + 1)),
+        'force': min(NPC_EMPIRE_MAX_FIGHTERS, max(2, int(row['members'] or 1))),
         'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
         'summary': f'{profile.leader_name} ведёт {profile.gang_name} против {enemy["gang_name"]}',
     }
@@ -632,7 +633,13 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             strength = max(20, int(row['strength'] or 20))
             rng = _decision_roll(leader_id, int(row['last_tick']) + ticks * TICK_SECONDS)
             recruit_cost = 180 + members * 14
-            target_members = 5 + (profile.aggression + profile.loyalty) // 12
+            # A successful boss can grow a full street army. The hard cap is
+            # shared with world.html so one leader never materialises more than
+            # twenty armed followers around himself.
+            target_members = min(
+                NPC_EMPIRE_MAX_FIGHTERS,
+                8 + (profile.aggression + profile.loyalty) // 10,
+            )
             if members < target_members and treasury >= recruit_cost and rng.random() < .72:
                 hired = min(3, target_members - members, treasury // recruit_cost)
                 if hired:
@@ -642,7 +649,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     events.append({'leader_id': leader_id, 'kind': 'recruit', 'summary': f'Нанято бойцов: {hired}'})
             building_count = sum(1 for h in holdings if h['kind'] == 'building')
             expansion_cost = 1100 + building_count * 650
-            if treasury >= expansion_cost and building_count < 4 and rng.random() < (.16 + profile.aggression / 500):
+            army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
+            if treasury >= expansion_cost and building_count < 8 and rng.random() < (.18 + profile.aggression / 430 + army_pressure * .16):
                 choices = [key for key in GENERIC_BUILDINGS if key not in building_owner and key != profile.hq_key]
                 if choices:
                     key = choices[rng.randrange(len(choices))]
@@ -663,7 +671,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             owned_businesses = [h for h in holdings if h['kind'] == 'business']
             neutral_businesses = [bid for bid in BUSINESS_PRICE
                                   if bid not in property_owned and bid not in business_owner]
-            if neutral_businesses and len(owned_businesses) < 2 and rng.random() < .14:
+            if neutral_businesses and len(owned_businesses) < 5 and rng.random() < (.14 + army_pressure * .14):
                 neutral_businesses.sort(key=lambda bid: BUSINESS_PRICE[bid])
                 affordable = [bid for bid in neutral_businesses
                               if treasury >= int(BUSINESS_PRICE[bid] * .65)]
@@ -686,7 +694,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                    'summary':f'{profile.gang_name} купили бизнес {bid}'})
             # Autonomous wars only move NPC-controlled holdings here. Battles
             # involving a player are created as explicit defendable sessions.
-            if rng.random() < (.025 + profile.aggression/1600):
+            # Large formations stop behaving like small raiding parties: once
+            # the boss has a real army, it continually pressures rival assets.
+            if rng.random() < (.035 + profile.aggression/1250 + army_pressure * .12):
                 holding_counts: dict[str, int] = {}
                 for owner in list(building_owner.values()) + list(business_owner.values()):
                     holding_counts[owner] = holding_counts.get(owner, 0) + 1
