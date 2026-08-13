@@ -88,6 +88,19 @@ def test_business_picker_is_a_visual_income_gallery() -> None:
     assert "Окупаемость" not in picker and "returnMinutes" not in picker
 
 
+def test_building_purchase_requires_yes_no_confirmation_and_closes_panels() -> None:
+    picker = WORLD[WORLD.index("let _playerBuildingChoiceMode"):WORLD.index("function openNpcAnnexBuildingChoice")]
+    purchase = WORLD[WORLD.index("async function _buyCurrentApartment"):WORLD.index("function showApartmentUpgradeMenu")]
+    assert "openPlayerBuildingPurchaseConfirmation" in picker
+    assert "data-pbc-confirm-no" in picker and "data-pbc-confirm-yes" in picker
+    assert "НЕТ, ВЕРНУТЬСЯ" in picker and "ДА, КУПИТЬ ЗА" in picker
+    assert "_pendingPlayerBuildingPurchase" in picker
+    assert "_closePlayerBuildingPurchaseUi();" in picker
+    assert "closeApartmentControlPanel()" in purchase
+    assert "openApartmentControlPanel();" not in purchase
+    assert "openCustomGangModal();" not in purchase
+
+
 def test_interior_camera_zoom_is_bounded_and_restores_world_zoom() -> None:
     assert "interiorZoom=1.08" in THREE
     assert "THREE.MathUtils.clamp(interiorZoom+direction*step,.55,1.9)" in THREE
