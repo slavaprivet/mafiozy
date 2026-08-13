@@ -1582,3 +1582,23 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   One-tab 3D QA loaded all eight NPC operations; every case reported
   `purpose-v3:business:<operation>` and the matching owner/type skin with no
   startup fallback or Three.js error.
+
+## Kneeling locomotion and stance-safe firearms (2026-08-13, v384)
+
+- A low Ctrl stance is knee-supported, not a seated hip translation. Keep the
+  pelvis over the knees, shorten the existing thigh capsules and reveal two
+  prebuilt shin segments that extend backward. Alternate the knee drive from
+  the existing gait phase; do not add clips, timers or per-frame allocations.
+- When the prone parent rig rotates near horizontal, its positive local Z axis
+  points toward the road. Pull firearms toward negative local Z by a bounded
+  family profile (`sidearm`, `long gun`, `RPG`) and counter-pitch the rig before
+  applying the existing two-hand IK. A positive measured muzzle clearance is a
+  required runtime contract.
+- Reuse the normalized recoil impulse for stance animation. Prone fire produces
+  a short braced shoulder slide and restrained muzzle rise; kneeling fire adds
+  a larger torso/shoulder response. The common layer covers every firearm in
+  `WEAPON_VISUALS` while reload, throw, arrest, death and vehicle layers retain
+  their priority.
+- Test representative sidearm, automatic, shotgun, rifle, sniper and RPG
+  profiles in one reused browser tab. Reject any stance with a muzzle below the
+  floor, startup fallback, or a Three.js runtime error.
