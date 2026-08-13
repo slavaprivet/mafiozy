@@ -1688,3 +1688,18 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   drive the cached gait phase without moving gameplay coordinates. Expose the
   active left/right phase through `playerStanceCycle`, and keep this fixture
   inert on GitHub Pages and in real gameplay.
+
+## Ownership markers must resolve real building footprints (2026-08-13)
+
+- A server holding key identifies a city block, not a guaranteed render point.
+  Never place a flag at the legacy `block * BLOCK + 6.5` center: authored east
+  blocks, plazas and old park layouts can put the actual shell elsewhere.
+- Resolve the connected `MAP === 1` footprint inside the keyed block once,
+  cache its real center/area and feed that point to both 2D and 3D markers.
+  Missing footprints return `null`; a fallback road marker hides data drift and
+  makes an ownership facade float on asphalt.
+- Reserve every autonomous-family HQ block before procedural park selection so
+  headquarters always have a physical shell. Clear the footprint cache and
+  rebuild marker sites whenever a server map-size change rebuilds `MAP`.
+- Expose a bounded invalid-holding counter for regression QA. This adds no
+  render-loop scan: validation happens only when empire/property state changes.
