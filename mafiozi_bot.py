@@ -16274,7 +16274,27 @@ class WorldSim:
             pass
         return {'ok': True, 'respawn_point': rp}
 
-    def emergency_revive(self, uid: str) -> dict:
+    def emergency_transport(self, uid: str, active: bool = True) -> dict:
+        """Hold normal respawn while the city ambulance transports a downed player."""
+        p = self.players.get(str(uid))
+        if not p:
+            return {'ok': False, 'error': 'no_player'}
+        now = time.time()
+        if active:
+            if not p.get('dead'):
+                return {'ok': False, 'error': 'not_downed'}
+            if float(p.get('_jail_until') or 0) > now or p.get('_police_downed_by'):
+                return {'ok': False, 'error': 'custody'}
+            hold_until = now + 180.0
+            p['_emergency_transport_until'] = hold_until
+            p['_respawn_at'] = max(float(p.get('_respawn_at') or 0), hold_until)
+            return {'ok': True, 'active': True, 'hold_until': hold_until}
+        p.pop('_emergency_transport_until', None)
+        if p.get('dead'):
+            p['_respawn_at'] = min(float(p.get('_respawn_at') or now + 5.0), now + 5.0)
+        return {'ok': True, 'active': False}
+
+    def emergency_revive(self, uid: str, hospital_id: str = 'hospital', hospital_x=None, hospital_y=None) -> dict:
         """Скорая поднимает погибшего игрока до автоматического респавна."""
         p = self.players.get(str(uid))
         if not p or not p.get('dead'):
@@ -16284,6 +16304,16 @@ class WorldSim:
         p['dead'] = False
         p['hp'] = max(30, int((p.get('max_hp') or 100) * .4))
         p.pop('_respawn_at', None)
+        p.pop('_emergency_transport_until', None)
+        target_x, target_y = ((126.0, 46.0) if str(hospital_id) == 'hospital_east'
+                              else (self.HOSPITAL_X, self.HOSPITAL_Y))
+        try:
+            requested_x, requested_y = float(hospital_x), float(hospital_y)
+            if math.hypot(requested_x - target_x, requested_y - target_y) <= 12.0:
+                target_x, target_y = requested_x, requested_y
+        except (TypeError, ValueError):
+            pass
+        p['x'], p['y'] = target_x, target_y
         return {'ok': True, 'hp': p['hp'], 'x': p.get('x'), 'y': p.get('y')}
 
     def tick_respawn(self, dt: float) -> None:
@@ -16296,6 +16326,11 @@ class WorldSim:
         for p_uid, p in self.players.items():
             if not p.get('dead'):
                 continue
+            transport_until = float(p.get('_emergency_transport_until') or 0)
+            if transport_until > now:
+                continue
+            if transport_until:
+                p.pop('_emergency_transport_until', None)
             if now < p.get('_respawn_at', 0):
                 continue
             self._clear_police_downed(str(p_uid))
@@ -28896,8 +28931,20 @@ async def _coop_http_app():
                                 {'t': 'event', 'd': dict(reply, kind='box_unload_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'emergency_transport':
+                        reply = world.emergency_transport(uid, bool(d.get('active', True)) if isinstance(d, dict) else True)
+                        try:
+                            await ws.send_str(json.dumps(
+                                {'t': 'event', 'd': dict(reply, kind='emergency_transport_reply')},
+                                ensure_ascii=False))
+                        except Exception: pass
                     elif t == 'emergency_revive':
-                        reply = world.emergency_revive(uid)
+                        reply = world.emergency_revive(
+                            uid,
+                            d.get('hospital_id', 'hospital') if isinstance(d, dict) else 'hospital',
+                            d.get('x') if isinstance(d, dict) else None,
+                            d.get('y') if isinstance(d, dict) else None,
+                        )
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(reply, kind='emergency_revive_reply')},

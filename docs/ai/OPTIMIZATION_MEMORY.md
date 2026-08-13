@@ -1756,3 +1756,10 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Вражеский `npc_hq` получает только синтетический read-only снимок `propertyKind=hq` для повторного использования статического декора командного центра. Геометрия создаётся один раз при входе, а не в игровом цикле.
 - Смерть охраны использует общий 3D-конвейер `dead/deadAt`, останавливает походку и стрельбу, добавляет ограниченную кровавую декаль. Окно победы босса задержано на 1050 мс, чтобы падение не перекрывалось интерфейсом выбора трофея.
 - Подтверждённый локальный прогон: `42x30`, 3 охранника, скорость трассера `15.5`, одновременно `2` живых снаряда, HP игрока `500→420`, затем `deathSettledNpcs=1`. Тестовый режим не пишет серверное состояние.
+
+## 2026-08-13 — Player ambulance must own the whole death lifecycle
+
+- A cosmetic ambulance dispatch cannot run beside the legacy respawn timer. Once a player patient is assigned, pause the client countdown and place a bounded server-side hold on `_respawn_at`; clear the hold on hospital delivery or cancellation.
+- Reuse the same stretcher/loading/return state machine for NPCs and players. Special-casing the player in the old `working` phase caused an instant revive at the incident instead of physical transport.
+- Hide the original player model only after `_carriedByAmbulance` becomes true, while the stretcher body is visible, and keep it hidden during `_ambulanceInTransit`. Restore and teleport at hospital delivery, then send the authoritative revive with the validated hospital exit coordinates.
+- The death overlay must describe the current ambulance phase and suppress the old numeric respawn countdown while evacuation is active; otherwise the UI promises a respawn that the transport intentionally postpones.

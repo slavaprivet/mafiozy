@@ -5056,7 +5056,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             if(cameraZoomMode!=='world'){cameraZoomMode='world';cameraZoomKey='';camera.zoom=worldZoom;camera.updateProjectionMatrix();}
             if(!state.interior)interiorSignature='';
           }
-          player.visible=!state.driving&&!playerArrestHidden;
+          player.visible=!state.driving&&!playerArrestHidden&&!state.medicalEvacuated;
           let targetR=+state.r||0,targetC=+state.c||0;if(state.vehicleEntry){const p=Math.max(0,Math.min(1,+state.vehicleEntry.progress||0)),sideFade=p<.52?1:Math.max(0,1-(p-.52)/.4),side=.7*sideFade;targetR=(+state.vehicleEntry.r||targetR)+Math.cos(+state.vehicleEntry.ang||0)*side;targetC=(+state.vehicleEntry.c||targetC)-Math.sin(+state.vehicleEntry.ang||0)*side;}const tx=(targetC-originC)*WORLD_SCALE,tz=(targetR-originR)*WORLD_SCALE;
           const delta=Math.hypot(tx-player.position.x,tz-player.position.z);playerTeleported=!!state.teleported||delta>24;
           if(playerTeleported){player.position.x=tx;player.position.z=tz;playerAnim.speed=playerAnim.gait=playerAnim.accel=0;playerAnim.stepBucket=-1;}else{player.position.x=THREE.MathUtils.lerp(player.position.x,tx,Math.min(1,dt*14));player.position.z=THREE.MathUtils.lerp(player.position.z,tz,Math.min(1,dt*14));}syncMouseAim();

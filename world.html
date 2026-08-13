@@ -2608,7 +2608,7 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
     <div class="skull">💀</div>
     <div class="title" id="deathTitle">УБИТ</div>
     <div class="by" id="deathBy">&nbsp;</div>
-    <div class="cnt">Респаун через <span id="deathCnt">5</span> сек</div>
+    <div class="cnt"><span id="deathCntLabel">Респаун через </span><span id="deathCnt">5</span><span id="deathCntSuffix"> сек</span></div>
     <div class="rp" id="deathRespawnPoint">Точка респа: 🏥 Госпиталь</div>
     <button class="rp-btn" id="respawnSetBtn" type="button">🏥 Сменить точку респа</button>
   </div>
@@ -11570,7 +11570,7 @@ function _ambulancePatientPosition(v) {
 function _ambulanceNeedsBodyCrew(v) {
   const patient = v?.payload?.npc;
   const npcCasualty = !!patient && (patient.dead === true || +patient.hp <= 0 || patient._medicalDowned);
-  return npcCasualty && !patient._playerPatient && !patient._corpseExpired &&
+  return npcCasualty && !patient._corpseExpired &&
     !patient._evacuated && !patient._ambulanceInTransit &&
     !patient._carriedByAmbulance;
 }
@@ -11817,6 +11817,7 @@ function _retryAmbulanceHospitalRoute(v,now=performance.now()){
 function _completeAmbulanceHospitalDelivery(v,now=performance.now(),mode='road-arrival'){
   const patient=v?.payload?.npc;
   if(patient?._ambulanceInTransit){
+    if(patient._playerPatient)_completePlayerAmbulanceRecovery(patient,v,now,mode);
     if(patient._medicalDowned&&!patient.dead){
       patient._medicalDowned=false;patient._medicalDownedAt=0;patient._medicalBleedoutAt=0;
       patient._knockedUntil=0;patient._forcedCrawl=false;
@@ -11835,6 +11836,31 @@ function _completeAmbulanceHospitalDelivery(v,now=performance.now(),mode='road-a
   }
   v.payload={};v._medicalScene=null;v._medicalCrew=[];v.path=[];v.pathIdx=0;v.finalTarget=null;
   v.x=v.homeC;v.y=v.homeR;v.speed=0;v.state='ambulance_parked';v._lastMoveT=now;v._sceneNearSince=0;
+}
+
+function _setPlayerEmergencyTransport(active){
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'emergency_transport',d:{active:!!active}}));}catch(e){}
+}
+
+function _completePlayerAmbulanceRecovery(patient,v,now=performance.now(),mode='road-arrival'){
+  if(!patient?._playerPatient)return false;
+  if(_murderPoliceArrest){_setPlayerEmergencyTransport(false);return false;}
+  const east=v?.hospitalId==='east',hospitalId=east?'hospital_east':'hospital';
+  const door=east?_hospitalDoorAt(HOSPITAL_EAST_R,HOSPITAL_EAST_C):_hospitalDoor();
+  _localDeath=false;myDead=false;myDeathBy='';myDeathLeft=0;
+  myHp=Math.max(40,Math.ceil((PVP.max_hp||100)*.4));
+  _localHpHurtAt=0;_selfHpBarUntil=0;_bankShieldUntil=0;
+  _myGang.length=0;_saveGang();myDrivingCarId=null;myIsPassenger=false;_exitRequested=false;camShake=0;
+  player.r=door.r;player.c=door.c;player.walking=false;player.vr=0;player.vc=0;
+  cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
+  _deathOv?.classList.remove('show');
+  patient._medicalDowned=false;patient._ambulanceInTransit=false;patient._carriedByAmbulance=false;
+  patient._ambulanceLoading=false;patient._ambulanceDispatched=false;patient._ambulanceDeliveredAt=now;
+  _playerEmergencyPatient=null;
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'emergency_revive',d:{hospital_id:hospitalId,x:door.c,y:door.r}}));}catch(e){}
+  showEventBanner('🏥 ДОСТАВЛЕН В БОЛЬНИЦУ','Скорая довезла тебя до приёмного покоя. Восстановлено 40% здоровья.',3600,'win');
+  document.documentElement.dataset.playerAmbulanceDelivery=`${hospitalId}:${mode}`;
+  return true;
 }
 
 function _ambulanceWatchdogAdvance(v,now=performance.now(),reason='stuck'){
@@ -11866,7 +11892,7 @@ function _dispatchPlayerAmbulance(){
   if(_playerEmergencyPatient||myJailIn>0||_murderPoliceArrest||/полици|коп/i.test(String(myDeathBy||'')))return;
   const now=performance.now();_playerEmergencyPatient={r:player.r,c:player.c,_playerPatient:true,_medicalDowned:true,_medicalDownedAt:now,_medicalBleedoutAt:now+18000};
   const amb=spawnAmbulance(player.r,player.c,_playerEmergencyPatient);
-  if(amb){_playerEmergencyPatient._ambulanceDispatched=true;showEventBanner('🚑 СКОРАЯ ВЫЕХАЛА','Продержись: врачи едут к месту ранения.',3000,'neutral');}
+  if(amb){_playerEmergencyPatient._ambulanceDispatched=true;_setPlayerEmergencyTransport(true);showEventBanner('🚑 СКОРАЯ ВЫЕХАЛА','Продержись: врачи едут к месту ранения.',3000,'neutral');}
   else _playerEmergencyPatient=null;
 }
 
@@ -12688,7 +12714,7 @@ function _beginMurderPoliceArrest(cop,now=performance.now(),opts={}){
   if(crew.length<1||!crew.includes(cop))return false;
   if(myDrivingCarId){exitCar('police_arrest');viewZoom=WORLD_VIEW_ZOOM;}
   if(myJetSkiId)exitJetSki(true);
-  const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient)_cancelAmbulanceCallForPatient(emergencyPatient);
+  const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient){_setPlayerEmergencyTransport(false);_cancelAmbulanceCallForPatient(emergencyPatient);}
   if(peaceful){currentWeapon=null;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);myDeathBy='';myDeathLeft=0;}
   else{myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;}
   player.walking=false;player.vr=0;player.vc=0;
@@ -12719,7 +12745,7 @@ function _queueAnyPoliceDeathPickup(cop=null,meta={},now=performance.now()){
   // `opts` здесь никогда не существовал: ReferenceError обрывал создание
   // конвоя, и обычный медицинский респаун отправлял игрока в больницу.
   const peaceful=!!meta.peaceful;
-  const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient)_cancelAmbulanceCallForPatient(emergencyPatient);
+  const emergencyPatient=_playerEmergencyPatient;if(emergencyPatient){_setPlayerEmergencyTransport(false);_cancelAmbulanceCallForPatient(emergencyPatient);}
   if(peaceful){currentWeapon=null;myDead=false;_localDeath=false;myHp=Math.max(1,myHp);}
   else{myHp=0;myDead=true;_localDeath=true;myDeathBy='Полиция';myDeathLeft=0;}
   player.walking=false;player.vr=0;player.vc=0;_playerEmergencyPatient=null;
@@ -13600,12 +13626,9 @@ function updateServiceVehicles(dt) {
       if (v.kind === 'ambulance' && v.payload.npc) {
         const patient=v.payload.npc;
         if(patient._playerPatient){
-          if(_murderPoliceArrest){_releaseFailedAmbulanceCall(v);v.payload={};v._medicalScene=null;v._medicalCrew=[];_sendAmbulanceToHospital(v,now,'cancelled-by-police-custody');continue;}
-          patient._medicalDowned=false;patient._ambulanceDispatched=false;
-          if(_localDeath){_localDeath=false;myDead=false;myHp=Math.max(40,Math.ceil(PVP.max_hp*.4));myDeathLeft=0;_deathOv?.classList.remove('show');}
-          try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'emergency_revive',d:{}}));}catch(e){}
-          showEventBanner('🏥 ТЕБЯ СПАСЛИ','Медики стабилизировали состояние. Восстановлено 40% здоровья.',3300,'win');
-          _playerEmergencyPatient=null;
+          if(_murderPoliceArrest){_setPlayerEmergencyTransport(false);_releaseFailedAmbulanceCall(v);v.payload={};v._medicalScene=null;v._medicalCrew=[];_sendAmbulanceToHospital(v,now,'cancelled-by-police-custody');continue;}
+          if(_startAmbulanceBodyCrew(v,now)||v.state==='go_to_scene')continue;
+          _setPlayerEmergencyTransport(false);_releaseFailedAmbulanceCall(v);_playerEmergencyPatient=null;
         }else if(patient._medicalDowned||patient.dead||+patient.hp<=0){
           if(_startAmbulanceBodyCrew(v,now))continue;
           _releaseFailedAmbulanceCall(v);
@@ -13681,6 +13704,15 @@ function dispatchEmergencyServices() {
     });
     if(_UP.has('previewambulancefocus')){player.r=door.r+5.2;player.c=door.c+5.1;player.vr=player.vc=0;}
     document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
+  }
+  if(_LOCAL_PREVIEW&&_UP.has('previewplayerambulance')&&!document.documentElement.dataset.previewPlayerAmbulanceSeeded){
+    const door=_hospitalDoor(),sceneRoad=_nearestRoadTile(door.r+6,door.c+2,12);
+    if(sceneRoad){
+      player.r=sceneRoad.r+.5;player.c=sceneRoad.c+.5;player.vr=player.vc=0;player.walking=false;
+      myHp=0;myDead=true;_localDeath=true;myDeathBy='Бандит';myDeathLeft=18;
+      _ensureAmbulanceFleet();_dispatchPlayerAmbulance();
+      document.documentElement.dataset.previewPlayerAmbulanceSeeded=_playerEmergencyPatient?'dispatched':'failed';
+    }
   }
 
   // Убийства идут в отдельную очередь полиции. Машины уже стоят у участка;
@@ -31397,6 +31429,8 @@ const _deathOv   = document.getElementById('deathOverlay');
 const _deathTitle= document.getElementById('deathTitle');
 const _deathBy   = document.getElementById('deathBy');
 const _deathCnt  = document.getElementById('deathCnt');
+const _deathCntLabel=document.getElementById('deathCntLabel');
+const _deathCntSuffix=document.getElementById('deathCntSuffix');
 // Текущее экипированное оружие (выбор из инвентаря через weaponBar).
 // Дефолт — pistol (он есть у всех). Реальный урон — на сервере (WEAPON_DMG).
 const _weaponChoiceSaveKey = `mafiozi_selected_weapon_v1_${QP.uid || 'guest'}`;
@@ -33301,8 +33335,10 @@ function updatePvpUI() {
     _deathTitle.textContent=policeDecision?'ПОЛИЦИЯ РЕШАЕТ':(rescueComing?'ТЯЖЕЛО РАНЕН':'УБИТ');
     _deathBy.textContent=policeDecision
       ? `${_policeDowned.cop_name||'Полицейский'} может задержать тебя · иначе обычный респаун`
-      : (rescueComing?'🚑 Скорая едет к тебе':(myDeathBy ? `Тебя завалил ${myDeathBy}` : ''));
-    _deathCnt.textContent = Math.max(0, Math.ceil(myDeathLeft));
+      : (rescueComing?(_playerEmergencyPatient._ambulanceInTransit?'🚑 Тебя везут в больницу':(_playerEmergencyPatient._carriedByAmbulance?'🩺 Медики грузят тебя в скорую':'🚑 Скорая едет к тебе')):(myDeathBy ? `Тебя завалил ${myDeathBy}` : ''));
+    _deathCntLabel.textContent=rescueComing?'Медицинская эвакуация':'Респаун через ';
+    _deathCnt.textContent=rescueComing?'':Math.max(0,Math.ceil(myDeathLeft));
+    _deathCntSuffix.textContent=rescueComing?'':' сек';
   } else if (_deathOv.classList.contains('show')) {
     _deathOv.classList.remove('show');
     _deathTitle.textContent='УБИТ';
@@ -34945,7 +34981,7 @@ function update(dt) {
   // ── Локальная смерть: сервер о ней не знает (убила охрана банка),
   // поэтому счётчик респауна тикаем сами и возрождаем у госпиталя.
   if (_localDeath && myDead && !_murderPoliceArrest) {
-    myDeathLeft -= dt;
+    if(!_playerEmergencyPatient)myDeathLeft -= dt;
     if (myDeathLeft <= 0) {
       _localDeath = false;
       myDead = false;
@@ -49204,6 +49240,7 @@ if (d.kind === 'plank_path') {
   // Look берём всегда из URL — даже если has_look=0, параметры есть
   // (дефолты =0 в _qInt) и они хотя бы стабильны между перезагрузками.
   items.push({ depth: player.r + player.c + 0.001, draw: () => {
+    if(_playerEmergencyPatient&&(_playerEmergencyPatient._carriedByAmbulance||_playerEmergencyPatient._ambulanceInTransit))return;
     // В машине или в автобусе — спрайт игрока не рисуем (виден через
     // крышу/окна); только имя/звёзды над корпусом.
     if (myDrivingCarId || myJetSkiId || _inBus) {
@@ -63194,7 +63231,7 @@ window.Mafiozi3DBridge = Object.freeze({
       stance,crouching:stance==='crouch',prone:stance==='prone',stanceChangedAt:+_playerStance.changedAt||0,
       hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),
       dead:arrest?((arrest.peaceful||arrest.voluntary)?['awaiting_pickup','downed','unloading'].includes(arrestPhase):['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase)):!!myDead,
-      arrestPhase:arrestVisualPhase,arrestProgress,voluntarySurrender:!!arrest?.voluntary,cuffed:servingSentence||['surrender_wait_transport','cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',
+      arrestPhase:arrestVisualPhase,arrestProgress,voluntarySurrender:!!arrest?.voluntary,cuffed:servingSentence||['surrender_wait_transport','cuffing','escort','loading','transport','unloading','handoff','prison_escort','booking'].includes(arrestPhase),arrestHidden:arrestPhase==='transport',medicalEvacuated:!!(_playerEmergencyPatient&&(_playerEmergencyPatient._carriedByAmbulance||_playerEmergencyPatient._ambulanceInTransit)),
       mode: myMode, weapon:previewWeaponId||currentWeapon, holsteredWeapon:currentWeapon==null?(_familyPistolActive()?'pistol':_lastEquippedWeapon):null, driving: !!myDrivingCarId, vehicleEntry,
       reloading,reloadProgress,reloadMode:reloadCfg.mode||'magazine',magazine:_weaponAmmoState(reloadId)?.slot?.mag??0,reserve:_weaponAmmoState(reloadId)?.reserve??0,
       interior: !!(_buildingInt || _bankInt || _majorInteriorObjectId),
