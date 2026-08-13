@@ -32,7 +32,7 @@ def run() -> None:
     assert "npc._empireBoss||npc._empireCrew||npc._empireHoldingGuard" in WORLD
     assert "readability=src.empireBoss?1.28:" in THREE
     assert "src.empireCrew||src.empireHoldingGuard||src.gang?1.16:1" in THREE
-    assert "3d391-gang-war-ballistics" in WORLD
+    assert "3d392-boss-war-target-label" in WORLD
 
 
 if __name__ == "__main__":

@@ -50,6 +50,8 @@ def run() -> None:
     assert "_applyEmpireCrewStyle" in WORLD and "empireCrew:!!x._empireCrew" in WORLD
     assert "_empireFieldCombatThink" in WORLD and "_hitEmpireCombatant" in WORLD
     assert "gang_war:'" in WORLD and "_empireEnemyLeaderId" in WORLD
+    assert "rival?.gang_name||activity.target_gang_name" in WORLD
+    assert "ВЕДЁТ ВОЙНУ С БАНДОЙ «${rivalGang.toLocaleUpperCase('ru-RU')}»" in WORLD
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
     assert "_empirePressUntil" in WORLD and "_empireTargetLockUntil" in WORLD
     assert "confidence>=1.12" in WORLD and "powerRatio<.68" in WORLD
@@ -69,6 +71,9 @@ def run() -> None:
     assert "EMPIRE_FLAG_CAP=64" in THREE and "world-roof-visible-flags-v368" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE
     assert "empire-family-card-v360" in THREE
+    assert "empire-boss-v3" in THREE and "three-line-contained-war-target-v392" in THREE
+    assert "fitOutlinedLabelText(c,`СЕМЬЯ · ${gang}`" in THREE
+    assert "while(glyphs.length>1&&c.measureText" in THREE
     assert "empireCrew?familyPrimary" in THREE and "empireCrew?familyAccent" in THREE
     assert "empireMember&&src.bossColor" in THREE
     assert "empireHqRoofBox.setFromObject(object)" in THREE
@@ -78,7 +83,7 @@ def run() -> None:
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d391-gang-war-ballistics" in WORLD
+    assert "3d392-boss-war-target-label" in WORLD
     assert "_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD
