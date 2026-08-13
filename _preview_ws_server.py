@@ -91,6 +91,7 @@ preview_business_sabotage = {}
 preview_business_wars = {}
 preview_empire_relations = {}
 preview_empire_hospitals = {}
+preview_empire_street_members = {}
 preview_connections = {}
 preview_apartments = {}
 preview_custom_gangs = {}
@@ -1820,7 +1821,7 @@ async def npc_empire_state(req):
             "weapon_id": profile.weapon_id, "weapon_name": _preview_empire_text(profile.weapon_name),
             "weapon_base": profile.weapon_base, "treasury": profile.starting_cash,
             "doctrine": npc_empire.boss_doctrine(profile.leader_id),
-            "members": 8 + rank % 7, "strength": 90 + rank * 3, "status": "active",
+            "members": preview_empire_street_members.get(profile.leader_id, 8 + rank % 7), "strength": 90 + rank * 3, "status": "active",
             "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
             "relation": relation, "relation_band": npc_empire.relation_band(relation),
             "pact": pact, "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
@@ -1919,6 +1920,19 @@ async def npc_empire_hospitalize(req):
         preview_empire_hospitals[leader_id] = {'hospital_id': hospital_id, 'hospital_until': until}
     return cors(web.json_response({'ok': True, 'leader_id': leader_id,
         'hospital_id': hospital_id, 'hospital_until': until, 'duration': max(0, until-now)}))
+
+
+async def npc_empire_street_recruit(req):
+    body = await req.json(); leader_id = str(body.get('leader_id') or '')
+    family = str(body.get('family') or '').lower(); profile = npc_empire.PROFILE_BY_ID.get(leader_id)
+    if not profile or family not in {'bellini', 'moretti'}:
+        return cors(web.json_response({'ok': False, 'error': 'bad recruit'}, status=400))
+    current = preview_empire_street_members.get(leader_id, 8 + (list(npc_empire.PROFILE_BY_ID).index(leader_id) + 1) % 7)
+    if current >= npc_empire.NPC_EMPIRE_MAX_FIGHTERS:
+        return cors(web.json_response({'ok': False, 'error': 'roster full', 'members': current}, status=409))
+    preview_empire_street_members[leader_id] = current + 1
+    return cors(web.json_response({'ok': True, 'leader_id': leader_id, 'members': current + 1,
+        'strength': 100, 'family': family}))
 
 
 def preview_online_gang(uid):
@@ -3751,6 +3765,7 @@ app.router.add_post("/custom-gang/{uid}/npcs/sync", custom_gang_npc_sync)
 app.router.add_get("/npc-empires/{uid}/state", npc_empire_state)
 app.router.add_post("/npc-empires/{uid}/diplomacy", npc_empire_diplomacy)
 app.router.add_post("/npc-empires/{uid}/hospitalize", npc_empire_hospitalize)
+app.router.add_post("/npc-empires/{uid}/street-recruit", npc_empire_street_recruit)
 app.router.add_get("/biz/{uid}/list", business_list)
 app.router.add_post("/biz/{uid}/buy", business_buy)
 app.router.add_post("/biz/{uid}/upgrade", business_upgrade)

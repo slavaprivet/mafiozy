@@ -1,12 +1,20 @@
-"""Regression contract for visible Bellini/Moretti street recruitment."""
+"""Regression contract for visible and persistent Bellini/Moretti recruitment."""
 
+import asyncio
+import os
+import tempfile
 from pathlib import Path
+
+import aiosqlite
+import npc_empire
 
 
 WORLD = (Path(__file__).resolve().parent / "world.html").read_text(encoding="utf-8")
+BOT = (Path(__file__).resolve().parent / "mafiozi_bot.py").read_text(encoding="utf-8")
+PREVIEW = (Path(__file__).resolve().parent / "_preview_ws_server.py").read_text(encoding="utf-8")
 
 
-def run() -> None:
+async def run() -> None:
     assert "EMPIRE_STREET_RECRUIT_R=5.6" in WORLD
     assert "EMPIRE_POPIN_SAFE_R=40" in WORLD
     assert "dataset.empirePopinBlocked" in WORLD
@@ -17,14 +25,45 @@ def run() -> None:
     assert "function _adoptEmpireStreetRecruit" in WORLD
     assert "zone.bots.splice(at,1);_empireRecruitedBotIds.add(sourceId)" in WORLD
     assert "_empireStreetRecruit:true" in WORLD
-    assert "теперь я с вами!" in WORLD
+    assert "Я с вами, босс!" in WORLD
     assert "if(crew?._empireStreetRecruit)return" in WORLD
     assert "const popinSafe=Math.hypot(leader.r-player.r,leader.c-player.c)>=EMPIRE_POPIN_SAFE_R" in WORLD
     assert "popinSafe&&slot<want" in WORLD
     assert "dataset.empireStreetRecruits" in WORLD
     assert WORLD.count("!_empireRecruitedBotIds.has(String(b.id))") == 2
+    assert "ПЕРЕГОВОРЫ · босс предлагает вступить" in WORLD
+    assert "Мне нужны надёжные люди. Пойдёшь со мной?" in WORLD
+    assert "function _confirmEmpireStreetRecruit" in WORLD
+    assert "/street-recruit`" in WORLD
+    assert "joined:${leader._specialistId}" in WORLD
+    assert "recruit_street_fighter" in BOT and "/street-recruit'" in BOT
+    assert "npc_empire_street_recruit" in PREVIEW
+
+    fd, path = tempfile.mkstemp(prefix="street_recruit_", suffix=".db"); os.close(fd)
+    try:
+        await npc_empire.ensure_schema(path)
+        async with aiosqlite.connect(path) as db:
+            old_members = (await (await db.execute(
+                "SELECT members FROM npc_empires WHERE leader_id='marco'"
+            )).fetchone())[0]
+        first = await npc_empire.recruit_street_fighter(
+            path, "marco", "city-yellow-77", "moretti", now=2_000_000_010)
+        assert first["ok"] and first["members"] == old_members + 1
+        duplicate = await npc_empire.recruit_street_fighter(
+            path, "marco", "city-yellow-77", "moretti", now=2_000_000_020)
+        assert duplicate["ok"] and duplicate["duplicate"] and duplicate["members"] == first["members"]
+        second = await npc_empire.recruit_street_fighter(
+            path, "marco", "city-purple-78", "bellini", now=2_000_000_021)
+        assert second["ok"] and second["members"] == first["members"] + 1
+        async with aiosqlite.connect(path) as db:
+            event = await (await db.execute(
+                "SELECT kind,summary FROM npc_empire_events WHERE leader_id='marco' ORDER BY id DESC LIMIT 1"
+            )).fetchone()
+        assert event[0] == "street_recruit" and "вступил" in event[1]
+    finally:
+        os.remove(path)
     print("npc_empire_city_recruitment: physical recruits and pop-in guard OK")
 
 
 if __name__ == "__main__":
-    run()
+    asyncio.run(run())

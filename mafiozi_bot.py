@@ -24823,6 +24823,13 @@ async def _coop_http_app():
             DB_PATH,str(body.get('leader_id') or '')[:32],str(body.get('hospital_id') or 'hospital')[:24])
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
+    async def h_npc_empire_street_recruit(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.recruit_street_fighter(DB_PATH,str(body.get('leader_id') or '')[:32],
+            str(body.get('source_id') or '')[:96],str(body.get('family') or '')[:16])
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
     async def h_npc_empire_assault_prepare(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
@@ -29426,6 +29433,7 @@ async def _coop_http_app():
     aio_app.router.add_get ('/npc-empires/{uid}/state', h_npc_empire_state)
     aio_app.router.add_post('/npc-empires/{uid}/diplomacy', h_npc_empire_diplomacy)
     aio_app.router.add_post('/npc-empires/{uid}/hospitalize', h_npc_empire_hospitalize)
+    aio_app.router.add_post('/npc-empires/{uid}/street-recruit', h_npc_empire_street_recruit)
     aio_app.router.add_post('/npc-empires/{uid}/assault/prepare', h_npc_empire_assault_prepare)
     aio_app.router.add_post('/npc-empires/{uid}/assault/hit', h_npc_empire_assault_hit)
     aio_app.router.add_post('/npc-empires/{uid}/assault/resolve', h_npc_empire_assault_resolve)

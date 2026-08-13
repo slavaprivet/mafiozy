@@ -1058,6 +1058,12 @@ async def ensure_schema(db_path: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_events_time
             ON npc_empire_events(created_at DESC);
+        CREATE TABLE IF NOT EXISTS npc_empire_street_recruits (
+            source_id TEXT PRIMARY KEY,
+            leader_id TEXT NOT NULL,
+            family TEXT NOT NULL,
+            recruited_at INTEGER NOT NULL
+        );
         CREATE TABLE IF NOT EXISTS npc_empire_districts (
             district_id TEXT PRIMARY KEY,
             leader_id TEXT NOT NULL,
@@ -1172,6 +1178,45 @@ async def ensure_schema(db_path: str) -> None:
                     (leader_a, leader_b, score, now),
                 )
         await db.commit()
+
+
+async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
+                                 family: str, now: int | None = None) -> dict:
+    """Persist one visible Bellini/Moretti fighter joining an NPC empire."""
+    now = int(now or time.time()); leader_id = str(leader_id or '').strip()
+    source_id = str(source_id or '').strip()[:96]; family = str(family or '').strip().lower()
+    if leader_id not in PROFILE_BY_ID or not source_id or family not in {'bellini', 'moretti'}:
+        return {'ok': False, 'error': 'bad recruit'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row; await db.execute('BEGIN IMMEDIATE')
+        await db.execute("DELETE FROM npc_empire_street_recruits WHERE recruited_at<?", (now - 6 * 3600,))
+        duplicate = await (await db.execute("SELECT leader_id FROM npc_empire_street_recruits WHERE source_id=?", (source_id,))).fetchone()
+        if duplicate:
+            owner = str(duplicate['leader_id'])
+            existing = await (await db.execute("SELECT members,strength FROM npc_empires WHERE leader_id=?", (owner,))).fetchone()
+            await db.rollback()
+            if owner == leader_id and existing:
+                return {'ok': True, 'duplicate': True, 'leader_id': owner,
+                        'members': int(existing['members']), 'strength': int(existing['strength']), 'family': family}
+            return {'ok': False, 'error': 'already recruited', 'leader_id': owner}
+        row = await (await db.execute("SELECT members,strength,status,last_recruit_at FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
+        if not row or str(row['status']) not in {'active', 'rebuilding', 'vassal'}:
+            await db.rollback(); return {'ok': False, 'error': 'empire unavailable'}
+        members = int(row['members'] or 0)
+        if members >= NPC_EMPIRE_MAX_FIGHTERS:
+            await db.rollback(); return {'ok': False, 'error': 'roster full', 'members': members}
+        if now - int(row['last_recruit_at'] or 0) < 8:
+            await db.rollback(); return {'ok': False, 'error': 'recruit cooldown'}
+        profile = PROFILE_BY_ID[leader_id]; strength_gain = 11 + profile.aggression // 12
+        await db.execute("INSERT INTO npc_empire_street_recruits(source_id,leader_id,family,recruited_at) VALUES(?,?,?,?)", (source_id, leader_id, family, now))
+        await db.execute("UPDATE npc_empires SET members=members+1,strength=strength+?,last_recruit_count=1,last_recruit_at=?,version=version+1 WHERE leader_id=?", (strength_gain, now, leader_id))
+        family_name = 'Моретти' if family == 'moretti' else 'Беллини'
+        summary = f'Боец {family_name} встретил {profile.leader_name} в городе и вступил в {profile.gang_name}'
+        await db.execute("INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)", (leader_id, 'street_recruit', source_id, summary, now))
+        await db.commit()
+        return {'ok': True, 'leader_id': leader_id, 'members': members + 1,
+                'strength': int(row['strength'] or 0) + strength_gain, 'family': family, 'summary': summary}
 
 
 async def hospitalize_boss(db_path: str, leader_id: str, hospital_id: str = 'hospital',
