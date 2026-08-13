@@ -1,5 +1,22 @@
 # Mafiozi 3D optimization memory
 
+## Gang squad integrity and idle matrix uploads (2026-08-13, v395)
+
+- A persistent custom gang uses a `cg:*` crew id. Temporary party leave/kick
+  commands and disconnect cleanup must never clear that id; membership changes
+  remain server-authoritative through the persistent gang endpoints.
+- Restore locally saved companions directly into their bounded formation around
+  the player. Initializing them at `(0,0)` made a loaded squad cross the city
+  before it could follow normally. The steady update now reuses one seven-slot
+  formation array instead of allocating and repeatedly searching a filtered
+  array every simulation frame.
+- Gang aura and armband instance matrices still upload on every visible
+  animation frame. When no gang actor is visible, skip the upload after the
+  one transition frame that hides a recycled slot; this preserves first-frame
+  visibility and pool reuse without reducing animation frequency. Initialize
+  every slot dirty: constructor-default instanced matrices are not proof that a
+  slot is hidden, so the first empty frame must upload the hidden matrices once.
+
 ## Contained boss war-target labels (2026-08-13, v392)
 
 - Resolve a `gang_war` target through the already-populated NPC empire map and

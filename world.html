@@ -19533,6 +19533,7 @@ let GANG_MAX = 5;
 const GANG_MIN_LVL = 5;
 const GANG_FIGHTER_MAX_LEVEL = 25;
 const _myGang = [];
+const _gangFormation = [];
 let _onlineGang=null;
 const _formerGang = [];
 let _gangIdCounter = 0;
@@ -19806,11 +19807,15 @@ function _loadGang() {
     const raw = localStorage.getItem('_myGang');
     const data = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(data)) throw new Error('bad gang data');
+    const loadCount=Math.min(GANG_MAX,data.length);
     for (const g of data) {
       if (_myGang.length >= GANG_MAX) break;
+      const slot=_myGang.length,loadAng=(slot/Math.max(1,loadCount))*Math.PI*2;
+      const loadRadius=loadCount<=2?3.3:4.25;
       const m = {
         id: '_gang_' + (++_gangIdCounter),
-        name: g.name || 'Боец', r: 0, c: 0, ang: 0, walkPhase: 0,
+        r:player.r+Math.sin(loadAng)*loadRadius,c:player.c+Math.cos(loadAng)*loadRadius,
+        name:g.name||'Боец',ang:Number.isFinite(player.ang)?player.ang:0,walkPhase:0,
         hp:g.hp||80,max_hp:g.max_hp||80,level:Math.max(1,Math.min(25,parseInt(g.level)||1)),
         fighterXp:Math.max(_gangXpFloor(g.level||1),+g.fighterXp||0),kills:+g.kills||0,
         damageDone:+g.damageDone||0,isBoss:!!g.isBoss,look:g.look||{},sourceBotId:g.sourceBotId==null?null:String(g.sourceBotId),
@@ -20059,7 +20064,9 @@ function _updateGang(dt) {
   const followDt = Math.max(0, Math.min(.05, Number(dt) || 0));
   _updateFormerGang(now);
   _tickGangChatter(now);
-  const formation = _myGang.filter(g => g && g.hp > 0);
+  const formation = _gangFormation;
+  formation.length=0;
+  for(const member of _myGang)if(member&&member.hp>0){member._formationSlot=formation.length;formation.push(member);}
   if (!formation.length) {
     _gangFormationAng = null;
   } else {
@@ -20082,13 +20089,13 @@ function _updateGang(dt) {
     if (_bankInt && _bankInt.room === 'vault') {
       continue; // в хранилище наёмники стоят на месте в лобби
     } else if (_buildingInt || _bankInt) {
-      const idx = formation.indexOf(m);
+      const idx = m._formationSlot;
       const ia = (idx / Math.max(1, formation.length)) * Math.PI * 2;
       tR = player.r + Math.sin(ia) * 2.1;
       tC = player.c + Math.cos(ia) * 2.1;
       m._intR = tR; m._intC = tC;
     } else {
-      const idx = formation.indexOf(m);
+      const idx = m._formationSlot;
       // The formation follows the player's heading with a limited turn rate.
       // Using player.ang directly made every slot jump several tiles on a
       // sharp turn, so companions instantly accelerated around the player.
@@ -20132,7 +20139,7 @@ function _updateGang(dt) {
       let sd = Math.hypot(sr, sc);
       if (sd >= minGap) continue;
       if (sd < .01) {
-        const a = (formation.indexOf(m) + 1) * 2.399;
+        const a = (m._formationSlot + 1) * 2.399;
         sr = Math.sin(a); sc = Math.cos(a); sd = 1;
       }
       // Separation is time based; a fixed push per frame made behaviour and
@@ -68317,6 +68324,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d394-adaptive-business-frontages"></script>
+<script type="module" src="three_preview.js?v=3d395-gang-squad-integrity"></script>
 </body>
 </html>
