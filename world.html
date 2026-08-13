@@ -9505,6 +9505,7 @@ function _syncEmpireHoldingGuards(now=performance.now()){
     const occupiedSlots=new Set(active.map(x=>Math.max(0,+x._empireGuardSlot||0)));
     for(let slot=0;slot<site.count&&spawnBudget>0&&EMPIRE_HOLDING_GUARDS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_HOLDING_GUARD_CAP;slot++)if(!occupiedSlots.has(slot)){_spawnEmpireHoldingGuard(site.empire,site.holding,site.anchor,slot,now);spawnBudget--;}
   }
+  if(_LOCAL_PREVIEW&&_UP.has('previewdeadguard')&&!document.documentElement.dataset.previewDeadGuardSeeded){const guard=EMPIRE_HOLDING_GUARDS.find(x=>!x.dead);if(guard){guard.hp=guard._empireBattleHp=0;guard.dead=true;guard.deadAt=now;guard._deathR=guard.r;guard._deathC=guard.c;guard.r+=7;guard.c+=5;guard.tr=guard.r;guard.tc=guard.c;document.documentElement.dataset.previewDeadGuardSeeded=String(guard.id||'guard');}}
   document.documentElement.dataset.empireHoldingGuards=`visible:${EMPIRE_HOLDING_GUARDS.filter(x=>!x.dead&&!x._evacuated).length}:sites:${visible.length}:cap:${EMPIRE_VISIBLE_HOLDING_GUARD_CAP}`;
 }
 function _empireFormationOffset(slot,total,heading=0,scale=1){
@@ -15536,7 +15537,17 @@ function updateNpcs(dt) {
         if(safe){_clearNpcRoute(n);n.r=n.tr=safe[0];n.c=n.tc=safe[1];if(!n._empireBoss)pickNpcWaypoint(n);}
       }
     }
-    if (n.dead) continue;
+    if (n.dead) {
+      // Corpses are world anchors, not active route actors. Preserve the first
+      // death point even if an old combat/guard/medical callback still holds
+      // this object and attempts to update its movement coordinates.
+      if(!Number.isFinite(+n._deathR))n._deathR=+n.r||0;
+      if(!Number.isFinite(+n._deathC))n._deathC=+n.c||0;
+      n.r=n.tr=n._deathR;n.c=n.tc=n._deathC;n.walking=false;n.walkPhase=0;
+      _clearNpcRoute(n);n._empireGuardPatrolTarget=null;n._empireCombatTarget=null;
+      if(_LOCAL_PREVIEW&&_UP.has('previewdeadguard')&&n._empireHoldingGuard)document.documentElement.dataset.previewDeadGuardAnchor=`${n._deathR.toFixed(3)},${n._deathC.toFixed(3)}:${n.r.toFixed(3)},${n.c.toFixed(3)}`;
+      continue;
+    }
     // Оглушённый преступник лежит 5 секунд и не может атаковать/убегать.
     if(n._medicalDowned&&now>=(n._medicalBleedoutAt||0)){
       n._medicalDowned=false;n._knockedUntil=0;n.hp=0;n.dead=true;n.deadAt=now;n.cryText='…';n.cryUntil=now+500;
@@ -64160,7 +64171,7 @@ window.Mafiozi3DBridge = Object.freeze({
     _threeStickyNpcIds.clear();for(const npc of npcSelected)_threeStickyNpcIds.add(_threeNpcEntityId(npc));
     document.documentElement.dataset.npcLifePools=`mission:${npcEligible.filter(x=>npcLifePool(x)==='mission').length},police:${npcEligible.filter(x=>npcLifePool(x)==='police').length},guard:${npcEligible.filter(x=>npcLifePool(x)==='guard').length},gang:${npcEligible.filter(x=>npcLifePool(x)==='gang').length},civilian:${npcEligible.filter(x=>npcLifePool(x)==='civilian').length},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
-    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
+    const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
       id,r,c,ang:+x.ang||0,walking:!death.dead&&declaredMoving,moving:!death.dead&&declaredMoving,walkPhase:declaredMoving?(+x.walkPhase||0):0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:copSpeech||((+x.cryUntil||0)>fxNow?String(x.cryText||'').slice(0,84):''),hp,maxHp,
@@ -68383,6 +68394,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d395-gang-squad-integrity"></script>
+<script type="module" src="three_preview.js?v=3d396-dead-guard-anchor"></script>
 </body>
 </html>
