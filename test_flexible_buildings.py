@@ -77,6 +77,17 @@ def test_vacant_building_purchase_uses_e_and_hq_is_first() -> None:
     assert "Штаб уже имеется. Продайте здание" in WORLD
 
 
+def test_business_picker_is_a_visual_income_gallery() -> None:
+    picker = WORLD[WORLD.index("function _playerBuildingChoiceModal"):WORLD.index("function openNpcAnnexBuildingChoice")]
+    assert "_playerBuildingChoiceVisual" in picker
+    assert 'class="pbc-business-visual pbc-visual-${id}"' in picker
+    assert "pbc-mini-facade" in picker and "pbc-mini-sign" in picker
+    assert "pbc-visual-beer_bar" in picker and "pbc-visual-strip_club" in picker
+    assert "pbc-visual-gun_shop" in picker and "pbc-visual-print_shop" in picker
+    assert "ДОХОД ЗДАНИЯ В МИНУТУ" in picker
+    assert "Окупаемость" not in picker and "returnMinutes" not in picker
+
+
 def test_interior_camera_zoom_is_bounded_and_restores_world_zoom() -> None:
     assert "interiorZoom=1.08" in THREE
     assert "THREE.MathUtils.clamp(interiorZoom+(e.deltaY<0?.08:-.08),.45,1.7)" in THREE
