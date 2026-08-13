@@ -17,7 +17,7 @@ def test_authoritative_stance_controls_and_speed():
 def test_bridge_exposes_deterministic_stance_fixture():
     assert "previewstance" in WORLD
     assert "stance,crouching:stance==='crouch',prone:stance==='prone'" in WORLD
-    assert "three_preview.js?v=3d377-startup-scope" in WORLD
+    assert "three_preview.js?v=3d381-interior-stance" in WORLD
 
 
 def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
@@ -25,6 +25,13 @@ def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
     assert "crouchBlend:0,proneBlend:0" in THREE
     assert "playerAnim.proneBlend=expDamp" in THREE
     assert "playerAnim.crouchBlend=expDamp" in THREE
+    assert "player-head-look-rig" in THREE
+    assert "playerHeadRig.rotation.x=-proneBlend*(1.27+idleBreath*.035)" in THREE
+    assert "posePlayerLimb(leftArm,leftShoulder,leftElbow,1.8)" in THREE
+    assert "renderer.domElement.dataset.weaponPose='unarmed-crawl'" in THREE
+    assert "crawlDrive=proneBlend*Math.abs(playerStep)*gait" in THREE
+    assert "playerHeadRig.rotation.y=head.rotation.y" in THREE
+    assert "playerCrouching?-1.14" in THREE
     assert "gun.rotation.x-=proneBlend*1.18+crouchBlend*.06" in THREE
     assert "poseTwoHandedGrip(Math.min(1.9,kickNorm),activeReloadProgress)" in THREE
 

@@ -1516,3 +1516,20 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   Clamp it to 0.45–1.70, reset it only when the authored room key changes, and
   restore the independent world zoom on exit. No controls object, listener per
   room, scene traversal, or per-frame allocation is needed.
+
+## Articulated player crouch and prone crawl (2026-08-13, v380)
+
+- A prone character needs a neck-local pivot for the complete head assembly.
+  Counter-pitching only the head sphere leaves eyes, hair and accessories aimed
+  into the ground. Reparent the existing head parts once at construction time;
+  the added Group costs no draw call and creates no frame allocations.
+- Reuse the existing arm, forearm and hand meshes as a two-segment crawl chain.
+  Alternate hand reach, elbow brace and the opposite knee from the shared gait
+  phase. Armed crawling keeps weapon IK as the higher-priority arm layer while
+  the legs and torso continue the crawl cycle.
+- Make crouching readable through deeper hip height, forward torso pitch,
+  outward knees and a wider alternating step. Smooth the cached stance blends
+  and move only existing transforms; do not add clips, timers, meshes or scans.
+- Runtime QA must inspect prone and crouch at close zoom, verify the full face
+  looks forward, sample a changing crawl phase, and reject startup fallback or
+  Three.js errors before publication.
