@@ -2297,3 +2297,69 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Keep the card at 306 pixels and retain `minmax(0,1fr)`, shrinkable rival text
   and ellipsis for state, boss and gang. The same fixture enforces those CSS
   bounds for both 1366×768 and 1920×1080 desktop layouts.
+
+## Player business-raid alert marker (2026-08-14)
+
+- Derive the alert only from the server's top-level `interior_raids` snapshot;
+  synthetic empire activity must never activate it. The HUD has one stable DOM
+  node, updates authoritative defender/attacker counts at that bounded snapshot
+  cadence and deduplicates the transient banner by raid token.
+- Canvas reuses the normal marker pass. Three.js owns exactly one preallocated
+  group (two rings, one beam and one arrow); its 250 ms bridge sample only
+  toggles and moves that group. Pulse animation changes existing transforms and
+  material opacity, with no per-frame DOM creation, activity scans or geometry.
+- The raid token and target coordinates survive reconnect through the regular
+  state snapshot. Hide the marker only when no authoritative interior raid is
+  present, or its server status/expiry resolves it.
+
+## Interior-raid 3D label priority declutter (2026-08-14)
+
+- Keep the fixed `NPC_CAP` canvas/sprite pool. Project only its visible labels
+  into a reused bounded candidate list, sort by target/live/casualty priority,
+  and try five fixed vertical lanes before hiding a colliding low-priority card.
+- Non-recoverable casualty labels are compact and visible for at most 2.6
+  seconds, fading over their final 0.9 seconds. Recoverable bosses keep their
+  wound/HP identity, while live raid actors and the focused target win overlap.
+- Raid attackers and defenders carry their server/family primary and accent
+  colours through the existing interior bridge. The raid HUD creates four text
+  nodes once, updates only when its signature changes, and clips long business
+  and owner names instead of reallocating `innerHTML` every simulation frame.
+
+## Lost interior defence and cashier hold (2026-08-14)
+
+- Cashier capture requires every surviving attacker to remain inside the zone
+  for one uninterrupted 20-second interval. The hold stores the sorted survivor
+  roster; any casualty or zone exit clears its start time, preventing partial
+  intervals from being accumulated across combat.
+- Cover navigation remains local and bounded. When direct line-of-sight is
+  blocked, a stable per-actor side follows the obstacle with a fixed seven-angle
+  probe; every accepted step is still capped by authored speed × delta time.
+  There is no teleport, global route scan, allocation-based pathfinder or pop-in.
+- During advance and hold, survivors keep their cashier positions but continue
+  firing at a visible player. Snapshot telemetry exposes the exact hold roster
+  and bounded movement-stall count for deterministic QA.
+- Keep the card at 306 pixels and retain `minmax(0,1fr)`, shrinkable rival text
+  and ellipsis for state, boss and gang. The same fixture enforces those CSS
+  bounds for both 1366×768 and 1920×1080 desktop layouts.
+
+## Converted-business interior assault (2026-08-14)
+
+- Keep one symmetric client assault state for either ownership direction.
+  Consume the server's bounded attacker and assigned-defender rosters once;
+  active waves are views over those arrays, so reserves cannot manufacture or
+  revive NPCs. Render at most four attackers and six defenders concurrently,
+  while retaining up to eight attackers, twelve assigned defenders and three
+  staff guards in the state and telemetry.
+- Converted-business furniture has one compact collision list shared by
+  movement and sampled LOS. Do not raycast Three.js meshes or allocate a nav
+  structure per NPC/frame. The bridge continues to stream ordinary capped NPC
+  records and existing shot timestamps, so tracers, hit/death animation and
+  guard models require no new mesh pools or draw calls.
+- HUD and browser telemetry derive counts from the live capped arrays. The
+  only timers are the active cashier hold and bounded server-resolution retry;
+  never add a second snapshot poll for interior combat.
+- Assigned defenders reuse the standard pooled fighter geometry. Their stable
+  roster id selects varied face, hair and hat details, while the property
+  primary/accent colours feed the existing gang clothing and armband instance
+  colours. Only a deterministic minority of tier-four roles selects the heavy
+  body profile; this adds no geometry, material, texture or draw call.
