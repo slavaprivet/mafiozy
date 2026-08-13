@@ -194,6 +194,28 @@ async def run() -> None:
             assert sum(float(a["target_c"]) >= 100 for a in simultaneous) >= 3
             assert sum(float(a["target_r"]) >= 150 for a in simultaneous) >= 3
 
+        # A shared strategic need is staggered into execution windows.  At a
+        # fresh-city start all 19 brains want recruits, but only one wave may
+        # travel to the Lair while the others keep doctrine-specific field jobs.
+        recruit_brain = {'strategy': 'recruit'}
+        for slot in range(10):
+            simultaneous = [ne._visible_activity(
+                profile, {'hq_key': profile.hq_key}, [],
+                slot * ne.VISIBLE_ACTIVITY_SECONDS, recruit_brain)
+                for profile in ne.PROFILES]
+            lair_orders = [a for a in simultaneous if a['kind'] == 'recruit']
+            assert 3 <= len(lair_orders) <= 4
+            assert len({(a['target_r'], a['target_c']) for a in lair_orders}) == len(lair_orders)
+            target_load = {}
+            for activity in simultaneous:
+                point = (activity['target_r'], activity['target_c'])
+                target_load[point] = target_load.get(point, 0) + 1
+            assert max(target_load.values()) <= 2
+            assert len({a['ui_label'] for a in simultaneous}) >= 11
+            assert all(a.get('intent') == 'recruit' for a in simultaneous)
+        assert len(ne.BOSS_FIELD_JOBS) == len(ne.PROFILES) == 19
+        assert len(set(ne.BOSS_FIELD_JOBS.values())) == 19
+
         # A server NPC war becomes a shared physical order: both leaders choose
         # the opposing boss, carry a stance/force, and converge in the city.
         async with aiosqlite.connect(path) as db:

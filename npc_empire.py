@@ -141,6 +141,23 @@ BOSS_MINDSETS = {
     'musa':  {'patience':.88,'adaptability':.73,'courage':.58},
 }
 
+# A strategic priority is not a literal 24/7 destination.  These field jobs
+# make peaceful leaders execute the same high-level plan in recognisably
+# different ways while the rotating execution window prevents all nineteen
+# families from converging on one venue in the same visible activity slot.
+BOSS_FIELD_JOBS = {
+    'leila':'ПРОВЕРЯЕТ МЕДПУНКТЫ', 'rustam':'ГОТОВИТ ЗАСАДУ',
+    'marco':'РАЗВЕДЫВАЕТ МАРШРУТ', 'vera':'ВЕДЁТ ПЕРЕГОВОРЫ',
+    'arsen':'ПРОВЕРЯЕТ ОГНЕВЫЕ ТОЧКИ', 'damir':'ВСТРЕЧАЕТСЯ С ЛЮДЬМИ',
+    'marat':'ПРОВЕРЯЕТ ОБОРОНУ', 'zara':'ОЦЕНИВАЕТ ДОХОДНОСТЬ',
+    'niko':'ВЕДЁТ ДАЛЬНЮЮ РАЗВЕДКУ', 'alisa':'ПРОВЕРЯЕТ СВЯЗЬ',
+    'boris':'ИЩЕТ СЛАБОЕ ЗВЕНО', 'inga':'ИЗУЧАЕТ ТЕРРИТОРИЮ',
+    'timur':'ПРОВЕРЯЕТ СНАБЖЕНИЕ', 'emil':'ИЩЕТ СОПЕРНИКА',
+    'roman':'ПРОВЕРЯЕТ БРОНЕПОСТЫ', 'sofia':'СОБИРАЕТ СВЕДЕНИЯ',
+    'viktor':'ВЫСЛЕЖИВАЕТ ЦЕЛЬ', 'yana':'КООРДИНИРУЕТ ПОСТЫ',
+    'musa':'ПРОВЕРЯЕТ МАРШРУТЫ СНАБЖЕНИЯ',
+}
+
 
 def boss_doctrine(leader_id: str) -> dict:
     """Return a copy-safe doctrine for API clients and deterministic tests."""
@@ -282,11 +299,18 @@ EMPIRE_PUBLIC_ROAM_POINTS = (
 # immediately, but its visible reinforcement still starts at the crowded
 # northern camp instead of spawning beside a distant boss out of thin air.
 RECRUITMENT_VENUE = ('Логово', 106, 40, 101, 40)
+RECRUITMENT_MEETING_POINTS = ((97, 40), (99, 35), (99, 45), (103, 35))
 
 
 def _recruitment_venue(profile: EmpireProfile) -> tuple[str, int, int, int, int]:
-    del profile
-    return RECRUITMENT_VENUE
+    venue, source_r, source_c, _, _ = RECRUITMENT_VENUE
+    profile_index = next(i for i, item in enumerate(PROFILES)
+                         if item.leader_id == profile.leader_id)
+    # Recruitment waves contain profiles separated by five positions.  Using
+    # the quotient gives every member of that wave its own nearby meeting spot.
+    meeting_r, meeting_c = RECRUITMENT_MEETING_POINTS[
+        (profile_index // 5) % len(RECRUITMENT_MEETING_POINTS)]
+    return venue, source_r, source_c, meeting_r, meeting_c
 
 
 def _row_field(row, key: str, default=0):
@@ -379,12 +403,25 @@ def _citywide_roam_target(profile: EmpireProfile, slot: int) -> dict:
     port_r, port_c = BUSINESS_COORDS['port']
     south_targets.append({'target_id': 'port', 'target_r': port_r,
                           'target_c': port_c, 'target_kind': 'business'})
-    seed = int.from_bytes(hashlib.sha256(
-        f'{profile.leader_id}:citywide:{slot}'.encode()).digest()[:4], 'big')
     profile_index = next(i for i, item in enumerate(PROFILES)
                          if item.leader_id == profile.leader_id)
     targets = (west_targets, east_targets, south_targets)[(profile_index + slot) % 3]
-    return dict(targets[seed % len(targets)])
+    # Leaders assigned to the same city sector have indices three positions
+    # apart.  Round-robin within that sector keeps their destinations distinct
+    # (the smaller southern pool may contain two), unlike independent hashes
+    # which could put four families on the same street corner.
+    return dict(targets[((profile_index // 3) + slot) % len(targets)])
+
+
+def _strategy_execution_due(profile: EmpireProfile, strategy: str, slot: int) -> bool:
+    """Bound simultaneous public executions of a shared strategic priority."""
+    cadence = {
+        'recover': 3, 'recruit': 5, 'fortify': 3,
+        'acquire': 4, 'retaliate': 2,
+    }.get(str(strategy), 1)
+    profile_index = next(i for i, item in enumerate(PROFILES)
+                         if item.leader_id == profile.leader_id)
+    return (profile_index + int(slot)) % cadence == 0
 
 
 def _holding_district(kind: str, holding_id: str) -> str:
@@ -403,14 +440,19 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
             'summary': f'{profile.leader_name} проводит набор в семью: {recruitment["venue"]}',
         }
     strategy = str((brain or {}).get('strategy') or '')
-    strategic_slot_at = (now // VISIBLE_ACTIVITY_SECONDS) * VISIBLE_ACTIVITY_SECONDS
-    if strategy in {'recover', 'recruit'}:
+    slot = now // VISIBLE_ACTIVITY_SECONDS
+    strategic_slot_at = slot * VISIBLE_ACTIVITY_SECONDS
+    execute_strategy = _strategy_execution_due(profile, strategy, slot)
+    if strategy in {'recover', 'recruit'} and execute_strategy:
+        _, _, _, meeting_r, meeting_c = _recruitment_venue(profile)
         return {
             'kind': 'recruit', 'target_id': f'plan:{profile.leader_id}:lair',
-            'target_r': 101, 'target_c': 40, 'phase': 'travel', 'created_at': strategic_slot_at,
+            'target_r': meeting_r, 'target_c': meeting_c,
+            'phase': 'travel', 'created_at': strategic_slot_at,
+            'ui_label': 'ВЕРБУЕТ БОЙЦОВ', 'intent': strategy,
             'summary': f'{profile.leader_name} едет в Логово искать надёжных людей',
         }
-    if strategy == 'fortify' and holdings:
+    if strategy == 'fortify' and holdings and execute_strategy:
         target = min(holdings, key=lambda item: (int(item.get('defense') or 0),
                                                 str(item.get('holding_id') or '')))
         target_id, target_kind = str(target.get('holding_id') or ''), str(target.get('kind') or '')
@@ -419,9 +461,10 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
         return {
             'kind': 'defend', 'target_id': target_id, 'target_r': target_r,
             'target_c': target_c, 'phase': 'travel', 'created_at': strategic_slot_at,
+            'ui_label': 'УКРЕПЛЯЕТ СЛАБЫЙ ПОСТ', 'intent': strategy,
             'summary': f'{profile.leader_name} лично проверяет слабое место обороны',
         }
-    if strategy == 'acquire':
+    if strategy == 'acquire' and execute_strategy:
         owned = {str(item.get('holding_id') or '') for item in holdings}
         targets = [bid for bid in BUSINESS_PRICE if bid not in owned]
         if targets:
@@ -430,16 +473,17 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
             return {
                 'kind': 'invest', 'target_id': target_id, 'target_r': target_r,
                 'target_c': target_c, 'phase': 'travel', 'created_at': strategic_slot_at,
+                'ui_label': 'ОЦЕНИВАЕТ БИЗНЕС', 'intent': strategy,
                 'summary': f'{profile.leader_name} оценивает бизнес перед сделкой',
             }
-    if strategy == 'retaliate':
+    if strategy == 'retaliate' and execute_strategy:
         hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
         return {
             'kind': 'attack', 'target_id': f'plan:{profile.leader_id}:revenge',
             'target_r': hq_r, 'target_c': hq_c, 'phase': 'rally', 'created_at': strategic_slot_at,
+            'ui_label': 'ГОТОВИТ ОТВЕТНЫЙ УДАР', 'intent': strategy,
             'summary': f'{profile.leader_name} собирает семью для ответного удара',
         }
-    slot = now // VISIBLE_ACTIVITY_SECONDS
     seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:walk:{slot}'.encode()).digest()[:4], 'big')
     hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
     businesses = sorted(str(h['holding_id']) for h in holdings if str(h['kind']) == 'business')
@@ -449,6 +493,7 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
         return {'kind': 'return_hq', 'target_id': str(row['hq_key'] or profile.hq_key),
                 'target_r': hq_r, 'target_c': hq_c, 'phase': 'travel',
                 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+                'ui_label': 'ВОЗВРАЩАЕТСЯ В ШТАБ', 'intent': strategy,
                 'summary': f'{profile.leader_name} возвращается в штаб'}
     owned = ([('business', target_id) for target_id in businesses] +
              [('building', target_id) for target_id in buildings])
@@ -463,6 +508,9 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
         return {'kind': kind, 'target_id': target_id,
                 'target_r': target_r, 'target_c': target_c, 'phase': 'travel',
                 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+                'ui_label': ('ПРОВЕРЯЕТ ДОХОД' if kind == 'collect'
+                             else 'ИНСПЕКТИРУЕТ СВОЙ ПОСТ'),
+                'intent': strategy,
                 'summary': f'{profile.leader_name} {label}'}
     target = _citywide_roam_target(profile, slot)
     kind = 'inspect' if target['target_kind'] in {'building', 'business'} else 'patrol'
@@ -470,6 +518,7 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
     return {'kind': kind, 'target_id': target['target_id'],
             'target_r': target['target_r'], 'target_c': target['target_c'],
             'phase': 'travel', 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+            'ui_label': BOSS_FIELD_JOBS[profile.leader_id], 'intent': strategy,
             'summary': f'{profile.leader_name} {label}'}
 
 
@@ -1142,7 +1191,10 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             last_recruit_count = max(0, int(row['last_recruit_count'] or 0))
             last_recruit_at = max(0, int(row['last_recruit_at'] or 0))
             recruit_chance = .96 if strategy in {'recover', 'recruit', 'fortify'} else .22
-            if pending_recruits == 0 and members < target_members and treasury >= recruit_cost and rng.random() < recruit_chance:
+            recruit_wave_due = _strategy_execution_due(
+                profile, 'recruit', now // TICK_SECONDS)
+            if (recruit_wave_due and pending_recruits == 0 and members < target_members
+                    and treasury >= recruit_cost and rng.random() < recruit_chance):
                 hired = min(3, target_members - members, treasury // recruit_cost)
                 if hired:
                     treasury -= hired * recruit_cost
