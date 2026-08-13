@@ -1,5 +1,24 @@
 # Mafiozi 3D optimization memory
 
+## Purpose-specific player and NPC buildings (2026-08-13)
+
+- Keep the legacy `apartments_owned` storage and `/apartment` routes as a
+  compatibility layer, but present these records as universal buildings. The
+  authoritative `property_kind` and `operation_type` decide whether the same
+  shell becomes a headquarters or one of the eight criminal businesses.
+- Send purpose data through the existing interior snapshot. A vacant building
+  gets a sparse concrete shell; headquarters and every business operation get
+  purpose-specific materials, layout and props. Do not infer purpose from a
+  sign, owner name or local preview parameters.
+- Reuse the fixed 64 empire-marker pool for exterior conversion visuals. Each
+  slot owns a prebuilt facade/awning and the eight bounded roof silhouettes;
+  signature changes only recolor and toggle them. This covers player holdings
+  and NPC-boss holdings without another map scan or per-frame allocation.
+- Static QA compiled `three_preview.js` and all six embedded `world.html`
+  scripts. Real preview HTTP purchases persisted `strip_club`, `chop_shop` and
+  `hq`, returned their authoritative operation names/icons, and fed the shared
+  property snapshot used by the facade renderer.
+
 ## Reliable empire flags on streamed buildings (2026-08-12)
 
 - Roof markers must use a reusable `THREE.Box3.setFromObject()` after updating
