@@ -1747,23 +1747,127 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 
 /* Экран смерти */
 #deathOverlay {
-  position: absolute; inset: 0; z-index: 15;
-  background: rgba(20,0,0,.65); display: none;
-  align-items: center; justify-content: center; flex-direction: column;
+  --death-accent:#d7b85f; --death-hot:#f06458; --death-soft:#f5dfaa;
+  position: absolute; inset: 0; z-index: 15; display: none;
+  align-items: center; justify-content: center; padding: 18px;
   color: #fff; font-family: inherit;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(108,20,18,.20) 0 16%, transparent 46%),
+    linear-gradient(180deg,rgba(12,4,5,.66),rgba(8,3,5,.82));
+  backdrop-filter: blur(1.6px) saturate(.72);
 }
 #deathOverlay.show { display: flex; }
-#deathOverlay .skull { font-size: 80px; }
-#deathOverlay .title { font-size: 24px; font-weight: 800; margin-top: 4px; color: #ff5a5a; }
-#deathOverlay .by    { font-size: 14px; color: #c8d0dc; margin-top: 6px; }
-#deathOverlay .cnt   { font-size: 16px; color: #ffd76b; margin-top: 14px; font-weight: 700; }
-#deathOverlay .rp    { font-size: 12px; color: #b8c0c8; margin-top: 12px; }
-#deathOverlay .rp-btn {
-  margin-top: 8px; padding: 8px 14px; border-radius: 10px;
-  border: 1.5px solid #5a8a4a; background: linear-gradient(135deg,#1e2a18,#2a3a20);
-  color: #c8e8a0; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+#deathOverlay[data-mode="rescue"] { --death-accent:#d9bd69; --death-hot:#f26a5c; --death-soft:#f4e2b2; }
+#deathOverlay[data-mode="police"] { --death-accent:#68aee8; --death-hot:#efca61; --death-soft:#d6eaff; }
+#deathOverlay[data-mode="dead"]   { --death-accent:#b88f48; --death-hot:#e0514a; --death-soft:#e8d2a6; }
+#deathOverlay .death-card {
+  position:relative; width:min(440px,calc(100vw - 36px)); overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--death-accent) 78%,#4b321a);
+  border-radius:14px; padding:0 22px 20px;
+  background:
+    linear-gradient(135deg,rgba(255,255,255,.035),transparent 32%),
+    linear-gradient(180deg,rgba(27,19,18,.985),rgba(10,10,12,.985));
+  box-shadow:0 24px 70px rgba(0,0,0,.68),0 0 32px rgba(112,39,25,.20),
+    inset 0 0 0 1px rgba(255,239,181,.035);
+  animation:deathCardIn .28s cubic-bezier(.2,.8,.2,1) both;
 }
-#deathOverlay .rp-btn:hover { background: linear-gradient(135deg,#2a3a20,#3a4a28); }
+#deathOverlay .death-card::before {
+  content:""; position:absolute; left:0; right:0; top:0; height:3px;
+  background:linear-gradient(90deg,transparent,var(--death-accent) 18% 82%,transparent);
+  box-shadow:0 0 18px color-mix(in srgb,var(--death-accent) 48%,transparent);
+}
+#deathOverlay .death-card::after {
+  content:""; position:absolute; width:116px; height:116px; right:-46px; top:36px;
+  border:1px solid rgba(217,189,105,.08); transform:rotate(45deg); pointer-events:none;
+}
+#deathOverlay .death-kicker {
+  height:35px; margin:0 -22px 15px; padding:0 18px;
+  display:flex; align-items:center; gap:8px;
+  border-bottom:1px solid rgba(215,184,95,.18);
+  background:linear-gradient(90deg,rgba(116,28,24,.34),rgba(28,22,19,.16));
+  color:var(--death-soft); font-size:9px; font-weight:900; letter-spacing:1.45px;
+}
+#deathOverlay .death-kicker .signal {
+  width:17px; height:17px; display:grid; place-items:center; border-radius:4px;
+  border:1px solid var(--death-accent); color:var(--death-accent); font-size:11px;
+  background:rgba(0,0,0,.38); box-shadow:inset 0 0 8px rgba(215,184,95,.12);
+}
+#deathOverlay .death-kicker .live-dot {
+  margin-left:auto; width:6px; height:6px; border-radius:50%; background:var(--death-hot);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--death-hot) 18%,transparent),0 0 10px var(--death-hot);
+  animation:deathSignalPulse 1.25s ease-in-out infinite;
+}
+#deathOverlay .death-main { display:grid; grid-template-columns:70px 1fr; gap:15px; align-items:center; }
+#deathOverlay .death-emblem {
+  width:66px; height:66px; display:grid; place-items:center; position:relative;
+  color:var(--death-hot); font:900 34px/1 Georgia,serif;
+  border:1px solid color-mix(in srgb,var(--death-accent) 58%,#4f2d22); border-radius:50%;
+  background:radial-gradient(circle,rgba(121,32,27,.28),rgba(10,9,10,.92) 68%);
+  box-shadow:inset 0 0 0 5px rgba(215,184,95,.035),0 0 20px rgba(105,29,24,.20);
+}
+#deathOverlay .death-emblem::before,#deathOverlay .death-emblem::after {
+  content:""; position:absolute; background:var(--death-hot); border-radius:1px; opacity:.9;
+}
+#deathOverlay[data-mode="rescue"] .death-emblem::before { width:28px; height:8px; }
+#deathOverlay[data-mode="rescue"] .death-emblem::after { width:8px; height:28px; }
+#deathOverlay[data-mode="rescue"] #deathEmblem { display:none; }
+#deathOverlay .title {
+  color:var(--death-soft); font:900 clamp(22px,4.2vw,29px)/1.02 Georgia,"Times New Roman",serif;
+  letter-spacing:.6px; text-shadow:0 2px 0 #000; text-transform:uppercase;
+}
+#deathOverlay .by { color:#cfc7b8; font-size:12px; line-height:1.4; margin-top:7px; }
+#deathOverlay .death-status {
+  margin-top:16px; padding:11px 12px; border-radius:8px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  border:1px solid rgba(215,184,95,.16); background:rgba(0,0,0,.28);
+}
+#deathOverlay .death-status-label { color:#857d70; font-size:8px; font-weight:900; letter-spacing:1.2px; }
+#deathOverlay .cnt { color:var(--death-accent); font-size:13px; font-weight:900; text-align:right; }
+#deathOverlay .death-route { display:none; grid-template-columns:repeat(3,1fr); gap:5px; margin-top:10px; }
+#deathOverlay[data-mode="rescue"] .death-route { display:grid; }
+#deathOverlay .death-route span {
+  position:relative; padding-top:12px; color:#68645d; font-size:8px; font-weight:800;
+  letter-spacing:.45px; text-align:center; text-transform:uppercase;
+}
+#deathOverlay .death-route span::before {
+  content:""; position:absolute; left:4px; right:4px; top:3px; height:3px; border-radius:2px; background:#2d2925;
+}
+#deathOverlay[data-stage="dispatch"] .death-route span:nth-child(1),
+#deathOverlay[data-stage="loading"] .death-route span:nth-child(-n+2),
+#deathOverlay[data-stage="transit"] .death-route span { color:var(--death-soft); }
+#deathOverlay[data-stage="dispatch"] .death-route span:nth-child(1)::before,
+#deathOverlay[data-stage="loading"] .death-route span:nth-child(-n+2)::before,
+#deathOverlay[data-stage="transit"] .death-route span::before {
+  background:linear-gradient(90deg,var(--death-hot),var(--death-accent)); box-shadow:0 0 8px rgba(240,100,82,.38);
+}
+#deathOverlay .death-footer {
+  margin-top:14px; padding-top:13px; border-top:1px solid rgba(215,184,95,.13);
+  display:flex; align-items:center; gap:10px;
+}
+#deathOverlay .rp { min-width:0; flex:1; color:#9e978b; font-size:10px; line-height:1.35; }
+#deathOverlay .rp-btn {
+  flex:0 0 auto; padding:8px 11px; border-radius:7px;
+  border:1px solid #88713e; background:linear-gradient(180deg,#30281a,#17140f);
+  color:#ead9a4; font-family:inherit; font-size:9px; font-weight:800; line-height:1;
+  letter-spacing:.35px; cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06); transition:.16s ease;
+}
+#deathOverlay .rp-btn:hover { border-color:#d7b85f; color:#fff2c8; transform:translateY(-1px); }
+@keyframes deathCardIn { from{opacity:0;transform:translateY(10px) scale(.975)} to{opacity:1;transform:none} }
+@keyframes deathSignalPulse { 50%{opacity:.38;transform:scale(.78)} }
+@media (max-width:560px) {
+  #deathOverlay { z-index:100; padding:12px; align-items:center; }
+  #respawnModal { z-index:110; }
+  #deathOverlay .death-card { width:min(385px,calc(100vw - 24px)); padding:0 16px 16px; }
+  #deathOverlay .death-kicker { margin-left:-16px; margin-right:-16px; padding:0 14px; }
+  #deathOverlay .death-main { grid-template-columns:56px 1fr; gap:12px; }
+  #deathOverlay .death-emblem { width:54px; height:54px; font-size:27px; }
+  #deathOverlay .death-footer { align-items:stretch; flex-direction:column; }
+  #deathOverlay .rp-btn { width:100%; padding:10px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  #deathOverlay .death-card,#deathOverlay .death-kicker .live-dot { animation:none; }
+}
 
 /* Модалка выбора точки респавна */
 #respawnModal {
@@ -2605,12 +2709,31 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   <button id="respawnHudBtn" type="button">🏥<span class="rp-lbl" id="respawnHudLbl">Госпиталь</span></button>
 
   <div id="deathOverlay">
-    <div class="skull">💀</div>
-    <div class="title" id="deathTitle">УБИТ</div>
-    <div class="by" id="deathBy">&nbsp;</div>
-    <div class="cnt"><span id="deathCntLabel">Респаун через </span><span id="deathCnt">5</span><span id="deathCntSuffix"> сек</span></div>
-    <div class="rp" id="deathRespawnPoint">Точка респа: 🏥 Госпиталь</div>
-    <button class="rp-btn" id="respawnSetBtn" type="button">🏥 Сменить точку респа</button>
+    <section class="death-card" role="status" aria-live="polite">
+      <div class="death-kicker">
+        <span class="signal" id="deathSignalIcon">✚</span>
+        <span id="deathEyebrow">ГОРОДСКАЯ МЕДИЦИНСКАЯ СЛУЖБА</span>
+        <span class="live-dot" aria-hidden="true"></span>
+      </div>
+      <div class="death-main">
+        <div class="death-emblem"><span id="deathEmblem">☠</span></div>
+        <div>
+          <div class="title" id="deathTitle">УБИТ</div>
+          <div class="by" id="deathBy">&nbsp;</div>
+        </div>
+      </div>
+      <div class="death-status">
+        <span class="death-status-label">ТЕКУЩИЙ СТАТУС</span>
+        <div class="cnt"><span id="deathCntLabel">Респаун через </span><span id="deathCnt">5</span><span id="deathCntSuffix"> сек</span></div>
+      </div>
+      <div class="death-route" aria-hidden="true">
+        <span>Вызов принят</span><span>Погрузка</span><span>В больницу</span>
+      </div>
+      <div class="death-footer">
+        <div class="rp" id="deathRespawnPoint">Точка респа: 🏥 Госпиталь</div>
+        <button class="rp-btn" id="respawnSetBtn" type="button">СМЕНИТЬ ТОЧКУ</button>
+      </div>
+    </section>
   </div>
 
   <!-- Модалка выбора точки респавна. Список: Госпиталь + купленные
@@ -13718,7 +13841,7 @@ function dispatchEmergencyServices() {
     if(_UP.has('previewambulancefocus')){player.r=door.r+5.2;player.c=door.c+5.1;player.vr=player.vc=0;}
     document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
   }
-  if(_LOCAL_PREVIEW&&_UP.has('previewplayerambulance')&&!document.documentElement.dataset.previewPlayerAmbulanceSeeded){
+  if(_LOCAL_PREVIEW&&_UP.has('previewplayerambulance')&&myMode&&!document.documentElement.dataset.previewPlayerAmbulanceSeeded){
     const door=_hospitalDoor(),sceneRoad=_nearestRoadTile(door.r+6,door.c+2,12);
     if(sceneRoad){
       player.r=sceneRoad.r+.5;player.c=sceneRoad.c+.5;player.vr=player.vc=0;player.walking=false;
@@ -31446,6 +31569,9 @@ const _deathBy   = document.getElementById('deathBy');
 const _deathCnt  = document.getElementById('deathCnt');
 const _deathCntLabel=document.getElementById('deathCntLabel');
 const _deathCntSuffix=document.getElementById('deathCntSuffix');
+const _deathEyebrow=document.getElementById('deathEyebrow');
+const _deathSignalIcon=document.getElementById('deathSignalIcon');
+const _deathEmblem=document.getElementById('deathEmblem');
 // Текущее экипированное оружие (выбор из инвентаря через weaponBar).
 // Дефолт — pistol (он есть у всех). Реальный урон — на сервере (WEAPON_DMG).
 const _weaponChoiceSaveKey = `mafiozi_selected_weapon_v1_${QP.uid || 'guest'}`;
@@ -33347,6 +33473,12 @@ function updatePvpUI() {
     if (!_deathOv.classList.contains('show')) _deathOv.classList.add('show');
     const policeDecision=_policeDowned?.role==='target';
     const rescueComing=!!_playerEmergencyPatient;
+    const rescueStage=rescueComing?(_playerEmergencyPatient._ambulanceInTransit?'transit':(_playerEmergencyPatient._carriedByAmbulance?'loading':'dispatch')):'';
+    _deathOv.dataset.mode=policeDecision?'police':(rescueComing?'rescue':'dead');
+    _deathOv.dataset.stage=rescueStage;
+    _deathEyebrow.textContent=policeDecision?'ПРОТОКОЛ ЗАДЕРЖАНИЯ':(rescueComing?'ГОРОДСКАЯ МЕДИЦИНСКАЯ СЛУЖБА':'КРИМИНАЛЬНАЯ СВОДКА');
+    _deathSignalIcon.textContent=policeDecision?'★':(rescueComing?'✚':'!');
+    _deathEmblem.textContent=policeDecision?'⚖':'☠';
     _deathTitle.textContent=policeDecision?'ПОЛИЦИЯ РЕШАЕТ':(rescueComing?'ТЯЖЕЛО РАНЕН':'УБИТ');
     _deathBy.textContent=policeDecision
       ? `${_policeDowned.cop_name||'Полицейский'} может задержать тебя · иначе обычный респаун`
