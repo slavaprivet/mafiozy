@@ -1,5 +1,18 @@
 # Mafiozi 3D optimization memory
 
+## Single physical roof signs for key POIs (2026-08-13, v379)
+
+- Key building names must be created from one startup-time POI sign registry.
+  Do not let the generic POI pass and authored landmark architecture each add
+  their own board: that produced two names on `Рынок Беллини`.
+- Use an opaque, roof-mounted mesh with posts and a cached canvas texture, not a
+  camera-facing sprite. Wider Russian names receive wider boards and a larger
+  minimum glyph size instead of shrinking until unreadable.
+- Build each sign once with the static exterior. Texture cache keys include the
+  visual revision; the render loop adds no canvas redraw, scene scan, timer or
+  allocation. A module query-key bump is required so GitHub Pages/WebView does
+  not keep the older duplicate-label renderer.
+
 ## Purpose-specific player and NPC buildings (2026-08-13)
 
 - Keep the legacy `apartments_owned` storage and `/apartment` routes as a
