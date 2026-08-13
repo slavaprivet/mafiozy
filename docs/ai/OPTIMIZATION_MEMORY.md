@@ -1341,3 +1341,29 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - `previewnpcvisual=1` reuses the ten-actor anatomy lineup and adds representative
   weapons plus four casing classes. `node --check`, all six embedded script
   checks, the NPC visual/walking/life tests and the empire UI contract pass.
+
+## NPC motion and combat visual second pass (2026-08-13, v371)
+
+- Store acceleration lean inside the existing bounded `npcMotionStates` entry.
+  Smooth one scalar toward measured acceleration/deceleration and derive the
+  restrained lateral pelvis shift from the already cached gait phase. Do not
+  add timers, actor scans or frame allocations. `setNpcRoot` now reuses the
+  shared Euler, position and side-offset vector instead of allocating one Euler
+  and one Vector3 on every root update.
+- A weapon pose must replace the complete arm chain after locomotion: shoulder,
+  forearm, cuff and hand. Updating only the shoulders leaves the earlier walk
+  forearms behind and makes the grip separate. Long guns use a forward support
+  hand; pistols use a close supporting grip; sever masks still suppress the
+  missing side. All transforms target the existing instanced limb pools.
+- Epaulettes, holsters and the two-piece medic cross are three fixed pools (72,
+  72 and 144 instances). They improve police/guard/boss/medic silhouettes for
+  three constant draw calls; live, death, hidden-slot and color-signature paths
+  must all update or hide them. Medic clothing must also be applied in the
+  stable appearance pass, otherwise the earlier white uniform is overwritten.
+- Preserve firearm class on the existing impact snapshot just as for casings.
+  The 16 prebuilt muzzle groups and 16 prebuilt impact groups can vary width,
+  length, smoke and force by weapon without new particles, meshes or pools.
+- `previewnpcvisual=1` alternates stable actor ids between moving and stopped
+  states and pulses representative weapons, exercising gait fade and the full
+  arm grip in one browser tab. The v371 static contract, prior NPC visual and
+  anatomy contracts, life system, empire UI and all embedded scripts pass.

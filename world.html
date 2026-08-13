@@ -46450,7 +46450,7 @@ function spawnImpact(wr, wc, weapon, npcShot) {
     });
   }
   _capArr(impacts, _MAX_IMPACTS);
-  impacts.push({ r: wr, c: wc, parts });
+  impacts.push({ r: wr, c: wc, weapon, parts });
   if (!npcShot && !pooled3D) {
     spawnShockwave(wr, wc, {
       rad0: 2,
@@ -63174,7 +63174,7 @@ window.Mafiozi3DBridge = Object.freeze({
         {id:'qa_walk_medic',role:'medic',visualRole:'civilian',name:'QA MEDIC',look:{body:1,gender:1,face:9,hair:6,hat:0}},
         {id:'qa_walk_civilian_heavy',role:'civilian',visualRole:'civilian',name:'QA CIVILIAN HEAVY',look:{body:3,gender:0,face:0,hair:8,hat:0}},
       ];
-      const phase=fxNow*.009;for(const [j,sample] of anatomySamples.entries()){const row=Math.floor(j/5),col=j%5,a=-.78+col*.39;npcs.push({...sample,r:player.r+3.7+row*2.3,c:player.c-4.2+col*2.1,ang:a+Math.PI,walking:true,moving:true,speed:2.4,walkPhase:phase+j*.63,hp:100,maxHp:100,dead:false,severMask:0,forcedCrawl:false});}
+      const phase=fxNow*.009,visualAudit=_UP.has('previewnpcvisual');for(const [j,sample] of anatomySamples.entries()){const row=Math.floor(j/5),col=j%5,a=-.78+col*.39,qaMoving=!visualAudit||(Math.floor(fxNow/1800)+j)%2===0,qaFiring=visualAudit&&!!sample.weapon&&fxNow%1700<460;npcs.push({...sample,r:player.r+3.7+row*2.3,c:player.c-4.2+col*2.1,ang:a+Math.PI,walking:qaMoving,moving:qaMoving,speed:qaMoving?2.4:0,walkPhase:phase+j*.63,_shotAt:qaFiring?fxNow-(fxNow%460):0,_shotWeapon:sample.weapon||'',hp:100,maxHp:100,dead:false,severMask:0,forcedCrawl:false});}
       document.documentElement.dataset.previewNpcAnatomy=String(anatomySamples.length);
     }
     if(_LOCAL_PREVIEW&&_UP.has('previewlabels')){
@@ -63246,7 +63246,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
     const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,weapon:String(x.weapon||'pistol'),life:+x.life||0,max:+x.max||1}));
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcvisual')){const shellWeapons=['pistol_heavy','rifle','shotgun','smg'];for(const [i,weapon] of shellWeapons.entries())shellFx.unshift({id:`qa_shell_${weapon}`,r:player.r+1.6+i*.38,c:player.c+1.4,z:.08+i*.05,rot:fxNow*.004+i*.7,weapon,life:700,max:700});document.documentElement.dataset.previewNpcShellClasses=shellWeapons.join(',');}
-    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
+    const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,weapon:String(x.weapon||'pistol'),type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:+x.id||i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,rot:+x.rot||0,scale:+x.scale||1,heavy:!!x.heavy,age:fxNow-(+x.born||fxNow)}));
     if(_LOCAL_PREVIEW&&_UP.has('previewbulletfx')){
       const cycle=(performance.now()%1800)/1800,profiles=[['pistol','#ffe49a',1,1],['smg','#ffd061',.86,1.22],['shotgun','#ff9f38',1.38,.78],['sniper','#fff2bd',1.24,1.8]];
@@ -67353,6 +67353,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d370-npc-visuals"></script>
+<script type="module" src="three_preview.js?v=3d371-npc-motion-combat"></script>
 </body>
 </html>
