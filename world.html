@@ -9551,6 +9551,8 @@ function _empirePlayerCombatThink(n,now,dt){
   _empireRecordAttack(n,hit,now);if(hit)_applyEmpirePlayerWeaponHit(n,Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1))),profile,now);return true;
 }
 function _empireActivityLabel(activity) {
+  const specific=String(activity?.ui_label||'').trim();
+  if(specific)return specific.toLocaleUpperCase('ru-RU');
   return ({gang_war:'ВЕДЁТ ВОЙНУ С БАНДОЙ',recruit:'ВЕРБУЕТ БОЙЦОВ',collect:'ПРОВЕРЯЕТ ДОХОД',inspect:'ПРОВЕРЯЕТ ПОСТЫ',return_hq:'ВОЗВРАЩАЕТСЯ В ШТАБ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
     expand:'СТРОИТ ОПОРНЫЙ ШТАБ',hq_expand:'ИЩЕТ МЕСТО ДЛЯ ШТАБА',patrol:'ПРОВЕРЯЕТ ВЛАДЕНИЯ',
     war_won:'ЗАКРЕПЛЯЕТ ТЕРРИТОРИЮ',war_lost:'ВОЗВРАЩАЕТСЯ В ШТАБ',comeback:'ВОССТАНАВЛИВАЕТ ШТАБ'})[activity?.kind]||'ДЕЛА БАНДЫ';
@@ -18489,6 +18491,7 @@ function _npcEmpireUiLook(leaderId){
 function _npcEmpireUiActivity(empire){
   const action=empire?.activity||{},kind=String(action.kind||'patrol');
   if(empire?.status==='offline'||kind==='offline')return 'Нет связи с сервером';
+  if(String(action.ui_label||'').trim())return String(action.ui_label).trim();
   return ({patrol:'Проверяет владения',collect:'Собирает доход',recruit:'Нанимает бойцов',capture:'Готовит захват',attack:'Ведёт войну',defend:'Укрепляет штаб',recover:'Восстанавливает силы',invest:'Расширяет бизнес'})[kind]||action.summary||'Действует автономно';
 }
 function _paintNpcEmpireUiPortraits(root=document){
