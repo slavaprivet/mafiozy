@@ -68,7 +68,7 @@ def run() -> None:
     assert "ne-dossier-command" in WORLD and "КРИМИНАЛЬНОЕ ДОСЬЕ" in WORLD
     assert "card.scrollTop=0" in WORLD and "uiMode='dossier'" in WORLD
     assert "const empireFlags=inside?[]:_npcEmpireFlagSites" in WORLD
-    assert "EMPIRE_FLAG_CAP=64" in THREE and "world-roof-visible-flags-v368" in THREE
+    assert "EMPIRE_FLAG_CAP=64" in THREE and "world-roof-visible-flags-v397-closed-building-kit" in THREE
     assert "src.empireBoss||src.empireCrew" in THREE and "empireMember=empireBoss||empireCrew" in THREE
     assert "empire-family-card-v360" in THREE
     assert "empire-boss-v3" in THREE and "three-line-contained-war-target-v392" in THREE
@@ -83,7 +83,9 @@ def run() -> None:
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d395-gang-squad-integrity" in WORLD
+    assert "3d400-cuffs-foreign-building-actions" in WORLD
+    assert "previewbuildingactions" in WORLD and "previewbuildingclosed" in WORLD
+    assert "purpose-v4" in THREE and "closedUntil:interiorData.apartment.closedUntil" in THREE
     assert "_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD

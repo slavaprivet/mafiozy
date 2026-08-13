@@ -24816,6 +24816,25 @@ async def _coop_http_app():
         status=200 if result.get('ok') else (409 if result.get('error') in {'cooldown','relation too low'} else 400)
         return await _cors(web.json_response(result,status=status))
 
+    async def h_npc_empire_building_action(req):
+        try:
+            uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:
+            return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.npc_building_action(
+            DB_PATH,uid,str(body.get('leader_id') or '')[:32],
+            str(body.get('holding_id') or '')[:32],str(body.get('action') or '')[:16])
+        if result.get('ok') and result.get('sold'):
+            properties=await get_player_building_properties()
+            result['properties']=properties
+            result['owned']=await get_apartments_owned(uid)
+            if _WORLD and str(uid) in _WORLD.players:
+                player_state=_WORLD.players[str(uid)]
+                player_state['cash']=int(result.get('cash') or player_state.get('cash') or 0)
+                player_state.setdefault('_owned_apartments',set()).add(str(result.get('apt_key') or ''))
+        status=200 if result.get('ok') else (404 if result.get('error')=='no character' else 409)
+        return await _cors(web.json_response(result,status=status))
+
     async def h_npc_empire_hospitalize(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
@@ -29432,6 +29451,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/custom-gang/{uid}/disband',h_custom_gang_disband)
     aio_app.router.add_get ('/npc-empires/{uid}/state', h_npc_empire_state)
     aio_app.router.add_post('/npc-empires/{uid}/diplomacy', h_npc_empire_diplomacy)
+    aio_app.router.add_post('/npc-empires/{uid}/building/action', h_npc_empire_building_action)
     aio_app.router.add_post('/npc-empires/{uid}/hospitalize', h_npc_empire_hospitalize)
     aio_app.router.add_post('/npc-empires/{uid}/street-recruit', h_npc_empire_street_recruit)
     aio_app.router.add_post('/npc-empires/{uid}/assault/prepare', h_npc_empire_assault_prepare)

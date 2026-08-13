@@ -37,6 +37,7 @@ PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS = 10 * 60
 VISIBLE_ACTIVITY_SECONDS = 75
 NPC_EMPIRE_MAX_FIGHTERS = 20
 RECRUITMENT_SECONDS = 0
+NPC_BUILDING_SABOTAGE_SECONDS = 5 * 60
 
 
 @dataclass(frozen=True)
@@ -226,6 +227,12 @@ BUILDING_OPERATIONS = {
 BUILDING_HQ_FITOUT_COST = 9000
 CAPTURED_HQ_AREA = 27
 
+BUILDING_DISTRICT_PRICES = {
+    'poor': 3500, 'lair': 5500, 'industrial': 7000,
+    'countryside': 8500, 'nightlife': 14000, 'downtown': 18000,
+    'coast': 24000, 'rich': 32000, 'standard': 6500,
+}
+
 
 def building_operation_income(operation_type: str, area: int) -> int:
     base = int(BUILDING_OPERATIONS.get(operation_type, BUILDING_OPERATIONS['beer_bar'])['base_income'])
@@ -245,6 +252,45 @@ def building_purchase_price(shell_price: int, property_kind: str,
         fitout = int(meta['fitout_cost'])
     area_fee = max(0, min(27, int(area or 4)) - 4) * 90
     return shell + fitout + area_fee
+
+
+def building_shell_price(building_key: str) -> int:
+    """Mirror the generic-building district shell price from the world API."""
+    try:
+        br_text, bc_text = str(building_key).split(',', 1)
+        r, c = int(br_text) * 10 + 6, int(bc_text) * 10 + 6
+    except (TypeError, ValueError):
+        return 0
+    if 0 <= r <= 39 and 40 <= c <= 79: district = 'downtown'
+    elif 0 <= r <= 39 and 0 <= c <= 39: district = 'poor'
+    elif 40 <= r <= 59 and 0 <= c <= 39: district = 'nightlife'
+    elif 60 <= r <= 79 and 0 <= c <= 39: district = 'rich'
+    elif 80 <= r <= 99 and 0 <= c <= 39: district = 'countryside'
+    elif 40 <= r <= 99 and 40 <= c <= 79: district = 'industrial'
+    elif 100 <= r <= 149 and 0 <= c <= 79: district = 'lair'
+    elif 150 <= r <= 199 and 0 <= c <= 79: district = 'coast'
+    else: district = 'standard'
+    return BUILDING_DISTRICT_PRICES[district]
+
+
+def npc_building_sale_price(building_key: str, operation_type: str, area: int) -> int:
+    base = building_purchase_price(
+        building_shell_price(building_key), 'business', operation_type, area)
+    return max(1, int(round(base * 1.6 / 10.0) * 10))
+
+
+def npc_building_sale_chance(relation: int, pact: str = 'none') -> int:
+    """Negative relations never sell; neutral is 50%, positive is 70-90%."""
+    score = clamp_relation(relation)
+    if score < 0 or str(pact or 'none') == 'war':
+        return 0
+    if score == 0:
+        return 50
+    if score < 40:
+        return 70
+    if score < 70:
+        return 80
+    return 90
 
 
 def choose_building_operation(profile: EmpireProfile, building_key: str,
@@ -1097,6 +1143,15 @@ async def ensure_schema(db_path: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_player_wars_due
             ON npc_empire_player_wars(telegram_id,next_attack_at);
+        CREATE TABLE IF NOT EXISTS npc_empire_building_closures (
+            holding_id TEXT PRIMARY KEY,
+            leader_id TEXT NOT NULL,
+            saboteur_uid INTEGER NOT NULL,
+            closed_until INTEGER NOT NULL,
+            created_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_empire_building_closures_until
+            ON npc_empire_building_closures(closed_until);
         """)
         now = int(time.time())
         columns = {str(r[1]) for r in await (await db.execute("PRAGMA table_info(npc_empires)")).fetchall()}
@@ -1379,6 +1434,10 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
+        await db.execute("DELETE FROM npc_empire_building_closures WHERE closed_until<=?", (now,))
+        closed_buildings = {str(row[0]) for row in await (await db.execute(
+            "SELECT holding_id FROM npc_empire_building_closures WHERE closed_until>?", (now,)
+        )).fetchall()}
         await _revive_due_empires(db, now, events)
         rows = await (await db.execute(
             "SELECT * FROM npc_empires WHERE status IN ('active','rebuilding','vassal')"
@@ -1460,7 +1519,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 "SELECT kind,holding_id,income,defense,operation_type,area FROM npc_empire_holdings WHERE leader_id=?",
                 (leader_id,),
             )).fetchall()
-            per_tick = 18 + profile.commerce // 3 + empire_holding_income_per_tick(holdings)
+            earning_holdings = [h for h in holdings if not (
+                str(h['kind']) == 'building' and str(h['holding_id']) in closed_buildings)]
+            per_tick = 18 + profile.commerce // 3 + empire_holding_income_per_tick(earning_holdings)
             upkeep = max(4, int(row['members'] or 0) * 3)
             treasury = max(0, int(row['treasury'] or 0) + ticks * (per_tick - upkeep))
             members = max(1, int(row['members'] or 1))
@@ -1645,6 +1706,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     "WHERE leader_id=? AND kind IN ('building','business') ORDER BY kind DESC",
                     (rival.leader_id if rival else '__none__',),
                 )).fetchall()
+                target_rows = [item for item in target_rows if not (
+                    str(item['kind']) == 'building' and
+                    str(item['holding_id']) in closed_buildings)]
                 rival_state = await (await db.execute(
                     "SELECT strength,members,status FROM npc_empires WHERE leader_id=?",
                     (rival.leader_id if rival else '__none__',),
@@ -1878,6 +1942,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         holdings_rows = await (await db.execute(
             "SELECT kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area FROM npc_empire_holdings"
         )).fetchall()
+        closure_rows = {str(r['holding_id']): dict(r) for r in await (await db.execute(
+            "SELECT holding_id,leader_id,closed_until,created_at FROM npc_empire_building_closures WHERE closed_until>?",
+            (now,),
+        )).fetchall()}
         diplomacy_rows = [dict(r) for r in await (await db.execute(
             "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
         )).fetchall()]
@@ -1910,6 +1978,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             item['income_unit'] = 'minute'
             area = int(item.get('area') or 4)
             item['size_class'] = 'large' if area >= 24 else 'medium' if area >= 16 else 'small'
+            closure = closure_rows.get(str(item['holding_id']))
+            item['closed_until'] = int(closure.get('closed_until') or 0) if closure else 0
+            item['closed_s'] = max(0, item['closed_until'] - now)
+            item['building_status'] = 'closed' if item['closed_s'] else 'open'
         holdings.setdefault(str(row['leader_id']), []).append(item)
     events_by_leader: dict[str, list[dict]] = {p.leader_id: [] for p in PROFILES}
     for event in recent:
@@ -1925,6 +1997,13 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         hq_key = str(row['hq_key'] or '')
         hq_r, hq_c = _hq_coords(hq_key) if hq_key else (0, 0)
         leader_holdings = holdings.get(leader_id, [])
+        for holding in leader_holdings:
+            if str(holding.get('kind') or '') != 'building':
+                continue
+            holding['sale_price'] = npc_building_sale_price(
+                str(holding.get('holding_id') or ''),
+                str(holding.get('operation_type') or ''), int(holding.get('area') or 4))
+            holding['sale_chance'] = npc_building_sale_chance(score, str(relation.get('pact') or 'none'))
         recruitment = _recruitment_state(profile, row, now)
         leader_events = events_by_leader.get(leader_id, [])
         memory = _boss_memory_cards(leader_events, now)
@@ -2011,6 +2090,169 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent[:60],
             'player_war_events': player_war_events,
             'server_time': now, 'tick_seconds': TICK_SECONDS}
+
+
+def _apartment_key_building_key(apt_key: str) -> str:
+    value = str(apt_key or '')
+    try:
+        if value.startswith('tile:'):
+            r_text, c_text = value[5:].split(',', 1)
+            return f'{int(r_text)//10},{int(c_text)//10}'
+        br_text, bc_text = value.split(',', 1)
+        return f'{int(br_text)},{int(bc_text)}'
+    except (TypeError, ValueError):
+        return ''
+
+
+async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
+                              holding_id: str, action: str,
+                              now: int | None = None, roll: int | None = None) -> dict:
+    """Negotiate for or sabotage one generic NPC-owned business building."""
+    now = int(now or time.time())
+    leader_id, holding_id = str(leader_id or ''), str(holding_id or '')
+    action = str(action or '')
+    if leader_id not in PROFILE_BY_ID:
+        return {'ok': False, 'error': 'unknown leader'}
+    if holding_id not in BUILDING_AREAS:
+        return {'ok': False, 'error': 'bad building'}
+    if action not in {'purchase', 'sabotage'}:
+        return {'ok': False, 'error': 'bad action'}
+    await ensure_schema(db_path)
+    profile = PROFILE_BY_ID[leader_id]
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        holding = await (await db.execute(
+            "SELECT leader_id,income,operation_type,area FROM npc_empire_holdings "
+            "WHERE kind='building' AND holding_id=?", (holding_id,)
+        )).fetchone()
+        if not holding or str(holding['leader_id']) != leader_id:
+            await db.rollback()
+            return {'ok': False, 'error': 'ownership changed'}
+        closure = await (await db.execute(
+            "SELECT closed_until FROM npc_empire_building_closures WHERE holding_id=?",
+            (holding_id,),
+        )).fetchone()
+        closed_until = int(closure['closed_until'] or 0) if closure else 0
+        if closed_until > now:
+            await db.rollback()
+            return {'ok': False, 'error': 'closed', 'closed_until': closed_until,
+                    'closed_s': closed_until - now}
+        if closure:
+            await db.execute("DELETE FROM npc_empire_building_closures WHERE holding_id=?", (holding_id,))
+        relation = await (await db.execute(
+            "SELECT score,pact FROM npc_empire_relations WHERE leader_id=? AND telegram_id=?",
+            (leader_id, telegram_id),
+        )).fetchone()
+        score = clamp_relation(int(relation['score'] if relation else 0))
+        pact = str(relation['pact'] if relation else 'none')
+        operation_type = str(holding['operation_type'] or '')
+        area = max(4, int(holding['area'] or BUILDING_AREAS[holding_id]))
+        price = npc_building_sale_price(holding_id, operation_type, area)
+        if action == 'purchase':
+            char = await (await db.execute(
+                "SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,)
+            )).fetchone()
+            if not char:
+                await db.rollback(); return {'ok': False, 'error': 'no character'}
+            cash = int(char['cash'] or 0)
+            if cash < price:
+                await db.rollback()
+                return {'ok': False, 'error': 'no cash', 'cash': cash, 'price': price}
+            mine = await (await db.execute(
+                "SELECT apt_key FROM apartments_owned WHERE telegram_id=?", (telegram_id,)
+            )).fetchall()
+            if any(_apartment_key_building_key(row['apt_key']) == holding_id for row in mine):
+                await db.rollback(); return {'ok': False, 'error': 'already owned'}
+            chance = npc_building_sale_chance(score, pact)
+            decision_roll = max(1, min(100, int(roll))) if roll is not None else secrets.randbelow(100) + 1
+            if chance <= 0 or decision_roll > chance:
+                await db.commit()
+                return {'ok': True, 'sold': False, 'leader_id': leader_id,
+                        'leader_name': profile.leader_name, 'holding_id': holding_id,
+                        'relation': score, 'sale_chance': chance, 'price': price,
+                        'message': 'Я отказываюсь продавать это заведение.'}
+            new_score = clamp_relation(score + 5)
+            await db.execute("UPDATE characters SET cash=cash-? WHERE telegram_id=?", (price, telegram_id))
+            await db.execute("UPDATE npc_empires SET treasury=treasury+?,version=version+1 WHERE leader_id=?",
+                             (price, leader_id))
+            await db.execute("DELETE FROM npc_empire_holdings WHERE kind='building' AND holding_id=? AND leader_id=?",
+                             (holding_id, leader_id))
+            await db.execute(
+                "INSERT INTO apartments_owned"
+                "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
+                "VALUES(?,?,?,?, 'business',?,?,?,?)",
+                (telegram_id, holding_id, price, now, operation_type, area,
+                 building_operation_income(operation_type, area), now),
+            )
+            await db.execute(
+                "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?,?,?,?,?) "
+                "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,last_action_at=excluded.last_action_at",
+                (leader_id, telegram_id, new_score, pact, now),
+            )
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
+                (leader_id, 'building_sold', str(telegram_id),
+                 f'{profile.leader_name} продал игроку заведение {holding_id} за ${price}', now),
+            )
+            await db.commit()
+            return {'ok': True, 'sold': True, 'leader_id': leader_id,
+                    'leader_name': profile.leader_name, 'gang_name': profile.gang_name,
+                    'holding_id': holding_id, 'apt_key': holding_id,
+                    'operation_type': operation_type,
+                    'operation_name': BUILDING_OPERATIONS[operation_type]['name'],
+                    'operation_icon': BUILDING_OPERATIONS[operation_type]['icon'],
+                    'income_per_minute': building_operation_income(operation_type, area),
+                    'area': area, 'price': price, 'cash': cash-price,
+                    'relation': new_score, 'sale_chance': chance,
+                    'message': 'Спасибо за покупку. Заведение теперь твоё.'}
+        c4_row = await (await db.execute(
+            "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id='c4'",
+            (telegram_id,),
+        )).fetchone()
+        c4_count = max(0, int(c4_row['quantity'] or 0)) if c4_row else 0
+        if c4_count < 1:
+            await db.rollback()
+            return {'ok': False, 'error': 'no c4', 'c4_left': 0}
+        if c4_count == 1:
+            await db.execute(
+                "DELETE FROM inventory WHERE telegram_id=? AND item_id='c4'",
+                (telegram_id,),
+            )
+        else:
+            await db.execute(
+                "UPDATE inventory SET quantity=quantity-1 WHERE telegram_id=? AND item_id='c4'",
+                (telegram_id,),
+            )
+        relation_loss = 20 + secrets.randbelow(11)
+        new_score = clamp_relation(score - relation_loss)
+        if pact in {'alliance', 'truce', 'vassal'} and new_score < 0:
+            pact = 'none'
+        closed_until = now + NPC_BUILDING_SABOTAGE_SECONDS
+        await db.execute(
+            "INSERT INTO npc_empire_building_closures"
+            "(holding_id,leader_id,saboteur_uid,closed_until,created_at) VALUES(?,?,?,?,?) "
+            "ON CONFLICT(holding_id) DO UPDATE SET leader_id=excluded.leader_id,"
+            "saboteur_uid=excluded.saboteur_uid,closed_until=excluded.closed_until,created_at=excluded.created_at",
+            (holding_id, leader_id, telegram_id, closed_until, now),
+        )
+        await db.execute(
+            "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?,?,?,?,?) "
+            "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,pact=excluded.pact,last_action_at=excluded.last_action_at",
+            (leader_id, telegram_id, new_score, pact, now),
+        )
+        await db.execute(
+            "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
+            (leader_id, 'building_sabotaged', str(telegram_id),
+             f'Игрок подорвал заведение {holding_id}; закрыто на 5 минут', now),
+        )
+        await db.commit()
+    return {'ok': True, 'sabotaged': True, 'leader_id': leader_id,
+            'leader_name': profile.leader_name, 'holding_id': holding_id,
+            'closed_until': closed_until, 'closed_s': NPC_BUILDING_SABOTAGE_SECONDS,
+            'fuse_s': 3, 'c4_left': c4_count - 1,
+            'relation': new_score, 'relation_delta': -relation_loss, 'pact': pact,
+            'message': 'Ты ответишь за это. Заведение закрыто на ремонт.'}
 
 
 async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,

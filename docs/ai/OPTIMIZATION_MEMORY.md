@@ -1933,3 +1933,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - The search belongs in the throttled roster sync, never in the render loop. Expose `empireStreetRecruit` and the bounded `empireStreetRecruits` count for regression QA.
 - Recruitment is a short state machine, not an instant conversion: the fighter freezes as `ПЕРЕГОВОРЫ`, the boss walks to the same actor, both face each other for 2.4 seconds, and only an authoritative `/street-recruit` response enables weapons and escort AI. Persist the member/strength increment and a `street_recruit` event in one immediate SQLite transaction.
 - Deduplicate source bot ids server-side for six hours and enforce the 20-member cap plus an eight-second per-family cooldown. Client snapshot filtering prevents the visual clone; server deduplication prevents retries or multiple viewers from increasing the same roster twice.
+
+## NPC business sabotage reuses bounded effects (2026-08-13, v397)
+
+- A sabotaged NPC business remains the original streamed building. Its closed
+  state is a signature-driven skin: darken cached shell materials, reveal
+  rubble/boards already allocated in the 64-slot empire marker pool, and redraw
+  the existing canvas sign only when the displayed second changes.
+- Reuse `spawnWorldC4Explosion` after the authoritative three-second fuse and
+  the bounded `_firePools` used by Molotovs. Never create a second explosion or
+  fire renderer for this interaction; cap every inserted fire patch before it
+  reaches the 3D bridge.
+- Closure, C4 consumption, relationship loss and purchase blocking are one
+  immediate SQLite transaction. The client may show the fuse, but the server
+  owns inventory and the five-minute `closed_until` deadline, so reconnects
+  cannot restore income or repeat a consumed charge.
+- Include `closed_until` in both marker and shell-skin signatures. When it
+  expires, the normal signature path restores cached materials and hides the
+  ruin group without a scene scan or per-frame geometry allocation.
