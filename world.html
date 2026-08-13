@@ -1756,7 +1756,9 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
     linear-gradient(180deg,rgba(12,4,5,.66),rgba(8,3,5,.82));
   backdrop-filter: blur(1.6px) saturate(.72);
 }
-#deathOverlay.show { display: flex; }
+/* Temporarily keep the death card and its dark backdrop out of every death flow.
+   Death, arrest, respawn and ambulance state continue to run behind this dormant UI. */
+#deathOverlay.show { display: none; }
 #deathOverlay[data-mode="rescue"] { --death-accent:#d9bd69; --death-hot:#f26a5c; --death-soft:#f4e2b2; }
 #deathOverlay[data-mode="police"] { --death-accent:#68aee8; --death-hot:#efca61; --death-soft:#d6eaff; }
 #deathOverlay[data-mode="dead"]   { --death-accent:#b88f48; --death-hot:#e0514a; --death-soft:#e8d2a6; }
