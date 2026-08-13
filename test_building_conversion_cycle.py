@@ -30,8 +30,14 @@ async def run() -> None:
         assert f"fitout:{int(meta['fitout_cost'])}" in world
     assert "openNpcAnnexBuildingChoice" in world
     assert "operation_type:operationType" in world
+    assert "data-annex-building" in world and "operation_map:operationMap||{}" in world
     assert "loadNpcEmpireState(),loadApartmentState(),syncMyBusinesses()" in world
     assert "operationType:interiorData.apartment.operationType" in three
+    assert "acquiredAt:interiorData.apartment.acquiredAt||0" in three
+    assert "ПОД НОВЫМ УПРАВЛЕНИЕМ" in three
+    assert "dataset.activeBuildingConversions" in three
+    assert "conversionAge>=0&&conversionAge<12" in three
+    assert "acquiredAt:+apartmentInfo.acquired_at" in world
     assert "delete renderer.domElement.dataset.convertedBuildingSkin" in three
     assert "dataset.convertedBuildingSkin" in three
     assert "disposeTransientObjectTree(child)" in three
@@ -60,25 +66,50 @@ async def run() -> None:
             await db.commit()
         await ne.ensure_schema(path)
         token = "conversion-win"
+        oversized = await ne.resolve_assault(
+            path, 101, token, "annex", "",
+            {f"building-{index}": "beer_bar" for index in range(65)},
+            now=2_000_000_098)
+        assert not oversized["ok"] and oversized["error"] == "bad operation map"
         async with aiosqlite.connect(path) as db:
             await db.execute(
                 "INSERT OR REPLACE INTO npc_empire_holdings"
                 "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
                 "VALUES('building','1,1','leila',70,50,2000000000,'beer_bar',16)")
             await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_holdings"
+                "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
+                "VALUES('building','1,2','leila',175,50,2000000000,'print_shop',20)")
+            await db.execute(
                 "INSERT INTO npc_empire_assaults"
                 "(token,telegram_id,leader_id,guard_hp_json,boss_hp,boss_max_hp,status,started_at,expires_at,last_hit_at) "
                 "VALUES(?,101,'leila','[0]',0,300,'active',2000000000,2000010000,2000000000)",
                 (token,))
             await db.commit()
+        rejected = await ne.resolve_assault(
+            path, 101, token, "annex", "", {"9,9": "beer_bar"},
+            now=2_000_000_099)
+        assert not rejected["ok"] and rejected["error"] == "unknown building"
+        with sqlite3.connect(path) as db:
+            assert db.execute("SELECT COUNT(*) FROM apartments_owned").fetchone()[0] == 0
+            assert db.execute(
+                "SELECT status FROM npc_empire_assaults WHERE token=?", (token,)
+            ).fetchone()[0] == "active"
         result = await ne.resolve_assault(
-            path, 101, token, "annex", "strip_club", now=2_000_000_100)
-        assert result["ok"] and result["operation_type"] == "strip_club"
-        assert result["captured_buildings"] == [{
-            "building_key": "1,1", "apt_key": "tile:16,16",
-            "operation_type": "strip_club", "operation_name": "Стрип-клуб",
-            "income_per_minute": ne.building_operation_income("strip_club", 16),
-        }]
+            path, 101, token, "annex", "",
+            {"1,1": "strip_club", "1,2": "chop_shop"}, now=2_000_000_100)
+        assert result["ok"] and result["operation_map"] == {
+            "1,1": "strip_club", "1,2": "chop_shop"}
+        assert result["captured_buildings"] == [
+            {"building_key": "1,1", "apt_key": "tile:16,16",
+             "previous_operation_type": "beer_bar",
+             "operation_type": "strip_club", "operation_name": "Стрип-клуб",
+             "income_per_minute": ne.building_operation_income("strip_club", 16)},
+            {"building_key": "1,2", "apt_key": "tile:16,26",
+             "previous_operation_type": "print_shop",
+             "operation_type": "chop_shop", "operation_name": "Авторазборка",
+             "income_per_minute": ne.building_operation_income("chop_shop", 20)},
+        ]
         with sqlite3.connect(path) as db:
             row = db.execute(
                 "SELECT property_kind,operation_type,area,income_per_minute "
@@ -91,7 +122,7 @@ async def run() -> None:
         with sqlite3.connect(path) as db:
             assert db.execute(
                 "SELECT COUNT(*) FROM apartments_owned WHERE telegram_id=101"
-            ).fetchone()[0] == 1
+            ).fetchone()[0] == 2
         print("building conversion cycle: authoritative prices and annex conversion OK")
     finally:
         try:

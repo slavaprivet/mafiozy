@@ -2852,7 +2852,7 @@ async def get_player_building_properties() -> list:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         rows = await (await db.execute(
-            "SELECT a.telegram_id,a.apt_key,a.property_kind,a.operation_type,a.area,a.income_per_minute,"
+            "SELECT a.telegram_id,a.apt_key,a.property_kind,a.operation_type,a.area,a.income_per_minute,a.bought_at,"
             "COALESCE(c.name,'Игрок') owner_name,c.mafia_family,g.id gang_id,g.name gang_name,"
             "g.flag_primary,g.flag_secondary,g.flag_emblem "
             "FROM apartments_owned a LEFT JOIN characters c ON c.telegram_id=a.telegram_id "
@@ -2883,6 +2883,7 @@ async def get_player_building_properties() -> list:
             'owner_uid': str(row['telegram_id']), 'owner_name': str(row['owner_name']),
             'apt_key': str(row['apt_key']), 'building_key': apartment_empire_building_key(str(row['apt_key'])),
             'r': int(coords[0]), 'c': int(coords[1]), 'property_kind': str(row['property_kind'] or 'hq'),
+            'acquired_at': int(row['bought_at'] or 0),
             'family': family, 'gang_id': int(row['gang_id']) if row['gang_id'] is not None else None,
             'gang_name': default_name, 'color': default_color, 'accent': default_accent,
             'flag': flag, **(operation or {}),
@@ -24798,7 +24799,8 @@ async def _coop_http_app():
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
         result=await npc_empire.resolve_assault(
             DB_PATH,uid,str(body.get('token') or '')[:64],str(body.get('choice') or '')[:16],
-            str(body.get('operation_type') or '')[:32])
+            str(body.get('operation_type') or '')[:32],
+            body.get('operation_map') if isinstance(body.get('operation_map'),dict) else None)
         if result.get('ok') and _WORLD:
             player_state=_WORLD.players.get(str(uid))
             if player_state:

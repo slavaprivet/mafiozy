@@ -58,7 +58,7 @@ def test_facades_stay_bounded_and_have_mounted_signage() -> None:
 
 
 def test_converted_interiors_have_current_design_profile() -> None:
-    assert "purpose-v2:${kind}:${operation||'headquarters'}" in THREE
+    assert "purpose-v3:${kind}:${operation||'headquarters'}" in THREE
     assert "visible hydraulic lift" in THREE
     assert "TorusGeometry(1.25,.16,10,32)" in THREE
     assert "neonArch" in THREE

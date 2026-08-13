@@ -1800,13 +1800,26 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
 
 
 async def resolve_assault(db_path: str, telegram_id: int, token: str,
-                          choice: str, operation_type: str = '', now: int | None = None) -> dict:
+                          choice: str, operation_type: str = '',
+                          operation_map: dict[str, str] | None = None,
+                          now: int | None = None) -> dict:
     """Resolve once: annex businesses, loot the treasury, or vassalize."""
     now = int(now or time.time())
     if choice not in {'annex','loot','vassalize'}:
         return {'ok': False, 'error': 'bad choice'}
     if choice == 'annex' and operation_type and operation_type not in BUILDING_OPERATIONS:
         return {'ok': False, 'error': 'bad operation'}
+    raw_operation_map = operation_map or {}
+    if not isinstance(raw_operation_map, dict) or len(raw_operation_map) > 64:
+        return {'ok': False, 'error': 'bad operation map'}
+    if any(not isinstance(key, str) or len(key) > 64 or
+           not isinstance(value, str) or len(value) > 32
+           for key, value in raw_operation_map.items()):
+        return {'ok': False, 'error': 'bad operation map'}
+    requested_operations = dict(raw_operation_map)
+    if choice == 'annex' and any(
+            value not in BUILDING_OPERATIONS for value in requested_operations.values()):
+        return {'ok': False, 'error': 'bad operation map'}
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
@@ -1826,8 +1839,12 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
             reward = treasury if choice == 'loot' else treasury // 3
             business_rows = await (await db.execute("SELECT holding_id FROM npc_empire_holdings WHERE leader_id=? AND kind='business'", (leader_id,))).fetchall()
             building_rows = await (await db.execute(
-                "SELECT holding_id,area FROM npc_empire_holdings WHERE leader_id=? AND kind='building'",
+                "SELECT holding_id,area,operation_type FROM npc_empire_holdings "
+                "WHERE leader_id=? AND kind='building' ORDER BY holding_id",
                 (leader_id,))).fetchall()
+            building_ids = {str(item['holding_id']) for item in building_rows}
+            if choice == 'annex' and not set(requested_operations).issubset(building_ids):
+                await db.rollback(); return {'ok': False, 'error': 'unknown building'}
             apartments_table = await (await db.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='apartments_owned'"
             )).fetchone()
@@ -1843,16 +1860,21 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
                     try: apt_key=f'tile:{int(parts[0])*10+6},{int(parts[1])*10+6}'
                     except ValueError: continue
                     area=max(4,int(item['area'] or BUILDING_AREAS.get(building_key,4)))
-                    income=building_operation_income(operation_type,area)
+                    selected_operation=requested_operations.get(building_key,operation_type)
+                    if not selected_operation:
+                        selected_operation=choose_captured_building_operation(
+                            profile,building_key,str(item['operation_type'] or ''),now)
+                    income=building_operation_income(selected_operation,area)
                     cursor=await db.execute(
                         "INSERT OR IGNORE INTO apartments_owned"
                         "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
                         "VALUES(?,?,0,?,'business',?,?,?,?)",
-                        (telegram_id,apt_key,now,operation_type,area,income,now))
+                        (telegram_id,apt_key,now,selected_operation,area,income,now))
                     if int(cursor.rowcount or 0)==1:
                         captured_buildings.append({'building_key':building_key,'apt_key':apt_key,
-                                                   'operation_type':operation_type,
-                                                   'operation_name':BUILDING_OPERATIONS[operation_type]['name'],
+                                                   'previous_operation_type':str(item['operation_type'] or ''),
+                                                   'operation_type':selected_operation,
+                                                   'operation_name':BUILDING_OPERATIONS[selected_operation]['name'],
                                                    'income_per_minute':income})
             else:
                 for item in business_rows:
@@ -1872,4 +1894,6 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
             'comeback_at': comeback_at if choice != 'vassalize' else 0,
             'captured_businesses': captured, 'captured_buildings': captured_buildings,
             'operation_type': operation_type if choice == 'annex' else '',
+            'operation_map': {item['building_key']:item['operation_type']
+                              for item in captured_buildings},
             'cash': int(char['cash'] if char else reward)}

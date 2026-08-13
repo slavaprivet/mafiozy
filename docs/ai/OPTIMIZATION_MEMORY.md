@@ -1486,3 +1486,20 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Bump the module query key after a startup exception. Otherwise GitHub Pages
   or an embedded WebView may continue executing the broken cached module even
   after the source file is corrected.
+
+## Per-building annex planning and takeover feedback (2026-08-13, v378)
+
+- An empire annex may contain several buildings with different profiles. Send
+  one validated `operation_map` and apply every ownership/profile mutation in
+  the same transaction; reject unknown holding ids before changing any row.
+- Keep the annex planner data-driven: one select per captured building, with a
+  global automatic fallback for older clients. Never infer ownership from the
+  modal or let a client-supplied id convert a building outside the defeated
+  empire's holdings.
+- Reuse the authoritative acquisition timestamp for short takeover feedback.
+  The exterior pulse runs only on the existing fixed marker pool for 12 seconds,
+  shares one timestamp per frame, and resets scale on recycled markers. The
+  interior sign is selected once during the existing static room rebuild.
+- Put `acquiredAt` in both exterior and interior signatures. A conversion then
+  invalidates exactly one cached skin without polling, extra timers, retained
+  meshes, or a second disposal path.
