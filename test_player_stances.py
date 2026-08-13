@@ -18,7 +18,7 @@ def test_bridge_exposes_deterministic_stance_fixture():
     assert "previewstance" in WORLD
     assert "speed:previewWalking?5:anim.speed" in WORLD
     assert "stance,crouching:stance==='crouch',prone:stance==='prone'" in WORLD
-    assert "three_preview.js?v=3d404-switchable-business-exteriors" in WORLD
+    assert "three_preview.js?v=3d405-owner-readable-labels" in WORLD
 
 
 def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():

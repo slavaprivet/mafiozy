@@ -34,7 +34,7 @@ async def run() -> None:
     assert "loadNpcEmpireState(),loadApartmentState(),syncMyBusinesses()" in world
     assert "operationType:interiorData.apartment.operationType" in three
     assert "acquiredAt:interiorData.apartment.acquiredAt||0" in three
-    assert "ПОД НОВЫМ УПРАВЛЕНИЕМ" in three
+    assert "ПОД УПРАВЛЕНИЕМ: ${ownerName}" in three
     assert "dataset.activeBuildingConversions" in three
     assert "conversionAge>=0&&conversionAge<12" in three
     assert "acquiredAt:+apartmentInfo.acquired_at" in world

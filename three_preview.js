@@ -512,14 +512,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         for(const sx of [-width*.39,width*.39]){const post=new THREE.Mesh(new THREE.BoxGeometry(.16,.72,.16),rimMat);post.position.set(sx,.36,0);post.castShadow=true;root.add(post);}for(const yy of [.62,.62+height]){const rail=new THREE.Mesh(new THREE.BoxGeometry(width+.18,.11,.38),rimMat);rail.position.set(0,yy,0);rail.castShadow=true;root.add(rail);}root.userData={buildingSign:true,label};return root;
       };
       const apartmentLabelSprite=(title,subtitle,color='#e5c66b')=>{
-        const heading=String(title||'КВАРТИРА').trim().slice(0,24),detail=String(subtitle||'ГОРОД').trim().slice(0,34),cv=document.createElement('canvas');cv.width=1280;cv.height=384;
+        const heading=String(title||'КВАРТИРА').trim().slice(0,24),detail=String(subtitle||'ГОРОД').trim().slice(0,48),cv=document.createElement('canvas');cv.width=1280;cv.height=384;
         const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);
         const bg=c.createLinearGradient(0,24,0,360);bg.addColorStop(0,'rgba(22,28,38,.985)');bg.addColorStop(1,'rgba(7,11,18,.985)');c.fillStyle=bg;c.fillRect(24,22,1232,338);
         c.strokeStyle='rgba(2,5,10,.98)';c.lineWidth=22;c.strokeRect(34,32,1212,318);c.strokeStyle=color;c.lineWidth=8;c.strokeRect(47,45,1186,292);
         c.fillStyle=color;c.fillRect(64,64,1152,10);c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
         let headingSize=116;do{c.font=`900 ${headingSize}px Georgia, serif`;if(c.measureText(heading).width<=1080)break;headingSize-=4;}while(headingSize>78);
         c.strokeStyle='rgba(0,0,0,.96)';c.lineWidth=14;c.strokeText(heading,640,158);c.fillStyle='#fff1c8';c.fillText(heading,640,158);
-        let detailSize=64;do{c.font=`850 ${detailSize}px system-ui, Arial, sans-serif`;if(c.measureText(detail).width<=1080)break;detailSize-=3;}while(detailSize>46);
+        let detailSize=64;while(detailSize>38){c.font=`850 ${detailSize}px system-ui, Arial, sans-serif`;if(c.measureText(detail).width<=1080)break;detailSize-=2;}c.font=`850 ${detailSize}px system-ui, Arial, sans-serif`;
         c.fillStyle=color;c.fillRect(246,224,788,3);c.strokeStyle='rgba(0,0,0,.96)';c.lineWidth=10;c.strokeText(detail,640,278);c.fillStyle='#f5e7c6';c.fillText(detail,640,278);
         const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=false;tx.minFilter=THREE.LinearFilter;tx.magFilter=THREE.LinearFilter;tx.needsUpdate=true;
         const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false,alphaTest:.035,toneMapped:false}));sprite.scale.set(17.5,5.25,1);sprite.renderOrder=59;sprite.userData.buildingLabel=true;return sprite;
@@ -4223,7 +4223,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // apartment visual language without changing navigation or collision.
         for(const x of [cx-2.2,cx+2.2])boxAt(x,cz+H*.34,.38,.55,4.1,theme,2.05);boxAt(cx,cz+H*.34,4.8,.55,.38,gold,4.05);floorAt(cx,cz+H*.27,5.6,H*.18,new THREE.MeshStandardMaterial({color:0x252931,roughness:.92}),.105);
         for(let i=-3;i<=3;i++)boxAt(cx+i*W*.105,cz-H*.375,W*.075,.12,.2,gold,.42);
-        const title=closed?'CLOSED · РЕМОНТ':kind==='hq'?'ШТАБ МАФИИ':String(property.operationName||'КРИМИНАЛЬНЫЙ БИЗНЕС').toUpperCase(),subtitle=closed?'ЗАВЕДЕНИЕ ВЫВЕДЕНО ИЗ СТРОЯ':freshlyConverted?`${property.operationIcon||'◆'} ПОД НОВЫМ УПРАВЛЕНИЕМ`:kind==='hq'?(property.gangName||'ЦЕНТР УПРАВЛЕНИЯ'):`${property.operationIcon||'🏴'} НАЗНАЧЕНИЕ ЗДАНИЯ`,sign=apartmentLabelSprite(title,subtitle,color);sign.position.set(cx,6.5,cz-H*.365+.22);sign.layers.set(1);interiorGroup.add(sign);
+        const ownerName=String([property.ownerName,property.gangName,'ВЛАДЕЛЕЦ'].find(value=>String(value||'').trim())||'ВЛАДЕЛЕЦ').trim().toUpperCase(),title=closed?'CLOSED · РЕМОНТ':kind==='hq'?'ШТАБ МАФИИ':String(property.operationName||'КРИМИНАЛЬНЫЙ БИЗНЕС').toUpperCase(),subtitle=closed?'ЗАВЕДЕНИЕ ВЫВЕДЕНО ИЗ СТРОЯ':kind==='hq'?(property.gangName||'ЦЕНТР УПРАВЛЕНИЯ'):`${property.operationIcon||'🏴'} ПОД УПРАВЛЕНИЕМ: ${ownerName}`,sign=apartmentLabelSprite(title,subtitle,color);sign.position.set(cx,6.5,cz-H*.365+.22);sign.layers.set(1);interiorGroup.add(sign);
         const addChair=(x,z,turn=0)=>{const seat=boxAt(x,z,1.35,1.35,.48,leather,.52),back=boxAt(x,z-.52,1.35,.3,1.45,leather,1.15);seat.rotation.y=back.rotation.y=turn;};
         const addScreen=(x,y,z,w=3,h=1.8)=>{const s=add(new THREE.PlaneGeometry(w,h),glow,x,y,z);s.castShadow=false;return s;};
         if(kind==='hq'){

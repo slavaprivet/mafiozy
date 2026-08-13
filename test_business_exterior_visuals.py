@@ -41,7 +41,7 @@ def run() -> None:
 
     assert "previewbuildingpurpose" in WORLD
     assert "previewbuildingclosed" in WORLD
-    assert "three_preview.js?v=3d404-switchable-business-exteriors" in WORLD
+    assert "three_preview.js?v=3d405-owner-readable-labels" in WORLD
 
 
 if __name__ == "__main__":

@@ -2828,6 +2828,21 @@ async def get_apartments_owned(telegram_id: int) -> dict:
             (telegram_id,)
         ) as cur:
             rows = await cur.fetchall()
+        try:
+            async with db.execute("SELECT name FROM characters WHERE telegram_id=?", (telegram_id,)) as cur:
+                owner_row = await cur.fetchone()
+            owner_name = str((owner_row and owner_row[0]) or 'Игрок')
+        except Exception:
+            owner_name = 'Игрок'
+        try:
+            async with db.execute(
+                "SELECT holding_id,closed_until FROM npc_empire_building_closures WHERE closed_until>?",
+                (int(time.time()),)
+            ) as cur:
+                closure_rows = await cur.fetchall()
+            closures = {str(row[0]): int(row[1] or 0) for row in closure_rows}
+        except Exception:
+            closures = {}
     out = {}
     for r in rows:
         out[str(r[0])] = {
@@ -2844,6 +2859,8 @@ async def get_apartments_owned(telegram_id: int) -> dict:
             "area": int(r[11] or 4),
             "income_per_minute": int(r[12] or 0),
             "last_income_at": int(r[13] or 0),
+            "owner_uid": str(telegram_id),
+            "owner_name": owner_name,
         }
         operation = apartment_operation_payload(out[str(r[0])]["operation_type"], out[str(r[0])]["area"])
         if operation:
