@@ -5648,6 +5648,35 @@ function _isPrisonStaffActor(actor){
   return !!(actor?._prisonStaff||actor?.police||role.includes('police')||role.includes('cop')||role.includes('guard'));
 }
 let MAP = [];
+// Дорожные порталы на краях карты. В этих местах городская улица физически
+// продолжается до границы, поэтому новый трафик не возникает посреди квартала,
+// а естественно въезжает из-за карты. Южную кромку не используем: там пляж.
+let TRAFFIC_EDGE_PORTALS = [];
+function _installTrafficEdgeRoads() {
+  const portals=[];
+  const cityRows=Math.min(BEACH_R0,MAP_ROWS),open=(r,c)=>{
+    if(r<0||c<0||r>=MAP_ROWS||c>=MAP_COLS||!MAP[r])return false;
+    MAP[r][c]=0;return true;
+  };
+  // Север: вертикальные улицы входят в город по южной полосе.
+  for(let baseC=10;baseC+3<MAP_COLS-1;baseC+=BLOCK){
+    let connected=true;
+    for(let r=1;r<=Math.min(8,cityRows-1);r++)if(MAP[r]?.[baseC]!==0){connected=false;break;}
+    if(!connected)continue;
+    for(let dc=0;dc<=3;dc++)open(0,baseC+dc);
+    portals.push({id:`north_${baseC}`,edge:'north',r:1.35,c:baseC+.5,dirDy:1,dirDx:0});
+  }
+  // Запад и восток: горизонтальные улицы доходят до обеих границ.
+  for(let baseR=10;baseR+3<cityRows-1;baseR+=BLOCK){
+    let westConnected=true,eastConnected=true;
+    for(let c=1;c<=Math.min(8,MAP_COLS-1);c++)if(MAP[baseR]?.[c]!==0){westConnected=false;break;}
+    for(let c=Math.max(1,MAP_COLS-9);c<MAP_COLS-1;c++)if(MAP[baseR+2]?.[c]!==0){eastConnected=false;break;}
+    if(westConnected){for(let dr=0;dr<=3;dr++)open(baseR+dr,0);portals.push({id:`west_${baseR}`,edge:'west',r:baseR+.5,c:1.35,dirDy:0,dirDx:1});}
+    if(eastConnected){for(let dr=0;dr<=3;dr++)open(baseR+dr,MAP_COLS-1);portals.push({id:`east_${baseR}`,edge:'east',r:baseR+2.5,c:MAP_COLS-1.35,dirDy:0,dirDx:-1});}
+  }
+  TRAFFIC_EDGE_PORTALS=portals;
+  document.documentElement.dataset.trafficEdgePortals=String(portals.length);
+}
 // Банки — объявляем ЗДЕСЬ чтобы buildMap() имел к ним доступ (до const BANKS ниже)
 // r%10=5, c%10=5 — начало зоны зданий внутри квартала
 const BANKS = [
@@ -6129,6 +6158,7 @@ function buildMap() {
       MAP[r][c] = t;
     }
   }
+  _installTrafficEdgeRoads();
   generateBeachDecor();
 }
 
@@ -8365,6 +8395,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
     npc._medicalDowned=false;npc._medicalDownedAt=0;npc._medicalBleedoutAt=0;
     npc._knockedUntil=0;npc._forcedCrawl=false;npc.walking=false;
     _registerMurderIncident(npc,npc._lastViolentSource,npc.deadAt);
+    _respawnResidentImmediately(npc,npc.deadAt);
     // Большой splat крови на месте смерти + взрыв-фонтан частиц по сторонам
     for (let i = 0; i < 6; i++) {
       _capArr(bloodSplats, _MAX_BLOOD);
@@ -8851,9 +8882,16 @@ function _maybePlanResidentBuildingVisit(npc) {
 }
 function _pickResidentRespawnDoor() {
   const doors=_residentBuildingDoors();if(!doors.length)return null;
-  const far=doors.filter(d=>Math.hypot(d.r-player.r,d.c-player.c)>=NPC_RESPAWN_MIN_DIST);
-  const pool=far.length?far:doors;
-  return pool[Math.floor(Math.random()*pool.length)]||null;
+  const hidden=doors.filter(d=>{
+    if(Math.hypot(d.r-player.r,d.c-player.c)<NPC_RESPAWN_MIN_DIST)return false;
+    if(typeof w2s==='function'&&typeof _viewSize==='function'){
+      const p=w2s(d.r,d.c),view=_viewSize(),margin=150;
+      if(p.x>=-margin&&p.x<=view.W+margin&&p.y>=-margin&&p.y<=view.H+margin)return false;
+    }
+    return true;
+  });
+  // Если все двери видны, оставляем жителя в очереди, а не показываем spawn.
+  return hidden.length?hidden[Math.floor(Math.random()*hidden.length)]:null;
 }
 function _residentEnterBuilding(npc,now,door=npc._residentDoor,respawn=false) {
   if(!door)return false;
@@ -8874,6 +8912,16 @@ function _scheduleResidentRespawn(deadNpc,now) {
   fresh._appearanceGeneration=(+deadNpc?._appearanceGeneration||0)+1;
   fresh._arcKey=deadNpc?._arcKey||fresh._arcKey;fresh._arc=NPC_ARCHETYPES[fresh._arcKey]||fresh._arc;
   return _residentEnterBuilding(fresh,now,door,true);
+}
+function _respawnResidentImmediately(deadNpc,now=performance.now()) {
+  if(!_isRespawnableResident(deadNpc)||deadNpc._residentReplacementScheduled)return false;
+  // Труп остаётся в NPCS и полностью обслуживается скорой. Живой житель —
+  // отдельный объект, ожидающий за дверью здания, поэтому игрок не видит spawn.
+  deadNpc._residentReplacementScheduled=true;
+  if(_scheduleResidentRespawn(deadNpc,now))return true;
+  RESIDENT_RESPAWN_BACKLOG.push({_arcKey:deadNpc._arcKey,_beach:deadNpc._beach,
+    _appearanceGeneration:(+deadNpc._appearanceGeneration||0)+1});
+  return false;
 }
 function _updateResidentsIndoors(now) {
   for(let i=RESIDENTS_INDOORS.length-1;i>=0;i--){
@@ -8929,7 +8977,7 @@ function pickNpcWaypoint(npc) {
   return _setNpcRoute(npc,path,'walk');
 }
 const TARGET_NPC_COUNT = 96;       // плотность старого 2D-города на расширенной карте
-const NPC_RESPAWN_MIN_DIST = 22;   // не спаунить ближе этого к игроку
+const NPC_RESPAWN_MIN_DIST = 42;   // дальше 3D-радиуса и обязательно вне экрана
 const CORPSE_AUTO_REMOVE_MS = 180000;
 let _corpseTimeoutCount=0;
 let _nextNpcRespawnAt = 0;
@@ -10100,7 +10148,7 @@ function maintainNpcPopulation(now) {
       if(timedOut){n._corpseExpired=true;_corpseTimeoutCount++;document.documentElement.dataset.corpseTimeoutRemovals=String(_corpseTimeoutCount);document.documentElement.dataset.lastCorpseRemoval='timeout-180s';if(typeof _cancelAmbulanceCallForPatient==='function')_cancelAmbulanceCallForPatient(n);}
       else if(transientExpired)document.documentElement.dataset.lastCorpseRemoval='transient-timeout-60s';
       else document.documentElement.dataset.lastCorpseRemoval='hospital-delivery';
-      const respawn=_isRespawnableResident(n);
+      const respawn=_isRespawnableResident(n)&&!n._residentReplacementScheduled;
       NPCS.splice(i, 1);
       if(n._empireCrew){const ei=EMPIRE_CREW_NPCS.indexOf(n);if(ei>=0)EMPIRE_CREW_NPCS.splice(ei,1);}
       if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({_arcKey:n._arcKey,_beach:n._beach,_appearanceGeneration:(+n._appearanceGeneration||0)+1});
@@ -10110,11 +10158,11 @@ function maintainNpcPopulation(now) {
   }
   // Считаем живых
   let alive = RESIDENTS_INDOORS.length+RESIDENT_RESPAWN_BACKLOG.length;
-  // A corpse waiting for the ambulance/removal still owns its population slot.
-  // This prevents the old instant replacement from appearing on a random street.
+  // Мёртвый житель больше не занимает живой слот: его отдельная замена уже
+  // ожидает за дверью здания, пока труп остаётся доступен бригаде скорой.
   // Story specialists are additive to the ambient population. Counting them
   // against this budget would quietly remove up to twenty ordinary citizens.
-  for (const n of NPCS) if (!(n._uniqueNpc||n._said||n._empireCrew) && (!n.dead||_isRespawnableResident(n))) alive++;
+  for (const n of NPCS) if (!(n._uniqueNpc||n._said||n._empireCrew) && !n.dead) alive++;
   // После смены лимита или долгой сессии мягко убираем только дальних
   // обычных прохожих. Важные NPC, цели, клиенты и участники боя остаются.
   const target=_targetNpcCount();
@@ -10961,6 +11009,27 @@ function _bfsRoadPath(startR, startC, goalR, goalC, searchRadius = 12) {
   const tree = _buildRoadBfsTree(startR, startC, searchRadius, goalK);
   return _roadBfsPathToKey(tree, goalK);
 }
+function _bfsRoadPathForVehicle(v,startR,startC,goalR,goalC,searchRadius=12) {
+  const direct=_bfsRoadPath(startR,startC,goalR,goalC,searchRadius);
+  if(!direct||direct.length<2||!Number.isFinite(+v?.ang))return direct;
+  const headingR=Math.sin(+v.ang),headingC=Math.cos(+v.ang);
+  const first=direct.find((p,i)=>i>0&&Math.hypot(p.r-startR,p.c-startC)>.25);
+  if(!first||((first.r-startR)*headingR+(first.c-startC)*headingC)>=-.12)return direct;
+  const start=_nearestRoadTile(startR,startC,4);if(!start)return direct;
+  const choices=[[1,0],[-1,0],[0,1],[0,-1]].filter(([dr,dc])=>dr*headingR+dc*headingC>=-.12);
+  let best=null;
+  for(const [dr,dc] of choices){
+    const nr=start.r+dr,nc=start.c+dc;
+    if(!_vehicleRoadPassable(nr+.5,nc+.5))continue;
+    const tail=_bfsRoadPath(nr+.5,nc+.5,goalR,goalC,searchRadius);
+    if(!tail?.length)continue;
+    const second=tail[1];
+    if(second&&Math.floor(second.r)===start.r&&Math.floor(second.c)===start.c)continue;
+    const candidate=[{r:start.r+.5,c:start.c+.5},...tail];
+    if(!best||candidate.length<best.length)best=candidate;
+  }
+  return best||direct;
+}
 
 // Запасной путь к АЗС: пожарной машине разрешены дорога и открытые
 // площадки (0/8/9), но не здания, вода и декор. Нужен для станций, чья
@@ -11125,7 +11194,7 @@ function _vehicleStep(v, dt) {
     // воду и закрытые зоны машины службы по-прежнему не проходят.
     const nextAng = Math.atan2(dr, dc);
     let safeAng=nextAng;
-    if(['firetruck','tow'].includes(v.kind)){
+    if(['ambulance','firetruck','tow','police','taxi'].includes(v.kind)){
       const oldAng=Number.isFinite(+v.ang)?+v.ang:nextAng;
       const turnDelta=Math.atan2(Math.sin(nextAng-oldAng),Math.cos(nextAng-oldAng));
       const turnLimit=Math.max(.04,Math.min(.22,dt*3.4));
@@ -11156,15 +11225,15 @@ function _vehicleStep(v, dt) {
         const mustYield=_serviceVehicleMustYield(v,blocker.ref,dr/d,dc/d),blockedAge=performance.now()-v._blockedSince;
         if(mustYield){
           if(blockedAge>850)_yieldServiceVehicleForPriority(blocker.ref,v,-dr/d,-dc/d,dt);
-          v.ang=nextAng;return false;
+          v.ang=safeAng;return false;
         }
         if(blockedAge>420){
           _yieldServiceVehicleForPriority(v,blocker.ref,dr/d,dc/d,dt);
-          v.ang=nextAng;return false;
+          v.ang=safeAng;return false;
         }
       }
       if (performance.now() - v._blockedSince < 1200) {
-        v.ang = nextAng;
+        v.ang = safeAng;
         return false;
       }
     }
@@ -11282,7 +11351,7 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
   // В воду машина не заезжает: пловца забирают с кромки берега.
   const sceneR = v.kind === 'ambulance' && toR >= BEACH_R1 ? BEACH_R1 - 0.55 : toR;
   const sceneC = toC;
-  let path = _bfsRoadPath(fromR, fromC, sceneR, sceneC, v.kind === 'ambulance' ? 30 : 20);
+  let path = _bfsRoadPathForVehicle(v,fromR,fromC,sceneR,sceneC,v.kind === 'ambulance' ? 30 : 20);
   v._offroadRoute = false;
   // После дорисовки кварталов часть дорожной сетки может оказаться
   // разорвана тротуаром. В таком случае строим безопасный запасной маршрут
@@ -13199,7 +13268,7 @@ function _completeTowRemoval(v) {
   spawnFloatText(disposalPos.r,disposalPos.c,'УТИЛИЗИРОВАНО',{color:'#f4b64e',size:14,life:1400});
   spawnShockwave(disposalPos.r,disposalPos.c,{rad0:3,maxRad:18,life:520,color:'#f4b64e',thick:1.5});
   if(ci>=0){
-    const fresh=spawnCar(ci,{awayFromPlayer:true});
+    const fresh=spawnCar(ci,{edgeEntry:true});
     if(fresh)CARS[ci]=fresh;else CARS.splice(ci,1);
   }else if(typeof questCars!=='undefined'&&questCars instanceof Map&&questCars.get(car.id)===car){
     questCars.delete(car.id);
@@ -15097,7 +15166,7 @@ function updateNpcs(dt) {
     // Оглушённый преступник лежит 5 секунд и не может атаковать/убегать.
     if(n._medicalDowned&&now>=(n._medicalBleedoutAt||0)){
       n._medicalDowned=false;n._knockedUntil=0;n.hp=0;n.dead=true;n.deadAt=now;n.cryText='…';n.cryUntil=now+500;
-      _registerMurderIncident(n,n._lastViolentSource,now);continue;
+      _registerMurderIncident(n,n._lastViolentSource,now);_respawnResidentImmediately(n,now);continue;
     }
     if(n._medicalDowned){
       n._forcedCrawl=true;
@@ -15745,18 +15814,37 @@ const CARS = [];
 // исчезает на глазах, что воспринимается как баг. Не применяется к
 // первоначальному initCars — там игрока ещё нет.
 const CAR_RESPAWN_MIN_DIST = 18;
+const CAR_EDGE_SPAWN_MIN_DIST = 44;
+function _trafficEdgePortalInvisible(portal) {
+  if(!portal)return false;
+  if(typeof player==='undefined'||!player)return true;
+  if(Math.hypot(portal.r-player.r,portal.c-player.c)<CAR_EDGE_SPAWN_MIN_DIST)return false;
+  if(typeof w2s==='function'&&typeof _viewSize==='function'){
+    const p=w2s(portal.r,portal.c),view=_viewSize(),margin=220;
+    if(p.x>=-margin&&p.x<=view.W+margin&&p.y>=-margin&&p.y<=view.H+margin)return false;
+  }
+  return true;
+}
+function _pickTrafficEdgePortal() {
+  const pool=TRAFFIC_EDGE_PORTALS.filter(p=>_trafficEdgePortalInvisible(p)&&
+    !CARS.some(car=>car&&!car._towed&&Math.hypot((+car.r||0)-p.r,(+car.c||0)-p.c)<3.2));
+  return pool.length?pool[Math.floor(Math.random()*pool.length)]:null;
+}
 function spawnCar(idx, opts) {
   // opts.awayFromPlayer — если true, отвергаем точки в радиусе
   // CAR_RESPAWN_MIN_DIST от игрока. Используется при респауне stuck/out-of-road.
   const awayFromPlayer = !!(opts && opts.awayFromPlayer);
   const cityOnly = !!(opts && opts.cityOnly);
+  const edgeEntry = !!(opts && opts.edgeEntry);
+  const edgePortal=edgeEntry?_pickTrafficEdgePortal():null;
+  if(edgeEntry&&!edgePortal)return null; // игрок видит все въезды — ждём, не телепортируем
   // Найдём случайный тайл-дорогу и зададим направление вдоль полосы.
   // Полоса 1 = ехать на восток (c+), полоса 0 = ехать на запад (c-).
   // Для вертикальных дорог: полоса 1 = на юг (r+), полоса 0 = на север (r-).
-  for (let tries = 0; tries < 100; tries++) {
+  for (let tries = 0; tries < (edgeEntry?1:100); tries++) {
     const spawnRows = cityOnly ? Math.min(78, MAP_ROWS - 4) : (MAP_ROWS - 4);
-    const r = 2 + Math.floor(Math.random() * spawnRows);
-    const c = 2 + Math.floor(Math.random() * (MAP_COLS - 4));
+    const r = edgeEntry?Math.floor(edgePortal.r):2 + Math.floor(Math.random() * spawnRows);
+    const c = edgeEntry?Math.floor(edgePortal.c):2 + Math.floor(Math.random() * (MAP_COLS - 4));
     // Обычный городской транспорт никогда не рождается в пляжной части.
     // Раньше он появлялся там на один кадр, а затем лишь переносился updateCars.
     if (r >= BEACH_R0) continue;
@@ -15772,11 +15860,13 @@ function spawnCar(idx, opts) {
     }
     const onRoadR = (r % BLOCK <= 2);
     const onRoadC = (c % BLOCK <= 2);
-    if (!onRoadR && !onRoadC) continue;
+    if (!edgeEntry&&!onRoadR && !onRoadC) continue;
     // Горизонтальная дорога 3 тайла (0,1,2). Полосы:
     //   r%8==0 → восток (+c), r%8==2 → запад (-c), r%8==1 — медиана (skip).
-    let dirDx = 0, dirDy = 0;
-    if (onRoadR && !onRoadC) {
+    let dirDx = edgeEntry?edgePortal.dirDx:0, dirDy = edgeEntry?edgePortal.dirDy:0;
+    if(edgeEntry){
+      // Направление задано порталом и всегда смотрит внутрь карты.
+    } else if (onRoadR && !onRoadC) {
       const lane = r % BLOCK;
       if (lane === 0) dirDx = 1;
       else if (lane === 2) dirDx = -1;
@@ -15824,7 +15914,7 @@ function spawnCar(idx, opts) {
     // Спорткары едут заметно быстрее — добавляем визуальную скорость.
     const speedMul = model.fast ? 1.7 : (model.sport ? 1.3 : 1.0);
     return {
-      r: r + 0.5, c: c + 0.5,
+      r: edgeEntry?edgePortal.r:r + 0.5, c: edgeEntry?edgePortal.c:c + 0.5,
       vr: dirDy * (1.5 + Math.random() * 0.8) * speedMul,
       vc: dirDx * (1.5 + Math.random() * 0.8) * speedMul,
       dirDx, dirDy,
@@ -15835,6 +15925,8 @@ function spawnCar(idx, opts) {
       // гражданской машины в спецтранспорт система добавляла ей замену,
       // а старую уже никогда не учитывала. За долгую сессию CARS разрастался.
       _ambientTraffic: true,
+      _trafficPortalId: edgeEntry?edgePortal.id:'',
+      _edgeSpawnedAt: edgeEntry?performance.now():0,
       braking: false,
       flash: 0,
       _fuel: 55 + Math.random() * 45,   // 55–100% топлива при спауне
@@ -15875,7 +15967,7 @@ function _hitBeachgoer(b,dirY,dirX,damage) {
 // Сохраняем identity (на неё могут ссылаться эффекты/AI), полностью очищаем
 // старое состояние parked/wrecked и не меняем длину CARS.
 function _recycleTrafficCarToCity(car, idx) {
-  const fresh = spawnCar(idx, { awayFromPlayer: true, cityOnly: true });
+  const fresh = spawnCar(idx, { edgeEntry: true, cityOnly: true });
   if (!fresh) return false;
   const sameModel = car.model;
   for (const key of Object.keys(car)) delete car[key];
@@ -16780,7 +16872,12 @@ function _planCarRoute(car, forceNewGoal = false) {
     const spread = Math.min(candidates.length - 1, i + Math.floor(Math.random() * Math.min(8, candidates.length)));
     destination = candidates[spread].n;
     path = _trafficFindNodePath(start, destination);
-    if (path && path.length > 1) break;
+    if(path&&path.length>1){
+      const firstDr=Math.sign(path[1].r-path[0].r),firstDc=Math.sign(path[1].c-path[0].c);
+      const headingDot=firstDr*(+car.dirDy||0)+firstDc*(+car.dirDx||0);
+      if(headingDot<-.25){path=null;continue;} // U-turn is never the first route edge
+      break;
+    }
   }
   if (!path || path.length < 2) return false;
 
@@ -16927,7 +17024,7 @@ function _recoverTrafficCarToRoad(car, dt) {
 function _carAggrLevel(car) {
   if (car._aggrLevel !== undefined) return car._aggrLevel;
   let lvl;
-  if (car.model && (car.model.paddyvan || car.model.cruiser)) lvl = 1;
+  if (car.model && (car.model.police || car.model.emergency || car.model.paddyvan || car.model.cruiser)) lvl = 1;
   else if (car.model && car.model.taxi)   lvl = 2;
   else if (car.model && (car.model.sport || car.model.muscle || car.model.fast)) lvl = 2;
   else if (car.model && car.model.bus)    lvl = 0;
@@ -16995,7 +17092,7 @@ function _maybeJunker(car) {
   if (car._junkerChecked) return;
   car._junkerChecked = true;
   if (car.gang || car.parked) return;
-  if (car.model && (car.model.paddyvan || car.model.cruiser ||
+  if (car.model && (car.model.police || car.model.emergency || car.model.paddyvan || car.model.cruiser ||
                     car.model.taxi || car.model.sport || car.model.ambulance ||
                     car.model.firetruck || car.model.swat_truck)) return;
   if (Math.random() < 0.08) {
@@ -17041,7 +17138,7 @@ function _maintainTrafficDensity(now) {
   if (diff > 0) {
     const toAdd = Math.min(diff, 3);
     for (let i = 0; i < toAdd; i++) {
-      const car = spawnCar(CARS.length, { awayFromPlayer: true });
+      const car = spawnCar(CARS.length, { edgeEntry: true });
       if (car) { _assignCarGoal(car); CARS.push(car); }
     }
   } else if (diff < -4) {
@@ -19916,7 +20013,15 @@ function updateCars(dt) {
     // A car that entered a solid structure must not crawl back through its wall.
     if (!car.parked && !car.gang && !car._convoy &&
         (_trafficHardTileAt(car.r, car.c) || !_trafficCarFootprintClear(car))) {
-      if (_snapTrafficCarToRoad(car)) continue;
+      // Никогда не переносим кузов из стены на другую улицу на глазах. Пока
+      // машина видима — тормозим/пытаемся вернуться; вне экрана заменяем её
+      // новым въездом через один из краевых дорожных порталов.
+      if(_carCanDisappear(car,20)){
+        const fresh=spawnCar(_ci,{edgeEntry:true});if(fresh)Object.assign(car,fresh);
+      }else{
+        car.braking=true;car.vr=0;car.vc=0;_recoverTrafficCarToRoad(car,dt);
+      }
+      continue;
     }
     // Песок/вода (18/16) запрещены даже припаркованным и разбитым CARS.
     const _cityCarOnForbiddenSurface = _carTile === 18 || _carTile === 16;
@@ -19991,7 +20096,7 @@ function updateCars(dt) {
       // Если уехал совсем за карту — лёгкий респаун
       if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
         const ni = CARS.indexOf(car);
-        const fresh = spawnCar(ni, { awayFromPlayer: true });
+        const fresh = spawnCar(ni, { edgeEntry: true });
         if (fresh) Object.assign(car, fresh);
       }
       continue;
@@ -20019,7 +20124,7 @@ function updateCars(dt) {
     if (car._wrecked) {
       if (now >= (car._respawnAt || 0) && _carCanDisappear(car, 20)) {
         const ni = CARS.indexOf(car);
-        const fresh = spawnCar(ni, { awayFromPlayer: true });
+        const fresh = spawnCar(ni, { edgeEntry: true });
         if (fresh) Object.assign(car, fresh);
       }
       continue;
@@ -20065,13 +20170,13 @@ function updateCars(dt) {
       if (doRespawn && _carCanDisappear(car, 20)) {
         car._hornUntil = 0; car._hornText = undefined;
         const ni = CARS.indexOf(car);
-        const fresh = spawnCar(ni, { awayFromPlayer: true });
+        const fresh = spawnCar(ni, { edgeEntry: true });
         if (fresh) Object.assign(car, fresh);
       }
     }
     if (car.r < 1 || car.r > MAP_ROWS - 2 || car.c < 1 || car.c > MAP_COLS - 2) {
       const ni = CARS.indexOf(car);
-      const fresh = spawnCar(ni, { awayFromPlayer: true });
+      const fresh = spawnCar(ni, { edgeEntry: true });
       if (fresh) Object.assign(car, fresh);
     }
     const cr = Math.floor(car.r), cc = Math.floor(car.c);
@@ -20079,7 +20184,7 @@ function updateCars(dt) {
         MAP[cr][cc] !== 0) {
       if (!_carCanDisappear(car, 20)) { car.braking = true; continue; }
       const ni = CARS.indexOf(car);
-      const fresh = spawnCar(ni, { awayFromPlayer: true });
+      const fresh = spawnCar(ni, { edgeEntry: true });
       if (fresh) Object.assign(car, fresh);
       continue;
     }
@@ -62729,6 +62834,7 @@ window.MAFIOZI_RENDERER_CONFIG = Object.freeze({
 // in this authoritative world simulation.
 const _threeVehicleIds=new WeakMap();let _threeVehicleIdSeq=0;
 const _threeNpcIds=new WeakMap();let _threeNpcIdSeq=0;
+const _threeStickyVehicleIds=new Set(),_threeStickyNpcIds=new Set();
 function _threeNpcEntityId(npc,index=0){
   const explicit=npc?.id??npc?.uid??npc?.serverId;
   if(explicit!==undefined&&explicit!==null&&String(explicit)!=='')return `npc_${String(explicit)}`;
@@ -63339,10 +63445,18 @@ window.Mafiozi3DBridge = Object.freeze({
     return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,obstacles,pois,streamableLandmarks,coast,canal,neighborhoods,landmarks};
   },
   getDynamicEntities(radius = 38) {
-    const rad2=Math.max(12,Math.min(65,+radius||38))**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
+    const streamRadius=Math.max(12,Math.min(65,+radius||38)),rad2=streamRadius**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
     const fxNow=performance.now();
     const inside=!!(_buildingInt||_bankInt);
-    const cars=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>x&&!x._hidden&&!x._towed&&near(+x.r||0,+x.c||0)).sort((a,b)=>(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||String(a.id??a._id??'').localeCompare(String(b.id??b._id??''))).slice(0,18).map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
+    const carCandidates=(inside?[]:(typeof CARS!=='undefined'?CARS:[])).filter(x=>{
+      if(!x||x._hidden||x._towed)return false;const id=_threeVehicleEntityId(x),d2=((+x.r||0)-player.r)**2+((+x.c||0)-player.c)**2;
+      return d2<=rad2||(_threeStickyVehicleIds.has(id)&&d2<=(streamRadius+7)**2);
+    }).sort((a,b)=>{
+      const ai=_threeStickyVehicleIds.has(_threeVehicleEntityId(a))?0:1,bi=_threeStickyVehicleIds.has(_threeVehicleEntityId(b))?0:1;
+      return ai-bi||(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||_threeVehicleEntityId(a).localeCompare(_threeVehicleEntityId(b));
+    }).slice(0,18);
+    _threeStickyVehicleIds.clear();for(const car of carCandidates)_threeStickyVehicleIds.add(_threeVehicleEntityId(car));
+    const cars=carCandidates.map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
       id:_threeVehicleEntityId(x),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
       model:modelName,paint:_threeVehiclePaint(x,model),parked:!!x.parked,
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
@@ -63430,7 +63544,9 @@ window.Mafiozi3DBridge = Object.freeze({
       cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:policePatrol?'#19558c':q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:policePatrol?'police':'',emergencyLights:policePatrol&&!!q.siren,stripe:policePatrol?'#e7f0f5':q.owner_uid?'#ffd76b':'',serviceKind:policePatrol?'police_patrol':'',policePatrol,policeTier:0,dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,bulletMarks:q._threeBulletMarks||[],hitAge:fxNow-(+q._lastCarHitAt||0),smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),destroying:!!q._destroySequenceAt,destroyAge:q._destroySequenceAt?Math.max(0,fxNow-q._destroySequenceAt):0,destroyDelay:+q._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,fxNow-q._explosionT):99999});
     }
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
-    if(cars.length>24)cars.length=24;
+    // Службы имеют отдельный запас и больше не вытесняют стабильный ambient-
+    // набор при каждом приближении. Это убирает мерцание машин у границы cap.
+    if(cars.length>30)cars.length=30;
     if(_LOCAL_PREVIEW&&_UP.get('previewnewsheli')){const a=performance.now()*.00022,r=player.r+Math.sin(a)*8,c=player.c+Math.cos(a)*11;cars.unshift({id:'preview_news_heli',r,c,ang:a+Math.PI/2,model:'mafia_heli',paint:'#c91f2b',parked:false,length:2.5,width:1.25,height:1.05,wheelR:.18,sport:false,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:true,helicopter:true,emergency:'',stripe:'',dirR:Math.cos(a),dirC:-Math.sin(a),velR:Math.cos(a)*.9,velC:-Math.sin(a)*.9,braking:false,turning:false});}
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.room==='vault'?[]:(_bankInt.npcs||[])):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
@@ -63490,11 +63606,18 @@ window.Mafiozi3DBridge = Object.freeze({
       }
     }
     const prisonNpcAllowed=x=>{const r=+(x?.r??x?.y)||0,c=+(x?.c??x?.x)||0;return !_inPrisonIslandRestrictedZone(r,c,.12)||_isPrisonStaffActor(x);};
-    const npcEligible=npcSource.filter(x=>x&&!x._ambientGang&&!x._evacuated&&!x._carriedByAmbulance&&prisonNpcAllowed(x)&&near(+(x.r??x.y)||0,+(x.c??x.x)||0));
+    const npcEligible=npcSource.filter(x=>{
+      if(!x||x._ambientGang||x._evacuated||x._carriedByAmbulance||!prisonNpcAllowed(x))return false;
+      const r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,id=_threeNpcEntityId(x),d2=(r-player.r)**2+(c-player.c)**2;
+      return d2<=rad2||(_threeStickyNpcIds.has(id)&&d2<=(streamRadius+7)**2);
+    });
     const npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
     for(const x of npcEligible)npcPools[npcLifePool(x)].push(x);
     const npcDist=x=>Math.hypot((+(x.r??x.y)||0)-player.r,(+(x.c??x.x)||0)-player.c);
-    const stableNpcSort=(a,b)=>npcDist(a)-npcDist(b)||String(a.id||'').localeCompare(String(b.id||''));
+    const stableNpcSort=(a,b)=>{
+      const ai=_threeStickyNpcIds.has(_threeNpcEntityId(a))?0:1,bi=_threeStickyNpcIds.has(_threeNpcEntityId(b))?0:1;
+      return ai-bi||npcDist(a)-npcDist(b)||_threeNpcEntityId(a).localeCompare(_threeNpcEntityId(b));
+    };
     for(const pool of Object.values(npcPools))pool.sort(stableNpcSort);
     const civilianReserve=Math.min(24,npcPools.civilian.length,NPC_LIFE_NPC_CAP);
     const npcSelected=[];let criticalBudget=NPC_LIFE_NPC_CAP-civilianReserve;
@@ -63508,6 +63631,7 @@ window.Mafiozi3DBridge = Object.freeze({
         .sort((a,b)=>NPC_LIFE_POOL_PRIORITY[npcLifePool(a)]-NPC_LIFE_POOL_PRIORITY[npcLifePool(b)]||stableNpcSort(a,b));
       npcSelected.push(...overflow.slice(0,NPC_LIFE_NPC_CAP-npcSelected.length));
     }
+    _threeStickyNpcIds.clear();for(const npc of npcSelected)_threeStickyNpcIds.add(_threeNpcEntityId(npc));
     document.documentElement.dataset.npcLifePools=`mission:${npcEligible.filter(x=>npcLifePool(x)==='mission').length},police:${npcEligible.filter(x=>npcLifePool(x)==='police').length},guard:${npcEligible.filter(x=>npcLifePool(x)==='guard').length},gang:${npcEligible.filter(x=>npcLifePool(x)==='gang').length},civilian:${npcEligible.filter(x=>npcLifePool(x)==='civilian').length},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
     const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
