@@ -2058,6 +2058,29 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   a tracked war target moves eight; the existing direct-follow branch closes
   the final 5.5 tiles. This reduces route churn without teleporting or lowering
   actor density, movement cadence or visual range.
+
+## Off-screen-only service watchdog recovery (2026-08-13)
+
+- A stalled ambulance, fire truck, tow truck or police response must not use
+  its watchdog teleport/retirement while it is within 42 tiles or inside the
+  projected viewport plus margin. While visible, rebuild the current route and
+  continue through the normal bounded vehicle mover; only an off-screen service
+  vehicle may jump to its scene, hospital or depot fallback.
+- Ambulance recovery has a shorter 8.5-second watchdog, so it needs the same
+  visibility gate before both response and hospital-return shortcuts. Reset the
+  progress timestamp after a visible reroute to avoid calling the watchdog on
+  every simulation frame while a blocked road is being retried.
+- Local preview fixtures must wait until at least one ordinary resident exists
+  before marking themselves seeded. Seeding an empty five-victim ambulance
+  fixture as `0` during startup permanently suppresses the later lifecycle QA
+  and can falsely report that replacement failed.
+- Fresh-main verification compiled all six embedded scripts, passed the NPC
+  life contract and five player-ambulance tests. One reused 3D preview tab
+  seeded five deaths; all five replacements exited the 324-door registry, the
+  normal simulation later raised the replacement counter to eight, and the
+  ambulance fleet drained from three busy units to `busy=0, queue=0`. The run
+  held 18-22 FPS with no Three.js/startup error; this is lifecycle evidence, not
+  a performance comparison.
 ## Shared NPC combat silhouettes and head anchor (2026-08-13, v403)
 
 - NPC hands should derive from the final weapon transform through one reusable
