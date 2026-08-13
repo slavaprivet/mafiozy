@@ -98,14 +98,20 @@ async def run() -> None:
         result = await ne.resolve_assault(
             path, 101, token, "annex", "",
             {"1,1": "strip_club", "1,2": "chop_shop"}, now=2_000_000_100)
-        assert result["ok"] and result["operation_map"] == {
-            "1,1": "strip_club", "1,2": "chop_shop"}
-        assert result["captured_buildings"] == [
+        assert result["ok"]
+        assert result["operation_map"]["1,1"] == "strip_club"
+        assert result["operation_map"]["1,2"] == "chop_shop"
+        assert result["captured_headquarters"]["building_key"] == ne.PROFILE_BY_ID["leila"].hq_key
+        converted_buildings = [item for item in result["captured_buildings"]
+                               if item["source_kind"] == "building"]
+        assert converted_buildings == [
             {"building_key": "1,1", "apt_key": "tile:16,16",
+             "source_kind": "building", "area": 16,
              "previous_operation_type": "beer_bar",
              "operation_type": "strip_club", "operation_name": "Стрип-клуб",
              "income_per_minute": ne.building_operation_income("strip_club", 16)},
             {"building_key": "1,2", "apt_key": "tile:16,26",
+             "source_kind": "building", "area": 20,
              "previous_operation_type": "print_shop",
              "operation_type": "chop_shop", "operation_name": "Авторазборка",
              "income_per_minute": ne.building_operation_income("chop_shop", 20)},
@@ -122,7 +128,7 @@ async def run() -> None:
         with sqlite3.connect(path) as db:
             assert db.execute(
                 "SELECT COUNT(*) FROM apartments_owned WHERE telegram_id=101"
-            ).fetchone()[0] == 2
+            ).fetchone()[0] == 3
         print("building conversion cycle: authoritative prices and annex conversion OK")
     finally:
         try:

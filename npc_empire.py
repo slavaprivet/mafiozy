@@ -224,6 +224,7 @@ BUILDING_OPERATIONS = {
     'print_shop': {'name': 'Фальшивая типография', 'icon': '🖨️', 'base_income': 175, 'fitout_cost': 13500},
 }
 BUILDING_HQ_FITOUT_COST = 9000
+CAPTURED_HQ_AREA = 27
 
 
 def building_operation_income(operation_type: str, area: int) -> int:
@@ -2174,7 +2175,7 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         if choice == 'annex' and not operation_type:
             operation_type = choose_building_operation(profile, str(token), now)
         empire = await (await db.execute("SELECT * FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
-        treasury = int(empire['treasury'] or 0); reward = 0; captured = [];captured_buildings=[]
+        treasury = int(empire['treasury'] or 0); reward = 0; captured = [];captured_buildings=[];captured_headquarters=None
         if choice == 'vassalize':
             await db.execute("UPDATE npc_empires SET status='vassal',members=MAX(2,members/2),strength=MAX(40,strength/2),treasury=treasury/2,defeated_by=?,version=version+1 WHERE leader_id=?", (telegram_id,leader_id))
             await db.execute("INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?, ?,80,'vassal',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=80,pact='vassal',last_action_at=excluded.last_action_at", (leader_id,telegram_id,now))
@@ -2186,7 +2187,13 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
                 "SELECT holding_id,area,operation_type FROM npc_empire_holdings "
                 "WHERE leader_id=? AND kind='building' ORDER BY holding_id",
                 (leader_id,))).fetchall()
-            building_ids = {str(item['holding_id']) for item in building_rows}
+            hq_key = str(empire['hq_key'] or '')
+            capture_rows = ([{'holding_id': hq_key, 'area': CAPTURED_HQ_AREA,
+                              'operation_type': '', 'source_kind': 'hq'}]
+                            if hq_key else [])
+            capture_rows.extend({**dict(item), 'source_kind': 'building'}
+                                for item in building_rows)
+            building_ids = {str(item['holding_id']) for item in capture_rows}
             if choice == 'annex' and not set(requested_operations).issubset(building_ids):
                 await db.rollback(); return {'ok': False, 'error': 'unknown building'}
             apartments_table = await (await db.execute(
@@ -2198,28 +2205,35 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
                     await db.execute("DELETE FROM player_businesses WHERE biz_id=?", (biz_id,))
                     await db.execute("INSERT INTO player_businesses(telegram_id,biz_id,bought_at,last_collect,status,blocked_until,last_event_at,level,guards,pending_notice) VALUES(?,?,?,?, 'ok',0,0,1,0,?)", (telegram_id,biz_id,now,now,f'Отнят у банды {profile.gang_name}'))
                     await db.execute("INSERT OR REPLACE INTO business_property_owners(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)", (biz_id,telegram_id,'Победитель штаба',now,now+300))
-                for item in building_rows if apartments_table else ():
+                for item in capture_rows if apartments_table else ():
                     building_key=str(item['holding_id']);parts=building_key.split(',')
                     if len(parts)!=2: continue
                     try: apt_key=f'tile:{int(parts[0])*10+6},{int(parts[1])*10+6}'
                     except ValueError: continue
-                    area=max(4,int(item['area'] or BUILDING_AREAS.get(building_key,4)))
+                    area=max(4,int(item['area'] or BUILDING_AREAS.get(building_key,CAPTURED_HQ_AREA)))
                     selected_operation=requested_operations.get(building_key,operation_type)
                     if not selected_operation:
                         selected_operation=choose_captured_building_operation(
                             profile,building_key,str(item['operation_type'] or ''),now)
                     income=building_operation_income(selected_operation,area)
+                    # A won HQ is a transfer of the physical building, not a
+                    # cash purchase. Clear any impossible stale duplicate so
+                    # the world has exactly one authoritative owner.
+                    await db.execute("DELETE FROM apartments_owned WHERE apt_key=?", (apt_key,))
                     cursor=await db.execute(
-                        "INSERT OR IGNORE INTO apartments_owned"
+                        "INSERT INTO apartments_owned"
                         "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
                         "VALUES(?,?,0,?,'business',?,?,?,?)",
                         (telegram_id,apt_key,now,selected_operation,area,income,now))
                     if int(cursor.rowcount or 0)==1:
-                        captured_buildings.append({'building_key':building_key,'apt_key':apt_key,
+                        capture={'building_key':building_key,'apt_key':apt_key,
+                                                   'source_kind':str(item.get('source_kind') or 'building'),
                                                    'previous_operation_type':str(item['operation_type'] or ''),
                                                    'operation_type':selected_operation,
                                                    'operation_name':BUILDING_OPERATIONS[selected_operation]['name'],
-                                                   'income_per_minute':income})
+                                                   'income_per_minute':income,'area':area}
+                        captured_buildings.append(capture)
+                        if capture['source_kind']=='hq': captured_headquarters=capture
             else:
                 for item in business_rows:
                     await db.execute("DELETE FROM business_property_owners WHERE biz_id=? AND owner_uid=?", (str(item['holding_id']),npc_owner_uid(leader_id)))
@@ -2237,6 +2251,7 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
     return {'ok': True, 'choice': choice, 'leader_id': leader_id, 'reward': reward,
             'comeback_at': comeback_at if choice != 'vassalize' else 0,
             'captured_businesses': captured, 'captured_buildings': captured_buildings,
+            'captured_headquarters': captured_headquarters,
             'operation_type': operation_type if choice == 'annex' else '',
             'operation_map': {item['building_key']:item['operation_type']
                               for item in captured_buildings},
