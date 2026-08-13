@@ -1431,3 +1431,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - `previewstance=stand|crouch|prone` is a deterministic one-tab QA fixture.
   Static validation lives in `test_player_stances.py`; embedded scripts and the
   Three module must also pass syntax checks before publication.
+
+## Atomic building rebranding (2026-08-13, v374)
+
+- Treat ownership, `operation_type`, income and acquisition time as one server
+  transaction. An NPC-to-NPC takeover must select a profile different from the
+  previous operation before committing, otherwise the ownership changed while
+  the venue appeared visually untouched.
+- Reuse `operation_type` in both the exterior marker signature and the interior
+  signature. A changed signature rebuilds the static room once; never poll or
+  recreate venue props per frame. The existing bounded 64-marker pool only
+  toggles and recolors its prebuilt facade meshes.
+- Before rebuilding an occupied interior, clear its previous semantic skin key.
+  The existing recursive transient-tree disposer owns geometry, material-array
+  and canvas-texture cleanup; conversion code must not create a second cleanup
+  path or retain references to the old operation.
+- Purchase price is server-authoritative: district shell + purpose fit-out + a
+  bounded area fee. Mirrored client values are presentation only and require a
+  regression contract against all eight server fit-out costs.

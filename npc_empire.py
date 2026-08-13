@@ -166,15 +166,16 @@ BUILDING_AREAS = dict((
 ))
 GENERIC_BUILDINGS = tuple(BUILDING_AREAS)
 BUILDING_OPERATIONS = {
-    'beer_bar': {'name': 'Пивной бар', 'icon': '🍺', 'base_income': 70},
-    'pawnshop': {'name': 'Скупка краденого', 'icon': '💎', 'base_income': 85},
-    'bookmaker': {'name': 'Букмекерская', 'icon': '🎟️', 'base_income': 95},
-    'strip_club': {'name': 'Стрип-клуб', 'icon': '💃', 'base_income': 120},
-    'gun_shop': {'name': 'Оружейная лавка', 'icon': '🔫', 'base_income': 130},
-    'chop_shop': {'name': 'Авторазборка', 'icon': '🔧', 'base_income': 145},
-    'poker_club': {'name': 'Подпольный покер', 'icon': '♠️', 'base_income': 160},
-    'print_shop': {'name': 'Фальшивая типография', 'icon': '🖨️', 'base_income': 175},
+    'beer_bar': {'name': 'Пивной бар', 'icon': '🍺', 'base_income': 70, 'fitout_cost': 2500},
+    'pawnshop': {'name': 'Скупка краденого', 'icon': '💎', 'base_income': 85, 'fitout_cost': 3600},
+    'bookmaker': {'name': 'Букмекерская', 'icon': '🎟️', 'base_income': 95, 'fitout_cost': 4800},
+    'strip_club': {'name': 'Стрип-клуб', 'icon': '💃', 'base_income': 120, 'fitout_cost': 7200},
+    'gun_shop': {'name': 'Оружейная лавка', 'icon': '🔫', 'base_income': 130, 'fitout_cost': 8500},
+    'chop_shop': {'name': 'Авторазборка', 'icon': '🔧', 'base_income': 145, 'fitout_cost': 9800},
+    'poker_club': {'name': 'Подпольный покер', 'icon': '♠️', 'base_income': 160, 'fitout_cost': 11000},
+    'print_shop': {'name': 'Фальшивая типография', 'icon': '🖨️', 'base_income': 175, 'fitout_cost': 13500},
 }
+BUILDING_HQ_FITOUT_COST = 9000
 
 
 def building_operation_income(operation_type: str, area: int) -> int:
@@ -182,11 +183,41 @@ def building_operation_income(operation_type: str, area: int) -> int:
     return min(200, base + round(max(0, min(27, int(area or 4)) - 4) * 25 / 23))
 
 
+def building_purchase_price(shell_price: int, property_kind: str,
+                            operation_type: str = '', area: int = 4) -> int:
+    """Authoritative shell + conversion cost; area adds a bounded contractor fee."""
+    shell = max(0, int(shell_price or 0))
+    if property_kind == 'hq':
+        fitout = BUILDING_HQ_FITOUT_COST
+    else:
+        meta = BUILDING_OPERATIONS.get(str(operation_type or ''))
+        if not meta:
+            return 0
+        fitout = int(meta['fitout_cost'])
+    area_fee = max(0, min(27, int(area or 4)) - 4) * 90
+    return shell + fitout + area_fee
+
+
 def choose_building_operation(profile: EmpireProfile, building_key: str,
                               capture_nonce: int = 0) -> str:
     preferred = ('gun_shop','chop_shop','poker_club','strip_club') if profile.aggression >= 70 else ('print_shop','poker_club','strip_club','bookmaker') if profile.commerce >= 84 else tuple(BUILDING_OPERATIONS)
     seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:{building_key}:{capture_nonce}'.encode()).digest()[:4], 'big')
     return preferred[seed % len(preferred)]
+
+
+def choose_captured_building_operation(profile: EmpireProfile, building_key: str,
+                                       previous_operation: str,
+                                       capture_nonce: int = 0) -> str:
+    """A takeover visibly rebrands the venue instead of inheriting its old skin."""
+    chosen = choose_building_operation(profile, building_key, capture_nonce)
+    previous = str(previous_operation or '')
+    if chosen != previous:
+        return chosen
+    alternatives = [key for key in BUILDING_OPERATIONS if key != previous]
+    seed = int.from_bytes(hashlib.sha256(
+        f'rebrand:{profile.leader_id}:{building_key}:{capture_nonce}'.encode()
+    ).digest()[:4], 'big')
+    return alternatives[seed % len(alternatives)]
 
 
 async def _player_owned_building_keys(db) -> set[str]:
@@ -1233,10 +1264,23 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         (now,a,b),
                     )
                     if attack_power > defense_power:
-                        await db.execute(
-                            "UPDATE npc_empire_holdings SET leader_id=?,defense=?,acquired_at=? WHERE kind=? AND holding_id=?",
-                            (leader_id,45+profile.loyalty//2,now,str(target['kind']),str(target['holding_id'])),
-                        )
+                        captured_kind=str(target['kind']);captured_id=str(target['holding_id'])
+                        if captured_kind == 'building':
+                            captured_area=max(4,int(target['area'] or BUILDING_AREAS.get(captured_id,4)))
+                            captured_operation=choose_captured_building_operation(
+                                profile,captured_id,str(target['operation_type'] or ''),
+                                now+int(row['wins'] or 0))
+                            await db.execute(
+                                "UPDATE npc_empire_holdings SET leader_id=?,defense=?,acquired_at=?,operation_type=?,area=?,income=? WHERE kind='building' AND holding_id=?",
+                                (leader_id,45+profile.loyalty//2,now,captured_operation,captured_area,
+                                 building_operation_income(captured_operation,captured_area),captured_id),
+                            )
+                        else:
+                            captured_operation=''
+                            await db.execute(
+                                "UPDATE npc_empire_holdings SET leader_id=?,defense=?,acquired_at=? WHERE kind=? AND holding_id=?",
+                                (leader_id,45+profile.loyalty//2,now,captured_kind,captured_id),
+                            )
                         if target['kind']=='business':
                             business_owner[str(target['holding_id'])]=leader_id
                             await db.execute(
@@ -1244,8 +1288,11 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                 (npc_owner_uid(leader_id),profile.gang_name,now,now+300,str(target['holding_id'])),
                             )
                         else: building_owner[str(target['holding_id'])]=leader_id
+                        conversion=(f' и открыли «{BUILDING_OPERATIONS[captured_operation]["name"]}»'
+                                    if captured_operation else '')
                         events.append({'leader_id':leader_id,'kind':'war_won','target_id':rival.leader_id,
-                                       'summary':f'{profile.gang_name} отбили {target["kind"]} {target["holding_id"]} у {rival.gang_name}'})
+                                       'operation_type':captured_operation,
+                                       'summary':f'{profile.gang_name} отбили {target["kind"]} {target["holding_id"]} у {rival.gang_name}{conversion}'})
                         await db.execute(
                             "UPDATE npc_empires SET wins=wins+1 WHERE leader_id=?", (leader_id,)
                         )
@@ -1720,11 +1767,13 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
 
 
 async def resolve_assault(db_path: str, telegram_id: int, token: str,
-                          choice: str, now: int | None = None) -> dict:
+                          choice: str, operation_type: str = '', now: int | None = None) -> dict:
     """Resolve once: annex businesses, loot the treasury, or vassalize."""
     now = int(now or time.time())
     if choice not in {'annex','loot','vassalize'}:
         return {'ok': False, 'error': 'bad choice'}
+    if choice == 'annex' and operation_type and operation_type not in BUILDING_OPERATIONS:
+        return {'ok': False, 'error': 'bad operation'}
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
@@ -1732,8 +1781,10 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         if not assault or assault['status'] != 'active' or int(assault['boss_hp']) > 0:
             await db.rollback(); return {'ok': False, 'error': 'not won'}
         leader_id = str(assault['leader_id']); profile = PROFILE_BY_ID[leader_id]
+        if choice == 'annex' and not operation_type:
+            operation_type = choose_building_operation(profile, str(token), now)
         empire = await (await db.execute("SELECT * FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
-        treasury = int(empire['treasury'] or 0); reward = 0; captured = []
+        treasury = int(empire['treasury'] or 0); reward = 0; captured = [];captured_buildings=[]
         if choice == 'vassalize':
             await db.execute("UPDATE npc_empires SET status='vassal',members=MAX(2,members/2),strength=MAX(40,strength/2),treasury=treasury/2,defeated_by=?,version=version+1 WHERE leader_id=?", (telegram_id,leader_id))
             await db.execute("INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?, ?,80,'vassal',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=80,pact='vassal',last_action_at=excluded.last_action_at", (leader_id,telegram_id,now))
@@ -1741,12 +1792,35 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         else:
             reward = treasury if choice == 'loot' else treasury // 3
             business_rows = await (await db.execute("SELECT holding_id FROM npc_empire_holdings WHERE leader_id=? AND kind='business'", (leader_id,))).fetchall()
+            building_rows = await (await db.execute(
+                "SELECT holding_id,area FROM npc_empire_holdings WHERE leader_id=? AND kind='building'",
+                (leader_id,))).fetchall()
+            apartments_table = await (await db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='apartments_owned'"
+            )).fetchone()
             if choice == 'annex':
                 for item in business_rows:
                     biz_id = str(item['holding_id']); captured.append(biz_id)
                     await db.execute("DELETE FROM player_businesses WHERE biz_id=?", (biz_id,))
                     await db.execute("INSERT INTO player_businesses(telegram_id,biz_id,bought_at,last_collect,status,blocked_until,last_event_at,level,guards,pending_notice) VALUES(?,?,?,?, 'ok',0,0,1,0,?)", (telegram_id,biz_id,now,now,f'Отнят у банды {profile.gang_name}'))
                     await db.execute("INSERT OR REPLACE INTO business_property_owners(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)", (biz_id,telegram_id,'Победитель штаба',now,now+300))
+                for item in building_rows if apartments_table else ():
+                    building_key=str(item['holding_id']);parts=building_key.split(',')
+                    if len(parts)!=2: continue
+                    try: apt_key=f'tile:{int(parts[0])*10+6},{int(parts[1])*10+6}'
+                    except ValueError: continue
+                    area=max(4,int(item['area'] or BUILDING_AREAS.get(building_key,4)))
+                    income=building_operation_income(operation_type,area)
+                    cursor=await db.execute(
+                        "INSERT OR IGNORE INTO apartments_owned"
+                        "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
+                        "VALUES(?,?,0,?,'business',?,?,?,?)",
+                        (telegram_id,apt_key,now,operation_type,area,income,now))
+                    if int(cursor.rowcount or 0)==1:
+                        captured_buildings.append({'building_key':building_key,'apt_key':apt_key,
+                                                   'operation_type':operation_type,
+                                                   'operation_name':BUILDING_OPERATIONS[operation_type]['name'],
+                                                   'income_per_minute':income})
             else:
                 for item in business_rows:
                     await db.execute("DELETE FROM business_property_owners WHERE biz_id=? AND owner_uid=?", (str(item['holding_id']),npc_owner_uid(leader_id)))
@@ -1763,4 +1837,6 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         await db.commit()
     return {'ok': True, 'choice': choice, 'leader_id': leader_id, 'reward': reward,
             'comeback_at': comeback_at if choice != 'vassalize' else 0,
-            'captured_businesses': captured, 'cash': int(char['cash'] if char else reward)}
+            'captured_businesses': captured, 'captured_buildings': captured_buildings,
+            'operation_type': operation_type if choice == 'annex' else '',
+            'cash': int(char['cash'] if char else reward)}

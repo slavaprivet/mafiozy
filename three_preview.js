@@ -4922,6 +4922,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
               sig=`${interiorData.kind}:${interiorData.type}:${interiorData.bizId||''}:${interiorData.room||''}:${interiorData.width}:${interiorData.height}:${layoutSig}:${businessSig}:${aptSig}:${bankSig}:${interiorData.loot?`${interiorData.loot.r}:${interiorData.loot.c}:${interiorData.loot.hp?1:0}`:'none'}`;
             if(sig!==interiorSignature){
               interiorSignature=sig;
+              // A purpose/owner change is a full skin replacement. Clear the
+              // previous semantic key before the disposed room is rebuilt.
+              delete renderer.domElement.dataset.convertedBuildingInterior;
+              delete renderer.domElement.dataset.convertedBuildingSkin;
               // The authored bank builder owns its floor and walls, so do not construct and immediately discard a generic room.
               if(interiorData.kind==='bank')decorateBankInterior(interiorData);
               else{
@@ -4930,6 +4934,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
                 else if(!decorateConvertedBuildingInterior(interiorData)&&!decorateVacantBuildingInterior(interiorData)&&!decorateApartmentInterior(interiorData)&&!decorateBusinessInterior(interiorData)&&!decorateServiceInterior(interiorData)&&!decorateVenueInterior(interiorData))decoratePremiumInterior(interiorData);
               }
               interiorGroup.traverse(o=>o.layers.set(1));
+              if(interiorData.kind==='building'&&interiorData.type==='generic'&&interiorData.apartment?.propertyKind){
+                const property=interiorData.apartment;
+                renderer.domElement.dataset.convertedBuildingSkin=`${property.ownerUid||'neutral'}:${property.propertyKind}:${property.operationType||'headquarters'}`;
+              }
             }
             playerFloorElevation=Math.max(0,+interiorData.playerElevation||0)*WORLD_SCALE;
             interiorGroup.visible=true;camera.layers.set(1);activeAimSurface=interiorFloor||ground;

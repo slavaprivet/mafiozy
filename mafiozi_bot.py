@@ -2762,6 +2762,7 @@ def apartment_operation_payload(operation_type: str, area: int) -> dict | None:
     return {
         'operation_type': str(operation_type), 'operation_name': str(meta['name']),
         'operation_icon': str(meta['icon']),
+        'fitout_cost': int(meta.get('fitout_cost') or 0),
         'income_per_minute': npc_empire.building_operation_income(operation_type, area),
     }
 
@@ -2895,8 +2896,12 @@ async def buy_apartment_db(telegram_id: int, apt_key: str, price: int,
     block_key = apartment_empire_building_key(apt_key)
     area = int(npc_empire.BUILDING_AREAS.get(block_key or '', 0))
     operation = apartment_operation_payload(operation_type, area) if property_kind == 'business' else None
+    total_price = npc_empire.building_purchase_price(
+        price, property_kind, operation_type, area)
     if not block_key or not area or (property_kind == 'business' and not operation):
         return {'ok': False, 'error': 'bad apt'}
+    if total_price <= 0:
+        return {'ok': False, 'error': 'bad price'}
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("BEGIN IMMEDIATE")
         async with db.execute("SELECT cash,mafia_family FROM characters WHERE telegram_id=?", (telegram_id,)) as cur:
@@ -2920,18 +2925,19 @@ async def buy_apartment_db(telegram_id: int, apt_key: str, price: int,
         if block_key in occupied_blocks or npc_taken:
             await db.rollback(); return {'ok': False, 'error': 'building occupied'}
         cash = int(char[0] or 0)
-        if cash < price:
-            await db.rollback(); return {'ok': False, 'error': 'no cash', 'cash': cash, 'price': price}
-        await db.execute("UPDATE characters SET cash=? WHERE telegram_id=?", (cash - price, telegram_id))
+        if cash < total_price:
+            await db.rollback(); return {'ok': False, 'error': 'no cash', 'cash': cash, 'price': total_price}
+        await db.execute("UPDATE characters SET cash=? WHERE telegram_id=?", (cash - total_price, telegram_id))
         await db.execute(
             "INSERT INTO apartments_owned "
             "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
             "VALUES (?,?,?,?,?,?,?,?,?)",
-            (telegram_id, apt_key, price, now, property_kind, operation_type if operation else '',
+            (telegram_id, apt_key, total_price, now, property_kind, operation_type if operation else '',
              area, int((operation or {}).get('income_per_minute') or 0), now),
         )
         await db.commit()
-    return {'ok': True, 'cash': cash - price, 'price': price}
+    return {'ok': True, 'cash': cash - total_price, 'price': total_price,
+            'shell_price': int(price), 'fitout_cost': total_price-int(price)}
 
 
 async def collect_apartment_income_db(telegram_id: int, apt_key: str) -> dict:
@@ -24647,12 +24653,16 @@ async def _coop_http_app():
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
         result=await npc_empire.resolve_assault(
-            DB_PATH,uid,str(body.get('token') or '')[:64],str(body.get('choice') or '')[:16])
+            DB_PATH,uid,str(body.get('token') or '')[:64],str(body.get('choice') or '')[:16],
+            str(body.get('operation_type') or '')[:32])
         if result.get('ok') and _WORLD:
             player_state=_WORLD.players.get(str(uid))
             if player_state:
                 player_state['cash']=int(result.get('cash') or player_state.get('cash') or 0)
                 player_state.setdefault('_owned_biz',set()).update(result.get('captured_businesses') or [])
+                player_state.setdefault('_owned_apartments',set()).update(
+                    str(item.get('apt_key') or '') for item in result.get('captured_buildings') or []
+                    if item.get('apt_key'))
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────

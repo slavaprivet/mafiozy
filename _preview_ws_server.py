@@ -1211,8 +1211,8 @@ async def apartment_buy(req):
     apt_key = str(body.get("apt_key") or "").strip()[:32]
     property_kind = str(body.get("property_kind") or "business").lower()
     operation_type = str(body.get("operation_type") or "").lower()
-    price = apartment_price_for_key(apt_key)
-    if price is None:
+    shell_price = apartment_price_for_key(apt_key)
+    if shell_price is None:
         return cors(web.json_response({"ok": False, "error": "bad apt"}, status=400))
     owned = preview_owned_apartments(uid)
     account = preview_account(uid)
@@ -1224,6 +1224,8 @@ async def apartment_buy(req):
         return cors(web.json_response({"ok": False, "error": "hq limit"}, status=409))
     block_key = preview_apartment_block_key(apt_key)
     area = int(npc_empire.BUILDING_AREAS.get(block_key or "", 0))
+    price = npc_empire.building_purchase_price(
+        shell_price, property_kind, operation_type, area)
     occupied = {preview_apartment_block_key(key) for props in preview_apartments.values() for key in props}
     if not area or block_key in occupied:
         return cors(web.json_response({"ok": False, "error": "building occupied"}, status=409))
@@ -1243,7 +1245,8 @@ async def apartment_buy(req):
         "cameras_level": 0, "repair_level": 0, "stolen_bags": 0,
     }
     return cors(web.json_response({
-        "ok": True, "cash": account["cash"], "price": price, "owned": owned,
+        "ok": True, "cash": account["cash"], "price": price,
+        "shell_price": shell_price, "fitout_cost": price-shell_price, "owned": owned,
         "properties": preview_player_properties(),
     }))
 
