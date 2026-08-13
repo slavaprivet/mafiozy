@@ -1660,3 +1660,23 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   use their current heading when choosing an initial BFS step, and every long
   emergency body uses bounded collision-safe angle changes; blocker branches
   must preserve the smoothed angle rather than snapping to the next waypoint.
+
+## Alternating prone and kneeling cycles (2026-08-13, v387)
+
+- A readable prone crawl needs four opposing phases: one hand reaches while the
+  opposite elbow pulls, and the opposite knee advances while the other leg
+  extends. Drive all four transforms from the cached gait sine; this preserves
+  planted-contact rhythm without clips, new meshes or per-frame allocations.
+- Two-handed firearms keep both hands on the weapon, but their elbows and the
+  weapon support point travel with the crawl stroke. With a sidearm, keep the
+  firing hand aimed and let the free hand perform the visible pull. This keeps
+  every firearm usable while prone and prevents the weapon layer from erasing
+  locomotion completely.
+- A Ctrl stance must use a visibly alternating low knee step, not a translated
+  static kneel. Increase opposing thigh drive, shin reach and knee lift while
+  keeping the pelvis low; the same gait phase synchronizes torso roll and arm
+  counter-swing.
+- For repeatable visual QA, a localhost-only `previewstancemotion` flag may
+  drive the cached gait phase without moving gameplay coordinates. Expose the
+  active left/right phase through `playerStanceCycle`, and keep this fixture
+  inert on GitHub Pages and in real gameplay.

@@ -17,7 +17,7 @@ def test_authoritative_stance_controls_and_speed():
 def test_bridge_exposes_deterministic_stance_fixture():
     assert "previewstance" in WORLD
     assert "stance,crouching:stance==='crouch',prone:stance==='prone'" in WORLD
-    assert "three_preview.js?v=3d385-kneel-fire-recovery" in WORLD
+    assert "three_preview.js?v=3d387-alternating-stance-cycle" in WORLD
 
 
 def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
@@ -32,13 +32,19 @@ def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
     assert "crawlDrive=proneBlend*Math.abs(playerStep)*gait" in THREE
     assert "playerHeadRig.rotation.y=head.rotation.y" in THREE
     assert "leftKneelShin.visible=rightKneelShin.visible=crouchBlend>.035" in THREE
-    assert "leftKneelShin.rotation.set(-1.2-kneeDrive*.2" in THREE
+    assert "leftKneelShin.rotation.set(-1.16-kneeDrive*.34" in THREE
     assert "leftLeg.scale.y=rightLeg.scale.y=THREE.MathUtils.lerp(1,.62,crouchBlend)" in THREE
     assert "gun.rotation.x-=proneBlend*1.39+crouchBlend*.12" in THREE
     assert "gun.position.z-=proneBlend*(proneSupport+kickNorm*.11)" in THREE
     assert "renderer.domElement.dataset.stanceWeaponClearance" in THREE
     assert "renderer.domElement.dataset.stanceFirePose" in THREE
-    assert "poseTwoHandedGrip(Math.min(1.9,kickNorm),activeReloadProgress)" in THREE
+    assert "const poseTwoHandedGrip=(kick=0,reload=0,crawl=0)" in THREE
+    assert "poseTwoHandedGrip(Math.min(1.9,kickNorm),activeReloadProgress,armedCrawl)" in THREE
+    assert "poseProneSidearmCrawl(armedCrawl)" in THREE
+    assert "leftLeg.rotation.x=-.44+crawlStroke*.82" in THREE
+    assert "leftLeg.position.z=.28+kneeDrive*.24" in THREE
+    assert "dataset.playerStanceCycle" in THREE
+    assert "previewstancemotion" in THREE
 
 
 def test_stances_do_not_lock_combat_or_reload():
