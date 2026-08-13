@@ -1278,3 +1278,24 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - The district dominance card is persistent UI. Do not reuse the old reputation
   toast's four-second hide timer. Network discovery and inventory fetches must
   continue in the background so a slow tunnel never blocks local city control.
+
+## Shared NPC walking anatomy (2026-08-13, v369)
+
+- Keep the visible step lift on the individual legs and shoes. A second large
+  positive root bob lifts the complete humanoid, making the head appear to jump
+  and every attached torso part float. The shared upright root is capped at
+  `0.032` local units for panic and `0.024` for a normal full-speed stride; the
+  previous combined formula reached `0.092`.
+- Role gear must consume the already cached `npcFramePoses` entry and the same
+  `setNpcRoot` transform as the body. Never derive another gait phase for gang
+  bands, vests, belts or badges; the old gang-band path reached a separate
+  `0.13` vertical lift and visibly detached during walking.
+- Scale torso gear from the existing `NPC_BODY_PROFILES` plus the gender width
+  and depth factors. The vest fit is now invariant across all four body shapes:
+  its half-width is about `1.055x` the torso envelope instead of reaching
+  `1.466x` on the slim profile. Reuse the shared instanced pools and scratch
+  transforms; do not add meshes, role loops, allocations or timers.
+- The `previewnpcanatomy=1` fixture covers slim/heavy civilians, normal and
+  tactical police, security, prison staff, an empire boss and crew member, a
+  business owner and a medic. Static numeric regression plus all six embedded
+  `world.html` syntax checks, the NPC life contract and empire UI contract pass.
