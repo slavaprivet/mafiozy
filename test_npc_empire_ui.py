@@ -86,12 +86,17 @@ def run() -> None:
     assert "hospitalUntil=(+e.hospital_until||0)*1000" in WORLD
     assert "dataset.hospitalizedCount" in WORLD and "_hospitalTimer=setTimeout" in WORLD
     assert "uiMode==='dashboard')openNpcSandboxDashboard()" in WORLD
-    assert "Boss dossier v3" in WORLD
+    assert "Boss dossier v4" in WORLD
     assert 'class="ne-photo-rank"' in WORLD and 'class="ne-photo-plaque"' in WORLD
     assert 'class="ne-family-seal"' in WORLD and "--ea" in WORLD
     assert "min-height:66px" in WORLD and "font-size:14px;line-height:1.25" in WORLD
-    assert "МОЗГ БОССА · ТЕКУЩИЙ ЗАМЫСЕЛ" in WORLD
+    assert "ПЕРЕХВАЧЕННЫЙ ПЛАН · СВЕДЕНИЯ ИНФОРМАТОРА" in WORLD
     assert "ne-brain-board" in WORLD and "ne-brain-confidence" in WORLD
+    assert "_npcEmpireReadableIntel" in WORLD and "держать позиции" in WORLD
+    assert "_npcEmpireHoldingPresentation" in WORLD and "ВЛАДЕНИЯ СЕМЬИ" in WORLD
+    assert 'class="ne-holding-grid"' in WORLD and 'class="ne-holdings-summary"' in WORLD
+    assert "ДОНЕСЕНИЯ, ОТНОШЕНИЯ И ПРОШЛЫЕ РЕШЕНИЯ" in WORLD
+    assert "ne-intel-details" in WORLD and "АРХИВ КРИМИНАЛЬНОЙ РАЗВЕДКИ · СЕКРЕТНО" in WORLD
     assert "empire.brain" in WORLD and "empire.memory" in WORLD
     assert "_boss_brain(" in PREVIEW and "['brain']" in PREVIEW
     assert '"doctrine": npc_empire.boss_doctrine' in PREVIEW
@@ -105,8 +110,8 @@ def run() -> None:
     assert "ВЫУЧЕННЫЙ УРОК" in WORLD and "brain.adaptation" in WORLD
     assert "_boss_adaptation(" in NPC_EMPIRE and "'adaptation': adaptation" in NPC_EMPIRE
     assert "BOSS_DOCTRINES" in NPC_EMPIRE and "'doctrine': boss_doctrine" in NPC_EMPIRE
-    assert "NPC_EMPIRE_DOCTRINES" in WORLD and "ДОКТРИНА ·" in WORLD
-    assert "NPC_EMPIRE_MINDSETS" in WORLD and "МЫШЛЕНИЕ ·" in WORLD
+    assert "NPC_EMPIRE_DOCTRINES" in WORLD and "СТИЛЬ ·" in WORLD
+    assert "NPC_EMPIRE_MINDSETS" in WORLD and "ТЕРПЕНИЕ ${Math.round" in WORLD
     assert "_empirePlayerSquadOrder" in WORLD and "dataset.empirePlayerOrder" in WORLD
     assert "_empirePlayerCombatThink" in WORLD and "_empireUseSignature" in WORLD
     assert "_npcEmpireAssaultAi" in WORLD and "dataset.empireAssaultPhase" in WORLD
