@@ -2717,15 +2717,15 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const renderNpcEmpireWeapon=(src,i,root,pose,severMask,t)=>{
         const id=String(src.uniqueWeaponId||''),weaponKey=npcGenericWeaponKey(src._shotWeapon||src.weapon),cfg=npcEmpireWeaponShapes[id]||npcGenericWeaponShapes[weaponKey],visualKey=id||`generic:${weaponKey}`,gestureDisarms=pose.phoneCalling||pose.surrendering||pose.cowering||pose.helping||pose.panicking||(!src.empireBoss&&pose.talking)||!!pose.ambientKind,show=!gestureDisarms&&!(severMask&2);
         hideNpcEmpireWeapon(i);hidePart(npcParts.gun,i);if(!show)return false;
-        const melee=!!cfg.melee,longWeapon=!melee&&(cfg.barrel>.78||cfg.stock>.5||cfg.shape==='rpg'),swing=pose.firing?Math.sin(Math.min(1,Math.max(0,(t-(+src._shotAt||0))/460))*Math.PI):0;
+        const melee=!!cfg.melee,longWeapon=!melee&&(cfg.barrel>.78||cfg.stock>.5||cfg.shape==='rpg'),swing=pose.firing?Math.sin(Math.min(1,Math.max(0,(t-(+src._shotAt||0))/460))*Math.PI):0,readability=src.empireBoss?1.28:(src.empireCrew||src.empireHoldingGuard||src.gang?1.16:1);
         const x=melee ? .58 : .18,y=melee?2.02:2.25-pose.crouch*.28,z=melee ? .42 : .72;
-        const pitch=melee?(-.72+swing*1.28):(-.055-pose.recoil*.09),bodyScale=instanceScale.set(cfg.body[0],cfg.body[1],cfg.body[2]);
+        const pitch=melee?(-.72+swing*1.28):(-.055-pose.recoil*.09),bodyScale=instanceScale.set(cfg.body[0]*readability,cfg.body[1]*readability,cfg.body[2]*readability);
         setPart(npcParts.uniqueGunBody,i,root,x,y,z,pitch,bodyScale);
-        setPart(npcParts.uniqueGunGrip,i,root,x+(melee?0:.12),y-.35,z-.22,pitch-.16,instanceScale.set(melee ? .8 : 1,.82,melee ? .8 : 1));
-        if(cfg.barrel)setPart(npcParts.uniqueGunMuzzle,i,root,x,y+.02,z+.78+cfg.barrel*.23,pitch+Math.PI/2,instanceScale.set(cfg.shape==='harpoon'?1.18:.82,cfg.barrel,.82));
-        if(cfg.stock)setPart(npcParts.uniqueGunStock,i,root,x,y-.04,z-.62,pitch,instanceScale.set(.82,.82,cfg.stock));
-        if(cfg.scope)setPart(npcParts.uniqueGunRail,i,root,x,y+.31,z+.08,pitch,instanceScale.set(cfg.scope,.75,.48));
-        if(cfg.drum)setPart(npcParts.uniqueGunDrum,i,root,x,y-.3,z-.02,pitch,instanceScale.set(cfg.drum,cfg.drum,.85),0,Math.PI/2);
+        setPart(npcParts.uniqueGunGrip,i,root,x+(melee?0:.12),y-.35,z-.22,pitch-.16,instanceScale.set((melee ? .8 : 1)*readability,.82*readability,(melee ? .8 : 1)*readability));
+        if(cfg.barrel)setPart(npcParts.uniqueGunMuzzle,i,root,x,y+.02,z+(.78+cfg.barrel*.23)*readability,pitch+Math.PI/2,instanceScale.set((cfg.shape==='harpoon'?1.18:.82)*readability,cfg.barrel*readability,.82*readability));
+        if(cfg.stock)setPart(npcParts.uniqueGunStock,i,root,x,y-.04,z-.62*readability,pitch,instanceScale.set(.82*readability,.82*readability,cfg.stock*readability));
+        if(cfg.scope)setPart(npcParts.uniqueGunRail,i,root,x,y+.31,z+.08,pitch,instanceScale.set(cfg.scope*readability,.75*readability,.48*readability));
+        if(cfg.drum)setPart(npcParts.uniqueGunDrum,i,root,x,y-.3,z-.02,pitch,instanceScale.set(cfg.drum*readability,cfg.drum*readability,.85*readability),0,Math.PI/2);
         if(cfg.blade)setPart(npcParts.uniqueGunBlade,i,root,x,y+.02,z+1.18,pitch+Math.PI/2,instanceScale.set(cfg.blade,cfg.blade*1.25,cfg.blade));
         if(cfg.limbs){for(const [k,side] of [[0,-1],[1,1]])setPart(npcParts.uniqueGunLimb,i*2+k,root,x+side*cfg.limbs*.34,y+.04,z+.35,pitch,instanceScale.set(.72,.72,cfg.limbs),Math.PI/2,side*.18);}
         if(cfg.spikes){for(let k=0;k<cfg.spikes;k++){const side=k%2?-1:1,along=(k+.7)/(cfg.spikes+1);setPart(npcParts.uniqueGunSpike,i*4+k,root,x+side*.18,y+.04,z-.38+along*1.35,pitch,instanceScale.setScalar(.9),0,side*Math.PI/2);}}

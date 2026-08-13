@@ -9658,13 +9658,22 @@ function _empireFieldCombatThink(n,now,dt){
   const separation=_empireSeparationVector(n,1.42);moveR+=separation.r*1.85;moveC+=separation.c*1.85;
   const step=Math.min(.11,Math.max(.65,n.speed||.8)*dt*(d>ideal+1?1.45:.72)),len=Math.hypot(moveR,moveC)||1,nr=n.r+moveR/len*step,nc=n.c+moveC/len*step;
   if(_npcPathPassable(n.r,n.c,nr,nc,_empireBossPassable)){n.r=nr;n.c=nc;n.walking=true;n.walkPhase+=dt*12;}else n.walking=false;
-  if(d>(+profile.range||10)||now<(n._nextShootAt||0))return true;
+  if(d>(+profile.range||10)||now<(n._nextShootAt||0)||!_npcPathPassable(n.r,n.c,target.r,target.c,_empireBossPassable))return true;
   const cadence=(pressing ? Math.max(.64,.86-Math.min(.18,(confidence-1)*.1)) : 1)*(n._empireBoss ? .88 : 1);n._nextShootAt=now+Math.max(420,+profile.cooldown||1050)*cadence+Math.random()*(pressing ? 120 : 260);n._shotAt=now;n._lastShotAt=now;n._shotSeq=(+n._shotSeq||0)+1;n._shotWeapon=weapon;
   if(now>=(n._empireWarCryAt||0)){n._empireWarCryAt=now+9000+Math.random()*4500;_empireSpeak(n,'war',now,2100);}
-  const hit=Math.random()<Math.max(.42,Math.min(.93,(+profile.hit||.72)+(n._empireBoss ? .06 : 0))),miss=hit?0:(Math.random()<.5?-1:1)*(.45+Math.random()*.65),aimR=target.r+miss,aimC=target.c-miss*.35,muz=_npcMuzzleWorldPoint(n.r,n.c,n.ang,weapon,.88);
-  spawnBullet(muz.r,muz.c,aimR,aimC,{hit,fromNpc:true,weapon});spawnMuzzle(muz.r,muz.c,n.ang,weapon,true);
+  const hit=Math.random()<Math.max(.42,Math.min(.93,(+profile.hit||.72)+(n._empireBoss ? .06 : 0))),miss=hit?0:(Math.random()<.5?-1:1)*(.72+Math.random()*.78),aimR=hit?target.r:target.r-dc/d*miss,aimC=hit?target.c:target.c+dr/d*miss,muz=_npcMuzzleWorldPoint(n.r,n.c,n.ang,weapon,.88);
+  // Street wars use the same readable weapon profile as the player. A hit
+  // follows its actor only for the short ballistic flight, so the tracer ends
+  // on a moving body instead of the stale position where the shot began.
+  const visualSpeed=Math.max(11.5,Math.min(15.5,+profile.speed||+weaponProfile(weapon).bulletSpeed||15.5));
+  spawnBullet(muz.r,muz.c,aimR,aimC,{hit,fromNpc:true,weapon,speed:visualSpeed,
+    fullSizeNpc:true,targetActor:hit?target:null});spawnMuzzle(muz.r,muz.c,n.ang,weapon,true);
   if(confidence>=.88){n._empirePressUntil=now+2200+Math.min(1800,confidence*500);n._empireTargetLockUntil=now+3200;}
-  if(hit)_hitEmpireCombatant(target,Math.max(4,Math.round((+profile.damage||10)*(n._empireBoss?1.18:1))),n,weapon,dr/d,dc/d,now);
+  if(hit){
+    const damage=Math.max(4,Math.round((+profile.damage||10)*(n._empireBoss?1.18:1))),flightMs=Math.max(80,d/visualSpeed*1000);
+    setTimeout(()=>{const impactNow=performance.now();if(!_empireCombatReady(target,impactNow)||_empireLeaderIdOf(target)===_empireLeaderIdOf(n))return;const hitR=target.r,hitC=target.c,hitDr=hitR-n.r,hitDc=hitC-n.c,hitDist=Math.hypot(hitDr,hitDc)||1;spawnImpact(hitR,hitC,weapon,true);_hitEmpireCombatant(target,damage,n,weapon,hitDr/hitDist,hitDc/hitDist,impactNow);document.documentElement.dataset.empireBallisticImpact=`${_empireLeaderIdOf(n)}>${_empireLeaderIdOf(target)}:${weapon}:${Math.round(flightMs)}`;},flightMs);
+  }
+  document.documentElement.dataset.empireBallisticShot=`tracked-${hit?1:0}:${weapon}:${visualSpeed.toFixed(1)}`;
   return true;
 }
 function _applyEmpirePlayerWeaponHit(n,damage,profile,now=performance.now()){
@@ -21620,10 +21629,11 @@ function spawnBullet(sr, sc, er, ec, opts) {
   const baseTrailScale = opts.trailScale || wcfg.trailScale || 1;
   // Вражеские трассеры должны показывать направление огня, а не закрывать
   // персонажей. Тяжёлые профили сохраняют мощный цвет/звук, но не размер ядра.
-  const npcBulletScale = opts.fromNpc && resolvedBulletWeapon !== 'rpg'
+  const fullSizeNpc = !!opts.fullSizeNpc;
+  const npcBulletScale = opts.fromNpc && resolvedBulletWeapon !== 'rpg' && !fullSizeNpc
     ? Math.max(0.72, Math.min(0.92, baseBulletScale * 0.72))
     : baseBulletScale;
-  const npcTrailScale = opts.fromNpc && resolvedBulletWeapon !== 'rpg'
+  const npcTrailScale = opts.fromNpc && resolvedBulletWeapon !== 'rpg' && !fullSizeNpc
     ? Math.max(0.78, Math.min(0.96, baseTrailScale * 0.78))
     : baseTrailScale;
   _capArr(bullets, _MAX_BULLETS);
@@ -21638,11 +21648,12 @@ function spawnBullet(sr, sc, er, ec, opts) {
       car:opts.targetVehicleHit.car,quest:!!opts.targetVehicleHit.quest,
       localU:+opts.targetVehicleHit.localU||0,localV:+opts.targetVehicleHit.localV||0,
     }:null,
+    targetActor:opts.targetActor?{ref:opts.targetActor}:null,
     born: performance.now(),
     color: opts.color || wcfg.color || '#ffd76b',
     weapon: resolvedBulletWeapon,
     projectileKind: String(opts.projectileKind||''),
-    thick: opts.fromNpc && resolvedBulletWeapon !== 'rpg'
+    thick: opts.fromNpc && resolvedBulletWeapon !== 'rpg' && !fullSizeNpc
       ? false
       : (opts.thick != null ? opts.thick : !!wcfg.thick),
     bulletScale: npcBulletScale,
@@ -42921,7 +42932,7 @@ function drawNpc(npc) {
     ctx.fillStyle='#fff3bd'; ctx.fillText(label,p.x,y+.5); ctx.restore();
   }
   // Вооружённый NPC (контратака) — пистолет в руке + мигающий прицел
-  if ((npc._fighting||npc._empireBoss) && !npc.dead) {
+  if ((npc._fighting||npc._empireBoss||npc._empireCrew||npc._empireHoldingGuard) && !npc.dead) {
     const wep = npc._fightWeapon || npc._empireWeaponBase || 'pistol';
     drawWeaponInHands(p.x, p.y, npc.ang, wep, 0.88, npc._lastShotAt || 0);
     if(npc._empireBoss)_drawNpcEmpireWeaponSignature(p.x,p.y,npc.ang,npc._empireWeaponId,1.02);
@@ -49643,6 +49654,21 @@ function updateProjectiles(dt) {
         continue;
       }
       b.targetVehicle=null;
+    }
+    if(b.targetActor){
+      const ref=b.targetActor.ref,point=ref&&Number.isFinite(+ref.r)&&Number.isFinite(+ref.c)?{r:+ref.r,c:+ref.c}:null;
+      if(point){
+        const prevR=b.r,prevC=b.c,p=Math.max(0,Math.min(1,bulletAge/Math.max(80,+b.flightMs||130)));
+        b.r=(+b.startR||0)+(point.r-(+b.startR||0))*p;
+        b.c=(+b.startC||0)+(point.c-(+b.startC||0))*p;
+        const stepR=b.r-prevR,stepC=b.c-prevC,stepLen=Math.hypot(stepR,stepC);
+        if(stepLen>.0001){const speed=Math.hypot(+b.vr||0,+b.vc||0)||1;b.vr=stepR/stepLen*speed;b.vc=stepC/stepLen*speed;}
+        b.maxDist=Math.max(.05,Math.hypot(point.r-(+b.startR||0),point.c-(+b.startC||0)));
+        b.dist=b.maxDist*p;
+        if(p>=1){b.impactHoldUntil=b.impactHoldUntil||performance.now()+72;if(performance.now()>=b.impactHoldUntil)b._finished=true;}
+        continue;
+      }
+      b.targetActor=null;
     }
     b.r += b.vr * ddt;
     b.c += b.vc * ddt;
@@ -68095,6 +68121,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d390-empire-skin-only"></script>
+<script type="module" src="three_preview.js?v=3d391-gang-war-ballistics"></script>
 </body>
 </html>

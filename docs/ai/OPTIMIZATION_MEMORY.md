@@ -1,5 +1,24 @@
 # Mafiozi 3D optimization memory
 
+## Readable tracked gang-war ballistics (2026-08-13, v391)
+
+- NPC-family hits must not subtract HP at trigger time while their tracer is
+  still crossing the street. A bounded timeout matching the capped visual
+  flight speed applies damage and blood at arrival; dead or reassigned targets
+  reject the delayed hit.
+- A confirmed hit stores only a direct reference to its already-selected actor
+  on the existing bullet object. The projectile update interpolates from its
+  fixed muzzle to that actor for the short flight. This adds no NPC scan, ray
+  query, geometry, material, timer per frame or renderer-side target search.
+- Gang-war bullets opt into the player's native weapon scale, trail scale and
+  heavy-profile thickness. Other hostile NPC fire keeps the compact legacy
+  treatment, preventing unrelated police or interior volleys from becoming
+  visually noisy.
+- Boss, escort and holding-guard guns reuse the existing instanced weapon
+  meshes with a `1.28`/`1.16` readability scale. No new mesh or draw-call pool
+  is introduced; only cached instance matrices change. The Three.js module
+  query key must advance with this renderer change.
+
 ## Streamed guards for NPC-owned holdings (2026-08-13)
 
 - Keep the authoritative guard roll on the server holding snapshot. A SHA-256
