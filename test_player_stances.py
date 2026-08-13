@@ -16,8 +16,9 @@ def test_authoritative_stance_controls_and_speed():
 
 def test_bridge_exposes_deterministic_stance_fixture():
     assert "previewstance" in WORLD
+    assert "speed:previewWalking?5:anim.speed" in WORLD
     assert "stance,crouching:stance==='crouch',prone:stance==='prone'" in WORLD
-    assert "three_preview.js?v=3d387-alternating-stance-cycle" in WORLD
+    assert "three_preview.js?v=3d388-distance-locked-gait" in WORLD
 
 
 def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
@@ -45,6 +46,10 @@ def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
     assert "leftLeg.position.z=.28+kneeDrive*.24" in THREE
     assert "dataset.playerStanceCycle" in THREE
     assert "previewstancemotion" in THREE
+    assert "walkPhase+=dt*playerAnim.speed*2.35" in THREE
+    assert "dataset.playerCadence=`distance-locked:" in THREE
+    assert "dataset.playerStepCycle=gait>.025" in THREE
+    assert "const stanceCadence=playerLimping?.86:1" in THREE
 
 
 def test_stances_do_not_lock_combat_or_reload():

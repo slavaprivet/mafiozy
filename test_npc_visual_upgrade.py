@@ -41,7 +41,7 @@ def run() -> None:
     assert "previewNpcShellClasses" in WORLD
     for weapon in ("pistol", "rifle", "smg", "shotgun", "golden_tommy", "sniper"):
         assert f"weapon:'{weapon}'" in WORLD
-    assert "three_preview.js?v=3d387-alternating-stance-cycle" in WORLD
+    assert "three_preview.js?v=3d388-distance-locked-gait" in WORLD
 
 
 if __name__ == "__main__":

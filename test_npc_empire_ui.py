@@ -78,7 +78,7 @@ def run() -> None:
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d387-alternating-stance-cycle" in WORLD
+    assert "3d388-distance-locked-gait" in WORLD
     assert "_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();" in WORLD
     assert "npc_empire_hospitalize" in PREVIEW and "hospital_until" in PREVIEW
     assert 'empire-card${inHospital?\' hospitalized\':\'\'}' in WORLD

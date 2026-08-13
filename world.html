@@ -63133,7 +63133,7 @@ window.Mafiozi3DBridge = Object.freeze({
     const state={
       r: +player.r || 0, c: +player.c || 0, ang: +player.ang || 0,
       walking: previewWalking||!!player.walking, walkPhase:previewWalking?stateNow*.012:(+player.walkPhase||0),
-      speed:anim.speed,accel:anim.accel,moveAng:anim.moveAng,teleported:anim.teleported,aiming:anim.aiming,impact:anim.impact,
+      speed:previewWalking?5:anim.speed,accel:previewWalking?0:anim.accel,moveAng:anim.moveAng,teleported:anim.teleported,aiming:anim.aiming,impact:anim.impact,
       stance,crouching:stance==='crouch',prone:stance==='prone',stanceChangedAt:+_playerStance.changedAt||0,
       hp: _LOCAL_PREVIEW&&_UP.has('previewlimp')?20:Math.max(0,+myHp||0),
       dead:arrest?((arrest.peaceful||arrest.voluntary)?['awaiting_pickup','downed','unloading'].includes(arrestPhase):['awaiting_pickup','downed','cuffing','unloading'].includes(arrestPhase)):!!myDead,
@@ -67960,6 +67960,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d387-alternating-stance-cycle"></script>
+<script type="module" src="three_preview.js?v=3d388-distance-locked-gait"></script>
 </body>
 </html>

@@ -1718,3 +1718,16 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   rebuild marker sites whenever a server map-size change rebuilds `MAP`.
 - Expose a bounded invalid-holding counter for regression QA. This adds no
   render-loop scan: validation happens only when empire/property state changes.
+
+## Distance-locked player gait cadence (2026-08-13, v388)
+
+- Do not drive the 3D player's foot phase from joystick magnitude. Input intent
+  ignores collisions, status multipliers and authoritative position changes,
+  so feet can lag, overrun or keep stepping against a wall.
+- Integrate the cached gait phase from measured world speed. At zero actual
+  displacement the phase freezes; faster travel advances it proportionally.
+  Smooth only speed and gait amplitude, not an externally supplied phase, to
+  avoid visible discontinuities when movement modifiers change.
+- Low stances already move more slowly in gameplay, so do not slow the phase a
+  second time for prone or crouch. Keep only the intentional limp cadence
+  modifier and expose `playerCadence=distance-locked:<speed>:<rate>` for QA.
