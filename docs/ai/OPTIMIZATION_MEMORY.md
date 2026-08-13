@@ -1748,6 +1748,22 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   308 through the shared pool because four bank/black-market doors retain their
   richer existing actors, and completed a resident exit with no frame error or
   startup fallback.
+
+## Empire ownership is a skin, never replacement geometry (2026-08-13, v390)
+
+- A headquarters or converted business must retain the exact streamed building
+  footprint, height, facade texture, windows, roof and collision. Ownership may
+  tint the existing wall material and add pooled flags/signage, but must never
+  place a miniature second facade or low box on the roof.
+- Resolve the already-created wall materials from `buildingPickables` only when
+  an ownership signature changes. Cache their original color, emissive,
+  roughness and metalness in a `WeakMap`, then restore them when a marker is
+  recycled, sold or transferred; no building scan or material mutation belongs
+  in the ordinary per-frame path.
+- Keep the old bounded marker geometry hidden during migration so stale cached
+  signatures cannot flash it for one frame. Runtime QA must expose zero visible
+  mini-facades and at least one skinned original building in the ownership
+  fixture before publication.
 ## 2026-08-13 — Штурм штаба: видимая баллистика и большой интерьер
 
 - Для коротких 3D-интерьеров нельзя напрямую использовать экстремальную скорость уникального оружия босса: пуля может пролететь между двумя кадрами. У штурмовой охраны скорость визуального полёта ограничена диапазоном `11.5..15.5` клетки/с, и это же значение используется для задержки фактического попадания. Поэтому трассер и потеря HP происходят в одном порядке.

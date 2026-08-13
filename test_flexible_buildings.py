@@ -49,12 +49,13 @@ def test_visual_qa_fixture_is_local_only_and_covers_npc_owners() -> None:
     assert "buildingPurposeFixture" in fixture
 
 
-def test_facades_stay_bounded_and_have_mounted_signage() -> None:
+def test_ownership_preserves_full_building_geometry_and_changes_only_skin() -> None:
     assert "const EMPIRE_FLAG_CAP=64" in THREE
-    assert "facadeSign=new THREE.Mesh" in THREE
-    assert "map:texture" in THREE
-    assert "profileMeshes.beer_bar" in THREE
-    assert "profileMeshes.print_shop" in THREE
+    assert "applyEmpireBuildingSkin" in THREE
+    assert "restoreEmpireBuildingSkin" in THREE
+    assert "empireSkinMaterialsAt" in THREE
+    assert "marker.facade.visible=false" in THREE
+    assert "preserved-original-3d-skin-only-v390" in THREE
 
 
 def test_converted_interiors_have_current_design_profile() -> None:
