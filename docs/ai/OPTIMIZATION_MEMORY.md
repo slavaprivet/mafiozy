@@ -32,6 +32,20 @@
   is introduced; only cached instance matrices change. The Three.js module
   query key must advance with this renderer change.
 
+## Bounded resident building-route spikes (2026-08-13, v393)
+
+- Resident building visits use a directed search capped at 1,200 nodes. During
+  initial population creation or synchronized waypoint arrivals, many actors
+  could request that larger search in the same simulation frame, producing a
+  visible main-thread stall even though each individual route was bounded.
+- Admit at most one new building-visit route per NPC simulation frame. A
+  deferred resident immediately retains the normal ambient waypoint path and
+  may choose a building on a later waypoint; active routes, movement speed,
+  door animation and population density are unchanged.
+- Door animation diagnostics are telemetry, not gameplay state. Publish the
+  moving-door count through the existing 250 ms cadence instead of assigning a
+  DOM dataset field every rendered frame.
+
 ## Streamed guards for NPC-owned holdings (2026-08-13)
 
 - Keep the authoritative guard roll on the server holding snapshot. A SHA-256

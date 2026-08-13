@@ -8936,7 +8936,7 @@ function _npcAdvanceRoute(npc,dt,speed,passFn=npcPassable) {
 const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
 let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
 const _residentDoorByBuildingTile=new Map(),_residentDoorBySource=new Map(),_activeResidentDoorVisuals=new Map();
-let _residentDoorAnimationCount=0;
+let _residentDoorAnimationCount=0,_residentBuildingRouteBudget=1,_residentBuildingRouteDeferred=0;
 function _isRespawnableResident(npc) {
   return !!npc&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
     !npc._empireCrew&&!npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
@@ -9042,6 +9042,11 @@ function _maybePlanResidentBuildingVisit(npc) {
   const routine=npc._npcRoutine||_npcRoutineFor(npc,getGameHour());
   const visitChance=['home','work','study','errands'].includes(routine) ? .26 : (routine==='rest' ? .18 : .09);
   if(!_residentCanVisitBuilding(npc,now)||Math.random()>visitChance)return false;
+  // Population creation and synchronized waypoint arrivals can ask many
+  // residents for a route in one simulation frame. Keep the authored visits,
+  // but spread their larger directed searches across frames.
+  if(_residentBuildingRouteBudget<=0){_residentBuildingRouteDeferred++;return false;}
+  _residentBuildingRouteBudget--;
   let candidates=_residentBuildingDoors().filter(d=>{
     const dist=Math.hypot(d.r-npc.r,d.c-npc.c);return d.residentEligible!==false&&dist>=2&&dist<=11;
   }).sort((a,b)=>Math.hypot(a.r-npc.r,a.c-npc.c)-Math.hypot(b.r-npc.r,b.c-npc.c)).slice(0,8);
@@ -15396,6 +15401,7 @@ function triggerNpcPanic(srcR, srcC, radius, eventKind='bullet') {
 
 function updateNpcs(dt) {
   const now = performance.now();
+  _residentBuildingRouteBudget=1;
   _syncEmpireBossCrews(now);
   _syncEmpireHoldingGuards(now);
   _tickPoliceMissions(now);
@@ -68257,6 +68263,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d392-boss-war-target-label"></script>
+<script type="module" src="three_preview.js?v=3d393-bounded-resident-door-routes"></script>
 </body>
 </html>
