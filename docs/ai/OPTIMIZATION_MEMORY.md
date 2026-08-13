@@ -1503,3 +1503,16 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Put `acquiredAt` in both exterior and interior signatures. A conversion then
   invalidates exactly one cached skin without polling, extra timers, retained
   meshes, or a second disposal path.
+
+## Interior E purchase and camera zoom (2026-08-13, v379)
+
+- Route vacant-building purchase through the existing 140 ms bounded nearby
+  interaction scan. The hidden legacy button remains the touch fallback, while
+  keyboard 3D uses the same `E` prompt and authoritative purchase handler.
+- Keep headquarters as the first purpose card. An existing HQ is a visible,
+  animated denial state rather than a missing option, while the server remains
+  the final owner/HQ-limit authority.
+- Interior wheel zoom owns one cached scalar and reuses the orthographic camera.
+  Clamp it to 0.45–1.70, reset it only when the authored room key changes, and
+  restore the independent world zoom on exit. No controls object, listener per
+  room, scene traversal, or per-frame allocation is needed.

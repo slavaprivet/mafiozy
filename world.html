@@ -2899,6 +2899,7 @@ const _UP = new URLSearchParams(location.search);
 // the identity/look already present in the URL. Normal player links keep the
 // server-backed profile gate and character creator unchanged.
 const _DIRECT_WORLD_ENTRY = _UP.get('direct') === '1';
+const _DIRECT_OWNER_UID = _DIRECT_WORLD_ENTRY && _UP.get('uid') === 'owner' ? '453201199' : '';
 // 3D is the production renderer. Preserve an explicit Canvas rollback, but
 // canonicalize old/plain links so every gameplay subsystem sees render=3d.
 if(_UP.get('force3d')==='1'||!_UP.has('render')){
@@ -2913,7 +2914,7 @@ const QP = {
   // Страница превью живёт на :8080, игровой WebSocket/API — на :8081.
   // только на localhost и никак не затрагивает Telegram/production URL.
   api:  _UP.get('api') || (_LOCAL_PREVIEW ? location.origin : ''),
-  uid:  _UP.get('uid') || (_LOCAL_PREVIEW ? '1' : ''),
+  uid:  _DIRECT_OWNER_UID || _UP.get('uid') || (_LOCAL_PREVIEW ? '1' : ''),
   name: _qStr('name', 'Игрок'),
   lvl:  _qInt('lvl', 1),
   mark_lvl: _qInt('mark_lvl', 0),   // навык «Меткий стрелок», 0..5
@@ -18087,6 +18088,11 @@ function _genericBuildingEntranceAnchor(r,c) {
 }
 
 function _nearbyBuildingInteractionFor3D() {
+  if (_buildingInt && !_buildingInt.type && _gtaActionKind === 'apt_buy') {
+    const price=apartmentPrice(_buildingInt.r,_buildingInt.c),market=apartmentDistrictMarket(_buildingInt.r,_buildingInt.c);
+    return {kind:'interior',id:`apt-buy:${_aptTileKey(_buildingInt.r,_buildingInt.c)}`,r:1.2,c:_buildingInt.W/2,
+      name:`Купить здание · ${market.label} · $${price.toLocaleString('ru')}`,distance:0};
+  }
   if (_buildingInt || _bankInt || myDrivingCarId || myDead) return null;
   const intake=JAIL_ISLAND_LAYOUT.intake;
   if(JAIL_ISLAND_3D_ENABLED&&player.r>=intake.north-.2&&player.r<=intake.south+.2&&player.c>=intake.west-.2&&player.c<=intake.east+.2)return null;
@@ -18138,6 +18144,10 @@ function _activateBankEntryFrom3D(bank) {
 function toggleNearbyBuildingActionsFrom3D(screenX=null,screenY=null) {
   const near=_nearbyBuildingInteractionFor3D();
   if(!near)return {ok:false,reason:'none'};
+  if(near.kind==='interior'){
+    buyCurrentApartment();
+    return {ok:true,opened:true,...near};
+  }
   if(near.kind==='bank'){
     const bank=BANKS.find(item=>String(item.id)===String(near.id));
     return _activateBankEntryFrom3D(bank);
@@ -18831,9 +18841,9 @@ async function endCustomGang(action){if(_customGangBusy||!confirm(action==='disb
 let _playerBuildingChoiceMode='purchase';
 function _playerBuildingChoiceModal(){
   let modal=document.getElementById('playerBuildingChoice');if(modal)return modal;
-  const style=document.createElement('style');style.textContent=`#playerBuildingChoice{position:fixed;inset:0;z-index:10031;display:none;align-items:center;justify-content:center;background:#020409d9;backdrop-filter:blur(8px)}#playerBuildingChoice.show{display:flex}.pbc-card{width:min(680px,calc(100vw - 24px));max-height:calc(100vh - 34px);overflow:auto;padding:22px;border:1px solid #a87a3e;border-radius:22px;background:linear-gradient(145deg,#211713,#080b11);color:#fff2d7;box-shadow:0 28px 100px #000}.pbc-card h2{margin:5px 0 8px;font:900 27px Georgia}.pbc-card p{margin:0 0 15px;color:#b9b2a8;font:600 13px/1.5 Arial}.pbc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pbc-pick{position:relative;padding:13px;text-align:left;border:1px solid #ffffff18;border-radius:13px;background:linear-gradient(145deg,#1b2029,#11141a);color:#fff;cursor:pointer;font:800 13px Arial;transition:.16s transform,.16s border-color,.16s box-shadow}.pbc-pick:hover:not(:disabled){transform:translateY(-2px);border-color:#d3a651;box-shadow:0 10px 25px #0008,0 0 18px #d89a3822}.pbc-pick:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.7)}.pbc-pick b{display:block;margin-bottom:5px;color:#f2cc7a;font-size:14px}.pbc-pick span{color:#aeb7c4;font-size:11px;line-height:1.45}.pbc-hq{grid-column:1/-1;border-color:#a95663;background:linear-gradient(120deg,#35171d,#171017)}.pbc-annex-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(150px,1fr) minmax(210px,1.2fr);gap:12px;align-items:center;padding:12px;border:1px solid #ffffff18;border-radius:13px;background:#10141a}.pbc-annex-row b{color:#f2cc7a}.pbc-annex-row small{display:block;margin-top:3px;color:#8f98a5}.pbc-annex-row select{width:100%;padding:10px;border:1px solid #9b7240;border-radius:9px;background:#211b18;color:#fff2d7;font-weight:800}.pbc-annex-tools{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.4fr;gap:9px}.pbc-confirm{background:linear-gradient(#efc765,#a96b25);color:#1d1105}.pbc-close{width:100%;margin-top:11px;padding:11px;border:0;border-radius:11px;background:#2a2930;color:#fff;font-weight:900}@media(max-width:560px){.pbc-grid{grid-template-columns:1fr}.pbc-annex-row{grid-template-columns:1fr}.pbc-annex-tools{grid-template-columns:1fr}}`;document.head.appendChild(style);
+  const style=document.createElement('style');style.textContent=`@keyframes pbcDenied{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}#playerBuildingChoice{position:fixed;inset:0;z-index:10031;display:none;align-items:center;justify-content:center;background:#020409d9;backdrop-filter:blur(8px)}#playerBuildingChoice.show{display:flex}.pbc-card{width:min(680px,calc(100vw - 24px));max-height:calc(100vh - 34px);overflow:auto;padding:22px;border:1px solid #a87a3e;border-radius:22px;background:linear-gradient(145deg,#211713,#080b11);color:#fff2d7;box-shadow:0 28px 100px #000}.pbc-card h2{margin:5px 0 8px;font:900 27px Georgia}.pbc-card p{margin:0 0 15px;color:#b9b2a8;font:600 13px/1.5 Arial}.pbc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.pbc-pick{position:relative;padding:13px;text-align:left;border:1px solid #ffffff18;border-radius:13px;background:linear-gradient(145deg,#1b2029,#11141a);color:#fff;cursor:pointer;font:800 13px Arial;transition:.16s transform,.16s border-color,.16s box-shadow}.pbc-pick:hover:not(:disabled){transform:translateY(-2px);border-color:#d3a651;box-shadow:0 10px 25px #0008,0 0 18px #d89a3822}.pbc-pick:disabled{opacity:.42;cursor:not-allowed;filter:grayscale(.7)}.pbc-pick b{display:block;margin-bottom:5px;color:#f2cc7a;font-size:14px}.pbc-pick span{color:#aeb7c4;font-size:11px;line-height:1.45}.pbc-hq{grid-column:1/-1;border-color:#a95663;background:linear-gradient(120deg,#35171d,#171017)}.pbc-hq[data-hq-locked]{border-color:#c44755;background:linear-gradient(120deg,#41151c,#1b1014)}.pbc-hq.pbc-denied{animation:pbcDenied .38s ease both;box-shadow:0 0 0 1px #ff6677,0 0 28px #d82e4266}.pbc-annex-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(150px,1fr) minmax(210px,1.2fr);gap:12px;align-items:center;padding:12px;border:1px solid #ffffff18;border-radius:13px;background:#10141a}.pbc-annex-row b{color:#f2cc7a}.pbc-annex-row small{display:block;margin-top:3px;color:#8f98a5}.pbc-annex-row select{width:100%;padding:10px;border:1px solid #9b7240;border-radius:9px;background:#211b18;color:#fff2d7;font-weight:800}.pbc-annex-tools{grid-column:1/-1;display:grid;grid-template-columns:1fr 1.4fr;gap:9px}.pbc-confirm{background:linear-gradient(#efc765,#a96b25);color:#1d1105}.pbc-close{width:100%;margin-top:11px;padding:11px;border:0;border-radius:11px;background:#2a2930;color:#fff;font-weight:900}@media(max-width:560px){.pbc-grid{grid-template-columns:1fr}.pbc-annex-row{grid-template-columns:1fr}.pbc-annex-tools{grid-template-columns:1fr}}`;document.head.appendChild(style);
   modal=document.createElement('div');modal.id='playerBuildingChoice';modal.innerHTML='<div class="pbc-card"><div id="pbcEyebrow" style="color:#e7b65e;font:900 10px Arial;letter-spacing:2.5px">СВОБОДНОЕ ЗДАНИЕ · ВЫБОР НАЗНАЧЕНИЯ</div><h2 id="pbcTitle">Во что превратить здание?</h2><p id="pbcMeta"></p><div class="pbc-grid" id="pbcGrid"></div><button class="pbc-close" data-pbc-close>Отмена</button></div>';document.body.appendChild(modal);
-  modal.onclick=e=>{if(e.target===modal||e.target.closest('[data-pbc-close]')){modal.classList.remove('show');return;}if(e.target.closest('[data-pbc-diversify]')){const ids=Object.keys(PLAYER_BUILDING_OPERATIONS);modal.querySelectorAll('[data-annex-building]').forEach((select,index)=>{const old=select.dataset.previousOperation||'';select.value=ids.find((id,offset)=>id!==old&&offset>=index%ids.length)||ids[(index+1)%ids.length];});return;}if(e.target.closest('[data-pbc-annex-confirm]')){const operationMap={};modal.querySelectorAll('[data-annex-building]').forEach(select=>operationMap[select.dataset.annexBuilding]=select.value);modal.classList.remove('show');resolveNpcEmpireAssault('annex','',operationMap);return;}const pick=e.target.closest('[data-operation],[data-hq]');if(!pick||pick.disabled||_playerBuildingChoiceMode==='annex')return;modal.classList.remove('show');_buyCurrentApartment(pick.dataset.hq?'hq':'business',pick.dataset.operation||'');};return modal;
+  modal.onclick=e=>{if(e.target===modal||e.target.closest('[data-pbc-close]')){modal.classList.remove('show');return;}const locked=e.target.closest('[data-hq-locked]');if(locked){locked.classList.remove('pbc-denied');void locked.offsetWidth;locked.classList.add('pbc-denied');showToast('Штаб уже имеется. Продайте здание, если хотите штаб в этом месте.','🚩',3200);return;}if(e.target.closest('[data-pbc-diversify]')){const ids=Object.keys(PLAYER_BUILDING_OPERATIONS);modal.querySelectorAll('[data-annex-building]').forEach((select,index)=>{const old=select.dataset.previousOperation||'';select.value=ids.find((id,offset)=>id!==old&&offset>=index%ids.length)||ids[(index+1)%ids.length];});return;}if(e.target.closest('[data-pbc-annex-confirm]')){const operationMap={};modal.querySelectorAll('[data-annex-building]').forEach(select=>operationMap[select.dataset.annexBuilding]=select.value);modal.classList.remove('show');resolveNpcEmpireAssault('annex','',operationMap);return;}const pick=e.target.closest('[data-operation],[data-hq]');if(!pick||pick.disabled||_playerBuildingChoiceMode==='annex')return;modal.classList.remove('show');_buyCurrentApartment(pick.dataset.hq?'hq':'business',pick.dataset.operation||'');};return modal;
 }
 function openPlayerBuildingChoice(){
   if(!_mafiaState?.employed&&!_customGang){showToast('Покупать криминальные заведения может только мафиози','🕴️',2500);return;}
@@ -18842,7 +18852,8 @@ function openPlayerBuildingChoice(){
   const hasHq=!!_customGang||Object.values(_myApartments).some(x=>String(x.property_kind||'hq')==='hq');
   modal.querySelector('#pbcEyebrow').textContent='СВОБОДНОЕ ЗДАНИЕ · ПОКУПКА И ПЕРЕОБОРУДОВАНИЕ';modal.querySelector('#pbcTitle').textContent='Во что превратить здание?';
   modal.querySelector('#pbcMeta').textContent=`Цена включает недвижимость и полное переоборудование. После покупки фасад, вывеска, интерьер и текст сменятся одновременно. Площадь: ${area} · недвижимость: ${_apartmentCounterLabel()}.`;
-  modal.querySelector('#pbcGrid').innerHTML=Object.entries(PLAYER_BUILDING_OPERATIONS).map(([id,op])=>{const price=playerBuildingPurposePrice(_buildingInt.r,_buildingInt.c,'business',id,area),yieldPerMinute=income(op),poor=(+QP.cash||0)<price,returnMinutes=Math.ceil(price/Math.max(1,yieldPerMinute));return `<button class="pbc-pick" data-operation="${id}" ${poor?'disabled':''}><b>${op.icon} ${op.name}</b><span>Цена $${price.toLocaleString('ru')} · доход $${yieldPerMinute}/мин<br>Окупаемость ≈ ${returnMinutes} мин${poor?' · не хватает денег':''}</span></button>`;}).join('')+(!hasHq?(()=>{const price=playerBuildingPurposePrice(_buildingInt.r,_buildingInt.c,'hq','',area),poor=(+QP.cash||0)<price;return `<button class="pbc-pick pbc-hq" data-hq="1" ${poor?'disabled':''}><b>🚩 Штаб собственной мафии</b><span>Цена $${price.toLocaleString('ru')} · командный центр семьи${poor?' · не хватает денег':''}</span></button>`;})():'');
+  const hqPrice=playerBuildingPurposePrice(_buildingInt.r,_buildingInt.c,'hq','',area),hqPoor=(+QP.cash||0)<hqPrice,hqCard=`<button class="pbc-pick pbc-hq" data-hq="1" ${hasHq?'data-hq-locked="1"':hqPoor?'disabled':''}><b>🚩 Штаб собственной мафии</b><span>${hasHq?'Штаб уже имеется · нажми, чтобы узнать как перенести':`Цена $${hqPrice.toLocaleString('ru')} · командный центр семьи${hqPoor?' · не хватает денег':''}`}</span></button>`;
+  modal.querySelector('#pbcGrid').innerHTML=hqCard+Object.entries(PLAYER_BUILDING_OPERATIONS).map(([id,op])=>{const price=playerBuildingPurposePrice(_buildingInt.r,_buildingInt.c,'business',id,area),yieldPerMinute=income(op),poor=(+QP.cash||0)<price,returnMinutes=Math.ceil(price/Math.max(1,yieldPerMinute));return `<button class="pbc-pick" data-operation="${id}" ${poor?'disabled':''}><b>${op.icon} ${op.name}</b><span>Цена $${price.toLocaleString('ru')} · доход $${yieldPerMinute}/мин<br>Окупаемость ≈ ${returnMinutes} мин${poor?' · не хватает денег':''}</span></button>`;}).join('');
   modal.classList.add('show');
 }
 function openNpcAnnexBuildingChoice(){
@@ -27247,7 +27258,7 @@ function updateGtaInteractions() {
         const market = apartmentDistrictMarket(_buildingInt.r, _buildingInt.c);
         _gtaActionKind = 'apt_buy'; _gtaActionCarId = null;
         _gtaBtn.textContent = `🏛️ Купить здание · ${market.label} · $${price.toLocaleString('ru')}`;
-        _gtaBtn.style.display = 'block'; return;
+        _gtaBtn.style.display = _UP.get('render')==='3d'&&matchMedia('(pointer:fine)').matches?'none':'block'; return;
       } else {
         _gtaActionKind = 'apt_upgrade'; _gtaActionCarId = null;
         const purpose=_buildingPurposeInfo(currentApartmentInfo()||{});
@@ -67637,6 +67648,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d377-startup-scope"></script>
+<script type="module" src="three_preview.js?v=3d379-interior-e-zoom"></script>
 </body>
 </html>

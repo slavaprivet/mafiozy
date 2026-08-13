@@ -19,7 +19,7 @@ def run() -> None:
     assert "const state=playerFrameState=bridge.getPlayerState()" in THREE
     assert "!!playerFrameState?.prone" in THREE
     assert "!!playerFrameState?.crouching" in THREE
-    assert "three_preview.js?v=3d377-startup-scope" in WORLD
+    assert "three_preview.js?v=3d379-interior-e-zoom" in WORLD
 
 
 if __name__ == "__main__":

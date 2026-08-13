@@ -66,6 +66,24 @@ def test_converted_interiors_have_current_design_profile() -> None:
     assert "purpose-v2:${Math.round(now/1000)}" in WORLD
 
 
+def test_vacant_building_purchase_uses_e_and_hq_is_first() -> None:
+    assert "_DIRECT_OWNER_UID" in WORLD and "? '453201199' : ''" in WORLD
+    assert "_gtaActionKind === 'apt_buy'" in WORLD
+    assert "kind:'interior',id:`apt-buy:" in WORLD
+    assert "if(near.kind==='interior')" in WORLD
+    assert "matchMedia('(pointer:fine)').matches?'none':'block'" in WORLD
+    assert "innerHTML=hqCard+Object.entries(PLAYER_BUILDING_OPERATIONS)" in WORLD
+    assert "data-hq-locked" in WORLD and "pbcDenied" in WORLD
+    assert "Штаб уже имеется. Продайте здание" in WORLD
+
+
+def test_interior_camera_zoom_is_bounded_and_restores_world_zoom() -> None:
+    assert "interiorZoom=1.08" in THREE
+    assert "THREE.MathUtils.clamp(interiorZoom+(e.deltaY<0?.08:-.08),.45,1.7)" in THREE
+    assert "dataset.interiorZoom=interiorZoom.toFixed(2)" in THREE
+    assert "camera.zoom=worldZoom" in THREE
+
+
 if __name__ == "__main__":
     tests = [value for name, value in sorted(globals().items()) if name.startswith("test_")]
     for test in tests:
