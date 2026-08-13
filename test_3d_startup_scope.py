@@ -19,7 +19,10 @@ def run() -> None:
     assert "const state=playerFrameState=bridge.getPlayerState()" in THREE
     assert "!!playerFrameState?.prone" in THREE
     assert "!!playerFrameState?.crouching" in THREE
-    assert "three_preview.js?v=3d388-distance-locked-gait" in WORLD
+    assert "three_preview.js?v=3d393-bounded-resident-door-routes" in WORLD
+    assert "_residentBuildingRouteBudget=1" in WORLD
+    assert "if(_residentBuildingRouteBudget<=0)" in WORLD
+    assert "if(telemetryDue){renderer.domElement.dataset.buildingDoorMoving" in THREE
 
 
 if __name__ == "__main__":
