@@ -1561,3 +1561,24 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   must observe one `fallback-render` and then `recovered`, with movement and
   subsequent full frames continuing. This guard is not a substitute for fixing
   the recorded root exception.
+
+## NPC building capture revenue and eight-way skins (2026-08-13)
+
+- A converted generic building stores income per minute, unlike legacy landmark
+  businesses. The five-minute empire tick must credit `income * 5` for building
+  holdings; never pass that value through the legacy `/288` daily-scale divisor.
+- Choose an NPC conversion from the complete shared eight-operation table. Keep
+  the roll deterministic from leader, building and capture nonce so concurrent
+  clients and replayed ticks agree; a takeover rerolls against the other seven
+  operations so ownership and the visible venue actually change together.
+- Carry the same authoritative `operation_type`, income and acquisition time
+  through the existing bounded exterior flag/facade snapshot and the entered
+  interior snapshot. Exterior refreshes must preserve the local QA fixture, but
+  production still rebuilds only a changed marker signature and one entered
+  static room—no new render-loop scan, mesh allocation or polling path.
+- Disposable-SQLite QA configured one overwhelming NPC attacker, ran real
+  five-minute war ticks until it captured a rival building, verified atomic
+  owner/type/area/income/time mutation, then verified the next treasury delta.
+  One-tab 3D QA loaded all eight NPC operations; every case reported
+  `purpose-v3:business:<operation>` and the matching owner/type skin with no
+  startup fallback or Three.js error.

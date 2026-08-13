@@ -243,9 +243,10 @@ def building_purchase_price(shell_price: int, property_kind: str,
 
 def choose_building_operation(profile: EmpireProfile, building_key: str,
                               capture_nonce: int = 0) -> str:
-    preferred = ('gun_shop','chop_shop','poker_club','strip_club') if profile.aggression >= 70 else ('print_shop','poker_club','strip_club','bookmaker') if profile.commerce >= 84 else tuple(BUILDING_OPERATIONS)
+    """Choose one of all eight skins with a replay-safe server random roll."""
+    operations = tuple(BUILDING_OPERATIONS)
     seed = int.from_bytes(hashlib.sha256(f'{profile.leader_id}:{building_key}:{capture_nonce}'.encode()).digest()[:4], 'big')
-    return preferred[seed % len(preferred)]
+    return operations[seed % len(operations)]
 
 
 def choose_captured_building_operation(profile: EmpireProfile, building_key: str,
@@ -261,6 +262,21 @@ def choose_captured_building_operation(profile: EmpireProfile, building_key: str
         f'rebrand:{profile.leader_id}:{building_key}:{capture_nonce}'.encode()
     ).digest()[:4], 'big')
     return alternatives[seed % len(alternatives)]
+
+
+def empire_holding_income_per_tick(holdings) -> int:
+    """Return authoritative revenue for one five-minute empire tick.
+
+    Converted generic buildings advertise and store income per minute.  Legacy
+    landmark businesses keep their older daily-scale values, so the two kinds
+    must not be passed through the same divisor.
+    """
+    minutes = max(1, TICK_SECONDS // 60)
+    building_income = sum(int(item['income'] or 0) for item in holdings
+                          if str(item['kind']) == 'building')
+    legacy_income = sum(int(item['income'] or 0) for item in holdings
+                        if str(item['kind']) == 'business')
+    return building_income * minutes + legacy_income // 288
 
 
 async def _player_owned_building_keys(db) -> set[str]:
@@ -1145,7 +1161,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 "SELECT kind,holding_id,income,defense,operation_type,area FROM npc_empire_holdings WHERE leader_id=?",
                 (leader_id,),
             )).fetchall()
-            per_tick = 18 + profile.commerce // 3 + sum(int(h['income'] or 0) for h in holdings) // 288
+            per_tick = 18 + profile.commerce // 3 + empire_holding_income_per_tick(holdings)
             upkeep = max(4, int(row['members'] or 0) * 3)
             treasury = max(0, int(row['treasury'] or 0) + ticks * (per_tick - upkeep))
             members = max(1, int(row['members'] or 1))
