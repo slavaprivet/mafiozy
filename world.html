@@ -17110,6 +17110,9 @@ let _apartmentStateLoaded = false;
 let _customGang = null;
 let _customGangHqs = [];
 let _playerBuildingProperties = [];
+// Deterministic local-only visual fixture. It never enters the profile/status
+// pipeline and therefore cannot replace server-authoritative ownership data.
+let _previewBuildingPurposeOverride = null;
 let _customGangBusy = false;
 let _npcEmpires = [];
 let _npcEmpireEvents = [];
@@ -17269,8 +17272,24 @@ function _buildingPurposeInfo(info={}){
 }
 function _buildingPropertyAt(r,c){
   const ownKey=_apartmentOwnedKey(r,c),own=ownKey&&_myApartments[ownKey];if(own)return {...own,apt_key:ownKey,owned:true};
-  const blockKey=_legacyAptBlockKey(r,c),found=(_playerBuildingProperties||[]).find(x=>String(x.apt_key||'')===_aptTileKey(r,c)||String(x.building_key||'')===blockKey);
-  return found?{...found,owned:String(found.owner_uid||'')===String(QP.uid||'preview')}:null;
+  const blockKey=_legacyAptBlockKey(r,c),tileKey=_aptTileKey(r,c),found=(_playerBuildingProperties||[]).find(x=>String(x.apt_key||'')===tileKey||String(x.building_key||'')===blockKey);
+  if(found)return {...found,owned:String(found.owner_uid||'')===String(QP.uid||'preview')};
+  if(_LOCAL_PREVIEW&&_previewBuildingPurposeOverride&&String(_previewBuildingPurposeOverride.building_key||'')===blockKey)return {..._previewBuildingPurposeOverride};
+  // NPC buildings use the same purpose resolver as player buildings. This is
+  // essential for the interior: the exterior marker alone is not enough when
+  // a boss converts a generic shell into a headquarters or an operation.
+  for(const empire of (_npcEmpires||[])){
+    if(!empire||empire.status==='ruined')continue;
+    const holding=(empire.holdings||[]).find(item=>{
+      const kind=String(item?.kind||'');
+      if(kind==='hq')return String(item.holding_id||empire.hq_key||'')===blockKey||String(empire.hq_key||'')===blockKey;
+      return kind==='building'&&String(item.holding_id||'')===blockKey;
+    });
+    if(!holding)continue;
+    const isHq=String(holding.kind||'')==='hq',operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
+    return {apt_key:`npc:${empire.leader_id||'boss'}:${blockKey}`,building_key:blockKey,property_kind:isHq?'hq':'business',operation_type:isHq?'':String(holding.operation_type||''),operation_name:isHq?'':String(holding.operation_name||operation.name||'Криминальный бизнес'),operation_icon:isHq?'':String(holding.operation_icon||operation.icon||'🏴'),income_per_minute:Math.min(200,Math.max(0,+holding.income||0)),owner_uid:`npc:${empire.leader_id||'boss'}`,owner_name:String(empire.leader_name||'NPC-босс'),gang_name:String(empire.gang_name||'Криминальная семья'),color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67'),owned:false,npc_owned:true};
+  }
+  return null;
 }
 function drawOwnedApartmentWorldMarkers(r0, r1, c0, c1) {
   const pulse = (Math.sin(performance.now() * 0.0045) + 1) * 0.5;
@@ -17344,7 +17363,7 @@ function _rebuildNpcEmpireFlagSites(){
     if(!empire||empire.status==='ruined')continue;
     for(const holding of (empire.holdings||[])){
       const point=_npcEmpireHoldingPoint(empire,holding);if(!point)continue;
-      const operation=_npcEmpireOperationFallbacks[holding.operation_type]||{};
+      const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
       sites.push({leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),holdingId:String(holding.holding_id||''),kind:String(holding.kind||'building'),isHq:holding.kind==='hq',r:point.r,c:point.c,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income||0))});
     }
   }
@@ -31446,9 +31465,6 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
   for (const entry of damageByCar.values()) {
     _damageCarByShotgun(entry.hits, _currentShotDamage(entry.damage));
   }
-  for (const hit of damagedProps.values()) {
-    _hitCasinoProp(hit.prop, 'shotgun', hit.r, hit.c);
-  }
   // Семь трассеров остаются отдельными, но близкие точки удара об стену
   // объединяются максимум в три вспышки — без пачки таймеров и частиц.
   const impactCount = Math.min(3, wallImpacts.length);
@@ -31462,7 +31478,7 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
     `shotgun:${pellets}:hits${pelletHits}:cars${damageByCar.size}:walls${wallImpacts.length}`;
   // У дробовика уже есть сильная отдача, вспышка, тряска и вибрация.
   // Искусственная остановка симуляции выглядела как лаг в момент выстрела.
-  if (damageByTarget.size || damageByCar.size || damagedProps.size || remoteHit) hapticHit();
+  if (damageByTarget.size || damageByCar.size || remoteHit) hapticHit();
 }
 
 function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
@@ -58601,7 +58617,7 @@ function _drawConvertedBusinessInterior2D(bi,info){
   else if(op==='chop_shop'){for(const c of [W*.35,W*.65])box(H*.5,c,H-5,.8,.35,'#e47c32');box(H*.5,W/2,7,3.5,1.35,'#395f78');box(2.3,3,2.1,5,1.15,'#76503a');}
   else if(op==='poker_club'){for(const [r,c] of [[4,4],[4,W-4],[H-4,4],[H-4,W-4]])box(r,c,3.7,3.7,.7,'#236843');}
   else{for(const c of [W*.25,W*.5,W*.75])box(H*.45,c,4.7,3.6,1.3,'#71808a');for(let i=0;i<6;i++)box(H-3,2.5+i*2,.9,1.5,.4,'#e2ddcf');}
-  props.push({d:1,fn:()=>{const p=w2s(1.2,W/2),label=`${purpose.icon} ${purpose.name.toUpperCase()} · $${+info.income_per_minute||0}/МИН`;ctx.font='900 14px Arial';ctx.textAlign='center';const tw=ctx.measureText(label).width+28;ctx.fillStyle='rgba(5,8,12,.94)';ctx.strokeStyle=palette[1];ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-72,tw,30,10);ctx.fill();ctx.stroke();ctx.fillStyle='#fff2d8';ctx.fillText(label,p.x,p.y-52);}});_pushInteriorNpcs(bi,props);props.push({d:player.r+player.c+.6,person:true,fn:()=>{const p=w2s(player.r+.5,player.c+.5);drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);}});props.sort((a,b)=>a.d-b.d);for(const item of props)item.fn();drawAimLaser();drawBullets();drawMuzzles();drawImpacts();drawFloatTexts();const ep=w2s(H-.25,W/2);ctx.fillStyle='#78ff9b';ctx.font='900 10px system-ui';ctx.textAlign='center';ctx.fillText('ВЫХОД',ep.x,ep.y-5);document.documentElement.dataset.convertedBuilding2d=`${op}:purpose-v1:${Math.round(now/1000)}`;
+  props.push({d:1,fn:()=>{const p=w2s(1.2,W/2),label=`${purpose.icon} ${purpose.name.toUpperCase()} · $${+info.income_per_minute||0}/МИН`;ctx.font='900 14px Arial';ctx.textAlign='center';const tw=ctx.measureText(label).width+28;ctx.fillStyle='rgba(5,8,12,.94)';ctx.strokeStyle=palette[1];ctx.lineWidth=2;roundRect(p.x-tw/2,p.y-72,tw,30,10);ctx.fill();ctx.stroke();ctx.fillStyle='#fff2d8';ctx.fillText(label,p.x,p.y-52);}});_pushInteriorNpcs(bi,props);props.push({d:player.r+player.c+.6,person:true,fn:()=>{const p=w2s(player.r+.5,player.c+.5);drawPerson(p.x,p.y,player.ang,_livePlayerLook(),player.walkPhase,'Игрок',null,true,myHp,PVP.max_hp,false,null,false,myDead);}});props.sort((a,b)=>a.d-b.d);for(const item of props)item.fn();drawAimLaser();drawBullets();drawMuzzles();drawImpacts();drawFloatTexts();const ep=w2s(H-.25,W/2);ctx.fillStyle='#78ff9b';ctx.font='900 10px system-ui';ctx.textAlign='center';ctx.fillText('ВЫХОД',ep.x,ep.y-5);document.documentElement.dataset.convertedBuilding2d=`${op}:purpose-v2:${Math.round(now/1000)}`;
 }
 
 function drawBuildingInterior() {
@@ -62711,6 +62727,26 @@ window.Mafiozi3DBridge = Object.freeze({
     const poi=(typeof POI!=='undefined'?POI:[]).find(p=>p.id===String(id||''));
     if(!poi)return false;
     enterBuildingInterior(poi.r,poi.c,'business',`major_${poi.id}`,{peacefulMajorObjectId:poi.id});
+    return true;
+  },
+  previewEnterBuildingPurpose(operationType='vacant',ownerKind='player') {
+    if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+    if(_buildingInt)exitBuildingInterior();
+    const r=6,c=36,blockKey=_legacyAptBlockKey(r,c),operation=PLAYER_BUILDING_OPERATIONS[String(operationType||'')]||null,isHq=String(operationType||'')==='hq';
+    _npcEmpireFlagSites=(_npcEmpireFlagSites||[]).filter(site=>site.leaderId!=='preview:building-purpose');
+    _previewBuildingPurposeOverride=(isHq||operation)?{apt_key:`preview:${blockKey}`,building_key:blockKey,property_kind:isHq?'hq':'business',operation_type:operation?String(operationType):'',operation_name:operation?.name||'',operation_icon:operation?.icon||'',income_per_minute:operation?operation.base:0,owner_uid:ownerKind==='npc'?'npc:preview-boss':String(QP.uid||'preview'),owner_name:ownerKind==='npc'?'Тестовый NPC-босс':String(QP.name||'Игрок'),gang_name:ownerKind==='npc'?'Семья ночного города':'Семья игрока',color:isHq?'#8f2638':String(operation?.color||'#8f2638'),accent:'#f0c75e',owned:ownerKind!=='npc',npc_owned:ownerKind==='npc'}:null;
+    if(_previewBuildingPurposeOverride)_npcEmpireFlagSites.push({leaderId:'preview:building-purpose',leaderName:_previewBuildingPurposeOverride.owner_name,gangName:_previewBuildingPurposeOverride.gang_name,holdingId:blockKey,kind:isHq?'hq':'building',isHq,r:r+.5,c:c+.5,color:_previewBuildingPurposeOverride.color,accent:_previewBuildingPurposeOverride.accent,operationType:_previewBuildingPurposeOverride.operation_type,operationName:_previewBuildingPurposeOverride.operation_name,operationIcon:_previewBuildingPurposeOverride.operation_icon,incomePerMinute:_previewBuildingPurposeOverride.income_per_minute});
+    enterBuildingInterior(r,c,null,null,{W:16,H:12,seed:9331});
+    const state=this.getInteriorState();
+    document.documentElement.dataset.buildingPurposeFixture=`${ownerKind}:${isHq?'hq':operationType||'vacant'}`;
+    return {ok:true,fixture:document.documentElement.dataset.buildingPurposeFixture,state};
+  },
+  previewClearBuildingPurpose() {
+    if(!_LOCAL_PREVIEW)return false;
+    if(_buildingInt)exitBuildingInterior();
+    _previewBuildingPurposeOverride=null;
+    _npcEmpireFlagSites=(_npcEmpireFlagSites||[]).filter(site=>site.leaderId!=='preview:building-purpose');
+    delete document.documentElement.dataset.buildingPurposeFixture;
     return true;
   },
   previewApproachMajor(id) {

@@ -1367,3 +1367,24 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   states and pulses representative weapons, exercising gait fade and the full
   arm grip in one browser tab. The v371 static contract, prior NPC visual and
   anatomy contracts, life system, empire UI and all embedded scripts pass.
+
+## Purpose-driven generic buildings (2026-08-13, v372)
+
+- Resolve player and NPC ownership through one building-purpose lookup before
+  constructing either the 2D or 3D interior. Exterior-only ownership markers
+  are insufficient: an NPC operation otherwise falls through to the vacant or
+  legacy apartment decorator after entry.
+- Keep purpose facades in the existing bounded `EMPIRE_FLAG_CAP=64` pool. A
+  mounted sign can reuse the marker's existing canvas texture, so exterior
+  readability improves without another canvas, redraw timer or per-frame mesh
+  allocation. Operation silhouettes only toggle when the server signature
+  changes.
+- Create detailed venue props only when an interior is entered. Shared entrance
+  trim, wall branding and operation props are static for that interior session;
+  they do not participate in the city update loop. Visual lift equipment must
+  include supports so elevated cars read as intentional and not as floating
+  geometry.
+- The local `previewEnterBuildingPurpose(type, ownerKind)` fixture is strictly
+  gated by `_LOCAL_PREVIEW`. It may drive rendering QA for vacant, headquarters
+  and all eight operation types, but must never populate the status/profile
+  ownership fields used by normal play.
