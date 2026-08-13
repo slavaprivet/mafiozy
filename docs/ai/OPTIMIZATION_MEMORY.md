@@ -1987,3 +1987,18 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   `released:1.00`, returned the status to `Гражданский`, and logged no browser
   or Three.js errors. The noisy scene sample was 15 FPS / 51.1 ms frame work /
   30.1 ms render, so this package makes no FPS claim.
+
+## Joint-anchored prone player rig (2026-08-13, v399)
+
+- A capsule limb rotated around its mesh centre can visually tear away from the
+  torso at the extremes of a crawl stroke. Reuse one preallocated axis vector
+  to place each leg from a fixed hip anchor after rotation; do not add bones,
+  temporary vectors or a second animation pass.
+- One cached pelvis mesh bridges the torso and both thigh capsules for every
+  body profile. Keep the crawl roll and stroke restrained so the anchored hip
+  remains readable from the isometric camera.
+- Long guns move toward the firing shoulder and slightly forward only through
+  the existing stance transform, then both hand targets derive from the final
+  gun matrix. The
+  family-specific foregrip points remain allocation-free and keep shotgun,
+  rifle, SMG, sniper and RPG hands attached throughout the crawl cycle.
