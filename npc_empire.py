@@ -440,6 +440,20 @@ async def _player_business_targets(db, telegram_id: int) -> list[dict]:
             })
     except Exception:
         pass
+    # One indexed, player-scoped read supplies the exact defence snapshot used
+    # by target selection. Guard assignment and raid creation both take an
+    # IMMEDIATE transaction, so this score cannot race the persisted roster.
+    try:
+        guard_rows = await (await db.execute(
+            "SELECT holding_ref,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id=?",
+            (str(telegram_id),),
+        )).fetchall()
+        guards = {str(row[0]): max(0, int(row[1] or 0)) for row in guard_rows}
+    except Exception:
+        guards = {}
+    for target in targets:
+        target['guard_count'] = guards.get(str(target['ref']), 0)
     return sorted(targets, key=lambda item: (str(item['kind']), str(item['holding_id'])))
 
 
@@ -501,6 +515,113 @@ def allocate_physical_roster(*, side: str, roster_available: int, members: int,
         'guard_count': (1 + min(2, max(0, int(guard_level)) // 2)
                         if int(guard_level) >= 0 else 0),
     }
+
+
+async def _npc_attack_allocation(db, leader_id: str) -> dict | None:
+    """Return the paid, currently free assault roster for one family."""
+    profile = PROFILE_BY_ID.get(str(leader_id))
+    empire = await (await db.execute(
+        "SELECT members,strength,treasury FROM npc_empires WHERE leader_id=?",
+        (leader_id,))).fetchone()
+    if not profile or not empire:
+        return None
+    assigned = await _assigned_guard_count(db, 'npc', leader_id)
+    committed = int((await (await db.execute(
+        "SELECT COALESCE(SUM(force),0) FROM npc_empire_interior_raids "
+        "WHERE leader_id=? AND status='pending'", (leader_id,))).fetchone())[0] or 0)
+    free_attackers = max(0, int(empire['members'] or 0) - assigned - committed)
+    allocation = allocate_physical_roster(
+        side='attacker', roster_available=free_attackers,
+        members=int(empire['members'] or 0), strength=int(empire['strength'] or 0),
+        treasury=int(empire['treasury'] or 0), aggression=profile.aggression)
+    return {**allocation, 'free': free_attackers,
+            'members': int(empire['members'] or 0),
+            'strength': int(empire['strength'] or 0),
+            'treasury': int(empire['treasury'] or 0)}
+
+
+def score_player_business_target(target: dict, *, distance: float, guards: int,
+                                 force: int, quality: int, relation: int,
+                                 aggression: int) -> dict:
+    """Estimate raid value and losses without inventing either side's roster."""
+    force = max(0, int(force)); guards = max(0, int(guards))
+    quality = max(0, min(100, int(quality)))
+    hostility = max(0, -clamp_relation(relation))
+    aggression = max(0, min(100, int(aggression)))
+    unit_power = 80 + quality
+    attack_power = force * unit_power
+    defense_power = guards * 115
+    expected_losses = (0 if not guards else
+                       min(force, (defense_power + unit_power - 1) // unit_power))
+    loss_budget = max(1, int(force * (
+        .30 + aggression / 250 + hostility / 400))) if force else 0
+    power_tolerance = 100 + aggression // 2 + hostility // 3
+    feasible = (force >= 2 and expected_losses <= loss_budget
+                and defense_power * 100 <= attack_power * power_tolerance)
+    income = max(0, int(target.get('income') or 0))
+    income_value = min(600, int(income ** .5 * 8))
+    score = (income_value - int(max(0.0, float(distance)) * 1.5)
+             - guards * 35 - expected_losses * 55
+             + hostility // 4 + aggression // 5)
+    return {'score': score, 'feasible': feasible,
+            'expected_losses': expected_losses, 'loss_budget': loss_budget,
+            'attack_power': attack_power, 'defense_power': defense_power,
+            'distance': round(max(0.0, float(distance)), 2), 'guards': guards}
+
+
+async def _select_player_business_target_smart(
+        db, telegram_id: int, leader_id: str, targets: list[dict], attacks: int,
+        last_ref: str = '') -> dict | None:
+    """Pick a profitable reachable target, or defer an irrational assault."""
+    if not targets:
+        return None
+    profile = PROFILE_BY_ID.get(str(leader_id))
+    allocation = await _npc_attack_allocation(db, leader_id)
+    if not profile or not allocation or int(allocation['count']) < 2:
+        return None
+    relation_row = await (await db.execute(
+        "SELECT score FROM npc_empire_relations WHERE leader_id=? AND telegram_id=?",
+        (leader_id, telegram_id))).fetchone()
+    relation = int(relation_row[0] or 0) if relation_row else 0
+    origin_points = [_hq_coords(profile.hq_key)]
+    for row in await (await db.execute(
+            "SELECT kind,holding_id FROM npc_empire_holdings WHERE leader_id=?",
+            (leader_id,))).fetchall():
+        kind, holding_id = str(row[0]), str(row[1])
+        if kind == 'business':
+            origin_points.append(BUSINESS_COORDS.get(holding_id, _hq_coords(profile.hq_key)))
+        elif kind in {'building', 'hq'}:
+            try:
+                origin_points.append(_hq_coords(holding_id))
+            except (TypeError, ValueError):
+                pass
+    ranked = []
+    for target in targets:
+        point = _player_business_target_point(target)
+        distance = min(((point[0]-origin[0]) ** 2 + (point[1]-origin[1]) ** 2) ** .5
+                       for origin in origin_points)
+        metrics = score_player_business_target(
+            target, distance=distance,
+            guards=max(0, int(target.get('guard_count') or 0)),
+            force=int(allocation['count']), quality=int(allocation['quality']),
+            relation=relation, aggression=profile.aggression)
+        ranked.append(({**target, '_raid': metrics}, metrics))
+    feasible = [(target, metrics) for target, metrics in ranked if metrics['feasible']]
+    if not feasible:
+        return None
+    feasible.sort(key=lambda item: (-int(item[1]['score']), str(item[0]['ref'])))
+    best = feasible[0][0]
+    by_ref = {str(target['ref']): (target, metrics) for target, metrics in feasible}
+    if last_ref and ':' not in last_ref:
+        last_ref = next((ref for ref in by_ref if ref.endswith(f':{last_ref}')), last_ref)
+    previous = by_ref.get(str(last_ref))
+    # A follow-up may stay on the damaged venue, but not when it became much
+    # riskier or markedly worse than a newly available target.
+    if int(attacks or 0) % 2 == 1 and previous:
+        previous_target, previous_metrics = previous
+        if int(previous_metrics['score']) >= int(best['_raid']['score']) - 70:
+            return previous_target
+    return best
 
 
 async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
@@ -2463,21 +2584,8 @@ def _player_war_interval(profile: EmpireProfile) -> int:
 async def _create_interior_raid(db, telegram_id: int, leader_id: str,
                                 target: dict, attack_no: int, now: int) -> dict | None:
     profile = PROFILE_BY_ID[leader_id]
-    empire = await (await db.execute(
-        "SELECT members,strength,treasury FROM npc_empires WHERE leader_id=?",
-        (leader_id,))).fetchone()
-    if not empire:
-        return None
-    assigned = await _assigned_guard_count(db, 'npc', leader_id)
-    committed = int((await (await db.execute(
-        "SELECT COALESCE(SUM(force),0) FROM npc_empire_interior_raids "
-        "WHERE leader_id=? AND status='pending'", (leader_id,))).fetchone())[0] or 0)
-    free_attackers = max(0, int(empire['members'] or 0) - assigned - committed)
-    allocation = allocate_physical_roster(
-        side='attacker', roster_available=free_attackers,
-        members=int(empire['members'] or 0), strength=int(empire['strength'] or 0),
-        treasury=int(empire['treasury'] or 0), aggression=profile.aggression)
-    if allocation['count'] < 2:
+    allocation = await _npc_attack_allocation(db, leader_id)
+    if not allocation or allocation['count'] < 2:
         return None
     apt_key = str(target.get('apt_key') or f"business:{target['holding_id']}")
     defender_ids = []
@@ -2539,6 +2647,14 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
+        # An abandoned browser must not pin a family forever. Expiry is handled
+        # in the same bounded player-state transaction and creates no event.
+        await db.execute(
+            "UPDATE npc_empire_interior_raids SET status='resolved',"
+            "resolution='expired',resolved_at=? WHERE telegram_id=? "
+            "AND status='pending' AND expires_at<=?",
+            (now, telegram_id, now),
+        )
         wars = await (await db.execute(
             "SELECT r.leader_id FROM npc_empire_relations r JOIN npc_empires e ON e.leader_id=r.leader_id "
             "WHERE r.telegram_id=? AND (r.pact='war' OR (r.score<0 AND r.pact NOT IN ('truce','alliance','vassal'))) "
@@ -2589,22 +2705,42 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                     (leader_id, telegram_id),
                 )).fetchone()
                 last_biz = str(war_row['last_business_id'] or '') if war_row else ''
-                target = _select_player_business_target(businesses, attack_no, last_biz)
+                if not resolve_token:
+                    existing = await (await db.execute(
+                        "SELECT token,expires_at FROM npc_empire_interior_raids "
+                        "WHERE telegram_id=? AND leader_id=? AND status='pending'",
+                        (telegram_id, leader_id))).fetchone()
+                    if existing:
+                        # Check persisted work before rescoring. A reconnect can
+                        # arrive after guards or the mobile roster changed, but
+                        # neither may invalidate or duplicate the active raid.
+                        await db.execute(
+                            "UPDATE npc_empire_player_wars SET next_attack_at="
+                            "MAX(next_attack_at,?) WHERE leader_id=? AND telegram_id=?",
+                            (int(existing['expires_at'] or now) + 1,
+                             leader_id, telegram_id),
+                        )
+                        continue
+                target = await _select_player_business_target_smart(
+                    db, telegram_id, leader_id, businesses, attack_no, last_biz)
                 if resolved_session:
                     target = next((item for item in businesses
                                    if str(item['ref']) == str(resolved_session['target_ref'])), None)
                     if not target:
                         continue
+                elif not target:
+                    # The paid mobile roster cannot attack this defence with a
+                    # plausible loss budget yet. Keep the war and reassess after
+                    # reinforcement/upkeep rather than materialising free NPCs.
+                    await db.execute(
+                        "UPDATE npc_empire_player_wars SET next_attack_at=? "
+                        "WHERE leader_id=? AND telegram_id=?",
+                        (now + _player_war_interval(profile), leader_id, telegram_id))
+                    continue
                 target_ref = str(target['ref'])
                 target_kind = str(target['kind'])
                 biz_id = str(target['holding_id'])
                 if not resolve_token:
-                    existing = await (await db.execute(
-                        "SELECT token FROM npc_empire_interior_raids "
-                        "WHERE telegram_id=? AND leader_id=? AND status='pending'",
-                        (telegram_id, leader_id))).fetchone()
-                    if existing:
-                        continue
                     raid = await _create_interior_raid(
                         db, telegram_id, leader_id, target, attack_no, now)
                     if raid:
@@ -2615,6 +2751,11 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                             "(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
                             (leader_id, 'player_business_interior_raid', str(telegram_id),
                              summary, now))
+                        await db.execute(
+                            "UPDATE npc_empire_player_wars SET next_attack_at=? "
+                            "WHERE leader_id=? AND telegram_id=?",
+                            (int(raid['expires_at']) + 1, leader_id, telegram_id),
+                        )
                         events.append({'leader_id': leader_id,
                                        'kind': 'player_business_interior_raid',
                                        'business_id': biz_id,
@@ -2899,6 +3040,17 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                 "WHERE owner_kind='npc'"
             )).fetchall()}
         player_business_targets = await _player_business_targets(db, telegram_id)
+        pending_by_leader = {
+            str(raid.get('leader_id') or ''): raid for raid in raid_rows
+        }
+        smart_player_targets = {
+            leader_id: await _select_player_business_target_smart(
+                db, telegram_id, leader_id, player_business_targets,
+                int(war.get('attacks') or 0),
+                str(war.get('last_business_id') or ''))
+            for leader_id, war in war_rows.items()
+            if leader_id not in pending_by_leader
+        }
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
         item = dict(row)
@@ -3026,11 +3178,31 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         war = war_rows.get(str(empire['leader_id']))
         if not war:
             continue
-        target = _select_player_business_target(
-            player_business_targets, int(war.get('attacks') or 0),
-            str(war.get('last_business_id') or ''))
-        empire['activity'] = _player_war_activity(
+        pending = pending_by_leader.get(str(empire['leader_id']))
+        target = (next((item for item in player_business_targets
+                        if pending and str(item['ref']) == str(pending.get('target_ref') or '')), None)
+                  if pending else smart_player_targets.get(str(empire['leader_id'])))
+        if player_business_targets and target is None and not pending:
+            # The server postponed this assault as tactically irrational; do
+            # not make the client show a contradictory march to a fake target.
+            continue
+        activity = _player_war_activity(
             PROFILE_BY_ID[str(empire['leader_id'])], war, target, now)
+        if pending:
+            # The marker follows the immutable pending session, never a fresh
+            # score after guards or income change during reconnect.
+            fallback = {'kind': str(pending.get('target_kind') or ''),
+                        'holding_id': str(pending.get('holding_id') or '')}
+            r, c = _player_business_target_point(target or fallback)
+            activity.update({
+                'target_id': str(pending.get('holding_id') or ''),
+                'target_kind': str(pending.get('target_kind') or ''),
+                'target_r': float(r), 'target_c': float(c), 'phase': 'interior',
+                'force': int(pending.get('force') or 0),
+                'created_at': int(pending.get('started_at') or now),
+                'raid_token': str(pending.get('token') or ''),
+            })
+        empire['activity'] = activity
     # A persistent NPC-vs-NPC war becomes a physical order in the shared city.
     # Target choice is deterministic inside the 75-second slot, so clients see
     # the same attacker, defender and stance without a render-loop database hit.

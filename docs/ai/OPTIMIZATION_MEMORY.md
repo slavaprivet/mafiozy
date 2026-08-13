@@ -2363,3 +2363,17 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   primary/accent colours feed the existing gang clothing and armband instance
   colours. Only a deterministic minority of tier-four roles selects the heavy
   body profile; this adds no geometry, material, texture or draw call.
+
+## Smart player-raid target persistence (2026-08-14)
+
+- Score player targets from one indexed, player-scoped guard-assignment read in
+  the existing state transaction. Never query once per property or from a
+  render/animation loop. The scorer combines income, logistics distance,
+  assigned defence, expected losses, hostility and aggression; the namespaced
+  holding reference remains its deterministic final tie-breaker.
+- A pending interior raid owns its target, coordinates and token until resolve
+  or expiry. Reconnect snapshots must project that persisted session into boss
+  activity instead of rescoring against newer guard assignments.
+- Defer a due war row to the pending raid expiry and resolve abandoned sessions
+  silently in the same player-state transaction. This bounds reconnect work and
+  prevents duplicate raid events without adding a timer or client poll.
