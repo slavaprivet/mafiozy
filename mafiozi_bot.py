@@ -13577,6 +13577,7 @@ class WorldSim:
         'casino':     (45.0, 13.0),
         # 'port' покупается у Майкла, физически в мире нет — респ туда не даём
     }
+    BUILDING_RESPAWN_PREFIX = 'building:'
     # ── Захват районов ─────────────────────────────────────────────
     # 5 захватываемых POI (координаты — как в world.html). Зона = 7×7
     # вокруг центра. PvE-игроки в захвате не участвуют.
@@ -16255,17 +16256,13 @@ class WorldSim:
         return biz_id in (p.get('_owned_biz') or set())
 
     def set_respawn_point(self, uid: str, rp: str) -> dict:
-        """Игрок выбирает где возрождаться. 'hospital' — всегда можно.
-        biz_id — только если бизнес куплен (кеш _owned_biz)."""
+        """Выбор госпиталя либо реально принадлежащего игроку владения."""
         p = self.players.get(uid)
         if not p:
             return {'ok': False, 'reason': 'no_player'}
         rp = str(rp or 'hospital').strip()
-        if rp != 'hospital':
-            if rp not in self.BIZ_RESPAWN_COORDS:
-                return {'ok': False, 'reason': 'bad_biz'}
-            if rp not in (p.get('_owned_biz') or set()):
-                return {'ok': False, 'reason': 'not_owned'}
+        if rp != 'hospital' and not self._respawn_point_owned(p, rp):
+            return {'ok': False, 'reason': 'not_owned'}
         p['_respawn_point'] = rp
         # Сохраняем в БД, чтобы при следующем коннекте подгрузилось.
         try:
@@ -16273,6 +16270,47 @@ class WorldSim:
         except Exception:
             pass
         return {'ok': True, 'respawn_point': rp}
+
+    def _respawn_point_owned(self, player: dict, rp: str) -> bool:
+        """Авторитетная проверка кешей, которые загружаются из БД."""
+        if rp in self.BIZ_RESPAWN_COORDS:
+            return rp in (player.get('_owned_biz') or set())
+        if rp.startswith(self.BUILDING_RESPAWN_PREFIX):
+            apt_key = rp[len(self.BUILDING_RESPAWN_PREFIX):]
+            return bool(apartment_coords_from_key(apt_key)) and apt_key in (
+                player.get('_owned_apartments') or set())
+        return False
+
+    @staticmethod
+    def _safe_respawn_near(preferred_x: float, preferred_y: float) -> tuple[float, float] | None:
+        """Ближайший центр проходимого тайла без случайного смещения в стену."""
+        origin_r, origin_c = int(preferred_y), int(preferred_x)
+        for radius in range(0, 13):
+            candidates = []
+            for dr in range(-radius, radius + 1):
+                dc = radius - abs(dr)
+                candidates.append((origin_r + dr, origin_c + dc))
+                if dc:
+                    candidates.append((origin_r + dr, origin_c - dc))
+            random.shuffle(candidates)
+            for r, c in candidates:
+                x, y = c + 0.5, r + 0.5
+                if _world_bot_passable(x, y, radius=0.38):
+                    return x, y
+        return None
+
+    def _respawn_coords(self, player: dict, rp: str) -> tuple[float, float] | None:
+        if not self._respawn_point_owned(player, rp):
+            return None
+        if rp in self.BIZ_RESPAWN_COORDS:
+            x, y = self.BIZ_RESPAWN_COORDS[rp]
+        else:
+            apt_key = rp[len(self.BUILDING_RESPAWN_PREFIX):]
+            coords = apartment_coords_from_key(apt_key)
+            if not coords:
+                return None
+            y, x = coords
+        return self._safe_respawn_near(x, y)
 
     def emergency_transport(self, uid: str, active: bool = True) -> dict:
         """Hold normal respawn while the city ambulance transports a downed player."""
@@ -16366,15 +16404,14 @@ class WorldSim:
                 # рядом с ним. Иначе fallback к госпиталю.
                 rp = p.get('_respawn_point') or 'hospital'
                 spawned = False
-                if rp != 'hospital' and rp in self.BIZ_RESPAWN_COORDS:
-                    if self._biz_owned_sync(int(p_uid), rp):
-                        bx, by = self.BIZ_RESPAWN_COORDS[rp]
-                        p['x'] = bx + random.uniform(-0.6, 0.6)
-                        p['y'] = by + random.uniform(-0.6, 0.6)
+                if rp != 'hospital':
+                    coords = self._respawn_coords(p, rp)
+                    if coords:
+                        p['x'], p['y'] = coords
                         spawned = True
                 if not spawned:
-                    p['x'] = self.HOSPITAL_X + random.uniform(-1.0, 1.0)
-                    p['y'] = self.HOSPITAL_Y + random.uniform(-1.0, 1.0)
+                    hospital = self._safe_respawn_near(self.HOSPITAL_X, self.HOSPITAL_Y)
+                    p['x'], p['y'] = hospital or (self.HOSPITAL_X, self.HOSPITAL_Y)
                     # Сбросим неверную точку чтобы не тратить проверку каждый
                     # раз. Игрок может перевыбрать через клиент.
                     if rp != 'hospital':
@@ -28927,10 +28964,10 @@ async def _coop_http_app():
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'set_respawn_point':
-                        # Игрок выбирает где возрождаться. d.point: 'hospital' | biz_id.
+                        # d.point: hospital | biz_id | building:<apt_key>.
                         # Ответ: ok + текущая точка ИЛИ ok=False + reason
                         # (bad_biz / not_owned / no_player).
-                        rp_in = str((d.get('point') if isinstance(d, dict) else '') or 'hospital')[:16]
+                        rp_in = str((d.get('point') if isinstance(d, dict) else '') or 'hospital')[:64]
                         reply = world.set_respawn_point(uid, rp_in)
                         try:
                             await ws.send_str(json.dumps(
@@ -28982,12 +29019,36 @@ async def _coop_http_app():
                         # + список своих бизнесов (для меню вариантов).
                         p = world.players.get(uid) or {}
                         try:
+                            owned_buildings = await get_apartments_owned(int(uid))
+                            p['_owned_apartments'] = set(owned_buildings.keys())
+                            holdings = []
+                            for apt_key, info in owned_buildings.items():
+                                coords = apartment_coords_from_key(apt_key)
+                                if not coords:
+                                    continue
+                                kind = str(info.get('property_kind') or 'hq')
+                                holdings.append({
+                                    'id': world.BUILDING_RESPAWN_PREFIX + apt_key,
+                                    'apt_key': apt_key,
+                                    'kind': kind,
+                                    'name': str(info.get('operation_name') or (
+                                        'Штаб семьи' if kind == 'hq' else 'Личное владение')),
+                                    'icon': str(info.get('operation_icon') or (
+                                        '🏛️' if kind == 'hq' else '🏢')),
+                                    'r': int(coords[0]), 'c': int(coords[1]),
+                                })
+                            current = str(p.get('_respawn_point') or 'hospital')
+                            if current != 'hospital' and not world._respawn_point_owned(p, current):
+                                current = 'hospital'
+                                p['_respawn_point'] = current
+                                asyncio.create_task(update_character(int(uid), respawn_point=current))
                             await ws.send_str(json.dumps({
                                 't': 'event',
                                 'd': {
                                     'kind': 'respawn_status',
-                                    'point': p.get('_respawn_point') or 'hospital',
+                                    'point': current,
                                     'owned': sorted(list(p.get('_owned_biz') or [])),
+                                    'holdings': holdings,
                                 }
                             }, ensure_ascii=False))
                         except Exception: pass

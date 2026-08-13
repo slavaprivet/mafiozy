@@ -1874,47 +1874,44 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 /* Модалка выбора точки респавна */
 #respawnModal {
   position: absolute; inset: 0; z-index: 20;
-  background: rgba(0,0,0,.7); display: none;
+  background: radial-gradient(circle at 50% 45%,rgba(80,24,20,.22),rgba(0,0,0,.86) 58%); display: none;
   align-items: center; justify-content: center;
 }
 #respawnModal.show { display: flex; }
 #respawnModal .card {
-  position: relative; background: linear-gradient(135deg, #15181f, #1a2028);
-  border: 2px solid #5a8a4a; border-radius: 14px;
-  padding: 18px; min-width: 280px; max-width: 90vw;
+  position: relative; background: linear-gradient(145deg,#1b1511,#0d0c0b 70%);
+  border: 1px solid #c7983d; border-radius: 8px;
+  padding: 20px; width: min(390px,88vw);
   max-height: 80vh; overflow-y: auto;
   color: #fff; font-family: inherit;
-  box-shadow: 0 0 32px rgba(90,138,74,.3);
+  box-shadow: 0 18px 60px #000, inset 0 0 0 1px rgba(255,221,143,.08);
 }
 #respawnModal .x {
   position: absolute; top: 8px; right: 12px;
   font-size: 22px; color: #888; cursor: pointer; line-height: 1;
 }
 #respawnModal .x:hover { color: #fff; }
-#respawnModal .head { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
-#respawnModal .head .icon { font-size: 32px; }
-#respawnModal .head .nm   { font-size: 16px; font-weight: 800; color: #c8e8a0; }
-#respawnModal .head .sub  { font-size: 11px; color: #88a078; }
+#respawnModal .head { display:flex; gap:12px; align-items:center; padding-bottom:14px; margin-bottom:12px; border-bottom:1px solid rgba(199,152,61,.28); }
+#respawnModal .head .icon { font-size:30px; filter:drop-shadow(0 2px 5px #000); }
+#respawnModal .head .nm { font-family:Georgia,serif; font-size:17px; font-weight:900; color:#f5d98d; letter-spacing:.8px; text-transform:uppercase; }
+#respawnModal .head .sub { font-size:10px; color:#a99a7f; margin-top:3px; }
 #respawnModal .list { display: flex; flex-direction: column; gap: 6px; }
 #respawnModal .r-item {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
-  background: #20262e; border: 1.5px solid #2a323a;
+  padding:11px 12px; border-radius:5px;
+  background:linear-gradient(90deg,#211d18,#151413); border:1px solid #3b3328;
   cursor: pointer; user-select: none;
 }
-#respawnModal .r-item:hover { background: #262e36; border-color: #3a4a32; }
+#respawnModal .r-item:hover { background:#2a231b; border-color:#81652f; }
 #respawnModal .r-item.active {
-  background: linear-gradient(135deg,#1e2a18,#2a3a20);
-  border-color: #5a8a4a; box-shadow: 0 0 10px rgba(90,138,74,.4);
-}
-#respawnModal .r-item.locked {
-  opacity: .5; cursor: not-allowed;
+  background:linear-gradient(90deg,#3a2813,#20180e); border-color:#d2a845; box-shadow:inset 3px 0 #f0c85e,0 0 12px rgba(199,152,61,.12);
 }
 #respawnModal .r-item .em { font-size: 22px; }
-#respawnModal .r-item .nm { font-size: 13px; font-weight: 700; color: #fff; flex: 1; }
-#respawnModal .r-item .tg { font-size: 10px; color: #7ee69a; font-weight: 700; }
-#respawnModal .r-item.locked .tg { color: #ff7878; }
-#respawnModal .hint { font-size: 10px; color: #88909a; margin-top: 10px; text-align: center; }
+#respawnModal .r-item .copy { min-width:0; flex:1; }
+#respawnModal .r-item .nm { font-size:13px; font-weight:800; color:#f3ead8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#respawnModal .r-item .meta { font-size:9px; color:#8f8370; margin-top:2px; }
+#respawnModal .r-item .tg { font-size:9px; color:#e2bd61; font-weight:900; }
+#respawnModal .hint { font-size:9px; color:#807462; margin-top:11px; text-align:center; }
 
 /* Баннер «вы в PVP-зоне» */
 #pvpBanner {
@@ -2738,22 +2735,21 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
     </section>
   </div>
 
-  <!-- Модалка выбора точки респавна. Список: Госпиталь + купленные
-       бизнесы. Открывается с экрана смерти ИЛИ из меню паузы. -->
+  <!-- Госпиталь + только реально купленные или захваченные владения. -->
   <div id="respawnModal">
     <div class="card">
       <div class="x" id="respawnCloseBtn" title="Закрыть">×</div>
       <div class="head">
         <div class="icon">🏥</div>
         <div>
-          <div class="nm">Где возрождаться</div>
-          <div class="sub">Выбери точку — после смерти появишься там</div>
+          <div class="nm">Точка возрождения</div>
+          <div class="sub">Госпиталь или одно из твоих владений</div>
         </div>
       </div>
       <div class="list" id="respawnList">
-        <!-- Заполняется JS из myOwnedBiz + 'hospital' -->
+        <!-- Авторитетный список приходит с сервера. -->
       </div>
-      <div class="hint">Бизнесы становятся доступны после покупки</div>
+      <div class="hint">Возрождение происходит на свободном месте рядом со зданием</div>
     </div>
   </div>
 
@@ -24249,6 +24245,7 @@ function handleEventPacket(d) {
     // покупки нового бизнеса (сервер обновляет _owned_biz и шлёт нам).
     myRespawnPoint = String(d.point || 'hospital');
     myOwnedBiz = Array.isArray(d.owned) ? d.owned.slice() : [];
+    myRespawnHoldings = Array.isArray(d.holdings) ? d.holdings.slice() : [];
     refreshDeathRpLabel();
     refreshRespawnHudBtn();
     if (_respawnModal && _respawnModal.classList.contains('show')) {
@@ -29980,6 +29977,7 @@ let groundMissionBoxes = [];
 // (после покупки сервер шлёт respawn_status) и при коннекте.
 let myRespawnPoint = 'hospital';
 let myOwnedBiz = [];
+let myRespawnHoldings = [];
 const _respawnModal   = document.getElementById('respawnModal');
 const _respawnList    = document.getElementById('respawnList');
 const _respawnSetBtn  = document.getElementById('respawnSetBtn');
@@ -29987,7 +29985,9 @@ const _deathRpLabel   = document.getElementById('deathRespawnPoint');
 function _respawnPointLabel(rp) {
   if (rp === 'hospital' || !rp) return '🏥 Госпиталь';
   const b = BUSINESS_POIS.find(x => x.id === rp);
-  return b ? `${b.emoji} ${b.name}` : '🏥 Госпиталь';
+  if (b) return `${b.emoji} ${b.name}`;
+  const h = myRespawnHoldings.find(x => x.id === rp);
+  return h ? `${h.icon || '🏢'} ${h.name || 'Личное владение'}` : '🏥 Госпиталь';
 }
 function refreshDeathRpLabel() {
   if (_deathRpLabel) {
@@ -29996,35 +29996,39 @@ function refreshDeathRpLabel() {
 }
 function refreshRespawnList() {
   if (!_respawnList) return;
-  const items = [{ id: 'hospital', em: '🏥', nm: 'Госпиталь', owned: true }];
-  for (const b of BUSINESS_POIS) {
-    items.push({
-      id: b.id, em: b.emoji, nm: b.name,
-      owned: myOwnedBiz.includes(b.id),
-    });
+  const items = [{ id:'hospital', em:'🏥', nm:'Госпиталь', meta:'Всегда доступен' }];
+  for (const id of myOwnedBiz) {
+    const b = BUSINESS_POIS.find(x => x.id === id);
+    if (b) items.push({id:b.id, em:b.emoji, nm:b.name, meta:'Твой бизнес'});
+  }
+  for (const h of myRespawnHoldings) {
+    items.push({id:String(h.id), em:h.icon || '🏢', nm:h.name || 'Личное владение',
+      meta:h.kind === 'hq' ? 'Твой штаб' : 'Твоё здание'});
   }
   _respawnList.innerHTML = '';
   for (const it of items) {
     const row = document.createElement('div');
     row.className = 'r-item'
-      + (it.id === myRespawnPoint ? ' active' : '')
-      + (!it.owned ? ' locked' : '');
+      + (it.id === myRespawnPoint ? ' active' : '');
     row.innerHTML =
       `<div class="em">${it.em}</div>` +
-      `<div class="nm">${it.nm}</div>` +
-      `<div class="tg">${it.id === myRespawnPoint ? '✓ ВЫБРАНО' : (it.owned ? '' : '🔒 КУПИ')}</div>`;
-    if (it.owned) {
-      row.addEventListener('click', () => {
-        try {
-          ws && ws.send(JSON.stringify({ t: 'set_respawn_point', d: { point: it.id } }));
-        } catch(e) {}
-      });
-    }
+      `<div class="copy"><div class="nm">${it.nm}</div><div class="meta">${it.meta}</div></div>` +
+      `<div class="tg">${it.id === myRespawnPoint ? '✓ ВЫБРАНО' : 'ВЫБРАТЬ'}</div>`;
+    row.addEventListener('click', () => {
+      try { ws && ws.send(JSON.stringify({t:'set_respawn_point',d:{point:it.id}})); } catch(e) {}
+    });
     _respawnList.appendChild(row);
   }
 }
 function showRespawnModal() {
   if (!_respawnModal) return;
+  if (_LOCAL_PREVIEW && _UP.has('previewrespawnowned') && !myRespawnHoldings.length) {
+    myOwnedBiz = ['coffee', 'casino'];
+    myRespawnHoldings = [
+      {id:'building:tile:36,66',icon:'🏛️',name:'Штаб семьи',kind:'hq'},
+      {id:'building:tile:56,26',icon:'📦',name:'Склад контрабанды',kind:'business'},
+    ];
+  }
   // Запрашиваем актуальное состояние — на случай если пользователь
   // купил новый бизнес в другой сессии и кеш в this-клиенте устарел.
   try { ws && ws.send(JSON.stringify({ t: 'respawn_status', d: {} })); } catch(e){}
@@ -30039,6 +30043,9 @@ document.getElementById('respawnCloseBtn').addEventListener('click', hideRespawn
 _respawnModal.addEventListener('click', (e) => {
   if (e.target === _respawnModal) hideRespawnModal();
 });
+if (_LOCAL_PREVIEW && _UP.has('previewrespawnowned')) {
+  setTimeout(showRespawnModal, 700);
+}
 // HUD-кнопка смены точки респа — видна только если у игрока есть хоть
 // один купленный бизнес. Открывает _respawnModal без необходимости умирать.
 const _respawnHudBtn = document.getElementById('respawnHudBtn');
