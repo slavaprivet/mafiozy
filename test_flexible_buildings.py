@@ -90,7 +90,7 @@ def test_business_picker_is_a_visual_income_gallery() -> None:
 
 def test_interior_camera_zoom_is_bounded_and_restores_world_zoom() -> None:
     assert "interiorZoom=1.08" in THREE
-    assert "THREE.MathUtils.clamp(interiorZoom+(e.deltaY<0?.08:-.08),.45,1.7)" in THREE
+    assert "THREE.MathUtils.clamp(interiorZoom+direction*step,.55,1.9)" in THREE
     assert "dataset.interiorZoom=interiorZoom.toFixed(2)" in THREE
     assert "camera.zoom=worldZoom" in THREE
 
