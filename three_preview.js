@@ -4448,15 +4448,18 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const message=String(event?.error?.stack||event?.error?.message||event?.message||'unknown frame error');
         renderer.domElement.dataset.runtimeFrameError=message.slice(0,1200);
       });
+      let threeFrameErrorStreak=0,threeFrameRecoveryCount=0,threeFrameLastError='',previewFrameErrorInjected=false;
       const animate = t => {
-        if(t-customGangHqAt>2000){customGangHqAt=t;refreshCustomGangHqs();refreshBusinessOwnership();}
         if (!document.body.contains(renderer.domElement)) return;
         // Queue the next frame before doing any scene work. A transient error in
         // one NPC/vehicle animation must drop one frame, not permanently stop
         // the whole 3D city until the player reloads the WebApp.
         requestAnimationFrame(animate);
+        try {
+        if(t-customGangHqAt>2000){customGangHqAt=t;refreshCustomGangHqs();refreshBusinessOwnership();}
         if(lastPresentedAt&&t-lastPresentedAt<threeFrameMinMs)return;
         lastPresentedAt=t;
+        if(rendererParams.has('previewframeerror')&&!previewFrameErrorInjected){previewFrameErrorInjected=true;throw new Error('preview-frame-recovery-qa');}
         const telemetryDue=t>=telemetryAt;if(telemetryDue)telemetryAt=t+250;
         if(fullMaterialsReady)stepVehicleFxWarmup();
         const s = viewSize();
@@ -5109,8 +5112,23 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         if(telemetryDue){renderer.domElement.dataset.programCount=String(programsAfter);if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewprogramqa')){const list=renderer.info.programs||[],first=list[0],gl=renderer.getContext(),hash=s=>{let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);},groups=new Map();for(const p of list){const sourceKey=`${hash(gl.getShaderSource(p.vertexShader)||'')}:${hash(gl.getShaderSource(p.fragmentShader)||'')}`,group=groups.get(sourceKey)||[];group.push({id:p.id,used:+p.usedTimes||0,key:String(p.cacheKey||'')});groups.set(sourceKey,group);}const duplicates=[...groups].filter(([,group])=>group.length>1).map(([source,group])=>({source,count:group.length,programs:group.map(p=>({id:p.id,used:p.used,key:p.key.slice(-420)}))}));renderer.domElement.dataset.programQaShape=first?Object.keys(first).join(','):'';renderer.domElement.dataset.programQaSources=`${groups.size}/${list.length}`;renderer.domElement.dataset.programQaDuplicateSources=JSON.stringify(duplicates).slice(0,48000);}}
         const frameWorkMs=Math.max(0,performance.now()-t);renderer.domElement.dataset.frameWorkMs=frameWorkMs.toFixed(1);renderer.domElement.dataset.maxFrameWorkMs=Math.max(frameWorkMs,+renderer.domElement.dataset.maxFrameWorkMs||0).toFixed(1);
         renderer.domElement.dataset.palettePipeline='direct-aces-srgb';
+        if(threeFrameErrorStreak){renderer.domElement.dataset.frameRecovery=`recovered:${threeFrameErrorStreak}:${threeFrameRecoveryCount}`;threeFrameErrorStreak=0;}
         if(!materialCompileStarted){renderer.domElement.dataset.materialCompile='queued';setTimeout(()=>onIdle(beginFullMaterialCompile),48);}
         if(fullMaterialsReady&&!firstFramePresented){firstFramePresented=true;renderer.domElement.dataset.maxFrameGapMs='0';renderer.domElement.dataset.maxFrameWorkMs='0';renderer.domElement.dataset.renderMaxMs='0';renderer.domElement.dataset.renderMaxPhase='startup-reset';renderer.domElement.dataset.buildingPumpMaxMs='0';renderer.domElement.dataset.staticDetailPumpMaxMs='0';renderer.domElement.dataset.deferredWarmupSubmitMaxMs='0';startupMark('first-complete-frame');renderer.domElement.dataset.firstPresentedFrame='full-scene-v199';window.MafioziLoading?.complete('Город готов');}
+        } catch (error) {
+          threeFrameErrorStreak++;threeFrameRecoveryCount++;
+          const message=String(error?.stack||error?.message||error||'unknown frame error').slice(0,1200);
+          renderer.domElement.dataset.runtimeFrameError=message;
+          renderer.domElement.dataset.frameRecovery=`fallback-render:${threeFrameErrorStreak}:${threeFrameRecoveryCount}`;
+          document.body.dataset.threeRuntimeError=message;
+          if(message!==threeFrameLastError||threeFrameRecoveryCount%120===0){threeFrameLastError=message;console.error('[ThreePreview] frame recovered:',message);}
+          // Keep the last valid scene interactive and visible even when one
+          // optional updater fails. The gameplay bridge has its own guarded
+          // loop, so the next frame can consume fresh position/state data.
+          try {renderer.setRenderTarget(null);renderer.render(fullMaterialsReady?scene:bootScene,camera);} catch (renderError) {
+            renderer.domElement.dataset.frameRecoveryRenderError=String(renderError?.message||renderError).slice(0,320);
+          }
+        }
       };
       requestAnimationFrame(animate);
       startupMark('animation-scheduled');

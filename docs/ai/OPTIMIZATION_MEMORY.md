@@ -1546,3 +1546,18 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Runtime QA must inspect prone and crouch at close zoom, verify the full face
   looks forward, sample a changing crawl phase, and reject startup fallback or
   Three.js errors before publication.
+
+## Runtime frame recovery (2026-08-13, v383)
+
+- Scheduling the next Three.js RAF before scene work prevents the callback from
+  disappearing, but it does not prevent a repeatable updater exception from
+  stopping every frame before `renderer.render()`. The visible symptom is an
+  online HUD over a permanently frozen 3D city.
+- Guard the complete visible-frame body and render the last valid scene from a
+  minimal recovery path after an exception. Preserve the gameplay bridge's
+  independently guarded simulation loop, store the bounded error text and
+  avoid console spam for a repeated identical failure.
+- Keep a local-only `previewframeerror` injection contract. A successful QA run
+  must observe one `fallback-render` and then `recovered`, with movement and
+  subsequent full frames continuing. This guard is not a substitute for fixing
+  the recorded root exception.
