@@ -34,6 +34,11 @@ NPC_OWNER_BASE = -900_000
 PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
 PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
 PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS = 10 * 60
+PLAYER_INTERIOR_RAID_MIN_SECONDS = 45
+PLAYER_INTERIOR_RAID_HOLD_SECONDS = 20
+PLAYER_INTERIOR_RAID_EXPIRES_SECONDS = 12 * 60
+PLAYER_INTERIOR_RAID_MAX_ATTACKERS = 8
+PLAYER_INTERIOR_RAID_MAX_DEFENDERS = 12
 VISIBLE_ACTIVITY_SECONDS = 75
 NPC_EMPIRE_MAX_FIGHTERS = 20
 RECRUITMENT_SECONDS = 0
@@ -458,6 +463,215 @@ def _select_player_business_target(targets: list[dict], attacks: int,
     if int(attacks or 0) % 2 == 1 and last_ref in by_ref:
         return by_ref[last_ref]
     return targets[(max(0, int(attacks or 0)) // 2) % len(targets)]
+
+
+def allocate_physical_roster(*, side: str, roster_available: int, members: int,
+                             strength: int, treasury: int, aggression: int,
+                             guard_level: int = 0) -> dict:
+    """Allocate only real roster slots to one bounded interior assault.
+
+    The same contract works for NPC attackers/defenders and player hired gangs.
+    Holding guards are a separate first line and never inflate the real roster.
+    """
+    available = max(0, min(int(roster_available), int(members)))
+    if side == 'attacker':
+        desired = 2 + min(6, (max(0, int(strength)) // 85
+                              + max(0, int(aggression)) // 28
+                              + max(0, int(treasury)) // 18_000))
+        unit_cost = 70 + max(0, int(strength)) // 35 + max(0, int(aggression)) // 8
+        count = min(PLAYER_INTERIOR_RAID_MAX_ATTACKERS, available, desired,
+                    max(0, int(treasury)) // max(1, unit_cost))
+        quality_score = min(100, (max(0, int(strength)) * 3
+                                  // max(2, int(members) * 2))
+                            + max(0, int(aggression)) // 2
+                            + min(25, max(0, int(treasury)) // 4000))
+    else:
+        count = min(PLAYER_INTERIOR_RAID_MAX_DEFENDERS, available)
+        unit_cost = 0
+        quality_score = min(100, max(0, int(strength)) * 3
+                            // max(2, int(members) * 2))
+    tier = 1 + int(quality_score >= 38) + int(quality_score >= 66)
+    weapon_budget = 180 + tier * 170 + max(0, quality_score - 30) * 5
+    return {
+        'count': count, 'cost': count * unit_cost,
+        'tier': tier, 'quality': quality_score,
+        'hp': 70 + tier * 20 + quality_score // 5,
+        'accuracy': round(min(.86, .44 + tier * .08 + quality_score / 500), 3),
+        'weapon_budget': min(950, weapon_budget),
+        'guard_count': (1 + min(2, max(0, int(guard_level)) // 2)
+                        if int(guard_level) >= 0 else 0),
+    }
+
+
+async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
+                                holding_ref: str, requested: int,
+                                now: int | None = None) -> dict:
+    """Atomically move living fighters between mobile reserve and one holding."""
+    now = int(now or time.time()); requested = max(0, int(requested))
+    if owner_kind not in {'npc', 'player'} or not owner_id or not holding_ref:
+        return {'ok': False, 'error': 'bad assignment'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row; await db.execute('BEGIN IMMEDIATE')
+        district_assigned = 0; district_ids: set[int] = set()
+        if owner_kind == 'npc':
+            row = await (await db.execute(
+                "SELECT members FROM npc_empires WHERE leader_id=? AND status!='ruined'",
+                (owner_id,))).fetchone()
+            owned = await (await db.execute(
+                "SELECT 1 FROM npc_empire_holdings WHERE leader_id=? "
+                "AND kind||':'||holding_id=?", (owner_id, holding_ref))).fetchone()
+            if not owned:
+                await db.rollback(); return {'ok': False, 'error': 'holding not owned'}
+            total = int(row['members'] or 0) if row else 0
+        else:
+            owned_refs = {str(item['ref']) for item in
+                          await _player_business_targets(db, int(owner_id))}
+            if holding_ref not in owned_refs:
+                await db.rollback(); return {'ok': False, 'error': 'holding not owned'}
+            try:
+                living_rows = await (await db.execute(
+                    "SELECT id FROM gang_members WHERE telegram_id=? "
+                    "AND (current_hp IS NULL OR current_hp>0) ORDER BY id",
+                    (int(owner_id),))).fetchall()
+                living_ids = [int(row[0]) for row in living_rows]
+                total = len(living_ids)
+                try:
+                    district_rows = await (await db.execute(
+                        "SELECT guard_json FROM district_control WHERE telegram_id=?",
+                        (int(owner_id),))).fetchall()
+                    for district_row in district_rows:
+                        district_ids.update(int(member_id) for member_id in
+                                            json.loads(str(district_row[0] or '[]')))
+                except (aiosqlite.Error, ValueError, TypeError, json.JSONDecodeError):
+                    pass
+                district_ids.intersection_update(living_ids)
+                district_assigned = len(district_ids)
+            except (ValueError, aiosqlite.Error):
+                living_ids = []; total = 0
+        current = await (await db.execute(
+            "SELECT living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind=? AND owner_id=? AND holding_ref=?",
+            (owner_kind, owner_id, holding_ref))).fetchone()
+        current_living = int(current['living'] or 0) if current else 0
+        elsewhere = int((await (await db.execute(
+            "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+            "WHERE owner_kind=? AND owner_id=? AND holding_ref<>?",
+            (owner_kind, owner_id, holding_ref))).fetchone())[0] or 0)
+        if requested + elsewhere + district_assigned > total:
+            await db.rollback()
+            return {'ok': False, 'error': 'insufficient free roster',
+                    'total': total,
+                    'assigned': current_living + elsewhere + district_assigned,
+                    'free': max(0, total-current_living-elsewhere-district_assigned)}
+        if owner_kind == 'player':
+            await db.execute(
+                "DELETE FROM npc_empire_player_guard_members WHERE member_id NOT IN "
+                "(SELECT id FROM gang_members WHERE telegram_id=? "
+                "AND (current_hp IS NULL OR current_hp>0))", (int(owner_id),))
+            await db.execute(
+                "DELETE FROM npc_empire_player_guard_members "
+                "WHERE owner_uid=? AND holding_ref=?", (int(owner_id), holding_ref))
+            occupied = {int(row[0]) for row in await (await db.execute(
+                "SELECT member_id FROM npc_empire_player_guard_members"
+            )).fetchall()}
+            occupied.update(district_ids)
+            free_ids = [member_id for member_id in living_ids if member_id not in occupied]
+            if len(free_ids) < requested:
+                await db.rollback()
+                return {'ok': False, 'error': 'insufficient free roster',
+                        'total': total, 'free': len(free_ids)}
+            await db.executemany(
+                "INSERT INTO npc_empire_player_guard_members"
+                "(member_id,owner_uid,holding_ref,assigned_at) VALUES(?,?,?,?)",
+                [(member_id, int(owner_id), holding_ref, now)
+                 for member_id in free_ids[:requested]])
+        if requested:
+            await db.execute(
+                "INSERT INTO npc_empire_guard_assignments"
+                "(owner_kind,owner_id,holding_ref,assigned,living,updated_at) VALUES(?,?,?,?,?,?) "
+                "ON CONFLICT(owner_kind,owner_id,holding_ref) DO UPDATE SET "
+                "assigned=excluded.assigned,living=excluded.living,updated_at=excluded.updated_at",
+                (owner_kind, owner_id, holding_ref, requested, requested, now))
+        else:
+            await db.execute(
+                "DELETE FROM npc_empire_guard_assignments WHERE owner_kind=? AND owner_id=? AND holding_ref=?",
+                (owner_kind, owner_id, holding_ref))
+        await db.commit()
+        return {'ok': True, 'total': total,
+                'assigned': requested + elsewhere + district_assigned,
+                'free': total-requested-elsewhere-district_assigned,
+                'holding_guards': requested}
+
+
+async def _assigned_guard_count(db, owner_kind: str, owner_id: str,
+                                holding_ref: str = '') -> int:
+    where = "owner_kind=? AND owner_id=?"
+    params: list = [owner_kind, owner_id]
+    if holding_ref:
+        where += " AND holding_ref=?"; params.append(holding_ref)
+    return int((await (await db.execute(
+        f"SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments WHERE {where}",
+        tuple(params))).fetchone())[0] or 0)
+
+
+async def _clear_holding_guard_assignment(db, owner_kind: str, owner_id: str,
+                                          holding_ref: str) -> int:
+    """Release surviving assignees when a holding changes owner or is sold."""
+    living = int((await (await db.execute(
+        "SELECT living FROM npc_empire_guard_assignments "
+        "WHERE owner_kind=? AND owner_id=? AND holding_ref=?",
+        (owner_kind, owner_id, holding_ref))).fetchone() or [0])[0] or 0)
+    if owner_kind == 'player':
+        await db.execute(
+            "DELETE FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=? AND holding_ref=?", (int(owner_id), holding_ref))
+    await db.execute(
+        "DELETE FROM npc_empire_guard_assignments "
+        "WHERE owner_kind=? AND owner_id=? AND holding_ref=?",
+        (owner_kind, owner_id, holding_ref))
+    await db.execute(
+        "UPDATE npc_empire_interior_raids SET status='resolved',resolution='ownership_changed',"
+        "resolved_at=MAX(resolved_at,started_at) WHERE status='pending' "
+        "AND target_ref=? AND ((?='player' AND telegram_id=?) OR (?='npc' AND leader_id=?))",
+        (holding_ref, owner_kind, int(owner_id) if owner_kind == 'player' else -1,
+         owner_kind, owner_id))
+    return living
+
+
+async def _rebalance_npc_holding_guards(db, leader_id: str, holdings,
+                                        members: int, active_wars: int,
+                                        now: int,
+                                        threatened_refs: set[str] | None = None) -> int:
+    """AI assigns actual roster slots by value while keeping a mobile reserve."""
+    threatened_refs = threatened_refs or set()
+    eligible = sorted((item for item in holdings
+                       if str(item['kind']) in {'building', 'business'}),
+                      key=lambda item: (
+                          f"{item['kind']}:{item['holding_id']}" not in threatened_refs,
+                          -int(item['income'] or 0),
+                          str(item['kind']), str(item['holding_id'])))
+    mobile_reserve = min(max(2, active_wars * 2 + 1), max(2, int(members)))
+    available = max(0, int(members) - mobile_reserve)
+    plan = {f"{item['kind']}:{item['holding_id']}": 0 for item in eligible}
+    while available > 0 and eligible:
+        changed = False
+        for item in eligible:
+            ref = f"{item['kind']}:{item['holding_id']}"
+            if plan[ref] >= 3 or available <= 0:
+                continue
+            plan[ref] += 1; available -= 1; changed = True
+        if not changed:
+            break
+    await db.execute(
+        "DELETE FROM npc_empire_guard_assignments WHERE owner_kind='npc' AND owner_id=?",
+        (leader_id,))
+    await db.executemany(
+        "INSERT INTO npc_empire_guard_assignments"
+        "(owner_kind,owner_id,holding_ref,assigned,living,updated_at) "
+        "VALUES('npc',?,?,?,?,?)",
+        [(leader_id, ref, count, count, now) for ref, count in plan.items() if count])
+    return sum(plan.values())
 
 
 def _player_war_activity(profile: EmpireProfile, war: dict,
@@ -1372,6 +1586,52 @@ async def ensure_schema(db_path: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_player_wars_due
             ON npc_empire_player_wars(telegram_id,next_attack_at);
+        CREATE TABLE IF NOT EXISTS npc_empire_interior_raids (
+            token TEXT PRIMARY KEY,
+            telegram_id INTEGER NOT NULL,
+            leader_id TEXT NOT NULL,
+            apt_key TEXT NOT NULL,
+            target_ref TEXT NOT NULL,
+            target_kind TEXT NOT NULL,
+            holding_id TEXT NOT NULL,
+            operation_type TEXT NOT NULL DEFAULT '',
+            business_label TEXT NOT NULL DEFAULT '',
+            force INTEGER NOT NULL,
+            attacker_cost INTEGER NOT NULL,
+            tier INTEGER NOT NULL,
+            quality INTEGER NOT NULL,
+            hp INTEGER NOT NULL,
+            accuracy REAL NOT NULL,
+            weapon_budget INTEGER NOT NULL,
+            defender_ids_json TEXT NOT NULL DEFAULT '[]',
+            guard_ids_json TEXT NOT NULL DEFAULT '[]',
+            guard_count INTEGER NOT NULL DEFAULT 0,
+            attack_no INTEGER NOT NULL DEFAULT 0,
+            started_at INTEGER NOT NULL,
+            hold_seconds INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            resolution TEXT NOT NULL DEFAULT '',
+            resolved_at INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS ix_npc_empire_interior_raids_pending
+            ON npc_empire_interior_raids(telegram_id,leader_id)
+            WHERE status='pending';
+        CREATE TABLE IF NOT EXISTS npc_empire_guard_assignments (
+            owner_kind TEXT NOT NULL,
+            owner_id TEXT NOT NULL,
+            holding_ref TEXT NOT NULL,
+            assigned INTEGER NOT NULL DEFAULT 0,
+            living INTEGER NOT NULL DEFAULT 0,
+            updated_at INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(owner_kind,owner_id,holding_ref)
+        );
+        CREATE TABLE IF NOT EXISTS npc_empire_player_guard_members (
+            member_id INTEGER PRIMARY KEY,
+            owner_uid INTEGER NOT NULL,
+            holding_ref TEXT NOT NULL,
+            assigned_at INTEGER NOT NULL DEFAULT 0
+        );
         CREATE TABLE IF NOT EXISTS npc_empire_building_closures (
             holding_id TEXT PRIMARY KEY,
             leader_id TEXT NOT NULL,
@@ -1402,6 +1662,12 @@ async def ensure_schema(db_path: str) -> None:
         for name, declaration in migrations.items():
             if name not in columns:
                 await db.execute(f"ALTER TABLE npc_empires ADD COLUMN {name} {declaration}")
+        raid_columns = {str(r[1]) for r in await (await db.execute(
+            "PRAGMA table_info(npc_empire_interior_raids)")).fetchall()}
+        if 'guard_ids_json' not in raid_columns:
+            await db.execute(
+                "ALTER TABLE npc_empire_interior_raids "
+                "ADD COLUMN guard_ids_json TEXT NOT NULL DEFAULT '[]'")
         holding_columns = {str(r[1]) for r in await (await db.execute(
             "PRAGMA table_info(npc_empire_holdings)")).fetchall()}
         for name, declaration in {'operation_type': "TEXT NOT NULL DEFAULT ''", 'area': "INTEGER NOT NULL DEFAULT 0"}.items():
@@ -1605,6 +1871,12 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
             "DELETE FROM business_property_owners WHERE owner_uid=?", (npc_owner_uid(leader_id),)
         )
     await db.execute("DELETE FROM npc_empire_holdings WHERE leader_id=?", (leader_id,))
+    await db.execute(
+        "DELETE FROM npc_empire_guard_assignments WHERE owner_kind='npc' AND owner_id=?",
+        (leader_id,))
+    await db.execute(
+        "UPDATE npc_empire_interior_raids SET status='resolved',resolution='owner_ruined',"
+        "resolved_at=? WHERE leader_id=? AND status='pending'", (now, leader_id))
     await db.execute(
         "UPDATE npc_empires SET status='ruined',treasury=0,members=0,strength=0,hq_key=NULL,"
         "defeated_at=?,defeated_by=?,comeback_at=?,losses=losses+1,dominance_score=0,"
@@ -1834,10 +2106,11 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                               if leader_id in pair and state['pact'] == 'war')
             if leader_id in player_war_leaders:
                 active_wars += 1
-            guard_slots = sum(holding_guard_count(
-                leader_id, str(holding['kind']), str(holding['holding_id']),
-                int(holding['acquired_at'] or 0),
-            ) for holding in holdings)
+            guard_slots = await _rebalance_npc_holding_guards(
+                db, leader_id, holdings, members, active_wars, now,
+                {f"building:{item['holding_id']}" for item in holdings
+                 if str(item['kind']) == 'building'
+                 and str(item['holding_id']) in closed_buildings})
             insolvent_before = max(0, int(row['insolvent_ticks'] or 0))
             recovery_before = max(0, int(row['recovery_ticks_remaining'] or 0))
             budget = apply_operating_budget(
@@ -2076,6 +2349,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     members = max(1, members-casualty//2)
                     if attack_power > defense_power:
                         captured_kind=str(target['kind']);captured_id=str(target['holding_id'])
+                        await _clear_holding_guard_assignment(
+                            db, 'npc', rival.leader_id,
+                            f'{captured_kind}:{captured_id}')
                         if captured_kind == 'building':
                             captured_area=max(4,int(target['area'] or BUILDING_AREAS.get(captured_id,4)))
                             captured_operation=choose_captured_building_operation(
@@ -2150,6 +2426,19 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                  recruit_started_at, recruit_ready_at, last_recruit_count, last_recruit_at, int(row['last_tick']) + ticks*TICK_SECONDS,
                  now + TICK_SECONDS, leader_id),
             )
+            # Budget pressure and combat can reduce the living roster after the
+            # opening allocation. Recompute inside the same transaction so no
+            # observer can see more guards than living members, and include any
+            # property captured by this action immediately.
+            final_holdings = await (await db.execute(
+                "SELECT kind,holding_id,income,defense,acquired_at,operation_type,area "
+                "FROM npc_empire_holdings WHERE leader_id=?", (leader_id,)
+            )).fetchall()
+            await _rebalance_npc_holding_guards(
+                db, leader_id, final_holdings, members, active_wars, now,
+                {f"building:{item['holding_id']}" for item in final_holdings
+                 if str(item['kind']) == 'building'
+                 and str(item['holding_id']) in closed_buildings})
         # Reactions created during this tick may cross the alliance threshold;
         # make that political result authoritative before publishing events.
         await _advance_npc_alliances(
@@ -2171,7 +2460,80 @@ def _player_war_interval(profile: EmpireProfile) -> int:
     return 20 * 60 + max(0, 100 - profile.aggression) * 12
 
 
-async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -> list[dict]:
+async def _create_interior_raid(db, telegram_id: int, leader_id: str,
+                                target: dict, attack_no: int, now: int) -> dict | None:
+    profile = PROFILE_BY_ID[leader_id]
+    empire = await (await db.execute(
+        "SELECT members,strength,treasury FROM npc_empires WHERE leader_id=?",
+        (leader_id,))).fetchone()
+    if not empire:
+        return None
+    assigned = await _assigned_guard_count(db, 'npc', leader_id)
+    committed = int((await (await db.execute(
+        "SELECT COALESCE(SUM(force),0) FROM npc_empire_interior_raids "
+        "WHERE leader_id=? AND status='pending'", (leader_id,))).fetchone())[0] or 0)
+    free_attackers = max(0, int(empire['members'] or 0) - assigned - committed)
+    allocation = allocate_physical_roster(
+        side='attacker', roster_available=free_attackers,
+        members=int(empire['members'] or 0), strength=int(empire['strength'] or 0),
+        treasury=int(empire['treasury'] or 0), aggression=profile.aggression)
+    if allocation['count'] < 2:
+        return None
+    apt_key = str(target.get('apt_key') or f"business:{target['holding_id']}")
+    defender_ids = []
+    try:
+        defender_ids = [int(row[0]) for row in await (await db.execute(
+            "SELECT pg.member_id FROM npc_empire_player_guard_members pg "
+            "JOIN gang_members gm ON gm.id=pg.member_id AND gm.telegram_id=pg.owner_uid "
+            "WHERE pg.owner_uid=? AND pg.holding_ref=? "
+            "AND (gm.current_hp IS NULL OR gm.current_hp>0) ORDER BY pg.member_id",
+            (telegram_id, str(target['ref'])))).fetchall()]
+    except aiosqlite.Error:
+        defender_ids = []
+    defender_ids = defender_ids[:PLAYER_INTERIOR_RAID_MAX_DEFENDERS]
+    # There is one actual assigned roster, not a second synthetic guard layer.
+    # guard_count remains a legacy display alias for older clients.
+    guard_ids: list[int] = []
+    guard_count = len(defender_ids)
+    defender_quality = allocate_physical_roster(
+        side='defender', roster_available=len(defender_ids), members=len(defender_ids),
+        strength=len(defender_ids) * 25, treasury=0, aggression=0,
+        guard_level=max(0, guard_count * 2 - 1))
+    token = secrets.token_urlsafe(18)
+    r, c = _player_business_target_point(target)
+    label = (BUILDING_OPERATIONS.get(str(target.get('operation_type') or ''), {}).get('name')
+             or str(target.get('holding_id') or 'Бизнес'))
+    await db.execute(
+        "INSERT INTO npc_empire_interior_raids"
+        "(token,telegram_id,leader_id,apt_key,target_ref,target_kind,holding_id,operation_type,"
+        "business_label,force,attacker_cost,tier,quality,hp,accuracy,weapon_budget,"
+        "defender_ids_json,guard_ids_json,guard_count,attack_no,started_at,hold_seconds,expires_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (token, telegram_id, leader_id, apt_key, str(target['ref']), str(target['kind']),
+         str(target['holding_id']), str(target.get('operation_type') or ''), label,
+         allocation['count'], allocation['cost'], allocation['tier'], allocation['quality'],
+         allocation['hp'], allocation['accuracy'], allocation['weapon_budget'],
+         json.dumps(defender_ids), json.dumps(guard_ids), guard_count, attack_no, now,
+         PLAYER_INTERIOR_RAID_HOLD_SECONDS, now + PLAYER_INTERIOR_RAID_EXPIRES_SECONDS))
+    await db.execute(
+        "UPDATE npc_empires SET treasury=treasury-? WHERE leader_id=?",
+        (allocation['cost'], leader_id))
+    return {
+        'token': token, 'apt_key': apt_key, 'business_label': label,
+        'leader_id': leader_id, 'leader_name': profile.leader_name,
+        'gang_name': profile.gang_name, 'target_r': float(r), 'target_c': float(c),
+        'force': allocation['count'], 'quality': allocation['quality'],
+        'tier': allocation['tier'], 'hp': allocation['hp'],
+        'accuracy': allocation['accuracy'], 'weapon_budget': allocation['weapon_budget'],
+        'defender_count': len(defender_ids),
+        'guard_count': min(guard_count, PLAYER_INTERIOR_RAID_MAX_DEFENDERS),
+        'started_at': now, 'hold_seconds': PLAYER_INTERIOR_RAID_HOLD_SECONDS,
+        'expires_at': now + PLAYER_INTERIOR_RAID_EXPIRES_SECONDS,
+    }
+
+
+async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
+                                     resolve_token: str = '') -> list[dict]:
     """Resolve due, server-authoritative attacks against one player's businesses."""
     events: list[dict] = []
     async with aiosqlite.connect(db_path) as db:
@@ -2204,8 +2566,15 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
             "WHERE telegram_id=? AND next_attack_at<=? ORDER BY next_attack_at,leader_id",
             (telegram_id, now),
         )).fetchall()
+        resolved_session = None
+        if resolve_token:
+            resolved_session = await (await db.execute(
+                "SELECT * FROM npc_empire_interior_raids WHERE token=? AND telegram_id=?",
+                (resolve_token, telegram_id))).fetchone()
         for row in due:
             leader_id = str(row['leader_id'])
+            if resolved_session and leader_id != str(resolved_session['leader_id']):
+                continue
             if leader_id not in active:
                 continue
             profile = PROFILE_BY_ID[leader_id]
@@ -2221,11 +2590,47 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
                 )).fetchone()
                 last_biz = str(war_row['last_business_id'] or '') if war_row else ''
                 target = _select_player_business_target(businesses, attack_no, last_biz)
+                if resolved_session:
+                    target = next((item for item in businesses
+                                   if str(item['ref']) == str(resolved_session['target_ref'])), None)
+                    if not target:
+                        continue
                 target_ref = str(target['ref'])
                 target_kind = str(target['kind'])
                 biz_id = str(target['holding_id'])
+                if not resolve_token:
+                    existing = await (await db.execute(
+                        "SELECT token FROM npc_empire_interior_raids "
+                        "WHERE telegram_id=? AND leader_id=? AND status='pending'",
+                        (telegram_id, leader_id))).fetchone()
+                    if existing:
+                        continue
+                    raid = await _create_interior_raid(
+                        db, telegram_id, leader_id, target, attack_no, now)
+                    if raid:
+                        summary = (f'{profile.leader_name} ведёт {raid["force"]} бойцов '
+                                   f'на внутренний штурм «{raid["business_label"]}»')
+                        await db.execute(
+                            "INSERT INTO npc_empire_events"
+                            "(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
+                            (leader_id, 'player_business_interior_raid', str(telegram_id),
+                             summary, now))
+                        events.append({'leader_id': leader_id,
+                                       'kind': 'player_business_interior_raid',
+                                       'business_id': biz_id,
+                                       'property_kind': target_kind,
+                                       'operation_type': str(target.get('operation_type') or ''),
+                                       'summary': summary, **raid})
+                        continue
+                    await db.execute(
+                        "UPDATE npc_empire_player_wars SET next_attack_at=? "
+                        "WHERE leader_id=? AND telegram_id=?",
+                        (now + _player_war_interval(profile), leader_id, telegram_id))
+                    continue
                 capture = attack_no % 2 == 1 and last_biz in {target_ref, biz_id}
                 if capture:
+                    await _clear_holding_guard_assignment(
+                        db, 'player', str(telegram_id), target_ref)
                     if target_kind == 'building':
                         operation_type = choose_captured_building_operation(
                             profile, biz_id, str(target.get('operation_type') or ''), now + attack_no)
@@ -2313,6 +2718,120 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
     return events
 
 
+async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
+                                apt_key: str, outcome: str,
+                                now: int | None = None,
+                                attacker_casualties: list[int] | None = None,
+                                defender_casualties: list[int] | None = None,
+                                guard_casualties: list[int] | None = None) -> dict:
+    """Resolve one physical interior raid once, then invoke the old war phase."""
+    now = int(now or time.time()); outcome = str(outcome or '')
+    if outcome not in {'defended', 'captured'}:
+        return {'ok': False, 'error': 'bad outcome'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row; await db.execute('BEGIN IMMEDIATE')
+        raid = await (await db.execute(
+            "SELECT * FROM npc_empire_interior_raids WHERE token=? AND telegram_id=?",
+            (token, telegram_id))).fetchone()
+        if not raid or str(raid['apt_key']) != str(apt_key):
+            await db.rollback(); return {'ok': False, 'error': 'raid not found'}
+        if str(raid['status']) != 'pending':
+            await db.rollback()
+            return {'ok': True, 'duplicate': True, 'resolution': str(raid['resolution'])}
+        force = max(0, int(raid['force'] or 0)); leader_id = str(raid['leader_id'])
+        valid_attacker_slots = set(range(force))
+        try:
+            requested_attackers = {int(value) for value in (attacker_casualties or [])}
+            requested_defenders = {int(value) for value in (defender_casualties or [])}
+            requested_guards = {int(value) for value in (guard_casualties or [])}
+        except (TypeError, ValueError):
+            await db.rollback(); return {'ok': False, 'error': 'bad casualty payload'}
+        if requested_attackers - valid_attacker_slots:
+            await db.rollback(); return {'ok': False, 'error': 'bad attacker casualties'}
+        elapsed = now - int(raid['started_at'] or now)
+        required = (PLAYER_INTERIOR_RAID_MIN_SECONDS if outcome == 'defended'
+                    else int(raid['hold_seconds'] or PLAYER_INTERIOR_RAID_HOLD_SECONDS))
+        all_attackers_down = (outcome == 'defended' and attacker_casualties is not None
+                              and requested_attackers == valid_attacker_slots)
+        if elapsed < required and not all_attackers_down and now < int(raid['expires_at'] or 0):
+            await db.rollback()
+            return {'ok': False, 'error': 'raid still active', 'retry_after': required-elapsed}
+        attacker_losses = (len(requested_attackers) if attacker_casualties is not None else
+                           min(force, max(1, force // (2 if outcome == 'defended' else 4))))
+        await db.execute(
+            "UPDATE npc_empires SET members=MAX(1,members-?),"
+            "strength=MAX(20,strength-?) WHERE leader_id=?",
+            (attacker_losses, attacker_losses * 11, leader_id))
+        defender_ids = [int(value) for value in json.loads(
+            str(raid['defender_ids_json'] or '[]'))]
+        if requested_defenders - set(defender_ids):
+            await db.rollback(); return {'ok': False, 'error': 'bad defender casualties'}
+        lost_defenders = (sorted(requested_defenders) if defender_casualties is not None else
+                          defender_ids[:min(len(defender_ids),
+                                           max(0, force-int(raid['guard_count'] or 0)) // 2)]
+                          if outcome == 'captured' else [])
+        defender_losses = len(lost_defenders)
+        if defender_losses:
+            marks = ','.join('?' for _ in lost_defenders)
+            try:
+                await db.execute(
+                    f"UPDATE gang_members SET current_hp=0 WHERE telegram_id=? AND id IN ({marks})",
+                    (telegram_id, *lost_defenders))
+            except aiosqlite.Error:
+                pass
+            await db.execute(
+                f"DELETE FROM npc_empire_player_guard_members WHERE member_id IN ({marks})",
+                tuple(lost_defenders))
+            await db.execute(
+                "UPDATE npc_empire_guard_assignments SET living=MAX(0,living-?) "
+                "WHERE owner_kind='player' AND owner_id=? AND holding_ref=?",
+                (defender_losses, str(telegram_id), str(raid['target_ref'])))
+        session_guard_ids = [int(value) for value in json.loads(
+            str(raid['guard_ids_json'] or '[]'))]
+        if requested_guards - set(session_guard_ids):
+            await db.rollback(); return {'ok': False, 'error': 'bad guard casualties'}
+        # Legacy guard layer is empty for new sessions; preserve exact lists for
+        # old pending sessions regardless of the combat outcome.
+        lost_guards = (sorted(requested_guards) if guard_casualties is not None else
+                       session_guard_ids[:min(len(session_guard_ids), max(1, force // 3))]
+                       if outcome == 'captured' else [])
+        guard_losses = len(lost_guards)
+        if guard_losses:
+            marks = ','.join('?' for _ in lost_guards)
+            try:
+                await db.execute(
+                    f"UPDATE gang_members SET current_hp=0 WHERE telegram_id=? AND id IN ({marks})",
+                    (telegram_id, *lost_guards))
+            except aiosqlite.Error:
+                pass
+            await db.execute(
+                f"DELETE FROM npc_empire_player_guard_members WHERE member_id IN ({marks})",
+                tuple(lost_guards))
+            await db.execute(
+                "UPDATE npc_empire_guard_assignments SET living=MAX(0,living-?) "
+                "WHERE owner_kind='player' AND owner_id=? AND holding_ref=?",
+                (guard_losses, str(telegram_id), str(raid['target_ref'])))
+        await db.execute(
+            "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,resolved_at=? "
+            "WHERE token=? AND status='pending'", (outcome, now, token))
+        if outcome == 'defended':
+            await db.execute(
+                "UPDATE npc_empire_player_wars SET next_attack_at=? "
+                "WHERE leader_id=? AND telegram_id=?",
+                (now + _player_war_interval(PROFILE_BY_ID[leader_id]), leader_id, telegram_id))
+        else:
+            await db.execute(
+                "UPDATE npc_empire_player_wars SET next_attack_at=? "
+                "WHERE leader_id=? AND telegram_id=?", (now, leader_id, telegram_id))
+        await db.commit()
+    phase_events = ([] if outcome == 'defended' else
+                    await _apply_player_war_pressure(
+                        db_path, telegram_id, now, resolve_token=token))
+    return {'ok': True, 'resolution': outcome, 'attacker_losses': attacker_losses,
+            'defender_losses': defender_losses, 'phase_events': phase_events}
+
+
 async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> dict:
     now = int(now or time.time())
     await ensure_schema(db_path)
@@ -2351,14 +2870,41 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT leader_id,next_attack_at,attacks,last_business_id,last_attack_at "
             "FROM npc_empire_player_wars WHERE telegram_id=?", (telegram_id,)
         )).fetchall()}
+        raid_rows = [dict(r) for r in await (await db.execute(
+            "SELECT * FROM npc_empire_interior_raids "
+            "WHERE telegram_id=? AND status='pending' ORDER BY started_at,token",
+            (telegram_id,))).fetchall()]
+        holdings_by_leader = {profile.leader_id: [] for profile in PROFILES}
+        for holding_row in holdings_rows:
+            holdings_by_leader.setdefault(str(holding_row['leader_id']), []).append(holding_row)
+        for empire_row in rows:
+            guard_leader = str(empire_row['leader_id'])
+            wars = sum(1 for pact_row in diplomacy_rows
+                       if str(pact_row.get('pact') or '') == 'war'
+                       and guard_leader in {str(pact_row.get('leader_a')),
+                                            str(pact_row.get('leader_b'))})
+            wars += int(guard_leader in war_rows)
+            await _rebalance_npc_holding_guards(
+                db, guard_leader, holdings_by_leader.get(guard_leader, []),
+                int(empire_row['members'] or 0), wars, now,
+                {f"building:{item['holding_id']}"
+                 for item in holdings_by_leader.get(guard_leader, [])
+                 if str(item['kind']) == 'building'
+                 and str(item['holding_id']) in closure_rows})
+        await db.commit()
+        npc_guard_assignments = {
+            (str(r['owner_id']), str(r['holding_ref'])): int(r['living'] or 0)
+            for r in await (await db.execute(
+                "SELECT owner_id,holding_ref,living FROM npc_empire_guard_assignments "
+                "WHERE owner_kind='npc'"
+            )).fetchall()}
         player_business_targets = await _player_business_targets(db, telegram_id)
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
         item = dict(row)
-        item['guard_count'] = holding_guard_count(
-            str(row['leader_id']), str(item.get('kind') or ''),
-            str(item.get('holding_id') or ''), int(item.get('acquired_at') or 0),
-        )
+        item['guard_count'] = npc_guard_assignments.get((
+            str(row['leader_id']),
+            f"{str(item.get('kind') or '')}:{str(item.get('holding_id') or '')}"), 0)
         operation = str(item.get('operation_type') or '')
         if item.get('kind') == 'building' and operation in BUILDING_OPERATIONS:
             item['operation_name'] = BUILDING_OPERATIONS[operation]['name']
@@ -2527,9 +3073,61 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'control_state': ('neutral' if not row.get('leader_id') else
                               'contested' if bool(row['contested']) else 'leader'),
         })
+    interior_raids = []
+    for raid in raid_rows:
+        profile = PROFILE_BY_ID.get(str(raid['leader_id']))
+        target = next((item for item in player_business_targets
+                       if str(item['ref']) == str(raid['target_ref'])), None)
+        r, c = _player_business_target_point(target or {
+            'kind': raid['target_kind'], 'holding_id': raid['holding_id']})
+        defender_ids = [int(value) for value in json.loads(
+            str(raid['defender_ids_json'] or '[]'))]
+        guard_ids = [int(value) for value in json.loads(
+            str(raid['guard_ids_json'] or '[]'))]
+        tier = int(raid['tier']); quality = int(raid['quality'])
+        attacker_roster = [{
+            'slot': slot, 'role': ('breacher' if slot == 0 else
+                                   'support' if slot % 3 == 0 else 'assault'),
+            'hp': int(raid['hp']), 'accuracy': float(raid['accuracy']),
+            'weapon_budget': int(raid['weapon_budget']),
+            'tier': tier, 'quality': quality,
+        } for slot in range(int(raid['force']))]
+        defender_roster = [{
+            'member_id': member_id, 'role': 'holding_guard',
+            'hp': 100, 'accuracy': round(min(.78, .42 + tier * .07), 3),
+            'tier': max(1, tier-1),
+        } for member_id in defender_ids]
+        guard_roster = [{
+            'member_id': member_id, 'role': 'holding_guard',
+            'hp': 110, 'accuracy': round(min(.8, .45 + tier * .07), 3),
+            'tier': tier,
+        } for member_id in guard_ids]
+        interior_raids.append({
+            'token': str(raid['token']), 'apt_key': str(raid['apt_key']),
+            'business_label': str(raid['business_label']),
+            'target_id': str(raid['holding_id']),
+            'target_kind': str(raid['target_kind']),
+            'leader_id': str(raid['leader_id']),
+            'leader_name': profile.leader_name if profile else str(raid['leader_id']),
+            'gang_name': profile.gang_name if profile else '',
+            'target_r': float(r), 'target_c': float(c),
+            'force': int(raid['force']), 'quality': int(raid['quality']),
+            'tier': int(raid['tier']), 'hp': int(raid['hp']),
+            'accuracy': float(raid['accuracy']),
+            'weapon_budget': int(raid['weapon_budget']),
+            'guard_count': int(raid['guard_count']),
+            'defender_count': len(defender_roster),
+            'attacker_roster': attacker_roster,
+            'defender_roster': defender_roster,
+            'guard_roster': guard_roster,
+            'started_at': int(raid['started_at']),
+            'hold_seconds': int(raid['hold_seconds']),
+            'expires_at': int(raid['expires_at']),
+        })
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],
             'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent[:60],
             'player_war_events': player_war_events,
+            'interior_raids': interior_raids,
             'server_time': now, 'tick_seconds': TICK_SECONDS}
 
 
@@ -2619,6 +3217,8 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
                              (price, leader_id))
             await db.execute("DELETE FROM npc_empire_holdings WHERE kind='building' AND holding_id=? AND leader_id=?",
                              (holding_id, leader_id))
+            await _clear_holding_guard_assignment(
+                db, 'npc', leader_id, f'building:{holding_id}')
             await db.execute(
                 "INSERT INTO apartments_owned"
                 "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "

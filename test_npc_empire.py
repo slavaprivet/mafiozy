@@ -325,8 +325,15 @@ async def run() -> None:
             await db.commit()
         pressured = await ne.state_for(path, 101, now=2_000_000_923)
         assert pressured["player_war_events"] and pressured["player_war_events"][0]["business_id"] == "pizza"
-        assert await _scalar(path, "SELECT blocked_until FROM player_businesses WHERE biz_id='pizza'") == 2_000_001_523
-        assert next(e for e in pressured["empires"] if e["leader_id"] == "marco")["war_pressure"]["attacks"] == 1
+        raid = pressured['interior_raids'][0]
+        resolved = await ne.resolve_interior_raid(
+            path, 101, raid['token'], raid['apt_key'], 'captured',
+            now=2_000_000_923 + raid['hold_seconds'])
+        assert resolved['ok'] and resolved['phase_events'][0]['kind'] == 'player_business_bombed'
+        assert await _scalar(path, "SELECT blocked_until FROM player_businesses WHERE biz_id='pizza'") == 2_000_001_523 + raid['hold_seconds']
+        after_raid = await ne.state_for(path,101,now=2_000_000_923 + raid['hold_seconds'])
+        assert next(e for e in after_raid["empires"]
+                    if e["leader_id"] == "marco")["war_pressure"]["attacks"] == 1
         compensation = await ne.diplomacy_action(path, 101, "marco", "compensation", now=2_000_000_924)
         assert compensation["ok"] and compensation["relation"] == -70 and compensation["pact"] == "war"
         compensation = await ne.diplomacy_action(path, 101, "marco", "compensation", now=2_000_000_925)

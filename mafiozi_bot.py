@@ -2898,6 +2898,45 @@ async def get_player_building_properties() -> list:
             closures = {str(row[0]): int(row[1] or 0) for row in closure_rows}
         except Exception:
             closures = {}
+        # Guard availability is authoritative snapshot data. Without it the
+        # action card falls back to the local follower list after reconnect and
+        # can offer fighters already assigned to another property or district.
+        try:
+            assignment_rows = await (await db.execute(
+                "SELECT pg.owner_uid,pg.holding_ref,COUNT(*) "
+                "FROM npc_empire_player_guard_members pg "
+                "JOIN gang_members gm ON gm.id=pg.member_id AND gm.telegram_id=pg.owner_uid "
+                "WHERE gm.current_hp IS NULL OR gm.current_hp>0 "
+                "GROUP BY pg.owner_uid,pg.holding_ref"
+            )).fetchall()
+            guard_by_holding = {(str(item[0]), str(item[1])): int(item[2] or 0)
+                                for item in assignment_rows}
+            guard_assigned = {}
+            for item in assignment_rows:
+                uid = str(item[0])
+                guard_assigned[uid] = guard_assigned.get(uid, 0) + int(item[2] or 0)
+            living_rows = await (await db.execute(
+                "SELECT id,telegram_id FROM gang_members "
+                "WHERE current_hp IS NULL OR current_hp>0"
+            )).fetchall()
+            living_by_owner = {}
+            for member_id, telegram_id in living_rows:
+                living_by_owner.setdefault(str(telegram_id), set()).add(int(member_id))
+            guard_totals = {uid: len(member_ids)
+                            for uid, member_ids in living_by_owner.items()}
+            district_rows = await (await db.execute(
+                "SELECT telegram_id,guard_json FROM district_control"
+            )).fetchall()
+            district_guard_ids = {}
+            for item in district_rows:
+                uid = str(item[0])
+                district_guard_ids.setdefault(uid, set()).update(
+                    int(member_id) for member_id in json.loads(str(item[1] or '[]')))
+            for uid, member_ids in district_guard_ids.items():
+                guard_assigned[uid] = guard_assigned.get(uid, 0) + len(
+                    member_ids & living_by_owner.get(uid, set()))
+        except (aiosqlite.Error, ValueError, TypeError, json.JSONDecodeError):
+            guard_by_holding = {}; guard_assigned = {}; guard_totals = {}
     out = []
     family_style = {
         'moretti': ('Семья Моретти', '#e7e1d4', '#aa823e'),
@@ -2919,6 +2958,10 @@ async def get_player_building_properties() -> list:
             flag = {'primary': default_color, 'secondary': default_accent,
                     'emblem': str(row['flag_emblem'] or 'crown')}
         building_key = apartment_empire_building_key(str(row['apt_key']))
+        owner_uid = str(row['telegram_id']); holding_ref = f'building:{building_key}'
+        holding_guards = int(guard_by_holding.get((owner_uid, holding_ref), 0))
+        guard_total = int(guard_totals.get(owner_uid, 0))
+        assigned_total = min(guard_total, int(guard_assigned.get(owner_uid, 0)))
         closed_until = int(closures.get(str(building_key or ''), 0))
         guard_count = npc_empire.holding_guard_count(
             f"player:{row['telegram_id']}", 'building', str(building_key or ''),
@@ -2933,6 +2976,9 @@ async def get_player_building_properties() -> list:
             'gang_name': default_name, 'color': default_color, 'accent': default_accent,
             'flag': flag, 'closed_until': closed_until,
             'guard_count': guard_count,
+            'defender_count': holding_guards, 'holding_guards': holding_guards,
+            'guard_total': guard_total, 'guard_assigned': assigned_total,
+            'guard_free': max(0, guard_total-assigned_total),
             'closed_s': max(0, closed_until-int(time.time())),
             'building_status': 'closed' if closed_until else 'open', **(operation or {}),
         })
@@ -3084,6 +3130,14 @@ async def sell_apartment_db(telegram_id: int, apt_key: str):
             "DELETE FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
             (telegram_id, apt_key),
         )
+        building_key = apartment_empire_building_key(apt_key)
+        guard_schema = await (await db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='npc_empire_guard_assignments'"
+        )).fetchone()
+        if building_key and guard_schema:
+            await npc_empire._clear_holding_guard_assignment(
+                db, 'player', str(telegram_id), f'building:{building_key}')
         await db.execute(
             "UPDATE characters SET cash=COALESCE(cash,0)+? WHERE telegram_id=?",
             (refund, telegram_id),
@@ -22902,6 +22956,13 @@ async def _transfer_business_property(world:'WorldSim',biz_id:str,new_uid:str,ne
         async with db.execute("SELECT level FROM player_businesses WHERE telegram_id=? AND biz_id=?",(int(old_uid) if old_uid else -1,biz_id)) as cur:
             old_row=await cur.fetchone()
         level=max(1,min(BIZ_MAX_LEVEL,int(old_row['level'] or 1))) if old_row else 1
+        guard_schema=await (await db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='npc_empire_guard_assignments'"
+        )).fetchone()
+        if old_uid and guard_schema:
+            await npc_empire._clear_holding_guard_assignment(
+                db,'player',str(old_uid),f'business:{biz_id}')
         await db.execute("DELETE FROM player_businesses WHERE biz_id=?",(biz_id,))
         await db.execute("INSERT INTO player_businesses(telegram_id,biz_id,bought_at,last_collect,status,blocked_until,last_event_at,level,guards,pending_notice) VALUES(?,?,?,?, 'ok',0,0,?,0,?)",
                          (int(new_uid),biz_id,now,now,level,f'Бизнес отжат у {old_name or "прежнего владельца"}'))
@@ -25646,6 +25707,38 @@ async def _coop_http_app():
                 player_state.setdefault('_owned_apartments',set()).update(
                     str(item.get('apt_key') or '') for item in result.get('captured_buildings') or []
                     if item.get('apt_key'))
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
+    async def h_npc_empire_interior_raid_resolve(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        apt_key=str(body.get('apt_key') or '')[:64];live=_WORLD.players.get(str(uid)) if _WORLD else None
+        in_expected = bool(live and live.get('_in_interior') and (
+            (apt_key.startswith('business:') and
+             str(live.get('_business_interior') or '')==apt_key.split(':',1)[1]) or
+            (not apt_key.startswith('business:') and
+             str(live.get('_apartment_key') or '')==apt_key)))
+        if not in_expected:
+            return await _cors(web.json_response(
+                {'ok':False,'error':'player not in target interior'},status=409))
+        result=await npc_empire.resolve_interior_raid(
+            DB_PATH,uid,str(body.get('token') or '')[:64],apt_key,
+            str(body.get('outcome') or '')[:16],
+            attacker_casualties=(body.get('attacker_down_slots')
+                                 if isinstance(body.get('attacker_down_slots'),list) else None),
+            defender_casualties=(body.get('defender_down_ids')
+                                 if isinstance(body.get('defender_down_ids'),list) else None),
+            guard_casualties=(body.get('guard_down_ids')
+                              if isinstance(body.get('guard_down_ids'),list) else None))
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
+    async def h_npc_empire_property_guards(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        result=await npc_empire.assign_holding_guards(
+            DB_PATH,owner_kind='player',owner_id=str(uid),
+            holding_ref=str(body.get('holding_ref') or '')[:64],
+            requested=max(0,min(12,int(body.get('count') or 0))))
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     # ── ЧЁРНЫЙ РЫНОК и ИНВЕНТАРЬ (всё внутри мини-аппа) ──────────────────
@@ -30243,6 +30336,8 @@ async def _coop_http_app():
     aio_app.router.add_post('/npc-empires/{uid}/assault/prepare', h_npc_empire_assault_prepare)
     aio_app.router.add_post('/npc-empires/{uid}/assault/hit', h_npc_empire_assault_hit)
     aio_app.router.add_post('/npc-empires/{uid}/assault/resolve', h_npc_empire_assault_resolve)
+    aio_app.router.add_post('/npc-empires/{uid}/interior-raid/resolve', h_npc_empire_interior_raid_resolve)
+    aio_app.router.add_post('/npc-empires/{uid}/property-guards', h_npc_empire_property_guards)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)

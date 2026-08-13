@@ -60,7 +60,7 @@ async def run():
     assert "_businessActionDeferredForMode={kind,poi:" in world
     assert "_businessActionCard.classList.remove('show');return false" in world
     assert "if(_businessActionSelection||_businessActionCard.classList.contains('show'))" in world
-    assert "if(!_LOCAL_PREVIEW||!_UP.has('previewplayerbusinessraid')" in world
+    assert "if(!_LOCAL_PREVIEW||(!_UP.has('previewplayerbusinessraid')&&!_UP.has('previewraidalert'))" in world
     assert "['approach','first-close','followup-capture']" in world
     assert "kind:'player_business_raid'" in world
     assert "target_r:targetR,target_c:targetC" in world
@@ -140,19 +140,28 @@ async def run():
         assert marco['activity']['target_id'] == key
         assert (marco['activity']['target_r'], marco['activity']['target_c']) == ne._hq_coords(key)
 
-        bombed = await ne.state_for(path, 101, NOW + 10)
-        event = next(e for e in bombed['player_war_events'] if e['leader_id'] == 'marco')
+        raid_state = await ne.state_for(path, 101, NOW + 10)
+        raid = raid_state['interior_raids'][0]
+        assert raid_state['player_war_events'][0]['kind'] == 'player_business_interior_raid'
+        resolved = await ne.resolve_interior_raid(
+            path, 101, raid['token'], raid['apt_key'], 'captured',
+            NOW + 10 + raid['hold_seconds'])
+        assert resolved.get('ok'), resolved
+        event = resolved['phase_events'][0]
         assert event['kind'] == 'player_business_bombed'
-        assert event['property_kind'] == 'building' and event['business_id'] == key
         assert await scalar(path,
             "SELECT closed_until FROM npc_empire_building_closures WHERE holding_id=?", (key,)) \
-            == NOW + 10 + ne.PLAYER_WAR_BUSINESS_BLOCK_SECONDS
+            == NOW + 10 + raid['hold_seconds'] + ne.PLAYER_WAR_BUSINESS_BLOCK_SECONDS
         assert await scalar(path,
             "SELECT last_income_at FROM apartments_owned WHERE telegram_id=101 AND apt_key=?", (key,)) \
-            == NOW + 10 + ne.PLAYER_WAR_BUSINESS_BLOCK_SECONDS
-        followup = NOW + 10 + ne.PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
+            == NOW + 10 + raid['hold_seconds'] + ne.PLAYER_WAR_BUSINESS_BLOCK_SECONDS
+        followup = NOW + 10 + raid['hold_seconds'] + ne.PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
         captured_state = await ne.state_for(path, 101, followup)
-        event = next(e for e in captured_state['player_war_events'] if e['leader_id'] == 'marco')
+        followup_raid = captured_state['interior_raids'][0]
+        resolved_capture = await ne.resolve_interior_raid(
+            path, 101, followup_raid['token'], followup_raid['apt_key'], 'captured',
+            followup + followup_raid['hold_seconds'])
+        event = resolved_capture['phase_events'][0]
         assert event['kind'] == 'player_business_captured'
         assert event['operation_type'] in ne.BUILDING_OPERATIONS
         assert event['operation_type'] != previous

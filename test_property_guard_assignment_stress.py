@@ -1,0 +1,190 @@
+"""Concurrent lifecycle regression for concrete property guard assignments."""
+
+import asyncio
+import os
+import tempfile
+
+import aiosqlite
+
+import mafiozi_bot as bot
+import npc_empire as ne
+from test_npc_empire import _base_db
+
+
+async def rows(path, sql, params=()):
+    async with aiosqlite.connect(path) as db:
+        return await (await db.execute(sql, params)).fetchall()
+
+
+async def property_snapshot(path):
+    original_db_path = bot.DB_PATH
+    try:
+        bot.DB_PATH = path
+        return await bot.get_player_building_properties()
+    finally:
+        bot.DB_PATH = original_db_path
+
+
+async def run() -> None:
+    fd, path = tempfile.mkstemp(prefix='property_guard_stress_', suffix='.db')
+    os.close(fd)
+    try:
+        await _base_db(path); now = 2_300_000_000
+        async with aiosqlite.connect(path) as db:
+            await db.execute("ALTER TABLE characters ADD COLUMN name TEXT")
+            await db.execute("ALTER TABLE characters ADD COLUMN mafia_family TEXT")
+            await db.executescript("""
+                CREATE TABLE gang_members(
+                    id INTEGER PRIMARY KEY,telegram_id INTEGER,current_hp INTEGER);
+                CREATE TABLE district_control(
+                    telegram_id INTEGER,loc_id TEXT,guard_json TEXT);
+                CREATE TABLE apartments_owned(
+                    telegram_id INTEGER,apt_key TEXT PRIMARY KEY,price INTEGER,bought_at INTEGER,
+                    property_kind TEXT,operation_type TEXT,area INTEGER,income_per_minute INTEGER,
+                    last_income_at INTEGER DEFAULT 0);
+                CREATE TABLE custom_gang_members(telegram_id INTEGER,gang_id INTEGER);
+                CREATE TABLE custom_gangs(
+                    id INTEGER PRIMARY KEY,name TEXT,flag_primary TEXT,
+                    flag_secondary TEXT,flag_emblem TEXT);
+            """)
+            await db.execute("UPDATE characters SET name='Tester',mafia_family='moretti' WHERE telegram_id=101")
+            await db.executemany(
+                "INSERT INTO gang_members VALUES(?,101,100)", [(i,) for i in range(1, 9)])
+            await db.execute("INSERT INTO district_control VALUES(101,'north','[1]')")
+            await db.executemany(
+                "INSERT INTO apartments_owned VALUES(101,?,10000,?,'business','pawnshop',16,120,?)",
+                [('tile:6,36', now, now), ('tile:6,46', now, now)])
+            await db.commit()
+        await ne.ensure_schema(path)
+        a, b = 'building:0,3', 'building:0,4'
+
+        zero = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=0, now=now)
+        assert zero == {'ok': True, 'total': 8, 'assigned': 1,
+                        'free': 7, 'holding_guards': 0}
+        maximum = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=7, now=now+1)
+        assert maximum['ok'] and maximum['assigned'] == 8 and maximum['free'] == 0
+        assert [row[0] for row in await rows(path,
+            "SELECT member_id FROM npc_empire_player_guard_members ORDER BY member_id")] == list(range(2, 9))
+        snap = await property_snapshot(path)
+        first = next(item for item in snap if item['apt_key'] == 'tile:6,36')
+        assert (first['holding_guards'], first['guard_total'], first['guard_assigned'],
+                first['guard_free']) == (7, 8, 8, 0), first
+
+        # Reassign A -> B: releasing A returns all seven survivors, and B gets
+        # those exact ids; district guard 1 is never cloned.
+        await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=0, now=now+2)
+        moved = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=7, now=now+3)
+        assert moved['ok'] and moved['free'] == 0
+        assert set(await rows(path,
+            "SELECT member_id,holding_ref FROM npc_empire_player_guard_members")) == {
+                (member_id, b) for member_id in range(2, 9)}
+
+        # Two independent requests race for seven free ids. BEGIN IMMEDIATE
+        # serializes them: at most one four-man assignment can succeed.
+        await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=0, now=now+4)
+        concurrent = await asyncio.gather(
+            ne.assign_holding_guards(path, owner_kind='player', owner_id='101',
+                                     holding_ref=a, requested=4, now=now+5),
+            ne.assign_holding_guards(path, owner_kind='player', owner_id='101',
+                                     holding_ref=b, requested=4, now=now+5),
+        )
+        assert sum(bool(result['ok']) for result in concurrent) == 1, concurrent
+        assigned_ids = [row[0] for row in await rows(path,
+            "SELECT member_id FROM npc_empire_player_guard_members")]
+        assert len(assigned_ids) == len(set(assigned_ids)) == 4 and 1 not in assigned_ids
+
+        # Concurrent duplicate requests converge to one stable assignment.
+        winner_ref = a if concurrent[0]['ok'] else b
+        duplicate = await asyncio.gather(
+            ne.assign_holding_guards(path, owner_kind='player', owner_id='101',
+                                     holding_ref=winner_ref, requested=4, now=now+6),
+            ne.assign_holding_guards(path, owner_kind='player', owner_id='101',
+                                     holding_ref=winner_ref, requested=4, now=now+6),
+        )
+        assert all(result['ok'] for result in duplicate)
+        assert len(await rows(path,
+            "SELECT member_id FROM npc_empire_player_guard_members")) == 4
+
+        # Reconnect preserves concrete ids. A dead assigned merc is pruned and
+        # can never return when ownership cleanup releases survivors.
+        before = await rows(path,
+            "SELECT member_id,holding_ref FROM npc_empire_player_guard_members ORDER BY member_id")
+        await ne.ensure_schema(path)
+        assert await rows(path,
+            "SELECT member_id,holding_ref FROM npc_empire_player_guard_members ORDER BY member_id") == before
+        reconnect = await property_snapshot(path)
+        current = next(item for item in reconnect
+                       if item['building_key'] == winner_ref.removeprefix('building:'))
+        assert current['holding_guards'] == 4 and current['guard_free'] == 3, current
+        dead_id = before[0][0]
+        async with aiosqlite.connect(path) as db:
+            await db.execute('BEGIN IMMEDIATE')
+            await db.execute("UPDATE gang_members SET current_hp=0 WHERE id=?", (dead_id,))
+            released = await ne._clear_holding_guard_assignment(
+                db, 'player', '101', winner_ref)
+            await db.commit()
+        assert released == 4
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members WHERE holding_ref=?", (winner_ref,))
+        after_sale = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101',
+            holding_ref=winner_ref, requested=4, now=now+7)
+        assert after_sale['ok']
+        assert dead_id not in {row[0] for row in await rows(path,
+            "SELECT member_id FROM npc_empire_player_guard_members")}
+
+        # An ownership transfer clears mappings atomically. Surviving ids become
+        # free; dead ids remain dead and are never reconstructed.
+        async with aiosqlite.connect(path) as db:
+            await db.execute('BEGIN IMMEDIATE')
+            await db.execute("DELETE FROM apartments_owned WHERE telegram_id=101 AND apt_key=?",
+                             ('tile:6,36' if winner_ref == a else 'tile:6,46',))
+            await ne._clear_holding_guard_assignment(db, 'player', '101', winner_ref)
+            await db.commit()
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_guard_assignments WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?",
+            (winner_ref,))
+        assert all(item['building_key'] != winner_ref.removeprefix('building:')
+                   for item in await property_snapshot(path))
+        not_owned = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=winner_ref,
+            requested=1, now=now+8)
+        assert not_owned == {'ok': False, 'error': 'holding not owned'}
+
+        # Exercise the real sale path too: ownership and both assignment
+        # representations disappear in the same BEGIN IMMEDIATE transaction.
+        sale_ref = b if winner_ref == a else a
+        sale_apt = 'tile:6,46' if sale_ref == b else 'tile:6,36'
+        sale_assignment = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=sale_ref,
+            requested=1, now=now+9)
+        assert sale_assignment['ok']
+        original_db_path = bot.DB_PATH
+        try:
+            bot.DB_PATH = path
+            sale = await bot.sell_apartment_db(101, sale_apt)
+            assert sale and sale['refund'] == 9000
+        finally:
+            bot.DB_PATH = original_db_path
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members WHERE holding_ref=?", (sale_ref,))
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_guard_assignments WHERE holding_ref=?", (sale_ref,))
+        print('property guard assignment stress: 0/max/reassign, district exclusion, '
+              'concurrent duplicate serialization, reconnect, death and sale/capture cleanup OK')
+    finally:
+        os.unlink(path)
+
+
+if __name__ == '__main__':
+    asyncio.run(run())

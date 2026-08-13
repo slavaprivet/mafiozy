@@ -162,19 +162,24 @@ async def run():
         assert route['kind'] == 'player_business_raid' and route['target_id'] == player_key
         assert (route['target_r'], route['target_c']) == ne_reloaded._hq_coords(player_key)
         first = await ne_reloaded.state_for(path, PLAYER, NOW + 20)
-        assert [event['kind'] for event in first['player_war_events']] == ['player_business_bombed']
+        assert [event['kind'] for event in first['player_war_events']] == ['player_business_interior_raid']
+        raid = first['interior_raids'][0]
+        first_resolved = await ne_reloaded.resolve_interior_raid(
+            path, PLAYER, raid['token'], raid['apt_key'], 'captured',
+            now=NOW + 20 + raid['hold_seconds'])
+        assert first_resolved['phase_events'][0]['kind'] == 'player_business_bombed'
         duplicate = await ne_reloaded.state_for(path, PLAYER, NOW + 20)
         assert duplicate['player_war_events'] == []
         war = await row(path,
             "SELECT attacks,last_business_id,last_attack_at,next_attack_at FROM npc_empire_player_wars "
             "WHERE leader_id='marco' AND telegram_id=?", (PLAYER,))
         assert war['attacks'] == 1 and war['last_business_id'] == f'building:{player_key}'
-        assert war['last_attack_at'] == NOW + 20
+        assert war['last_attack_at'] == NOW + 20 + raid['hold_seconds']
         player_closed = await row(path,
             "SELECT leader_id,closed_until FROM npc_empire_building_closures WHERE holding_id=?",
             (player_key,))
         assert player_closed == {'leader_id': 'marco',
-                                 'closed_until': NOW + 20 + ne_reloaded.PLAYER_WAR_BUSINESS_BLOCK_SECONDS}
+                                 'closed_until': NOW + 20 + raid['hold_seconds'] + ne_reloaded.PLAYER_WAR_BUSINESS_BLOCK_SECONDS}
         async def no_schema_side_effect():
             return None
 
@@ -212,10 +217,17 @@ async def run():
         pressure = empire(reconnect, 'marco')['war_pressure']
         assert pressure['attacks'] == 1 and pressure['last_business_id'] == f'building:{player_key}'
         assert empire(reconnect, 'marco')['activity']['phase'] == 'capture'
-        followup = NOW + 20 + ne_reloaded.PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
+        followup = NOW + 20 + raid['hold_seconds'] + ne_reloaded.PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
         takeover = await ne_reloaded.state_for(path, PLAYER, followup)
-        capture_event = next(event for event in takeover['player_war_events']
-                             if event['kind'] == 'player_business_captured')
+        followup_raid = next(item for item in takeover['interior_raids']
+                             if item['leader_id'] == 'marco')
+        takeover_resolved = await ne_reloaded.resolve_interior_raid(
+            path, PLAYER, followup_raid['token'], followup_raid['apt_key'], 'captured',
+            now=followup + followup_raid['hold_seconds'])
+        assert takeover_resolved['phase_events'], takeover_resolved
+        capture_event = next((event for event in takeover_resolved['phase_events']
+                              if event['kind'] == 'player_business_captured'), None)
+        assert capture_event is not None, takeover_resolved
         assert capture_event['operation_type'] in ne_reloaded.BUILDING_OPERATIONS
         assert capture_event['operation_type'] != 'beer_bar'
         assert await row(path,
@@ -226,7 +238,8 @@ async def run():
             (player_key,)) is None
 
         ne_reloaded = importlib.reload(ne_reloaded)
-        final = await ne_reloaded.state_for(path, PLAYER, followup + 1)
+        final = await ne_reloaded.state_for(
+            path, PLAYER, followup + followup_raid['hold_seconds'] + 1)
         captured = holding(final, 'marco', player_key)
         assert captured['operation_type'] == capture_event['operation_type']
         assert captured['area'] == player_area
@@ -234,8 +247,7 @@ async def run():
             captured['operation_type'], player_area)
         assert captured['building_status'] == 'open' and captured['closed_until'] == 0
         assert 1 <= captured['guard_count'] <= 3
-        assert captured['guard_count'] == ne_reloaded.holding_guard_count(
-            'marco', 'building', player_key, captured['acquired_at'])
+        assert captured['guard_count'] <= empire(final, 'marco')['members'] - 2
         assert empire(final, 'marco')['relation'] == -100
         assert empire(final, 'marco')['pact'] == 'war'
 
