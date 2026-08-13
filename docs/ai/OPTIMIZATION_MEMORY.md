@@ -1731,3 +1731,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Low stances already move more slowly in gameplay, so do not slow the phase a
   second time for prone or crouch. Keep only the intentional limp cadence
   modifier and expose `playerCadence=distance-locked:<speed>:<rate>` for QA.
+
+## Pooled resident doors for every building (2026-08-13)
+
+- Derive one authoritative doorway from each connected `MAP === 1` footprint
+  and add authored business, bank, black-market and major entrances to the same
+  registry. The same id must drive NPC entry/exit and the visible 3D leaf.
+- Render black doorway voids, frames, thresholds, leaves, knobs and warm spill
+  as fixed `InstancedMesh` pools. Only leaves currently opening or closing may
+  upload matrices; never allocate a mesh, material, vector or timer per visit.
+- A replacement resident waits behind the chosen door only for its opening
+  lead-in, then exits as a new living actor while the corpse remains assigned
+  to the ambulance. If every doorway is visible, select among the farthest
+  doors and rely on the opening animation instead of allowing a player at a map
+  edge to block population recovery indefinitely.
+- Fresh-main browser QA found 312 authoritative doors (10 authored), rendered
+  308 through the shared pool because four bank/black-market doors retain their
+  richer existing actors, and completed a resident exit with no frame error or
+  startup fallback.
