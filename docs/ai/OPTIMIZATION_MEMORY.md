@@ -1408,3 +1408,26 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   actions are 19/19 unique.  All six inline `world.html` scripts pass
   `node --check`; empire server/UI tests pass.  Seven unrelated full-suite
   failures were reproduced unchanged on the clean pre-feature commit.
+
+## Player crouch and prone animation (2026-08-13, v373)
+
+- Keep stance input authoritative in `world.html`: `Z` toggles prone and Ctrl
+  holds crouch. Apply the stance multiplier to the consolidated on-foot input
+  before interiors branch, so world, bank and business movement cannot disagree.
+- Put the existing player meshes under one stance pivot, but leave the nameplate
+  and contact shadow on the upright world root. This adds one Group and no mesh,
+  material, draw call, timer, scene scan or per-frame allocation.
+- Smooth two cached scalars (`crouchBlend`, `proneBlend`) with the existing
+  exponential damping helper. Drive the body pivot, knee bend, crawl cycle,
+  camera target and nameplate from those values instead of starting new clips
+  or allocating tween objects.
+- Prone rotates the shared body rig, then counter-pitches the held weapon before
+  the existing two-hand IK pass. This preserves muzzle direction, reload poses
+  and grips for the complete weapon table while keeping arrest, death, driving,
+  entry and reload above stance locomotion in the animation priority order.
+- A stance must never join `animationActionLocked`. Shooting, held automatic
+  fire, throwing and C4 placement stay available in crouch and prone; only the
+  visual recoil impulse is reduced by the cached stance blend.
+- `previewstance=stand|crouch|prone` is a deterministic one-tab QA fixture.
+  Static validation lives in `test_player_stances.py`; embedded scripts and the
+  Three module must also pass syntax checks before publication.

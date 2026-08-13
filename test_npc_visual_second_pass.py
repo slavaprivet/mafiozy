@@ -41,7 +41,7 @@ def run() -> None:
     # Local audit alternates actors between walking/stopped and fires weapons.
     assert "qaMoving=!visualAudit" in WORLD
     assert "qaFiring=visualAudit&&!!sample.weapon" in WORLD
-    assert "three_preview.js?v=3d371-npc-motion-combat" in WORLD
+    assert "three_preview.js?v=3d373-player-stances" in WORLD
 
 
 if __name__ == "__main__":
