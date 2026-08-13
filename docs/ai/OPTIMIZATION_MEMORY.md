@@ -1620,3 +1620,26 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Test representative sidearm, automatic, shotgun, rifle, sniper and RPG
   profiles in one reused browser tab. Reject any stance with a muzzle below the
   floor, startup fallback, or a Three.js runtime error.
+
+## Invisible population replacement and edge traffic portals (2026-08-13)
+
+- Never replenish moving traffic on a random interior road tile. Runtime
+  replacements use cached north/west/east edge portals whose four-tile road
+  mouths extend to the map boundary. A portal must be beyond the 3D stream
+  radius, outside the projected viewport margin and clear of another car; if
+  every portal is visible, defer the spawn instead of accepting visible pop-in.
+- Keep initial loading population separate from runtime replacement. The city
+  may be seeded while the loading screen owns presentation, but wreck, tow,
+  density and recovery paths must all enter through the same edge contract.
+- Distance-ranked fixed caps flicker when two entities exchange the last slot.
+  Retain stable vehicle/NPC ids with a small exit hysteresis, fill only vacant
+  slots by distance, and budget service vehicles separately from ambient cars.
+- A corpse and its replacement are different lifecycle objects. Schedule the
+  replacement at the death transition, keep it indoors until a random door is
+  both farther than the 3D radius and off-screen, and leave the corpse assigned
+  to the ambulance. Mark the corpse so hospital delivery cannot spawn a second
+  replacement and do not count it as a living population slot.
+- Route planning must reject an immediate reverse first edge. Service vehicles
+  use their current heading when choosing an initial BFS step, and every long
+  emergency body uses bounded collision-safe angle changes; blocker branches
+  must preserve the smoothed angle rather than snapping to the next waypoint.
