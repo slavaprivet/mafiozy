@@ -91,7 +91,22 @@ MAFIA_BOSS_NAMES = {
     'sofia':'София Кастеллано', 'viktor':'Виктор Ломбарди',
     'yana':'Джанна Марино', 'musa':'Муса Карбоне',
 }
-PROFILES = tuple(replace(profile, leader_name=MAFIA_BOSS_NAMES[profile.leader_id])
+# Six original headquarters sit inside the prison/lair clear zones, where the
+# client deliberately has no building footprint.  Existing databases migrate
+# both the empire row and its HQ holding through this explicit mapping.
+HQ_KEY_MIGRATIONS = {
+    'rustam': ('8,6', '8,2'),
+    'arsen': ('11,2', '9,5'),
+    'damir': ('13,5', '2,6'),
+    'zara': ('10,6', '8,4'),
+    'boris': ('8,7', '5,6'),
+    'roman': ('10,4', '5,4'),
+}
+PROFILES = tuple(replace(
+    profile,
+    leader_name=MAFIA_BOSS_NAMES[profile.leader_id],
+    hq_key=HQ_KEY_MIGRATIONS.get(profile.leader_id, ('', profile.hq_key))[1],
+)
                  for profile in PROFILES)
 
 PROFILE_BY_ID = {p.leader_id: p for p in PROFILES}
@@ -350,6 +365,95 @@ async def _player_owned_building_keys(db) -> set[str]:
         except (TypeError, ValueError):
             continue
     return occupied
+
+
+async def _player_business_targets(db, telegram_id: int) -> list[dict]:
+    """Return every server-owned player business in one stable target format.
+
+    Legacy landmark businesses and converted generic buildings used to live in
+    separate tables.  Player wars therefore saw only the former and ignored
+    the eight operation types completely.
+    """
+    targets: list[dict] = []
+    try:
+        rows = await (await db.execute(
+            "SELECT biz_id FROM player_businesses WHERE telegram_id=? ORDER BY biz_id",
+            (telegram_id,),
+        )).fetchall()
+        targets.extend({
+            'ref': f'business:{str(row[0])}', 'kind': 'business',
+            'holding_id': str(row[0]), 'operation_type': '', 'area': 0,
+            'income': int(BUSINESS_INCOME.get(str(row[0]), 175)),
+        } for row in rows)
+    except Exception:
+        pass
+    try:
+        rows = await (await db.execute(
+            "SELECT apt_key,operation_type,area,income_per_minute FROM apartments_owned "
+            "WHERE telegram_id=? AND property_kind='business' ORDER BY apt_key",
+            (telegram_id,),
+        )).fetchall()
+        for row in rows:
+            building_key = _apartment_key_building_key(str(row[0]))
+            operation = str(row[1] or '')
+            if building_key not in BUILDING_AREAS or operation not in BUILDING_OPERATIONS:
+                continue
+            area = max(4, int(row[2] or BUILDING_AREAS[building_key]))
+            targets.append({
+                'ref': f'building:{building_key}', 'kind': 'building',
+                'holding_id': building_key, 'apt_key': str(row[0]),
+                'operation_type': operation, 'area': area,
+                'income': building_operation_income(operation, area),
+            })
+    except Exception:
+        pass
+    return sorted(targets, key=lambda item: (str(item['kind']), str(item['holding_id'])))
+
+
+def _player_business_target_point(target: dict) -> tuple[float, float]:
+    holding_id = str(target.get('holding_id') or '')
+    if str(target.get('kind') or '') == 'business':
+        return BUSINESS_COORDS.get(holding_id, (0.0, 0.0))
+    return _hq_coords(holding_id)
+
+
+def _select_player_business_target(targets: list[dict], attacks: int,
+                                   last_ref: str = '') -> dict | None:
+    if not targets:
+        return None
+    by_ref = {str(item['ref']): item for item in targets}
+    # Compatibility with rows written before target kinds were namespaced.
+    if last_ref and ':' not in last_ref:
+        legacy = by_ref.get(f'business:{last_ref}') or by_ref.get(f'building:{last_ref}')
+        if legacy:
+            last_ref = str(legacy['ref'])
+    if int(attacks or 0) % 2 == 1 and last_ref in by_ref:
+        return by_ref[last_ref]
+    return targets[(max(0, int(attacks or 0)) // 2) % len(targets)]
+
+
+def _player_war_activity(profile: EmpireProfile, war: dict,
+                         target: dict | None, now: int) -> dict:
+    """Make a personal war a visible city order instead of dashboard text."""
+    if not target:
+        r, c = _hq_coords(profile.hq_key)
+        target_id, target_kind = '', 'player'
+    else:
+        r, c = _player_business_target_point(target)
+        target_id, target_kind = str(target['holding_id']), str(target['kind'])
+    attacks = max(0, int(war.get('attacks') or 0))
+    return {
+        'kind': 'player_business_raid', 'intent': 'retaliate',
+        'target_id': target_id, 'target_kind': target_kind,
+        'target_r': float(r), 'target_c': float(c),
+        'phase': 'capture' if attacks % 2 else 'approach',
+        'stance': 'assault',
+        'force': max(3, min(NPC_EMPIRE_MAX_FIGHTERS,
+                            3 + profile.aggression // 10 + attacks)),
+        'created_at': int(war.get('last_attack_at') or now),
+        'next_attack_at': int(war.get('next_attack_at') or now),
+        'ui_label': 'ИДУТ ОТЖИМАТЬ ТВОЙ БИЗНЕС',
+    }
 
 # Public stops deliberately cover both halves of the city, the bridge-side
 # avenues and the southern coast. They are movement targets, not ownership
@@ -1175,6 +1279,21 @@ async def ensure_schema(db_path: str) -> None:
         for name, declaration in {'operation_type': "TEXT NOT NULL DEFAULT ''", 'area': "INTEGER NOT NULL DEFAULT 0"}.items():
             if name not in holding_columns:
                 await db.execute(f"ALTER TABLE npc_empire_holdings ADD COLUMN {name} {declaration}")
+        for leader_id, (old_key, new_key) in HQ_KEY_MIGRATIONS.items():
+            current = await (await db.execute(
+                "SELECT hq_key FROM npc_empires WHERE leader_id=?", (leader_id,)
+            )).fetchone()
+            if not current or str(current[0] or '') != old_key:
+                continue
+            await db.execute(
+                "UPDATE npc_empire_holdings SET holding_id=? "
+                "WHERE kind='hq' AND holding_id=? AND leader_id=?",
+                (new_key, old_key, leader_id),
+            )
+            await db.execute(
+                "UPDATE npc_empires SET hq_key=? WHERE leader_id=? AND hq_key=?",
+                (new_key, leader_id, old_key),
+            )
         legacy_buildings = await (await db.execute(
             "SELECT holding_id,leader_id,operation_type,area FROM npc_empire_holdings WHERE kind='building'"
         )).fetchall()
@@ -1848,14 +1967,7 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
                     "DELETE FROM npc_empire_player_wars WHERE leader_id=? AND telegram_id=?",
                     (str(row['leader_id']), telegram_id),
                 )
-        has_businesses = bool(await (await db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='player_businesses'"
-        )).fetchone())
-        businesses = []
-        if has_businesses:
-            businesses = await (await db.execute(
-                "SELECT biz_id FROM player_businesses WHERE telegram_id=? ORDER BY biz_id", (telegram_id,)
-            )).fetchall()
+        businesses = await _player_business_targets(db, telegram_id)
         due = await (await db.execute(
             "SELECT leader_id,attacks FROM npc_empire_player_wars "
             "WHERE telegram_id=? AND next_attack_at<=? ORDER BY next_attack_at,leader_id",
@@ -1867,6 +1979,9 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
                 continue
             profile = PROFILE_BY_ID[leader_id]
             biz_id = ''
+            target_ref = ''
+            target_kind = ''
+            operation_type = ''
             if businesses:
                 attack_no = int(row['attacks'] or 0)
                 war_row = await (await db.execute(
@@ -1874,35 +1989,74 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
                     (leader_id, telegram_id),
                 )).fetchone()
                 last_biz = str(war_row['last_business_id'] or '') if war_row else ''
-                owned_ids = {str(item['biz_id']) for item in businesses}
-                capture = attack_no % 2 == 1 and last_biz in owned_ids
-                biz_id = last_biz if capture else str(businesses[(attack_no // 2) % len(businesses)]['biz_id'])
+                target = _select_player_business_target(businesses, attack_no, last_biz)
+                target_ref = str(target['ref'])
+                target_kind = str(target['kind'])
+                biz_id = str(target['holding_id'])
+                capture = attack_no % 2 == 1 and last_biz in {target_ref, biz_id}
                 if capture:
-                    await db.execute(
-                        "DELETE FROM player_businesses WHERE telegram_id=? AND biz_id=?",
-                        (telegram_id, biz_id),
-                    )
-                    await db.execute(
-                        "INSERT OR REPLACE INTO business_property_owners"
-                        "(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
-                        (biz_id, npc_owner_uid(leader_id), profile.gang_name, now, now + 300),
-                    )
-                    await db.execute(
-                        "INSERT OR REPLACE INTO npc_empire_holdings"
-                        "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('business',?,?,?,?,?)",
-                        (biz_id, leader_id, BUSINESS_INCOME.get(biz_id, 175), 60 + profile.loyalty, now),
-                    )
-                    businesses = [item for item in businesses if str(item['biz_id']) != biz_id]
+                    if target_kind == 'building':
+                        operation_type = choose_captured_building_operation(
+                            profile, biz_id, str(target.get('operation_type') or ''), now + attack_no)
+                        area = max(4, int(target.get('area') or BUILDING_AREAS.get(biz_id, 4)))
+                        income = building_operation_income(operation_type, area)
+                        await db.execute(
+                            "DELETE FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
+                            (telegram_id, str(target.get('apt_key') or biz_id)),
+                        )
+                        await db.execute(
+                            "DELETE FROM npc_empire_building_closures WHERE holding_id=?", (biz_id,))
+                        await db.execute(
+                            "INSERT OR REPLACE INTO npc_empire_holdings"
+                            "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
+                            "VALUES('building',?,?,?,?,?,?,?)",
+                            (biz_id, leader_id, income, 45 + profile.loyalty // 2,
+                             now, operation_type, area),
+                        )
+                    else:
+                        await db.execute(
+                            "DELETE FROM player_businesses WHERE telegram_id=? AND biz_id=?",
+                            (telegram_id, biz_id),
+                        )
+                        await db.execute(
+                            "INSERT OR REPLACE INTO business_property_owners"
+                            "(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
+                            (biz_id, npc_owner_uid(leader_id), profile.gang_name, now, now + 300),
+                        )
+                        await db.execute(
+                            "INSERT OR REPLACE INTO npc_empire_holdings"
+                            "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('business',?,?,?,?,?)",
+                            (biz_id, leader_id, BUSINESS_INCOME.get(biz_id, 175),
+                             60 + profile.loyalty, now),
+                        )
+                    businesses = [item for item in businesses if str(item['ref']) != target_ref]
                     summary = f'{profile.leader_name} и {profile.gang_name} захватили бизнес {biz_id}'
                     kind = 'player_business_captured'
                 else:
                     blocked_until = now + PLAYER_WAR_BUSINESS_BLOCK_SECONDS
                     notice = f'{profile.gang_name} атаковала бизнес. Работа остановлена на 10 минут; следующий налёт может закончиться захватом.'
-                    await db.execute(
-                        "UPDATE player_businesses SET blocked_until=MAX(COALESCE(blocked_until,0),?),"
-                        "last_event_at=?,pending_notice=? WHERE telegram_id=? AND biz_id=?",
-                        (blocked_until, now, notice, telegram_id, biz_id),
-                    )
+                    if target_kind == 'building':
+                        await db.execute(
+                            "INSERT INTO npc_empire_building_closures"
+                            "(holding_id,leader_id,saboteur_uid,closed_until,created_at) VALUES(?,?,?,?,?) "
+                            "ON CONFLICT(holding_id) DO UPDATE SET leader_id=excluded.leader_id,"
+                            "saboteur_uid=excluded.saboteur_uid,closed_until=excluded.closed_until,"
+                            "created_at=excluded.created_at",
+                            (biz_id, leader_id, telegram_id, blocked_until, now),
+                        )
+                        # Move the accrual cursor to reopening time: otherwise a
+                        # later collection would silently pay the closed period.
+                        await db.execute(
+                            "UPDATE apartments_owned SET last_income_at=MAX(COALESCE(last_income_at,0),?) "
+                            "WHERE telegram_id=? AND apt_key=?",
+                            (blocked_until, telegram_id, str(target.get('apt_key') or biz_id)),
+                        )
+                    else:
+                        await db.execute(
+                            "UPDATE player_businesses SET blocked_until=MAX(COALESCE(blocked_until,0),?),"
+                            "last_event_at=?,pending_notice=? WHERE telegram_id=? AND biz_id=?",
+                            (blocked_until, now, notice, telegram_id, biz_id),
+                        )
                     summary = f'{profile.leader_name} и {profile.gang_name} разбомбили бизнес {biz_id}'
                     kind = 'player_business_bombed'
             else:
@@ -1918,9 +2072,11 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int) -
             await db.execute(
                 "UPDATE npc_empire_player_wars SET attacks=attacks+1,last_business_id=?,last_attack_at=?,"
                 "next_attack_at=? WHERE leader_id=? AND telegram_id=?",
-                (biz_id, now, next_pressure_at, leader_id, telegram_id),
+                (target_ref if kind == 'player_business_bombed' else '',
+                 now, next_pressure_at, leader_id, telegram_id),
             )
             events.append({'leader_id': leader_id, 'kind': kind, 'business_id': biz_id,
+                           'property_kind': target_kind, 'operation_type': operation_type,
                            'summary': summary, 'created_at': now})
         await db.commit()
     return events
@@ -1964,6 +2120,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT leader_id,next_attack_at,attacks,last_business_id,last_attack_at "
             "FROM npc_empire_player_wars WHERE telegram_id=?", (telegram_id,)
         )).fetchall()}
+        player_business_targets = await _player_business_targets(db, telegram_id)
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
         item = dict(row)
@@ -2056,6 +2213,18 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     ))
     for rank, empire in enumerate(leaderboard, 1):
         empire['rank'] = rank
+    # A boss at war with this player physically travels to the selected asset.
+    # The same deterministic target drives the server's two-phase damage/capture
+    # resolution, so the visible order cannot point at an unrelated building.
+    for empire in result:
+        war = war_rows.get(str(empire['leader_id']))
+        if not war:
+            continue
+        target = _select_player_business_target(
+            player_business_targets, int(war.get('attacks') or 0),
+            str(war.get('last_business_id') or ''))
+        empire['activity'] = _player_war_activity(
+            PROFILE_BY_ID[str(empire['leader_id'])], war, target, now)
     # A persistent NPC-vs-NPC war becomes a physical order in the shared city.
     # Target choice is deterministic inside the 75-second slot, so clients see
     # the same attacker, defender and stance without a render-loop database hit.
@@ -2072,6 +2241,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         war_enemies[right['leader_id']].append(left)
     row_by_id = {str(row['leader_id']): row for row in rows}
     for empire in result:
+        if str(empire['leader_id']) in war_rows:
+            continue
         enemies = war_enemies.get(empire['leader_id']) or []
         if not enemies:
             continue

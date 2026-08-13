@@ -2002,3 +2002,59 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   gun matrix. The
   family-specific foregrip points remain allocation-free and keep shotgun,
   rifle, SMG, sniper and RPG hands attached throughout the crawl cycle.
+## Player-building raids share the authoritative business skin (2026-08-13)
+
+- Player wars must enumerate both legacy POI businesses and converted generic
+  buildings. Store a namespaced target (`business:<id>` or `building:<key>`) in
+  the existing war row so the visible boss route and the server's next
+  damage/capture decision cannot drift to different properties.
+- A personal-war activity supplies the existing bounded empire squad with one
+  target coordinate and force count. It does not create a raid-only actor pool,
+  pathfinder or render loop: the boss and his current escorts use the normal
+  city movement and player-combat code on the way to the selected frontage.
+- The first strike on a converted building writes one closure row and advances
+  its income cursor to reopening time. The same `closed_until` is included in
+  apartment, global property, exterior marker and entered-interior snapshots;
+  therefore the existing cached CLOSED/rubble skin is reused and closed time
+  can never be paid later as catch-up income.
+- On the capture follow-up, delete player ownership, remove the closure and
+  insert the NPC holding in one immediate transaction. Preserve authoritative
+  area, deterministically choose a different one of the eight operation types,
+  and recompute income from that type and area. The ownership-signature change
+  then recolours the original frontage and rebuilds detailed interior props
+  only on the next entry; no scene traversal or geometry allocation is added to
+  ordinary frames.
+- Exercise the physical path with the localhost-only
+  `previewplayerbusinessraid=approach|first-close|followup-capture` fixture. It
+  mutates only client snapshots, reuses the ordinary distant crew arrival and
+  empire route, and publishes start/current boss distance, nearest crew,
+  bounded crew count and `arrived` in `previewPlayerBusinessRaid`; production
+  requests cannot enable it and no preview phase writes ownership to SQLite.
+
+## Empire route retry deadlines and physical headquarters (2026-08-13)
+
+- A missing route while `_empireRouteRetryAt` is still in the future is a
+  deliberate backoff, not a fresh blockage. Do not move that deadline forward
+  from the `moved === false` branch every simulation frame: doing so starves the
+  retry forever and makes the 2.3-second stall watchdog nudge the actor across
+  the city. Only a route that actually returns `blocked` starts a new backoff.
+- Escort direct-follow and A* thresholds must meet at the same 0.8-tile
+  formation radius. Leaving a gap between them can strand a fighter beside a
+  corner where direct motion is blocked but route planning is not admitted.
+- The six legacy HQ keys inside the prison/lair clear zones have no physical
+  building by design. Move those authoritative empire and `kind='hq'` holding
+  rows once to six reserved city blocks; keep client and server key sets exact.
+  Do not restore a fake centre marker or put structures into protected zones.
+- This repair reuses the existing capped A*, route retry timestamps, 19 HQ
+  records, footprint cache and marker pool. It adds no render-loop scan,
+  pathfinder, timer, mesh, material or per-frame allocation.
+- Admit at most one empire A* build per NPC simulation frame through one small
+  FIFO of the already bounded visible empire actors. A deferred actor keeps its
+  current route and receives a fair turn; a queued actor is not treated as
+  stalled or failed. This spreads simultaneous long boss/escort starts without
+  changing the 42,000-node cap, walknet, movement speed or off-screen staging.
+- Moving formations do not need a new city route for every two-tile target
+  drift. Keep the collision-safe route until the escort goal moves 5.2 tiles or
+  a tracked war target moves eight; the existing direct-follow branch closes
+  the final 5.5 tiles. This reduces route churn without teleporting or lowering
+  actor density, movement cadence or visual range.

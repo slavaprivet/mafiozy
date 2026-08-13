@@ -74,6 +74,8 @@
 // Reversible Three.js city prototype. Canvas stays the default and emergency
 // fallback. The central flag can disable 3D without removing this module.
 const rendererParams = new URLSearchParams(location.search);
+const NPC_GANG_RENDER_STATES = 'sentry-last-stand-retreat-surrender';
+const businessControl = Object.create(null);
 const stanceMotionQaEnabled=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewstancemotion');
 const rendererConfig = window.MAFIOZI_RENDERER_CONFIG || {};
 if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== 'canvas') && rendererConfig.threeEnabled !== false) {

@@ -97,7 +97,7 @@ async def run() -> None:
             "npc_hq:[42,30]", "const visualSpeed=", "bulletScale:projectileKind?1.15:1.35",
             "trailScale:projectileKind ? .35 : 1.65", "hitAt:+n._hurtAt||0",
             "previewEnterNpcHqAssault", "captured_headquarters",
-            "3d400-cuffs-foreign-building-actions",
+            "3d402-prone-grip-monotonic-release",
         ):
             assert marker in world, marker
         assert "const assaultHq=data.kind==='building'&&data.type==='npc_hq'&&kind==='hq'" in three

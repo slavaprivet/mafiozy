@@ -5601,8 +5601,8 @@ const BLOCK = 10;
 // реальное здание: процедурный парк на таком месте создавал флаг/владение на
 // пустой дороге или газоне, хотя сервер продолжал считать объект штабом.
 const NPC_EMPIRE_HQ_BLOCK_KEYS = new Set([
-  '2,1','8,6','5,7','2,5','11,2','13,5','6,2','10,6','4,7','12,7',
-  '8,7','1,7','9,3','6,7','10,4','3,3','12,1','7,5','13,6',
+  '2,1','8,2','5,7','2,5','9,5','2,6','6,2','8,4','4,7','12,7',
+  '5,6','1,7','9,3','6,7','5,4','3,3','12,1','7,5','13,6',
 ]);
 // Загон тюрьмы — круг радиусом 7 тайл вокруг участка (76,76).
 // Машины/спавн в эту зону не заходят (тачки разворачивают-респаунят),
@@ -7210,6 +7210,17 @@ const aggroZones = Object.create(null);
 // Активные бандитские гнёзда — массив объектов [{id, r, c, state,
 // expires_in, bots_alive}]. Перезаписывается с каждым snap.
 let gangNests = [];
+let street_control = Object.create(null);
+let npc_business_controls = Object.create(null);
+let npc_gang_economy = Object.create(null);
+let npc_business_operations = [];
+function drawNpcBusinessControl(){ /* rendered by the shared POI ownership layer */ }
+function _gangSquadMorale(g){return Math.max(0,Math.min(1,+g?.morale||0));}
+function _markGangBotShot(bot){if(bot)bot.gangShotPose=performance.now()+240;}
+function _playWorldNpcWeaponShot(d){
+  const gangShotAudio=d?.weapon||'pistol';
+  if(typeof spawnBullet==='function')spawnBullet(d.sy,d.sx,d.ty,d.tx,{fromNpc:true,weapon:gangShotAudio,bullet_speed:d.bullet_speed});
+}
 let _gangNestsSnapshotReady = false;
 const _businessDefenseShotAt = new Map();
 
@@ -9365,6 +9376,8 @@ const _empireRecruitedBotIds=new Set();
 const EMPIRE_MAX_ESCORTS=20,EMPIRE_PEACE_ESCORT_CAP=4,EMPIRE_WAR_ESCORT_CAP=8,EMPIRE_VISIBLE_CREW_CAP=36,EMPIRE_VISIBLE_HOLDING_GUARD_CAP=18,EMPIRE_VISIBLE_GUARDED_HOLDINGS=6;
 const EMPIRE_STREET_RECRUIT_R=5.6,EMPIRE_POPIN_SAFE_R=40;
 let _nextEmpireCrewSyncAt=0,_nextEmpireHoldingGuardSyncAt=0,_empireCrewSerial=0,_empireHoldingGuardSerial=0;
+const _empireRoutePlanQueue=[];
+let _empireRoutePlansDeferred=0,_empireRoutePlansBuilt=0;
 function _empireCrewOrigin(leader,slot,recruitment=null){
   const baseR=+(recruitment?.source_r??leader._empireHqR??leader.r),baseC=+(recruitment?.source_c??leader._empireHqC??leader.c),spread=_empireFormationOffset(slot,Math.max(1,+recruitment?.count||+leader._empireMembers||1),0,.42);
   return _nearestEmpireWalkPoint(baseR+spread.r,baseC+spread.c)||_nearestEmpireWalkPoint(baseR,baseC)||{r:leader.r,c:leader.c};
@@ -9553,7 +9566,7 @@ function _syncEmpireBossCrews(now=performance.now()){
   const leaders=SPECIALIST_NPCS.filter(n=>!n._hiddenByEmpire&&!n.dead&&(n._empireMembers>1||+n._empireRecruitment?.pending>0))
     .sort((a,b)=>Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c))
     .filter(n=>Math.hypot(n.r-player.r,n.c-player.c)<44).slice(0,3);
-  const desired=new Map(leaders.map(n=>{const atWar=!!n._empirePlayerWar||!!n._empireEnemyLeaderId||String(n._empireWarStance||'')==='war'||String(n._empireAction?.kind||'').includes('war'),streetCap=atWar?EMPIRE_WAR_ESCORT_CAP:EMPIRE_PEACE_ESCORT_CAP;return [String(n._specialistId),Math.min(EMPIRE_MAX_ESCORTS,streetCap,Math.max(1,Math.floor(n._empireMembers||1)))];}));
+  const desired=new Map(leaders.map(n=>{const actionKind=String(n._empireAction?.kind||''),atWar=!!n._empirePlayerWar||!!n._empireEnemyLeaderId||String(n._empireWarStance||'')==='war'||actionKind.includes('war')||actionKind==='player_business_raid',streetCap=atWar?EMPIRE_WAR_ESCORT_CAP:EMPIRE_PEACE_ESCORT_CAP;return [String(n._specialistId),Math.min(EMPIRE_MAX_ESCORTS,streetCap,Math.max(1,Math.floor(n._empireMembers||1)))];}));
   const pending=new Map(leaders.map(n=>[String(n._specialistId),Math.min(3,Math.max(0,Math.floor(n._empireRecruitment?.pending||0)))]));
   for(let i=EMPIRE_CREW_NPCS.length-1;i>=0;i--){
     const crew=EMPIRE_CREW_NPCS[i],id=String(crew._empireLeaderId),same=EMPIRE_CREW_NPCS.filter(x=>String(x._empireLeaderId)===id&&!!x._empireRecruitCandidate===!!crew._empireRecruitCandidate),keep=crew._empireRecruitCandidate?(pending.get(id)||0):(desired.get(id)||0);
@@ -9586,11 +9599,16 @@ function _syncEmpireBossCrews(now=performance.now()){
   document.documentElement.dataset.empireVisibleCrew=String(EMPIRE_CREW_NPCS.length);
   document.documentElement.dataset.empireStreetRecruits=String(EMPIRE_CREW_NPCS.filter(x=>x._empireStreetRecruit&&!x.dead&&!x._evacuated).length);
   document.documentElement.dataset.empireStreetRoster=`peace-${EMPIRE_PEACE_ESCORT_CAP}:war-${EMPIRE_WAR_ESCORT_CAP}:family-${EMPIRE_MAX_ESCORTS}`;
+  document.documentElement.dataset.empireRouteAdmission=`one-per-frame:built-${_empireRoutePlansBuilt}:deferred-${_empireRoutePlansDeferred}`;
   const motionSample=leaders[0]||SPECIALIST_NPCS.find(n=>!n._hiddenByEmpire);
   if(motionSample)document.documentElement.dataset.empireBossMotion=[
     motionSample._specialistId,(+motionSample.r||0).toFixed(2),(+motionSample.c||0).toFixed(2),
     motionSample._routeKind||'idle',motionSample._empireAction?.kind||'none',motionSample._route?.length||0
   ].join(':');
+  if(_LOCAL_PREVIEW&&_previewPlayerBusinessRaid){
+    const fixture=_previewPlayerBusinessRaid,boss=SPECIALIST_NPCS.find(n=>String(n._specialistId)===fixture.leaderId),crew=EMPIRE_CREW_NPCS.filter(n=>String(n._empireLeaderId)===fixture.leaderId&&!n.dead&&!n._evacuated),bossDistance=boss?Math.hypot(boss.r-fixture.targetR,boss.c-fixture.targetC):Infinity,crewDistance=crew.length?Math.min(...crew.map(n=>Math.hypot(n.r-fixture.targetR,n.c-fixture.targetC))):Infinity,arrived=bossDistance<1.6&&crew.some(n=>Math.hypot(n.r-fixture.targetR,n.c-fixture.targetC)<4.5);
+    document.documentElement.dataset.previewPlayerBusinessRaid=[fixture.phase,`start-${fixture.startDistance.toFixed(2)}`,`boss-${Number.isFinite(bossDistance)?bossDistance.toFixed(2):'none'}`,`crew-${Number.isFinite(crewDistance)?crewDistance.toFixed(2):'none'}`,`count-${crew.length}`,`arrived-${arrived?1:0}`,`elapsed-${Math.round(performance.now()-fixture.startedAt)}`].join(':');
+  }
 }
 const ALL_UNIQUE_NPCS = Object.freeze([SAID_NPC,...SPECIALIST_NPCS]);
 const UNIQUE_NPC_BY_ID = new Map(ALL_UNIQUE_NPCS.map(n=>[String(n.id),n]));
@@ -9625,10 +9643,26 @@ function _nearestEmpireWalkPoint(r,c) {
   }
   return best;
 }
+function _planEmpireRouteTo(npc,goalR,goalC,goalRadius,maxVisited,kind,failedBackoff=1200){
+  npc._empirePendingRoute={goalR,goalC,goalRadius,maxVisited,kind,failedBackoff};
+  if(!npc._empireRouteQueued){npc._empireRouteQueued=true;_empireRoutePlanQueue.push(npc);_empireRoutePlansDeferred++;}
+  return 'deferred';
+}
+function _processEmpireRoutePlanQueue(now=performance.now()){
+  while(_empireRoutePlanQueue.length){
+    const npc=_empireRoutePlanQueue.shift(),request=npc?._empirePendingRoute;
+    if(!npc||!request){if(npc)npc._empireRouteQueued=false;continue;}
+    npc._empireRouteQueued=false;npc._empirePendingRoute=null;_clearNpcRoute(npc);_empireRoutePlansBuilt++;
+    if(!_planNpcRouteTo(npc,request.goalR,request.goalC,_empireBossPassable,request.goalRadius,request.maxVisited,request.kind))npc._empireRouteRetryAt=now+request.failedBackoff;
+    return true;
+  }
+  return false;
+}
 function _empireMovementWatch(n,target,now=performance.now()){
   if(!n||!target)return false;
   const moved=Math.hypot(n.r-(n._empireProgressR??n.r),n.c-(n._empireProgressC??n.c));
   if(!n._empireProgressAt||moved>.16){n._empireProgressAt=now;n._empireProgressR=n.r;n._empireProgressC=n.c;return false;}
+  if(n._route?.length||n._empireRouteQueued||n._empirePendingRoute||now<(n._empireRouteRetryAt||0))return false;
   if(Math.hypot(target.r-n.r,target.c-n.c)<.85||now-n._empireProgressAt<2300)return false;
   _clearNpcRoute(n);n._empireRouteRetryAt=now+260;
   const toward=Math.atan2(target.r-n.r,target.c-n.c),side=((+n._empireCrewSlot||0)%2?1:-1);
@@ -9871,7 +9905,7 @@ function _empireRetreatStep(n,now,dt){
   const leader=n._empireBoss?n:SPECIALIST_NPCS.find(x=>String(x._specialistId)===_empireLeaderIdOf(n));
   const hq=_nearestEmpireWalkPoint(+leader?._empireHqR||n.r,+leader?._empireHqC||n.c);if(!hq)return true;
   if(Math.hypot(hq.r-n.r,hq.c-n.c)<1.4){n.walking=false;n._empireBattleHp=Math.min(n._empireBattleMaxHp,n._empireBattleHp+dt*n._empireBattleMaxHp*.08);return true;}
-  if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_retreat'||!n._route?.length)){_clearNpcRoute(n);if(!_planNpcRouteTo(n,hq.r,hq.c,_empireBossPassable,.8,42000,'empire_retreat'))n._empireRouteRetryAt=now+1500;}
+  if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_retreat'||!n._route?.length)&&!n._empireRouteQueued)_planEmpireRouteTo(n,hq.r,hq.c,.8,42000,'empire_retreat',1500);
   const moved=_npcAdvanceRoute(n,dt,Math.max(1.35,(n.speed||.8)*1.75),_empireBossPassable);_empireMovementWatch(n,hq,now);if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+700;}return true;
 }
 function _empireFieldCombatThink(n,now,dt){
@@ -15521,6 +15555,7 @@ function updateNpcs(dt) {
   _residentBuildingRouteBudget=1;
   _syncEmpireBossCrews(now);
   _syncEmpireHoldingGuards(now);
+  _processEmpireRoutePlanQueue(now);
   _tickPoliceMissions(now);
   _updateResidentsIndoors(now);
   maintainNpcPopulation(now);
@@ -15639,7 +15674,7 @@ function updateNpcs(dt) {
       const target=_nearestEmpireWalkPoint(recruit.r,recruit.c)||{r:recruit.r,c:recruit.c},distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance>1.35){
         n._empireStreetNegotiationPhase='approach';n.cryText='Подожди. Есть предложение.';n.cryUntil=Math.max(n.cryUntil||0,now+900);
-        if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_street_recruit'||!n._route?.length)){_clearNpcRoute(n);if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,1.05,9000,'empire_street_recruit'))n._empireRouteRetryAt=now+700;}
+        if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_street_recruit'||!n._route?.length)&&!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,1.05,9000,'empire_street_recruit',700);
         const moved=_npcAdvanceRoute(n,dt,Math.max(1.02,n.speed||.8),_empireBossPassable);_empireMovementWatch(n,target,now);
         if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+450;}continue;
       }
@@ -15665,7 +15700,7 @@ function updateNpcs(dt) {
       const target=_nearestEmpireWalkPoint(+(recruitment.meeting_r??101)+offset.r,+(recruitment.meeting_c??40)+offset.c)||{r:101,c:40};
       const distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance>.55&&now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_recruit'||!n._route?.length)){
-        _clearNpcRoute(n);if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,.45,12000,'empire_recruit'))n._empireRouteRetryAt=now+900;
+        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.45,12000,'empire_recruit',900);
       }
       const moved=_npcAdvanceRoute(n,dt,Math.max(.92,n.speed||.8),_empireBossPassable);_empireMovementWatch(n,target,now);
       if(moved==='arrived'||distance<.55){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=Math.atan2(leader.r-n.r,leader.c-n.c);if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+11000+Math.random()*9000;_empireSpeak(n,'recruit',now,2600);}}
@@ -15688,8 +15723,8 @@ function updateNpcs(dt) {
       if(!target||now>=(n._empireGuardTargetRefreshAt||0)){target=_empireHoldingGuardPost(anchor,+n._empireGuardSlot||0,step);n._empireGuardPatrolTarget=target;n._empireGuardTargetRefreshAt=now+2400;}
       const distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance<.75){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;if(now>=(n._empireGuardNextPostAt||0)){n._empireGuardPatrolStep=(step+1)%4;n._empireGuardPatrolTarget=null;n._empireGuardNextPostAt=now+1200+(+n._empireGuardSlot||0)*260;if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+14000+Math.random()*9000;_empireSpeak(n,'idle',now,2200);}}continue;}
-      if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_holding_guard'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.2)){_clearNpcRoute(n);if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,.7,9000,'empire_holding_guard'))n._empireRouteRetryAt=now+1100;}
-      const moved=_npcAdvanceRoute(n,dt,Math.max(.86,n.speed||.86),_empireBossPassable);_empireMovementWatch(n,target,now);if(moved==='blocked'||moved===false){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;}continue;
+      if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_holding_guard'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.2)&&!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.7,9000,'empire_holding_guard',1100);
+      const moved=_npcAdvanceRoute(n,dt,Math.max(.86,n.speed||.86),_empireBossPassable);_empireMovementWatch(n,target,now);if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;}else if(moved===false)n.walking=false;continue;
     }
 
     if(n._empireCrew&&!n._hostile&&!n._fighting&&!n._fightingMelee&&!(n.panicUntil>now)){
@@ -15708,13 +15743,14 @@ function updateNpcs(dt) {
         _clearNpcRoute(n);const step=Math.min(distance,Math.max(1.12,(leader.speed||.8)*1.65)*dt),dr=target.r-n.r,dc=target.c-n.c;
         n.r+=dr/distance*step;n.c+=dc/distance*step;n.ang=Math.atan2(dr,dc);n.walking=true;n.walkPhase+=dt*10.5;_empireMovementWatch(n,target,now);continue;
       }
-      if(distance>1.35&&now>=(n._empireRouteRetryAt||0)&&
-          (n._routeKind!=='empire_escort'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>2)){
-        _clearNpcRoute(n);if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,.75,6000,'empire_escort'))n._empireRouteRetryAt=now+1200;
+      if(distance>.8&&now>=(n._empireRouteRetryAt||0)&&
+          (n._routeKind!=='empire_escort'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>5.2)){
+        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.75,6000,'empire_escort',1200);
       }
       const moved=_npcAdvanceRoute(n,dt,Math.max(1.12,(leader.speed||.8)*1.65),_empireBossPassable);_empireMovementWatch(n,target,now);
       if(moved==='arrived'||distance<.8){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=leader.ang;if(n._empireJoining){n._empireJoining=false;if(now>=(n._empireJoinedLabelUntil||0))n.name=`Боец · ${leader._empireGang}`;}if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+13000+Math.random()*11000;_empireSpeak(n,'idle',now,2300);}}
-      else if(moved==='blocked'||moved===false){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n.walking=false;}
+      else if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n.walking=false;}
+      else if(moved===false)n.walking=false;
       continue;
     }
 
@@ -15725,23 +15761,22 @@ function updateNpcs(dt) {
         n._empireTrackEnemyAt=now+1200;
         const rival=SPECIALIST_NPCS.find(x=>String(x._specialistId)===String(n._empireEnemyLeaderId||''));
         const live=rival&&_empireCombatReady(rival,now)?_nearestEmpireWalkPoint(rival.r,rival.c):null;
-        if(live&&(!target||Math.hypot(live.r-target.r,live.c-target.c)>3.2)){target=live;n._empireTarget=live;n._empireActionArrived=false;n._empireRouteRetryAt=0;_clearNpcRoute(n);}
+        if(live&&(!target||Math.hypot(live.r-target.r,live.c-target.c)>8)){target=live;n._empireTarget=live;n._empireActionArrived=false;n._empireRouteRetryAt=0;_clearNpcRoute(n);}
       }
       n._empireTarget=target;
       if(target&&!n._empireActionArrived){
         const routeWrong=n._routeKind!=='empire_action'||!n._route?.length||
           Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.5;
         if(routeWrong&&now>=(n._empireRouteRetryAt||0)){
-          _clearNpcRoute(n);
-          if(!_planNpcRouteTo(n,target.r,target.c,_empireBossPassable,.8,42000,'empire_action'))n._empireRouteRetryAt=now+4000;
+          if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.8,42000,'empire_action',4000);
         }
         const moved=_npcAdvanceRoute(n,dt,Math.max(1.18,(n.speed||.8)*1.55),_empireBossPassable);_empireMovementWatch(n,target,now);
         if(moved==='arrived'||Math.hypot(n.r-target.r,n.c-target.c)<1.05){
           _clearNpcRoute(n);n._empireActionArrived=true;n._empireActionArrivedAt=now;n._empireNextWorkMoveAt=now+2600+(Math.max(0,+n._empireStyle||0)%5)*430;n.walking=false;n.walkPhase=0;
           _empireSpeak(n,n._empireAction?.kind==='recruit'?'recruit':'idle',now,3000,true);
-        }else if(moved==='blocked'||moved===false){
+        }else if(moved==='blocked'){
           _clearNpcRoute(n);n._empireRouteRetryAt=now+1200;n.walking=false;
-        }
+        }else if(moved===false)n.walking=false;
       }else{
         n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
         if(target&&now>=(n._empireNextWorkMoveAt||Infinity)){
@@ -17835,9 +17870,28 @@ let _npcEmpireLeaderboard = [];
 let _npcEmpireBusy = false;
 let _npcEmpireAssaultToken = '';
 let _npcEmpireLastWarEventAt = 0;
+let _previewPlayerBusinessRaid = null;
 const _npcEmpireById = new Map();
 let _npcEmpireFlagSites=[];
 const _npcEmpireStreetAttackAt=new Map(),_npcEmpireStreetAttackBusy=new Set();
+function _stagePreviewPlayerBusinessRaid(){
+  if(!_LOCAL_PREVIEW||!_UP.has('previewplayerbusinessraid')||!_npcEmpires.length)return false;
+  const phase=['approach','first-close','followup-capture'].includes(String(_UP.get('previewplayerbusinessraid')||''))?String(_UP.get('previewplayerbusinessraid')):'approach';
+  const meta=['0,3','0,4','1,0','2,0'].map(_playerEmpireBuildingMeta).find(Boolean);if(!meta)return false;
+  const empire=_npcEmpires[0],leaderId=String(empire.leader_id||''),parts=meta.key.split(',').map(Number),targetR=parts[0]*BLOCK+6,targetC=parts[1]*BLOCK+6,effective=_nearestEmpireWalkPoint(targetR,targetC)||{r:meta.r,c:meta.c},now=Math.floor(Date.now()/1000),captured=phase==='followup-capture',operation=captured?'print_shop':'beer_bar',op=PLAYER_BUILDING_OPERATIONS[operation]||{};
+  empire.members=Math.max(8,+empire.members||1);empire.relation=0;empire.relation_band='neutral';empire.pact='none';
+  empire.activity={kind:'player_business_raid',intent:'retaliate',target_id:meta.key,target_kind:'building',target_r:targetR,target_c:targetC,phase:captured?'capture':'approach',stance:'assault',force:8,created_at:now,next_attack_at:now+60,ui_label:'ИДУТ ОТЖИМАТЬ ТВОЙ БИЗНЕС'};
+  empire.holdings=(empire.holdings||[]).filter(h=>!(h.kind==='building'&&String(h.holding_id)===meta.key));
+  const property={apt_key:`preview-raid:${meta.key}`,building_key:meta.key,property_kind:'business',operation_type:operation,operation_name:op.name||'Криминальный бизнес',operation_icon:op.icon||'🏴',income_per_minute:+op.base||70,area:meta.area||16,acquired_at:now,owner_uid:captured?`npc:${leaderId}`:String(QP.uid||'preview'),owner_name:captured?String(empire.leader_name||'NPC-босс'):String(QP.name||'Игрок'),gang_name:captured?String(empire.gang_name||'Криминальная семья'):'Семья игрока',leader_id:captured?leaderId:'',color:captured?String(empire.color||'#872f3b'):'#7d2938',accent:captured?String(empire.accent||'#e8bd67'):'#e0b83e',owned:!captured,npc_owned:captured,closed_until:phase==='first-close'?now+600:0,building_status:phase==='first-close'?'closed':'open'};
+  if(captured){empire.holdings.push({kind:'building',holding_id:meta.key,leader_id:leaderId,income:+op.base||175,defense:70,acquired_at:now,operation_type:operation,operation_name:op.name||'',operation_icon:op.icon||'',area:meta.area||16,guard_count:3});_previewBuildingPurposeOverride=null;}
+  else _previewBuildingPurposeOverride=property;
+  _playerBuildingProperties=(_playerBuildingProperties||[]).filter(h=>String(h.building_key||'')!==meta.key);
+  const boss=SPECIALIST_NPCS.find(n=>String(n._specialistId)===leaderId),stage=_nearestEmpireWalkPoint(effective.r+22,effective.c+2)||_nearestEmpireWalkPoint(effective.r+18,effective.c-3);
+  if(boss&&stage){boss.r=boss.tr=stage.r;boss.c=boss.tc=stage.c;boss.dead=false;boss._hiddenByEmpire=false;_clearNpcRoute(boss);}
+  player.r=effective.r+3.8;player.c=effective.c+.4;player.tr=player.r;player.tc=player.c;player.vr=player.vc=0;window._studioTeleportUntil=Date.now()+15000;
+  _previewPlayerBusinessRaid={phase,leaderId,key:meta.key,targetR:effective.r,targetC:effective.c,startedAt:performance.now(),startDistance:boss?Math.hypot(boss.r-effective.r,boss.c-effective.c):0};
+  document.documentElement.dataset.previewPlayerBusinessRaidTarget=`${phase}:${meta.key}:${targetR.toFixed(2)}:${targetC.toFixed(2)}`;return true;
+}
 function _setNpcEmpirePlayerHostile(leaderId,relation=null){
   const id=String(leaderId||'');if(!id)return;
   const empire=_npcEmpireById.get(id);if(empire){empire.relation=Math.min(-1,Number.isFinite(+relation)?+relation:(+empire.relation||0)-12);empire.relation_band=empire.relation<=-61?'enemy':'hostile';empire.pact='war';}
@@ -18090,9 +18144,9 @@ function _rebuildNpcEmpireFlagSites(){
   }
   for(const holding of _playerBuildingProperties){
     const point=_playerEmpireBuildingMeta(holding.building_key);if(!point){invalidHoldings++;continue;}const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
-    sites.push({leaderId:`player:${holding.owner_uid||''}`,leaderName:String(holding.owner_name||'Игрок'),gangName:String(holding.gang_name||holding.owner_name||'Мафия игрока'),holdingId:String(holding.building_key||holding.apt_key||''),kind:String(holding.property_kind||'business'),isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#7d2938'),accent:String(holding.accent||'#e0b83e'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),acquiredAt:+holding.acquired_at||+holding.bought_at||0});
+    sites.push({leaderId:`player:${holding.owner_uid||''}`,leaderName:String(holding.owner_name||'Игрок'),gangName:String(holding.gang_name||holding.owner_name||'Мафия игрока'),holdingId:String(holding.building_key||holding.apt_key||''),kind:String(holding.property_kind||'business'),isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#7d2938'),accent:String(holding.accent||'#e0b83e'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||+holding.bought_at||0});
   }
-  if(_LOCAL_PREVIEW&&_previewBuildingPurposeOverride){const holding=_previewBuildingPurposeOverride,point=_playerEmpireBuildingMeta(holding.building_key);if(point)sites.push({leaderId:'preview:building-purpose',leaderName:String(holding.owner_name||'Тестовый NPC-босс'),gangName:String(holding.gang_name||'Тестовая семья'),holdingId:String(holding.building_key||''),kind:holding.property_kind==='hq'?'hq':'building',isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#872f3b'),accent:String(holding.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||''),operationIcon:String(holding.operation_icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),acquiredAt:+holding.acquired_at||0});}
+  if(_LOCAL_PREVIEW&&_previewBuildingPurposeOverride){const holding=_previewBuildingPurposeOverride,point=_playerEmpireBuildingMeta(holding.building_key);if(point)sites.push({leaderId:'preview:building-purpose',leaderName:String(holding.owner_name||'Тестовый NPC-босс'),gangName:String(holding.gang_name||'Тестовая семья'),holdingId:String(holding.building_key||''),kind:holding.property_kind==='hq'?'hq':'building',isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#872f3b'),accent:String(holding.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||''),operationIcon:String(holding.operation_icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||0});}
   _npcEmpireFlagSites=sites;
   document.documentElement.dataset.empireOwnedBuildings=String(sites.filter(site=>!site.isHq).length);
   document.documentElement.dataset.empireInvalidHoldings=String(invalidHoldings);
@@ -18655,6 +18709,8 @@ function _genericBuildingEntranceAnchor(r,c) {
 
 function _nearbyBuildingInteractionFor3D() {
   if (_buildingInt && !_buildingInt.type && _gtaActionKind === 'apt_buy') {
+    const property=_buildingPropertyAt(_buildingInt.r,_buildingInt.c);
+    if(property&&!property.owned)return null;
     const price=apartmentPrice(_buildingInt.r,_buildingInt.c),market=apartmentDistrictMarket(_buildingInt.r,_buildingInt.c);
     return {kind:'interior',id:`apt-buy:${_aptTileKey(_buildingInt.r,_buildingInt.c)}`,r:1.2,c:_buildingInt.W/2,
       name:`Купить здание · ${market.label} · $${price.toLocaleString('ru')}`,distance:0};
@@ -18895,6 +18951,7 @@ async function loadNpcEmpireState(showError=false){
     _npcEmpireDiplomacy=Array.isArray(j.diplomacy)?j.diplomacy:[];
     _npcEmpireDistricts=Array.isArray(j.districts)?j.districts:[];
     _npcEmpireLeaderboard=Array.isArray(j.leaderboard)?j.leaderboard:[];
+    _stagePreviewPlayerBusinessRaid();
     if(_LOCAL_PREVIEW&&_UP.has('previewempirerecruit')&&_npcEmpires.length){
       const recruitEmpire=_npcEmpires[0],started_at=Math.floor(Date.now()/1000);
       recruitEmpire.members=Math.max(3,+recruitEmpire.members||1)+3;recruitEmpire.recruitment={pending:0,completed:true,count:3,started_at,ready_at:started_at,venue:'Логово',source_r:106,source_c:40,meeting_r:101,meeting_c:40};
@@ -18952,8 +19009,9 @@ async function loadNpcEmpireState(showError=false){
       if((+event.created_at||0)<=_npcEmpireLastWarEventAt)continue;
       _npcEmpireLastWarEventAt=+event.created_at||_npcEmpireLastWarEventAt;
       const boss=_npcEmpireById.get(String(event.leader_id||''));
-      showEventBanner(event.kind==='player_business_bombed'?'💥 АТАКА НА БИЗНЕС':'⚠️ ДАВЛЕНИЕ БАНДЫ',event.summary||`${boss?.leader_name||'Босс'} начал действовать против тебя`,4200,'warn');
-      if(event.kind==='player_business_bombed'){_bizLastSync=0;syncMyBusinesses?.();}
+      const businessAttack=event.kind==='player_business_bombed'||event.kind==='player_business_captured';
+      showEventBanner(event.kind==='player_business_captured'?'🚩 БИЗНЕС ОТЖАТ':event.kind==='player_business_bombed'?'💥 АТАКА НА БИЗНЕС':'⚠️ ДАВЛЕНИЕ БАНДЫ',event.summary||`${boss?.leader_name||'Босс'} начал действовать против тебя`,4200,'warn');
+      if(businessAttack){_bizLastSync=0;void Promise.allSettled([syncMyBusinesses?.(),loadApartmentState?.()]);}
     }
     if(document.getElementById('npcEmpireOverlay')?.classList.contains('show')){
       const empireOverlay=document.getElementById('npcEmpireOverlay'),id=empireOverlay?.dataset.leaderId;
@@ -23533,6 +23591,14 @@ function handleEventPacket(d) {
       4200,
       'spawn'
     );
+  } else if (kind === 'city_gang_surrender') {
+    showEventBanner('БАНДА СДАЁТСЯ','Последний боец поднял руки.',2600,'win');
+  } else if (kind === 'city_gang_control') {
+    street_control[d.sector]=d;
+  } else if (kind === 'lair_boss_fallen') {
+    showEventBanner('ГЛАВАРЬ ПАЛ','Оставшиеся бойцы переходят в последний бой.',3000,'win');
+  } else if (kind === 'ceasefire') {
+    showToast('Перемирие на улице','🤝',2200);
   } else if (kind === 'city_gang_combat') {
     // Городская банда стала hostile — баннер всем игрокам поблизости.
     // Без этого «там перестрелка» легко пропустить.
@@ -25104,12 +25170,14 @@ let myMode = '';   // всегда пусто на старте → модал �
 function showModeModal(onPick) {
   const m = document.getElementById('modeModal');
   if (!m) { onPick('pvp'); return; }
+  _deferBusinessActionCardForModeChoice?.();
   m.classList.add('show');
   const pvp = document.getElementById('modeOptPvp');
   const pve = document.getElementById('modeOptPve');
   const close = (picked) => {
     m.classList.remove('show');
     if (typeof onPick === 'function') onPick(picked);
+    setTimeout(()=>_resumeDeferredBusinessActionCard?.(),0);
   };
   pvp.onclick = () => close('pvp');
   pve.onclick = () => close('pve');
@@ -25280,6 +25348,13 @@ function wsConnect() {
       const d = pkt.d || {};
       // Маркер для heartbeat-диагностики — sec since last snap
       try { _lastSnapT = performance.now(); } catch(e){}
+      if (d.npc_business_controls !== undefined) {
+        npc_business_controls=d.npc_business_controls||{};
+        npc_gang_economy=d.npc_gang_economy||{};
+        npc_business_operations=d.npc_business_operations||[];
+        street_control=d.street_control||{};
+        drawNpcBusinessControl();
+      }
       _updateFactionWarHud(d.faction_war);
       if(d.prison_alarm!==undefined)_syncPrisonAlarmFromServer(d.prison_alarm,performance.now());
       // Reconcile серверной позиции с КЛИЕНТСКОЙ
@@ -26708,7 +26783,7 @@ const BUSINESS_OWNER_PERSONAS = {
 };
 const ROB_DURATION_MS = 8000;
 const _robBtn      = document.getElementById('robActionBtn');
-let _businessActionSelection=null,_businessActionSignature='',_businessActionDismissedId='',_businessActionPointerAnchor=null;
+let _businessActionSelection=null,_businessActionSignature='',_businessActionDismissedId='',_businessActionPointerAnchor=null,_businessActionDeferredForMode=null;
 const _businessActionCard=document.createElement('div');
 _businessActionCard.id='businessActionCard';document.body.appendChild(_businessActionCard);
 function _closeBusinessActionCard(dismiss=true){
@@ -26760,6 +26835,7 @@ function _majorRaidActionLabel(poi){
 }
 function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
+  if(_modeChoiceVisible()){_deferBusinessActionCardForModeChoice();return;}
   const poi=sel.kind==='business'?BUSINESS_POIS.find(b=>b.id===sel.id):sel.kind==='major'?POI.find(p=>p.id===sel.id):sel.kind==='building'?{id:sel.id,r:sel.r,c:sel.c,name:sel.name||'Здание',icon:'🏢'}:null;
   const maxDist=sel.kind==='major'?MAJOR_INTERACTION_RADIUS:sel.kind==='building'?(sel.type==='mafia_hq'?4.2:(sel.type?3.5:3.05)):BUSINESS_INTERACTION_RADIUS;
   const buildingAnchor=sel.kind==='building'&&poi?_genericBuildingEntranceAnchor(poi.r,poi.c):null;
@@ -26786,9 +26862,13 @@ function _syncBusinessActionCard(){
   _businessActionCard.classList.add('show');
 }
 function _openBusinessActionCard(kind,poi,pointerAnchor=null){
+  if(_modeChoiceVisible()){
+    _businessActionDeferredForMode={kind,poi:{id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание'},pointerAnchor};
+    _businessActionCard.classList.remove('show');return false;
+  }
   _businessActionDismissedId='';
   _businessActionPointerAnchor=pointerAnchor;_businessActionSelection={kind,id:poi.id||`${poi.r},${poi.c}`,r:poi.r,c:poi.c,type:poi.type||null,name:poi.name||poi.label||'Здание'};_businessActionSignature='';
-  updateGtaInteractions();_syncBusinessActionCard();
+  updateGtaInteractions();_syncBusinessActionCard();return true;
 }
 function _prepareSelectedEstablishmentActions(){
   const sel=_businessActionSelection;if(!sel)return false;
@@ -26815,6 +26895,17 @@ function _prepareSelectedEstablishmentActions(){
   _gtaBtn.textContent=`🚪 Войти: ${poi.name}`;_gtaBtn.style.display='block';
   if(_robBtn){_robTargetBiz=null;_robBtn._majorAssaultId=poi.id;_robBtn.dataset.establishmentAction='1';_robBtn.textContent=_majorRaidActionLabel(poi);_robBtn.style.display='block';}
   _syncBusinessActionCard();return true;
+}
+function _modeChoiceVisible(){return document.getElementById('modeModal')?.classList.contains('show')||false;}
+function _deferBusinessActionCardForModeChoice(){
+  if(_businessActionSelection)_businessActionDeferredForMode={kind:_businessActionSelection.kind,poi:{..._businessActionSelection},pointerAnchor:_businessActionPointerAnchor};
+  _closeBusinessActionCard(false);
+}
+function _resumeDeferredBusinessActionCard(){
+  if(_modeChoiceVisible()||!_businessActionDeferredForMode)return false;
+  if(_businessActionSelection||_businessActionCard.classList.contains('show')){_businessActionDeferredForMode=null;return false;}
+  const pending=_businessActionDeferredForMode;_businessActionDeferredForMode=null;
+  _openBusinessActionCard(pending.kind,pending.poi,pending.pointerAnchor);return true;
 }
 let _npcBuildingActionBusy=false;
 function _npcBuildingActionDialog(){
@@ -27978,6 +28069,10 @@ function updateGtaInteractions() {
     // Квартира — только в обычном (нетематическом) здании
     if (!_buildingInt.type) {
       const owned = isApartmentOwned(_buildingInt.r, _buildingInt.c);
+      const foreignProperty=_buildingPropertyAt(_buildingInt.r,_buildingInt.c);
+      if (!owned&&foreignProperty) {
+        _gtaActionKind='';_gtaActionCarId=null;_gtaBtn.style.display='none';return;
+      }
       if (!owned) {
         const price = apartmentPrice(_buildingInt.r, _buildingInt.c);
         const market = apartmentDistrictMarket(_buildingInt.r, _buildingInt.c);

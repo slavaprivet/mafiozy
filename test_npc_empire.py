@@ -4,6 +4,7 @@ import asyncio
 import math
 import json
 import os
+import re
 import sqlite3
 import tempfile
 
@@ -59,6 +60,24 @@ async def run() -> None:
     with open(os.path.join(root, "three_preview.js"), encoding="utf-8") as source:
         three_source = source.read()
     assert "empireFlags" in world_source and ".slice(0,64)" in world_source
+    hq_keys_source = re.search(
+        r"const NPC_EMPIRE_HQ_BLOCK_KEYS = new Set\(\[(.*?)\]\);",
+        world_source, re.S,
+    )
+    assert hq_keys_source
+    client_hq_keys = set(re.findall(r"'(\d+,\d+)'", hq_keys_source.group(1)))
+    assert client_hq_keys == {profile.hq_key for profile in ne.PROFILES}
+    assert not client_hq_keys.intersection(old for old, _ in ne.HQ_KEY_MIGRATIONS.values())
+    assert "if(moved==='blocked'||moved===false)" not in world_source
+    assert world_source.count("else if(moved===false)n.walking=false") >= 3
+    assert "if(distance>.8&&now>=(n._empireRouteRetryAt||0)&&" in world_source
+    assert ")-target.r,(n._routeGoalC??n.c)-target.c)>5.2" in world_source
+    assert "Math.hypot(live.r-target.r,live.c-target.c)>8" in world_source
+    assert "const _empireRoutePlanQueue=[]" in world_source
+    assert "_processEmpireRoutePlanQueue(now)" in world_source
+    assert "return 'deferred'" in world_source
+    assert "empireRouteAdmission" in world_source
+    assert "_planNpcRouteTo(n,target.r,target.c,_empireBossPassable" not in world_source
     assert "3d368-visible-empire-flags" in world_source
     assert "const EMPIRE_FLAG_CAP=64" in three_source
     assert "src.operationName" in three_source and "incomePerMinute" in three_source
@@ -75,6 +94,39 @@ async def run() -> None:
         assert await _scalar(path, "SELECT COUNT(DISTINCT hq_key) FROM npc_empires") == 19
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_diplomacy") == 171
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_diplomacy WHERE leader_a>=leader_b") == 0
+
+        # Upgrading a live database moves both sides of HQ ownership.  Leaving
+        # the legacy holding behind would make the client count two HQs while
+        # still failing to resolve the old prison/lair footprint.
+        old_hq, new_hq = ne.HQ_KEY_MIGRATIONS["rustam"]
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "DELETE FROM npc_empire_holdings WHERE kind='hq' AND leader_id='rustam'"
+            )
+            await db.execute(
+                "UPDATE npc_empires SET hq_key=? WHERE leader_id='rustam'", (old_hq,)
+            )
+            await db.execute(
+                "INSERT INTO npc_empire_holdings"
+                "(kind,holding_id,leader_id,income,defense,acquired_at) "
+                "VALUES('hq',?,'rustam',0,100,1)", (old_hq,)
+            )
+            await db.commit()
+        await ne.ensure_schema(path)
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empires WHERE leader_id='rustam' AND hq_key=?",
+            (new_hq,),
+        ) == 1
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_holdings "
+                  "WHERE kind='hq' AND leader_id='rustam' AND holding_id=?",
+            (new_hq,),
+        ) == 1
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_holdings "
+                  "WHERE kind='hq' AND leader_id='rustam' AND holding_id=?",
+            (old_hq,),
+        ) == 0
 
         state_now = 2_000_000_000
         state = await ne.state_for(path, 101, now=state_now)
