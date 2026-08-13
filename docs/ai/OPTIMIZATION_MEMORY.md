@@ -1,5 +1,22 @@
 # Mafiozi 3D optimization memory
 
+## Cell-centre police route passability (2026-08-13)
+
+- The shared NPC A* expands integer grid cells and tests their exact
+  half-tile centres. With the authored `0.30` body radius, all five probes in
+  `_world_bot_passable` truncate to that same integer cell. Calling the full
+  body predicate for every neighbour therefore repeated the identical
+  `_world_is_wall` calculation five times; diagonal corner guards repeated it
+  for both adjacent cells as well.
+- Keep continuous movement and arbitrary-position collision on
+  `_world_bot_passable`, but use one authoritative `_world_is_wall` call for
+  each A* centre/adjacent cell. A 189-start equivalence sweep produced exactly
+  the same compressed waypoint lists before and after the change.
+- On the fixed 24-route custody sample, wall-predicate calls fell from
+  `492,015` to `104,179` and seven-run median route time from `415.596 ms` to
+  `92.150 ms`; the combined route length stayed exactly `141` segments. This
+  is a focused CPU-spike measurement, not an FPS claim.
+
 ## Player-readable interior camera and global wheel capture (2026-08-13, v386)
 
 - Large authored rooms must not start in an architectural overview. The grand

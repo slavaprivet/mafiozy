@@ -13139,7 +13139,10 @@ def _world_bot_path(sx: float, sy: float, tx: float, ty: float,
     goal = (int(ty), int(tx))
     if start == goal:
         return [(tx, ty)]
-    if not _world_bot_passable(goal[1] + .5, goal[0] + .5):
+    # A* samples exact tile centres. With the authored 0.30 body radius all
+    # five _world_bot_passable probes truncate back to this same tile, so use
+    # the authoritative wall predicate once instead of repeating it five times.
+    if _world_is_wall(goal[0], goal[1]):
         return []
     frontier = [(0.0, start)]
     came = {start: None}
@@ -13156,12 +13159,12 @@ def _world_bot_path(sx: float, sy: float, tx: float, ty: float,
                 (-1, -1, 1.414), (-1, 1, 1.414),
                 (1, -1, 1.414), (1, 1, 1.414)):
             nr, nc = r + dr, c + dc
-            if not _world_bot_passable(nc + .5, nr + .5):
+            if _world_is_wall(nr, nc):
                 continue
             # Диагональ не должна срезать угол здания.
             if dr and dc and (
-                    not _world_bot_passable(c + dc + .5, r + .5)
-                    or not _world_bot_passable(c + .5, r + dr + .5)):
+                    _world_is_wall(r, c + dc)
+                    or _world_is_wall(r + dr, c)):
                 continue
             nxt = (nr, nc)
             new_cost = cost[current] + step_cost
