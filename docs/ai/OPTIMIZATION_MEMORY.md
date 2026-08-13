@@ -16,6 +16,14 @@
   `492,015` to `104,179` and seven-run median route time from `415.596 ms` to
   `92.150 ms`; the combined route length stayed exactly `141` segments. This
   is a focused CPU-spike measurement, not an FPS claim.
+- `_world_is_wall` describes a static 180x200 authored grid and all callers
+  normalize their inputs to integer cells. A bounded `lru_cache(65536)` can
+  therefore share results across routes without caching continuous actor
+  collision or dynamic state. On the same fixed 24-route sample, the already
+  centre-optimized path median changed from `73.206 ms` to `30.576 ms` on a
+  cleared cache and `27.971 ms` on the immediate warm repeat. The warmed cache
+  held only 3,489 cells. A separate 85-start sweep compared the cached function
+  with its undecorated implementation and produced identical compressed routes.
 
 ## Player-readable interior camera and global wheel capture (2026-08-13, v386)
 

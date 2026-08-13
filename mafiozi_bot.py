@@ -10,6 +10,7 @@ import os
 import secrets
 import re
 import npc_empire
+from functools import lru_cache
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.error import Forbidden, BadRequest
@@ -12921,6 +12922,7 @@ WORLD_AFK_TIMEOUT_S = 90  # без инпута дольше — выкидыв�
 # и AI не стрелял сквозь здания, реконструируем тайл-сетку из той же
 # формулы, что и client buildMap(). BLOCK=8, road=0/1, sidewalk=2/7,
 # park-блок (детерминистичный хеш) — газон.
+@lru_cache(maxsize=65536)
 def _world_is_wall(r: int, c: int) -> bool:
     if r < 0 or r >= WORLD_MAP_ROWS or c < 0 or c >= WORLD_MAP_COLS:
         return True
