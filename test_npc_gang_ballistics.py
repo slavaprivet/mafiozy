@@ -32,7 +32,10 @@ def run() -> None:
     assert "npc._empireBoss||npc._empireCrew||npc._empireHoldingGuard" in WORLD
     assert "readability=src.empireBoss?1.28:" in THREE
     assert "src.empireCrew||src.empireHoldingGuard||src.gang?1.16:1" in THREE
-    assert "3d392-boss-war-target-label" in WORLD
+    # The module cache key advances with later renderer work; verify the
+    # contained three-line boss card itself instead of pinning an old URL.
+    assert "three_preview.js?v=3d" in WORLD
+    assert "three-line-contained-war-target-v392" in THREE
 
 
 if __name__ == "__main__":
