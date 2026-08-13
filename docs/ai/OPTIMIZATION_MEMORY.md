@@ -1718,7 +1718,6 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   rebuild marker sites whenever a server map-size change rebuilds `MAP`.
 - Expose a bounded invalid-holding counter for regression QA. This adds no
   render-loop scan: validation happens only when empire/property state changes.
-
 ## Distance-locked player gait cadence (2026-08-13, v388)
 
 - Do not drive the 3D player's foot phase from joystick magnitude. Input intent
@@ -1749,3 +1748,11 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   308 through the shared pool because four bank/black-market doors retain their
   richer existing actors, and completed a resident exit with no frame error or
   startup fallback.
+## 2026-08-13 — Штурм штаба: видимая баллистика и большой интерьер
+
+- Для коротких 3D-интерьеров нельзя напрямую использовать экстремальную скорость уникального оружия босса: пуля может пролететь между двумя кадрами. У штурмовой охраны скорость визуального полёта ограничена диапазоном `11.5..15.5` клетки/с, и это же значение используется для задержки фактического попадания. Поэтому трассер и потеря HP происходят в одном порядке.
+- Видимость обычной пули усилена параметрами `thick`, `bulletScale=1.35`, `trailScale=1.65`; отдельные стрелы/гарпуны сохраняют собственный масштаб. Новых массивов и дополнительных циклов кадра не добавлено — используется существующий ограниченный пул снарядов.
+- Штаб увеличен с `24x18` до `42x30`: площадь выросла с 432 до 1260 клеток, то есть в `2.92x`. Это трактовка «примерно втрое больше» по полезной площади; утроение обеих сторон дало бы нежелательные `9x` площади и нагрузки.
+- Вражеский `npc_hq` получает только синтетический read-only снимок `propertyKind=hq` для повторного использования статического декора командного центра. Геометрия создаётся один раз при входе, а не в игровом цикле.
+- Смерть охраны использует общий 3D-конвейер `dead/deadAt`, останавливает походку и стрельбу, добавляет ограниченную кровавую декаль. Окно победы босса задержано на 1050 мс, чтобы падение не перекрывалось интерфейсом выбора трофея.
+- Подтверждённый локальный прогон: `42x30`, 3 охранника, скорость трассера `15.5`, одновременно `2` живых снаряда, HP игрока `500→420`, затем `deathSettledNpcs=1`. Тестовый режим не пишет серверное состояние.

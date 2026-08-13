@@ -19052,7 +19052,7 @@ async function _hitNpcEmpireAssaultNpc(npc,damage){
     spawnFloatText(npc.r,npc.c,'СНАЧАЛА ОХРАНА',{color:'#ffd36b',size:11,life:900});return;
   }
   const guarded=performance.now()<(npc._guardedUntil||0),effectiveDamage=Math.max(1,Math.round((+damage||1)*(guarded ? .58 : 1)));
-  npc._serverHitPending=true;npc._hurtAnimUntil=performance.now()+420;
+  const hitNow=performance.now();npc._serverHitPending=true;npc._hurtAt=hitNow;npc._hurtAnimUntil=hitNow+420;
   try{
     const target=npc.npcEmpireBoss?'boss':'guard';
     const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{
@@ -19061,11 +19061,11 @@ async function _hitNpcEmpireAssaultNpc(npc,damage){
     if(!r.ok||!j?.ok)throw new Error(j?.error||'failed');
     for(const guard of bi.npcs.filter(n=>n.npcEmpireGuardId!=null)){
       guard.hp=Math.max(0,+j.guards[guard.npcEmpireGuardId]||0);
-      if(guard.hp<=0&&!guard.dead){guard.dead=true;guard.deadAt=performance.now();spawnFloatText(guard.r,guard.c,'УБИТ',{color:'#ff6969',size:14,life:1300});}
+      if(guard.hp<=0&&!guard.dead){guard.dead=true;guard.deadAt=performance.now();guard.walking=false;guard.walkPhase=0;guard._shotAt=0;_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:guard.r,c:guard.c,radius:5.5+Math.random()*2.5,life:14000,max:14000,rot:guard.ang||0});spawnFloatText(guard.r,guard.c,'УБИТ',{color:'#ff6969',size:14,life:1300});document.documentElement.dataset.npcHqGuardDeath=`falling:${guard.npcEmpireGuardId}:${Math.round(guard.deadAt)}`;}
     }
     const boss=bi.npcs.find(n=>n.npcEmpireBoss);if(boss){boss.hp=Math.max(0,+j.boss_hp||0);boss.maxHp=Math.max(1,+j.boss_max_hp||boss.maxHp);}
     spawnFloatText(npc.r,npc.c,guarded?`ЩИТ −${Math.min(35,effectiveDamage)}`:`-${Math.min(35,effectiveDamage)}`,{color:guarded?'#9fd4ff':'#ffca72',size:12,life:800});
-    if(j.victory&&boss&&!boss.dead){boss.dead=true;boss.deadAt=performance.now();_showNpcEmpireVictory(bi.npcEmpireLeaderId);}
+    if(j.victory&&boss&&!boss.dead){boss.dead=true;boss.deadAt=performance.now();boss.walking=false;boss.walkPhase=0;boss._shotAt=0;_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:boss.r,c:boss.c,radius:7.5+Math.random()*2.5,life:16000,max:16000,rot:boss.ang||0});document.documentElement.dataset.npcHqGuardDeath=`boss-falling:${boss.npcEmpireLeaderId}:${Math.round(boss.deadAt)}`;setTimeout(()=>{if(_buildingInt===bi)_showNpcEmpireVictory(bi.npcEmpireLeaderId);},1050);}
     else if(target==='guard'&&!bi.npcs.some(n=>n.npcEmpireGuardId!=null&&!n.dead))showEventBanner('⚔️ ОХРАНА УНИЧТОЖЕНА','Теперь можно атаковать босса',2200,'win');
   }catch(e){if(String(e.message)!=='rate limit')showToast('Сервер не подтвердил попадание','⚠️',1300);}
   finally{npc._serverHitPending=false;}
@@ -19074,7 +19074,7 @@ async function _hitNpcEmpireAssaultNpc(npc,damage){
 function _showNpcEmpireVictory(leaderId){
   const empire=_npcEmpireById.get(String(leaderId||''))||{},ov=_npcEmpireOverlay();
   ov.dataset.locked='1';ov.dataset.leaderId=String(leaderId||'');ov.dataset.allowAssault='0';ov.style.setProperty('--ec',empire.color||'#b8863c');
-  ov.innerHTML=`<article class="ne-card"><header class="ne-head"><div class="ne-k">ШТАБ ПАЛ · ЛИДЕР НЕ УМРЁТ НАВСЕГДА</div><h2>${_npcEmpireEsc(empire.leader_name||'Босс')} побеждён</h2><p>При разгроме он потеряет всё, станет нейтральным и позже попробует вернуться с самого дна.</p></header><div class="ne-body"><div class="ne-actions"><button class="ne-btn good" data-ne-resolve="annex">🚩 Аннексировать<small>Выберешь новый тип для захваченных зданий; фасады и интерьеры перестроятся. Треть казны будет изъята.</small></button><button class="ne-btn war" data-ne-resolve="loot">💰 Разграбить<small>Забрать всю казну, бизнесы станут нейтральными. Лидер позже начнёт заново.</small></button><button class="ne-btn" data-ne-resolve="vassalize">♟️ Подчинить<small>Босс останется вассалом, половина казны перейдёт тебе, владения сохранятся.</small></button></div></div></article>`;
+  ov.innerHTML=`<article class="ne-card"><header class="ne-head"><div class="ne-k">ШТАБ ЗАЧИЩЕН · ВСЯ ОХРАНА УНИЧТОЖЕНА</div><h2>${_npcEmpireEsc(empire.leader_name||'Босс')} побеждён</h2><p>Теперь можно оформить сам штаб и остальные здания на своё имя, выбрать для них криминальный бизнес и поднять над фасадом флаг своей семьи.</p></header><div class="ne-body"><div class="ne-actions"><button class="ne-btn good" data-ne-resolve="annex">🚩 Захватить штаб и имущество<small>Сам штаб станет твоим зданием. Выбери один из восьми бизнесов; владелец, флаг, фасад, интерьер и доход обновятся вместе.</small></button><button class="ne-btn war" data-ne-resolve="loot">💰 Разграбить<small>Забрать всю казну, но не присваивать штаб. Лидер позже начнёт заново.</small></button><button class="ne-btn" data-ne-resolve="vassalize">♟️ Подчинить<small>Босс останется вассалом, половина казны перейдёт тебе, владения сохранятся.</small></button></div></div></article>`;
   ov.querySelectorAll('[data-ne-resolve]').forEach(b=>b.onclick=()=>b.dataset.neResolve==='annex'?openNpcAnnexBuildingChoice():resolveNpcEmpireAssault(b.dataset.neResolve));ov.classList.add('show');
 }
 
@@ -19087,8 +19087,9 @@ async function resolveNpcEmpireAssault(choice,operationType='',operationMap=null
     exitBuildingInterior();_bizLastSync=0;await Promise.all([loadNpcEmpireState(),loadApartmentState(),syncMyBusinesses()]);
     const labels={annex:'ВЛАДЕНИЯ АННЕКСИРОВАНЫ',loot:'ШТАБ РАЗГРАБЛЕН',vassalize:'БОСС ПОДЧИНЁН'};
     const comeback=j.comeback_at?` · лидер вернётся примерно через ${Math.max(1,Math.ceil((+j.comeback_at-Date.now()/1000)/60))} мин.`:'';
-    const convertedTypes=[...new Set((j.captured_buildings||[]).map(item=>PLAYER_BUILDING_OPERATIONS[item.operation_type]?.name).filter(Boolean))],converted=j.captured_buildings?.length?` · перестроено зданий: ${j.captured_buildings.length} (${convertedTypes.join(', ')})`:'';
-    showEventBanner('🏆 '+labels[choice],`Награда: $${(+j.reward||0).toLocaleString('ru')}${j.captured_businesses?.length?` · бизнесов: ${j.captured_businesses.length}`:''}${converted}${comeback}`,5000,'win');
+    const convertedTypes=[...new Set((j.captured_buildings||[]).map(item=>PLAYER_BUILDING_OPERATIONS[item.operation_type]?.name).filter(Boolean))],converted=j.captured_buildings?.length?` · твоих зданий: ${j.captured_buildings.length} (${convertedTypes.join(', ')})`:'';
+    const capturedHq=j.captured_headquarters?` · бывший штаб: ${PLAYER_BUILDING_OPERATIONS[j.captured_headquarters.operation_type]?.name||'твоё владение'}`:'';
+    showEventBanner('🏆 '+labels[choice],`Награда: $${(+j.reward||0).toLocaleString('ru')}${j.captured_businesses?.length?` · бизнесов: ${j.captured_businesses.length}`:''}${converted}${capturedHq}${comeback}`,5000,'win');
   }catch(e){showToast('Не удалось зафиксировать исход. Выбери решение ещё раз.','⚠️',2400);ov.querySelectorAll('button').forEach(b=>b.disabled=false);}
   finally{_npcEmpireBusy=false;}
 }
@@ -19184,11 +19185,11 @@ function openPlayerBuildingChoice(){
   modal.classList.add('show');
 }
 function openNpcAnnexBuildingChoice(){
-  _playerBuildingChoiceMode='annex';const modal=_playerBuildingChoiceModal(),empire=_npcEmpireById.get(String(_buildingInt?.npcEmpireLeaderId||''))||{},buildings=(empire.holdings||[]).filter(item=>item.kind==='building'),operationEntries=Object.entries(PLAYER_BUILDING_OPERATIONS);
+  _playerBuildingChoiceMode='annex';const modal=_playerBuildingChoiceModal(),empire=_npcEmpireById.get(String(_buildingInt?.npcEmpireLeaderId||''))||{},buildings=(empire.holdings||[]).filter(item=>item.kind==='hq'||item.kind==='building').sort((a,b)=>(a.kind==='hq'?-1:1)-(b.kind==='hq'?-1:1)),operationEntries=Object.entries(PLAYER_BUILDING_OPERATIONS);
   if(!buildings.length){resolveNpcEmpireAssault('annex','beer_bar',{});return;}
-  modal.querySelector('#pbcEyebrow').textContent='АННЕКСИЯ · УПРАВЛЕНИЕ ПОРТФЕЛЕМ';modal.querySelector('#pbcTitle').textContent='Назначь бизнес каждому зданию';
-  modal.querySelector('#pbcMeta').textContent=`Здания семьи «${empire.gang_name||'побеждённого босса'}» можно переоборудовать по-разному. Сервер применит весь план одной транзакцией.`;
-  modal.querySelector('#pbcGrid').innerHTML=buildings.map((holding,index)=>{const old=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{},defaultId=operationEntries.find(([id],offset)=>id!==holding.operation_type&&offset>=index%operationEntries.length)?.[0]||operationEntries[0][0],options=operationEntries.map(([id,op])=>`<option value="${id}" ${id===defaultId?'selected':''}>${op.icon} ${op.name} · $${op.base}/мин</option>`).join('');return `<label class="pbc-annex-row"><span><b>🏢 Здание ${_escapeApartmentUi(holding.holding_id)}</b><small>Было: ${old.icon||'🏴'} ${_escapeApartmentUi(old.name||holding.operation_name||'не определено')}</small></span><select data-annex-building="${_escapeApartmentUi(holding.holding_id)}" data-previous-operation="${_escapeApartmentUi(holding.operation_type||'')}">${options}</select></label>`;}).join('')+`<div class="pbc-annex-tools"><button class="pbc-pick" data-pbc-diversify><b>🎲 Разные профили</b><span>Автоматически распределить назначения</span></button><button class="pbc-pick pbc-confirm" data-pbc-annex-confirm><b>🚩 Подтвердить аннексию</b><span>Перестроить ${buildings.length} ${buildings.length===1?'здание':'зданий'} без доплаты</span></button></div>`;modal.classList.add('show');
+  modal.querySelector('#pbcEyebrow').textContent='ЗАХВАТ ШТАБА · ОФОРМЛЕНИЕ ИМУЩЕСТВА';modal.querySelector('#pbcTitle').textContent='Выбери бизнес для захваченного штаба';
+  modal.querySelector('#pbcMeta').textContent=`Главный штаб и здания семьи «${empire.gang_name||'побеждённого босса'}» будут бесплатно оформлены на твоё имя. Флаг, фасад, интерьер и доход сменятся одной серверной транзакцией.`;
+  modal.querySelector('#pbcGrid').innerHTML=buildings.map((holding,index)=>{const isHq=holding.kind==='hq',old=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{},defaultId=operationEntries.find(([id],offset)=>id!==holding.operation_type&&offset>=index%operationEntries.length)?.[0]||operationEntries[0][0],options=operationEntries.map(([id,op])=>`<option value="${id}" ${id===defaultId?'selected':''}>${op.icon} ${op.name} · $${op.base}/мин</option>`).join('');return `<label class="pbc-annex-row ${isHq?'hq-capture':''}"><span><b>${isHq?'♛ БЫВШИЙ ШТАБ':'🏢 Здание'} ${_escapeApartmentUi(holding.holding_id)}</b><small>${isHq?'Главный трофей · станет твоим владением':`Было: ${old.icon||'🏴'} ${_escapeApartmentUi(old.name||holding.operation_name||'не определено')}`}</small></span><select data-annex-building="${_escapeApartmentUi(holding.holding_id)}" data-previous-operation="${_escapeApartmentUi(holding.operation_type||'')}">${options}</select></label>`;}).join('')+`<div class="pbc-annex-tools"><button class="pbc-pick" data-pbc-diversify><b>🎲 Разные профили</b><span>Автоматически распределить назначения</span></button><button class="pbc-pick pbc-confirm" data-pbc-annex-confirm><b>🚩 Оформить на моё имя</b><span>Присвоить ${buildings.length} ${buildings.length===1?'здание':'зданий'} и поднять мой флаг</span></button></div>`;modal.classList.add('show');
 }
 async function buyCurrentApartment() {
   if (!_buildingInt || _buildingInt.type) return;
@@ -56426,6 +56427,10 @@ function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
   const targetR=hit?victim.r:victim.r-dc/dist*missOffset*side;
   const targetC=hit?victim.c:victim.c+dr/dist*missOffset*side;
   const shotNow=performance.now();
+  // Unique boss weapons used to cross a small interior between two 3D
+  // frames: damage arrived, but the tracer was never visible.  The same
+  // capped ballistic speed now drives both rendering and impact timing.
+  const visualSpeed=melee?0:Math.max(11.5,Math.min(15.5,+signature?.speed||+weaponProfile(n.weapon).bulletSpeed||15.5));
   n._shotAt=shotNow;
   if(shotNow>=(n._combatSayAt||0)){
     const phrases=['СТОЙ!','ОГОНЬ!','ЛОЖИСЬ!','НЕ ПОДХОДИ!','ОХРАНА, К БОЮ!','ПРИКРОЙТЕ ВХОД!'];
@@ -56438,13 +56443,14 @@ function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
     const projectileKind=signature?.effect==='arrow'?'arrow':signature?.effect==='pull'?'harpoon':signature?.kind==='dart'?'dart':'';
     if(!projectileKind)spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
     spawnBullet(muzzle.r,muzzle.c,targetR,targetC,{hit,fromNpc:true,weapon:n.weapon,
-      projectileKind,speed:signature?.speed||undefined,color:signature?.effect==='explosive'?'#ff79bd':signature?.effect==='shock'?'#62c7ef':undefined,
-      bulletScale:projectileKind?1.15:undefined,trailScale:projectileKind ? .25 : undefined});
+      projectileKind,speed:visualSpeed,thick:true,color:signature?.effect==='explosive'?'#ff79bd':signature?.effect==='shock'?'#62c7ef':undefined,
+      bulletScale:projectileKind?1.15:1.35,trailScale:projectileKind ? .35 : 1.65});
+    document.documentElement.dataset.npcHqGuardShot=`${n.npcEmpireGuardId??'boss'}:${n.weapon||'pistol'}:${visualSpeed.toFixed(1)}`;
   }
   if(_majorInteriorObjectId)
     _gangAlertThreat(n.r,n.c,n.id,'interior_guard',n);
   if(!hit)return;
-  const speed=signature?.speed||weaponProfile(n.weapon).bulletSpeed||BULLET_SPEED;
+  const speed=visualSpeed||BULLET_SPEED;
   const flightMs=melee?170:Math.max(35,Math.min(900,
     Math.hypot(targetR-muzzle.r,targetC-muzzle.c)/speed*1000));
   setTimeout(()=>{
@@ -58993,7 +58999,7 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   _majorInteriorObjectId = majorObjectId || null;
   const isBM = type === 'blackmarket';
   const isThemed = ['blackmarket','job','gym','hospital','police_st','mafia_hq','business','npc_hq'].includes(type);
-  const _sizes = { blackmarket:[10,8], job:[12,9], gym:[14,10], hospital:[14,10], police_st:[18,14], mafia_hq:[18,14], business:[18,13], npc_hq:[24,18] };
+  const _sizes = { blackmarket:[10,8], job:[12,9], gym:[14,10], hospital:[14,10], police_st:[18,14], mafia_hq:[18,14], business:[18,13], npc_hq:[42,30] };
   let [biW, biH] = _sizes[type] || (isThemed ? [10,8] : [16,12]);
   if (type === 'business' && BUSINESS_ROB_TIERS[bizId]) {
     const tier = BUSINESS_ROB_TIERS[bizId] || {guards:2,w:18,h:13};
@@ -63308,14 +63314,22 @@ window.Mafiozi3DBridge = Object.freeze({
       bags:(_bankInt.room==='vault'?(_bankInt.bags||[]):(_bankInt._lobbyBags||[]))
         .filter(b=>b&&!b.taken).slice(0,24).map((b,i)=>({id:String(b.id??i),r:+b.r||0,c:+b.c||0})),
     }:null;
+    const npcHqLeaderId=src.type==='npc_hq'?String(src.npcEmpireLeaderId||src.npcEmpireAssault?.leader_id||''):'';
+    const npcHqEmpire=npcHqLeaderId?(_npcEmpireById.get(npcHqLeaderId)||{}):null;
+    const npcHqProperty=npcHqEmpire?{key:`npc-hq:${npcHqLeaderId}`,owned:false,ownerUid:`npc:${npcHqLeaderId}`,
+      ownerName:String(npcHqEmpire.leader_name||'Босс'),district:apartmentDistrictMarket(src.r,src.c)?.label||'Городской район',
+      propertyKind:'hq',operationType:'',operationName:'',operationIcon:'♛',operationColor:String(npcHqEmpire.color||'#9b1f2d'),
+      gangName:String(npcHqEmpire.gang_name||'Вражеская семья'),gangColor:String(npcHqEmpire.color||'#9b1f2d'),
+      gangAccent:String(npcHqEmpire.accent||'#e0b83e'),acquiredAt:+npcHqEmpire.updated_at||0,
+      levels:{repair:0,safe:0,weaponRack:0,cameras:0,garage:0}}:null;
     return {
       kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
       venueId:String(venuePoi?.id||''),venueFamily:String(venuePoi?.mafiaFamily||''),
       width:_bankInt&&src.room==='vault'?(+src.vaultW||8):(+src.W||16),height:_bankInt&&src.room==='vault'?(+src.vaultH||12):(+src.H||12),seed:+src.seed||0,
-      apartment:!src.type?{key:apartmentKey||String(apartmentInfo.apt_key||''),owned:!!_myApartments[apartmentKey],ownerUid:String(src.apartmentOwnerUid||apartmentHost?.owner_uid||apartmentInfo.owner_uid||(_myApartments[apartmentKey]?QP.uid:'')),ownerName:String(src.apartmentOwnerName||apartmentHost?.name||apartmentInfo.owner_name||(_myApartments[apartmentKey]?(QP.name||'Игрок'):'')),district:apartmentDistrictMarket(src.r,src.c)?.label||'Городской район',propertyKind:String(apartmentInfo.property_kind||''),operationType:String(apartmentInfo.operation_type||''),operationName:String(apartmentInfo.operation_name||PLAYER_BUILDING_OPERATIONS[apartmentInfo.operation_type]?.name||''),operationIcon:String(apartmentInfo.operation_icon||PLAYER_BUILDING_OPERATIONS[apartmentInfo.operation_type]?.icon||''),operationColor:String(PLAYER_BUILDING_OPERATIONS[apartmentInfo.operation_type]?.color||''),gangName:String(apartmentInfo.gang_name||_customGang?.name||''),gangColor:String(apartmentInfo.color||_customGang?.flag?.primary||'#9b1f2d'),gangAccent:String(apartmentInfo.accent||_customGang?.flag?.secondary||'#e0b83e'),acquiredAt:+apartmentInfo.acquired_at||+apartmentInfo.bought_at||0,levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:null,
+      apartment:!src.type?{key:apartmentKey||String(apartmentInfo.apt_key||''),owned:!!_myApartments[apartmentKey],ownerUid:String(src.apartmentOwnerUid||apartmentHost?.owner_uid||apartmentInfo.owner_uid||(_myApartments[apartmentKey]?QP.uid:'')),ownerName:String(src.apartmentOwnerName||apartmentHost?.name||apartmentInfo.owner_name||(_myApartments[apartmentKey]?(QP.name||'Игрок'):'')),district:apartmentDistrictMarket(src.r,src.c)?.label||'Городской район',propertyKind:String(apartmentInfo.property_kind||''),operationType:String(apartmentInfo.operation_type||''),operationName:String(apartmentInfo.operation_name||PLAYER_BUILDING_OPERATIONS[apartmentInfo.operation_type]?.name||''),operationIcon:String(apartmentInfo.operation_icon||PLAYER_BUILDING_OPERATIONS[apartmentInfo.operation_type]?.icon||''),operationColor:String(PLAYER_BUILDING_OPERATIONS[apartmentInfo.operation_type]?.color||''),gangName:String(apartmentInfo.gang_name||_customGang?.name||''),gangColor:String(apartmentInfo.color||_customGang?.flag?.primary||'#9b1f2d'),gangAccent:String(apartmentInfo.accent||_customGang?.flag?.secondary||'#e0b83e'),acquiredAt:+apartmentInfo.acquired_at||+apartmentInfo.bought_at||0,levels:{repair:+apartmentInfo.repair_level||0,safe:+apartmentInfo.safe_level||0,weaponRack:+apartmentInfo.weapon_rack_level||0,cameras:+apartmentInfo.cameras_level||0,garage:+apartmentInfo.garage_level||0}}:npcHqProperty,
       playerElevation:casino?_casinoVisualElevation(src,player.r,player.c):0,
       layout:casinoLayout,businessLayout,bank:bankState,
-      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss,visualRole:guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
+      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss,visualRole:guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',hitAt:+n._hurtAt||0,alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
@@ -63327,6 +63341,26 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!poi)return false;
     enterBuildingInterior(poi.r,poi.c,'business',`major_${poi.id}`,{peacefulMajorObjectId:poi.id});
     return true;
+  },
+  previewEnterNpcHqAssault() {
+    if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+    if(document.body.classList.contains('game-menu-open')){_gameMenuOpen=false;document.body.classList.remove('game-menu-open');document.getElementById('gameMainMenu')?.classList.add('hidden');}
+    const modeModal=document.getElementById('modeModal');if(modeModal)modeModal.style.display='none';myMode='pvp';
+    if(_buildingInt)exitBuildingInterior();
+    const leaderId='qa_hq_boss',profile={kind:'firearm',range:12,speed:36,cooldown:720,damage:8,hit:.9,effect:'burst'};
+    _npcEmpireById.set(leaderId,{leader_id:leaderId,leader_name:'Контрольный босс',gang_name:'Тестовая семья',color:'#7d2234',accent:'#e6c45c',weapon_base:'pistol_heavy',weapon_profile:profile,doctrine:NPC_EMPIRE_DOCTRINES.marat,updated_at:Date.now()/1000});
+    const guards=Array.from({length:3},(_,id)=>({id,hp:70,max_hp:70,weapon:'pistol_heavy',weapon_profile:profile}));
+    const assault={ok:true,token:'local-qa',leader_id:leaderId,leader_name:'Контрольный босс',gang_name:'Тестовая семья',guards,boss:{hp:180,max_hp:180,weapon:'pistol_heavy',weapon_profile:profile}};
+    enterBuildingInterior(player.r,player.c,'npc_hq',leaderId,{npcEmpireAssault:assault,autoStart:true});
+    const bi=_buildingInt,live=bi?.npcs?.filter(n=>n.npcEmpireGuardId!=null)||[];
+    if(!bi||!live.length)return {ok:false,reason:'spawn-failed'};
+    player.r=bi.H*.72;player.c=bi.W*.5;player.vr=player.vc=0;myHp=Math.max(500,+myHp||0);myDead=false;
+    live.forEach((n,i)=>{n.r=player.r-4.8-i*.8;n.c=player.c-2+i*2;n.tr=n.r;n.tc=n.c;n.postR=n.r;n.postC=n.c;n._nextShotAt=performance.now()+250+i*180;});
+    document.documentElement.dataset.previewNpcHqAssault=`room:${bi.W}x${bi.H}:guards:${live.length}`;
+    setTimeout(()=>{if(_buildingInt===bi)_fireInteriorGuardRound(bi,live[0],8,1);},450);
+    setTimeout(()=>{if(_buildingInt!==bi)return;const fallen=live[1];fallen.dead=true;fallen.hp=0;fallen.deadAt=performance.now();fallen.walking=false;fallen._shotAt=0;fallen._hurtAt=fallen.deadAt;document.documentElement.dataset.previewNpcHqDeath=`falling:${fallen.npcEmpireGuardId}`;},1250);
+    setTimeout(()=>{if(_buildingInt===bi)document.documentElement.dataset.previewNpcHqAssault=`room:${bi.W}x${bi.H}:guards:${live.length}:shot:${document.documentElement.dataset.npcHqGuardShot||'none'}:dead:${live.filter(n=>n.dead).length}`;},2200);
+    return {ok:true,width:bi.W,height:bi.H,guards:live.length};
   },
   previewEnterBuildingPurpose(operationType='vacant',ownerKind='player',enterInterior=true) {
     if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
@@ -64120,6 +64154,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previeweffectlifecycleqa'))setTimeout(()=>{
   setTimeout(()=>{const final=window.Mafiozi3DBridge.effectLifecycleQa('sample');document.documentElement.dataset.previewEffectLifecycleQa=`settled:g${final.gore}:q${final.pendingTimers}`;},900);
 },1800);
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewnpchqassault'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterNpcHqAssault(),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewpurpose'),'npc',_UP.get('previewpurposeview')!=='exterior'),2600);
 if(_LOCAL_PREVIEW&&_UP.get('previewbuildingpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewbuildingpurpose'),_UP.get('previewbuildingowner')||'player'),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewblackmarket'))setTimeout(()=>window.Mafiozi3DBridge.previewBlackmarketEntryAudit(_UP.get('previewblackmarket'),_UP.get('previewblackmarketenter')!=='0'),900);
@@ -68023,6 +68058,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d388-distance-locked-gait"></script>
+<script type="module" src="three_preview.js?v=3d389-hq-assault-ballistics"></script>
 </body>
 </html>

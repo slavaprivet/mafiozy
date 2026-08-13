@@ -4165,7 +4165,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       };
       const decorateConvertedBuildingInterior=data=>{
         const property=data.apartment||{},kind=String(property.propertyKind||''),operation=String(property.operationType||''),conversionAge=Date.now()/1000-(+property.acquiredAt||0),freshlyConverted=conversionAge>=0&&conversionAge<60;
-        if(!(data.kind==='building'&&data.type==='generic'&&!data.bizId&&(kind==='hq'||kind==='business')))return false;
+        const convertedGeneric=data.kind==='building'&&data.type==='generic'&&!data.bizId&&(kind==='hq'||kind==='business');
+        const assaultHq=data.kind==='building'&&data.type==='npc_hq'&&kind==='hq';
+        if(!(convertedGeneric||assaultHq))return false;
         const W=data.width*WORLD_SCALE,H=data.height*WORLD_SCALE,cx=(data.width/2-originC)*WORLD_SCALE,cz=(data.height/2-originR)*WORLD_SCALE,color=property.operationColor||(kind==='hq'?property.gangColor:'#63c47a')||'#63c47a',accent=kind==='hq'?(property.gangAccent||'#e0b83e'):'#ffe1a0';
         const add=(geo,mat,x,y,z,parent=interiorGroup)=>{const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;mesh.layers.set(1);parent.add(mesh);return mesh;},boxAt=(x,z,w,d,h,mat,y=h/2)=>add(new THREE.BoxGeometry(w,h,d),mat,x,y,z),floorAt=(x,z,w,d,mat,y=.085)=>{const mesh=add(new THREE.PlaneGeometry(w,d),mat,x,y,z);mesh.rotation.x=-Math.PI/2;return mesh;};
         const dark=new THREE.MeshStandardMaterial({color:0x10141a,roughness:.48,metalness:.38}),black=new THREE.MeshStandardMaterial({color:0x080a0d,roughness:.34,metalness:.62}),theme=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:.48,metalness:.28,emissive:new THREE.Color(color).multiplyScalar(.12),emissiveIntensity:.42}),glow=new THREE.MeshBasicMaterial({color:new THREE.Color(color),toneMapped:false}),gold=new THREE.MeshStandardMaterial({color:new THREE.Color(accent),roughness:.3,metalness:.72}),wood=new THREE.MeshStandardMaterial({color:0x5a3422,roughness:.72}),leather=new THREE.MeshStandardMaterial({color:kind==='hq'?0x4c1520:0x27313a,roughness:.78}),steel=new THREE.MeshStandardMaterial({color:0x66717a,roughness:.3,metalness:.82}),glass=new THREE.MeshPhysicalMaterial({color:0x9edff0,transparent:true,opacity:.35,roughness:.08,transmission:.3}),paper=new THREE.MeshStandardMaterial({color:0xe2ddcf,roughness:.95});
@@ -4200,7 +4202,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }else{
           for(const x of [cx-W*.25,cx,cx+W*.25]){boxAt(x,cz-H*.08,5.2,4.2,1.05,steel,.55);boxAt(x,cz-H*.08,4.6,3.5,.45,black,1.28);boxAt(x,cz-H*.08,3.5,.55,1.8,theme,2.15);}for(let stack=0;stack<7;stack++)for(let layer=0;layer<4;layer++)boxAt(cx-W*.36+stack*2.05,cz+H*.25,1.7,1.25,.16,paper,.12+layer*.17);boxAt(cx+W*.35,cz-H*.29,4.2,2,2.8,dark,1.4);addScreen(cx+W*.35,2.05,cz-H*.29+1.02,3.3,1.7);
         }
-        const warm=new THREE.PointLight(new THREE.Color(color),kind==='hq'?18:13,32,2);warm.position.set(cx,6.2,cz);warm.layers.set(1);interiorGroup.add(warm);renderer.domElement.dataset.convertedBuildingInterior=`purpose-v3:${kind}:${operation||'headquarters'}`;renderer.domElement.dataset.convertedBuildingFresh=freshlyConverted?'1':'0';return true;
+        const warm=new THREE.PointLight(new THREE.Color(color),kind==='hq'?18:13,32,2);warm.position.set(cx,6.2,cz);warm.layers.set(1);interiorGroup.add(warm);renderer.domElement.dataset.convertedBuildingInterior=`purpose-v3:${kind}:${operation||'headquarters'}`;renderer.domElement.dataset.convertedBuildingFresh=freshlyConverted?'1':'0';if(assaultHq)renderer.domElement.dataset.npcHqInterior='command-compound-42x30-v1';return true;
       };
       const decorateApartmentInterior=data=>{
         if(!(data.kind==='building'&&data.type==='generic'&&!data.bizId))return false;
