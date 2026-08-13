@@ -9727,6 +9727,10 @@ function _empirePlayerCombatThink(n,now,dt){
   _empireRecordAttack(n,hit,now);if(hit)_applyEmpirePlayerWeaponHit(n,Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1))),profile,now);return true;
 }
 function _empireActivityLabel(activity) {
+  if(activity?.kind==='gang_war'){
+    const rival=_npcEmpireById.get(String(activity.target_id||'')),rivalGang=String(rival?.gang_name||activity.target_gang_name||'').trim();
+    if(rivalGang)return `ВЕДЁТ ВОЙНУ С БАНДОЙ «${rivalGang.toLocaleUpperCase('ru-RU')}»`;
+  }
   const specific=String(activity?.ui_label||'').trim();
   if(specific)return specific.toLocaleUpperCase('ru-RU');
   return ({gang_war:'ВЕДЁТ ВОЙНУ С БАНДОЙ',recruit:'ВЕРБУЕТ БОЙЦОВ',collect:'ПРОВЕРЯЕТ ДОХОД',inspect:'ПРОВЕРЯЕТ ПОСТЫ',return_hq:'ВОЗВРАЩАЕТСЯ В ШТАБ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
@@ -68121,6 +68125,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d391-gang-war-ballistics"></script>
+<script type="module" src="three_preview.js?v=3d392-boss-war-target-label"></script>
 </body>
 </html>

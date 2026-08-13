@@ -1,5 +1,18 @@
 # Mafiozi 3D optimization memory
 
+## Contained boss war-target labels (2026-08-13, v392)
+
+- Resolve a `gang_war` target through the already-populated NPC empire map and
+  carry the rival gang name inside the existing `empireAction` string. Do not
+  add a renderer lookup, network field or per-frame empire scan.
+- Boss identity cards use three fixed rows: boss name, own family and current
+  action. The shared canvas fitter may shrink to a bounded minimum and then
+  ellipsizes by measured glyph width, guaranteeing that even long Russian gang
+  names remain inside the 650-pixel safe area.
+- Card canvases, textures and sprites remain in the existing bounded NPC pool;
+  redraw happens only when the label signature changes. Advance the Three.js
+  module query key whenever this canvas layout changes.
+
 ## Readable tracked gang-war ballistics (2026-08-13, v391)
 
 - NPC-family hits must not subtract HP at trigger time while their tracer is
