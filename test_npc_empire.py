@@ -273,8 +273,8 @@ async def run() -> None:
         async with aiosqlite.connect(path) as db:
             left, right = sorted(("leila", "rustam"))
             await db.execute(
-                "UPDATE npc_empire_diplomacy SET score=-100,pact='war',tension=80 "
-                "WHERE leader_a=? AND leader_b=?", (left, right),
+                "UPDATE npc_empire_diplomacy SET score=-100,pact='war',tension=80,last_event_at=? "
+                "WHERE leader_a=? AND leader_b=?", (2_000_000_080, left, right),
             )
             await db.commit()
         war_state = await ne.state_for(path, 101, now=2_000_000_080)
@@ -282,6 +282,9 @@ async def run() -> None:
         rustam_war = next(x for x in war_state["empires"] if x["leader_id"] == "rustam")["activity"]
         assert leila_war["kind"] == rustam_war["kind"] == "gang_war"
         assert leila_war["target_id"] == "rustam" and rustam_war["target_id"] == "leila"
+        assert leila_war["target_leader_name"] == ne.PROFILE_BY_ID["rustam"].leader_name
+        assert rustam_war["target_leader_name"] == ne.PROFILE_BY_ID["leila"].leader_name
+        assert leila_war["target_gang_name"] == ne.PROFILE_BY_ID["rustam"].gang_name
         assert leila_war["stance"] in {"assault", "harass"} and 2 <= leila_war["force"] <= 20
         async with aiosqlite.connect(path) as db:
             await db.execute(

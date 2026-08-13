@@ -2137,3 +2137,163 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   final upload keeps body and equipment synchronous at the original cadence.
 - Casualty wording follows lifecycle, not appearance: ordinary mortal NPCs use
   `МЁРТВ`; server-respawned players and the 19 recoverable bosses use `РАНЕН`.
+## Converted-business reconnect invariants (2026-08-13)
+
+- Treat SQLite as the only source of truth across process reloads: owner,
+  operation, area, derived income, acquisition time, closure, relationship,
+  war phase and garrison seed must be recoverable without a client cache.
+- Apartment reconnect snapshots must query active building closures before
+  decorating operation rows. Otherwise the exterior may show CLOSED while a
+  re-entered interior either fails to load or resumes income early.
+- Both exterior and interior cache signatures include owner, operation and
+  CLOSED state. A follow-up capture therefore changes both skins on the next
+  authoritative snapshot without a new render loop, mesh pool or scene scan.
+- Raid deadlines are idempotency boundaries: reopening the DB at the first
+  strike deadline must not apply relationship loss twice, and reopening before
+  follow-up capture must preserve the same target, phase and deterministic
+  garrison count.
+
+## Solvent empire armies and bounded wars (2026-08-13)
+
+- Every five-minute empire tick must debit all three operating layers from the
+  same treasury: fighter payroll, the stable one-to-three guards assigned to
+  each income holding, and logistics for every active NPC/player war. Keep the
+  calculation in the existing capped 72-tick server catch-up; never add a boss,
+  guard or renderer timer.
+- Scheduled recruits and visible street recruits use the same member-scaled
+  price. The street handshake is an immediate SQLite transaction that debits
+  cash and increments members/strength together. A duplicate source id returns
+  the prior roster without charging or adding a second fighter; insufficient
+  cash changes neither roster nor treasury.
+- Insolvency is a bounded integer on the empire row. Each unpaid tick advances
+  it, and every second unpaid tick loses at most one fighter; a paid tick moves
+  it back toward zero. Emit bankruptcy and recovery only on boundary crossings,
+  so polling cannot create repeated events or free replacements.
+- A war cannot remain permanent merely because no capturable holding exists.
+  Three idle days produce a truce, while four resolved clashes reach the same
+  exhaustion path through the existing tension field. The normal six-hour
+  diplomacy cadence cools a truce toward neutrality; earned goodwill still
+  forms alliances through the existing bounded 171-pair pass.
+- Publish one compact economy breakdown in the existing empire snapshot for
+  diagnostics. Exact opponent identity rides inside the existing activity
+  object; the client resolves the boss name once and both DOM/Three.js labels
+  reuse their existing two-line clamp or measured-width fitter. This adds no
+  network poll, canvas pool, map scan, mesh, material or per-frame allocation.
+- Deterministic regression advances all 19 families through 180 simulated days
+  in 72-tick windows, asserts non-negative cash/insolvency and the 20-fighter
+  cap, and separately proves paid guards/wars/recruits, bankruptcy/recovery,
+  duplicate-safe hiring and war-to-truce-to-alliance transitions.
+
+## Physical player-business defence and CLOSED accrual (2026-08-14)
+
+- A converted player business exposes one deterministic 1–3 guard garrison.
+  Materialise those guards only while the targeted building and the player are
+  in the existing 48-tile holding window, and reuse the bounded holding-guard
+  pool. The attacking boss and at most eight existing escorts first target this
+  temporary defender team; surviving attackers resume the player-war order
+  only after the finite garrison is down. Dead raid slots must not respawn.
+- Reinforcements retain the 40-tile hidden staging rule. Physical raid QA must
+  publish boss distance, total and near escort counts, live/total defenders,
+  first exchanged damage, forbidden pop-in and full arrival; no new scan or
+  per-frame allocation is needed outside the existing 1.8-second sync.
+- A closure is an interval, not merely a status at the current timestamp. Before
+  pruning expired rows, retain `(created_at, closed_until)` for the current
+  bounded offline batch and exclude every five-minute income interval that
+  overlaps it. This prevents reconnecting just after reopening from back-paying
+  the CLOSED period while preserving ordinary full-rate operation ticks.
+
+## Long-raid snapshot reconciliation (2026-08-14)
+
+- Key the localhost raid fixture by `phase:target_id`. Reapplying the same
+  authoritative snapshot must not reseed the scene, reset elapsed time, clear a
+  route, move the boss to staging, replace crew slots or revive dead defenders.
+- Snapshot refresh may still replace the client empire/actor arrays. Keep one
+  tiny bounded checkpoint in the fixture: boss best position/distance, up to
+  eight crew slot positions, and at most three dead guard slots. Rebind the
+  stable raid activity to fresh objects and accept only a boss checkpoint that
+  is no farther from the target; this restores progress without teleporting a
+  live actor backwards.
+- Recreated crew reuse their previous slot checkpoint instead of the hidden
+  start point. Recreated holding guards skip immutable dead slots. Both reuse
+  the existing 1.8-second sync, 40-tile initial staging, eight-escort limit and
+  holding-guard pool; no render loop, pathfinder, mesh, material or unbounded
+  history is added.
+- The player garrison exists only during `approach`. `first-close` and
+  `followup-capture` both use capture semantics and guard cap zero, so a phase
+  transition after the firefight cannot legally seed a second defence wave.
+
+## Closed-loop empire capital and district status (2026-08-14)
+
+- Treat a converted building's stored `income` as income per minute and credit
+  five minutes on the existing authoritative tick. Legacy landmark businesses
+  retain their daily divisor. Do not add a second income timer or a client-side
+  credit path: treasury, upkeep and purchases remain one SQLite transaction.
+- Before hiring, fortifying or buying a property, retain twelve future ticks of
+  fighter, stable holding-guard and active-war upkeep. Expansion pays the same
+  area/operation price exposed to the player and only uses the surplus above
+  that reserve. This makes profitable families grow without allowing payroll
+  money to masquerade as free investment capital.
+- A family with no revenue may receive at most twelve recovery instalments of
+  $600. Persist the remaining count on its empire row, consume it only below
+  the operating floor and reset it only on a real comeback. Once exhausted,
+  normal insolvency/desertion continues; catch-up and repeated polling cannot
+  mint unbounded recovery cash or fighters.
+- Every live headquarters exposes one modest $24/minute front operation through
+  the same holding-income ledger. This is the fair bootstrap floor that lets a
+  returned family save toward its first real property; it is visible in the
+  economy snapshot and pays the same roster upkeep, so it is neither a free
+  fighter spawn nor an out-of-band treasury grant.
+- District ids and coordinate partitions must exactly match the eight client
+  districts. Publish `control_state` plus an integer `control_percent` in the
+  existing snapshot. Exact score ties use `contested`; empty districts use
+  `neutral`, never a fabricated leader.
+- The right district card paints one existing boss portrait canvas only when
+  the district/snapshot renderer runs, with a family-emblem badge, bounded boss
+  and gang text, control percentage and nearest rival. The 306-pixel card and
+  all variable fields use `minmax(0,1fr)`/ellipsis at 1366×768 and 1920×1080.
+  This adds no render-frame scan, timer, network request, material or mesh.
+- War activity carries both exact `target_leader_name` and
+  `target_gang_name`; DOM and measured Three.js labels share those fields.
+  Diplomacy cards render the server's localized war, truce, peace and alliance
+  labels instead of leaking pact enum keys.
+
+## Year-scale empire liquidity audit (2026-08-14)
+
+- Empire treasury is operating liquidity, not an unbounded lifetime score.
+  After payroll, war logistics, guard upkeep, recruitment, purchases and
+  fortification have run, retain the greater of $75,000 or twelve upkeep ticks
+  plus 96 gross-income ticks. Persist excess as `distributed_profit`; never
+  feed it back into hiring or combat strength. This preserves investment money
+  while stopping a mature eight-property portfolio from accumulating millions
+  of idle cash indefinitely.
+- Compute and publish the liquidity ceiling from the existing five-minute
+  server tick and economy snapshot. It adds one integer column and constant
+  arithmetic per family per tick batch—no client timer, poll, render scan or
+  per-frame allocation.
+- Capture CLOSED intervals before pruning expired closure rows. The bounded
+  catch-up schedule must still see a closure that ended between `last_tick` and
+  `now`; otherwise reconnect both raises `NameError` and can back-pay downtime.
+- The deterministic policy audit covers all 19 profiles for 365×288 ticks,
+  every converted-business income curve, legacy landmark income, HQ bootstrap,
+  paid recruitment, stable guards, intermittent wars, eight paid purchases,
+  finite recovery and quarterly liquidity bounds. Keep the shorter SQLite test
+  as a 15-day integration loop; do not label 60 six-hour windows as 180 days.
+- District regression must create all eight empty rows, an exact equal-score
+  tie and an unambiguous leader, then pair that server contract with the bounded
+  306-pixel portrait/emblem card at 1366×768 and 1920×1080. Exact enemy boss and
+  gang names remain shared by DOM and measured Three.js status labels.
+
+## District-card DOM ownership fixture (2026-08-14)
+
+- Exercise the production `_renderDistrictRep` function in a dependency-free
+  fake DOM rather than opening a second game tab. Drive one card through
+  neutral, exact tie, clear leader, hostile takeover, rival replacement and
+  neutral again without reload; assert boss, gang, emblem, CSS colours,
+  control state/percent and `data-ne-portrait` after every snapshot.
+- Replacing `innerHTML` must remove the prior portrait canvas before the shared
+  portrait painter runs. A neutral snapshot paints no canvas and must not keep
+  the last boss or gang. This contract prevents stale family identity without
+  introducing mutation observers, timers, render scans or per-frame work.
+- Keep the card at 306 pixels and retain `minmax(0,1fr)`, shrinkable rival text
+  and ellipsis for state, boss and gang. The same fixture enforces those CSS
+  bounds for both 1366×768 and 1920×1080 desktop layouts.

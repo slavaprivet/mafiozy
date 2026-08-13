@@ -38,6 +38,19 @@ VISIBLE_ACTIVITY_SECONDS = 75
 NPC_EMPIRE_MAX_FIGHTERS = 20
 RECRUITMENT_SECONDS = 0
 NPC_BUILDING_SABOTAGE_SECONDS = 5 * 60
+NPC_MEMBER_UPKEEP_PER_TICK = 3
+NPC_HOLDING_GUARD_UPKEEP_PER_TICK = 6
+NPC_ACTIVE_WAR_UPKEEP_PER_TICK = 18
+NPC_BANKRUPTCY_DESERTION_TICKS = 2
+NPC_WAR_IDLE_TRUCE_SECONDS = 3 * 24 * 60 * 60
+NPC_WAR_EXHAUSTION_TENSION = 100
+NPC_TRUCE_SCORE = -35
+NPC_OPERATING_RESERVE_TICKS = 12
+NPC_RECOVERY_STIPEND_PER_TICK = 600
+NPC_RECOVERY_STIPEND_TICKS = 12
+NPC_HQ_FRONT_INCOME_PER_MINUTE = 24
+NPC_LIQUIDITY_BUFFER_TICKS = 96
+NPC_MIN_LIQUIDITY_CEILING = 75_000
 
 
 @dataclass(frozen=True)
@@ -203,14 +216,15 @@ BUSINESS_COORDS = {
     'port': (181, 31),
 }
 DISTRICTS = {
-    'poor': 'Бедный район', 'downtown': 'Центр', 'nightlife': 'Ночная улица',
-    'rich': 'Богатый район', 'countryside': 'Пригород',
-    'industrial': 'Промзона', 'lair': 'Логово', 'coast': 'Побережье',
+    'northside': 'Норт-Сайд', 'downtown': 'Даунтаун',
+    'southside': 'Саутсайд', 'industrial': 'Промзона',
+    'eastside': 'Ист-Сайд', 'docklands': 'Доклендс',
+    'lair': 'Логово', 'coast': 'Побережье',
 }
 BUSINESS_DISTRICTS = {
-    'coffee':'poor', 'carwash':'poor', 'barbershop':'downtown',
-    'pizza':'nightlife', 'garage':'industrial', 'bar':'nightlife',
-    'club':'downtown', 'warehouse':'industrial', 'casino':'downtown', 'port':'coast',
+    'coffee':'northside', 'carwash':'northside', 'barbershop':'southside',
+    'pizza':'southside', 'garage':'southside', 'bar':'southside',
+    'club':'southside', 'warehouse':'southside', 'casino':'downtown', 'port':'coast',
 }
 BUILDING_AREAS = dict((
     ('0,3',16),('0,4',4),('0,5',16),('0,6',16),('0,7',16),('0,11',20),('0,15',20),
@@ -340,10 +354,24 @@ def empire_holding_income_per_tick(holdings) -> int:
     """
     minutes = max(1, TICK_SECONDS // 60)
     building_income = sum(int(item['income'] or 0) for item in holdings
-                          if str(item['kind']) == 'building')
+                          if str(item['kind']) in {'building', 'hq'})
     legacy_income = sum(int(item['income'] or 0) for item in holdings
                         if str(item['kind']) == 'business')
     return building_income * minutes + legacy_income // 288
+
+
+def holding_open_ticks(last_tick: int, ticks: int, closed_from: int = 0,
+                       closed_until: int = 0) -> int:
+    """Count whole economy intervals that do not overlap a CLOSED window."""
+    if ticks <= 0 or closed_until <= closed_from:
+        return max(0, ticks)
+    open_ticks = 0
+    for offset in range(max(0, ticks)):
+        interval_start = int(last_tick) + offset * TICK_SECONDS
+        interval_end = interval_start + TICK_SECONDS
+        if interval_end <= closed_from or interval_start >= closed_until:
+            open_ticks += 1
+    return open_ticks
 
 
 async def _player_owned_building_keys(db) -> set[str]:
@@ -541,6 +569,71 @@ def holding_guard_count(leader_id: str, kind: str, holding_id: str,
     return 1 + hashlib.sha256(seed.encode()).digest()[0] % 3
 
 
+def recruitment_cost(members: int) -> int:
+    """Price one reinforcement consistently for scheduled and street hires."""
+    return 180 + max(0, int(members)) * 14
+
+
+def operating_reserve(members: int, guard_slots: int, active_wars: int) -> int:
+    upkeep = (max(4, max(0, int(members)) * NPC_MEMBER_UPKEEP_PER_TICK)
+              + max(0, int(guard_slots)) * NPC_HOLDING_GUARD_UPKEEP_PER_TICK
+              + max(0, int(active_wars)) * NPC_ACTIVE_WAR_UPKEEP_PER_TICK)
+    return upkeep * NPC_OPERATING_RESERVE_TICKS
+
+
+def settle_operating_liquidity(treasury: int, income_per_tick: int, members: int,
+                               guard_slots: int, active_wars: int) -> dict:
+    """Keep bounded operating cash; distribute mature surplus to the family.
+
+    Treasury is working capital, not an unbounded lifetime-score counter.  The
+    ceiling scales with gross income and always remains above both the upkeep
+    reserve and the most expensive generic-property conversion.
+    """
+    reserve = operating_reserve(members, guard_slots, active_wars)
+    ceiling = max(NPC_MIN_LIQUIDITY_CEILING,
+                  reserve + max(0, int(income_per_tick)) * NPC_LIQUIDITY_BUFFER_TICKS)
+    cash = max(0, int(treasury)); distributed = max(0, cash - ceiling)
+    return {'treasury': cash - distributed, 'ceiling': ceiling,
+            'distributed': distributed}
+
+
+def apply_operating_budget(profile: EmpireProfile, *, treasury: int, members: int,
+                           strength: int, income_per_tick: int, guard_slots: int,
+                           active_wars: int, ticks: int,
+                           insolvent_ticks: int = 0,
+                           recovery_ticks_remaining: int = 0,
+                           income_schedule: list[int] | None = None) -> dict:
+    """Apply bounded payroll, property security and war logistics expenses."""
+    cash = max(0, int(treasury)); fighters = max(1, int(members))
+    power = max(20, int(strength)); insolvency = max(0, int(insolvent_ticks))
+    recovery_left = max(0, int(recovery_ticks_remaining)); paid = 0; stipend = 0
+    for tick_index in range(max(0, min(MAX_OFFLINE_TICKS, int(ticks)))):
+        scheduled_income = (income_schedule[tick_index]
+                            if income_schedule and tick_index < len(income_schedule)
+                            else income_per_tick)
+        cash += max(0, int(scheduled_income))
+        upkeep = (max(4, fighters * NPC_MEMBER_UPKEEP_PER_TICK)
+                  + max(0, int(guard_slots)) * NPC_HOLDING_GUARD_UPKEEP_PER_TICK
+                  + max(0, int(active_wars)) * NPC_ACTIVE_WAR_UPKEEP_PER_TICK)
+        if (scheduled_income <= 0 and recovery_left > 0
+                and cash < upkeep + operating_reserve(fighters, guard_slots, active_wars)):
+            cash += NPC_RECOVERY_STIPEND_PER_TICK
+            stipend += NPC_RECOVERY_STIPEND_PER_TICK
+            recovery_left -= 1
+        if cash >= upkeep:
+            cash -= upkeep; paid += upkeep
+            insolvency = max(0, insolvency - 1)
+        else:
+            cash = 0; insolvency += 1
+            if (fighters > 1
+                    and insolvency % NPC_BANKRUPTCY_DESERTION_TICKS == 0):
+                fighters -= 1
+                power = max(20, power - (11 + profile.aggression // 12))
+    return {'treasury': cash, 'members': fighters, 'strength': power,
+            'insolvent_ticks': insolvency, 'recovery_ticks_remaining': recovery_left,
+            'upkeep_paid': paid, 'recovery_stipend': stipend}
+
+
 def _hq_coords(key: str) -> tuple[int, int]:
     br, bc = (int(x) for x in key.split(',', 1))
     return br * 10 + 6, bc * 10 + 6
@@ -549,12 +642,10 @@ def _hq_coords(key: str) -> tuple[int, int]:
 def _district_for_block(key: str) -> str:
     r, c = _hq_coords(key)
     if r >= 150: return 'coast'
+    if c >= 100: return 'docklands' if r >= 75 else 'eastside'
     if r >= 100: return 'lair'
-    if r >= 60 and c < 40: return 'rich'
-    if r >= 40 and c < 40: return 'nightlife'
-    if r >= 40: return 'industrial'
-    if c >= 40: return 'downtown'
-    return 'poor'
+    if r >= 40: return 'southside' if c < 40 else 'industrial'
+    return 'downtown' if c >= 40 else 'northside'
 
 
 def _citywide_roam_target(profile: EmpireProfile, slot: int) -> dict:
@@ -663,10 +754,24 @@ async def _react_to_npc_attack(db, diplomacy_state: dict, attacker_id: str,
                                *, captured_kind: str = '', captured_id: str = '') -> None:
     """Apply real third-party reactions to one autonomous family attack."""
     captured = bool(captured_kind and captured_id)
+    pair = _diplomacy_pair(attacker_id, defender_id)
+    previous = diplomacy_state.get(pair, {})
+    next_tension = min(100, int(previous.get('tension') or 0) + 25)
+    exhausted = (str(previous.get('pact') or '') == 'war'
+                 and next_tension >= NPC_WAR_EXHAUSTION_TENSION)
     await _change_npc_diplomacy(
         db, diplomacy_state, attacker_id, defender_id,
-        score=-100, pact='war', tension_delta=25, now=now,
+        score=NPC_TRUCE_SCORE if exhausted else -100,
+        pact='truce' if exhausted else 'war',
+        tension=60 if exhausted else next_tension, now=now,
     )
+    if exhausted:
+        events.append({
+            'leader_id': attacker_id, 'kind': 'truce_formed',
+            'target_id': defender_id,
+            'summary': f'{PROFILE_BY_ID[attacker_id].gang_name} и '
+                       f'{PROFILE_BY_ID[defender_id].gang_name} истощили силы и заключили перемирие',
+        })
     target_district = (_holding_district(captured_kind, captured_id)
                        if captured else '')
     district_claimants: set[str] = set()
@@ -807,7 +912,21 @@ async def _advance_npc_peace(db, diplomacy_state: dict, now: int,
     """Cool grudges, goodwill and tension toward neutral during long peace."""
     for pair, relation in list(diplomacy_state.items()):
         pact = str(relation['pact'])
-        if pact in {'war', 'alliance', 'vassal'}:
+        if pact == 'war':
+            elapsed = max(0, now - int(relation['last_event_at'] or now))
+            if elapsed >= NPC_WAR_IDLE_TRUCE_SECONDS:
+                await _change_npc_diplomacy(
+                    db, diplomacy_state, pair[0], pair[1],
+                    score=NPC_TRUCE_SCORE, pact='truce', tension=60, now=now,
+                )
+                events.append({
+                    'leader_id': pair[0], 'kind': 'truce_formed',
+                    'target_id': pair[1],
+                    'summary': f'{PROFILE_BY_ID[pair[0]].gang_name} и '
+                               f'{PROFILE_BY_ID[pair[1]].gang_name} прекратили затянувшуюся войну',
+                })
+            continue
+        if pact in {'alliance', 'vassal'}:
             continue
         elapsed = max(0, now - int(relation['last_event_at'] or now))
         blocks = min(12, elapsed // NPC_DIPLOMACY_PEACE_STEP_SECONDS)
@@ -1117,12 +1236,15 @@ def _war_activity(profile: EmpireProfile, row, enemy: dict, now: int) -> dict:
     stance = 'assault' if own_strength >= enemy_strength * .82 else 'harass'
     return {
         'kind': 'gang_war', 'target_id': str(enemy['leader_id']),
+        'target_leader_name': str(enemy['leader_name']),
+        'target_gang_name': str(enemy['gang_name']),
         'target_r': float(enemy.get('hq_r') or 0),
         'target_c': float(enemy.get('hq_c') or 0),
         'phase': 'engage', 'stance': stance,
         'force': min(NPC_EMPIRE_MAX_FIGHTERS, max(2, int(row['members'] or 1))),
         'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
-        'summary': f'{profile.leader_name} ведёт {profile.gang_name} против {enemy["gang_name"]}',
+        'summary': f'{profile.leader_name} ведёт {profile.gang_name} против '
+                   f'{enemy["leader_name"]} и семьи {enemy["gang_name"]}',
     }
 
 
@@ -1165,6 +1287,9 @@ async def ensure_schema(db_path: str) -> None:
             recruit_ready_at INTEGER NOT NULL DEFAULT 0,
             last_recruit_count INTEGER NOT NULL DEFAULT 0,
             last_recruit_at INTEGER NOT NULL DEFAULT 0,
+            insolvent_ticks INTEGER NOT NULL DEFAULT 0,
+            recovery_ticks_remaining INTEGER NOT NULL DEFAULT 0,
+            distributed_profit INTEGER NOT NULL DEFAULT 0,
             version INTEGER NOT NULL DEFAULT 1
         );
         CREATE TABLE IF NOT EXISTS npc_empire_relations (
@@ -1270,6 +1395,9 @@ async def ensure_schema(db_path: str) -> None:
             'recruit_ready_at': "INTEGER NOT NULL DEFAULT 0",
             'last_recruit_count': "INTEGER NOT NULL DEFAULT 0",
             'last_recruit_at': "INTEGER NOT NULL DEFAULT 0",
+            'insolvent_ticks': "INTEGER NOT NULL DEFAULT 0",
+            'recovery_ticks_remaining': "INTEGER NOT NULL DEFAULT 0",
+            'distributed_profit': "INTEGER NOT NULL DEFAULT 0",
         }
         for name, declaration in migrations.items():
             if name not in columns:
@@ -1279,6 +1407,10 @@ async def ensure_schema(db_path: str) -> None:
         for name, declaration in {'operation_type': "TEXT NOT NULL DEFAULT ''", 'area': "INTEGER NOT NULL DEFAULT 0"}.items():
             if name not in holding_columns:
                 await db.execute(f"ALTER TABLE npc_empire_holdings ADD COLUMN {name} {declaration}")
+        await db.execute(
+            "UPDATE npc_empire_holdings SET income=? WHERE kind='hq' AND income<=0",
+            (NPC_HQ_FRONT_INCOME_PER_MINUTE,),
+        )
         for leader_id, (old_key, new_key) in HQ_KEY_MIGRATIONS.items():
             current = await (await db.execute(
                 "SELECT hq_key FROM npc_empires WHERE leader_id=?", (leader_id,)
@@ -1337,7 +1469,7 @@ async def ensure_schema(db_path: str) -> None:
                 await db.execute(
                     "INSERT OR IGNORE INTO npc_empire_holdings"
                     "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('hq',?,?,?,?,?)",
-                    (str(seeded[1]), profile.leader_id, 0,
+                    (str(seeded[1]), profile.leader_id, NPC_HQ_FRONT_INCOME_PER_MINUTE,
                      80 + profile.loyalty + profile.aggression // 2, now),
                 )
         for ai, left in enumerate(PROFILES):
@@ -1374,7 +1506,7 @@ async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
                 return {'ok': True, 'duplicate': True, 'leader_id': owner,
                         'members': int(existing['members']), 'strength': int(existing['strength']), 'family': family}
             return {'ok': False, 'error': 'already recruited', 'leader_id': owner}
-        row = await (await db.execute("SELECT members,strength,status,last_recruit_at FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
+        row = await (await db.execute("SELECT treasury,members,strength,status,last_recruit_at FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
         if not row or str(row['status']) not in {'active', 'rebuilding', 'vassal'}:
             await db.rollback(); return {'ok': False, 'error': 'empire unavailable'}
         members = int(row['members'] or 0)
@@ -1383,14 +1515,38 @@ async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
         if now - int(row['last_recruit_at'] or 0) < 8:
             await db.rollback(); return {'ok': False, 'error': 'recruit cooldown'}
         profile = PROFILE_BY_ID[leader_id]; strength_gain = 11 + profile.aggression // 12
+        cost = recruitment_cost(members); treasury = max(0, int(row['treasury'] or 0))
+        holding_rows = await (await db.execute(
+            "SELECT kind,holding_id,acquired_at FROM npc_empire_holdings WHERE leader_id=?",
+            (leader_id,),
+        )).fetchall()
+        guard_slots = sum(holding_guard_count(
+            leader_id, str(item['kind']), str(item['holding_id']),
+            int(item['acquired_at'] or 0),
+        ) for item in holding_rows)
+        active_wars = int((await (await db.execute(
+            "SELECT COUNT(*) FROM npc_empire_diplomacy "
+            "WHERE pact='war' AND (leader_a=? OR leader_b=?)", (leader_id, leader_id)
+        )).fetchone())[0] or 0)
+        active_wars += int((await (await db.execute(
+            "SELECT COUNT(*) FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,)
+        )).fetchone())[0] or 0)
+        reserve = operating_reserve(members + 1, guard_slots, active_wars)
+        if treasury - cost < reserve:
+            await db.rollback()
+            return {'ok': False, 'error': 'insufficient treasury',
+                    'cost': cost, 'treasury': treasury, 'reserve': reserve,
+                    'members': members}
         await db.execute("INSERT INTO npc_empire_street_recruits(source_id,leader_id,family,recruited_at) VALUES(?,?,?,?)", (source_id, leader_id, family, now))
-        await db.execute("UPDATE npc_empires SET members=members+1,strength=strength+?,last_recruit_count=1,last_recruit_at=?,version=version+1 WHERE leader_id=?", (strength_gain, now, leader_id))
+        await db.execute("UPDATE npc_empires SET treasury=treasury-?,members=members+1,strength=strength+?,last_recruit_count=1,last_recruit_at=?,version=version+1 WHERE leader_id=?", (cost, strength_gain, now, leader_id))
         family_name = 'Моретти' if family == 'moretti' else 'Беллини'
         summary = f'Боец {family_name} встретил {profile.leader_name} в городе и вступил в {profile.gang_name}'
         await db.execute("INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)", (leader_id, 'street_recruit', source_id, summary, now))
         await db.commit()
         return {'ok': True, 'leader_id': leader_id, 'members': members + 1,
-                'strength': int(row['strength'] or 0) + strength_gain, 'family': family, 'summary': summary}
+                'strength': int(row['strength'] or 0) + strength_gain,
+                'treasury': treasury - cost, 'cost': cost,
+                'family': family, 'summary': summary}
 
 
 async def hospitalize_boss(db_path: str, leader_id: str, hospital_id: str = 'hospital',
@@ -1452,7 +1608,7 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
     await db.execute(
         "UPDATE npc_empires SET status='ruined',treasury=0,members=0,strength=0,hq_key=NULL,"
         "defeated_at=?,defeated_by=?,comeback_at=?,losses=losses+1,dominance_score=0,"
-        "district_count=0,pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,last_recruit_count=0,last_recruit_at=0,"
+        "district_count=0,insolvent_ticks=0,recovery_ticks_remaining=0,pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,last_recruit_count=0,last_recruit_at=0,"
         "version=version+1 WHERE leader_id=?",
         (now, defeated_by, comeback_at, leader_id),
     )
@@ -1493,16 +1649,18 @@ async def _revive_due_empires(db, now: int, events: list[dict]) -> None:
         treasury = 250 + profile.commerce * 4
         strength = 35 + profile.loyalty // 3
         await db.execute(
-            "UPDATE npc_empires SET status='rebuilding',treasury=?,members=2,strength=?,hq_key=?,"
+            "UPDATE npc_empires SET status='rebuilding',treasury=?,members=2,strength=?,hq_key=?,insolvent_ticks=0,recovery_ticks_remaining=?,"
             "comeback_at=0,comebacks=?,defeated_by=NULL,pending_recruits=0,recruit_started_at=0,"
             "recruit_ready_at=0,last_recruit_count=0,last_recruit_at=0,last_tick=?,next_action_at=?,version=version+1 "
             "WHERE leader_id=?",
-            (treasury, strength, hq_key, comeback_no, now, now + TICK_SECONDS, leader_id),
+            (treasury, strength, hq_key, NPC_RECOVERY_STIPEND_TICKS,
+             comeback_no, now, now + TICK_SECONDS, leader_id),
         )
         await db.execute(
             "INSERT OR REPLACE INTO npc_empire_holdings"
             "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('hq',?,?,?,?,?)",
-            (hq_key, leader_id, 0, 45 + profile.loyalty // 2, now),
+            (hq_key, leader_id, NPC_HQ_FRONT_INCOME_PER_MINUTE,
+             45 + profile.loyalty // 2, now),
         )
         events.append({
             'leader_id': leader_id, 'kind': 'comeback', 'target_id': hq_key,
@@ -1521,6 +1679,11 @@ async def _recompute_districts(db, now: int) -> None:
         weight = 10 if kind == 'hq' else (8 + int(row['income'] or 0) // 500 if kind == 'business' else 3)
         scores[district][leader_id] = scores[district].get(leader_id, 0) + weight
     await db.execute("UPDATE npc_empires SET dominance_score=0,district_count=0")
+    placeholders = ','.join('?' for _ in DISTRICTS)
+    await db.execute(
+        f"DELETE FROM npc_empire_districts WHERE district_id NOT IN ({placeholders})",
+        tuple(DISTRICTS),
+    )
     for district_id in DISTRICTS:
         ranking = sorted(scores[district_id].items(), key=lambda item: (-item[1], item[0]))
         leader_id, score = ranking[0] if ranking else ('', 0)
@@ -1553,10 +1716,21 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
+        # Preserve the bounded batch's closure intervals before pruning rows
+        # that reopened between the last empire tick and this catch-up call.
+        closure_windows = {
+            str(row['holding_id']): (int(row['created_at'] or 0),
+                                     int(row['closed_until'] or 0))
+            for row in await (await db.execute(
+                "SELECT holding_id,created_at,closed_until "
+                "FROM npc_empire_building_closures"
+            )).fetchall()
+        }
         await db.execute("DELETE FROM npc_empire_building_closures WHERE closed_until<=?", (now,))
-        closed_buildings = {str(row[0]) for row in await (await db.execute(
-            "SELECT holding_id FROM npc_empire_building_closures WHERE closed_until>?", (now,)
-        )).fetchall()}
+        closed_buildings = {
+            holding_id for holding_id, (_, closed_until) in closure_windows.items()
+            if closed_until > now
+        }
         await _revive_due_empires(db, now, events)
         rows = await (await db.execute(
             "SELECT * FROM npc_empires WHERE status IN ('active','rebuilding','vassal')"
@@ -1635,21 +1809,63 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             if ticks <= 0:
                 continue
             holdings = await (await db.execute(
-                "SELECT kind,holding_id,income,defense,operation_type,area FROM npc_empire_holdings WHERE leader_id=?",
+                "SELECT kind,holding_id,income,defense,acquired_at,operation_type,area FROM npc_empire_holdings WHERE leader_id=?",
                 (leader_id,),
             )).fetchall()
-            earning_holdings = [h for h in holdings if not (
-                str(h['kind']) == 'building' and str(h['holding_id']) in closed_buildings)]
-            per_tick = 18 + profile.commerce // 3 + empire_holding_income_per_tick(earning_holdings)
-            upkeep = max(4, int(row['members'] or 0) * 3)
-            treasury = max(0, int(row['treasury'] or 0) + ticks * (per_tick - upkeep))
+            non_buildings = [h for h in holdings if str(h['kind']) != 'building']
+            base_income = empire_holding_income_per_tick(non_buildings)
+            income_schedule = [base_income for _ in range(ticks)]
+            last_tick = int(row['last_tick'] or now)
+            for item in holdings:
+                if str(item['kind']) != 'building':
+                    continue
+                closed_from, closed_until = closure_windows.get(str(item['holding_id']), (0, 0))
+                building_tick_income = int(item['income'] or 0) * max(1, TICK_SECONDS // 60)
+                for tick_index in range(ticks):
+                    interval_start = last_tick + tick_index * TICK_SECONDS
+                    interval_end = interval_start + TICK_SECONDS
+                    if (closed_until <= closed_from or interval_end <= closed_from
+                            or interval_start >= closed_until):
+                        income_schedule[tick_index] += building_tick_income
+            per_tick = base_income
             members = max(1, int(row['members'] or 1))
             strength = max(20, int(row['strength'] or 20))
+            active_wars = sum(1 for pair, state in diplomacy_state.items()
+                              if leader_id in pair and state['pact'] == 'war')
+            if leader_id in player_war_leaders:
+                active_wars += 1
+            guard_slots = sum(holding_guard_count(
+                leader_id, str(holding['kind']), str(holding['holding_id']),
+                int(holding['acquired_at'] or 0),
+            ) for holding in holdings)
+            insolvent_before = max(0, int(row['insolvent_ticks'] or 0))
+            recovery_before = max(0, int(row['recovery_ticks_remaining'] or 0))
+            budget = apply_operating_budget(
+                profile, treasury=int(row['treasury'] or 0), members=members,
+                strength=strength, income_per_tick=per_tick,
+                guard_slots=guard_slots, active_wars=active_wars, ticks=ticks,
+                insolvent_ticks=insolvent_before,
+                recovery_ticks_remaining=recovery_before,
+                income_schedule=income_schedule,
+            )
+            treasury = int(budget['treasury']); members = int(budget['members'])
+            strength = int(budget['strength']); insolvent_ticks = int(budget['insolvent_ticks'])
+            recovery_ticks_remaining = int(budget['recovery_ticks_remaining'])
+            if insolvent_before == 0 and insolvent_ticks > 0:
+                events.append({
+                    'leader_id': leader_id, 'kind': 'bankrupt',
+                    'summary': f'{profile.gang_name} не смогла оплатить охрану и подкрепления',
+                })
+            elif insolvent_before > 0 and insolvent_ticks == 0:
+                events.append({
+                    'leader_id': leader_id, 'kind': 'solvency_recovered',
+                    'summary': f'{profile.gang_name} снова покрывает расходы из своей казны',
+                })
             pending_recruits = max(0, int(row['pending_recruits'] or 0))
             recruit_started_at = max(0, int(row['recruit_started_at'] or 0))
             recruit_ready_at = max(0, int(row['recruit_ready_at'] or 0))
             rng = _decision_roll(leader_id, int(row['last_tick']) + ticks * TICK_SECONDS)
-            recruit_cost = 180 + members * 14
+            recruit_cost = recruitment_cost(members)
             # A successful boss can grow a full street army.  The hard cap is
             # shared with world.html so one leader never materialises more than
             # twenty armed followers around himself.
@@ -1665,10 +1881,6 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                   if bid not in property_owned and bid not in business_owner]
             affordable = [bid for bid in neutral_businesses
                           if treasury >= int(BUSINESS_PRICE[bid] * .65)]
-            active_wars = sum(1 for pair, state in diplomacy_state.items()
-                              if leader_id in pair and state['pact'] == 'war')
-            if leader_id in player_war_leaders:
-                active_wars += 1
             brain_row = {
                 'treasury': treasury, 'members': members, 'strength': strength,
                 'status': str(row['status']),
@@ -1688,9 +1900,12 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             recruit_chance = .96 if strategy in {'recover', 'recruit', 'fortify'} else .22
             recruit_wave_due = _strategy_execution_due(
                 profile, 'recruit', now // TICK_SECONDS)
-            if (recruit_wave_due and pending_recruits == 0 and members < target_members
+            if (recruit_wave_due and insolvent_ticks == 0
+                    and pending_recruits == 0 and members < target_members
                     and treasury >= recruit_cost and rng.random() < recruit_chance):
-                hired = min(3, target_members - members, treasury // recruit_cost)
+                hired = max((count for count in range(1, min(3, target_members-members)+1)
+                             if treasury - count * recruit_cost >= operating_reserve(
+                                 members + count, guard_slots, active_wars)), default=0)
                 if hired:
                     treasury -= hired * recruit_cost
                     members += hired
@@ -1701,10 +1916,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     events.append({'leader_id': leader_id, 'kind': 'recruit_completed',
                                    'summary': f'{profile.leader_name} сразу принял {hired} бойцов: {venue}'})
                     strategic_action_taken = True
-            expansion_cost = 1100 + building_count * 650
             army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
             expand_chance = .90 if strategy == 'expand' else .035
-            if (not strategic_action_taken and treasury >= expansion_cost and building_count < 8
+            if (not strategic_action_taken and building_count < 8
                     and rng.random() < expand_chance):
                 choices = neutral_building_choices
                 if choices:
@@ -1718,20 +1932,26 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                             f'{leader_id}:{key}'.encode()).digest()[:2], 'big')
                         return distance, tie
                     key = min(choices, key=building_utility)
-                    building_owner[key] = leader_id
                     area = BUILDING_AREAS[key]
                     operation = choose_building_operation(profile, key, now)
+                    expansion_cost = building_purchase_price(
+                        building_shell_price(key), 'business', operation, area)
                     income = building_operation_income(operation, area)
                     defense = 35 + profile.loyalty // 2
-                    await db.execute(
-                        "INSERT OR REPLACE INTO npc_empire_holdings"
-                        "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) VALUES('building',?,?,?,?,?,?,?)",
-                        (key, leader_id, income, defense, now, operation, area),
-                    )
-                    treasury -= expansion_cost
-                    events.append({'leader_id': leader_id, 'kind': 'expand', 'target_id': key,
-                                   'summary': f"{profile.gang_name} захватили дом {key} и открыли «{BUILDING_OPERATIONS[operation]['name']}»"})
-                    strategic_action_taken = True
+                    next_guards = guard_slots + holding_guard_count(
+                        leader_id, 'building', key, now)
+                    if treasury - expansion_cost >= operating_reserve(
+                            members, next_guards, active_wars):
+                        building_owner[key] = leader_id
+                        await db.execute(
+                            "INSERT OR REPLACE INTO npc_empire_holdings"
+                            "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) VALUES('building',?,?,?,?,?,?,?)",
+                            (key, leader_id, income, defense, now, operation, area),
+                        )
+                        treasury -= expansion_cost; guard_slots = next_guards
+                        events.append({'leader_id': leader_id, 'kind': 'expand', 'target_id': key,
+                                       'summary': f"{profile.gang_name} купили дом {key} и открыли «{BUILDING_OPERATIONS[operation]['name']}»"})
+                        strategic_action_taken = True
             # A faction may buy a neutral business. Player-owned property is
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
@@ -1748,24 +1968,29 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         return -score, bid
                     bid = min(affordable, key=business_utility)
                     cost = int(BUSINESS_PRICE[bid] * .65)
-                    treasury -= cost
-                    business_owner[bid] = leader_id; property_owned.add(bid)
-                    await db.execute(
-                        "INSERT OR REPLACE INTO npc_empire_holdings"
-                        "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('business',?,?,?,?,?)",
-                        (bid, leader_id, BUSINESS_INCOME[bid], 60+profile.loyalty, now),
-                    )
-                    await db.execute(
-                        "INSERT OR REPLACE INTO business_property_owners"
-                        "(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
-                        (bid, npc_owner_uid(leader_id), profile.gang_name, now, now+300),
-                    )
-                    events.append({'leader_id':leader_id,'kind':'business_bought','target_id':bid,
-                                   'summary':f'{profile.gang_name} купили бизнес {bid}'})
-                    strategic_action_taken = True
+                    next_guards = guard_slots + holding_guard_count(
+                        leader_id, 'business', bid, now)
+                    if treasury - cost >= operating_reserve(
+                            members, next_guards, active_wars):
+                        treasury -= cost; guard_slots = next_guards
+                        business_owner[bid] = leader_id; property_owned.add(bid)
+                        await db.execute(
+                            "INSERT OR REPLACE INTO npc_empire_holdings"
+                            "(kind,holding_id,leader_id,income,defense,acquired_at) VALUES('business',?,?,?,?,?)",
+                            (bid, leader_id, BUSINESS_INCOME[bid], 60+profile.loyalty, now),
+                        )
+                        await db.execute(
+                            "INSERT OR REPLACE INTO business_property_owners"
+                            "(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
+                            (bid, npc_owner_uid(leader_id), profile.gang_name, now, now+300),
+                        )
+                        events.append({'leader_id':leader_id,'kind':'business_bought','target_id':bid,
+                                       'summary':f'{profile.gang_name} купили бизнес {bid}'})
+                        strategic_action_taken = True
             if not strategic_action_taken and strategy == 'fortify' and holdings:
                 fortify_cost = 420 + len(holdings) * 45
-                if treasury >= fortify_cost:
+                if treasury - fortify_cost >= operating_reserve(
+                        members, guard_slots, active_wars):
                     weak = min(holdings, key=lambda item: (
                         int(item['defense'] or 0), -int(item['income'] or 0),
                         str(item['holding_id'])))
@@ -1912,10 +2137,16 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         events.append({'leader_id':leader_id,'kind':'war_lost','target_id':rival.leader_id,
                                        'summary':f'{rival.gang_name} отбили нападение {profile.gang_name}'})
             next_status = 'active' if row['status'] == 'rebuilding' and (members >= 4 or treasury >= 1500) else str(row['status'])
+            liquidity = settle_operating_liquidity(
+                treasury, max(income_schedule, default=per_tick), members,
+                guard_slots, active_wars)
+            treasury = int(liquidity['treasury'])
             await db.execute(
-                "UPDATE npc_empires SET treasury=?,members=?,strength=?,status=?,pending_recruits=?,"
+                "UPDATE npc_empires SET treasury=?,distributed_profit=distributed_profit+?,members=?,strength=?,status=?,insolvent_ticks=?,recovery_ticks_remaining=?,pending_recruits=?,"
                 "recruit_started_at=?,recruit_ready_at=?,last_recruit_count=?,last_recruit_at=?,last_tick=?,next_action_at=?,version=version+1 WHERE leader_id=?",
-                (treasury, members, strength, next_status, pending_recruits,
+                (treasury, int(liquidity['distributed']), members, strength,
+                 next_status, insolvent_ticks,
+                 recovery_ticks_remaining, pending_recruits,
                  recruit_started_at, recruit_ready_at, last_recruit_count, last_recruit_at, int(row['last_tick']) + ticks*TICK_SECONDS,
                  now + TICK_SECONDS, leader_id),
             )
@@ -2169,6 +2400,17 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                           and leader_id in {str(pact_row.get('leader_a')), str(pact_row.get('leader_b'))})
         if leader_id in war_rows:
             active_wars += 1
+        guard_slots = sum(int(holding.get('guard_count') or 0)
+                          for holding in leader_holdings)
+        income_per_tick = empire_holding_income_per_tick([
+            holding for holding in leader_holdings
+            if int(holding.get('closed_until') or 0) <= now
+        ])
+        upkeep_per_tick = (
+            max(4, int(row['members'] or 0) * NPC_MEMBER_UPKEEP_PER_TICK)
+            + guard_slots * NPC_HOLDING_GUARD_UPKEEP_PER_TICK
+            + active_wars * NPC_ACTIVE_WAR_UPKEEP_PER_TICK
+        )
         neutral_buildings = sum(1 for key in GENERIC_BUILDINGS
                                 if key not in owned_buildings and key != profile.hq_key)
         affordable_businesses = sum(1 for bid, price in BUSINESS_PRICE.items()
@@ -2189,6 +2431,24 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'doctrine': boss_doctrine(leader_id),
             'treasury': int(row['treasury']), 'members': int(row['members']),
             'strength': int(row['strength']), 'status': str(row['status']),
+            'insolvent_ticks': int(row['insolvent_ticks'] or 0),
+            'recovery_ticks_remaining': int(row['recovery_ticks_remaining'] or 0),
+            'distributed_profit': int(row['distributed_profit'] or 0),
+            'economy': {
+                'income_per_tick': income_per_tick,
+                'member_upkeep': max(4, int(row['members'] or 0) * NPC_MEMBER_UPKEEP_PER_TICK),
+                'guard_upkeep': guard_slots * NPC_HOLDING_GUARD_UPKEEP_PER_TICK,
+                'war_upkeep': active_wars * NPC_ACTIVE_WAR_UPKEEP_PER_TICK,
+                'upkeep_per_tick': upkeep_per_tick,
+                'net_per_tick': income_per_tick - upkeep_per_tick,
+                'reserve_target': operating_reserve(
+                    int(row['members'] or 0), guard_slots, active_wars),
+                'recovery_stipend_left': (int(row['recovery_ticks_remaining'] or 0)
+                                          * NPC_RECOVERY_STIPEND_PER_TICK),
+                'liquidity_ceiling': settle_operating_liquidity(
+                    int(row['treasury'] or 0), income_per_tick,
+                    int(row['members'] or 0), guard_slots, active_wars)['ceiling'],
+            },
             'hq_key': hq_key, 'hq_r': hq_r, 'hq_c': hq_c,
             'comeback_at': int(row['comeback_at'] or 0), 'comebacks': int(row['comebacks'] or 0),
             'wins': int(row['wins'] or 0), 'losses': int(row['losses'] or 0),
@@ -2253,10 +2513,20 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             f'{empire["leader_id"]}:war:{slot}'.encode()).digest()[:2], 'big') % len(enemies)]
         empire['activity'] = _war_activity(
             PROFILE_BY_ID[empire['leader_id']], row_by_id[empire['leader_id']], enemy, now)
-    districts = [{
-        **row, 'name': DISTRICTS.get(str(row['district_id']), str(row['district_id'])),
-        'contested': bool(row['contested']),
-    } for row in district_rows]
+    districts = []
+    for row in district_rows:
+        leader_score = max(0, int(row.get('score') or 0))
+        runner_score = max(0, int(row.get('runner_up_score') or 0))
+        score_total = leader_score + runner_score
+        districts.append({
+            **row,
+            'name': DISTRICTS.get(str(row['district_id']), str(row['district_id'])),
+            'contested': bool(row['contested']),
+            'control_percent': (round(leader_score * 100 / score_total)
+                                if row.get('leader_id') and score_total else 0),
+            'control_state': ('neutral' if not row.get('leader_id') else
+                              'contested' if bool(row['contested']) else 'leader'),
+        })
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],
             'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent[:60],
             'player_war_events': player_war_events,

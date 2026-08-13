@@ -50,8 +50,13 @@ def run() -> None:
     assert "_applyEmpireCrewStyle" in WORLD and "empireCrew:!!x._empireCrew" in WORLD
     assert "_empireFieldCombatThink" in WORLD and "_hitEmpireCombatant" in WORLD
     assert "gang_war:'" in WORLD and "_empireEnemyLeaderId" in WORLD
+    assert "rival?.leader_name||activity.target_leader_name" in WORLD
     assert "rival?.gang_name||activity.target_gang_name" in WORLD
-    assert "ВЕДЁТ ВОЙНУ С БАНДОЙ «${rivalGang.toLocaleUpperCase('ru-RU')}»" in WORLD
+    assert "ВОЮЕТ ПРОТИВ ${opponent.toLocaleUpperCase('ru-RU')}" in WORLD
+    assert "if(kind==='gang_war')" in WORLD and "Война против ${opponent}" in WORLD
+    assert "-webkit-line-clamp:2" in WORLD and "overflow-wrap:anywhere" in WORLD
+    assert "'insufficient treasury'" in WORLD
+    assert "+empire?.insolvent_ticks>0" in WORLD and "Финансовый кризис" in WORLD
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
     assert "_empirePressUntil" in WORLD and "_empireTargetLockUntil" in WORLD
     assert "confidence>=1.12" in WORLD and "powerRatio<.68" in WORLD
@@ -83,7 +88,7 @@ def run() -> None:
     assert "empireHqRoofYAt" in THREE and "const roofY=empireHqRoofYAt" in THREE
     assert "_hospitalizeEmpireBoss" in WORLD and "hospitalPatients" in WORLD
     assert "EMPIRE_HOSPITAL_CAP=6" in THREE and "pooled-roof-icons-v363" in THREE
-    assert "3d402-prone-grip-monotonic-release" in WORLD
+    assert "3d405-owner-readable-labels" in WORLD
     assert "previewbuildingactions" in WORLD and "previewbuildingclosed" in WORLD
     assert "purpose-v4" in THREE and "closedUntil:interiorData.apartment.closedUntil" in THREE
     assert "_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();" in WORLD

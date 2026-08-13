@@ -2920,6 +2920,10 @@ async def get_player_building_properties() -> list:
                     'emblem': str(row['flag_emblem'] or 'crown')}
         building_key = apartment_empire_building_key(str(row['apt_key']))
         closed_until = int(closures.get(str(building_key or ''), 0))
+        guard_count = npc_empire.holding_guard_count(
+            f"player:{row['telegram_id']}", 'building', str(building_key or ''),
+            int(row['bought_at'] or 0),
+        ) if str(row['property_kind'] or '') == 'business' and building_key else 0
         out.append({
             'owner_uid': str(row['telegram_id']), 'owner_name': str(row['owner_name']),
             'apt_key': str(row['apt_key']), 'building_key': building_key,
@@ -2928,6 +2932,7 @@ async def get_player_building_properties() -> list:
             'family': family, 'gang_id': int(row['gang_id']) if row['gang_id'] is not None else None,
             'gang_name': default_name, 'color': default_color, 'accent': default_accent,
             'flag': flag, 'closed_until': closed_until,
+            'guard_count': guard_count,
             'closed_s': max(0, closed_until-int(time.time())),
             'building_status': 'closed' if closed_until else 'open', **(operation or {}),
         })
@@ -13744,6 +13749,7 @@ class WorldSim:
     }
     CITY_GANG_MAX_REINFORCEMENTS = 2
     CITY_GANG_RETREAT_HP_RATIO = 0.28
+    CITY_GANG_PENDING_SHOT_CAP = 256
     LAIR_SENTRY_COUNT          = 4
     # ── Пляжники ────────────────────────────────────────────────────
     # Мирные NPC на пляже в купальниках/плавках. Гуляют, пьют сок,
@@ -17060,6 +17066,14 @@ class WorldSim:
         for cop in self.cops:
             if not cop['alive']:
                 continue
+            # Gang-response units have no player target by design.  Keep them
+            # through the generic wanted-player cleanup; _tick_cop_vs_gang
+            # below owns their target lifecycle and removes them when that
+            # group is gone.  Otherwise every dispatched unit vanished on the
+            # very next police tick before it could reach the firefight.
+            if cop.get('target_gang_id'):
+                survivors.append(cop)
+                continue
             t = self.players.get(cop['target_uid'])
             cur_lvl = self._wanted_level(t) if t else 0
             # Патруль с 1★: если игрок не стрелял COP_PATROL_WARN_S сек
@@ -17379,8 +17393,11 @@ class WorldSim:
             self.cops.remove(cop)
             pkts.append({'kind': 'cop_leave', 'cop_id': cop['id']})
             return pkts
-        alive_bots = [b for b in g['bots'] if b['alive']]
-        if not alive_bots or g['state'] == 'patrol':
+        alive_bots = [b for b in g['bots'] if b['alive']
+                      and b.get('_combat_state') != 'surrender']
+        if (not alive_bots
+                or (g['state'] == 'patrol'
+                    and now >= float(g.get('_police_response_until') or 0))):
             # Все мертвы или сдались (вернулись в patrol после таймаута)
             self.cops.remove(cop)
             pkts.append({'kind': 'cop_leave', 'cop_id': cop['id']})
@@ -17787,6 +17804,10 @@ class WorldSim:
             'bot_id': bot_id, 'tid': tid,
             'apply_at': now + eta_s,
         })
+        if len(self._pending_bot_shots) > self.CITY_GANG_PENDING_SHOT_CAP:
+            # Keep the imminent shots and discard only the farthest-future FX.
+            self._pending_bot_shots.sort(key=lambda shot: float(shot['apply_at']))
+            del self._pending_bot_shots[self.CITY_GANG_PENDING_SHOT_CAP:]
         return {
             'kind':       'aggro_shot',
             'tid':        tid,
@@ -18933,16 +18954,27 @@ class WorldSim:
         return math.hypot(float(player.get('x') or 0)-float(x),
                           float(player.get('y') or 0)-float(y)) <= radius
 
-    @staticmethod
-    def _city_gang_shot_safe(gang: dict, shooter: dict, tx: float, ty: float) -> bool:
-        """Rejects a shot when another member is standing in its lane."""
+    def _city_gang_shot_safe(self, gang: dict, shooter: dict,
+                             tx: float, ty: float) -> bool:
+        """Reject a shot through any friendly street-gang actor.
+
+        The city pool is capped at four three-person groups, so this remains a
+        fixed twelve-actor check and also protects a separate same-faction
+        patrol crossing the lane.
+        """
         sx, sy = float(shooter.get('x') or 0), float(shooter.get('y') or 0)
         dx, dy = tx - sx, ty - sy
         length = (dx * dx + dy * dy) ** .5
         if length < .2:
             return False
         ux, uy = dx / length, dy / length
-        for ally in gang.get('bots') or []:
+        faction = str(gang.get('faction') or 'purple')
+        friendly_gangs = [candidate for candidate in self.city_gangs
+                          if str(candidate.get('faction') or 'purple') == faction]
+        if gang not in friendly_gangs:
+            friendly_gangs.append(gang)
+        for ally in (bot for candidate in friendly_gangs
+                     for bot in (candidate.get('bots') or [])):
             if ally is shooter or not ally.get('alive'):
                 continue
             ax = float(ally.get('x') or 0) - sx
@@ -18962,7 +18994,9 @@ class WorldSim:
             return []
         for bot in sorted(bots, key=lambda b: float(b.get('_shot_t') or 0)):
             if (not bot.get('alive') or now < float(bot.get('_reload_until') or 0)
-                    or now < float(bot.get('_dodging_until') or 0)):
+                    or now < float(bot.get('_dodging_until') or 0)
+                    or now < float(bot.get('_surrendered_until') or 0)
+                    or bot.get('_combat_state') == 'surrender'):
                 continue
             cop = min(cops, key=lambda c: (float(c.get('x') or 0)-float(bot.get('x') or 0))**2
                                        +(float(c.get('y') or 0)-float(bot.get('y') or 0))**2)
@@ -18997,6 +19031,7 @@ class WorldSim:
                 cop['alive'] = False
             return [{'kind':'gang_shot_cop', 'gid':gang['id'],
                      'bot_id':bot['id'], 'cop_id':cop['id'], 'weapon':weapon,
+                     'bullet_speed':float(stats.get('speed', 14.0)),
                      'sx':round(bot['x'],2), 'sy':round(bot['y'],2),
                      'tx':round(cop['x'],2), 'ty':round(cop['y'],2),
                      'dmg':int(damage), 'miss':miss, 'killed':killed}]
@@ -19081,7 +19116,8 @@ class WorldSim:
                 g, alive_bots, cx, cy, now))
             if (len(alive_bots) < initial_size
                     and int(g.get('_reinforcements') or 0) < self.CITY_GANG_MAX_REINFORCEMENTS
-                    and not g.get('_reinforce_at')):
+                    and not g.get('_reinforce_at')
+                    and now >= float(g.get('_reinforce_retry_at') or 0)):
                 g['_reinforce_at'] = now + self.CITY_GANG_REINFORCE_DELAY_S
                 pkts.append({'kind':'city_gang_backup_called', 'gid':g['id']})
             if g.get('_reinforce_at') and now >= float(g['_reinforce_at']):
@@ -19112,6 +19148,8 @@ class WorldSim:
                 pkts.append({'kind':'city_gang_surrender' if surrender else 'city_gang_retreat',
                              'gid':g['id'],'x':cx,'y':cy})
                 retreating = True
+            combat_bots = [b for b in alive_bots
+                           if b.get('_combat_state') != 'surrender']
             if g.get('state') == 'patrol' and now >= float(g.get('_rival_replan_at') or 0):
                 g['_rival_replan_at'] = now + self.CITY_GANG_RIVAL_REPLAN_S
                 candidates = [q for q in self.city_gangs if q is not g
@@ -19140,11 +19178,19 @@ class WorldSim:
             # Rival street gangs do not fight on every meeting. One bounded
             # encounter decision is cached for 20 seconds: pass or skirmish.
             for rival in self.city_gangs:
+                if retreating:
+                    break
                 if rival is g or rival.get('district_did'):
                     continue
                 if rival.get('faction', 'purple') == g.get('faction', 'purple'):
                     continue
-                rivals = [b for b in rival.get('bots', []) if b.get('alive')]
+                selected_rival = str(g.get('_rival_target_gid') or '')
+                if (selected_rival and str(rival.get('id') or '') != selected_rival
+                        and not self._city_gang_business_rivals_must_fight(g, rival)):
+                    continue
+                rivals = [b for b in rival.get('bots', []) if b.get('alive')
+                          and now >= float(b.get('_surrendered_until') or 0)
+                          and b.get('_combat_state') != 'surrender']
                 if not rivals:
                     continue
                 rx = sum(b['x'] for b in rivals) / len(rivals)
@@ -19167,9 +19213,16 @@ class WorldSim:
                                          'Сегодня вам не пройти!'])})
                 if not encounter['fight'] or now - encounter['shot_at'] < 1.0:
                     continue
+                lanes = [(attacker, victim)
+                         for attacker in combat_bots for victim in rivals
+                         if _world_los(attacker['x'], attacker['y'],
+                                       victim['x'], victim['y'])
+                         and self._city_gang_shot_safe(
+                             g, attacker, victim['x'], victim['y'])]
+                if not lanes:
+                    continue
                 encounter['shot_at'] = now
-                attacker = random.choice(alive_bots)
-                victim = random.choice(rivals)
+                attacker, victim = random.choice(lanes)
                 weapon = attacker.get('weapon') or 'pistol'
                 stats = self.AGGRO_WEAPON_STATS.get(weapon,
                                                      self.AGGRO_WEAPON_STATS['pistol'])
@@ -19181,10 +19234,21 @@ class WorldSim:
                     victim['alive'] = False
                 if not encounter['police_called']:
                     encounter['police_called'] = True
+                    # A rival skirmish deliberately leaves both groups in
+                    # patrol state (there is no player target).  Give the
+                    # dispatched police an explicit bounded ownership window
+                    # so their generic patrol-state cleanup cannot cancel the
+                    # response before they arrive.
+                    response_until = float(encounter.get('until') or now + 20.0)
+                    g['_police_response_until'] = max(
+                        float(g.get('_police_response_until') or 0), response_until)
+                    rival['_police_response_until'] = max(
+                        float(rival.get('_police_response_until') or 0), response_until)
                     self._dispatch_cops_on_gang(g, cx, cy, count=2)
                     self._dispatch_cops_on_gang(rival, rx, ry, count=2)
                     pkts.extend([
-                        {'kind':'city_gang_police_called','x':(cx+rx)/2,'y':(cy+ry)/2},
+                        {'kind':'city_gang_police_called','x':(cx+rx)/2,'y':(cy+ry)/2,
+                         'gangs':[g['id'], rival['id']]},
                         {'kind':'city_gang_civilians_flee','x':(cx+rx)/2,'y':(cy+ry)/2,
                          'radius':14.0}])
                 pkts.append({
@@ -19474,7 +19538,7 @@ class WorldSim:
                 if target is None:
                     continue
                 tx, ty = target['x'], target['y']
-                for bot in alive_bots:
+                for bot in combat_bots:
                     if str(bot['id']) in evading_c4_ids or str(bot['id']) in fire_flee_ids:
                         continue
                     dx2 = tx - bot['x']; dy2 = ty - bot['y']
