@@ -381,6 +381,15 @@ def relation_band(score: int) -> str:
     return 'ally'
 
 
+def holding_guard_count(leader_id: str, kind: str, holding_id: str,
+                        acquired_at: int) -> int:
+    """Stable authoritative 1..3 guard roll for one captured property."""
+    if str(kind) not in {'building', 'business'}:
+        return 0
+    seed = f'{leader_id}:{kind}:{holding_id}:{int(acquired_at or 0)}:guards'
+    return 1 + hashlib.sha256(seed.encode()).digest()[0] % 3
+
+
 def _hq_coords(key: str) -> tuple[int, int]:
     br, bc = (int(x) for x in key.split(',', 1))
     return br * 10 + 6, bc * 10 + 6
@@ -1844,6 +1853,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     holdings: dict[str, list] = {p.leader_id: [] for p in PROFILES}
     for row in holdings_rows:
         item = dict(row)
+        item['guard_count'] = holding_guard_count(
+            str(row['leader_id']), str(item.get('kind') or ''),
+            str(item.get('holding_id') or ''), int(item.get('acquired_at') or 0),
+        )
         operation = str(item.get('operation_type') or '')
         if item.get('kind') == 'building' and operation in BUILDING_OPERATIONS:
             item['operation_name'] = BUILDING_OPERATIONS[operation]['name']

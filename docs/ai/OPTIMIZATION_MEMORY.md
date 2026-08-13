@@ -1,5 +1,20 @@
 # Mafiozi 3D optimization memory
 
+## Streamed guards for NPC-owned holdings (2026-08-13)
+
+- Keep the authoritative guard roll on the server holding snapshot. A SHA-256
+  roll over owner, holding identity and `acquired_at` gives every captured
+  building/business a stable 1–3 guards and naturally rerolls after takeover
+  without another table or background timer.
+- Materialize guards only for the six nearest owned holdings, with a hard cap
+  of 18 living guards. They reuse the existing NPC array, collision-aware
+  routes, empire combat pool, family outfit and bounded 3D NPC snapshot; never
+  create a city-wide per-frame guard scan or a separate renderer collection.
+- A guard keeps four cached patrol posts around its authoritative holding
+  anchor. Hostility comes from the shared boss-diplomacy snapshot, and a direct
+  hit locks the attacking family as the response target, so guard combat uses
+  the existing empire weapon, damage, retreat, muzzle and casualty systems.
+
 ## Cell-centre police route passability (2026-08-13)
 
 - The shared NPC A* expands integer grid cells and tests their exact
