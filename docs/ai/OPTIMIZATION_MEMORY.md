@@ -1,5 +1,19 @@
 # Mafiozi 3D optimization memory
 
+## Front-readable booked-prisoner cuffs (2026-08-13, v399)
+
+- The custody cuff mesh was already active for the complete sentence, but its
+  rear-of-body transport position remained after booking. From the ordinary
+  isometric prison camera the torso fully occluded both rings and the chain.
+- Preserve rear cuffs for cuffing, escort, loading and transport. Only the
+  booked `prisoner` pose brings both existing arms and the same cuff group in
+  front of the abdomen, making the restraint readable without a new mesh,
+  material, draw call, timer or per-frame allocation.
+- Reset cuff placement from the active phase every frame so release and a later
+  arrest cannot inherit the front-prison pose. Runtime QA must observe
+  `playerArrestCuffs=visible` and `prisonerCuffedPose=*-hands-front` after
+  booking, while transport keeps its rear placement.
+
 ## Custody transport visibility and booking-gated uniform (2026-08-13, v398)
 
 - The server reserves a jail sentence when police validate the arrest, before

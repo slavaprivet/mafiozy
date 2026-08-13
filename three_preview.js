@@ -2130,9 +2130,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       };
       const poseProneSidearmCrawl=crawl=>{gun.updateMatrix();rightHandTarget.set(0,-.43,.24).applyMatrix4(gun.matrix);rightShoulder.set(playerShoulderX*.72,3.3,.04);rightElbow.lerpVectors(rightShoulder,rightHandTarget,.5);rightElbow.x+=.3;rightElbow.y-=.12;leftShoulder.set(-playerShoulderX*.76,3.25,.05);leftElbow.set(-playerShoulderX*1.08,3.55-crawl*.34,.46+Math.max(0,-crawl)*.14);leftHandTarget.set(-playerShoulderX*.72,4.08-crawl*.68,.5-Math.max(0,crawl)*.1);posePlayerLimb(rightArm,rightShoulder,rightElbow,1.8);posePlayerLimb(rightForearm,rightElbow,rightHandTarget,1.22);posePlayerLimb(leftArm,leftShoulder,leftElbow,1.8);posePlayerLimb(leftForearm,leftElbow,leftHandTarget,1.22);rightHand.position.copy(rightHandTarget);leftHand.position.copy(leftHandTarget);rightHand.scale.setScalar(playerBodyProfile.hand);leftHand.scale.copy(rightHand.scale);rightHand.visible=leftHand.visible=true;};
       const holsteredPistol=new THREE.Group(),holsterBody=new THREE.Mesh(new THREE.BoxGeometry(.42,.72,.3),new THREE.MeshStandardMaterial({color:0x3b251a,roughness:.72})),holsterGrip=new THREE.Mesh(new THREE.BoxGeometry(.28,.52,.24),gunDark);holsterBody.position.y=-.18;holsterGrip.position.set(.06,.42,0);holsterGrip.rotation.z=-.22;holsteredPistol.add(holsterBody,holsterGrip);holsteredPistol.position.set(.92,1.92,.12);holsteredPistol.rotation.set(.08,0,-.16);holsteredPistol.visible=false;holsteredPistol.traverse(o=>{if(o.isMesh)o.castShadow=true;});player.add(holsteredPistol);
-      const arrestCuffs=new THREE.Group(),cuffMetal=new THREE.MeshStandardMaterial({color:0xaeb8c3,metalness:.96,roughness:.16});
-      for(const side of [-1,1]){const ring=new THREE.Mesh(new THREE.TorusGeometry(.25,.065,8,20),cuffMetal);ring.position.x=side*.32;ring.castShadow=true;arrestCuffs.add(ring);}
-      const cuffChain=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,.08),cuffMetal);cuffChain.castShadow=true;arrestCuffs.add(cuffChain);arrestCuffs.position.set(0,2.18,-.53);arrestCuffs.visible=false;player.add(arrestCuffs);
+      const arrestCuffs=new THREE.Group(),cuffMetal=new THREE.MeshStandardMaterial({color:0xcbd5df,metalness:.96,roughness:.14,emissive:0x536272,emissiveIntensity:.42,depthTest:false,depthWrite:false});
+      for(const side of [-1,1]){const ring=new THREE.Mesh(new THREE.TorusGeometry(.25,.065,8,20),cuffMetal);ring.position.x=side*.32;ring.castShadow=true;ring.renderOrder=18;arrestCuffs.add(ring);}
+      const cuffChain=new THREE.Mesh(new THREE.BoxGeometry(.22,.08,.08),cuffMetal);cuffChain.castShadow=true;cuffChain.renderOrder=18;arrestCuffs.add(cuffChain);arrestCuffs.position.set(0,2.18,-.53);arrestCuffs.visible=false;player.add(arrestCuffs);
       const localMuzzleFlash=new THREE.Group(),visualMuzzlePoint=new THREE.Vector3(),localFlashCore=new THREE.Mesh(new THREE.IcosahedronGeometry(.31,1),new THREE.MeshBasicMaterial({color:0xffdf77,transparent:true,depthTest:false,toneMapped:false,blending:THREE.AdditiveBlending}));localMuzzleFlash.add(localFlashCore);for(let i=0;i<5;i++){const ray=new THREE.Mesh(new THREE.ConeGeometry(.11,.9,6),localFlashCore.material.clone());ray.rotation.x=Math.PI/2;ray.rotation.z=i*Math.PI*.4;ray.position.z=.37;localMuzzleFlash.add(ray);}localMuzzleFlash.position.set(0,.06,2.72);localMuzzleFlash.visible=false;localMuzzleFlash.renderOrder=50;gun.add(localMuzzleFlash);
       const WEAPON_VISUALS={
         pistol:{family:'pistol',grip:'one',recoil:1.0,decay:11,flash:1,color:0xffdc74},nagan:{family:'revolver',grip:'one',recoil:1.45,decay:8.5,flash:1.2,color:0xa9e4ff},revolver:{family:'revolver',grip:'one',recoil:2.1,decay:7,flash:1.55,color:0xffbd55},pistol_heavy:{family:'heavy-pistol',grip:'one',recoil:2.45,decay:7.5,flash:1.75,color:0xff7f2a},pistol_gold:{family:'gold-pistol',grip:'one',recoil:1.2,decay:10.5,flash:1.25,color:0xffd700},
@@ -5136,7 +5136,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           const fallen=playerArrestPhase==='downed'||(playerArrestPhase==='cuffing'&&!playerVoluntarySurrender),fall=playerArrestPhase==='downed'?(playerArrestProgress*playerArrestProgress*(3-2*playerArrestProgress)):1;
           gun.visible=false;holsteredPistol.visible=false;carriedMoneyBag.visible=false;localMuzzleFlash.visible=false;hidePlayerGripParts();
           leftArm.quaternion.identity();rightArm.quaternion.identity();leftLeg.quaternion.identity();rightLeg.quaternion.identity();
-          arrestCuffs.visible=playerArrestCuffed;player.rotation.z=0;
+          arrestCuffs.visible=playerArrestCuffed;arrestCuffs.position.set(0,2.18,playerArrestPhase==='prisoner'?.62:-.53);arrestCuffs.scale.setScalar(playerArrestPhase==='prisoner'?1.22:1);player.rotation.z=0;
           if(fallen){
             player.rotation.x=fall*Math.PI*.5;player.position.y=playerFloorElevation+THREE.MathUtils.lerp(.08,.7,fall);playerContactShadow.visible=fall<.72;
             body.scale.y=1;body.position.y=2.65;body.rotation.set(0,0,-.08*fall);head.rotation.set(0,0,.12*fall);
@@ -5154,13 +5154,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             const loading=playerArrestPhase==='loading'?playerArrestProgress:0;
             player.rotation.x=0;player.position.y=playerFloorElevation+.08-loading*.12;playerContactShadow.visible=true;
             body.scale.y=1-loading*.08;body.position.y=2.65-loading*.28;body.rotation.set(loading*.34,0,Math.sin(t*.003)*.025);
-            head.rotation.set(loading*.16,0,0);leftArm.position.set(-.62,2.48,-.28);rightArm.position.set(.62,2.48,-.28);
-            leftArm.rotation.set(.88+loading*.18,0,-.34);rightArm.rotation.set(.88+loading*.18,0,.34);
+            const bookedPrisoner=playerArrestPhase==='prisoner';
+            head.rotation.set(loading*.16,0,0);leftArm.position.set(bookedPrisoner?-.46:-.62,bookedPrisoner?2.52:2.48,bookedPrisoner?.34:-.28);rightArm.position.set(bookedPrisoner?.46:.62,bookedPrisoner?2.52:2.48,bookedPrisoner?.34:-.28);
+            leftArm.rotation.set(bookedPrisoner?-.88:.88+loading*.18,0,bookedPrisoner?-.2:-.34);rightArm.rotation.set(bookedPrisoner?-.88:.88+loading*.18,0,bookedPrisoner?.2:.34);
             const cuffWalk=playerArrestPhase==='escort'||playerArrestPhase==='prisoner';
             leftLeg.rotation.x=cuffWalk?playerStep*.48:-loading*.58;rightLeg.rotation.x=cuffWalk?-playerStep*.48:-loading*.48;
             if(playerArrestPhase==='prisoner'){
               body.rotation.z=Math.sin(t*.0032)*.018;head.rotation.y=Math.sin(t*.0014)*.065;
-              if(telemetryDue)renderer.domElement.dataset.prisonerCuffedPose=moving?'walking-hands-behind':'idle-hands-behind';
+              if(telemetryDue)renderer.domElement.dataset.prisonerCuffedPose=moving?'walking-hands-front':'idle-hands-front';
             }
           }
           if(telemetryDue){renderer.domElement.dataset.playerArrestAnimation=`${playerArrestPhase}:${playerArrestProgress.toFixed(2)}`;renderer.domElement.dataset.playerArrestCuffs=arrestCuffs.visible?'visible':'hidden';}
