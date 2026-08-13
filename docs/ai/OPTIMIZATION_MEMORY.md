@@ -1444,6 +1444,35 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   Target selection may sort the already bounded candidate lists by proximity,
   yield, defense and relative force; it must not add map-wide frame scans.
 
+## Switchable business exteriors and pooled ruin FX (2026-08-14, v404)
+
+- A captured building keeps its authored shell. Rebuild only the bounded
+  facade kit from the current authoritative `operationType`; when ownership
+  changes a casino into a bar, hide every previous profile before showing the
+  bar profile so stale neon or props cannot survive the transition.
+- Allocate thematic meshes once inside the existing 64-slot holding-marker
+  pool. Eight business profiles may share the marker materials and geometry,
+  but profile visibility, palette and label signatures update only when the
+  server holding signature changes.
+- Destruction uses two global instanced pools: four dust instances and six
+  debris instances per marker. Animate matrices only; never allocate particles,
+  meshes, materials, vectors or timers when a building is hit or while it smokes.
+- Countdown canvases are signature-gated by the displayed second. Creating a
+  gradient and uploading a canvas texture every animation frame is a measurable
+  hidden cost even when the scene still uses the same number of draw calls.
+- Keep the permanent rubble/scorch kit attached to the fitted facade so it
+  follows the real wall orientation. Reset shake, scale, rotation and pooled FX
+  when the server clears `closedUntil`, otherwise a repaired business can retain
+  a damaged transform after the operation changes.
+- Keep both global ruin meshes hidden while no business is closed. Clear their
+  matrices only on the active-to-idle transition and upload instance buffers
+  only while an effect is animating or that transition is dirty; rewriting all
+  640 hidden instances every ordinary frame defeats the purpose of pooling.
+- A closed countdown temporarily enlarges the shared label. Restore its normal
+  scale and render order when `closedUntil` expires, and restore facade palette
+  values before fitting the repaired skin so emergency styling cannot leak into
+  the reopened business.
+
 ## Cached squad-level combat orders (2026-08-12)
 
 - Keep the existing per-NPC target and movement think, but calculate the shared

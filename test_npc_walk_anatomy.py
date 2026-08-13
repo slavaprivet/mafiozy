@@ -57,7 +57,7 @@ def run() -> None:
         "qa_walk_civilian_heavy",
     ):
         assert actor_id in WORLD
-    assert "three_preview.js?v=3d395-gang-squad-integrity" in WORLD
+    assert "three_preview.js?v=3d404-switchable-business-exteriors" in WORLD
 
 
 if __name__ == "__main__":
