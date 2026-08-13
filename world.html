@@ -18237,19 +18237,42 @@ function _playerEmpireBuildingMeta(key){
   const meta=primary?{key,r:(primary.minR+primary.maxR+1)/2,c:(primary.minC+primary.maxC+1)/2,area:parts.reduce((sum,p)=>sum+(p.maxR-p.minR+1)*(p.maxC-p.minC+1),0)}:null;
   _playerEmpireBuildingMetaCache.set(key,meta);return meta;
 }
+function _playerPropertyBuildingMeta(holding){
+  const match=/^tile:(\d+),(\d+)$/.exec(String(holding?.apt_key||''));
+  if(match){
+    const tr=+match[1],tc=+match[2],r0=Math.floor(tr/BLOCK)*BLOCK,c0=Math.floor(tc/BLOCK)*BLOCK;
+    const part=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS))
+      .find(item=>tr>=item.minR&&tr<=item.maxR&&tc>=item.minC&&tc<=item.maxC);
+    if(part)return {key:String(holding.building_key||''),r:part.r,c:part.c,area:part.w*part.d};
+    return {key:String(holding.building_key||''),r:tr+.5,c:tc+.5,area:4};
+  }
+  return _playerEmpireBuildingMeta(holding?.building_key);
+}
+function _playerPropertyBuildingPoints(holding){
+  const block=String(holding?.building_key||'').split(',').map(Number);
+  if(block.length!==2||!block.every(Number.isFinite))return [];
+  const r0=block[0]*BLOCK,c0=block[1]*BLOCK;
+  const parts=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS));
+  // One purchase reserves the block. Put ownership heraldry on every separate
+  // shell in it, so no reserved facade can look neutral merely because the
+  // old marker happened to choose another connected component.
+  return parts.map(part=>({key:String(holding.building_key||''),r:part.r,c:part.c,area:part.w*part.d}));
+}
 function _rebuildNpcEmpireFlagSites(){
   const sites=[];let invalidHoldings=0;
   for(const empire of _npcEmpires){
     if(!empire||empire.status==='ruined')continue;
     for(const holding of (empire.holdings||[])){
-      const point=_npcEmpireHoldingPoint(empire,holding);if(!point){invalidHoldings++;continue;}
-      const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
-      sites.push({leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),holdingId:String(holding.holding_id||''),kind:String(holding.kind||'building'),isHq:holding.kind==='hq',r:point.r,c:point.c,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income||0)),guardCount:Math.max(0,Math.min(3,+holding.guard_count||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||0});
+      const isHq=holding.kind==='hq',singlePoint=_npcEmpireHoldingPoint(empire,holding);
+      const blockPoints=_playerPropertyBuildingPoints({building_key:holding.holding_id||(isHq?empire.hq_key:'')});
+      const points=blockPoints.length?blockPoints:(singlePoint?[singlePoint]:[]);
+      if(!points.length){invalidHoldings++;continue;}const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
+      for(const [partIndex,point] of points.entries())sites.push({leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||'Криминальная семья'),holdingId:`${String(holding.holding_id||'')}:part:${partIndex}`,kind:String(holding.kind||'building'),isHq,r:point.r,c:point.c,color:String(empire.color||'#872f3b'),accent:String(empire.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income||0)),guardCount:Math.max(0,Math.min(3,+holding.guard_count||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||0});
     }
   }
   for(const holding of _playerBuildingProperties){
-    const point=_playerEmpireBuildingMeta(holding.building_key);if(!point){invalidHoldings++;continue;}const operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};
-    sites.push({leaderId:`player:${holding.owner_uid||''}`,leaderName:String(holding.owner_name||'Игрок'),gangName:String(holding.gang_name||holding.owner_name||'Мафия игрока'),holdingId:String(holding.building_key||holding.apt_key||''),kind:String(holding.property_kind||'business'),isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#7d2938'),accent:String(holding.accent||'#e0b83e'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||+holding.bought_at||0});
+    const points=_playerPropertyBuildingPoints(holding),operation=PLAYER_BUILDING_OPERATIONS[holding.operation_type]||{};if(!points.length){invalidHoldings++;continue;}
+    for(const [partIndex,point] of points.entries())sites.push({leaderId:`player:${holding.owner_uid||''}`,leaderName:String(holding.owner_name||'Игрок'),gangName:String(holding.gang_name||holding.owner_name||'Мафия игрока'),holdingId:`${String(holding.building_key||holding.apt_key||'')}:part:${partIndex}`,kind:String(holding.property_kind||'business'),isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#7d2938'),accent:String(holding.accent||'#e0b83e'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||operation.name||''),operationIcon:String(holding.operation_icon||operation.icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||+holding.bought_at||0});
   }
   if(_LOCAL_PREVIEW&&_previewBuildingPurposeOverride){const holding=_previewBuildingPurposeOverride,point=_playerEmpireBuildingMeta(holding.building_key);if(point)sites.push({leaderId:'preview:building-purpose',leaderName:String(holding.owner_name||'Тестовый NPC-босс'),gangName:String(holding.gang_name||'Тестовая семья'),holdingId:String(holding.building_key||''),kind:holding.property_kind==='hq'?'hq':'building',isHq:holding.property_kind==='hq',r:point.r,c:point.c,color:String(holding.color||'#872f3b'),accent:String(holding.accent||'#e8bd67'),operationType:String(holding.operation_type||''),operationName:String(holding.operation_name||''),operationIcon:String(holding.operation_icon||''),incomePerMinute:Math.min(200,Math.max(0,+holding.income_per_minute||0)),closedUntil:+holding.closed_until||0,buildingStatus:String(holding.building_status||'open'),acquiredAt:+holding.acquired_at||0});}
   _npcEmpireFlagSites=sites;
@@ -19026,8 +19049,8 @@ function selectBuildingFromCanvasTap(x, y) {
   showToast('📍 Вход отмечен. Подойди к жёлтому квадрату.', '🚪', 2200);
   return true;
 }
-async function loadApartmentState() {
-  if (_apartmentStateLoaded || !QP.api || !QP.uid) return;
+async function loadApartmentState(force=false) {
+  if ((!force&&_apartmentStateLoaded) || !QP.api || !QP.uid) return;
   _apartmentStateLoaded = true;
   try {
     const r = await fetch(`${QP.api.replace(/\/+$/, '')}/apartment/${encodeURIComponent(QP.uid)}/state`);
@@ -19712,12 +19735,19 @@ async function _buyCurrentApartment(propertyKind,operationType,buildingRef=null)
     });
     const j = await r.json();
     if (!j.ok) {
-      const msg = j.error === 'no cash' ? '💸 Недостаточно денег'
+      if(j.owned)_myApartments=j.owned;
+      if(Array.isArray(j.properties)){_playerBuildingProperties=j.properties;_rebuildNpcEmpireFlagSites();}
+      const msg = String(j.message||'').trim() || (j.error === 'no cash' ? `💸 Недостаточно денег · нужно $${(+j.price||price).toLocaleString('ru')}`
         : j.error === 'hq limit' ? 'У твоей мафии уже есть штаб'
         : j.error === 'mafia required' ? 'Покупка доступна только мафиози'
-        : j.error === 'building occupied' ? 'Это здание уже занято другой семьёй'
-        : '❌ Не удалось купить здание';
-      showToast(msg, '❌', 2600);
+        : j.error === 'building occupied' ? 'Это здание уже занято — сведения о владельце обновлены'
+        : j.error === 'invalid building' ? 'Это здание не найдено на карте города'
+        : j.error === 'bad operation' ? 'Выбранный профиль бизнеса больше недоступен'
+        : j.error === 'bad price' ? 'Сервер не смог определить цену здания'
+        : j.error === 'no character' ? 'Профиль игрока не найден — перезапусти игру из Telegram'
+        : `Не удалось купить здание · причина: ${j.error||`HTTP ${r.status}`}`);
+      showToast(msg, '❌', 4200);
+      if(j.error==='building occupied')void Promise.allSettled([loadApartmentState(true),loadNpcEmpireState()]);
       return;
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }

@@ -2888,7 +2888,7 @@ async def get_player_building_properties() -> list:
             "g.flag_primary,g.flag_secondary,g.flag_emblem "
             "FROM apartments_owned a LEFT JOIN characters c ON c.telegram_id=a.telegram_id "
             "LEFT JOIN custom_gang_members m ON m.telegram_id=a.telegram_id "
-            "LEFT JOIN custom_gangs g ON g.id=m.gang_id ORDER BY a.bought_at LIMIT 101"
+            "LEFT JOIN custom_gangs g ON g.id=m.gang_id ORDER BY a.bought_at"
         )).fetchall()
         try:
             closure_rows = await (await db.execute(
@@ -2943,14 +2943,24 @@ async def buy_apartment_db(telegram_id: int, apt_key: str, price: int,
     await ensure_apartment_tables()
     now = int(time.time())
     block_key = apartment_empire_building_key(apt_key)
-    area = int(npc_empire.BUILDING_AREAS.get(block_key or '', 0))
+    exact_tile = str(apt_key or '').startswith('tile:')
+    # The browser exposes each connected house as its own purchasable object.
+    # Older NPC logic only catalogued selected 10x10 blocks, so a perfectly
+    # valid house such as tile:46,56 used to fail with the opaque "bad apt".
+    # Exact tile purchases use the conservative minimum area when that legacy
+    # block catalogue has no entry; legacy block keys remain whitelist-only.
+    area = int(npc_empire.BUILDING_AREAS.get(block_key or '', 4 if exact_tile else 0))
     operation = apartment_operation_payload(operation_type, area) if property_kind == 'business' else None
-    total_price = npc_empire.building_purchase_price(
-        price, property_kind, operation_type, area)
-    if not block_key or not area or (property_kind == 'business' and not operation):
-        return {'ok': False, 'error': 'bad apt'}
+    if not block_key or not area:
+        return {'ok': False, 'error': 'invalid building',
+                'message': 'Это здание не найдено на карте города'}
+    if property_kind == 'business' and not operation:
+        return {'ok': False, 'error': 'bad operation',
+                'message': 'Выбранный профиль бизнеса больше недоступен'}
+    total_price = npc_empire.building_purchase_price(price, property_kind, operation_type, area)
     if total_price <= 0:
-        return {'ok': False, 'error': 'bad price'}
+        return {'ok': False, 'error': 'bad price',
+                'message': 'Сервер не смог определить цену этого здания'}
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("BEGIN IMMEDIATE")
         async with db.execute("SELECT cash,mafia_family FROM characters WHERE telegram_id=?", (telegram_id,)) as cur:
@@ -2967,15 +2977,43 @@ async def buy_apartment_db(telegram_id: int, apt_key: str, price: int,
             await db.rollback(); return {'ok': False, 'error': 'mafia required'}
         if property_kind == 'hq' and in_custom_gang:
             await db.rollback(); return {'ok': False, 'error': 'hq limit'}
-        async with db.execute("SELECT apt_key FROM apartments_owned") as cur:
-            occupied_blocks = {apartment_empire_building_key(str(row[0])) for row in await cur.fetchall()}
-        async with db.execute("SELECT 1 FROM npc_empire_holdings WHERE kind IN ('hq','building') AND holding_id=?", (block_key,)) as cur:
-            npc_taken = bool(await cur.fetchone())
-        if block_key in occupied_blocks or npc_taken:
-            await db.rollback(); return {'ok': False, 'error': 'building occupied'}
+        async with db.execute(
+            "SELECT a.apt_key,a.telegram_id,COALESCE(c.name,'Игрок') "
+            "FROM apartments_owned a LEFT JOIN characters c ON c.telegram_id=a.telegram_id"
+        ) as cur:
+            player_rows = await cur.fetchall()
+        # Ownership is block-based everywhere else in the simulation (NPC
+        # holdings, assaults and interior lookup). Keep the purchase guard on
+        # that same identity so one physical shell cannot be bought repeatedly
+        # through different roof tiles.
+        player_owner = next((row for row in player_rows if
+            apartment_empire_building_key(str(row[0])) == block_key), None)
+        async with db.execute(
+            "SELECT leader_id FROM npc_empire_holdings "
+            "WHERE kind IN ('hq','building') AND holding_id=?", (block_key,)
+        ) as cur:
+            npc_row = await cur.fetchone()
+        if player_owner:
+            await db.rollback()
+            return {'ok': False, 'error': 'building occupied', 'owner_kind': 'player',
+                    'owner_uid': str(player_owner[1]), 'owner_name': str(player_owner[2]),
+                    'apt_key': str(player_owner[0]),
+                    'message': f'Здание уже принадлежит игроку {player_owner[2]}'}
+        if npc_row:
+            await db.rollback()
+            leader_id = str(npc_row[0] or '')
+            profile = npc_empire.PROFILE_BY_ID.get(leader_id)
+            owner_name = str(profile.gang_name if profile else 'другая криминальная семья')
+            return {'ok': False, 'error': 'building occupied', 'owner_kind': 'npc',
+                    'owner_uid': f'npc:{leader_id}', 'owner_name': owner_name,
+                    'building_key': block_key,
+                    'message': f'Квартал контролирует {owner_name}; сначала захвати это владение'}
         cash = int(char[0] or 0)
         if cash < total_price:
-            await db.rollback(); return {'ok': False, 'error': 'no cash', 'cash': cash, 'price': total_price}
+            await db.rollback(); return {
+                'ok': False, 'error': 'no cash', 'cash': cash, 'price': total_price,
+                'message': f'Не хватает ${total_price-cash:,} для покупки здания'.replace(',', ' '),
+            }
         await db.execute("UPDATE characters SET cash=? WHERE telegram_id=?", (cash - total_price, telegram_id))
         await db.execute(
             "INSERT INTO apartments_owned "
@@ -25392,16 +25430,25 @@ async def _coop_http_app():
         property_kind = str(b.get('property_kind') or 'business').strip().lower()
         operation_type = str(b.get('operation_type') or '').strip().lower()
         if property_kind not in ('business', 'hq'):
-            return await _cors(web.json_response({'ok': False, 'error': 'bad property kind'}, status=400))
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'bad property kind',
+                'message': 'Неизвестный тип владения — обнови страницу игры',
+            }, status=400))
         price = apartment_price_for_key(apt_key)
         if price is None:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad apt'}, status=400))
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'invalid building',
+                'message': 'Это здание не найдено на карте города',
+            }, status=400))
         owned = await get_apartments_owned(uid)
         if apt_key in owned:
             char = await get_character(uid)
             return await _cors(web.json_response({'ok': True, 'already': True, 'cash': (char or {}).get('cash') or 0, 'owned': owned}))
         result = await buy_apartment_db(uid, apt_key, price, property_kind, operation_type)
         if not result.get('ok'):
+            if result.get('error') == 'building occupied':
+                result['owned'] = await get_apartments_owned(uid)
+                result['properties'] = await get_player_building_properties()
             status = 404 if result.get('error') == 'no character' else 409
             return await _cors(web.json_response(result, status=status))
         owned = await get_apartments_owned(uid)
