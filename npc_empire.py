@@ -20,11 +20,16 @@ import aiosqlite
 
 TICK_SECONDS = 300
 MAX_OFFLINE_TICKS = 72
+NPC_DIPLOMACY_PEACE_STEP_SECONDS = 6 * 60 * 60
 ASSAULT_SECONDS = 20 * 60
 COMEBACK_MIN_SECONDS = 30 * 60
 COMEBACK_MAX_SECONDS = 90 * 60
 RELATION_MIN = -100
 RELATION_MAX = 100
+NPC_PACT_LABELS = {
+    'none': 'нейтралитет', 'war': 'война', 'truce': 'перемирие',
+    'alliance': 'союз', 'vassal': 'подчинение',
+}
 NPC_OWNER_BASE = -900_000
 PLAYER_WAR_FIRST_STRIKE_SECONDS = 5 * 60
 PLAYER_WAR_BUSINESS_BLOCK_SECONDS = 10 * 60
@@ -444,6 +449,237 @@ def _holding_district(kind: str, holding_id: str) -> str:
     return BUSINESS_DISTRICTS.get(holding_id, 'downtown') if kind == 'business' else _district_for_block(holding_id)
 
 
+def _diplomacy_pair(left: str, right: str) -> tuple[str, str]:
+    return tuple(sorted((str(left), str(right))))
+
+
+async def _change_npc_diplomacy(db, diplomacy_state: dict, left: str, right: str,
+                                *, delta: int = 0, score: int | None = None,
+                                pact: str | None = None, tension_delta: int = 0,
+                                tension: int | None = None, now: int) -> dict:
+    """Atomically change one boss-to-boss relationship and its tick cache."""
+    pair = _diplomacy_pair(left, right)
+    current = diplomacy_state.get(pair, {
+        'score': 0, 'pact': 'none', 'tension': 0, 'last_event_at': now,
+    })
+    next_score = clamp_relation(score if score is not None
+                                else int(current['score']) + int(delta))
+    next_pact = str(pact if pact is not None else current['pact'])
+    next_tension = max(0, min(100, int(tension if tension is not None
+                                      else int(current['tension']) + int(tension_delta))))
+    # A treaty cannot silently survive a relationship collapse.
+    if next_pact == 'alliance' and next_score < 35:
+        next_pact = 'none'
+    if next_pact == 'truce' and next_score < -35:
+        next_pact = 'none'
+    await db.execute(
+        "UPDATE npc_empire_diplomacy SET score=?,pact=?,tension=?,last_event_at=? "
+        "WHERE leader_a=? AND leader_b=?",
+        (next_score, next_pact, next_tension, now, pair[0], pair[1]),
+    )
+    updated = {'score': next_score, 'pact': next_pact,
+               'tension': next_tension, 'last_event_at': now}
+    diplomacy_state[pair] = updated
+    return updated
+
+
+def _common_enemy_gain(observer: EmpireProfile, captured: bool) -> int:
+    """Personality-scaled respect: 3..8 for an attack, 8..15 for a capture."""
+    if captured:
+        return max(8, min(15, 8 + observer.diplomacy // 22
+                           + observer.aggression // 35))
+    return max(3, min(8, 3 + observer.diplomacy // 32
+                      + observer.aggression // 55))
+
+
+def _territorial_penalty(observer: EmpireProfile) -> int:
+    """Commercial and loyal bosses react most sharply to incursions nearby."""
+    return max(3, min(7, 2 + observer.commerce // 34
+                      + observer.loyalty // 48))
+
+
+async def _react_to_npc_attack(db, diplomacy_state: dict, attacker_id: str,
+                               defender_id: str, now: int, events: list[dict],
+                               *, captured_kind: str = '', captured_id: str = '') -> None:
+    """Apply real third-party reactions to one autonomous family attack."""
+    captured = bool(captured_kind and captured_id)
+    await _change_npc_diplomacy(
+        db, diplomacy_state, attacker_id, defender_id,
+        score=-100, pact='war', tension_delta=25, now=now,
+    )
+    target_district = (_holding_district(captured_kind, captured_id)
+                       if captured else '')
+    district_claimants: set[str] = set()
+    if target_district:
+        holdings = await (await db.execute(
+            "SELECT kind,holding_id,leader_id FROM npc_empire_holdings"
+        )).fetchall()
+        counts: dict[str, int] = {}
+        for holding in holdings:
+            if _holding_district(str(holding['kind']), str(holding['holding_id'])) == target_district:
+                owner = str(holding['leader_id'])
+                counts[owner] = counts.get(owner, 0) + 1
+        district_row = await (await db.execute(
+            "SELECT leader_id FROM npc_empire_districts WHERE district_id=?",
+            (target_district,),
+        )).fetchone()
+        district_claimants = {owner for owner, count in counts.items() if count >= 2}
+        if district_row and district_row[0]:
+            district_claimants.add(str(district_row[0]))
+
+    for observer in PROFILES:
+        observer_id = observer.leader_id
+        if observer_id in {attacker_id, defender_id}:
+            continue
+        enemy_relation = diplomacy_state.get(
+            _diplomacy_pair(observer_id, defender_id), {})
+        if str(enemy_relation.get('pact') or '') == 'alliance':
+            await _change_npc_diplomacy(
+                db, diplomacy_state, observer_id, attacker_id,
+                score=-100, pact='war', tension_delta=35, now=now,
+            )
+            events.append({
+                'leader_id': observer_id, 'kind': 'ally_defended',
+                'target_id': attacker_id,
+                'summary': f'{observer.leader_name} вступает в войну, защищая союзника',
+            })
+            # Alliance defense already describes the observer's response; it
+            # cannot simultaneously be respect for attacking the same ally.
+            continue
+        hates_defender = (str(enemy_relation.get('pact') or '') == 'war'
+                          or int(enemy_relation.get('score') or 0) <= -21)
+        if hates_defender:
+            gain = _common_enemy_gain(observer, captured)
+            changed = await _change_npc_diplomacy(
+                db, diplomacy_state, observer_id, attacker_id,
+                delta=gain, tension_delta=-gain, now=now,
+            )
+            events.append({
+                'leader_id': observer_id, 'kind': 'common_enemy_respect',
+                'target_id': attacker_id,
+                'summary': f'{observer.leader_name} уважает удар по общему врагу: +{gain}',
+                'relation_score': changed['score'],
+            })
+        if captured and observer_id in district_claimants:
+            penalty = _territorial_penalty(observer)
+            changed = await _change_npc_diplomacy(
+                db, diplomacy_state, observer_id, attacker_id,
+                delta=-penalty, tension_delta=penalty, now=now,
+            )
+            events.append({
+                'leader_id': observer_id, 'kind': 'territorial_dispute',
+                'target_id': attacker_id,
+                'summary': f'{observer.leader_name} считает захват в районе «{DISTRICTS[target_district]}» вторжением: −{penalty}',
+                'relation_score': changed['score'],
+            })
+
+
+def _coalition_support_power(diplomacy_state: dict, empire_rows: dict,
+                             leader_id: str, enemy_id: str) -> int:
+    """Return bounded combat support from allies sharing the same war."""
+    own_row = empire_rows.get(leader_id)
+    own_strength = max(1, int(own_row['strength'] or 1)) if own_row else 1
+    support = 0
+    for ally_id, ally_row in empire_rows.items():
+        if ally_id in {leader_id, enemy_id}:
+            continue
+        alliance = diplomacy_state.get(_diplomacy_pair(leader_id, ally_id), {})
+        common_war = diplomacy_state.get(_diplomacy_pair(ally_id, enemy_id), {})
+        if (alliance.get('pact') == 'alliance'
+                and common_war.get('pact') == 'war'
+                and str(ally_row['status']) not in {'ruined', 'vassal'}):
+            support += max(4, int(ally_row['strength'] or 0) * 18 // 100)
+    return min(support, max(8, own_strength * 45 // 100))
+
+
+async def _advance_npc_alliances(db, diplomacy_state: dict, empire_rows: dict,
+                                 now: int, events: list[dict]) -> None:
+    """Form earned alliances and let them coordinate against the top threat."""
+    active = {leader_id: row for leader_id, row in empire_rows.items()
+              if str(row['status']) not in {'ruined', 'vassal'}}
+    for pair, relation in list(diplomacy_state.items()):
+        if pair[0] not in active or pair[1] not in active:
+            continue
+        if (relation['pact'] == 'none' and int(relation['score']) >= 60
+                and int(relation['tension']) <= 20):
+            await _change_npc_diplomacy(
+                db, diplomacy_state, pair[0], pair[1],
+                pact='alliance', tension=0, now=now,
+            )
+            events.append({
+                'leader_id': pair[0], 'kind': 'alliance_formed',
+                'target_id': pair[1],
+                'summary': f'{PROFILE_BY_ID[pair[0]].gang_name} и {PROFILE_BY_ID[pair[1]].gang_name} заключили союз',
+            })
+
+    if not active:
+        return
+    strongest_id = max(active, key=lambda leader_id: (
+        int(active[leader_id]['strength'] or 0)
+        + int(active[leader_id]['dominance_score'] or 0) * 8,
+        leader_id,
+    ))
+    alliances = [pair for pair, relation in diplomacy_state.items()
+                 if relation['pact'] == 'alliance']
+    for left, right in alliances:
+        if strongest_id in {left, right}:
+            continue
+        for belligerent, partner in ((left, right), (right, left)):
+            belligerent_war = diplomacy_state.get(
+                _diplomacy_pair(belligerent, strongest_id), {})
+            partner_relation = diplomacy_state.get(
+                _diplomacy_pair(partner, strongest_id), {})
+            if (belligerent_war.get('pact') == 'war'
+                    and partner_relation.get('pact') not in {'war', 'alliance', 'truce'}):
+                await _change_npc_diplomacy(
+                    db, diplomacy_state, partner, strongest_id,
+                    score=-100, pact='war', tension_delta=30, now=now,
+                )
+                events.append({
+                    'leader_id': partner, 'kind': 'coalition_joined',
+                    'target_id': strongest_id,
+                    'summary': f'{PROFILE_BY_ID[partner].leader_name} поддерживает союзника против сильнейшей семьи города',
+                })
+
+
+async def _advance_npc_peace(db, diplomacy_state: dict, now: int,
+                             events: list[dict]) -> None:
+    """Cool grudges, goodwill and tension toward neutral during long peace."""
+    for pair, relation in list(diplomacy_state.items()):
+        pact = str(relation['pact'])
+        if pact in {'war', 'alliance', 'vassal'}:
+            continue
+        elapsed = max(0, now - int(relation['last_event_at'] or now))
+        blocks = min(12, elapsed // NPC_DIPLOMACY_PEACE_STEP_SECONDS)
+        if blocks <= 0:
+            continue
+        left, right = PROFILE_BY_ID[pair[0]], PROFILE_BY_ID[pair[1]]
+        score = int(relation['score'])
+        if score < 0:
+            forgiveness = 1 + (left.diplomacy + right.diplomacy) // 100
+            if pact == 'truce':
+                forgiveness += 1
+            next_score = min(0, score + blocks * forgiveness)
+        elif score > 0:
+            cooling = 1 + (left.aggression + right.aggression) // 135
+            next_score = max(0, score - blocks * cooling)
+        else:
+            next_score = 0
+        tension_cooling = 3 + (left.diplomacy + right.diplomacy) // 55
+        next_tension = max(0, int(relation['tension']) - blocks * tension_cooling)
+        next_pact = ('none' if pact == 'truce' and next_score >= -10
+                     and next_tension <= 10 else pact)
+        step_at = int(relation['last_event_at']) + blocks * NPC_DIPLOMACY_PEACE_STEP_SECONDS
+        await _change_npc_diplomacy(
+            db, diplomacy_state, pair[0], pair[1], score=next_score,
+            pact=next_pact, tension=next_tension, now=step_at,
+        )
+        if pact == 'truce' and next_pact == 'none':
+            events.append({
+                'leader_id': pair[0], 'kind': 'peace_normalized',
+                'target_id': pair[1],
+                'summary': f'{left.gang_name} и {right.gang_name} завершили перемирие без новой войны',
+            })
 def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int,
                       brain: dict | None = None) -> dict:
     """Give the client one concrete, slowly changing destination for this boss."""
@@ -1122,10 +1358,18 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
         empire_row_by_id = {str(row['leader_id']): row for row in rows}
         diplomacy_state = {}
         for relation in await (await db.execute(
-            "SELECT leader_a,leader_b,pact,tension FROM npc_empire_diplomacy"
+            "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
         )).fetchall():
-            diplomacy_state[(str(relation['leader_a']), str(relation['leader_b']))] = (
-                str(relation['pact'] or 'none'), int(relation['tension'] or 0))
+            diplomacy_state[(str(relation['leader_a']), str(relation['leader_b']))] = {
+                'score': int(relation['score'] or 0),
+                'pact': str(relation['pact'] or 'none'),
+                'tension': int(relation['tension'] or 0),
+                'last_event_at': int(relation['last_event_at'] or now),
+            }
+        await _advance_npc_peace(db, diplomacy_state, now, events)
+        await _advance_npc_alliances(
+            db, diplomacy_state, empire_row_by_id, now, events,
+        )
         player_war_leaders = {str(row[0]) for row in await (await db.execute(
             "SELECT DISTINCT leader_id FROM npc_empire_player_wars"
         )).fetchall()}
@@ -1187,7 +1431,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             affordable = [bid for bid in neutral_businesses
                           if treasury >= int(BUSINESS_PRICE[bid] * .65)]
             active_wars = sum(1 for pair, state in diplomacy_state.items()
-                              if leader_id in pair and state[0] == 'war')
+                              if leader_id in pair and state['pact'] == 'war')
             if leader_id in player_war_leaders:
                 active_wars += 1
             brain_row = {
@@ -1325,7 +1569,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     if not rival_row or str(rival_row['status']) == 'ruined':
                         continue
                     pair = tuple(sorted((leader_id, other.leader_id)))
-                    pact, tension = diplomacy_state.get(pair, ('none', 0))
+                    relation_state = diplomacy_state.get(pair, {})
+                    pact = str(relation_state.get('pact') or 'none')
+                    tension = int(relation_state.get('tension') or 0)
                     if pact in {'alliance', 'truce', 'vassal'}:
                         continue
                     relative = int(rival_row['strength'] or 1) / max(1, strength)
@@ -1354,16 +1600,17 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         - int(item['defense'] or 0) * (1.25 - profile.aggression / 180),
                         str(item['holding_id']),
                     ))
-                    attack_power = strength * (.72 + rng.random()*.58) + profile.aggression
-                    defense_power = int(rival_state['strength']) * (.78 + rng.random()*.52) + int(target['defense'])
+                    attack_support = _coalition_support_power(
+                        diplomacy_state, empire_row_by_id, leader_id, rival.leader_id)
+                    defense_support = _coalition_support_power(
+                        diplomacy_state, empire_row_by_id, rival.leader_id, leader_id)
+                    attack_power = (strength * (.72 + rng.random()*.58)
+                                    + profile.aggression + attack_support)
+                    defense_power = (int(rival_state['strength']) * (.78 + rng.random()*.52)
+                                     + int(target['defense']) + defense_support)
                     casualty = max(1, int((attack_power+defense_power)/180))
                     strength = max(20, strength-casualty*4)
                     members = max(1, members-casualty//2)
-                    a,b=sorted((leader_id,rival.leader_id))
-                    await db.execute(
-                        "UPDATE npc_empire_diplomacy SET score=-100,pact='war',tension=MIN(100,tension+25),last_event_at=? WHERE leader_a=? AND leader_b=?",
-                        (now,a,b),
-                    )
                     if attack_power > defense_power:
                         captured_kind=str(target['kind']);captured_id=str(target['holding_id'])
                         if captured_kind == 'building':
@@ -1389,6 +1636,10 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                 (npc_owner_uid(leader_id),profile.gang_name,now,now+300,str(target['holding_id'])),
                             )
                         else: building_owner[str(target['holding_id'])]=leader_id
+                        await _react_to_npc_attack(
+                            db, diplomacy_state, leader_id, rival.leader_id, now, events,
+                            captured_kind=captured_kind, captured_id=captured_id,
+                        )
                         conversion=(f' и открыли «{BUILDING_OPERATIONS[captured_operation]["name"]}»'
                                     if captured_operation else '')
                         events.append({'leader_id':leader_id,'kind':'war_won','target_id':rival.leader_id,
@@ -1417,6 +1668,9 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                            f'возвращение через {(comeback_at-now)//60} мин.',
                             })
                     else:
+                        await _react_to_npc_attack(
+                            db, diplomacy_state, leader_id, rival.leader_id, now, events,
+                        )
                         events.append({'leader_id':leader_id,'kind':'war_lost','target_id':rival.leader_id,
                                        'summary':f'{rival.gang_name} отбили нападение {profile.gang_name}'})
             next_status = 'active' if row['status'] == 'rebuilding' and (members >= 4 or treasury >= 1500) else str(row['status'])
@@ -1427,6 +1681,11 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                  recruit_started_at, recruit_ready_at, last_recruit_count, last_recruit_at, int(row['last_tick']) + ticks*TICK_SECONDS,
                  now + TICK_SECONDS, leader_id),
             )
+        # Reactions created during this tick may cross the alliance threshold;
+        # make that political result authoritative before publishing events.
+        await _advance_npc_alliances(
+            db, diplomacy_state, empire_row_by_id, now, events,
+        )
         for event in events:
             await db.execute(
                 "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
@@ -1567,6 +1826,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         diplomacy_rows = [dict(r) for r in await (await db.execute(
             "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
         )).fetchall()]
+        for diplomacy in diplomacy_rows:
+            diplomacy['relation_band'] = relation_band(int(diplomacy.get('score') or 0))
+            diplomacy['pact_label'] = NPC_PACT_LABELS.get(
+                str(diplomacy.get('pact') or 'none'), str(diplomacy.get('pact') or 'none'))
         recent = [dict(r) for r in await (await db.execute(
             "SELECT leader_id,kind,target_id,summary,created_at FROM npc_empire_events ORDER BY id DESC LIMIT 240"
         )).fetchall()]
