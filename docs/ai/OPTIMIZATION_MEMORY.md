@@ -2058,3 +2058,30 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   a tracked war target moves eight; the existing direct-follow branch closes
   the final 5.5 tiles. This reduces route churn without teleporting or lowering
   actor density, movement cadence or visual range.
+## Shared NPC combat silhouettes and head anchor (2026-08-13, v403)
+
+- NPC hands should derive from the final weapon transform through one reusable
+  two-bone IK scratch set. Keep this separate from the player stance helpers:
+  gang, police and boss tuning can then change without regressing the approved
+  player grip. Weapon families need authored stock, trigger and foregrip points;
+  a single generic hand offset visibly fails for RPG, pistol and long guns.
+- Boss weapon detail remains bounded: magazine and sight are two fixed
+  instanced pools, while existing meshes provide barrel, stock and the authored
+  boss charm. Never allocate a unique mesh per boss or per shot.
+- Projectile and impact variety should be table-driven by weapon family and
+  reuse the existing 48-projectile / 16-impact pools. Readability comes from
+  scale, trail length, core/glow colour and bounded blood spray—not extra scene
+  objects. Browser QA confirmed all 13 test projectile profiles simultaneously.
+- Never give the head sphere an idle-only local Y offset. Walking-state changes
+  then move the skull independently of the face, eyes and hair and appear as a
+  head pop. Cache one `npcHeadAnchorYs` value per NPC/frame and express neck,
+  face, eyes, hair, hats, helmets, glasses and moustache as fixed offsets from
+  that anchor. This adds no allocations or draw calls. One-tab QA across three
+  walking phases confirmed the pink civilian remained a single silhouette.
+- Upload the shared NPC instance matrices only after both the anatomy and gear
+  passes have written the current frame. Uploading before the second pass makes
+  police vests, helmets, hair and accessories render one frame behind the body;
+  adding a second upload hides the symptom but doubles buffer traffic. One
+  final upload keeps body and equipment synchronous at the original cadence.
+- Casualty wording follows lifecycle, not appearance: ordinary mortal NPCs use
+  `МЁРТВ`; server-respawned players and the 19 recoverable bosses use `РАНЕН`.

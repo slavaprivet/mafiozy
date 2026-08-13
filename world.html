@@ -64390,7 +64390,7 @@ window.Mafiozi3DBridge = Object.freeze({
       responseTier:Math.max(0,+x.responseTier||0),
       weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),_shotAt:+x._shotAt||+x._lastShotAt||+x.lastShotAt||0,_shotWeapon:x._shotWeapon||x._empireWeaponBase||x.weapon||'',_shotSeq:+x._shotSeq||0,
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:gang?_threeGangFamilyLabel(x):(x.family||x.mafiaFamily||''),faction:x.faction||x.gangFaction||'',
-      gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,
+      gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,recoverable:!!x._empireBoss,
       burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
       hitAngle:Number.isFinite(+x._threeHitAngle)?+x._threeHitAngle:null,hitPower:+x._threeHitPower||0,hitWeapon:x._threeHitWeapon||'',
       bloodDirR:+x._bloodDirR||0,bloodDirC:+x._bloodDirC||1,
@@ -64446,8 +64446,8 @@ window.Mafiozi3DBridge = Object.freeze({
     if(_LOCAL_PREVIEW&&_UP.has('previewcrawl')){const npc=npcs.find(x=>!x.dead);if(npc){npc.r=player.r+2.8;npc.c=player.c+1.4;npc.ang=-2.68;npc.hp=Math.min(npc.hp,npc.maxHp*.04);npc.forcedCrawl=true;npc.walking=true;}}
     // Browser-only animation QA. It never changes the authoritative NPC and
     // lets the renderer exercise a complete fresh-death -> fallen lifecycle.
-    if(_LOCAL_PREVIEW&&_UP.has('previewdeath')){
-      const victim=npcs.find(n=>!n.dead);
+    if(_LOCAL_PREVIEW&&(_UP.has('previewdeath')||_UP.has('previewdeathboss'))){
+      const victim=_UP.has('previewdeathboss')?npcs.find(n=>n.empireBoss&&!n.dead):npcs.find(n=>!n.dead);
       if(victim){const cycle=performance.now()%3200;if(cycle<1700){victim.dead=true;victim.hp=0;victim.walking=false;victim.moving=false;victim.deadAt=performance.now()-cycle;}}
     }
     const medicalFx=[];
@@ -64533,7 +64533,7 @@ window.Mafiozi3DBridge = Object.freeze({
       seed:(String(x.id||i).length*17+i*31)%97,radius:2.5,kind:'vehicle_wreck'
     }));
     fireFx.unshift(...wreckFireFx);if(fireFx.length>12)fireFx.length=12;
-    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});}
+    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',dead:!!(x.dead||x.downed||x.alive===false||(Number.isFinite(+x.hp)&&+x.hp<=0)),recoverable:true,chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});}
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
       const rr=+r,cc=+c;if(!Number.isFinite(rr)||!Number.isFinite(cc)||!near(rr,cc))return;
@@ -68611,6 +68611,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d402-prone-grip-monotonic-release"></script>
+<script type="module" src="three_preview.js?v=3d403-npc-combat-visual-overhaul"></script>
 </body>
 </html>
