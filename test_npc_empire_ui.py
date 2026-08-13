@@ -106,6 +106,7 @@ def run() -> None:
     assert "_boss_adaptation(" in NPC_EMPIRE and "'adaptation': adaptation" in NPC_EMPIRE
     assert "BOSS_DOCTRINES" in NPC_EMPIRE and "'doctrine': boss_doctrine" in NPC_EMPIRE
     assert "NPC_EMPIRE_DOCTRINES" in WORLD and "ДОКТРИНА ·" in WORLD
+    assert "NPC_EMPIRE_MINDSETS" in WORLD and "МЫШЛЕНИЕ ·" in WORLD
     assert "_empirePlayerSquadOrder" in WORLD and "dataset.empirePlayerOrder" in WORLD
     assert "_empirePlayerCombatThink" in WORLD and "_empireUseSignature" in WORLD
     assert "_npcEmpireAssaultAi" in WORLD and "dataset.empireAssaultPhase" in WORLD

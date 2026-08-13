@@ -20,9 +20,11 @@ def _plans(state, holdings, events, **kwargs):
 
 def run() -> None:
     assert len(ne.PROFILES) == len(ne.BOSS_DOCTRINES) == 19
+    assert len(ne.BOSS_MINDSETS) == 19
     assert set(ne.BOSS_DOCTRINES) == set(ne.PROFILE_BY_ID)
     assert len({item["id"] for item in ne.BOSS_DOCTRINES.values()}) == 19
     assert len({item["signature"] for item in ne.BOSS_DOCTRINES.values()}) == 19
+    assert len({tuple(item.values()) for item in ne.BOSS_MINDSETS.values()}) == 19
     assert all(len(item["orders"]) == 3 for item in ne.BOSS_DOCTRINES.values())
     assert all(0.1 <= item["retreat_hp"] <= 0.4 for item in ne.BOSS_DOCTRINES.values())
 

@@ -1409,6 +1409,25 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   `node --check`; empire server/UI tests pass.  Seven unrelated full-suite
   failures were reproduced unchanged on the clean pre-feature commit.
 
+## Three-pass adaptive boss intelligence (2026-08-13)
+
+- Score player-war orders from one snapshot of the existing bounded combat
+  pool.  Weapon class, range, formation spread, boss/player health and force
+  ratio feed a pure order chooser; do not add per-boss scans or frame loops.
+- Keep tactical learning in a map bounded by the nineteen leader ids. Incoming
+  damage, shot accuracy, casualties and failed orders decay when the existing
+  900 ms squad-order path crosses an eight-second window. No interval, timeout
+  or renderer-side decision process is required.
+- Represent cognitive differences as declarative patience, adaptability and
+  courage triples. These tune order scoring, failed-plan replacement, movement,
+  cadence, accuracy, signature cooldown and HQ desperation thresholds without
+  cloning an AI implementation for each boss. All 19 triples are unique.
+- Verification must execute the pure chooser, not only scan for markers. Cover
+  counter-sniper flanking, broken-formation regrouping, wounded withdrawal,
+  finishing pressure, abandoning a repeatedly failed plan, and patient versus
+  courageous behavior. Keep the original 19-doctrine server matrix as a second
+  independent contract.
+
 ## Player crouch and prone animation (2026-08-13, v373)
 
 - Keep stance input authoritative in `world.html`: `Z` toggles prone and Ctrl

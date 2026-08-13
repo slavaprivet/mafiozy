@@ -116,12 +116,38 @@ BOSS_DOCTRINES = {
     'musa':   {'id':'attrition','label':'Война на истощение','signature':'supply_cache','orders':('hold','regroup','press'),'retreat_hp':.29,'preferred_range':8.5,'focus':'wounded','strategy_bias':{'consolidate':18,'fortify':16,'acquire':12}},
 }
 
+# Cognitive temperament used by both strategic scoring and the client combat
+# planner.  Every triple is unique, so two leaders with the same immediate
+# order still execute it with different patience, adaptability and courage.
+BOSS_MINDSETS = {
+    'leila': {'patience':.82,'adaptability':.76,'courage':.46},
+    'rustam':{'patience':.48,'adaptability':.61,'courage':.88},
+    'marco': {'patience':.34,'adaptability':.91,'courage':.74},
+    'vera':  {'patience':.89,'adaptability':.83,'courage':.39},
+    'arsen': {'patience':.72,'adaptability':.58,'courage':.81},
+    'damir': {'patience':.61,'adaptability':.79,'courage':.69},
+    'marat': {'patience':.94,'adaptability':.42,'courage':.72},
+    'zara':  {'patience':.91,'adaptability':.68,'courage':.31},
+    'niko':  {'patience':.86,'adaptability':.88,'courage':.52},
+    'alisa': {'patience':.57,'adaptability':.96,'courage':.63},
+    'boris': {'patience':.43,'adaptability':.66,'courage':.91},
+    'inga':  {'patience':.84,'adaptability':.71,'courage':.55},
+    'timur': {'patience':.64,'adaptability':.93,'courage':.67},
+    'emil':  {'patience':.22,'adaptability':.54,'courage':.98},
+    'roman': {'patience':.78,'adaptability':.49,'courage':.86},
+    'sofia': {'patience':.93,'adaptability':.87,'courage':.28},
+    'viktor':{'patience':.74,'adaptability':.94,'courage':.77},
+    'yana':  {'patience':.69,'adaptability':.98,'courage':.62},
+    'musa':  {'patience':.88,'adaptability':.73,'courage':.58},
+}
+
 
 def boss_doctrine(leader_id: str) -> dict:
     """Return a copy-safe doctrine for API clients and deterministic tests."""
     doctrine = BOSS_DOCTRINES[str(leader_id)]
     return {**doctrine, 'orders': list(doctrine['orders']),
-            'strategy_bias': dict(doctrine['strategy_bias'])}
+            'strategy_bias': dict(doctrine['strategy_bias']),
+            'mindset': dict(BOSS_MINDSETS[str(leader_id)])}
 BUSINESS_INCOME = {
     'coffee': 175, 'carwash': 260, 'barbershop': 350, 'pizza': 525,
     'garage': 775, 'bar': 1200, 'club': 1900, 'warehouse': 2850,
@@ -553,6 +579,13 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
     }
     for strategy_name, bias in doctrine['strategy_bias'].items():
         scores[strategy_name] += bias
+    mindset = BOSS_MINDSETS[profile.leader_id]
+    scores['fortify'] += mindset['patience'] * 12
+    scores['consolidate'] += mindset['patience'] * 9
+    scores['retaliate'] += mindset['courage'] * 13
+    scores['expand'] += mindset['courage'] * 8
+    scores['recruit'] += mindset['adaptability'] * 7
+    scores['acquire'] += mindset['adaptability'] * 5
     # Outcomes change future decisions instead of serving as decorative text.
     # Defeat streaks pull the family toward recovery and defense; a successful
     # streak creates controlled momentum without overriding hard constraints.
