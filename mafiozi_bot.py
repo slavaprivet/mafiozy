@@ -13279,7 +13279,7 @@ class WorldSim:
     POLICE_BACKUP_CD = 90.0
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
-        'gang_player_invites',
+        'gang_player_invites', 'custom_gang_player_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
         'cops', '_next_cop_id', '_last_wanted_decay', 'prison_alarm',
@@ -13302,7 +13302,8 @@ class WorldSim:
         'aggro', 'aggro_covers', 'aggro_capturing_at', '_next_bot_id',
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
-        '_city_gang_encounters',
+        '_city_gang_encounters', '_npc_business_controls',
+        '_npc_gang_economy', '_npc_custodies',
         'gang_nests', '_gang_nest_next_id', '_gang_nest_next_spawn_at',
         '_business_npc_occupations', '_business_npc_capture_cooldown',
         '_business_closed_until', '_business_aggro_until', '_business_police_protected_until',
@@ -13966,6 +13967,16 @@ class WorldSim:
         self._city_gang_next_id = 1
         self._city_gang_next_spawn_at = 0.0
         self._city_gang_encounters = {}
+        self._npc_business_controls = {}
+        economy_now = time.time()
+        self._npc_gang_economy = {
+            faction: {
+                'faction': faction, 'treasury': 240,
+                'last_income_at': economy_now, 'earned': 0, 'spent': 0,
+            }
+            for faction in ('purple', 'yellow')
+        }
+        self._npc_custodies = {}
         # Очередь физических пуль ботов (dodge-механика). Каждый shot
         # имеет apply_at — момент, когда пуля долетит до цели. Если к
         # этому моменту игрок ушёл из радиуса BULLET_DODGE_R от точки
@@ -17133,6 +17144,60 @@ class WorldSim:
                     })
         return pkts
 
+    def _move_cop_to_npc_offender(self, cop: dict, target: dict,
+                                  dt: float, now: float) -> bool:
+        """Use a bounded cached pedestrian route for the final arrest approach."""
+        tx, ty = float(target.get('x') or 0), float(target.get('y') or 0)
+        cx, cy = float(cop.get('x') or 0), float(cop.get('y') or 0)
+        if math.hypot(tx-cx, ty-cy) <= 1.15:
+            return True
+        goal_cell = (int(ty), int(tx))
+        route = cop.get('_npc_route') or []
+        route_i = int(cop.get('_npc_route_i') or 0)
+        needs_route = (not route or route_i >= len(route)
+                       or cop.get('_npc_route_goal') != goal_cell
+                       or now >= float(cop.get('_npc_route_replan_at') or 0))
+        if needs_route:
+            route = _world_bot_path(cx, cy, tx, ty)
+            cop['_npc_route'] = route
+            cop['_npc_route_i'] = 0
+            cop['_npc_route_goal'] = goal_cell
+            cop['_npc_route_replan_at'] = now + 1.35
+            cop['_npc_route_replans'] = int(cop.get('_npc_route_replans') or 0) + 1
+            cop.setdefault('_npc_route_progress_at', now)
+            route_i = 0
+        waypoint = route[route_i] if route_i < len(route) else (tx, ty)
+        wx, wy = float(waypoint[0]), float(waypoint[1])
+        dx, dy = wx-cx, wy-cy
+        dist = math.hypot(dx, dy)
+        if dist <= .28 and route_i < len(route)-1:
+            route_i += 1
+            cop['_npc_route_i'] = route_i
+            wx, wy = route[route_i]
+            dx, dy, dist = wx-cx, wy-cy, math.hypot(wx-cx, wy-cy)
+        elif dist <= .28:
+            wx, wy = tx, ty
+            dx, dy, dist = wx-cx, wy-cy, math.hypot(wx-cx, wy-cy)
+        if dist > .001:
+            step = min(dist, self.COP_CHASE_SPEED * 1.15 * dt)
+            ang = math.atan2(dy, dx)
+            nx, ny = cx + math.cos(ang)*step, cy + math.sin(ang)*step
+            if _world_bot_passable(nx, ny):
+                cop['x'], cop['y'], cop['ang'] = nx, ny, ang
+        moved = math.hypot(float(cop.get('x') or 0)-cx,
+                           float(cop.get('y') or 0)-cy)
+        if moved > .025:
+            cop['_npc_route_progress_at'] = now
+            cop['_npc_route_last_x'], cop['_npc_route_last_y'] = cop['x'], cop['y']
+        elif now-float(cop.get('_npc_route_progress_at') or now) >= 2.2:
+            cop['_npc_route'] = []
+            cop['_npc_route_i'] = 0
+            cop['_npc_route_replan_at'] = 0.0
+            cop['_npc_route_progress_at'] = now
+            cop['_npc_route_stalls'] = int(cop.get('_npc_route_stalls') or 0) + 1
+        return math.hypot(tx-float(cop.get('x') or 0),
+                          ty-float(cop.get('y') or 0)) <= 1.15
+
     def _tick_cop_vs_gang(self, cop: dict, dt: float) -> list:
         """Коп с target_gang_id атакует ближайшего живого бойца группы.
         Если группа уничтожена или ушла в patrol — копу нечего делать,
@@ -18242,6 +18307,84 @@ class WorldSim:
         self.city_gangs.append(gang)
         return gang
 
+    @staticmethod
+    def _city_gang_business_id(gang: dict) -> str:
+        return str(gang.get('_business_target_id') or
+                   gang.get('_business_guard_id') or '')
+
+    def _npc_gang_profile(self, faction: str) -> dict:
+        return self.NPC_GANG_PROFILES.get(
+            str(faction), self.NPC_GANG_PROFILES['purple'])
+
+    @staticmethod
+    def _city_gang_shot_safe(gang: dict, shooter: dict, tx: float, ty: float) -> bool:
+        """Rejects a shot when another member is standing in its lane."""
+        sx, sy = float(shooter.get('x') or 0), float(shooter.get('y') or 0)
+        dx, dy = tx - sx, ty - sy
+        length = (dx * dx + dy * dy) ** .5
+        if length < .2:
+            return False
+        ux, uy = dx / length, dy / length
+        for ally in gang.get('bots') or []:
+            if ally is shooter or not ally.get('alive'):
+                continue
+            ax = float(ally.get('x') or 0) - sx
+            ay = float(ally.get('y') or 0) - sy
+            along = ax * ux + ay * uy
+            if .2 < along < length - .15 and abs(ax * uy - ay * ux) < .58:
+                return False
+        return True
+
+    def _city_gang_fire_on_cops(self, gang: dict, bots: list,
+                                now: float) -> list:
+        """Lets a hostile street gang return fire at dispatched police."""
+        import math as _m
+        cops = [c for c in self.cops if c.get('alive')
+                and str(c.get('target_gang_id') or '') == str(gang.get('id'))]
+        if not cops:
+            return []
+        for bot in sorted(bots, key=lambda b: float(b.get('_shot_t') or 0)):
+            if (not bot.get('alive') or now < float(bot.get('_reload_until') or 0)
+                    or now < float(bot.get('_dodging_until') or 0)):
+                continue
+            cop = min(cops, key=lambda c: (float(c.get('x') or 0)-float(bot.get('x') or 0))**2
+                                       +(float(c.get('y') or 0)-float(bot.get('y') or 0))**2)
+            dx = float(cop.get('x') or 0)-float(bot.get('x') or 0)
+            dy = float(cop.get('y') or 0)-float(bot.get('y') or 0)
+            dist = _m.hypot(dx, dy)
+            weapon = bot.get('weapon') or 'pistol_heavy'
+            stats = self.AGGRO_WEAPON_STATS.get(weapon, self.AGGRO_WEAPON_STATS['pistol'])
+            if (dist > float(stats.get('range', self.CITY_GANG_FIRE_R))
+                    or now-float(bot.get('_shot_t') or 0) < float(stats.get('cd', 1.0))
+                    or not _world_los(bot['x'], bot['y'], cop['x'], cop['y'])
+                    or not self._city_gang_shot_safe(gang, bot, cop['x'], cop['y'])):
+                continue
+            mag_size = int(stats.get('mag', 8))
+            if '_mag' not in bot:
+                bot['_mag'] = mag_size
+            if int(bot.get('_mag') or 0) <= 0:
+                bot['_reload_started'] = now
+                bot['_reload_until'] = now + float(stats.get('reload', 1.8))
+                continue
+            bot['_mag'] -= 1
+            bot['_shot_t'] = now
+            bot['_shooting_until'] = now + .24
+            bot['_combat_state'] = 'shoot'
+            bot['ang'] = _m.atan2(dy, dx)
+            miss = random.random() < .18
+            damage = 0 if miss else self._bandit_damage(int(stats.get('dmg', 7)),
+                                                        int(bot.get('level') or 1))
+            cop['hp'] = max(0, int(cop.get('hp') or 0)-damage)
+            killed = cop['hp'] <= 0
+            if killed:
+                cop['alive'] = False
+            return [{'kind':'gang_shot_cop', 'gid':gang['id'],
+                     'bot_id':bot['id'], 'cop_id':cop['id'], 'weapon':weapon,
+                     'sx':round(bot['x'],2), 'sy':round(bot['y'],2),
+                     'tx':round(cop['x'],2), 'ty':round(cop['y'],2),
+                     'dmg':int(damage), 'miss':miss, 'killed':killed}]
+        return []
+
     def tick_city_gangs(self, dt: float) -> list:
         """AI для бродячих городских банд. Возвращает event-пакеты:
         city_gang_threat (фраза над головой), aggro_shot (если стреляют)."""
@@ -18854,7 +18997,8 @@ class WorldSim:
             bot['_combat_state'] = q['phase']
         return pkts
 
-    def _dispatch_cops_on_gang(self, g: dict, cx: float, cy: float) -> None:
+    def _dispatch_cops_on_gang(self, g: dict, cx: float, cy: float,
+                               count: int | None = None) -> None:
         """Спавним группу копов рядом с hostile-бандой. У копа задаётся
         target_gang_id — в tick_cops он будет атаковать бойцов банды,
         а не игрока."""
