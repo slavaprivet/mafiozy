@@ -5612,12 +5612,14 @@ const NPC_EMPIRE_HQ_BLOCK_KEYS = new Set([
 const JAIL_CENTER_R = 76, JAIL_CENTER_C = 76;
 const JAIL_RADIUS_TILES = 7.0;
 const JAIL_GATE_HALF_RAD = 0.50;
-let _prisonReleaseGateSeconds=0,_prisonLocalJailUntil=0,_prisonReleaseGateOpenedAt=-Infinity;
+let _prisonReleaseGateSeconds=0,_prisonServerJailUntil=0,_prisonServerSentenceActive=false,_prisonServerReleaseAwaitingAck=false;
+let _prisonLocalJailUntil=0,_prisonReleaseGateOpenedAt=-Infinity;
 let _lastPrisonReleaseTransitionAt=-Infinity;
 function _finishPrisonReleaseTransition(now=performance.now(),reason='timer'){
   if(now-_lastPrisonReleaseTransitionAt<2500)return false;
   _lastPrisonReleaseTransitionAt=now;
-  myJailIn=0;_prisonLocalJailUntil=0;_prisonReleaseGateSeconds=0;_custodyPoseResetUntil=0;
+  myJailIn=0;_prisonLocalJailUntil=0;_prisonReleaseGateSeconds=0;_prisonServerJailUntil=0;_prisonServerSentenceActive=false;
+  _prisonServerReleaseAwaitingAck=reason!=='server-release';_custodyPoseResetUntil=0;
   player.vr=0;player.vc=0;player.walking=false;hitStopUntil=0;camShake=0;camKickX=0;camKickY=0;screenFlash=0;
   bullets.length=0;muzzles.length=0;impacts.length=0;shells.length=0;lockedTargets.clear();
   closeNpcActionMenu();_closeBusinessActionCard(false);_beginWorldResume();
@@ -5653,19 +5655,39 @@ function _syncPrisonAlarmFromServer(payload,now=performance.now()){
   }
   return true;
 }
+function _syncPrisonServerJailSeconds(seconds,now=performance.now(),allowExtension=false){
+  const serverSeconds=Math.max(0,+seconds||0);
+  _prisonReleaseGateSeconds=serverSeconds;
+  if(serverSeconds<=0){
+    _prisonServerJailUntil=0;_prisonServerSentenceActive=false;_prisonServerReleaseAwaitingAck=false;
+    return 0;
+  }
+  // A booking event starts a genuinely new/extended sentence. Ordinary
+  // snapshots may only shorten the already-running monotonic deadline: a
+  // repeated stale `jail_in: 7` must not turn seven seconds into forever.
+  if(allowExtension){
+    _prisonServerReleaseAwaitingAck=false;_prisonServerSentenceActive=true;
+    _prisonServerJailUntil=now+serverSeconds*1000;
+  }else if(!_prisonServerReleaseAwaitingAck&&!_prisonServerSentenceActive){
+    _prisonServerSentenceActive=true;_prisonServerJailUntil=now+serverSeconds*1000;
+  }else if(!_prisonServerReleaseAwaitingAck&&_prisonServerJailUntil>0){
+    _prisonServerJailUntil=Math.min(_prisonServerJailUntil,now+serverSeconds*1000);
+  }
+  return _prisonServerReleaseAwaitingAck?0:Math.max(0,Math.ceil((_prisonServerJailUntil-now)/1000));
+}
 function _effectivePrisonJailSeconds(){
   if(_LOCAL_PREVIEW&&_UP.has('previewjailtimer'))return Math.max(0,+_UP.get('previewjailtimer')||0);
   const now=performance.now(),localLeft=_prisonLocalJailUntil>0?Math.max(0,Math.ceil((_prisonLocalJailUntil-now)/1000)):0;
-  if(_LOCAL_PREVIEW)document.documentElement.dataset.prisonTimerDebug=`${Math.round(now)}:${Math.round(_prisonLocalJailUntil)}:${localLeft}:${Math.max(0,+_prisonReleaseGateSeconds||0)}`;
-  if(_prisonLocalJailUntil>0&&localLeft<=0){
-    _prisonLocalJailUntil=0;
-    if((+_prisonReleaseGateSeconds||0)<=0){
-      myJailIn=0;
-      if(!Number.isFinite(_prisonReleaseGateOpenedAt))_prisonReleaseGateOpenedAt=now;
-      _finishPrisonReleaseTransition(now,'local-timer');
-    }
+  const serverLeft=_prisonServerSentenceActive&&_prisonServerJailUntil>0
+    ?Math.max(0,Math.ceil((_prisonServerJailUntil-now)/1000)):0;
+  const effectiveLeft=Math.max(serverLeft,localLeft);
+  if(_LOCAL_PREVIEW)document.documentElement.dataset.prisonTimerDebug=`${Math.round(now)}:${Math.round(_prisonLocalJailUntil)}:${localLeft}:${serverLeft}:${Math.max(0,+_prisonReleaseGateSeconds||0)}`;
+  if(effectiveLeft<=0&&!_murderPoliceArrest&&(myJailIn>0||_prisonStatusJailActive||_prisonServerSentenceActive)){
+    _prisonLocalJailUntil=0;myJailIn=0;
+    if(!Number.isFinite(_prisonReleaseGateOpenedAt))_prisonReleaseGateOpenedAt=now;
+    _finishPrisonReleaseTransition(now,'monotonic-timer');
   }
-  return Math.max(0,+_prisonReleaseGateSeconds||0,localLeft);
+  return effectiveLeft;
 }
 function _prisonReleaseGateProgress(){
   if(_effectivePrisonJailSeconds()>0)return 0;
@@ -13051,6 +13073,7 @@ function _completeLocalPrisonSurrender(ar,cop,now=performance.now()){
   player.r=target.spawnR;player.c=target.spawnC;player.vr=0;player.vc=0;player.walking=false;
   cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
   _prisonLocalJailUntil=now+bookedSeconds*1000;myJailIn=Math.max(myJailIn,bookedSeconds);_prisonReleaseGateOpenedAt=-Infinity;
+  _syncPrisonServerJailSeconds(bookedSeconds,now,true);
   document.documentElement.dataset.localPrisonBookingTimer=String(bookedSeconds);
   const incident=_murderIncidents.find(q=>q?.id===ar.incidentId);if(incident){incident.status='closed';incident.closedAt=now;}
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:String(cop?.id||ar.holdingCopId||''),
@@ -13381,6 +13404,7 @@ function _completeMurderPolicePrisonTransport(v,now=performance.now(),reason='ro
   const bookedSeconds=_LOCAL_PREVIEW&&_UP.has('previewjailduration')
     ?Math.max(1,+_UP.get('previewjailduration')||1):Math.max(1,+ar.jailSeconds||60);
   _prisonLocalJailUntil=now+bookedSeconds*1000;
+  _syncPrisonServerJailSeconds(bookedSeconds,now,true);
   myJailIn=Math.max(myJailIn,bookedSeconds);
   _prisonReleaseGateOpenedAt=-Infinity;
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'citycop_arrest',d:{cop_id:ar.copId,
@@ -23917,6 +23941,7 @@ function handleEventPacket(d) {
       if(d.booking){
         const bookedSeconds=Math.max(1,+d.jail_s||60),now=performance.now();
         _prisonLocalJailUntil=Math.max(_prisonLocalJailUntil,now+bookedSeconds*1000);
+        _syncPrisonServerJailSeconds(bookedSeconds,now,true);
         myJailIn=Math.max(myJailIn,bookedSeconds);_prisonReleaseGateOpenedAt=-Infinity;
         document.documentElement.dataset.prisonBookingTimer=String(bookedSeconds);
         return;
@@ -25614,15 +25639,16 @@ function wsConnect() {
               _clearPrisonAssault('server-booked',performance.now());
             }
           }
-          const serverJailIn=Math.max(0,+d.me.jail_in||0);
+          const sampleNow=performance.now(),serverJailIn=Math.max(0,+d.me.jail_in||0);
+          const effectiveServerJailIn=_syncPrisonServerJailSeconds(serverJailIn,sampleNow,false);
           const localJailIn=_prisonLocalJailUntil>0?Math.max(0,Math.ceil((_prisonLocalJailUntil-performance.now())/1000)):0;
-          myJailIn = Math.max(serverJailIn,localJailIn);
+          myJailIn = Math.max(effectiveServerJailIn,localJailIn);
           if(_murderPoliceArrest&&myJailIn>0){
             _murderPoliceArrest.serverAccepted=true;
             _murderPoliceArrest.jailSeconds=Math.max(_murderPoliceArrest.jailSeconds||0,myJailIn);
           }
-          _prisonReleaseGateSeconds=serverJailIn;
-          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0){_prisonReleaseGateOpenedAt=performance.now();_finishPrisonReleaseTransition(performance.now(),'server-release');}
+          if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0&&serverJailIn<=0){_prisonReleaseGateOpenedAt=sampleNow;_finishPrisonReleaseTransition(sampleNow,'server-release');}
+          else if(previousJailIn>0&&myJailIn<=0&&localJailIn<=0)_effectivePrisonJailSeconds();
           else if(myJailIn>0)_prisonReleaseGateOpenedAt=-Infinity;
         }
         if (typeof d.me.terr_cd === 'number') myTerrCd = d.me.terr_cd;
@@ -64662,6 +64688,20 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonreleaseqa'))setTimeout(()=>{
     jail:myJailIn,localUntil:_prisonLocalJailUntil,transition:document.documentElement.dataset.prisonReleaseTransition||'',resumeFrames:_worldResumeFrames,
   });
 },2800);
+if(_LOCAL_PREVIEW&&_UP.has('previewprisonstalereleaseqa'))setTimeout(()=>{
+  const startedAt=performance.now(),target=JAIL_ISLAND_LAYOUT.intake;
+  player.r=target.spawnR;player.c=target.spawnC;player.vr=0;player.vc=0;player.walking=false;
+  myJailIn=2;_prisonLocalJailUntil=startedAt+1200;_prisonReleaseGateOpenedAt=-Infinity;
+  _syncPrisonServerJailSeconds(2,startedAt,true);
+  const staleSnapshots=setInterval(()=>_syncPrisonServerJailSeconds(7,performance.now(),false),90);
+  setTimeout(()=>{
+    clearInterval(staleSnapshots);_effectivePrisonJailSeconds();
+    document.documentElement.dataset.previewPrisonStaleReleaseQa=JSON.stringify({
+      jail:myJailIn,effective:_effectivePrisonJailSeconds(),awaitingAck:_prisonServerReleaseAwaitingAck,
+      transition:document.documentElement.dataset.prisonReleaseTransition||'',resumeFrames:_worldResumeFrames,
+    });
+  },2600);
+},1000);
 if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
   const now=performance.now(),v=_ensurePoliceResponseFleet()[0];
   if(!v)return;
@@ -68476,6 +68516,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d400-cuffs-foreign-building-actions"></script>
+<script type="module" src="three_preview.js?v=3d401-monotonic-prison-release"></script>
 </body>
 </html>

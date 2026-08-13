@@ -1969,3 +1969,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Include `closed_until` in both marker and shell-skin signatures. When it
   expires, the normal signature path restores cached materials and hides the
   ruin group without a scene scan or per-frame geometry allocation.
+
+## Prison countdown snapshots need a monotonic deadline (2026-08-13, v401)
+
+- Do not use the last positive server `jail_in` sample as a permanent release
+  gate. A delayed or repeated final sample (observed at `7` seconds) otherwise
+  survives after the local deadline and keeps the cell locked indefinitely.
+- Start a monotonic deadline from the authoritative booking/snapshot value.
+  Later ordinary snapshots may shorten that deadline but never extend it;
+  only an explicit booking event may start or extend a sentence.
+- After a monotonic release, ignore repeated positive samples from the same
+  stale sentence until the server acknowledges zero. A new explicit booking
+  clears that latch. This keeps the visible countdown and collision gate moving
+  without inventing a second interval or per-frame allocation.
+- One-tab local QA repeated a synthetic `jail_in: 7` every 90 ms after a
+  two-second booking. It finished at `jail=0`, `effective=0`, exposed
+  `released:1.00`, returned the status to `Гражданский`, and logged no browser
+  or Three.js errors. The noisy scene sample was 15 FPS / 51.1 ms frame work /
+  30.1 ms render, so this package makes no FPS claim.
