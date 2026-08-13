@@ -1313,8 +1313,24 @@ async def apartment_sell(req):
     account = preview_account(uid)
     account["cash"] += refund
     del owned[apt_key]
+    removed_gang = False
+    gid = preview_custom_gang_by_uid.get(str(uid))
+    gang = preview_custom_gangs.get(gid)
+    if gang and str(gang.get("leader_uid")) == str(uid) and gang.get("hq_apt_key") == apt_key:
+        removed_gang = True
+        for member_uid in list(gang.get("members") or []):
+            preview_custom_gang_by_uid.pop(str(member_uid), None)
+            member = players.get(str(member_uid))
+            if member:
+                for key in ("custom_gang_id", "custom_gang_name", "custom_gang_role",
+                            "custom_gang_flag", "custom_gang_hq", "crew_id"):
+                    member.pop(key, None)
+        preview_custom_gangs.pop(gid, None)
     return cors(web.json_response({
         "ok": True, "refund": refund, "cash": account["cash"], "owned": owned,
+        "gang": None if removed_gang else preview_custom_gang_payload(uid),
+        "role_status": "civilian" if removed_gang else "",
+        "headquarters": preview_custom_gang_hqs(),
     }))
 
 
@@ -1353,7 +1369,7 @@ async def custom_gang_state(req):
 async def custom_gang_create(req):
     global preview_custom_gang_seq
     uid=str(req.match_info.get("uid","1")); body=await req.json(); name=" ".join(str(body.get("name") or "").split())[:24]; apt_key=str(body.get("apt_key") or "")[:32]
-    if len(name)<3 or preview_owned_apartments(uid).get(apt_key,{}).get("property_kind")!="hq": return cors(web.json_response({"ok":False,"error":"bad name or hq"},status=409))
+    if len(name)<3 or preview_owned_apartments(uid).get(apt_key,{}).get("property_kind","hq")!="hq": return cors(web.json_response({"ok":False,"error":"bad name or hq"},status=409))
     if uid in preview_custom_gang_by_uid: return cors(web.json_response({"ok":False,"error":"already in gang"},status=409))
     if any(str(g["name"]).casefold()==name.casefold() for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"name taken"},status=409))
     if any(g["hq_apt_key"]==apt_key for g in preview_custom_gangs.values()): return cors(web.json_response({"ok":False,"error":"hq taken"},status=409))

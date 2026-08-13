@@ -15108,6 +15108,14 @@ class WorldSim:
         was_mafia = bool(p.get('_mafia'))
         old_family = str(p.get('_mafia_family') or '')
         now_role = time.time()
+        custom_gang_role = str(p.get('_custom_gang_role') or '')
+        if requested_mafia and p.get('_custom_gang_id'):
+            requested_mafia = False
+            requested_family = ''
+            p['_mafia_join_denied'] = (
+                'custom_gang_owner' if custom_gang_role == 'leader'
+                else 'custom_gang_member'
+            )
         if was_mafia and not requested_mafia:
             p['_mafia_last_family'] = old_family
             p['_mafia_traitor_until'] = now_role + 300.0
@@ -24718,6 +24726,7 @@ async def _coop_http_app():
         return await _cors(web.json_response({
             'ok': True, 'refund': sale['refund'], 'cash': sale['cash'], 'owned': owned,
             'gang': None if removed_members else gang,
+            'role_status': 'civilian' if removed_members else '',
             'headquarters': await get_custom_gang_headquarters(),
             'properties': await get_player_building_properties(),
         }))
