@@ -1,5 +1,23 @@
 # Mafiozi 3D optimization memory
 
+## Player-readable interior camera and global wheel capture (2026-08-13, v386)
+
+- Large authored rooms must not start in an architectural overview. The grand
+  casino now starts at `1.12` orthographic zoom and standard apartments and
+  businesses at `1.22`, while the camera remains centred on the player. Room
+  edges may leave the frame; gameplay readability has priority over fitting the
+  complete floor plan into the first view.
+- Register one capture-phase `wheel` listener for the whole 3D game view, not
+  one listener per room or only on the renderer canvas. HUD overlays can cover
+  the canvas, so canvas-only input makes the wheel appear broken under those
+  layers. The listener is inert outside `three-mode` and preserves independent
+  world/interior zoom scalars.
+- Convert wheel delta to a bounded step and clamp interior zoom to `0.55–1.90`.
+  This supports both notched mice and trackpads without controls objects, scene
+  traversal, per-room listeners or render-loop allocations. Runtime telemetry
+  counts accepted wheel events so browser QA can prove that input reached the
+  camera.
+
 ## Single physical roof signs for key POIs (2026-08-13, v379)
 
 - Key building names must be created from one startup-time POI sign registry.

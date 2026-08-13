@@ -4287,7 +4287,22 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         roots.sort((a,b)=>b[1]-a[1]);window.Mafiozi3DDiagnostics={visibleMeshes,visibleLights,visibleMaterials:materials.size,invalidMaterials:invalidMaterials.slice(0,24),topRoots:roots.slice(0,24),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,fps:measuredFps};
         renderer.domElement.dataset.visibleMeshes=String(visibleMeshes);renderer.domElement.dataset.visibleMaterials=String(materials.size);renderer.domElement.dataset.visibleLights=String(visibleLights);renderer.domElement.dataset.sceneRoots=roots.slice(0,24).map(([name,count])=>`${name}:${count}`).join('|');
       };
-      renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(cameraZoomMode==='world'){worldZoom=THREE.MathUtils.clamp(worldZoom+(e.deltaY<0?.08:-.08),.82,1.3);camera.zoom=worldZoom;renderer.domElement.dataset.worldZoom=worldZoom.toFixed(2);}else{interiorZoom=THREE.MathUtils.clamp(interiorZoom+(e.deltaY<0?.08:-.08),.45,1.7);camera.zoom=interiorZoom;renderer.domElement.dataset.interiorZoom=interiorZoom.toFixed(2);}camera.updateProjectionMatrix();},{passive:false});
+      let cameraWheelEvents=0;
+      const handleCameraWheel=e=>{
+        if(!stage.classList.contains('three-mode'))return;
+        e.preventDefault();
+        const direction=e.deltaY<0?1:-1,step=Math.min(.22,Math.max(.08,Math.abs(e.deltaY)*.0022));
+        if(cameraZoomMode==='world'){
+          worldZoom=THREE.MathUtils.clamp(worldZoom+direction*step,.82,1.3);
+          camera.zoom=worldZoom;renderer.domElement.dataset.worldZoom=worldZoom.toFixed(2);
+        }else{
+          interiorZoom=THREE.MathUtils.clamp(interiorZoom+direction*step,.55,1.9);
+          camera.zoom=interiorZoom;renderer.domElement.dataset.interiorZoom=interiorZoom.toFixed(2);
+        }
+        camera.updateProjectionMatrix();cameraWheelEvents++;
+        renderer.domElement.dataset.cameraWheelEvents=String(cameraWheelEvents);
+      };
+      window.addEventListener('wheel',handleCameraWheel,{passive:false,capture:true});
       const onIdle=callback=>typeof requestIdleCallback==='function'?requestIdleCallback(callback,{timeout:180}):setTimeout(()=>callback({timeRemaining:()=>4}),16);
       let sectorAnchor=initialState?`${Math.floor((+initialState.r||0)/STREAM_SECTOR_SIZE)}:${Math.floor((+initialState.c||0)/STREAM_SECTOR_SIZE)}`:'',sectorLoadScheduled=false,sectorBuildQueue=deferredInitialBuildings.slice(),junkyardProbeAt=0;
       let buildingPumpStarted=false,staticDetailFlushScheduled=false,initialCompileRunning=false,deferredWarmupRunning=false;
@@ -4974,15 +4989,15 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
               nextCameraKey=interiorData.bizId==='major_casino'?'casino':interiorData.kind==='bank'?`bank:${bankSize}:${bankRoom}`:'standard';
             if(cameraZoomMode!=='interior'||cameraZoomKey!==nextCameraKey){
               cameraZoomMode='interior';cameraZoomKey=nextCameraKey;
-              if(interiorData.bizId==='major_casino')interiorZoom=.68;
+              if(interiorData.bizId==='major_casino')interiorZoom=1.12;
               else if(interiorData.kind==='bank'){
                 const roomSpan=Math.max(+interiorData.width||1,+interiorData.height||1);
                 interiorZoom=bankRoom==='vault'?THREE.MathUtils.clamp(14/roomSpan,.88,1.15):THREE.MathUtils.clamp(27/roomSpan,.58,.92);
-              }else interiorZoom=1.08;
+              }else interiorZoom=1.22;
               camera.zoom=interiorZoom;
               camera.updateProjectionMatrix();
               renderer.domElement.dataset.interiorZoom=interiorZoom.toFixed(2);
-              renderer.domElement.dataset.interiorCamera=interiorData.bizId==='major_casino'?'architectural-fit-v2':interiorData.kind==='bank'?`bank-${bankRoom}-fit-v4-${bankSize}`:'standard';
+              renderer.domElement.dataset.interiorCamera=interiorData.bizId==='major_casino'?'player-readable-v3':interiorData.kind==='bank'?`bank-${bankRoom}-fit-v4-${bankSize}`:'player-readable-v3';
             }
           }
           else{
