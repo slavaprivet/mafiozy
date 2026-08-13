@@ -1468,3 +1468,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Purchase price is server-authoritative: district shell + purpose fit-out + a
   bounded area fee. Mirrored client values are presentation only and require a
   regression contract against all eight server fit-out costs.
+
+## First-frame renderer scope guards (2026-08-13, v377)
+
+- The NPC transform pass and the later appearance/equipment pass are separate
+  loops. A block-scoped anatomy scalar from the first loop cannot be reused in
+  the second. Recompute `shoulderX` from that loop's already-cached
+  `bodyProfile` and `shoulderScale`; this is constant arithmetic, not a scan or
+  allocation.
+- Player stance state has the same lifetime rule: locomotion is evaluated after
+  the optional bridge-update block. Cache that frame's state in an outer
+  `playerFrameState` and use null-safe reads so standalone preview mode remains
+  valid.
+- `node --check` cannot detect a runtime scope error. Startup QA must wait past
+  the complete-frame marker and reject `threeStartupFallback=loading-timeout`,
+  a missing `three-mode` stage, or any Three.js console error before publishing.
+- Bump the module query key after a startup exception. Otherwise GitHub Pages
+  or an embedded WebView may continue executing the broken cached module even
+  after the source file is corrected.
