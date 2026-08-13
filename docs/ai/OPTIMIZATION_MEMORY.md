@@ -1318,3 +1318,26 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   tactical police, security, prison staff, an empire boss and crew member, a
   business owner and a medic. Static numeric regression plus all six embedded
   `world.html` syntax checks, the NPC life contract and empire UI contract pass.
+
+## Pooled NPC visual upgrade (2026-08-13, v370)
+
+- Articulate walking legs as a two-bone chain inside the existing `NPC_CAP=72`
+  population loop. Reuse four scratch vectors and one quaternion for thigh,
+  knee, shin and ankle offsets; never allocate vectors or traverse the scene per
+  NPC/frame. Heel/toe pitch and knee flex now come from the shared gait pose.
+- Neck, coat seam, cuffs, shins and shoe soles are five bounded instanced pools,
+  not child meshes created per actor. This spends five constant draw calls at
+  maximum NPC detail while keeping instance counts fixed at 72 or 144. Death,
+  severing and hidden-slot paths must update these pools too, or stale instances
+  will remain at the actor's previous live transform.
+- Generic police, guard and gang weapon classes reuse the ten already existing
+  semantic boss-weapon pools. Pistol, revolver, shotgun, SMG, Tommy gun, rifle,
+  sniper rifle, taser, RPG and melee silhouettes therefore add zero meshes and
+  zero draw calls compared with the old cuboid fallback.
+- Preserve weapon identity in the existing 30-instance shell bridge. Matrix and
+  color signatures include the weapon class, so brass rifle/heavy casings and
+  red shotgun hulls update only when their snapshot changes. No new shell pool,
+  timer or frame scan is needed.
+- `previewnpcvisual=1` reuses the ten-actor anatomy lineup and adds representative
+  weapons plus four casing classes. `node --check`, all six embedded script
+  checks, the NPC visual/walking/life tests and the empire UI contract pass.

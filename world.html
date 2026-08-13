@@ -46407,6 +46407,7 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
       vz: 1.2 + Math.random() * 0.8,
       rot: Math.random() * Math.PI,
       vrot: (Math.random() - 0.5) * 10,
+      weapon,
       life: 700, max: 700,
     });
   }
@@ -63160,15 +63161,15 @@ window.Mafiozi3DBridge = Object.freeze({
     if(_LOCAL_PREVIEW&&_UP.has('previewbosses'))for(const [j,npc] of npcs.filter(x=>x.empireBoss).slice(0,8).entries()){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*4.6;npc.c=player.c+Math.cos(a)*4.6;npc.ang=a+Math.PI;npc.walking=npc.moving=j%2===0;if(_UP.has('previewweaponmodels')){npc._shotAt=fxNow-(fxNow%900);npc._shotWeapon=npc.weapon;}}
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcwalk'))for(const [j,npc] of npcs.filter(x=>!x.dead).slice(0,6).entries()){const a=-1.05+j*.42;npc.r=player.r+Math.sin(a)*4.2;npc.c=player.c+Math.cos(a)*4.2;npc.ang=a+Math.PI;npc.hp=npc.maxHp;npc.forcedCrawl=false;npc.severMask=0;npc.walking=npc.moving=true;npc.speed=2.4;npc.look={...(npc.look||{}),suit:j===0?'#20b8aa':j===1?'#4a9bd8':j===2?'#e59b45':npc.look?.suit};}
-    if(_LOCAL_PREVIEW&&_UP.has('previewnpcanatomy')){
+    if(_LOCAL_PREVIEW&&(_UP.has('previewnpcanatomy')||_UP.has('previewnpcvisual'))){
       const anatomySamples=[
         {id:'qa_walk_civilian_slim',role:'civilian',visualRole:'civilian',name:'QA CIVILIAN SLIM',look:{body:0,gender:0,face:1,hair:1,hat:0}},
-        {id:'qa_walk_police_slim',role:'police',visualRole:'police',police:true,name:'QA POLICE SLIM',look:{body:0,gender:0,face:2,hair:1,hat:2}},
-        {id:'qa_walk_police_heavy',role:'police',visualRole:'police',police:true,responseTier:2,prisonGear:'helmet',name:'QA POLICE HEAVY',look:{body:2,gender:0,face:3,hair:0,hat:0}},
-        {id:'qa_walk_security',role:'guard',visualRole:'guard',guardClass:'major',guardStyle:'casino',name:'QA SECURITY',look:{body:3,gender:0,face:4,hair:2,hat:0}},
-        {id:'qa_walk_prison_guard',role:'prison_guard',visualRole:'guard',prisonStaff:true,behavior:'prison_patrol',prisonGear:'helmet',name:'QA PRISON GUARD',look:{body:2,gender:0,face:5,hair:0,hat:0}},
-        {id:'qa_walk_boss',role:'boss',visualRole:'gang',gang:true,empireBoss:true,bossStyle:7,bossColor:'#6b2730',bossAccent:'#e4bd61',name:'QA BOSS',look:{body:2,gender:0,face:6,hair:7,hat:0}},
-        {id:'qa_walk_crew',role:'gang',visualRole:'gang',gang:true,empireCrew:true,bossColor:'#263448',bossAccent:'#d7dbe5',name:'QA CREW',look:{body:1,gender:0,face:7,hair:4,hat:1}},
+        {id:'qa_walk_police_slim',role:'police',visualRole:'police',police:true,weapon:'pistol',name:'QA POLICE SLIM',look:{body:0,gender:0,face:2,hair:1,hat:2}},
+        {id:'qa_walk_police_heavy',role:'police',visualRole:'police',police:true,weapon:'rifle',responseTier:2,prisonGear:'helmet',name:'QA POLICE HEAVY',look:{body:2,gender:0,face:3,hair:0,hat:0}},
+        {id:'qa_walk_security',role:'guard',visualRole:'guard',weapon:'smg',guardClass:'major',guardStyle:'casino',name:'QA SECURITY',look:{body:3,gender:0,face:4,hair:2,hat:0}},
+        {id:'qa_walk_prison_guard',role:'prison_guard',visualRole:'guard',weapon:'shotgun',prisonStaff:true,behavior:'prison_patrol',prisonGear:'helmet',name:'QA PRISON GUARD',look:{body:2,gender:0,face:5,hair:0,hat:0}},
+        {id:'qa_walk_boss',role:'boss',visualRole:'gang',gang:true,empireBoss:true,weapon:'golden_tommy',bossStyle:7,bossColor:'#6b2730',bossAccent:'#e4bd61',name:'QA BOSS',look:{body:2,gender:0,face:6,hair:7,hat:0}},
+        {id:'qa_walk_crew',role:'gang',visualRole:'gang',gang:true,empireCrew:true,weapon:'sniper',bossColor:'#263448',bossAccent:'#d7dbe5',name:'QA CREW',look:{body:1,gender:0,face:7,hair:4,hat:1}},
         {id:'qa_walk_owner',role:'owner',visualRole:'owner',ownerStyle:3,name:'QA OWNER',look:{body:0,gender:1,face:8,hair:3,hat:0}},
         {id:'qa_walk_medic',role:'medic',visualRole:'civilian',name:'QA MEDIC',look:{body:1,gender:1,face:9,hair:6,hat:0}},
         {id:'qa_walk_civilian_heavy',role:'civilian',visualRole:'civilian',name:'QA CIVILIAN HEAVY',look:{body:3,gender:0,face:0,hair:8,hat:0}},
@@ -63243,7 +63244,8 @@ window.Mafiozi3DBridge = Object.freeze({
     const serviceWater=[];
     const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',projectileKind:String(x.projectileKind||''),fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
     const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
-    const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,life:+x.life||0,max:+x.max||1}));
+    const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,weapon:String(x.weapon||'pistol'),life:+x.life||0,max:+x.max||1}));
+    if(_LOCAL_PREVIEW&&_UP.has('previewnpcvisual')){const shellWeapons=['pistol_heavy','rifle','shotgun','smg'];for(const [i,weapon] of shellWeapons.entries())shellFx.unshift({id:`qa_shell_${weapon}`,r:player.r+1.6+i*.38,c:player.c+1.4,z:.08+i*.05,rot:fxNow*.004+i*.7,weapon,life:700,max:700});document.documentElement.dataset.previewNpcShellClasses=shellWeapons.join(',');}
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:+x.id||i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,rot:+x.rot||0,scale:+x.scale||1,heavy:!!x.heavy,age:fxNow-(+x.born||fxNow)}));
     if(_LOCAL_PREVIEW&&_UP.has('previewbulletfx')){
@@ -67350,7 +67352,7 @@ function chatDuration(text) {
 </script>
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
-<!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v369. -->
-<script type="module" src="three_preview.js?v=3d369-npc-walk-anatomy"></script>
+<!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
+<script type="module" src="three_preview.js?v=3d370-npc-visuals"></script>
 </body>
 </html>

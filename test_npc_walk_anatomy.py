@@ -28,7 +28,7 @@ def run() -> None:
     assert "bodyProfile.bodyX*shoulderScale*.9,1,bodyProfile.bodyZ*depthScale*1.42" in THREE
     assert "npcParts.prisonVest" in THREE and "pose.torsoTwist,pose.shoulderSway" in THREE
     assert "npcWalkingRootBobMax" in THREE
-    assert "shared-low-root-bob-scaled-torso-gear-v369" in THREE
+    assert "pooled-neck-seam-cuffs-soles-articulated-knees-v370" in THREE
 
     # The vest keeps the same close fit for every authored body/gender profile.
     # Before this fix its fixed width protruded by roughly 47% on the slim body.
@@ -57,7 +57,7 @@ def run() -> None:
         "qa_walk_civilian_heavy",
     ):
         assert actor_id in WORLD
-    assert "three_preview.js?v=3d369-npc-walk-anatomy" in WORLD
+    assert "three_preview.js?v=3d370-npc-visuals" in WORLD
 
 
 if __name__ == "__main__":
