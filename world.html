@@ -9341,7 +9341,9 @@ const SPECIALIST_NPCS = UNIQUE_NPC_BLUEPRINTS.map((def,index)=>{const visual=MAF
 });});
 const EMPIRE_CREW_NPCS=[];
 const EMPIRE_HOLDING_GUARDS=[];
+const _empireRecruitedBotIds=new Set();
 const EMPIRE_MAX_ESCORTS=20,EMPIRE_PEACE_ESCORT_CAP=4,EMPIRE_WAR_ESCORT_CAP=8,EMPIRE_VISIBLE_CREW_CAP=36,EMPIRE_VISIBLE_HOLDING_GUARD_CAP=18,EMPIRE_VISIBLE_GUARDED_HOLDINGS=6;
+const EMPIRE_STREET_RECRUIT_R=5.6,EMPIRE_POPIN_SAFE_R=40;
 let _nextEmpireCrewSyncAt=0,_nextEmpireHoldingGuardSyncAt=0,_empireCrewSerial=0,_empireHoldingGuardSerial=0;
 function _empireCrewOrigin(leader,slot,recruitment=null){
   const baseR=+(recruitment?.source_r??leader._empireHqR??leader.r),baseC=+(recruitment?.source_c??leader._empireHqC??leader.c),spread=_empireFormationOffset(slot,Math.max(1,+recruitment?.count||+leader._empireMembers||1),0,.42);
@@ -9349,6 +9351,7 @@ function _empireCrewOrigin(leader,slot,recruitment=null){
 }
 function _spawnEmpireCrewArrival(leader,id,slot,want,now,recruitCandidate=false,fromLair=false){
   const recruitment=(recruitCandidate||fromLair)?leader._empireRecruitment:null,point=_empireCrewOrigin(leader,slot,recruitment),serial=++_empireCrewSerial;
+  if(Math.hypot(point.r-player.r,point.c-player.c)<EMPIRE_POPIN_SAFE_R){document.documentElement.dataset.empirePopinBlocked=`${id}:${slot}`;return null;}
   const crew=spawnNpc(7000+serial,{cityOnly:true});if(!crew)return null;
   Object.assign(crew,{r:point.r,c:point.c,tr:point.r,tc:point.c,id:`empire_crew_${id}_${serial}`,
     name:`${recruitCandidate?'Новобранец':'Подкрепление'} · ${leader._empireGang}`,role:recruitCandidate?'gang_recruit':'gang_member',gang:!recruitCandidate,_empireCrew:true,_empireRecruitCandidate:recruitCandidate,_empireJoining:!recruitCandidate,_empireLeaderId:id,
@@ -9364,7 +9367,55 @@ function _spawnEmpireCrewArrival(leader,id,slot,want,now,recruitCandidate=false,
 function _promoteEmpireRecruit(crew,leader,slot,want,now){
   crew._empireRecruitCandidate=false;crew._empireJoining=true;crew.gang=true;crew.role='gang_member';crew.name=`Боец · ${leader._empireGang}`;crew._empireCrewSlot=slot;crew._empireFormationCount=want;crew._fightWeapon=leader._empireWeaponBase||'pistol';crew._empireWeaponId=leader._empireWeaponId;crew._empireWeaponName=leader._empireWeaponName;crew._empireWeaponProfile=leader._empireWeaponProfile;crew._empirePlayerWar=!!leader._empirePlayerWar;crew._empireEnemyLeaderId=String(leader._empireEnemyLeaderId||'');crew._empireWarStance=String(leader._empireWarStance||'');crew._empireJoinReleaseAt=now;crew.cryText=_empireVoice(crew,'recruit');crew.cryUntil=now+2600;
 }
+function _empireStreetFamily(zone,bot){
+  const raw=String(zone?.mafia_family||bot?.mafia_family||bot?.faction||zone?.faction||'').toLowerCase();
+  if(raw==='yellow'||raw==='moretti')return 'moretti';
+  if(raw==='purple'||raw==='bellini')return 'bellini';
+  return '';
+}
+function _findEmpireStreetRecruit(leader){
+  let best=null,bestD=EMPIRE_STREET_RECRUIT_R;
+  if(typeof aggroZones==='undefined')return null;
+  for(const zone of Object.values(aggroZones||{})){
+    if(!zone?.is_city_gang)continue;
+    for(const bot of (zone.bots||[])){
+      const sourceId=String(bot?.id||''),family=_empireStreetFamily(zone,bot);
+      if(!sourceId||!family||_hiredBotIds?.has?.(sourceId)||_empireRecruitedBotIds.has(sourceId)||
+          bot.dead||bot.alive===false||(+bot.hp||0)<=0||bot.burning||bot.fleeing_fire||_isDistrictDefenderBot(bot)||
+          bot.is_boss||bot.boss||String(bot.kind||'').includes('boss'))continue;
+      const r=+(bot.y??bot.r),c=+(bot.x??bot.c),distance=Math.hypot(r-leader.r,c-leader.c);
+      if(!Number.isFinite(r)||!Number.isFinite(c)||distance>bestD)continue;
+      best={zone,bot,sourceId,family,r,c};bestD=distance;
+    }
+  }
+  return best;
+}
+function _adoptEmpireStreetRecruit(leader,id,slot,want,now,found){
+  const {zone,bot,sourceId,family,r,c}=found||{};if(!zone||!bot)return null;
+  const at=zone.bots?.indexOf(bot);if(at<0)return null;
+  zone.bots.splice(at,1);_empireRecruitedBotIds.add(sourceId);
+  const familyName=family==='moretti'?'Моретти':'Беллини',serial=++_empireCrewSerial;
+  Object.assign(bot,{r,c,tr:r,tc:c,id:`empire_street_${id}_${serial}`,alive:true,dead:false,
+    name:`${familyName} · ${leader._empireGang}`,role:'gang_member',gang:true,_empireCrew:true,_empireRecruitCandidate:false,_empireJoining:true,
+    _empireStreetRecruit:true,_empireStreetFamily:family,_empireSourceBotId:sourceId,_empireLeaderId:id,
+    _empireCrewSlot:slot,_empireFormationCount:want,_fightWeapon:bot.weapon||leader._empireWeaponBase||'pistol',
+    _empireJoinReleaseAt:now,_empirePlayerWar:!!leader._empirePlayerWar,_empireEnemyLeaderId:String(leader._empireEnemyLeaderId||''),
+    _empireWarStance:String(leader._empireWarStance||''),_empireStrength:+leader._empireStrength||80,
+    _empireWeaponId:leader._empireWeaponId,_empireWeaponName:leader._empireWeaponName,_empireWeaponProfile:leader._empireWeaponProfile,
+    _empireDoctrine:leader._empireDoctrine||NPC_EMPIRE_DOCTRINES[id]||null,speed:1.04+(slot%2)*.08,
+    cryText:`${familyName}: теперь я с вами!`,cryUntil:now+2800});
+  EMPIRE_CREW_NPCS.push(bot);NPCS.push(bot);_empireSpeak(leader,'recruit',now,2500,true);
+  document.documentElement.dataset.empireStreetRecruit=`${id}:${family}:${sourceId}`;
+  return bot;
+}
+function _releaseEmpireStreetRecruit(crew){
+  if(crew?._empireSourceBotId)_empireRecruitedBotIds.delete(String(crew._empireSourceBotId));
+}
 function _applyEmpireCrewStyle(crew,leader){
+  // A Bellini/Moretti street recruit keeps the suit the player saw before the
+  // handshake.  The unchanged person walking into formation makes recruitment
+  // readable and avoids a one-frame replacement/outfit pop.
+  if(crew?._empireStreetRecruit)return;
   const primary=leader._empireColor||leader.look?.suit||'#872f3b',accent=leader._empireAccent||leader.look?.accent||'#e8bd67';
   crew._empireColor=primary;crew._empireAccent=accent;crew._empireStyle=leader._empireStyle;crew._empireGang=leader._empireGang;crew._empireDoctrine=leader._empireDoctrine||NPC_EMPIRE_DOCTRINES[_empireLeaderIdOf(leader)]||null;
   const sig=`${primary}:${accent}`;
@@ -9447,13 +9498,14 @@ function _syncEmpireBossCrews(now=performance.now()){
     const crew=EMPIRE_CREW_NPCS[i],id=String(crew._empireLeaderId),same=EMPIRE_CREW_NPCS.filter(x=>String(x._empireLeaderId)===id&&!!x._empireRecruitCandidate===!!crew._empireRecruitCandidate),keep=crew._empireRecruitCandidate?(pending.get(id)||0):(desired.get(id)||0);
     if(crew.dead||crew._ambulanceDispatched||crew._ambulanceInTransit)continue;
     const ordinal=same.indexOf(crew);
-    if(ordinal>=keep){const at=NPCS.indexOf(crew);if(at>=0)NPCS.splice(at,1);EMPIRE_CREW_NPCS.splice(i,1);}
+    if(ordinal>=keep){const at=NPCS.indexOf(crew);if(at>=0)NPCS.splice(at,1);_releaseEmpireStreetRecruit(crew);EMPIRE_CREW_NPCS.splice(i,1);}
   }
   let spawnBudget=3;
   for(const leader of leaders){
     const id=String(leader._specialistId),want=desired.get(id)||0,pendingWant=pending.get(id)||0;
     let active=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated&&!x._empireRecruitCandidate),candidates=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated&&x._empireRecruitCandidate);
     while(active.length<want&&candidates.length){const crew=candidates.shift();_promoteEmpireRecruit(crew,leader,active.length,want,now);active.push(crew);}
+    while(active.length<want){const found=_findEmpireStreetRecruit(leader);if(!found)break;const recruit=_adoptEmpireStreetRecruit(leader,id,active.length,want,now,found);if(!recruit)break;active.push(recruit);}
     for(const crew of EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id)){
       if(crew._empireRecruitCandidate)continue;
       crew._empirePlayerWar=!!leader._empirePlayerWar;
@@ -9465,11 +9517,13 @@ function _syncEmpireBossCrews(now=performance.now()){
       if(!crew._empirePlayerWar&&crew._empireWarFighting){crew._empireWarFighting=false;crew._fighting=false;crew._nextShootAt=0;}
     }
     let recentLairSlots=Math.min(leader._empireRecruitment?.completed?(+leader._empireRecruitment?.count||0):0,Math.max(0,want-active.length),3);
-    for(let slot=active.length;slot<want&&spawnBudget>0&&EMPIRE_CREW_NPCS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_CREW_CAP;slot++,spawnBudget--){const fromLair=recentLairSlots>0;if(fromLair)recentLairSlots--;_spawnEmpireCrewArrival(leader,id,slot,want,now,false,fromLair);}
+    const popinSafe=Math.hypot(leader.r-player.r,leader.c-player.c)>=EMPIRE_POPIN_SAFE_R;
+    for(let slot=active.length;popinSafe&&slot<want&&spawnBudget>0&&EMPIRE_CREW_NPCS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_CREW_CAP;slot++,spawnBudget--){const fromLair=recentLairSlots>0;if(fromLair)recentLairSlots--;_spawnEmpireCrewArrival(leader,id,slot,want,now,false,fromLair);}
     candidates=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated&&x._empireRecruitCandidate);
     for(let slot=candidates.length;slot<pendingWant&&spawnBudget>0&&EMPIRE_CREW_NPCS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_CREW_CAP;slot++,spawnBudget--)_spawnEmpireCrewArrival(leader,id,slot,pendingWant,now,true);
   }
   document.documentElement.dataset.empireVisibleCrew=String(EMPIRE_CREW_NPCS.length);
+  document.documentElement.dataset.empireStreetRecruits=String(EMPIRE_CREW_NPCS.filter(x=>x._empireStreetRecruit&&!x.dead&&!x._evacuated).length);
   document.documentElement.dataset.empireStreetRoster=`peace-${EMPIRE_PEACE_ESCORT_CAP}:war-${EMPIRE_WAR_ESCORT_CAP}:family-${EMPIRE_MAX_ESCORTS}`;
   const motionSample=leaders[0]||SPECIALIST_NPCS.find(n=>!n._hiddenByEmpire);
   if(motionSample)document.documentElement.dataset.empireBossMotion=[
@@ -10408,7 +10462,7 @@ function maintainNpcPopulation(now) {
       else document.documentElement.dataset.lastCorpseRemoval='hospital-delivery';
       const respawn=_isRespawnableResident(n)&&!n._residentReplacementScheduled;
       NPCS.splice(i, 1);
-      if(n._empireCrew){const ei=EMPIRE_CREW_NPCS.indexOf(n);if(ei>=0)EMPIRE_CREW_NPCS.splice(ei,1);const gi=EMPIRE_HOLDING_GUARDS.indexOf(n);if(gi>=0)EMPIRE_HOLDING_GUARDS.splice(gi,1);}
+      if(n._empireCrew){_releaseEmpireStreetRecruit(n);const ei=EMPIRE_CREW_NPCS.indexOf(n);if(ei>=0)EMPIRE_CREW_NPCS.splice(ei,1);const gi=EMPIRE_HOLDING_GUARDS.indexOf(n);if(gi>=0)EMPIRE_HOLDING_GUARDS.splice(gi,1);}
       if(respawn&&!_scheduleResidentRespawn(n,now))RESIDENT_RESPAWN_BACKLOG.push({_arcKey:n._arcKey,_beach:n._beach,_appearanceGeneration:(+n._appearanceGeneration||0)+1});
     } else if (n._guard && n._hostileUntil && now > n._hostileUntil + 5000) {
       NPCS.splice(i, 1);
@@ -22429,7 +22483,7 @@ function applyAggroTargets(newAggro) {
       // Новая зона — копируем как есть, x=tx (нет интерполяции с нуля)
       const z = JSON.parse(JSON.stringify(fresh));
       // Нанятые игроком боты (сервер про найм не знает) — фильтруем по id
-      z.bots = (z.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
+      z.bots = (z.bots || []).filter(b => !_hiredBotIds.has(String(b.id))&&!_empireRecruitedBotIds.has(String(b.id)));
       for (const b of z.bots) {
         b.faction = b.faction || z.faction || 'purple';
         b.tx = b.x; b.ty = b.y; b.tAng = b.ang || 0;
@@ -22447,7 +22501,7 @@ function applyAggroTargets(newAggro) {
     cur.is_city_gang = !!fresh.is_city_gang;
     // Боты — мерж по id. Нанятых (см. _hiredBotIds) выкидываем — иначе
     // рядом с наёмником ходит его «клон»-оригинал и атакует игрока.
-    const newBots = (fresh.bots || []).filter(b => !_hiredBotIds.has(String(b.id)));
+    const newBots = (fresh.bots || []).filter(b => !_hiredBotIds.has(String(b.id))&&!_empireRecruitedBotIds.has(String(b.id)));
     const oldById = new Map((cur.bots || []).map(b => [b.id, b]));
     const merged = [];
     for (const nb of newBots) {

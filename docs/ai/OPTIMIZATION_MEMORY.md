@@ -1825,3 +1825,11 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Reuse the same stretcher/loading/return state machine for NPCs and players. Special-casing the player in the old `working` phase caused an instant revive at the incident instead of physical transport.
 - Hide the original player model only after `_carriedByAmbulance` becomes true, while the stretcher body is visible, and keep it hidden during `_ambulanceInTransit`. Restore and teleport at hospital delivery, then send the authoritative revive with the validated hospital exit coordinates.
 - The death overlay must describe the current ambulance phase and suppress the old numeric respawn countdown while evacuation is active; otherwise the UI promises a respawn that the transport intentionally postpones.
+
+## 2026-08-13 — Empire crews recruit existing city fighters
+
+- Never fill an escort slot beside a boss while that boss is already visible. Every synthetic arrival point (including Lair recruitment sources) is rejected inside a conservative 40-tile player radius, so the squad exists before the player approaches instead of materializing in front of them.
+- Every 1.8-second empire roster sync may inspect the already bounded `aggroZones` snapshot for an ordinary living city-gang fighter within 5.6 tiles of a boss. Only Bellini/Moretti (`purple`/`yellow`) city gangs qualify; district defenders, bosses, burning actors and player-hired bots remain untouched.
+- Recruitment transfers the same actor object and appearance from its server-smoothed city group into `EMPIRE_CREW_NPCS`. Keep the original family suit and make that actor walk into the boss formation with a joining line; replacing it with a new random NPC or changing clothes on the handshake frame recreates the pop-in visually.
+- Filter the transferred server bot id from subsequent snapshots while the local escort exists, then release that id when the escort is pruned or medically removed. This prevents a duplicate hostile clone without retaining ids forever.
+- The search belongs in the throttled roster sync, never in the render loop. Expose `empireStreetRecruit` and the bounded `empireStreetRecruits` count for regression QA.
