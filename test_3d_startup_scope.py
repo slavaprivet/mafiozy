@@ -19,10 +19,12 @@ def run() -> None:
     assert "const state=playerFrameState=bridge.getPlayerState()" in THREE
     assert "!!playerFrameState?.prone" in THREE
     assert "!!playerFrameState?.crouching" in THREE
-    assert "three_preview.js?v=3d393-bounded-resident-door-routes" in WORLD
+    assert "three_preview.js?v=3d395-gang-squad-integrity" in WORLD
     assert "_residentBuildingRouteBudget=1" in WORLD
     assert "if(_residentBuildingRouteBudget<=0)" in WORLD
     assert "if(telemetryDue){renderer.domElement.dataset.buildingDoorMoving" in THREE
+    assert "gangMatrixActiveSlots=new Array(NPC_CAP).fill(true)" in THREE
+    assert "if(gangMatricesDirty){npcParts.gangAura.instanceMatrix.needsUpdate=true" in THREE
 
 
 if __name__ == "__main__":

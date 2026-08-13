@@ -14201,7 +14201,7 @@ class WorldSim:
                     cop.pop('_police_escort_uid', None)
         crew_id = str((p or {}).get('_crew_id') or '')
         self.players.pop(uid, None)
-        if crew_id:
+        if crew_id and not crew_id.startswith('cg:'):
             left = [q for q in self.players.values() if str(q.get('_crew_id') or '') == crew_id]
             if len(left) < 2:
                 for q in left: q.pop('_crew_id', None)
@@ -26375,7 +26375,8 @@ async def _coop_http_app():
                             if mws: await mws.send_str(json.dumps({'t':'event','d':payload},ensure_ascii=False))
                     elif t in ('gang_player_leave','gang_player_kick'):
                         actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
-                        if crew_id and target and str(target.get('_crew_id') or '')==crew_id:
+                        if (crew_id and not crew_id.startswith('cg:') and target
+                                and str(target.get('_crew_id') or '')==crew_id):
                             target.pop('_crew_id',None); left=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                             if len(left)<2:
                                 for q in left:q.pop('_crew_id',None)
