@@ -1,5 +1,32 @@
 # Mafiozi 3D optimization memory
 
+## Resilient player locomotion and low-stance gait (2026-08-13, v397)
+
+- Player gait must not depend on one instantaneous bridge-speed sample. The
+  gameplay simulation and renderer run at different cadences, so a valid
+  walking frame can contain `speed=0` between two position samples. Combine
+  authoritative `walking`, measured bridge speed and the renderer's actual
+  smoothed world travel; retain collision correctness by keeping the visual
+  travel term zero when the avatar does not move.
+- Normalize gait amplitude against the active stance speed. Dividing crawl and
+  crouch movement by the standing run speed makes their limbs appear frozen
+  even though their position changes. Prone, crouched and standing movement use
+  separate speed references while sharing the same allocation-free phase.
+- Low stances keep alternating contralateral limbs: prone crawling adds a
+  visible knee compression and shoulder pull, while crouch walking adds weight
+  transfer, shin tracking and head counter-motion. Existing arrest, death,
+  vehicle, reload and weapon-pose priorities remain authoritative.
+- NPC gait remains on the shared bounded motion-state pool. Its source-walking
+  and measured-travel fallback, articulated knees and firing-pose priority were
+  regression-checked; do not create a separate NPC animation loop.
+- One-tab localhost QA observed both left/right standing steps, both crouched
+  knee steps and both prone arm pulls. Normal keyboard input without a forced
+  walking fixture also entered a non-idle gait and non-planted step. The same
+  populated frame reported 35 animated NPCs and 35 walking-arm poses across
+  police and civilians, with no JavaScript or Three.js errors. A representative
+  native-quality sample was 16 FPS, 55.5 ms frame work, 31.1 ms render, 748 draw
+  calls and 1.82M triangles; this correctness patch does not claim an FPS gain.
+
 ## Gang squad integrity and idle matrix uploads (2026-08-13, v395)
 
 - A persistent custom gang uses a `cg:*` crew id. Temporary party leave/kick
