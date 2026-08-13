@@ -9053,7 +9053,11 @@ const NPC_EMPIRE_DOCTRINES=Object.freeze({
   yana:{id:'coordinator',label:'Синхронный приказ',signature:'sync_volley',orders:['regroup','focus','flank'],retreat_hp:.27,preferred_range:6.5,focus:'threat'},
   musa:{id:'attrition',label:'Война на истощение',signature:'supply_cache',orders:['hold','regroup','press'],retreat_hp:.29,preferred_range:8.5,focus:'wounded'}
 });
+const NPC_EMPIRE_MINDSETS=Object.freeze({
+  triage:{patience:.82,adaptability:.76,courage:.46},ambush:{patience:.48,adaptability:.61,courage:.88},mobile:{patience:.34,adaptability:.91,courage:.74},negotiator:{patience:.89,adaptability:.83,courage:.39},denial:{patience:.72,adaptability:.58,courage:.81},rally:{patience:.61,adaptability:.79,courage:.69},fortress:{patience:.94,adaptability:.42,courage:.72},investor:{patience:.91,adaptability:.68,courage:.31},recon:{patience:.86,adaptability:.88,courage:.52},disrupt:{patience:.57,adaptability:.96,courage:.63},controller:{patience:.43,adaptability:.66,courage:.91},landlord:{patience:.84,adaptability:.71,courage:.55},logistics:{patience:.64,adaptability:.93,courage:.67},duelist:{patience:.22,adaptability:.54,courage:.98},armored:{patience:.78,adaptability:.49,courage:.86},exposure:{patience:.93,adaptability:.87,courage:.28},predator:{patience:.74,adaptability:.94,courage:.77},coordinator:{patience:.69,adaptability:.98,courage:.62},attrition:{patience:.88,adaptability:.73,courage:.58}
+});
 function _empireDoctrineOf(n){const id=_empireLeaderIdOf(n);return n?._empireDoctrine||NPC_EMPIRE_DOCTRINES[id]||NPC_EMPIRE_DOCTRINES.marat;}
+function _empireMindsetOf(doctrine){return doctrine?.mindset||NPC_EMPIRE_MINDSETS[doctrine?.id]||{patience:.65,adaptability:.65,courage:.65};}
 // Six contextual lines per boss and per family crew: idle, war, recruitment,
 // retreat, wounded and a personal war against the player. No generic debug
 // labels are used as street dialogue.
@@ -9294,28 +9298,67 @@ function _empireSquadOrder(n,now=performance.now()){
   return order;
 }
 const _empirePlayerOrders=new Map();
+const _empireCombatLessons=new Map();
+function _empireLessonFor(leaderId,now=performance.now()){
+  let lesson=_empireCombatLessons.get(leaderId);
+  if(!lesson){lesson={windowAt:now,incoming:0,shots:0,hits:0,casualties:0,failureStreak:0,lastFailedOrder:'',lastWeaponBand:'medium',lastContactAt:now};_empireCombatLessons.set(leaderId,lesson);}
+  if(now-lesson.windowAt>8000){lesson.incoming*=.38;lesson.shots=Math.round(lesson.shots*.4);lesson.hits=Math.round(lesson.hits*.4);lesson.casualties=Math.round(lesson.casualties*.5);lesson.windowAt=now;}
+  return lesson;
+}
+function _empireRecordIncoming(target,damage,weapon,now=performance.now()){
+  const lesson=_empireLessonFor(_empireLeaderIdOf(target),now);lesson.incoming+=Math.max(0,+damage||0);lesson.lastWeaponBand=/fists|knife|bat|melee/.test(String(weapon))?'melee':/sniper|rifle/.test(String(weapon))?'long':/rpg|shotgun/.test(String(weapon))?'heavy':'medium';lesson.lastContactAt=now;
+}
+function _empireRecordAttack(n,hit,now=performance.now()){
+  const lesson=_empireLessonFor(_empireLeaderIdOf(n),now);lesson.shots++;if(hit)lesson.hits++;lesson.lastContactAt=now;
+}
+function _empireEvaluatePreviousOrder(previous,facts,lesson){
+  if(!previous?.snapshot)return;
+  const pressure=(previous.snapshot.bossHealth-facts.bossHealth)*1.25+(previous.snapshot.ownCount-facts.ownCount)*.16,progress=(previous.snapshot.playerHealth-facts.playerHealth)+Math.max(0,facts.ownCount-previous.snapshot.ownCount)*.04;
+  if(pressure-progress>.08){lesson.failureStreak=Math.min(5,lesson.failureStreak+1);lesson.lastFailedOrder=previous.type;}else if(progress>pressure+.04){lesson.failureStreak=Math.max(0,lesson.failureStreak-1);if(!lesson.failureStreak)lesson.lastFailedOrder='';}
+}
+function _empireChoosePlayerOrder(doctrine,facts){
+  const allowed=new Set(doctrine.orders||['hold','focus','withdraw']),scores={hold:0,regroup:0,flank:0,focus:0,press:0,withdraw:0},reasons=[],lesson=facts.lesson||{},mind=facts.mindset||{patience:.65,adaptability:.65,courage:.65};
+  for(const key of Object.keys(scores))if(!allowed.has(key))scores[key]-=18;
+  (doctrine.orders||[]).forEach((key,index)=>{scores[key]=(scores[key]||0)+(3-index)*3;});
+  if(!facts.bossAlive){scores.withdraw+=100;reasons.push('boss_down');}
+  if(facts.bossHealth<doctrine.retreat_hp){scores.withdraw+=42;scores.regroup+=24;reasons.push('boss_wounded');}
+  if(facts.power<.72){scores.withdraw+=34;scores.regroup+=18;reasons.push('outnumbered');}
+  if(facts.spread>5.8){scores.regroup+=28;scores.focus-=8;reasons.push('formation_broken');}
+  if(facts.playerHealth<.42){scores.focus+=30;scores.press+=24;reasons.push('player_wounded');}
+  if(facts.power>2.6){scores.press+=26;scores.focus+=18;reasons.push('advantage');}
+  if(facts.weaponBand==='melee'){scores.hold+=15;scores.flank+=12;scores.press-=5;reasons.push('counter_melee');}
+  else if(facts.weaponBand==='long'){scores.flank+=22;scores.press+=12;scores.hold-=8;reasons.push('break_range');}
+  else if(facts.weaponBand==='heavy'){scores.flank+=18;scores.regroup+=10;scores.hold-=12;reasons.push('avoid_heavy');}
+  if(facts.distance>9){scores.press+=12;scores.flank+=8;}else if(facts.distance<2.4){scores.hold+=10;scores.regroup+=7;}
+  if((lesson.incoming||0)>55){scores.regroup+=20;scores.flank+=14;scores.press-=12;reasons.push('under_fire');}
+  if((lesson.shots||0)>=5&&(lesson.hits||0)/Math.max(1,lesson.shots)<.42){scores.focus+=14;scores.flank+=12;scores.hold-=7;reasons.push('poor_accuracy');}
+  if((lesson.casualties||0)>=2){scores.regroup+=22;scores.withdraw+=12;reasons.push('casualties');}
+  if((lesson.failureStreak||0)>=2&&lesson.lastFailedOrder){scores[lesson.lastFailedOrder]=(scores[lesson.lastFailedOrder]||0)-(14+mind.adaptability*22);scores.regroup+=6+mind.adaptability*8;scores.flank+=mind.adaptability*10;reasons.push('change_failed_plan');}
+  scores.hold+=mind.patience*13;scores.regroup+=mind.patience*5;scores.press+=mind.courage*16;scores.focus+=mind.courage*8;scores.withdraw+=(1-mind.courage)*8;scores.flank+=mind.adaptability*9;
+  if(['fortress','attrition','negotiator'].includes(doctrine.id))scores.hold+=16;
+  if(['mobile','recon','disrupt','predator','landlord'].includes(doctrine.id))scores.flank+=16;
+  if(['duelist','controller','ambush'].includes(doctrine.id))scores.press+=14;
+  if(['triage','rally','logistics','coordinator'].includes(doctrine.id))scores.regroup+=10;
+  const ranked=Object.entries(scores).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  return {type:ranked[0][0],reason:reasons.slice(-4).join('+')||'doctrine',scores:ranked};
+}
 function _empirePlayerSquadOrder(n,now=performance.now()){
   const leaderId=_empireLeaderIdOf(n),key=`${leaderId}>player`,previous=_empirePlayerOrders.get(key);
   if(previous&&now<previous.until)return previous;
   const own=_empireCombatPool().filter(x=>_empireLeaderIdOf(x)===leaderId&&Math.hypot(x.r-player.r,x.c-player.c)<18);
   const boss=own.find(x=>x._empireBoss),doctrine=_empireDoctrineOf(n),center=own.length?own.reduce((a,x)=>(a.r+=x.r,a.c+=x.c,a),{r:0,c:0}):{r:n.r,c:n.c};center.r/=Math.max(1,own.length);center.c/=Math.max(1,own.length);
   const spread=own.reduce((m,x)=>Math.max(m,Math.hypot(x.r-center.r,x.c-center.c)),0),bossHealth=boss?(+boss._empireBattleHp||1)/Math.max(1,+boss._empireBattleMaxHp||1):0;
-  const playerHealth=Math.max(.05,(+myHp||1)/Math.max(1,+PVP?.max_hp||100)),power=(own.length*(.55+bossHealth*.45))/playerHealth,allowed=doctrine.orders||['hold','focus','withdraw'];
-  let type='hold';
-  if(!boss||bossHealth<doctrine.retreat_hp*.72||power<.62)type=allowed.includes('withdraw')?'withdraw':'regroup';
-  else if(spread>6&&allowed.includes('regroup'))type='regroup';
-  else if(['fortress','attrition','negotiator'].includes(doctrine.id)&&allowed.includes('hold'))type='hold';
-  else if(['mobile','recon','disrupt','predator','landlord'].includes(doctrine.id)&&own.length>=3&&allowed.includes('flank'))type='flank';
-  else if((playerHealth<.48||power>3.2)&&allowed.includes('focus'))type='focus';
-  else if(allowed.includes('press'))type='press';else type=allowed[0]||'hold';
-  const order={type,center,ownBoss:boss,ratio:power,until:now+EMPIRE_SQUAD_ORDER_MS,doctrine,announcedAt:+previous?.announcedAt||0};_empirePlayerOrders.set(key,order);
-  if(type!==previous?.type&&boss&&now-order.announcedAt>5000){_empireSpeak(boss,type==='withdraw'?'retreat':type==='regroup'?'return':type==='flank'?'scatter':'playerWar',now,1900,true);order.announcedAt=now;}
-  document.documentElement.dataset.empirePlayerOrder=`${leaderId}:${type}:${doctrine.id}`;return order;
+  const playerHealth=Math.max(.05,(+myHp||1)/Math.max(1,+PVP?.max_hp||100)),power=(own.length*(.55+bossHealth*.45))/playerHealth,weapon=String(resolveWeapon(currentWeapon)||currentWeapon||'fists'),weaponBand=/fists|knife|bat|melee/.test(weapon)?'melee':/sniper|rifle/.test(weapon)?'long':/rpg|shotgun/.test(weapon)?'heavy':'medium',distance=boss?Math.hypot(boss.r-player.r,boss.c-player.c):99;
+  const lesson=_empireLessonFor(leaderId,now),mindset=_empireMindsetOf(doctrine),facts={bossAlive:!!boss,bossHealth,power,spread,playerHealth,weaponBand,distance,ownCount:own.length,lesson,mindset};_empireEvaluatePreviousOrder(previous,facts,lesson);
+  const decision=_empireChoosePlayerOrder(doctrine,facts);
+  const order={type:decision.type,reason:decision.reason,scores:decision.scores,center,ownBoss:boss,ratio:power,playerHealth,weaponBand,lesson,mindset,until:now+EMPIRE_SQUAD_ORDER_MS,doctrine,announcedAt:+previous?.announcedAt||0,snapshot:{bossHealth,playerHealth,ownCount:own.length}};_empirePlayerOrders.set(key,order);
+  if(order.type!==previous?.type&&boss&&now-order.announcedAt>5000){_empireSpeak(boss,order.type==='withdraw'?'retreat':order.type==='regroup'?'return':order.type==='flank'?'scatter':'playerWar',now,1900,true);order.announcedAt=now;}
+  document.documentElement.dataset.empirePlayerOrder=`${leaderId}:${order.type}:${doctrine.id}:${order.reason}`;return order;
 }
 function _empireUseSignature(n,order,now){
   if(!n?._empireBoss||now<(n._empireSignatureAt||0))return;
-  const doctrine=order.doctrine||_empireDoctrineOf(n),allies=_empireCombatPool().filter(x=>_empireLeaderIdOf(x)===_empireLeaderIdOf(n)&&Math.hypot(x.r-n.r,x.c-n.c)<9);
-  n._empireSignatureAt=now+6500+(Math.max(0,+n._empireStyle||0)%5)*620;
+  const doctrine=order.doctrine||_empireDoctrineOf(n),mind=order.mindset||_empireMindsetOf(doctrine),allies=_empireCombatPool().filter(x=>_empireLeaderIdOf(x)===_empireLeaderIdOf(n)&&Math.hypot(x.r-n.r,x.c-n.c)<9);
+  n._empireSignatureAt=now+(6500+(Math.max(0,+n._empireStyle||0)%5)*620)*(1.12-mind.adaptability*.22);
   if(doctrine.signature==='triage'){const hurt=allies.sort((a,b)=>(+a._empireBattleHp||0)/Math.max(1,+a._empireBattleMaxHp||1)-(+b._empireBattleHp||0)/Math.max(1,+b._empireBattleMaxHp||1))[0];if(hurt){hurt._empireBattleHp=Math.min(hurt._empireBattleMaxHp,hurt._empireBattleHp+hurt._empireBattleMaxHp*.16);spawnFloatText(hurt.r,hurt.c,'✚ ПОЛЕВАЯ ПОМОЩЬ',{color:'#9affb0',size:12,life:1200});}}
   else if(doctrine.signature==='rally'){for(const a of allies){a._empireBattleHp=Math.min(a._empireBattleMaxHp,a._empireBattleHp+a._empireBattleMaxHp*.07);a._empirePressUntil=now+2600;}spawnFloatText(n.r,n.c,'СОМКНУТЬ КРУГ!',{color:n._empireAccent||'#8fffc5',size:13,life:1300});}
   else if(doctrine.signature==='paid_backup'||doctrine.signature==='resupply'||doctrine.signature==='supply_cache'){for(const a of allies){a._nextShootAt=Math.min(+a._nextShootAt||Infinity,now+260);a._empireBattleHp=Math.min(a._empireBattleMaxHp,a._empireBattleHp+a._empireBattleMaxHp*.045);}spawnFloatText(n.r,n.c,'СНАБЖЕНИЕ!',{color:n._empireAccent||'#ffd86b',size:12,life:1100});}
@@ -9323,9 +9366,14 @@ function _empireUseSignature(n,order,now){
   else if(doctrine.signature==='mark_target'||doctrine.signature==='expose'){player._empireMarkedUntil=now+4200;spawnFloatText(player.r,player.c,'ЦЕЛЬ ПОМЕЧЕНА',{color:'#ffe36c',size:12,life:1200});}
   else if(doctrine.signature==='vanish'){n._empireHiddenUntil=now+2200;n._empireScatterUntil=now+2200;n._empireScatterAngle=Math.atan2(n.r-player.r,n.c-player.c)+(Math.random()<.5?-1:1)*1.2;spawnFloatText(n.r,n.c,'ТЕНЬ',{color:'#b997e8',size:12,life:900});}
   else if(doctrine.signature==='sync_volley'){for(const a of allies)a._nextShootAt=now+320;spawnFloatText(n.r,n.c,'ЗАЛП ПО КОМАНДЕ!',{color:'#75eee5',size:12,life:1200});}
-  else if(doctrine.signature==='false_target'){n._empireDecoyUntil=now+3200;spawnFloatText(n.r,n.c,'ЛОЖНАЯ ЦЕЛЬ',{color:'#cdb7ff',size:11,life:1100});}
+  else if(doctrine.signature==='false_target'){n._empireDecoyUntil=now+3200;for(const a of allies){a._empireScatterUntil=now+1400;a._empireScatterAngle=Math.atan2(a.r-player.r,a.c-player.c)+((+a._empireCrewSlot||0)%2?1:-1)*.9;}spawnFloatText(n.r,n.c,'ЛОЖНАЯ ЦЕЛЬ',{color:'#cdb7ff',size:11,life:1100});}
   else if(doctrine.signature==='trap'&&Math.hypot(player.r-n.r,player.c-n.c)<3){player._empireSlowUntil=now+1800;spawnFloatText(player.r,player.c,'ЛОВУШКА',{color:'#f0a14d',size:12,life:1000});}
-  else if(doctrine.signature==='drive_by'||doctrine.signature==='fire_lane'||doctrine.signature==='bleed_trap'||doctrine.signature==='combo'||doctrine.signature==='jam'||doctrine.signature==='hook_pull'){n._empirePressUntil=now+3000;n._nextShootAt=Math.min(+n._nextShootAt||Infinity,now+220);}
+  else if(doctrine.signature==='drive_by'){for(const a of allies){a._empireScatterUntil=now+2600;a._empireScatterAngle=Math.atan2(a.r-player.r,a.c-player.c)+((+a._empireCrewSlot||0)%2?1:-1)*1.35;a._empirePressUntil=now+2600;}spawnFloatText(n.r,n.c,'МОБИЛЬНЫЙ ОБХОД',{color:'#8ed7ff',size:11,life:1000});}
+  else if(doctrine.signature==='fire_lane'){player._empireSuppressedUntil=now+2600;player._empireSlowUntil=Math.max(player._empireSlowUntil||0,now+900);for(const a of allies)a._nextShootAt=Math.min(+a._nextShootAt||Infinity,now+360);spawnFloatText(player.r,player.c,'ПОДАВЛЕНИЕ',{color:'#ff9e72',size:11,life:1000});}
+  else if(doctrine.signature==='bleed_trap'&&Math.hypot(player.r-n.r,player.c-n.c)<6){player._empireDotKind='КРОВОТЕЧЕНИЕ';player._empireDotDamage=Math.max(player._empireDotDamage||0,2);player._empireDotUntil=Math.max(player._empireDotUntil||0,now+2600);player._empireDotAt=Math.min(player._empireDotAt||Infinity,now+650);player._empireSlowUntil=Math.max(player._empireSlowUntil||0,now+1200);}
+  else if(doctrine.signature==='combo'){n._empirePressUntil=now+3200;n._nextShootAt=now+120;n._empireComboUntil=now+2400;spawnFloatText(n.r,n.c,'ДУЭЛЬНЫЙ НАТИСК',{color:'#ffcf76',size:11,life:1000});}
+  else if(doctrine.signature==='jam'){player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+1700);player._empireMarkedUntil=now+2200;spawnFloatText(player.r,player.c,'СВЯЗЬ СОРВАНА',{color:'#72d8ff',size:11,life:1000});}
+  else if(doctrine.signature==='hook_pull'&&Math.hypot(player.r-n.r,player.c-n.c)<8){const dr=n.r-player.r,dc=n.c-player.c,d=Math.hypot(dr,dc)||1,nr=player.r+dr/d*1.15,nc=player.c+dc/d*1.15;if(!isBlockedPed(nr,nc)){player.r=nr;player.c=nc;}n._nextShootAt=now+180;spawnFloatText(player.r,player.c,'ВЫТЯНУТЬ ИЗ УКРЫТИЯ',{color:'#9fd4ff',size:10,life:1000});}
 }
 function _empireTacticalRole(n,order){
   if(n?._empireBoss)return 'commander';
@@ -9372,14 +9420,15 @@ function _empireCombatReady(n,now=performance.now()){
 function _hitEmpireCombatant(target,damage,source,weapon,dirY,dirX,now=performance.now()){
   if(!_empireCombatReady(target,now)||_empireLeaderIdOf(target)===_empireLeaderIdOf(source))return false;
   target._threeHitAngle=Math.atan2(+dirY||0,+dirX||0);target._threeHitPower=Math.max(.18,Math.min(1.6,(+damage||0)/72));target._threeHitWeapon=String(weapon||'pistol');
-  const guarded=now<(target._empireGuardedUntil||0),doctrine=_empireDoctrineOf(target),mitigation=guarded ? (doctrine.id==='armored' ? .48 : .62) : 1;
+  const guarded=now<(target._empireGuardedUntil||0),evasive=now<(target._empireDecoyUntil||0)||now<(target._empireHiddenUntil||0),doctrine=_empireDoctrineOf(target),mitigation=(guarded ? (doctrine.id==='armored' ? .48 : .62) : 1)*(evasive ? .55 : 1);
+  if(source===player)_empireRecordIncoming(target,(+damage||1)*mitigation,weapon,now);
   target._empireBattleHp=Math.max(0,(+target._empireBattleHp||0)-Math.max(1,(+damage||1)*mitigation));
   _empireScatterSquad(target,source,now);
   _markCombatBleeding(target,target.r,target.c,damage,dirY,dirX,weapon);
   const nr=target.r+(+dirY||0)*.07,nc=target.c+(+dirX||0)*.07;if(_npcBodyPassable(nr,nc,_empireBossPassable)){target.r=nr;target.c=nc;}
   if(target._empireBattleHp>0)return false;
   target._empireDownUntil=0;target._knockedAt=now;target._knockedUntil=0;target.walking=false;target.walkPhase=0;target._empireCombatTarget=null;_clearNpcRoute(target);
-  target.hp=0;target.dead=true;target.deadAt=now;target._deathR=target.r;target._deathC=target.c;target._empireAwaitingAmbulance=true;
+  target.hp=0;target.dead=true;target.deadAt=now;target._deathR=target.r;target._deathC=target.c;target._empireAwaitingAmbulance=true;_empireLessonFor(_empireLeaderIdOf(target),now).casualties++;
   _empireSpeak(target,'wounded',now,1800,true);
   spawnFloatText(target.r,target.c,target._empireBoss?'БОСС ВЫБЫЛ':'БОЕЦ ВЫБЫЛ',{color:target._empireAccent||'#ffca72',size:target._empireBoss?15:12,life:1600});
   return true;
@@ -9477,11 +9526,11 @@ function _tickEmpirePlayerStatuses(now=performance.now()){
   if(now<(player._empireDotUntil||0)&&now>=(player._empireDotAt||0)){player._empireDotAt=now+650;_hurtLocal(Math.max(1,+player._empireDotDamage||1),player._empireDotKind||'эффект оружия босса',true);spawnFloatText(player.r,player.c,player._empireDotKind||'УРОН',{color:player._empireDotKind==='ЯД'?'#9ad06f':'#ff7466',size:10,life:650});}
   if(now>=(player._empireDotUntil||0)){player._empireDotUntil=0;player._empireDotDamage=0;player._empireDotAt=0;}
 }
-function _empirePlayerSpeedMultiplier(now=performance.now()){return now<(player._empireSlowUntil||0) ? .48 : 1;}
+function _empirePlayerSpeedMultiplier(now=performance.now()){return now<(player._empireSlowUntil||0) ? .48 : now<(player._empireSuppressedUntil||0) ? .78 : 1;}
 function _empirePlayerCombatThink(n,now,dt){
   if(!n?._empirePlayerWar||myDead||_buildingInt||_bankInt||!_empireCombatReady(n,now))return false;
   const dr=player.r-n.r,dc=player.c-n.c,d=Math.hypot(dr,dc)||.001;if(d>15.5){n._empireWarFighting=false;return false;}
-  const order=_empirePlayerSquadOrder(n,now),doctrine=order.doctrine||_empireDoctrineOf(n);n._empireWarFighting=true;n._fighting=false;n._empireTacticalRole=_empireTacticalRole(n,order);_empireUseSignature(n,order,now);
+  const order=_empirePlayerSquadOrder(n,now),doctrine=order.doctrine||_empireDoctrineOf(n),mind=order.mindset||_empireMindsetOf(doctrine);n._empireWarFighting=true;n._fighting=false;n._empireTacticalRole=_empireTacticalRole(n,order);_empireUseSignature(n,order,now);
   if(order.type==='withdraw'&&d<12){n._empireRetreatUntil=Math.max(+n._empireRetreatUntil||0,now+6500);return _empireRetreatStep(n,now,dt);}
   const profile=n._empireWeaponProfile||NPC_EMPIRE_WEAPON_PROFILES[n._empireWeaponId]||{kind:n._fightWeapon||'pistol',damage:9,cooldown:1050,range:10,hit:.72},melee=profile.kind==='melee',role=n._empireTacticalRole;
   const weapon=profile.kind||n._empireWeaponBase||'pistol',range=Math.max(1,+profile.range||10),preferred=Math.min(range,Math.max(melee ? .9 : 2.4,+doctrine.preferred_range||range*.68));n.ang=Math.atan2(dr,dc);
@@ -9492,13 +9541,13 @@ function _empirePlayerCombatThink(n,now,dt){
   else if(order.type==='regroup'&&Math.hypot(order.center.r-n.r,order.center.c-n.c)>2){const ar=order.center.r-n.r,ac=order.center.c-n.c,l=Math.hypot(ar,ac)||1;moveR=ar/l;moveC=ac/l;}
   else if(order.type==='flank'&&d>preferred*.7){const side=n._empireStrafeDir||1;moveR=dr/d*.45-dc/d*side;moveC=dc/d*.45+dr/d*side;}
   else if(d>preferred+.65){moveR=dr/d;moveC=dc/d;}else if(!melee&&d<Math.max(1.4,preferred*.48)){moveR=-dr/d;moveC=-dc/d;}else{moveR=-dc/d*(n._empireStrafeDir||1);moveC=dr/d*(n._empireStrafeDir||1);}
-  const separation=_empireSeparationVector(n,1.42);moveR+=separation.r*1.7;moveC+=separation.c*1.7;const len=Math.hypot(moveR,moveC)||1,speed=(doctrine.id==='mobile'||doctrine.id==='predator'?1.24:1)*Math.max(.72,n.speed||.8),step=Math.min(.11,speed*dt*(order.type==='press'?1.55:1.12)),nr=n.r+moveR/len*step,nc=n.c+moveC/len*step;
+  const separation=_empireSeparationVector(n,1.42);moveR+=separation.r*(1.45+mind.patience*.4);moveC+=separation.c*(1.45+mind.patience*.4);const len=Math.hypot(moveR,moveC)||1,speed=(.88+mind.adaptability*.18+mind.courage*.12)*Math.max(.72,n.speed||.8),step=Math.min(.11,speed*dt*(order.type==='press'?1.45+mind.courage*.18:1.05+mind.adaptability*.12)),nr=n.r+moveR/len*step,nc=n.c+moveC/len*step;
   if(_npcPathPassable(n.r,n.c,nr,nc,_empireBossPassable)){n.r=nr;n.c=nc;n.walking=true;n.walkPhase+=dt*12;}else n.walking=false;
   if(d>range||now<(n._nextShootAt||0))return true;
-  const pressing=order.type==='press'||order.type==='focus',cadence=(pressing ? .78 : 1)*(doctrine.signature==='sync_volley' ? .9 : 1);n._nextShootAt=now+Math.max(300,+profile.cooldown||1050)*cadence+((+n._empireStyle||0)%5)*24;n._shotAt=now;n._lastShotAt=now;n._shotSeq=(+n._shotSeq||0)+1;n._shotWeapon=weapon;
-  const marked=now<(player._empireMarkedUntil||0),hidden=now<(n._empireHiddenUntil||0),hitChance=Math.max(.35,Math.min(.96,(+profile.hit||.72)+(n._empireBoss ? .06 : 0)+(marked ? .07 : 0)+(order.type==='focus' ? .04 : 0)+(hidden ? .05 : 0))),hit=Math.random()<hitChance,miss=hit?0:(Math.random()<.5?-1:1)*(.5+Math.random()*.7),aimR=player.r+miss,aimC=player.c-miss*.35,muz=_npcMuzzleWorldPoint(n.r,n.c,n.ang,weapon,.88),projectileKind=profile.effect==='arrow'?'arrow':profile.effect==='pull'?'harpoon':profile.kind==='dart'?'dart':'';
+  const pressing=order.type==='press'||order.type==='focus',cadence=(pressing ? .82-mind.courage*.08 : 1.06-mind.patience*.08)*(doctrine.signature==='sync_volley' ? .9 : 1);n._nextShootAt=now+Math.max(300,+profile.cooldown||1050)*cadence+((+n._empireStyle||0)%5)*24;n._shotAt=now;n._lastShotAt=now;n._shotSeq=(+n._shotSeq||0)+1;n._shotWeapon=weapon;
+  const marked=now<(player._empireMarkedUntil||0),hidden=now<(n._empireHiddenUntil||0),hitChance=Math.max(.35,Math.min(.96,(+profile.hit||.72)+(n._empireBoss ? .04+mind.patience*.035 : 0)+(marked ? .07 : 0)+(order.type==='focus' ? .03+mind.patience*.025 : 0)+(hidden ? .05 : 0))),hit=Math.random()<hitChance,miss=hit?0:(Math.random()<.5?-1:1)*(.5+Math.random()*.7),aimR=player.r+miss,aimC=player.c-miss*.35,muz=_npcMuzzleWorldPoint(n.r,n.c,n.ang,weapon,.88),projectileKind=profile.effect==='arrow'?'arrow':profile.effect==='pull'?'harpoon':profile.kind==='dart'?'dart':'';
   if(!melee){if(!projectileKind)spawnMuzzle(muz.r,muz.c,n.ang,weapon,true);spawnBullet(muz.r,muz.c,aimR,aimC,{hit,fromNpc:true,weapon,projectileKind,speed:profile.speed||undefined,color:profile.effect==='shock'?'#62c7ef':undefined});}
-  if(hit)_applyEmpirePlayerWeaponHit(n,Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1))),profile,now);return true;
+  _empireRecordAttack(n,hit,now);if(hit)_applyEmpirePlayerWeaponHit(n,Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1))),profile,now);return true;
 }
 function _empireActivityLabel(activity) {
   return ({gang_war:'ВЕДЁТ ВОЙНУ С БАНДОЙ',recruit:'ВЕРБУЕТ БОЙЦОВ',collect:'ПРОВЕРЯЕТ ДОХОД',inspect:'ПРОВЕРЯЕТ ПОСТЫ',return_hq:'ВОЗВРАЩАЕТСЯ В ШТАБ',business_capture:'ЕДЕТ ЗА БИЗНЕСОМ',business_bought:'ЗАХВАТ БИЗНЕСА',
@@ -18588,11 +18637,12 @@ openNpcEmpirePanel=function(leaderId,allowAssault=false){
   if(brain){
     const doctrine=empire.doctrine||brain.doctrine||NPC_EMPIRE_DOCTRINES[empire.leader_id]||{};
     const doctrineOrders=(doctrine.orders||[]).slice(0,3).map(x=>String(x).toUpperCase()).join(' → ');
+    const mindset=_empireMindsetOf(doctrine),mindsetLabel=`ТЕРПЕНИЕ ${Math.round(mindset.patience*100)} · ГИБКОСТЬ ${Math.round(mindset.adaptability*100)} · СМЕЛОСТЬ ${Math.round(mindset.courage*100)}`;
     const priorities=(brain.scores||[]).map((item,index)=>`<span class="ne-brain-chip">${index===0?'ПРИКАЗ':'ВАРИАНТ'} · <b>${_npcEmpireEsc(String(item.strategy||'').toUpperCase())}</b> ${Number.isFinite(+item.score)?Math.round(+item.score):''}</span>`).join('');
     const memories=(empire.memory||[]).slice(0,4).map(item=>`<div class="ne-memory-card ${_npcEmpireEsc(item.tone||'neutral')}"><b>${_npcEmpireEsc(item.title||'Событие семьи')}</b>${_npcEmpireEsc(item.summary||'')}</div>`).join('');
     brainBoard=document.createElement('section');brainBoard.className='ne-brain-board';
     const adaptation=brain.adaptation||{},lesson=adaptation.lesson?`<p class="ne-brain-reason"><b>ВЫУЧЕННЫЙ УРОК:</b> ${_npcEmpireEsc(adaptation.lesson)}</p>`:'';
-    brainBoard.innerHTML=`<div class="ne-brain-head"><div><div class="ne-brain-kicker">МОЗГ БОССА · ТЕКУЩИЙ ЗАМЫСЕЛ</div><div class="ne-brain-title">${_npcEmpireEsc(brain.label||'Оценить обстановку')}</div></div><div class="ne-brain-confidence">УВЕРЕННОСТЬ <b>${Math.max(0,Math.min(100,+brain.confidence||0))}%</b></div></div><p class="ne-brain-reason">${_npcEmpireEsc(brain.reason||'Босс собирает сведения и выбирает следующий ход.')}</p>${lesson}<div class="ne-brain-chips"><span class="ne-brain-chip">ДОКТРИНА · <b>${_npcEmpireEsc(doctrine.label||'СИТУАЦИОННАЯ')}</b></span><span class="ne-brain-chip">ПРИКАЗЫ · <b>${_npcEmpireEsc(doctrineOrders||'HOLD')}</b></span><span class="ne-brain-chip">РИСК · <b>${_npcEmpireEsc(String(brain.risk||'неизвестен').toUpperCase())}</b></span><span class="ne-brain-chip">ХАРАКТЕР · <b>${_npcEmpireEsc(String(brain.temperament||'расчёт').toUpperCase())}</b></span><span class="ne-brain-chip">АДАПТАЦИЯ · <b>${_npcEmpireEsc(String(adaptation.mode||'balanced').toUpperCase())}</b></span>${priorities}</div>${memories?`<div class="ne-brain-memory">${memories}</div>`:''}`;
+    brainBoard.innerHTML=`<div class="ne-brain-head"><div><div class="ne-brain-kicker">МОЗГ БОССА · ТЕКУЩИЙ ЗАМЫСЕЛ</div><div class="ne-brain-title">${_npcEmpireEsc(brain.label||'Оценить обстановку')}</div></div><div class="ne-brain-confidence">УВЕРЕННОСТЬ <b>${Math.max(0,Math.min(100,+brain.confidence||0))}%</b></div></div><p class="ne-brain-reason">${_npcEmpireEsc(brain.reason||'Босс собирает сведения и выбирает следующий ход.')}</p>${lesson}<div class="ne-brain-chips"><span class="ne-brain-chip">ДОКТРИНА · <b>${_npcEmpireEsc(doctrine.label||'СИТУАЦИОННАЯ')}</b></span><span class="ne-brain-chip">ПРИКАЗЫ · <b>${_npcEmpireEsc(doctrineOrders||'HOLD')}</b></span><span class="ne-brain-chip">МЫШЛЕНИЕ · <b>${_npcEmpireEsc(mindsetLabel)}</b></span><span class="ne-brain-chip">РИСК · <b>${_npcEmpireEsc(String(brain.risk||'неизвестен').toUpperCase())}</b></span><span class="ne-brain-chip">ХАРАКТЕР · <b>${_npcEmpireEsc(String(brain.temperament||'расчёт').toUpperCase())}</b></span><span class="ne-brain-chip">АДАПТАЦИЯ · <b>${_npcEmpireEsc(String(adaptation.mode||'balanced').toUpperCase())}</b></span>${priorities}</div>${memories?`<div class="ne-brain-memory">${memories}</div>`:''}`;
     hero.insertAdjacentElement('afterend',brainBoard);
   }
   ov.querySelector('[data-ne-action="declare_war"]')?.remove();
@@ -56080,11 +56130,12 @@ function _interiorGuardWeaponAi(weapon,signatureProfile=null) {
 }
 function _npcEmpireAssaultAi(bi,n,base,now=performance.now()){
   if(!n?.npcEmpireBoss)return base;
-  const doctrine=n.empireDoctrine||NPC_EMPIRE_DOCTRINES[n.npcEmpireLeaderId]||NPC_EMPIRE_DOCTRINES.marat,guards=bi.npcs.filter(x=>x.npcEmpireGuardId!=null&&!x.dead),hp=(+n.hp||0)/Math.max(1,+n.maxHp||1),phase=guards.length?1:hp>.48?2:3;
+  const doctrine=n.empireDoctrine||NPC_EMPIRE_DOCTRINES[n.npcEmpireLeaderId]||NPC_EMPIRE_DOCTRINES.marat,mind=_empireMindsetOf(doctrine),guards=bi.npcs.filter(x=>x.npcEmpireGuardId!=null&&!x.dead),hp=(+n.hp||0)/Math.max(1,+n.maxHp||1),desperationAt=.36+(1-mind.courage)*.16,phase=guards.length?1:hp>desperationAt?2:3;
   if(n._empireAssaultPhase!==phase){n._empireAssaultPhase=phase;n._sayText=phase===1?'ДЕРЖАТЬ ПЕРИМЕТР!':phase===2?'ТЕПЕРЬ Я САМ.':'ПОСЛЕДНИЙ ПРИКАЗ!';n._sayUntil=now+1800;document.documentElement.dataset.empireAssaultPhase=`${n.npcEmpireLeaderId}:${phase}:${doctrine.id}`;}
   const ai={...base};if(['recon','predator'].includes(doctrine.id)){ai.ideal=Math.min(ai.range-1,Math.max(ai.ideal,+doctrine.preferred_range||ai.ideal));ai.retreat=Math.max(ai.retreat,5.2);}else if(['ambush','duelist'].includes(doctrine.id)){ai.ideal=Math.min(ai.ideal,1.15);ai.retreat=0;}else ai.ideal=Math.min(ai.range-.4,Math.max(1,+doctrine.preferred_range||ai.ideal));
-  if(phase===1){ai.cooldown*=1.08;ai.hit=Math.min(.96,ai.hit+.03);}else if(phase===2){ai.cooldown*=.88;ai.hit=Math.min(.96,ai.hit+.05);}else{ai.cooldown*=.68;ai.damage=Math.round(ai.damage*1.18);ai.hit=Math.min(.97,ai.hit+.08);n.speed=Math.max(n.speed||1.2,1.52);}
-  if(now>=(n._empireInteriorSignatureAt||0)){n._empireInteriorSignatureAt=now+6200+(String(n.npcEmpireLeaderId||'').length%5)*410;
+  ai.cooldown*=1.08-mind.courage*.12;ai.hit=Math.min(.97,ai.hit+mind.patience*.045);ai.retreat*=1+mind.adaptability*.08;
+  if(phase===1){ai.cooldown*=1.08;ai.hit=Math.min(.96,ai.hit+.02+mind.patience*.02);}else if(phase===2){ai.cooldown*=.9-mind.adaptability*.06;ai.hit=Math.min(.96,ai.hit+.04);}else{ai.cooldown*=.74-mind.courage*.08;ai.damage=Math.round(ai.damage*(1.08+mind.courage*.14));ai.hit=Math.min(.97,ai.hit+.06+mind.patience*.025);n.speed=Math.max(n.speed||1.2,1.3+mind.adaptability*.3);}
+  if(now>=(n._empireInteriorSignatureAt||0)){n._empireInteriorSignatureAt=now+(6200+(String(n.npcEmpireLeaderId||'').length%5)*410)*(1.12-mind.adaptability*.22);
     if(doctrine.signature==='triage'||doctrine.signature==='rally'){const hurt=[...guards,n].sort((a,b)=>(+a.hp||0)/Math.max(1,+a.maxHp||1)-(+b.hp||0)/Math.max(1,+b.maxHp||1))[0];if(hurt){hurt.hp=Math.min(hurt.maxHp,hurt.hp+Math.max(8,hurt.maxHp*.1));spawnFloatText(hurt.r,hurt.c,'✚ ПОДДЕРЖКА',{color:'#9affb0',size:11,life:1100});}}
     else if(['paid_backup','resupply','supply_cache'].includes(doctrine.signature)){for(const ally of guards)ally._nextShotAt=Math.min(+ally._nextShotAt||Infinity,now+260);spawnFloatText(n.r,n.c,'СНАБЖЕНИЕ!',{color:'#ffd86b',size:11,life:1000});}
     else if(doctrine.signature==='shield_wall'||doctrine.signature==='intercept'){for(const ally of guards)ally._guardedUntil=now+2600;spawnFloatText(n.r,n.c,'ДЕРЖАТЬ ЛИНИЮ!',{color:'#9fd4ff',size:11,life:1100});}
@@ -56093,7 +56144,7 @@ function _npcEmpireAssaultAi(bi,n,base,now=performance.now()){
     else if(doctrine.signature==='sync_volley'){for(const ally of guards)ally._nextShotAt=now+320;}
     else {n._nextShotAt=Math.min(+n._nextShotAt||Infinity,now+220);n._combatMoveUntil=0;}
   }
-  return ai;
+  document.documentElement.dataset.empireAssaultMindset=`${doctrine.id}:${mind.patience.toFixed(2)}:${mind.adaptability.toFixed(2)}:${mind.courage.toFixed(2)}`;return ai;
 }
 
 function _igniteInteriorCharacter(n,sourceR,sourceC) {
