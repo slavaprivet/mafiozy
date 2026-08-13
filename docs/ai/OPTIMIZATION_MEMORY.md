@@ -58,6 +58,24 @@
   police and civilians, with no JavaScript or Three.js errors. A representative
   native-quality sample was 16 FPS, 55.5 ms frame work, 31.1 ms render, 748 draw
   calls and 1.82M triangles; this correctness patch does not claim an FPS gain.
+## Off-screen empire reinforcements (2026-08-13, v396)
+
+- The 40-tile pop-in guard must not also prevent an otherwise visible boss from
+  ever receiving an escort. When an HQ or recruitment origin is already inside
+  that radius, choose one bounded collision-safe staging point on three rings
+  outside it, then let the existing route and formation logic bring the actor
+  into the city naturally.
+- Staging is a spawn-time-only search (at most 18 candidate directions), not a
+  render-loop scan. It preserves the fixed 36-escort pool, the three-arrivals-
+  per-sync budget and the original 40-tile visual safety check.
+- Do not gate the roster loop on the boss distance: the old 44-tile activation
+  radius combined with a 40-tile spawn prohibition left only a four-tile band
+  in which an escort could exist. Keep telemetry for both staged arrivals and
+  rejected unsafe points so live QA can distinguish routing from pop-in.
+- Ballistic QA must identify shooter, target, hit roll and the actor-local shot
+  sequence. A static last-impact value can otherwise make a living exchange of
+  misses or cover fire look frozen. This is one assignment on the existing
+  shot event, not a combat scan or a second projectile history.
 
 ## Gang squad integrity and idle matrix uploads (2026-08-13, v395)
 

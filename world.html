@@ -9351,8 +9351,21 @@ function _empireCrewOrigin(leader,slot,recruitment=null){
   const baseR=+(recruitment?.source_r??leader._empireHqR??leader.r),baseC=+(recruitment?.source_c??leader._empireHqC??leader.c),spread=_empireFormationOffset(slot,Math.max(1,+recruitment?.count||+leader._empireMembers||1),0,.42);
   return _nearestEmpireWalkPoint(baseR+spread.r,baseC+spread.c)||_nearestEmpireWalkPoint(baseR,baseC)||{r:leader.r,c:leader.c};
 }
+function _empireHiddenCrewOrigin(point,leader,slot){
+  if(Math.hypot(point.r-player.r,point.c-player.c)>=EMPIRE_POPIN_SAFE_R)return point;
+  const away=Math.atan2((leader?.r??point.r)-player.r,(leader?.c??point.c)-player.c),side=(slot%2?1:-1),angles=[0,.24*side,-.24*side,.48*side,-.48*side,Math.PI];
+  let best=null,bestScore=Infinity;
+  for(const radius of [EMPIRE_POPIN_SAFE_R+3,EMPIRE_POPIN_SAFE_R+9,EMPIRE_POPIN_SAFE_R+15])for(const offset of angles){
+    const candidate=_nearestEmpireWalkPoint(player.r+Math.sin(away+offset)*radius,player.c+Math.cos(away+offset)*radius);
+    if(!candidate||Math.hypot(candidate.r-player.r, candidate.c-player.c)<EMPIRE_POPIN_SAFE_R)continue;
+    const score=Math.hypot(candidate.r-(leader?.r??point.r),candidate.c-(leader?.c??point.c))+Math.abs(offset)*4;
+    if(score<bestScore){best=candidate;bestScore=score;}
+  }
+  if(best)document.documentElement.dataset.empireCrewStaged=`${leader?._specialistId||'family'}:${slot}`;
+  return best||point;
+}
 function _spawnEmpireCrewArrival(leader,id,slot,want,now,recruitCandidate=false,fromLair=false){
-  const recruitment=(recruitCandidate||fromLair)?leader._empireRecruitment:null,point=_empireCrewOrigin(leader,slot,recruitment),serial=++_empireCrewSerial;
+  const recruitment=(recruitCandidate||fromLair)?leader._empireRecruitment:null,origin=_empireCrewOrigin(leader,slot,recruitment),point=_empireHiddenCrewOrigin(origin,leader,slot),serial=++_empireCrewSerial;
   if(Math.hypot(point.r-player.r,point.c-player.c)<EMPIRE_POPIN_SAFE_R){document.documentElement.dataset.empirePopinBlocked=`${id}:${slot}`;return null;}
   const crew=spawnNpc(7000+serial,{cityOnly:true});if(!crew)return null;
   Object.assign(crew,{r:point.r,c:point.c,tr:point.r,tc:point.c,id:`empire_crew_${id}_${serial}`,
@@ -9548,8 +9561,7 @@ function _syncEmpireBossCrews(now=performance.now()){
       if(!crew._empirePlayerWar&&crew._empireWarFighting){crew._empireWarFighting=false;crew._fighting=false;crew._nextShootAt=0;}
     }
     let recentLairSlots=Math.min(leader._empireRecruitment?.completed?(+leader._empireRecruitment?.count||0):0,Math.max(0,want-active.length),3);
-    const popinSafe=Math.hypot(leader.r-player.r,leader.c-player.c)>=EMPIRE_POPIN_SAFE_R;
-    for(let slot=active.length;popinSafe&&slot<want&&spawnBudget>0&&EMPIRE_CREW_NPCS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_CREW_CAP;slot++,spawnBudget--){const fromLair=recentLairSlots>0;if(fromLair)recentLairSlots--;_spawnEmpireCrewArrival(leader,id,slot,want,now,false,fromLair);}
+    for(let slot=active.length;slot<want&&spawnBudget>0&&EMPIRE_CREW_NPCS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_CREW_CAP;slot++,spawnBudget--){const fromLair=recentLairSlots>0;if(fromLair)recentLairSlots--;_spawnEmpireCrewArrival(leader,id,slot,want,now,false,fromLair);}
     candidates=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated&&x._empireRecruitCandidate&&!x._empireStreetNegotiating);
     for(let slot=candidates.length;slot<pendingWant&&spawnBudget>0&&EMPIRE_CREW_NPCS.filter(x=>!x.dead&&!x._evacuated).length<EMPIRE_VISIBLE_CREW_CAP;slot++,spawnBudget--)_spawnEmpireCrewArrival(leader,id,slot,pendingWant,now,true);
   }
@@ -9886,7 +9898,7 @@ function _empireFieldCombatThink(n,now,dt){
     const damage=Math.max(4,Math.round((+profile.damage||10)*(n._empireBoss?1.18:1))),flightMs=Math.max(80,d/visualSpeed*1000);
     setTimeout(()=>{const impactNow=performance.now();if(!_empireCombatReady(target,impactNow)||_empireLeaderIdOf(target)===_empireLeaderIdOf(n))return;const hitR=target.r,hitC=target.c,hitDr=hitR-n.r,hitDc=hitC-n.c,hitDist=Math.hypot(hitDr,hitDc)||1;spawnImpact(hitR,hitC,weapon,true);_hitEmpireCombatant(target,damage,n,weapon,hitDr/hitDist,hitDc/hitDist,impactNow);document.documentElement.dataset.empireBallisticImpact=`${_empireLeaderIdOf(n)}>${_empireLeaderIdOf(target)}:${weapon}:${Math.round(flightMs)}`;},flightMs);
   }
-  document.documentElement.dataset.empireBallisticShot=`tracked-${hit?1:0}:${weapon}:${visualSpeed.toFixed(1)}`;
+  document.documentElement.dataset.empireBallisticShot=`${_empireLeaderIdOf(n)}>${_empireLeaderIdOf(target)}:tracked-${hit?1:0}:${weapon}:${visualSpeed.toFixed(1)}:${n._shotSeq}`;
   return true;
 }
 function _applyEmpirePlayerWeaponHit(n,damage,profile,now=performance.now()){

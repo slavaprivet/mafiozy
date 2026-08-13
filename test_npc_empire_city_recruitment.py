@@ -18,6 +18,8 @@ async def run() -> None:
     assert "EMPIRE_STREET_RECRUIT_R=5.6" in WORLD
     assert "EMPIRE_POPIN_SAFE_R=40" in WORLD
     assert "dataset.empirePopinBlocked" in WORLD
+    assert "function _empireHiddenCrewOrigin(point,leader,slot)" in WORLD
+    assert "dataset.empireCrewStaged" in WORLD
     assert "function _findEmpireStreetRecruit(leader)" in WORLD
     assert "if(!zone?.is_city_gang)continue" in WORLD
     assert "raw==='yellow'||raw==='moretti'" in WORLD
@@ -27,9 +29,9 @@ async def run() -> None:
     assert "_empireStreetRecruit:true" in WORLD
     assert "Я с вами, босс!" in WORLD
     assert "if(crew?._empireStreetRecruit)return" in WORLD
-    assert "const popinSafe=Math.hypot(leader.r-player.r,leader.c-player.c)>=EMPIRE_POPIN_SAFE_R" in WORLD
-    assert "popinSafe&&slot<want" in WORLD
+    assert "point=_empireHiddenCrewOrigin(origin,leader,slot)" in WORLD
     assert "dataset.empireStreetRecruits" in WORLD
+    assert "${_empireLeaderIdOf(n)}>${_empireLeaderIdOf(target)}:tracked-${hit?1:0}" in WORLD
     assert WORLD.count("!_empireRecruitedBotIds.has(String(b.id))") == 2
     assert "ПЕРЕГОВОРЫ · босс предлагает вступить" in WORLD
     assert "Мне нужны надёжные люди. Пойдёшь со мной?" in WORLD
