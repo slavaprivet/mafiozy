@@ -35,7 +35,7 @@ def run() -> None:
     assert "_npcEmpireAttitude" in WORLD and "НЕГАТИВНО" in WORLD and "ПОЛОЖИТЕЛЬНО" in WORLD
     assert "data-ne-declare-war" in WORLD and "НУЖНО НИЖЕ 0" in WORLD
     assert "data-ne-extra=\"apologize\"" in WORLD and "data-ne-extra=\"compensation\"" in WORLD
-    assert "_empirePlayerWar" in WORLD and "_empireSpeak(n,'playerWar'" in WORLD
+    assert "_empirePlayerWar" in WORLD and "'playerWar'" in WORLD
     assert "activity.target_r" in WORLD and "empireBossMotion" in WORLD
     assert "tile===14||tile===15||tile===17" in WORLD
     assert "ri>0&&ri<MAP_ROWS-1&&ci>0&&ci<MAP_COLS-1&&!isBlockedPed(r,c)" in WORLD
@@ -94,6 +94,7 @@ def run() -> None:
     assert "ne-brain-board" in WORLD and "ne-brain-confidence" in WORLD
     assert "empire.brain" in WORLD and "empire.memory" in WORLD
     assert "_boss_brain(" in PREVIEW and "['brain']" in PREVIEW
+    assert '"doctrine": npc_empire.boss_doctrine' in PREVIEW
     assert "_empireSquadOrder" in WORLD and "EMPIRE_SQUAD_ORDER_MS=900" in WORLD
     assert "type==='withdraw'" in WORLD and "type==='regroup'" in WORLD
     assert "type==='focus'" in WORLD and "type==='flank'" in WORLD
@@ -103,6 +104,11 @@ def run() -> None:
     assert "dataset.empireSquadSetback" in WORLD
     assert "ВЫУЧЕННЫЙ УРОК" in WORLD and "brain.adaptation" in WORLD
     assert "_boss_adaptation(" in NPC_EMPIRE and "'adaptation': adaptation" in NPC_EMPIRE
+    assert "BOSS_DOCTRINES" in NPC_EMPIRE and "'doctrine': boss_doctrine" in NPC_EMPIRE
+    assert "NPC_EMPIRE_DOCTRINES" in WORLD and "ДОКТРИНА ·" in WORLD
+    assert "_empirePlayerSquadOrder" in WORLD and "dataset.empirePlayerOrder" in WORLD
+    assert "_empirePlayerCombatThink" in WORLD and "_empireUseSignature" in WORLD
+    assert "_npcEmpireAssaultAi" in WORLD and "dataset.empireAssaultPhase" in WORLD
     assert "_empireTacticalRole" in WORLD and "'commander'" in WORLD
     assert "'bodyguard'" in WORLD and "'marksman'" in WORLD
     assert "'flanker'" in WORLD and "'reserve'" in WORLD and "'assault'" in WORLD

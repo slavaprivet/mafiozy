@@ -89,6 +89,39 @@ PROFILES = tuple(replace(profile, leader_name=MAFIA_BOSS_NAMES[profile.leader_id
                  for profile in PROFILES)
 
 PROFILE_BY_ID = {p.leader_id: p for p in PROFILES}
+
+# Boss Brain v2.  Statistics still describe what a family is good at; a
+# doctrine describes how its leader turns the same city state into a plan.
+# Keeping this declarative makes all nineteen personalities testable without
+# cloning the economy tick or introducing per-boss background loops.
+BOSS_DOCTRINES = {
+    'leila':  {'id':'triage','label':'Полевая медицина','signature':'triage','orders':('regroup','hold','withdraw'),'retreat_hp':.34,'preferred_range':7.0,'focus':'wounded','strategy_bias':{'recover':24,'recruit':10,'fortify':12}},
+    'rustam': {'id':'ambush','label':'Засада в тесном месте','signature':'trap','orders':('hold','flank','press'),'retreat_hp':.16,'preferred_range':1.3,'focus':'nearest','strategy_bias':{'expand':12,'fortify':8,'retaliate':8}},
+    'marco':  {'id':'mobile','label':'Мобильный обход','signature':'drive_by','orders':('flank','press','withdraw'),'retreat_hp':.22,'preferred_range':6.5,'focus':'isolated','strategy_bias':{'expand':18,'retaliate':9}},
+    'vera':   {'id':'negotiator','label':'Контролируемая эскалация','signature':'false_target','orders':('hold','regroup','focus'),'retreat_hp':.30,'preferred_range':8.0,'focus':'leader','strategy_bias':{'consolidate':18,'acquire':10,'fortify':8}},
+    'arsen':  {'id':'denial','label':'Огневое перекрытие','signature':'fire_lane','orders':('hold','focus','press'),'retreat_hp':.18,'preferred_range':9.0,'focus':'armored','strategy_bias':{'retaliate':16,'fortify':10}},
+    'damir':  {'id':'rally','label':'Круг верности','signature':'rally','orders':('regroup','press','focus'),'retreat_hp':.24,'preferred_range':5.5,'focus':'leader','strategy_bias':{'recruit':24,'retaliate':8}},
+    'marat':  {'id':'fortress','label':'Стальная линия','signature':'shield_wall','orders':('hold','regroup','focus'),'retreat_hp':.28,'preferred_range':4.5,'focus':'nearest_boss','strategy_bias':{'fortify':28,'consolidate':8}},
+    'zara':   {'id':'investor','label':'Война по расчёту','signature':'paid_backup','orders':('hold','focus','withdraw'),'retreat_hp':.32,'preferred_range':7.5,'focus':'valuable','strategy_bias':{'acquire':30,'consolidate':14,'retaliate':-10}},
+    'niko':   {'id':'recon','label':'Дальняя разведка','signature':'mark_target','orders':('focus','flank','withdraw'),'retreat_hp':.26,'preferred_range':12.5,'focus':'exposed','strategy_bias':{'retaliate':12,'consolidate':8}},
+    'alisa':  {'id':'disrupt','label':'Срыв управления','signature':'jam','orders':('flank','focus','regroup'),'retreat_hp':.27,'preferred_range':6.5,'focus':'shooter','strategy_bias':{'consolidate':10,'acquire':10,'retaliate':8}},
+    'boris':  {'id':'controller','label':'Силовое вытягивание','signature':'hook_pull','orders':('focus','press','hold'),'retreat_hp':.19,'preferred_range':6.0,'focus':'isolated','strategy_bias':{'retaliate':18,'fortify':6}},
+    'inga':   {'id':'landlord','label':'Подготовленная территория','signature':'bleed_trap','orders':('hold','flank','regroup'),'retreat_hp':.31,'preferred_range':7.0,'focus':'intruder','strategy_bias':{'acquire':24,'fortify':16}},
+    'timur':  {'id':'logistics','label':'Мобильное снабжение','signature':'resupply','orders':('flank','regroup','press'),'retreat_hp':.23,'preferred_range':8.5,'focus':'isolated','strategy_bias':{'recruit':14,'expand':14}},
+    'emil':   {'id':'duelist','label':'Ближняя дуэль','signature':'combo','orders':('press','focus','hold'),'retreat_hp':.12,'preferred_range':1.1,'focus':'shooter','strategy_bias':{'retaliate':26,'recruit':8}},
+    'roman':  {'id':'armored','label':'Бронированное прикрытие','signature':'intercept','orders':('hold','regroup','press'),'retreat_hp':.25,'preferred_range':8.0,'focus':'armored','strategy_bias':{'fortify':22,'retaliate':10}},
+    'sofia':  {'id':'exposure','label':'Информационное давление','signature':'expose','orders':('focus','withdraw','flank'),'retreat_hp':.36,'preferred_range':6.5,'focus':'leader','strategy_bias':{'consolidate':20,'acquire':10,'retaliate':-8}},
+    'viktor': {'id':'predator','label':'Охота из тени','signature':'vanish','orders':('flank','focus','withdraw'),'retreat_hp':.20,'preferred_range':13.5,'focus':'isolated','strategy_bias':{'retaliate':30,'expand':12}},
+    'yana':   {'id':'coordinator','label':'Синхронный приказ','signature':'sync_volley','orders':('regroup','focus','flank'),'retreat_hp':.27,'preferred_range':6.5,'focus':'threat','strategy_bias':{'fortify':14,'recruit':12,'consolidate':8}},
+    'musa':   {'id':'attrition','label':'Война на истощение','signature':'supply_cache','orders':('hold','regroup','press'),'retreat_hp':.29,'preferred_range':8.5,'focus':'wounded','strategy_bias':{'consolidate':18,'fortify':16,'acquire':12}},
+}
+
+
+def boss_doctrine(leader_id: str) -> dict:
+    """Return a copy-safe doctrine for API clients and deterministic tests."""
+    doctrine = BOSS_DOCTRINES[str(leader_id)]
+    return {**doctrine, 'orders': list(doctrine['orders']),
+            'strategy_bias': dict(doctrine['strategy_bias'])}
 BUSINESS_INCOME = {
     'coffee': 175, 'carwash': 260, 'barbershop': 350, 'pizza': 525,
     'garage': 775, 'bar': 1200, 'club': 1900, 'warehouse': 2850,
@@ -438,8 +471,10 @@ def _boss_adaptation(events: list[dict], now: int) -> dict:
         if outcome != streak_kind:
             break
         streak += 1
+    # Older clients wrote ``hospital`` while the learner originally expected
+    # ``hospitalized``.  Accept both so real field defeats teach the boss.
     wounds = sum(1 for event in recent
-                 if str(event.get('kind') or '') == 'hospitalized')
+                 if str(event.get('kind') or '') in {'hospital', 'hospitalized'})
     loss_streak = streak if streak_kind == 'loss' else 0
     win_streak = streak if streak_kind == 'win' else 0
     if loss_streak >= 2 or wounds >= 2:
@@ -475,6 +510,7 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
     remembered = {memory['kind'] for memory in memories}
     recent_humiliation = sum(memory['importance'] for memory in memories
                              if memory['kind'] in {'player_attack', 'war_lost', 'empire_ruined', 'hospitalized'})
+    doctrine = BOSS_DOCTRINES[profile.leader_id]
     scores = {
         'recover': (110 if status == 'rebuilding' else 0) + max(0, 5 - members) * 15 + max(0, 55 - strength) * .35,
         'recruit': max(0, target_members - members) * 7 + profile.loyalty * .24 + profile.aggression * .14,
@@ -484,6 +520,8 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
         'expand': profile.aggression * .24 + profile.commerce * .20 + building_count * -4 + min(20, treasury / 2200),
         'consolidate': 22 + profile.diplomacy * .16 + len(holdings) * 2 + (18 if treasury < 1200 else 0),
     }
+    for strategy_name, bias in doctrine['strategy_bias'].items():
+        scores[strategy_name] += bias
     # Outcomes change future decisions instead of serving as decorative text.
     # Defeat streaks pull the family toward recovery and defense; a successful
     # streak creates controlled momentum without overriding hard constraints.
@@ -542,6 +580,7 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
         'confidence': confidence, 'risk': risk, 'temperament': dominant,
         'scores': [{'strategy': key, 'score': round(value, 1)} for key, value in ranked[:3]],
         'decided_at': now, 'memory_count': len(memories), 'adaptation': adaptation,
+        'doctrine': boss_doctrine(profile.leader_id),
     }
 
 
@@ -1441,6 +1480,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'traits': {'aggression':profile.aggression,'commerce':profile.commerce,
                        'diplomacy':profile.diplomacy,'loyalty':profile.loyalty,
                        'intelligence':(profile.commerce+profile.diplomacy+profile.loyalty)//3},
+            'doctrine': boss_doctrine(leader_id),
             'treasury': int(row['treasury']), 'members': int(row['members']),
             'strength': int(row['strength']), 'status': str(row['status']),
             'hq_key': hq_key, 'hq_r': hq_r, 'hq_c': hq_c,

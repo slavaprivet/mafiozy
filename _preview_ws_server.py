@@ -1687,6 +1687,7 @@ async def npc_empire_state(req):
             "color": profile.color, "accent": profile.accent, "emblem": profile.emblem,
             "weapon_id": profile.weapon_id, "weapon_name": _preview_empire_text(profile.weapon_name),
             "weapon_base": profile.weapon_base, "treasury": profile.starting_cash,
+            "doctrine": npc_empire.boss_doctrine(profile.leader_id),
             "members": 8 + rank % 7, "strength": 90 + rank * 3, "status": "active",
             "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
             "relation": relation, "relation_band": npc_empire.relation_band(relation),

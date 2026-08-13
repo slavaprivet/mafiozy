@@ -1388,3 +1388,23 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   gated by `_LOCAL_PREVIEW`. It may drive rendering QA for vacant, headquarters
   and all eight operation types, but must never populate the status/profile
   ownership fields used by normal play.
+
+## Boss Brain v2 doctrines (2026-08-13)
+
+- Keep nineteen personalities declarative.  A doctrine is a small record with
+  strategic score biases, preferred range, retreat threshold, target priority,
+  order preference and one signature action; it must not introduce nineteen
+  independent update loops or timers.
+- Strategic biases run only inside the existing five-minute server brain tick.
+  Street combat against the player and NPC families shares the existing
+  `EMPIRE_SQUAD_ORDER_MS=900` cache and the already bounded visible combat pool.
+  HQ phases reuse the existing interior NPC update, so the feature adds no
+  global per-frame map scans and no renderer-side AI.
+- Status effects must be timestamp fields on the affected actor (slow, jam,
+  mark, blind, guard), consumed by existing movement/fire/hit paths.  Do not
+  create one interval per effect.  DOT uses the single player status tick.
+- Regression evidence: the behavioral matrix exercises all 19 doctrines in
+  weak, rich, active-war and recent-loss scenarios; doctrine IDs and signature
+  actions are 19/19 unique.  All six inline `world.html` scripts pass
+  `node --check`; empire server/UI tests pass.  Seven unrelated full-suite
+  failures were reproduced unchanged on the clean pre-feature commit.
