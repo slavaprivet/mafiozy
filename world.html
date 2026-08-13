@@ -13809,9 +13809,24 @@ function updateServiceVehicles(dt) {
       else v._sceneNearSince=0;
     }
     if(v.kind==='ambulance'&&now-v._lastMoveT>8500){
+      if(!_serviceVehicleCanDisappear(v,42)){
+        if(v.state==='returning')_retryAmbulanceHospitalRoute(v,now);
+        else _rerouteAmbulance(v,now,'visible-stall-retry');
+        v._lastMoveT=now;continue;
+      }
       if(_ambulanceWatchdogAdvance(v,now,v.state==='returning'?'hospital-return-stuck':'response-route-stuck'))continue;
     }
     if (now - v._lastMoveT > 14000) {
+      // Route recovery may reposition or retire a service vehicle. Keep that
+      // discontinuity outside both the gameplay radius and projected view;
+      // while visible, rebuild the route and let the normal mover continue.
+      if(!_serviceVehicleCanDisappear(v,42)){
+        if(v.state==='returning')_setVehicleRoute(v,v.y,v.x,v.homeR,v.homeC);
+        else if(v.kind==='firetruck')_rerouteFireTruck(v,now,'visible-stall-retry');
+        else if(v.kind==='tow')_rerouteTowTruck(v,now,'visible-stall-retry');
+        else if(v.finalTarget)_setVehicleRoute(v,v.y,v.x,v.finalTarget.y,v.finalTarget.x);
+        v._lastMoveT=now;document.documentElement.dataset.serviceVisibleStall='rerouted-without-teleport';continue;
+      }
       // Застрявшая пожарка не умеет тушить через полкарты: вызов отменяется,
       // после её ухода диспетчер сможет отправить другую машину.
       if (v.kind === 'firetruck') {
@@ -13985,7 +14000,8 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.specialServicePriority='ambulance-firetruck-tow-police-taxi-road-first-stall-fallback-v230';
 
   if(_LOCAL_PREVIEW&&_UP.has('previewambulancequeue')&&!document.documentElement.dataset.previewAmbulanceQueueSeeded){
-    const testVictims=NPCS.filter(n=>_isRespawnableResident(n)&&!n.dead).slice(0,5),door=_hospitalDoor();
+    const testVictims=NPCS.filter(n=>_isRespawnableResident(n)&&!n.dead).slice(0,5);
+    if(testVictims.length){const door=_hospitalDoor();
     testVictims.forEach((n,i)=>{
       n.r=door.r+3+(i%2)*1.1;n.c=door.c+3+Math.floor(i/2)*1.1;n.tr=n.r;n.tc=n.c;
       n.hp=i===0?1:0;n.dead=i!==0;n.deadAt=now-(i===4?CORPSE_AUTO_REMOVE_MS+2000:2400+i*120);
@@ -13995,7 +14011,7 @@ function dispatchEmergencyServices() {
       if(i===2)n._ambulanceDispatched=true;
     });
     if(_UP.has('previewambulancefocus')){player.r=door.r+5.2;player.c=door.c+5.1;player.vr=player.vc=0;}
-    document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);
+    document.documentElement.dataset.previewAmbulanceQueueSeeded=String(testVictims.length);}
   }
   if(_LOCAL_PREVIEW&&_UP.has('previewplayerambulance')&&myMode&&!document.documentElement.dataset.previewPlayerAmbulanceSeeded){
     const door=_hospitalDoor(),sceneRoad=_nearestRoadTile(door.r+6,door.c+2,12);
@@ -17618,6 +17634,11 @@ function _carCanDisappear(car, minDistance = 20) {
   if (Math.hypot(car.r - player.r, car.c - player.c) < minDistance) return false;
   const p = w2s(car.r, car.c), margin = 170;
   const view = _viewSize();
+  return p.x < -margin || p.x > view.W + margin || p.y < -margin || p.y > view.H + margin;
+}
+function _serviceVehicleCanDisappear(v,minDistance=42){
+  if(!v||Math.hypot((+v.y||0)-player.r,(+v.x||0)-player.c)<minDistance)return false;
+  const p=w2s(+v.y||0,+v.x||0),view=_viewSize(),margin=170;
   return p.x < -margin || p.x > view.W + margin || p.y < -margin || p.y > view.H + margin;
 }
 function _maintainTrafficDensity(now) {
