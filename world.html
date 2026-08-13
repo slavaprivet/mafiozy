@@ -8812,6 +8812,8 @@ function _npcAdvanceRoute(npc,dt,speed,passFn=npcPassable) {
 }
 const RESIDENTS_INDOORS=[],RESIDENT_RESPAWN_BACKLOG=[];
 let _residentBuildingDoorsCache=null,_residentRespawnSeed=9000,_residentInvisibleSpawnCount=0;
+const _residentDoorByBuildingTile=new Map(),_residentDoorBySource=new Map(),_activeResidentDoorVisuals=new Map();
+let _residentDoorAnimationCount=0;
 function _isRespawnableResident(npc) {
   return !!npc&&!npc._said&&!npc._invulnerable&&!npc._guard&&!npc._cashier&&
     !npc._empireCrew&&!npc._policeCriminal&&!npc._clientOfBiz&&!npc._botCorpse&&!npc._transientCorpseId;
@@ -8825,15 +8827,21 @@ function _residentCanVisitBuilding(npc,now=performance.now()) {
 // points always remain outside the solid MAP=1 footprint.
 function _residentBuildingDoors() {
   if(_residentBuildingDoorsCache)return _residentBuildingDoorsCache;
-  const doors=[],seen=new Set(),dirs=[[1,0],[-1,0],[0,1],[0,-1]],rowLimit=Math.min(MAP_ROWS-2,BEACH_R0-1);
+  const doors=[],seen=new Set(),dirs=[[1,0],[-1,0],[0,1],[0,-1]],rowLimit=MAP_ROWS-2;
+  _residentDoorByBuildingTile.clear();_residentDoorBySource.clear();
+  const finishDoor=(source,id,extra={})=>{
+    const facingR=Math.sign(source.r-(source.buildingR+.5)),facingC=Math.sign(source.c-(source.buildingC+.5));
+    const door={...source,...extra,id,facingR,facingC,wallR:(source.r+source.buildingR+.5)*.5,wallC:(source.c+source.buildingC+.5)*.5};
+    doors.push(door);return door;
+  };
   for(let r=2;r<=rowLimit;r++)for(let c=2;c<MAP_COLS-2;c++){
-    const firstKey=r*MAP_COLS+c;if(MAP[r]?.[c]!==1||seen.has(firstKey)||inArena(r,c)||inLair(r,c))continue;
+    const firstKey=r*MAP_COLS+c;if(MAP[r]?.[c]!==1||seen.has(firstKey))continue;
     const queue=[{r,c}],boundary=new Map();seen.add(firstKey);
     for(let qi=0;qi<queue.length;qi++){
       const cell=queue[qi];
       for(const [dr,dc] of dirs){
         const rr=cell.r+dr,cc=cell.c+dc,key=rr*MAP_COLS+cc;
-        if(MAP[rr]?.[cc]===1&&!seen.has(key)&&!inArena(rr,cc)&&!inLair(rr,cc)){
+        if(MAP[rr]?.[cc]===1&&!seen.has(key)){
           seen.add(key);queue.push({r:rr,c:cc});
         }else if((MAP[rr]?.[cc]===8||MAP[rr]?.[cc]===9)&&_npcBodyPassable(rr+.5,cc+.5)){
           boundary.set(key,{r:rr+.5,c:cc+.5,buildingR:cell.r,buildingC:cell.c});
@@ -8845,28 +8853,66 @@ function _residentBuildingDoors() {
       return open(b)-open(a)||((a.r*37+a.c*17)%101)-((b.r*37+b.c*17)%101);
     });
     if(!choices.length)continue;
-    const chosen=choices[0];chosen.id=`door_${r}_${c}_0`;doors.push(chosen);
+    const residentEligible=!queue.some(tile=>inArena(tile.r,tile.c)||inLair(tile.r,tile.c)||_prisonIslandCollisionAt(tile.r+.5,tile.c+.5));
+    const chosen=finishDoor(choices[0],`door_${r}_${c}_0`,{residentEligible});
+    for(const tile of queue)_residentDoorByBuildingTile.set(`${tile.r},${tile.c}`,chosen.id);
     if(queue.length>=12){
       const second=choices.find(q=>Math.hypot(q.r-chosen.r,q.c-chosen.c)>=4);
-      if(second){second.id=`door_${r}_${c}_1`;doors.push(second);}
+      if(second)finishDoor(second,`door_${r}_${c}_1`,{residentEligible});
     }
   }
   // Include authored entrances that may sit outside a generic MAP=1 footprint,
   // so residents can emerge from casinos, shops and major public buildings.
-  const addAuthoredDoor=(id,anchor,kind)=>{
+  const addAuthoredDoor=(id,anchor,kind,center=null,wall=null)=>{
     if(!anchor||!_npcBodyPassable(anchor.r,anchor.c))return;
     const existing=doors.find(d=>Math.hypot(d.r-anchor.r,d.c-anchor.c)<.7);
-    if(existing){existing.sourceId=id;existing.sourceKind=kind;existing.authored=true;return;}
-    doors.push({id:`door_${kind}_${id}`,r:anchor.r,c:anchor.c,sourceId:id,sourceKind:kind,authored:true});
+    if(existing){existing.sourceId=id;existing.sourceKind=kind;existing.authored=true;_residentDoorBySource.set(`${kind}:${id}`,existing.id);return;}
+    const cr=Number.isFinite(+center?.r)?+center.r:+anchor.r-.8,cc=Number.isFinite(+center?.c)?+center.c:+anchor.c;
+    let fr=+anchor.r-cr,fc=+anchor.c-cc;if(Math.abs(fr)>=Math.abs(fc)){fr=Math.sign(fr)||1;fc=0;}else{fc=Math.sign(fc)||1;fr=0;}
+    const door={id:`door_${kind}_${id}`,r:+anchor.r,c:+anchor.c,buildingR:cr-.5,buildingC:cc-.5,
+      wallR:Number.isFinite(+wall?.r)?+wall.r:+anchor.r-fr*.42,wallC:Number.isFinite(+wall?.c)?+wall.c:+anchor.c-fc*.42,
+      facingR:fr,facingC:fc,sourceId:id,sourceKind:kind,authored:true};
+    doors.push(door);_residentDoorBySource.set(`${kind}:${id}`,door.id);
   };
   try{
-    if(typeof BUSINESS_POIS!=='undefined'&&typeof _businessInteractionAnchor==='function')for(const biz of BUSINESS_POIS)addAuthoredDoor(biz.id,_businessInteractionAnchor(biz),'business');
-    if(typeof POI!=='undefined'&&typeof MAJOR_OBJECT_IDS!=='undefined'&&typeof _majorInteractionAnchor==='function')for(const poi of POI)if(MAJOR_OBJECT_IDS.has(poi.id))addAuthoredDoor(poi.id,_majorInteractionAnchor(poi),'major');
+    const worldScale=Math.max(3,Math.min(5,+window.MAFIOZI_RENDERER_CONFIG?.worldScale||4.1));
+    if(typeof BUSINESS_POIS!=='undefined'&&typeof _businessInteractionAnchor==='function')for(const biz of BUSINESS_POIS){const center={r:+biz.r+.5,c:+biz.c+.5},geometry=BUSINESS_EXTERIOR_GEOMETRY_3D[biz.id]||{d:8};addAuthoredDoor(biz.id,_businessInteractionAnchor(biz),'business',center,{r:center.r+geometry.d/(worldScale*2),c:center.c});}
+    if(typeof POI!=='undefined'&&typeof MAJOR_OBJECT_IDS!=='undefined'&&typeof _majorInteractionAnchor==='function')for(const poi of POI)if(MAJOR_OBJECT_IDS.has(poi.id))addAuthoredDoor(poi.id,_majorInteractionAnchor(poi),'major',{r:+poi.r,c:+poi.c});
+    if(typeof POI!=='undefined'&&typeof _blackmarketEntranceAnchor==='function')for(const poi of POI)if(poi.special==='blackmarket')addAuthoredDoor(poi.id,_blackmarketEntranceAnchor(poi),'blackmarket',{r:+poi.r+.5,c:+poi.c+.5});
+    if(typeof BANKS!=='undefined'&&typeof _bankInteractionAnchor==='function')for(const bank of BANKS)addAuthoredDoor(bank.id,_bankInteractionAnchor(bank),'bank',{r:+bank.r+1.5,c:+bank.c+1.5});
   }catch(_){/* generic residential doors remain a complete fallback */}
   document.documentElement.dataset.residentSpawnDoors=String(doors.length);
   document.documentElement.dataset.residentAuthoredSpawnDoors=String(doors.filter(d=>d.authored).length);
   _residentBuildingDoorsCache=doors;
   return doors;
+}
+function _residentDoorById(id){return _residentBuildingDoors().find(door=>door.id===id)||null;}
+function _residentDoorIdForInteraction(interaction){
+  if(!interaction)return '';
+  const sourceKind=interaction.kind==='building'&&interaction.type==='blackmarket'?'blackmarket':interaction.kind;
+  const sourceId=_residentDoorBySource.get(`${sourceKind}:${interaction.id}`);if(sourceId)return sourceId;
+  return _residentDoorByBuildingTile.get(`${Math.floor(+interaction.r)},${Math.floor(+interaction.c)}`)||'';
+}
+function _openResidentDoorVisual(door,now=performance.now(),holdMs=1650){
+  if(!door?.id)return;
+  _activeResidentDoorVisuals.set(door.id,Math.max(_activeResidentDoorVisuals.get(door.id)||0,now+holdMs));
+  _residentDoorAnimationCount++;document.documentElement.dataset.residentDoorAnimations=String(_residentDoorAnimationCount);
+}
+function _residentDoorHiddenFromPlayer(door){
+  if(!door||Math.hypot(door.r-player.r,door.c-player.c)<NPC_RESPAWN_MIN_DIST)return false;
+  if(typeof w2s!=='function'||typeof _viewSize!=='function')return true;
+  const p=w2s(door.r,door.c),view=_viewSize(),margin=150;
+  return !(p.x>=-margin&&p.x<=view.W+margin&&p.y>=-margin&&p.y<=view.H+margin);
+}
+function _previewResidentDoorCycle(){
+  if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+  const doors=_residentBuildingDoors(),door=doors.filter(q=>q.sourceKind!=='bank'&&q.sourceKind!=='blackmarket').sort((a,b)=>Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c))[0];
+  if(!door)return {ok:false,reason:'no-door'};
+  player.r=door.r+(door.facingR||0)*1.35;player.c=door.c+(door.facingC||0)*1.35;player.tr=player.r;player.tc=player.c;player.vr=0;player.vc=0;player.walking=false;window._studioTeleportUntil=Date.now()+10000;
+  const npc=spawnNpc(++_residentRespawnSeed,{cityOnly:true});if(!npc)return {ok:false,reason:'no-resident'};
+  _residentEnterBuilding(npc,performance.now(),door,true);npc._residentInsideUntil=performance.now()+80;npc._residentExitDeadline=performance.now()+900;
+  document.documentElement.dataset.previewResidentDoor=door.id;
+  return {ok:true,id:door.id,count:doors.length,sourceKind:door.sourceKind||'building'};
 }
 function _maybePlanResidentBuildingVisit(npc) {
   const now=performance.now();
@@ -8874,7 +8920,7 @@ function _maybePlanResidentBuildingVisit(npc) {
   const visitChance=['home','work','study','errands'].includes(routine) ? .26 : (routine==='rest' ? .18 : .09);
   if(!_residentCanVisitBuilding(npc,now)||Math.random()>visitChance)return false;
   let candidates=_residentBuildingDoors().filter(d=>{
-    const dist=Math.hypot(d.r-npc.r,d.c-npc.c);return dist>=2&&dist<=11;
+    const dist=Math.hypot(d.r-npc.r,d.c-npc.c);return d.residentEligible!==false&&dist>=2&&dist<=11;
   }).sort((a,b)=>Math.hypot(a.r-npc.r,a.c-npc.c)-Math.hypot(b.r-npc.r,b.c-npc.c)).slice(0,8);
   if(!candidates.length)return false;
   const authored=candidates.filter(d=>d.authored&&(routine==='work'||routine==='study'||routine==='errands'));
@@ -8889,26 +8935,25 @@ function _maybePlanResidentBuildingVisit(npc) {
   return true;
 }
 function _pickResidentRespawnDoor() {
-  const doors=_residentBuildingDoors();if(!doors.length)return null;
-  const hidden=doors.filter(d=>{
-    if(Math.hypot(d.r-player.r,d.c-player.c)<NPC_RESPAWN_MIN_DIST)return false;
-    if(typeof w2s==='function'&&typeof _viewSize==='function'){
-      const p=w2s(d.r,d.c),view=_viewSize(),margin=150;
-      if(p.x>=-margin&&p.x<=view.W+margin&&p.y>=-margin&&p.y<=view.H+margin)return false;
-    }
-    return true;
-  });
+  const doors=_residentBuildingDoors().filter(door=>door.residentEligible!==false);if(!doors.length)return null;
+  const hidden=doors.filter(_residentDoorHiddenFromPlayer);
   // Если все двери видны, оставляем жителя в очереди, а не показываем spawn.
-  return hidden.length?hidden[Math.floor(Math.random()*hidden.length)]:null;
+  if(hidden.length)return hidden[Math.floor(Math.random()*hidden.length)];
+  // A player standing at the map edge must not freeze the whole population.
+  // The farthest animated doorway provides a natural visible fallback.
+  const farthest=doors.slice().sort((a,b)=>Math.hypot(b.r-player.r,b.c-player.c)-Math.hypot(a.r-player.r,a.c-player.c)).slice(0,Math.min(8,doors.length));
+  return farthest[Math.floor(Math.random()*farthest.length)]||null;
 }
 function _residentEnterBuilding(npc,now,door=npc._residentDoor,respawn=false) {
   if(!door)return false;
+  _openResidentDoorVisual(door,now,respawn?900:1450);
   _clearNpcRoute(npc);npc.r=door.r;npc.c=door.c;npc.tr=door.r;npc.tc=door.c;
   npc.walking=false;npc.walkPhase=0;npc._residentIndoors=true;npc._residentDoor=door;
   npc._residentRespawn=!!respawn;
-  const routine=npc._npcRoutine||'wander',stay=routine==='home'?8000+Math.random()*7000:
+  const routine=npc._npcRoutine||'wander',stay=respawn?180+Math.random()*180:routine==='home'?8000+Math.random()*7000:
     (routine==='work'||routine==='study'?5000+Math.random()*5000:2000+Math.random()*2000);
   npc._residentInsideUntil=now+stay;
+  npc._residentExitDeadline=respawn?now+1900:0;npc._residentExitOpening=false;
   if(!RESIDENTS_INDOORS.includes(npc))RESIDENTS_INDOORS.push(npc);
   return true;
 }
@@ -8934,9 +8979,11 @@ function _respawnResidentImmediately(deadNpc,now=performance.now()) {
 function _updateResidentsIndoors(now) {
   for(let i=RESIDENTS_INDOORS.length-1;i>=0;i--){
     const n=RESIDENTS_INDOORS[i];if(!n||now<(n._residentInsideUntil||0))continue;
-    if(n._residentRespawn&&Math.hypot(n._residentDoor.r-player.r,n._residentDoor.c-player.c)<NPC_RESPAWN_MIN_DIST){
-      const safer=_pickResidentRespawnDoor();if(safer)n._residentDoor=safer;
-      n._residentInsideUntil=now+900+Math.random()*700;continue;
+    if(!n._residentExitOpening){
+      if(n._residentRespawn&&!_residentDoorHiddenFromPlayer(n._residentDoor)&&now<(n._residentExitDeadline||0)){
+        const safer=_pickResidentRespawnDoor();if(safer)n._residentDoor=safer;
+      }
+      _openResidentDoorVisual(n._residentDoor,now,1900);n._residentExitOpening=true;n._residentInsideUntil=now+420;continue;
     }
     const door=n._residentDoor;
     if(!door||!_npcBodyPassable(door.r,door.c)){
@@ -8945,6 +8992,7 @@ function _updateResidentsIndoors(now) {
     const wasRespawn=!!n._residentRespawn;
     const exit=n._residentDoor;n.r=exit.r;n.c=exit.c;n.tr=exit.r;n.tc=exit.c;
     n._residentIndoors=false;n._residentRespawn=false;n._residentInsideUntil=0;
+    n._residentExitOpening=false;n._residentExitDeadline=0;_openResidentDoorVisual(exit,now,1250);
     n._buildingVisitCooldownUntil=now+18000+Math.random()*26000;n.idleUntil=now+150+Math.random()*350;
     RESIDENTS_INDOORS.splice(i,1);pickNpcWaypoint(n);NPCS.push(n);
     if(wasRespawn&&n._residentDoor){_residentInvisibleSpawnCount++;document.documentElement.dataset.residentInvisibleSpawns=String(_residentInvisibleSpawnCount);document.documentElement.dataset.lastResidentSpawnSource=`${n._residentDoor.sourceKind||'building'}:${n._residentDoor.sourceId||n._residentDoor.id||'door'}`;}
@@ -18293,7 +18341,7 @@ function _nearbyBuildingInteractionFor3D() {
   if(market&&market.distance<bestD){const p=market.poi,a=market.entrance;best={kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};bestD=market.distance;}
   // A landmark/business facade owns the nearby E action. Ordinary blocked
   // tiles behind a large exterior must never steal it.
-  if(best)return best;
+  if(best){best.doorId=_residentDoorIdForInteraction(best);return best;}
   const pr=Math.floor(player.r),pc=Math.floor(player.c);
   for(let r=Math.max(1,pr-5);r<=Math.min(MAP_ROWS-2,pr+5);r++)for(let c=Math.max(1,pc-5);c<=Math.min(MAP_COLS-2,pc+5);c++){
     if(MAP[r]?.[c]!==1)continue;
@@ -18303,6 +18351,7 @@ function _nearbyBuildingInteractionFor3D() {
     const special=_buildingInteriorTypeAt(r,c);
     best={kind:'building',id:`${r},${c}`,r,c,entryR:a.r,entryC:a.c,name:special==='mafia_hq'?'Burj Mafia':special?({job:'Биржа труда',gym:'Спортзал',hospital:'Больница',police_st:'Полицейский участок'}[special]||'Здание'):'Здание',type:special||null,distance:d};bestD=d;
   }
+  if(best)best.doorId=_residentDoorIdForInteraction(best);
   return best;
 }
 
@@ -24842,6 +24891,7 @@ function wsConnect() {
         MAP_COLS = srvC; MAP_ROWS = srvR; buildMap();
         _threeBuildingBlockCache.clear();
         _playerEmpireBuildingMetaCache.clear();
+        _residentBuildingDoorsCache=null;_residentDoorByBuildingTile.clear();_residentDoorBySource.clear();_activeResidentDoorVisuals.clear();
         _rebuildNpcEmpireFlagSites();
         // buildMap снова поставил здания на парковки — расчищаем заново,
         // иначе пользователь увидит здания НА парковочных машинах.
@@ -40447,6 +40497,7 @@ function _businessInteractionDistance(b, r=player.r, c=player.c) {
 // cached entrances now that casinos, shops and their exact 3D doors exist.
 _residentBuildingDoorsCache=null;
 _residentBuildingDoors();
+if(_LOCAL_PREVIEW&&_UP.get('previewdoorcycle'))setTimeout(_previewResidentDoorCycle,1350);
 
 // Local-only entrance audit. It uses the same coordinates and proximity
 // resolver as production, so browser QA can verify every establishment without
@@ -63443,6 +63494,18 @@ window.Mafiozi3DBridge = Object.freeze({
     player.r=best.r;player.c=best.c;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;
     return {r:best.br,c:best.bc};
+  },
+  previewResidentDoorCycle() {
+    return _previewResidentDoorCycle();
+  },
+  getBuildingDoors() {
+    return _residentBuildingDoors().map(door=>({id:door.id,r:door.r,c:door.c,wallR:door.wallR,wallC:door.wallC,
+      facingR:door.facingR,facingC:door.facingC,sourceId:door.sourceId||'',sourceKind:door.sourceKind||'building',authored:!!door.authored,residentEligible:door.residentEligible!==false}));
+  },
+  getBuildingDoorStates() {
+    const now=performance.now(),active=[];
+    for(const [id,until] of _activeResidentDoorVisuals){if(until>now)active.push(id);else _activeResidentDoorVisuals.delete(id);}
+    return {active,revision:_residentDoorAnimationCount};
   },
   // Read-only, compact description of real city blocks near the player.
   // Three.js consumes this instead of inventing a separate map.
