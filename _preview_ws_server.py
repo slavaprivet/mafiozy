@@ -42,6 +42,30 @@ district_captures = {}
 district_loot = {}
 world_c4 = {}
 next_world_c4_id = 1
+PREVIEW_BUSINESS_POS = {
+    "coffee": (13.0, 33.0), "carwash": (25.0, 23.0),
+    "barbershop": (23.0, 53.0), "pizza": (53.0, 53.0),
+    "garage": (63.0, 13.0), "bar": (33.0, 43.0),
+    "club": (53.0, 63.0), "warehouse": (23.0, 73.0),
+    "casino": (45.0, 13.0), "port": (31.0, 181.0),
+}
+PREVIEW_BOX_DROPOFFS = [
+    ("coffee", "Кофейня", *PREVIEW_BUSINESS_POS["coffee"]),
+    ("carwash", "Автомойка", *PREVIEW_BUSINESS_POS["carwash"]),
+    ("barbershop", "Парикмахерская", *PREVIEW_BUSINESS_POS["barbershop"]),
+    ("pizza", "Пиццерия", *PREVIEW_BUSINESS_POS["pizza"]),
+    ("garage", "Автосервис", *PREVIEW_BUSINESS_POS["garage"]),
+    ("bar", "Бар «Чёрная вдова»", *PREVIEW_BUSINESS_POS["bar"]),
+    ("club", "Подпольный клуб", *PREVIEW_BUSINESS_POS["club"]),
+    ("warehouse", "Склад", *PREVIEW_BUSINESS_POS["warehouse"]),
+    ("casino", "Казино", *PREVIEW_BUSINESS_POS["casino"]),
+    ("port", "Порт", *PREVIEW_BUSINESS_POS["port"]),
+]
+PREVIEW_ROB_INTERIOR_WIDTHS = {
+    "coffee": 16, "carwash": 18, "barbershop": 18, "pizza": 19,
+    "garage": 21, "bar": 21, "club": 23, "warehouse": 25,
+    "casino": 28, "port": 30,
+}
 PREVIEW_START_X = 66.0
 PREVIEW_START_Y = 162.5
 PREVIEW_HOSPITAL_X = 43.0
@@ -85,6 +109,9 @@ preview_bank_bags = {}
 preview_businesses = {}
 preview_business_owners = {}
 preview_police_rewards = set()
+preview_gta_quests = {}
+preview_box_quests = {}
+PREVIEW_BOX_GROUND_TTL_S = 5 * 60
 PREVIEW_MAJOR = {
     "casino":{"r":46,"c":16,"name":"Казино","boss":"Сальваторе Беллини","guards":20,"total":40,"income":2400},
     "market":{"r":16,"c":16,"name":"Рынок","boss":"Риккардо Торри","guards":20,"total":34,"income":1200},
@@ -92,6 +119,92 @@ PREVIEW_MAJOR = {
     "mansion":{"r":136,"c":16,"name":"Резиденция","boss":"Дон Витторио","guards":28,"total":40,"income":4200},
     "port":{"r":165,"c":38,"name":"Порт","boss":"Капитан Риццо","guards":22,"total":38,"income":2600},
 }
+
+
+def preview_robber_at_cashier(player, biz_id):
+    if not player or str(player.get("business_interior") or "") != str(biz_id):
+        return False
+    width = PREVIEW_ROB_INTERIOR_WIDTHS.get(str(biz_id))
+    if not width:
+        return False
+    try:
+        dx = float(player.get("interior_x", 0)) - width / 2
+        dy = float(player.get("interior_y", 0)) - 2.9
+    except (TypeError, ValueError):
+        return False
+    return dx * dx + dy * dy <= 16.0
+
+
+def preview_drop_box(owner_uid, reason="manual"):
+    owner_uid = str(owner_uid)
+    player = players.get(owner_uid)
+    quest = preview_box_quests.get(owner_uid)
+    if not player or not quest or quest.get("state") not in ("carrying", "loaded"):
+        return {"ok": False, "reason": "wrong_state"}
+    business_id = str(player.get("business_interior") or "")
+    if business_id:
+        ground_x = float(player.get("interior_x") or 0)
+        ground_y = float(player.get("interior_y") or 0)
+        space = "business"
+    else:
+        ground_x = float(player.get("x") or 0)
+        ground_y = float(player.get("y") or 0)
+        space = "world"
+    now = time.time()
+    quest.update({
+        "state": "ground", "ground_x": ground_x, "ground_y": ground_y,
+        "ground_space": space, "ground_business_id": business_id,
+        "ground_dropped_at": now,
+        "ground_expires_at": now + PREVIEW_BOX_GROUND_TTL_S,
+        "ground_reason": str(reason or "manual")[:24],
+    })
+    quest.pop("car_id", None)
+    return {
+        "ok": True, "state": "ground", "owner_uid": owner_uid,
+        "ground_x": ground_x, "ground_y": ground_y, "ground_space": space,
+        "ground_business_id": business_id,
+        "expires_in": PREVIEW_BOX_GROUND_TTL_S,
+        "reason": str(reason or "manual")[:24],
+    }
+
+
+def preview_pickup_box(uid, owner_uid=""):
+    uid, owner_uid = str(uid), str(owner_uid or uid)
+    player = players.get(uid)
+    quest = preview_box_quests.get(owner_uid)
+    if not player or not quest:
+        return {"ok": False, "reason": "no_quest"}
+    if quest.get("state") == "ground":
+        same_business = (
+            quest.get("ground_space") == "business"
+            and str(player.get("business_interior") or "")
+            == str(quest.get("ground_business_id") or "")
+        )
+        same_world = quest.get("ground_space") == "world" and not player.get("business_interior")
+        player_x = float(player.get("interior_x") or 0) if same_business else float(player.get("x") or 0)
+        player_y = float(player.get("interior_y") or 0) if same_business else float(player.get("y") or 0)
+        if not (same_business or same_world) or math.hypot(
+                player_x - float(quest.get("ground_x") or 0),
+                player_y - float(quest.get("ground_y") or 0)) > 2:
+            return {"ok": False, "reason": "too_far"}
+        if owner_uid != uid:
+            return {"ok": False, "reason": "foreign_box", "owner_uid": owner_uid}
+        quest["state"] = "carrying"
+        for key in ("ground_x", "ground_y", "ground_space", "ground_business_id",
+                    "ground_dropped_at", "ground_expires_at", "ground_reason"):
+            quest.pop(key, None)
+        return {"ok": True, "state": "carrying", "source": "ground"}
+    if owner_uid != uid:
+        return {"ok": False, "reason": "foreign_box", "owner_uid": owner_uid}
+    if quest.get("state") != "pending":
+        return {"ok": False, "reason": "wrong_state"}
+    if math.hypot(float(player.get("x", 0)) - float(quest["pickup_x"]),
+                  float(player.get("y", 0)) - float(quest["pickup_y"])) > 2:
+        return {"ok": False, "reason": "too_far"}
+    quest["state"] = "carrying"
+    return {"ok": True, "state": "carrying", "source": "pier"}
+
+
 preview_major_raids = {}
 preview_major_owners = {}
 preview_city_gangs = [
@@ -1906,6 +2019,33 @@ def snap(uid):
                           if other_apt else ({"kind": "business", "biz_id": other_biz,
                           "private": other_private} if other_biz else None)),
         })
+    ground_boxes = []
+    for owner_uid, box in preview_box_quests.items():
+        if box.get("state") != "ground":
+            continue
+        box_business = str(box.get("ground_business_id") or "")
+        if me_biz:
+            if box.get("ground_space") != "business" or box_business != me_biz:
+                continue
+        else:
+            if box.get("ground_space") != "world":
+                continue
+            if math.hypot(float(box.get("ground_x") or 0) - float(p.get("x") or 0),
+                          float(box.get("ground_y") or 0) - float(p.get("y") or 0)) > 45:
+                continue
+        ground_boxes.append({
+            "owner_uid": str(owner_uid),
+            "owner_name": (players.get(str(owner_uid)) or {}).get("name", "Игрок"),
+            "r": round(float(box.get("ground_y") or 0), 2),
+            "c": round(float(box.get("ground_x") or 0), 2),
+            "mine": str(owner_uid) == str(uid),
+            "expires_in": max(0, int(float(box.get("ground_expires_at") or now) - now)),
+        })
+    own_box = preview_box_quests.get(str(uid))
+    box_quest = dict(own_box) if own_box else None
+    if box_quest and box_quest.get("state") == "ground":
+        box_quest["expires_in"] = max(
+            0, int(float(box_quest.get("ground_expires_at") or now) - now))
     return {
         "t": "snap",
         "d": {
@@ -1923,6 +2063,7 @@ def snap(uid):
                 "cash": preview_account(uid)["cash"],
                 "police_xp": int(preview_account(uid).get("police_xp", 0)),
                 "mafia_xp": int(preview_account(uid).get("mafia_xp", 0)),
+                "spray_cans": int(p.get("spray_cans", 0)),
                 "custom_gang": preview_custom_gang_payload(uid),
                 "online_gang": preview_online_gang(uid),
                 "apartment_hosts":[{"owner_uid":str(owner_uid),"owner_name":owner.get("name","Игрок"),"apartment_key":str(owner.get("apartment_key"))}
@@ -1990,6 +2131,8 @@ def snap(uid):
                 if rob.get("vault_open") and rob.get("bank_id")
             },
             "quest_cars": race_car_payload(),
+            "ground_boxes": ground_boxes,
+            "box_quest": box_quest,
             "dropped_bags": [{
                 "id": str(bag["id"]), "bank_id": str(bag.get("bank_id") or ""),
                 "value": int(bag.get("value") or 0),
@@ -2110,6 +2253,18 @@ async def world_ws(req):
         while not ws.closed:
             now = time.time()
             ensure_preview_district_bosses(now)
+            for owner_uid, quest in list(preview_box_quests.items()):
+                owner = players.get(str(owner_uid))
+                if quest.get("state") in ("carrying", "loaded") and owner and owner.get("dead"):
+                    reply = preview_drop_box(owner_uid, "death")
+                    if reply.get("ok"):
+                        await broadcast_event({"kind": "box_dropped", **reply})
+                elif (quest.get("state") == "ground"
+                      and now >= float(quest.get("ground_expires_at") or 0)):
+                    preview_box_quests.pop(str(owner_uid), None)
+                    await broadcast_event({"kind": "box_expired",
+                                           "owner_uid": str(owner_uid),
+                                           "reason": "timeout"})
             for p in players.values():
                 if p.get("dead") and now >= float(p.get("respawn_at", now + 1)):
                     cop_uid = str(p.pop("police_downed_by", "") or "")
@@ -2475,8 +2630,8 @@ async def world_ws(req):
                 major_id = str((interior or {}).get("object_id") or "")[:24]
                 if (interior or {}).get("kind") == "major" and major_id in PREVIEW_MAJOR:
                     p["major_interior"] = major_id
-                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
-                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
+                    p["interior_x"] = max(0.0, min(60.0, float((interior or {}).get("x", d.get("x", 0)))))
+                    p["interior_y"] = max(0.0, min(60.0, float((interior or {}).get("y", d.get("y", 0)))))
                     p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                     p["walking"] = bool(d.get("w", False))
                     p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
@@ -2486,8 +2641,8 @@ async def world_ws(req):
                 if (interior or {}).get("kind") == "business" and biz_id:
                     p["business_interior"] = biz_id
                     p["business_private"] = biz_id in preview_owned_businesses(uid)
-                    p["interior_x"] = max(0.0, min(60.0, float(d.get("x", 0))))
-                    p["interior_y"] = max(0.0, min(60.0, float(d.get("y", 0))))
+                    p["interior_x"] = max(0.0, min(60.0, float((interior or {}).get("x", d.get("x", 0)))))
+                    p["interior_y"] = max(0.0, min(60.0, float((interior or {}).get("y", d.get("y", 0)))))
                     p["ang"] = float(d.get("ang", p.get("ang", 0.0)))
                     p["walking"] = bool(d.get("w", False))
                     p["weapon"] = str(d.get("weapon") or p.get("weapon") or "pistol")[:32]
@@ -3139,11 +3294,31 @@ async def world_ws(req):
                 if ok:
                     p["wanted"] = 0; account["wanted"] = 0; p["jail_until"] = time.time() + 60
                 await ws.send_str(json.dumps({"t":"event","d":{"kind":"citycop_arrest_reply","ok":ok,"reason":"" if ok else "not_wanted","booking":booking,"jail_s":60}}, ensure_ascii=False))
+            elif t == "spray_can_buy":
+                player = players.setdefault(uid, {})
+                account = preview_account(uid)
+                ok = account["cash"] >= 5
+                if ok:
+                    account["cash"] -= 5
+                    player["spray_cans"] = int(player.get("spray_cans", 0)) + 1
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "spray_can_buy_reply", "ok": ok,
+                    "reason": None if ok else "cash", "cash": account["cash"],
+                    "spray_cans": int(player.get("spray_cans", 0)),
+                }}, ensure_ascii=False))
             elif t == "brigadir_take":
                 p=players.setdefault(uid,{})
                 reply={"kind":"brigadir_take_reply","ok":not p.get("dead"),
                        "payout":700,"stealth_mul":1.5,"left":3}
                 await ws.send_str(json.dumps({"t":"event","d":reply},ensure_ascii=False))
+            elif t == "brigadir_accept":
+                p = players.setdefault(uid, {})
+                ok = not p.get("dead") and bool(str(d.get("target_id") or "")[:96])
+                if ok:
+                    p["brigadir_contract"] = str(d.get("target_id") or "")[:96]
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "brigadir_accept_reply", "ok": ok,
+                }}, ensure_ascii=False))
             elif t == "brigadir_kill":
                 p=players.setdefault(uid,{})
                 stealth=bool(d.get("stealth"));reward=int(700*(1.5 if stealth else 1))
@@ -3156,6 +3331,113 @@ async def world_ws(req):
                     "ok":bool(pending),"reward":int((pending or {}).get("reward") or 0),
                     "stealth":bool((pending or {}).get("stealth")),"left":2,
                     "reason":None if pending else "no_pending"}},ensure_ascii=False))
+            elif t == "gta_status":
+                quest = preview_gta_quests.get(str(uid))
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "gta_status", "ok": True,
+                    "count_today": 1 if quest else 0, "limit": 2,
+                    "reset_in_s": 0, "sc_lvl": 5, "active": quest,
+                }}, ensure_ascii=False))
+            elif t == "gta_take":
+                player = players.get(uid) or {}
+                quest = preview_gta_quests.get(str(uid))
+                if quest:
+                    reply = {"kind": "gta_take_reply", "ok": False,
+                             "reason": "has_active", "model": quest["model"]}
+                elif ((float(player.get("x", 0)) - 42) ** 2
+                      + (float(player.get("y", 0)) - 183) ** 2 > 16):
+                    reply = {"kind": "gta_take_reply", "ok": False, "reason": "too_far"}
+                else:
+                    car_id = f"michael_preview_{uid}"
+                    car = {"id": car_id, "model": "ferrari_f40", "owner_uid": str(uid),
+                           "x": 49.0, "y": 158.0, "ang": 0.0, "vx": 0, "vy": 0,
+                           "driver_uid": None, "hp": 180, "reward": 650}
+                    quest_cars[car_id] = car
+                    quest = {"car_id": car_id, "model": car["model"],
+                             "reward": car["reward"], "x": car["x"], "y": car["y"],
+                             "state": "idle"}
+                    preview_gta_quests[str(uid)] = quest
+                    reply = {"kind": "gta_take_reply", "ok": True, **quest}
+                await ws.send_str(json.dumps({"t": "event", "d": reply}, ensure_ascii=False))
+            elif t == "box_status":
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_status", "ok": True, "count_today": 0,
+                    "limit": 5, "reset_in_s": 0, "fail_cd_s": 0,
+                    "active": preview_box_quests.get(str(uid)),
+                }}, ensure_ascii=False))
+            elif t == "box_take":
+                player = players.get(uid) or {}
+                quest = preview_box_quests.get(str(uid))
+                if quest:
+                    reply = {"kind": "box_take_reply", "ok": False, "reason": "has_active"}
+                elif ((float(player.get("x", 0)) - 42) ** 2
+                      + (float(player.get("y", 0)) - 183) ** 2 > 16):
+                    reply = {"kind": "box_take_reply", "ok": False, "reason": "too_far"}
+                else:
+                    business_id, address, dropoff_x, dropoff_y = random.choice(PREVIEW_BOX_DROPOFFS)
+                    quest = {"pickup_x": 40.0, "pickup_y": 166.0,
+                             "dropoff_x": dropoff_x, "dropoff_y": dropoff_y,
+                             "business_id": business_id, "addr": address,
+                             "reward": 350, "state": "pending"}
+                    preview_box_quests[str(uid)] = quest
+                    reply = {"kind": "box_take_reply", "ok": True, **quest}
+                await ws.send_str(json.dumps({"t": "event", "d": reply}, ensure_ascii=False))
+            elif t == "box_pickup":
+                reply = preview_pickup_box(uid, d.get("owner_uid") if isinstance(d, dict) else "")
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_pickup_reply", **reply}}, ensure_ascii=False))
+            elif t == "box_load":
+                quest = preview_box_quests.get(str(uid))
+                car_id = str(d.get("car_id") or "")[:96]
+                ok = bool(quest and quest.get("state") == "carrying" and car_id)
+                if ok:
+                    quest["state"] = "loaded"
+                    quest["car_id"] = car_id
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_load_reply", "ok": ok,
+                    "state": "loaded" if ok else None, "car_id": car_id,
+                    "reason": None if ok else "wrong_state",
+                }}, ensure_ascii=False))
+            elif t == "box_unload":
+                quest = preview_box_quests.get(str(uid))
+                car_id = str(d.get("car_id") or "")[:96]
+                correct_car = bool(quest and quest.get("state") == "loaded"
+                                   and str(quest.get("car_id") or "") == car_id)
+                reply = preview_drop_box(uid, "unload") if correct_car else {
+                    "ok": False, "reason": "wrong_car"}
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_unload_reply", **reply}}, ensure_ascii=False))
+            elif t == "box_drop":
+                reply = preview_drop_box(uid, "manual")
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_drop_reply", **reply}}, ensure_ascii=False))
+            elif t == "box_deliver":
+                player = players.get(uid) or {}
+                quest = preview_box_quests.get(str(uid))
+                state_ok = bool(quest and quest.get("state") == "carrying")
+                right_business = bool(state_ok and str(player.get("business_interior") or "")
+                                      == str(quest.get("business_id") or ""))
+                ok = bool(right_business and preview_robber_at_cashier(
+                    player, quest.get("business_id")))
+                reward = int(quest.get("reward", 0)) if ok else 0
+                address = quest.get("addr") if quest else ""
+                if ok:
+                    preview_account(uid)["cash"] += reward
+                    preview_box_quests.pop(str(uid), None)
+                reason = None if ok else (
+                    "no_quest" if not quest else
+                    "wrong_state" if not state_ok else
+                    "wrong_business" if not right_business else "too_far_npc")
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_deliver_reply", "ok": ok, "reason": reason,
+                    "reward": reward, "addr": address,
+                    "business_id": quest.get("business_id") if quest else None,
+                }}, ensure_ascii=False))
+            elif t == "box_abandon":
+                ok = preview_box_quests.pop(str(uid), None) is not None
+                await ws.send_str(json.dumps({"t": "event", "d": {
+                    "kind": "box_abandon_reply", "ok": ok, "wait_s": 600,
+                }}, ensure_ascii=False))
             elif t == "gta_enter":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 reason = None
@@ -3238,11 +3520,28 @@ async def world_ws(req):
             elif t == "gta_exit":
                 car = quest_cars.get(str(d.get("car_id") or ""))
                 if car and str(car.get("driver_uid")) == str(uid):
+                    if car.get("model") in ("police_heli", "mafia_heli") and not bool(d.get("landing_ok")):
+                        await ws.send_str(json.dumps({
+                            "t": "event",
+                            "d": {"kind": "gta_exit_reply", "ok": False,
+                                  "reason": "unsafe_landing", "car_id": car["id"],
+                                  "model": car.get("model")},
+                        }))
+                        continue
                     release_car(car)
+                    delivered = (37 <= float(car.get("x", 0)) <= 43
+                                 and 167 <= float(car.get("y", 0)) <= 173
+                                 and str(car.get("owner_uid") or "") == str(uid))
+                    reward = int(car.get("reward") or 0) if delivered else 0
+                    if delivered:
+                        preview_account(uid)["cash"] += reward
+                        preview_gta_quests.pop(str(uid), None)
+                        quest_cars.pop(str(car.get("id") or ""), None)
                     await ws.send_str(json.dumps({
                         "t": "event",
                         "d": {"kind": "gta_exit_reply", "ok": True,
-                              "delivered": False, "car_id": car["id"],
+                              "delivered": delivered, "reward": reward,
+                              "car_id": car["id"],
                               "model":car.get("model"),"owner_uid":car.get("owner_uid"),
                               "x":car.get("x"),"y":car.get("y"),"ang":car.get("ang",0),
                               "hp":car.get("hp",220),"max_hp":car.get("max_hp",220),
@@ -3403,6 +3702,8 @@ async def world_ws(req):
             preview_connections.pop(str(uid), None)
             leaving = players.get(uid) or {}
             preview_leave_online_gang(uid)
+            if (preview_box_quests.get(str(uid)) or {}).get("state") in ("carrying", "loaded"):
+                preview_drop_box(uid, "disconnect")
             evidence = leaving.get("police_evidence_bag")
             if evidence:
                 bag_id = f"bag_preview_{time.time_ns()}"
