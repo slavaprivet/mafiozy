@@ -1,5 +1,23 @@
 # Mafiozi 3D optimization memory
 
+## Custody transport visibility and booking-gated uniform (2026-08-13, v398)
+
+- The server reserves a jail sentence when police validate the arrest, before
+  the client finishes the physical convoy. Do not use that early `jail_in`
+  value alone to select the orange prisoner outfit: keep the current street or
+  faction clothing while the bounded `_murderPoliceArrest` state machine is
+  active, and switch to `prisoner` only after booking clears that state.
+- The active prison vehicle is also the custody camera carrier. It must bypass
+  arrival reveal and stream-radius rejection during `transport`, and it must be
+  retained inside the existing 30-vehicle cap. This is a priority exception,
+  not a larger renderer budget or another vehicle scan.
+- One-tab localhost QA slowed only the local convoy fixture to sample the hot
+  transition. During transport it reported one visible custody vehicle,
+  `street-custody`, a moving vehicle/player pair and no frame error. After the
+  existing escort and booking completed, the same tab reported `booked`,
+  `prisoner` and `delivered:1`. No release, post-release fire or chat scenario
+  was rerun for this isolated visual fix.
+
 ## Resilient player locomotion and low-stance gait (2026-08-13, v397)
 
 - Player gait must not depend on one instantaneous bridge-speed sample. The

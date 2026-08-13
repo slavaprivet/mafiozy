@@ -63516,6 +63516,12 @@ window.Mafiozi3DBridge = Object.freeze({
     const vehicleEntry=_threeVehicleEntrySequence?{..._threeVehicleEntrySequence,progress:Math.max(0,Math.min(1,(performance.now()-_threeVehicleEntrySequence.startedAt)/_threeVehicleEntrySequence.duration))}:null;
     const arrest=_murderPoliceArrest,arrestPhase=arrest?.phase||'',arrestProgress=arrest?_murderPoliceArrestProgress(arrest):0;
     const jailIn=_effectivePrisonJailSeconds(),servingSentence=jailIn>0;
+    // The server reserves the sentence as soon as the arrest is validated so
+    // reconnects cannot erase it.  That reservation is not the physical prison
+    // booking: while the local custody state machine is still carrying the
+    // player, keep their street clothes and faction identity.  The uniform is
+    // applied only after delivery clears the arrest object.
+    const prisonBooked=servingSentence&&!arrest;
     const stance=_effectivePlayerStance();
     // Keep the transport state machine detailed while feeding the existing
     // renderer poses it already understands: prone extraction and walking escort.
@@ -63539,8 +63545,9 @@ window.Mafiozi3DBridge = Object.freeze({
       carryingBag:!!((_bankInt&&_bankInt.myBag)||(_bankRob&&_bankRob.myBag)||_myBagWeight>0),
       name: QP.name || 'Игрок', look: typeof _livePlayerLook==='function' ? _livePlayerLook() : (QP.look || null),
       chat: _localChat && stateNow-_localChatT<chatDuration(_localChat) ? _localChat : '',
-      role: servingSentence ? 'prisoner' : (_policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian'),
-      family: servingSentence ? null : (_mafiaState?.employed ? (_mafiaState.family || null) : null),
+      role: prisonBooked ? 'prisoner' : (_policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian'),
+      family: prisonBooked ? null : (_mafiaState?.employed ? (_mafiaState.family || null) : null),
+      prisonBooked,
       armor:armorId||null,armorDurability,armorMax,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
       joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
@@ -64029,14 +64036,16 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     if(!inside&&typeof serviceVehicles!=='undefined')for(const v of serviceVehicles){
       if(!v||v.state==='done')continue;
-      if(v._arrivalRevealDistance){
+      const custodyVehicle=!!(_murderPoliceArrest&&String(_murderPoliceArrest.vehicleId||'')===String(v.id||''));
+      const custodyTransport=custodyVehicle&&_murderPoliceArrest.phase==='transport';
+      if(v._arrivalRevealDistance&&!custodyTransport){
         const revealDistance=Math.hypot(player.r-(+v.y||0),player.c-(+v.x||0));
         if(revealDistance>v._arrivalRevealDistance)continue;
         v._arrivalRevealDistance=0;
         document.documentElement.dataset.policeArrivalReveal=`approached-from-offscreen:${revealDistance.toFixed(1)}:v311`;
       }
       const visibleFireTarget=v.kind==='firetruck'&&v.state==='working'?_fireTruckTarget(v):null;
-      if(!near(+v.y||0,+v.x||0)&&!(visibleFireTarget&&near(visibleFireTarget.r,visibleFireTarget.c)))continue;
+      if(!custodyTransport&&!near(+v.y||0,+v.x||0)&&!(visibleFireTarget&&near(visibleFireTarget.r,visibleFireTarget.c)))continue;
       const ambulance=v.kind==='ambulance',fire=v.kind==='firetruck',tow=v.kind==='tow',police=v.kind==='police',policeProfile=police?POLICE_RESPONSE_PROFILES[Math.max(0,Math.min(POLICE_RESPONSE_MAX_TIER,+v._policeTier||0))]:null,serviceSize=policeProfile?.vehicleSize||[2.05,.98,.88],ambulanceOnCall=ambulance&&v.state!=='ambulance_parked';
       const medicalScene=ambulance?v._medicalScene:null,medicalDoorProgress=ambulance&&medicalScene?.active?(medicalScene.phase==='sealing'?Math.max(0,1-(+medicalScene.sealProgress||0)):1):0;
       cars.unshift({
@@ -64051,7 +64060,7 @@ window.Mafiozi3DBridge = Object.freeze({
         stripe:ambulance?'#1756bd':fire?'#f2c94c':tow?'#22262b':policeProfile?.vehicleStripe||'#d7e8f5',
         dirR:Math.sin(+v.ang||0),dirC:Math.cos(+v.ang||0),velR:0,velC:0,
         braking:v.state==='ambulance_parked'||v.state==='firetruck_parked'||v.state==='tow_parked'||v.state==='police_parked'||v.state==='police_boarding'||v.state==='police_search'||v.state==='police_arrest_scene'||v.state==='police_reboarding'||v.state==='working'||v.state==='medical_response'||v.state==='siege',turning:false,
-        serviceKind:v.kind,serviceState:v.state,policeTier:+v._policeTier||0,policeVehicleClass:policeProfile?.vehicleClass||'',armoredPoliceVan:!!policeProfile?.armoredVan,
+        serviceKind:v.kind,serviceState:v.state,custodyTransport,policeTier:+v._policeTier||0,policeVehicleClass:policeProfile?.vehicleClass||'',armoredPoliceVan:!!policeProfile?.armoredVan,
         roofGunner:!!v._roofGunner,turretActive:!!v._turretActive,turretDisabled:!!v._turretDisabled,turretAng:+v._turretAng||0,turretFlashAt:+v._turretFlashAt||0,
         damageRatio:policeProfile?.armoredVan&&Number.isFinite(v._ballisticHp)?Math.max(.01,v._ballisticHp/Math.max(1,v._ballisticMax||policeProfile.vehicleHp)):1,
         bulletHoles:+v._bulletHoleCount||0,bulletMarks:v._threeBulletMarks||[],hitAge:fxNow-(+v._lastConfirmedGunHitAt||0),smoking:!!policeProfile?.armoredVan&&Number.isFinite(v._ballisticHp)&&v._ballisticHp<(v._ballisticMax||policeProfile.vehicleHp)*.45,
@@ -64083,7 +64092,14 @@ window.Mafiozi3DBridge = Object.freeze({
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
     // Службы имеют отдельный запас и больше не вытесняют стабильный ambient-
     // набор при каждом приближении. Это убирает мерцание машин у границы cap.
-    if(cars.length>30)cars.length=30;
+    if(cars.length>30){
+      // The active prison transport is the camera carrier and must never be
+      // evicted by the ambient/service cap.  Preserve it without increasing
+      // the existing 30-vehicle renderer budget.
+      const custodyIndex=cars.findIndex(car=>car?.custodyTransport);
+      if(custodyIndex>=30){const custodyCar=cars[custodyIndex];cars.splice(custodyIndex,1);cars[29]=custodyCar;}
+      cars.length=30;
+    }
     if(_LOCAL_PREVIEW&&_UP.get('previewnewsheli')){const a=performance.now()*.00022,r=player.r+Math.sin(a)*8,c=player.c+Math.cos(a)*11;cars.unshift({id:'preview_news_heli',r,c,ang:a+Math.PI/2,model:'mafia_heli',paint:'#c91f2b',parked:false,length:2.5,width:1.25,height:1.05,wheelR:.18,sport:false,pickup:false,van:false,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:true,helicopter:true,emergency:'',stripe:'',dirR:Math.cos(a),dirC:-Math.sin(a),velR:Math.cos(a)*.9,velC:-Math.sin(a)*.9,braking:false,turning:false});}
     let npcSource=_buildingInt?(_buildingInt.npcs||[]):_bankInt?(_bankInt.room==='vault'?[]:(_bankInt.npcs||[])):(typeof NPCS!=='undefined'?NPCS:[]);
     if(!inside){
@@ -64596,7 +64612,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
       const sr=stop.r+dr,sc=stop.c+dc,d=Math.hypot(dr,dc);if(d<7||d>17||!_vehicleRoadPassable(sr,sc))continue;
       const path=_bfsRoadPath(sr,sc,stop.r,stop.c,20);if(path?.length&&(!best||path.length>best.path.length))best={r:sr,c:sc,path};
     }
-    if(best){v.y=best.r;v.x=best.c;player.r=v.y;player.c=v.x;v.state='returning';v.speed=POLICE_RESPONSE_SPEED;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;_setVehicleRoute(v,v.y,v.x,stop.r,stop.c);_murderPoliceArrest.previewDriveStart={r:v.y,c:v.x};}
+    if(best){v.y=best.r;v.x=best.c;player.r=v.y;player.c=v.x;v.state='returning';v.speed=_UP.has('previewprisonconvoyspeed')?Math.max(.5,Math.min(POLICE_RESPONSE_SPEED,+_UP.get('previewprisonconvoyspeed')||1)):POLICE_RESPONSE_SPEED;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;_setVehicleRoute(v,v.y,v.x,stop.r,stop.c);_murderPoliceArrest.previewDriveStart={r:v.y,c:v.x};}
     else _startMurderPolicePrisonHandoff(v,now,'preview-no-road-start');
   }else _startMurderPolicePrisonHandoff(v,now,'preview-direct');
   const trace=setInterval(()=>{
@@ -68394,6 +68410,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d397-player-locomotion"></script>
+<script type="module" src="three_preview.js?v=3d398-custody-transport-visibility"></script>
 </body>
 </html>
