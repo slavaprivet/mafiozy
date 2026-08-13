@@ -1810,6 +1810,28 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   signatures cannot flash it for one frame. Runtime QA must expose zero visible
   mini-facades and at least one skinned original building in the ownership
   fixture before publication.
+
+## Adaptive business frontages on original buildings (2026-08-13, v394)
+
+- A converted business is identified at street level, not by a miniature beer
+  glass, wheel, press or cash-box silhouette on its roof. Keep those legacy
+  profile meshes hidden and fit the storefront to the real streamed building
+  bounds returned by the ownership-signature lookup.
+- Preserve the original shell, upper-floor facade texture, windows, roof,
+  height, footprint and collision. The bounded ownership marker may add only a
+  ground-floor frontage: tinted cladding, dark shop windows, one entrance,
+  accent band, canopy and a physical two-line sign scaled from the real front
+  width and height.
+- Business names belong on the physical frontage and on one restrained
+  two-line rooftop readability card at the city camera scale. Both surfaces
+  reuse the same cached canvas texture and redraw only when the ownership
+  signature changes. Family flags remain in the same 64-slot pool, but use a
+  larger heraldic field and initials and anchor the pole to the resolved roof
+  corner.
+- Stream retries may scan `buildingPickables` at a bounded 650 ms cadence only
+  until a matching shell exists. After fitting, unchanged render frames mutate
+  transforms only for the existing flag pivot and perform no building scan,
+  canvas repaint, geometry creation or scene traversal.
 ## 2026-08-13 — Штурм штаба: видимая баллистика и большой интерьер
 
 - Для коротких 3D-интерьеров нельзя напрямую использовать экстремальную скорость уникального оружия босса: пуля может пролететь между двумя кадрами. У штурмовой охраны скорость визуального полёта ограничена диапазоном `11.5..15.5` клетки/с, и это же значение используется для задержки фактического попадания. Поэтому трассер и потеря HP происходят в одном порядке.

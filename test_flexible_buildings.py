@@ -53,9 +53,13 @@ def test_ownership_preserves_full_building_geometry_and_changes_only_skin() -> N
     assert "const EMPIRE_FLAG_CAP=64" in THREE
     assert "applyEmpireBuildingSkin" in THREE
     assert "restoreEmpireBuildingSkin" in THREE
-    assert "empireSkinMaterialsAt" in THREE
-    assert "marker.facade.visible=false" in THREE
-    assert "preserved-original-3d-skin-only-v390" in THREE
+    assert "empireBuildingVisualAt" in THREE
+    assert "fitEmpireBuildingFacade" in THREE
+    assert "marker.facade.visible=fitted" in THREE
+    assert "preserved-original-3d-adaptive-frontage-v394" in THREE
+    assert "facade-plus-roof-two-line-v394" in THREE
+    assert "large-family-heraldry-v394" in THREE
+    assert "for(const mesh of Object.values(marker.profileMeshes))mesh.visible=false" in THREE
 
 
 def test_converted_interiors_have_current_design_profile() -> None:
