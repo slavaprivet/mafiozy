@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parent
 def layout(labels, offsets=(0, 1.15, -1.15, 2.3, -2.3)):
     """Small deterministic mirror of the production priority layout."""
     placed, hidden = [], []
-    for item in sorted(labels, key=lambda row: -row['priority']):
+    for item in sorted(labels, key=lambda row: (-row['priority'], row.get('distance', 0))):
         candidates = offsets if item['priority'] >= 80 else offsets[:1]
         for lane in candidates:
             # Orthographic projection turns the production world-space lane
@@ -20,6 +20,9 @@ def layout(labels, offsets=(0, 1.15, -1.15, 2.3, -2.3)):
                 placed.append({**item, 'y': y, 'lane': lane})
                 break
         else:
+            if item['priority'] >= 120:
+                placed.append({**item, 'y': item['y'], 'lane': 'forced'})
+                continue
             hidden.append(item)
     return placed, hidden
 
@@ -43,10 +46,29 @@ def main():
         'corpse-a', 'corpse-b', 'corpse-c'}
     assert len(placed) <= len(dense)
 
+    bosses = [
+        {'id': f'boss-{i}', 'x': 200, 'y': 180, 'priority': 100,
+         'distance': i + 1}
+        for i in range(8)
+    ]
+    placed, hidden = layout(bosses)
+    assert [item['id'] for item in placed] == [f'boss-{i}' for i in range(5)]
+    assert [item['id'] for item in hidden] == [f'boss-{i}' for i in range(5, 8)]
+
+    focused = {'id': 'focused', 'x': 200, 'y': 180, 'priority': 120,
+               'distance': 9}
+    placed, hidden = layout([*bosses[:7], focused])
+    assert 'focused' in {item['id'] for item in placed}
+    assert len(placed) == 5
+    assert len(hidden) == 3
+
     assert 'const npcLabelLayoutCandidates=[]' in three
     assert 'npcLabelLaneOffsets=[0,1.15,-1.15,2.3,-2.3]' in three
-    assert 'npcLabelLayoutCandidates.sort((a,b)=>b.layoutPriority-a.layoutPriority)' in three
-    assert 'if(!placed&&!important){entry.sprite.visible=false' in three
+    assert 'entry.layoutDistanceSq=dx*dx+dz*dz' in three
+    assert 'b.layoutPriority-a.layoutPriority||a.layoutDistanceSq-b.layoutDistanceSq' in three
+    assert 'mustKeep=entry.layoutPriority>=120' in three
+    assert 'if(!placed&&!mustKeep){entry.sprite.visible=false' in three
+    assert 'if(!placed&&!important){entry.sprite.visible=false' not in three
     assert 'deathAge<2600' in three
     assert '(2600-deathAge)/900' in three
     assert "raidCombat?88" in three

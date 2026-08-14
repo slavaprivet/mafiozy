@@ -32672,7 +32672,7 @@ function _localBallisticTargets(firedWeapon = currentWeapon) {
     for (const npc of _buildingInt.npcs) {
       if (!npc || npc.dead || npc._allied) continue;
       add(npc, npc.r, npc.c, _interiorNpcHitRadius(firedWeapon),
-        (dmg, dy, dx) => _hitInteriorNpc(npc, dy, dx, dmg, firedWeapon));
+        (dmg, dy, dx) => _hitInteriorNpc(npc, dy, dx, dmg, firedWeapon,false,true));
     }
     return out;
   }
@@ -33531,12 +33531,13 @@ function fire(angle = null) {
     return;
   }
   if (hitI) {
+    const delayedInteriorHit=!!(hitI.npc?.businessRaidSide&&_buildingInt?.businessInteriorRaid)||!!(_buildingInt?.type==='npc_hq'&&_buildingInt?.npcEmpireAssault&&(hitI.npc?.npcEmpireBoss||hitI.npc?.npcEmpireGuardId!=null));
     spawnBullet(sR, sC, hitI.point.r, hitI.point.c,
       { hit:true, fromPlayer:true, weapon:currentWeapon });
-    spawnImpact(hitI.point.r, hitI.point.c, currentWeapon);
+    if(!delayedInteriorHit)spawnImpact(hitI.point.r, hitI.point.c, currentWeapon);
     _hitInteriorNpc(hitI.npc, dirY, dirX,
-      _currentShotDamage(weaponDamageAt(currentWeapon, hitI.dist)), currentWeapon);
-    _showCurrentShotCritical(hitI.point.r, hitI.point.c, dirY, dirX);
+      _currentShotDamage(weaponDamageAt(currentWeapon, hitI.dist)), currentWeapon,false,true);
+    if(!delayedInteriorHit)_showCurrentShotCritical(hitI.point.r, hitI.point.c, dirY, dirX);
     triggerHitStop(wcfg.thick ? 35 : 18); addShake(wcfg.thick ? 3.5 : 2); hapticHit();
     return;
   }
@@ -57685,8 +57686,19 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range, weapon = currentWeapon) 
   return best;
 }
 
-function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTick = false) {
+function _queuePlayerInteriorBallisticHit(bi,npc,dirY,dirX,damage,weapon){
+  const targetR=+npc.r,targetC=+npc.c,ang=Math.atan2(+dirY||0,+dirX||0),md=weaponMuzzleD(weapon,.95),muzzleR=+player.r+Math.sin(ang)*md,muzzleC=+player.c+Math.cos(ang)*md,dist=Math.hypot(targetR-muzzleR,targetC-muzzleC),baseSpeed=+weaponProfile(weapon).bulletSpeed||BULLET_SPEED,visualSpeed=Math.min(baseSpeed,Math.max(1.2,dist/.13)),flightMs=Math.max(80,dist/Math.max(.1,visualSpeed)*1000);
+  _scheduleBallisticFx(flightMs,()=>{
+    if(_buildingInt!==bi||npc.dead||!(bi.npcs||[]).includes(npc)||Math.hypot((+npc.r||0)-targetR,(+npc.c||0)-targetC)>.72)return;
+    spawnImpact(+npc.r,+npc.c,weapon);_showCurrentShotCritical(+npc.r,+npc.c,dirY,dirX);_hitInteriorNpc(npc,dirY,dirX,damage,weapon,false,false,true);
+    document.documentElement.dataset.playerInteriorBallisticImpact=`${String(npc.id||npc.raidRosterId||'target')}:${weapon}:${Math.round(flightMs)}`;
+  });
+  return flightMs;
+}
+function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTick = false, playerBallistic = false, arrivalApplied = false) {
   if (!npc || npc.dead || !_buildingInt) return;
+  const arrivalTarget=!!(npc.businessRaidSide&&_buildingInt.businessInteriorRaid)||!!(_buildingInt.type==='npc_hq'&&_buildingInt.npcEmpireAssault&&(npc.npcEmpireBoss||npc.npcEmpireGuardId!=null));
+  if(playerBallistic&&arrivalTarget&&!arrivalApplied){_queuePlayerInteriorBallisticHit(_buildingInt,npc,dirY,dirX,damage,weapon);return;}
   if(npc.businessRaidSide&&_buildingInt.businessInteriorRaid){
     _damageBusinessRaidNpc(_buildingInt,_buildingInt.businessInteriorRaid,npc,damage,'player');return;
   }
@@ -60170,10 +60182,10 @@ async function _resolveBusinessInteriorRaid(bi,state){
 
 function _fireBusinessRaidRound(bi,state,n,target){
   const ai=_interiorGuardWeaponAi(n.weapon),dr=target.r-n.r,dc=target.c-n.c,d=Math.hypot(dr,dc)||1,hit=Math.random()<(n.raidHit||ai.hit),side=Math.random()<.5?-1:1,off=1+Math.random();
-  const tr=hit?target.r:target.r-dc/d*off*side,tc=hit?target.c:target.c+dr/d*off*side,muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
-  n._shotAt=performance.now();state.shots++;spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);spawnBullet(muzzle.r,muzzle.c,tr,tc,{hit,fromNpc:true,weapon:n.weapon,thick:true});
-  if(!hit)return;const flight=Math.max(35,Math.min(650,d/Math.max(12,+weaponProfile(n.weapon).bulletSpeed||15)*1000));
-  setTimeout(()=>{if(_buildingInt!==bi||n.dead||target.dead||!_majorInteriorLineClear(bi,muzzle.r,muzzle.c,target.r,target.c))return;state.hits++;spawnImpact(target.r,target.c,n.weapon,true);if(target.isRaidPlayer)_hurtLocal(n.raidDamage||ai.damage,`${state.empire.gang_name||'Штурмовая группа'} · ${n.name}`,true);else _damageBusinessRaidNpc(bi,state,target,n.raidDamage||ai.damage,'npc');},flight);
+  const tr=hit?target.r:target.r-dc/d*off*side,tc=hit?target.c:target.c+dr/d*off*side,muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88),visualSpeed=Math.max(11.5,Math.min(15.5,+weaponProfile(n.weapon).bulletSpeed||15.5)),flightSpeed=Math.min(visualSpeed,Math.max(1.2,d/.13));
+  n._shotAt=performance.now();state.shots++;spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);spawnBullet(muzzle.r,muzzle.c,tr,tc,{hit,fromNpc:true,weapon:n.weapon,thick:true,speed:visualSpeed});
+  if(!hit)return;const flight=Math.max(80,d/Math.max(.1,flightSpeed)*1000);
+  setTimeout(()=>{const currentR=target.isRaidPlayer?+player.r:+target.r,currentC=target.isRaidPlayer?+player.c:+target.c;if(_buildingInt!==bi||n.dead||target.dead||(target.isRaidPlayer&&myDead)||Math.hypot(currentR-tr,currentC-tc)>.72||!_majorInteriorLineClear(bi,muzzle.r,muzzle.c,currentR,currentC))return;state.hits++;spawnImpact(currentR,currentC,n.weapon,true);if(target.isRaidPlayer)_hurtLocal(n.raidDamage||ai.damage,`${state.empire.gang_name||'Штурмовая группа'} · ${n.name}`,true);else _damageBusinessRaidNpc(bi,state,target,n.raidDamage||ai.damage,'npc');},flight);
 }
 
 function _updateBusinessInteriorRaid(bi,dt){
@@ -69130,6 +69142,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d405-owner-readable-labels"></script>
+<script type="module" src="three_preview.js?v=3d406-boss-label-declutter"></script>
 </body>
 </html>

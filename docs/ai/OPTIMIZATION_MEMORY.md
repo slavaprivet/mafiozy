@@ -1,5 +1,21 @@
 # Mafiozi 3D optimization memory
 
+## Distance-prioritized boss label declutter (2026-08-14, v406)
+
+- Boss, unique, raid and speech cards may try the existing five fixed vertical
+  lanes, but they must yield after all five collide. Only the actively focused
+  NPC label is a must-keep fallback; treating every priority label as must-keep
+  forces the sixth through eighth nearby boss cards to overlap the first five.
+- Break equal-priority ties by the actor's already available squared distance
+  from the player. This keeps the closest bosses readable without a square
+  root, another NPC scan, a sort allocation key or a new render collection.
+- Keep the fixed `NPC_CAP` canvas/sprite pool and reused candidate/placed
+  arrays. The change adds no label meshes, textures, DOM nodes, timers or
+  per-frame collections; telemetry remains on the existing 250 ms cadence.
+- Static regression places eight coincident boss cards into five lanes and
+  requires the three farthest cards to hide. A focused target plus seven
+  bosses must retain the target while still exposing no more than five cards.
+
 ## Tracked boss-to-player ballistic arrival (2026-08-14)
 
 - Street bosses and empire fighters must not subtract player HP or apply their
@@ -33,6 +49,21 @@
   `_shotSeq` fields. `test_world_gang_ballistic_arrival.py` executes both
   production arrival paths and proves speed, pose, pre-arrival state and
   post-arrival casualty timing.
+
+## Symmetric interior projectile arrival (2026-08-14)
+
+- Player fire against active business-raid and NPC-HQ assault actors queues
+  damage, impact and critical presentation on the existing bounded ballistic
+  scheduler. The callback retains the concrete NPC reference and rejects a
+  dead, removed, interior-switched or more-than-`0.72`-tile displaced target.
+- Business-raid NPC fire reads the player's live coordinates at arrival rather
+  than the firing-time wrapper object. Its tracer and callback share one
+  `11.5..15.5` speed and the existing 130 ms close-shot visual bound, then
+  revalidate target life, displacement and LOS before damage.
+- This adds no projectile loop, history, scan or pool. The runtime regression
+  `test_interior_projectile_arrival.py` proves unchanged raid/HQ HP before
+  arrival, one damage application at arrival, and a moving player's rejected
+  NPC hit; Node stderr is preserved on future failures.
 
 ## Front-readable booked-prisoner cuffs (2026-08-13, v399)
 

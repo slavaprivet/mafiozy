@@ -210,6 +210,12 @@ guards. The current server scorer must preserve these rules:
   server HP, impact and casualty only at tracer arrival. A bounded per-actor
   arrival gate prevents the ordinary world snapshot from exposing that result
   early, including when the server has already removed the last dead fighter.
+- Interior raid fire is symmetric at the presentation boundary. Player shots
+  against business-raid or NPC-HQ assault actors defer HP, impact and critical
+  effects until the existing tracer arrives. Business-raid NPC shots use the
+  same capped tracer speed for their callback and reject arrival if the tracked
+  target moved more than `0.72` tile from the visible endpoint, died, left the
+  interior or lost line of sight.
 - Corpse labels are short-lived and lowest priority. Screen-space decluttering
   preserves live/focused/HP labels without allocating new meshes or DOM nodes
   each frame.
