@@ -60003,6 +60003,7 @@ function exitBuildingInterior() {
   }
   closeApartmentControlPanel();
   const interiorRaidHud=document.getElementById('businessInteriorRaidHud');if(interiorRaidHud)interiorRaidHud.style.display='none';
+  const exteriorRaidHud=document.getElementById('playerBusinessRaidHud');if(exteriorRaidHud)exteriorRaidHud.style.visibility='';
   document.getElementById('customGangModal')?.classList.remove('show');
   const bi = _buildingInt; _saveBusinessInteriorRaidCheckpoint(bi); _buildingInt = null;
   document.body.classList.remove('in-building-interior');
@@ -60113,27 +60114,29 @@ const PLAYER_BUSINESS_INTERIOR_MAX_ATTACKERS=8;
 const PLAYER_BUSINESS_INTERIOR_MAX_DEFENDERS=12;
 let _businessInteriorRaidCheckpoint=null;
 function _businessInteriorRaidCheckpointIdentity(bi,activity){return {token:String(activity?.token||''),aptKey:String(activity?.apt_key||_apartmentOwnedKey(bi?.r,bi?.c)||''),targetId:String(activity?.target_id||'')};}
-function _businessInteriorRaidCheckpointRoster(bi,state,roster,side){
-  return roster.slice(0,side==='attacker'?PLAYER_BUSINESS_INTERIOR_MAX_ATTACKERS:PLAYER_BUSINESS_INTERIOR_MAX_DEFENDERS).map(row=>{const actor=(bi.npcs||[]).find(n=>n.businessRaidSide===side&&String(n.raidRosterId)===String(row.id)),maxHp=Math.max(1,+row.maxHp||1),hp=Math.max(0,Math.min(maxHp,actor?+actor.hp||0:+row.hp||0));return {id:String(row.id),hp,dead:!!row.casualty||!!actor?.dead||hp<=0};});
+function _businessInteriorRaidCheckpointRoster(bi,roster,group){
+  const side=group==='attacker'?'attacker':'defender',cap=group==='attacker'?PLAYER_BUSINESS_INTERIOR_MAX_ATTACKERS:group==='guard'?3:PLAYER_BUSINESS_INTERIOR_MAX_DEFENDERS;
+  return roster.slice(0,cap).map(row=>{const actor=(bi.npcs||[]).find(n=>n.businessRaidSide===side&&n.raidRosterGroup===group&&String(n.raidRosterId)===String(row.id)),maxHp=Math.max(1,+row.maxHp||1),hp=Math.max(0,Math.min(maxHp,actor?+actor.hp||0:+row.hp||0));return {id:String(row.id),hp,dead:!!row.casualty||!!actor?.dead||hp<=0,active:!!actor&&!actor.dead};});
 }
 function _saveBusinessInteriorRaidCheckpoint(bi,now=performance.now()){
   const state=bi?.businessInteriorRaid,identity=_businessInteriorRaidCheckpointIdentity(bi,state?.activity);if(!state||!identity.token)return false;
   const holdElapsedMs=state.phase==='hold'&&state.holdStartedAt?Math.max(0,Math.min(state.holdMs,now-state.holdStartedAt)):0;
   _businessInteriorRaidCheckpoint={...identity,expiresAt:+state.activity?.expires_at||+state.activity?.expires||0,savedAt:now,phase:String(state.phase||'fight'),outcome:String(state.outcome||''),holdElapsedMs,holdRoster:String(state.holdRoster||''),shots:+state.shots||0,hits:+state.hits||0,
-    attackers:_businessInteriorRaidCheckpointRoster(bi,state,state.attackerRoster,'attacker'),defenders:_businessInteriorRaidCheckpointRoster(bi,state,state.defenderRoster,'defender'),guards:_businessInteriorRaidCheckpointRoster(bi,state,state.guardRoster,'defender')};
+    attackers:_businessInteriorRaidCheckpointRoster(bi,state.attackerRoster,'attacker'),defenders:_businessInteriorRaidCheckpointRoster(bi,state.defenderRoster,'defender'),guards:_businessInteriorRaidCheckpointRoster(bi,state.guardRoster,'guard')};
   document.documentElement.dataset.businessInteriorRaidCheckpoint=`saved:${identity.token}:${state.phase}:cas-${[..._businessInteriorRaidCheckpoint.attackers,..._businessInteriorRaidCheckpoint.defenders,..._businessInteriorRaidCheckpoint.guards].filter(x=>x.dead).length}`;return true;
 }
 function _restoreBusinessInteriorRaidCheckpoint(bi,state,now=performance.now()){
   const checkpoint=_businessInteriorRaidCheckpoint,identity=_businessInteriorRaidCheckpointIdentity(bi,state?.activity);if(!checkpoint)return false;
-  if((checkpoint.expiresAt&&checkpoint.expiresAt<=Date.now()/1000)||checkpoint.token!==identity.token||checkpoint.aptKey!==identity.aptKey||checkpoint.targetId!==identity.targetId){_businessInteriorRaidCheckpoint=null;return false;}
-  const apply=(roster,saved)=>{const byId=new Map(saved.map(row=>[String(row.id),row]));for(const row of roster){const old=byId.get(String(row.id));if(!old)continue;row.hp=Math.max(0,Math.min(Math.max(1,+row.maxHp||1),+old.hp||0));row.casualty=!!old.dead||row.hp<=0;}};
-  apply(state.attackerRoster,checkpoint.attackers);apply(state.defenderRoster,checkpoint.defenders);apply(state.guardRoster,checkpoint.guards);state.phase=checkpoint.phase;state.outcome=checkpoint.outcome;state.holdRoster=checkpoint.phase==='hold'?checkpoint.holdRoster:'';state.holdStartedAt=checkpoint.phase==='hold'&&checkpoint.holdElapsedMs?now-Math.min(state.holdMs,checkpoint.holdElapsedMs):0;state.shots=checkpoint.shots;state.hits=checkpoint.hits;state.resolveRetryAt=0;
+  const expired=checkpoint.expiresAt&&checkpoint.expiresAt<=Date.now()/1000,mismatch=checkpoint.token!==identity.token||checkpoint.aptKey!==identity.aptKey||checkpoint.targetId!==identity.targetId;if(expired||mismatch){_clearBusinessInteriorRaidCheckpoint(checkpoint.token,expired?'expired':'identity');return false;}
+  const apply=(roster,saved)=>{const byId=new Map(saved.map(row=>[String(row.id),row]));for(const row of roster){const old=byId.get(String(row.id));if(!old)continue;row.hp=Math.max(0,Math.min(Math.max(1,+row.maxHp||1),+old.hp||0));row.casualty=!!old.dead||row.hp<=0;row._checkpointActive=!!old.active&&!row.casualty;}};
+  apply(state.attackerRoster,checkpoint.attackers);apply(state.defenderRoster,checkpoint.defenders);apply(state.guardRoster,checkpoint.guards);if(checkpoint.phase!=='approach')state.breached=true;state.phase=state.breached&&checkpoint.phase==='approach'?'breach':checkpoint.phase;state.outcome=checkpoint.outcome;state.holdRoster='';state.holdStartedAt=0;state.holdResume=checkpoint.phase==='hold'&&!checkpoint.outcome?{roster:checkpoint.holdRoster,elapsedMs:Math.min(state.holdMs,checkpoint.holdElapsedMs)}:null;if(state.holdResume)state.phase='advance';state.shots=checkpoint.shots;state.hits=checkpoint.hits;state.resolveRetryAt=0;
   document.documentElement.dataset.businessInteriorRaidCheckpoint=`restored:${identity.token}:${state.phase}:terminal-${state.outcome?1:0}`;return true;
 }
-function _clearBusinessInteriorRaidCheckpoint(token=''){
-  if(!_businessInteriorRaidCheckpoint||token&&_businessInteriorRaidCheckpoint.token!==String(token))return false;_businessInteriorRaidCheckpoint=null;document.documentElement.dataset.businessInteriorRaidCheckpoint=`cleared:${String(token||'stale')}`;return true;
+function _clearBusinessInteriorRaidCheckpoint(token='',reason='resolved'){
+  if(!_businessInteriorRaidCheckpoint||token&&_businessInteriorRaidCheckpoint.token!==String(token))return false;_businessInteriorRaidCheckpoint=null;document.documentElement.dataset.businessInteriorRaidCheckpoint=`cleared:${reason}:${String(token||'stale')}`;return true;
 }
-function _reconcileBusinessInteriorRaidCheckpoint(){const checkpoint=_businessInteriorRaidCheckpoint;if(!checkpoint)return false;const active=(_npcEmpireInteriorRaids||[]).some(raid=>String(raid?.token||'')===checkpoint.token&&!['resolved','expired'].includes(String(raid?.status||'')));if(!active)_clearBusinessInteriorRaidCheckpoint(checkpoint.token);return active;}
+function _reconcileBusinessInteriorRaidCheckpoint(){const checkpoint=_businessInteriorRaidCheckpoint;if(!checkpoint)return false;const active=(_npcEmpireInteriorRaids||[]).some(raid=>String(raid?.token||'')===checkpoint.token&&!['resolved','expired'].includes(String(raid?.status||'')));if(!active)_clearBusinessInteriorRaidCheckpoint(checkpoint.token,'stale');return active;}
+function _businessInteriorRaidRestoredOrder(roster){const active=[],reserve=[];for(const row of roster)if(!row.casualty)(row._checkpointActive?active:reserve).push(row);return [...active,...reserve];}
 const _BUSINESS_RAID_TIER_AI=Object.freeze({
   1:{weapon:'pistol',hp:58,hit:.53,damage:6,cooldown:1220},
   2:{weapon:'pistol_heavy',hp:76,hit:.64,damage:8,cooldown:1040},
@@ -60147,7 +60150,7 @@ function _businessInteriorRaidRoster(raw,cap,prefix,tier){
     const incoming=entry&&typeof entry==='object'?entry:{id:entry},serverId=incoming.member_id??incoming.id??incoming.uid??incoming.slot??`${prefix}_${index}`,id=String(serverId),local=prefix==='def'?_myGang.find(x=>String(x.id)===id):null,src=local?{...local,...incoming}:incoming;
     const ai=_BUSINESS_RAID_TIER_AI[Math.max(1,Math.min(4,+src.tier||tier||1))];
     const budget=Math.max(0,+src.weapon_budget||0),budgetWeapon=budget>=80?'rifle':budget>=50?'smg':budget>=25?'pistol_heavy':ai.weapon;
-    return {id,name:String(src.name||src.member_name||`${prefix==='atk'?'Штурмовик':'Защитник'} ${index+1}`),
+    return {id,rosterGroup:prefix==='atk'?'attacker':prefix==='guard'?'guard':'defender',name:String(src.name||src.member_name||`${prefix==='atk'?'Штурмовик':'Защитник'} ${index+1}`),
       slot:Number.isInteger(+src.slot)?+src.slot:index,memberId:src.member_id==null?null:String(src.member_id),look:src.look||null,weapon:String(src.weapon||budgetWeapon),hp:Math.max(1,+src.hp||+src.current_hp||ai.hp),accuracy:Math.max(.2,Math.min(.98,+src.accuracy||ai.hit)),
       maxHp:Math.max(1,+src.max_hp||+src.maxHp||ai.hp),tier:Math.max(1,Math.min(4,+src.tier||tier||1)),
       casualty:!!src.dead||(+src.hp===0)||(+src.current_hp===0)};
@@ -60180,6 +60183,7 @@ function _businessRaidSafePoint(bi,r,c,pad=.3){
   }
   return {r:bi.H/2,c:bi.W/2};
 }
+function _businessRaidCashPoint(bi){return _businessRaidSafePoint(bi,2.8,bi.W/2,.55);}
 
 function _seedBusinessInteriorRaid(bi,property,override=null){
   if(!bi||bi.type||property?.property_kind!=='business'||bi.businessInteriorRaid)return false;
@@ -60211,9 +60215,9 @@ function _seedBusinessInteriorRaid(bi,property,override=null){
     attackerRoster,defenderRoster,guardRoster,ownerPrimary,ownerAccent,ownerEmblem,businessLabel,ownerLabel,attackerReserve:[],defenderReserve:[],attackerIds:new Set(),defenderIds:new Set(),admission:{attacker:{cap:4,nextAt:0,seq:0,chain:false},defender:{cap:6,nextAt:0,seq:0,chain:false}}};
   const restoredCheckpoint=_restoreBusinessInteriorRaidCheckpoint(bi,state,startedAt);
   bi.businessInteriorRaid=state;
-  const entrance={r:bi.H-2.05,c:bi.W/2},cash={r:2.45,c:bi.W/2};
-  if(!state.outcome){state.attackerReserve.push(...attackerRoster.filter(x=>!x.casualty));
-  const liveDefenders=[...guardRoster,...defenderRoster].filter(x=>!x.casualty),front=liveDefenders.slice(0,state.admission.defender.cap);state.defenderReserve.push(...liveDefenders.slice(state.admission.defender.cap));
+  const entrance={r:bi.H-2.05,c:bi.W/2},cash=_businessRaidCashPoint(bi);
+  if(!state.outcome){state.attackerReserve.push(..._businessInteriorRaidRestoredOrder(attackerRoster));
+  const liveDefenders=_businessInteriorRaidRestoredOrder([...guardRoster,...defenderRoster]),front=liveDefenders.slice(0,state.admission.defender.cap);state.defenderReserve.push(...liveDefenders.slice(state.admission.defender.cap));
   front.forEach((row,index)=>_spawnBusinessInteriorRaidNpc(bi,state,row,'defender',index,cash,playerDefends));}
   document.documentElement.dataset.businessInteriorRaidSeed=`${state.id}:${state.phase}:attackers-0/${attackerRoster.length}:assigned-${defenderRoster.length}:staff-${frontCount}:tier-${quality}`;
   if(breached&&!restoredCheckpoint)showEventBanner('⚔️ ШТУРМ ВНУТРИ БИЗНЕСА',`${empire.gang_name||'Чужая семья'} · подкрепление входит · защита ${frontCount+defenderRoster.length}`,2600,'warn');
@@ -60225,7 +60229,7 @@ function _spawnBusinessInteriorRaidNpc(bi,state,row,side,index,anchor,allied){
   const point=_businessRaidSafePoint(bi,anchor.r+(index%2)*.85,anchor.c+spread);
   const defender=side==='defender',primary=defender?state.ownerPrimary:(state.empire.color||'#6f2330'),accent=defender?state.ownerAccent:(state.empire.accent||'#d4ab51'),rareHeavy=row.tier>=4&&index%4===0;
   const authored=row.look||{},look={...authored,gender:Number.isFinite(+authored.gender)?+authored.gender:index%5===4?1:0,skin:Number.isFinite(+authored.skin)?+authored.skin:1+index%4,body:rareHeavy?3:(index%3?0:1),face:Number.isFinite(+authored.face)?+authored.face:index%10,hair:Number.isFinite(+authored.hair)?+authored.hair:(index*3+1)%10,hat:Number.isFinite(+authored.hat)?+authored.hat:(index%4===0?2:0),suit:primary,trousers:accent,accent};
-  const npc={id:`interior_raid:${state.id}:${side}:${row.id}`,raidRosterId:row.id,businessRaidSide:side,
+  const npc={id:`interior_raid:${state.id}:${side}:${row.rosterGroup||side}:${row.id}`,raidRosterId:row.id,raidRosterGroup:row.rosterGroup||side,businessRaidSide:side,
     role:side==='attacker'?'business_raid_attacker':'business_raid_defender',name:row.name,r:point.r,c:point.c,tr:point.r,tc:point.c,
     ang:side==='attacker'?Math.PI:0,walking:false,walkPhase:0,look,raidFamilyColor:primary,raidFamilyAccent:accent,raidFamilyEmblem:defender?state.ownerEmblem:(state.empire.emblem||'diamond'),raidHeavy:rareHeavy,
     hp:row.hp,maxHp:row.maxHp,dead:false,_allied:!!allied,_hostile:true,hostile:true,weapon:row.weapon,speed:1.08+row.tier*.09,
@@ -60241,17 +60245,37 @@ function _businessRaidOpponents(bi,n){
   return out;
 }
 
-function _businessRaidMoveToward(bi,n,target,dt){
-  const dr=target.r-n.r,dc=target.c-n.c,d=Math.hypot(dr,dc)||1,step=Math.min(d,(n.speed||1.2)*dt),oldR=n.r,oldC=n.c;
-  const direct=_majorInteriorLineClear(bi,n.r,n.c,target.r,target.c),seed=String(n.raidRosterId||n.id||'').split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0),sign=n._raidAvoidSign||(n._raidAvoidSign=seed%2?1:-1),turns=direct?[0,.5*sign,-.5*sign]:[1.5*sign,1*sign,2.1*sign,.5*sign,-.5*sign,-1*sign,Math.PI];
+const BUSINESS_RAID_RECOVERY_CELL=.3,BUSINESS_RAID_RECOVERY_AFTER_MS=900;
+const BUSINESS_RAID_RECOVERY_DIRS=Object.freeze([[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]);
+function _businessRaidRecoveryFlow(bi,target){
+  const cell=BUSINESS_RAID_RECOVERY_CELL,rows=Math.ceil(bi.H/cell),cols=Math.ceil(bi.W/cell),tr=Math.max(0,Math.min(rows-1,Math.floor(target.r/cell))),tc=Math.max(0,Math.min(cols-1,Math.floor(target.c/cell))),key=`${rows}:${cols}:${tr}:${tc}`;
+  if(bi._businessRaidRecoveryFlow?.key===key)return bi._businessRaidRecoveryFlow;
+  const blocked=new Uint8Array(rows*cols);for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)blocked[r*cols+c]=_businessInteriorMovementBlocked(bi,(r+.5)*cell,(c+.5)*cell,.3)?1:0;
+  const dist=new Int16Array(rows*cols);dist.fill(-1);const queue=new Int16Array(rows*cols);let head=0,tail=0;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const index=r*cols+c;if(!blocked[index]&&Math.hypot((r+.5)*cell-target.r,(c+.5)*cell-target.c)<=2.05){dist[index]=0;queue[tail++]=index;}}
+  if(!tail){let best=-1,bestDistance=Infinity;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const index=r*cols+c,d=Math.hypot((r+.5)*cell-target.r,(c+.5)*cell-target.c);if(!blocked[index]&&d<bestDistance){best=index;bestDistance=d;}}if(best>=0){dist[best]=0;queue[tail++]=best;}}
+  while(head<tail){const index=queue[head++],r=Math.floor(index/cols),c=index%cols,next=dist[index]+1;for(const [dr,dc] of BUSINESS_RAID_RECOVERY_DIRS){const nr=r+dr,nc=c+dc,ni=nr*cols+nc;if(nr<0||nc<0||nr>=rows||nc>=cols||blocked[ni]||dist[ni]>=0)continue;if(dr&&dc&&(blocked[r*cols+nc]||blocked[nr*cols+c]))continue;dist[ni]=next;queue[tail++]=ni;}}
+  return bi._businessRaidRecoveryFlow={key,cell,rows,cols,blocked,dist};
+}
+function _businessRaidRecoveryVector(bi,n,target){
+  const flow=_businessRaidRecoveryFlow(bi,target),{cell,rows,cols,blocked,dist}=flow,r=Math.max(0,Math.min(rows-1,Math.floor(n.r/cell))),c=Math.max(0,Math.min(cols-1,Math.floor(n.c/cell))),current=dist[r*cols+c];let best=null,bestDist=current<0?32767:current;
+  if(current===0)return {r:(r+.5)*cell-n.r,c:(c+.5)*cell-n.c};
+  for(const [dr,dc] of BUSINESS_RAID_RECOVERY_DIRS){const nr=r+dr,nc=c+dc;if(nr<0||nc<0||nr>=rows||nc>=cols)continue;const ni=nr*cols+nc,nd=dist[ni];if(blocked[ni]||nd<0||nd>=bestDist)continue;if(dr&&dc&&(blocked[r*cols+nc]||blocked[nr*cols+c]))continue;bestDist=nd;best={r:(nr+.5)*cell-n.r,c:(nc+.5)*cell-n.c};}
+  if(!best)for(const [dr,dc] of BUSINESS_RAID_RECOVERY_DIRS){const pr=n.r+dr*cell,pc=n.c+dc*cell,nr=Math.max(0,Math.min(rows-1,Math.floor(pr/cell))),nc=Math.max(0,Math.min(cols-1,Math.floor(pc/cell))),nd=dist[nr*cols+nc];if(nd<0||nd>=bestDist||_businessInteriorMovementBlocked(bi,pr,pc,.3))continue;bestDist=nd;best={r:pr-n.r,c:pc-n.c};}
+  return best;
+}
+function _businessRaidMoveToward(bi,n,target,dt,now=performance.now()){
+  const goalKey=`${Math.round(target.r*2)}:${Math.round(target.c*2)}`,goalDistance=Math.hypot(target.r-n.r,target.c-n.c);if(n._raidGoalKey!==goalKey){n._raidGoalKey=goalKey;n._raidGoalBest=goalDistance;n._raidGoalProgressAt=now;n._raidRecovering=false;}else if(goalDistance<=(+n._raidGoalBest||Infinity)-.08){n._raidGoalBest=goalDistance;n._raidGoalProgressAt=now;}
+  const progressAt=Number.isFinite(+n._raidGoalProgressAt)?+n._raidGoalProgressAt:now,stalledMs=Math.max(0,now-progressAt);if(stalledMs>=BUSINESS_RAID_RECOVERY_AFTER_MS){if(!n._raidRecovering){n._raidRecovering=true;n._raidRecoveryStageAt=now;n._raidRecoveries=Math.min(99,(+n._raidRecoveries||0)+1);}else if(now-(+n._raidRecoveryStageAt||progressAt)>=BUSINESS_RAID_RECOVERY_AFTER_MS){n._raidRecovering=false;n._raidAvoidSign=-(n._raidAvoidSign||1);n._raidGoalBest=goalDistance;n._raidGoalProgressAt=now;n._raidRecoveryStageAt=now;}}
+  const recovery=n._raidRecovering?_businessRaidRecoveryVector(bi,n,target):null,dr=recovery?.r??target.r-n.r,dc=recovery?.c??target.c-n.c,d=Math.hypot(dr,dc)||1,step=Math.min(d,(n.speed||1.2)*dt),oldR=n.r,oldC=n.c;
+  const direct=!!recovery||_majorInteriorLineClear(bi,n.r,n.c,target.r,target.c),seed=String(n.raidRosterId||n.id||'').split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0),sign=n._raidAvoidSign||(n._raidAvoidSign=seed%2?1:-1),turns=direct?[0,.5*sign,-.5*sign]:[1.5*sign,1*sign,2.1*sign,.5*sign,-.5*sign,-1*sign,Math.PI];
   for(const turn of turns){const s=Math.sin(turn),q=Math.cos(turn),vr=dr/d*q-dc/d*s,vc=dr/d*s+dc/d*q,nr=n.r+vr*step,nc=n.c+vc*step;if(!_businessInteriorMovementBlocked(bi,nr,nc,.3)){n.r=nr;n.c=nc;break;}}
-  n.ang=Math.atan2(dr,dc);n.walking=Math.hypot(n.r-oldR,n.c-oldC)>.002;if(n.walking){n.walkPhase+=dt*9;n._raidMoveStalls=0;}else n._raidMoveStalls=Math.min(999,(+n._raidMoveStalls||0)+1);
+  n.ang=Math.atan2(target.r-n.r,target.c-n.c);n.walking=Math.hypot(n.r-oldR,n.c-oldC)>.002;if(n.walking)n.walkPhase+=dt*9;n._raidMoveStalls=Math.min(9999,Math.round(stalledMs));
 }
 
 function _damageBusinessRaidNpc(bi,state,n,damage,source){
   if(!n||n.dead)return false;n.hp=Math.max(0,n.hp-Math.max(1,Math.round(damage||1)));n._hurtAt=n._hurtAnimUntil=performance.now()+360;
   if(n.hp>0)return true;n.dead=true;n.deadAt=performance.now();n.walking=false;n._shotAt=0;
-  const row=[...state.attackerRoster,...state.guardRoster,...state.defenderRoster].find(x=>String(x.id)===String(n.raidRosterId));if(row){row.casualty=true;row.hp=0;}
+  const row=[...state.attackerRoster,...state.guardRoster,...state.defenderRoster].find(x=>x.rosterGroup===n.raidRosterGroup&&String(x.id)===String(n.raidRosterId));if(row){row.casualty=true;row.hp=0;}
   spawnFloatText(n.r,n.c,'УБИТ',{color:'#ff6969',size:14,life:1300});
   document.documentElement.dataset.businessInteriorRaidCasualty=`${n.businessRaidSide}:${n.raidRosterId}:${source||'combat'}`;return true;
 }
@@ -60276,10 +60300,11 @@ function _businessRaidCashPhase(state,liveAttackers,cash,now){
   const holdRoster=liveAttackers.map(n=>String(n.raidRosterId||n.id)).sort().join('|'),playerContests=!!state.playerDefends&&!myDead&&Math.hypot(player.r-cash.r,player.c-cash.c)<=2.15;
   if(playerContests){
     if(state.phase!=='contested'||state.holdStartedAt||state.holdRoster)document.documentElement.dataset.businessInteriorRaidHoldReset=`contest:${holdRoster}:${Math.round(now)}`;
-    state.phase='contested';state.holdStartedAt=0;state.holdRoster='';return 'contested';
+    state.phase='contested';state.holdStartedAt=0;state.holdRoster='';state.holdResume=null;return 'contested';
   }
   const atCash=liveAttackers.length>0&&liveAttackers.every(n=>Math.hypot(n.r-cash.r,n.c-cash.c)<=2.15);
   if(!atCash){state.phase='advance';state.holdStartedAt=0;state.holdRoster='';return 'advance';}
+  if(state.holdResume){const expected=String(state.holdResume.roster||''),expectedIds=new Set(expected.split('|').filter(Boolean)),unexpected=holdRoster.split('|').filter(Boolean).some(id=>!expectedIds.has(id)),lost=state.attackerRoster.some(row=>expectedIds.has(String(row.id))&&row.casualty);if(unexpected||lost)state.holdResume=null;else if(holdRoster!==expected){state.phase='advance';state.holdStartedAt=0;state.holdRoster='';return 'advance';}else{state.phase='hold';state.holdStartedAt=now-Math.max(0,Math.min(state.holdMs,+state.holdResume.elapsedMs||0));state.holdRoster=holdRoster;state.holdResume=null;document.documentElement.dataset.businessInteriorRaidHoldReset=`resumed:${holdRoster}:${Math.round(now-state.holdStartedAt)}`;}}
   if(state.phase!=='hold'||state.holdRoster!==holdRoster){state.holdStartedAt=now;state.holdRoster=holdRoster;document.documentElement.dataset.businessInteriorRaidHoldReset=`${holdRoster}:${Math.round(now)}`;}
   state.phase='hold';
   if(now-state.holdStartedAt>=state.holdMs){state.outcome='captured';state.phase='captured';showEventBanner('🏴 КАССА ЗАХВАЧЕНА','Все выжившие нападающие удерживали кассу 20 секунд',3600,'lose');}
@@ -60296,13 +60321,13 @@ function _businessRaidContestCombat(bi,state,n,now,dt){
 function _businessRaidAdmitOne(bi,state,side,liveCount,now){
   const lane=state.admission?.[side],reserve=side==='attacker'?state.attackerReserve:state.defenderReserve;if(!lane||!reserve||side==='attacker'&&!state.breached)return null;
   if(liveCount>=lane.cap||!reserve.length){lane.nextAt=0;lane.chain=false;return null;}
-  if(!lane.nextAt){const delay=side==='attacker'?(lane.seq===0?650:900):1100;lane.nextAt=now+delay;lane.chain=false;document.documentElement.dataset.businessInteriorRaidReinforcement=`${state.id}:${side}:pending:${lane.seq+1}:${liveCount}/${lane.cap}:reserve-${reserve.length}`;return null;}
+  if(!lane.nextAt){const delay=side==='attacker'?(lane.seq===0?650:900):1100;lane.nextAt=now+delay;lane.chain=false;const telemetry=`${state.id}:${side}:pending:${lane.seq+1}:${liveCount}/${lane.cap}:reserve-${reserve.length}`;document.documentElement.dataset.businessInteriorRaidReinforcement=telemetry;document.documentElement.dataset[side==='attacker'?'businessInteriorRaidReinforcementAttacker':'businessInteriorRaidReinforcementDefender']=telemetry;return null;}
   if(now<lane.nextAt)return null;
   let row=null;while(reserve.length&&!row){const candidate=reserve.shift();if(candidate&&!candidate.casualty)row=candidate;}
   if(!row){lane.nextAt=0;lane.chain=false;return null;}
-  const anchor=side==='attacker'?{r:bi.H-2.05,c:bi.W/2}:{r:2.45,c:bi.W/2},actor=_spawnBusinessInteriorRaidNpc(bi,state,row,side,state[side==='attacker'?'attackerIds':'defenderIds'].size,anchor,side==='attacker'?!state.playerDefends:state.playerDefends);lane.seq++;
+  const anchor=side==='attacker'?{r:bi.H-2.05,c:bi.W/2}:_businessRaidCashPoint(bi),actor=_spawnBusinessInteriorRaidNpc(bi,state,row,side,state[side==='attacker'?'attackerIds':'defenderIds'].size,anchor,side==='attacker'?!state.playerDefends:state.playerDefends);lane.seq++;
   const room=liveCount+1<lane.cap&&reserve.length>0;lane.chain=!!room;lane.nextAt=room?now+(side==='attacker'?420:1100):0;if(side==='attacker'&&state.phase==='breach')state.phase='fight';
-  document.documentElement.dataset.businessInteriorRaidReinforcement=`${state.id}:${side}:spawned:${row.id}:${lane.seq}:${liveCount+1}/${lane.cap}:reserve-${reserve.length}`;return actor;
+  const telemetry=`${state.id}:${side}:spawned:${row.id}:${lane.seq}:${liveCount+1}/${lane.cap}:reserve-${reserve.length}`;document.documentElement.dataset.businessInteriorRaidReinforcement=telemetry;document.documentElement.dataset[side==='attacker'?'businessInteriorRaidReinforcementAttacker':'businessInteriorRaidReinforcementDefender']=telemetry;return actor;
 }
 
 function _businessRaidOpenBreach(state,breach){
@@ -60319,7 +60344,7 @@ function _updateBusinessInteriorRaid(bi,dt){
   const admittedDefender=_businessRaidAdmitOne(bi,state,'defender',liveDefenders.length,now);if(admittedDefender)liveDefenders.push(admittedDefender);
   if(!liveAttackers.length&&!state.attackerReserve.length){state.outcome='defended';state.phase='defended';showEventBanner('🛡️ БИЗНЕС ЗАЩИЩЁН','Нападающие уничтожены',3200,'win');}
   else if(!liveDefenders.length&&!state.defenderReserve.length){
-    const cash={r:2.8,c:bi.W/2};for(const n of liveAttackers)if(Math.hypot(n.r-cash.r,n.c-cash.c)>1.7)_businessRaidMoveToward(bi,n,cash,dt);
+    const cash=_businessRaidCashPoint(bi);for(const n of liveAttackers)if(Math.hypot(n.r-cash.r,n.c-cash.c)>1.7)_businessRaidMoveToward(bi,n,cash,dt);
     _businessRaidCashPhase(state,liveAttackers,cash,now);
   }
   if(!state.outcome&&state.phase==='fight')for(const n of [...liveAttackers,...liveDefenders]){const targets=_businessRaidOpponents(bi,n);if(!targets.length)continue;let target=targets[0],best=Math.hypot(target.r-n.r,target.c-n.c);for(const x of targets){const d=Math.hypot(x.r-n.r,x.c-n.c);if(d<best){target=x;best=d;}}const los=_majorInteriorLineClear(bi,n.r,n.c,target.r,target.c);n.ang=Math.atan2(target.r-n.r,target.c-n.c);if(!los||best>6)_businessRaidMoveToward(bi,n,target,dt);else n.walking=false;if(los&&best<(_interiorGuardWeaponAi(n.weapon).range||8)&&now>=(n._nextShotAt||0)){n._nextShotAt=now+(n.raidCooldown||950)+Math.random()*180;_fireBusinessRaidRound(bi,state,n,target);}}
@@ -60329,7 +60354,8 @@ function _updateBusinessInteriorRaid(bi,dt){
 }
 
 function _updateBusinessInteriorRaidHud(bi,state,now){
-  let hud=document.getElementById('businessInteriorRaidHud');if(!hud){hud=document.createElement('section');hud.id='businessInteriorRaidHud';hud.style.cssText='position:fixed;z-index:47;left:50%;top:16px;transform:translateX(-50%);width:min(470px,82vw);max-width:calc(100vw - 24px);box-sizing:border-box;overflow:hidden;pointer-events:none;padding:10px 14px;border:1px solid #b84951;background:#090c11eF;color:#f5ead2;font:800 11px/1.35 system-ui;text-align:center;box-shadow:0 8px 32px #000b';hud.innerHTML='<b></b><strong></strong><div></div><small></small>';for(const child of hud.children)child.style.cssText='display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';document.body.appendChild(hud);}
+  const exteriorHud=document.getElementById('playerBusinessRaidHud');if(exteriorHud)exteriorHud.style.visibility='hidden';
+  let hud=document.getElementById('businessInteriorRaidHud');if(!hud){hud=document.createElement('section');hud.id='businessInteriorRaidHud';hud.setAttribute('aria-live','polite');hud.style.cssText='position:fixed;z-index:47;left:50%;top:calc(env(safe-area-inset-top,0px) + 8px);transform:translateX(-50%);width:min(470px,calc(100vw - 16px));box-sizing:border-box;overflow:hidden;pointer-events:none;padding:8px 10px;border:1px solid #b84951;background:#090c11eF;color:#f5ead2;font:800 11px/1.35 system-ui;text-align:center;box-shadow:0 8px 32px #000b';hud.innerHTML='<b></b><strong></strong><div></div><small></small>';for(const child of [hud.children[0],hud.children[2]])child.style.cssText='display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';for(const child of [hud.children[1],hud.children[3]])child.style.cssText='display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal';document.body.appendChild(hud);}
   const live=s=>(bi.npcs||[]).filter(n=>n.businessRaidSide===s&&!n.dead).length,atkCas=state.attackerRoster.filter(x=>x.casualty).length,defAll=[...state.guardRoster,...state.defenderRoster],defCas=defAll.filter(x=>x.casualty).length,left=state.phase==='hold'?Math.max(0,state.holdMs-(now-state.holdStartedAt)):0;
   hud.style.display='block';
   const title=state.phase==='hold'?`УДЕРЖАНИЕ КАССЫ · ${(left/1000).toFixed(1)} С`:state.phase==='contested'?'КАССА ОСПАРИВАЕТСЯ':state.outcome==='defended'?'БИЗНЕС ЗАЩИЩЁН':state.outcome==='captured'?'КАССА ЗАХВАЧЕНА':'ШТУРМ ВНУТРИ',venue=`${state.businessLabel||'Бизнес'} · ВЛАДЕЛЕЦ: ${state.ownerLabel||'Владелец'}`,counts=`Атака ${live('attacker')}/${state.attackerRoster.length} · потери ${atkCas}　 Защита ${live('defender')}/${defAll.length} · потери ${defCas}`,roster=`Состав: назначено ${state.defenderRoster.length} + штатная охрана ${state.guardRoster.length} · резерв ${state.attackerReserve.length}/${state.defenderReserve.length}`,plan=state.raidPlan||_playerBusinessRaidPlan(state.empire,state.activity),orders=`${plan.doctrineLabel} · ${plan.plan} · Ставка: ${plan.stakes} · ${plan.counterTip}`,sig=`${title}|${venue}|${counts}|${roster}|${orders}`;

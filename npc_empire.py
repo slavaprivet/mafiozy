@@ -1697,6 +1697,7 @@ def _comeback_delay(profile: EmpireProfile, defeats: int) -> int:
 
 async def ensure_schema(db_path: str) -> None:
     async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
         await db.executescript("""
         CREATE TABLE IF NOT EXISTS npc_empires (
             leader_id TEXT PRIMARY KEY,
@@ -1799,6 +1800,27 @@ async def ensure_schema(db_path: str) -> None:
             last_hit_at REAL NOT NULL DEFAULT 0,
             resolution TEXT DEFAULT NULL
         );
+        CREATE TABLE IF NOT EXISTS npc_empire_field_encounters (
+            encounter_id TEXT PRIMARY KEY,
+            leader_id TEXT NOT NULL,
+            boss_hp INTEGER NOT NULL,
+            boss_max_hp INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'active',
+            anchor_r REAL NOT NULL DEFAULT 0,
+            anchor_c REAL NOT NULL DEFAULT 0,
+            anchor_id TEXT NOT NULL DEFAULT '',
+            anchor_at INTEGER NOT NULL DEFAULT 0,
+            started_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            defeated_at INTEGER NOT NULL DEFAULT 0,
+            defeated_by INTEGER NOT NULL DEFAULT 0,
+            hospital_id TEXT NOT NULL DEFAULT '',
+            hospital_until INTEGER NOT NULL DEFAULT 0,
+            updated_at INTEGER NOT NULL DEFAULT 0,
+            version INTEGER NOT NULL DEFAULT 1
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_field_encounter_expiry
+            ON npc_empire_field_encounters(status,expires_at);
         CREATE TABLE IF NOT EXISTS npc_empire_player_wars (
             leader_id TEXT NOT NULL,
             telegram_id INTEGER NOT NULL,
@@ -1903,10 +1925,71 @@ async def ensure_schema(db_path: str) -> None:
             'anchor_c': "REAL NOT NULL DEFAULT 0",
             'anchor_id': "TEXT NOT NULL DEFAULT ''",
             'anchor_at': "INTEGER NOT NULL DEFAULT 0",
+            'field_encounter_id': "TEXT NOT NULL DEFAULT ''",
         }.items():
             if name not in assault_columns:
                 await db.execute(
                     f"ALTER TABLE npc_empire_assaults ADD COLUMN {name} {declaration}")
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_npc_assault_field_encounter "
+            "ON npc_empire_assaults(field_encounter_id,status)")
+        legacy_rows = await (await db.execute(
+            "SELECT * FROM npc_empire_assaults WHERE encounter_kind='field' "
+            "AND status='active' AND field_encounter_id='' "
+            "ORDER BY leader_id,started_at,token")).fetchall()
+        legacy_by_leader: dict[str, list] = {}
+        for legacy in legacy_rows:
+            legacy_by_leader.setdefault(str(legacy['leader_id']), []).append(legacy)
+        for leader_id, group in legacy_by_leader.items():
+            empire = await (await db.execute(
+                "SELECT status,hospital_until FROM npc_empires WHERE leader_id=?",
+                (leader_id,))).fetchone()
+            if (not empire or str(empire['status']) == 'ruined'
+                    or int(empire['hospital_until'] or 0) > now):
+                await db.execute(
+                    "UPDATE npc_empire_assaults SET status='resolved',"
+                    "resolution='legacy_owner_unavailable' WHERE leader_id=? "
+                    "AND encounter_kind='field' AND status='active' "
+                    "AND field_encounter_id=''", (leader_id,))
+                continue
+            existing = await (await db.execute(
+                "SELECT * FROM npc_empire_field_encounters WHERE leader_id=? "
+                "AND status IN ('active','defeated') LIMIT 1", (leader_id,))).fetchone()
+            if existing:
+                encounter_id = str(existing['encounter_id'])
+            else:
+                newest = max(group, key=lambda item: (int(item['started_at']), str(item['token'])))
+                started_at = min(int(item['started_at']) for item in group)
+                defeated_values = [int(item['defeated_at'] or 0) for item in group
+                                   if int(item['boss_hp'] or 0) <= 0 and int(item['defeated_at'] or 0) > 0]
+                defeated_at = min(defeated_values, default=0)
+                encounter_id = f'legacy:{leader_id}:{started_at}'
+                await db.execute(
+                    "INSERT OR IGNORE INTO npc_empire_field_encounters"
+                    "(encounter_id,leader_id,boss_hp,boss_max_hp,status,anchor_r,anchor_c,"
+                    "anchor_id,anchor_at,started_at,expires_at,defeated_at,updated_at) "
+                    "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (encounter_id, leader_id,
+                     min(int(item['boss_hp'] or 0) for item in group),
+                     max(int(item['boss_max_hp'] or 1) for item in group),
+                     'defeated' if defeated_at else 'active',
+                     float(newest['anchor_r'] or 0), float(newest['anchor_c'] or 0),
+                     str(newest['anchor_id'] or ''), int(newest['anchor_at'] or 0),
+                     started_at, max(int(item['expires_at']) for item in group),
+                     defeated_at, now))
+            canonical = await (await db.execute(
+                "SELECT boss_hp,boss_max_hp,defeated_at FROM npc_empire_field_encounters "
+                "WHERE encounter_id=?", (encounter_id,))).fetchone()
+            await db.execute(
+                "UPDATE npc_empire_assaults SET field_encounter_id=?,boss_hp=?,"
+                "boss_max_hp=?,defeated_at=? WHERE leader_id=? AND encounter_kind='field' "
+                "AND status='active' AND field_encounter_id=''",
+                (encounter_id, int(canonical['boss_hp']), int(canonical['boss_max_hp']),
+                 int(canonical['defeated_at']), leader_id))
+        await db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_npc_field_encounter_live_leader "
+            "ON npc_empire_field_encounters(leader_id) "
+            "WHERE status IN ('active','defeated')")
         holding_columns = {str(r[1]) for r in await (await db.execute(
             "PRAGMA table_info(npc_empire_holdings)")).fetchall()}
         for name, declaration in {'operation_type': "TEXT NOT NULL DEFAULT ''", 'area': "INTEGER NOT NULL DEFAULT 0"}.items():
@@ -2106,6 +2189,22 @@ async def hospitalize_boss(db_path: str, leader_id: str,
         return result
 
 
+async def _field_encounter(db, encounter_id: str):
+    return await (await db.execute(
+        "SELECT * FROM npc_empire_field_encounters WHERE encounter_id=?",
+        (encounter_id,))).fetchone()
+
+
+async def _sync_field_assault_mirrors(db, encounter_id: str) -> None:
+    await db.execute(
+        "UPDATE npc_empire_assaults SET "
+        "boss_hp=(SELECT boss_hp FROM npc_empire_field_encounters WHERE encounter_id=?),"
+        "boss_max_hp=(SELECT boss_max_hp FROM npc_empire_field_encounters WHERE encounter_id=?),"
+        "defeated_at=(SELECT defeated_at FROM npc_empire_field_encounters WHERE encounter_id=?) "
+        "WHERE field_encounter_id=? AND encounter_kind='field' AND status='active'",
+        (encounter_id, encounter_id, encounter_id, encounter_id))
+
+
 async def hospitalize_boss_from_proof(
         db_path: str, telegram_id: int, token: str,
         hospital_id: str = 'hospital', now: int | None = None) -> dict:
@@ -2126,7 +2225,9 @@ async def hospitalize_boss_from_proof(
                 await db.rollback()
                 return {'ok': False, 'error': 'invalid_proof'}
             if (str(proof['status']) == 'resolved'
-                    and str(proof['resolution'] or '') == 'hospitalized'):
+                    and str(proof['resolution'] or '') in {
+                        'hospitalized', 'boss_hospitalized_elsewhere'}
+                    and int(proof['hospital_until'] or 0) > 0):
                 await db.rollback()
                 until = int(proof['hospital_until'] or 0)
                 return {
@@ -2136,12 +2237,18 @@ async def hospitalize_boss_from_proof(
                     'hospital_until': until,
                     'duration': max(0, until - now),
                 }
-            defeated_at = int(proof['defeated_at'] or 0)
+            encounter_id = str(proof['field_encounter_id'] or '')
+            encounter = await _field_encounter(db, encounter_id) if encounter_id else None
+            defeated_at = int(encounter['defeated_at'] or 0) if encounter else 0
             valid = (
                 str(proof['encounter_kind'] or 'hq') == 'field'
                 and str(proof['status']) == 'active'
-                and int(proof['boss_hp'] or 0) <= 0
+                and encounter is not None
+                and str(encounter['leader_id']) == str(proof['leader_id'])
+                and str(encounter['status']) == 'defeated'
+                and int(encounter['boss_hp'] or 0) <= 0
                 and defeated_at > 0
+                and int(proof['started_at'] or 0) <= defeated_at
                 and now <= defeated_at + FIELD_HOSPITAL_CLAIM_SECONDS
             )
             if not valid:
@@ -2151,27 +2258,29 @@ async def hospitalize_boss_from_proof(
                 db, str(proof['leader_id']), hospital_id, now)
             if not result.get('ok'):
                 await db.execute(
+                    "UPDATE npc_empire_field_encounters SET status='resolved',updated_at=? "
+                    "WHERE encounter_id=? AND status='defeated'", (now, encounter_id))
+                await db.execute(
                     "UPDATE npc_empire_assaults SET status='resolved',"
-                    "resolution='boss_unavailable' WHERE token=? AND status='active'",
-                    (token,))
+                    "resolution='boss_unavailable' WHERE field_encounter_id=? "
+                    "AND status='active'", (encounter_id,))
                 await db.commit()
                 return result
             changed = await db.execute(
-                "UPDATE npc_empire_assaults SET status='resolved',"
-                "resolution='hospitalized',hospital_id=?,hospital_until=? "
-                "WHERE token=? AND telegram_id=? AND status='active' "
-                "AND encounter_kind='field' AND boss_hp<=0",
-                (result['hospital_id'], result['hospital_until'], token, telegram_id),
+                "UPDATE npc_empire_field_encounters SET status='hospitalized',"
+                "hospital_id=?,hospital_until=?,updated_at=?,version=version+1 "
+                "WHERE encounter_id=? AND status='defeated' AND boss_hp<=0",
+                (result['hospital_id'], result['hospital_until'], now, encounter_id),
             )
             if int(changed.rowcount or 0) != 1:
                 await db.rollback()
                 return {'ok': False, 'error': 'invalid_proof'}
             await db.execute(
                 "UPDATE npc_empire_assaults SET status='resolved',"
-                "resolution='boss_hospitalized_elsewhere' "
-                "WHERE leader_id=? AND encounter_kind='field' "
-                "AND status='active' AND token<>?",
-                (str(proof['leader_id']), token),
+                "resolution=CASE WHEN token=? THEN 'hospitalized' "
+                "ELSE 'boss_hospitalized_elsewhere' END,hospital_id=?,hospital_until=? "
+                "WHERE field_encounter_id=? AND status='active'",
+                (token, result['hospital_id'], result['hospital_until'], encounter_id),
             )
             await db.commit()
             return {**result, 'duplicate': False}
@@ -3327,6 +3436,11 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT * FROM npc_empire_interior_raids "
             "WHERE telegram_id=? AND status='pending' ORDER BY started_at,token",
             (telegram_id,))).fetchall()]
+        field_encounters = {str(r['leader_id']): dict(r) for r in await (await db.execute(
+            "SELECT encounter_id,leader_id,boss_hp,boss_max_hp,status,expires_at,"
+            "defeated_at FROM npc_empire_field_encounters "
+            "WHERE status IN ('active','defeated')"
+        )).fetchall()}
         npc_guard_assignments = {
             (str(r['owner_id']), str(r['holding_ref'])): int(r['living'] or 0)
             for r in await (await db.execute(
@@ -3458,6 +3572,14 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'brain': brain,
             'memory': memory,
             'activity': _visible_activity(profile, row, leader_holdings, now, brain),
+            'field_encounter': ({
+                'encounter_id': str(field_encounters[leader_id]['encounter_id']),
+                'hp': int(field_encounters[leader_id]['boss_hp']),
+                'max_hp': int(field_encounters[leader_id]['boss_max_hp']),
+                'status': str(field_encounters[leader_id]['status']),
+                'expires_at': int(field_encounters[leader_id]['expires_at']),
+                'defeated_at': int(field_encounters[leader_id]['defeated_at']),
+            } if leader_id in field_encounters else None),
         })
     leaderboard = sorted(result, key=lambda e: (
         -e['district_count'], -e['dominance_score'], -e['strength'],
@@ -3972,47 +4094,85 @@ async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str
             if kind == 'hq' and int(active['expires_at'] or 0) > now:
                 await db.rollback()
                 return {'ok': False, 'error': 'headquarters assault active'}
-            if kind == 'field' and (int(active['expires_at'] or 0) > now
-                                    or field_proof_live):
+            if kind == 'field' and active['field_encounter_id'] and (
+                    int(active['expires_at'] or 0) > now or field_proof_live):
+                encounter = await _field_encounter(db, str(active['field_encounter_id']))
+                if not encounter:
+                    await db.execute(
+                        "UPDATE npc_empire_assaults SET status='abandoned',"
+                        "resolution='missing_field_encounter' WHERE token=?", (active['token'],))
+                    continue
                 await db.rollback()
                 return {
                     'ok': True, 'duplicate': True, 'token': str(active['token']),
                     'leader_id': leader_id, 'leader_name': profile.leader_name,
                     'encounter_kind': 'field',
-                    'anchor': {'r': float(active['anchor_r'] or anchor_r),
-                               'c': float(active['anchor_c'] or anchor_c),
-                               'target_id': str(active['anchor_id'] or anchor_id),
-                               'created_at': int(active['anchor_at'] or anchor_at)},
-                    'boss': {'hp': int(active['boss_hp']),
-                             'max_hp': int(active['boss_max_hp']),
+                    'encounter_id': str(encounter['encounter_id']), 'shared': True,
+                    'anchor': {'r': float(encounter['anchor_r']),
+                               'c': float(encounter['anchor_c']),
+                               'target_id': str(encounter['anchor_id']),
+                               'created_at': int(encounter['anchor_at'])},
+                    'boss': {'hp': int(encounter['boss_hp']),
+                             'max_hp': int(encounter['boss_max_hp']),
                              'weapon': profile.weapon_base,
                              'weapon_id': profile.weapon_id,
                              'weapon_name': profile.weapon_name},
-                    'expires_at': int(active['expires_at']),
-                    'proof_ready': defeated_at > 0 and int(active['boss_hp'] or 0) <= 0,
+                    'expires_at': int(encounter['expires_at']),
+                    'proof_ready': (str(encounter['status']) == 'defeated'
+                                    and int(encounter['boss_hp']) <= 0),
                 }
             await db.execute(
                 "UPDATE npc_empire_assaults SET status='abandoned' "
                 "WHERE token=? AND status='active'", (active['token'],))
-        strength = int(row['strength'] or 0)
-        boss_max = max(150, min(520, int(150 + strength * 1.55)))
+        encounter = await (await db.execute(
+            "SELECT * FROM npc_empire_field_encounters WHERE leader_id=? "
+            "AND status IN ('active','defeated') LIMIT 1", (leader_id,))).fetchone()
+        if encounter and str(encounter['status']) == 'defeated':
+            await db.rollback()
+            return {'ok': False, 'error': 'boss defeated'}
+        if encounter and int(encounter['expires_at']) <= now:
+            await db.execute(
+                "UPDATE npc_empire_field_encounters SET status='expired',updated_at=? "
+                "WHERE encounter_id=? AND status='active'", (now, encounter['encounter_id']))
+            await db.execute(
+                "UPDATE npc_empire_assaults SET status='resolved',resolution='expired' "
+                "WHERE field_encounter_id=? AND status='active'", (encounter['encounter_id'],))
+            encounter = None
+        if not encounter:
+            strength = int(row['strength'] or 0)
+            boss_max = max(150, min(520, int(150 + strength * 1.55)))
+            encounter_id = secrets.token_urlsafe(18)
+            expires_at = now + FIELD_ENCOUNTER_SECONDS
+            await db.execute(
+                "INSERT INTO npc_empire_field_encounters"
+                "(encounter_id,leader_id,boss_hp,boss_max_hp,status,anchor_r,anchor_c,"
+                "anchor_id,anchor_at,started_at,expires_at,updated_at) "
+                "VALUES(?,?,?,?, 'active',?,?,?,?,?,?,?)",
+                (encounter_id, leader_id, boss_max, boss_max, anchor_r, anchor_c,
+                 anchor_id, anchor_at, now, expires_at, now))
+            encounter = await _field_encounter(db, encounter_id)
+        encounter_id = str(encounter['encounter_id'])
+        boss_max = int(encounter['boss_max_hp']); boss_hp = int(encounter['boss_hp'])
+        expires_at = int(encounter['expires_at'])
         token = secrets.token_urlsafe(18)
-        expires_at = now + FIELD_ENCOUNTER_SECONDS
         await db.execute(
             "INSERT INTO npc_empire_assaults"
             "(token,telegram_id,leader_id,guard_hp_json,boss_hp,boss_max_hp,"
             "status,started_at,expires_at,encounter_kind,anchor_r,anchor_c,"
-            "anchor_id,anchor_at) "
-            "VALUES(?,?,?,'[]',?,?, 'active',?,?,'field',?,?,?,?)",
-            (token, telegram_id, leader_id, boss_max, boss_max, now, expires_at,
-             anchor_r, anchor_c, anchor_id, anchor_at))
+            "anchor_id,anchor_at,field_encounter_id) "
+            "VALUES(?,?,?,'[]',?,?, 'active',?,?,'field',?,?,?,?,?)",
+            (token, telegram_id, leader_id, boss_hp, boss_max, now, expires_at,
+             float(encounter['anchor_r']), float(encounter['anchor_c']),
+             str(encounter['anchor_id']), int(encounter['anchor_at']), encounter_id))
         await db.commit()
     return {
         'ok': True, 'token': token, 'leader_id': leader_id,
         'leader_name': profile.leader_name, 'encounter_kind': 'field',
-        'anchor': {'r': anchor_r, 'c': anchor_c, 'target_id': anchor_id,
-                   'created_at': anchor_at},
-        'boss': {'hp': boss_max, 'max_hp': boss_max,
+        'encounter_id': encounter_id, 'shared': True,
+        'anchor': {'r': float(encounter['anchor_r']), 'c': float(encounter['anchor_c']),
+                   'target_id': str(encounter['anchor_id']),
+                   'created_at': int(encounter['anchor_at'])},
+        'boss': {'hp': boss_hp, 'max_hp': boss_max,
                  'weapon': profile.weapon_base, 'weapon_id': profile.weapon_id,
                  'weapon_name': profile.weapon_name},
         'expires_at': expires_at,
@@ -4034,6 +4194,15 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
         guards = [max(0, int(x)) for x in json.loads(row['guard_hp_json'])]
         boss_hp = int(row['boss_hp'])
         previous_boss_hp = boss_hp
+        encounter_kind = str(row['encounter_kind'] or 'hq')
+        encounter_id = str(row['field_encounter_id'] or '')
+        if encounter_kind == 'field':
+            encounter = await _field_encounter(db, encounter_id)
+            if (not encounter or str(encounter['status']) != 'active'
+                    or int(encounter['expires_at']) <= now_i
+                    or str(encounter['leader_id']) != str(row['leader_id'])):
+                await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
+            boss_hp = int(encounter['boss_hp']); previous_boss_hp = boss_hp
         if target == 'guard':
             try: idx = int(target_id)
             except Exception: idx = -1
@@ -4046,16 +4215,29 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
             boss_hp = max(0, boss_hp - damage)
         else:
             await db.rollback(); return {'ok': False, 'error': 'bad target'}
-        encounter_kind = str(row['encounter_kind'] or 'hq')
         defeated_at = int(row['defeated_at'] or 0)
-        if (encounter_kind == 'field' and target == 'boss'
-                and previous_boss_hp > 0 and boss_hp <= 0):
-            defeated_at = now_i
-        await db.execute(
-            "UPDATE npc_empire_assaults SET guard_hp_json=?,boss_hp=?,"
-            "last_hit_at=?,defeated_at=? WHERE token=?",
-            (json.dumps(guards), boss_hp, now_f, defeated_at, token),
-        )
+        if encounter_kind == 'field':
+            lethal = previous_boss_hp > 0 and boss_hp <= 0
+            defeated_at = now_i if lethal else 0
+            changed = await db.execute(
+                "UPDATE npc_empire_field_encounters SET boss_hp=?,"
+                "status=CASE WHEN ? THEN 'defeated' ELSE status END,"
+                "defeated_at=CASE WHEN ? THEN ? ELSE defeated_at END,"
+                "defeated_by=CASE WHEN ? THEN ? ELSE defeated_by END,"
+                "updated_at=?,version=version+1 WHERE encounter_id=? AND status='active'",
+                (boss_hp, int(lethal), int(lethal), now_i, int(lethal), telegram_id,
+                 now_i, encounter_id))
+            if int(changed.rowcount or 0) != 1:
+                await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
+            await db.execute(
+                "UPDATE npc_empire_assaults SET last_hit_at=? WHERE token=?",
+                (now_f, token))
+            await _sync_field_assault_mirrors(db, encounter_id)
+        else:
+            await db.execute(
+                "UPDATE npc_empire_assaults SET guard_hp_json=?,boss_hp=?,"
+                "last_hit_at=?,defeated_at=? WHERE token=?",
+                (json.dumps(guards), boss_hp, now_f, defeated_at, token))
         await db.commit()
     return {'ok': True, 'guards': guards, 'boss_hp': boss_hp,
             'boss_max_hp': int(row['boss_max_hp']), 'victory': boss_hp <= 0,

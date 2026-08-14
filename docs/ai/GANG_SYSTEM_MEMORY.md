@@ -21,6 +21,10 @@ source before editing and update this document whenever a contract changes.
   it restores bounded roster HP/casualties and pauses cashier-hold elapsed time
   while outside. Restore happens before admission so dead actors stay dead and
   wounded actors keep their HP.
+- Restored active survivors lead the normal bounded admission queue; they are
+  not mass-spawned. Saved hold progress resumes only after the exact previous
+  live roster reaches the cashier again, and a saved approach never overrides
+  a breach that occurred while the player was outside.
 - Terminal outcomes spawn no replacement actors and retry the authoritative,
   idempotent resolve request. Successful/duplicate resolve or disappearance
   from the active server snapshot clears the checkpoint. It is intentionally
@@ -117,9 +121,11 @@ reconnect and duplicate resolve requests must be idempotent.
 - Persistent boss memory writes hospitalization as canonical `hospitalized`.
   Readers normalize legacy `hospital` events so old saves retain the same
   negative importance, wound count and defensive adaptation.
-- Public hospitalization never accepts a client-owned `leader_id`. A `field`
-  row in the existing `npc_empire_assaults` table binds token, player, boss HP
-  and defeat time; only that bounded defeated proof may start treatment. HQ
+- Public hospitalization never accepts a client-owned `leader_id`.
+  `npc_empire_field_encounters` owns one canonical HP/generation per physical
+  boss; `field` rows in `npc_empire_assaults` are player-bound participant
+  proofs attached to it. Every participant sees and damages the same HP, and
+  only a token created before that generation's defeat may start treatment. HQ
   tokens cannot hospitalize, field tokens cannot resolve annex/loot/vassalize,
   and replay returns the persisted hospital result without another event,
   version bump or duration extension.
@@ -130,6 +136,12 @@ reconnect and duplicate resolve requests must be idempotent.
   other. Street boss HP and defeat are applied from serialized server hit
   replies, and ambulance delivery submits only the proof token; a failed
   request must leave no locally hidden or dead boss.
+- Shared field HP is event-driven: prepare joins/creates, a hit atomically
+  subtracts canonical HP, and hospitalization resolves the generation and all
+  participant tokens. `state_for` only reads the at-most-19 live encounter
+  rows; polling must never repair, expire or otherwise write encounter state.
+  Legacy independent field rows migrate idempotently using their minimum HP,
+  so deployment cannot heal a boss already damaged by another client.
 - A returning family starts small and has a finite recovery stipend. It does
   not receive endless free fighters or cash.
 - The fighter cap is 20. Paid recruitment changes treasury, members and

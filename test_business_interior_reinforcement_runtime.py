@@ -39,12 +39,13 @@ def extract_function(name: str) -> str:
 def run() -> None:
     admit = extract_function("_businessRaidAdmitOne")
     open_breach = extract_function("_businessRaidOpenBreach")
+    cash_point = extract_function("_businessRaidCashPoint")
     update = extract_function("_updateBusinessInteriorRaid")
     seed_start = WORLD.index("function _seedBusinessInteriorRaid")
     seed_end = WORLD.index("function _spawnBusinessInteriorRaidNpc", seed_start)
     seed = WORLD[seed_start:seed_end]
     assert "phase:breached?'breach':'approach'" in seed
-    assert "state.attackerReserve.push(...attackerRoster" in seed
+    assert "state.attackerReserve.push(..._businessInteriorRaidRestoredOrder(attackerRoster))" in seed
     assert "front.forEach" in seed and "state.admission.defender.cap" in seed
     assert "_playerBusinessRaidBreachFor(state.activity)" in update
     assert "_businessRaidOpenBreach(state,breach)" in update
@@ -56,9 +57,11 @@ def run() -> None:
     script = f"""
 const document={{documentElement:{{dataset:{{}}}}}};let spawned=[];
 function _playerBusinessRaidToken(activity){{return String(activity?.token||'');}}
+function _businessRaidSafePoint(bi,r,c){{return {{r,c}};}}
 function _spawnBusinessInteriorRaidNpc(bi,state,row,side,index){{const actor={{id:row.id,businessRaidSide:side,dead:false}};spawned.push({{id:row.id,side,index}});bi.npcs.push(actor);return actor;}}
 {admit}
 {open_breach}
+{cash_point}
 const rows=(prefix,count)=>Array.from({{length:count}},(_,i)=>({{id:`${{prefix}}${{i}}`,casualty:false}}));
 const bi={{H:12,W:16,npcs:[]}},state={{id:'raid',activity:{{token:'raid-token',target_id:'shop'}},breached:false,phase:'approach',playerDefends:true,attackerReserve:rows('a',8),defenderReserve:rows('d',6),attackerIds:new Set(),defenderIds:new Set(),admission:{{attacker:{{cap:4,nextAt:0,seq:0,chain:false}},defender:{{cap:6,nextAt:0,seq:0,chain:false}}}}}};
 const calls=[];

@@ -1,5 +1,21 @@
 # Mafiozi 3D optimization memory
 
+## Time-gated interior raid path recovery (2026-08-14, v410)
+
+- The cheap fixed-angle movement remains the default. Only after `900 ms`
+  without at least `.08` goal-distance progress may a raid actor use a compact
+  flow field shared by the interior and target cell. A further stalled stage
+  returns to the fixed probes with the opposite stable side, so recovery cannot
+  lock permanently to a bad cell edge.
+- Build the field lazily from the authored collision helper and cache it on the
+  interior; do not allocate a route per actor, scan NPCs, add a timer or
+  teleport. Objective, defender staging and advance must share the same bounded
+  passable cashier point, including layouts whose visual centre is solid.
+- Runtime QA executes the production helpers for four entrance slots across all
+  eight converted-business layouts. Every actor must enter the objective zone,
+  no recovery may start before `900 ms`, and every movement step remains at or
+  below authored speed times delta.
+
 ## Bounded interior reinforcement admission (2026-08-14, v409)
 
 - Stage defenders during approach but keep every attacker in the existing
@@ -21,6 +37,13 @@
 - A cashier hold is paused while the player is outside: save elapsed hold time
   and rebuild `holdStartedAt` from that elapsed value on re-entry. Do not grant
   offline/outside hold progress. A repeated same-page restore is deterministic.
+- Re-entry must rebuild the previously active wave ahead of untouched reserves
+  through the ordinary one-at-a-time admission lane. Resume saved cashier time
+  only when the exact saved live roster has physically regrouped at the cashier;
+  partial admission, travel time and outside time never count toward the hold.
+- Phase restoration is monotonic across the exterior seam: an `approach`
+  checkpoint cannot downgrade a fresh exact-token `breach`. Namespace roster
+  identity by attacker/assigned-defender/guard so equal numeric IDs do not mix HP.
 - Restore roster HP/casualties before reserve/front admission. A terminal local
   outcome restores without spawning actors and retries the existing idempotent
   server resolve path. Clear only after a successful/duplicate resolution, or

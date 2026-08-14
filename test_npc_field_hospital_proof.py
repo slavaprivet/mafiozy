@@ -170,13 +170,16 @@ async def run() -> None:
         await _insert_defeated(path, 'rustam-second', 'rustam', 202, NOW + 22)
         second = await ne.hospitalize_boss_from_proof(
             path, 202, 'rustam-second', 'hospital_east', NOW + 23)
-        assert second['ok'] and second['hospital_until'] == until
+        assert not second['ok'] and second['error'] == 'invalid_proof'
+        assert int(await _scalar(
+            path, "SELECT hospital_until FROM npc_empires "
+                  "WHERE leader_id='rustam'")) == until
         assert int(await _scalar(
             path, "SELECT COUNT(*) FROM npc_empire_events "
                   "WHERE leader_id='rustam' AND kind='hospitalized'")) == 1
         assert await _scalar(
             path, "SELECT resolution FROM npc_empire_assaults "
-                  "WHERE token='rustam-second'") == 'hospitalized'
+                  "WHERE token='rustam-second'") == 'legacy_owner_unavailable'
 
         await _insert_defeated(path, 'late-field', 'giulia', 303, NOW)
         late = await ne.hospitalize_boss_from_proof(
@@ -190,10 +193,10 @@ async def run() -> None:
             await db.commit()
         ruined = await ne.hospitalize_boss_from_proof(
             path, 404, 'ruined-field', now=NOW + 31)
-        assert not ruined['ok'] and ruined['error'] == 'boss_unavailable'
+        assert not ruined['ok'] and ruined['error'] == 'invalid_proof'
         assert await _scalar(
             path, "SELECT resolution FROM npc_empire_assaults "
-                  "WHERE token='ruined-field'") == 'boss_unavailable'
+                  "WHERE token='ruined-field'") == 'legacy_owner_unavailable'
 
         bot_source = Path('mafiozi_bot.py').read_text(encoding='utf-8')
         handler = bot_source.split(
