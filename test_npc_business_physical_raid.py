@@ -19,6 +19,14 @@ def reapply_fixture(current, phase, target_id, now):
     }
 
 
+def mark_breach(seen, token):
+    """Mirror the token-idempotent seam across same-page snapshot rebinds."""
+    if not token or token in seen:
+        return False
+    seen[token] = {'cue': 1, 'combat': True}
+    return True
+
+
 def main():
     world = (ROOT / 'world.html').read_text(encoding='utf-8')
     bot = (ROOT / 'mafiozi_bot.py').read_text(encoding='utf-8')
@@ -91,6 +99,20 @@ def main():
     assert "`popin-${popin?1:0}`" in world
     assert "`arrived-${arrived?1:0}`" in world
     assert "`reapply-${fixture.reapplyCount||0}`" in world
+    assert 'const _playerBusinessRaidBreaches = new Map()' in world
+    assert 'function _markPlayerBusinessRaidBreached(n,now=performance.now())' in world
+    assert '_playerBusinessRaidBreaches.has(token)' in world
+    assert 'if(raidActivity&&!_playerBusinessRaidBreachFor(raidActivity))' in world
+    assert "n._empireAction?.kind==='player_business_raid')_markPlayerBusinessRaidBreached" in world
+    assert 'dataset.playerBusinessRaidBreach=' in world
+    assert "dataset.businessInteriorRaidGate=`approach:" in world
+    assert "dataset.businessInteriorRaidGate=`breached:" in world
+    assert "if(!breach){document.documentElement.dataset.businessInteriorRaidGate" in world
+    assert "token=alertPreview?`preview-raid-alert:${meta.key}`:`preview-business-raid:${fixtureId}`" in world
+    assert 'raid_token:token' in world
+    assert 'apt_key:`preview-raid:${meta.key}`' in world
+    assert 'activeTokens=new Set((_npcEmpireInteriorRaids||[])' in world
+    assert 'if(!activeTokens.has(token))_playerBusinessRaidBreaches.delete(token)' in world
     assert "'guard_count': guard_count" in bot
     assert "npc_empire.holding_guard_count(" in bot
 
@@ -119,6 +141,17 @@ def main():
     near_crew = 6
     boss_distance = 1.48
     assert boss_distance < 1.6 and full_crew_seen and near_crew == surviving_crew
+
+    # The authoritative session may rebind many times inside the same page. It
+    # cannot activate interior combat or repeat the cue until physical arrival;
+    # the first arrival marks the stable token exactly once. A full reload has
+    # fresh client memory and deliberately is not modelled by this contract.
+    breaches = {}
+    assert 'raid-a' not in breaches  # approach: interior gate remains closed
+    assert mark_breach(breaches, 'raid-a')
+    assert not mark_breach(breaches, 'raid-a')
+    assert breaches['raid-a'] == {'cue': 1, 'combat': True}
+    assert mark_breach(breaches, 'raid-b')  # a genuinely new raid may breach
 
     print('npc business physical raid: boss + 8, 1-3 guards, combat, no-popin telemetry OK')
 

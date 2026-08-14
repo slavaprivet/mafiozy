@@ -118,9 +118,10 @@ async def run() -> None:
             "SELECT members FROM npc_empires WHERE leader_id='leila'")
         defended = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'defended',
+            attacker_casualties=list(range(raid['force'])),
             defender_casualties=[2],
             now=now+ne.PLAYER_INTERIOR_RAID_MIN_SECONDS)
-        assert defended['ok'] and defended['attacker_losses'] > 0
+        assert defended['ok'] and defended['attacker_losses'] == raid['force']
         assert defended['defender_losses'] == 1
         assert await scalar(path,
             "SELECT current_hp FROM gang_members WHERE id=2") == 0
@@ -145,10 +146,11 @@ async def run() -> None:
         assert raid2['objective'] == 'first-close'
         captured = await ne.resolve_interior_raid(
             path, 101, raid2['token'], raid2['apt_key'], 'captured',
-            attacker_casualties=[0], defender_casualties=[3],
+            attacker_casualties=[0],
+            defender_casualties=[row['member_id'] for row in raid2['defender_roster']],
             guard_casualties=[], now=now+1000+raid2['hold_seconds'])
         assert captured['ok']
-        assert captured['attacker_losses'] == 1 and captured['defender_losses'] == 1
+        assert captured['attacker_losses'] == 1 and captured['defender_losses'] == 2
         assert any(event['kind'] == 'player_business_bombed'
                    for event in captured['phase_events'])
         assert await scalar(path,
@@ -160,10 +162,10 @@ async def run() -> None:
             "WHERE owner_kind='player' AND owner_id='101' AND holding_ref='building:0,3'")
         dead_hired = await scalar(path,
             "SELECT COUNT(*) FROM gang_members WHERE telegram_id=101 AND id IN (2,3,4) AND current_hp=0")
-        assert living_guard_rows + dead_hired == 3 and dead_hired == 2
+        assert living_guard_rows + dead_hired == 3 and dead_hired == 3
 
-        # The follow-up capture changes ownership. Its transaction must also
-        # release the sole surviving assignee instead of leaving a ghost guard.
+        # The follow-up capture changes ownership without recreating any of the
+        # hired defenders already proven dead in the first physical assault.
         async with aiosqlite.connect(path) as db:
             await db.execute(
                 "UPDATE npc_empire_player_wars SET next_attack_at=? WHERE leader_id='leila' AND telegram_id=101",
@@ -173,6 +175,7 @@ async def run() -> None:
         assert raid3['objective'] == 'followup-capture'
         takeover = await ne.resolve_interior_raid(
             path, 101, raid3['token'], raid3['apt_key'], 'captured',
+            attacker_casualties=[], defender_casualties=[], guard_casualties=[],
             now=now+2000+raid3['hold_seconds'])
         assert takeover['ok']
         assert any(event['kind'] == 'player_business_captured'

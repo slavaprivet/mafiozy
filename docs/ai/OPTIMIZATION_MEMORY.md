@@ -1,5 +1,23 @@
 # Mafiozi 3D optimization memory
 
+## Arrival-gated business breach (2026-08-14, v408)
+
+- A pending server interior session authorizes the raid, but it does not prove
+  that the visible squad reached the frontage. Keep a bounded token map on the
+  client and open the interior combat gate only when the ordinary boss action
+  route reports physical arrival.
+- The same token is an idempotency key across repeated WebSocket snapshots in
+  the same page: it may produce one breach speech/banner and one interior
+  activation. Remove entries missing from the current active-session snapshot,
+  so resolved/expired raids do not wait for cap eviction. A full page reload
+  has fresh client memory and may replay approach/arrival; this is deliberately
+  not advertised as persisted or refresh-proof without a server schema.
+- Before breach, the existing player-war combat thinker yields to the action
+  route for the boss and crew. This prevents a nearby player from pulling an
+  unguarded squad off its last approach segment. Reuse the existing actor,
+  route queue, alert HUD, banner and interior constructor; add no NPC, poll,
+  timer, DOM node, pathfinder or render-loop collection.
+
 ## Authoritative player-raid objective telegraph (2026-08-14, v407)
 
 - Route state and ownership stakes are different axes. `approach`/`interior`
@@ -82,6 +100,23 @@
   `test_interior_projectile_arrival.py` proves unchanged raid/HQ HP before
   arrival, one damage application at arrival, and a moving player's rejected
   NPC hit; Node stderr is preserved on future failures.
+
+## Cashier contest and reachable raid resolution (2026-08-14)
+
+- Reuse the existing business-raid update, cash radius and HUD nodes for a
+  `contested` phase. A living defending player in the radius resets hold state;
+  attackers use the existing LOS, movement and fire helpers to clear the zone.
+  There is no additional timer, DOM allocation, actor scan or combat loop.
+- The server requires exact casualty arrays already sent by the production
+  client. A defended result is reachable only when all attacker slots are down;
+  capture requires a surviving attacker and all persisted defender/legacy
+  guard ids down. Resolve marks an expired pending token `expired` in the same
+  transaction before returning an error, preventing post-expiry ownership
+  changes.
+- `test_business_interior_cash_contest.py` executes contest reset, a fresh
+  20-second hold, dead-player behavior and blocked-LOS pursuit. The server
+  hardening regression covers atomic expiry plus impossible defended/captured
+  terminal sets.
 
 ## Front-readable booked-prisoner cuffs (2026-08-13, v399)
 

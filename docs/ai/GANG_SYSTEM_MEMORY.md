@@ -20,6 +20,12 @@ source before editing and update this document whenever a contract changes.
 - Publish the objective with the pending session and boss activity. Client HUD
   may explain the boss doctrine, plan, stakes and counter-play, but SQLite
   resolution remains the only path that closes or transfers the business.
+- Treat the pending session as server authorization, not proof of exterior
+  arrival. Interior attackers may become active only after the boss's ordinary
+  action route reaches the persisted target and marks that session token as
+  breached. Same-page snapshot rebinds must not replay the cue or recreate
+  attackers. Full-page reload does not persist this presentation seam and may
+  replay arrival until breach becomes a server field in a future schema.
 
 ## Read order and ownership
 
@@ -95,6 +101,19 @@ reconnect and duplicate resolve requests must be idempotent.
 - Persistent boss memory writes hospitalization as canonical `hospitalized`.
   Readers normalize legacy `hospital` events so old saves retain the same
   negative importance, wound count and defensive adaptation.
+- Public hospitalization never accepts a client-owned `leader_id`. A `field`
+  row in the existing `npc_empire_assaults` table binds token, player, boss HP
+  and defeat time; only that bounded defeated proof may start treatment. HQ
+  tokens cannot hospitalize, field tokens cannot resolve annex/loot/vassalize,
+  and replay returns the persisted hospital result without another event,
+  version bump or duration extension.
+- A field encounter may be prepared only for a fresh, connected exterior
+  player at the exact activity anchor published by the server; HTTP fallback
+  coordinates are HQ-preview-only. Persist that anchor with the assault.
+  Valid HQ and field sessions mutually conflict instead of abandoning each
+  other. Street boss HP and defeat are applied from serialized server hit
+  replies, and ambulance delivery submits only the proof token; a failed
+  request must leave no locally hidden or dead boss.
 - A returning family starts small and has a finite recovery stipend. It does
   not receive endless free fighters or cash.
 - The fighter cap is 20. Paid recruitment changes treasury, members and
@@ -235,6 +254,15 @@ guards. The current server scorer must preserve these rules:
   same capped tracer speed for their callback and reject arrival if the tracked
   target moved more than `0.72` tile from the visible endpoint, died, left the
   interior or lost line of sight.
+- A living defending player inside the cashier radius contests the business
+  objective, clears the accumulated hold and forces the surviving attackers to
+  engage or approach through cover. Capture requires a fresh uninterrupted
+  hold after the player leaves; a dead player cannot contest.
+- Interior-raid resolve accepts only physically reachable terminal rosters:
+  defence requires every paid attacker down, while capture requires at least
+  one surviving attacker and every session defender down. Expiry is resolved
+  atomically before outcome processing, so an expired token cannot mutate a
+  business.
 - Corpse labels are short-lived and lowest priority. Screen-space decluttering
   preserves live/focused/HP labels without allocating new meshes or DOM nodes
   each frame.

@@ -149,13 +149,13 @@ async def server_two_phase_flow():
         assert {row['member_id'] for row in raid2['defender_roster']} == {101, 102, 103}
         loss2 = await ne.resolve_interior_raid(
             path, PLAYER, raid2['token'], raid2['apt_key'], 'captured',
-            attacker_casualties=[0, 1], defender_casualties=[101, 103],
+            attacker_casualties=[0, 1], defender_casualties=[101, 102, 103],
             guard_casualties=[], now=due[0] + raid2['hold_seconds'])
-        assert loss2['attacker_losses'] == 2 and loss2['defender_losses'] == 2
+        assert loss2['attacker_losses'] == 2 and loss2['defender_losses'] == 3
         assert [event['kind'] for event in loss2['phase_events']] == ['player_business_captured']
         assert await scalar(path, "SELECT COUNT(*) FROM apartments_owned WHERE telegram_id=?", (PLAYER,)) == 0
         assert await scalar(path, "SELECT COUNT(*) FROM npc_empire_holdings WHERE leader_id='leila' AND holding_id=?", (TARGET,)) == 1
-        assert await scalar(path, "SELECT COUNT(*) FROM gang_members WHERE id IN (101,103) AND current_hp=0") == 2
+        assert await scalar(path, "SELECT COUNT(*) FROM gang_members WHERE id IN (101,102,103) AND current_hp=0") == 3
     finally:
         os.unlink(path)
 
@@ -163,7 +163,8 @@ async def server_two_phase_flow():
 async def main():
     assert "state.holdRoster!==holdRoster" in WORLD
     assert "state.holdStartedAt=0;state.holdRoster=''" in WORLD
-    assert "state.phase==='hold'&&now-state.holdStartedAt>=state.holdMs" in WORLD
+    assert "now-state.holdStartedAt>=state.holdMs" in WORLD
+    assert "state.phase='contested';state.holdStartedAt=0;state.holdRoster=''" in WORLD
     assert "turns=direct?[0,.5*sign,-.5*sign]:[1.5*sign,1*sign,2.1*sign,.5*sign" in WORLD
     assert "state.phase==='advance'||state.phase==='hold'" in WORLD
     assert ':stalls-${maxMoveStalls}:hold-roster-${state.holdRoster' in WORLD

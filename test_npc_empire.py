@@ -328,7 +328,8 @@ async def run() -> None:
         raid = pressured['interior_raids'][0]
         resolved = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'captured',
-            now=2_000_000_923 + raid['hold_seconds'])
+            now=2_000_000_923 + raid['hold_seconds'], attacker_casualties=[],
+            defender_casualties=[], guard_casualties=[])
         assert resolved['ok'] and resolved['phase_events'][0]['kind'] == 'player_business_bombed'
         assert await _scalar(path, "SELECT blocked_until FROM player_businesses WHERE biz_id='pizza'") == 2_000_001_523 + raid['hold_seconds']
         after_raid = await ne.state_for(path,101,now=2_000_000_923 + raid['hold_seconds'])

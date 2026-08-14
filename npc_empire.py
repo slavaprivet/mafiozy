@@ -23,6 +23,8 @@ TICK_SECONDS = 300
 MAX_OFFLINE_TICKS = 72
 NPC_DIPLOMACY_PEACE_STEP_SECONDS = 6 * 60 * 60
 ASSAULT_SECONDS = 20 * 60
+FIELD_ENCOUNTER_SECONDS = 5 * 60
+FIELD_HOSPITAL_CLAIM_SECONDS = 3 * 60
 COMEBACK_MIN_SECONDS = 30 * 60
 COMEBACK_MAX_SECONDS = 90 * 60
 RELATION_MIN = -100
@@ -1890,6 +1892,21 @@ async def ensure_schema(db_path: str) -> None:
             await db.execute(
                 "ALTER TABLE npc_empire_interior_raids "
                 "ADD COLUMN guard_ids_json TEXT NOT NULL DEFAULT '[]'")
+        assault_columns = {str(r[1]) for r in await (await db.execute(
+            "PRAGMA table_info(npc_empire_assaults)")).fetchall()}
+        for name, declaration in {
+            'encounter_kind': "TEXT NOT NULL DEFAULT 'hq'",
+            'defeated_at': "INTEGER NOT NULL DEFAULT 0",
+            'hospital_id': "TEXT NOT NULL DEFAULT ''",
+            'hospital_until': "INTEGER NOT NULL DEFAULT 0",
+            'anchor_r': "REAL NOT NULL DEFAULT 0",
+            'anchor_c': "REAL NOT NULL DEFAULT 0",
+            'anchor_id': "TEXT NOT NULL DEFAULT ''",
+            'anchor_at': "INTEGER NOT NULL DEFAULT 0",
+        }.items():
+            if name not in assault_columns:
+                await db.execute(
+                    f"ALTER TABLE npc_empire_assaults ADD COLUMN {name} {declaration}")
         holding_columns = {str(r[1]) for r in await (await db.execute(
             "PRAGMA table_info(npc_empire_holdings)")).fetchall()}
         for name, declaration in {'operation_type': "TEXT NOT NULL DEFAULT ''", 'area': "INTEGER NOT NULL DEFAULT 0"}.items():
@@ -2038,41 +2055,126 @@ async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
                 'family': family, 'summary': summary}
 
 
-async def hospitalize_boss(db_path: str, leader_id: str, hospital_id: str = 'hospital',
-                           now: int | None = None) -> dict:
-    """Place a defeated empire boss in authoritative treatment for 60 seconds."""
-    now = int(now or time.time())
+async def _hospitalize_boss_in_tx(db, leader_id: str, hospital_id: str,
+                                  now: int) -> dict:
+    """Apply one hospitalization inside the caller's authoritative transaction."""
     leader_id = str(leader_id or '').strip()
     hospital_id = str(hospital_id or 'hospital').strip()
     if leader_id not in PROFILE_BY_ID:
         return {'ok': False, 'error': 'unknown_leader'}
     if hospital_id not in ('hospital', 'hospital_east'):
         hospital_id = 'hospital'
-    await ensure_schema(db_path)
-    async with aiosqlite.connect(db_path) as db:
-        db.row_factory = aiosqlite.Row
-        row = await (await db.execute(
-            "SELECT hospital_until,hospital_id,status FROM npc_empires WHERE leader_id=?", (leader_id,)
-        )).fetchone()
-        if not row or str(row['status']) == 'ruined':
-            return {'ok': False, 'error': 'boss_unavailable'}
-        current_until = int(row['hospital_until'] or 0)
-        until = current_until if current_until > now else now + 60
-        chosen = str(row['hospital_id'] or hospital_id) if current_until > now else hospital_id
+    row = await (await db.execute(
+        "SELECT hospital_until,hospital_id,status FROM npc_empires WHERE leader_id=?",
+        (leader_id,))).fetchone()
+    if not row or str(row['status']) == 'ruined':
+        return {'ok': False, 'error': 'boss_unavailable'}
+    current_until = int(row['hospital_until'] or 0)
+    until = current_until if current_until > now else now + 60
+    chosen = str(row['hospital_id'] or hospital_id) if current_until > now else hospital_id
+    if current_until <= now:
         await db.execute(
             "UPDATE npc_empires SET hospital_until=?,hospital_id=?,version=version+1 WHERE leader_id=?",
             (until, chosen, leader_id),
         )
-        if current_until <= now:
-            profile = PROFILE_BY_ID[leader_id]
-            await db.execute(
-                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
-                (leader_id, 'hospitalized', chosen,
-                 f'{profile.leader_name} доставлен в больницу на 60 секунд', now),
-            )
-        await db.commit()
+        profile = PROFILE_BY_ID[leader_id]
+        await db.execute(
+            "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
+            (leader_id, 'hospitalized', chosen,
+             f'{profile.leader_name} доставлен в больницу на 60 секунд', now),
+        )
     return {'ok': True, 'leader_id': leader_id, 'hospital_id': chosen,
-            'hospital_until': until, 'duration': max(0, until - now)}
+            'hospital_until': until, 'duration': max(0, until - now),
+            'already_hospitalized': current_until > now}
+
+
+async def hospitalize_boss(db_path: str, leader_id: str,
+                           hospital_id: str = 'hospital',
+                           now: int | None = None) -> dict:
+    """Trusted internal wrapper; HTTP must use hospitalize_boss_from_proof."""
+    now = int(now or time.time())
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        result = await _hospitalize_boss_in_tx(
+            db, leader_id, hospital_id, now)
+        if result.get('ok'):
+            await db.commit()
+        else:
+            await db.rollback()
+        return result
+
+
+async def hospitalize_boss_from_proof(
+        db_path: str, telegram_id: int, token: str,
+        hospital_id: str = 'hospital', now: int | None = None) -> dict:
+    """Consume a defeated field encounter; the token, never the body, owns leader_id."""
+    now = int(now or time.time())
+    token = str(token or '').strip()
+    if not token:
+        return {'ok': False, 'error': 'invalid_proof'}
+    async with _state_prepare_lock(db_path):
+        await ensure_schema(db_path)
+        async with aiosqlite.connect(db_path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute('BEGIN IMMEDIATE')
+            proof = await (await db.execute(
+                "SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?",
+                (token, telegram_id))).fetchone()
+            if not proof:
+                await db.rollback()
+                return {'ok': False, 'error': 'invalid_proof'}
+            if (str(proof['status']) == 'resolved'
+                    and str(proof['resolution'] or '') == 'hospitalized'):
+                await db.rollback()
+                until = int(proof['hospital_until'] or 0)
+                return {
+                    'ok': True, 'duplicate': True,
+                    'leader_id': str(proof['leader_id']),
+                    'hospital_id': str(proof['hospital_id'] or 'hospital'),
+                    'hospital_until': until,
+                    'duration': max(0, until - now),
+                }
+            defeated_at = int(proof['defeated_at'] or 0)
+            valid = (
+                str(proof['encounter_kind'] or 'hq') == 'field'
+                and str(proof['status']) == 'active'
+                and int(proof['boss_hp'] or 0) <= 0
+                and defeated_at > 0
+                and now <= defeated_at + FIELD_HOSPITAL_CLAIM_SECONDS
+            )
+            if not valid:
+                await db.rollback()
+                return {'ok': False, 'error': 'invalid_proof'}
+            result = await _hospitalize_boss_in_tx(
+                db, str(proof['leader_id']), hospital_id, now)
+            if not result.get('ok'):
+                await db.execute(
+                    "UPDATE npc_empire_assaults SET status='resolved',"
+                    "resolution='boss_unavailable' WHERE token=? AND status='active'",
+                    (token,))
+                await db.commit()
+                return result
+            changed = await db.execute(
+                "UPDATE npc_empire_assaults SET status='resolved',"
+                "resolution='hospitalized',hospital_id=?,hospital_until=? "
+                "WHERE token=? AND telegram_id=? AND status='active' "
+                "AND encounter_kind='field' AND boss_hp<=0",
+                (result['hospital_id'], result['hospital_until'], token, telegram_id),
+            )
+            if int(changed.rowcount or 0) != 1:
+                await db.rollback()
+                return {'ok': False, 'error': 'invalid_proof'}
+            await db.execute(
+                "UPDATE npc_empire_assaults SET status='resolved',"
+                "resolution='boss_hospitalized_elsewhere' "
+                "WHERE leader_id=? AND encounter_kind='field' "
+                "AND status='active' AND token<>?",
+                (str(proof['leader_id']), token),
+            )
+            await db.commit()
+            return {**result, 'duplicate': False}
 
 
 def _decision_roll(leader_id: str, tick_at: int) -> random.Random:
@@ -3065,8 +3167,19 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         if str(raid['status']) != 'pending':
             await db.rollback()
             return {'ok': True, 'duplicate': True, 'resolution': str(raid['resolution'])}
+        if now >= int(raid['expires_at'] or 0):
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',"
+                "resolution='expired',resolved_at=? WHERE token=? AND status='pending'",
+                (now, token))
+            await db.commit()
+            return {'ok': False, 'error': 'raid expired'}
         force = max(0, int(raid['force'] or 0)); leader_id = str(raid['leader_id'])
         valid_attacker_slots = set(range(force))
+        defender_ids = [int(value) for value in json.loads(
+            str(raid['defender_ids_json'] or '[]'))]
+        session_guard_ids = [int(value) for value in json.loads(
+            str(raid['guard_ids_json'] or '[]'))]
         try:
             requested_attackers = {int(value) for value in (attacker_casualties or [])}
             requested_defenders = {int(value) for value in (defender_casualties or [])}
@@ -3075,6 +3188,10 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
             await db.rollback(); return {'ok': False, 'error': 'bad casualty payload'}
         if requested_attackers - valid_attacker_slots:
             await db.rollback(); return {'ok': False, 'error': 'bad attacker casualties'}
+        if requested_defenders - set(defender_ids):
+            await db.rollback(); return {'ok': False, 'error': 'bad defender casualties'}
+        if requested_guards - set(session_guard_ids):
+            await db.rollback(); return {'ok': False, 'error': 'bad guard casualties'}
         elapsed = now - int(raid['started_at'] or now)
         required = (PLAYER_INTERIOR_RAID_MIN_SECONDS if outcome == 'defended'
                     else int(raid['hold_seconds'] or PLAYER_INTERIOR_RAID_HOLD_SECONDS))
@@ -3083,6 +3200,19 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         if elapsed < required and not all_attackers_down and now < int(raid['expires_at'] or 0):
             await db.rollback()
             return {'ok': False, 'error': 'raid still active', 'retry_after': required-elapsed}
+        if (attacker_casualties is None or defender_casualties is None
+                or (session_guard_ids and guard_casualties is None)):
+            await db.rollback()
+            return {'ok': False, 'error': 'bad casualty payload'}
+        if outcome == 'defended' and requested_attackers != valid_attacker_slots:
+            await db.rollback()
+            return {'ok': False, 'error': 'impossible defended outcome'}
+        if outcome == 'captured' and (
+                requested_attackers == valid_attacker_slots
+                or requested_defenders != set(defender_ids)
+                or requested_guards != set(session_guard_ids)):
+            await db.rollback()
+            return {'ok': False, 'error': 'impossible captured outcome'}
         attacker_losses = (len(requested_attackers) if attacker_casualties is not None else
                            min(force, max(1, force // (2 if outcome == 'defended' else 4))))
         await db.execute(
@@ -3090,10 +3220,6 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
             "strength=MAX(20,strength-?) WHERE leader_id=?",
             (attacker_losses, attacker_losses * 11, leader_id))
         await _reconcile_npc_guards(db, leader_id, now)
-        defender_ids = [int(value) for value in json.loads(
-            str(raid['defender_ids_json'] or '[]'))]
-        if requested_defenders - set(defender_ids):
-            await db.rollback(); return {'ok': False, 'error': 'bad defender casualties'}
         lost_defenders = (sorted(requested_defenders) if defender_casualties is not None else
                           defender_ids[:min(len(defender_ids),
                                            max(0, force-int(raid['guard_count'] or 0)) // 2)]
@@ -3114,10 +3240,6 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 "UPDATE npc_empire_guard_assignments SET living=MAX(0,living-?) "
                 "WHERE owner_kind='player' AND owner_id=? AND holding_ref=?",
                 (defender_losses, str(telegram_id), str(raid['target_ref'])))
-        session_guard_ids = [int(value) for value in json.loads(
-            str(raid['guard_ids_json'] or '[]'))]
-        if requested_guards - set(session_guard_ids):
-            await db.rollback(); return {'ok': False, 'error': 'bad guard casualties'}
         # Legacy guard layer is empty for new sessions; preserve exact lists for
         # old pending sessions regardless of the combat outcome.
         lost_guards = (sorted(requested_guards) if guard_casualties is not None else
@@ -3753,12 +3875,24 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
         hq_r, hq_c = _hq_coords(str(row['hq_key']))
         if (player_r-hq_r)**2 + (player_c-hq_c)**2 > 36:
             await db.rollback(); return {'ok': False, 'error': 'too far'}
-        active = await (await db.execute(
-            "SELECT token FROM npc_empire_assaults WHERE telegram_id=? AND leader_id=? AND status='active' AND expires_at>?",
-            (telegram_id, leader_id, now),
-        )).fetchone()
-        if active:
-            await db.execute("UPDATE npc_empire_assaults SET status='abandoned' WHERE token=?", (active['token'],))
+        active_rows = await (await db.execute(
+            "SELECT token,encounter_kind,expires_at,defeated_at "
+            "FROM npc_empire_assaults WHERE telegram_id=? AND leader_id=? "
+            "AND status='active' ORDER BY started_at DESC",
+            (telegram_id, leader_id),
+        )).fetchall()
+        for active in active_rows:
+            kind = str(active['encounter_kind'] or 'hq')
+            defeated_at = int(active['defeated_at'] or 0)
+            field_proof_live = (kind == 'field' and defeated_at > 0
+                                and now <= defeated_at + FIELD_HOSPITAL_CLAIM_SECONDS)
+            if kind == 'field' and (int(active['expires_at'] or 0) > now
+                                    or field_proof_live):
+                await db.rollback()
+                return {'ok': False, 'error': 'field encounter active'}
+            await db.execute(
+                "UPDATE npc_empire_assaults SET status='abandoned' "
+                "WHERE token=? AND status='active'", (active['token'],))
         members = int(row['members']); strength = int(row['strength'])
         guard_count = max(4, min(14, 3 + members // 2))
         guard_max = 85 + strength // 8
@@ -3793,6 +3927,98 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
             'expires_at': now+ASSAULT_SECONDS}
 
 
+async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str,
+                                  player_r: float, player_c: float,
+                                  now: int | None = None,
+                                  server_activity: dict | None = None) -> dict:
+    """Issue the existing assault proof for a nearby, server-located street boss."""
+    now = int(now or time.time())
+    profile = PROFILE_BY_ID.get(str(leader_id or ''))
+    if not profile:
+        return {'ok': False, 'error': 'unknown leader'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        row = await (await db.execute(
+            "SELECT * FROM npc_empires WHERE leader_id=?", (leader_id,)
+        )).fetchone()
+        if (not row or str(row['status']) == 'ruined'
+                or int(row['hospital_until'] or 0) > now):
+            await db.rollback()
+            return {'ok': False, 'error': 'boss unavailable'}
+        holdings = [dict(item) for item in await (await db.execute(
+            "SELECT * FROM npc_empire_holdings WHERE leader_id=?", (leader_id,)
+        )).fetchall()]
+        activity = (dict(server_activity) if isinstance(server_activity, dict)
+                    else _visible_activity(profile, row, holdings, now))
+        hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
+        anchor_r = float(activity.get('target_r', hq_r))
+        anchor_c = float(activity.get('target_c', hq_c))
+        anchor_id = str(activity.get('target_id') or row['hq_key'] or profile.hq_key)
+        anchor_at = int(activity.get('created_at') or now)
+        if (float(player_r) - anchor_r) ** 2 + (float(player_c) - anchor_c) ** 2 > 100:
+            await db.rollback()
+            return {'ok': False, 'error': 'too far'}
+        active_rows = await (await db.execute(
+            "SELECT * FROM npc_empire_assaults WHERE telegram_id=? AND leader_id=? "
+            "AND status='active' ORDER BY started_at DESC",
+            (telegram_id, leader_id))).fetchall()
+        for active in active_rows:
+            kind = str(active['encounter_kind'] or 'hq')
+            defeated_at = int(active['defeated_at'] or 0)
+            field_proof_live = (kind == 'field' and defeated_at > 0
+                                and now <= defeated_at + FIELD_HOSPITAL_CLAIM_SECONDS)
+            if kind == 'hq' and int(active['expires_at'] or 0) > now:
+                await db.rollback()
+                return {'ok': False, 'error': 'headquarters assault active'}
+            if kind == 'field' and (int(active['expires_at'] or 0) > now
+                                    or field_proof_live):
+                await db.rollback()
+                return {
+                    'ok': True, 'duplicate': True, 'token': str(active['token']),
+                    'leader_id': leader_id, 'leader_name': profile.leader_name,
+                    'encounter_kind': 'field',
+                    'anchor': {'r': float(active['anchor_r'] or anchor_r),
+                               'c': float(active['anchor_c'] or anchor_c),
+                               'target_id': str(active['anchor_id'] or anchor_id),
+                               'created_at': int(active['anchor_at'] or anchor_at)},
+                    'boss': {'hp': int(active['boss_hp']),
+                             'max_hp': int(active['boss_max_hp']),
+                             'weapon': profile.weapon_base,
+                             'weapon_id': profile.weapon_id,
+                             'weapon_name': profile.weapon_name},
+                    'expires_at': int(active['expires_at']),
+                    'proof_ready': defeated_at > 0 and int(active['boss_hp'] or 0) <= 0,
+                }
+            await db.execute(
+                "UPDATE npc_empire_assaults SET status='abandoned' "
+                "WHERE token=? AND status='active'", (active['token'],))
+        strength = int(row['strength'] or 0)
+        boss_max = max(150, min(520, int(150 + strength * 1.55)))
+        token = secrets.token_urlsafe(18)
+        expires_at = now + FIELD_ENCOUNTER_SECONDS
+        await db.execute(
+            "INSERT INTO npc_empire_assaults"
+            "(token,telegram_id,leader_id,guard_hp_json,boss_hp,boss_max_hp,"
+            "status,started_at,expires_at,encounter_kind,anchor_r,anchor_c,"
+            "anchor_id,anchor_at) "
+            "VALUES(?,?,?,'[]',?,?, 'active',?,?,'field',?,?,?,?)",
+            (token, telegram_id, leader_id, boss_max, boss_max, now, expires_at,
+             anchor_r, anchor_c, anchor_id, anchor_at))
+        await db.commit()
+    return {
+        'ok': True, 'token': token, 'leader_id': leader_id,
+        'leader_name': profile.leader_name, 'encounter_kind': 'field',
+        'anchor': {'r': anchor_r, 'c': anchor_c, 'target_id': anchor_id,
+                   'created_at': anchor_at},
+        'boss': {'hp': boss_max, 'max_hp': boss_max,
+                 'weapon': profile.weapon_base, 'weapon_id': profile.weapon_id,
+                 'weapon_name': profile.weapon_name},
+        'expires_at': expires_at,
+    }
+
+
 async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
                       target_id: int | None, damage: int, now: float | None = None) -> dict:
     now_f = float(now or time.time()); now_i = int(now_f)
@@ -3807,6 +4033,7 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
             await db.rollback(); return {'ok': False, 'error': 'rate limit'}
         guards = [max(0, int(x)) for x in json.loads(row['guard_hp_json'])]
         boss_hp = int(row['boss_hp'])
+        previous_boss_hp = boss_hp
         if target == 'guard':
             try: idx = int(target_id)
             except Exception: idx = -1
@@ -3819,13 +4046,21 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
             boss_hp = max(0, boss_hp - damage)
         else:
             await db.rollback(); return {'ok': False, 'error': 'bad target'}
+        encounter_kind = str(row['encounter_kind'] or 'hq')
+        defeated_at = int(row['defeated_at'] or 0)
+        if (encounter_kind == 'field' and target == 'boss'
+                and previous_boss_hp > 0 and boss_hp <= 0):
+            defeated_at = now_i
         await db.execute(
-            "UPDATE npc_empire_assaults SET guard_hp_json=?,boss_hp=?,last_hit_at=? WHERE token=?",
-            (json.dumps(guards), boss_hp, now_f, token),
+            "UPDATE npc_empire_assaults SET guard_hp_json=?,boss_hp=?,"
+            "last_hit_at=?,defeated_at=? WHERE token=?",
+            (json.dumps(guards), boss_hp, now_f, defeated_at, token),
         )
         await db.commit()
     return {'ok': True, 'guards': guards, 'boss_hp': boss_hp,
-            'boss_max_hp': int(row['boss_max_hp']), 'victory': boss_hp <= 0}
+            'boss_max_hp': int(row['boss_max_hp']), 'victory': boss_hp <= 0,
+            'encounter_kind': encounter_kind,
+            'proof_ready': encounter_kind == 'field' and boss_hp <= 0}
 
 
 async def resolve_assault(db_path: str, telegram_id: int, token: str,
@@ -3853,7 +4088,9 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
         assault = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token,telegram_id))).fetchone()
-        if not assault or assault['status'] != 'active' or int(assault['boss_hp']) > 0:
+        if (not assault or assault['status'] != 'active'
+                or str(assault['encounter_kind'] or 'hq') != 'hq'
+                or int(assault['boss_hp']) > 0):
             await db.rollback(); return {'ok': False, 'error': 'not won'}
         leader_id = str(assault['leader_id']); profile = PROFILE_BY_ID[leader_id]
         if choice == 'annex' and not operation_type:

@@ -150,7 +150,8 @@ async def run():
         assert raid_state['player_war_events'][0]['kind'] == 'player_business_interior_raid'
         resolved = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'captured',
-            NOW + 10 + raid['hold_seconds'])
+            NOW + 10 + raid['hold_seconds'], attacker_casualties=[],
+            defender_casualties=[], guard_casualties=[])
         assert resolved.get('ok'), resolved
         event = resolved['phase_events'][0]
         assert event['kind'] == 'player_business_bombed'
@@ -166,7 +167,8 @@ async def run():
         assert followup_raid['objective'] == 'followup-capture'
         resolved_capture = await ne.resolve_interior_raid(
             path, 101, followup_raid['token'], followup_raid['apt_key'], 'captured',
-            followup + followup_raid['hold_seconds'])
+            followup + followup_raid['hold_seconds'], attacker_casualties=[],
+            defender_casualties=[], guard_casualties=[])
         event = resolved_capture['phase_events'][0]
         assert event['kind'] == 'player_business_captured'
         assert event['operation_type'] in ne.BUILDING_OPERATIONS

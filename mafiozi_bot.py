@@ -23916,6 +23916,22 @@ async def _coop_fetch_char_stats(uid_str: str) -> dict:
     }
 
 
+def _npc_empire_live_field_position(world, uid: int,
+                                    now: float | None = None) -> tuple[float, float] | None:
+    """Return fresh exterior row/column; field proof never trusts HTTP coords."""
+    if world is None:
+        return None
+    live = world.players.get(str(uid))
+    now = float(now or time.time())
+    if (not live or bool(live.get('_in_interior'))
+            or now - float(live.get('last_seen') or 0) > 10.0):
+        return None
+    try:
+        return float(live['y']), float(live['x'])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 async def _coop_http_app():
     try:
         from aiohttp import web
@@ -25662,8 +25678,10 @@ async def _coop_http_app():
     async def h_npc_empire_hospitalize(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
-        result=await npc_empire.hospitalize_boss(
-            DB_PATH,str(body.get('leader_id') or '')[:32],str(body.get('hospital_id') or 'hospital')[:24])
+        # The proof row owns leader_id. Never accept a boss identity from HTTP.
+        result=await npc_empire.hospitalize_boss_from_proof(
+            DB_PATH,uid,str(body.get('token') or '')[:64],
+            str(body.get('hospital_id') or 'hospital')[:24])
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     async def h_npc_empire_street_recruit(req):
@@ -25676,13 +25694,29 @@ async def _coop_http_app():
     async def h_npc_empire_assault_prepare(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
-        live=_WORLD.players.get(str(uid)) if _WORLD else None
-        # Live world coordinates are authoritative. Explicit coordinates are a
-        # local-preview fallback only when the player is not connected.
-        r=float(live.get('y',0) if live else body.get('r',0) or 0)
-        c=float(live.get('x',0) if live else body.get('c',0) or 0)
-        result=await npc_empire.prepare_assault(
-            DB_PATH,uid,str(body.get('leader_id') or '')[:32],r,c)
+        mode=str(body.get('mode') or 'hq')[:12]
+        if mode == 'field':
+            position=_npc_empire_live_field_position(_WORLD,uid)
+            if position is None:
+                return await _cors(web.json_response(
+                    {'ok':False,'error':'player not in world'},status=409))
+            r,c=position
+            leader_id=str(body.get('leader_id') or '')[:32]
+            published=await npc_empire.state_for(DB_PATH,uid)
+            empire=next((item for item in published.get('empires',[])
+                         if str(item.get('leader_id') or '')==leader_id),None)
+            result=await npc_empire.prepare_field_encounter(
+                DB_PATH,uid,leader_id,r,c,
+                server_activity=(empire or {}).get('activity'))
+        elif mode == 'hq':
+            live=_WORLD.players.get(str(uid)) if _WORLD else None
+            # Preserve the existing explicit-coordinate preview fallback for HQ.
+            r=float(live.get('y',0) if live else body.get('r',0) or 0)
+            c=float(live.get('x',0) if live else body.get('c',0) or 0)
+            result=await npc_empire.prepare_assault(
+                DB_PATH,uid,str(body.get('leader_id') or '')[:32],r,c)
+        else:
+            result={'ok':False,'error':'bad mode'}
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     async def h_npc_empire_assault_hit(req):

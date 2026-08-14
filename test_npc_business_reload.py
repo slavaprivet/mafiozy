@@ -170,7 +170,8 @@ async def run():
         raid = first['interior_raids'][0]
         first_resolved = await ne_reloaded.resolve_interior_raid(
             path, PLAYER, raid['token'], raid['apt_key'], 'captured',
-            now=NOW + 20 + raid['hold_seconds'])
+            now=NOW + 20 + raid['hold_seconds'], attacker_casualties=[],
+            defender_casualties=[], guard_casualties=[])
         assert first_resolved['phase_events'][0]['kind'] == 'player_business_bombed'
         duplicate = await ne_reloaded.state_for(path, PLAYER, NOW + 20)
         assert duplicate['player_war_events'] == []
@@ -227,7 +228,8 @@ async def run():
                              if item['leader_id'] == 'marco')
         takeover_resolved = await ne_reloaded.resolve_interior_raid(
             path, PLAYER, followup_raid['token'], followup_raid['apt_key'], 'captured',
-            now=followup + followup_raid['hold_seconds'])
+            now=followup + followup_raid['hold_seconds'], attacker_casualties=[],
+            defender_casualties=[], guard_casualties=[])
         assert takeover_resolved['phase_events'], takeover_resolved
         capture_event = next((event for event in takeover_resolved['phase_events']
                               if event['kind'] == 'player_business_captured'), None)

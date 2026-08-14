@@ -1,10 +1,9 @@
-"""Fifteen-minute deterministic stress for player-business raids and reloads."""
+"""Twelve-minute physical player-business raid and reload stress."""
 
 import asyncio
 import importlib
 import os
 import tempfile
-from pathlib import Path
 
 import aiosqlite
 
@@ -16,61 +15,53 @@ NOW = 2_300_000_000
 PLAYER = 404
 TARGET = '0,3'
 SNAPSHOT_STEP = 5
-STRESS_SECONDS = 15 * 60
+STRESS_SECONDS = 12 * 60
+FIRST_DUE = 30
+FIRST_RESOLVE = 50
+FOLLOWUP_DUE = FIRST_RESOLVE + ne.PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
+FOLLOWUP_RESOLVE = FOLLOWUP_DUE + ne.PLAYER_INTERIOR_RAID_HOLD_SECONDS
 
 
-def apply_snapshot(fixture, phase, target, now_ms):
-    """Deterministic mirror of the preview target+phase identity rules."""
-    fixture_id = f'{phase}:{target}'
-    if fixture and fixture['fixture_id'] == fixture_id:
-        fixture['reapply_count'] += 1
-        return fixture
-    continuing = bool(fixture and fixture['target'] == target)
-    if continuing:
-        fixture['fixture_id'] = fixture_id
-        fixture['phase'] = phase
-        fixture['guard_cap'] = 3 if phase == 'approach' else 0
-        if not fixture['guard_cap']:
-            fixture['guards'].clear()
-        fixture['reapply_count'] = 0
-        return fixture
+def raid_signature(raid: dict) -> tuple:
+    """Everything a reconnect must reconstruct for one paid physical roster."""
+    attackers = tuple(
+        (int(actor['slot']), int(actor['hp']), float(actor['accuracy']),
+         int(actor['weapon_budget']), int(actor['tier']), int(actor['quality']))
+        for actor in raid['attacker_roster']
+    )
+    defenders = tuple(sorted(int(actor['member_id'])
+                             for actor in raid['defender_roster']))
+    guards = tuple(sorted(int(actor['member_id'])
+                          for actor in raid['guard_roster']))
+    return (
+        raid['token'], raid['apt_key'], raid['target_id'], raid['leader_id'],
+        int(raid['force']), int(raid['quality']), int(raid['tier']),
+        int(raid['started_at']), int(raid['hold_seconds']), int(raid['expires_at']),
+        attackers, defenders, guards,
+    )
+
+
+def exact_capture_casualties(raid: dict) -> dict:
+    """Reachable capture: one attacker loss, all concrete defenders down."""
+    assert int(raid['force']) >= 2
     return {
-        'fixture_id': fixture_id, 'phase': phase, 'target': target,
-        'started_at': now_ms, 'start_distance': 20.04,
-        'boss_distance': 20.04, 'crew_distances': [42.0 + slot for slot in range(8)],
-        'guard_cap': 3, 'guards': {0: True, 1: True, 2: True},
-        'reapply_count': 0,
+        'attacker_casualties': [0],
+        'defender_casualties': [int(actor['member_id'])
+                                 for actor in raid['defender_roster']],
+        'guard_casualties': [int(actor['member_id'])
+                             for actor in raid['guard_roster']],
     }
 
 
-def replace_and_reconcile(fixture):
-    """Replace all physical arrays, then bind fresh objects to checkpoints."""
-    boss = {'distance': 36.83, 'position': (40.0, 40.0), 'activity': None}
-    crew = []
-    guards = []
-    boss['activity'] = fixture['fixture_id']
-    checkpoint = fixture['boss_checkpoint']
-    if boss['distance'] > checkpoint['distance'] + .1:
-        boss['distance'] = checkpoint['distance']
-        boss['position'] = checkpoint['position']
-    for slot, saved in fixture['crew_checkpoints'].items():
-        crew.append({'slot': slot, 'distance': saved})
-    for slot in range(fixture['guard_cap']):
-        if slot not in fixture['dead_guard_slots']:
-            guards.append({'slot': slot, 'alive': True})
-    return boss, crew, guards
+async def scalar(path: str, sql: str, args=()):
+    async with aiosqlite.connect(path) as db:
+        value = await (await db.execute(sql, args)).fetchone()
+        return value[0] if value else None
 
 
 async def run():
-    root = Path(__file__).resolve().parent
-    world = (root / 'world.html').read_text(encoding='utf-8')
-    assert "continuingTarget=previousFixture?.key===meta.key" in world
-    assert "raidStartedAt=continuingTarget?" in world
-    assert "if(!continuingTarget&&boss&&stage)" in world
-    assert "guard_count:defended?3:0" in world
-    assert "phase:raidPhase,stance:'assault'" in world
-
-    handle, path = tempfile.mkstemp(prefix='npc_business_raid_stress_', suffix='.db')
+    global ne
+    handle, path = tempfile.mkstemp(prefix='npc_business_physical_stress_', suffix='.db')
     os.close(handle)
     try:
         await make_db(path)
@@ -82,137 +73,213 @@ async def run():
                 (NOW + 100000,),
             )
             await db.execute(
-                "UPDATE npc_empires SET members=20,last_tick=?,next_action_at=? WHERE leader_id='marco'",
-                (NOW, NOW + 100000),
+                "UPDATE npc_empires SET members=20,treasury=50000,last_tick=?,next_action_at=? "
+                "WHERE leader_id='marco'", (NOW, NOW + 100000),
             )
             await db.execute(
                 "INSERT INTO apartments_owned"
-                "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
-                "VALUES(?,?,?,?, 'business',?,?,?,?)",
+                "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,"
+                "income_per_minute,last_income_at) VALUES(?,?,?,?, 'business',?,?,?,?)",
                 (PLAYER, TARGET, 12000, NOW - 50, original_operation, area,
                  ne.building_operation_income(original_operation, area), NOW - 50),
             )
             await db.execute(
                 "INSERT OR REPLACE INTO npc_empire_relations"
-                "(leader_id,telegram_id,score,pact,last_action_at) VALUES('marco',?,-100,'war',?)",
-                (PLAYER, NOW),
+                "(leader_id,telegram_id,score,pact,last_action_at) "
+                "VALUES('marco',?,-100,'war',?)", (PLAYER, NOW),
             )
             await db.execute(
                 "INSERT OR REPLACE INTO npc_empire_player_wars"
                 "(leader_id,telegram_id,next_attack_at,attacks,last_business_id,last_attack_at) "
-                "VALUES('marco',?,?,0,'',0)", (PLAYER, NOW + 300),
+                "VALUES('marco',?,?,0,'',0)", (PLAYER, NOW + FIRST_DUE),
             )
             await db.commit()
 
-        fixture = None
-        identity = None
-        elapsed_samples = []
-        previous_boss = float('inf')
-        previous_crew = [float('inf')] * 8
-        killed_slots = set()
-        first_close_count = capture_count = 0
-        reapply_total = 0
+        raid1 = raid2 = None
+        signature1 = signature2 = None
+        roster_treasury = None
+        interior_events = bombed_events = captured_events = 0
+        snapshot_count = 0
 
-        # 181 authoritative snapshots, including both endpoints. Client motion
-        # happens between polls; reapply must never undo it.
         for seconds in range(0, STRESS_SECONDS + 1, SNAPSHOT_STEP):
             snapshot = await ne.state_for(path, PLAYER, NOW + seconds)
+            snapshot_count += 1
             events = snapshot['player_war_events']
-            first_close_count += sum(e['kind'] == 'player_business_bombed' for e in events)
-            capture_count += sum(e['kind'] == 'player_business_captured' for e in events)
-            phase = ('approach' if seconds < 300 else
-                     'first-close' if seconds < STRESS_SECONDS else 'followup-capture')
-            if fixture and fixture['fixture_id'] == f'{phase}:{TARGET}':
-                reapply_total += 1
-            fixture = apply_snapshot(fixture, phase, TARGET, seconds * 1000)
-            identity = identity or fixture
-            assert fixture is identity
+            interior_events += sum(event['kind'] == 'player_business_interior_raid'
+                                   for event in events)
 
-            # Deterministic collision-safe progress. The important invariant is
-            # that snapshot reapply cannot increase either distance.
-            fixture['boss_distance'] = max(.8, fixture['boss_distance'] - .16)
-            fixture['crew_distances'] = [
-                max(1.8 + slot * .18, distance - .28)
-                for slot, distance in enumerate(fixture['crew_distances'])
-            ]
-            assert fixture['boss_distance'] <= previous_boss
-            assert all(current <= previous for current, previous in zip(
-                fixture['crew_distances'], previous_crew))
-            previous_boss = fixture['boss_distance']
-            previous_crew = list(fixture['crew_distances'])
+            if seconds < FIRST_DUE:
+                assert snapshot['interior_raids'] == []
+                assert events == []
+                route = empire(snapshot, 'marco')['activity']
+                assert route['kind'] == 'player_business_raid'
+                assert route['target_id'] == TARGET
 
-            if seconds in (100, 180, 260):
-                slot = (100, 180, 260).index(seconds)
-                fixture['guards'][slot] = False
-                killed_slots.add(slot)
-            assert len(fixture['guards']) <= fixture['guard_cap']
-            assert len(set(fixture['guards'])) == len(fixture['guards'])
-            assert all(0 <= slot < fixture['guard_cap'] for slot in fixture['guards'])
-            if phase == 'approach':
-                assert all(not fixture['guards'].get(slot, False) for slot in killed_slots)
+            elif seconds < FIRST_RESOLVE:
+                assert len(snapshot['interior_raids']) == 1
+                current = snapshot['interior_raids'][0]
+                if raid1 is None:
+                    raid1, signature1 = current, raid_signature(current)
+                    assert seconds == FIRST_DUE
+                    assert [event['kind'] for event in events] == [
+                        'player_business_interior_raid']
+                    assert current['objective'] == 'first-close'
+                    assert current['started_at'] == NOW + FIRST_DUE
+                    roster_treasury = await scalar(
+                        path, "SELECT treasury FROM npc_empires WHERE leader_id='marco'")
+                    replay = await ne.state_for(path, PLAYER, NOW + seconds)
+                    assert replay['player_war_events'] == []
+                    assert raid_signature(replay['interior_raids'][0]) == signature1
+                else:
+                    assert events == []
+                    assert raid_signature(current) == signature1
+                    assert await scalar(
+                        path, "SELECT treasury FROM npc_empires WHERE leader_id='marco'") \
+                        == roster_treasury
+                assert await scalar(
+                    path, "SELECT COUNT(*) FROM npc_empire_interior_raids "
+                          "WHERE telegram_id=? AND leader_id='marco' AND status='pending'",
+                    (PLAYER,)) == 1
+                assert await scalar(
+                    path, "SELECT next_attack_at FROM npc_empire_player_wars "
+                          "WHERE telegram_id=? AND leader_id='marco'", (PLAYER,)) \
+                    == raid1['expires_at'] + 1
+
+                if seconds == 40:
+                    ne = importlib.reload(ne)
+                    reloaded = await ne.state_for(path, PLAYER, NOW + seconds)
+                    assert reloaded['player_war_events'] == []
+                    assert raid_signature(reloaded['interior_raids'][0]) == signature1
+
+            elif seconds == FIRST_RESOLVE:
+                assert events == []
+                assert len(snapshot['interior_raids']) == 1
+                assert raid_signature(snapshot['interior_raids'][0]) == signature1
+
+            elif seconds < FOLLOWUP_DUE:
+                assert snapshot['interior_raids'] == []
+                assert events == []
+                assert await row(
+                    path, "SELECT operation_type,last_income_at FROM apartments_owned "
+                          "WHERE telegram_id=? AND apt_key=?", (PLAYER, TARGET)) == {
+                              'operation_type': original_operation,
+                              'last_income_at': NOW + FOLLOWUP_DUE,
+                          }
+                closure = await row(
+                    path, "SELECT closed_until FROM npc_empire_building_closures "
+                          "WHERE holding_id=?", (TARGET,))
+                assert closure == {'closed_until': NOW + FOLLOWUP_DUE}
+                if seconds == 300:
+                    ne = importlib.reload(ne)
+                    replay = await ne.state_for(path, PLAYER, NOW + seconds)
+                    assert replay['player_war_events'] == []
+                    assert replay['interior_raids'] == []
+
+            elif seconds < FOLLOWUP_RESOLVE:
+                assert len(snapshot['interior_raids']) == 1
+                current = snapshot['interior_raids'][0]
+                if raid2 is None:
+                    raid2, signature2 = current, raid_signature(current)
+                    assert seconds == FOLLOWUP_DUE
+                    assert [event['kind'] for event in events] == [
+                        'player_business_interior_raid']
+                    assert current['objective'] == 'followup-capture'
+                    assert current['started_at'] == NOW + FOLLOWUP_DUE
+                    assert current['token'] != raid1['token']
+                    replay = await ne.state_for(path, PLAYER, NOW + seconds)
+                    assert replay['player_war_events'] == []
+                    assert raid_signature(replay['interior_raids'][0]) == signature2
+                else:
+                    assert events == []
+                    assert raid_signature(current) == signature2
+                if seconds == FOLLOWUP_DUE + 5:
+                    ne = importlib.reload(ne)
+                    reloaded = await ne.state_for(path, PLAYER, NOW + seconds)
+                    assert reloaded['player_war_events'] == []
+                    assert raid_signature(reloaded['interior_raids'][0]) == signature2
+
+            elif seconds == FOLLOWUP_RESOLVE:
+                assert events == []
+                assert len(snapshot['interior_raids']) == 1
+                assert raid_signature(snapshot['interior_raids'][0]) == signature2
+
             else:
-                assert fixture['guard_cap'] == 0 and fixture['guards'] == {}
+                assert snapshot['interior_raids'] == []
+                assert events == []
+                assert await row(
+                    path, "SELECT 1 present FROM apartments_owned "
+                          "WHERE telegram_id=? AND apt_key=?", (PLAYER, TARGET)) is None
 
-            elapsed_samples.append(seconds * 1000 - fixture['started_at'])
-            fixture['boss_checkpoint'] = {
-                'distance': fixture['boss_distance'],
-                'position': (fixture['boss_distance'], 3.0),
-            }
-            fixture['crew_checkpoints'] = {
-                slot: distance for slot, distance in enumerate(fixture['crew_distances'])
-            }
-            fixture['dead_guard_slots'] = set(killed_slots)
-            if seconds in (200, 400, 700):
-                saved_boss = fixture['boss_distance']
-                saved_crew = list(fixture['crew_distances'])
-                boss, replacement_crew, replacement_guards = replace_and_reconcile(fixture)
-                assert boss['activity'] == fixture['fixture_id']
-                assert boss['distance'] == saved_boss
-                assert [member['distance'] for member in replacement_crew] == saved_crew
-                assert {guard['slot'] for guard in replacement_guards}.isdisjoint(killed_slots)
-                assert len(replacement_guards) <= fixture['guard_cap']
-            if seconds == 300:
-                assert [e['kind'] for e in events] == ['player_business_bombed']
-                closure = await row(path,
-                    "SELECT closed_until FROM npc_empire_building_closures WHERE holding_id=?",
-                    (TARGET,))
-                assert closure['closed_until'] == NOW + 900
-                owned = await row(path,
-                    "SELECT operation_type,last_income_at FROM apartments_owned "
-                    "WHERE telegram_id=? AND apt_key=?", (PLAYER, TARGET))
-                assert owned == {'operation_type': original_operation, 'last_income_at': NOW + 900}
-            if seconds == 600:
-                globals()['ne'] = importlib.reload(ne)
-                closed = await ne.state_for(path, PLAYER, NOW + seconds)
-                assert empire(closed, 'marco')['activity']['phase'] == 'capture'
-                assert await row(path,
-                    "SELECT operation_type FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
-                    (PLAYER, TARGET)) == {'operation_type': original_operation}
+            if seconds == FIRST_RESOLVE - 5:
+                early = await ne.resolve_interior_raid(
+                    path, PLAYER, raid1['token'], raid1['apt_key'], 'captured',
+                    now=NOW + FIRST_RESOLVE - 1, **exact_capture_casualties(raid1))
+                assert early == {'ok': False, 'error': 'raid still active',
+                                 'retry_after': 1}
 
-        assert all(later > earlier for earlier, later in zip(
-            elapsed_samples, elapsed_samples[1:]))
-        assert elapsed_samples[-1] == STRESS_SECONDS * 1000
-        assert len(elapsed_samples) == 181 and reapply_total == 178
-        assert first_close_count == 1 and capture_count == 1
+            if seconds == FIRST_RESOLVE:
+                result = await ne.resolve_interior_raid(
+                    path, PLAYER, raid1['token'], raid1['apt_key'], 'captured',
+                    now=NOW + seconds, **exact_capture_casualties(raid1))
+                assert result['ok'] and result['resolution'] == 'captured'
+                assert [event['kind'] for event in result['phase_events']] == [
+                    'player_business_bombed']
+                bombed_events += 1
+                duplicate = await ne.resolve_interior_raid(
+                    path, PLAYER, raid1['token'], raid1['apt_key'], 'defended',
+                    now=NOW + seconds, attacker_casualties=[],
+                    defender_casualties=[], guard_casualties=[])
+                assert duplicate == {'ok': True, 'duplicate': True,
+                                     'resolution': 'captured'}
 
-        # Reconnect after the follow-up reconstructs one authoritative NPC
-        # holding with a rebranded operation and no stale CLOSED/player owner.
-        globals()['ne'] = importlib.reload(ne)
-        final = await ne.state_for(path, PLAYER, NOW + STRESS_SECONDS + 1)
+            if seconds == FOLLOWUP_RESOLVE - 5:
+                early = await ne.resolve_interior_raid(
+                    path, PLAYER, raid2['token'], raid2['apt_key'], 'captured',
+                    now=NOW + FOLLOWUP_RESOLVE - 1, **exact_capture_casualties(raid2))
+                assert early == {'ok': False, 'error': 'raid still active',
+                                 'retry_after': 1}
+
+            if seconds == FOLLOWUP_RESOLVE:
+                result = await ne.resolve_interior_raid(
+                    path, PLAYER, raid2['token'], raid2['apt_key'], 'captured',
+                    now=NOW + seconds, **exact_capture_casualties(raid2))
+                assert result['ok'] and result['resolution'] == 'captured'
+                assert [event['kind'] for event in result['phase_events']] == [
+                    'player_business_captured']
+                captured_events += 1
+                duplicate = await ne.resolve_interior_raid(
+                    path, PLAYER, raid2['token'], raid2['apt_key'], 'captured',
+                    now=NOW + seconds, **exact_capture_casualties(raid2))
+                assert duplicate == {'ok': True, 'duplicate': True,
+                                     'resolution': 'captured'}
+
+        assert snapshot_count == STRESS_SECONDS // SNAPSHOT_STEP + 1 == 145
+        assert (interior_events, bombed_events, captured_events) == (2, 1, 1)
+        assert raid1['token'] != raid2['token']
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_interior_raids "
+                  "WHERE telegram_id=? AND status='pending'", (PLAYER,)) == 0
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_interior_raids "
+                  "WHERE telegram_id=? AND resolution='expired'", (PLAYER,)) == 0
+
+        ne = importlib.reload(ne)
+        final = await ne.state_for(path, PLAYER, NOW + STRESS_SECONDS)
         captured = holding(final, 'marco', TARGET)
         assert captured['operation_type'] in ne.BUILDING_OPERATIONS
         assert captured['operation_type'] != original_operation
         assert captured['income'] == ne.building_operation_income(
             captured['operation_type'], area)
-        assert captured['building_status'] == 'open' and captured['closed_until'] == 0
-        assert await row(path,
-            "SELECT 1 present FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
-            (PLAYER, TARGET)) is None
-        assert await row(path,
-            "SELECT 1 present FROM npc_empire_building_closures WHERE holding_id=?",
-            (TARGET,)) is None
+        assert captured['building_status'] == 'open'
+        assert captured['closed_until'] == 0
+        assert await row(
+            path, "SELECT 1 present FROM npc_empire_building_closures "
+                  "WHERE holding_id=?", (TARGET,)) is None
+        assert 1 <= captured['guard_count'] <= 3
+        assert captured['guard_count'] <= empire(final, 'marco')['members'] - 2
 
-        print('npc business raid stress: 15m, 181 snapshots, no reset/revive, close/capture/reload OK')
+        print('npc business physical raid stress: 12m, 145 snapshots, two persisted '
+              'sessions, explicit close/capture and reload idempotency OK')
     finally:
         try:
             os.unlink(path)
