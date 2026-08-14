@@ -1798,6 +1798,7 @@ async def ensure_schema(db_path: str) -> None:
             started_at INTEGER NOT NULL,
             expires_at INTEGER NOT NULL,
             last_hit_at REAL NOT NULL DEFAULT 0,
+            last_shot_seq INTEGER NOT NULL DEFAULT 0,
             resolution TEXT DEFAULT NULL
         );
         CREATE TABLE IF NOT EXISTS npc_empire_field_encounters (
@@ -1817,10 +1818,23 @@ async def ensure_schema(db_path: str) -> None:
             hospital_id TEXT NOT NULL DEFAULT '',
             hospital_until INTEGER NOT NULL DEFAULT 0,
             updated_at INTEGER NOT NULL DEFAULT 0,
+            shot_contract INTEGER NOT NULL DEFAULT 1,
             version INTEGER NOT NULL DEFAULT 1
         );
         CREATE INDEX IF NOT EXISTS ix_npc_field_encounter_expiry
             ON npc_empire_field_encounters(status,expires_at);
+        CREATE TABLE IF NOT EXISTS npc_empire_field_hits (
+            token TEXT NOT NULL,
+            shot_seq INTEGER NOT NULL,
+            encounter_id TEXT NOT NULL,
+            weapon TEXT NOT NULL,
+            damage INTEGER NOT NULL,
+            result_hp INTEGER NOT NULL,
+            created_at REAL NOT NULL,
+            PRIMARY KEY (token,shot_seq)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_field_hits_encounter
+            ON npc_empire_field_hits(encounter_id);
         CREATE TABLE IF NOT EXISTS npc_empire_player_wars (
             leader_id TEXT NOT NULL,
             telegram_id INTEGER NOT NULL,
@@ -1926,10 +1940,17 @@ async def ensure_schema(db_path: str) -> None:
             'anchor_id': "TEXT NOT NULL DEFAULT ''",
             'anchor_at': "INTEGER NOT NULL DEFAULT 0",
             'field_encounter_id': "TEXT NOT NULL DEFAULT ''",
+            'last_shot_seq': "INTEGER NOT NULL DEFAULT 0",
         }.items():
             if name not in assault_columns:
                 await db.execute(
                     f"ALTER TABLE npc_empire_assaults ADD COLUMN {name} {declaration}")
+        field_columns = {str(r[1]) for r in await (await db.execute(
+            "PRAGMA table_info(npc_empire_field_encounters)")).fetchall()}
+        if 'shot_contract' not in field_columns:
+            await db.execute(
+                "ALTER TABLE npc_empire_field_encounters "
+                "ADD COLUMN shot_contract INTEGER NOT NULL DEFAULT 1")
         await db.execute(
             "CREATE INDEX IF NOT EXISTS ix_npc_assault_field_encounter "
             "ON npc_empire_assaults(field_encounter_id,status)")
@@ -4108,6 +4129,8 @@ async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str
                     'leader_id': leader_id, 'leader_name': profile.leader_name,
                     'encounter_kind': 'field',
                     'encounter_id': str(encounter['encounter_id']), 'shared': True,
+                    'shot_contract': int(encounter['shot_contract'] or 1),
+                    'next_shot_seq': int(active['last_shot_seq'] or 0) + 1,
                     'anchor': {'r': float(encounter['anchor_r']),
                                'c': float(encounter['anchor_c']),
                                'target_id': str(encounter['anchor_id']),
@@ -4146,8 +4169,8 @@ async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str
             await db.execute(
                 "INSERT INTO npc_empire_field_encounters"
                 "(encounter_id,leader_id,boss_hp,boss_max_hp,status,anchor_r,anchor_c,"
-                "anchor_id,anchor_at,started_at,expires_at,updated_at) "
-                "VALUES(?,?,?,?, 'active',?,?,?,?,?,?,?)",
+                "anchor_id,anchor_at,started_at,expires_at,updated_at,shot_contract) "
+                "VALUES(?,?,?,?, 'active',?,?,?,?,?,?,?,2)",
                 (encounter_id, leader_id, boss_max, boss_max, anchor_r, anchor_c,
                  anchor_id, anchor_at, now, expires_at, now))
             encounter = await _field_encounter(db, encounter_id)
@@ -4169,6 +4192,8 @@ async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str
         'ok': True, 'token': token, 'leader_id': leader_id,
         'leader_name': profile.leader_name, 'encounter_kind': 'field',
         'encounter_id': encounter_id, 'shared': True,
+        'shot_contract': int(encounter['shot_contract'] or 1),
+        'next_shot_seq': 1,
         'anchor': {'r': float(encounter['anchor_r']), 'c': float(encounter['anchor_c']),
                    'target_id': str(encounter['anchor_id']),
                    'created_at': int(encounter['anchor_at'])},
@@ -4202,6 +4227,9 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
                     or int(encounter['expires_at']) <= now_i
                     or str(encounter['leader_id']) != str(row['leader_id'])):
                 await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
+            if int(encounter['shot_contract'] or 1) >= 2:
+                await db.rollback()
+                return {'ok': False, 'error': 'authorized shot required'}
             boss_hp = int(encounter['boss_hp']); previous_boss_hp = boss_hp
         if target == 'guard':
             try: idx = int(target_id)
@@ -4243,6 +4271,127 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
             'boss_max_hp': int(row['boss_max_hp']), 'victory': boss_hp <= 0,
             'encounter_kind': encounter_kind,
             'proof_ready': encounter_kind == 'field' and boss_hp <= 0}
+
+
+async def field_hit_context(db_path: str, telegram_id: int, token: str,
+                            shot_seq: int, now: float | None = None) -> dict:
+    """Read a v2 participant proof before consuming the shared WorldSim gun gate."""
+    now_f = float(now or time.time()); now_i = int(now_f)
+    try:
+        shot_seq = int(shot_seq)
+    except (TypeError, ValueError):
+        return {'ok': False, 'error': 'bad shot sequence'}
+    if shot_seq < 1:
+        return {'ok': False, 'error': 'bad shot sequence'}
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        row = await (await db.execute(
+            "SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?",
+            (token, telegram_id))).fetchone()
+        if (not row or str(row['encounter_kind'] or 'hq') != 'field'
+                or str(row['status']) != 'active' or int(row['expires_at']) <= now_i):
+            return {'ok': False, 'error': 'invalid assault'}
+        encounter = await _field_encounter(db, str(row['field_encounter_id'] or ''))
+        if (not encounter or int(encounter['shot_contract'] or 1) < 2
+                or str(encounter['leader_id']) != str(row['leader_id'])):
+            return {'ok': False, 'error': 'authorized shot unavailable'}
+        prior = await (await db.execute(
+            "SELECT weapon,damage FROM npc_empire_field_hits "
+            "WHERE token=? AND shot_seq=?", (token, shot_seq))).fetchone()
+        if prior:
+            return {
+                'ok': True, 'duplicate': True, 'shot_seq': shot_seq,
+                'weapon': str(prior['weapon']), 'damage': int(prior['damage']),
+                'boss_hp': int(encounter['boss_hp']),
+                'boss_max_hp': int(encounter['boss_max_hp']),
+                'proof_ready': str(encounter['status']) == 'defeated',
+                'encounter_kind': 'field', 'shot_contract': 2,
+            }
+        if (str(encounter['status']) != 'active'
+                or int(encounter['expires_at']) <= now_i):
+            return {'ok': False, 'error': 'invalid assault'}
+        if shot_seq != int(row['last_shot_seq'] or 0) + 1:
+            return {'ok': False, 'error': 'bad shot sequence'}
+        return {
+            'ok': True, 'duplicate': False, 'shot_seq': shot_seq,
+            'encounter_id': str(encounter['encounter_id']),
+            'anchor_r': float(encounter['anchor_r']),
+            'anchor_c': float(encounter['anchor_c']),
+            'boss_hp': int(encounter['boss_hp']),
+            'boss_max_hp': int(encounter['boss_max_hp']),
+            'encounter_kind': 'field', 'shot_contract': 2,
+        }
+
+
+async def assault_field_hit_authorized(
+        db_path: str, telegram_id: int, token: str, shot_seq: int,
+        weapon: str, damage: int, now: float | None = None) -> dict:
+    """Apply one server-derived weapon hit; never expose this as client damage."""
+    now_f = float(now or time.time()); now_i = int(now_f)
+    shot_seq = int(shot_seq); damage = max(1, int(damage))
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        row = await (await db.execute(
+            "SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?",
+            (token, telegram_id))).fetchone()
+        if (not row or str(row['encounter_kind'] or 'hq') != 'field'
+                or str(row['status']) != 'active' or int(row['expires_at']) <= now_i):
+            await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
+        encounter_id = str(row['field_encounter_id'] or '')
+        encounter = await _field_encounter(db, encounter_id)
+        if (not encounter or int(encounter['shot_contract'] or 1) < 2
+                or str(encounter['leader_id']) != str(row['leader_id'])):
+            await db.rollback(); return {'ok': False, 'error': 'authorized shot unavailable'}
+        prior = await (await db.execute(
+            "SELECT weapon,damage FROM npc_empire_field_hits "
+            "WHERE token=? AND shot_seq=?", (token, shot_seq))).fetchone()
+        if prior:
+            await db.rollback()
+            return {
+                'ok': True, 'duplicate': True, 'shot_seq': shot_seq,
+                'weapon': str(prior['weapon']), 'damage': int(prior['damage']),
+                'boss_hp': int(encounter['boss_hp']),
+                'boss_max_hp': int(encounter['boss_max_hp']),
+                'victory': int(encounter['boss_hp']) <= 0,
+                'encounter_kind': 'field',
+                'proof_ready': str(encounter['status']) == 'defeated',
+                'shot_contract': 2,
+            }
+        if (str(encounter['status']) != 'active'
+                or int(encounter['expires_at']) <= now_i):
+            await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
+        if shot_seq != int(row['last_shot_seq'] or 0) + 1:
+            await db.rollback(); return {'ok': False, 'error': 'bad shot sequence'}
+        old_hp = int(encounter['boss_hp']); boss_hp = max(0, old_hp - damage)
+        lethal = old_hp > 0 and boss_hp <= 0
+        changed = await db.execute(
+            "UPDATE npc_empire_field_encounters SET boss_hp=?,"
+            "status=CASE WHEN ? THEN 'defeated' ELSE status END,"
+            "defeated_at=CASE WHEN ? THEN ? ELSE defeated_at END,"
+            "defeated_by=CASE WHEN ? THEN ? ELSE defeated_by END,"
+            "updated_at=?,version=version+1 WHERE encounter_id=? AND status='active'",
+            (boss_hp, int(lethal), int(lethal), now_i, int(lethal), telegram_id,
+             now_i, encounter_id))
+        if int(changed.rowcount or 0) != 1:
+            await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
+        await db.execute(
+            "INSERT INTO npc_empire_field_hits"
+            "(token,shot_seq,encounter_id,weapon,damage,result_hp,created_at) "
+            "VALUES(?,?,?,?,?,?,?)",
+            (token, shot_seq, encounter_id, str(weapon), damage, boss_hp, now_f))
+        await db.execute(
+            "UPDATE npc_empire_assaults SET last_shot_seq=?,last_hit_at=? WHERE token=?",
+            (shot_seq, now_f, token))
+        await _sync_field_assault_mirrors(db, encounter_id)
+        await db.commit()
+    return {
+        'ok': True, 'duplicate': False, 'shot_seq': shot_seq,
+        'weapon': str(weapon), 'damage': damage, 'boss_hp': boss_hp,
+        'boss_max_hp': int(encounter['boss_max_hp']), 'victory': boss_hp <= 0,
+        'encounter_kind': 'field', 'proof_ready': boss_hp <= 0,
+        'shot_contract': 2,
+    }
 
 
 async def resolve_assault(db_path: str, telegram_id: int, token: str,

@@ -73,8 +73,10 @@ async def run() -> None:
         start_hp = first['boss']['hp']
 
         hit_a, hit_b = await asyncio.gather(
-            ne.assault_hit(path, 701, first['token'], 'boss', None, 30, NOW + 2.00),
-            ne.assault_hit(path, 702, second['token'], 'boss', None, 25, NOW + 2.00),
+            ne.assault_field_hit_authorized(
+                path, 701, first['token'], 1, 'pistol', 30, NOW + 2.00),
+            ne.assault_field_hit_authorized(
+                path, 702, second['token'], 1, 'pistol', 25, NOW + 2.00),
         )
         assert hit_a['ok'] and hit_b['ok']
         canonical = await _field(path, encounter_id)
@@ -93,18 +95,22 @@ async def run() -> None:
         # Separate participant tokens avoid per-token rate limits while the
         # canonical BEGIN IMMEDIATE transition remains exactly-once at zero.
         participants = [first, second, mid]
+        sequences = [2, 2, 1]
         hit_at = NOW + 4.0
         while int((await _field(path, encounter_id))['boss_hp']) > 105:
             replies = await asyncio.gather(*(
-                ne.assault_hit(path, uid, item['token'], 'boss', None, 35,
-                               hit_at + index * .001)
+                ne.assault_field_hit_authorized(
+                    path, uid, item['token'], sequences[index], 'pistol', 35,
+                    hit_at + index * .001)
                 for index, (uid, item) in enumerate(zip((701, 702, 703), participants))
             ))
             assert all(reply['ok'] for reply in replies)
+            sequences = [value + 1 for value in sequences]
             hit_at += .12
         lethal = await asyncio.gather(*(
-            ne.assault_hit(path, uid, item['token'], 'boss', None, 35,
-                           hit_at + index * .001)
+            ne.assault_field_hit_authorized(
+                path, uid, item['token'], sequences[index], 'pistol', 35,
+                hit_at + index * .001)
             for index, (uid, item) in enumerate(zip((701, 702, 703), participants))
         ))
         assert sum(bool(reply.get('proof_ready')) for reply in lethal) >= 1

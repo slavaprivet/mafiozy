@@ -93,12 +93,13 @@ async def run() -> None:
 
         hit_at = NOW + 2.0
         boss_hp = prepared['boss']['hp']
+        shot_seq = 1
         while boss_hp > 0:
-            hit = await ne.assault_hit(
-                path, 101, token, 'boss', None, 35, now=hit_at)
+            hit = await ne.assault_field_hit_authorized(
+                path, 101, token, shot_seq, 'pistol', 35, now=hit_at)
             assert hit['ok']
             boss_hp = hit['boss_hp']
-            hit_at += .12
+            hit_at += .12; shot_seq += 1
         assert hit['proof_ready'] and hit['encounter_kind'] == 'field'
         field_blocks_hq = await ne.prepare_assault(
             path, 101, 'leila', leila['hq_r'], leila['hq_c'], now=NOW + 9)

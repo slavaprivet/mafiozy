@@ -142,6 +142,14 @@ reconnect and duplicate resolve requests must be idempotent.
   rows; polling must never repair, expire or otherwise write encounter state.
   Legacy independent field rows migrate idempotently using their minimum HP,
   so deployment cannot heal a boss already damaged by another client.
+- New field generations use shot contract 2: the client submits an owned
+  weapon, physical hit coordinates and a monotonically increasing participant
+  `shot_seq`, never damage. The HTTP bridge derives damage through the shared
+  `WorldSim` ownership/cadence/critical/falloff gate after fresh exterior,
+  range, activity-anchor and world-LOS checks. `(token, shot_seq)` is a durable
+  idempotency key; transport retry reuses the exact sequence and cannot consume
+  cadence or damage twice. Existing contract-1 field generations and every HQ
+  assault retain their old body until they naturally drain during deployment.
 - A returning family starts small and has a finite recovery stipend. It does
   not receive endless free fighters or cash.
 - The fighter cap is 20. Paid recruitment changes treasury, members and

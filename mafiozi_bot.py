@@ -23923,13 +23923,34 @@ def _npc_empire_live_field_position(world, uid: int,
         return None
     live = world.players.get(str(uid))
     now = float(now or time.time())
-    if (not live or bool(live.get('_in_interior'))
+    if (not live or bool(live.get('dead')) or bool(live.get('_in_interior'))
             or now - float(live.get('last_seen') or 0) > 10.0):
         return None
     try:
         return float(live['y']), float(live['x'])
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def _npc_empire_field_shot_geometry(world, uid: int, context: dict,
+                                    weapon: str, hit_r: float, hit_c: float,
+                                    now: float | None = None) -> dict:
+    """Validate live shooter geometry without consuming weapon cadence."""
+    position = _npc_empire_live_field_position(world, uid, now)
+    live = world.players.get(str(uid)) if world and position is not None else None
+    if not live:
+        return {'ok': False, 'error': 'player not in world'}
+    player_r, player_c = position
+    profile = WorldSim._weapon_profile(weapon)
+    distance = math.hypot(player_r - hit_r, player_c - hit_c)
+    if distance > float(profile['range']):
+        return {'ok': False, 'error': 'out of range'}
+    if math.hypot(float(context['anchor_r']) - hit_r,
+                  float(context['anchor_c']) - hit_c) > 10.0:
+        return {'ok': False, 'error': 'bad hit position'}
+    if not _world_los(player_c, player_r, hit_c, hit_r):
+        return {'ok': False, 'error': 'blocked shot'}
+    return {'ok': True, 'live': live, 'distance': distance, 'profile': profile}
 
 
 async def _coop_http_app():
@@ -25722,9 +25743,64 @@ async def _coop_http_app():
     async def h_npc_empire_assault_hit(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
-        result=await npc_empire.assault_hit(
-            DB_PATH,uid,str(body.get('token') or '')[:64],str(body.get('target') or '')[:12],
-            body.get('target_id'),int(body.get('damage') or 1))
+        token=str(body.get('token') or '')[:64]
+        if 'shot_seq' not in body:
+            # Rolling compatibility: HQ and already-active v1 field sessions
+            # drain through their original client-damage contract.
+            result=await npc_empire.assault_hit(
+                DB_PATH,uid,token,str(body.get('target') or '')[:12],
+                body.get('target_id'),int(body.get('damage') or 1))
+            return await _cors(web.json_response(
+                result,status=200 if result.get('ok') else 409))
+        try:
+            shot_seq=int(body.get('shot_seq'))
+            hit_r=float(body.get('hit_r'));hit_c=float(body.get('hit_c'))
+        except (TypeError,ValueError):
+            return await _cors(web.json_response(
+                {'ok':False,'error':'bad shot'},status=400))
+        weapon=str(body.get('weapon') or '')[:32]
+        raw_key=WorldSim.WEAPON_ALIASES.get(weapon,weapon)
+        if (str(body.get('target') or '') != 'boss' or shot_seq < 1
+                or not math.isfinite(hit_r) or not math.isfinite(hit_c)
+                or raw_key not in WorldSim.WEAPON_PROFILE):
+            return await _cors(web.json_response(
+                {'ok':False,'error':'bad shot'},status=400))
+        context=await npc_empire.field_hit_context(DB_PATH,uid,token,shot_seq)
+        if not context.get('ok') or context.get('duplicate'):
+            return await _cors(web.json_response(
+                context,status=200 if context.get('ok') else 409))
+        geometry=_npc_empire_field_shot_geometry(
+            _WORLD,uid,context,raw_key,hit_r,hit_c)
+        live=geometry.get('live')
+        if not geometry.get('ok') or not live:
+            return await _cors(web.json_response(
+                {'ok':False,'error':geometry.get('error') or 'bad shot'},status=409))
+        lock=live.get('_npc_empire_field_hit_lock')
+        if not isinstance(lock,asyncio.Lock):
+            lock=asyncio.Lock();live['_npc_empire_field_hit_lock']=lock
+        async with lock:
+            # Re-read under the per-player gate: a concurrent retry of the same
+            # sequence must become an idempotent reply before consuming cadence.
+            context=await npc_empire.field_hit_context(DB_PATH,uid,token,shot_seq)
+            if not context.get('ok') or context.get('duplicate'):
+                result=context
+            else:
+                geometry=_npc_empire_field_shot_geometry(
+                    _WORLD,uid,context,raw_key,hit_r,hit_c)
+                if not geometry.get('ok'):
+                    result={'ok':False,'error':geometry.get('error') or 'bad shot'}
+                else:
+                    live=geometry['live'];distance=float(geometry['distance'])
+                    shot_profile=_WORLD._authorize_weapon_shot(live,raw_key)
+                    if shot_profile is None:
+                        result={'ok':False,'error':'weapon shot rejected'}
+                    else:
+                        damage=_WORLD._weapon_damage(
+                            raw_key,distance,shot_profile)
+                        result=await npc_empire.assault_field_hit_authorized(
+                            DB_PATH,uid,token,shot_seq,raw_key,damage)
+                        if result.get('ok'):
+                            result['critical']=bool(shot_profile.get('_crit'))
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     async def h_npc_empire_assault_resolve(req):

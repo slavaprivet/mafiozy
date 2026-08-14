@@ -15,6 +15,15 @@
   eight converted-business layouts. Every actor must enter the objective zone,
   no recovery may start before `900 ms`, and every movement step remains at or
   below authored speed times delta.
+- Cache the authored cover once per `operation_type + room size + collision
+  version`; a flow build must reuse that array for every grid sample. Keep only
+  the two most recent target-cell fields on the interior, so boundary
+  oscillation becomes two builds followed by hits rather than rebuilding each
+  frame. Operation changes invalidate both cover and flow by identity.
+- One flow build owns exactly one blocked `Uint8Array` and two `Int16Array`s;
+  cache hits allocate none. Increment build/hit counters on the interior and
+  expose them through the existing raid telemetry together with the maximum
+  actor recovery stage; do not add another NPC scan or DOM update path.
 
 ## Bounded interior reinforcement admission (2026-08-14, v409)
 

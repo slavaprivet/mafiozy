@@ -83,10 +83,13 @@ def main():
     assert 'family:String(n.raidFamilyName||\'\')' in world
 
     # HUD nodes are created once and text changes only when its stable
-    # signature changes; long venue/owner strings are clipped by CSS.
+    # signature changes; the safe-area-aware 16 px viewport gutter and bounded
+    # two-line venue/order rows keep long owner strings readable without growth.
     assert "hud.innerHTML='<b></b><strong></strong><div></div><small></small>'" in world
-    assert 'max-width:calc(100vw - 24px)' in world
+    assert 'top:calc(env(safe-area-inset-top,0px) + 8px)' in world
+    assert 'width:min(470px,calc(100vw - 16px))' in world
     assert 'text-overflow:ellipsis' in world
+    assert "-webkit-line-clamp:2;white-space:normal" in world
     assert 'if(hud.dataset.sig!==sig)' in world
     assert "hud.style.display='block'" in world
     assert 'priority declutter' in memory
