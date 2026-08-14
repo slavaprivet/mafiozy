@@ -24,6 +24,11 @@
   cache hits allocate none. Increment build/hit counters on the interior and
   expose them through the existing raid telemetry together with the maximum
   actor recovery stage; do not add another NPC scan or DOM update path.
+- Three moving target cells can otherwise thrash the two-entry cache. Admit at
+  most one new field per `160 ms`; a cache miss inside that gate must return no
+  vector so the actor uses the ordinary seven bounded probes, never a field for
+  the wrong target. Record gated misses and last/maximum build duration only at
+  build time, then project those counters in the existing raid telemetry.
 
 ## Bounded interior reinforcement admission (2026-08-14, v409)
 

@@ -167,7 +167,7 @@ async def main():
     assert "state.phase='contested';state.holdStartedAt=0;state.holdRoster=''" in WORLD
     assert "turns=direct?[0,.5*sign,-.5*sign]:[1.5*sign,1*sign,2.1*sign,.5*sign" in WORLD
     assert "state.phase==='advance'||state.phase==='hold'" in WORLD
-    assert ':stalls-${maxMoveStalls}:recoveries-${maxRecoveries}:flow-${+bi._businessRaidRecoveryFlowBuilds||0}/${+bi._businessRaidRecoveryFlowHits||0}:hold-roster-${state.holdRoster' in WORLD
+    assert ':stalls-${maxMoveStalls}:recoveries-${maxRecoveries}:flow-${+bi._businessRaidRecoveryFlowBuilds||0}/${+bi._businessRaidRecoveryFlowHits||0}/${+bi._businessRaidRecoveryFlowGated||0}:flowms-${(+bi._businessRaidRecoveryBuildLastMs||0).toFixed(2)}/${(+bi._businessRaidRecoveryBuildMaxMs||0).toFixed(2)}:hold-roster-${state.holdRoster' in WORLD
     client_loss_flow()
     await server_two_phase_flow()
     print('business interior loss: cover navigation, resettable exact hold, casualties, close/capture OK')

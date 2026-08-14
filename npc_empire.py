@@ -215,6 +215,23 @@ def boss_doctrine(leader_id: str) -> dict:
     return {**doctrine, 'orders': list(doctrine['orders']),
             'strategy_bias': dict(doctrine['strategy_bias']),
             'mindset': dict(BOSS_MINDSETS[str(leader_id)])}
+
+
+def _boss_player_raid_policy(profile: EmpireProfile) -> dict:
+    """Translate an authored doctrine into bounded, measurable target weights."""
+    mindset = BOSS_MINDSETS[profile.leader_id]
+    patience = float(mindset['patience'])
+    adaptability = float(mindset['adaptability'])
+    courage = float(mindset['courage'])
+    return {
+        'id': str(BOSS_DOCTRINES[profile.leader_id]['id']),
+        'value_weight': round(.75 + profile.commerce / 200 + patience * .25, 3),
+        'distance_weight': round(.8 + (1 - adaptability) * 1.2, 3),
+        'defense_weight': round((25 + (1 - courage) * 30) / 35, 3),
+        'risk_tolerance': round(.70 + courage * .70, 3),
+        'stickiness': max(15, min(90, round(
+            25 + patience * 75 - adaptability * 35))),
+    }
 BUSINESS_INCOME = {
     'coffee': 175, 'carwash': 260, 'barbershop': 350, 'pizza': 525,
     'garage': 775, 'bar': 1200, 'club': 1900, 'warehouse': 2850,
@@ -553,31 +570,48 @@ async def _npc_attack_allocation(db, leader_id: str) -> dict | None:
 
 def score_player_business_target(target: dict, *, distance: float, guards: int,
                                  force: int, quality: int, relation: int,
-                                 aggression: int) -> dict:
+                                 aggression: int, raid_policy: dict | None = None) -> dict:
     """Estimate raid value and losses without inventing either side's roster."""
     force = max(0, int(force)); guards = max(0, int(guards))
     quality = max(0, min(100, int(quality)))
     hostility = max(0, -clamp_relation(relation))
     aggression = max(0, min(100, int(aggression)))
+    policy = raid_policy or {'id': 'default', 'value_weight': 1.0,
+                             'distance_weight': 1.0, 'defense_weight': 1.0,
+                             'risk_tolerance': 1.0, 'stickiness': 70}
+    value_weight = max(.5, min(1.75, float(policy.get('value_weight') or 1)))
+    distance_weight = max(.5, min(2.0, float(policy.get('distance_weight') or 1)))
+    defense_weight = max(.5, min(1.75, float(policy.get('defense_weight') or 1)))
+    risk_tolerance = max(.6, min(1.5, float(policy.get('risk_tolerance') or 1)))
     unit_power = 80 + quality
     attack_power = force * unit_power
     defense_power = guards * 115
     expected_losses = (0 if not guards else
                        min(force, (defense_power + unit_power - 1) // unit_power))
     loss_budget = max(1, int(force * (
-        .30 + aggression / 250 + hostility / 400))) if force else 0
-    power_tolerance = 100 + aggression // 2 + hostility // 3
+        .30 + aggression / 250 + hostility / 400) * risk_tolerance)) if force else 0
+    power_tolerance = int((100 + aggression // 2 + hostility // 3) * risk_tolerance)
     feasible = (force >= 2 and expected_losses <= loss_budget
                 and defense_power * 100 <= attack_power * power_tolerance)
     income = max(0, int(target.get('income') or 0))
     income_value = min(600, int(income ** .5 * 8))
-    score = (income_value - int(max(0.0, float(distance)) * 1.5)
-             - guards * 35 - expected_losses * 55
+    value_score = round(income_value * value_weight)
+    distance_cost = round(max(0.0, float(distance)) * 1.5 * distance_weight)
+    defense_cost = round((guards * 35 + expected_losses * 55) * defense_weight)
+    score = (value_score - distance_cost - defense_cost
              + hostility // 4 + aggression // 5)
+    target_reason = ('open-defense' if guards == 0 else
+                     'profit-over-risk' if value_score >= distance_cost + defense_cost else
+                     'short-route' if distance_cost <= defense_cost else
+                     'acceptable-losses')
     return {'score': score, 'feasible': feasible,
             'expected_losses': expected_losses, 'loss_budget': loss_budget,
             'attack_power': attack_power, 'defense_power': defense_power,
-            'distance': round(max(0.0, float(distance)), 2), 'guards': guards}
+            'distance': round(max(0.0, float(distance)), 2), 'guards': guards,
+            'target_reason': target_reason,
+            'metrics': {'value': value_score, 'distance_cost': distance_cost,
+                        'defense_cost': defense_cost, 'risk_tolerance': risk_tolerance},
+            'policy_id': str(policy.get('id') or 'default')}
 
 
 async def _select_player_business_target_smart(
@@ -587,6 +621,7 @@ async def _select_player_business_target_smart(
     if not targets:
         return None
     profile = PROFILE_BY_ID.get(str(leader_id))
+    policy = _boss_player_raid_policy(profile) if profile else None
     allocation = await _npc_attack_allocation(db, leader_id)
     if not profile or not allocation or int(allocation['count']) < 2:
         return None
@@ -615,7 +650,7 @@ async def _select_player_business_target_smart(
             target, distance=distance,
             guards=max(0, int(target.get('guard_count') or 0)),
             force=int(allocation['count']), quality=int(allocation['quality']),
-            relation=relation, aggression=profile.aggression)
+            relation=relation, aggression=profile.aggression, raid_policy=policy)
         ranked.append(({**target, '_raid': metrics}, metrics))
     feasible = [(target, metrics) for target, metrics in ranked if metrics['feasible']]
     if not feasible:
@@ -630,7 +665,7 @@ async def _select_player_business_target_smart(
     # riskier or markedly worse than a newly available target.
     if int(attacks or 0) % 2 == 1 and previous:
         previous_target, previous_metrics = previous
-        if int(previous_metrics['score']) >= int(best['_raid']['score']) - 70:
+        if int(previous_metrics['score']) >= int(best['_raid']['score']) - int(policy['stickiness']):
             return previous_target
     return best
 
@@ -877,6 +912,8 @@ def _player_war_activity(profile: EmpireProfile, war: dict,
     target_ref = str(target.get('ref') or '') if target else ''
     objective = _player_business_raid_objective(
         attacks, str(war.get('last_business_id') or ''), target_ref, target_id)
+    policy = _boss_player_raid_policy(profile)
+    raid_metrics = dict(target.get('_raid') or {}) if target else {}
     return {
         'kind': 'player_business_raid', 'intent': 'retaliate',
         'target_id': target_id, 'target_kind': target_kind,
@@ -888,6 +925,9 @@ def _player_war_activity(profile: EmpireProfile, war: dict,
                             3 + profile.aggression // 10 + attacks)),
         'created_at': int(war.get('last_attack_at') or now),
         'next_attack_at': int(war.get('next_attack_at') or now),
+        'target_reason': str(raid_metrics.get('target_reason') or 'no-feasible-target'),
+        'raid_metrics': dict(raid_metrics.get('metrics') or {}),
+        'raid_policy': policy,
         'ui_label': 'ИДУТ ОТЖИМАТЬ ТВОЙ БИЗНЕС',
     }
 
@@ -3050,6 +3090,9 @@ async def _create_interior_raid(db, telegram_id: int, leader_id: str,
         'defender_count': len(defender_ids),
         'guard_count': min(guard_count, PLAYER_INTERIOR_RAID_MAX_DEFENDERS),
         'started_at': now, 'hold_seconds': PLAYER_INTERIOR_RAID_HOLD_SECONDS,
+        'target_reason': str((target.get('_raid') or {}).get('target_reason') or ''),
+        'raid_metrics': dict((target.get('_raid') or {}).get('metrics') or {}),
+        'raid_policy': _boss_player_raid_policy(profile),
         'expires_at': now + PLAYER_INTERIOR_RAID_EXPIRES_SECONDS,
     }
 
@@ -3611,6 +3654,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     # A boss at war with this player physically travels to the selected asset.
     # The same deterministic target drives the server's two-phase damage/capture
     # resolution, so the visible order cannot point at an unrelated building.
+    pending_raid_metrics: dict[str, dict] = {}
     for empire in result:
         war = war_rows.get(str(empire['leader_id']))
         if not war or int(empire.get('hospital_until') or 0) > now:
@@ -3623,8 +3667,27 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             # The server postponed this assault as tactically irrational; do
             # not make the client show a contradictory march to a fake target.
             continue
-        activity = _player_war_activity(
-            PROFILE_BY_ID[str(empire['leader_id'])], war, target, now)
+        profile = PROFILE_BY_ID[str(empire['leader_id'])]
+        if pending and target:
+            origins = [_hq_coords(profile.hq_key)]
+            for item in holdings.get(str(empire['leader_id']), []):
+                if str(item.get('kind') or '') == 'business':
+                    origins.append(BUSINESS_COORDS.get(
+                        str(item.get('holding_id') or ''), origins[0]))
+                elif str(item.get('kind') or '') in {'building', 'hq'}:
+                    origins.append(_hq_coords(str(item.get('holding_id') or '')))
+            point = _player_business_target_point(target)
+            distance = min(((point[0]-origin[0]) ** 2 +
+                            (point[1]-origin[1]) ** 2) ** .5 for origin in origins)
+            relation = int((relations.get(str(empire['leader_id'])) or {}).get('score') or 0)
+            metrics = score_player_business_target(
+                target, distance=distance, guards=int(pending.get('guard_count') or 0),
+                force=int(pending.get('force') or 0), quality=int(pending.get('quality') or 0),
+                relation=relation, aggression=profile.aggression,
+                raid_policy=_boss_player_raid_policy(profile))
+            target = {**target, '_raid': metrics}
+            pending_raid_metrics[str(pending.get('token') or '')] = metrics
+        activity = _player_war_activity(profile, war, target, now)
         if pending:
             # The marker follows the immutable pending session, never a fresh
             # score after guards or income change during reconnect.
@@ -3687,6 +3750,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     interior_raids = []
     for raid in raid_rows:
         profile = PROFILE_BY_ID.get(str(raid['leader_id']))
+        raid_metrics = pending_raid_metrics.get(str(raid['token'])) or {}
         raid_war = war_rows.get(str(raid['leader_id'])) or {}
         objective = _player_business_raid_objective(
             int(raid['attack_no'] or 0), str(raid_war.get('last_business_id') or ''),
@@ -3738,6 +3802,9 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'started_at': int(raid['started_at']),
             'hold_seconds': int(raid['hold_seconds']),
             'objective': objective,
+            'target_reason': str(raid_metrics.get('target_reason') or 'persisted-target'),
+            'raid_metrics': dict(raid_metrics.get('metrics') or {}),
+            'raid_policy': (_boss_player_raid_policy(profile) if profile else {}),
             'expires_at': int(raid['expires_at']),
         })
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],

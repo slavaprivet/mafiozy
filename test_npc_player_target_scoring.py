@@ -127,11 +127,13 @@ async def run() -> None:
             assert remote['_raid']['distance'] < close['_raid']['distance']
             assert remote['_raid']['score'] > close_score
 
-            # First follow-up stays on its previous viable target while it is
-            # within the bounded score tolerance.
+            # Leila's doctrine-specific stickiness is lower than this new
+            # logistics advantage, so the follow-up rationally switches.
             followup = await ne._select_player_business_target_smart(
                 db, 101, 'leila', targets, 1, 'building:0,3')
-            assert followup['ref'] == 'building:0,3', followup
+            assert followup['ref'] == 'building:1,17', followup
+            assert ne._boss_player_raid_policy(
+                ne.PROFILE_BY_ID['leila'])['stickiness'] == 60
 
         # Concrete guards make that old venue irrational; follow-up switches to
         # the still-reasonable alternative instead of blindly repeating it.

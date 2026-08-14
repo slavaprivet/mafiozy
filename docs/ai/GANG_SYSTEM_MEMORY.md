@@ -10,6 +10,14 @@ source before editing and update this document whenever a contract changes.
 
 ## Player-business raid objective
 
+- Player-business target selection is doctrine-aware on the server. Existing
+  profile commerce plus the doctrine mindset produce bounded value, distance,
+  defence, risk and follow-up-stickiness weights; they never invent fighters or
+  bypass the paid roster/feasibility gate.
+- A pending target remains immutable, while activity and interior snapshots
+  expose the policy id, target reason and value/distance/defence metrics that
+  actually scored it. Target switching still resets an odd attack to
+  `first-close`; doctrine does not alter authoritative resolve or ownership.
 - Interior admission is roster-backed and breach-gated. During `approach` the
   defence may already be staged, but attackers remain at zero until the exact
   session token breaches. Thereafter admit at most one existing roster row per
