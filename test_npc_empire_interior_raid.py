@@ -98,6 +98,7 @@ async def run() -> None:
             'target_r','target_c','business_label','leader_name','gang_name',
             'quality','tier','expires_at','hold_seconds'))
         assert raid['hold_seconds'] == 20
+        assert raid['objective'] == 'first-close'
         assert [slot['slot'] for slot in raid['attacker_roster']] == list(range(raid['force']))
         assert raid['guard_roster'] == []
         assert {row['member_id'] for row in raid['defender_roster']} == {2, 3, 4}
@@ -141,6 +142,7 @@ async def run() -> None:
                 (now+1000,)); await db.commit()
         state2 = await ne.state_for(path, 101, now=now+1000)
         raid2 = state2['interior_raids'][0]
+        assert raid2['objective'] == 'first-close'
         captured = await ne.resolve_interior_raid(
             path, 101, raid2['token'], raid2['apt_key'], 'captured',
             attacker_casualties=[0], defender_casualties=[3],
@@ -168,6 +170,7 @@ async def run() -> None:
                 (now+2000,)); await db.commit()
         state3 = await ne.state_for(path, 101, now=now+2000)
         raid3 = state3['interior_raids'][0]
+        assert raid3['objective'] == 'followup-capture'
         takeover = await ne.resolve_interior_raid(
             path, 101, raid3['token'], raid3['apt_key'], 'captured',
             now=now+2000+raid3['hold_seconds'])

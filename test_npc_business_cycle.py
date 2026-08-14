@@ -41,6 +41,10 @@ async def make_db(path):
 
 async def run():
     assert len(ne.BUILDING_OPERATIONS) == 8
+    assert ne._player_business_raid_objective(
+        1, 'building:0,3', 'building:0,4', '0,4') == 'first-close'
+    assert ne._player_business_raid_objective(
+        1, 'building:0,4', 'building:0,4', '0,4') == 'followup-capture'
     generated = {ne.choose_building_operation(ne.PROFILE_BY_ID['leila'], '0,3', nonce)
                  for nonce in range(256)}
     assert generated == set(ne.BUILDING_OPERATIONS)
@@ -142,6 +146,7 @@ async def run():
 
         raid_state = await ne.state_for(path, 101, NOW + 10)
         raid = raid_state['interior_raids'][0]
+        assert raid['objective'] == 'first-close'
         assert raid_state['player_war_events'][0]['kind'] == 'player_business_interior_raid'
         resolved = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'captured',
@@ -158,6 +163,7 @@ async def run():
         followup = NOW + 10 + raid['hold_seconds'] + ne.PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
         captured_state = await ne.state_for(path, 101, followup)
         followup_raid = captured_state['interior_raids'][0]
+        assert followup_raid['objective'] == 'followup-capture'
         resolved_capture = await ne.resolve_interior_raid(
             path, 101, followup_raid['token'], followup_raid['apt_key'], 'captured',
             followup + followup_raid['hold_seconds'])

@@ -8,7 +8,8 @@ from pathlib import Path
 import npc_empire as ne
 
 
-WORLD = (Path(__file__).resolve().parent / "world.html").read_text(encoding="utf-8")
+ROOT = Path(__file__).resolve().parent
+WORLD = (ROOT / "world.html").read_text(encoding="utf-8")
 
 
 def _extract(name: str) -> str:
@@ -23,7 +24,11 @@ def _extract(name: str) -> str:
 
 def _node_json(source: str):
     result = subprocess.run(
-        ["node", "-e", source], capture_output=True, text=True, check=True
+        ["node", "-e", source], capture_output=True, text=True, check=False,
+        encoding="utf-8", cwd=ROOT,
+    )
+    assert result.returncode == 0, (
+        f"node runtime failed:\n{result.stderr}\n{result.stdout}"
     )
     return json.loads(result.stdout)
 
@@ -41,10 +46,10 @@ const out={
  sniper:_empireChoosePlayerOrder(doctrines.mobile,{...base,weaponBand:'long',distance:11}),
  broken:_empireChoosePlayerOrder(doctrines.fortress,{...base,spread:8,power:.9}),
  wounded:_empireChoosePlayerOrder(doctrines.mobile,{...base,bossHealth:.08,power:.5}),
- finisher:_empireChoosePlayerOrder(doctrines.duelist,{...base,playerHealth:.2,power:2.8})
- ,learned:_empireChoosePlayerOrder(doctrines.duelist,{...base,lesson:{incoming:80,shots:8,hits:2,casualties:2,failureStreak:3,lastFailedOrder:'press'}})
- ,patient:_empireChoosePlayerOrder({id:'neutral',orders:['hold','regroup','flank','focus','press','withdraw'],retreat_hp:.2},{...base,mindset:{patience:.98,adaptability:.2,courage:.15}})
- ,brave:_empireChoosePlayerOrder({id:'neutral',orders:['hold','regroup','flank','focus','press','withdraw'],retreat_hp:.2},{...base,mindset:{patience:.15,adaptability:.2,courage:.98}})
+ finisher:_empireChoosePlayerOrder(doctrines.duelist,{...base,playerHealth:.2,power:2.8}),
+ learned:_empireChoosePlayerOrder(doctrines.duelist,{...base,lesson:{incoming:80,shots:8,hits:2,casualties:2,failureStreak:3,lastFailedOrder:'press'}}),
+ patient:_empireChoosePlayerOrder({id:'neutral',orders:['hold','regroup','flank','focus','press','withdraw'],retreat_hp:.2},{...base,mindset:{patience:.98,adaptability:.2,courage:.15}}),
+ brave:_empireChoosePlayerOrder({id:'neutral',orders:['hold','regroup','flank','focus','press','withdraw'],retreat_hp:.2},{...base,mindset:{patience:.15,adaptability:.2,courage:.98}})
 };
 console.log(JSON.stringify(out));
 """
@@ -60,6 +65,8 @@ console.log(JSON.stringify(out));
     assert all(decisions[key]["reason"] != "doctrine"
                for key in ("sniper", "broken", "wounded", "finisher", "learned"))
 
+    # Keep presentation markers as real UTF-8 strings from world.html. The
+    # actual stale baseline marker was the removed `МЫШЛЕНИЕ ·` UI label.
     for marker in (
         "_empireChoosePlayerOrder", "weaponBand", "formation_broken",
         "counter_melee", "break_range", "avoid_heavy",
@@ -69,12 +76,41 @@ console.log(JSON.stringify(out));
         "_empireRecordAttack", "_empireEvaluatePreviousOrder",
         "under_fire", "poor_accuracy", "change_failed_plan",
         "NPC_EMPIRE_MINDSETS", "_empireMindsetOf",
-        "empireAssaultMindset", "МЫШЛЕНИЕ ·",
+        "empireAssaultMindset", "ХАРАКТЕР ·", "ТЕРПЕНИЕ",
     ):
-        assert marker in WORLD
+        assert marker in WORLD, marker
 
     print("boss intelligence pass 1: threat scoring and signature tactics OK")
     print("boss intelligence pass 2: bounded combat learning and plan switching OK")
+
+    tables = WORLD[
+        WORLD.index("const NPC_EMPIRE_DOCTRINES="):
+        WORLD.index("function _empireDoctrineOf")
+    ]
+    matrix_source = chooser + tables + r"""
+const baseFacts={bossAlive:true,bossHealth:.76,power:1.08,spread:2.3,playerHealth:.71,weaponBand:'medium',distance:6};
+const matrix=Object.entries(NPC_EMPIRE_DOCTRINES).map(([leader,doctrine])=>{
+  const mindset=NPC_EMPIRE_MINDSETS[doctrine.id];
+  const initial=_empireChoosePlayerOrder(doctrine,{...baseFacts,mindset});
+  const switched=_empireChoosePlayerOrder(doctrine,{...baseFacts,mindset,lesson:{failureStreak:4,lastFailedOrder:initial.type}});
+  return {leader,id:doctrine.id,orders:doctrine.orders,mindset,initial,switched};
+});
+console.log(JSON.stringify(matrix));
+"""
+    client_matrix = _node_json(matrix_source)
+    assert len(client_matrix) == 19
+    assert len({row["leader"] for row in client_matrix}) == 19
+    assert len({row["id"] for row in client_matrix}) == 19
+    assert all(set(row["mindset"]) == {"patience", "adaptability", "courage"}
+               for row in client_matrix)
+    assert len({tuple(row["mindset"].values()) for row in client_matrix}) == 19
+    assert all(row["initial"]["type"] in row["orders"]
+               and row["switched"]["type"] in row["orders"]
+               for row in client_matrix)
+    assert all(row["switched"]["type"] != row["initial"]["type"]
+               and "change_failed_plan" in row["switched"]["reason"]
+               for row in client_matrix)
+
     assert len(ne.BOSS_MINDSETS) == 19
     assert set(ne.BOSS_MINDSETS) == set(ne.PROFILE_BY_ID)
     fingerprints = {
@@ -85,7 +121,8 @@ console.log(JSON.stringify(out));
     assert all(plan["mindset"] == ne.BOSS_MINDSETS[leader]
                for leader, plan in ((leader, ne.boss_doctrine(leader))
                                     for leader in ne.BOSS_MINDSETS))
-    print("boss intelligence pass 3: 19 unique cognitive profiles and HQ scaling OK")
+    assert {row["leader"]: row["mindset"] for row in client_matrix} == ne.BOSS_MINDSETS
+    print("boss intelligence pass 3: 19 unique cognitive profiles and plan switching OK")
 
 
 if __name__ == "__main__":

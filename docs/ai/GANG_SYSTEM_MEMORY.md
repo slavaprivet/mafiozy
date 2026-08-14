@@ -8,6 +8,19 @@ empires, diplomacy, properties, guards or raids. It records contracts that are
 easy to break when looking at only one file. Confirm details against current
 source before editing and update this document whenever a contract changes.
 
+## Player-business raid objective
+
+- The authoritative raid objective is `first-close` unless the attack number
+  is odd and the war's namespaced `last_business_id` still matches the pending
+  session target. Only that exact `followup-capture` objective may transfer
+  ownership after a successful cashier hold.
+- Smart scoring may switch away from the previous target when its defence
+  changes. Such a switched target must return to `first-close`; never infer a
+  capture from attack parity alone.
+- Publish the objective with the pending session and boss activity. Client HUD
+  may explain the boss doctrine, plan, stakes and counter-play, but SQLite
+  resolution remains the only path that closes or transfers the business.
+
 ## Read order and ownership
 
 1. Read this document for gang gameplay and server invariants.
@@ -144,6 +157,10 @@ reconnect and duplicate resolve requests must be idempotent.
 - NPC guard allocation is threat-first, then income/value, while preserving a
   mobile reserve of at least two and a larger reserve during wars. Rebalance in
   the same transaction after casualties or roster shrink.
+- `state_for` must only read NPC guard assignments. Reconcile them in the same
+  authoritative transaction that changes a roster, holding, closure or war;
+  an already exact plan is a strict no-op (no DELETE/INSERT churn). Keep the
+  50-concurrent-poll regression proving zero guard writes and no SQLite lock.
 
 ## Smart player-business targeting
 
@@ -204,7 +221,9 @@ guards. The current server scorer must preserve these rules:
   effects only when the existing tracked projectile reaches the player. Keep
   the same capped `11.5..15.5` visual speed for flight timing, and reject the
   delayed hit if the shooter, player or street-combat context is no longer
-  valid; never subtract HP in the trigger frame.
+  valid; never subtract HP in the trigger frame. Impact telemetry carries the
+  firing-frame shot sequence and visual speed so live QA can correlate the
+  tracer and damage without adding per-frame work.
 - Inter-gang and gang-to-police packets use their authoritative
   `bullet_speed`, stamp the shooter pose/sequence immediately, then reveal the
   server HP, impact and casualty only at tracer arrival. A bounded per-actor

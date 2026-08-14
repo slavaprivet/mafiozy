@@ -45,6 +45,13 @@ def main():
     assert 'assignedObjectGuards:Number.isFinite(+activity.defender_count)' in world
     assert 'assignedFreeSquad:Number.isFinite(+activity.force)' in world
     assert 'business_label' in world
+    assert '_playerBusinessRaidPlan(empire,activity)' in world
+    assert "objective==='followup-capture'" in world
+    assert 'plan.doctrineLabel' in world
+    assert 'plan.stakes' in world and 'plan.counterTip' in world
+    assert ':objective-${plan.objective}:doctrine-${plan.doctrineId}`' in world
+    assert "'objective': objective" in server
+    assert '_player_business_raid_objective(' in server
     war_activity = server.split('def _player_war_activity', 1)[1].split(
         'EMPIRE_PUBLIC_ROAM_POINTS', 1)[0]
     assert 'raid_token' not in war_activity

@@ -1,5 +1,19 @@
 # Mafiozi 3D optimization memory
 
+## Authoritative player-raid objective telegraph (2026-08-14, v407)
+
+- Route state and ownership stakes are different axes. `approach`/`interior`
+  describe where the physical squad is, while `first-close` and
+  `followup-capture` describe what a successful cashier hold will do.
+- Derive the objective with the exact resolution predicate: a follow-up can
+  capture only on an odd attack whose namespaced `last_business_id` still
+  matches the persisted target. If smart scoring switches targets, the new
+  target is a first close even though the attack counter is odd.
+- Reuse the existing empire doctrine, raid snapshot, exterior four-node HUD
+  and interior four-node HUD to show the named boss's plan, 20-second cashier
+  step, stakes and counter-tip. Do not add a poll, timer, DOM node, actor pool,
+  render-loop query or client ownership decision.
+
 ## Distance-prioritized boss label declutter (2026-08-14, v406)
 
 - Boss, unique, raid and speech cards may try the existing five fixed vertical
@@ -29,9 +43,13 @@
 - The delayed callback validates the living shooter, active player-war state,
   living player, finite player position and exterior context. It adds no render
   loop, actor scan, projectile pool, mesh, material or per-frame allocation.
+- Arrival telemetry captures the shooter's sequence and the exact visual speed
+  in the firing frame, then publishes both with the impact event. This lets live
+  QA pair one boss tracer with one damage arrival without a polling loop or
+  projectile history.
 - `test_empire_player_ballistic_arrival.py` executes the production scheduling
   function with controlled time and proves HP/impact stay unchanged before the
-  deadline and change exactly once at arrival.
+  deadline, change exactly once at arrival, and expose matching speed/sequence.
 
 ## Snapshot-safe street-gang ballistic arrival (2026-08-14)
 

@@ -37,7 +37,7 @@ def run() -> None:
 let clock=1000, queued=null, hp=100, impacts=0;
 const performance={{now:()=>clock}}, player={{r:0,c:10}}, document={{documentElement:{{dataset:{{}}}}}};
 let myDead=false,_buildingInt=null,_bankInt=null;
-const shooter={{_empirePlayerWar:true,dead:false,leader:'boss'}};
+const shooter={{_empirePlayerWar:true,dead:false,leader:'boss',_shotSeq:7}};
 function _empireLeaderIdOf(n){{return n.leader;}}
 function _empireCombatReady(n){{return !!n&&!n.dead;}}
 function spawnImpact(){{impacts++;}}
@@ -45,9 +45,10 @@ function _applyEmpirePlayerWeaponHit(n,damage){{hp-=damage;}}
 function setTimeout(fn,ms){{queued={{fn,ms}};return 1;}}
 {queue}
 const flight=_queueEmpirePlayerBallisticHit(shooter,17,{{}},'rifle',{{r:0,c:0}},15.5,clock);
-const before={{hp,impacts,flight,delay:queued.ms}};
+const before={{hp,impacts,flight,delay:queued.ms,telemetry:document.documentElement.dataset.empirePlayerBallisticImpact||null}};
+shooter._shotSeq=8;
 clock+=queued.ms;queued.fn();
-console.log(JSON.stringify({{before,after:{{hp,impacts}}}}));
+console.log(JSON.stringify({{before,after:{{hp,impacts,telemetry:document.documentElement.dataset.empirePlayerBallisticImpact}}}}));
 """
     result = subprocess.run(
         ["node", "-e", script], cwd=ROOT, check=True,
@@ -56,9 +57,13 @@ console.log(JSON.stringify({{before,after:{{hp,impacts}}}}));
     data = json.loads(result.stdout)
     assert data["before"]["hp"] == 100
     assert data["before"]["impacts"] == 0
+    assert data["before"]["telemetry"] is None
     assert data["before"]["delay"] == data["before"]["flight"]
     assert data["before"]["delay"] >= 80
-    assert data["after"] == {"hp": 83, "impacts": 1}
+    assert data["after"] == {
+        "hp": 83, "impacts": 1,
+        "telemetry": "boss>player:rifle:645:speed-15.5:seq-7",
+    }
 
 
 if __name__ == "__main__":

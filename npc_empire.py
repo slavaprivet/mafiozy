@@ -8,6 +8,7 @@ ownership and assault rewards cannot be applied twice.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import random
@@ -57,6 +58,13 @@ NPC_HQ_FRONT_INCOME_PER_MINUTE = 24
 NPC_LIQUIDITY_BUFFER_TICKS = 96
 NPC_MIN_LIQUIDITY_CEILING = 75_000
 NPC_EVENT_MEMORY_LIMIT = 80
+
+_STATE_PREPARE_LOCKS: dict[str, asyncio.Lock] = {}
+
+
+def _state_prepare_lock(db_path: str) -> asyncio.Lock:
+    """Single-flight SQLite mutations that precede a state snapshot."""
+    return _STATE_PREPARE_LOCKS.setdefault(str(db_path), asyncio.Lock())
 
 
 @dataclass(frozen=True)
@@ -785,6 +793,16 @@ async def _rebalance_npc_holding_guards(db, leader_id: str, holdings,
             plan[ref] += 1; available -= 1; changed = True
         if not changed:
             break
+    current = {
+        str(row['holding_ref']): (int(row['assigned'] or 0), int(row['living'] or 0))
+        for row in await (await db.execute(
+            "SELECT holding_ref,assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id=?", (leader_id,)
+        )).fetchall()
+    }
+    expected = {ref: (count, count) for ref, count in plan.items() if count}
+    if current == expected:
+        return sum(plan.values())
     await db.execute(
         "DELETE FROM npc_empire_guard_assignments WHERE owner_kind='npc' AND owner_id=?",
         (leader_id,))
@@ -794,6 +812,54 @@ async def _rebalance_npc_holding_guards(db, leader_id: str, holdings,
         "VALUES('npc',?,?,?,?,?)",
         [(leader_id, ref, count, count, now) for ref, count in plan.items() if count])
     return sum(plan.values())
+
+
+async def _reconcile_npc_guards(db, leader_id: str, now: int,
+                                threatened_refs: set[str] | None = None) -> int:
+    """Reconcile one family after an authoritative roster/holding transition."""
+    row = await (await db.execute(
+        "SELECT members,status FROM npc_empires WHERE leader_id=?", (leader_id,)
+    )).fetchone()
+    if not row or str(row['status']) == 'ruined':
+        await db.execute(
+            "DELETE FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id=?", (leader_id,))
+        return 0
+    holdings = await (await db.execute(
+        "SELECT kind,holding_id,income,defense,acquired_at,operation_type,area "
+        "FROM npc_empire_holdings WHERE leader_id=?", (leader_id,)
+    )).fetchall()
+    npc_wars = int((await (await db.execute(
+        "SELECT COUNT(*) FROM npc_empire_diplomacy WHERE pact='war' "
+        "AND (leader_a=? OR leader_b=?)", (leader_id, leader_id)
+    )).fetchone())[0] or 0)
+    player_war_row = await (await db.execute(
+        "SELECT 1 FROM npc_empire_player_wars WHERE leader_id=? LIMIT 1",
+        (leader_id,))).fetchone()
+    player_war = int(player_war_row is not None)
+    if threatened_refs is None:
+        closed_ids = {str(item[0]) for item in await (await db.execute(
+            "SELECT holding_id FROM npc_empire_building_closures "
+            "WHERE leader_id=? AND closed_until>?", (leader_id, now)
+        )).fetchall()}
+        threatened_refs = {
+            f"building:{str(item['holding_id'])}" for item in holdings
+            if str(item['kind']) == 'building'
+            and str(item['holding_id']) in closed_ids
+        }
+    return await _rebalance_npc_holding_guards(
+        db, leader_id, holdings, int(row['members'] or 0),
+        npc_wars + player_war, now, threatened_refs)
+
+
+def _player_business_raid_objective(attack_no: int, last_business_id: str,
+                                    target_ref: str, target_id: str = '') -> str:
+    """Name the authoritative stake using the same target identity as resolve."""
+    capture = (max(0, int(attack_no or 0)) % 2 == 1
+               and str(last_business_id or '') in {
+                   str(target_ref or ''), str(target_id or '')}
+               and bool(str(target_ref or '') or str(target_id or '')))
+    return 'followup-capture' if capture else 'first-close'
 
 
 def _player_war_activity(profile: EmpireProfile, war: dict,
@@ -806,11 +872,15 @@ def _player_war_activity(profile: EmpireProfile, war: dict,
         r, c = _player_business_target_point(target)
         target_id, target_kind = str(target['holding_id']), str(target['kind'])
     attacks = max(0, int(war.get('attacks') or 0))
+    target_ref = str(target.get('ref') or '') if target else ''
+    objective = _player_business_raid_objective(
+        attacks, str(war.get('last_business_id') or ''), target_ref, target_id)
     return {
         'kind': 'player_business_raid', 'intent': 'retaliate',
         'target_id': target_id, 'target_kind': target_kind,
         'target_r': float(r), 'target_c': float(c),
-        'phase': 'capture' if attacks % 2 else 'approach',
+        'phase': 'capture' if objective == 'followup-capture' else 'approach',
+        'objective': objective,
         'stance': 'assault',
         'force': max(3, min(NPC_EMPIRE_MAX_FIGHTERS,
                             3 + profile.aggression // 10 + attacks)),
@@ -1067,6 +1137,9 @@ async def _change_npc_diplomacy(db, diplomacy_state: dict, left: str, right: str
     updated = {'score': next_score, 'pact': next_pact,
                'tension': next_tension, 'last_event_at': now}
     diplomacy_state[pair] = updated
+    if (str(current.get('pact') or 'none') == 'war') != (next_pact == 'war'):
+        await _reconcile_npc_guards(db, pair[0], now)
+        await _reconcile_npc_guards(db, pair[1], now)
     return updated
 
 
@@ -1954,6 +2027,7 @@ async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
                     'members': members}
         await db.execute("INSERT INTO npc_empire_street_recruits(source_id,leader_id,family,recruited_at) VALUES(?,?,?,?)", (source_id, leader_id, family, now))
         await db.execute("UPDATE npc_empires SET treasury=treasury-?,members=members+1,strength=strength+?,last_recruit_count=1,last_recruit_at=?,version=version+1 WHERE leader_id=?", (cost, strength_gain, now, leader_id))
+        await _reconcile_npc_guards(db, leader_id, now)
         family_name = 'Моретти' if family == 'moretti' else 'Беллини'
         summary = f'Боец {family_name} встретил {profile.leader_name} в городе и вступил в {profile.gang_name}'
         await db.execute("INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)", (leader_id, 'street_recruit', source_id, summary, now))
@@ -2173,6 +2247,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     "WHERE leader_id=?",
                     (completed, completed * (11 + profile.aggression // 12), leader_id),
                 )
+                await _reconcile_npc_guards(db, leader_id, now)
                 events.append({'leader_id': leader_id, 'kind': 'recruit_completed',
                                'summary': f'{completed} новичков принесли клятву семье {profile.gang_name}'})
             else:
@@ -2629,6 +2704,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                        f'{target["holding_id"]} от {profile.gang_name}; '
                                        f'потери {defender_losses}:{attacker_losses}',
                         })
+                    if rival.leader_id not in ruined_this_tick:
+                        await _reconcile_npc_guards(db, rival.leader_id, now)
             next_status = 'active' if row['status'] == 'rebuilding' and (members >= 4 or treasury >= 1500) else str(row['status'])
             liquidity = settle_operating_liquidity(
                 treasury, max(income_schedule, default=per_tick), members,
@@ -2873,7 +2950,9 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                         "WHERE leader_id=? AND telegram_id=?",
                         (now + _player_war_interval(profile), leader_id, telegram_id))
                     continue
-                capture = attack_no % 2 == 1 and last_biz in {target_ref, biz_id}
+                objective = _player_business_raid_objective(
+                    attack_no, last_biz, target_ref, biz_id)
+                capture = objective == 'followup-capture'
                 if capture:
                     await _clear_holding_guard_assignment(
                         db, 'player', str(telegram_id), target_ref)
@@ -2912,6 +2991,7 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                              60 + profile.loyalty, now),
                         )
                     businesses = [item for item in businesses if str(item['ref']) != target_ref]
+                    await _reconcile_npc_guards(db, leader_id, now)
                     summary = f'{profile.leader_name} и {profile.gang_name} захватили бизнес {biz_id}'
                     kind = 'player_business_captured'
                 else:
@@ -3009,6 +3089,7 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
             "UPDATE npc_empires SET members=MAX(1,members-?),"
             "strength=MAX(20,strength-?) WHERE leader_id=?",
             (attacker_losses, attacker_losses * 11, leader_id))
+        await _reconcile_npc_guards(db, leader_id, now)
         defender_ids = [int(value) for value in json.loads(
             str(raid['defender_ids_json'] or '[]'))]
         if requested_defenders - set(defender_ids):
@@ -3080,11 +3161,15 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
 
 async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> dict:
     now = int(now or time.time())
-    await ensure_schema(db_path)
-    # Resolve already-scheduled player pressure before the same timestamp's
-    # global NPC tick can collapse that attacker in a separate family war.
-    player_war_events = await _apply_player_war_pressure(db_path, telegram_id, now)
-    await advance(db_path, now)
+    # SQLite has one writer. Concurrent player polls prepare mutations in one
+    # bounded queue, then take independent read snapshots; they must never race
+    # schema/tick/player-war transactions against each other.
+    async with _state_prepare_lock(db_path):
+        await ensure_schema(db_path)
+        # Resolve already-scheduled player pressure before the same timestamp's
+        # global NPC tick can collapse that attacker in a separate family war.
+        player_war_events = await _apply_player_war_pressure(db_path, telegram_id, now)
+        await advance(db_path, now)
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         rows = await (await db.execute("SELECT * FROM npc_empires ORDER BY leader_id")).fetchall()
@@ -3120,24 +3205,6 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT * FROM npc_empire_interior_raids "
             "WHERE telegram_id=? AND status='pending' ORDER BY started_at,token",
             (telegram_id,))).fetchall()]
-        holdings_by_leader = {profile.leader_id: [] for profile in PROFILES}
-        for holding_row in holdings_rows:
-            holdings_by_leader.setdefault(str(holding_row['leader_id']), []).append(holding_row)
-        for empire_row in rows:
-            guard_leader = str(empire_row['leader_id'])
-            wars = sum(1 for pact_row in diplomacy_rows
-                       if str(pact_row.get('pact') or '') == 'war'
-                       and guard_leader in {str(pact_row.get('leader_a')),
-                                            str(pact_row.get('leader_b'))})
-            wars += int(guard_leader in war_rows)
-            await _rebalance_npc_holding_guards(
-                db, guard_leader, holdings_by_leader.get(guard_leader, []),
-                int(empire_row['members'] or 0), wars, now,
-                {f"building:{item['holding_id']}"
-                 for item in holdings_by_leader.get(guard_leader, [])
-                 if str(item['kind']) == 'building'
-                 and str(item['holding_id']) in closure_rows})
-        await db.commit()
         npc_guard_assignments = {
             (str(r['owner_id']), str(r['holding_ref'])): int(r['living'] or 0)
             for r in await (await db.execute(
@@ -3355,6 +3422,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     interior_raids = []
     for raid in raid_rows:
         profile = PROFILE_BY_ID.get(str(raid['leader_id']))
+        raid_war = war_rows.get(str(raid['leader_id'])) or {}
+        objective = _player_business_raid_objective(
+            int(raid['attack_no'] or 0), str(raid_war.get('last_business_id') or ''),
+            str(raid['target_ref'] or ''), str(raid['holding_id'] or ''))
         target = next((item for item in player_business_targets
                        if str(item['ref']) == str(raid['target_ref'])), None)
         r, c = _player_business_target_point(target or {
@@ -3401,6 +3472,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'guard_roster': guard_roster,
             'started_at': int(raid['started_at']),
             'hold_seconds': int(raid['hold_seconds']),
+            'objective': objective,
             'expires_at': int(raid['expires_at']),
         })
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],
@@ -3498,6 +3570,7 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
                              (holding_id, leader_id))
             await _clear_holding_guard_assignment(
                 db, 'npc', leader_id, f'building:{holding_id}')
+            await _reconcile_npc_guards(db, leader_id, now)
             await db.execute(
                 "INSERT INTO apartments_owned"
                 "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,area,income_per_minute,last_income_at) "
@@ -3556,6 +3629,8 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
             "saboteur_uid=excluded.saboteur_uid,closed_until=excluded.closed_until,created_at=excluded.created_at",
             (holding_id, leader_id, telegram_id, closed_until, now),
         )
+        await _reconcile_npc_guards(
+            db, leader_id, now, {f'building:{holding_id}'})
         await db.execute(
             "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?,?,?,?,?) "
             "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,pact=excluded.pact,last_action_at=excluded.last_action_at",
@@ -3649,6 +3724,7 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                 "DELETE FROM npc_empire_player_wars WHERE leader_id=? AND telegram_id=?",
                 (leader_id, telegram_id),
             )
+        await _reconcile_npc_guards(db, leader_id, now)
         summary = (f'Игрок атаковал людей семьи: отношение {score:+d}'
                    if action == 'street_attack' else f'{action}: отношение {score:+d}')
         await db.execute(
@@ -3703,6 +3779,7 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
             "ON CONFLICT(leader_id,telegram_id) DO NOTHING",
             (leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS),
         )
+        await _reconcile_npc_guards(db, leader_id, now)
         await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
             (leader_id, 'assault_started', str(telegram_id), f'Начат штурм штаба {profile.gang_name}', now),
@@ -3787,6 +3864,7 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
             await db.execute("UPDATE npc_empires SET status='vassal',members=MAX(2,members/2),strength=MAX(40,strength/2),treasury=treasury/2,defeated_by=?,version=version+1 WHERE leader_id=?", (telegram_id,leader_id))
             await db.execute("INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?, ?,80,'vassal',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=80,pact='vassal',last_action_at=excluded.last_action_at", (leader_id,telegram_id,now))
             reward = treasury // 2
+            await _reconcile_npc_guards(db, leader_id, now)
         else:
             reward = treasury if choice == 'loot' else treasury // 3
             business_rows = await (await db.execute("SELECT holding_id FROM npc_empire_holdings WHERE leader_id=? AND kind='business'", (leader_id,))).fetchall()

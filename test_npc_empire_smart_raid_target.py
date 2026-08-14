@@ -17,6 +17,8 @@ async def scalar(path: str, sql: str, params=()):
 
 
 async def run() -> None:
+    assert ne._player_business_raid_objective(
+        1, 'building:0,3', 'building:0,4', '0,4') == 'first-close'
     fd, path = tempfile.mkstemp(prefix='smart_raid_target_', suffix='.db')
     os.close(fd)
     try:
@@ -71,6 +73,7 @@ async def run() -> None:
         state = await ne.state_for(path, 101, now=now)
         assert len(state['interior_raids']) == 1
         raid = state['interior_raids'][0]
+        assert raid['objective'] == 'first-close'
         assert raid['target_kind'] == 'building' and raid['target_id'] == '0,4', raid
         empire = next(item for item in state['empires'] if item['leader_id'] == 'leila')
         activity = empire['activity']
@@ -120,6 +123,7 @@ async def run() -> None:
             current_empire = next(item for item in snapshot['empires']
                                   if item['leader_id'] == 'leila')
             assert current['token'] == raid['token']
+            assert current['objective'] == 'first-close'
             assert current_empire['activity']['raid_token'] == raid['token']
             assert current_empire['activity']['target_id'] == '0,4'
         assert await scalar(

@@ -102,6 +102,7 @@ async def run():
         npc_key, player_key = list(ne.BUILDING_AREAS)[:2]
         npc_area, player_area = ne.BUILDING_AREAS[npc_key], ne.BUILDING_AREAS[player_key]
         async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
             await db.execute(
                 "INSERT INTO npc_empire_holdings"
                 "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
@@ -126,6 +127,9 @@ async def run():
                 "(leader_id,telegram_id,next_attack_at,attacks,last_business_id,last_attack_at) "
                 "VALUES('marco',?,?,0,'',0)", (PLAYER, NOW + 20),
             )
+            # The fixture inserts the holding directly, bypassing the production
+            # ownership transition that now performs this reconciliation.
+            await ne._reconcile_npc_guards(db, 'leila', NOW)
             await db.commit()
 
         initial = await ne.state_for(path, PLAYER, NOW)
