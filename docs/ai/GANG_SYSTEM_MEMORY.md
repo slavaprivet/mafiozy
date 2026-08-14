@@ -10,6 +10,22 @@ source before editing and update this document whenever a contract changes.
 
 ## Player-business raid objective
 
+- Interior admission is roster-backed and breach-gated. During `approach` the
+  defence may already be staged, but attackers remain at zero until the exact
+  session token breaches. Thereafter admit at most one existing roster row per
+  update: first attacker after 650 ms, chained attackers after 420 ms, later
+  replacements after 900 ms; defender replacements wait 1100 ms. Concurrent
+  caps are four attackers and six defenders, and dead reserve rows are skipped.
+- One module-local checkpoint preserves a single active interior raid across
+  same-page exit/re-entry. Its exact identity is `token + apt_key + target_id`;
+  it restores bounded roster HP/casualties and pauses cashier-hold elapsed time
+  while outside. Restore happens before admission so dead actors stay dead and
+  wounded actors keep their HP.
+- Terminal outcomes spawn no replacement actors and retry the authoritative,
+  idempotent resolve request. Successful/duplicate resolve or disappearance
+  from the active server snapshot clears the checkpoint. It is intentionally
+  not full-refresh persistence and does not support two abandoned interiors.
+
 - The authoritative raid objective is `first-close` unless the attack number
   is odd and the war's namespaced `last_business_id` still matches the pending
   session target. Only that exact `followup-capture` objective may transfer

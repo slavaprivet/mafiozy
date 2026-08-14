@@ -105,9 +105,11 @@ def main():
     assert 'if(raidActivity&&!_playerBusinessRaidBreachFor(raidActivity))' in world
     assert "n._empireAction?.kind==='player_business_raid')_markPlayerBusinessRaidBreached" in world
     assert 'dataset.playerBusinessRaidBreach=' in world
-    assert "dataset.businessInteriorRaidGate=`approach:" in world
-    assert "dataset.businessInteriorRaidGate=`breached:" in world
-    assert "if(!breach){document.documentElement.dataset.businessInteriorRaidGate" in world
+    assert "dataset.businessInteriorRaidGate=breach?`breached:" in world
+    assert ":`approach:${_playerBusinessRaidToken(session)||'pending'}:${key}`" in world
+    assert "breached:!!breach" in world
+    assert "if(!_businessRaidOpenBreach(state,breach))" in world
+    assert "String(breach.token||'')!==expected" in world
     assert "token=alertPreview?`preview-raid-alert:${meta.key}`:`preview-business-raid:${fixtureId}`" in world
     assert 'raid_token:token' in world
     assert 'apt_key:`preview-raid:${meta.key}`' in world

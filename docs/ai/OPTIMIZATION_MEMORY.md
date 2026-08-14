@@ -1,5 +1,34 @@
 # Mafiozi 3D optimization memory
 
+## Bounded interior reinforcement admission (2026-08-14, v409)
+
+- Stage defenders during approach but keep every attacker in the existing
+  bounded roster reserve until an exact-token breach. Admission is performed
+  by the existing interior update, at most one actor per side per call; it adds
+  no timer, poll, NPC source, render loop or history collection.
+- Preserve the pacing contract: first attacker `650 ms`, attacker chain
+  `420 ms`, attacker refill `900 ms`, defender refill `1100 ms`, with live caps
+  `4/6`. Skip casualty reserve rows rather than reviving them. A controlled-clock
+  runtime test must cover early ticks, wrong token, every deadline, dead-row
+  skip, caps and the one-spawn-per-call bound.
+
+## Singleton same-page interior raid checkpoint (2026-08-14, v409)
+
+- Exiting and re-entering one active business interior in the same page must
+  not resurrect casualties or heal survivors. Keep one bounded module-local
+  checkpoint keyed by the exact `token + apt_key + target_id`; snapshot at most
+  8 attackers, 12 assigned defenders and 3 guards before clearing the interior.
+- A cashier hold is paused while the player is outside: save elapsed hold time
+  and rebuild `holdStartedAt` from that elapsed value on re-entry. Do not grant
+  offline/outside hold progress. A repeated same-page restore is deterministic.
+- Restore roster HP/casualties before reserve/front admission. A terminal local
+  outcome restores without spawning actors and retries the existing idempotent
+  server resolve path. Clear only after a successful/duplicate resolution, or
+  when a fresh active-session snapshot no longer contains the token.
+- This is deliberately a one-session presentation checkpoint: it uses no
+  `localStorage`, poll, timer, NPC or render collection. Full page reload and
+  abandoning two simultaneous interiors are not persistence guarantees.
+
 ## Arrival-gated business breach (2026-08-14, v408)
 
 - A pending server interior session authorizes the raid, but it does not prove
