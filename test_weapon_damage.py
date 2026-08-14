@@ -34,7 +34,9 @@ async def main():
     assert "CITY_GANG_MAX           = 4" in bot_source
     assert "'npc_gang_fight':True" in bot_source
     assert "**({'suit':'#f3efe5'} if faction == 'yellow' else {})" in bot_source
-    assert "spawnBullet(sR,sC,d.ty,d.tx,{hit:true,fromNpc:true" in world
+    assert "function _playWorldNpcWeaponShot(d,onArrival=null)" in world
+    assert "spawnBullet(sR,sC,+d.ty,+d.tx,{hit:!d.miss,fromNpc:true,weapon,speed:requestedSpeed})" in world
+    assert "_playWorldNpcWeaponShot(d,()=>_applyIntergangBallisticArrival(d))" in world
     assert "damagedProps.values()" not in world, (
         "fire() references a removed collection and aborts before spawnBullet"
     )
