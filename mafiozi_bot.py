@@ -25820,6 +25820,28 @@ async def _coop_http_app():
                     if item.get('apt_key'))
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
+    async def h_npc_empire_interior_raid_casualties(req):
+        try: uid=int(req.match_info['uid']);body=await req.json()
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
+        apt_key=str(body.get('apt_key') or '')[:64];live=_WORLD.players.get(str(uid)) if _WORLD else None
+        in_expected = bool(live and live.get('_in_interior') and (
+            (apt_key.startswith('business:') and
+             str(live.get('_business_interior') or '')==apt_key.split(':',1)[1]) or
+            (not apt_key.startswith('business:') and
+             str(live.get('_apartment_key') or '')==apt_key)))
+        if not in_expected:
+            return await _cors(web.json_response(
+                {'ok':False,'error':'player not in target interior'},status=409))
+        result=await npc_empire.checkpoint_interior_raid_casualties(
+            DB_PATH,uid,str(body.get('token') or '')[:64],apt_key,
+            attacker_delta=(body.get('attacker_down_slots')
+                            if isinstance(body.get('attacker_down_slots'),list) else None),
+            defender_delta=(body.get('defender_down_ids')
+                            if isinstance(body.get('defender_down_ids'),list) else None),
+            guard_delta=(body.get('guard_down_ids')
+                         if isinstance(body.get('guard_down_ids'),list) else None))
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
+
     async def h_npc_empire_interior_raid_resolve(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
@@ -30447,6 +30469,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/npc-empires/{uid}/assault/prepare', h_npc_empire_assault_prepare)
     aio_app.router.add_post('/npc-empires/{uid}/assault/hit', h_npc_empire_assault_hit)
     aio_app.router.add_post('/npc-empires/{uid}/assault/resolve', h_npc_empire_assault_resolve)
+    aio_app.router.add_post('/npc-empires/{uid}/interior-raid/casualties', h_npc_empire_interior_raid_casualties)
     aio_app.router.add_post('/npc-empires/{uid}/interior-raid/resolve', h_npc_empire_interior_raid_resolve)
     aio_app.router.add_post('/npc-empires/{uid}/property-guards', h_npc_empire_property_guards)
     aio_app.router.add_get ('/shop/{uid}/list',    h_shop_list)

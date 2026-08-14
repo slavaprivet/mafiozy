@@ -1905,6 +1905,10 @@ async def ensure_schema(db_path: str) -> None:
             weapon_budget INTEGER NOT NULL,
             defender_ids_json TEXT NOT NULL DEFAULT '[]',
             guard_ids_json TEXT NOT NULL DEFAULT '[]',
+            attacker_down_json TEXT NOT NULL DEFAULT '[]',
+            defender_down_json TEXT NOT NULL DEFAULT '[]',
+            guard_down_json TEXT NOT NULL DEFAULT '[]',
+            casualty_version INTEGER NOT NULL DEFAULT 0,
             guard_count INTEGER NOT NULL DEFAULT 0,
             attack_no INTEGER NOT NULL DEFAULT 0,
             started_at INTEGER NOT NULL,
@@ -1968,6 +1972,15 @@ async def ensure_schema(db_path: str) -> None:
             await db.execute(
                 "ALTER TABLE npc_empire_interior_raids "
                 "ADD COLUMN guard_ids_json TEXT NOT NULL DEFAULT '[]'")
+        for name, declaration in {
+            'attacker_down_json': "TEXT NOT NULL DEFAULT '[]'",
+            'defender_down_json': "TEXT NOT NULL DEFAULT '[]'",
+            'guard_down_json': "TEXT NOT NULL DEFAULT '[]'",
+            'casualty_version': "INTEGER NOT NULL DEFAULT 0",
+        }.items():
+            if name not in raid_columns:
+                await db.execute(
+                    f"ALTER TABLE npc_empire_interior_raids ADD COLUMN {name} {declaration}")
         assault_columns = {str(r[1]) for r in await (await db.execute(
             "PRAGMA table_info(npc_empire_assaults)")).fetchall()}
         for name, declaration in {
@@ -3319,6 +3332,73 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
     return events
 
 
+def _interior_raid_int_set(value) -> set[int]:
+    source = json.loads(str(value or '[]')) if isinstance(value, str) else (value or [])
+    if not isinstance(source, (list, tuple, set)):
+        raise ValueError('casualty set')
+    return {int(item) for item in source}
+
+
+async def checkpoint_interior_raid_casualties(
+        db_path: str, telegram_id: int, token: str, apt_key: str,
+        attacker_delta: list[int] | None = None,
+        defender_delta: list[int] | None = None,
+        guard_delta: list[int] | None = None,
+        now: int | None = None) -> dict:
+    """Persist irreversible deaths as a bounded monotonic union, never HP."""
+    now = int(now or time.time())
+    if attacker_delta is None and defender_delta is None and guard_delta is None:
+        return {'ok': False, 'error': 'empty casualty payload'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        raid = await (await db.execute(
+            "SELECT * FROM npc_empire_interior_raids WHERE token=? AND telegram_id=?",
+            (str(token), int(telegram_id)))).fetchone()
+        if not raid or str(raid['apt_key']) != str(apt_key):
+            await db.rollback(); return {'ok': False, 'error': 'raid not found'}
+        if str(raid['status']) != 'pending':
+            await db.rollback()
+            return {'ok': True, 'duplicate': True, 'terminal': True,
+                    'resolution': str(raid['resolution']),
+                    'version': int(raid['casualty_version'] or 0)}
+        if now >= int(raid['expires_at'] or 0):
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',"
+                "resolution='expired',resolved_at=? WHERE token=? AND status='pending'",
+                (now, str(token)))
+            await db.commit(); return {'ok': False, 'error': 'raid expired'}
+        force = max(0, int(raid['force'] or 0))
+        valid = (set(range(force)),
+                 _interior_raid_int_set(raid['defender_ids_json']),
+                 _interior_raid_int_set(raid['guard_ids_json']))
+        try:
+            incoming = tuple(_interior_raid_int_set(value) if value is not None else set()
+                             for value in (attacker_delta, defender_delta, guard_delta))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            await db.rollback(); return {'ok': False, 'error': 'bad casualty payload'}
+        if any(values - allowed for values, allowed in zip(incoming, valid)):
+            await db.rollback(); return {'ok': False, 'error': 'bad casualty payload'}
+        persisted = tuple(_interior_raid_int_set(raid[name]) for name in (
+            'attacker_down_json', 'defender_down_json', 'guard_down_json'))
+        merged = tuple(old | new for old, new in zip(persisted, incoming))
+        changed = merged != persisted
+        version = int(raid['casualty_version'] or 0) + int(changed)
+        if changed:
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET attacker_down_json=?,"
+                "defender_down_json=?,guard_down_json=?,casualty_version=? "
+                "WHERE token=? AND status='pending'",
+                (json.dumps(sorted(merged[0])), json.dumps(sorted(merged[1])),
+                 json.dumps(sorted(merged[2])), version, str(token)))
+        await db.commit()
+    return {'ok': True, 'duplicate': not changed, 'version': version,
+            'attacker_down_slots': sorted(merged[0]),
+            'defender_down_ids': sorted(merged[1]),
+            'guard_down_ids': sorted(merged[2])}
+
+
 async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                                 apt_key: str, outcome: str,
                                 now: int | None = None,
@@ -3365,11 +3445,17 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
             await db.rollback(); return {'ok': False, 'error': 'bad defender casualties'}
         if requested_guards - set(session_guard_ids):
             await db.rollback(); return {'ok': False, 'error': 'bad guard casualties'}
+        persisted_attackers = _interior_raid_int_set(raid['attacker_down_json'])
+        persisted_defenders = _interior_raid_int_set(raid['defender_down_json'])
+        persisted_guards = _interior_raid_int_set(raid['guard_down_json'])
+        effective_attackers = persisted_attackers | requested_attackers
+        effective_defenders = persisted_defenders | requested_defenders
+        effective_guards = persisted_guards | requested_guards
         elapsed = now - int(raid['started_at'] or now)
         required = (PLAYER_INTERIOR_RAID_MIN_SECONDS if outcome == 'defended'
                     else int(raid['hold_seconds'] or PLAYER_INTERIOR_RAID_HOLD_SECONDS))
         all_attackers_down = (outcome == 'defended' and attacker_casualties is not None
-                              and requested_attackers == valid_attacker_slots)
+                              and effective_attackers == valid_attacker_slots)
         if elapsed < required and not all_attackers_down and now < int(raid['expires_at'] or 0):
             await db.rollback()
             return {'ok': False, 'error': 'raid still active', 'retry_after': required-elapsed}
@@ -3377,23 +3463,23 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 or (session_guard_ids and guard_casualties is None)):
             await db.rollback()
             return {'ok': False, 'error': 'bad casualty payload'}
-        if outcome == 'defended' and requested_attackers != valid_attacker_slots:
+        if outcome == 'defended' and effective_attackers != valid_attacker_slots:
             await db.rollback()
             return {'ok': False, 'error': 'impossible defended outcome'}
         if outcome == 'captured' and (
-                requested_attackers == valid_attacker_slots
-                or requested_defenders != set(defender_ids)
-                or requested_guards != set(session_guard_ids)):
+                effective_attackers == valid_attacker_slots
+                or effective_defenders != set(defender_ids)
+                or effective_guards != set(session_guard_ids)):
             await db.rollback()
             return {'ok': False, 'error': 'impossible captured outcome'}
-        attacker_losses = (len(requested_attackers) if attacker_casualties is not None else
+        attacker_losses = (len(effective_attackers) if attacker_casualties is not None else
                            min(force, max(1, force // (2 if outcome == 'defended' else 4))))
         await db.execute(
             "UPDATE npc_empires SET members=MAX(1,members-?),"
             "strength=MAX(20,strength-?) WHERE leader_id=?",
             (attacker_losses, attacker_losses * 11, leader_id))
         await _reconcile_npc_guards(db, leader_id, now)
-        lost_defenders = (sorted(requested_defenders) if defender_casualties is not None else
+        lost_defenders = (sorted(effective_defenders) if defender_casualties is not None else
                           defender_ids[:min(len(defender_ids),
                                            max(0, force-int(raid['guard_count'] or 0)) // 2)]
                           if outcome == 'captured' else [])
@@ -3415,7 +3501,7 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 (defender_losses, str(telegram_id), str(raid['target_ref'])))
         # Legacy guard layer is empty for new sessions; preserve exact lists for
         # old pending sessions regardless of the combat outcome.
-        lost_guards = (sorted(requested_guards) if guard_casualties is not None else
+        lost_guards = (sorted(effective_guards) if guard_casualties is not None else
                        session_guard_ids[:min(len(session_guard_ids), max(1, force // 3))]
                        if outcome == 'captured' else [])
         guard_losses = len(lost_guards)
@@ -3763,22 +3849,30 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             str(raid['defender_ids_json'] or '[]'))]
         guard_ids = [int(value) for value in json.loads(
             str(raid['guard_ids_json'] or '[]'))]
+        attacker_down = _interior_raid_int_set(raid['attacker_down_json'])
+        defender_down = _interior_raid_int_set(raid['defender_down_json'])
+        guard_down = _interior_raid_int_set(raid['guard_down_json'])
         tier = int(raid['tier']); quality = int(raid['quality'])
         attacker_roster = [{
             'slot': slot, 'role': ('breacher' if slot == 0 else
                                    'support' if slot % 3 == 0 else 'assault'),
-            'hp': int(raid['hp']), 'accuracy': float(raid['accuracy']),
+            'hp': 0 if slot in attacker_down else int(raid['hp']),
+            'dead': slot in attacker_down, 'accuracy': float(raid['accuracy']),
             'weapon_budget': int(raid['weapon_budget']),
             'tier': tier, 'quality': quality,
         } for slot in range(int(raid['force']))]
         defender_roster = [{
             'member_id': member_id, 'role': 'holding_guard',
-            'hp': 100, 'accuracy': round(min(.78, .42 + tier * .07), 3),
+            'hp': 0 if member_id in defender_down else 100,
+            'dead': member_id in defender_down,
+            'accuracy': round(min(.78, .42 + tier * .07), 3),
             'tier': max(1, tier-1),
         } for member_id in defender_ids]
         guard_roster = [{
             'member_id': member_id, 'role': 'holding_guard',
-            'hp': 110, 'accuracy': round(min(.8, .45 + tier * .07), 3),
+            'hp': 0 if member_id in guard_down else 110,
+            'dead': member_id in guard_down,
+            'accuracy': round(min(.8, .45 + tier * .07), 3),
             'tier': tier,
         } for member_id in guard_ids]
         interior_raids.append({
@@ -3799,6 +3893,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'attacker_roster': attacker_roster,
             'defender_roster': defender_roster,
             'guard_roster': guard_roster,
+            'casualties': {'attacker_slots': sorted(attacker_down),
+                           'defender_ids': sorted(defender_down),
+                           'guard_ids': sorted(guard_down),
+                           'version': int(raid['casualty_version'] or 0)},
             'started_at': int(raid['started_at']),
             'hold_seconds': int(raid['hold_seconds']),
             'objective': objective,

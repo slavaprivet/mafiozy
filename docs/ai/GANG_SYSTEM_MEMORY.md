@@ -10,6 +10,15 @@ source before editing and update this document whenever a contract changes.
 
 ## Player-business raid objective
 
+- Pending raid sessions persist only irreversible casualty sets: attacker
+  slots, assigned-defender member IDs and legacy guard IDs plus a monotonic
+  version. Reports are validated against the server-authored roster and merged
+  by set union in `BEGIN IMMEDIATE`; a retry or smaller report cannot revive.
+- State snapshots publish persisted deaths as `dead:true, hp:0`; surviving
+  nonlethal HP is deliberately not server-persisted. Terminal resolve unions
+  its final payload with the checkpoint before outcome validation and permanent
+  losses. The client sends full current death sets only on a death event through
+  one coalesced `keepalive` request and exposes pending/ACK/error telemetry.
 - Player-business target selection is doctrine-aware on the server. Existing
   profile commerce plus the doctrine mindset produce bounded value, distance,
   defence, risk and follow-up-stickiness weights; they never invent fighters or

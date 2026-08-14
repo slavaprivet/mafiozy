@@ -60215,7 +60215,7 @@ function _seedBusinessInteriorRaid(bi,property,override=null){
     businessName:String(activity.business_label||property.operation_name||'Бизнес'),ownerName:String(property.owner_name||QP.name||'Владелец'),
     attackerFamily:String(empire.gang_name||activity.gang_name||'Чужая семья'),attackerColor:String(empire.color||'#6f2330'),attackerAccent:String(empire.accent||'#d8b85a'),
     defenderFamily:String(property.gang_name||_customGang?.name||'Семья игрока'),defenderColor:String(property.color||_customGang?.flag?.primary||'#1d506d'),defenderAccent:String(property.accent||_customGang?.flag?.secondary||'#8edcff'),
-    playerDefends,phase:breached?'breach':'approach',breached,startedAt,holdStartedAt:0,holdMs:Math.max(20000,(+activity.hold_seconds||20)*1000),outcome:'',shots:0,hits:0,resolved:false,
+    playerDefends,phase:breached?'breach':'approach',breached,startedAt,holdStartedAt:0,holdMs:Math.max(20000,(+activity.hold_seconds||20)*1000),outcome:'',shots:0,hits:0,resolved:false,casualtyVersion:+activity.casualties?.version||0,
     attackerRoster,defenderRoster,guardRoster,ownerPrimary,ownerAccent,ownerEmblem,businessLabel,ownerLabel,attackerReserve:[],defenderReserve:[],attackerIds:new Set(),defenderIds:new Set(),admission:{attacker:{cap:4,nextAt:0,seq:0,chain:false},defender:{cap:6,nextAt:0,seq:0,chain:false}}};
   const restoredCheckpoint=_restoreBusinessInteriorRaidCheckpoint(bi,state,startedAt);
   bi.businessInteriorRaid=state;
@@ -60278,12 +60278,18 @@ function _businessRaidMoveToward(bi,n,target,dt,now=performance.now()){
   n.ang=Math.atan2(target.r-n.r,target.c-n.c);n.walking=Math.hypot(n.r-oldR,n.c-oldC)>.002;if(n.walking)n.walkPhase+=dt*9;n._raidMoveStalls=Math.min(9999,Math.round(stalledMs));
 }
 
+function _businessInteriorRaidCasualtyPayload(bi,state){return {token:String(state.activity?.token||''),apt_key:String(state.activity?.apt_key||_apartmentOwnedKey(bi.r,bi.c)||''),attacker_down_slots:state.attackerRoster.filter(x=>x.casualty).map(x=>x.slot).filter(Number.isInteger),defender_down_ids:state.defenderRoster.filter(x=>x.casualty&&x.memberId!=null).map(x=>x.memberId),guard_down_ids:state.guardRoster.filter(x=>x.casualty&&x.memberId!=null).map(x=>x.memberId)};}
+async function _checkpointBusinessInteriorRaidCasualties(bi,state){
+  if(!bi||!state?.activity?.token||!QP.api||!QP.uid)return false;state.casualtyCheckpointDirty=true;if(state.casualtyCheckpointBusy)return true;state.casualtyCheckpointBusy=true;
+  try{while(state.casualtyCheckpointDirty&&_buildingInt===bi&&!state.resolved){state.casualtyCheckpointDirty=false;const payload=_businessInteriorRaidCasualtyPayload(bi,state);document.documentElement.dataset.businessInteriorRaidCasualtyAck=`pending:${+state.casualtyVersion||0}`;try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/interior-raid/casualties`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true}),j=await r.json();if(r.ok&&j?.ok){state.casualtyVersion=Math.max(+state.casualtyVersion||0,+j.version||0);document.documentElement.dataset.businessInteriorRaidCasualtyAck=`ok:${state.casualtyVersion}:${j.duplicate?'duplicate':'union'}`;}else document.documentElement.dataset.businessInteriorRaidCasualtyAck=`error:${String(j?.error||r.status)}`;}catch(_){document.documentElement.dataset.businessInteriorRaidCasualtyAck='error:network';}}
+  }finally{state.casualtyCheckpointBusy=false;}return true;
+}
 function _damageBusinessRaidNpc(bi,state,n,damage,source){
   if(!n||n.dead)return false;n.hp=Math.max(0,n.hp-Math.max(1,Math.round(damage||1)));n._hurtAt=n._hurtAnimUntil=performance.now()+360;
   if(n.hp>0)return true;n.dead=true;n.deadAt=performance.now();n.walking=false;n._shotAt=0;
   const row=[...state.attackerRoster,...state.guardRoster,...state.defenderRoster].find(x=>x.rosterGroup===n.raidRosterGroup&&String(x.id)===String(n.raidRosterId));if(row){row.casualty=true;row.hp=0;}
   spawnFloatText(n.r,n.c,'УБИТ',{color:'#ff6969',size:14,life:1300});
-  document.documentElement.dataset.businessInteriorRaidCasualty=`${n.businessRaidSide}:${n.raidRosterId}:${source||'combat'}`;return true;
+  document.documentElement.dataset.businessInteriorRaidCasualty=`${n.businessRaidSide}:${n.raidRosterId}:${source||'combat'}`;_checkpointBusinessInteriorRaidCasualties(bi,state);return true;
 }
 
 async function _resolveBusinessInteriorRaid(bi,state){
