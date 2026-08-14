@@ -19126,7 +19126,8 @@ class WorldSim:
                      'bullet_speed':float(stats.get('speed', 14.0)),
                      'sx':round(bot['x'],2), 'sy':round(bot['y'],2),
                      'tx':round(cop['x'],2), 'ty':round(cop['y'],2),
-                     'dmg':int(damage), 'miss':miss, 'killed':killed}]
+                     'hp':int(cop['hp']), 'dmg':int(damage),
+                     'miss':miss, 'killed':killed}]
         return []
 
     def tick_city_gangs(self, dt: float) -> list:

@@ -1,5 +1,39 @@
 # Mafiozi 3D optimization memory
 
+## Tracked boss-to-player ballistic arrival (2026-08-14)
+
+- Street bosses and empire fighters must not subtract player HP or apply their
+  signature weapon effect in the trigger frame. Reuse the existing bounded
+  projectile and one arrival callback; apply impact, damage and blood/effects
+  together only after `distance / visualSpeed`.
+- Clamp the same value used by the tracer and arrival callback to
+  `11.5..15.5` tiles/second, and attach the existing player reference as the
+  projectile target so a moving player does not leave the visible tracer at a
+  stale firing-time coordinate.
+- The delayed callback validates the living shooter, active player-war state,
+  living player, finite player position and exterior context. It adds no render
+  loop, actor scan, projectile pool, mesh, material or per-frame allocation.
+- `test_empire_player_ballistic_arrival.py` executes the production scheduling
+  function with controlled time and proves HP/impact stay unchanged before the
+  deadline and change exactly once at arrival.
+
+## Snapshot-safe street-gang ballistic arrival (2026-08-14)
+
+- Inter-gang and gang-to-police combat remains server-authoritative, but the
+  client must not show the new HP, impact, corpse or missing actor before the
+  visible tracer arrives. Respect packet `bullet_speed` and schedule the
+  presentation at the same calculated flight deadline.
+- Reuse one bounded gate keyed by the already-bounded gang/cop actor id. During
+  its short flight, the ordinary snapshot merger retains the prior HP/alive
+  presentation and may keep a server-removed victim in its current zone. The
+  arrival callback releases the gate, applies the packet result and existing
+  impact/corpse paths; no projectile history, render loop, pool or scan is
+  added.
+- Every packet stamps the existing shooter `_shotAt`, `_shotWeapon` and
+  `_shotSeq` fields. `test_world_gang_ballistic_arrival.py` executes both
+  production arrival paths and proves speed, pose, pre-arrival state and
+  post-arrival casualty timing.
+
 ## Front-readable booked-prisoner cuffs (2026-08-13, v399)
 
 - The custody cuff mesh was already active for the complete sentence, but its

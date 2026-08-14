@@ -75,6 +75,10 @@ reconnect and duplicate resolve requests must be idempotent.
 
 - Families can be active, rebuilding, vassalized or ruined. Ruin removes their
   political capital and holdings; comeback uses a real available HQ building.
+- While `hospital_until` is active, the boss has one stable treatment activity
+  and cannot personally recruit, expand, acquire, fortify or start an NPC war.
+  The family still receives income, pays wages and advances its bounded server
+  tick; player-war and NPC-war activity must not overwrite the hospital state.
 - A returning family starts small and has a finite recovery stipend. It does
   not receive endless free fighters or cash.
 - The fighter cap is 20. Paid recruitment changes treasury, members and
@@ -92,6 +96,14 @@ reconnect and duplicate resolve requests must be idempotent.
 
 - Player and NPC relations use explicit scores and pacts. A UI status must name
   the exact enemy boss and gang, not merely say “at war”.
+- NPC holding defence includes the concrete living guard assignment for the
+  exact namespaced target. A resolved NPC war applies bounded permanent member
+  and strength losses to both sides, updates both win/loss counters and records
+  both perspectives without charging a captured guard twice.
+- Reload each acting empire row inside the shared war transaction so losses
+  inflicted earlier in the same tick cannot be overwritten by the opening
+  snapshot. Retain at most 80 persistent events per family; one noisy family
+  must never evict the useful memory of another boss.
 - NPC wars can exhaust into truce, then cool toward peace; alliances form only
   through the existing diplomacy cadence.
 - Third-party reactions, ally defence and territorial penalties reuse the
@@ -185,6 +197,16 @@ guards. The current server scorer must preserve these rules:
   heavy bodies are rare high-tier variation, not the default security uniform.
 - Indoor combat reuses existing LOS, cover, tracers, hit/death and blood paths.
   Furniture for all eight operations participates in collision and cover.
+- A boss or empire fighter shooting the player applies damage and weapon
+  effects only when the existing tracked projectile reaches the player. Keep
+  the same capped `11.5..15.5` visual speed for flight timing, and reject the
+  delayed hit if the shooter, player or street-combat context is no longer
+  valid; never subtract HP in the trigger frame.
+- Inter-gang and gang-to-police packets use their authoritative
+  `bullet_speed`, stamp the shooter pose/sequence immediately, then reveal the
+  server HP, impact and casualty only at tracer arrival. A bounded per-actor
+  arrival gate prevents the ordinary world snapshot from exposing that result
+  early, including when the server has already removed the last dead fighter.
 - Corpse labels are short-lived and lowest priority. Screen-space decluttering
   preserves live/focused/HP labels without allocating new meshes or DOM nodes
   each frame.

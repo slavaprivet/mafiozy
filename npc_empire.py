@@ -56,6 +56,7 @@ NPC_RECOVERY_STIPEND_TICKS = 12
 NPC_HQ_FRONT_INCOME_PER_MINUTE = 24
 NPC_LIQUIDITY_BUFFER_TICKS = 96
 NPC_MIN_LIQUIDITY_CEILING = 75_000
+NPC_EVENT_MEMORY_LIMIT = 80
 
 
 @dataclass(frozen=True)
@@ -1192,6 +1193,17 @@ def _coalition_support_power(diplomacy_state: dict, empire_rows: dict,
     return min(support, max(8, own_strength * 45 // 100))
 
 
+def _npc_holding_guard_power(profile: EmpireProfile, living: int) -> int:
+    """Concrete assigned guards add bounded local power to their own holding."""
+    return max(0, int(living)) * (8 + profile.loyalty // 12)
+
+
+def _npc_war_losses(power_received: float, living_members: int) -> int:
+    """Convert opposing power into bounded permanent roster casualties."""
+    return min(max(0, int(living_members) - 1),
+               max(1, int(max(0.0, float(power_received)) / 220)))
+
+
 async def _advance_npc_alliances(db, diplomacy_state: dict, empire_rows: dict,
                                  now: int, events: list[dict]) -> None:
     """Form earned alliances and let them coordinate against the top threat."""
@@ -1297,6 +1309,14 @@ async def _advance_npc_peace(db, diplomacy_state: dict, now: int,
 def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int,
                       brain: dict | None = None) -> dict:
     """Give the client one concrete, slowly changing destination for this boss."""
+    if int(_row_field(row, 'hospital_until', 0) or 0) > now:
+        hospital_id = str(_row_field(row, 'hospital_id', 'hospital') or 'hospital')
+        return {
+            'kind': 'hospital', 'target_id': hospital_id,
+            'phase': 'treatment', 'created_at': now,
+            'ui_label': 'БОСС НА ЛЕЧЕНИИ', 'intent': 'recover',
+            'summary': f'{profile.leader_name} проходит лечение; семьёй временно руководят капо',
+        }
     recruitment = _recruitment_state(profile, row, now)
     if recruitment:
         return {
@@ -2196,6 +2216,14 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             leader_id = str(row['leader_id'])
             if leader_id in ruined_this_tick:
                 continue
+            # An earlier family in this same transaction may already have
+            # inflicted casualties or captured one of this leader's holdings.
+            # Never overwrite that result from the tick's opening snapshot.
+            row = await (await db.execute(
+                "SELECT * FROM npc_empires WHERE leader_id=?", (leader_id,)
+            )).fetchone()
+            if not row or str(row['status']) not in {'active', 'rebuilding', 'vassal'}:
+                continue
             profile = PROFILE_BY_ID[leader_id]
             elapsed = max(0, now - int(row['last_tick'] or now))
             ticks = min(MAX_OFFLINE_TICKS, elapsed // TICK_SECONDS)
@@ -2288,13 +2316,14 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 affordable_businesses=len(affordable),
             )
             strategy = str(brain['strategy'])
+            boss_available = int(row['hospital_until'] or 0) <= now
             strategic_action_taken = False
             last_recruit_count = max(0, int(row['last_recruit_count'] or 0))
             last_recruit_at = max(0, int(row['last_recruit_at'] or 0))
             recruit_chance = .96 if strategy in {'recover', 'recruit', 'fortify'} else .22
             recruit_wave_due = _strategy_execution_due(
                 profile, 'recruit', now // TICK_SECONDS)
-            if (recruit_wave_due and insolvent_ticks == 0
+            if (boss_available and recruit_wave_due and insolvent_ticks == 0
                     and pending_recruits == 0 and members < target_members
                     and treasury >= recruit_cost and rng.random() < recruit_chance):
                 hired = max((count for count in range(1, min(3, target_members-members)+1)
@@ -2312,7 +2341,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     strategic_action_taken = True
             army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
             expand_chance = .90 if strategy == 'expand' else .035
-            if (not strategic_action_taken and building_count < 8
+            if (boss_available and not strategic_action_taken and building_count < 8
                     and rng.random() < expand_chance):
                 choices = neutral_building_choices
                 if choices:
@@ -2350,7 +2379,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
             acquire_chance = .92 if strategy == 'acquire' else .025
-            if (not strategic_action_taken and neutral_businesses and len(owned_businesses) < 5
+            if (boss_available and not strategic_action_taken and neutral_businesses and len(owned_businesses) < 5
                     and rng.random() < acquire_chance):
                 if affordable:
                     hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
@@ -2381,7 +2410,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         events.append({'leader_id':leader_id,'kind':'business_bought','target_id':bid,
                                        'summary':f'{profile.gang_name} купили бизнес {bid}'})
                         strategic_action_taken = True
-            if not strategic_action_taken and strategy == 'fortify' and holdings:
+            if (boss_available and not strategic_action_taken
+                    and strategy == 'fortify' and holdings):
                 fortify_cost = 420 + len(holdings) * 45
                 if treasury - fortify_cost >= operating_reserve(
                         members, guard_slots, active_wars):
@@ -2406,7 +2436,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             # Large formations stop behaving like small raiding parties: once
             # the boss has a real army, it continually pressures rival assets.
             war_chance = .82 if strategy == 'retaliate' else (.018 + profile.aggression / 3000)
-            if (not strategic_action_taken and leader_id not in player_war_leaders
+            if (boss_available and not strategic_action_taken
+                    and leader_id not in player_war_leaders
                     and rng.random() < war_chance):
                 holding_counts: dict[str, int] = {}
                 for owner in list(building_owner.values()) + list(business_owner.values()):
@@ -2461,13 +2492,43 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         diplomacy_state, empire_row_by_id, leader_id, rival.leader_id)
                     defense_support = _coalition_support_power(
                         diplomacy_state, empire_row_by_id, rival.leader_id, leader_id)
+                    target_ref = f"{str(target['kind'])}:{str(target['holding_id'])}"
+                    target_guards = int((await (await db.execute(
+                        "SELECT living FROM npc_empire_guard_assignments "
+                        "WHERE owner_kind='npc' AND owner_id=? AND holding_ref=?",
+                        (rival.leader_id, target_ref),
+                    )).fetchone() or [0])[0] or 0)
+                    defender_members = max(1, int(rival_state['members'] or 1))
+                    defender_strength = max(20, int(rival_state['strength'] or 20))
                     attack_power = (strength * (.72 + rng.random()*.58)
                                     + profile.aggression + attack_support)
-                    defense_power = (int(rival_state['strength']) * (.78 + rng.random()*.52)
-                                     + int(target['defense']) + defense_support)
-                    casualty = max(1, int((attack_power+defense_power)/180))
-                    strength = max(20, strength-casualty*4)
-                    members = max(1, members-casualty//2)
+                    guard_power = _npc_holding_guard_power(rival, target_guards)
+                    defense_power = (defender_strength * (.78 + rng.random()*.52)
+                                     + int(target['defense']) + defense_support
+                                     + guard_power)
+                    attacker_losses = _npc_war_losses(defense_power, members)
+                    defender_losses = _npc_war_losses(attack_power, defender_members)
+                    strength = max(20, strength - attacker_losses *
+                                   (8 + rival.aggression // 20))
+                    members = max(1, members - attacker_losses)
+                    defender_strength = max(
+                        20, defender_strength - defender_losses *
+                        (8 + profile.aggression // 20))
+                    defender_members = max(1, defender_members - defender_losses)
+                    guard_losses = min(target_guards, defender_losses)
+                    if guard_losses:
+                        await db.execute(
+                            "UPDATE npc_empire_guard_assignments "
+                            "SET living=MAX(0,living-?),assigned=MAX(0,assigned-?),updated_at=? "
+                            "WHERE owner_kind='npc' AND owner_id=? AND holding_ref=?",
+                            (guard_losses, guard_losses, now,
+                             rival.leader_id, target_ref),
+                        )
+                    await db.execute(
+                        "UPDATE npc_empires SET members=?,strength=?,version=version+1 "
+                        "WHERE leader_id=?",
+                        (defender_members, defender_strength, rival.leader_id),
+                    )
                     if attack_power > defense_power:
                         captured_kind=str(target['kind']);captured_id=str(target['holding_id'])
                         await _clear_holding_guard_assignment(
@@ -2504,7 +2565,7 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                     if captured_operation else '')
                         events.append({'leader_id':leader_id,'kind':'war_won','target_id':rival.leader_id,
                                        'operation_type':captured_operation,
-                                       'summary':f'{profile.gang_name} отбили {target["kind"]} {target["holding_id"]} у {rival.gang_name}{conversion}'})
+                                       'summary':f'{profile.gang_name} отбили {target["kind"]} {target["holding_id"]} у {rival.gang_name}{conversion}; потери {attacker_losses}:{defender_losses}'})
                         await db.execute(
                             "UPDATE npc_empires SET wins=wins+1 WHERE leader_id=?", (leader_id,)
                         )
@@ -2527,12 +2588,39 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                                 'summary': f'{profile.leader_name} разгромил {rival.leader_name}; '
                                            f'возвращение через {(comeback_at-now)//60} мин.',
                             })
+                        else:
+                            await db.execute(
+                                "UPDATE npc_empires SET losses=losses+1 WHERE leader_id=?",
+                                (rival.leader_id,),
+                            )
+                            events.append({
+                                'leader_id': rival.leader_id, 'kind': 'war_lost',
+                                'target_id': leader_id,
+                                'summary': f'{rival.gang_name} потеряли {target["kind"]} '
+                                           f'{target["holding_id"]} в бою с {profile.gang_name}; '
+                                           f'потери {defender_losses}:{attacker_losses}',
+                            })
                     else:
                         await _react_to_npc_attack(
                             db, diplomacy_state, leader_id, rival.leader_id, now, events,
                         )
                         events.append({'leader_id':leader_id,'kind':'war_lost','target_id':rival.leader_id,
-                                       'summary':f'{rival.gang_name} отбили нападение {profile.gang_name}'})
+                                       'summary':f'{rival.gang_name} отбили нападение {profile.gang_name}; потери {attacker_losses}:{defender_losses}'})
+                        await db.execute(
+                            "UPDATE npc_empires SET losses=losses+1 WHERE leader_id=?",
+                            (leader_id,),
+                        )
+                        await db.execute(
+                            "UPDATE npc_empires SET wins=wins+1 WHERE leader_id=?",
+                            (rival.leader_id,),
+                        )
+                        events.append({
+                            'leader_id': rival.leader_id, 'kind': 'war_won',
+                            'target_id': leader_id,
+                            'summary': f'{rival.gang_name} удержали {target["kind"]} '
+                                       f'{target["holding_id"]} от {profile.gang_name}; '
+                                       f'потери {defender_losses}:{attacker_losses}',
+                        })
             next_status = 'active' if row['status'] == 'rebuilding' and (members >= 4 or treasury >= 1500) else str(row['status'])
             liquidity = settle_operating_liquidity(
                 treasury, max(income_schedule, default=per_tick), members,
@@ -2569,6 +2657,15 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             await db.execute(
                 "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
                 (event['leader_id'], event['kind'], event.get('target_id',''), event['summary'], now),
+            )
+        # Persistent memory is per-family and bounded. A busy rival must not
+        # grow the database forever or evict another boss's entire history.
+        for memory_leader in PROFILE_BY_ID:
+            await db.execute(
+                "DELETE FROM npc_empire_events WHERE leader_id=? AND id NOT IN "
+                "(SELECT id FROM npc_empire_events WHERE leader_id=? "
+                "ORDER BY id DESC LIMIT ?)",
+                (memory_leader, memory_leader, NPC_EVENT_MEMORY_LIMIT),
             )
         await _recompute_districts(db, now)
         await db.execute("DELETE FROM npc_empire_assaults WHERE expires_at<?", (now - 3600,))
@@ -3176,7 +3273,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     # resolution, so the visible order cannot point at an unrelated building.
     for empire in result:
         war = war_rows.get(str(empire['leader_id']))
-        if not war:
+        if not war or int(empire.get('hospital_until') or 0) > now:
             continue
         pending = pending_by_leader.get(str(empire['leader_id']))
         target = (next((item for item in player_business_targets
@@ -3220,6 +3317,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
     row_by_id = {str(row['leader_id']): row for row in rows}
     for empire in result:
         if str(empire['leader_id']) in war_rows:
+            continue
+        if int(empire.get('hospital_until') or 0) > now:
             continue
         enemies = war_enemies.get(empire['leader_id']) or []
         if not enemies:

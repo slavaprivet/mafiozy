@@ -7223,10 +7223,49 @@ let npc_gang_economy = Object.create(null);
 let npc_business_operations = [];
 function drawNpcBusinessControl(){ /* rendered by the shared POI ownership layer */ }
 function _gangSquadMorale(g){return Math.max(0,Math.min(1,+g?.morale||0));}
-function _markGangBotShot(bot){if(bot)bot.gangShotPose=performance.now()+240;}
-function _playWorldNpcWeaponShot(d){
-  const gangShotAudio=d?.weapon||'pistol';
-  if(typeof spawnBullet==='function')spawnBullet(d.sy,d.sx,d.ty,d.tx,{fromNpc:true,weapon:gangShotAudio,bullet_speed:d.bullet_speed});
+const _worldGangArrivalGates=new Map();
+function _worldGangArrivalGate(kind,id,delayMs=0){
+  const key=`${kind}:${String(id||'')}`,now=performance.now(),prior=_worldGangArrivalGates.get(key);if(delayMs>0){const gate={until:now+Math.max(80,delayMs)};_worldGangArrivalGates.set(key,gate);return gate;}if(prior&&prior.until>now)return prior;if(prior)_worldGangArrivalGates.delete(key);return null;
+}
+function _releaseWorldGangArrivalGate(kind,id){_worldGangArrivalGates.delete(`${kind}:${String(id||'')}`);}
+function _markGangBotShot(bot,weapon='pistol'){
+  if(!bot)return;const now=performance.now();bot.gangShotPose=now+240;bot._shotAt=now;bot._lastShotAt=now;bot._shotWeapon=weapon;bot._shotSeq=(+bot._shotSeq||0)+1;
+}
+function _findWorldGangBot(botId){
+  const key=String(botId||'');if(!key)return null;
+  for(const zone of Object.values(aggroZones||{})){const bot=(zone?.bots||[]).find(row=>String(row.id)===key);if(bot)return bot;}
+  return null;
+}
+function _playWorldNpcWeaponShot(d,onArrival=null){
+  if(!d||!Number.isFinite(+d.sy)||!Number.isFinite(+d.sx)||!Number.isFinite(+d.ty)||!Number.isFinite(+d.tx))return 0;
+  const weapon=String(d.weapon||'pistol'),ang=Math.atan2(+d.ty-(+d.sy),+d.tx-(+d.sx)),md=weaponMuzzleD(weapon,.92),sR=+d.sy+Math.sin(ang)*md,sC=+d.sx+Math.cos(ang)*md,dist=Math.hypot(+d.ty-sR,+d.tx-sC),requestedSpeed=Number.isFinite(+d.bullet_speed)&&+d.bullet_speed>0?+d.bullet_speed:(+weaponProfile(weapon).bulletSpeed||BULLET_SPEED),visualSpeed=Math.min(requestedSpeed,Math.max(1.2,dist/.13)),flightMs=Math.max(80,dist/Math.max(.1,visualSpeed)*1000),shooter=_findWorldGangBot(d.shooter_bot_id||d.bot_id);
+  _markGangBotShot(shooter,weapon);if(d.shooter_bot_id||d.bot_id)lastBossShotAt.set(String(d.shooter_bot_id||d.bot_id),performance.now());
+  spawnBullet(sR,sC,+d.ty,+d.tx,{hit:!d.miss,fromNpc:true,weapon,speed:requestedSpeed});spawnMuzzle(sR,sC,ang,weapon,true);
+  if(typeof onArrival==='function')setTimeout(()=>onArrival(),flightMs);
+  document.documentElement.dataset.worldGangBallisticShot=`${String(d.shooter_bot_id||d.bot_id||'gang')}:${weapon}:${requestedSpeed.toFixed(1)}:${Math.round(flightMs)}`;
+  return flightMs;
+}
+function _applyIntergangBallisticArrival(d){
+  _releaseWorldGangArrivalGate('gang',d.bot_id);
+  let hitBot=null;
+  for(const zone of Object.values(aggroZones||{})){hitBot=(zone?.bots||[]).find(bot=>String(bot.id)===String(d.bot_id));if(hitBot)break;}
+  if(!hitBot)return false;
+  const oldHp=Math.max(0,+hitBot.hp||0);hitBot.hp=Number.isFinite(+d.hp)?Math.max(0,+d.hp):Math.max(0,oldHp-Math.max(0,+d.dmg||+d.damage||0));
+  spawnImpact(+d.ty,+d.tx,d.weapon||'pistol',true);
+  spawnFloatText(+d.ty-.45,+d.tx,`в€’${Math.max(1,+d.dmg||+d.damage||oldHp-hitBot.hp||1)}`,{color:d.crit?'#ffd45a':'#ff6868',size:d.crit?20:16,life:1050});
+  if(d.crit){const ang=Math.atan2(+d.ty-(+d.sy),+d.tx-(+d.sx));spawnCriticalBlood(+d.ty,+d.tx,Math.sin(ang),Math.cos(ang));}
+  if(d.killed||hitBot.hp<=0){if(!hitBot._corpseSpawned){hitBot._corpseSpawned=true;try{spawnBotCorpse(d.bot_id,false);}catch(e){}}hitBot.alive=false;}
+  document.documentElement.dataset.intergangBallisticArrival=`${String(d.shooter_bot_id||'gang')}>${String(d.bot_id||'gang')}:${Math.round(hitBot.hp)}`;
+  return true;
+}
+function _applyGangShotCopArrival(d){
+  _releaseWorldGangArrivalGate('cop',d.cop_id);
+  if(d.miss)return false;
+  const cop=[...(worldCops||[]),...(cityCops||[])].find(row=>String(row.id)===String(d.cop_id));
+  spawnImpact(+d.ty,+d.tx,d.weapon||'pistol',true);
+  if(cop){cop.hp=Number.isFinite(+d.hp)?Math.max(0,+d.hp):Math.max(0,(+cop.hp||0)-Math.max(0,+d.dmg||0));if(d.killed||cop.hp<=0){cop.alive=false;cop.deadAt=performance.now();}}
+  document.documentElement.dataset.gangShotCopArrival=`${String(d.bot_id||'gang')}>${String(d.cop_id||'cop')}:${Math.max(0,+d.hp||0)}`;
+  return true;
 }
 let _gangNestsSnapshotReady = false;
 const _businessDefenseShotAt = new Map();
@@ -10007,6 +10046,18 @@ function _tickEmpirePlayerStatuses(now=performance.now()){
   if(now>=(player._empireDotUntil||0)){player._empireDotUntil=0;player._empireDotDamage=0;player._empireDotAt=0;}
 }
 function _empirePlayerSpeedMultiplier(now=performance.now()){return now<(player._empireSlowUntil||0) ? .48 : now<(player._empireSuppressedUntil||0) ? .78 : 1;}
+function _queueEmpirePlayerBallisticHit(n,damage,profile,weapon,muzzle,visualSpeed,now=performance.now()){
+  const shotR=+player.r,shotC=+player.c,distance=Math.hypot(shotR-(+muzzle.r||0),shotC-(+muzzle.c||0)),flightMs=Math.max(80,distance/Math.max(.1,visualSpeed)*1000),shotLeaderId=_empireLeaderIdOf(n);
+  setTimeout(()=>{
+    const impactNow=performance.now();
+    if(myDead||_buildingInt||_bankInt||!n?._empirePlayerWar||!_empireCombatReady(n,impactNow)||_empireLeaderIdOf(n)!==shotLeaderId||!Number.isFinite(+player.r)||!Number.isFinite(+player.c))return;
+    const impactR=+player.r,impactC=+player.c;
+    spawnImpact(impactR,impactC,weapon,true);
+    _applyEmpirePlayerWeaponHit(n,damage,profile,impactNow);
+    document.documentElement.dataset.empirePlayerBallisticImpact=`${shotLeaderId}>player:${weapon}:${Math.round(flightMs)}`;
+  },flightMs);
+  return flightMs;
+}
 function _empirePlayerCombatThink(n,now,dt){
   if(!n?._empirePlayerWar||myDead||_buildingInt||_bankInt||!_empireCombatReady(n,now))return false;
   const dr=player.r-n.r,dc=player.c-n.c,d=Math.hypot(dr,dc)||.001;if(d>15.5){n._empireWarFighting=false;return false;}
@@ -10026,8 +10077,9 @@ function _empirePlayerCombatThink(n,now,dt){
   if(d>range||now<(n._nextShootAt||0))return true;
   const pressing=order.type==='press'||order.type==='focus',cadence=(pressing ? .82-mind.courage*.08 : 1.06-mind.patience*.08)*(doctrine.signature==='sync_volley' ? .9 : 1);n._nextShootAt=now+Math.max(300,+profile.cooldown||1050)*cadence+((+n._empireStyle||0)%5)*24;n._shotAt=now;n._lastShotAt=now;n._shotSeq=(+n._shotSeq||0)+1;n._shotWeapon=weapon;
   const marked=now<(player._empireMarkedUntil||0),hidden=now<(n._empireHiddenUntil||0),hitChance=Math.max(.35,Math.min(.96,(+profile.hit||.72)+(n._empireBoss ? .04+mind.patience*.035 : 0)+(marked ? .07 : 0)+(order.type==='focus' ? .03+mind.patience*.025 : 0)+(hidden ? .05 : 0))),hit=Math.random()<hitChance,miss=hit?0:(Math.random()<.5?-1:1)*(.5+Math.random()*.7),aimR=player.r+miss,aimC=player.c-miss*.35,muz=_npcMuzzleWorldPoint(n.r,n.c,n.ang,weapon,.88),projectileKind=profile.effect==='arrow'?'arrow':profile.effect==='pull'?'harpoon':profile.kind==='dart'?'dart':'';
-  if(!melee){if(!projectileKind)spawnMuzzle(muz.r,muz.c,n.ang,weapon,true);spawnBullet(muz.r,muz.c,aimR,aimC,{hit,fromNpc:true,weapon,projectileKind,speed:profile.speed||undefined,color:profile.effect==='shock'?'#62c7ef':undefined});}
-  _empireRecordAttack(n,hit,now);if(hit)_applyEmpirePlayerWeaponHit(n,Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1))),profile,now);return true;
+  const visualSpeed=melee?0:Math.max(11.5,Math.min(15.5,+profile.speed||+weaponProfile(weapon).bulletSpeed||15.5));
+  if(!melee){if(!projectileKind)spawnMuzzle(muz.r,muz.c,n.ang,weapon,true);spawnBullet(muz.r,muz.c,aimR,aimC,{hit,fromNpc:true,weapon,projectileKind,speed:visualSpeed,color:profile.effect==='shock'?'#62c7ef':undefined,targetActor:hit?player:null});}
+  _empireRecordAttack(n,hit,now);if(hit){const damage=Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1)));if(melee)setTimeout(()=>{if(!myDead&&!_buildingInt&&!_bankInt&&n?._empirePlayerWar&&_empireCombatReady(n,performance.now()))_applyEmpirePlayerWeaponHit(n,damage,profile,performance.now());},170);else _queueEmpirePlayerBallisticHit(n,damage,profile,weapon,muz,visualSpeed,now);}return true;
 }
 function _empireActivityLabel(activity) {
   if(activity?.kind==='gang_war'){
@@ -22830,13 +22882,14 @@ function applyCopsTargets(newCops) {
     if (o) {
       o.tx    = nc.x;  o.ty    = nc.y;
       o.ang   = nc.ang;
-      o.hp    = nc.hp; o.max_hp = nc.max_hp;
-      o.alive = nc.alive !== false;
+      if(!_worldGangArrivalGate('cop',nc.id)){o.hp=nc.hp;o.alive=nc.alive!==false;}
+      o.max_hp = nc.max_hp;
       next.push(o);
     } else {
       next.push({ ...nc, tx: nc.x, ty: nc.y });
     }
   }
+  for(const [id,o] of oldById)if(!next.includes(o)&&_worldGangArrivalGate('cop',id))next.push(o);
   worldCops = next;
 }
 
@@ -22849,7 +22902,7 @@ function applyAggroTargets(newAggro) {
   const freshTids = new Set(Object.keys(newAggro || {}));
   // Удаляем зоны которых больше нет
   for (const tid of Object.keys(aggroZones)) {
-    if (!freshTids.has(tid)) delete aggroZones[tid];
+    if (!freshTids.has(tid)&&!(aggroZones[tid]?.bots||[]).some(bot=>_worldGangArrivalGate('gang',bot.id)))delete aggroZones[tid];
   }
   for (const tid of freshTids) {
     const fresh = newAggro[tid];
@@ -22896,7 +22949,8 @@ function applyAggroTargets(newAggro) {
         const aimDelta=Math.atan2(Math.sin(nextAng-(ob.tAng??ob.ang??0)),
           Math.cos(nextAng-(ob.tAng??ob.ang??0)));
         if(Math.abs(aimDelta)>.035)ob.tAng=nextAng;
-        ob.hp    = nb.hp;   ob.max_hp = nb.max_hp;
+        if(!_worldGangArrivalGate('gang',nb.id))ob.hp=nb.hp;
+        ob.max_hp = nb.max_hp;
         ob.kind  = nb.kind;
         ob.faction = nb.faction || fresh.faction || cur.faction || 'purple';
         ob.weapon = nb.weapon;
@@ -22918,6 +22972,7 @@ function applyAggroTargets(newAggro) {
         });
       }
     }
+    for(const [id,ob] of oldById)if(!merged.includes(ob)&&_worldGangArrivalGate('gang',id))merged.push(ob);
     cur.bots = merged;
     // Укрытия не двигаются — перетираем как есть
     cur.covers = fresh.covers || [];
@@ -24907,6 +24962,8 @@ function handleEventPacket(d) {
         if(d.killed)myDeathBy='захватчики бизнеса';
       }
     }
+  } else if(kind==='gang_shot_cop'){
+    const flightMs=_playWorldNpcWeaponShot(d,()=>_applyGangShotCopArrival(d));if(flightMs)_worldGangArrivalGate('cop',d.cop_id,flightMs);
   } else if (kind === 'aggro_hit') {
     if(d.interior_business&&_buildingInt?.type==='business'&&String(_buildingInt.bizId)===String(d.business_id||'')){
       const npc=(_buildingInt.npcs||[]).find(n=>String(n.serverId||n.id)===String(d.bot_id));
@@ -24919,12 +24976,8 @@ function handleEventPacket(d) {
       return;
     }
     if(d.npc_gang_fight&&typeof d.sy==='number'&&typeof d.sx==='number'&&typeof d.ty==='number'&&typeof d.tx==='number'){
-      const wp=d.weapon||'pistol',ang=Math.atan2(d.ty-d.sy,d.tx-d.sx);
-      const md=weaponMuzzleD(wp,.92),sR=d.sy+Math.sin(ang)*md,sC=d.sx+Math.cos(ang)*md;
-      spawnBullet(sR,sC,d.ty,d.tx,{hit:true,fromNpc:true,weapon:wp,speed:18});
-      spawnMuzzle(sR,sC,ang,wp,true);
-      spawnImpact(d.ty,d.tx,wp,true);
-      if(d.shooter_bot_id)lastBossShotAt.set(String(d.shooter_bot_id),performance.now());
+      const flightMs=_playWorldNpcWeaponShot(d,()=>_applyIntergangBallisticArrival(d));if(flightMs)_worldGangArrivalGate('gang',d.bot_id,flightMs);
+      return;
     }
     // Немедленно показываем подтверждённый сервером урон. Раньше HP бойца
     // менялся только со следующим snapshot, поэтому попадание выглядело пустым.

@@ -332,8 +332,10 @@ def run():
                    "npc_business_controls", "npc_gang_economy",
                    "npc_business_operations", "drawNpcBusinessControl"):
         assert marker in world_source
-    for marker in ("_playWorldNpcWeaponShot", "gangShotAudio",
-                   "_markGangBotShot", "gangShotPose", "bullet_speed"):
+    for marker in ("_playWorldNpcWeaponShot", "_applyIntergangBallisticArrival",
+                   "_applyGangShotCopArrival", "_worldGangArrivalGate",
+                   "kind==='gang_shot_cop'", "_markGangBotShot",
+                   "gangShotPose", "bullet_speed", "speed:requestedSpeed"):
         assert marker in world_source
     assert "sentry-last-stand-retreat-surrender" in preview_source
     assert "businessControl" in preview_source
