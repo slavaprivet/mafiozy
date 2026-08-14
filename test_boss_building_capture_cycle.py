@@ -93,8 +93,8 @@ async def run() -> None:
             )
             left, right = sorted(("viktor", "rustam"))
             await db.execute(
-                "UPDATE npc_empire_diplomacy SET score=-100,pact='war',tension=100 "
-                "WHERE leader_a=? AND leader_b=?", (left, right),
+                "UPDATE npc_empire_diplomacy SET score=-100,pact='war',tension=100,last_event_at=? "
+                "WHERE leader_a=? AND leader_b=?", (start, left, right),
             )
             await db.commit()
 
@@ -129,15 +129,20 @@ async def run() -> None:
             treasury_before, members_before = db.execute(
                 "SELECT treasury,members FROM npc_empires WHERE leader_id='viktor'"
             ).fetchone()
+        capture_state = await ne.state_for(path, 101, now=captured_at)
+        capture_viktor = next(
+            item for item in capture_state["empires"]
+            if item["leader_id"] == "viktor"
+        )
         next_tick = captured_at + ne.TICK_SECONDS
         await ne.advance(path, now=next_tick)
         with sqlite3.connect(path) as db:
             treasury_after = db.execute(
                 "SELECT treasury FROM npc_empires WHERE leader_id='viktor'"
             ).fetchone()[0]
-        profile = ne.PROFILE_BY_ID["viktor"]
-        expected_delta = (18 + profile.commerce // 3 + income * 5
-                          - max(4, members_before * 3))
+        # The authoritative economy includes the $24/min HQ front, fighter
+        # payroll, concrete holding guards and the active-war logistics bill.
+        expected_delta = capture_viktor["economy"]["net_per_tick"]
         assert treasury_after - treasury_before == expected_delta, (
             treasury_before, treasury_after, expected_delta, operation, income
         )

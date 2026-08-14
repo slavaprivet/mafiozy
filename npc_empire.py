@@ -1422,13 +1422,21 @@ MEMORY_KINDS = {
     'recruit_completed': ('Новые бойцы', 'positive', 46),
     'hospitalized': ('Ранение босса', 'negative', 86),
 }
+MEMORY_KIND_ALIASES = {
+    # Builds before the canonical server event used this shorter kind.
+    'hospital': 'hospitalized',
+}
+
+
+def _canonical_memory_kind(kind: str) -> str:
+    return MEMORY_KIND_ALIASES.get(str(kind or ''), str(kind or ''))
 
 
 def _boss_memory_cards(events: list[dict], now: int, limit: int = 5) -> list[dict]:
     """Turn the persistent event log into a small, useful long-term memory."""
     cards = []
     for event in events:
-        kind = str(event.get('kind') or '')
+        kind = _canonical_memory_kind(str(event.get('kind') or ''))
         title, tone, importance = MEMORY_KINDS.get(kind, ('Событие семьи', 'neutral', 30))
         age = max(0, now - int(event.get('created_at') or now))
         effective = importance - min(importance - 12, age // 3600)
@@ -1454,7 +1462,7 @@ def _boss_adaptation(events: list[dict], now: int) -> dict:
     streak_kind = ''
     streak = 0
     for event in recent:
-        kind = str(event.get('kind') or '')
+        kind = _canonical_memory_kind(str(event.get('kind') or ''))
         outcome = 'win' if kind in wins else 'loss' if kind in defeats else ''
         if not outcome:
             continue
@@ -1466,7 +1474,7 @@ def _boss_adaptation(events: list[dict], now: int) -> dict:
     # Older clients wrote ``hospital`` while the learner originally expected
     # ``hospitalized``.  Accept both so real field defeats teach the boss.
     wounds = sum(1 for event in recent
-                 if str(event.get('kind') or '') in {'hospital', 'hospitalized'})
+                 if _canonical_memory_kind(str(event.get('kind') or '')) == 'hospitalized')
     loss_streak = streak if streak_kind == 'loss' else 0
     win_streak = streak if streak_kind == 'win' else 0
     if loss_streak >= 2 or wounds >= 2:
@@ -1985,7 +1993,7 @@ async def hospitalize_boss(db_path: str, leader_id: str, hospital_id: str = 'hos
             profile = PROFILE_BY_ID[leader_id]
             await db.execute(
                 "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
-                (leader_id, 'hospital', chosen,
+                (leader_id, 'hospitalized', chosen,
                  f'{profile.leader_name} доставлен в больницу на 60 секунд', now),
             )
         await db.commit()

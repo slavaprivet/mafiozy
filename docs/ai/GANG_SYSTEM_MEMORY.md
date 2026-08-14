@@ -79,6 +79,9 @@ reconnect and duplicate resolve requests must be idempotent.
   and cannot personally recruit, expand, acquire, fortify or start an NPC war.
   The family still receives income, pays wages and advances its bounded server
   tick; player-war and NPC-war activity must not overwrite the hospital state.
+- Persistent boss memory writes hospitalization as canonical `hospitalized`.
+  Readers normalize legacy `hospital` events so old saves retain the same
+  negative importance, wound count and defensive adaptation.
 - A returning family starts small and has a finite recovery stipend. It does
   not receive endless free fighters or cash.
 - The fighter cap is 20. Paid recruitment changes treasury, members and
