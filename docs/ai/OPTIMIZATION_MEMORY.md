@@ -10,6 +10,21 @@
   tab and record bounded simulation/render telemetry. Do not lower PC actor,
   lighting, animation or marker quality merely to satisfy a phone breakpoint.
 
+## Allocation-free pooled marker accounting (2026-08-21, v416)
+
+- The final `declutterNpcLabels()` result owns visible label truth. Count
+  casualty cards while accepting retained candidates into its reused stats
+  object; a pre-declutter count is wrong and a post-pass `filter()` allocates a
+  72-slot array every visible renderer frame. Live labels keep priorities 80+
+  while casualty cards use 10/72, so the existing priority contract remains
+  the discriminator.
+- Hospital roof markers are a fixed six-slot pool. Preserve their snapshot
+  order by counting equal `hospitalId` entries only at earlier indices with a
+  bounded `j < i` loop. This keeps identical stack heights and ordering while
+  removing up to six temporary `filter()` arrays per visible frame; it changes
+  no marker, texture repaint signature, source lifecycle, draw call or server
+  contract.
+
 ## Signature-cached player raid marker label (2026-08-21, v413)
 
 - The existing single player-raid marker group owns one precreated canvas
