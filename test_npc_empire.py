@@ -26,6 +26,13 @@ async def _base_db(path: str) -> None:
           last_collect INTEGER, status TEXT, blocked_until INTEGER,
           last_event_at INTEGER, level INTEGER, guards INTEGER, pending_notice TEXT
         );
+        -- Simulate the production schema from before per-action cooldowns.
+        CREATE TABLE npc_empire_relations (
+          leader_id TEXT NOT NULL, telegram_id INTEGER NOT NULL,
+          score INTEGER NOT NULL DEFAULT 0, pact TEXT NOT NULL DEFAULT 'none',
+          last_action_at INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (leader_id, telegram_id)
+        );
         INSERT INTO characters(telegram_id,cash) VALUES(101,10000),(202,100);
         """)
         await db.commit()
@@ -44,10 +51,151 @@ async def _scalar(path: str, sql: str, args=()):
         return row[0]
 
 
+async def _test_diplomacy_atomic_edges() -> None:
+    """Migration, final-write rollback and per-action serialization contracts."""
+    fd, path = tempfile.mkstemp(prefix="npc_empire_diplomacy_", suffix=".db")
+    os.close(fd)
+    try:
+        async with aiosqlite.connect(path) as db:
+            await db.executescript("""
+            CREATE TABLE characters (
+              telegram_id INTEGER PRIMARY KEY, cash INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE business_property_owners (
+              biz_id TEXT PRIMARY KEY, owner_uid INTEGER, owner_name TEXT,
+              acquired_at INTEGER, protected_until INTEGER
+            );
+            CREATE TABLE player_businesses (
+              telegram_id INTEGER, biz_id TEXT PRIMARY KEY, bought_at INTEGER,
+              last_collect INTEGER, status TEXT, blocked_until INTEGER,
+              last_event_at INTEGER, level INTEGER, guards INTEGER,
+              pending_notice TEXT
+            );
+            CREATE TABLE npc_empire_relations (
+              leader_id TEXT NOT NULL, telegram_id INTEGER NOT NULL,
+              score INTEGER NOT NULL DEFAULT 0, pact TEXT NOT NULL DEFAULT 'none',
+              last_action_at INTEGER NOT NULL DEFAULT 0,
+              PRIMARY KEY (leader_id, telegram_id)
+            );
+            INSERT INTO characters(telegram_id,cash) VALUES(303,5000);
+            INSERT INTO npc_empire_relations
+              (leader_id,telegram_id,score,pact,last_action_at)
+              VALUES('leila',303,1,'none',12345);
+            """)
+            await db.commit()
+
+        # A legacy aggregate timestamp cannot truthfully be attributed to an
+        # action kind.  Migration creates an empty ledger instead of blocking
+        # every action, and a repeated schema pass preserves new exact clocks.
+        await ne.ensure_schema(path)
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_relation_actions "
+            "WHERE leader_id='leila' AND telegram_id=303",
+        ) == 0
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "INSERT INTO npc_empire_relation_actions VALUES(?,?,?,?)",
+                ("leila", 303, "respect", 54321),
+            )
+            await db.commit()
+        await ne.ensure_schema(path)
+        await ne.ensure_schema(path)
+        assert await _scalar(
+            path,
+            "SELECT last_action_at FROM npc_empire_relation_actions "
+            "WHERE leader_id='leila' AND telegram_id=303 AND action_kind='respect'",
+        ) == 54321
+
+        # Failure on the final event INSERT must roll back a first-time
+        # relation row as well as both balances, empire version and action clock.
+        cash_before = await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=303")
+        treasury_before = await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='sofia'")
+        version_before = await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='sofia'")
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_sofia_diplomacy_event
+                BEFORE INSERT ON npc_empire_events
+                WHEN NEW.kind='diplomacy' AND NEW.leader_id='sofia'
+                BEGIN SELECT RAISE(ABORT, 'forced final diplomacy rollback'); END
+            """)
+            await db.commit()
+        try:
+            await ne.diplomacy_action(path, 303, "sofia", "gift", now=2_100_000_000)
+            raise AssertionError("final diplomacy event failure did not abort")
+        except sqlite3.IntegrityError as error:
+            assert "forced final diplomacy rollback" in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_sofia_diplomacy_event")
+                await db.commit()
+        assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=303") == cash_before
+        assert await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='sofia'") == treasury_before
+        assert await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='sofia'") == version_before
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relations "
+                  "WHERE leader_id='sofia' AND telegram_id=303"
+        ) == 0
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relation_actions "
+                  "WHERE leader_id='sofia' AND telegram_id=303"
+        ) == 0
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE leader_id='sofia' AND target_id='303' AND kind='diplomacy'"
+        ) == 0
+
+        # BEGIN IMMEDIATE serializes the same action into one mutation and one
+        # cooldown, while independent action kinds retain separate clocks.
+        same_kind = await asyncio.gather(
+            ne.diplomacy_action(path, 303, "marat", "respect", now=2_100_000_010),
+            ne.diplomacy_action(path, 303, "marat", "respect", now=2_100_000_010),
+        )
+        assert sum(bool(result["ok"]) for result in same_kind) == 1
+        assert sorted(result.get("error", "") for result in same_kind) == ["", "cooldown"]
+        assert await _scalar(
+            path, "SELECT score FROM npc_empire_relations "
+                  "WHERE leader_id='marat' AND telegram_id=303"
+        ) == 3
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relation_actions "
+                  "WHERE leader_id='marat' AND telegram_id=303 AND action_kind='respect'"
+        ) == 1
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE leader_id='marat' AND target_id='303' AND kind='diplomacy'"
+        ) == 1
+
+        cross_kind = await asyncio.gather(
+            ne.diplomacy_action(path, 303, "emil", "respect", now=2_100_000_020),
+            ne.diplomacy_action(path, 303, "emil", "insult", now=2_100_000_020),
+        )
+        assert all(result["ok"] for result in cross_kind)
+        assert await _scalar(
+            path, "SELECT score FROM npc_empire_relations "
+                  "WHERE leader_id='emil' AND telegram_id=303"
+        ) == -7
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relation_actions "
+                  "WHERE leader_id='emil' AND telegram_id=303 "
+                  "AND action_kind IN ('respect','insult')"
+        ) == 2
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE leader_id='emil' AND target_id='303' AND kind='diplomacy'"
+        ) == 2
+    finally:
+        try:
+            os.remove(path)
+        except PermissionError:
+            pass
+
+
 async def run() -> None:
     assert ne.NPC_EMPIRE_MAX_FIGHTERS == 20
     assert len(ne.BUILDING_OPERATIONS) == 8
     assert len(ne.BUILDING_AREAS) == 101
+    await _test_diplomacy_atomic_edges()
     assert not set(ne.BUILDING_AREAS).intersection(p.hq_key for p in ne.PROFILES)
     assert ne.building_operation_income("print_shop", 27) == 200
     assert ne.building_operation_income("print_shop", 4) == 175
@@ -293,15 +441,72 @@ async def run() -> None:
             )
             await db.commit()
 
+        leila_treasury = await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='leila'")
+        leila_version = await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='leila'")
         gift = await ne.diplomacy_action(path, 101, "leila", "gift", now=2_000_000_000)
         assert gift["ok"] and gift["cost"] == 500 and gift["cash"] == 9500 and gift["relation"] == 12
         assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101") == 9500
+        assert await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='leila'") == leila_treasury + 500
+        assert await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='leila'") == leila_version + 1
         failed = await ne.diplomacy_action(path, 202, "leila", "gift", now=2_000_000_001)
         assert not failed["ok"] and failed["error"] == "no cash"
         assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=202") == 100
+        assert await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='leila'") == leila_treasury + 500
         first = await ne.diplomacy_action(path, 101, "rustam", "respect", now=2_000_000_010)
-        second = await ne.diplomacy_action(path, 101, "rustam", "respect", now=2_000_000_011)
-        assert first["ok"] and not second["ok"] and second["error"] == "cooldown"
+        other_kind = await ne.diplomacy_action(path, 101, "rustam", "insult", now=2_000_000_011)
+        second = await ne.diplomacy_action(path, 101, "rustam", "respect", now=2_000_000_012)
+        repeated_other = await ne.diplomacy_action(path, 101, "rustam", "insult", now=2_000_000_012)
+        assert first["ok"] and other_kind["ok"]
+        assert not second["ok"] and second["error"] == "cooldown" and second["retry_after"] == 3598
+        assert not repeated_other["ok"] and repeated_other["error"] == "cooldown" and repeated_other["retry_after"] == 899
+
+        # A forced failure after both money updates rolls the entire transfer back.
+        rollback_cash = await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101")
+        rollback_treasury = await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='leila'")
+        rollback_version = await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='leila'")
+        rollback_action_at = await _scalar(
+            path, "SELECT last_action_at FROM npc_empire_relation_actions "
+                  "WHERE leader_id='leila' AND telegram_id=101 AND action_kind='gift'"
+        )
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_leila_relation BEFORE UPDATE ON npc_empire_relations
+                WHEN NEW.leader_id='leila' AND NEW.telegram_id=101
+                BEGIN SELECT RAISE(ABORT, 'forced diplomacy rollback'); END
+            """)
+            await db.commit()
+        try:
+            await ne.diplomacy_action(path, 101, "leila", "gift", now=2_000_000_013)
+            raise AssertionError("forced diplomacy failure did not abort")
+        except sqlite3.IntegrityError as error:
+            assert "forced diplomacy rollback" in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_leila_relation")
+                await db.commit()
+        assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101") == rollback_cash
+        assert await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='leila'") == rollback_treasury
+        assert await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='leila'") == rollback_version
+        assert await _scalar(
+            path, "SELECT last_action_at FROM npc_empire_relation_actions "
+                  "WHERE leader_id='leila' AND telegram_id=101 AND action_kind='gift'"
+        ) == rollback_action_at
+
+        # BEGIN IMMEDIATE serializes concurrent gifts: only affordable transfers commit.
+        async with aiosqlite.connect(path) as db:
+            await db.execute("UPDATE characters SET cash=700 WHERE telegram_id=202")
+            await db.commit()
+        zara_treasury = await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='zara'")
+        zara_version = await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='zara'")
+        concurrent = await asyncio.gather(
+            ne.diplomacy_action(path, 202, "zara", "gift", now=2_000_000_014),
+            ne.diplomacy_action(path, 202, "zara", "gift", now=2_000_000_014),
+        )
+        assert sum(bool(result["ok"]) for result in concurrent) == 1
+        assert sorted(result.get("error", "") for result in concurrent) == ["", "no cash"]
+        assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=202") == 200
+        assert await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='zara'") == zara_treasury + 500
+        assert await _scalar(path, "SELECT version FROM npc_empires WHERE leader_id='zara'") == zara_version + 1
 
         # War is an explicit decision available only after relations turn negative.
         neutral_war = await ne.diplomacy_action(path, 101, "marco", "declare_war", now=2_000_000_020)
@@ -335,10 +540,14 @@ async def run() -> None:
         after_raid = await ne.state_for(path,101,now=2_000_000_923 + raid['hold_seconds'])
         assert next(e for e in after_raid["empires"]
                     if e["leader_id"] == "marco")["war_pressure"]["attacks"] == 1
+        marco_treasury = await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='marco'")
+        compensation_cash = await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101")
         compensation = await ne.diplomacy_action(path, 101, "marco", "compensation", now=2_000_000_924)
         assert compensation["ok"] and compensation["relation"] == -70 and compensation["pact"] == "war"
         compensation = await ne.diplomacy_action(path, 101, "marco", "compensation", now=2_000_000_925)
         assert compensation["ok"] and compensation["relation"] == -40 and compensation["pact"] == "truce"
+        assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101") == compensation_cash - 3000
+        assert await _scalar(path, "SELECT treasury FROM npc_empires WHERE leader_id='marco'") == marco_treasury + 3000
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_player_wars WHERE leader_id='marco' AND telegram_id=101") == 0
 
         too_far = await ne.prepare_assault(path, 101, "leila", 0, 0, now=2_000_001_000)
@@ -386,6 +595,7 @@ async def run() -> None:
         assert await _scalar(path, "SELECT status FROM npc_empires WHERE leader_id='leila'") == "ruined"
         assert await _scalar(path, "SELECT score FROM npc_empire_relations WHERE telegram_id=101 AND leader_id='leila'") == 0
         assert await _scalar(path, "SELECT pact FROM npc_empire_relations WHERE telegram_id=101 AND leader_id='leila'") == "none"
+        assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_relation_actions WHERE leader_id='leila'") == 0
         assert await _scalar(
             path, "SELECT COUNT(*) FROM npc_empire_diplomacy "
                   "WHERE (leader_a='leila' OR leader_b='leila') AND (score<>0 OR pact<>'none' OR tension<>0)"

@@ -22,8 +22,8 @@
   The red world ring, minimap point and retained 3D marker still identify the
   exact building when it is in view.
 
-Last reconciled with GitHub `main` at `1be90e35e013d280701e62af331a580ab24ba5df`
-on 2026-08-14.
+Last reconciled with GitHub `main` at `50f93f580ecb6e487b62a124c0edab3fc1b078b3`
+on 2026-08-21.
 
 This is the canonical hand-off for work involving gangs, bosses, criminal
 empires, diplomacy, properties, guards or raids. It records contracts that are
@@ -44,6 +44,26 @@ source before editing and update this document whenever a contract changes.
 - The client only displays the server response and publishes one event-only
   `playerPropertyGuardAssignment` dataset for QA. It does not infer or repair
   guard ownership locally.
+
+## Player-to-boss diplomacy
+
+- Diplomacy remains one `BEGIN IMMEDIATE` transaction. A paid `gift` or
+  `compensation` debits `characters.cash` and credits the recipient
+  `npc_empires.treasury` in that same transaction; a rejected or interrupted
+  action changes neither balance. The empire version advances with the credit
+  so the next authoritative state snapshot exposes the new treasury.
+- Cooldowns are keyed by `(leader_id, telegram_id, action_kind)` in
+  `npc_empire_relation_actions`. The legacy aggregate timestamp in
+  `npc_empire_relations` remains for compatibility and general history, but
+  must never decide a diplomacy cooldown: respect, apology, insult and threat
+  each retain their own clock even when the player interleaves other actions.
+- Empire collapse clears its per-action cooldown ledger together with political
+  capital. A returning boss therefore starts neutral without inheriting action
+  locks from the defeated incarnation.
+- Legacy aggregate timestamps cannot be attributed to an action kind, so the
+  migration intentionally starts the exact ledger empty once; subsequent
+  `ensure_schema` calls preserve every clock. Paid zero-cooldown actions still
+  have no request id/receipt and must not be described as HTTP retry-idempotent.
 
 ## Player-business raid objective
 

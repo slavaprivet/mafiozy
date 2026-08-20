@@ -1781,6 +1781,13 @@ async def ensure_schema(db_path: str) -> None:
             last_action_at INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (leader_id, telegram_id)
         );
+        CREATE TABLE IF NOT EXISTS npc_empire_relation_actions (
+            leader_id TEXT NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            action_kind TEXT NOT NULL,
+            last_action_at INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (leader_id, telegram_id, action_kind)
+        );
         CREATE TABLE IF NOT EXISTS npc_empire_diplomacy (
             leader_a TEXT NOT NULL,
             leader_b TEXT NOT NULL,
@@ -2399,6 +2406,9 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
     await db.execute(
         "UPDATE npc_empire_relations SET score=0,pact='none',last_action_at=? WHERE leader_id=?",
         (now, leader_id),
+    )
+    await db.execute(
+        "DELETE FROM npc_empire_relation_actions WHERE leader_id=?", (leader_id,)
     )
     await db.execute(
         "UPDATE npc_empire_diplomacy SET score=0,pact='none',tension=0,last_event_at=? "
@@ -4111,12 +4121,18 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
         if not empire or empire['status'] == 'ruined':
             await db.rollback(); return {'ok': False, 'error': 'leader rebuilding'}
         rel = await (await db.execute(
-            "SELECT score,pact,last_action_at FROM npc_empire_relations WHERE leader_id=? AND telegram_id=?",
+            "SELECT score,pact FROM npc_empire_relations WHERE leader_id=? AND telegram_id=?",
             (leader_id, telegram_id),
         )).fetchone()
         score = int(rel['score'] if rel else 0); pact = str(rel['pact'] if rel else 'none')
-        if cooldown and rel and now - int(rel['last_action_at'] or 0) < cooldown:
-            await db.rollback(); return {'ok': False, 'error': 'cooldown', 'retry_after': cooldown-(now-int(rel['last_action_at']))}
+        action_row = await (await db.execute(
+            "SELECT last_action_at FROM npc_empire_relation_actions "
+            "WHERE leader_id=? AND telegram_id=? AND action_kind=?",
+            (leader_id, telegram_id, action),
+        )).fetchone()
+        last_action_at = int(action_row['last_action_at'] if action_row else 0)
+        if cooldown and action_row and now - last_action_at < cooldown:
+            await db.rollback(); return {'ok': False, 'error': 'cooldown', 'retry_after': cooldown-(now-last_action_at)}
         if action == 'alliance' and score < 60:
             await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': 60}
         if action == 'truce' and score < -60:
@@ -4131,6 +4147,11 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             await db.rollback(); return {'ok': False, 'error': 'no cash', 'cost': cost, 'cash': cash}
         if cost:
             await db.execute("UPDATE characters SET cash=cash-? WHERE telegram_id=?", (cost, telegram_id))
+        if action in {'gift', 'compensation'}:
+            await db.execute(
+                "UPDATE npc_empires SET treasury=treasury+?,version=version+1 WHERE leader_id=?",
+                (cost, leader_id),
+            )
         if action == 'declare_war': score = -100; pact = 'war'
         elif action == 'street_attack': score = min(-1, clamp_relation(score + delta)); pact = 'war'
         elif action == 'alliance': score = clamp_relation(score + delta); pact = 'alliance'
@@ -4144,6 +4165,13 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?,?,?,?,?) "
             "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,pact=excluded.pact,last_action_at=excluded.last_action_at",
             (leader_id, telegram_id, score, pact, now),
+        )
+        await db.execute(
+            "INSERT INTO npc_empire_relation_actions"
+            "(leader_id,telegram_id,action_kind,last_action_at) VALUES(?,?,?,?) "
+            "ON CONFLICT(leader_id,telegram_id,action_kind) DO UPDATE SET "
+            "last_action_at=excluded.last_action_at",
+            (leader_id, telegram_id, action, now),
         )
         if pact == 'war':
             await db.execute(
