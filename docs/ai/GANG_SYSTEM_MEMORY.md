@@ -44,6 +44,15 @@ source before editing and update this document whenever a contract changes.
 - The client only displays the server response and publishes one event-only
   `playerPropertyGuardAssignment` dataset for QA. It does not infer or repair
   guard ownership locally.
+- A valid player assignment lazily reconciles only that owner's aggregates
+  inside the existing `BEGIN IMMEDIATE`, before capacity is checked. Concrete
+  rows joined to the owner's living `gang_members` are current truth: aggregate
+  `living` converges to their count, missing aggregates are restored, and an
+  aggregate-only legacy ghost becomes `living=0` without fabricating IDs.
+  Historical `assigned` may remain above `living` after casualties and is only
+  raised when concrete living count exceeds it. Never run this repair from a
+  state poll, infer it from partial ownership reads, or touch NPC/other-owner
+  rows, district guards or pending raid rosters.
 
 ## Player-to-boss diplomacy
 

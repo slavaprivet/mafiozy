@@ -670,6 +670,64 @@ async def _select_player_business_target_smart(
     return best
 
 
+async def _reconcile_player_guard_aggregates(db, owner_uid: int,
+                                              living_ids: list[int],
+                                              now: int) -> dict:
+    """Repair one player's aggregate guard counts from concrete living rows."""
+    owner_id = str(int(owner_uid)); living = {int(member_id) for member_id in living_ids}
+    if living:
+        marks = ','.join('?' for _ in living)
+        removed = (await db.execute(
+            "DELETE FROM npc_empire_player_guard_members WHERE owner_uid=? "
+            f"AND member_id NOT IN ({marks})",
+            (int(owner_uid), *sorted(living)),
+        )).rowcount
+    else:
+        removed = (await db.execute(
+            "DELETE FROM npc_empire_player_guard_members WHERE owner_uid=?",
+            (int(owner_uid),),
+        )).rowcount
+    concrete = {
+        str(row['holding_ref']): int(row['living'] or 0)
+        for row in await (await db.execute(
+            "SELECT holding_ref,COUNT(*) living "
+            "FROM npc_empire_player_guard_members WHERE owner_uid=? "
+            "GROUP BY holding_ref",
+            (int(owner_uid),),
+        )).fetchall()
+    }
+    aggregates = {
+        str(row['holding_ref']): (int(row['assigned'] or 0), int(row['living'] or 0))
+        for row in await (await db.execute(
+            "SELECT holding_ref,assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id=?",
+            (owner_id,),
+        )).fetchall()
+    }
+    repaired = max(0, int(removed or 0))
+    for holding_ref, (assigned, aggregate_living) in aggregates.items():
+        exact_living = concrete.pop(holding_ref, 0)
+        exact_assigned = max(assigned, exact_living)
+        if (assigned, aggregate_living) == (exact_assigned, exact_living):
+            continue
+        await db.execute(
+            "UPDATE npc_empire_guard_assignments SET assigned=?,living=?,updated_at=? "
+            "WHERE owner_kind='player' AND owner_id=? AND holding_ref=?",
+            (exact_assigned, exact_living, now, owner_id, holding_ref),
+        )
+        repaired += 1
+    if concrete:
+        await db.executemany(
+            "INSERT INTO npc_empire_guard_assignments"
+            "(owner_kind,owner_id,holding_ref,assigned,living,updated_at) "
+            "VALUES('player',?,?,?,?,?)",
+            [(owner_id, holding_ref, count, count, now)
+             for holding_ref, count in sorted(concrete.items())],
+        )
+        repaired += len(concrete)
+    return {'removed': max(0, int(removed or 0)), 'repaired': repaired}
+
+
 async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                                 holding_ref: str, requested: int,
                                 now: int | None = None) -> dict:
@@ -715,7 +773,11 @@ async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                 district_ids.intersection_update(living_ids)
                 district_assigned = len(district_ids)
             except (ValueError, aiosqlite.Error):
-                living_ids = []; total = 0
+                await db.rollback()
+                raise
+        if owner_kind == 'player':
+            await _reconcile_player_guard_aggregates(
+                db, int(owner_id), living_ids, now)
         current = await (await db.execute(
             "SELECT living FROM npc_empire_guard_assignments "
             "WHERE owner_kind=? AND owner_id=? AND holding_ref=?",
@@ -732,12 +794,6 @@ async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                     'assigned': current_living + elsewhere + district_assigned,
                     'free': max(0, total-current_living-elsewhere-district_assigned)}
         if owner_kind == 'player':
-            await db.execute(
-                "DELETE FROM npc_empire_player_guard_members WHERE owner_uid=? "
-                "AND member_id NOT IN "
-                "(SELECT id FROM gang_members WHERE telegram_id=? "
-                "AND (current_hp IS NULL OR current_hp>0))",
-                (int(owner_id), int(owner_id)))
             await db.execute(
                 "DELETE FROM npc_empire_player_guard_members "
                 "WHERE owner_uid=? AND holding_ref=?", (int(owner_id), holding_ref))

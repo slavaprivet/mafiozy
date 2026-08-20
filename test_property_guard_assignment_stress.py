@@ -79,6 +79,181 @@ async def run() -> None:
             "WHERE owner_uid=202 ORDER BY member_id")
         assert second_before == [(202, 20, other), (202, 21, other)]
 
+        # An unavailable roster is not an authoritative empty roster. Fail
+        # closed before reconciliation so another holding keeps its exact rows.
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "INSERT INTO npc_empire_player_guard_members VALUES(2,101,?,?)",
+                (a, now-12))
+            await db.execute(
+                "INSERT INTO npc_empire_guard_assignments VALUES"
+                "('player','101',?,1,1,?)", (a, now-12))
+            await db.execute(
+                "INSERT INTO npc_empire_guard_assignments VALUES"
+                "('npc','leila','building:sentinel',2,2,?)", (now-12,))
+            await db.execute("ALTER TABLE gang_members RENAME TO gang_members_unavailable")
+            await db.commit()
+        try:
+            await ne.assign_holding_guards(
+                path, owner_kind='player', owner_id='101', holding_ref=b,
+                requested=0, now=now-11)
+            raise AssertionError('unavailable roster did not fail closed')
+        except aiosqlite.OperationalError as error:
+            assert 'gang_members' in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute(
+                    "ALTER TABLE gang_members_unavailable RENAME TO gang_members")
+                await db.commit()
+        assert await rows(path,
+            "SELECT owner_uid,member_id,holding_ref FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=101") == [(101, 2, a)]
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (a,)) == [(1, 1)]
+        assert await rows(path,
+            "SELECT owner_uid,member_id,holding_ref FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=202 ORDER BY member_id") == second_before
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id='leila' AND holding_ref='building:sentinel'") == [(2, 2)]
+        async with aiosqlite.connect(path) as db:
+            await db.execute("UPDATE gang_members SET current_hp=0 WHERE telegram_id=101")
+            await db.commit()
+        empty_roster = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=0, now=now-10)
+        assert empty_roster['ok'] and empty_roster['total'] == 0
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members WHERE owner_uid=101")
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (a,)) == [(1, 0)]
+        async with aiosqlite.connect(path) as db:
+            await db.execute("UPDATE gang_members SET current_hp=100 WHERE telegram_id=101")
+            await db.commit()
+        cleared = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=0, now=now-10)
+        assert cleared['ok'] and not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members WHERE owner_uid=101")
+
+        # Legacy versions could delete concrete rows while leaving aggregate
+        # living counts behind.  A valid owner-local assignment repairs those
+        # ghosts before capacity is checked, without touching another owner.
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "INSERT INTO npc_empire_guard_assignments VALUES"
+                "('player','101',?,4,4,?)", (a, now-10))
+            await db.execute(f"""
+                CREATE TRIGGER reject_reconciled_target
+                BEFORE INSERT ON npc_empire_guard_assignments
+                WHEN NEW.owner_kind='player' AND NEW.owner_id='101'
+                     AND NEW.holding_ref='{b}'
+                BEGIN SELECT RAISE(ABORT, 'forced guard repair rollback'); END
+            """)
+            await db.commit()
+        invalid = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101',
+            holding_ref='building:9,9', requested=0, now=now-9)
+        assert invalid == {'ok': False, 'error': 'holding not owned'}
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (a,)) == [(4, 4)]
+        try:
+            await ne.assign_holding_guards(
+                path, owner_kind='player', owner_id='101', holding_ref=b,
+                requested=4, now=now-9)
+            raise AssertionError('guard repair failure did not roll back')
+        except aiosqlite.IntegrityError as error:
+            assert 'forced guard repair rollback' in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_reconciled_target")
+                await db.commit()
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (a,)) == [(4, 4)]
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members WHERE owner_uid=101")
+
+        repaired = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=4, now=now-8)
+        assert repaired == {'ok': True, 'total': 8, 'assigned': 5,
+                            'free': 3, 'holding_guards': 4}
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (a,)) == [(4, 0)]
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=101 AND holding_ref=?", (a,))
+        assert await rows(path,
+            "SELECT owner_uid,member_id,holding_ref FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=202 ORDER BY member_id") == second_before
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id='leila' AND holding_ref='building:sentinel'") == [(2, 2)]
+
+        # Reverse and partial mismatches converge without fabricating fighters:
+        # concrete rows missing an aggregate are inserted, while historical
+        # assigned stays above the exact living survivor count.
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "DELETE FROM npc_empire_guard_assignments WHERE owner_kind='player' "
+                "AND owner_id='101' AND holding_ref=?", (b,))
+            await db.commit()
+        b_ids = await rows(path,
+            "SELECT member_id FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=101 AND holding_ref=? ORDER BY member_id", (b,))
+        reverse = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=2, now=now-7)
+        assert reverse['ok'] and reverse['assigned'] == 7 and reverse['free'] == 1
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (b,)) == [(4, 4)]
+        assert await rows(path,
+            "SELECT member_id FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=101 AND holding_ref=? ORDER BY member_id", (b,)) == b_ids
+
+        await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=0, now=now-6)
+        await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=0, now=now-6)
+        async with aiosqlite.connect(path) as db:
+            await db.executemany(
+                "INSERT INTO npc_empire_player_guard_members VALUES(?,?,?,?)",
+                [(2, 101, a, now-5), (3, 101, a, now-5)])
+            await db.execute(
+                "INSERT INTO npc_empire_guard_assignments VALUES"
+                "('player','101',?,5,5,?)", (a, now-5))
+            await db.execute("UPDATE gang_members SET current_hp=0 WHERE id=2")
+            await db.commit()
+        partial = await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=4, now=now-4)
+        assert partial['ok'] and partial['assigned'] == 6 and partial['free'] == 1
+        assert await rows(path,
+            "SELECT assigned,living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref=?", (a,)) == [(5, 1)]
+        assert not await rows(path,
+            "SELECT 1 FROM npc_empire_player_guard_members WHERE member_id=2")
+        assert await rows(path,
+            "SELECT owner_uid,member_id,holding_ref FROM npc_empire_player_guard_members "
+            "WHERE owner_uid=202 ORDER BY member_id") == second_before
+        async with aiosqlite.connect(path) as db:
+            await db.execute("UPDATE gang_members SET current_hp=100 WHERE id=2")
+            await db.commit()
+        await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=a,
+            requested=0, now=now-3)
+        await ne.assign_holding_guards(
+            path, owner_kind='player', owner_id='101', holding_ref=b,
+            requested=0, now=now-3)
+
         zero = await ne.assign_holding_guards(
             path, owner_kind='player', owner_id='101', holding_ref=a,
             requested=0, now=now)
@@ -226,9 +401,9 @@ async def run() -> None:
             "SELECT 1 FROM npc_empire_guard_assignments WHERE holding_ref=?", (sale_ref,))
         assert len(await rows(path,
             "SELECT member_id FROM npc_empire_player_guard_members WHERE owner_uid=202")) == 3
-        print('property guard assignment stress: 0/max/reassign, district exclusion, '
-              'cross-owner isolation, concurrent duplicate serialization, reconnect, '
-              'death and sale/capture cleanup OK')
+        print('property guard assignment stress: legacy aggregate repair, 0/max/reassign, '
+              'district exclusion, cross-owner isolation, concurrent duplicate '
+              'serialization, reconnect, death and sale/capture cleanup OK')
     finally:
         os.unlink(path)
 
