@@ -65096,7 +65096,8 @@ window.Mafiozi3DBridge = Object.freeze({
           _medicActionProgress:+medic.actionProgress||0,behavior:'ambulance_body_recovery',
         });
       }
-      npcSource=[...combat,...npcSource];
+      for(const npc of npcSource)combat.push(npc);
+      npcSource=combat;
     }
     const npcLifePool=x=>{
       const role=String(x?.role||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
