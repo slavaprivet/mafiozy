@@ -65123,6 +65123,7 @@ window.Mafiozi3DBridge = Object.freeze({
     });
     const npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
     for(const x of npcEligible)npcPools[npcLifePool(x)].push(x);
+    const npcPoolMissionCount=npcPools.mission.length,npcPoolPoliceCount=npcPools.police.length,npcPoolGuardCount=npcPools.guard.length,npcPoolGangCount=npcPools.gang.length,npcPoolCivilianCount=npcPools.civilian.length;
     const npcDist=x=>Math.hypot((+(x.r??x.y)||0)-player.r,(+(x.c??x.x)||0)-player.c);
     const stableNpcSort=(a,b)=>{
       const ai=_threeStickyNpcIds.has(_threeNpcEntityId(a))?0:1,bi=_threeStickyNpcIds.has(_threeNpcEntityId(b))?0:1;
@@ -65142,7 +65143,7 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSelected.push(...overflow.slice(0,NPC_LIFE_NPC_CAP-npcSelected.length));
     }
     _threeStickyNpcIds.clear();for(const npc of npcSelected)_threeStickyNpcIds.add(_threeNpcEntityId(npc));
-    document.documentElement.dataset.npcLifePools=`mission:${npcEligible.filter(x=>npcLifePool(x)==='mission').length},police:${npcEligible.filter(x=>npcLifePool(x)==='police').length},guard:${npcEligible.filter(x=>npcLifePool(x)==='guard').length},gang:${npcEligible.filter(x=>npcLifePool(x)==='gang').length},civilian:${npcEligible.filter(x=>npcLifePool(x)==='civilian').length},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
+    document.documentElement.dataset.npcLifePools=`mission:${npcPoolMissionCount},police:${npcPoolPoliceCount},guard:${npcPoolGuardCount},gang:${npcPoolGangCount},civilian:${npcPoolCivilianCount},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
     const npcs=npcSelected.map((x,i)=>{const id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
       id,r,c,ang:+x.ang||0,walking:!death.dead&&declaredMoving,moving:!death.dead&&declaredMoving,walkPhase:declaredMoving?(+x.walkPhase||0):0,speed:+x.speed||0,
