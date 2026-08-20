@@ -2158,15 +2158,41 @@ async def get_guard_member_ids(telegram_id: int) -> set:
 
 
 
-async def update_district_guard(loc_id: str, guard_ids: list):
-    """Сохраняет список охранников района в БД."""
-    pj = json.dumps(guard_ids)
+async def update_district_guard(telegram_id: int, loc_id: str, guard_ids: list) -> dict:
+    """Authoritatively replace one owner's living, unshared district roster."""
+    try:
+        normalized = list(dict.fromkeys(int(member_id) for member_id in guard_ids))
+    except (TypeError, ValueError):
+        return {'ok': False, 'error': 'bad guard roster'}
+    if len(normalized) > 10:
+        return {'ok': False, 'error': 'too many guards'}
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        owned = await (await db.execute(
+            "SELECT 1 FROM district_control WHERE location_id=? AND telegram_id=?",
+            (loc_id, int(telegram_id)))).fetchone()
+        if not owned:
+            await db.rollback(); return {'ok': False, 'error': 'district not owned'}
+        living = {int(row[0]) for row in await (await db.execute(
+            "SELECT id FROM gang_members WHERE telegram_id=? "
+            "AND (current_hp IS NULL OR current_hp>0)",
+            (int(telegram_id),))).fetchall()}
+        if set(normalized) - living:
+            await db.rollback(); return {'ok': False, 'error': 'guard unavailable'}
+        if normalized:
+            marks = ','.join('?' for _ in normalized)
+            shared = await (await db.execute(
+                "SELECT 1 FROM npc_empire_player_guard_members "
+                f"WHERE owner_uid=? AND member_id IN ({marks}) LIMIT 1",
+                (int(telegram_id), *normalized))).fetchone()
+            if shared:
+                await db.rollback(); return {'ok': False, 'error': 'guard already assigned'}
         await db.execute(
-            "UPDATE district_control SET guard_json=? WHERE location_id=?",
-            (pj, loc_id)
-        )
+            "UPDATE district_control SET guard_json=? "
+            "WHERE location_id=? AND telegram_id=?",
+            (json.dumps(normalized), loc_id, int(telegram_id)))
         await db.commit()
+    return {'ok': True, 'guard_ids': normalized}
 
 
 async def capture_district(telegram_id: int, telegram_name: str, loc_id: str):
@@ -10959,7 +10985,7 @@ async def district_guard_menu(update, context, _loc_id: str = None):
     raw_guard = json.loads(ctrl.get("guard_json") or "[]")
     guard_ids = [gid for gid in raw_guard if gid in live_ids]
     if len(guard_ids) != len(raw_guard):
-        await update_district_guard(loc_id, guard_ids)
+        await update_district_guard(user_id, loc_id, guard_ids)
 
     loc_name = LOCATIONS[loc_id]["name"]
     guard_count = len(guard_ids)
@@ -11021,7 +11047,14 @@ async def guard_toggle(update, context):
         guard_ids.append(member_id)
         msg = "🛡 Поставлен на охрану"
 
-    await update_district_guard(loc_id, guard_ids)
+    result = await update_district_guard(user_id, loc_id, guard_ids)
+    if not result.get('ok'):
+        error = str(result.get('error') or '')
+        text = ("❌ Этот боец уже защищает бизнес." if error == 'guard already assigned'
+                else "❌ Состав охраны изменился. Открой меню заново.")
+        await query.answer(text, show_alert=True)
+        await district_guard_menu(update, context, _loc_id=loc_id)
+        return
     await query.answer(msg)
     await district_guard_menu(update, context, _loc_id=loc_id)
 
