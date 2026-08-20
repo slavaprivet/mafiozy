@@ -1,3 +1,4 @@
+// 3D animation v417: NPC walk start/stop blends one pose chain for head, root, weapon and feet without a gait threshold snap.
 // 3D animation v416: NPC crawl recovery preserves one gait phase and eases cadence through the same root transition.
 // 3D animation v415: armed crawling NPCs keep the whole weapon and both hands above the road with a chest-anchored counter-pitch.
 // 3D UI v362: camera-facing HQ banners show their family primary and accent colors from every city angle.
@@ -2727,46 +2728,46 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const step=Math.sin(phase);
         const hitRemaining=Math.max(0,(motion?.hitUntil||0)-t);
         const hit=hitRemaining?Math.sin(Math.min(1,hitRemaining/650)*Math.PI)*Math.max(.7,+motion?.hitStrength||1):0;
-        const hitSide=motion?.hitSide||1,hitForward=Number.isFinite(+motion?.hitForward)?+motion.hitForward:0,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),weightLean=Math.max(-1,Math.min(1,+motion?.weightLean||0)),walking=gait>.035&&!dead&&!cowering&&!surrendering&&!helping;
+        const hitSide=motion?.hitSide||1,hitForward=Number.isFinite(+motion?.hitForward)?+motion.hitForward:0,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),weightLean=Math.max(-1,Math.min(1,+motion?.weightLean||0)),poseGait=!dead&&!cowering&&!surrendering&&!helping?gait:0,walking=poseGait>.035;
         let ambientSeed=motion?.ambientSeed;if(!Number.isFinite(ambientSeed)){ambientSeed=i*17;for(let k=0;k<key.length;k++)ambientSeed+=key.charCodeAt(k);if(motion)motion.ambientSeed=ambientSeed;}const ambientClock=((t*.001+ambientSeed*.83)%19),ambientDistance=motion?Math.hypot(motion.visualX-player.position.x,motion.visualZ-player.position.z):Infinity,ambientKind=ambientDistance<90&&!combatActor&&!walking&&!dead&&!cowering&&!surrendering&&!helping&&!panicking&&!talking&&!alerted&&ambientClock>5.5&&ambientClock<11?(ambientSeed%3)+1:0;
         const measuredSpeed=Math.hypot(+motion?.velocityX||0,+motion?.velocityZ||0),pace=Math.max(0,Math.min(1,measuredSpeed/9));
         // The player's gait is the visual baseline: a restrained .72 leg swing,
         // .21 step lift and small lateral weight shift. NPC-specific injury
         // modifiers are layered on top instead of replacing that cadence.
-        const strideScale=walking?(.9+pace*.1)*(panicking?1.14:1):1,swing=walking?step*(crawling?.28:limping?.42:.72)*gait*strideScale:idle*.025;
-        const leftSwing=crawling?step*.34*gait:limping?(step>0?step*.16:step*.46)*gait:swing;
-        const rightSwing=crawling?-step*.34*gait:limping?-step*.62*gait:-swing;
-        const leftLift=walking?Math.pow(Math.max(0,step),1.35)*(crawling?.035:limping?.06:.21)*gait:0;
-        const rightLift=walking?Math.pow(Math.max(0,-step),1.35)*(crawling?.035:limping?.22:.21)*gait:0;
+        const strideScale=(.9+pace*.1)*(panicking?1.14:1),swing=THREE.MathUtils.lerp(idle*.025,step*(crawling?.28:limping?.42:.72)*strideScale,poseGait);
+        const leftSwing=crawling?step*.34*poseGait:limping?(step>0?step*.16:step*.46)*poseGait:swing;
+        const rightSwing=crawling?-step*.34*poseGait:limping?-step*.62*poseGait:-swing;
+        const leftLift=Math.pow(Math.max(0,step),1.35)*(crawling?.035:limping?.06:.21)*poseGait;
+        const rightLift=Math.pow(Math.max(0,-step),1.35)*(crawling?.035:limping?.22:.21)*poseGait;
         // The feet already carry the visible step lift. Keep the shared root
         // close to the road so heads, vests and every other attached part do
         // not ride a second, exaggerated vertical wave on top of that lift.
-        const uprightBob=walking?(limping?Math.max(0,-step)*.032+Math.abs(step)*.008:Math.abs(step)*(.018+pace*.006+(panicking?.008:0))*gait):idle*.012;
-        const crawlBob=.42+(walking?Math.abs(step)*.012:idle*.008),bob=THREE.MathUtils.lerp(uprightBob,crawlBob,crawlBlend);
-        const weightShift=walking&&!crawling?-step*(.022+pace*.016)*gait:0,roll=(crawling?step*.016*gait:(limping?.105+step*.04*gait:step*.026*gait))+weightShift*.52+hit*hitSide*(.16+(1-Math.abs(hitForward))*.13)+(firing?(longGun?-.035:.025)*Math.sin(firePhase*Math.PI):0);
-        const crouch=cowering?.86:helping?.42:0,statePitch=cowering?.28:helping?.38:panicking?-.055:alerted?-.025:0,uprightPitch=(walking?-(.025+pace*.035)*gait:0)-weightLean*.075+statePitch+hit*(.07+hitForward*.2)+(firing?-.045+recoil*.11:0),pitch=THREE.MathUtils.lerp(uprightPitch,1.22,crawlBlend);
+        const walkBob=limping?Math.max(0,-step)*.032+Math.abs(step)*.008:Math.abs(step)*(.018+pace*.006+(panicking?.008:0)),uprightBob=THREE.MathUtils.lerp(idle*.012,walkBob,poseGait);
+        const crawlBob=.42+THREE.MathUtils.lerp(idle*.008,Math.abs(step)*.012,poseGait),bob=THREE.MathUtils.lerp(uprightBob,crawlBob,crawlBlend);
+        const weightShift=!crawling?-step*(.022+pace*.016)*poseGait:0,roll=(crawling?step*.016*poseGait:(limping?.105+step*.04*poseGait:step*.026*poseGait))+weightShift*.52+hit*hitSide*(.16+(1-Math.abs(hitForward))*.13)+(firing?(longGun?-.035:.025)*Math.sin(firePhase*Math.PI):0);
+        const crouch=cowering?.86:helping?.42:0,statePitch=cowering?.28:helping?.38:panicking?-.055:alerted?-.025:0,uprightPitch=-(.025+pace*.035)*poseGait-weightLean*.075+statePitch+hit*(.07+hitForward*.2)+(firing?-.045+recoil*.11:0),pitch=THREE.MathUtils.lerp(uprightPitch,1.22,crawlBlend);
         // Shoes counter-rotate during the planted half of each stride, keeping
         // the sole close to the road instead of rotating with the whole leg.
         const leftPlanted=step<0,rightPlanted=step>0;
-        const leftKneeBend=walking?Math.pow(Math.max(0,step),1.25)*(.24+pace*.1)*gait:0,rightKneeBend=walking?Math.pow(Math.max(0,-step),1.25)*(.24+pace*.1)*gait:0;
-        const leftFootPitch=walking?leftSwing*(leftPlanted?.08:.48)-leftLift*.28+(leftPlanted?Math.max(0,-step)*.055:-Math.max(0,step)*.09)*gait:0;
-        const rightFootPitch=walking?rightSwing*(rightPlanted?.08:.48)-rightLift*.28+(rightPlanted?Math.max(0,step)*.055:-Math.max(0,-step)*.09)*gait:0;
-        const torsoTwist=walking&&!crawling?-step*(.022+pace*.012)*gait:talking?Math.sin(t*.004+i)*.075:0;
-        const naturalArmSwing=(.3+pace*.1)*gait;
-        let leftArmPitch=crawling?-step*.62*gait:limping?-step*.28*gait:walking?-step*naturalArmSwing:idle*.025,rightArmPitch=crawling?step*.62*gait:limping?step*.2*gait:walking?step*naturalArmSwing:-idle*.02,leftArmRoll=walking?-.025-Math.abs(step)*.015*gait:0,rightArmRoll=walking?.025+Math.abs(step)*.015*gait:0,leftArmYaw=walking?-step*.018*gait:0,rightArmYaw=walking?step*.018*gait:0,leftArmX=-.78,rightArmX=.78,armY=2.05,armZ=0;
+        const leftKneeBend=Math.pow(Math.max(0,step),1.25)*(.24+pace*.1)*poseGait,rightKneeBend=Math.pow(Math.max(0,-step),1.25)*(.24+pace*.1)*poseGait;
+        const leftFootPitch=(leftSwing*(leftPlanted?.08:.48)-leftLift*.28)*poseGait+(leftPlanted?Math.max(0,-step)*.055:-Math.max(0,step)*.09)*poseGait;
+        const rightFootPitch=(rightSwing*(rightPlanted?.08:.48)-rightLift*.28)*poseGait+(rightPlanted?Math.max(0,step)*.055:-Math.max(0,-step)*.09)*poseGait;
+        const idleTorsoTwist=talking?Math.sin(t*.004+i)*.075:0,torsoTwist=THREE.MathUtils.lerp(idleTorsoTwist,crawling?0:-step*(.022+pace*.012),poseGait);
+        const naturalArmSwing=.3+pace*.1;
+        let leftArmPitch=crawling?-step*.62*poseGait:limping?-step*.28*poseGait:THREE.MathUtils.lerp(idle*.025,-step*naturalArmSwing,poseGait),rightArmPitch=crawling?step*.62*poseGait:limping?step*.2*poseGait:THREE.MathUtils.lerp(-idle*.02,step*naturalArmSwing,poseGait),leftArmRoll=(-.025-Math.abs(step)*.015)*poseGait,rightArmRoll=(.025+Math.abs(step)*.015)*poseGait,leftArmYaw=-step*.018*poseGait,rightArmYaw=step*.018*poseGait,leftArmX=-.78,rightArmX=.78,armY=2.05,armZ=0;
         if(phoneCalling){armY=2.72;armZ=.18;rightArmX=.52;rightArmPitch=-1.34;rightArmRoll=.56;leftArmPitch=-.18+Math.sin(t*.006+i)*.12;leftArmRoll=-.08;}
         else if(panicking){const wave=Math.sin(t*.014+i*1.91);armY=3.12;armZ=.08;leftArmPitch=-.12+wave*.2;rightArmPitch=.12-wave*.17;leftArmRoll=-.28-wave*.08;rightArmRoll=.28+wave*.08;}
         else if(cowering){const tremble=Math.sin(t*.019+i*2.3)*.035;leftArmX=-.52;rightArmX=.52;armY=2.56-crouch*.24;armZ=.27;leftArmPitch=-.52+tremble;rightArmPitch=-.72-tremble;leftArmRoll=-.7;rightArmRoll=.7;}
         else if(surrendering){const tremble=Math.sin(t*.012+i*1.37)*.035;leftArmX=-.68;rightArmX=.68;armY=3.38;armZ=.02;leftArmPitch=tremble;rightArmPitch=-tremble;leftArmRoll=-.22;rightArmRoll=.22;}
         else if(helping){const tend=Math.sin(t*.006+i)*.08;leftArmX=-.64;rightArmX=.64;armY=1.92-crouch*.48;armZ=.4;leftArmPitch=-1.02+tend;rightArmPitch=-.92-tend;leftArmRoll=-.12;rightArmRoll=.12;}
         else if(talking){const gestureWave=Math.sin(t*.0075+i*1.83),otherWave=Math.sin(t*.0052+i*.71);armY=2.32;armZ=.18;leftArmPitch=-.48+gestureWave*.34;rightArmPitch=-.18-otherWave*.2;leftArmRoll=-.18-gestureWave*.08;rightArmRoll=.1;}
-        else if(alerted){armY=2.18;armZ=.13;leftArmPitch=-.28-(walking?step*.14*gait:0);rightArmPitch=-.46+(walking?step*.12*gait:0);leftArmRoll=-.08;rightArmRoll=.08;}
+        else if(alerted){armY=2.18;armZ=.13;leftArmPitch=-.28-step*.14*poseGait;rightArmPitch=-.46+step*.12*poseGait;leftArmRoll=-.08;rightArmRoll=.08;}
         else if(ambientKind===1){const tap=Math.sin(t*.009+i)*.08;leftArmX=-.46;rightArmX=.46;armY=2.42;armZ=.42;leftArmPitch=-.92+tap;rightArmPitch=-1.05-tap;leftArmRoll=-.42;rightArmRoll=.42;}
         else if(ambientKind===2){const drag=Math.sin(t*.004+i)*.06;armY=2.5;armZ=.18;rightArmPitch=-1.16+drag;rightArmRoll=.34;leftArmPitch=-.08;}
         else if(ambientKind===3){const stretch=Math.sin(Math.min(1,(ambientClock-5.5)/2.2)*Math.PI);armY=2.68+stretch*.35;leftArmPitch=-stretch*.18;rightArmPitch=stretch*.12;leftArmRoll=-stretch*.72;rightArmRoll=stretch*.72;}
         if(firing){armY=longGun?2.38:2.31;armZ=(longGun?.53:.46)-recoil*.27;leftArmX=longGun?-.43:-.48;rightArmX=longGun?.46:.5;leftArmPitch=(longGun?-1.22:-1.1)-recoil*.32;rightArmPitch=(longGun?-1.34:-1.24)-recoil*.44;leftArmRoll=longGun?-.3:-.2;rightArmRoll=longGun?.14:.2;leftArmYaw=longGun?-.14:-.08;rightArmYaw=longGun?.1:.08;}
-        const headScan=firing?Math.sin(firePhase*Math.PI)*-.08:panicking?Math.sin(t*.008+i*2.11)*.48:cowering?Math.sin(t*.014+i)*.08:talking?Math.sin(t*.0038+i*.67)*.24:alerted?Math.sin(t*.0029+i)*.34:ambientKind===1?Math.sin(t*.0015+i)*.05:ambientKind===2?.26:Math.sin(t*.0012+i)*.08,headCounter=-torsoTwist*.7+headScan,headTilt=cowering?.08*Math.sin(t*.011+i):panicking?.04*Math.sin(t*.013+i):ambientKind===1?-.12:0,shoulderSway=walking?Math.sin(phase+Math.PI*.5)*(.025+pace*.012+(panicking?.018:0))*gait:idle*.008,legBend=cowering?.72:helping?.34:0,activeState=firing?'firing':cowering?'cower':surrendering?'surrender':helping?'helping':panicking?'panic':talking?'social':alerted?'alert':ambientKind===1?'ambient-phone':ambientKind===2?'ambient-smoke':ambientKind===3?'ambient-stretch':crawling?'crawl':limping?'limp':walking?'walk':'idle';
-        return {key,motion,dead,hpPct,phoneCalling,crawling,limping,cowering,surrendering,helping,panicking,talking,alerted,ambientKind,activeState,crawlBlend,phase,idle,step,hit,hitSide,hitForward,gait,weightLean,weightShift,walking,leftSwing,rightSwing,leftLift,rightLift,leftKneeBend,rightKneeBend,leftFootPitch,rightFootPitch,leftArmPitch,rightArmPitch,leftArmRoll,rightArmRoll,leftArmYaw,rightArmYaw,leftArmX,rightArmX,armY,armZ,torsoTwist,headCounter,headTilt,shoulderSway,legBend,crouch,bob,roll,pitch,firing,recoil};
+        const headScan=firing?Math.sin(firePhase*Math.PI)*-.08:panicking?Math.sin(t*.008+i*2.11)*.48:cowering?Math.sin(t*.014+i)*.08:talking?Math.sin(t*.0038+i*.67)*.24:alerted?Math.sin(t*.0029+i)*.34:ambientKind===1?Math.sin(t*.0015+i)*.05:ambientKind===2?.26:Math.sin(t*.0012+i)*.08,headCounter=-torsoTwist*.7+headScan,headTilt=cowering?.08*Math.sin(t*.011+i):panicking?.04*Math.sin(t*.013+i):ambientKind===1?-.12:0,shoulderSway=THREE.MathUtils.lerp(idle*.008,Math.sin(phase+Math.PI*.5)*(.025+pace*.012+(panicking?.018:0)),poseGait),legBend=cowering?.72:helping?.34:0,activeState=firing?'firing':cowering?'cower':surrendering?'surrender':helping?'helping':panicking?'panic':talking?'social':alerted?'alert':ambientKind===1?'ambient-phone':ambientKind===2?'ambient-smoke':ambientKind===3?'ambient-stretch':crawling?'crawl':limping?'limp':walking?'walk':'idle';
+        return {key,motion,dead,hpPct,phoneCalling,crawling,limping,cowering,surrendering,helping,panicking,talking,alerted,ambientKind,activeState,crawlBlend,phase,idle,step,hit,hitSide,hitForward,gait,poseGait,weightLean,weightShift,walking,leftSwing,rightSwing,leftLift,rightLift,leftKneeBend,rightKneeBend,leftFootPitch,rightFootPitch,leftArmPitch,rightArmPitch,leftArmRoll,rightArmRoll,leftArmYaw,rightArmYaw,leftArmX,rightArmX,armY,armZ,torsoTwist,headCounter,headTilt,shoulderSway,legBend,crouch,bob,roll,pitch,firing,recoil};
       };
       const npcAnimationPose=npcLifeAnimationPose;
       const setNpcRoot=(pose,i,x,z)=>{npcRootQuat.setFromEuler(instanceEuler.set(pose.pitch,npcFacingYaws[i],pose.roll,'YXZ'));npcRootSideOffset.set(pose.weightShift||0,0,0).applyQuaternion(npcRootQuat);rootMatrix.compose(instancePosition.set(x+npcRootSideOffset.x,pose.bob,z+npcRootSideOffset.z),npcRootQuat,npcScale);};

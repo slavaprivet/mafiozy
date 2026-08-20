@@ -19,7 +19,8 @@ def run() -> None:
         for panic in (0.0, 1.0)
     ]
     assert max(samples) <= 0.0320001
-    assert "Math.abs(step)*(.018+pace*.006+(panicking?.008:0))*gait" in THREE
+    assert "walkBob=limping?Math.max(0,-step)*.032+Math.abs(step)*.008:Math.abs(step)*(.018+pace*.006+(panicking?.008:0))" in THREE
+    assert "uprightBob=THREE.MathUtils.lerp(idle*.012,walkBob,poseGait)" in THREE
     assert "Math.abs(Math.sin(phase))*.13" not in THREE
 
     # Gang bands and role gear must consume the same cached pose/root as the body.
@@ -57,7 +58,7 @@ def run() -> None:
         "qa_walk_civilian_heavy",
     ):
         assert actor_id in WORLD
-    assert "three_preview.js?v=3d405-owner-readable-labels" in WORLD
+    assert "three_preview.js?v=3d417-npc-walk-continuity&opt=burning-pool-v414+pooled-marker-accounting-v416" in WORLD
 
 
 if __name__ == "__main__":

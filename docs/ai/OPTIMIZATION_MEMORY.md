@@ -1,5 +1,18 @@
 # Mafiozi 3D optimization memory
 
+## NPC walk pose-chain continuity (2026-08-21, v417)
+
+- `walking` is a semantic/telemetry threshold, not a safe pose switch. Root bob,
+  shoulders, arms and planted feet previously jumped between unrelated idle and
+  walk waves at `gaitBlend=.035`, which made some heads and whole skeletons
+  visibly twitch on ordinary start/stop frames.
+- Drive the complete shared pose chain with the existing exponential
+  `gaitBlend` scalar (`poseGait`) and interpolate idle-to-walk coefficients.
+  Keep one accumulated `motion.phase`; do not add per-actor objects, render-loop
+  allocations, loops, uploads or draw calls.
+- Numeric QA samples the old threshold and a full start/stop cycle at large
+  accumulated phases. Live desktop QA still requires the global browser slot.
+
 ## NPC crawl recovery phase continuity (2026-08-21, v416)
 
 - `motion.phase` is an accumulated angle whose velocity already expresses walk,

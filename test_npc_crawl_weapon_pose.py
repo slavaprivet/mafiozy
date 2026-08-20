@@ -25,7 +25,7 @@ def run() -> None:
     assert "previewcrawlweapon" in WORLD
     assert "previewcrawltransition" in WORLD
     assert "['pistol','rifle','rpg'].includes(crawlWeapon)" in WORLD
-    assert "three_preview.js?v=3d416-npc-crawl-phase&opt=burning-pool-v414+pooled-marker-accounting-v416" in WORLD
+    assert "three_preview.js?v=3d417-npc-walk-continuity&opt=burning-pool-v414+pooled-marker-accounting-v416" in WORLD
 
     # The chest-anchored inverse rotation keeps every ranged muzzle safely
     # above the road throughout the already-smoothed upright -> crawl blend.
