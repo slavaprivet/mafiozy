@@ -65245,7 +65245,12 @@ window.Mafiozi3DBridge = Object.freeze({
         );}}
     }
     if(_LOCAL_PREVIEW&&_UP.has('previewcombatfx')){const target=npcs.find(x=>!x.dead),cycle=performance.now()%1600,shotAge=cycle-800;if(target){target.hp=target.maxHp*(cycle<800?.66:.22);target.hitAt=performance.now()-Math.max(0,shotAge);target.bleeding=true;target.bleedSeverity=1;for(let i=0;i<6;i++)bloodFx.push({id:`preview_blood_${i}`,r:target.r+Math.sin(target.ang||0)*i*.22+(i%2?.08:-.05),c:target.c+Math.cos(target.ang||0)*i*.22+(i%2?-.05:.06),radius:3+i%3,rot:(target.ang||0)+.2,life:12000-i*700,max:14000,trail:true});if(shotAge>=0&&shotAge<680){const life=680-shotAge,parts=Array.from({length:12},(_,i)=>({vr:Math.sin(i*2.19)*(2.5+i%4),vc:Math.cos(i*2.19)*(2.5+i%4),life,max:680,size:3,blood:true,color:i%4?'#c30d1b':'#5c0509'}));impactFx.unshift({r:target.r,c:target.c,blood:true,life,max:680,parts});}}}
-    const explosionFx=(typeof explosionBursts!=='undefined'?explosionBursts:[]).filter(x=>x&&fxNow-(+x.born||fxNow)<Math.max(1,+x.life||1550)&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:Math.max(0,fxNow-(+x.born||fxNow)),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'}));
+    const explosionFx=[];
+    for(const x of (typeof explosionBursts!=='undefined'?explosionBursts:[])){
+      if(explosionFx.length>=10)break;
+      if(!x||fxNow-(+x.born||fxNow)>=Math.max(1,+x.life||1550)||!near(+x.r||0,+x.c||0))continue;
+      explosionFx.push({r:+x.r||0,c:+x.c||0,age:Math.max(0,fxNow-(+x.born||fxNow)),life:+x.life||1550,seed:+x.seed||0,kind:x.kind||'blast'});
+    }
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
       const age=performance.now()%5200;if(age<1850)explosionFx.unshift({r:cars[0].r,c:cars[0].c,age,life:1850,seed:170,kind:'vehicle'});
     }
@@ -65253,8 +65258,19 @@ window.Mafiozi3DBridge = Object.freeze({
       const count=Math.max(1,Math.min(8,+_UP.get('previewwrecks')||5));for(let i=0;i<Math.min(count,cars.length);i++){const age=(performance.now()+i*260)%5200;if(age<1850)explosionFx.unshift({r:cars[i].r,c:cars[i].c,age,life:1850,seed:170+i*37,kind:'vehicle'});}
     }
     if(typeof _thrownItems!=='undefined')for(let i=_thrownItems.length-1;i>=0;i--){const q=_thrownItems[i],age=fxNow-(+q.start||fxNow),flight=+q.flight||720;if(age>=flight&&!q.exploded)_explodeThrowable(q);if(age>flight+(q.kind==='grenade'?850:250))_thrownItems.splice(i,1);}
-    const throwableFx=(typeof _thrownItems!=='undefined'?_thrownItems:[]).filter(x=>x&&!x.exploded).slice(0,8).map((x,i)=>{const p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));return {id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p};});
-    const fireFx=(typeof _firePools!=='undefined'?_firePools:[]).filter(x=>x&&fxNow<+x.until&&near(+x.r||0,+x.c||0)).slice(0,10).map(x=>({r:+x.r||0,c:+x.c||0,age:fxNow-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2,kind:'ground'}));
+    const throwableFx=[];
+    for(const x of (typeof _thrownItems!=='undefined'?_thrownItems:[])){
+      if(throwableFx.length>=8)break;
+      if(!x||x.exploded)continue;
+      const i=throwableFx.length,p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));
+      throwableFx.push({id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p});
+    }
+    const fireFx=[];
+    for(const x of (typeof _firePools!=='undefined'?_firePools:[])){
+      if(fireFx.length>=10)break;
+      if(!x||!(fxNow<+x.until)||!near(+x.r||0,+x.c||0))continue;
+      fireFx.push({r:+x.r||0,c:+x.c||0,age:fxNow-(+x.start||0),life:(+x.until||0)-(+x.start||0),seed:+x.seed||0,radius:THROW_MOLOTOV_FIRE_RADIUS||4.2,kind:'ground'});
+    }
     // Wreck flames share the existing instanced ground-fire pool. This restores
     // the burning-car silhouette without per-car geometry trees or a dynamic
     // PointLight that recompiles the entire city's materials.
