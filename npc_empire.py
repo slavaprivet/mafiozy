@@ -3172,16 +3172,12 @@ async def _create_interior_raid(db, telegram_id: int, leader_id: str,
     if not allocation or allocation['count'] < 2:
         return None
     apt_key = str(target.get('apt_key') or f"business:{target['holding_id']}")
-    defender_ids = []
-    try:
-        defender_ids = [int(row[0]) for row in await (await db.execute(
-            "SELECT pg.member_id FROM npc_empire_player_guard_members pg "
-            "JOIN gang_members gm ON gm.id=pg.member_id AND gm.telegram_id=pg.owner_uid "
-            "WHERE pg.owner_uid=? AND pg.holding_ref=? "
-            "AND (gm.current_hp IS NULL OR gm.current_hp>0) ORDER BY pg.member_id",
-            (telegram_id, str(target['ref'])))).fetchall()]
-    except aiosqlite.Error:
-        defender_ids = []
+    defender_ids = [int(row[0]) for row in await (await db.execute(
+        "SELECT pg.member_id FROM npc_empire_player_guard_members pg "
+        "JOIN gang_members gm ON gm.id=pg.member_id AND gm.telegram_id=pg.owner_uid "
+        "WHERE pg.owner_uid=? AND pg.holding_ref=? "
+        "AND (gm.current_hp IS NULL OR gm.current_hp>0) ORDER BY pg.member_id",
+        (telegram_id, str(target['ref'])))).fetchall()]
     defender_ids = defender_ids[:PLAYER_INTERIOR_RAID_MAX_DEFENDERS]
     # There is one actual assigned roster, not a second synthetic guard layer.
     # guard_count remains a legacy display alias for older clients.

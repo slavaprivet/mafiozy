@@ -307,6 +307,9 @@ reconnect and duplicate resolve requests must be idempotent.
   `holding_guards`, `assigned` and `free`, including an explicit `free=0`.
 - Only assigned guards defend an indoor raid. Free mobile fighters do not
   teleport into the property and no synthetic second guard layer is allowed.
+- Raid creation must read the concrete defender roster successfully. A schema
+  or SQLite read failure rolls back the complete raid transaction; it must not
+  become an unguarded token or debit the attacking family's treasury.
 - Casualties set the participating member's health to zero and remove the exact
   assignment. Dead slots do not respawn after polling or reconnect.
 - Sale, capture, NPC transfer, ownership loss and empire collapse atomically
