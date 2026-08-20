@@ -312,6 +312,10 @@ reconnect and duplicate resolve requests must be idempotent.
   become an unguarded token or debit the attacking family's treasury.
 - Casualties set the participating member's health to zero and remove the exact
   assignment. Dead slots do not respawn after polling or reconnect.
+- Casualty HP writes, concrete-row removal, aggregate decrement, attacker
+  losses and raid resolution are one transaction. Any casualty write failure
+  rolls everything back; never resolve a fight while leaving its dead fighter
+  alive in `gang_members`.
 - Sale, capture, NPC transfer, ownership loss and empire collapse atomically
   clear obsolete assignments and invalidate pending sessions. Never leave a
   ghost guard consuming roster capacity.

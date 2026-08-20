@@ -69,6 +69,10 @@ async def run():
         original_operation = 'beer_bar'
         async with aiosqlite.connect(path) as db:
             await db.execute(
+                "CREATE TABLE gang_members("
+                "id INTEGER PRIMARY KEY,telegram_id INTEGER NOT NULL,current_hp INTEGER NOT NULL)"
+            )
+            await db.execute(
                 "UPDATE npc_empires SET status='ruined',comeback_at=? WHERE leader_id<>'marco'",
                 (NOW + 100000,),
             )

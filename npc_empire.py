@@ -3599,12 +3599,9 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         defender_losses = len(lost_defenders)
         if defender_losses:
             marks = ','.join('?' for _ in lost_defenders)
-            try:
-                await db.execute(
-                    f"UPDATE gang_members SET current_hp=0 WHERE telegram_id=? AND id IN ({marks})",
-                    (telegram_id, *lost_defenders))
-            except aiosqlite.Error:
-                pass
+            await db.execute(
+                f"UPDATE gang_members SET current_hp=0 WHERE telegram_id=? AND id IN ({marks})",
+                (telegram_id, *lost_defenders))
             await db.execute(
                 f"DELETE FROM npc_empire_player_guard_members WHERE member_id IN ({marks})",
                 tuple(lost_defenders))
@@ -3620,12 +3617,9 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         guard_losses = len(lost_guards)
         if guard_losses:
             marks = ','.join('?' for _ in lost_guards)
-            try:
-                await db.execute(
-                    f"UPDATE gang_members SET current_hp=0 WHERE telegram_id=? AND id IN ({marks})",
-                    (telegram_id, *lost_guards))
-            except aiosqlite.Error:
-                pass
+            await db.execute(
+                f"UPDATE gang_members SET current_hp=0 WHERE telegram_id=? AND id IN ({marks})",
+                (telegram_id, *lost_guards))
             await db.execute(
                 f"DELETE FROM npc_empire_player_guard_members WHERE member_id IN ({marks})",
                 tuple(lost_guards))
