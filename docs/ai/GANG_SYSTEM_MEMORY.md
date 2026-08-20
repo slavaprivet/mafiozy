@@ -290,6 +290,13 @@ reconnect and duplicate resolve requests must be idempotent.
 
 ## Concrete property guards
 
+- A legacy landmark business has two non-interchangeable defence layers.
+  `player_businesses.guards` is paid staff for the street-occupation system;
+  it must never be converted into physical NPC-boss interior defenders.
+  Interior raid authority is only the exact living owner rows in
+  `npc_empire_player_guard_members`, exposed for `business:<id>` through the
+  `/biz/{uid}/list` snapshot. The client labels and counts both layers
+  separately and renders authoritative zero as zero.
 - The property action “Поставить охрану” assigns actual living player
   `gang_members.id` values. Assigned district guards and guards at other
   properties are unavailable.
@@ -430,6 +437,7 @@ python test_npc_business_cycle.py
 python test_npc_business_reload.py
 python test_player_business_raid_alert.py
 python test_property_guard_assignment_stress.py
+python test_landmark_business_empire_defense.py
 python test_npc_guard_allocation_180d.py
 python test_npc_empire_economy.py
 python test_npc_empire_year.py

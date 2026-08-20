@@ -728,6 +728,52 @@ async def _reconcile_player_guard_aggregates(db, owner_uid: int,
     return {'removed': max(0, int(removed or 0)), 'repaired': repaired}
 
 
+async def player_guard_roster_snapshot(db, owner_uid: int) -> dict:
+    """Read one player's exact living property-defender availability.
+
+    Paid landmark staff in ``player_businesses.guards`` belongs to the older
+    street-occupation system. NPC-family interior raids may only expose the
+    concrete living ``gang_members`` rows assigned through this module.
+    """
+    owner_uid = int(owner_uid)
+    living_rows = await (await db.execute(
+        "SELECT id FROM gang_members WHERE telegram_id=? "
+        "AND (current_hp IS NULL OR current_hp>0) ORDER BY id",
+        (owner_uid,),
+    )).fetchall()
+    living_ids = {int(row[0]) for row in living_rows}
+    concrete_rows = await (await db.execute(
+        "SELECT pg.member_id,pg.holding_ref "
+        "FROM npc_empire_player_guard_members pg "
+        "JOIN gang_members gm ON gm.id=pg.member_id AND gm.telegram_id=pg.owner_uid "
+        "WHERE pg.owner_uid=? AND (gm.current_hp IS NULL OR gm.current_hp>0) "
+        "ORDER BY pg.holding_ref,pg.member_id",
+        (owner_uid,),
+    )).fetchall()
+    by_holding: dict[str, int] = {}
+    assigned_ids: set[int] = set()
+    for member_id, holding_ref in concrete_rows:
+        assigned_ids.add(int(member_id))
+        key = str(holding_ref)
+        by_holding[key] = by_holding.get(key, 0) + 1
+    try:
+        district_rows = await (await db.execute(
+            "SELECT guard_json FROM district_control WHERE telegram_id=?",
+            (owner_uid,),
+        )).fetchall()
+        district_ids: set[int] = set()
+        for row in district_rows:
+            district_ids.update(int(member_id) for member_id in
+                                json.loads(str(row[0] or '[]')))
+        assigned_ids.update(district_ids & living_ids)
+    except (aiosqlite.Error, ValueError, TypeError, json.JSONDecodeError):
+        pass
+    total = len(living_ids)
+    assigned = len(assigned_ids)
+    return {'total': total, 'assigned': assigned,
+            'free': max(0, total-assigned), 'by_holding': by_holding}
+
+
 async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                                 holding_ref: str, requested: int,
                                 now: int | None = None) -> dict:

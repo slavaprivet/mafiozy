@@ -24988,6 +24988,15 @@ async def _coop_http_app():
                 rows = await cur.fetchall()
             async with db.execute("SELECT biz_id,owner_uid,owner_name,protected_until FROM business_property_owners") as cur:
                 property_rows=await cur.fetchall()
+            try:
+                raid_guards = await npc_empire.player_guard_roster_snapshot(db, uid)
+                raid_guard_snapshot_available = True
+            except (aiosqlite.Error, ValueError, TypeError, json.JSONDecodeError):
+                # Keep the catalog available during an old/partial schema
+                # startup, but never advertise invented free raid defenders.
+                raid_guards = {'total': 0, 'assigned': 0, 'free': 0,
+                               'by_holding': {}}
+                raid_guard_snapshot_available = False
         property_owners={str(r['biz_id']):dict(r) for r in property_rows}
         for r in rows:
             d = dict(r)
@@ -25018,6 +25027,9 @@ async def _coop_http_app():
             entry['available_for_purchase']=not bool(property_owner)
             if entry['owned']:
                 o = owned[b['id']]
+                holding_ref = f"business:{b['id']}"
+                holding_guards = int(
+                    raid_guards['by_holding'].get(holding_ref, 0))
                 level = business_level(o.get('level'))
                 mult = business_income_multiplier(level)
                 entry['status']        = o['status']
@@ -25030,6 +25042,13 @@ async def _coop_http_app():
                 entry['daily_max']     = int(round(b['daily_max'] * mult))
                 entry['upgrade_cost']  = 0 if level >= BIZ_MAX_LEVEL else business_upgrade_cost(b, level + 1)
                 entry['guards']        = int(o.get('guards') or 0)
+                entry['holding_ref'] = holding_ref
+                entry['defender_count'] = holding_guards
+                entry['holding_guards'] = holding_guards
+                entry['guard_total'] = int(raid_guards['total'])
+                entry['guard_assigned'] = int(raid_guards['assigned'])
+                entry['guard_free'] = int(raid_guards['free'])
+                entry['guard_snapshot_available'] = raid_guard_snapshot_available
                 entry['npc_capture_cooldown_until'] = int(
                     o.get('npc_capture_cooldown_until') or 0)
                 entry['npc_capture_cooldown_left'] = max(
@@ -25044,6 +25063,13 @@ async def _coop_http_app():
             else:
                 entry['level'] = 0
                 entry['guards'] = 0
+                entry['holding_ref'] = f"business:{b['id']}"
+                entry['defender_count'] = 0
+                entry['holding_guards'] = 0
+                entry['guard_total'] = 0
+                entry['guard_assigned'] = 0
+                entry['guard_free'] = 0
+                entry['guard_snapshot_available'] = raid_guard_snapshot_available
                 entry['npc_capture_cooldown_until'] = 0
                 entry['npc_capture_cooldown_left'] = 0
                 entry['income_multiplier'] = 1.0

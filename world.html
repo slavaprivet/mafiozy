@@ -9615,8 +9615,8 @@ function _syncEmpireHoldingGuards(now=performance.now()){
     if(String(holding.property_kind||'')!=='business')continue;
     const buildingKey=String(holding.building_key||''),attacker=_npcEmpires.find(e=>String(e?.activity?.kind||'')==='player_business_raid'&&String(e.activity.target_kind||'')==='building'&&String(e.activity.target_id||'')===buildingKey);if(!attacker||String(attacker.activity.phase||'')==='capture')continue;
     const sourceLeader=SPECIALIST_NPCS.find(n=>String(n._specialistId)===String(attacker.leader_id)),anchor=_npcEmpireHoldingPoint(null,{kind:'building',holding_id:buildingKey});if(!sourceLeader||!anchor)continue;
-    const distance=Math.hypot(anchor.r-player.r,anchor.c-player.c),empire={leader_id:`player_business:${buildingKey}`,gang_name:String(holding.gang_name||holding.owner_name||'Охрана игрока')},guardHolding={kind:'building',holding_id:buildingKey,acquired_at:+holding.acquired_at||+holding.bought_at||1,guard_count:Math.max(1,Math.min(3,+holding.guard_count||1))};
-    if(distance<48)sites.push({empire,holding:guardHolding,anchor,distance,key:_empireHoldingGuardKey(empire,guardHolding),count:guardHolding.guard_count,sourceLeader,enemyLeaderId:String(attacker.leader_id)});
+    const distance=Math.hypot(anchor.r-player.r,anchor.c-player.c),empire={leader_id:`player_business:${buildingKey}`,gang_name:String(holding.gang_name||holding.owner_name||'Охрана игрока')},guardHolding={kind:'building',holding_id:buildingKey,acquired_at:+holding.acquired_at||+holding.bought_at||1,guard_count:Math.max(0,Math.min(3,+holding.guard_count||0))};
+    if(guardHolding.guard_count>0&&distance<48)sites.push({empire,holding:guardHolding,anchor,distance,key:_empireHoldingGuardKey(empire,guardHolding),count:guardHolding.guard_count,sourceLeader,enemyLeaderId:String(attacker.leader_id)});
   }
   if(_LOCAL_PREVIEW&&_UP.has('previewholdingguards')&&!sites.length&&_npcEmpires.length){const empire=_npcEmpires[0],holding={kind:'building',holding_id:'preview-guarded-building',acquired_at:1,guard_count:3},anchor=_nearestEmpireWalkPoint(player.r+5,player.c+2)||{r:player.r+5,c:player.c+2};sites.push({empire,holding,anchor,distance:Math.hypot(anchor.r-player.r,anchor.c-player.c),key:_empireHoldingGuardKey(empire,holding),count:3});}
   sites.sort((a,b)=>a.distance-b.distance||a.key.localeCompare(b.key));const visible=sites.slice(0,EMPIRE_VISIBLE_GUARDED_HOLDINGS),desired=new Map(visible.map(site=>[site.key,site]));
@@ -19371,7 +19371,7 @@ async function loadNpcEmpireState(showError=false){
       else if(empireOverlay?.dataset.uiMode==='dashboard')openNpcSandboxDashboard();
     }
     return true;
-  }catch(e){_installNpcEmpireFallbacks();if(!_npcEmpires.length)_npcEmpires=[..._npcEmpireById.values()];_rebuildNpcEmpireFlagSites();if(!_npcEmpireLeaderboard.length)_npcEmpireLeaderboard=_npcEmpires.map(e=>e.leader_id);_ensureNpcSandboxButton();if(showError)showToast('Сервер империй перезапускается — боссы показаны в автономном режиме','⚠️',2800);return false;}
+  }catch(e){_installNpcEmpireFallbacks();if(!_npcEmpires.length)_npcEmpires=[..._npcEmpireById.values()];_stagePreviewPlayerBusinessRaid();_rebuildNpcEmpireFlagSites();if(!_npcEmpireLeaderboard.length)_npcEmpireLeaderboard=_npcEmpires.map(e=>e.leader_id);_syncPlayerBusinessRaidAlert();_ensureNpcSandboxButton();if(showError)showToast('Сервер империй перезапускается — боссы показаны в автономном режиме','⚠️',2800);return false;}
 }
 
 function _npcEmpireRelationLabel(empire){
@@ -27183,7 +27183,7 @@ function _businessActionCopy(source,tone,raw,poi){
   if(source==='npc-building-buy')return {title:'Предложить выкуп',detail:String(raw||''),glyph:'case'};
   if(source==='npc-building-capture')return {title:'Захватить силой',detail:'Механика штурма готовится',glyph:'raid'};
   if(source==='npc-building-sabotage')return {title:'Подорвать заведение',detail:'ТРЕБУЕТСЯ C4 · закрыть на 5 минут · отношения −20…−30',glyph:'raid'};
-  if(source==='player-building-guards')return {title:'Поставить охрану',detail:String(raw||''),glyph:'guard'};
+  if(source==='player-building-guards'||source==='player-business-raid-guards')return {title:'Назначить боевой отряд',detail:String(raw||''),glyph:'guard'};
   if(source==='zone')return {title:'Мирно войти',detail:`Без оружия · ${poi.name}`,glyph:'door'};
   if(source==='rob'){
     const active=String(raw||'').includes('Присоединиться');
@@ -27195,8 +27195,18 @@ function _businessActionCopy(source,tone,raw,poi){
   if(_gtaActionKind==='biz_foreign_info')return {title:'Изучить владельца',detail:'После налёта бизнес можно отжать',glyph:'case'};
   return {title:'Действие с объектом',detail:String(raw||'').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'').replace(/\s+/g,' ').trim(),glyph:'case'};
 }
+function _propertyGuardHoldingRef(property){
+  if(property?.holding_ref)return String(property.holding_ref);
+  if(property?.building_key)return `building:${property.building_key}`;
+  if(property?.business_id)return `business:${property.business_id}`;
+  return '';
+}
 function _canAssignPropertyGuards(property){
-  return !!(property?.property_kind==='business'&&!property?.npc_owned&&property?.building_key&&(property?.owned||String(property?.owner_uid||'')===String(QP.uid||'')));
+  return !!(property?.property_kind==='business'&&!property?.npc_owned&&_propertyGuardHoldingRef(property)&&(property?.owned||String(property?.owner_uid||'')===String(QP.uid||''))&&property?.guard_snapshot_available!==false);
+}
+function _landmarkBusinessGuardProperty(bizId){
+  const state=myBusinesses.get(String(bizId)),biz=BUSINESS_POIS.find(item=>String(item.id)===String(bizId));
+  return state?.owned?{...state,property_kind:'business',owned:true,business_id:String(bizId),business_name:String(biz?.name||bizId),holding_ref:`business:${bizId}`}:null;
 }
 function _propertyGuardCounts(property){
   const number=(value,fallback)=>Number.isFinite(+value)?Math.max(0,Math.round(+value)):fallback;
@@ -27234,9 +27244,10 @@ function _syncBusinessActionCard(){
     Math.hypot(player.r-buildingAnchor.r,player.c-buildingAnchor.c)
   )):Infinity;
   if(!poi||_buildingInt||_bankInt||interactionDistance>maxDist){_closeBusinessActionCard(false);return;}
-  const actions=[],property=sel.kind==='building'?_buildingPropertyAt(sel.r,sel.c):null,foreign=!!(property?.npc_owned&&property.property_kind==='business'),ownConverted=_canAssignPropertyGuards(property),closedLeft=foreign?Math.max(0,(+property.closed_until||0)*1000-Date.now()):0;
+  const actions=[],property=sel.kind==='building'?_buildingPropertyAt(sel.r,sel.c):null,foreign=!!(property?.npc_owned&&property.property_kind==='business'),ownConverted=_canAssignPropertyGuards(property),ownLandmark=sel.kind==='business'?_landmarkBusinessGuardProperty(sel.id):null,closedLeft=foreign?Math.max(0,(+property.closed_until||0)*1000-Date.now()):0;
   if(sel.kind==='building')actions.push(['building','peace','🚪 Войти в здание',false]);
   if(ownConverted){const {here,free}=_propertyGuardCounts(property);actions.push(['player-building-guards','guard',`Свободно ${free} / здесь ${here}`,false]);}
+  if(_canAssignPropertyGuards(ownLandmark)){const {here,free}=_propertyGuardCounts(ownLandmark);actions.push(['player-business-raid-guards','guard',`Бойцы семьи: свободно ${free} / здесь ${here}`,false]);}
   if(foreign){actions.push(['npc-building-buy','buy',`$${(+property.sale_price||0).toLocaleString('ru')} · шанс ${+property.sale_chance||0}%`,closedLeft>0]);actions.push(['npc-building-capture','capture','Захват — скоро',true]);actions.push(['npc-building-sabotage','sabotage','ТРЕБУЕТСЯ C4 · закрыть бизнес на 5 минут',closedLeft>0]);}
   if(sel.kind==='business'&&_zoneEl.dataset.bizId===sel.id&&_zoneEl.style.display==='block')actions.push(['zone','peace',_zoneEl.textContent]);
   if(_gtaBtn.style.display==='block'&&String(_gtaActionCarId)===String(sel.id))actions.push(['gta','buy',_gtaBtn.textContent]);
@@ -27336,12 +27347,13 @@ async function _runNpcBuildingAction(property,action){
 let _propertyGuardAssignmentBusy=false;
 function _openPropertyGuardAssignment(property){
   if(!_canAssignPropertyGuards(property))return false;const {here,free,max}=_propertyGuardCounts(property),modal=_npcBuildingActionDialog();
-  modal.innerHTML=`<section style="box-sizing:border-box;width:min(440px,calc(100vw - 24px));max-height:min(560px,calc(100dvh - 24px));overflow:auto;border:1px solid #6687a5;background:#0a0e14;color:#f2ead8;padding:clamp(12px,3vw,18px);font:13px/1.45 system-ui"><h2 style="margin:0 0 8px">🛡️ Поставить охрану</h2><p>Свободно <b>${free}</b> / здесь <b>${here}</b>. Назначенные живые бойцы появятся внутри при штурме; погибшие не возвращаются в резерв.</p><label>Бойцов на объекте: <b data-pga-count>${here}</b><input data-pga-range type="range" min="0" max="${max}" value="${Math.min(here,max)}" step="1" style="width:100%"></label><div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:14px"><button data-pga-save style="min-width:0;padding:11px;background:#315b78;color:white;border:1px solid #82b8dc">СОХРАНИТЬ</button><button data-pga-cancel style="padding:11px;background:#252932;color:#ddd;border:1px solid #555">ОТМЕНА</button></div></section>`;modal.style.display='flex';const range=modal.querySelector('[data-pga-range]'),count=modal.querySelector('[data-pga-count]');range.oninput=()=>count.textContent=range.value;modal.querySelector('[data-pga-cancel]').onclick=()=>modal.style.display='none';modal.querySelector('[data-pga-save]').onclick=()=>_assignPropertyGuards(property,Math.min(max,Math.max(0,+range.value||0)),modal);return true;
+  const landmark=!!property.business_id,staffNote=landmark?'<p style="color:#aeb9c8"><b>Не путай:</b> штатная охрана за $100 сражается с уличными бандами снаружи. Этот отряд состоит из живых бойцов твоей семьи и защищает внутренний рейд NPC-босса.</p>':'';
+  modal.innerHTML=`<section style="box-sizing:border-box;width:min(480px,calc(100vw - 24px));max-height:min(620px,calc(100dvh - 24px));overflow:auto;border:1px solid #6687a5;background:#0a0e14;color:#f2ead8;padding:clamp(12px,3vw,18px);font:13px/1.45 system-ui"><h2 style="margin:0 0 8px">🛡️ Боевой отряд семьи</h2><p>${_npcEmpireEsc(property.business_name||property.operation_name||'Бизнес')} · свободно <b>${free}</b> / здесь <b>${here}</b>. Назначенные живые бойцы появятся внутри при штурме; погибшие не возвращаются в резерв.</p>${staffNote}<p style="color:#e6c878">Первый проигранный штурм закрывает бизнес на 10 минут. Повторный успешный налёт на ту же цель передаёт бизнес семье босса.</p><label>Бойцов на объекте: <b data-pga-count>${here}</b><input data-pga-range type="range" min="0" max="${max}" value="${Math.min(here,max)}" step="1" style="width:100%"></label><div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:14px"><button data-pga-save style="min-width:0;padding:11px;background:#315b78;color:white;border:1px solid #82b8dc">СОХРАНИТЬ</button><button data-pga-cancel style="padding:11px;background:#252932;color:#ddd;border:1px solid #555">ОТМЕНА</button></div></section>`;modal.style.display='flex';const range=modal.querySelector('[data-pga-range]'),count=modal.querySelector('[data-pga-count]');range.oninput=()=>count.textContent=range.value;modal.querySelector('[data-pga-cancel]').onclick=()=>modal.style.display='none';modal.querySelector('[data-pga-save]').onclick=()=>_assignPropertyGuards(property,Math.min(max,Math.max(0,+range.value||0)),modal);return true;
 }
 async function _assignPropertyGuards(property,count,modal){
   if(_propertyGuardAssignmentBusy||!QP.api||!QP.uid||!_canAssignPropertyGuards(property))return false;_propertyGuardAssignmentBusy=true;const save=modal?.querySelector('[data-pga-save]');if(save)save.disabled=true;
-  try{const holdingRef=`building:${property.building_key||''}`,max=_propertyGuardCounts(property).max,r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/property-guards`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({holding_ref:holdingRef,count:Math.min(max,Math.max(0,Math.round(count||0)))})}),j=await r.json();if(!r.ok||!j?.ok)throw new Error(j?.error||'failed');property.defender_count=property.holding_guards=+j.holding_guards||0;property.guard_total=+j.total||0;property.guard_assigned=+j.assigned||0;property.guard_free=+j.free||0;document.documentElement.dataset.playerPropertyGuardAssignment=`${holdingRef}:here-${property.holding_guards}:assigned-${property.guard_assigned}:free-${property.guard_free}:server`;modal.style.display='none';showToast(`Охрана назначена · здесь ${j.holding_guards} · свободно ${j.free}`,'🛡️',2300);await Promise.all([loadNpcEmpireState(),loadApartmentState()]);return true;}
-  catch(e){const stale=e.message==='holding not owned';showToast(e.message==='insufficient free roster'?'Недостаточно свободных живых бойцов':stale?'Объект уже не принадлежит твоей семье':'Не удалось изменить охрану','⚠️',2500);if(stale)modal.style.display='none';try{await Promise.all([loadNpcEmpireState(),loadApartmentState()]);}catch(_){}if(!stale){const fresh=_playerBuildingProperties.find(item=>String(item.building_key||'')===String(property.building_key||''));if(fresh)_openPropertyGuardAssignment(fresh);}return false;}
+  try{const holdingRef=_propertyGuardHoldingRef(property),max=_propertyGuardCounts(property).max,r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/property-guards`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({holding_ref:holdingRef,count:Math.min(max,Math.max(0,Math.round(count||0)))})}),j=await r.json();if(!r.ok||!j?.ok)throw new Error(j?.error||'failed');property.defender_count=property.holding_guards=+j.holding_guards||0;property.guard_total=+j.total||0;property.guard_assigned=+j.assigned||0;property.guard_free=+j.free||0;if(property.business_id){const old=myBusinesses.get(property.business_id)||{};myBusinesses.set(property.business_id,{...old,defender_count:property.defender_count,holding_guards:property.holding_guards,guard_total:property.guard_total,guard_assigned:property.guard_assigned,guard_free:property.guard_free});_bizLastSync=0;syncMyBusinesses();}document.documentElement.dataset.playerPropertyGuardAssignment=`${holdingRef}:here-${property.holding_guards}:assigned-${property.guard_assigned}:free-${property.guard_free}:server`;modal.style.display='none';showToast(`Боевой отряд назначен · здесь ${j.holding_guards} · свободно ${j.free}`,'🛡️',2300);if(!property.business_id)await Promise.all([loadNpcEmpireState(),loadApartmentState()]);return true;}
+  catch(e){const stale=e.message==='holding not owned';showToast(e.message==='insufficient free roster'?'Недостаточно свободных живых бойцов':stale?'Объект уже не принадлежит твоей семье':'Не удалось изменить охрану','⚠️',2500);if(stale)modal.style.display='none';try{await Promise.all([loadNpcEmpireState(),loadApartmentState()]);_bizLastSync=0;syncMyBusinesses();}catch(_){}if(!stale){const fresh=property.business_id?_landmarkBusinessGuardProperty(property.business_id):_playerBuildingProperties.find(item=>String(item.building_key||'')===String(property.building_key||''));if(fresh)_openPropertyGuardAssignment(fresh);}return false;}
   finally{if(save)save.disabled=false;_propertyGuardAssignmentBusy=false;}
 }
 _businessActionCard.addEventListener('click',e=>{
@@ -27352,6 +27364,7 @@ _businessActionCard.addEventListener('click',e=>{
   if(btn.disabled){showToast(btn.dataset.source==='npc-building-capture'?'Захват здания появится в следующем этапе':'Здание закрыто на ремонт','🔒',2200);return;}
   if(btn.dataset.source==='building'){_closeBusinessActionCard();_activateSelectedBuildingIfNear();return;}
   if(btn.dataset.source==='player-building-guards'){const sel={..._businessActionSelection},property=_buildingPropertyAt(sel.r,sel.c);_closeBusinessActionCard(false);_openPropertyGuardAssignment(property);return;}
+  if(btn.dataset.source==='player-business-raid-guards'){const sel={..._businessActionSelection},property=_landmarkBusinessGuardProperty(sel.id);_closeBusinessActionCard(false);_openPropertyGuardAssignment(property);return;}
   if(btn.dataset.source==='npc-building-buy'||btn.dataset.source==='npc-building-sabotage'){const sel={..._businessActionSelection},property=_buildingPropertyAt(sel.r,sel.c);_closeBusinessActionCard(false);_openNpcBuildingActionDialog(property,btn.dataset.source==='npc-building-buy'?'purchase':'sabotage');return;}
   const sourceId=btn.dataset.source,sel=_businessActionSelection;
   if(sourceId==='rob'&&sel?.kind==='business'){
@@ -30108,6 +30121,10 @@ function openBusinessManagement(bizId) {
   const min = Math.round(biz.daily_min * mult), max = Math.round(biz.daily_max * mult);
   const cost = owned ? (state.upgrade_cost || _bizUpgradeCost(biz, state)) : 0;
   const pending = owned ? (+state.pending || 0) : 0;
+  const raidGuardProperty = owned ? _landmarkBusinessGuardProperty(bizId) : null;
+  const raidGuardCounts = raidGuardProperty
+    ? _propertyGuardCounts(raidGuardProperty)
+    : {here:0, free:0};
   const controlDistrict=districtAt(biz.r,biz.c),controlOwner=controlDistrict?districtOwners[controlDistrict.id]:null;
   const controlFamily=MAFIA_FAMILIES[controlOwner?.mafiaFamily]||null;
   const occupied = !!(owned && _isBusinessGangOccupied(bizId, state));
@@ -30129,7 +30146,12 @@ function openBusinessManagement(bizId) {
     </div>
     <div style="font-size:13px;color:#cbd2dc;line-height:1.6;margin-bottom:14px">Доход: <b style="color:#fff">$${min.toLocaleString('ru')}–$${max.toLocaleString('ru')}/сутки</b><br>В кассе: <b style="color:#7eff9a">$${pending.toLocaleString('ru')}</b></div>
     <div style="display:flex;gap:8px"><button id="bmCollect" ${pending<=0?'disabled':''} style="flex:1;padding:12px;border:0;border-radius:11px;background:#23874c;color:#fff;font-weight:900;opacity:${pending>0?1:.45}">💰 Собрать</button>
-    ${level < BIZ_MAX_LEVEL ? `<button id="bmUpgrade" style="flex:1;padding:12px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);color:#211506;font-weight:900">⬆ Улучшить<br><small>$${cost.toLocaleString('ru')}</small></button>` : '<div style="flex:1;padding:13px;text-align:center;border-radius:11px;background:#242833;color:#ffd76b;font-weight:900">★ Максимум</div>'}</div>`
+    ${level < BIZ_MAX_LEVEL ? `<button id="bmUpgrade" style="flex:1;padding:12px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);color:#211506;font-weight:900">⬆ Улучшить<br><small>$${cost.toLocaleString('ru')}</small></button>` : '<div style="flex:1;padding:13px;text-align:center;border-radius:11px;background:#242833;color:#ffd76b;font-weight:900">★ Максимум</div>'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+      <button id="bmSecurity" style="padding:11px;border:1px solid #596271;border-radius:11px;background:#222732;color:#fff;font-weight:900">🛡️ Штатная охрана<br><small>${Math.max(0,+state.guards||0)}/6 · улица</small></button>
+      <button id="bmRaidDefense" ${_canAssignPropertyGuards(raidGuardProperty)?'':'disabled'} style="padding:11px;border:1px solid #8a6331;border-radius:11px;background:#2d2418;color:#ffe1a3;font-weight:900;opacity:${_canAssignPropertyGuards(raidGuardProperty)?1:.5}">⚔️ Боевой отряд<br><small>${raidGuardCounts.here} здесь · ${raidGuardCounts.free} свободно</small></button>
+    </div>
+    <div style="margin-top:8px;color:#9da8ba;font-size:11px;line-height:1.45">Штат защищает улицу от обычных банд. Живые бойцы семьи защищают помещение от рейда босса: первый проигрыш закрывает бизнес на 10 минут, повторный успешный рейд захватывает его.</div>`
     : `<div style="padding:13px;border-radius:12px;background:#221d12;color:#e9d6a0;margin-bottom:14px">Купи бизнес за <b>$${biz.price.toLocaleString('ru')}</b>, чтобы получать доход и улучшать его до 5 уровня.</div><button id="bmBuy" style="width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);font-weight:900">Купить бизнес</button>`}
   `;
   modal.style.display = 'flex';
@@ -30137,6 +30159,8 @@ function openBusinessManagement(bizId) {
   const buy = document.getElementById('bmBuy'); if (buy) buy.onclick = () => { closeBusinessManagement(); showBuyBizConfirm(bizId); };
   const collect = document.getElementById('bmCollect'); if (collect) collect.onclick = () => { collectBusinessHere(bizId); closeBusinessManagement(); };
   const upgrade = document.getElementById('bmUpgrade'); if (upgrade) upgrade.onclick = () => upgradeBusinessHere(bizId);
+  const security = document.getElementById('bmSecurity'); if (security) security.onclick = () => openBusinessSecurity(bizId);
+  const raidDefense = document.getElementById('bmRaidDefense'); if (raidDefense) raidDefense.onclick = () => _openPropertyGuardAssignment(_landmarkBusinessGuardProperty(bizId));
 }
 async function upgradeBusinessHere(bizId) {
   if (_bizManageBusy || !QP.api || !QP.uid) return;
@@ -42651,6 +42675,13 @@ function syncMyBusinesses() {
             daily_max: b.daily_max || 0,
             upgrade_cost: b.upgrade_cost || 0,
             guards: Math.max(0, Math.min(6, +b.guards || 0)),
+            holding_ref: String(b.holding_ref||`business:${id}`),
+            defender_count: Math.max(0,+b.defender_count||0),
+            holding_guards: Math.max(0,+b.holding_guards||0),
+            guard_total: Math.max(0,+b.guard_total||0),
+            guard_assigned: Math.max(0,+b.guard_assigned||0),
+            guard_free: Math.max(0,+b.guard_free||0),
+            guard_snapshot_available: b.guard_snapshot_available!==false,
             npc_capture_cooldown_until: +b.npc_capture_cooldown_until || 0,
           });
         }
@@ -64669,6 +64700,15 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.previewBusinessInteriorRaid=`seeded:atk-${attacker_roster.length}:def-${defender_roster.length}:staff-0:force-${raid.force}:tier-${raid.tier}`;
     return {ok:true,attackers:attacker_roster.length,defenders:defender_roster.length,staff:0,force:raid.force,tier:raid.tier};
   },
+  previewOpenLandmarkBusinessDefense(bizId='coffee', staff=6, here=3, total=6, assigned=4){
+    if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+    const id=String(bizId||'coffee'),biz=BUSINESS_POIS.find(item=>item.id===id);if(!biz)return {ok:false,reason:'business-not-found'};
+    const safeTotal=Math.max(0,Math.round(+total||0)),safeAssigned=Math.max(0,Math.min(safeTotal,Math.round(+assigned||0))),safeHere=Math.max(0,Math.min(safeAssigned,Math.round(+here||0)));
+    myBusinesses.set(id,{owned:true,pending:1250,status:'ok',level:2,guards:Math.max(0,Math.min(6,Math.round(+staff||0))),holding_ref:`business:${id}`,defender_count:safeHere,holding_guards:safeHere,guard_total:safeTotal,guard_assigned:safeAssigned,guard_free:Math.max(0,safeTotal-safeAssigned),guard_snapshot_available:true});
+    openBusinessManagement(id);const state=myBusinesses.get(id),card=document.getElementById('businessManageCard');
+    document.documentElement.dataset.previewLandmarkBusinessDefense=`${id}:staff-${state.guards}:here-${state.holding_guards}:assigned-${state.guard_assigned}:free-${state.guard_free}`;
+    return {ok:true,bizId:id,staff:state.guards,here:state.holding_guards,assigned:state.guard_assigned,free:state.guard_free,text:card?.innerText||''};
+  },
   previewClearBuildingPurpose() {
     if(!_LOCAL_PREVIEW)return false;
     if(_buildingInt)exitBuildingInterior();
@@ -65557,6 +65597,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previewnpchqassault'))setTimeout(()=>window.Mafiozi3
 if(_LOCAL_PREVIEW&&_UP.get('previewpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewpurpose'),'npc',_UP.get('previewpurposeview')!=='exterior'),2600);
 if(_LOCAL_PREVIEW&&_UP.get('previewbuildingpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewbuildingpurpose'),_UP.get('previewbuildingowner')||'player',!_UP.has('previewbuildingexterior')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewbusinessinteriorraid'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInteriorRaid(),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewlandmarkdefense'))setTimeout(()=>window.Mafiozi3DBridge.previewOpenLandmarkBusinessDefense(String(_UP.get('previewlandmarkdefense')||'coffee'),6,3,6,4),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewblackmarket'))setTimeout(()=>window.Mafiozi3DBridge.previewBlackmarketEntryAudit(_UP.get('previewblackmarket'),_UP.get('previewblackmarketenter')!=='0'),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
