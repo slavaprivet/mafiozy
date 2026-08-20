@@ -65196,10 +65196,26 @@ window.Mafiozi3DBridge = Object.freeze({
     // Струя пожарной машины теперь строится в 3D как непрерывный объёмный
     // эффект. Не добавляем её части в общий пул пуль: это убирает пунктир и
     // оставляет боевой лимит снарядов свободным.
-    const serviceWater=[];
-    const projectiles=[...serviceWater,...(typeof bullets!=='undefined'?bullets:[])].filter(x=>x&&!x._finished&&Number.isFinite(+x.r)&&Number.isFinite(+x.c)&&Number.isFinite(+x.vr)&&Number.isFinite(+x.vc)&&near(+x.r,+x.c)).slice(0,48).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',projectileKind:String(x.projectileKind||''),fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1}));
-    const muzzleFx=(typeof muzzles!=='undefined'?muzzles:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80}));
-    const shellFx=(typeof shells!=='undefined'?shells:[]).filter(x=>x&&near(+x.r||0,+x.c||0)).slice(0,30).map((x,i)=>({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,weapon:String(x.weapon||'pistol'),life:+x.life||0,max:+x.max||1}));
+    const projectiles=[];
+    for(const x of (typeof bullets!=='undefined'?bullets:[])){
+      if(projectiles.length>=48)break;
+      if(!x||x._finished||!Number.isFinite(+x.r)||!Number.isFinite(+x.c)||!Number.isFinite(+x.vr)||!Number.isFinite(+x.vc)||!near(+x.r,+x.c))continue;
+      const i=projectiles.length;
+      projectiles.push({id:x.id??i,r:+x.r||0,c:+x.c||0,vr:+x.vr||0,vc:+x.vc||0,ang:Math.atan2(+x.vr||0,+x.vc||1),color:x.color||'#ffd76b',weapon:x.weapon||'pistol',projectileKind:String(x.projectileKind||''),fromNpc:!!x.fromNpc,fromPlayer:!!x.fromPlayer,tracked:!!x.targetVehicle,thick:!!x.thick,bulletScale:+x.bulletScale||1,trailScale:+x.trailScale||1,startZ:+x.startZ||0,endZ:+x.endZ||0,dist:+x.dist||0,maxDist:+x.maxDist||1});
+    }
+    const muzzleFx=[];
+    for(const x of (typeof muzzles!=='undefined'?muzzles:[])){
+      if(muzzleFx.length>=16)break;
+      if(!x||!near(+x.r||0,+x.c||0))continue;
+      muzzleFx.push({r:+x.r||0,c:+x.c||0,angle:+(x.angle??x.ang)||0,z:+x.z||0,color:x.color||'#ffc35a',weapon:x.weapon||'pistol',heavy:!!x.heavy,npc:!!x.npc,seed:+x.seed||0,life:+x.life||0,max:+x.max||80});
+    }
+    const shellFx=[];
+    for(const x of (typeof shells!=='undefined'?shells:[])){
+      if(shellFx.length>=30)break;
+      if(!x||!near(+x.r||0,+x.c||0))continue;
+      const i=shellFx.length;
+      shellFx.push({id:x.id??i,r:+x.r||0,c:+x.c||0,z:+x.z||0,rot:+x.rot||0,weapon:String(x.weapon||'pistol'),life:+x.life||0,max:+x.max||1});
+    }
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcvisual')){const shellWeapons=['pistol_heavy','rifle','shotgun','smg'];for(const [i,weapon] of shellWeapons.entries())shellFx.unshift({id:`qa_shell_${weapon}`,r:player.r+1.6+i*.38,c:player.c+1.4,z:.08+i*.05,rot:fxNow*.004+i*.7,weapon,life:700,max:700});document.documentElement.dataset.previewNpcShellClasses=shellWeapons.join(',');}
     const impactFx=(typeof impacts!=='undefined'?impacts:[]).filter(x=>x&&(x.parts||[]).some(p=>(+p.life||0)>0)&&near(+x.r||0,+x.c||0)).slice(0,16).map(x=>{const blood=!!x.parts?.some?.(p=>p.isBlood);return {r:+x.r||0,c:+x.c||0,weapon:String(x.weapon||'pistol'),type:x.type||(blood?'blood':'generic'),surface:x.surface||'',metal:x.type==='metal',vehicle:!!x.vehicle,glass:x.surface==='glass',blood,life:Math.max(0,...(x.parts||[]).map(p=>+p.life||0)),max:Math.max(1,...(x.parts||[]).map(p=>+p.max||1)),parts:(x.parts||[]).slice(0,12).map(p=>({vr:+p.vr||0,vc:+p.vc||0,life:+p.life||0,max:+p.max||1,size:+p.size||2,color:p.color||'#ffd36a',blood:!!p.isBlood}))};});
     const bulletHoleFx=(typeof bulletHoles!=='undefined'?bulletHoles:[]).filter(x=>x&&x.space===_gangSpaceKey()&&near(+x.r||0,+x.c||0)).slice(-32).map((x,i)=>({id:+x.id||i,r:+x.r||0,c:+x.c||0,ang:+x.ang||0,rot:+x.rot||0,scale:+x.scale||1,heavy:!!x.heavy,age:fxNow-(+x.born||fxNow)}));
