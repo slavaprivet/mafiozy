@@ -1,5 +1,42 @@
 # Mafiozi 3D optimization memory
 
+## Steam/PC-first quality target (2026-08-21)
+
+- Design and verify gameplay for the Steam desktop build first: keyboard and
+  mouse, 1366x768 and 1920x1080, windowed/fullscreen transitions, stable frame
+  pacing and long sessions. Mobile compatibility is best-effort only when it
+  costs no desktop readability, mechanics, graphics quality or performance.
+- Live gameplay QA should exercise real desktop input in one reused browser
+  tab and record bounded simulation/render telemetry. Do not lower PC actor,
+  lighting, animation or marker quality merely to satisfy a phone breakpoint.
+
+## Signature-cached player raid marker label (2026-08-21, v413)
+
+- The existing single player-raid marker group owns one precreated canvas
+  sprite in addition to its rings, beam and arrow. It receives the same
+  server-derived attack/capture title as DOM, canvas, edge and minimap surfaces.
+- Repaint the retained canvas texture only when the presentation signature
+  changes, inside the existing 250 ms bridge sample. Position and pulse still
+  mutate the existing objects; there is no new timer, actor scan, marker pool,
+  render-loop canvas creation, geometry or material allocation.
+- Runtime QA must cover an ordinary business whose id equals the attacking
+  empire HQ id, an explicit future HQ target, first-close/follow-up wording and
+  resolved/expired removal. The collision case must remain a business.
+
+## Signature-cached player raid compass (2026-08-21, v414)
+
+- The exterior raid HUD owns one precreated compass node. Project world deltas
+  into isometric screen space before choosing an octant; raw row/column arrows
+  point in the wrong visual direction. The route line names the asset, rounded
+  distance and literal approach/attack/capture state.
+- In 2D the existing world-marker draw makes one constant-time compass call;
+  unchanged signatures perform no DOM writes. In 3D the existing 250 ms bridge
+  sample remains the only driver. Keep one compass, no duplicate edge arrow,
+  timer, target scan, layout read, canvas texture or render-loop allocation.
+- A reduced-motion media rule disables the transform transition. The compass is
+  decorative to accessibility; the adjacent Russian route text remains the
+  semantic direction and distance.
+
 ## Cached shared-NPC part traversal (2026-08-21, v413)
 
 - Product priority is PC/Steam first: profile and live-QA the renderer at a

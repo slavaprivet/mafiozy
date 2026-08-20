@@ -89,7 +89,8 @@ console.log(JSON.stringify({{good,bad,phases}}));
     # Both surfaces consume the same plan/decision; interior never advertises
     # doctrine-specific combat that its generic nearest-target AI does not run.
     assert "alert.plan.decision.summary" in WORLD
-    assert "key=`${direction}:${distance}:${alert.plan.decision.summary}`" in WORLD
+    assert "function _playerBusinessRaidCompass(alert,r,c)" in WORLD
+    assert "signature:`${alert.key}:${atTarget?'here':index}:${distance}:${state}:${alert.name||''}`" in WORLD
     assert "plan.decision.summary" in WORLD
     assert "orders=`ЦЕЛЬ: ${plan.objectiveLabel}" in WORLD
     assert "orders=`${plan.doctrineLabel}" not in WORLD
@@ -99,7 +100,7 @@ console.log(JSON.stringify({{good,bad,phases}}));
 
     # Existing nodes remain bounded and only the interior surface is visible
     # while inside, preventing two raid cards from overlapping.
-    assert "width:min(390px,calc(100vw - 16px))" in WORLD
+    assert "width:min(430px,calc(100vw - 16px))" in WORLD
     assert "max-height:132px" in WORLD and "max-height:120px" in WORLD
     assert "-webkit-line-clamp:2;white-space:normal" in WORLD
     assert "if(exteriorHud)exteriorHud.style.visibility='hidden'" in WORLD

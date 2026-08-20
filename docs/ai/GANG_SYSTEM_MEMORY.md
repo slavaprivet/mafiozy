@@ -1,5 +1,27 @@
 # Mafiozi gang-system memory
 
+## Honest player-asset threat presentation (2026-08-21)
+
+- The server's `target_kind` is the only asset-role authority for a boss raid.
+  Never infer that a victim business is a headquarters by comparing its id to
+  the attacking empire's `hq_key`; those independent ids may coincide.
+- One pure client presentation maps `target_kind + objective` to the shared
+  warning used by the HUD compass, 2D world marker, minimap and 3D bridge.
+  `followup-capture` says `захватывают`; the first-close objective says
+  `атакуют`. An explicit future `target_kind=hq` is supported without claiming
+  that current production target selection already creates HQ sieges.
+- Resolved, expired or tokenless raids hide every surface through the same
+  lifecycle predicate. Preview fixtures and static string checks are not proof
+  that the server can create a particular target kind.
+- The exterior HUD owns the one persistent route arrow. Its pure compass helper
+  projects the server target delta into isometric screen space, then reports the
+  object name, rounded distance and literal approach/attack/capture state. The
+  2D draw path refreshes it through a signature cache; the 3D bridge uses its
+  existing 250 ms sample. Do not add a second edge arrow, target scan or timer.
+- Missing or non-finite server target coordinates are inactive, never `(0,0)`.
+  The red world ring, minimap point and retained 3D marker still identify the
+  exact building when it is in view.
+
 Last reconciled with GitHub `main` at `1be90e35e013d280701e62af331a580ab24ba5df`
 on 2026-08-14.
 

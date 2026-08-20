@@ -18043,7 +18043,7 @@ function _reconcilePreviewPlayerBusinessRaid(fixture){
   document.documentElement.dataset.previewPlayerBusinessRaidRebind=`${fixture.fixtureId}:${boss?'boss':'pending'}:${Object.keys(fixture.crewCheckpoints||{}).length}:${fixture.deadGuardSlots?.size||0}`;return true;
 }
 function _playerBusinessRaidTargetName(empire,activity){
-  const id=String(activity?.target_id||''),kind=String(activity?.target_kind||''),hq=kind==='hq'||id===String(empire?.hq_key||'');
+  const id=String(activity?.target_id||''),kind=String(activity?.target_kind||''),hq=kind==='hq';
   if(hq)return {hq:true,name:'Штаб'};
   if(String(activity?.business_label||'').trim())return {hq:false,name:String(activity.business_label).trim()};
   if(kind==='business'){
@@ -18052,6 +18052,16 @@ function _playerBusinessRaidTargetName(empire,activity){
   }
   const property=(_playerBuildingProperties||[]).find(item=>String(item.building_key||item.apt_key||'')===id),operation=PLAYER_BUILDING_OPERATIONS[property?.operation_type]||{};
   return {hq:false,name:String(property?.operation_name||operation.name||'Бизнес')};
+}
+function _playerRaidThreatPresentation(activity,target=null){
+  target=target||{};
+  const assetKind=String(activity?.target_kind||'')==='hq'?'hq':'business',capture=String(activity?.objective||'')==='followup-capture',assetLabel=assetKind==='hq'?'штаб':'бизнес',assetTitle=assetKind==='hq'?'Штаб':String(target?.name||'Бизнес'),verb=capture?'захватывают':'атакуют',title=`Ваш ${assetLabel} ${verb}`;
+  return {assetKind,assetLabel,assetTitle,capture,verb,title,markerLabel:title.toUpperCase(),signature:`${assetKind}:${capture?'capture':'attack'}:${title}`};
+}
+function _playerBusinessRaidActivityIsActive(activity,now=Math.floor(Date.now()/1000)){
+  if(!String(activity?.token||''))return false;
+  if(['resolved','expired'].includes(String(activity?.status||'')))return false;
+  const expires=+activity?.expires_at||+activity?.expires||0;return !(expires>0&&expires<=now);
 }
 function _playerBusinessRaidToken(activity){return String(activity?.raid_token||activity?.token||'');}
 function _playerBusinessRaidBreachFor(activity){const token=_playerBusinessRaidToken(activity);return token?_playerBusinessRaidBreaches.get(token)||null:null;}
@@ -18079,34 +18089,38 @@ function _playerBusinessRaidPlan(empire,activity){
   const stakes=objective==='followup-capture'?'поражение передаст бизнес семье босса':'поражение закроет бизнес на 10 минут',counterTip='Контрход: сорви непрерывное удержание кассы';
   return {objective,objectiveLabel,breachPhase,hold,doctrineId:String(doctrine.id||'direct'),doctrineLabel,profileLabel:decision.profileLabel,decision,stakes,counterTip,plan:`План ${boss}: прорыв → касса ${hold} с → ${objective==='followup-capture'?'захват':'закрытие'}`};
 }
+function _playerBusinessRaidCompass(alert,r,c){
+  const pr=+r,pc=+c,tr=+alert?.r,tc=+alert?.c;if(!alert||![pr,pc,tr,tc].every(Number.isFinite))return null;
+  const dr=tr-pr,dc=tc-pc,distance=Math.round(Math.hypot(dr,dc)),screenDx=dc-dr,screenDy=(dc+dr)*ISO_Y;
+  const arrows=['→','↘','↓','↙','←','↖','↑','↗'],names=['ВОСТОК','ЮГО-ВОСТОК','ЮГ','ЮГО-ЗАПАД','ЗАПАД','СЕВЕРО-ЗАПАД','СЕВЕР','СЕВЕРО-ВОСТОК'],atTarget=Math.hypot(screenDx,screenDy)<.08,index=atTarget?0:(Math.round(Math.atan2(screenDy,screenDx)/(Math.PI/4))+8)%8;
+  const state=alert.plan?.breachPhase==='approach'?'ПРИБЛИЖАЮТСЯ':alert.plan?.objective==='followup-capture'?'ЗАХВАТЫВАЮТ':'АТАКУЮТ',direction=atTarget?'◎':arrows[index],directionName=atTarget?'ВЫ НА МЕСТЕ':names[index];
+  return {direction,directionName,index:atTarget?-1:index,angle:atTarget?0:index*45,distance,state,text:`${directionName} · ${distance} м · ${String(alert.name||'БИЗНЕС').toUpperCase()} · ${state}`,signature:`${alert.key}:${atTarget?'here':index}:${distance}:${state}:${alert.name||''}`};
+}
 function _ensurePlayerBusinessRaidHud(){
   let hud=document.getElementById('playerBusinessRaidHud');if(hud)return hud;
-  hud=document.createElement('aside');hud.id='playerBusinessRaidHud';hud.setAttribute('aria-live','polite');hud.innerHTML='<b></b><span></span><small></small><em></em>';
-  const style=document.createElement('style');style.id='playerBusinessRaidHudStyle';style.textContent=`#playerBusinessRaidHud{display:none;position:fixed;z-index:48;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);width:min(390px,calc(100vw - 16px));max-height:132px;box-sizing:border-box;overflow:hidden;padding:10px 14px;border:1px solid #ff4b51;border-left:5px solid #ff313c;border-radius:5px;background:linear-gradient(100deg,rgba(67,8,13,.96),rgba(12,13,18,.96));box-shadow:0 8px 28px #000b,0 0 20px #ff273533;color:#fff;font:800 12px/1.35 system-ui;pointer-events:none}#playerBusinessRaidHud.show{display:grid;gap:2px}#playerBusinessRaidHud b{overflow:hidden;color:#ff8b8f;font-size:14px;letter-spacing:.5px;text-overflow:ellipsis;text-transform:uppercase;white-space:nowrap}#playerBusinessRaidHud span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#playerBusinessRaidHud small,#playerBusinessRaidHud em{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal}#playerBusinessRaidHud small{color:#ffd1b1;font-size:10px}#playerBusinessRaidHud em{color:#ff7279;font-size:11px;font-style:normal}@media(max-width:640px){#playerBusinessRaidHud{top:calc(env(safe-area-inset-top,0px) + 56px);width:min(300px,calc(100vw - 16px));max-height:120px;padding:8px 10px;font-size:10px}#playerBusinessRaidHud b{font-size:12px}}`;
-  document.head.appendChild(style);document.body.appendChild(hud);return hud;
+  hud=document.createElement('aside');hud.id='playerBusinessRaidHud';hud.setAttribute('role','status');hud.setAttribute('aria-live','polite');hud.setAttribute('aria-atomic','true');hud.innerHTML='<i class="raid-compass" aria-hidden="true">➤</i><b></b><span></span><small></small><em></em>';
+  const style=document.createElement('style');style.id='playerBusinessRaidHudStyle';style.textContent=`#playerBusinessRaidHud{display:none;position:fixed;z-index:48;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%);grid-template-columns:46px minmax(0,1fr);column-gap:9px;width:min(430px,calc(100vw - 16px));max-height:132px;box-sizing:border-box;overflow:hidden;padding:10px 14px 10px 10px;border:1px solid #ff4b51;border-left:5px solid #ff313c;border-radius:5px;background:linear-gradient(100deg,rgba(67,8,13,.96),rgba(12,13,18,.96));box-shadow:0 8px 28px #000b,0 0 20px #ff273533;color:#fff;font:800 12px/1.35 system-ui;pointer-events:none}#playerBusinessRaidHud.show{display:grid}#playerBusinessRaidHud .raid-compass{grid-row:1/5;align-self:center;justify-self:center;width:38px;height:38px;border:2px solid #ff5964;border-radius:50%;box-sizing:border-box;background:#3a080dcc;box-shadow:0 0 16px #ff273588;color:#fff;display:grid;place-items:center;font:900 27px/1 system-ui;font-style:normal;transform:rotate(var(--raid-angle,0deg));transition:transform .16s ease}#playerBusinessRaidHud b,#playerBusinessRaidHud span,#playerBusinessRaidHud small,#playerBusinessRaidHud em{grid-column:2;min-width:0}#playerBusinessRaidHud b{overflow:hidden;color:#ff8b8f;font-size:14px;letter-spacing:.5px;text-overflow:ellipsis;text-transform:uppercase;white-space:nowrap}#playerBusinessRaidHud span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#playerBusinessRaidHud small{display:-webkit-box;overflow:hidden;color:#ffd1b1;font-size:10px;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal}#playerBusinessRaidHud em{overflow:hidden;color:#ff7279;font-size:11px;font-style:normal;text-overflow:ellipsis;white-space:nowrap}@media(prefers-reduced-motion:reduce){#playerBusinessRaidHud .raid-compass{transition:none}}@media(max-width:640px){#playerBusinessRaidHud{top:calc(env(safe-area-inset-top,0px) + 56px);grid-template-columns:36px minmax(0,1fr);width:min(330px,calc(100vw - 16px));max-height:120px;padding:8px;font-size:10px}#playerBusinessRaidHud .raid-compass{width:32px;height:32px;font-size:22px}#playerBusinessRaidHud b{font-size:12px}}`;
+  document.head.appendChild(style);document.body.appendChild(hud);hud._raidCompass=hud.querySelector('.raid-compass');hud._raidNavigation=hud.querySelector('em');return hud;
 }
 function _renderPlayerBusinessRaidHud(activity){
-  const hud=_ensurePlayerBusinessRaidHud();if(!_activePlayerBusinessRaidAlert){hud.classList.remove('show');return;}
+  const hud=_ensurePlayerBusinessRaidHud();if(!_activePlayerBusinessRaidAlert){hud.classList.remove('show');hud.dataset.navigation='';if(hud._raidCompass){hud._raidCompass.style.setProperty('--raid-angle','0deg');hud._raidCompass.textContent='➤';}if(hud._raidNavigation)hud._raidNavigation.textContent='';return;}
   const alert=_activePlayerBusinessRaidAlert,guards=Number.isFinite(+activity?.assigned_object_guards)?Math.max(0,+activity.assigned_object_guards):null,free=Number.isFinite(+activity?.assigned_free_squad)?Math.max(0,+activity.assigned_free_squad):null;
   hud.querySelector('b').textContent=`🚨 ${alert.title} · ${alert.name}`;hud.querySelector('span').textContent=`${alert.boss} · ${alert.family} · Профиль выбора: ${alert.plan.profileLabel}`;
-  hud.querySelector('small').textContent=guards===null&&free===null?`ЦЕЛЬ: ${alert.plan.objectiveLabel} · следуйте к красной метке`:`Атака ${free??'—'} · защита ${guards??'—'} · цель: ${alert.plan.objectiveLabel}`;
+  hud.querySelector('small').textContent=(guards===null&&free===null?`ЦЕЛЬ: ${alert.plan.objectiveLabel} · следуйте к красной метке`:`Атака ${free??'—'} · защита ${guards??'—'} · цель: ${alert.plan.objectiveLabel}`)+` · ${alert.plan.decision.summary}`;
   hud.classList.add('show');hud.dataset.raidKey=alert.key;
 }
 function _updatePlayerBusinessRaidNavigation(r,c){
   const alert=_activePlayerBusinessRaidAlert,hud=document.getElementById('playerBusinessRaidHud');if(!alert||!hud)return;
-  const dr=alert.r-(+r||0),dc=alert.c-(+c||0),distance=Math.round(Math.hypot(dr,dc)),arrows=['→','↘','↓','↙','←','↖','↑','↗'],direction=arrows[(Math.round(Math.atan2(dr,dc)/(Math.PI/4))+8)%8],key=`${direction}:${distance}:${alert.plan.decision.summary}`;
-  if(hud.dataset.navigation===key)return;hud.dataset.navigation=key;hud.querySelector('em').textContent=`${direction} ${distance} м · Оценка рейда: ${alert.plan.decision.summary}`;
+  const compass=_playerBusinessRaidCompass(alert,r,c);if(!compass||hud.dataset.navigation===compass.signature)return;hud.dataset.navigation=compass.signature;
+  const arrow=hud._raidCompass||hud.querySelector('.raid-compass'),text=hud._raidNavigation||hud.querySelector('em');hud._raidCompass=arrow;hud._raidNavigation=text;if(arrow){arrow.textContent=compass.index<0?'◎':'➤';arrow.style.setProperty('--raid-angle',`${compass.angle}deg`);}if(text)text.textContent=compass.text;
+  document.documentElement.dataset.playerBusinessRaidCompass=`${alert.key}:${compass.directionName}:${compass.distance}:${compass.state}`;
 }
 function _syncPlayerBusinessRaidAlert(){
-  const now=Math.floor(Date.now()/1000),activeTokens=new Set((_npcEmpireInteriorRaids||[]).filter(raid=>!['resolved','expired'].includes(String(raid?.status||''))&&(!(+raid?.expires_at||+raid?.expires)||(+raid.expires_at||+raid.expires)>now)).map(raid=>String(raid?.token||'')).filter(Boolean));for(const token of _playerBusinessRaidBreaches.keys())if(!activeTokens.has(token))_playerBusinessRaidBreaches.delete(token);const activity=(_npcEmpireInteriorRaids||[]).find(raid=>{
-    if(!String(raid?.token||''))return false;
-    if(['resolved','expired'].includes(String(raid.status||'')))return false;
-    const expires=+raid.expires_at||+raid.expires||0;
-    return !(expires>0&&expires<=now);
-  }),empire=activity?_npcEmpireById.get(String(activity.leader_id||'')):null,entry=activity&&empire&&empire.status!=='ruined'?{empire,activity}:null;
-  if(!entry){_activePlayerBusinessRaidAlert=null;_renderPlayerBusinessRaidHud(null);document.documentElement.dataset.playerBusinessRaidAlert='inactive';return null;}
-  const target=_playerBusinessRaidTargetName(empire,activity),key=`${empire.leader_id}:${activity.token}:${activity.target_kind||''}:${activity.target_id||''}`;
-  const plan=_playerBusinessRaidPlan(empire,activity),title=plan.breachPhase==='breach'?(target.hq?'Ваш штаб атакуют':'Ваш бизнес атакуют'):(target.hq?'К вашему штабу приближаются':'К вашему бизнесу приближаются');_activePlayerBusinessRaidAlert={key,r:+activity.target_r||0,c:+activity.target_c||0,targetId:String(activity.target_id||''),targetKind:String(activity.target_kind||''),title,name:target.name,boss:String(empire.leader_name||'Босс'),family:String(empire.gang_name||'Криминальная семья'),leaderId:String(empire.leader_id||''),plan,assignedObjectGuards:Number.isFinite(+activity.defender_count)?Math.max(0,+activity.defender_count):null,assignedFreeSquad:Number.isFinite(+activity.force)?Math.max(0,+activity.force):null};
+  const now=Math.floor(Date.now()/1000),activeTokens=new Set((_npcEmpireInteriorRaids||[]).filter(raid=>_playerBusinessRaidActivityIsActive(raid,now)).map(raid=>String(raid?.token||'')).filter(Boolean));for(const token of _playerBusinessRaidBreaches.keys())if(!activeTokens.has(token))_playerBusinessRaidBreaches.delete(token);const activity=(_npcEmpireInteriorRaids||[]).find(raid=>_playerBusinessRaidActivityIsActive(raid,now)),empire=activity?_npcEmpireById.get(String(activity.leader_id||'')):null,entry=activity&&empire&&empire.status!=='ruined'?{empire,activity}:null;
+  if(!entry){_activePlayerBusinessRaidAlert=null;_renderPlayerBusinessRaidHud(null);document.documentElement.dataset.playerBusinessRaidAlert='inactive';document.documentElement.dataset.playerBusinessRaidCompass='inactive';return null;}
+  const targetR=activity?.target_r,targetC=activity?.target_c;if(targetR===null||targetR===undefined||targetR===''||targetC===null||targetC===undefined||targetC===''||!Number.isFinite(+targetR)||!Number.isFinite(+targetC)){_activePlayerBusinessRaidAlert=null;_renderPlayerBusinessRaidHud(null);document.documentElement.dataset.playerBusinessRaidAlert='inactive:invalid-target';return null;}
+  const target=_playerBusinessRaidTargetName(empire,activity),presentation=_playerRaidThreatPresentation(activity,target),key=`${empire.leader_id}:${activity.token}:${activity.target_kind||''}:${activity.target_id||''}`;
+  const plan=_playerBusinessRaidPlan(empire,activity);_activePlayerBusinessRaidAlert={key,r:+targetR,c:+targetC,targetId:String(activity.target_id||''),targetKind:String(activity.target_kind||''),title:presentation.title,name:target.name,boss:String(empire.leader_name||'Босс'),family:String(empire.gang_name||'Криминальная семья'),leaderId:String(empire.leader_id||''),presentation,plan,assignedObjectGuards:Number.isFinite(+activity.defender_count)?Math.max(0,+activity.defender_count):null,assignedFreeSquad:Number.isFinite(+activity.force)?Math.max(0,+activity.force):null};
   if(!_seenPlayerBusinessRaidAlerts.has(key)){
     _seenPlayerBusinessRaidAlerts.add(key);while(_seenPlayerBusinessRaidAlerts.size>24)_seenPlayerBusinessRaidAlerts.delete(_seenPlayerBusinessRaidAlerts.values().next().value);
     showEventBanner(`🚨 ${_activePlayerBusinessRaidAlert.title.toUpperCase()}`,`${target.name} · ${_activePlayerBusinessRaidAlert.boss} · ${_activePlayerBusinessRaidAlert.family}`,5200,'warn');
@@ -19342,6 +19356,7 @@ function drawPlayerBuildingBusinesses(r0,r1,c0,c1){
 }
 function drawPlayerBusinessRaidWorldMarker(r0,r1,c0,c1){
   const raid=_activePlayerBusinessRaidAlert;if(!raid||!Number.isFinite(raid.r)||!Number.isFinite(raid.c))return;
+  _updatePlayerBusinessRaidNavigation(player.r,player.c);
   if(raid.r<r0-4||raid.r>r1+4||raid.c<c0-4||raid.c>c1+4)return;
   const p=w2s(raid.r+.5,raid.c+.5),pulse=.5+.5*Math.abs(Math.sin(performance.now()*.0065)),dist=Math.round(Math.hypot(raid.r-player.r,raid.c-player.c));
   ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=.72+.28*pulse;ctx.shadowColor='#ff2837';ctx.shadowBlur=15+12*pulse;ctx.strokeStyle='#ff3948';ctx.fillStyle=`rgba(255,28,43,${.09+.08*pulse})`;ctx.lineWidth=3;
@@ -52165,7 +52180,6 @@ function drawPOIArrows(r0, r1, c0, c1) {
     }
   };
   const boxQuest = myBoxStatus && myBoxStatus.active;
-  if(_activePlayerBusinessRaidAlert)drawEdgeTarget(_activePlayerBusinessRaidAlert.r,_activePlayerBusinessRaidAlert.c,'🚨',_activePlayerBusinessRaidAlert.title,'#ff3948',true,false);
   if (boxQuest) {
     const waitingPickup = boxQuest.state === 'pending';
     const waitingGround = boxQuest.state === 'ground';
@@ -52870,7 +52884,7 @@ function drawMinimap() {
     const raid=_activePlayerBusinessRaidAlert,x=(raid.c+.5)*sx,y=(raid.r+.5)*sy,pulse=.55+.45*Math.abs(Math.sin(performance.now()*.0065));
     ctx2.save();ctx2.globalAlpha=pulse;ctx2.shadowColor='#ff2536';ctx2.shadowBlur=10;ctx2.fillStyle='#ff2638';ctx2.strokeStyle='#fff';ctx2.lineWidth=1.6;ctx2.beginPath();ctx2.arc(x,y,5.5+2*pulse,0,Math.PI*2);ctx2.fill();ctx2.stroke();ctx2.shadowBlur=0;ctx2.fillStyle='#fff';ctx2.font='900 9px system-ui';ctx2.textAlign='center';ctx2.textBaseline='middle';ctx2.fillText('!',x,y+.3);ctx2.restore();
     document.documentElement.dataset.playerBusinessRaidMapMarker=`${raid.key}:${raid.r.toFixed(2)},${raid.c.toFixed(2)}`;
-  }
+  }else document.documentElement.dataset.playerBusinessRaidMapMarker='inactive';
   // PVP-арена — пульсирующая красная зона
   const arenaPulse = 0.20 + Math.abs(Math.sin(performance.now() * 0.003)) * 0.18;
   ctx2.fillStyle = `rgba(255,40,40,${arenaPulse})`;
@@ -69312,6 +69326,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d413-cached-npc-part-traversal"></script>
+<script type="module" src="three_preview.js?v=3d414-raid-marker-cached-npc-traversal"></script>
 </body>
 </html>
