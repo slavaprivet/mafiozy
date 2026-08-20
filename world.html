@@ -65162,7 +65162,7 @@ window.Mafiozi3DBridge = Object.freeze({
       const r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,id=_threeNpcEntityId(x),d2=(r-player.r)**2+(c-player.c)**2;
       return d2<=rad2||(_threeStickyNpcIds.has(id)&&d2<=(streamRadius+7)**2);
     });
-    const npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
+    const npcPoolOrder=['mission','police','guard','gang','civilian'],npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
     for(const x of npcEligible)npcPools[npcLifePool(x)].push(x);
     const npcPoolMissionCount=npcPools.mission.length,npcPoolPoliceCount=npcPools.police.length,npcPoolGuardCount=npcPools.guard.length,npcPoolGangCount=npcPools.gang.length,npcPoolCivilianCount=npcPools.civilian.length;
     const npcDist=x=>Math.hypot((+(x.r??x.y)||0)-player.r,(+(x.c??x.x)||0)-player.c);
@@ -65170,9 +65170,9 @@ window.Mafiozi3DBridge = Object.freeze({
       const ai=_threeStickyNpcIds.has(_threeNpcEntityId(a))?0:1,bi=_threeStickyNpcIds.has(_threeNpcEntityId(b))?0:1;
       return ai-bi||npcDist(a)-npcDist(b)||_threeNpcEntityId(a).localeCompare(_threeNpcEntityId(b));
     };
-    for(const pool of Object.values(npcPools))pool.sort(stableNpcSort);
+    for(const key of npcPoolOrder)npcPools[key].sort(stableNpcSort);
     const civilianReserve=Math.min(24,npcPools.civilian.length,NPC_LIFE_NPC_CAP);
-    const npcSelected=[],npcPoolOrder=['mission','police','guard','gang','civilian'],npcPoolOffsets={mission:0,police:0,guard:0,gang:0,civilian:0};
+    const npcSelected=[],npcPoolOffsets={mission:0,police:0,guard:0,gang:0,civilian:0};
     let criticalBudget=NPC_LIFE_NPC_CAP-civilianReserve;
     for(let k=0;k<4;k++){
       const key=npcPoolOrder[k],pool=npcPools[key],take=Math.min(criticalBudget,pool.length);
