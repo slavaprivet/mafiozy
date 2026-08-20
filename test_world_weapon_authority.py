@@ -1,8 +1,7 @@
 """Exact production weapon balance, aliases, ownership and shared cadence.
 
-The local preview adapter still applies a display-only fixed 42 damage and has
-no safe shared-profile import boundary. Do not duplicate this table there;
-preview parity needs a later shared balance module instead of a second truth.
+Production and local preview now consume the side-effect-free shared balance;
+this test keeps mutable ownership/cadence authority in WorldSim.
 """
 
 import os

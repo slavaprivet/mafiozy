@@ -10,6 +10,7 @@ import os
 import secrets
 import re
 import npc_empire
+import weapon_balance
 from functools import lru_cache
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -13533,51 +13534,17 @@ class WorldSim:
     PVP_SHOT_DMG_DEF   = 24
     PVP_SHOT_R         = 8.0
     PVP_SHOT_CD        = 0.38
-    WEAPON_CRIT_CHANCE = 0.12
-    WEAPON_CRIT_MUL    = 1.25
+    WEAPON_CRIT_CHANCE = weapon_balance.WEAPON_CRIT_CHANCE
+    WEAPON_CRIT_MUL    = weapon_balance.WEAPON_CRIT_MUL
     # Серверный источник баланса совпадает с WEAPON_FX_CFG в world.html.
     # falloff_start — доля дальности, после которой начинает падать урон.
-    WEAPON_PROFILE = {
-        # Метательное оружие передаёт отдельный hit для каждого бандита,
-        # попавшего в радиус. Нулевой cooldown нужен именно для настоящего AoE.
-        'grenade':      {'dmg': 95,  'cd': 0.0, 'range': 12.0, 'falloff_start': 1.0, 'min_mul': 1.0},
-        'molotov_fire': {'dmg': 12,  'cd': 0.0, 'range': 12.0, 'falloff_start': 1.0, 'min_mul': 1.0},
-        'pistol':       {'dmg': 24,  'cd': 0.38,  'range': 8.0,  'falloff_start': 0.72, 'min_mul': 0.65},
-        'nagan':        {'dmg': 32,  'cd': 0.48,  'range': 9.2,  'falloff_start': 0.78, 'min_mul': 0.76,
-                         'duel_pause': 0.80, 'duel_crit_mul': 1.80, 'armor_pen': 0.45},
-        'revolver':     {'dmg': 86,  'cd': 0.58,  'range': 10.5, 'falloff_start': 0.84, 'min_mul': 0.80,
-                         'armor_pen': 0.35},
-        'pistol_heavy': {'dmg': 72,  'cd': 0.46,  'range': 11.2, 'falloff_start': 0.80, 'min_mul': 0.76},
-        'pistol_gold':  {'dmg': 48,  'cd': 0.24,  'range': 11.5, 'falloff_start': 0.80, 'min_mul': 0.76},
-        'shotgun':      {'dmg': 76,  'cd': 0.90,  'range': 6.2,  'falloff_start': 0.36, 'min_mul': 0.38},
-        'smg':          {'dmg': 15,  'cd': 0.105, 'range': 8.0,  'falloff_start': 0.60, 'min_mul': 0.52},
-        'tommy_gun':    {'dmg': 24,  'cd': 0.12,  'range': 10.0, 'falloff_start': 0.68, 'min_mul': 0.58},
-        'golden_tommy': {'dmg': 24,  'cd': 0.12,  'range': 10.0, 'falloff_start': 0.68, 'min_mul': 0.58},
-        'rifle':        {'dmg': 42,  'cd': 0.20,  'range': 14.0, 'falloff_start': 0.76, 'min_mul': 0.68},
-        'sniper':       {'dmg': 132, 'cd': 1.25,  'range': 20.0, 'falloff_start': 0.92, 'min_mul': 0.88},
-        'rpg':          {'dmg': 160, 'cd': 1.65,  'range': 15.0, 'falloff_start': 1.00, 'min_mul': 1.00},
-    }
-    WEAPON_ALIASES = {
-        'tt': 'pistol', 'tt_pistol': 'pistol', 'pm': 'pistol', 'glock': 'pistol',
-        'desert_eagle': 'pistol_heavy', 'deagle': 'pistol_heavy',
-        'golden_colt': 'pistol_gold', 'sawn_off': 'shotgun',
-        'uzi': 'smg', 'ump': 'smg', 'mp5': 'smg', 'golden_uzi': 'smg',
-        'ak': 'rifle', 'ak74': 'rifle', 'm4': 'rifle', 'm16': 'rifle',
-    }
-    WEAPON_AMMO = {
-        'pistol':'9mm', 'pistol_gold':'9mm', 'smg':'9mm', 'tommy_gun':'9mm', 'golden_tommy':'9mm',
-        'nagan':'magnum', 'revolver':'magnum', 'pistol_heavy':'magnum', 'shotgun':'shell',
-        'rifle':'rifle', 'sniper':'sniper', 'rpg':'rocket',
-    }
-    AMMO_DROP_ROUNDS = {'9mm':12, 'magnum':6, 'shell':6, 'rifle':15, 'sniper':3, 'rocket':1}
+    WEAPON_PROFILE = weapon_balance.WEAPON_PROFILE
+    WEAPON_ALIASES = weapon_balance.WEAPON_ALIASES
+    WEAPON_AMMO = weapon_balance.WEAPON_AMMO
+    AMMO_DROP_ROUNDS = weapon_balance.AMMO_DROP_ROUNDS
     # Совместимость со старым кодом, который ещё может читать только базовый урон.
     # Новые обработчики используют WEAPON_PROFILE и учитывают дистанцию.
-    WEAPON_DMG = {
-        'pistol':       24, 'nagan':       32, 'revolver': 86,
-        'pistol_heavy': 72, 'pistol_gold': 48,
-        'shotgun':      76, 'smg':         15, 'tommy_gun': 24, 'golden_tommy': 24,
-        'rifle':        42, 'sniper':      132, 'rpg':       160,
-    }
+    WEAPON_DMG = weapon_balance.WEAPON_DMG
     # Формация конвоя (локально, в координатах «вперёд/право»):
     #   oy > 0  → впереди инкассатора по направлению движения,
     #   oy < 0  → сзади. ox > 0 — справа от него.
@@ -16605,15 +16572,13 @@ class WorldSim:
 
     @classmethod
     def _weapon_profile(cls, weapon: str) -> dict:
-        key = str(weapon or 'pistol')
-        key = cls.WEAPON_ALIASES.get(key, key)
-        return cls.WEAPON_PROFILE.get(key, cls.WEAPON_PROFILE['pistol'])
+        return weapon_balance.weapon_profile(
+            weapon, profiles=cls.WEAPON_PROFILE, aliases=cls.WEAPON_ALIASES)
 
     @classmethod
     def _weapon_key(cls, weapon: str) -> str:
-        key = str(weapon or 'pistol')
-        key = cls.WEAPON_ALIASES.get(key, key)
-        return key if key in cls.WEAPON_PROFILE else 'pistol'
+        return weapon_balance.weapon_key(
+            weapon, profiles=cls.WEAPON_PROFILE, aliases=cls.WEAPON_ALIASES)
 
     def _spawn_gang_ammo_drop(self, weapon: str, x: float, y: float) -> None:
         """Пачка подходящего калибра падает на землю и остаётся общей для мира."""
@@ -16650,7 +16615,7 @@ class WorldSim:
             chain = int(shooter.get('_nagan_chain', 0) or 0)
             if gap > 1.05:
                 chain = 0
-            cd_steps = (0.48, 0.38, 0.30, 0.24)
+            cd_steps = weapon_balance.NAGAN_CHAIN_COOLDOWNS
             if gap < cd_steps[min(chain, len(cd_steps) - 1)]:
                 return None
             duel_crit = gap >= float(profile.get('duel_pause', 0.8))
@@ -16670,16 +16635,9 @@ class WorldSim:
     @classmethod
     def _weapon_damage(cls, weapon: str, distance: float = 0.0,
                        shot_profile: dict | None = None) -> int:
-        profile = shot_profile or cls._weapon_profile(weapon)
-        base = float(profile['dmg'])
-        max_range = float(profile['range'])
-        start = max_range * float(profile.get('falloff_start', 0.7))
-        if distance <= start or max_range <= start:
-            return int(round(base * float(profile.get('_damage_mul', 1.0))))
-        t = max(0.0, min(1.0, (distance - start) / (max_range - start)))
-        minimum = float(profile.get('min_mul', 0.6))
-        return max(1, int(round(base * (1.0 - t * (1.0 - minimum))
-                                * float(profile.get('_damage_mul', 1.0)))))
+        return weapon_balance.weapon_damage(
+            weapon, distance, shot_profile,
+            profiles=cls.WEAPON_PROFILE, aliases=cls.WEAPON_ALIASES)
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
                           weapon: str = '') -> dict | None:

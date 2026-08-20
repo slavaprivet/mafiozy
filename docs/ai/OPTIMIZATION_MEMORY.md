@@ -1,5 +1,20 @@
 # Mafiozi 3D optimization memory
 
+## Honest bounded player-raid HUD (2026-08-14, v412)
+
+- Reuse the four existing exterior and four existing interior HUD nodes; keep
+  both panels mutually exclusive, inside a 16 px safe area, height-bounded and
+  two-line clamped. Policy metrics are sync/event data and add no render-loop
+  DOM, scans, timers or history.
+- One pure formatter sanitizes policy/reason, clamps the four numeric metrics
+  and supplies both views. Include its bounded summary in the exterior
+  navigation signature so a reconnect metric refresh cannot be hidden by an
+  unchanged direction/distance cache key.
+- The interior panel reports only real phase/objective/hold facts. Keep the
+  minimum displayed cashier hold at 20 seconds, and do not imply
+  doctrine-specific tactics until the movement/combat state machine actually
+  implements them.
+
 ## Time-gated interior raid path recovery (2026-08-14, v410)
 
 - The cheap fixed-angle movement remains the default. Only after `900 ms`

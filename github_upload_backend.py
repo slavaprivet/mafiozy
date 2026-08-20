@@ -8,6 +8,7 @@ from github_publish_safe import BRANCH, REPO, publish_files
 
 
 FILES = tuple(sys.argv[1:]) or (
+    "weapon_balance.py",
     "mafiozi_bot.py",
     "npc_empire.py",
     "_preview_ws_server.py",

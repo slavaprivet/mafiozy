@@ -41,14 +41,16 @@ def main():
     assert '_seenPlayerBusinessRaidAlerts.size>24' in world
     assert "target.hq?'Ваш штаб атакуют':'Ваш бизнес атакуют'" in world
     assert "id===String(empire?.hq_key||'')" in world
-    assert 'Охрана объекта ${guards??\'—\'} · нападающие ${free??\'—\'}' in world
+    assert 'Атака ${free??\'—\'} · защита ${guards??\'—\'} · цель: ${alert.plan.objectiveLabel}' in world
     assert 'assignedObjectGuards:Number.isFinite(+activity.defender_count)' in world
     assert 'assignedFreeSquad:Number.isFinite(+activity.force)' in world
     assert 'business_label' in world
     assert '_playerBusinessRaidPlan(empire,activity)' in world
     assert "objective==='followup-capture'" in world
-    assert 'plan.doctrineLabel' in world
-    assert 'plan.stakes' in world and 'plan.counterTip' in world
+    assert 'alert.plan.profileLabel' in world
+    assert 'alert.plan.decision.summary' in world
+    assert 'stakes,counterTip,plan:' in world and 'plan.counterTip' in world
+    assert 'raid_policy' in world and 'raid_metrics' in world and 'target_reason' in world
     assert ':objective-${plan.objective}:doctrine-${plan.doctrineId}`' in world
     assert "'objective': objective" in server
     assert '_player_business_raid_objective(' in server

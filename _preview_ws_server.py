@@ -7,6 +7,7 @@ from pathlib import Path
 import time
 from aiohttp import web
 import npc_empire
+import weapon_balance
 
 
 players = {}
@@ -14,6 +15,34 @@ race_best = {}
 race_day = ""
 next_civ_car_id = 1
 clients = set()
+
+
+def preview_weapon_hit(weapon: str, distance: float = 0.0) -> dict | None:
+    """Resolve an in-range preview hit through production weapon balance."""
+    key = weapon_balance.weapon_key(weapon)
+    profile = weapon_balance.weapon_profile(key)
+    distance = float(distance)
+    if not math.isfinite(distance) or distance < 0.0 or distance > float(profile["range"]):
+        return None
+    return {
+        "weapon": key,
+        "damage": weapon_balance.weapon_damage(key, distance),
+        "range": float(profile["range"]),
+    }
+
+
+def preview_actor_distance(actor: dict | None, target: dict | None) -> float | None:
+    """Reject missing or non-finite live coordinates instead of inventing (0, 0)."""
+    try:
+        sx, sy = float(actor["x"]), float(actor["y"])
+        tx, ty = float(target["x"]), float(target["y"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not all(math.isfinite(value) for value in (sx, sy, tx, ty)):
+        return None
+    return math.hypot(sx - tx, sy - ty)
+
+
 DIST_HQ_RAD = 6.0
 DIST_ACTION_RAD = 2.8
 DIST_OPERATION_TTL_S = 12 * 60
@@ -219,7 +248,7 @@ preview_city_gangs = [
         "id":f"preview_yellow_{i}","x":19.0+i*.9,"y":20.0+(i%2)*.8,
         "ang":math.pi,"hp":100,"max_hp":100,"kind":"aggro_grunt","weapon":"pistol",
         "faction":"yellow","look":{"gender":0,"skin":1+i%3,"body":2,
-        "face":i%3,"hair":i%4,"hat":4,"gang":2,"suit":"#d2a719"}}
+        "face":i%3,"hair":i%4,"hat":4,"gang":2,"suit":"#f3efe5"}}
         for i in range(5)]},
     # Локальное превью должно отдавать ту же опасную банду Логова, что и
     # основной сервер. Раньше здесь были только две уличные банды, поэтому
@@ -2991,29 +3020,31 @@ async def world_ws(req):
                     if cap:
                         cap["hostile_uid"] = str(uid)
                         cap["hostile_until"] = time.time() + 30.0
-                    damage = 42
+                    p = players.get(uid)
+                    distance = preview_actor_distance(p, found)
+                    if distance is None:
+                        continue
+                    hit = preview_weapon_hit(str(d.get("weapon") or "pistol"), distance)
+                    if hit is None:
+                        continue
+                    weapon = hit["weapon"]
+                    damage = hit["damage"]
                     found["hp"] = max(0, int(found["hp"]) - damage)
                     killed = found["hp"] <= 0
                     if killed:
                         found["alive"] = False
                         found["respawn_at"] = time.time() + 14.0
-                        weapon=str(d.get("weapon") or "pistol")
-                        ammo_map={"pistol":"9mm","pistol_gold":"9mm","smg":"9mm","tommy_gun":"9mm",
-                            "nagan":"magnum","pistol_heavy":"magnum","shotgun":"shell","rifle":"rifle",
-                            "sniper":"sniper","rpg":"rocket"}
-                        round_map={"9mm":12,"magnum":6,"shell":6,"rifle":15,"sniper":3,"rocket":1}
-                        ammo_type=ammo_map.get(weapon,"9mm")
+                        ammo_type, rounds = weapon_balance.ammo_drop_for(weapon)
                         ammo_id=f"preview_ammo_{int(time.time()*1000)}"
                         district_loot[ammo_id]={"id":ammo_id,"kind":"ammo","x":float(found["x"]),
-                            "y":float(found["y"]),"ammo_type":ammo_type,"rounds":round_map[ammo_type],
+                            "y":float(found["y"]),"ammo_type":ammo_type,"rounds":rounds,
                             "expires_at":time.time()+90.0}
                     is_boss = found.get("kind") == "district_boss"
                     if killed and is_boss and cap:
                         preview_drop_district_dossier(found_did, cap, found, time.time())
-                    p = players.get(uid) or {}
                     await broadcast_event({
                         "kind": "aggro_hit", "bot_id": target_id,
-                        "hp": found["hp"], "damage": damage, "killed": killed,
+                        "hp": found["hp"], "damage": damage, "weapon": weapon, "killed": killed,
                         "sy": p.get("y", 0), "sx": p.get("x", 0),
                         "ty": found["y"], "tx": found["x"],
                         "district_boss": is_boss, "did": found_did,

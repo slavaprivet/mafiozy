@@ -27,6 +27,16 @@ source before editing and update this document whenever a contract changes.
   expose the policy id, target reason and value/distance/defence metrics that
   actually scored it. Target switching still resets an odd attack to
   `first-close`; doctrine does not alter authoritative resolve or ownership.
+- Exterior and interior raid HUDs format that same server evaluation through
+  one bounded decision helper. Treat it as the current server evaluation, not
+  a persisted decision-time explanation: reconnect may refresh the metrics,
+  and a policy/doctrine mismatch must fall back to a generic server label and
+  explicit telemetry instead of inventing an explanation.
+- Both HUDs publish the same authoritative objective and a minimum 20-second
+  cashier hold. Interior phase labels are literal (`approach`, first breach,
+  fight, advance, contested, hold or terminal); never advertise
+  doctrine-specific room tactics that the generic interior thinker does not
+  execute.
 - Interior admission is roster-backed and breach-gated. During `approach` the
   defence may already be staged, but attackers remain at zero until the exact
   session token breaches. Thereafter admit at most one existing roster row per
