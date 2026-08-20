@@ -1,3 +1,4 @@
+// 3D animation v416: NPC crawl recovery preserves one gait phase and eases cadence through the same root transition.
 // 3D animation v415: armed crawling NPCs keep the whole weapon and both hands above the road with a chest-anchored counter-pitch.
 // 3D UI v362: camera-facing HQ banners show their family primary and accent colors from every city angle.
 // 3D UI v360: empire crew identity cards and focus rings inherit their boss family colors.
@@ -2723,7 +2724,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const limping=!dead&&!crawling&&(!!(animBits&NPC_ANIM_LIMP)||(hpPct>0&&hpPct<=.35));
         const crawlBlend=Math.max(0,Math.min(1,+motion?.crawlBlend||(crawling?1:0)));
         const phase=npcVisualPhases[i]||t*.008+i*.73,idle=Math.sin(t*.0018+i*1.7);
-        const step=Math.sin(phase*(limping?.78:1));
+        const step=Math.sin(phase);
         const hitRemaining=Math.max(0,(motion?.hitUntil||0)-t);
         const hit=hitRemaining?Math.sin(Math.min(1,hitRemaining/650)*Math.PI)*Math.max(.7,+motion?.hitStrength||1):0;
         const hitSide=motion?.hitSide||1,hitForward=Number.isFinite(+motion?.hitForward)?+motion.hitForward:0,gait=Math.max(0,Math.min(1,+motion?.gaitBlend||0)),weightLean=Math.max(-1,Math.min(1,+motion?.weightLean||0)),walking=gait>.035&&!dead&&!cowering&&!surrendering&&!helping;
@@ -4669,7 +4670,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             }
             const prediction=recentMeasuredMove?Math.min(.055,Math.max(0,(t-motion.lastSampleAt)/1000)):0,desiredX=motion.targetX+motion.velocityX*prediction,desiredZ=motion.targetZ+motion.velocityZ*prediction,alpha=1-Math.exp(-dt*12),followDx=(desiredX-motion.visualX)*alpha,followDz=(desiredZ-motion.visualZ)*alpha,followDistance=Math.hypot(followDx,followDz),maxFollow=Math.max(.1,Math.min(.82,(Math.max(measuredSpeed,2.2)*1.25+1.2)*dt)),followScale=followDistance>maxFollow?maxFollow/followDistance:1;
             motion.visualX+=followDx*followScale;motion.visualZ+=followDz*followScale;
-            if(motion.gaitBlend>.025&&!dead){const cadence=crawlTarget?1.25:panicMoving?Math.min(16.8,12.6+Math.max(measuredSpeed,sourceWalking?3.4:0)*.38):(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.35?4.6:Math.min(13.2,7.6+Math.max(measuredSpeed,sourceWalking?2.4:0)*.34));motion.phase+=dt*cadence*Math.max(crawlTarget?.28:.38,motion.gaitBlend);}
+            if(motion.gaitBlend>.025&&!dead){const uprightCadence=panicMoving?Math.min(16.8,12.6+Math.max(measuredSpeed,sourceWalking?3.4:0)*.38):(hpNow>0&&hpNow<=Math.max(1,+src.maxHp||60)*.35?4.6:Math.min(13.2,7.6+Math.max(measuredSpeed,sourceWalking?2.4:0)*.34)),cadence=THREE.MathUtils.lerp(uprightCadence,1.25,motion.crawlBlend),cadenceFloor=THREE.MathUtils.lerp(.38,.28,motion.crawlBlend);motion.phase+=dt*cadence*Math.max(cadenceFloor,motion.gaitBlend);}
             else motion.phase=THREE.MathUtils.lerp(motion.phase,sourcePhase||motion.phase,Math.min(1,dt*5));
             if(dead){motion.visualX=Number.isFinite(motion.deathX)?motion.deathX:motion.visualX;motion.visualZ=Number.isFinite(motion.deathZ)?motion.deathZ:motion.visualZ;motion.targetX=motion.visualX;motion.targetZ=motion.visualZ;motion.velocityX=motion.velocityZ=0;const deathAge=t-(motion.deadStartedAt||t);if(deathAge<760)deathAnimatingNpcs++;else deathSettledNpcs++;}
             npcVisualXs[i]=motion.visualX;npcVisualZs[i]=motion.visualZ;npcVisualPhases[i]=motion.phase;

@@ -1,5 +1,19 @@
 # Mafiozi 3D optimization memory
 
+## NPC crawl recovery phase continuity (2026-08-21, v416)
+
+- `motion.phase` is an accumulated angle whose velocity already expresses walk,
+  limp, panic and crawl cadence. Never multiply that unbounded phase by a
+  state-dependent factor inside `sin()`: clearing crawl can reinterpret the same
+  phase as `.78 * phase` and teleport the visible step by almost its full range.
+- Keep pose sampling at `sin(phase)` and blend phase velocity between the
+  existing upright cadence and crawl `1.25` with cached `crawlBlend`. Blend the
+  cadence floor in the same scalar path so recovery does not swap speeds on one
+  boolean frame. This adds no object, pool, loop, upload or draw call.
+- Numeric QA covers the exact crawl flag boundary and exponential recovery.
+  Coefficient-level limb endpoints still branch on crawl and are a separate
+  later improvement; do not mix that wider silhouette change into this fix.
+
 ## Steam/PC-first quality target (2026-08-21)
 
 - Design and verify gameplay for the Steam desktop build first: keyboard and
