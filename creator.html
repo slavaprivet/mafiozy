@@ -1307,18 +1307,21 @@ function setSaveState(stateName, message) {
   const saveStatus = document.getElementById('save-status');
   const normalLabel = changeLookMode ? 'СОХРАНИТЬ ОБРАЗ · 5 💎' : 'СОХРАНИТЬ ПЕРСОНАЖА';
   if (saveBtn) {
-    saveBtn.disabled = stateName === 'saving';
+    saveBtn.disabled = stateName === 'saving' || stateName === 'sent';
     saveBtn.setAttribute('aria-busy', stateName === 'saving' ? 'true' : 'false');
-    saveBtn.textContent = stateName === 'saving' ? 'СОХРАНЯЕМ…' : stateName === 'error' ? 'ОШИБКА · ПОВТОРИТЬ' : normalLabel;
+    saveBtn.textContent = stateName === 'saving' ? 'СОХРАНЯЕМ…' : stateName === 'sent' ? 'ОТПРАВЛЕНО · ЖДЁМ СЕРВЕР' : stateName === 'error' ? 'ОШИБКА · ПОВТОРИТЬ' : normalLabel;
   }
   if (saveStatus) saveStatus.textContent = message || '';
 }
 async function refreshCreatorApi() {
   const manifests=[new URL('coop_api.json',location.href),new URL('https://slavaprivet.github.io/mafiozy/coop_api.json')];
+  const seen=new Set();
   for(const manifestUrl of manifests){
+    const manifestKey=manifestUrl.origin+manifestUrl.pathname;if(seen.has(manifestKey))continue;seen.add(manifestKey);
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),5000);
     try {
       manifestUrl.searchParams.set('t',String(Date.now()));
-      const response=await fetch(manifestUrl.href,{cache:'no-store'});
+      const response=await fetch(manifestUrl.href,{cache:'no-store',signal:controller.signal});
       const manifest=await response.json();
       const fresh=String(manifest?.base||'').replace(/\/$/,'');
       const valid=/^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i.test(fresh)||/^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(fresh);
@@ -1326,7 +1329,7 @@ async function refreshCreatorApi() {
       creatorApi=fresh;
       document.documentElement.dataset.creatorApi=fresh;
       return fresh;
-    } catch(e) {}
+    } catch(e) {} finally { clearTimeout(timeout); }
   }
   return '';
 }
@@ -1370,7 +1373,6 @@ function buildCharacterSelectionTarget(savedCharacterId='') {
 }
 function returnToCharacterSelection(savedCharacterId, delay=120) {
   const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
-  try { if(characterId)localStorage.setItem(`mafiozi_character_ready_v1_${characterId}`,'1'); } catch(e) {}
   const target=buildCharacterSelectionTarget(characterId);
   document.documentElement.dataset.creatorSelectionTarget=target.href;
   setTimeout(()=>location.replace(target.href),delay);
@@ -1403,20 +1405,26 @@ async function saveChar() {
     hat:    state.hat,
   };
   if (changeLookMode) payload.change_look = true;
-  if (creatorApi && /^\d+$/.test(creatorAccount) && (/^\d+$/.test(creatorUid) || !creatorUid)) {
+  if (/^\d+$/.test(creatorAccount) && (/^\d+$/.test(creatorUid) || !creatorUid)) {
     try {
       const creatingProfile = !creatorUid;
-      let result;
+      setSaveState('saving','Проверяем адрес игрового сервера…');
+      const freshApi=await refreshCreatorApi();
+      if(!freshApi)throw new Error('Игровой сервер сейчас недоступен. Персонаж не сохранён.');
+      let result,confirmedApi=freshApi;
       try {
-        result=await postCharacterLook(creatorApi,creatingProfile,payload,5000);
+        result=await postCharacterLook(confirmedApi,creatingProfile,payload,5000);
       } catch(firstError) {
-        const failedApi=creatorApi;
-        const freshApi=await refreshCreatorApi();
-        if(!freshApi||freshApi===failedApi)throw firstError;
+        const failedApi=confirmedApi;
+        confirmedApi=await refreshCreatorApi();
+        if(!confirmedApi||confirmedApi===failedApi)throw firstError;
         setSaveState('saving','Туннель обновился. Повторяем сохранение…');
-        result=await postCharacterLook(freshApi,creatingProfile,payload);
+        result=await postCharacterLook(confirmedApi,creatingProfile,payload);
       }
-      const savedCharacterId = String(result.profile?.character_id || creatorUid || '');
+      const savedCharacterId=creatingProfile?String(result.profile?.character_id||''):creatorUid;
+      const authoritativeLook=creatingProfile?result.profile?.has_look===true:result.has_look===true;
+      if(!/^\d+$/.test(savedCharacterId)||!authoritativeLook)throw new Error('Сервер не подтвердил созданного персонажа. Повтори сохранение.');
+      creatorApi=confirmedApi;document.documentElement.dataset.creatorApi=confirmedApi;
       try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
       if (saveBtn) saveBtn.textContent = 'СОХРАНЕНО ✓';
       if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Возвращаемся к выбору…' : 'Персонаж создан. Выбери его для продолжения…';
@@ -1430,10 +1438,8 @@ async function saveChar() {
     }
   }
   if (tg && typeof tg.sendData === 'function') {
-    returnToCharacterSelection(creatorUid||creatorAccount,180);
-    try { tg.sendData(JSON.stringify(payload)); } catch(e) {}
-    if (saveBtn) saveBtn.textContent = 'ОТПРАВЛЕНО ✓';
-    if (saveStatus) saveStatus.textContent = 'Образ отправлен. Возвращаемся к выбору…';
+    try { tg.sendData(JSON.stringify(payload));setSaveState('sent','Данные переданы боту. Персонаж появится после подтверждения сервера.'); }
+    catch(e){saveInFlight=false;setSaveState('error','Не удалось передать персонажа боту. Попробуй ещё раз.');}
   } else {
     saveInFlight = false;
     setSaveState('error','Нет соединения с игровым сервером. Открой редактор из меню персонажей.');

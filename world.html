@@ -3288,6 +3288,7 @@ function _openCharacterCreator(characterId='') {
   back.searchParams.set('menu','characters');
   url.searchParams.set('new','1');
   url.searchParams.set('render','3d');
+  url.searchParams.set('save','server');
   url.searchParams.set('account_uid',String(QP.account_uid || QP.uid || ''));
   if(characterId)url.searchParams.set('uid',String(characterId));
   url.searchParams.set('name',String(QP.name || 'Игрок'));
