@@ -21,8 +21,9 @@ def run() -> None:
     assert "preserved-original-3d-adaptive-frontage" in THREE
     assert "marker.currentOperation!==operation" in THREE
     assert "marker.operationChangedAt=t" in THREE
-    assert "8-switchable-facade-kits-v404" in THREE
-    assert "mesh.visible=src.isHq===false&&key===operation" in THREE
+    assert "empireBusinessSkinKeys" in THREE
+    assert "resolveEmpireBusinessSkinKey" in THREE
+    assert "mesh.visible=src.isHq===false&&key===skin" in THREE
 
     # Destruction uses two global pools, not meshes allocated on impact.
     assert "BUSINESS_RUIN_DUST_PER=4" in THREE
@@ -41,7 +42,7 @@ def run() -> None:
 
     assert "previewbuildingpurpose" in WORLD
     assert "previewbuildingclosed" in WORLD
-    assert "three_preview.js?v=3d405-owner-readable-labels" in WORLD
+    assert "three_preview.js?v=3d418-authoritative-business-skins" in WORLD
 
 
 if __name__ == "__main__":
