@@ -64559,6 +64559,16 @@ window.Mafiozi3DBridge = Object.freeze({
         elevation:+p.elevation||0,visualOnly:!!p.visualOnly})),
       safes:majorSafes,
     }:null;
+    const bankBags=[];
+    if(_bankInt){
+      const sourceBags=_bankInt.room==='vault'?(_bankInt.bags||[]):(_bankInt._lobbyBags||[]);
+      for(const b of sourceBags){
+        if(bankBags.length>=24)break;
+        if(!b||b.taken)continue;
+        const i=bankBags.length;
+        bankBags.push({id:String(b.id??i),r:+b.r||0,c:+b.c||0});
+      }
+    }
     const bankState=_bankInt?{
       visualVersion:BANK_INTERIOR_VISUAL_VERSION,size:_bankInt.bank?.size||'small',
       name:_bankInt.bank?.name||'Банк',phase:_bankInt.phase||'lobby',
@@ -64570,8 +64580,7 @@ window.Mafiozi3DBridge = Object.freeze({
       alarmTriggered:!!_bankInt.alarmTriggered,crackProg:+_bankInt.crackProg||0,
       vaultW:+_bankInt.vaultW||8,vaultH:+_bankInt.vaultH||12,
       carryingBag:!!_bankInt.myBag,
-      bags:(_bankInt.room==='vault'?(_bankInt.bags||[]):(_bankInt._lobbyBags||[]))
-        .filter(b=>b&&!b.taken).slice(0,24).map((b,i)=>({id:String(b.id??i),r:+b.r||0,c:+b.c||0})),
+      bags:bankBags,
     }:null;
     const npcHqLeaderId=src.type==='npc_hq'?String(src.npcEmpireLeaderId||src.npcEmpireAssault?.leader_id||''):'';
     const npcHqEmpire=npcHqLeaderId?(_npcEmpireById.get(npcHqLeaderId)||{}):null;
@@ -64581,6 +64590,13 @@ window.Mafiozi3DBridge = Object.freeze({
       gangName:String(npcHqEmpire.gang_name||'Вражеская семья'),gangColor:String(npcHqEmpire.color||'#9b1f2d'),
       gangAccent:String(npcHqEmpire.accent||'#e0b83e'),acquiredAt:+npcHqEmpire.updated_at||0,
       levels:{repair:0,safe:0,weaponRack:0,cameras:0,garage:0}}:null;
+    const interiorNpcs=[];
+    if(!(_bankInt&&src.room==='vault'))for(const n of (src.npcs||[])){
+      if(interiorNpcs.length>=40)break;
+      if(!n)continue;
+      const i=interiorNpcs.length,id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');
+      interiorNpcs.push({id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss||!!n.businessRaidSide,empireCrew:!!n.businessRaidSide,bossColor:String(n.raidFamilyColor||''),bossAccent:String(n.raidFamilyAccent||''),family:String(n.raidFamilyName||''),familyEmblem:n.raidFamilyEmblem||'',visualRole:n.businessRaidSide?'gang':guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.businessRaidSide?`raid_${n.businessRaidSide}`:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),businessRaidSide:n.businessRaidSide||'',raidHeavy:!!n.raidHeavy,allied:!!n._allied,weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',hitAt:+n._hurtAt||0,alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt});
+    }
     return {
       kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
       venueId:String(venuePoi?.id||''),venueFamily:String(venuePoi?.mafiaFamily||''),
@@ -64591,7 +64607,7 @@ window.Mafiozi3DBridge = Object.freeze({
         attackers:{roster:src.businessInteriorRaid.attackerRoster.length,reserve:src.businessInteriorRaid.attackerReserve.length,casualties:src.businessInteriorRaid.attackerRoster.filter(x=>x.casualty).length},
         defenders:{assigned:src.businessInteriorRaid.defenderRoster.length,staff:src.businessInteriorRaid.guardRoster.length,reserve:src.businessInteriorRaid.defenderReserve.length,casualties:[...src.businessInteriorRaid.guardRoster,...src.businessInteriorRaid.defenderRoster].filter(x=>x.casualty).length}}:null,
       layout:casinoLayout,businessLayout,bank:bankState,
-      npcs:(_bankInt&&src.room==='vault'?[]:(src.npcs||[])).filter(Boolean).slice(0,40).map((n,i)=>{const id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');return {id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss||!!n.businessRaidSide,empireCrew:!!n.businessRaidSide,bossColor:String(n.raidFamilyColor||''),bossAccent:String(n.raidFamilyAccent||''),family:String(n.raidFamilyName||''),familyEmblem:n.raidFamilyEmblem||'',visualRole:n.businessRaidSide?'gang':guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.businessRaidSide?`raid_${n.businessRaidSide}`:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),businessRaidSide:n.businessRaidSide||'',raidHeavy:!!n.raidHeavy,allied:!!n._allied,weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',hitAt:+n._hurtAt||0,alerted:!!(n._alerted||n._hostile||n.hostile),speech:performance.now()<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt};}),
+      npcs:interiorNpcs,
       loot:src.loot&&!src.loot.picked?{r:+src.loot.r||0,c:+src.loot.c||0,hp:!!src.loot.hp}:null,
     };
   },
