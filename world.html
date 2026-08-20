@@ -64930,9 +64930,11 @@ window.Mafiozi3DBridge = Object.freeze({
     }).sort((a,b)=>{
       const ai=_threeStickyVehicleIds.has(_threeVehicleEntityId(a))?0:1,bi=_threeStickyVehicleIds.has(_threeVehicleEntityId(b))?0:1;
       return ai-bi||(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||_threeVehicleEntityId(a).localeCompare(_threeVehicleEntityId(b));
-    }).slice(0,18);
+    });
+    if(carCandidates.length>18)carCandidates.length=18;
     _threeStickyVehicleIds.clear();for(const car of carCandidates)_threeStickyVehicleIds.add(_threeVehicleEntityId(car));
-    const cars=carCandidates.map((x,i)=>{const model=x.model||{},modelName=model.name||x.modelName||'sedan';return {
+    const cars=carCandidates;
+    for(let i=0;i<cars.length;i++){const x=cars[i],model=x.model||{},modelName=model.name||x.modelName||'sedan';cars[i]={
       id:_threeVehicleEntityId(x),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
       model:modelName,paint:_threeVehiclePaint(x,model),parked:!!x.parked,
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
@@ -64944,7 +64946,7 @@ window.Mafiozi3DBridge = Object.freeze({
       destroying:!!x._destroySequenceAt,destroyAge:x._destroySequenceAt?Math.max(0,fxNow-x._destroySequenceAt):0,destroyDelay:+x._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,
       burnedOut:!!x._burnedOut,wreckAge:x._explosionT?Math.max(0,fxNow-x._explosionT):99999,
       towLoad:(+x._towLoadingProgress||0)>0,towLoadProgress:+x._towLoadingProgress||0,
-    };});
+    };}
     if(_LOCAL_PREVIEW&&_UP.has('previewwreck')&&cars[0]){
       Object.assign(cars[0],{r:player.r+2.8,c:player.c+1.1,dirR:0,dirC:1,velR:0,velC:0,parked:true,
         damageRatio:0,bulletHoles:8,smoking:false,burning:true,wrecked:true,burnedOut:false,
