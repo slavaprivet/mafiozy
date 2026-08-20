@@ -37,6 +37,42 @@
   decorative to accessibility; the adjacent Russian route text remains the
   semantic direction and distance.
 
+## Allocation-free burning-actor pool traversal (2026-08-21, v414)
+
+- `updateProjectiles()` in `world.html` is the source of truth for combat-FX
+  lifetime. Its caps remain bullets 50, shells 30, impacts 16, blood 48, bullet
+  holes 32 and detached parts 12; the bridge projects those bounded sources and
+  `three_preview.js` only renders them through fixed pools. Do not move expiry
+  back into Canvas draw functions because pure 3D skips those calls.
+- A roughly five-minute desktop lifecycle run held 13 synthetic projectiles and
+  repeated blood/impact animation while the source lifecycle settled at
+  `b0:m0:s0:i0:d0:h0:g0:x0:t0:f0:q0`. The explicit QA batch of 12 expired gore
+  entries and 24 delayed callbacks drained to `g0:q0`; shader programs stayed
+  at 114 and the console had no errors. This does not prove every gameplay
+  collection leak-free, but it rules out growth in the audited combat-FX caps.
+- The remaining burning-NPC render path still allocated `filter()` and `slice()`
+  arrays every visible frame, even when no actor was burning, and used
+  `dynamic.npcs.indexOf(src)` for each active fire. Traverse the authoritative
+  NPC snapshot once, admit the same first 12 living burning actors into the
+  existing fixed pool, use the known source index as fallback identity, then
+  hide the unused tail. The pool size, flames and visible animation cadence are
+  unchanged; telemetry marker is
+  `bounded-single-pass-no-filter-slice-indexof-v414`.
+- Post-change desktop QA at 1280x720 exercised the zero-burning fast path under
+  13 continuous synthetic projectiles and impact animation: the traversal
+  marker was live with `burningActors=0`, lifecycle again settled to all zero,
+  gameplay bridge stayed connected, status was `Гражданский`, programs stayed
+  at 114 and the console had no errors. The noisy sample was 21 FPS / 36.0 ms
+  frame work / 28.4 ms render / 2070 draws; do not infer an FPS delta from a
+  different NPC/effect population.
+- Combined QA after rebasing on the crawl-weapon package kept the rifle actor
+  through both `crawl` and `recover`, while the v414 traversal marker remained
+  active and lifecycle again settled to all zero. The 1280x720 sample retained
+  native pixel ratio 1.00, 114 programs, connected gameplay bridge and server
+  status `Гражданский`, with no console errors. Noisy samples were 21-22 FPS,
+  34.9-43.7 ms frame work, 27.1-29.2 ms render and 2103 draws; do not compare
+  them as an FPS delta.
+
 ## Cached shared-NPC part traversal (2026-08-21, v413)
 
 - Product priority is PC/Steam first: profile and live-QA the renderer at a
