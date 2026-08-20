@@ -65418,11 +65418,17 @@ window.Mafiozi3DBridge = Object.freeze({
         const box=groundMissionBoxes[i];if(!box)continue;addObject('mission_box',`mission_box_${box.id??i}`,box.r,box.c,box.mine?'Ваш груз':'Груз','#c98743',{maxRadius:4,mine:!!box.mine});
       }
     }
-    document.documentElement.dataset.junkyardWorkers=String(npcs.filter(n=>n.role==='junkyard_worker').length);
-    const prisonStaff=npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&_isPrisonStaffActor(n));
-    document.documentElement.dataset.prisonStaff=String(prisonStaff.length);
-    document.documentElement.dataset.prisonStaffCombat=`live:${prisonStaff.filter(n=>!n.dead).length}:attackable-response-respawn-v265`;
-    document.documentElement.dataset.prisonCivilians=String(npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&n.visualRole==='civilian').length);
+    let junkyardWorkerCount=0,prisonStaffCount=0,livePrisonStaffCount=0,prisonCivilianCount=0;
+    for(const n of npcs){
+      if(n.role==='junkyard_worker')junkyardWorkerCount++;
+      if(!_inPrisonIslandRestrictedZone(n.r,n.c,.12))continue;
+      if(_isPrisonStaffActor(n)){prisonStaffCount++;if(!n.dead)livePrisonStaffCount++;}
+      if(n.visualRole==='civilian')prisonCivilianCount++;
+    }
+    document.documentElement.dataset.junkyardWorkers=String(junkyardWorkerCount);
+    document.documentElement.dataset.prisonStaff=String(prisonStaffCount);
+    document.documentElement.dataset.prisonStaffCombat=`live:${livePrisonStaffCount}:attackable-response-respawn-v265`;
+    document.documentElement.dataset.prisonCivilians=String(prisonCivilianCount);
     const empireFlags=inside?[]:_npcEmpireFlagSites.filter(site=>near(site.r,site.c)).sort((a,b)=>(b.isHq?1:0)-(a.isHq?1:0)||Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c));
     if(empireFlags.length>64)empireFlags.length=64;
     const empireHqs=empireFlags.filter(site=>site.isHq);
