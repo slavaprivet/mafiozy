@@ -65373,9 +65373,13 @@ window.Mafiozi3DBridge = Object.freeze({
     }
     if(wreckFireCount===2)fireFx.unshift(wreckFire0,wreckFire1);else if(wreckFireCount===1)fireFx.unshift(wreckFire0);
     if(fireFx.length>12)fireFx.length=12;
-    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',dead:!!(x.dead||x.downed||x.alive===false||(Number.isFinite(+x.hp)&&+x.hp<=0)),recoverable:true,chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});}
+    const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){
+      if(players.length>=24)break;
+      const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',dead:!!(x.dead||x.downed||x.alive===false||(Number.isFinite(+x.hp)&&+x.hp<=0)),recoverable:true,chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});
+    }
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
+      if(objects.length>=160)return;
       const rr=+r,cc=+c;if(!Number.isFinite(rr)||!Number.isFinite(cc)||!near(rr,cc))return;
       const anchor=extra.keepSource?{sourceR:rr,sourceC:cc,visualR:rr,visualC:cc,moved:false,distance:0}:_threeVisibleObjectAnchor(rr,cc,extra.maxRadius||7);
       objects.push({kind,id:String(id),r:rr,c:cc,label:String(label||''),color:color||'#ffd76b',...anchor,...extra});
@@ -65429,7 +65433,7 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.empireFlagMarkers=String(empireFlags.length);document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);document.documentElement.dataset.empireHospitalPatients=String(hospitalPatients.length);
     return {cars,npcs,empireFlags,empireHqs,hospitalPatients,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
       effectLifecycle:{bullets:bullets.length,muzzles:muzzles.length,shells:shells.length,impacts:impacts.length,blood:bloodSplats.length,holes:bulletHoles.length,gore:bodyPartFx.length,explosions:explosionBursts.length,throwables:_thrownItems.length,fires:_firePools.length,pendingTimers:_pendingBallisticFxTimers},
-      players:players.slice(0,24),objects:objects.slice(0,160)};
+      players,objects};
   },
   effectLifecycleQa(action='sample') {
     if(!_LOCAL_PREVIEW)return null;
