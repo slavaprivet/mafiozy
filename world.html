@@ -65122,7 +65122,10 @@ window.Mafiozi3DBridge = Object.freeze({
       // Static and ambient people below have their own 2D collections, so they
       // must be explicitly included in the 3D population snapshot.
       if(typeof MICHAEL_POS!=='undefined')combat.push({id:'michael_dealer',r:MICHAEL_POS.r,c:MICHAEL_POS.c,ang:Math.PI,role:'quest_giver',name:'Майкл',hp:100,max_hp:100});
-      if(typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function')for(let i=0;i<_michaelDecor().length;i++){const guard=_michaelDecor()[i];combat.push({...guard,id:`michael_decor_${i}`,r:+guard.y||0,c:+guard.x||0,role:'guard',name:'Охрана Майкла'});}
+      if(typeof michaelGuards!=='undefined'&&michaelGuards.size===0&&typeof _michaelDecor==='function'){
+        const michaelDecor=_michaelDecor();
+        for(let i=0;i<michaelDecor.length;i++){const guard=michaelDecor[i];combat.push({...guard,id:`michael_decor_${i}`,r:+guard.y||0,c:+guard.x||0,role:'guard',name:'Охрана Майкла'});}
+      }
       if(typeof _busWaiters!=='undefined')for(let i=0;i<_busWaiters.length;i++){const person=_busWaiters[i];combat.push({...person,id:`bus_waiter_${i}`,role:'bus_passenger',name:'Пассажир'});}
       if(typeof _busRiders!=='undefined')for(let i=0;i<_busRiders.length;i++){const person=_busRiders[i];combat.push({...person,id:`bus_rider_${i}`,role:'bus_passenger',name:'Пассажир'});}
       if(typeof RACE_CHEER_CREW!=='undefined')for(let i=0;i<RACE_CHEER_CREW.length;i++){const person=RACE_CHEER_CREW[i];combat.push({...person,id:`race_fan_${i}`,role:'race_fan',name:'Болельщик'});}
