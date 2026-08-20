@@ -297,6 +297,9 @@ reconnect and duplicate resolve requests must be idempotent.
   `npc_empire_player_guard_members`, exposed for `business:<id>` through the
   `/biz/{uid}/list` snapshot. The client labels and counts both layers
   separately and renders authoritative zero as zero.
+- A missing table or malformed `district_control.guard_json` makes the complete
+  player guard snapshot unavailable. Both assignment and UI fail closed; they
+  must not reinterpret an unknown district fighter as free property capacity.
 - The property action “Поставить охрану” assigns actual living player
   `gang_members.id` values. Assigned district guards and guards at other
   properties are unavailable.

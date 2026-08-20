@@ -30125,6 +30125,7 @@ function openBusinessManagement(bizId) {
   const raidGuardCounts = raidGuardProperty
     ? _propertyGuardCounts(raidGuardProperty)
     : {here:0, free:0};
+  const raidGuardSnapshotAvailable = raidGuardProperty?.guard_snapshot_available !== false;
   const controlDistrict=districtAt(biz.r,biz.c),controlOwner=controlDistrict?districtOwners[controlDistrict.id]:null;
   const controlFamily=MAFIA_FAMILIES[controlOwner?.mafiaFamily]||null;
   const occupied = !!(owned && _isBusinessGangOccupied(bizId, state));
@@ -30149,7 +30150,7 @@ function openBusinessManagement(bizId) {
     ${level < BIZ_MAX_LEVEL ? `<button id="bmUpgrade" style="flex:1;padding:12px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);color:#211506;font-weight:900">⬆ Улучшить<br><small>$${cost.toLocaleString('ru')}</small></button>` : '<div style="flex:1;padding:13px;text-align:center;border-radius:11px;background:#242833;color:#ffd76b;font-weight:900">★ Максимум</div>'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
       <button id="bmSecurity" style="padding:11px;border:1px solid #596271;border-radius:11px;background:#222732;color:#fff;font-weight:900">🛡️ Штатная охрана<br><small>${Math.max(0,+state.guards||0)}/6 · улица</small></button>
-      <button id="bmRaidDefense" ${_canAssignPropertyGuards(raidGuardProperty)?'':'disabled'} style="padding:11px;border:1px solid #8a6331;border-radius:11px;background:#2d2418;color:#ffe1a3;font-weight:900;opacity:${_canAssignPropertyGuards(raidGuardProperty)?1:.5}">⚔️ Боевой отряд<br><small>${raidGuardCounts.here} здесь · ${raidGuardCounts.free} свободно</small></button>
+      <button id="bmRaidDefense" ${_canAssignPropertyGuards(raidGuardProperty)?'':'disabled'} style="padding:11px;border:1px solid #8a6331;border-radius:11px;background:#2d2418;color:#ffe1a3;font-weight:900;opacity:${_canAssignPropertyGuards(raidGuardProperty)?1:.5}">⚔️ Боевой отряд<br><small>${raidGuardSnapshotAvailable?`${raidGuardCounts.here} здесь · ${raidGuardCounts.free} свободно`:'данные отряда недоступны'}</small></button>
     </div>
     <div style="margin-top:8px;color:#9da8ba;font-size:11px;line-height:1.45">Штат защищает улицу от обычных банд. Живые бойцы семьи защищают помещение от рейда босса: первый проигрыш закрывает бизнес на 10 минут, повторный успешный рейд захватывает его.</div>`
     : `<div style="padding:13px;border-radius:12px;background:#221d12;color:#e9d6a0;margin-bottom:14px">Купи бизнес за <b>$${biz.price.toLocaleString('ru')}</b>, чтобы получать доход и улучшать его до 5 уровня.</div><button id="bmBuy" style="width:100%;padding:13px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);font-weight:900">Купить бизнес</button>`}

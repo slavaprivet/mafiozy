@@ -756,22 +756,33 @@ async def player_guard_roster_snapshot(db, owner_uid: int) -> dict:
         assigned_ids.add(int(member_id))
         key = str(holding_ref)
         by_holding[key] = by_holding.get(key, 0) + 1
-    try:
-        district_rows = await (await db.execute(
-            "SELECT guard_json FROM district_control WHERE telegram_id=?",
-            (owner_uid,),
-        )).fetchall()
-        district_ids: set[int] = set()
-        for row in district_rows:
-            district_ids.update(int(member_id) for member_id in
-                                json.loads(str(row[0] or '[]')))
-        assigned_ids.update(district_ids & living_ids)
-    except (aiosqlite.Error, ValueError, TypeError, json.JSONDecodeError):
-        pass
+    assigned_ids.update(await _living_district_guard_ids(
+        db, owner_uid, living_ids))
     total = len(living_ids)
     assigned = len(assigned_ids)
     return {'total': total, 'assigned': assigned,
             'free': max(0, total-assigned), 'by_holding': by_holding}
+
+
+async def _living_district_guard_ids(db, owner_uid: int,
+                                     living_ids, *, missing_is_empty=False) -> set[int]:
+    """Read exact district assignments or fail closed on corrupt roster JSON."""
+    try:
+        rows = await (await db.execute(
+            "SELECT guard_json FROM district_control WHERE telegram_id=?",
+            (int(owner_uid),),
+        )).fetchall()
+    except aiosqlite.Error as error:
+        if missing_is_empty and 'no such table: district_control' in str(error):
+            return set()
+        raise
+    assigned: set[int] = set()
+    for row in rows:
+        decoded = json.loads(str(row[0] or '[]'))
+        if not isinstance(decoded, list):
+            raise ValueError('bad district guard roster')
+        assigned.update(int(member_id) for member_id in decoded)
+    return assigned & {int(member_id) for member_id in living_ids}
 
 
 async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
@@ -807,16 +818,8 @@ async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                     (int(owner_id),))).fetchall()
                 living_ids = [int(row[0]) for row in living_rows]
                 total = len(living_ids)
-                try:
-                    district_rows = await (await db.execute(
-                        "SELECT guard_json FROM district_control WHERE telegram_id=?",
-                        (int(owner_id),))).fetchall()
-                    for district_row in district_rows:
-                        district_ids.update(int(member_id) for member_id in
-                                            json.loads(str(district_row[0] or '[]')))
-                except (aiosqlite.Error, ValueError, TypeError, json.JSONDecodeError):
-                    pass
-                district_ids.intersection_update(living_ids)
+                district_ids = await _living_district_guard_ids(
+                    db, int(owner_id), living_ids, missing_is_empty=True)
                 district_assigned = len(district_ids)
             except (ValueError, aiosqlite.Error):
                 await db.rollback()

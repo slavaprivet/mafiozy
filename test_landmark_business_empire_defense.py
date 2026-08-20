@@ -1,6 +1,7 @@
 """Landmark businesses expose exact family defenders without cloning paid staff."""
 
 import asyncio
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -22,6 +23,7 @@ async def run() -> None:
     assert "id=\"bmSecurity\"" in world and "id=\"bmRaidDefense\"" in world
     assert "Штат защищает улицу от обычных банд" in world
     assert "Живые бойцы семьи защищают помещение от рейда босса" in world
+    assert "данные отряда недоступны" in world
     assert "previewOpenLandmarkBusinessDefense" in world
     assert "_stagePreviewPlayerBusinessRaid();_rebuildNpcEmpireFlagSites()" in world
     player_holdings = world.split("const playerHoldings=[...(_playerBuildingProperties||[])]", 1)[1].split(
@@ -70,6 +72,27 @@ async def run() -> None:
 
             before = await ne.player_guard_roster_snapshot(db, 101)
         assert before == {'total': 6, 'assigned': 1, 'free': 5, 'by_holding': {}}
+
+        async with aiosqlite.connect(path) as db:
+            await db.execute("UPDATE district_control SET guard_json='{broken'")
+            await db.commit()
+            try:
+                await ne.player_guard_roster_snapshot(db, 101)
+                raise AssertionError('corrupt district roster must fail closed')
+            except json.JSONDecodeError:
+                pass
+        try:
+            await ne.assign_holding_guards(
+                path, owner_kind='player', owner_id='101',
+                holding_ref='business:coffee', requested=3, now=now)
+            raise AssertionError('assignment must reject a corrupt district roster')
+        except json.JSONDecodeError:
+            pass
+        assert await _scalar(path,
+            "SELECT COUNT(*) FROM npc_empire_player_guard_members WHERE owner_uid=101") == 0
+        async with aiosqlite.connect(path) as db:
+            await db.execute("UPDATE district_control SET guard_json='[1]'")
+            await db.commit()
 
         assigned = await ne.assign_holding_guards(
             path, owner_kind='player', owner_id='101',
