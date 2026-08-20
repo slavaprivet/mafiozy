@@ -64329,7 +64329,7 @@ function _threeVisibleObjectAnchor(sourceR,sourceC,maxRadius=7){
       if(radius&&Math.max(Math.abs(dr),Math.abs(dc))!==radius)continue;
       const r=Math.floor(sr)+dr+.5,c=Math.floor(sc)+dc+.5;
       if(!valid(r,c))continue;
-      const tile=tileAt(r,c),surfaceBonus=[8,9,15,17].includes(tile)?-2:[0,18,19].includes(tile)?1.5:0;
+      const tile=tileAt(r,c),surfaceBonus=tile===8||tile===9||tile===15||tile===17?-2:tile===0||tile===18||tile===19?1.5:0;
       const score=Math.hypot(r-sr,c-sc)*2.2+coverAt(r,c)*.72+surfaceBonus;
       if(score<bestScore){bestScore=score;best={r,c};}
     }
