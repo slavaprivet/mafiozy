@@ -26,6 +26,7 @@ async def make_db(path):
         CREATE TABLE player_businesses(telegram_id INTEGER,biz_id TEXT PRIMARY KEY,bought_at INTEGER,last_collect INTEGER,status TEXT,blocked_until INTEGER,last_event_at INTEGER,level INTEGER,guards INTEGER,pending_notice TEXT);
         CREATE TABLE apartments_owned(telegram_id INTEGER,apt_key TEXT,price INTEGER,bought_at INTEGER,safe_level INTEGER DEFAULT 0,weapon_rack_level INTEGER DEFAULT 0,garage_level INTEGER DEFAULT 0,cameras_level INTEGER DEFAULT 0,repair_level INTEGER DEFAULT 0,stolen_bags INTEGER DEFAULT 0,property_kind TEXT,operation_type TEXT,area INTEGER,income_per_minute INTEGER,last_income_at INTEGER,PRIMARY KEY(telegram_id,apt_key));
         CREATE TABLE inventory(id INTEGER PRIMARY KEY AUTOINCREMENT,telegram_id INTEGER,item_id TEXT,quantity INTEGER DEFAULT 1);
+        CREATE TABLE gang_members(id INTEGER PRIMARY KEY,telegram_id INTEGER,current_hp INTEGER);
         INSERT INTO characters VALUES(404,1000000);
         INSERT INTO inventory(telegram_id,item_id,quantity) VALUES(404,'c4',2);
         """)

@@ -811,6 +811,12 @@ async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                           await _player_business_targets(db, int(owner_id))}
             if holding_ref not in owned_refs:
                 await db.rollback(); return {'ok': False, 'error': 'holding not owned'}
+            pending_raid = await (await db.execute(
+                "SELECT 1 FROM npc_empire_interior_raids "
+                "WHERE telegram_id=? AND target_ref=? AND status='pending' LIMIT 1",
+                (int(owner_id), holding_ref))).fetchone()
+            if pending_raid:
+                await db.rollback(); return {'ok': False, 'error': 'raid in progress'}
             try:
                 living_rows = await (await db.execute(
                     "SELECT id FROM gang_members WHERE telegram_id=? "
