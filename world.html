@@ -65158,13 +65158,13 @@ window.Mafiozi3DBridge = Object.freeze({
       }
     }
     const prisonNpcAllowed=x=>{const r=+(x?.r??x?.y)||0,c=+(x?.c??x?.x)||0;return !_inPrisonIslandRestrictedZone(r,c,.12)||_isPrisonStaffActor(x);};
-    const npcEligible=npcSource.filter(x=>{
-      if(!x||x._ambientGang||x._evacuated||x._carriedByAmbulance||!prisonNpcAllowed(x))return false;
-      const r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,id=_threeNpcEntityId(x),d2=(r-player.r)**2+(c-player.c)**2;
-      return d2<=rad2||(_threeStickyNpcIds.has(id)&&d2<=(streamRadius+7)**2);
-    });
     const npcPoolOrder=['mission','police','guard','gang','civilian'],npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
-    for(const x of npcEligible)npcPools[npcLifePool(x)].push(x);
+    for(const x of npcSource){
+      if(!x||x._ambientGang||x._evacuated||x._carriedByAmbulance||!prisonNpcAllowed(x))continue;
+      const r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,id=_threeNpcEntityId(x),d2=(r-player.r)**2+(c-player.c)**2;
+      if(d2>rad2&&!(_threeStickyNpcIds.has(id)&&d2<=(streamRadius+7)**2))continue;
+      npcPools[npcLifePool(x)].push(x);
+    }
     const npcPoolMissionCount=npcPools.mission.length,npcPoolPoliceCount=npcPools.police.length,npcPoolGuardCount=npcPools.guard.length,npcPoolGangCount=npcPools.gang.length,npcPoolCivilianCount=npcPools.civilian.length;
     const npcDist=x=>Math.hypot((+(x.r??x.y)||0)-player.r,(+(x.c??x.x)||0)-player.c);
     const stableNpcSort=(a,b)=>{
