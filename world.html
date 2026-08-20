@@ -65343,11 +65343,18 @@ window.Mafiozi3DBridge = Object.freeze({
     // Wreck flames share the existing instanced ground-fire pool. This restores
     // the burning-car silhouette without per-car geometry trees or a dynamic
     // PointLight that recompiles the entire city's materials.
-    const wreckFireFx=cars.filter(x=>x&&!x.helicopter&&x.wrecked&&x.burning&&!x.burnedOut).slice(0,2).map((x,i)=>({
-      r:+x.r||0,c:+x.c||0,age:Math.max(0,+x.wreckAge||0),life:Number.MAX_SAFE_INTEGER,
-      seed:(String(x.id||i).length*17+i*31)%97,radius:2.5,kind:'vehicle_wreck'
-    }));
-    fireFx.unshift(...wreckFireFx);if(fireFx.length>12)fireFx.length=12;
+    let wreckFire0=null,wreckFire1=null,wreckFireCount=0;
+    for(const x of cars){
+      if(wreckFireCount>=2)break;
+      if(!x||x.helicopter||!x.wrecked||!x.burning||x.burnedOut)continue;
+      const i=wreckFireCount++,wreckFire={
+        r:+x.r||0,c:+x.c||0,age:Math.max(0,+x.wreckAge||0),life:Number.MAX_SAFE_INTEGER,
+        seed:(String(x.id||i).length*17+i*31)%97,radius:2.5,kind:'vehicle_wreck'
+      };
+      if(i===0)wreckFire0=wreckFire;else wreckFire1=wreckFire;
+    }
+    if(wreckFireCount===2)fireFx.unshift(wreckFire0,wreckFire1);else if(wreckFireCount===1)fireFx.unshift(wreckFire0);
+    if(fireFx.length>12)fireFx.length=12;
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',dead:!!(x.dead||x.downed||x.alive===false||(Number.isFinite(+x.hp)&&+x.hp<=0)),recoverable:true,chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});}
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
