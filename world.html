@@ -65174,10 +65174,11 @@ window.Mafiozi3DBridge = Object.freeze({
       npcPools[npcLifePool(x)].push(x);
     }
     const npcPoolMissionCount=npcPools.mission.length,npcPoolPoliceCount=npcPools.police.length,npcPoolGuardCount=npcPools.guard.length,npcPoolGangCount=npcPools.gang.length,npcPoolCivilianCount=npcPools.civilian.length;
-    const npcDist=x=>Math.hypot((+(x.r??x.y)||0)-player.r,(+(x.c??x.x)||0)-player.c);
+    const npcDistSq=x=>{const dr=(+(x.r??x.y)||0)-player.r,dc=(+(x.c??x.x)||0)-player.c;return dr*dr+dc*dc;};
     const stableNpcSort=(a,b)=>{
       const ai=_threeStickyNpcIds.has(_threeNpcEntityId(a))?0:1,bi=_threeStickyNpcIds.has(_threeNpcEntityId(b))?0:1;
-      return ai-bi||npcDist(a)-npcDist(b)||_threeNpcEntityId(a).localeCompare(_threeNpcEntityId(b));
+      const stickyOrder=ai-bi;if(stickyOrder)return stickyOrder;
+      const squaredOrder=npcDistSq(a)-npcDistSq(b);return squaredOrder||(Math.hypot((+(a.r??a.y)||0)-player.r,(+(a.c??a.x)||0)-player.c)-Math.hypot((+(b.r??b.y)||0)-player.r,(+(b.c??b.x)||0)-player.c))||_threeNpcEntityId(a).localeCompare(_threeNpcEntityId(b));
     };
     for(const key of NPC_LIFE_POOL_ORDER)npcPools[key].sort(stableNpcSort);
     const civilianReserve=Math.min(24,npcPools.civilian.length,NPC_LIFE_NPC_CAP);
