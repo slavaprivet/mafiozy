@@ -65494,7 +65494,11 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.prisonStaff=String(prisonStaffCount);
     document.documentElement.dataset.prisonStaffCombat=`live:${livePrisonStaffCount}:attackable-response-respawn-v265`;
     document.documentElement.dataset.prisonCivilians=String(prisonCivilianCount);
-    const empireFlags=inside?[]:_npcEmpireFlagSites.filter(site=>near(site.r,site.c)).sort((a,b)=>(b.isHq?1:0)-(a.isHq?1:0)||Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c));
+    const empireFlags=inside?[]:_npcEmpireFlagSites.filter(site=>near(site.r,site.c)).sort((a,b)=>{
+      const hqOrder=(b.isHq?1:0)-(a.isHq?1:0);if(hqOrder)return hqOrder;
+      const ar=a.r-player.r,ac=a.c-player.c,br=b.r-player.r,bc=b.c-player.c,squaredOrder=ar*ar+ac*ac-br*br-bc*bc;
+      return squaredOrder||Math.hypot(ar,ac)-Math.hypot(br,bc);
+    });
     if(empireFlags.length>64)empireFlags.length=64;
     const empireHqs=empireFlags.filter(site=>site.isHq);
     const hospitalPatientStates=_npcEmpires.filter(empire=>(+empire?.hospital_until||0)*1000>wallNow).map(empire=>{
