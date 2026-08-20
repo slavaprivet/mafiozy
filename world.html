@@ -9425,6 +9425,29 @@ const EMPIRE_STREET_RECRUIT_R=5.6,EMPIRE_POPIN_SAFE_R=40;
 let _nextEmpireCrewSyncAt=0,_nextEmpireHoldingGuardSyncAt=0,_empireCrewSerial=0,_empireHoldingGuardSerial=0;
 const _empireRoutePlanQueue=[];
 let _empireRoutePlansDeferred=0,_empireRoutePlansBuilt=0;
+const EMPIRE_ROUTE_RESULT=Object.freeze({QUEUED:0,COALESCED:1,ACCEPTED:2,EXACT:3,PARTIAL:4,EMPTY:5,IDENTICAL:6});
+const EMPIRE_ROUTE_RESULT_NAMES=Object.freeze(['queued','coalesced','accepted','exact','partial','empty','identical']);
+const EMPIRE_ROUTE_REQUEST_REASON=Object.freeze({UNKNOWN:0,ACTION_KEY:1,ACTION_ROUTE_MISSING:2,ACTION_GOAL_DRIFT:3,GANG_TARGET_DRIFT:4,WORK_WAYPOINT:5,ESCORT_MISSING:6,ESCORT_GOAL_DRIFT:7,GUARD_POST:8,RETREAT:9,RECRUIT:10,STREET_RECRUIT:11,BLOCKED_RETRY:12});
+const EMPIRE_ROUTE_REQUEST_REASON_NAMES=Object.freeze(['unknown','action-key','action-route-missing','action-goal-drift','gang-target-drift','work-waypoint','escort-missing','escort-goal-drift','guard-post','retreat','recruit','street-recruit','blocked-retry']);
+const EMPIRE_ROUTE_KIND_NAMES=Object.freeze(['empire_action','empire_escort','empire_holding_guard','empire_recruit','empire_street_recruit','empire_retreat','unknown']);
+const EMPIRE_ROUTE_KIND_INDEX=Object.freeze({empire_action:0,empire_escort:1,empire_holding_guard:2,empire_recruit:3,empire_street_recruit:4,empire_retreat:5,unknown:6});
+const _empireRoutePlanTotals=new Uint32Array(EMPIRE_ROUTE_RESULT_NAMES.length),_empireRoutePlanKinds=EMPIRE_ROUTE_KIND_NAMES.map(()=>new Uint32Array(EMPIRE_ROUTE_RESULT_NAMES.length)),_empireRoutePlanReasons=new Uint32Array(EMPIRE_ROUTE_REQUEST_REASON_NAMES.length);
+let _empireRoutePlanCounterVersion=0,_empireRoutePlanPublishedVersion=-1;
+function _countEmpireRoutePlan(result,kind){
+  const kindIndex=EMPIRE_ROUTE_KIND_INDEX[kind]??EMPIRE_ROUTE_KIND_INDEX.unknown;
+  _empireRoutePlanTotals[result]++;_empireRoutePlanKinds[kindIndex][result]++;_empireRoutePlanCounterVersion++;
+}
+function _empireRoutePlanKindSummary(){
+  const parts=[];for(let i=0;i<EMPIRE_ROUTE_KIND_NAMES.length;i++){const row=_empireRoutePlanKinds[i];if(row.some(Boolean))parts.push(`${EMPIRE_ROUTE_KIND_NAMES[i]}:q${row[0]},c${row[1]},a${row[2]},e${row[3]},p${row[4]},f${row[5]},i${row[6]}`);}return parts.join(';');
+}
+function _empireRoutePlanReasonSummary(){
+  const parts=[];for(let i=0;i<EMPIRE_ROUTE_REQUEST_REASON_NAMES.length;i++)if(_empireRoutePlanReasons[i])parts.push(`${EMPIRE_ROUTE_REQUEST_REASON_NAMES[i]}-${_empireRoutePlanReasons[i]}`);return parts.join(':');
+}
+function _publishEmpireRoutePlanCounters(){
+  if(_empireRoutePlanPublishedVersion===_empireRoutePlanCounterVersion)return false;_empireRoutePlanPublishedVersion=_empireRoutePlanCounterVersion;
+  const total=_empireRoutePlanTotals;document.documentElement.dataset.empireRouteAdmission=`one-per-frame:built-${_empireRoutePlansBuilt}:deferred-${_empireRoutePlansDeferred}:accepted-${total[2]}:exact-${total[3]}:partial-${total[4]}:empty-${total[5]}:coalesced-${total[1]}:identical-${total[6]}`;
+  document.documentElement.dataset.empireRouteReasons=_empireRoutePlanReasonSummary();document.documentElement.dataset.empireRouteKinds=_empireRoutePlanKindSummary();return true;
+}
 function _empireCrewOrigin(leader,slot,recruitment=null){
   const baseR=+(recruitment?.source_r??leader._empireHqR??leader.r),baseC=+(recruitment?.source_c??leader._empireHqC??leader.c),spread=_empireFormationOffset(slot,Math.max(1,+recruitment?.count||+leader._empireMembers||1),0,.42);
   return _nearestEmpireWalkPoint(baseR+spread.r,baseC+spread.c)||_nearestEmpireWalkPoint(baseR,baseC)||{r:leader.r,c:leader.c};
@@ -9660,7 +9683,7 @@ function _syncEmpireBossCrews(now=performance.now()){
   document.documentElement.dataset.empireVisibleCrew=String(EMPIRE_CREW_NPCS.length);
   document.documentElement.dataset.empireStreetRecruits=String(EMPIRE_CREW_NPCS.filter(x=>x._empireStreetRecruit&&!x.dead&&!x._evacuated).length);
   document.documentElement.dataset.empireStreetRoster=`peace-${EMPIRE_PEACE_ESCORT_CAP}:war-${EMPIRE_WAR_ESCORT_CAP}:family-${EMPIRE_MAX_ESCORTS}`;
-  document.documentElement.dataset.empireRouteAdmission=`one-per-frame:built-${_empireRoutePlansBuilt}:deferred-${_empireRoutePlansDeferred}`;
+  _publishEmpireRoutePlanCounters();
   const motionSample=leaders[0]||SPECIALIST_NPCS.find(n=>!n._hiddenByEmpire);
   if(motionSample)document.documentElement.dataset.empireBossMotion=[
     motionSample._specialistId,(+motionSample.r||0).toFixed(2),(+motionSample.c||0).toFixed(2),
@@ -9708,8 +9731,13 @@ function _nearestEmpireWalkPoint(r,c) {
   }
   return best;
 }
-function _planEmpireRouteTo(npc,goalR,goalC,goalRadius,maxVisited,kind,failedBackoff=1200){
+function _planEmpireRouteTo(npc,goalR,goalC,goalRadius,maxVisited,kind,failedBackoff=1200,reason=EMPIRE_ROUTE_REQUEST_REASON.UNKNOWN,targetKey=''){
+  const coalesced=!!npc._empireRouteQueued,effectiveReason=Number.isInteger(npc._empireNextRouteReason)?npc._empireNextRouteReason:reason,kindIndex=EMPIRE_ROUTE_KIND_INDEX[kind]??EMPIRE_ROUTE_KIND_INDEX.unknown,goalQR=Math.round(goalR*2),goalQC=Math.round(goalC*2),stableTargetKey=typeof targetKey==='string'?targetKey:'';
+  npc._empireNextRouteReason=null;_empireRoutePlanReasons[effectiveReason]++;_empireRoutePlanCounterVersion++;
+  if(npc._empireLastRouteKindIndex===kindIndex&&npc._empireLastRouteGoalQR===goalQR&&npc._empireLastRouteGoalQC===goalQC&&npc._empireLastRouteTargetKey===stableTargetKey)_countEmpireRoutePlan(EMPIRE_ROUTE_RESULT.IDENTICAL,kind);
+  npc._empireLastRouteKindIndex=kindIndex;npc._empireLastRouteGoalQR=goalQR;npc._empireLastRouteGoalQC=goalQC;npc._empireLastRouteTargetKey=stableTargetKey;
   npc._empirePendingRoute={goalR,goalC,goalRadius,maxVisited,kind,failedBackoff};
+  _countEmpireRoutePlan(coalesced?EMPIRE_ROUTE_RESULT.COALESCED:EMPIRE_ROUTE_RESULT.QUEUED,kind);
   if(!npc._empireRouteQueued){npc._empireRouteQueued=true;_empireRoutePlanQueue.push(npc);_empireRoutePlansDeferred++;}
   return 'deferred';
 }
@@ -9718,7 +9746,10 @@ function _processEmpireRoutePlanQueue(now=performance.now()){
     const npc=_empireRoutePlanQueue.shift(),request=npc?._empirePendingRoute;
     if(!npc||!request){if(npc)npc._empireRouteQueued=false;continue;}
     npc._empireRouteQueued=false;npc._empirePendingRoute=null;_clearNpcRoute(npc);_empireRoutePlansBuilt++;
-    if(!_planNpcRouteTo(npc,request.goalR,request.goalC,_empireBossPassable,request.goalRadius,request.maxVisited,request.kind))npc._empireRouteRetryAt=now+request.failedBackoff;
+    const accepted=_planNpcRouteTo(npc,request.goalR,request.goalC,_empireBossPassable,request.goalRadius,request.maxVisited,request.kind);
+    _countEmpireRoutePlan(accepted?EMPIRE_ROUTE_RESULT.ACCEPTED:EMPIRE_ROUTE_RESULT.EMPTY,request.kind);
+    if(accepted){const endpointDistance=Math.hypot((npc._routeGoalR??npc.r)-request.goalR,(npc._routeGoalC??npc.c)-request.goalC);_countEmpireRoutePlan(endpointDistance<=request.goalRadius+.01?EMPIRE_ROUTE_RESULT.EXACT:EMPIRE_ROUTE_RESULT.PARTIAL,request.kind);}
+    else npc._empireRouteRetryAt=now+request.failedBackoff;
     return true;
   }
   return false;
@@ -9975,8 +10006,8 @@ function _empireRetreatStep(n,now,dt){
   const leader=n._empireBoss?n:SPECIALIST_NPCS.find(x=>String(x._specialistId)===_empireLeaderIdOf(n));
   const hq=_nearestEmpireWalkPoint(+leader?._empireHqR||n.r,+leader?._empireHqC||n.c);if(!hq)return true;
   if(Math.hypot(hq.r-n.r,hq.c-n.c)<1.4){n.walking=false;n._empireBattleHp=Math.min(n._empireBattleMaxHp,n._empireBattleHp+dt*n._empireBattleMaxHp*.08);return true;}
-  if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_retreat'||!n._route?.length)&&!n._empireRouteQueued)_planEmpireRouteTo(n,hq.r,hq.c,.8,42000,'empire_retreat',1500);
-  const moved=_npcAdvanceRoute(n,dt,Math.max(1.35,(n.speed||.8)*1.75),_empireBossPassable);_empireMovementWatch(n,hq,now);if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+700;}return true;
+  if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_retreat'||!n._route?.length)&&!n._empireRouteQueued)_planEmpireRouteTo(n,hq.r,hq.c,.8,42000,'empire_retreat',1500,EMPIRE_ROUTE_REQUEST_REASON.RETREAT,n._empireActionKey||'');
+  const moved=_npcAdvanceRoute(n,dt,Math.max(1.35,(n.speed||.8)*1.75),_empireBossPassable);_empireMovementWatch(n,hq,now);if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+700;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;}return true;
 }
 function _empireFieldCombatThink(n,now,dt){
   if(!n?._empireEnemyLeaderId)return false;
@@ -15821,9 +15852,9 @@ function updateNpcs(dt) {
       const target=_nearestEmpireWalkPoint(recruit.r,recruit.c)||{r:recruit.r,c:recruit.c},distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance>1.35){
         n._empireStreetNegotiationPhase='approach';n.cryText='Подожди. Есть предложение.';n.cryUntil=Math.max(n.cryUntil||0,now+900);
-        if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_street_recruit'||!n._route?.length)&&!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,1.05,9000,'empire_street_recruit',700);
+        if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_street_recruit'||!n._route?.length)&&!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,1.05,9000,'empire_street_recruit',700,EMPIRE_ROUTE_REQUEST_REASON.STREET_RECRUIT,String(recruit.id||''));
         const moved=_npcAdvanceRoute(n,dt,Math.max(1.02,n.speed||.8),_empireBossPassable);_empireMovementWatch(n,target,now);
-        if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+450;}continue;
+        if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+450;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;}continue;
       }
       _clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=Math.atan2(recruit.r-n.r,recruit.c-n.c);recruit.ang=Math.atan2(n.r-recruit.r,n.c-recruit.c);
       if(n._empireStreetNegotiationPhase!=='talk'&&n._empireStreetNegotiationPhase!=='retry'){
@@ -15847,11 +15878,11 @@ function updateNpcs(dt) {
       const target=_nearestEmpireWalkPoint(+(recruitment.meeting_r??101)+offset.r,+(recruitment.meeting_c??40)+offset.c)||{r:101,c:40};
       const distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance>.55&&now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_recruit'||!n._route?.length)){
-        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.45,12000,'empire_recruit',900);
+        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.45,12000,'empire_recruit',900,EMPIRE_ROUTE_REQUEST_REASON.RECRUIT,String(leader._specialistId||''));
       }
       const moved=_npcAdvanceRoute(n,dt,Math.max(.92,n.speed||.8),_empireBossPassable);_empireMovementWatch(n,target,now);
       if(moved==='arrived'||distance<.55){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=Math.atan2(leader.r-n.r,leader.c-n.c);if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+11000+Math.random()*9000;_empireSpeak(n,'recruit',now,2600);}}
-      else if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+500;}
+      else if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+500;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;}
       continue;
     }
 
@@ -15870,8 +15901,8 @@ function updateNpcs(dt) {
       if(!target||now>=(n._empireGuardTargetRefreshAt||0)){target=_empireHoldingGuardPost(anchor,+n._empireGuardSlot||0,step);n._empireGuardPatrolTarget=target;n._empireGuardTargetRefreshAt=now+2400;}
       const distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance<.75){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;if(now>=(n._empireGuardNextPostAt||0)){n._empireGuardPatrolStep=(step+1)%4;n._empireGuardPatrolTarget=null;n._empireGuardNextPostAt=now+1200+(+n._empireGuardSlot||0)*260;if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+14000+Math.random()*9000;_empireSpeak(n,'idle',now,2200);}}continue;}
-      if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_holding_guard'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.2)&&!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.7,9000,'empire_holding_guard',1100);
-      const moved=_npcAdvanceRoute(n,dt,Math.max(.86,n.speed||.86),_empireBossPassable);_empireMovementWatch(n,target,now);if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;}else if(moved===false)n.walking=false;continue;
+      if(now>=(n._empireRouteRetryAt||0)&&(n._routeKind!=='empire_holding_guard'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.2)&&!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.7,9000,'empire_holding_guard',1100,EMPIRE_ROUTE_REQUEST_REASON.GUARD_POST,String(n._empireHoldingKey||''));
+      const moved=_npcAdvanceRoute(n,dt,Math.max(.86,n.speed||.86),_empireBossPassable);_empireMovementWatch(n,target,now);if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;}else if(moved===false)n.walking=false;continue;
     }
 
     if(n._empireCrew&&!n._hostile&&!n._fighting&&!n._fightingMelee&&!(n.panicUntil>now)){
@@ -15892,11 +15923,11 @@ function updateNpcs(dt) {
       }
       if(distance>.8&&now>=(n._empireRouteRetryAt||0)&&
           (n._routeKind!=='empire_escort'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>5.2)){
-        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.75,6000,'empire_escort',1200);
+        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.75,6000,'empire_escort',1200,n._routeKind!=='empire_escort'||!n._route?.length?EMPIRE_ROUTE_REQUEST_REASON.ESCORT_MISSING:EMPIRE_ROUTE_REQUEST_REASON.ESCORT_GOAL_DRIFT,String(leader._specialistId||''));
       }
       const moved=_npcAdvanceRoute(n,dt,Math.max(1.12,(leader.speed||.8)*1.65),_empireBossPassable);_empireMovementWatch(n,target,now);
       if(moved==='arrived'||distance<.8){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=leader.ang;if(n._empireJoining){n._empireJoining=false;if(now>=(n._empireJoinedLabelUntil||0))n.name=`Боец · ${leader._empireGang}`;}if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+13000+Math.random()*11000;_empireSpeak(n,'idle',now,2300);}}
-      else if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n.walking=false;}
+      else if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;n.walking=false;}
       else if(moved===false)n.walking=false;
       continue;
     }
@@ -15908,27 +15939,27 @@ function updateNpcs(dt) {
         n._empireTrackEnemyAt=now+1200;
         const rival=SPECIALIST_NPCS.find(x=>String(x._specialistId)===String(n._empireEnemyLeaderId||''));
         const live=rival&&_empireCombatReady(rival,now)?_nearestEmpireWalkPoint(rival.r,rival.c):null;
-        if(live&&(!target||Math.hypot(live.r-target.r,live.c-target.c)>8)){target=live;n._empireTarget=live;n._empireActionArrived=false;n._empireRouteRetryAt=0;_clearNpcRoute(n);}
+        if(live&&(!target||Math.hypot(live.r-target.r,live.c-target.c)>8)){target=live;n._empireTarget=live;n._empireActionArrived=false;n._empireRouteRetryAt=0;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.GANG_TARGET_DRIFT;_clearNpcRoute(n);}
       }
       n._empireTarget=target;
       if(target&&!n._empireActionArrived){
         const routeWrong=n._routeKind!=='empire_action'||!n._route?.length||
           Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>1.5;
         if(routeWrong&&now>=(n._empireRouteRetryAt||0)){
-          if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.8,42000,'empire_action',4000);
+          if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.8,42000,'empire_action',4000,n._routeKind!=='empire_action'||!n._route?.length?EMPIRE_ROUTE_REQUEST_REASON.ACTION_ROUTE_MISSING:EMPIRE_ROUTE_REQUEST_REASON.ACTION_GOAL_DRIFT,n._empireActionKey||'');
         }
         const moved=_npcAdvanceRoute(n,dt,Math.max(1.18,(n.speed||.8)*1.55),_empireBossPassable);_empireMovementWatch(n,target,now);
         if(moved==='arrived'||Math.hypot(n.r-target.r,n.c-target.c)<1.05){
           _clearNpcRoute(n);n._empireActionArrived=true;n._empireActionArrivedAt=now;n._empireNextWorkMoveAt=now+2600+(Math.max(0,+n._empireStyle||0)%5)*430;n.walking=false;n.walkPhase=0;
           if(n._empireAction?.kind==='player_business_raid')_markPlayerBusinessRaidBreached(n,now);else _empireSpeak(n,n._empireAction?.kind==='recruit'?'recruit':'idle',now,3000,true);
         }else if(moved==='blocked'){
-          _clearNpcRoute(n);n._empireRouteRetryAt=now+1200;n.walking=false;
+          _clearNpcRoute(n);n._empireRouteRetryAt=now+1200;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;n.walking=false;
         }else if(moved===false)n.walking=false;
       }else{
         n.walking=false;n.walkPhase=0;n.tr=n.r;n.tc=n.c;
         if(target&&now>=(n._empireNextWorkMoveAt||Infinity)){
           const workTarget=_empireBossWorkWaypoint(n);
-          if(workTarget){n._empireTarget=workTarget;n._empireActionArrived=false;n._empireRouteRetryAt=0;continue;}
+          if(workTarget){n._empireTarget=workTarget;n._empireActionArrived=false;n._empireRouteRetryAt=0;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.WORK_WAYPOINT;continue;}
           n._empireNextWorkMoveAt=now+4200;
         }
         if(now>=(n._empireNextWorkTalkAt||0)){
@@ -19321,7 +19352,7 @@ async function loadNpcEmpireState(showError=false){
         const action=empire.activity||null,actionKey=action?`${action.kind}:${action.target_id||empire.hq_key||''}:${action.created_at||0}`:'';
         npc._empireEnemyLeaderId=action?.kind==='gang_war'?String(action.target_id||''):'';
         npc._empireWarStance=action?.kind==='gang_war'?String(action.stance||'harass'):'';
-        if(actionKey!==npc._empireActionKey){npc._empireAction=action;npc._empireActionKey=actionKey;npc._empireTarget=_empireActivityTarget(empire);npc._empireActivityBaseTarget=npc._empireTarget;npc._empireActionArrived=false;npc._empireActionArrivedAt=0;npc._empireNextWorkMoveAt=0;npc._empireWorkStep=0;npc._empireRouteRetryAt=0;_clearNpcRoute(npc);}
+        if(actionKey!==npc._empireActionKey){npc._empireAction=action;npc._empireActionKey=actionKey;npc._empireTarget=_empireActivityTarget(empire);npc._empireActivityBaseTarget=npc._empireTarget;npc._empireActionArrived=false;npc._empireActionArrivedAt=0;npc._empireNextWorkMoveAt=0;npc._empireWorkStep=0;npc._empireRouteRetryAt=0;npc._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.ACTION_KEY;_clearNpcRoute(npc);}
       }
       const at=NPCS.indexOf(npc);if(npc._hiddenByEmpire&&at>=0)NPCS.splice(at,1);else if(!npc._hiddenByEmpire&&at<0)NPCS.push(npc);
     }
