@@ -64981,7 +64981,7 @@ window.Mafiozi3DBridge = Object.freeze({
   },
   getDynamicEntities(radius = 38) {
     const streamRadius=Math.max(12,Math.min(65,+radius||38)),rad2=streamRadius**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
-    const fxNow=performance.now();
+    const fxNow=performance.now(),wallNow=Date.now();
     const inside=!!(_buildingInt||_bankInt);
     const carCandidates=[],carSource=inside?[]:(typeof CARS!=='undefined'?CARS:[]),compareCarCandidates=(a,b)=>{
       const ai=_threeStickyVehicleIds.has(_threeVehicleEntityId(a))?0:1,bi=_threeStickyVehicleIds.has(_threeVehicleEntityId(b))?0:1;
@@ -65412,7 +65412,7 @@ window.Mafiozi3DBridge = Object.freeze({
     for(const x of (typeof _thrownItems!=='undefined'?_thrownItems:[])){
       if(throwableFx.length>=8)break;
       if(!x||x.exploded)continue;
-      const i=throwableFx.length,p=Math.max(0,Math.min(1,(performance.now()-(+x.start||0))/(+x.flight||720)));
+      const i=throwableFx.length,p=Math.max(0,Math.min(1,(fxNow-(+x.start||0))/(+x.flight||720)));
       throwableFx.push({id:i,kind:x.kind||'grenade',r:(+x.fromR||0)+((+x.toR||0)-(+x.fromR||0))*p,c:(+x.fromC||0)+((+x.toC||0)-(+x.fromC||0))*p,height:Math.sin(Math.PI*p)*3.8,progress:p});
     }
     const fireFx=[];
@@ -65462,7 +65462,7 @@ window.Mafiozi3DBridge = Object.freeze({
       for(let i=0;i<(typeof BUS_STOPS!=='undefined'?BUS_STOPS:[]).length;i++){
         const stop=BUS_STOPS[i];addObject('bus_stop',`bus_stop_${i}`,stop.r,stop.c,stop.name||`Остановка ${i+1}`,'#62b8ff',{maxRadius:4});
       }
-      if(typeof BRIGADIR_POS!=='undefined'){const moving=!BRIGADIR_AI.paused&&performance.now()>=BRIGADIR_AI.idleUntil&&Math.hypot(BRIGADIR_AI.tgtR-BRIGADIR_POS.r,BRIGADIR_AI.tgtC-BRIGADIR_POS.c)>=.18,brigadirDistance=Math.hypot(BRIGADIR_POS.r-player.r,BRIGADIR_POS.c-player.c);addObject('brigadir','brigadir',BRIGADIR_POS.r+.5,BRIGADIR_POS.c+.5,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:+BRIGADIR_AI.ang||0,walking:moving,walkPhase:+BRIGADIR_AI.walkPhase||0,speech:brigadirDistance<=7.5?_brigadirSpeechLine():'',contractState:_myBrigadirReward?'reward':_myHitContractActive?'active':_pendingBrigadirOffer?'offer':'available'});}
+      if(typeof BRIGADIR_POS!=='undefined'){const moving=!BRIGADIR_AI.paused&&fxNow>=BRIGADIR_AI.idleUntil&&Math.hypot(BRIGADIR_AI.tgtR-BRIGADIR_POS.r,BRIGADIR_AI.tgtC-BRIGADIR_POS.c)>=.18,brigadirDistance=Math.hypot(BRIGADIR_POS.r-player.r,BRIGADIR_POS.c-player.c);addObject('brigadir','brigadir',BRIGADIR_POS.r+.5,BRIGADIR_POS.c+.5,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:+BRIGADIR_AI.ang||0,walking:moving,walkPhase:+BRIGADIR_AI.walkPhase||0,speech:brigadirDistance<=7.5?_brigadirSpeechLine():'',contractState:_myBrigadirReward?'reward':_myHitContractActive?'active':_pendingBrigadirOffer?'offer':'available'});}
       for(const bag of (typeof _vaultDroppedBags!=='undefined'?_vaultDroppedBags:[]))addObject('money_bag',`bag_${bag.id}`,bag.r,bag.c,'Мешок с деньгами','#f0bd4f',{value:+bag.value||0,maxRadius:4});
       if(_LOCAL_PREVIEW&&_UP.has('previewlabels'))addObject('brigadir','brigadir_preview_labels',player.r-2.8,player.c+2.2,'Бригадир','#ffd45b',{keepSource:true,maxRadius:5,ang:2.4,walking:false,walkPhase:0,speech:'Есть работа. Без лишнего шума.',contractState:'available'});
       for(let i=0;i<(typeof PETS!=='undefined'?PETS:[]).length;i++){
@@ -65495,10 +65495,10 @@ window.Mafiozi3DBridge = Object.freeze({
     const empireFlags=inside?[]:_npcEmpireFlagSites.filter(site=>near(site.r,site.c)).sort((a,b)=>(b.isHq?1:0)-(a.isHq?1:0)||Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c));
     if(empireFlags.length>64)empireFlags.length=64;
     const empireHqs=empireFlags.filter(site=>site.isHq);
-    const hospitalPatientStates=_npcEmpires.filter(empire=>(+empire?.hospital_until||0)*1000>Date.now()).map(empire=>{
-      const east=String(empire.hospital_id||'')==='hospital_east';return {leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||''),color:empire.color||'#872f3b',accent:empire.accent||'#e8bd67',emblem:empire.emblem||'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((+empire.hospital_until||0)-Date.now()/1000))};
+    const hospitalPatientStates=_npcEmpires.filter(empire=>(+empire?.hospital_until||0)*1000>wallNow).map(empire=>{
+      const east=String(empire.hospital_id||'')==='hospital_east';return {leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||''),color:empire.color||'#872f3b',accent:empire.accent||'#e8bd67',emblem:empire.emblem||'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((+empire.hospital_until||0)-wallNow/1000))};
     });
-    for(const boss of SPECIALIST_NPCS)if((+boss._empireHospitalUntil||0)>Date.now()&&!hospitalPatientStates.some(p=>p.leaderId===String(boss._specialistId))){const east=boss._empireHospitalId==='hospital_east';hospitalPatientStates.push({leaderId:String(boss._specialistId),leaderName:String(boss.name||'БОСС'),gangName:String(boss._empireGang||''),color:boss._empireColor||'#872f3b',accent:boss._empireAccent||'#e8bd67',emblem:'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((boss._empireHospitalUntil-Date.now())/1000))});}
+    for(const boss of SPECIALIST_NPCS)if((+boss._empireHospitalUntil||0)>wallNow&&!hospitalPatientStates.some(p=>p.leaderId===String(boss._specialistId))){const east=boss._empireHospitalId==='hospital_east';hospitalPatientStates.push({leaderId:String(boss._specialistId),leaderName:String(boss.name||'БОСС'),gangName:String(boss._empireGang||''),color:boss._empireColor||'#872f3b',accent:boss._empireAccent||'#e8bd67',emblem:'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((boss._empireHospitalUntil-wallNow)/1000))});}
     const hospitalPatients=inside?[]:hospitalPatientStates.slice(0,6);
     document.documentElement.dataset.empireFlagMarkers=String(empireFlags.length);document.documentElement.dataset.empireHqMarkers=String(empireHqs.length);document.documentElement.dataset.empireHospitalPatients=String(hospitalPatients.length);
     return {cars,npcs,empireFlags,empireHqs,hospitalPatients,medicalFx,projectiles,muzzleFx,shellFx,impactFx,bulletHoleFx,bloodFx,goreFx,explosionFx,throwableFx,fireFx,
