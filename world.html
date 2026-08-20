@@ -65172,16 +65172,21 @@ window.Mafiozi3DBridge = Object.freeze({
     };
     for(const pool of Object.values(npcPools))pool.sort(stableNpcSort);
     const civilianReserve=Math.min(24,npcPools.civilian.length,NPC_LIFE_NPC_CAP);
-    const npcSelected=[];let criticalBudget=NPC_LIFE_NPC_CAP-civilianReserve;
-    for(const key of ['mission','police','guard','gang']){
-      const take=Math.min(criticalBudget,npcPools[key].length);npcSelected.push(...npcPools[key].slice(0,take));
-      npcPools[key]=npcPools[key].slice(take);criticalBudget-=take;
+    const npcSelected=[],npcPoolOrder=['mission','police','guard','gang','civilian'],npcPoolOffsets={mission:0,police:0,guard:0,gang:0,civilian:0};
+    let criticalBudget=NPC_LIFE_NPC_CAP-civilianReserve;
+    for(let k=0;k<4;k++){
+      const key=npcPoolOrder[k],pool=npcPools[key],take=Math.min(criticalBudget,pool.length);
+      for(let i=0;i<take;i++)npcSelected.push(pool[i]);
+      npcPoolOffsets[key]=take;criticalBudget-=take;
     }
-    npcSelected.push(...npcPools.civilian.slice(0,civilianReserve));npcPools.civilian=npcPools.civilian.slice(civilianReserve);
+    for(let i=0;i<civilianReserve;i++)npcSelected.push(npcPools.civilian[i]);
+    npcPoolOffsets.civilian=civilianReserve;
     if(npcSelected.length<NPC_LIFE_NPC_CAP){
-      const overflow=[...npcPools.mission,...npcPools.police,...npcPools.guard,...npcPools.gang,...npcPools.civilian]
-        .sort((a,b)=>NPC_LIFE_POOL_PRIORITY[npcLifePool(a)]-NPC_LIFE_POOL_PRIORITY[npcLifePool(b)]||stableNpcSort(a,b));
-      npcSelected.push(...overflow.slice(0,NPC_LIFE_NPC_CAP-npcSelected.length));
+      const overflow=[];
+      for(const key of npcPoolOrder){const pool=npcPools[key];for(let i=npcPoolOffsets[key];i<pool.length;i++)overflow.push(pool[i]);}
+      overflow.sort((a,b)=>NPC_LIFE_POOL_PRIORITY[npcLifePool(a)]-NPC_LIFE_POOL_PRIORITY[npcLifePool(b)]||stableNpcSort(a,b));
+      const take=Math.min(overflow.length,NPC_LIFE_NPC_CAP-npcSelected.length);
+      for(let i=0;i<take;i++)npcSelected.push(overflow[i]);
     }
     _threeStickyNpcIds.clear();for(const npc of npcSelected)_threeStickyNpcIds.add(_threeNpcEntityId(npc));
     document.documentElement.dataset.npcLifePools=`mission:${npcPoolMissionCount},police:${npcPoolPoliceCount},guard:${npcPoolGuardCount},gang:${npcPoolGangCount},civilian:${npcPoolCivilianCount},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
