@@ -65423,7 +65423,8 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.prisonStaff=String(prisonStaff.length);
     document.documentElement.dataset.prisonStaffCombat=`live:${prisonStaff.filter(n=>!n.dead).length}:attackable-response-respawn-v265`;
     document.documentElement.dataset.prisonCivilians=String(npcs.filter(n=>_inPrisonIslandRestrictedZone(n.r,n.c,.12)&&n.visualRole==='civilian').length);
-    const empireFlags=inside?[]:_npcEmpireFlagSites.filter(site=>near(site.r,site.c)).sort((a,b)=>(b.isHq?1:0)-(a.isHq?1:0)||Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c)).slice(0,64);
+    const empireFlags=inside?[]:_npcEmpireFlagSites.filter(site=>near(site.r,site.c)).sort((a,b)=>(b.isHq?1:0)-(a.isHq?1:0)||Math.hypot(a.r-player.r,a.c-player.c)-Math.hypot(b.r-player.r,b.c-player.c));
+    if(empireFlags.length>64)empireFlags.length=64;
     const empireHqs=empireFlags.filter(site=>site.isHq);
     const hospitalPatientStates=_npcEmpires.filter(empire=>(+empire?.hospital_until||0)*1000>Date.now()).map(empire=>{
       const east=String(empire.hospital_id||'')==='hospital_east';return {leaderId:String(empire.leader_id||''),leaderName:String(empire.leader_name||''),gangName:String(empire.gang_name||''),color:empire.color||'#872f3b',accent:empire.accent||'#e8bd67',emblem:empire.emblem||'♛',hospitalId:east?'hospital_east':'hospital',r:east?46:26,c:east?126:46,seconds:Math.max(0,Math.ceil((+empire.hospital_until||0)-Date.now()/1000))};
