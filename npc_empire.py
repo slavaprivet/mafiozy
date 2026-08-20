@@ -733,9 +733,11 @@ async def assign_holding_guards(db_path: str, *, owner_kind: str, owner_id: str,
                     'free': max(0, total-current_living-elsewhere-district_assigned)}
         if owner_kind == 'player':
             await db.execute(
-                "DELETE FROM npc_empire_player_guard_members WHERE member_id NOT IN "
+                "DELETE FROM npc_empire_player_guard_members WHERE owner_uid=? "
+                "AND member_id NOT IN "
                 "(SELECT id FROM gang_members WHERE telegram_id=? "
-                "AND (current_hp IS NULL OR current_hp>0))", (int(owner_id),))
+                "AND (current_hp IS NULL OR current_hp>0))",
+                (int(owner_id), int(owner_id)))
             await db.execute(
                 "DELETE FROM npc_empire_player_guard_members "
                 "WHERE owner_uid=? AND holding_ref=?", (int(owner_id), holding_ref))

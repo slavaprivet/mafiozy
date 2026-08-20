@@ -30,6 +30,21 @@ empires, diplomacy, properties, guards or raids. It records contracts that are
 easy to break when looking at only one file. Confirm details against current
 source before editing and update this document whenever a contract changes.
 
+## Concrete player guard ownership (2026-08-21)
+
+- `npc_empire_player_guard_members` is owner-scoped truth for the exact living
+  fighter IDs assigned to a converted property; `npc_empire_guard_assignments`
+  is its bounded aggregate. A roster cleanup must filter by `owner_uid` before
+  comparing IDs with that owner's living `gang_members`. Never globally prune
+  concrete rows using one player's roster.
+- `BEGIN IMMEDIATE` serializes assignments, including simultaneous changes by
+  different owners. After every successful transition, each owner's aggregate
+  living count must equal their concrete rows; reconnect must reconstruct the
+  same defenders without stealing, cloning or reviving another player's IDs.
+- The client only displays the server response and publishes one event-only
+  `playerPropertyGuardAssignment` dataset for QA. It does not infer or repair
+  guard ownership locally.
+
 ## Player-business raid objective
 
 - Pending raid sessions persist only irreversible casualty sets: attacker
