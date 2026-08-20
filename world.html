@@ -65157,7 +65157,7 @@ window.Mafiozi3DBridge = Object.freeze({
         Object.assign(npc,{r:player.r+Math.sin(a)*4.8,c:player.c+Math.cos(a)*4.8,ang:a+Math.PI,dead:false,forcedCrawl:false,severMask:0,stateSince:fxNow-500,stateUntil:fxNow+5000,walking:false,moving:false,panic:false,cowering:false,surrendering:false,surrendered:false,helping:false,talking:false,social:false,alerted:false,gesture:''},pose);
       }
     }
-    if(_LOCAL_PREVIEW&&_UP.has('previewcrawl')){const npc=npcs.find(x=>!x.dead);if(npc){npc.r=player.r+2.8;npc.c=player.c+1.4;npc.ang=-2.68;npc.hp=Math.min(npc.hp,npc.maxHp*.04);npc.forcedCrawl=true;npc.walking=true;}}
+    if(_LOCAL_PREVIEW&&(_UP.has('previewcrawl')||_UP.has('previewcrawlweapon'))){const npc=npcs.find(x=>!x.dead&&!x.empireBoss&&!x.uniqueNpc)||npcs.find(x=>!x.dead);if(npc){const crawlWeapon=String(_UP.get('previewcrawlweapon')||'').toLowerCase(),weapon=['pistol','rifle','rpg'].includes(crawlWeapon)?crawlWeapon:'',transition=_UP.has('previewcrawltransition'),crawlOn=!transition||fxNow%4000<2100;npc.r=player.r+2.8;npc.c=player.c+1.4;npc.ang=-2.68;npc.hp=Math.min(npc.hp,npc.maxHp*.04);npc.forcedCrawl=crawlOn;npc.walking=npc.moving=true;if(weapon){npc.role='guard';npc.visualRole='guard';npc.gang=true;npc.weapon=weapon;npc._shotWeapon=weapon;document.documentElement.dataset.previewCrawlWeapon=weapon;document.documentElement.dataset.previewCrawlTransition=transition?(crawlOn?'crawl':'recover'):'steady';}}}
     // Browser-only animation QA. It never changes the authoritative NPC and
     // lets the renderer exercise a complete fresh-death -> fallen lifecycle.
     if(_LOCAL_PREVIEW&&(_UP.has('previewdeath')||_UP.has('previewdeathboss'))){
@@ -69326,6 +69326,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d414-raid-marker-cached-npc-traversal"></script>
+<script type="module" src="three_preview.js?v=3d415-npc-crawl-weapon-compass"></script>
 </body>
 </html>

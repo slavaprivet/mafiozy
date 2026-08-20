@@ -65,6 +65,25 @@
   Gameplay bridge stayed connected, server status read `Гражданский`, and the
   console had no errors.
 
+## Armed NPC crawl weapon clearance (2026-08-21, v415)
+
+- A crawling NPC rotates one shared root almost horizontal. Counter-rotate the
+  entire existing weapon assembly around the chest anchor, including every
+  semantic detail and both palm targets; counter-rotating only mesh Euler
+  angles leaves long-barrel origins buried below the road.
+- Drive both root pitch and weapon counter-pitch from the same smoothed
+  `crawlBlend` during entry and exit. Keying root pitch directly from the crawl
+  boolean makes the weapon flip by roughly 70 degrees on the first recovery
+  frame even when the prop counter-pitch itself is interpolated. Root height
+  must use that same blend too; otherwise recovery drops the complete actor by
+  roughly `.4` world units before the angular blend has finished.
+- Reuse scalar trigonometry plus the existing frame scratch vectors. The fix
+  adds no geometry, material, texture, mesh, pool, draw call, actor loop or
+  per-frame object allocation, and consumes the already-smoothed `crawlBlend`.
+- Keep a local one-actor `previewcrawlweapon` fixture for pistol, rifle and RPG.
+  Numeric QA must cover muzzle clearance throughout the crawl blend, while
+  browser QA verifies both hands remain connected and FPS/draw calls stay flat.
+
 ## Honest bounded player-raid HUD (2026-08-14, v412)
 
 - Reuse the four existing exterior and four existing interior HUD nodes; keep
