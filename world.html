@@ -15367,6 +15367,7 @@ const NPC_LIFE_EVENT_PRIORITY=Object.freeze({
 const NPC_LIFE_POOL_PRIORITY=Object.freeze({
   'mission':0,'police':1,'guard':2,'gang':3,'civilian':4,
 });
+const NPC_LIFE_POOL_ORDER=Object.freeze(['mission','police','guard','gang','civilian']);
 const _NPC_LIFE_STATE_PRIORITY=Object.freeze({
   injured:0,surrender:1,panic:2,cower:2,helping:3,alert:4,social:5,routine:6,
 });
@@ -65165,7 +65166,7 @@ window.Mafiozi3DBridge = Object.freeze({
       }
     }
     const prisonNpcAllowed=x=>{const r=+(x?.r??x?.y)||0,c=+(x?.c??x?.x)||0;return !_inPrisonIslandRestrictedZone(r,c,.12)||_isPrisonStaffActor(x);};
-    const npcPoolOrder=['mission','police','guard','gang','civilian'],npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
+    const npcPools={mission:[],police:[],guard:[],gang:[],civilian:[]};
     for(const x of npcSource){
       if(!x||x._ambientGang||x._evacuated||x._carriedByAmbulance||!prisonNpcAllowed(x))continue;
       const r=+(x.r??x.y)||0,c=+(x.c??x.x)||0,id=_threeNpcEntityId(x),d2=(r-player.r)**2+(c-player.c)**2;
@@ -65178,19 +65179,19 @@ window.Mafiozi3DBridge = Object.freeze({
       const ai=_threeStickyNpcIds.has(_threeNpcEntityId(a))?0:1,bi=_threeStickyNpcIds.has(_threeNpcEntityId(b))?0:1;
       return ai-bi||npcDist(a)-npcDist(b)||_threeNpcEntityId(a).localeCompare(_threeNpcEntityId(b));
     };
-    for(const key of npcPoolOrder)npcPools[key].sort(stableNpcSort);
+    for(const key of NPC_LIFE_POOL_ORDER)npcPools[key].sort(stableNpcSort);
     const civilianReserve=Math.min(24,npcPools.civilian.length,NPC_LIFE_NPC_CAP);
     const npcSelected=[],npcPoolOffsets={mission:0,police:0,guard:0,gang:0,civilian:0};
     let criticalBudget=NPC_LIFE_NPC_CAP-civilianReserve;
     for(let k=0;k<4;k++){
-      const key=npcPoolOrder[k],pool=npcPools[key],take=Math.min(criticalBudget,pool.length);
+      const key=NPC_LIFE_POOL_ORDER[k],pool=npcPools[key],take=Math.min(criticalBudget,pool.length);
       for(let i=0;i<take;i++)npcSelected.push(pool[i]);
       npcPoolOffsets[key]=take;criticalBudget-=take;
     }
     for(let i=0;i<civilianReserve;i++)npcSelected.push(npcPools.civilian[i]);
     npcPoolOffsets.civilian=civilianReserve;
     if(npcSelected.length<NPC_LIFE_NPC_CAP){
-      for(const key of npcPoolOrder){
+      for(const key of NPC_LIFE_POOL_ORDER){
         const pool=npcPools[key];
         for(let i=npcPoolOffsets[key];i<pool.length&&npcSelected.length<NPC_LIFE_NPC_CAP;i++)npcSelected.push(pool[i]);
         if(npcSelected.length>=NPC_LIFE_NPC_CAP)break;
