@@ -1,5 +1,33 @@
 # Mafiozi 3D optimization memory
 
+## Cached shared-NPC part traversal (2026-08-21, v413)
+
+- Product priority is PC/Steam first: profile and live-QA the renderer at a
+  desktop viewport with keyboard/mouse assumptions, stable long-session frame
+  pacing and windowed/full-screen use. Never reduce PC graphics or mechanics to
+  optimize for phones; retain mobile compatibility only where it is free for
+  the desktop path.
+- The visible NPC frame intentionally uploads all shared anatomy and equipment
+  instance matrices once, after both pose passes have written them. Keep that
+  full visible-animation cadence and the single final upload; reducing it can
+  desynchronise gear from the body.
+- The completed rig contains 76 fixed instanced part pools. Calling
+  `Object.values(npcParts)` twice after every visible NPC frame allocated two
+  arrays and enumerated 152 property entries even though the object never
+  changes after construction. Cache one frozen traversal after the last pool is
+  added and reuse it for both matrix and conditional colour uploads.
+- Do not pre-filter colour meshes at construction time: Three.js creates an
+  `InstancedMesh.instanceColor` lazily on the first `setColorAt()`. The cached
+  traversal must still test the live property when a colour signature is dirty,
+  preserving the first visible colour upload and slot reuse.
+- Fresh-main desktop QA at 1280x720 showed 56 visible NPC motion states, zero
+  heading mismatches, active walking root bob (`0.0220`), native pixel ratio
+  `1.00`, 114 programs and the expected cached-76 traversal marker. The sampled
+  noisy frame was 21 FPS / 38.8 ms frame work / 33.2 ms render with 2097 draw
+  calls; do not claim an FPS gain from this population-dependent single sample.
+  Gameplay bridge stayed connected, server status read `Гражданский`, and the
+  console had no errors.
+
 ## Honest bounded player-raid HUD (2026-08-14, v412)
 
 - Reuse the four existing exterior and four existing interior HUD nodes; keep
