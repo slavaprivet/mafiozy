@@ -4519,6 +4519,8 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
         row = await (await db.execute("SELECT * FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
+        if row and str(row['status']) == 'vassal':
+            await db.rollback(); return {'ok': False, 'error': 'leader vassal'}
         if not row or row['status'] == 'ruined' or not row['hq_key']:
             await db.rollback(); return {'ok': False, 'error': 'no headquarters'}
         hq_r, hq_c = _hq_coords(str(row['hq_key']))

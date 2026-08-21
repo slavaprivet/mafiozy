@@ -3,11 +3,18 @@
 import asyncio
 import json
 import os
+import sqlite3
 import tempfile
 
 import aiosqlite
 
 import npc_empire as ne
+
+
+async def _scalar(path: str, sql: str, args=()):
+    async with aiosqlite.connect(path) as db:
+        row = await (await db.execute(sql, args)).fetchone()
+        return row[0] if row else None
 
 
 async def run() -> None:
@@ -42,10 +49,138 @@ async def run() -> None:
                     PRIMARY KEY (telegram_id, apt_key)
                 );
                 INSERT INTO characters(telegram_id,name,mafia_family,cash)
-                VALUES(101,'Слава','moretti',5000);
+                VALUES(101,'Слава','moretti',5000),
+                      (202,'Другой игрок','bellini',5000);
             """)
             await db.commit()
         await ne.ensure_schema(path)
+
+        vassal = next(item for item in ne.PROFILES if item.leader_id == "sofia")
+        rollback_family = next(item for item in ne.PROFILES
+                               if item.leader_id == "marco")
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "UPDATE npc_empires SET status='vassal' WHERE leader_id='sofia'"
+            )
+            await db.executemany(
+                "INSERT OR REPLACE INTO npc_empire_relations VALUES(?,?,?,?,?)",
+                [("sofia", 101, 80, "vassal", now),
+                 ("sofia", 202, 0, "none", now)],
+            )
+            await db.commit()
+        vassal_guards = await _scalar(
+            path,
+            "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id='sofia'",
+        )
+        vassal_events = await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id='sofia'",
+        )
+        vassal_r, vassal_c = ne._hq_coords(vassal.hq_key)
+        rejected = await asyncio.gather(
+            ne.prepare_assault(path, 101, "sofia", vassal_r, vassal_c,
+                               now=now + 1),
+            ne.prepare_assault(path, 101, "sofia", vassal_r, vassal_c,
+                               now=now + 1),
+        )
+        assert rejected == [
+            {"ok": False, "error": "leader vassal"},
+            {"ok": False, "error": "leader vassal"},
+        ]
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_assaults "
+            "WHERE leader_id='sofia'",
+        ) == 0
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_player_wars "
+            "WHERE leader_id='sofia'",
+        ) == 0
+        assert await _scalar(
+            path,
+            "SELECT score||':'||pact FROM npc_empire_relations "
+            "WHERE leader_id='sofia' AND telegram_id=101",
+        ) == "80:vassal"
+        assert await _scalar(
+            path,
+            "SELECT score||':'||pact FROM npc_empire_relations "
+            "WHERE leader_id='sofia' AND telegram_id=202",
+        ) == "0:none"
+        assert await _scalar(
+            path,
+            "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id='sofia'",
+        ) == vassal_guards
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id='sofia'",
+        ) == vassal_events
+        state = await ne.state_for(path, 101, now=now + 2)
+        sofia_state = next(item for item in state["empires"]
+                           if item["leader_id"] == "sofia")
+        assert sofia_state["status"] == "vassal"
+        assert sofia_state["pact"] == "vassal"
+        assert sofia_state["war_pressure"] is None
+        other_state = await ne.state_for(path, 202, now=now + 2)
+        other_sofia = next(item for item in other_state["empires"]
+                           if item["leader_id"] == "sofia")
+        assert other_sofia["pact"] == "none"
+        assert other_sofia["war_pressure"] is None
+
+        # A final event failure must roll back the active-family token, war
+        # authority, relation change and guard reconciliation together.
+        rollback_guards = await _scalar(
+            path,
+            "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id='marco'",
+        )
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_marco_assault_event
+                BEFORE INSERT ON npc_empire_events
+                WHEN NEW.leader_id='marco' AND NEW.kind='assault_started'
+                BEGIN SELECT RAISE(ABORT, 'forced assault prepare rollback'); END
+            """)
+            await db.commit()
+        rollback_r, rollback_c = ne._hq_coords(rollback_family.hq_key)
+        try:
+            await ne.prepare_assault(
+                path, 101, "marco", rollback_r, rollback_c, now=now + 3
+            )
+            raise AssertionError("forced assault prepare failure did not abort")
+        except sqlite3.IntegrityError as error:
+            assert "forced assault prepare rollback" in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_marco_assault_event")
+                await db.commit()
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_assaults "
+            "WHERE leader_id='marco' AND telegram_id=101",
+        ) == 0
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_relations "
+            "WHERE leader_id='marco' AND telegram_id=101",
+        ) == 0
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_player_wars "
+            "WHERE leader_id='marco' AND telegram_id=101",
+        ) == 0
+        assert await _scalar(
+            path,
+            "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id='marco'",
+        ) == rollback_guards
+        assert await _scalar(
+            path,
+            "SELECT COUNT(*) FROM npc_empire_events "
+            "WHERE leader_id='marco' AND kind='assault_started'",
+        ) == 0
 
         profile = ne.PROFILES[0]
         hq_r, hq_c = ne._hq_coords(profile.hq_key)
@@ -97,7 +232,8 @@ async def run() -> None:
             "npc_hq:[42,30]", "const visualSpeed=", "bulletScale:projectileKind?1.15:1.35",
             "trailScale:projectileKind ? .35 : 1.65", "hitAt:+n._hurtAt||0",
             "previewEnterNpcHqAssault", "captured_headquarters",
-            "3d406-boss-label-declutter",
+            "allowAssault&&!['defeated','vassal'].includes(empire.status)",
+            "'leader vassal':'Эта семья уже подчинена'",
         ):
             assert marker in world, marker
         assert "const assaultHq=data.kind==='building'&&data.type==='npc_hq'&&kind==='hq'" in three
