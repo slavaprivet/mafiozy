@@ -355,6 +355,22 @@ async def ownership_generation_terminalizes_pending() -> None:
         members_before = await scalar(
             path, "SELECT members FROM npc_empires WHERE leader_id='leila'")
         async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            source = await (await db.execute(
+                "SELECT * FROM npc_empire_interior_raids WHERE token=?",
+                (raid['token'],))).fetchone()
+            for token, telegram_id, leader_id in (
+                    ('other-owner-checkpoint', 202, 'leila'),
+                    ('other-family-checkpoint', 101, 'marco')):
+                isolated = dict(source)
+                isolated['token'] = token
+                isolated['telegram_id'] = telegram_id
+                isolated['leader_id'] = leader_id
+                columns = list(isolated)
+                await db.execute(
+                    f"INSERT INTO npc_empire_interior_raids({','.join(columns)}) "
+                    f"VALUES({','.join('?' for _ in columns)})",
+                    tuple(isolated[name] for name in columns))
             await db.execute("DELETE FROM player_businesses WHERE biz_id='coffee'")
             await db.execute(
                 "INSERT INTO player_businesses "
@@ -363,12 +379,36 @@ async def ownership_generation_terminalizes_pending() -> None:
                 "UPDATE business_property_owners SET owner_uid=202,owner_name='Two',"
                 "acquired_at=? WHERE biz_id='coffee'", (now + 1,))
             await db.commit()
-        stale = await ne.resolve_interior_raid(
+        stale = await ne.checkpoint_interior_raid_casualties(
+            path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
+            now=now + 2)
+        assert stale == {'ok': False, 'error': 'raid no longer active',
+                         'resolution': 'ownership_changed'}
+        assert await scalar(
+            path, "SELECT casualty_version FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == 0
+        assert await scalar(
+            path, "SELECT attacker_down_json FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == '[]'
+        for token in ('other-owner-checkpoint', 'other-family-checkpoint'):
+            assert await scalar(
+                path, "SELECT status FROM npc_empire_interior_raids WHERE token=?",
+                (token,)) == 'pending'
+            assert await scalar(
+                path, "SELECT casualty_version FROM npc_empire_interior_raids "
+                      "WHERE token=?", (token,)) == 0
+        checkpoint_retry = await ne.checkpoint_interior_raid_casualties(
+            path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
+            now=now + 3)
+        assert checkpoint_retry == {
+            'ok': True, 'duplicate': True, 'terminal': True,
+            'resolution': 'ownership_changed', 'version': 0}
+        resolve_retry = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'captured',
             attacker_casualties=[], defender_casualties=[1], guard_casualties=[],
             now=now + raid['hold_seconds'])
-        assert stale == {'ok': False, 'error': 'raid no longer active',
-                         'resolution': 'ownership_changed'}
+        assert resolve_retry == {'ok': True, 'duplicate': True,
+                                 'resolution': 'ownership_changed'}
         assert await scalar(
             path, "SELECT status||':'||resolution FROM npc_empire_interior_raids "
                   "WHERE token=?", (raid['token'],)) == 'resolved:ownership_changed'

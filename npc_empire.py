@@ -3551,6 +3551,15 @@ async def checkpoint_interior_raid_casualties(
             return {'ok': True, 'duplicate': True, 'terminal': True,
                     'resolution': str(raid['resolution']),
                     'version': int(raid['casualty_version'] or 0)}
+        stale_reason = await _interior_raid_stale_reason(db, raid)
+        if stale_reason:
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,"
+                "resolved_at=? WHERE token=? AND status='pending'",
+                (stale_reason, now, str(token)))
+            await db.commit()
+            return {'ok': False, 'error': 'raid no longer active',
+                    'resolution': stale_reason}
         if now >= int(raid['expires_at'] or 0):
             await db.execute(
                 "UPDATE npc_empire_interior_raids SET status='resolved',"

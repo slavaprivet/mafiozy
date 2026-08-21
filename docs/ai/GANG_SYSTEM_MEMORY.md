@@ -321,6 +321,8 @@ reconnect and duplicate resolve requests must be idempotent.
   and an active war. Ownership transfer, operation conversion, peace or
   vassalization terminalizes it before any casualty or property mutation;
   retries return the persisted terminal resolution.
+- Every event-driven casualty checkpoint revalidates that authority before
+  merging its monotonic sets; a stale token keeps version zero and no deaths.
 - A player diplomacy transition from `war` to a peaceful pact closes pending
   raids only for that exact `(leader_id, telegram_id)` pair, in the same
   `BEGIN IMMEDIATE` transaction and before its player-war row is deleted.
