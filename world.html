@@ -50578,20 +50578,24 @@ function drawFloatTexts() {
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  const stage = document.getElementById('stage');
+  const centerX = stage.clientWidth / 2, centerY = stage.clientHeight / 2;
   for (const f of floatTexts) {
-    const p = w2s(f.r + 0.5, f.c + 0.5);
+    const fr = f.r + 0.5, fc = f.c + 0.5;
+    const sx = centerX + (fc - fr) * TS * 0.5 - cam.x;
+    const sy = centerY + (fc + fr) * TS * 0.5 * ISO_Y - cam.y;
     const a = Math.max(0, f.life / f.max);
     const easeOut = 1 - Math.pow(1 - (1 - a), 2);   // мягкое затухание
     ctx.globalAlpha = easeOut;
     // Над головой персонажа (~TS*1.0 выше точки ног) + текущее dy подъёма
-    const y = p.y - TS * 1.05 - f.dy;
+    const y = sy - TS * 1.05 - f.dy;
     ctx.font = 'bold ' + f.size + 'px system-ui, sans-serif';
     // Обводка для читаемости на любом фоне
     ctx.lineWidth = 3;
     ctx.strokeStyle = f.stroke;
-    ctx.strokeText(f.text, p.x, y);
+    ctx.strokeText(f.text, sx, y);
     ctx.fillStyle = f.color;
-    ctx.fillText(f.text, p.x, y);
+    ctx.fillText(f.text, sx, y);
   }
   ctx.globalAlpha = 1;
   ctx.textAlign = 'left';
