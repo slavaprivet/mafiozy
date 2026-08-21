@@ -50608,7 +50608,7 @@ function updateProjectiles(dt) {
   updateFloatTexts(dt);
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
-    const bulletAge = performance.now() - (+b.born || 0);
+    const bulletAge = burnNow - (+b.born || 0);
     const bulletSpeed = Math.hypot(+b.vr || 0, +b.vc || 0);
     const bulletTtl = Math.max(900, ((+b.maxDist || 0) / Math.max(.1, bulletSpeed)) * 1000 + 450);
     if (!Number.isFinite(+b.r) || !Number.isFinite(+b.c) ||
@@ -50633,7 +50633,7 @@ function updateProjectiles(dt) {
         if(stepLen>.0001){const speed=Math.hypot(+b.vr||0,+b.vc||0)||1;b.vr=stepR/stepLen*speed;b.vc=stepC/stepLen*speed;}
         b.maxDist=Math.max(.05,Math.hypot(point.r-(+b.startR||0),point.c-(+b.startC||0)));
         b.dist=b.maxDist*p;
-        if(p>=1){b.impactHoldUntil=b.impactHoldUntil||performance.now()+72;if(performance.now()>=b.impactHoldUntil)b._finished=true;}
+        if(p>=1){b.impactHoldUntil=b.impactHoldUntil||burnNow+72;if(burnNow>=b.impactHoldUntil)b._finished=true;}
         continue;
       }
       b.targetVehicle=null;
@@ -50648,7 +50648,7 @@ function updateProjectiles(dt) {
         if(stepLen>.0001){const speed=Math.hypot(+b.vr||0,+b.vc||0)||1;b.vr=stepR/stepLen*speed;b.vc=stepC/stepLen*speed;}
         b.maxDist=Math.max(.05,Math.hypot(point.r-(+b.startR||0),point.c-(+b.startC||0)));
         b.dist=b.maxDist*p;
-        if(p>=1){b.impactHoldUntil=b.impactHoldUntil||performance.now()+72;if(performance.now()>=b.impactHoldUntil)b._finished=true;}
+        if(p>=1){b.impactHoldUntil=b.impactHoldUntil||burnNow+72;if(burnNow>=b.impactHoldUntil)b._finished=true;}
         continue;
       }
       b.targetActor=null;
@@ -50671,9 +50671,9 @@ function updateProjectiles(dt) {
       if (endedOnWall && b.weapon !== 'water_hose' && b.weapon !== 'rpg' && !b._holePlaced) {
         b._holePlaced = true;
         _capArr(bulletHoles, _MAX_BULLET_HOLES);
-        const holeId=(performance.now()*10+bulletHoles.length)|0;
+        const holeId=(burnNow*10+bulletHoles.length)|0;
         bulletHoles.push({id:holeId,r:b.r+wallDirR*.055,c:b.c+wallDirC*.055,ang:Math.atan2(b.vr,b.vc),rot:(holeId*.618)%Math.PI,
-          heavy:b.weapon==='shotgun'||b.weapon==='sniper',born:performance.now(),space:_gangSpaceKey()});
+          heavy:b.weapon==='shotgun'||b.weapon==='sniper',born:burnNow,space:_gangSpaceKey()});
       }
       // оставляем флаг для финального drawBullets — он отрисует вспышку
       b._finished = true;
