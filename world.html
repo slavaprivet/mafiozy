@@ -49038,29 +49038,33 @@ function drawWalkingLegs(x, y, ang, look, phase, bodyBob) {
   const hipY = y - 15.5 + bodyBob;
   const legW = gender === 0 ? 5.6 : 4.9;
 
-  const legs = [-1, 1].map((side, index) => {
-    const swing = stride * side;
-    const lift = Math.max(0, Math.sin(phase + (index ? Math.PI : 0))) * 3.8;
+  const minusSwing = stride * -1;
+  const minusLift = Math.max(0, Math.sin(phase + 0)) * 3.8;
+  const minusFootY = y + ly * -1 * 1.25 + fy * minusSwing * 2.7 - minusLift;
+  const plusSwing = stride * 1;
+  const plusLift = Math.max(0, Math.sin(phase + Math.PI)) * 3.8;
+  const plusFootY = y + ly * 1 * 1.25 + fy * plusSwing * 2.7 - plusLift;
+  const firstSide = plusFootY < minusFootY ? 1 : -1;
+
+  // Дальняя нога первой, ближняя — поверх неё: на диагоналях глубина читается лучше.
+  for (let legIndex = 0; legIndex < 2; legIndex++) {
+    const side = legIndex === 0 ? firstSide : -firstSide;
+    const swing = side === 1 ? plusSwing : minusSwing;
+    const lift = side === 1 ? plusLift : minusLift;
     const hipX = x + lx * side * 3.0;
     const hy = hipY + ly * side * 1.1;
     const footX = x + lx * side * 3.4 + fx * swing * 7.5;
-    const footY = y + ly * side * 1.25 + fy * swing * 2.7 - lift;
+    const footY = side === 1 ? plusFootY : minusFootY;
     const kneeX = (hipX + footX) * 0.5 - fx * swing * 1.45 + lx * side * 0.65;
     const kneeY = (hy + footY) * 0.5 - lift * 0.42 + 1.4;
-    return { hipX, hy, kneeX, kneeY, footX, footY, side };
-  });
-
-  // Дальняя нога первой, ближняя — поверх неё: на диагоналях глубина читается лучше.
-  legs.sort((a, b) => (a.footY - b.footY) || (a.side - b.side));
-  for (const leg of legs) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = 'rgba(0,0,0,.72)';
     ctx.lineWidth = legW + 2.0;
     ctx.beginPath();
-    ctx.moveTo(leg.hipX, leg.hy);
-    ctx.lineTo(leg.kneeX, leg.kneeY);
-    ctx.lineTo(leg.footX, leg.footY);
+    ctx.moveTo(hipX, hy);
+    ctx.lineTo(kneeX, kneeY);
+    ctx.lineTo(footX, footY);
     ctx.stroke();
     ctx.strokeStyle = clothes;
     ctx.lineWidth = legW;
@@ -49068,7 +49072,7 @@ function drawWalkingLegs(x, y, ang, look, phase, bodyBob) {
 
     const shoeAng = Math.atan2(fy, fx);
     ctx.save();
-    ctx.translate(leg.footX + fx * 1.2, leg.footY + 1.0);
+    ctx.translate(footX + fx * 1.2, footY + 1.0);
     ctx.rotate(shoeAng);
     ctx.fillStyle = 'rgba(0,0,0,.38)';
     ctx.beginPath(); ctx.ellipse(0.9, 2.0, 5.2, 2.2, 0, 0, Math.PI * 2); ctx.fill();
