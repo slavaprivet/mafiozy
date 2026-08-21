@@ -64313,10 +64313,10 @@ let _threeCombatBleedCleanupAt=0;
 // water and narrow pockets that are hidden by several adjacent buildings.
 function _threeAnchorTileAt(r,c){return MAP[Math.floor(r)]?.[Math.floor(c)];}
 function _threeAnchorCoverAt(r,c){
-  let cover=0;
+  const row=Math.floor(r),col=Math.floor(c);let cover=0;
   for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
     if(!dr&&!dc)continue;
-    if(_threeAnchorTileAt(r+dr,c+dc)===1)cover+=(Math.abs(dr)+Math.abs(dc)<=2?2:1);
+    if(MAP[row+dr]?.[col+dc]===1)cover+=(Math.abs(dr)+Math.abs(dc)<=2?2:1);
   }
   return cover;
 }
