@@ -51869,11 +51869,18 @@ function drawBullets() {
 // своей жизни лепестки не «прыгают»). Тяжёлые пушки дают вспышку крупнее.
 function drawMuzzles() {
   const dy = _bulletY();
+  let centerX = 0, centerY = 0;
+  if (muzzles.length) {
+    const stage = document.getElementById('stage');
+    centerX = stage.clientWidth / 2;
+    centerY = stage.clientHeight / 2;
+  }
   for (const m of muzzles) {
     const t = m.life / m.max;        // 1..0
     const t2 = Math.sqrt(t);
-    const p = w2s(m.r + 0.5, m.c + 0.5);
-    const cx = p.x, cy = p.y - dy - isoH(m.z || 0);
+    const mr = m.r + 0.5, mc = m.c + 0.5;
+    const cx = centerX + (mc - mr) * TS * 0.5 - cam.x;
+    const cy = centerY + (mc + mr) * TS * 0.5 * ISO_Y - cam.y - dy - isoH(m.z || 0);
     const ang = (m.angle != null ? m.angle : (m.ang || 0));
 
     // NPC-вспышка: простой дешёвый круг — без градиентов
