@@ -11,22 +11,27 @@ from test_npc_empire import _base_db
 
 
 async def run() -> None:
-    target = {'ref': 'building:0,3', 'kind': 'building',
-              'holding_id': '0,3', 'income': 120}
+    target = {'ref': 'building:0,3', 'kind': 'building', 'holding_id': '0,3',
+              'value_band': 'established',
+              'intel': {'defense_band': 'unknown-before-contact'}}
     cautious = ne.score_player_business_target(
         target, distance=20, guards=3, force=4, quality=50,
         relation=0, aggression=20)
     hostile = ne.score_player_business_target(
         target, distance=20, guards=3, force=4, quality=50,
         relation=-100, aggression=80)
-    assert not cautious['feasible'] and hostile['feasible']
+    assert cautious['feasible'] and hostile['feasible']
     assert hostile['loss_budget'] > cautious['loss_budget']
-    assert hostile['expected_losses'] == cautious['expected_losses'] == 3
+    assert hostile['expected_losses'] == cautious['expected_losses'] == 1
+    hidden_guard_variant = ne.score_player_business_target(
+        {**target, 'income': 9_999_999}, distance=20, guards=999,
+        force=4, quality=50, relation=-100, aggression=80)
+    assert hidden_guard_variant == hostile
     rich = ne.score_player_business_target(
-        {**target, 'income': 4750}, distance=20, guards=0,
+        {**target, 'value_band': 'premium'}, distance=20, guards=0,
         force=4, quality=50, relation=-100, aggression=80)
     far = ne.score_player_business_target(
-        {**target, 'income': 4750}, distance=160, guards=0,
+        {**target, 'value_band': 'premium'}, distance=160, guards=0,
         force=4, quality=50, relation=-100, aggression=80)
     assert rich['score'] > hostile['score'] and rich['score'] > far['score']
 
@@ -55,7 +60,7 @@ async def run() -> None:
                 "(leader_id,telegram_id,score,pact,last_action_at) "
                 "VALUES('leila',101,-100,'war',?)", (now,))
             await db.execute(
-                "UPDATE npc_empires SET members=2,strength=40,treasury=1000 "
+                "UPDATE npc_empires SET members=2,strength=40,treasury=0 "
                 "WHERE leader_id='leila'")
             await db.execute(
                 "INSERT OR REPLACE INTO npc_empire_player_wars"
@@ -71,13 +76,13 @@ async def run() -> None:
             db.row_factory = aiosqlite.Row
             targets = await ne._player_business_targets(db, 101)
             allocation = await ne._npc_attack_allocation(db, 'leila')
-            assert allocation['count'] == 2 and allocation['cost'] > 0
+            assert allocation['count'] < 2 and allocation['cost'] == 0
             assert await ne._select_player_business_target_smart(
                 db, 101, 'leila', targets, 0, '') is None
 
         # The real due-war path postpones the impossible raid without charging
         # money, incrementing attack phase, or creating synthetic attackers.
-        before_treasury = 1000
+        before_treasury = 0
         assert await ne._apply_player_war_pressure(path, 101, now) == []
         async with aiosqlite.connect(path) as db:
             row = await (await db.execute(
@@ -113,7 +118,7 @@ async def run() -> None:
             assert close['ref'] == 'building:0,3', close
             close_score = close['_raid']['score']
 
-            # A real holding near the remote high-income venue changes the
+            # A real holding near the remote visibly large venue changes the
             # logistics origin; the same scorer now prefers that venue.
             await db.execute(
                 "INSERT INTO npc_empire_holdings"
@@ -135,8 +140,8 @@ async def run() -> None:
             assert ne._boss_player_raid_policy(
                 ne.PROFILE_BY_ID['leila'])['stickiness'] == 60
 
-        # Concrete guards make that old venue irrational; follow-up switches to
-        # the still-reasonable alternative instead of blindly repeating it.
+        # A hidden live guard change cannot alter reconnaissance. Without raid
+        # contact, only the already-visible logistics advantage may decide.
         await ne.assign_holding_guards(
             path, owner_kind='player', owner_id='101',
             holding_ref='building:0,3', requested=3, now=now+2)
@@ -146,9 +151,10 @@ async def run() -> None:
             switched = await ne._select_player_business_target_smart(
                 db, 101, 'leila', targets, 1, 'building:0,3')
             assert switched['ref'] == 'building:1,17', switched
-            assert switched['_raid']['expected_losses'] == 0
-        print('npc player target scoring: income, logistics, concrete guards, hostility, '
-              'paid roster, loss deferral and rational follow-up OK')
+            assert switched['_raid']['expected_losses'] == 1
+            assert switched['_raid']['metrics']['defense_band'] == 'unknown-before-contact'
+        print('npc player target scoring: visible bands, logistics, hidden-input invariance, '
+              'doctrine prior, paid roster and rational follow-up OK')
     finally:
         os.unlink(path)
 

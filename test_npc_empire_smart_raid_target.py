@@ -1,8 +1,10 @@
 """Stress contracts for smart, persistent player-business raid targeting."""
 
 import asyncio
+import inspect
 import os
 import tempfile
+from pathlib import Path
 
 import aiosqlite
 
@@ -17,6 +19,16 @@ async def scalar(path: str, sql: str, params=()):
 
 
 async def run() -> None:
+    target_source = inspect.getsource(ne._player_business_targets)
+    scorer_source = inspect.getsource(ne.score_player_business_target)
+    assert 'income_per_minute' not in target_source
+    assert 'npc_empire_guard_assignments' not in target_source
+    assert ".get('income')" not in scorer_source and 'int(guards' not in scorer_source
+    world = Path(__file__).with_name('world.html').read_text(encoding='utf-8')
+    ui = world[world.index('function _playerBusinessRaidDecision'):
+               world.index('function _playerBusinessRaidPlan')]
+    assert 'доход +' not in ui and 'защита −' not in ui
+    assert 'unknown-before-contact' in ui and 'confirmed' in ui
     assert ne._player_business_raid_objective(
         1, 'building:0,3', 'building:0,4', '0,4') == 'first-close'
     fd, path = tempfile.mkstemp(prefix='smart_raid_target_', suffix='.db')
@@ -74,7 +86,39 @@ async def run() -> None:
         assert len(state['interior_raids']) == 1
         raid = state['interior_raids'][0]
         assert raid['objective'] == 'first-close'
-        assert raid['target_kind'] == 'building' and raid['target_id'] == '0,4', raid
+        assert raid['target_kind'] == 'building' and raid['target_id'] == '0,3', raid
+        assert raid['raid_metrics'] == {
+            'value_band': 'premium', 'distance_band': 'near',
+            'defense_band': 'guarded',
+            'age_band': 'fresh', 'certainty': 'confirmed'}
+        assert not {'value', 'defense_cost', 'guards'} & set(raid['raid_metrics'])
+        async with aiosqlite.connect(path) as db:
+            intel = await (await db.execute(
+                "SELECT leader_id,leader_generation,subject_id,holding_ref,"
+                "holding_generation,value_band,defense_band,observed_at,expires_at "
+                "FROM npc_empire_target_intel",
+            )).fetchall()
+        assert intel == [('leila', 0, '101', 'building:0,3', now,
+                          'premium', 'guarded', now, now + 7 * 24 * 60 * 60)]
+        async with aiosqlite.connect(path) as db:
+            await db.executemany(
+                "INSERT INTO npc_empire_target_intel"
+                "(leader_id,leader_generation,subject_id,holding_ref,holding_generation,"
+                "value_band,defense_band,observed_at,expires_at) VALUES(?,?,?,?,?,?,?,?,?)",
+                [
+                    ('leila', 0, '202', 'building:0,3', now,
+                     'premium', 'heavy', now, now + 999999),
+                    ('leila', 1, '101', 'building:0,3', now,
+                     'premium', 'heavy', now, now + 999999),
+                    ('leila', 0, '101', 'building:0,3', now - 1,
+                     'premium', 'heavy', now, now + 999999),
+                ])
+            await db.commit()
+            db.row_factory = aiosqlite.Row
+            isolated_targets = await ne._target_intel_for_pair(
+                db, 101, 'leila', await ne._player_business_targets(db, 101), now)
+        isolated = next(item for item in isolated_targets if item['ref'] == 'building:0,3')
+        assert isolated['intel']['defense_band'] == 'guarded', isolated
         empire = next(item for item in state['empires'] if item['leader_id'] == 'leila')
         activity = empire['activity']
         assert (activity['raid_token'], activity['target_id'], activity['target_kind']) == (
@@ -97,6 +141,25 @@ async def run() -> None:
             path, owner_kind='player', owner_id='101',
             holding_ref='building:0,4', requested=4, now=now + 2,
         )
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            targets = await ne._player_business_targets(db, 101)
+            selected_after_swap = await ne._select_player_business_target_smart(
+                db, 101, 'leila', targets, 0, '', now + 2)
+            aging = await ne._target_intel_for_pair(
+                db, 101, 'leila', targets, now + 2 * 24 * 60 * 60)
+            stale = await ne._target_intel_for_pair(
+                db, 101, 'leila', targets, now + 4 * 24 * 60 * 60)
+            expired_intel = await ne._target_intel_for_pair(
+                db, 101, 'leila', targets, now + 8 * 24 * 60 * 60)
+        assert selected_after_swap['ref'] == 'building:0,4'
+        assert next(item for item in aging if item['ref'] == 'building:0,3')['intel'] == {
+            'age_band': 'aging', 'certainty': 'fading', 'defense_band': 'guarded'}
+        assert next(item for item in stale if item['ref'] == 'building:0,3')['intel'] == {
+            'age_band': 'stale', 'certainty': 'low', 'defense_band': 'guarded'}
+        assert next(item for item in expired_intel if item['ref'] == 'building:0,3')['intel'] == {
+            'age_band': 'current', 'certainty': 'estimated',
+            'defense_band': 'unknown-before-contact'}
         # Simulate a legacy/hot due row plus roster shrink while the raid is
         # pending. Persisted work must be checked before a fresh score can call
         # the assault irrational and postpone it beyond its own expiry.
@@ -125,7 +188,7 @@ async def run() -> None:
             assert current['token'] == raid['token']
             assert current['objective'] == 'first-close'
             assert current_empire['activity']['raid_token'] == raid['token']
-            assert current_empire['activity']['target_id'] == '0,4'
+        assert current_empire['activity']['target_id'] == '0,3'
         assert await scalar(
             path, "SELECT COUNT(*) FROM npc_empire_events "
                   "WHERE kind='player_business_interior_raid' AND target_id='101'",
@@ -135,9 +198,8 @@ async def run() -> None:
                   "WHERE leader_id='leila' AND telegram_id=101",
         ) >= raid['expires_at'] + 1
 
-        # An abandoned pending session expires silently. Exactly one bounded
-        # reschedule then selects the newly weak building, and more snapshots
-        # cannot fan out duplicate events.
+        # Hidden live guard changes cannot steer reconnaissance. The next raid
+        # may react only to the qualitative contact memory from the first one.
         expired = await ne.state_for(path, 101, now=raid['expires_at'])
         assert not expired['interior_raids']
         assert await scalar(
@@ -148,7 +210,7 @@ async def run() -> None:
         assert len(rescheduled['interior_raids']) == 1
         next_raid = rescheduled['interior_raids'][0]
         assert next_raid['token'] != raid['token']
-        assert next_raid['target_kind'] == 'building' and next_raid['target_id'] == '0,3'
+        assert next_raid['target_kind'] == 'building' and next_raid['target_id'] == '0,4'
         for offset in range(2, 12):
             await ne.state_for(path, 101, now=raid['expires_at'] + offset)
         assert await scalar(
@@ -158,13 +220,14 @@ async def run() -> None:
 
         async with aiosqlite.connect(path) as db:
             plan = await (await db.execute(
-                "EXPLAIN QUERY PLAN SELECT holding_ref,living "
-                "FROM npc_empire_guard_assignments "
-                "WHERE owner_kind='player' AND owner_id='101'",
+                "EXPLAIN QUERY PLAN SELECT holding_ref,holding_generation,defense_band,observed_at "
+                "FROM npc_empire_target_intel WHERE subject_id='101' AND leader_id='leila' "
+                "AND leader_generation=0 AND expires_at>0",
             )).fetchall()
-        assert any('INDEX' in str(row[3]).upper() for row in plan), plan
-        print('smart raid target: scored guard snapshot, atomic pending target, '
-              '40 reconnects, silent expiry and bounded reschedule OK')
+        detail = ' '.join(str(row[3]).upper() for row in plan)
+        assert 'INDEX' in detail and 'SCAN' not in detail, plan
+        print('smart raid target: observable bands, hidden-guard invariance, '
+              'contact roster, 40 reconnects and bounded reschedule OK')
     finally:
         os.unlink(path)
 

@@ -47,9 +47,9 @@ function _playerBusinessRaidBreachFor(activity){{return activity.breached?{{toke
 {plan}
 {phase}
 const empire={{leader_name:'Марко',doctrine:{{id:'mobile',label:'Мобильный обход'}}}};
-const activity={{objective:'followup-capture',hold_seconds:5,target_reason:'profit-over-risk',raid_policy:{{id:'mobile',value_weight:1.2}},raid_metrics:{{value:438,distance_cost:96,defense_cost:145,risk_tolerance:1.18}}}};
+const activity={{objective:'followup-capture',hold_seconds:5,target_reason:'visible-value-band',raid_policy:{{id:'mobile',value_weight:1.2}},raid_metrics:{{value_band:'premium',distance_band:'far',defense_band:'guarded',age_band:'aging',certainty:'fading'}}}};
 const good=_playerBusinessRaidPlan(empire,activity);
-const bad=_playerBusinessRaidDecision(empire,{{target_reason:'<raw>',raid_policy:{{id:'<script>'}},raid_metrics:{{value:'oops',distance_cost:-5,defense_cost:20000,risk_tolerance:99}}}});
+const bad=_playerBusinessRaidDecision(empire,{{target_reason:'<raw>',raid_policy:{{id:'<script>'}},raid_metrics:{{value_band:'<raw>',distance_band:'<raw>',defense_band:'<raw>',age_band:'<raw>',certainty:'<raw>'}}}});
 const phases={{}};for(const name of ['approach','breach','fight','advance','hold','contested'])phases[name]=_businessRaidPhaseLabel({{phase:name,outcome:''}},12300);phases.defended=_businessRaidPhaseLabel({{phase:'fight',outcome:'defended'}},0);phases.captured=_businessRaidPhaseLabel({{phase:'hold',outcome:'captured'}},0);
 console.log(JSON.stringify({{good,bad,phases}}));
 """
@@ -64,16 +64,17 @@ console.log(JSON.stringify({{good,bad,phases}}));
     assert good["decision"]["policyId"] == "mobile"
     assert not good["decision"]["policyMismatch"]
     assert good["decision"]["profileLabel"] == "Мобильный обход"
-    assert good["decision"]["reasonId"] == "profit-over-risk"
+    assert good["decision"]["reasonId"] == "visible-value-band"
     assert good["decision"]["summary"] == (
-        "доход окупает риск · доход +438 · путь −96 · защита −145 · риск ×1.18"
+        "заметная ценность объекта · ценность: высокая · маршрут: далеко · "
+        "защита: охраняется · данные: устаревают · теряют точность"
     )
     bad = data["bad"]
     assert bad["policyId"] == "script" and bad["policyMismatch"]
     assert bad["profileLabel"] == "Серверный расчёт"
     assert bad["reasonId"] == "server-evaluation"
-    assert bad["value"] is None and bad["distance"] == 0
-    assert bad["defense"] == 9999 and bad["risk"] == 1.5
+    assert bad["valueBand"] == "<raw>" and bad["distanceBand"] == "<raw>"
+    assert bad["defenseBand"] == "<raw>" and bad["certainty"] == "<raw>"
     assert "<" not in bad["summary"] and "NaN" not in bad["summary"]
     assert data["phases"] == {
         "approach": "ВРАГ ЕЩЁ В ПУТИ",

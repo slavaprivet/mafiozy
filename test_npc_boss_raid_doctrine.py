@@ -9,10 +9,12 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = (ROOT / "npc_empire.py").read_text(encoding="utf-8")
 
 
-def scored(leader_id: str, *, income: int, distance: float, guards: int) -> dict:
+def scored(leader_id: str, *, value_band: str, distance: float,
+           defense_band: str) -> dict:
     profile = npc_empire.PROFILE_BY_ID[leader_id]
     return npc_empire.score_player_business_target(
-        {"income": income}, distance=distance, guards=guards,
+        {"value_band": value_band, "intel": {"defense_band": defense_band}},
+        distance=distance, guards=999,
         force=4, quality=55, relation=-50, aggression=profile.aggression,
         raid_policy=npc_empire._boss_player_raid_policy(profile),
     )
@@ -37,19 +39,23 @@ def run() -> None:
         p["stickiness"] for p in policies.values()) > 50
 
     # Identical tactical facts produce authored risk differences.
-    assert scored("emil", income=3000, distance=20, guards=2)["feasible"]
-    assert scored("viktor", income=3000, distance=20, guards=2)["feasible"]
-    assert not scored("zara", income=3000, distance=20, guards=2)["feasible"]
-    assert not scored("sofia", income=3000, distance=20, guards=2)["feasible"]
+    assert scored("emil", value_band="premium", distance=20, defense_band="guarded")["feasible"]
+    assert scored("viktor", value_band="premium", distance=20, defense_band="guarded")["feasible"]
+    assert not scored("zara", value_band="premium", distance=20, defense_band="guarded")["feasible"]
+    assert not scored("sofia", value_band="premium", distance=20, defense_band="guarded")["feasible"]
 
     # A distant lucrative opening is worth the route to mobile/value doctrines,
     # while the fortress and duelist prefer the nearby exposed venue.
     for leader_id in ("zara", "marco", "sofia", "viktor"):
-        assert scored(leader_id, income=5000, distance=220, guards=1)["score"] > scored(
-            leader_id, income=300, distance=10, guards=0)["score"]
+        assert scored(leader_id, value_band="premium", distance=120,
+                      defense_band="guarded")["score"] > scored(
+            leader_id, value_band="local", distance=10,
+            defense_band="unconfirmed")["score"]
     for leader_id in ("marat", "emil"):
-        assert scored(leader_id, income=5000, distance=220, guards=1)["score"] < scored(
-            leader_id, income=300, distance=10, guards=0)["score"]
+        assert scored(leader_id, value_band="premium", distance=120,
+                      defense_band="guarded")["score"] < scored(
+            leader_id, value_band="local", distance=10,
+            defense_band="unconfirmed")["score"]
 
     # The fixed 70-point follow-up rule is gone: patience keeps Marat on a
     # target 60 points behind, while adaptable Marco switches.
@@ -61,7 +67,8 @@ def run() -> None:
     assert "best['_raid']['score']) - 70" not in selector
     assert "raid_policy=policy" in selector
 
-    metrics = scored("marco", income=5000, distance=220, guards=1)
+    metrics = scored("marco", value_band="premium", distance=120,
+                     defense_band="guarded")
     target = {"ref": "building:4,7", "kind": "building", "holding_id": "4,7",
               "_raid": metrics}
     activity = npc_empire._player_war_activity(
