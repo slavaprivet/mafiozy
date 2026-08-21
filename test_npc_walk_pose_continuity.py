@@ -1,5 +1,6 @@
 """Static and numeric regression contract for NPC walk pose continuity."""
 
+import re
 from math import cos, exp, sin
 from pathlib import Path
 
@@ -31,7 +32,15 @@ def run() -> None:
     assert "THREE.MathUtils.lerp(idle*.025,-step*naturalArmSwing,poseGait)" in THREE
     assert "leftLift=Math.pow(Math.max(0,step),1.35)" in THREE
     assert "walking?Math.pow(Math.max(0,step)" not in THREE
-    assert "three_preview.js?v=3d417-npc-walk-continuity&opt=burning-pool-v414+pooled-marker-accounting-v416" in WORLD
+    hook = re.search(
+        r'<script type="module" src="(three_preview\.js\?[^\"]+)"></script>', WORLD
+    )
+    assert hook is not None
+    query = hook.group(1).split("?", 1)[1]
+    params = dict(part.split("=", 1) for part in query.split("&") if "=" in part)
+    assert params.get("v") == "3d418-authoritative-business-skins"
+    assert params.get("opt") == "burning-pool-v414+pooled-marker-accounting-v416"
+    assert params.get("facade") == "depth-roof-sign-v1"
 
     # The former boolean boundary could swap unrelated idle/walk waves. The
     # shared scalar must keep every linked endpoint continuous around .035.
