@@ -65000,10 +65000,10 @@ window.Mafiozi3DBridge = Object.freeze({
       carCandidates.splice(lo,0,x);
       if(carCandidates.length>18)carCandidates.pop();
     }
-    _threeStickyVehicleIds.clear();for(const car of carCandidates)_threeStickyVehicleIds.add(_threeVehicleEntityId(car));
+    _threeStickyVehicleIds.clear();
     const cars=carCandidates;
-    for(let i=0;i<cars.length;i++){const x=cars[i],model=x.model||{},modelName=model.name||x.modelName||'sedan';cars[i]={
-      id:_threeVehicleEntityId(x),r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
+    for(let i=0;i<cars.length;i++){const x=cars[i],id=_threeVehicleEntityId(x),model=x.model||{},modelName=model.name||x.modelName||'sedan';_threeStickyVehicleIds.add(id);cars[i]={
+      id,r:+x.r||0,c:+x.c||0,ang:Number.isFinite(x.ang)?x.ang:Math.atan2(+x.dirDy||0,+x.dirDx||1),
       model:modelName,paint:_threeVehiclePaint(x,model),parked:!!x.parked,
       length:+model.L||1.7,width:+model.W||.85,height:+model.height||.55,wheelR:+model.wheelR||.18,
       sport:!!(model.sport||model.fast),pickup:!!model.pickup,van:!!model.van,suv:!!model.suv,cabrio:!!model.cabrio,taxi:!!model.taxi,limo:!!model.limo,muscle:!!model.muscle,classic:!!model.classic,gang:!!model.gang,
