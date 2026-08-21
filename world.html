@@ -52006,12 +52006,21 @@ function drawSmokePuffs() {
 // ── Гильзы (shells) ────────────────────────────────────────────────
 // Маленькие латунные прямоугольники, падают с гравитацией, крутятся.
 function drawShells() {
+  let projectionReady = false, stageCx = 0, stageCy = 0, dy = 0;
   for (let i = shells.length - 1; i >= 0; i--) {
     const s = shells[i];
     if (s.life <= 0) continue;
-    const p = w2s(s.r + 0.5, s.c + 0.5);
+    if (!projectionReady) {
+      const stage = document.getElementById('stage');
+      stageCx = stage.clientWidth / 2;
+      stageCy = stage.clientHeight / 2;
+      dy = _bulletY();
+      projectionReady = true;
+    }
+    const sr = s.r + 0.5, sc = s.c + 0.5;
     // Уровень выброса гильзы = плечо стрелка. Согласовано с _bulletY().
-    const cx = p.x, cy = p.y - _bulletY() - s.z * 18;
+    const cx = stageCx + (sc - sr) * TS * 0.5 - cam.x;
+    const cy = stageCy + (sc + sr) * TS * 0.5 * ISO_Y - cam.y - dy - s.z * 18;
     const a = Math.min(1, s.life / 300);
     ctx.save();
     ctx.globalAlpha = a;
