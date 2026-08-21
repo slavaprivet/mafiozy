@@ -16,8 +16,9 @@ async def scalar(path, sql, args=()):
         return row[0] if row else None
 
 
-async def run() -> None:
-    handle, path = tempfile.mkstemp(prefix='raid_concurrent_resolution_', suffix='.db')
+async def run_scenario(outcome: str) -> None:
+    handle, path = tempfile.mkstemp(
+        prefix=f'raid_concurrent_{outcome}_resolution_', suffix='.db')
     os.close(handle); now = 3_000_000_000
     try:
         await _base_db(path)
@@ -72,39 +73,100 @@ async def run() -> None:
 
         members_before = await scalar(
             path, "SELECT SUM(members) FROM npc_empires WHERE leader_id IN ('leila','marco')")
+        attacker_casualties = ([0] if outcome == 'captured'
+                               else list(range(int(first['force']))))
+        invalid = await ne.resolve_interior_raid(
+            path, 101, first['token'], first['apt_key'], outcome,
+            attacker_casualties=[int(first['force'])],
+            defender_casualties=[1], guard_casualties=[],
+            now=now + first['hold_seconds'])
+        assert invalid == {'ok': False, 'error': 'bad attacker casualties'}
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_interior_raids "
+                  "WHERE telegram_id=101 AND target_ref='business:coffee' "
+                  "AND status='pending'") == 2
+
+        if outcome == 'defended':
+            async with aiosqlite.connect(path) as db:
+                await db.execute("""
+                    CREATE TRIGGER reject_defended_schedule
+                    BEFORE UPDATE OF next_attack_at ON npc_empire_player_wars
+                    BEGIN SELECT RAISE(ABORT, 'forced defended rollback'); END
+                """)
+                await db.commit()
+            try:
+                await ne.resolve_interior_raid(
+                    path, 101, first['token'], first['apt_key'], outcome,
+                    attacker_casualties=attacker_casualties,
+                    defender_casualties=[1], guard_casualties=[],
+                    now=now + first['hold_seconds'])
+                raise AssertionError('failed schedule write must abort resolution')
+            except aiosqlite.Error as error:
+                assert 'forced defended rollback' in str(error)
+            finally:
+                async with aiosqlite.connect(path) as db:
+                    await db.execute("DROP TRIGGER reject_defended_schedule")
+                    await db.commit()
+            assert await scalar(
+                path, "SELECT COUNT(*) FROM npc_empire_interior_raids "
+                      "WHERE telegram_id=101 AND target_ref='business:coffee' "
+                      "AND status='pending'") == 2
+            assert await scalar(
+                path, "SELECT SUM(members) FROM npc_empires "
+                      "WHERE leader_id IN ('leila','marco')") == members_before
+            assert await scalar(path,
+                "SELECT current_hp FROM gang_members WHERE id=1") == 100
+
         results = await asyncio.gather(*[
             ne.resolve_interior_raid(
-                path, 101, raid['token'], raid['apt_key'], 'captured',
-                attacker_casualties=[0], defender_casualties=[1], guard_casualties=[],
+                path, 101, raid['token'], raid['apt_key'], outcome,
+                attacker_casualties=attacker_casualties,
+                defender_casualties=[1], guard_casualties=[],
                 now=now + raid['hold_seconds'])
             for raid in (first, {**first, 'token': 'legacy-concurrent-token'})
         ])
         phase_kinds = [event['kind'] for result in results for event in result.get('phase_events', [])]
-        assert phase_kinds == ['player_business_bombed'], (results, phase_kinds)
+        assert phase_kinds == (['player_business_bombed'] if outcome == 'captured' else []), (results, phase_kinds)
         loser = next(result for result in results if result.get('duplicate'))
         assert loser['resolution'] == 'superseded'
         assert await scalar(path,
             "SELECT COUNT(*) FROM npc_empire_events WHERE kind='player_business_bombed' "
-            "AND target_id='101'") == 1
-        assert await scalar(path,
-            "SELECT SUM(attacks) FROM npc_empire_player_wars WHERE telegram_id=101") == 1
+            "AND target_id='101'") == int(outcome == 'captured')
+        assert await scalar(
+            path, "SELECT SUM(attacks) FROM npc_empire_player_wars WHERE telegram_id=101"
+        ) == int(outcome == 'captured')
         assert await scalar(path,
             "SELECT current_hp FROM gang_members WHERE id=1") == 0
         assert await scalar(path,
-            "SELECT SUM(members) FROM npc_empires WHERE leader_id IN ('leila','marco')") == members_before - 1
+            "SELECT SUM(members) FROM npc_empires WHERE leader_id IN ('leila','marco')"
+        ) == members_before - len(attacker_casualties)
+        statuses = []
+        async with aiosqlite.connect(path) as db:
+            statuses = await (await db.execute(
+                "SELECT resolution FROM npc_empire_interior_raids "
+                "WHERE telegram_id=101 AND target_ref='business:coffee' "
+                "ORDER BY resolution")).fetchall()
+        assert sorted(str(row[0]) for row in statuses) == sorted([outcome, 'superseded'])
         assert await scalar(path,
             "SELECT current_hp FROM gang_members WHERE id=20") == 100
         assert await scalar(path,
             "SELECT COUNT(*) FROM npc_empire_player_guard_members WHERE owner_uid=202") == 1
         assert str(await scalar(path,
             "SELECT owner_uid FROM business_property_owners WHERE biz_id='donut'")) == '202'
-        retry = await ne.resolve_interior_raid(
-            path, 101, first['token'], first['apt_key'], 'captured', now=now + 99,
-            attacker_casualties=[], defender_casualties=[1], guard_casualties=[])
-        assert retry['ok'] and retry['duplicate']
-        print('concurrent raid resolution: one phase, loser superseded, retry/other owner exact OK')
+        for retry_token in (first['token'], 'legacy-concurrent-token'):
+            retry = await ne.resolve_interior_raid(
+                path, 101, retry_token, first['apt_key'], outcome, now=now + 99,
+                attacker_casualties=attacker_casualties,
+                defender_casualties=[1], guard_casualties=[])
+            assert retry['ok'] and retry['duplicate']
     finally:
         os.unlink(path)
+
+
+async def run() -> None:
+    for outcome in ('captured', 'defended'):
+        await run_scenario(outcome)
+    print('concurrent raid resolution: capture/defence one winner, loser superseded, retry/other owner exact OK')
 
 
 if __name__ == '__main__':

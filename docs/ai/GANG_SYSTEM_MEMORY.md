@@ -22,7 +22,7 @@
   The red world ring, minimap point and retained 3D marker still identify the
   exact building when it is in view.
 
-Last reconciled with GitHub `main` at `50f93f580ecb6e487b62a124c0edab3fc1b078b3`
+Last reconciled with GitHub `main` at `26abfdbfa1f051cea809b7a374a0a969bcbb5321`
 on 2026-08-21.
 
 This is the canonical hand-off for work involving gangs, bosses, criminal
@@ -75,6 +75,14 @@ source before editing and update this document whenever a contract changes.
   have no request id/receipt and must not be described as HTTP retry-idempotent.
 
 ## Player-business raid objective
+
+- One player holding generation can have only one successful terminal raid,
+  including a defence that creates no ownership-phase event. Legacy duplicate
+  pending tokens serialize under `BEGIN IMMEDIATE`: the first fully validated
+  resolver wins and atomically marks exact `(telegram_id,target_ref)` siblings
+  `superseded`; later retries cannot repeat NPC, defender or guard casualties.
+  Invalid payloads never terminalize a valid sibling, and another owner or
+  holding is outside the cleanup scope.
 
 - Pending raid sessions persist only irreversible casualty sets: attacker
   slots, assigned-defender member IDs and legacy guard IDs plus a monotonic

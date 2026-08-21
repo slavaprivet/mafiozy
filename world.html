@@ -5954,6 +5954,8 @@ function _explodeGasStation(gs) {
     const d = Math.hypot(cop.y - blast.r, cop.x - blast.c), dmg = _gasBlastDamageAt(d);
     if (dmg) hitCityCop(cop, (cop.y-blast.r)/(d||1), (cop.x-blast.c)/(d||1), dmg);
   }
+  // Backend contract: one validated raid result consumes one exact holding
+  // generation; reconnects and legacy sibling tokens are terminal/idempotent.
   // During a property raid, only the server-assigned roster is materialized
   // above. The general following crew must not duplicate unassigned fighters.
   if(!bi.businessInteriorRaid)for (const gm of _myGang) {

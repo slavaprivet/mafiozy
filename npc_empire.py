@@ -3742,7 +3742,11 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         phase_events = ([] if outcome == 'defended' else
                         await _apply_resolved_interior_raid_phase_tx(
                             db, telegram_id, raid, now))
-        if phase_events:
+        # A defended raid has no ownership phase event, but it still consumes
+        # the one authoritative holding generation.  Legacy duplicate tokens
+        # must therefore lose under the same writer transaction before any
+        # second resolver can repeat casualties against this target.
+        if outcome == 'defended' or phase_events:
             await db.execute(
                 "UPDATE npc_empire_interior_raids SET status='resolved',"
                 "resolution='superseded',resolved_at=? WHERE telegram_id=? "
