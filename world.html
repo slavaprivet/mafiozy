@@ -64982,16 +64982,17 @@ window.Mafiozi3DBridge = Object.freeze({
     const streamRadius=Math.max(12,Math.min(65,+radius||38)),rad2=streamRadius**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
     const fxNow=performance.now(),wallNow=Date.now();
     const inside=!!(_buildingInt||_bankInt);
-    const carCandidates=[],carSource=inside?[]:(typeof CARS!=='undefined'?CARS:[]),compareCarCandidates=(a,b)=>{
-      const ai=_threeStickyVehicleIds.has(_threeVehicleEntityId(a))?0:1,bi=_threeStickyVehicleIds.has(_threeVehicleEntityId(b))?0:1;
-      return ai-bi||(((+a.r||0)-player.r)**2+((+a.c||0)-player.c)**2)-(((+b.r||0)-player.r)**2+((+b.c||0)-player.c)**2)||_threeVehicleEntityId(a).localeCompare(_threeVehicleEntityId(b));
-    };
+    const carCandidates=[],carSource=inside?[]:(typeof CARS!=='undefined'?CARS:[]);
     for(const x of carSource){
       if(!x||x._hidden||x._towed)continue;
-      const id=_threeVehicleEntityId(x),d2=((+x.r||0)-player.r)**2+((+x.c||0)-player.c)**2;
-      if(d2>rad2&&!(_threeStickyVehicleIds.has(id)&&d2<=(streamRadius+7)**2))continue;
+      const id=_threeVehicleEntityId(x),d2=((+x.r||0)-player.r)**2+((+x.c||0)-player.c)**2,sticky=_threeStickyVehicleIds.has(id);
+      if(d2>rad2&&!(sticky&&d2<=(streamRadius+7)**2))continue;
       let lo=0,hi=carCandidates.length;
-      while(lo<hi){const mid=(lo+hi)>>1;if(compareCarCandidates(x,carCandidates[mid])<0)hi=mid;else lo=mid+1;}
+      while(lo<hi){
+        const mid=(lo+hi)>>1,other=carCandidates[mid],otherId=_threeVehicleEntityId(other),otherD2=((+other.r||0)-player.r)**2+((+other.c||0)-player.c)**2;
+        const order=(sticky?0:1)-(_threeStickyVehicleIds.has(otherId)?0:1)||d2-otherD2||id.localeCompare(otherId);
+        if(order<0)hi=mid;else lo=mid+1;
+      }
       if(lo>=18)continue;
       carCandidates.splice(lo,0,x);
       if(carCandidates.length>18)carCandidates.pop();
