@@ -60,6 +60,10 @@ NPC_HQ_FRONT_INCOME_PER_MINUTE = 24
 NPC_LIQUIDITY_BUFFER_TICKS = 96
 NPC_MIN_LIQUIDITY_CEILING = 75_000
 NPC_EVENT_MEMORY_LIMIT = 80
+NPC_BOSS_MEMORY_LEDGER_LIMIT = 64
+NPC_BOSS_MEMORY_SUBJECT_LIMIT = 32
+NPC_BOSS_MEMORY_HQ_TTL_SECONDS = 30 * 24 * 60 * 60
+NPC_BOSS_MEMORY_CERTAINTY_DECAY_PER_DAY = 25
 
 _STATE_PREPARE_LOCKS: dict[str, asyncio.Lock] = {}
 
@@ -1946,6 +1950,47 @@ async def ensure_schema(db_path: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_events_time
             ON npc_empire_events(created_at DESC);
+        CREATE TABLE IF NOT EXISTS npc_empire_memory_events (
+            event_key TEXT PRIMARY KEY,
+            leader_id TEXT NOT NULL,
+            leader_generation INTEGER NOT NULL,
+            subject_kind TEXT NOT NULL,
+            subject_id TEXT NOT NULL,
+            subject_generation INTEGER NOT NULL DEFAULT 0,
+            kind TEXT NOT NULL,
+            outcome TEXT NOT NULL DEFAULT '',
+            magnitude INTEGER NOT NULL DEFAULT 0,
+            certainty_milli INTEGER NOT NULL DEFAULT 1000,
+            observed_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_empire_memory_leader_time
+            ON npc_empire_memory_events(
+                leader_id,leader_generation,observed_at DESC,event_key DESC);
+        CREATE TABLE IF NOT EXISTS npc_empire_memory_aggregates (
+            leader_id TEXT NOT NULL,
+            leader_generation INTEGER NOT NULL,
+            subject_kind TEXT NOT NULL,
+            subject_id TEXT NOT NULL,
+            subject_generation INTEGER NOT NULL DEFAULT 0,
+            victories INTEGER NOT NULL DEFAULT 0,
+            defeats INTEGER NOT NULL DEFAULT 0,
+            own_losses INTEGER NOT NULL DEFAULT 0,
+            opponent_losses INTEGER NOT NULL DEFAULT 0,
+            betrayals INTEGER NOT NULL DEFAULT 0,
+            aid INTEGER NOT NULL DEFAULT 0,
+            harm INTEGER NOT NULL DEFAULT 0,
+            certainty_milli INTEGER NOT NULL DEFAULT 0,
+            last_observed_at INTEGER NOT NULL DEFAULT 0,
+            expires_at INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(
+                leader_id,leader_generation,subject_kind,subject_id,
+                subject_generation)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_empire_memory_subject
+            ON npc_empire_memory_aggregates(
+                subject_kind,subject_id,subject_generation,
+                leader_id,leader_generation);
         CREATE TABLE IF NOT EXISTS npc_empire_street_recruits (
             source_id TEXT PRIMARY KEY,
             leader_id TEXT NOT NULL,
@@ -2333,6 +2378,95 @@ async def ensure_schema(db_path: str) -> None:
                     (leader_a, leader_b, score, now),
                 )
         await db.commit()
+
+
+async def _record_boss_memory_fact(
+        db, *, event_key: str, leader_id: str, leader_generation: int,
+        subject_kind: str, subject_id: str, subject_generation: int,
+        kind: str, outcome: str, magnitude: int, certainty_milli: int,
+        observed_at: int, expires_at: int, victories: int = 0,
+        defeats: int = 0, own_losses: int = 0, opponent_losses: int = 0,
+        betrayals: int = 0, aid: int = 0, harm: int = 0) -> bool:
+    """Persist one typed observation and update its aggregate exactly once."""
+    certainty_milli = max(0, min(1000, int(certainty_milli)))
+    cursor = await db.execute(
+        "INSERT OR IGNORE INTO npc_empire_memory_events"
+        "(event_key,leader_id,leader_generation,subject_kind,subject_id,"
+        "subject_generation,kind,outcome,magnitude,certainty_milli,observed_at,"
+        "expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+        (str(event_key), str(leader_id), max(0, int(leader_generation)),
+         str(subject_kind), str(subject_id), max(0, int(subject_generation)),
+         str(kind), str(outcome), max(0, int(magnitude)), certainty_milli,
+         int(observed_at), max(0, int(expires_at))),
+    )
+    if int(cursor.rowcount or 0) != 1:
+        return False
+    counters = tuple(max(0, int(value)) for value in (
+        victories, defeats, own_losses, opponent_losses, betrayals, aid, harm))
+    await db.execute(
+        "INSERT INTO npc_empire_memory_aggregates"
+        "(leader_id,leader_generation,subject_kind,subject_id,subject_generation,"
+        "victories,defeats,own_losses,opponent_losses,betrayals,aid,harm,"
+        "certainty_milli,last_observed_at,expires_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(leader_id,leader_generation,subject_kind,subject_id,"
+        "subject_generation) DO UPDATE SET "
+        "victories=victories+excluded.victories,defeats=defeats+excluded.defeats,"
+        "own_losses=own_losses+excluded.own_losses,"
+        "opponent_losses=opponent_losses+excluded.opponent_losses,"
+        "betrayals=betrayals+excluded.betrayals,aid=aid+excluded.aid,"
+        "harm=harm+excluded.harm,"
+        "certainty_milli=MAX(certainty_milli,excluded.certainty_milli),"
+        "last_observed_at=MAX(last_observed_at,excluded.last_observed_at),"
+        "expires_at=MAX(expires_at,excluded.expires_at)",
+        (str(leader_id), max(0, int(leader_generation)), str(subject_kind),
+         str(subject_id), max(0, int(subject_generation)), *counters,
+         certainty_milli, int(observed_at), max(0, int(expires_at))),
+    )
+    await db.execute(
+        "DELETE FROM npc_empire_memory_events WHERE leader_id=? "
+        "AND leader_generation=? AND event_key NOT IN "
+        "(SELECT event_key FROM npc_empire_memory_events WHERE leader_id=? "
+        "AND leader_generation=? ORDER BY observed_at DESC,event_key DESC LIMIT ?)",
+        (str(leader_id), max(0, int(leader_generation)), str(leader_id),
+         max(0, int(leader_generation)), NPC_BOSS_MEMORY_LEDGER_LIMIT),
+    )
+    await db.execute(
+        "DELETE FROM npc_empire_memory_aggregates WHERE leader_id=? "
+        "AND leader_generation=? AND (subject_kind,subject_id,subject_generation) "
+        "NOT IN (SELECT subject_kind,subject_id,subject_generation "
+        "FROM npc_empire_memory_aggregates WHERE leader_id=? "
+        "AND leader_generation=? ORDER BY last_observed_at DESC,subject_kind,"
+        "subject_id,subject_generation LIMIT ?)",
+        (str(leader_id), max(0, int(leader_generation)), str(leader_id),
+         max(0, int(leader_generation)), NPC_BOSS_MEMORY_SUBJECT_LIMIT),
+    )
+    return True
+
+
+def _boss_pair_memory_payload(row, now: int, generation: int) -> dict:
+    """Expose only this player's aggregate, with deterministic age decay."""
+    if not row:
+        return {'known': False, 'generation': max(0, int(generation))}
+    last_observed_at = max(0, int(row['last_observed_at'] or 0))
+    age_days = max(0, int(now) - last_observed_at) // (24 * 60 * 60)
+    certainty_milli = max(
+        0, int(row['certainty_milli'] or 0)
+        - age_days * NPC_BOSS_MEMORY_CERTAINTY_DECAY_PER_DAY)
+    return {
+        'known': certainty_milli > 0,
+        'generation': max(0, int(generation)),
+        'certainty': round(certainty_milli / 10),
+        'victories': max(0, int(row['victories'] or 0)),
+        'defeats': max(0, int(row['defeats'] or 0)),
+        'own_losses': max(0, int(row['own_losses'] or 0)),
+        'opponent_losses': max(0, int(row['opponent_losses'] or 0)),
+        'betrayals': max(0, int(row['betrayals'] or 0)),
+        'aid': max(0, int(row['aid'] or 0)),
+        'harm': max(0, int(row['harm'] or 0)),
+        'last_observed_at': last_observed_at,
+        'expires_at': max(0, int(row['expires_at'] or 0)),
+    }
 
 
 async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
@@ -3936,6 +4070,14 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         recent = [dict(r) for r in await (await db.execute(
             "SELECT leader_id,kind,target_id,summary,created_at FROM npc_empire_events ORDER BY id DESC LIMIT 240"
         )).fetchall()]
+        pair_memory_rows = {str(r['leader_id']): r for r in await (await db.execute(
+            "SELECT m.* FROM npc_empire_memory_aggregates m "
+            "JOIN npc_empires e ON e.leader_id=m.leader_id "
+            "AND e.comebacks=m.leader_generation "
+            "WHERE m.subject_kind='player' AND m.subject_id=? "
+            "AND m.subject_generation=0 AND (m.expires_at=0 OR m.expires_at>?)",
+            (str(telegram_id), now),
+        )).fetchall()}
         district_rows = [dict(r) for r in await (await db.execute(
             "SELECT district_id,leader_id,score,runner_up_id,runner_up_score,contested,changed_at "
             "FROM npc_empire_districts ORDER BY district_id"
@@ -4083,6 +4225,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'holdings': leader_holdings,
             'brain': brain,
             'memory': memory,
+            'player_memory': _boss_pair_memory_payload(
+                pair_memory_rows.get(leader_id), now, int(row['comebacks'] or 0)),
             'activity': _visible_activity(profile, row, leader_holdings, now, brain),
             'field_encounter': ({
                 'encounter_id': str(field_encounters[leader_id]['encounter_id']),
@@ -5094,6 +5238,18 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         if reward:
             await db.execute("UPDATE characters SET cash=cash+? WHERE telegram_id=?", (reward,telegram_id))
         await db.execute("UPDATE npc_empire_assaults SET status='resolved',resolution=? WHERE token=?", (choice,token))
+        guard_losses = len(json.loads(str(assault['guard_hp_json'] or '[]')))
+        await _record_boss_memory_fact(
+            db, event_key=f'assault:{token}:outcome', leader_id=leader_id,
+            leader_generation=int(empire['comebacks'] or 0),
+            subject_kind='player', subject_id=str(telegram_id),
+            subject_generation=0, kind='hq_defeat', outcome=choice,
+            magnitude=max(0, int(assault['boss_max_hp'] or 0)),
+            certainty_milli=1000, observed_at=now,
+            expires_at=now + NPC_BOSS_MEMORY_HQ_TTL_SECONDS,
+            defeats=1, own_losses=guard_losses + 1,
+            harm=max(0, int(assault['boss_max_hp'] or 0)),
+        )
         await db.execute("INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)", (leader_id,'assault_won',str(telegram_id),f'{profile.gang_name}: {choice}',now))
         char = await (await db.execute("SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,))).fetchone()
         await db.commit()

@@ -206,6 +206,10 @@ Important tables include:
 - `npc_empire_building_closures`: CLOSED intervals for sabotaged/attacked
   converted buildings.
 - `npc_empire_events`: bounded persistent memory/event log.
+- `npc_empire_memory_events`: typed, idempotent boss observations scoped to
+  one stable family generation and one observed subject generation.
+- `npc_empire_memory_aggregates`: bounded per-subject counters derived only
+  after a new typed observation is inserted.
 
 Every ownership, treasury, roster, casualty or raid transition that belongs
 together must occur inside one `BEGIN IMMEDIATE` transaction. Repeated polling,
@@ -232,6 +236,15 @@ reconnect and duplicate resolve requests must be idempotent.
   tokens cannot hospitalize, field tokens cannot resolve annex/loot/vassalize,
   and replay returns the persisted hospital result without another event,
   version bump or duration extension.
+- A won HQ token records one exact `hq_defeat` observation inside the same
+  resolve transaction. Its key is derived from the assault token, so retrying
+  loot/annex/vassalize cannot increment the typed aggregate twice. The ledger
+  retains at most 64 facts and 32 subjects per `leader_id + comebacks`
+  generation; a comeback never inherits the previous generation's pair
+  dossier. HQ observations contain only the witnessed outcome, boss-side
+  losses and bounded harm/certainty clocks — never player inventory, hidden
+  cash, coordinates or plans. `state_for` reads only the requesting player's
+  indexed pair aggregate and applies deterministic age decay.
 - A field encounter may be prepared only for a fresh, connected exterior
   player at the exact activity anchor published by the server; HTTP fallback
   coordinates are HQ-preview-only. Persist that anchor with the assault.
