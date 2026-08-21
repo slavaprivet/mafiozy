@@ -4541,6 +4541,13 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
         else:
             if previous_pact == 'war':
                 await db.execute(
+                    "UPDATE npc_empire_assaults SET status='resolved',"
+                    "resolution='diplomacy_changed' WHERE leader_id=? "
+                    "AND telegram_id=? AND status='active' "
+                    "AND COALESCE(encounter_kind,'hq')='hq'",
+                    (leader_id, telegram_id),
+                )
+                await db.execute(
                     "UPDATE npc_empire_interior_raids SET status='resolved',"
                     "resolution='diplomacy_changed',resolved_at=? "
                     "WHERE leader_id=? AND telegram_id=? AND status='pending'",
@@ -4777,7 +4784,8 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
         row = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token, telegram_id))).fetchone()
         terminal_resolution = str(row['resolution'] or '') if row else ''
         if (row and str(row['status']) == 'resolved'
-                and terminal_resolution in {'vassalized', 'leader_ruined'}):
+                and terminal_resolution in {
+                    'vassalized', 'leader_ruined', 'diplomacy_changed'}):
             await db.rollback()
             return {'ok': True, 'duplicate': True, 'terminal': True,
                     'resolution': terminal_resolution}
@@ -4990,7 +4998,8 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         assault = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token,telegram_id))).fetchone()
         terminal_resolution = str(assault['resolution'] or '') if assault else ''
         if (assault and str(assault['status']) == 'resolved'
-                and terminal_resolution in {'vassalized', 'leader_ruined'}):
+                and terminal_resolution in {
+                    'vassalized', 'leader_ruined', 'diplomacy_changed'}):
             await db.rollback()
             return {'ok': True, 'duplicate': True, 'terminal': True,
                     'resolution': terminal_resolution}

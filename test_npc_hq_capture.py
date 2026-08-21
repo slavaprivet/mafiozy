@@ -194,6 +194,129 @@ async def _ruin_terminalizes_sibling_hq(
     ) == "active"
 
 
+async def _peace_terminalizes_exact_pair_hq(
+        path: str, leader_id: str, action: str, now: int,
+        other_family_token: str, inject_rollback: bool = False) -> None:
+    profile = ne.PROFILE_BY_ID[leader_id]
+    hq_r, hq_c = ne._hq_coords(profile.hq_key)
+    own = await ne.prepare_assault(
+        path, 101, leader_id, hq_r, hq_c, now=now
+    )
+    other_player = await ne.prepare_assault(
+        path, 202, leader_id, hq_r, hq_c, now=now
+    )
+    field = await ne.prepare_field_encounter(
+        path, 303, leader_id, hq_r, hq_c, now=now,
+        server_activity={"target_r": hq_r, "target_c": hq_c,
+                         "target_id": f"{leader_id}-peace-field",
+                         "created_at": now},
+    )
+    assert own["ok"] and other_player["ok"] and field["ok"]
+    if action == "compensation":
+        first = await ne.diplomacy_action(
+            path, 101, leader_id, action, now=now + 1
+        )
+        assert first["ok"] and first["pact"] == "war"
+    else:
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "UPDATE npc_empire_relations SET score=-50 "
+                "WHERE leader_id=? AND telegram_id=101", (leader_id,)
+            )
+            await db.commit()
+
+    if inject_rollback:
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_pair_peace_event
+                BEFORE INSERT ON npc_empire_events
+                WHEN NEW.leader_id='vera' AND NEW.kind='diplomacy'
+                BEGIN SELECT RAISE(ABORT, 'forced pair peace rollback'); END
+            """)
+            await db.commit()
+        try:
+            await ne.diplomacy_action(
+                path, 101, leader_id, action, now=now + 2
+            )
+            raise AssertionError("forced pair peace failure did not abort")
+        except sqlite3.IntegrityError as error:
+            assert "forced pair peace rollback" in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_pair_peace_event")
+                await db.commit()
+        assert await _scalar(
+            path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+            (own["token"],),
+        ) == "active"
+        assert await _scalar(
+            path, "SELECT pact FROM npc_empire_relations "
+                  "WHERE leader_id=? AND telegram_id=101", (leader_id,),
+        ) == "war"
+
+    peace = await ne.diplomacy_action(
+        path, 101, leader_id, action, now=now + 3
+    )
+    assert peace["ok"] and peace["pact"] in {"truce", "none"}
+    assert await _scalar(
+        path, "SELECT status||':'||resolution FROM npc_empire_assaults "
+              "WHERE token=?", (own["token"],),
+    ) == "resolved:diplomacy_changed"
+    for token in (other_player["token"], field["token"], other_family_token):
+        assert await _scalar(
+            path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+            (token,),
+        ) == "active"
+    assert await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+              "WHERE leader_id=? AND telegram_id=101", (leader_id,),
+    ) == 0
+    assert await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+              "WHERE leader_id=? AND telegram_id=202", (leader_id,),
+    ) == 1
+
+    hp = await _scalar(
+        path, "SELECT guard_hp_json||':'||boss_hp FROM npc_empire_assaults "
+              "WHERE token=?", (own["token"],),
+    )
+    cash = await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101")
+    events = await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id=?",
+        (leader_id,),
+    )
+    status = await _scalar(
+        path, "SELECT status||':'||COALESCE(defeated_by,0) FROM npc_empires "
+              "WHERE leader_id=?", (leader_id,),
+    )
+    terminal = {"ok": True, "duplicate": True, "terminal": True,
+                "resolution": "diplomacy_changed"}
+    stale = await asyncio.gather(
+        ne.assault_hit(path, 101, own["token"], "guard", 0, 35,
+                       now=now + 4.0),
+        ne.resolve_assault(path, 101, own["token"], "loot", now=now + 4),
+    )
+    assert stale == [terminal, terminal]
+    assert await ne.resolve_assault(
+        path, 101, own["token"], "annex", now=now + 5
+    ) == terminal
+    assert await _scalar(
+        path, "SELECT guard_hp_json||':'||boss_hp FROM npc_empire_assaults "
+              "WHERE token=?", (own["token"],),
+    ) == hp
+    assert await _scalar(
+        path, "SELECT cash FROM characters WHERE telegram_id=101"
+    ) == cash
+    assert await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id=?",
+        (leader_id,),
+    ) == events
+    assert await _scalar(
+        path, "SELECT status||':'||COALESCE(defeated_by,0) FROM npc_empires "
+              "WHERE leader_id=?", (leader_id,),
+    ) == status
+
+
 async def run() -> None:
     fd, path = tempfile.mkstemp(prefix="npc_hq_capture_", suffix=".db")
     os.close(fd)
@@ -239,6 +362,13 @@ async def run() -> None:
             path, 303, "viktor", isolated_r, isolated_c, now=now
         )
         assert other_family["ok"]
+        await _peace_terminalizes_exact_pair_hq(
+            path, "vera", "compensation", now + 1,
+            other_family["token"], inject_rollback=True,
+        )
+        await _peace_terminalizes_exact_pair_hq(
+            path, "alisa", "truce", now + 6, other_family["token"],
+        )
         await _ruin_terminalizes_sibling_hq(
             path, "rustam", "loot", now + 10, other_family["token"],
             inject_rollback=True,
