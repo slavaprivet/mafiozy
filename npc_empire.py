@@ -3713,6 +3713,15 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         if str(raid['status']) != 'pending':
             await db.rollback()
             return {'ok': True, 'duplicate': True, 'resolution': str(raid['resolution'])}
+        stale_reason = await _interior_raid_stale_reason(db, raid)
+        if stale_reason:
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,"
+                "resolved_at=? WHERE token=? AND status='pending'",
+                (stale_reason, now, token))
+            await db.commit()
+            return {'ok': False, 'error': 'raid no longer active',
+                    'resolution': stale_reason}
         if now >= int(raid['expires_at'] or 0):
             await db.execute(
                 "UPDATE npc_empire_interior_raids SET status='resolved',"
@@ -3765,15 +3774,6 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 or effective_guards != set(session_guard_ids)):
             await db.rollback()
             return {'ok': False, 'error': 'impossible captured outcome'}
-        stale_reason = await _interior_raid_stale_reason(db, raid)
-        if stale_reason:
-            await db.execute(
-                "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,"
-                "resolved_at=? WHERE token=? AND status='pending'",
-                (stale_reason, now, token))
-            await db.commit()
-            return {'ok': False, 'error': 'raid no longer active',
-                    'resolution': stale_reason}
         attacker_losses = (len(effective_attackers) if attacker_casualties is not None else
                            min(force, max(1, force // (2 if outcome == 'defended' else 4))))
         await db.execute(

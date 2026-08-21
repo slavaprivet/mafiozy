@@ -6005,7 +6005,7 @@ function _explodeGasStation(gs) {
   // Pair peace is backend-atomic and does not release other players' raids.
   // Global vassal status releases that NPC family's squads for every player.
   // Global ruin also releases that family's player wars before any comeback.
-  // Casualty checkpoints revalidate exact war and ownership generation first.
+  // Checkpoint and final resolve revalidate war/ownership generation first.
   // During a property raid, only the server-assigned roster is materialized
   // above. The general following crew must not duplicate unassigned fighters.
   if(!bi.businessInteriorRaid)for (const gm of _myGang) {

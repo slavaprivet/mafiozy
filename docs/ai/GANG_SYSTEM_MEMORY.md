@@ -323,6 +323,8 @@ reconnect and duplicate resolve requests must be idempotent.
   retries return the persisted terminal resolution.
 - Every event-driven casualty checkpoint revalidates that authority before
   merging its monotonic sets; a stale token keeps version zero and no deaths.
+- Final resolve revalidates the same authority before expiry, casualty payload
+  or physical-outcome checks, so an old client cannot keep a stale raid alive.
 - A player diplomacy transition from `war` to a peaceful pact closes pending
   raids only for that exact `(leader_id, telegram_id)` pair, in the same
   `BEGIN IMMEDIATE` transaction and before its player-war row is deleted.

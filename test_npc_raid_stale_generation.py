@@ -431,12 +431,86 @@ async def ownership_generation_terminalizes_pending() -> None:
         os.unlink(path)
 
 
+async def direct_resolve_stale_precedes_payload_validation() -> None:
+    fd, path = tempfile.mkstemp(prefix='raid_direct_stale_', suffix='.db')
+    os.close(fd); now = 3_400_000_000
+    try:
+        raid = await prepare_pending_raid(path, now)
+        members_before = await scalar(
+            path, "SELECT members FROM npc_empires WHERE leader_id='leila'")
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            source = await (await db.execute(
+                "SELECT * FROM npc_empire_interior_raids WHERE token=?",
+                (raid['token'],))).fetchone()
+            for token, telegram_id, leader_id in (
+                    ('direct-other-owner', 202, 'leila'),
+                    ('direct-other-family', 101, 'marco')):
+                isolated = dict(source)
+                isolated['token'] = token
+                isolated['telegram_id'] = telegram_id
+                isolated['leader_id'] = leader_id
+                columns = list(isolated)
+                await db.execute(
+                    f"INSERT INTO npc_empire_interior_raids({','.join(columns)}) "
+                    f"VALUES({','.join('?' for _ in columns)})",
+                    tuple(isolated[name] for name in columns))
+            await db.execute(
+                "UPDATE business_property_owners SET acquired_at=? WHERE biz_id='coffee'",
+                (now + 1,))
+            await db.commit()
+
+        stale = await ne.resolve_interior_raid(
+            path, 101, raid['token'], raid['apt_key'], 'captured',
+            attacker_casualties=[], defender_casualties=[], guard_casualties=[],
+            now=now + raid['hold_seconds'])
+        assert stale == {'ok': False, 'error': 'raid no longer active',
+                         'resolution': 'ownership_changed'}
+        assert await scalar(
+            path, "SELECT status||':'||resolution FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == 'resolved:ownership_changed'
+        assert await scalar(
+            path, "SELECT casualty_version FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == 0
+        assert await scalar(
+            path, "SELECT attacker_down_json FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == '[]'
+        for token in ('direct-other-owner', 'direct-other-family'):
+            assert await scalar(
+                path, "SELECT status FROM npc_empire_interior_raids WHERE token=?",
+                (token,)) == 'pending'
+            assert await scalar(
+                path, "SELECT casualty_version FROM npc_empire_interior_raids "
+                      "WHERE token=?", (token,)) == 0
+
+        retry = await ne.resolve_interior_raid(
+            path, 101, raid['token'], raid['apt_key'], 'captured',
+            attacker_casualties=[999], defender_casualties=[999],
+            guard_casualties=[999], now=now + raid['hold_seconds'] + 1)
+        assert retry == {'ok': True, 'duplicate': True,
+                         'resolution': 'ownership_changed'}
+        state = await ne.state_for(path, 101, now=now + raid['hold_seconds'] + 2)
+        assert all(item['token'] != raid['token'] for item in state['interior_raids'])
+        assert await scalar(path, "SELECT current_hp FROM gang_members WHERE id=1") == 100
+        assert await scalar(
+            path, "SELECT members FROM npc_empires WHERE leader_id='leila'") == members_before
+        assert await scalar(
+            path, "SELECT blocked_until FROM player_businesses "
+                  "WHERE telegram_id=101 AND biz_id='coffee'") == 0
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE kind IN ('player_business_bombed','player_business_captured')") == 0
+    finally:
+        os.unlink(path)
+
+
 async def run() -> None:
     await vassalization_terminalizes_pending()
     await pair_peace_terminalizes_pending('truce', 3_250_000_000)
     await pair_peace_terminalizes_pending('compensation', 3_260_000_000)
     await ruin_releases_family_player_wars()
     await ownership_generation_terminalizes_pending()
+    await direct_resolve_stale_precedes_payload_validation()
     print('stale raid generation: diplomacy/ownership terminal, no casualties or property mutation OK')
 
 
