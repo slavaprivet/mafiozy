@@ -2238,19 +2238,70 @@ async def ensure_schema(db_path: str) -> None:
                 "UPDATE npc_empire_holdings SET operation_type=?,area=?,income=? WHERE kind='building' AND holding_id=?",
                 (operation, area, building_operation_income(operation, area), key),
             )
-        await db.execute(
-            "UPDATE npc_empires SET status='ruined',comeback_at=CASE WHEN comeback_at=0 THEN ? ELSE comeback_at END "
-            "WHERE status='defeated'", (now + COMEBACK_MIN_SECONDS,)
-        )
-        await db.execute(
-            "UPDATE npc_empire_relations SET score=0,pact='none' WHERE leader_id IN "
-            "(SELECT leader_id FROM npc_empires WHERE status='ruined')"
-        )
-        await db.execute(
-            "UPDATE npc_empire_diplomacy SET score=0,pact='none',tension=0 WHERE leader_a IN "
-            "(SELECT leader_id FROM npc_empires WHERE status='ruined') OR leader_b IN "
-            "(SELECT leader_id FROM npc_empires WHERE status='ruined')"
-        )
+        # Old releases persisted ``defeated`` before the current ruined/comeback
+        # lifecycle existed. Merely renaming that state leaves stale HQ tokens,
+        # player wars and guards authoritative after restart. Reconcile both old
+        # rows and rows already renamed by the former partial migration. This
+        # bounded startup pass deliberately leaves field/hospital proofs alone.
+        unavailable = await (await db.execute(
+            "SELECT leader_id,status FROM npc_empires "
+            "WHERE status IN ('defeated','ruined') ORDER BY leader_id"
+        )).fetchall()
+        has_property_owners = await (await db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='business_property_owners'"
+        )).fetchone()
+        for unavailable_row in unavailable:
+            leader_id = str(unavailable_row['leader_id'])
+            await db.execute(
+                "DELETE FROM npc_empire_holdings WHERE leader_id=?", (leader_id,)
+            )
+            await db.execute(
+                "DELETE FROM npc_empire_guard_assignments "
+                "WHERE owner_kind='npc' AND owner_id=?", (leader_id,)
+            )
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',"
+                "resolution='owner_ruined',resolved_at=? "
+                "WHERE leader_id=? AND status='pending'", (now, leader_id)
+            )
+            await db.execute(
+                "UPDATE npc_empire_assaults SET status='resolved',"
+                "resolution='leader_ruined' WHERE leader_id=? AND status='active' "
+                "AND COALESCE(encounter_kind,'hq')='hq'", (leader_id,)
+            )
+            await db.execute(
+                "DELETE FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,)
+            )
+            await db.execute(
+                "DELETE FROM npc_empire_relation_actions WHERE leader_id=?", (leader_id,)
+            )
+            await db.execute(
+                "UPDATE npc_empire_relations SET score=0,pact='none',last_action_at=? "
+                "WHERE leader_id=?", (now, leader_id)
+            )
+            await db.execute(
+                "UPDATE npc_empire_diplomacy SET score=0,pact='none',tension=0,"
+                "last_event_at=? WHERE leader_a=? OR leader_b=?",
+                (now, leader_id, leader_id),
+            )
+            if has_property_owners:
+                await db.execute(
+                    "DELETE FROM business_property_owners WHERE owner_uid=?",
+                    (npc_owner_uid(leader_id),),
+                )
+            if str(unavailable_row['status']) == 'defeated':
+                await db.execute(
+                    "UPDATE npc_empires SET status='ruined',treasury=0,members=0,"
+                    "strength=0,hq_key=NULL,defeated_at=CASE WHEN defeated_at=0 "
+                    "THEN ? ELSE defeated_at END,comeback_at=CASE WHEN comeback_at=0 "
+                    "THEN ? ELSE comeback_at END,dominance_score=0,district_count=0,"
+                    "insolvent_ticks=0,recovery_ticks_remaining=0,pending_recruits=0,"
+                    "recruit_started_at=0,recruit_ready_at=0,last_recruit_count=0,"
+                    "last_recruit_at=0,version=version+1 "
+                    "WHERE leader_id=? AND status='defeated'",
+                    (now, now + COMEBACK_MIN_SECONDS, leader_id),
+                )
         for profile in PROFILES:
             await db.execute(
                 "INSERT OR IGNORE INTO npc_empires"

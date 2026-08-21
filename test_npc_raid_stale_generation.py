@@ -40,7 +40,7 @@ async def prepare_pending_raid(path: str, now: int) -> dict:
             "INSERT OR REPLACE INTO npc_empire_player_wars "
             "VALUES('leila',101,?,0,'',0)", (now,))
         await db.execute(
-            "UPDATE npc_empires SET status=CASE WHEN leader_id='leila' "
+            "UPDATE npc_empires SET status=CASE WHEN leader_id IN ('leila','marco') "
             "THEN 'active' ELSE 'ruined' END,members=12,strength=360,"
             "treasury=50000,next_action_at=?", (now + 10_000,))
         await db.commit()

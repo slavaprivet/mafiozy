@@ -344,6 +344,10 @@ reconnect and duplicate resolve requests must be idempotent.
 - Any global empire collapse likewise resolves exact-family active HQ assault
   tokens as `leader_ruined`; the winning token keeps its final `loot`/`annex`
   resolution and sibling retries cannot mutate the ruined generation.
+- Startup repair reconciles legacy `defeated` and partially migrated `ruined`
+  families to the same unavailable-owner contract: holdings, NPC guards,
+  pending raids, player wars and active HQ tokens lose authority atomically;
+  field encounter and hospital proofs remain isolated.
 - Raid creation must read the concrete defender roster successfully. A schema
   or SQLite read failure rolls back the complete raid transaction; it must not
   become an unguarded token or debit the attacking family's treasury.
