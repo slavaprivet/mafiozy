@@ -51738,6 +51738,9 @@ function drawAimLaser() {
 function drawBullets() {
   ctx.save();
   const dy = _bulletY();
+  const stage = document.getElementById('stage');
+  const centerX = stage.clientWidth / 2;
+  const centerY = stage.clientHeight / 2;
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     // Длина шлейфа в долях секунды скорости (0.18..0.28 — заметно, но
@@ -51748,17 +51751,21 @@ function drawBullets() {
     // торчит на несколько тайлов ПОЗАДИ дула («стреляю из-за спины»).
     const _spd = Math.hypot(b.vr, b.vc) || 1;
     const trailSec = Math.min(trailT, b.dist / _spd);
-    const ph = w2s(b.r + 0.5, b.c + 0.5);                          // head
-    const pt = w2s(b.r - b.vr * trailSec + 0.5,
-                   b.c - b.vc * trailSec + 0.5);                   // tail
+    const headR = b.r + 0.5, headC = b.c + 0.5;
+    const tailR = b.r - b.vr * trailSec + 0.5;
+    const tailC = b.c - b.vc * trailSec + 0.5;
+    const headX = centerX + (headC - headR) * TS * 0.5 - cam.x;
+    const headY = centerY + (headC + headR) * TS * 0.5 * ISO_Y - cam.y;
+    const tailX = centerX + (tailC - tailR) * TS * 0.5 - cam.x;
+    const tailY = centerY + (tailC + tailR) * TS * 0.5 * ISO_Y - cam.y;
     const headProgress = b.maxDist > 0 ? Math.max(0, Math.min(1, b.dist / b.maxDist)) : 1;
     const tailDistance = Math.max(0, b.dist - _spd * trailSec);
     const tailProgress = b.maxDist > 0 ? Math.max(0, Math.min(1, tailDistance / b.maxDist)) : 1;
     const heightDelta = (b.endZ || 0) - (b.startZ || 0);
     const headZ = (b.startZ || 0) + heightDelta * headProgress;
     const tailZ = (b.startZ || 0) + heightDelta * tailProgress;
-    const hx = ph.x,           hy = ph.y - dy - isoH(headZ);
-    const tx = pt.x,           ty = pt.y - dy - isoH(tailZ);
+    const hx = headX, hy = headY - dy - isoH(headZ);
+    const tx = tailX, ty = tailY - dy - isoH(tailZ);
     if (b.projectileKind === 'arrow' || b.projectileKind === 'harpoon' || b.projectileKind === 'dart') {
       const a=Math.atan2(hy-ty,hx-tx),harpoon=b.projectileKind==='harpoon',dart=b.projectileKind==='dart';
       ctx.save();ctx.translate(hx,hy);ctx.rotate(a);ctx.globalCompositeOperation='source-over';
