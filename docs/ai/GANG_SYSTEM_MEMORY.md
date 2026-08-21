@@ -333,6 +333,9 @@ reconnect and duplicate resolve requests must be idempotent.
 - Vassal status is global to one NPC family. Its winning transaction closes
   that leader's pending raids and player-war rows across every player, while
   leaving every other family's sessions untouched.
+- Hostile diplomacy cannot restore that global war authority: declaration is
+  rejected, while a street attack records score/event but keeps the player's
+  prior non-war pact and creates no player-war row or guard reserve.
 - Raid creation must read the concrete defender roster successfully. A schema
   or SQLite read failure rolls back the complete raid transaction; it must not
   become an unguarded token or debit the attacking family's treasury.

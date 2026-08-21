@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import sqlite3
 import tempfile
 
 import aiosqlite
@@ -347,6 +348,133 @@ async def ruin_releases_family_player_wars() -> None:
         os.unlink(path)
 
 
+async def vassal_diplomacy_cannot_restore_player_war() -> None:
+    fd, path = tempfile.mkstemp(prefix='vassal_diplomacy_authority_', suffix='.db')
+    os.close(fd); now = 3_290_000_000
+    try:
+        await _base_db(path)
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute(
+                "UPDATE npc_empires SET status='vassal',members=12 "
+                "WHERE leader_id='leila'")
+            await db.execute(
+                "UPDATE npc_empires SET status='active' WHERE leader_id='marco'")
+            await db.executemany(
+                "INSERT OR REPLACE INTO npc_empire_relations "
+                "VALUES(?,?,?,?,?)",
+                [('leila', 101, 80, 'vassal', now),
+                 ('leila', 202, -10, 'none', now),
+                 ('marco', 101, -10, 'none', now)])
+            await ne._reconcile_npc_guards(db, 'leila', now)
+            await db.commit()
+        guards_before = await scalar(
+            path, "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+                  "WHERE owner_kind='npc' AND owner_id='leila'")
+
+        concurrent = await asyncio.gather(
+            ne.diplomacy_action(path, 101, 'leila', 'street_attack', now=now + 1),
+            ne.diplomacy_action(path, 101, 'leila', 'street_attack', now=now + 1))
+        assert all(item['ok'] and item['pact'] == 'vassal' for item in concurrent)
+        assert await scalar(
+            path, "SELECT score FROM npc_empire_relations "
+                  "WHERE leader_id='leila' AND telegram_id=101") == -13
+        assert await scalar(
+            path, "SELECT pact FROM npc_empire_relations "
+                  "WHERE leader_id='leila' AND telegram_id=101") == 'vassal'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila'") == 0
+        assert await scalar(
+            path, "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+                  "WHERE owner_kind='npc' AND owner_id='leila'") == guards_before
+
+        declared = await ne.diplomacy_action(
+            path, 101, 'leila', 'declare_war', now=now + 2)
+        assert declared == {'ok': False, 'error': 'leader vassal'}
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relation_actions "
+                  "WHERE leader_id='leila' AND telegram_id=101 "
+                  "AND action_kind='declare_war'") == 0
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE leader_id='leila' AND kind='player_attack' "
+                  "AND target_id='101'") == 2
+
+        other_player = await ne.diplomacy_action(
+            path, 202, 'leila', 'street_attack', now=now + 3)
+        assert other_player['ok'] and other_player['pact'] == 'none'
+        assert await scalar(
+            path, "SELECT pact FROM npc_empire_relations "
+                  "WHERE leader_id='leila' AND telegram_id=101") == 'vassal'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila'") == 0
+
+        rollback_score = await scalar(
+            path, "SELECT score FROM npc_empire_relations "
+                  "WHERE leader_id='leila' AND telegram_id=202")
+        rollback_action_at = await scalar(
+            path, "SELECT last_action_at FROM npc_empire_relation_actions "
+                  "WHERE leader_id='leila' AND telegram_id=202 "
+                  "AND action_kind='street_attack'")
+        rollback_events = await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE leader_id='leila' AND kind='player_attack'")
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_vassal_attack_event
+                BEFORE INSERT ON npc_empire_events
+                WHEN NEW.leader_id='leila' AND NEW.kind='player_attack'
+                BEGIN SELECT RAISE(ABORT, 'forced vassal diplomacy rollback'); END
+            """)
+            await db.commit()
+        try:
+            await ne.diplomacy_action(
+                path, 202, 'leila', 'street_attack', now=now + 4)
+            raise AssertionError('forced vassal diplomacy failure did not abort')
+        except sqlite3.IntegrityError as error:
+            assert 'forced vassal diplomacy rollback' in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_vassal_attack_event")
+                await db.commit()
+        assert await scalar(
+            path, "SELECT score FROM npc_empire_relations "
+                  "WHERE leader_id='leila' AND telegram_id=202") == rollback_score
+        assert await scalar(
+            path, "SELECT last_action_at FROM npc_empire_relation_actions "
+                  "WHERE leader_id='leila' AND telegram_id=202 "
+                  "AND action_kind='street_attack'") == rollback_action_at
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events "
+                  "WHERE leader_id='leila' AND kind='player_attack'") == rollback_events
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila'") == 0
+        assert await scalar(
+            path, "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+                  "WHERE owner_kind='npc' AND owner_id='leila'") == guards_before
+
+        state = await ne.state_for(path, 101, now=now + 5)
+        leila = next(item for item in state['empires']
+                     if item['leader_id'] == 'leila')
+        assert leila['status'] == 'vassal' and leila['pact'] == 'vassal'
+        assert leila['war_pressure'] is None
+
+        active_family = await ne.diplomacy_action(
+            path, 101, 'marco', 'street_attack', now=now + 6)
+        assert active_family['ok'] and active_family['pact'] == 'war'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='marco' AND telegram_id=101") == 1
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila'") == 0
+    finally:
+        os.unlink(path)
+
+
 async def ownership_generation_terminalizes_pending() -> None:
     fd, path = tempfile.mkstemp(prefix='raid_owner_generation_', suffix='.db')
     os.close(fd); now = 3_300_000_000
@@ -509,6 +637,7 @@ async def run() -> None:
     await pair_peace_terminalizes_pending('truce', 3_250_000_000)
     await pair_peace_terminalizes_pending('compensation', 3_260_000_000)
     await ruin_releases_family_player_wars()
+    await vassal_diplomacy_cannot_restore_player_war()
     await ownership_generation_terminalizes_pending()
     await direct_resolve_stale_precedes_payload_validation()
     print('stale raid generation: diplomacy/ownership terminal, no casualties or property mutation OK')

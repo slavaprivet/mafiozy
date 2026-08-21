@@ -4433,6 +4433,8 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': 60}
         if action == 'truce' and score < -60:
             await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': -60}
+        if action == 'declare_war' and str(empire['status']) == 'vassal':
+            await db.rollback(); return {'ok': False, 'error': 'leader vassal'}
         if action == 'declare_war' and score >= 0:
             await db.rollback(); return {'ok': False, 'error': 'war requires negative relation', 'required': -1}
         if action == 'declare_war' and pact == 'war':
@@ -4451,7 +4453,11 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                 (cost, leader_id),
             )
         if action == 'declare_war': score = -100; pact = 'war'
-        elif action == 'street_attack': score = min(-1, clamp_relation(score + delta)); pact = 'war'
+        elif action == 'street_attack':
+            score = min(-1, clamp_relation(score + delta))
+            pact = (previous_pact if (str(empire['status']) == 'vassal'
+                    and previous_pact in {'vassal', 'truce', 'alliance'})
+                    else 'none' if str(empire['status']) == 'vassal' else 'war')
         elif action == 'alliance': score = clamp_relation(score + delta); pact = 'alliance'
         elif action == 'truce': score = max(-20, clamp_relation(score + delta)); pact = 'truce'
         elif action == 'break_pact': score = clamp_relation(score + delta); pact = 'none'

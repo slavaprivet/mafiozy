@@ -6005,6 +6005,7 @@ function _explodeGasStation(gs) {
   // Peace/vassalization or a newer owner generation terminalizes stale raids.
   // Pair peace is backend-atomic and does not release other players' raids.
   // Global vassal status releases that NPC family's squads for every player.
+  // Hostile diplomacy cannot rematerialize war authority for a global vassal.
   // Global ruin also releases that family's player wars before any comeback.
   // Checkpoint and final resolve revalidate war/ownership generation first.
   // Guard roster writes expire only their exact holding's overdue raid locks.
