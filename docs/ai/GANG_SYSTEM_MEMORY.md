@@ -315,6 +315,10 @@ reconnect and duplicate resolve requests must be idempotent.
   `holding_guards`, `assigned` and `free`, including an explicit `free=0`.
 - Only assigned guards defend an indoor raid. Free mobile fighters do not
   teleport into the property and no synthetic second guard layer is allowed.
+- An interior raid token is bound to the exact property acquisition generation
+  and an active war. Ownership transfer, operation conversion, peace or
+  vassalization terminalizes it before any casualty or property mutation;
+  retries return the persisted terminal resolution.
 - Raid creation must read the concrete defender roster successfully. A schema
   or SQLite read failure rolls back the complete raid transaction; it must not
   become an unguarded token or debit the attacking family's treasury.

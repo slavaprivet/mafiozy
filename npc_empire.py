@@ -438,19 +438,23 @@ async def _player_business_targets(db, telegram_id: int) -> list[dict]:
     targets: list[dict] = []
     try:
         rows = await (await db.execute(
-            "SELECT biz_id FROM player_businesses WHERE telegram_id=? ORDER BY biz_id",
+            "SELECT pb.biz_id,o.acquired_at FROM player_businesses pb "
+            "JOIN business_property_owners o ON o.biz_id=pb.biz_id "
+            "AND CAST(o.owner_uid AS TEXT)=CAST(pb.telegram_id AS TEXT) "
+            "WHERE pb.telegram_id=? ORDER BY pb.biz_id",
             (telegram_id,),
         )).fetchall()
         targets.extend({
             'ref': f'business:{str(row[0])}', 'kind': 'business',
             'holding_id': str(row[0]), 'operation_type': '', 'area': 0,
+            'acquired_at': int(row[1] or 0),
             'income': int(BUSINESS_INCOME.get(str(row[0]), 175)),
         } for row in rows)
     except Exception:
         pass
     try:
         rows = await (await db.execute(
-            "SELECT apt_key,operation_type,area,income_per_minute FROM apartments_owned "
+            "SELECT apt_key,operation_type,area,income_per_minute,bought_at FROM apartments_owned "
             "WHERE telegram_id=? AND property_kind='business' ORDER BY apt_key",
             (telegram_id,),
         )).fetchall()
@@ -464,6 +468,7 @@ async def _player_business_targets(db, telegram_id: int) -> list[dict]:
                 'ref': f'building:{building_key}', 'kind': 'building',
                 'holding_id': building_key, 'apt_key': str(row[0]),
                 'operation_type': operation, 'area': area,
+                'acquired_at': int(row[4] or 0),
                 'income': building_operation_income(operation, area),
             })
     except Exception:
@@ -2019,6 +2024,7 @@ async def ensure_schema(db_path: str) -> None:
             target_kind TEXT NOT NULL,
             holding_id TEXT NOT NULL,
             operation_type TEXT NOT NULL DEFAULT '',
+            target_acquired_at INTEGER NOT NULL DEFAULT 0,
             business_label TEXT NOT NULL DEFAULT '',
             force INTEGER NOT NULL,
             attacker_cost INTEGER NOT NULL,
@@ -2101,6 +2107,7 @@ async def ensure_schema(db_path: str) -> None:
             'defender_down_json': "TEXT NOT NULL DEFAULT '[]'",
             'guard_down_json': "TEXT NOT NULL DEFAULT '[]'",
             'casualty_version': "INTEGER NOT NULL DEFAULT 0",
+            'target_acquired_at': "INTEGER NOT NULL DEFAULT 0",
         }.items():
             if name not in raid_columns:
                 await db.execute(
@@ -3210,11 +3217,12 @@ async def _create_interior_raid(db, telegram_id: int, leader_id: str,
     await db.execute(
         "INSERT INTO npc_empire_interior_raids"
         "(token,telegram_id,leader_id,apt_key,target_ref,target_kind,holding_id,operation_type,"
-        "business_label,force,attacker_cost,tier,quality,hp,accuracy,weapon_budget,"
+        "target_acquired_at,business_label,force,attacker_cost,tier,quality,hp,accuracy,weapon_budget,"
         "defender_ids_json,guard_ids_json,guard_count,attack_no,started_at,hold_seconds,expires_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (token, telegram_id, leader_id, apt_key, str(target['ref']), str(target['kind']),
-         str(target['holding_id']), str(target.get('operation_type') or ''), label,
+         str(target['holding_id']), str(target.get('operation_type') or ''),
+         int(target.get('acquired_at') or 0), label,
          allocation['count'], allocation['cost'], allocation['tier'], allocation['quality'],
          allocation['hp'], allocation['accuracy'], allocation['weapon_budget'],
          json.dumps(defender_ids), json.dumps(guard_ids), guard_count, attack_no, now,
@@ -3468,6 +3476,51 @@ def _interior_raid_int_set(value) -> set[int]:
     return {int(item) for item in source}
 
 
+async def _interior_raid_stale_reason(db, raid) -> str:
+    """Reject a token whose war or exact property generation no longer exists."""
+    persisted_generation = int(raid['target_acquired_at'] or 0)
+    # Pre-migration tokens carry no exact generation proof. Existing transfer
+    # paths already terminalize them; keep their historical resolve contract.
+    if not persisted_generation:
+        return ''
+    authority = await (await db.execute(
+        "SELECT e.status,r.score,r.pact FROM npc_empires e "
+        "LEFT JOIN npc_empire_relations r ON r.leader_id=e.leader_id "
+        "AND r.telegram_id=? WHERE e.leader_id=?",
+        (int(raid['telegram_id']), str(raid['leader_id'])))).fetchone()
+    if not authority:
+        return 'diplomacy_changed'
+    pact = str(authority['pact'] or 'none')
+    at_war = (pact == 'war' or (int(authority['score'] or 0) < 0
+              and pact not in {'truce', 'alliance', 'vassal'}))
+    if str(authority['status']) in {'ruined', 'vassal'} or not at_war:
+        return 'diplomacy_changed'
+
+    if str(raid['target_kind']) == 'business':
+        current = await (await db.execute(
+            "SELECT o.acquired_at,'' AS operation_type FROM player_businesses pb "
+            "JOIN business_property_owners o ON o.biz_id=pb.biz_id "
+            "AND CAST(o.owner_uid AS TEXT)=CAST(pb.telegram_id AS TEXT) "
+            "WHERE pb.telegram_id=? AND pb.biz_id=?",
+            (int(raid['telegram_id']), str(raid['holding_id'])))).fetchone()
+    elif str(raid['target_kind']) == 'building':
+        current = await (await db.execute(
+            "SELECT bought_at AS acquired_at,operation_type FROM apartments_owned "
+            "WHERE telegram_id=? AND apt_key=? AND property_kind='business'",
+            (int(raid['telegram_id']), str(raid['apt_key'])))).fetchone()
+    else:
+        return 'ownership_changed'
+    if not current:
+        return 'ownership_changed'
+    current_generation = int(current['acquired_at'] or 0)
+    if current_generation != persisted_generation:
+        return 'ownership_changed'
+    if (str(raid['target_kind']) == 'building'
+            and str(current['operation_type'] or '') != str(raid['operation_type'] or '')):
+        return 'ownership_changed'
+    return ''
+
+
 async def checkpoint_interior_raid_casualties(
         db_path: str, telegram_id: int, token: str, apt_key: str,
         attacker_delta: list[int] | None = None,
@@ -3697,6 +3750,15 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 or effective_guards != set(session_guard_ids)):
             await db.rollback()
             return {'ok': False, 'error': 'impossible captured outcome'}
+        stale_reason = await _interior_raid_stale_reason(db, raid)
+        if stale_reason:
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,"
+                "resolved_at=? WHERE token=? AND status='pending'",
+                (stale_reason, now, token))
+            await db.commit()
+            return {'ok': False, 'error': 'raid no longer active',
+                    'resolution': stale_reason}
         attacker_losses = (len(effective_attackers) if attacker_casualties is not None else
                            min(force, max(1, force // (2 if outcome == 'defended' else 4))))
         await db.execute(
@@ -4841,6 +4903,13 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         if choice == 'vassalize':
             await db.execute("UPDATE npc_empires SET status='vassal',members=MAX(2,members/2),strength=MAX(40,strength/2),treasury=treasury/2,defeated_by=?,version=version+1 WHERE leader_id=?", (telegram_id,leader_id))
             await db.execute("INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?, ?,80,'vassal',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=80,pact='vassal',last_action_at=excluded.last_action_at", (leader_id,telegram_id,now))
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',"
+                "resolution='diplomacy_changed',resolved_at=? WHERE telegram_id=? "
+                "AND leader_id=? AND status='pending'", (now, telegram_id, leader_id))
+            await db.execute(
+                "DELETE FROM npc_empire_player_wars WHERE telegram_id=? AND leader_id=?",
+                (telegram_id, leader_id))
             reward = treasury // 2
             await _reconcile_npc_guards(db, leader_id, now)
         else:
