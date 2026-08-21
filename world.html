@@ -64254,11 +64254,12 @@ function frame() {
   // Управление, бой, транспорт и активные городские службы сразу возвращают
   // симуляцию к 30 Гц: Three.js продолжает интерполировать, но input/AI больше
   // не ощущаются «вязкими» во время движения и полицейского вызова.
-  const _threeServiceBusy = _threeRendererActive && serviceVehicles.some(v=>{
-    if(!v||v.state==='done')return false;
+  let _threeServiceBusy=false;
+  if(_threeRendererActive)for(let i=0,n=serviceVehicles.length;i<n;i++){
+    const v=serviceVehicles[i];if(!v||v.state==='done')continue;
     const state=String(v.state||'');
-    return !['idle','parked'].includes(state)&&!state.endsWith('_parked');
-  });
+    if(state!=='idle'&&state!=='parked'&&!state.endsWith('_parked')){_threeServiceBusy=true;break;}
+  }
   const _threeResponsiveSim = _threeRendererActive && (
     !!player.walking || !!joyL.active || !!joyR.active || !!myDrivingCarId || !!myJetSkiId ||
     !!_murderPoliceArrest || _threeServiceBusy || myWanted>0 ||
