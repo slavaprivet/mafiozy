@@ -51947,14 +51947,22 @@ function drawShockwaves() {
   const dy = _bulletY();
   ctx.save();
   ctx.shadowBlur = 0;   // shadowBlur на shockwaves убивает мобильный GPU
+  let cx = 0, cy = 0;
+  if (shockwaves.length) {
+    const stage = document.getElementById('stage');
+    cx = stage.clientWidth / 2;
+    cy = stage.clientHeight / 2;
+  }
   for (const s of shockwaves) {
     const t = s.life / s.max;       // 1..0
-    const p = w2s(s.r + 0.5, s.c + 0.5);
+    const sr = s.r + 0.5, sc = s.c + 0.5;
+    const sx = cx + (sc - sr) * TS * 0.5 - cam.x;
+    const sy = cy + (sc + sr) * TS * 0.5 * ISO_Y - cam.y;
     ctx.globalAlpha = Math.max(0, t * 0.65);
     ctx.strokeStyle = s.color;
     ctx.lineWidth = (s.thick || 2) * (0.4 + t * 0.6);
     ctx.beginPath();
-    ctx.arc(p.x, p.y - dy, s.rad, 0, Math.PI * 2);
+    ctx.arc(sx, sy - dy, s.rad, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
