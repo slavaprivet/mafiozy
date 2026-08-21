@@ -6002,6 +6002,7 @@ function _explodeGasStation(gs) {
   // Backend contract: one validated raid result consumes one exact holding
   // generation; reconnects and legacy sibling tokens are terminal/idempotent.
   // Peace/vassalization or a newer owner generation terminalizes stale raids.
+  // Pair peace is backend-atomic and does not release other players' raids.
   // Global vassal status releases that NPC family's squads for every player.
   // During a property raid, only the server-assigned roster is materialized
   // above. The general following crew must not duplicate unassigned fighters.

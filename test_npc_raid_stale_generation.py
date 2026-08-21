@@ -145,6 +145,100 @@ async def vassalization_terminalizes_pending() -> None:
         os.unlink(path)
 
 
+async def pair_peace_terminalizes_pending(action: str, now: int) -> None:
+    fd, path = tempfile.mkstemp(prefix=f'raid_{action}_generation_', suffix='.db')
+    os.close(fd)
+    try:
+        raid = await prepare_pending_raid(path, now)
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "UPDATE npc_empire_relations SET score=-60 "
+                "WHERE leader_id='leila' AND telegram_id=101")
+            await db.execute("INSERT INTO district_control VALUES(202,'south','[]')")
+            await db.execute(
+                "INSERT INTO player_businesses "
+                "VALUES(202,'donut',0,0,'ok',0,0,1,0,NULL)")
+            await db.execute(
+                "INSERT INTO business_property_owners "
+                "VALUES('donut',202,'Two',?,0)", (now - 100,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_relations "
+                "VALUES('leila',202,-100,'war',?)", (now,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('leila',202,?,0,'',0)", (now,))
+            await db.commit()
+        other_player_raid = (await ne.state_for(path, 202, now=now))['interior_raids'][0]
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            source = await (await db.execute(
+                "SELECT * FROM npc_empire_interior_raids WHERE token=?",
+                (other_player_raid['token'],))).fetchone()
+            other_family = dict(source)
+            other_family['token'] = f'other-family-{action}'
+            other_family['leader_id'] = 'marco'
+            columns = list(other_family)
+            await db.execute(
+                f"INSERT INTO npc_empire_interior_raids({','.join(columns)}) "
+                f"VALUES({','.join('?' for _ in columns)})",
+                tuple(other_family[name] for name in columns))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('marco',202,?,0,'',0)", (now + 500,))
+            await db.commit()
+
+        hp_before = await scalar(
+            path, "SELECT current_hp FROM gang_members WHERE id=1")
+        result = await ne.diplomacy_action(
+            path, 101, 'leila', action, now=now + 1)
+        assert result['ok'] and result['pact'] == 'truce'
+        assert await scalar(
+            path, "SELECT status||':'||resolution FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == 'resolved:diplomacy_changed'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila' AND telegram_id=101") == 0
+        assert await scalar(
+            path, "SELECT status FROM npc_empire_interior_raids WHERE token=?",
+            (other_player_raid['token'],)) == 'pending'
+        assert await scalar(
+            path, "SELECT status FROM npc_empire_interior_raids WHERE token=?",
+            (other_family['token'],)) == 'pending'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila' AND telegram_id=202") == 1
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='marco' AND telegram_id=202") == 1
+
+        checkpoint = await ne.checkpoint_interior_raid_casualties(
+            path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
+            now=now + 2)
+        assert checkpoint == {
+            'ok': True, 'duplicate': True, 'terminal': True,
+            'resolution': 'diplomacy_changed', 'version': 0}
+        checkpoint_retry = await ne.checkpoint_interior_raid_casualties(
+            path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
+            now=now + 3)
+        assert checkpoint_retry == checkpoint
+        resolve_retry = await ne.resolve_interior_raid(
+            path, 101, raid['token'], raid['apt_key'], 'captured',
+            attacker_casualties=[0], defender_casualties=[1],
+            guard_casualties=[], now=now + raid['hold_seconds'])
+        assert resolve_retry == {'ok': True, 'duplicate': True,
+                                 'resolution': 'diplomacy_changed'}
+        assert await scalar(
+            path, "SELECT casualty_version FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == 0
+        assert await scalar(
+            path, "SELECT attacker_down_json FROM npc_empire_interior_raids "
+                  "WHERE token=?", (raid['token'],)) == '[]'
+        assert await scalar(
+            path, "SELECT current_hp FROM gang_members WHERE id=1") == hp_before == 100
+    finally:
+        os.unlink(path)
+
+
 async def ownership_generation_terminalizes_pending() -> None:
     fd, path = tempfile.mkstemp(prefix='raid_owner_generation_', suffix='.db')
     os.close(fd); now = 3_300_000_000
@@ -191,6 +285,8 @@ async def ownership_generation_terminalizes_pending() -> None:
 
 async def run() -> None:
     await vassalization_terminalizes_pending()
+    await pair_peace_terminalizes_pending('truce', 3_250_000_000)
+    await pair_peace_terminalizes_pending('compensation', 3_260_000_000)
     await ownership_generation_terminalizes_pending()
     print('stale raid generation: diplomacy/ownership terminal, no casualties or property mutation OK')
 

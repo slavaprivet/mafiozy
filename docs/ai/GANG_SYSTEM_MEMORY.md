@@ -319,6 +319,9 @@ reconnect and duplicate resolve requests must be idempotent.
   and an active war. Ownership transfer, operation conversion, peace or
   vassalization terminalizes it before any casualty or property mutation;
   retries return the persisted terminal resolution.
+- A player diplomacy transition from `war` to a peaceful pact closes pending
+  raids only for that exact `(leader_id, telegram_id)` pair, in the same
+  `BEGIN IMMEDIATE` transaction and before its player-war row is deleted.
 - Vassal status is global to one NPC family. Its winning transaction closes
   that leader's pending raids and player-war rows across every player, while
   leaving every other family's sessions untouched.

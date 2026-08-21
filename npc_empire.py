@@ -4400,6 +4400,7 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             (leader_id, telegram_id),
         )).fetchone()
         score = int(rel['score'] if rel else 0); pact = str(rel['pact'] if rel else 'none')
+        previous_pact = pact
         action_row = await (await db.execute(
             "SELECT last_action_at FROM npc_empire_relation_actions "
             "WHERE leader_id=? AND telegram_id=? AND action_kind=?",
@@ -4457,6 +4458,13 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                 (leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS),
             )
         else:
+            if previous_pact == 'war':
+                await db.execute(
+                    "UPDATE npc_empire_interior_raids SET status='resolved',"
+                    "resolution='diplomacy_changed',resolved_at=? "
+                    "WHERE leader_id=? AND telegram_id=? AND status='pending'",
+                    (now, leader_id, telegram_id),
+                )
             await db.execute(
                 "DELETE FROM npc_empire_player_wars WHERE leader_id=? AND telegram_id=?",
                 (leader_id, telegram_id),
