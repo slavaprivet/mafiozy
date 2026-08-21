@@ -52068,16 +52068,25 @@ function drawShells() {
 
 // ── Пятна крови на земле (живут 8с, медленно затухают) ────────────
 function drawBloodSplats() {
+  let centerX = 0, centerY = 0, stageReady = false;
   for (let i = bloodSplats.length - 1; i >= 0; i--) {
     const s = bloodSplats[i];
     if (s.life <= 0) continue;
+    if (!stageReady) {
+      const stage = document.getElementById('stage');
+      centerX = stage.clientWidth / 2;
+      centerY = stage.clientHeight / 2;
+      stageReady = true;
+    }
     const a = Math.min(0.55, s.life / s.max * 0.55);
-    const p = w2s(s.r + 0.5, s.c + 0.5);
+    const sr = s.r + 0.5, sc = s.c + 0.5;
+    const px = centerX + (sc - sr) * TS * 0.5 - cam.x;
+    const py = centerY + (sc + sr) * TS * 0.5 * ISO_Y - cam.y;
     ctx.save();
     if (s._isSoot) {
       const fade = Math.max(0, s.life / s.max);
       ctx.globalAlpha = Math.min(0.94, 0.38 + fade * 0.56);
-      ctx.translate(p.x, p.y);
+      ctx.translate(px, py);
       ctx.rotate(s.rot);
       const soot = ctx.createRadialGradient(0, 0, 2, 0, 0, s.radius);
       soot.addColorStop(0, s._isCrater ? 'rgba(0,0,0,.98)' : 'rgba(7,7,7,.9)');
@@ -52104,7 +52113,7 @@ function drawBloodSplats() {
       continue;
     }
     ctx.globalAlpha = a;
-    ctx.translate(p.x, p.y);
+    ctx.translate(px, py);
     ctx.rotate(s.rot);
     // Главное пятно (овал)
     ctx.fillStyle = '#5a0808';
