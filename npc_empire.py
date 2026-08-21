@@ -897,7 +897,8 @@ async def _assigned_guard_count(db, owner_kind: str, owner_id: str,
 
 async def _clear_holding_guard_assignment(db, owner_kind: str, owner_id: str,
                                           holding_ref: str,
-                                          exclude_raid_token: str = '') -> int:
+                                          exclude_raid_token: str = '',
+                                          other_raid_resolution: str = 'ownership_changed') -> int:
     """Release surviving assignees when a holding changes owner or is sold."""
     living = int((await (await db.execute(
         "SELECT living FROM npc_empire_guard_assignments "
@@ -912,11 +913,11 @@ async def _clear_holding_guard_assignment(db, owner_kind: str, owner_id: str,
         "WHERE owner_kind=? AND owner_id=? AND holding_ref=?",
         (owner_kind, owner_id, holding_ref))
     await db.execute(
-        "UPDATE npc_empire_interior_raids SET status='resolved',resolution='ownership_changed',"
+        "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,"
         "resolved_at=MAX(resolved_at,started_at) WHERE status='pending' "
         "AND target_ref=? AND token<>? "
         "AND ((?='player' AND telegram_id=?) OR (?='npc' AND leader_id=?))",
-        (holding_ref, str(exclude_raid_token), owner_kind,
+        (str(other_raid_resolution), holding_ref, str(exclude_raid_token), owner_kind,
          int(owner_id) if owner_kind == 'player' else -1,
          owner_kind, owner_id))
     return living
@@ -3177,6 +3178,12 @@ def _player_war_interval(profile: EmpireProfile) -> int:
 async def _create_interior_raid(db, telegram_id: int, leader_id: str,
                                 target: dict, attack_no: int, now: int) -> dict | None:
     profile = PROFILE_BY_ID[leader_id]
+    existing_target = await (await db.execute(
+        "SELECT 1 FROM npc_empire_interior_raids "
+        "WHERE telegram_id=? AND target_ref=? AND status='pending' LIMIT 1",
+        (telegram_id, str(target['ref'])))).fetchone()
+    if existing_target:
+        return None
     allocation = await _npc_attack_allocation(db, leader_id)
     if not allocation or allocation['count'] < 2:
         return None
@@ -3544,7 +3551,7 @@ async def _apply_resolved_interior_raid_phase_tx(
     capture = objective == 'followup-capture'
     if capture:
         await _clear_holding_guard_assignment(
-            db, 'player', str(telegram_id), target_ref, str(raid['token']))
+            db, 'player', str(telegram_id), target_ref, str(raid['token']), 'superseded')
         if target_kind == 'building':
             operation_type = choose_captured_building_operation(
                 profile, biz_id, str(target.get('operation_type') or ''), now + attack_no)
@@ -3735,6 +3742,12 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
         phase_events = ([] if outcome == 'defended' else
                         await _apply_resolved_interior_raid_phase_tx(
                             db, telegram_id, raid, now))
+        if phase_events:
+            await db.execute(
+                "UPDATE npc_empire_interior_raids SET status='resolved',"
+                "resolution='superseded',resolved_at=? WHERE telegram_id=? "
+                "AND target_ref=? AND status='pending' AND token<>?",
+                (now, telegram_id, str(raid['target_ref']), token))
         await db.execute(
             "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,resolved_at=? "
             "WHERE token=? AND status='pending'", (outcome, now, token))
