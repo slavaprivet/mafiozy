@@ -64311,26 +64311,26 @@ let _threeCombatBleedCleanupAt=0;
 // Gameplay coordinates never change: sourceR/sourceC remain authoritative.
 // The visual point prefers open pavement/grass and avoids building footprints,
 // water and narrow pockets that are hidden by several adjacent buildings.
+function _threeAnchorTileAt(r,c){return MAP[Math.floor(r)]?.[Math.floor(c)];}
+function _threeAnchorValid(r,c){return Number.isFinite(r)&&Number.isFinite(c)&&r>=1&&c>=1&&r<MAP_ROWS-1&&c<MAP_COLS-1&&_threeAnchorTileAt(r,c)!==1&&_threeAnchorTileAt(r,c)!==16&&!isBlockedPed(r,c);}
+function _threeAnchorCoverAt(r,c){
+  let cover=0;
+  for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
+    if(!dr&&!dc)continue;
+    if(_threeAnchorTileAt(r+dr,c+dc)===1)cover+=(Math.abs(dr)+Math.abs(dc)<=2?2:1);
+  }
+  return cover;
+}
 function _threeVisibleObjectAnchor(sourceR,sourceC,maxRadius=7){
   const sr=+sourceR||0,sc=+sourceC||0;
-  const tileAt=(r,c)=>MAP[Math.floor(r)]?.[Math.floor(c)];
-  const valid=(r,c)=>Number.isFinite(r)&&Number.isFinite(c)&&r>=1&&c>=1&&r<MAP_ROWS-1&&c<MAP_COLS-1&&tileAt(r,c)!==1&&tileAt(r,c)!==16&&!isBlockedPed(r,c);
-  const coverAt=(r,c)=>{
-    let cover=0;
-    for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
-      if(!dr&&!dc)continue;
-      if(tileAt(r+dr,c+dc)===1)cover+=(Math.abs(dr)+Math.abs(dc)<=2?2:1);
-    }
-    return cover;
-  };
   let best=null,bestScore=Infinity;
   for(let radius=0;radius<=Math.max(1,Math.min(12,+maxRadius||7));radius++){
     for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
       if(radius&&Math.max(Math.abs(dr),Math.abs(dc))!==radius)continue;
       const r=Math.floor(sr)+dr+.5,c=Math.floor(sc)+dc+.5;
-      if(!valid(r,c))continue;
-      const tile=tileAt(r,c),surfaceBonus=tile===8||tile===9||tile===15||tile===17?-2:tile===0||tile===18||tile===19?1.5:0;
-      const score=Math.hypot(r-sr,c-sc)*2.2+coverAt(r,c)*.72+surfaceBonus;
+      if(!_threeAnchorValid(r,c))continue;
+      const tile=_threeAnchorTileAt(r,c),surfaceBonus=tile===8||tile===9||tile===15||tile===17?-2:tile===0||tile===18||tile===19?1.5:0;
+      const score=Math.hypot(r-sr,c-sc)*2.2+_threeAnchorCoverAt(r,c)*.72+surfaceBonus;
       if(score<bestScore){bestScore=score;best={r,c};}
     }
     if(best&&radius>=3)break;
