@@ -896,7 +896,8 @@ async def _assigned_guard_count(db, owner_kind: str, owner_id: str,
 
 
 async def _clear_holding_guard_assignment(db, owner_kind: str, owner_id: str,
-                                          holding_ref: str) -> int:
+                                          holding_ref: str,
+                                          exclude_raid_token: str = '') -> int:
     """Release surviving assignees when a holding changes owner or is sold."""
     living = int((await (await db.execute(
         "SELECT living FROM npc_empire_guard_assignments "
@@ -913,8 +914,10 @@ async def _clear_holding_guard_assignment(db, owner_kind: str, owner_id: str,
     await db.execute(
         "UPDATE npc_empire_interior_raids SET status='resolved',resolution='ownership_changed',"
         "resolved_at=MAX(resolved_at,started_at) WHERE status='pending' "
-        "AND target_ref=? AND ((?='player' AND telegram_id=?) OR (?='npc' AND leader_id=?))",
-        (holding_ref, owner_kind, int(owner_id) if owner_kind == 'player' else -1,
+        "AND target_ref=? AND token<>? "
+        "AND ((?='player' AND telegram_id=?) OR (?='npc' AND leader_id=?))",
+        (holding_ref, str(exclude_raid_token), owner_kind,
+         int(owner_id) if owner_kind == 'player' else -1,
          owner_kind, owner_id))
     return living
 
@@ -3518,6 +3521,102 @@ async def checkpoint_interior_raid_casualties(
             'guard_down_ids': sorted(merged[2])}
 
 
+async def _apply_resolved_interior_raid_phase_tx(
+        db, telegram_id: int, raid, now: int) -> list[dict]:
+    """Apply close/capture and war bookkeeping inside the resolution transaction."""
+    leader_id = str(raid['leader_id']); profile = PROFILE_BY_ID[leader_id]
+    war = await (await db.execute(
+        "SELECT attacks,last_business_id FROM npc_empire_player_wars "
+        "WHERE leader_id=? AND telegram_id=?",
+        (leader_id, telegram_id))).fetchone()
+    if not war:
+        return []
+    targets = await _player_business_targets(db, telegram_id)
+    target_ref = str(raid['target_ref'])
+    target = next((item for item in targets if str(item['ref']) == target_ref), None)
+    if not target:
+        return []
+    attack_no = int(war['attacks'] or 0)
+    biz_id = str(target['holding_id']); target_kind = str(target['kind'])
+    operation_type = ''
+    objective = _player_business_raid_objective(
+        attack_no, str(war['last_business_id'] or ''), target_ref, biz_id)
+    capture = objective == 'followup-capture'
+    if capture:
+        await _clear_holding_guard_assignment(
+            db, 'player', str(telegram_id), target_ref, str(raid['token']))
+        if target_kind == 'building':
+            operation_type = choose_captured_building_operation(
+                profile, biz_id, str(target.get('operation_type') or ''), now + attack_no)
+            area = max(4, int(target.get('area') or BUILDING_AREAS.get(biz_id, 4)))
+            income = building_operation_income(operation_type, area)
+            await db.execute(
+                "DELETE FROM apartments_owned WHERE telegram_id=? AND apt_key=?",
+                (telegram_id, str(target.get('apt_key') or biz_id)))
+            await db.execute(
+                "DELETE FROM npc_empire_building_closures WHERE holding_id=?", (biz_id,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_holdings"
+                "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
+                "VALUES('building',?,?,?,?,?,?,?)",
+                (biz_id, leader_id, income, 45 + profile.loyalty // 2,
+                 now, operation_type, area))
+        else:
+            await db.execute(
+                "DELETE FROM player_businesses WHERE telegram_id=? AND biz_id=?",
+                (telegram_id, biz_id))
+            await db.execute(
+                "INSERT OR REPLACE INTO business_property_owners"
+                "(biz_id,owner_uid,owner_name,acquired_at,protected_until) VALUES(?,?,?,?,?)",
+                (biz_id, npc_owner_uid(leader_id), profile.gang_name, now, now + 300))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_holdings"
+                "(kind,holding_id,leader_id,income,defense,acquired_at) "
+                "VALUES('business',?,?,?,?,?)",
+                (biz_id, leader_id, BUSINESS_INCOME.get(biz_id, 175),
+                 60 + profile.loyalty, now))
+        await _reconcile_npc_guards(db, leader_id, now)
+        summary = f'{profile.leader_name} и {profile.gang_name} захватили бизнес {biz_id}'
+        kind = 'player_business_captured'
+    else:
+        blocked_until = now + PLAYER_WAR_BUSINESS_BLOCK_SECONDS
+        notice = (f'{profile.gang_name} атаковала бизнес. Работа остановлена на 10 минут; '
+                  'следующий налёт может закончиться захватом.')
+        if target_kind == 'building':
+            await db.execute(
+                "INSERT INTO npc_empire_building_closures"
+                "(holding_id,leader_id,saboteur_uid,closed_until,created_at) VALUES(?,?,?,?,?) "
+                "ON CONFLICT(holding_id) DO UPDATE SET leader_id=excluded.leader_id,"
+                "saboteur_uid=excluded.saboteur_uid,closed_until=excluded.closed_until,"
+                "created_at=excluded.created_at",
+                (biz_id, leader_id, telegram_id, blocked_until, now))
+            await db.execute(
+                "UPDATE apartments_owned SET last_income_at=MAX(COALESCE(last_income_at,0),?) "
+                "WHERE telegram_id=? AND apt_key=?",
+                (blocked_until, telegram_id, str(target.get('apt_key') or biz_id)))
+        else:
+            await db.execute(
+                "UPDATE player_businesses SET blocked_until=MAX(COALESCE(blocked_until,0),?),"
+                "last_event_at=?,pending_notice=? WHERE telegram_id=? AND biz_id=?",
+                (blocked_until, now, notice, telegram_id, biz_id))
+        summary = f'{profile.leader_name} и {profile.gang_name} разбомбили бизнес {biz_id}'
+        kind = 'player_business_bombed'
+    await db.execute(
+        "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+        "VALUES(?,?,?,?,?)", (leader_id, kind, str(telegram_id), summary, now))
+    next_pressure_at = now + (PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
+                              if kind == 'player_business_bombed'
+                              else _player_war_interval(profile))
+    await db.execute(
+        "UPDATE npc_empire_player_wars SET attacks=attacks+1,last_business_id=?,"
+        "last_attack_at=?,next_attack_at=? WHERE leader_id=? AND telegram_id=?",
+        (target_ref if kind == 'player_business_bombed' else '', now,
+         next_pressure_at, leader_id, telegram_id))
+    return [{'leader_id': leader_id, 'kind': kind, 'business_id': biz_id,
+             'property_kind': target_kind, 'operation_type': operation_type,
+             'summary': summary, 'created_at': now}]
+
+
 async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                                 apt_key: str, outcome: str,
                                 now: int | None = None,
@@ -3633,6 +3732,9 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 "UPDATE npc_empire_guard_assignments SET living=MAX(0,living-?) "
                 "WHERE owner_kind='player' AND owner_id=? AND holding_ref=?",
                 (guard_losses, str(telegram_id), str(raid['target_ref'])))
+        phase_events = ([] if outcome == 'defended' else
+                        await _apply_resolved_interior_raid_phase_tx(
+                            db, telegram_id, raid, now))
         await db.execute(
             "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,resolved_at=? "
             "WHERE token=? AND status='pending'", (outcome, now, token))
@@ -3641,14 +3743,7 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                 "UPDATE npc_empire_player_wars SET next_attack_at=? "
                 "WHERE leader_id=? AND telegram_id=?",
                 (now + _player_war_interval(PROFILE_BY_ID[leader_id]), leader_id, telegram_id))
-        else:
-            await db.execute(
-                "UPDATE npc_empire_player_wars SET next_attack_at=? "
-                "WHERE leader_id=? AND telegram_id=?", (now, leader_id, telegram_id))
         await db.commit()
-    phase_events = ([] if outcome == 'defended' else
-                    await _apply_player_war_pressure(
-                        db_path, telegram_id, now, resolve_token=token))
     return {'ok': True, 'resolution': outcome, 'attacker_losses': attacker_losses,
             'defender_losses': defender_losses, 'phase_events': phase_events}
 

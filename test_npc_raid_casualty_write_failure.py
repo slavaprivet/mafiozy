@@ -61,6 +61,48 @@ async def run() -> None:
         raid = state['interior_raids'][0]
         assert [row['member_id'] for row in raid['defender_roster']] == [1]
 
+        # A failure at the final business event must also roll back every
+        # casualty and the close/capture phase from the same transaction.
+        phase_members_before = await scalar(
+            path, "SELECT members FROM npc_empires WHERE leader_id='leila'")
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_atomic_raid_phase
+                BEFORE INSERT ON npc_empire_events
+                WHEN NEW.kind='player_business_bombed'
+                BEGIN SELECT RAISE(ABORT, 'forced raid phase rollback'); END
+            """)
+            await db.commit()
+        try:
+            await ne.resolve_interior_raid(
+                path, 101, raid['token'], raid['apt_key'], 'captured',
+                attacker_casualties=[], defender_casualties=[1],
+                guard_casualties=[], now=now + raid['hold_seconds'])
+            raise AssertionError('failed business phase must abort resolution')
+        except aiosqlite.Error as error:
+            assert 'forced raid phase rollback' in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_atomic_raid_phase")
+                await db.commit()
+        assert await scalar(path,
+            "SELECT status FROM npc_empire_interior_raids WHERE token=?",
+            (raid['token'],)) == 'pending'
+        assert await scalar(path,
+            "SELECT current_hp FROM gang_members WHERE id=1") == 100
+        assert await scalar(path,
+            "SELECT COUNT(*) FROM npc_empire_player_guard_members WHERE member_id=1") == 1
+        assert await scalar(path,
+            "SELECT living FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='player' AND owner_id='101' AND holding_ref='business:coffee'") == 1
+        assert await scalar(path,
+            "SELECT members FROM npc_empires WHERE leader_id='leila'") == phase_members_before
+        assert await scalar(path,
+            "SELECT attacks FROM npc_empire_player_wars "
+            "WHERE leader_id='leila' AND telegram_id=101") == 0
+        assert await scalar(path,
+            "SELECT blocked_until FROM player_businesses WHERE biz_id='coffee'") == 0
+
         members_before = await scalar(
             path, "SELECT members FROM npc_empires WHERE leader_id='leila'")
         war_before = await scalar(
@@ -95,7 +137,7 @@ async def run() -> None:
             "WHERE leader_id='leila' AND telegram_id=101") == war_before
         assert await scalar(path,
             "SELECT COUNT(*) FROM player_businesses WHERE telegram_id=101 AND biz_id='coffee'") == 1
-        print('raid casualty write failure: HP/assignment/aggregate/attacker/raid/war rollback OK')
+        print('raid atomic failure: casualty and business phase rollback OK')
     finally:
         os.unlink(path)
 
