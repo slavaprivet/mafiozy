@@ -64571,12 +64571,12 @@ window.Mafiozi3DBridge = Object.freeze({
   getInteriorState() {
     const src=_buildingInt||_bankInt||null;
     if(!src)return null;
-    const fxNow=performance.now();
+    const fxNow=performance.now(),srcRow=Math.floor(+src.r),srcCol=Math.floor(+src.c);
     const casino=src.bizId==='major_casino';
     const apartmentKey=_buildingInt&&!src.type?(_apartmentOwnedKey(src.r,src.c)||src.apartmentKey||''):'';
     const apartmentInfo=apartmentKey?(_buildingPropertyAt(src.r,src.c)||_myApartments[apartmentKey]||{}):(_buildingInt&&!src.type?_buildingPropertyAt(src.r,src.c)||{}:{});
-    const apartmentHost=!src.type?(_apartmentHosts||[]).find(h=>Math.floor(+h.r)===Math.floor(+src.r)&&Math.floor(+h.c)===Math.floor(+src.c)):null;
-    const venuePoi=src.type?POI.find(p=>Math.floor(+p.r)===Math.floor(+src.r)&&Math.floor(+p.c)===Math.floor(+src.c)):null;
+    const apartmentHost=!src.type?(_apartmentHosts||[]).find(h=>Math.floor(+h.r)===srcRow&&Math.floor(+h.c)===srcCol):null;
+    const venuePoi=src.type?POI.find(p=>Math.floor(+p.r)===srcRow&&Math.floor(+p.c)===srcCol):null;
     const majorBusinessId=src.type==='business'&&String(src.bizId||'').startsWith('major_')
       ?String(src.bizId).slice(6):'';
     const majorSafes=majorBusinessId&&String(_majorRaidLocal?.objectId||'')===majorBusinessId
