@@ -214,7 +214,9 @@ reconnect and duplicate resolve requests must be idempotent.
 ## Nineteen-empires lifecycle
 
 - Families can be active, rebuilding, vassalized or ruined. Ruin removes their
-  political capital and holdings; comeback uses a real available HQ building.
+  political capital, holdings and every player-war row; comeback uses a real
+  available HQ building and discards pre-fix stale war rows before economy,
+  guard or AI accounting.
 - While `hospital_until` is active, the boss has one stable treatment activity
   and cannot personally recruit, expand, acquire, fortify or start an NPC war.
   The family still receives income, pays wages and advances its bounded server

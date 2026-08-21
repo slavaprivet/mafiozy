@@ -2517,6 +2517,8 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
         "UPDATE npc_empire_interior_raids SET status='resolved',resolution='owner_ruined',"
         "resolved_at=? WHERE leader_id=? AND status='pending'", (now, leader_id))
     await db.execute(
+        "DELETE FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,))
+    await db.execute(
         "UPDATE npc_empires SET status='ruined',treasury=0,members=0,strength=0,hq_key=NULL,"
         "defeated_at=?,defeated_by=?,comeback_at=?,losses=losses+1,dominance_score=0,"
         "district_count=0,insolvent_ticks=0,recovery_ticks_remaining=0,pending_recruits=0,recruit_started_at=0,recruit_ready_at=0,last_recruit_count=0,last_recruit_at=0,"
@@ -2554,6 +2556,10 @@ async def _revive_due_empires(db, now: int, events: list[dict]) -> None:
     used.update(await _player_owned_building_keys(db))
     for row in due:
         leader_id = str(row['leader_id']); profile = PROFILE_BY_ID[leader_id]
+        # Pre-fix saves may still carry player-war rows from an already ruined
+        # generation. They must not charge or steer the returning family.
+        await db.execute(
+            "DELETE FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,))
         candidates = [key for key in GENERIC_BUILDINGS if key not in used]
         if not candidates:
             continue

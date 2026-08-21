@@ -6004,6 +6004,7 @@ function _explodeGasStation(gs) {
   // Peace/vassalization or a newer owner generation terminalizes stale raids.
   // Pair peace is backend-atomic and does not release other players' raids.
   // Global vassal status releases that NPC family's squads for every player.
+  // Global ruin also releases that family's player wars before any comeback.
   // During a property raid, only the server-assigned roster is materialized
   // above. The general following crew must not duplicate unassigned fighters.
   if(!bi.businessInteriorRaid)for (const gm of _myGang) {

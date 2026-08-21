@@ -239,6 +239,114 @@ async def pair_peace_terminalizes_pending(action: str, now: int) -> None:
         os.unlink(path)
 
 
+async def ruin_releases_family_player_wars() -> None:
+    fd, path = tempfile.mkstemp(prefix='raid_ruin_generation_', suffix='.db')
+    os.close(fd); now = 3_280_000_000
+    try:
+        raid = await prepare_pending_raid(path, now)
+        async with aiosqlite.connect(path) as db:
+            await db.execute("INSERT INTO district_control VALUES(202,'south','[]')")
+            await db.execute(
+                "INSERT INTO player_businesses "
+                "VALUES(202,'donut',0,0,'ok',0,0,1,0,NULL)")
+            await db.execute(
+                "INSERT INTO business_property_owners "
+                "VALUES('donut',202,'Two',?,0)", (now - 100,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_relations "
+                "VALUES('leila',202,-100,'war',?)", (now,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('leila',202,?,0,'',0)", (now,))
+            await db.commit()
+        other_player_raid = (await ne.state_for(path, 202, now=now))['interior_raids'][0]
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            source = await (await db.execute(
+                "SELECT * FROM npc_empire_interior_raids WHERE token=?",
+                (other_player_raid['token'],))).fetchone()
+            other_family = dict(source)
+            other_family['token'] = 'other-family-ruin'
+            other_family['leader_id'] = 'marco'
+            columns = list(other_family)
+            await db.execute(
+                f"INSERT INTO npc_empire_interior_raids({','.join(columns)}) "
+                f"VALUES({','.join('?' for _ in columns)})",
+                tuple(other_family[name] for name in columns))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('marco',202,?,0,'',0)", (now + 500,))
+            await db.execute(
+                "INSERT INTO npc_empire_assaults"
+                "(token,telegram_id,leader_id,guard_hp_json,boss_hp,boss_max_hp,"
+                "status,started_at,expires_at,last_hit_at) "
+                "VALUES('won-ruin',101,'leila','[]',0,300,'active',?,?,?)",
+                (now, now + 10_000, float(now)))
+            await db.commit()
+
+        hp_before = await scalar(
+            path, "SELECT current_hp FROM gang_members WHERE id=1")
+        result = await ne.resolve_assault(
+            path, 101, 'won-ruin', 'loot', now=now + 1)
+        assert result['ok'] and result['choice'] == 'loot'
+        assert await scalar(
+            path, "SELECT status FROM npc_empires WHERE leader_id='leila'") == 'ruined'
+        for token in (raid['token'], other_player_raid['token']):
+            assert await scalar(
+                path, "SELECT status||':'||resolution "
+                      "FROM npc_empire_interior_raids WHERE token=?", (token,)) \
+                == 'resolved:owner_ruined'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila'") == 0
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relations "
+                  "WHERE leader_id='leila' AND (score<>0 OR pact<>'none')") == 0
+        assert await scalar(
+            path, "SELECT status FROM npc_empire_interior_raids "
+                  "WHERE token='other-family-ruin'") == 'pending'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='marco' AND telegram_id=202") == 1
+
+        checkpoint = await ne.checkpoint_interior_raid_casualties(
+            path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
+            now=now + 2)
+        assert checkpoint == {
+            'ok': True, 'duplicate': True, 'terminal': True,
+            'resolution': 'owner_ruined', 'version': 0}
+        retry = await ne.resolve_interior_raid(
+            path, 202, other_player_raid['token'], other_player_raid['apt_key'],
+            'captured', attacker_casualties=[], defender_casualties=[],
+            guard_casualties=[], now=now + other_player_raid['hold_seconds'])
+        assert retry == {'ok': True, 'duplicate': True,
+                         'resolution': 'owner_ruined'}
+        assert await scalar(
+            path, "SELECT current_hp FROM gang_members WHERE id=1") == hp_before == 100
+
+        # A pre-fix stale row must be removed before a ruined generation returns,
+        # so it cannot create false war upkeep, guard reserve or AI pressure.
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('leila',101,?,0,'',0)", (now + 500,))
+            await db.execute(
+                "UPDATE npc_empires SET comeback_at=? WHERE leader_id='leila'",
+                (now + 2,))
+            await db.commit()
+        await ne.advance(path, now=now + 3)
+        assert await scalar(
+            path, "SELECT status FROM npc_empires WHERE leader_id='leila'") == 'rebuilding'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='leila'") == 0
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='marco' AND telegram_id=202") == 1
+    finally:
+        os.unlink(path)
+
+
 async def ownership_generation_terminalizes_pending() -> None:
     fd, path = tempfile.mkstemp(prefix='raid_owner_generation_', suffix='.db')
     os.close(fd); now = 3_300_000_000
@@ -287,6 +395,7 @@ async def run() -> None:
     await vassalization_terminalizes_pending()
     await pair_peace_terminalizes_pending('truce', 3_250_000_000)
     await pair_peace_terminalizes_pending('compensation', 3_260_000_000)
+    await ruin_releases_family_player_wars()
     await ownership_generation_terminalizes_pending()
     print('stale raid generation: diplomacy/ownership terminal, no casualties or property mutation OK')
 
