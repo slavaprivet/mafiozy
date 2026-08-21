@@ -64759,6 +64759,7 @@ window.Mafiozi3DBridge = Object.freeze({
   previewEnterBuildingPurpose(operationType='vacant',ownerKind='player',enterInterior=true) {
     if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
     if(document.body.classList.contains('game-menu-open')){_gameMenuOpen=false;document.body.classList.remove('game-menu-open');document.getElementById('gameMainMenu')?.classList.add('hidden');}
+    const modeModal=document.getElementById('modeModal');if(modeModal)modeModal.style.display='none';
     if(_buildingInt)exitBuildingInterior();
     const previewMeta=['0,3','0,4','1,0','2,0'].map(_playerEmpireBuildingMeta).find(Boolean);
     if(!previewMeta)return {ok:false,reason:'no-building-footprint'};
@@ -69618,6 +69619,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416"></script>
+<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416&facade=depth-roof-sign-v1"></script>
 </body>
 </html>

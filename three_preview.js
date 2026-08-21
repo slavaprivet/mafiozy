@@ -512,14 +512,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false,depthWrite:false,alphaTest:.04,toneMapped:false}));
         sprite.scale.set(Math.min(13.8,Math.max(9.5,7.4+label.length*.3)),2.55,1);sprite.renderOrder=58;sprite.userData.buildingLabel=true;return sprite;
       };
-      // Exterior names are part of the building, not camera-facing HUD sprites.
-      // The opaque board, rim and roof posts keep one stable sign attached to the roof.
-      const roofSignTextureCache=new Map(),roofMountedSign=(text,color='#65e7ff',width=11,height=1.9)=>{
-        const label=String(text).slice(0,32),key=`v379|${label}|${color}`,cached=roofSignTextureCache.get(key);let tx=cached;
-        if(!tx){const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const c=cv.getContext('2d');c.fillStyle='#070d14';c.fillRect(0,0,cv.width,cv.height);c.strokeStyle=color;c.lineWidth=20;c.strokeRect(14,14,cv.width-28,cv.height-28);c.fillStyle=color;c.fillRect(42,38,cv.width-84,10);let fontSize=132;c.textAlign='center';c.textBaseline='middle';do{c.font=`950 ${fontSize}px system-ui, Arial, sans-serif`;if(c.measureText(label).width<=914)break;fontSize-=5;}while(fontSize>72);c.lineJoin='round';c.strokeStyle='rgba(0,0,0,1)';c.lineWidth=16;c.strokeText(label,cv.width/2,cv.height/2+14);c.fillStyle='#fff8df';c.fillText(label,cv.width/2,cv.height/2+14);tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=true;tx.minFilter=THREE.LinearMipmapLinearFilter;tx.magFilter=THREE.LinearFilter;roofSignTextureCache.set(key,tx);}
-        const root=new THREE.Group(),boardMat=new THREE.MeshStandardMaterial({color:0x101720,roughness:.4,metalness:.62}),rimMat=new THREE.MeshStandardMaterial({color:new THREE.Color(color),roughness:.34,metalness:.55,emissive:new THREE.Color(color).multiplyScalar(.16),emissiveIntensity:.32}),faceMat=new THREE.MeshBasicMaterial({map:tx,transparent:false,toneMapped:false});
-        const board=new THREE.Mesh(new THREE.BoxGeometry(width,height,.28),boardMat);board.position.y=height*.5+.62;board.castShadow=true;board.receiveShadow=true;root.add(board);const face=new THREE.Mesh(new THREE.PlaneGeometry(width-.28,height-.24),faceMat);face.position.set(0,height*.5+.62,.146);root.add(face);
-        for(const sx of [-width*.39,width*.39]){const post=new THREE.Mesh(new THREE.BoxGeometry(.16,.72,.16),rimMat);post.position.set(sx,.36,0);post.castShadow=true;root.add(post);}for(const yy of [.62,.62+height]){const rail=new THREE.Mesh(new THREE.BoxGeometry(width+.18,.11,.38),rimMat);rail.position.set(0,yy,0);rail.castShadow=true;root.add(rail);}root.userData={buildingSign:true,label};return root;
+      // Exterior names are physical two-draw building parts: one cached
+      // extruded backing (board + posts) and one cached-texture face. They are
+      // never camera-facing sprites or DOM labels, and streamed eviction must
+      // not dispose resources retained by these bounded caches.
+      const roofSignTextureCache=new Map(),roofSignFaceMaterialCache=new Map(),roofSignBoardMaterial=new THREE.MeshStandardMaterial({color:0x101720,roughness:.4,metalness:.62}),roofSignFaceGeometry=new THREE.PlaneGeometry(1,1),roofSignHeightProfiles=Object.freeze({small:.9,medium:1.35,large:1.75}),roofSignBackingGeometries=new Map();
+      roofSignBoardMaterial.userData.mfzPersistent=true;roofSignFaceGeometry.userData.mfzPersistent=true;
+      const signRectShape=(x0,y0,x1,y1)=>{const shape=new THREE.Shape();shape.moveTo(x0,y0);shape.lineTo(x1,y0);shape.lineTo(x1,y1);shape.lineTo(x0,y1);shape.closePath();return shape;};
+      for(const [profile,boardHeight] of Object.entries(roofSignHeightProfiles)){const shapes=[signRectShape(-.5,.62,.5,.62+boardHeight),signRectShape(-.405,0,-.382,.64),signRectShape(.382,0,.405,.64)],geometry=new THREE.ExtrudeGeometry(shapes,{depth:.28,bevelEnabled:true,bevelSize:.018,bevelThickness:.018,bevelSegments:1});geometry.translate(0,0,-.14);geometry.computeBoundingBox();geometry.computeBoundingSphere();geometry.userData.mfzPersistent=true;roofSignBackingGeometries.set(profile,geometry);}
+      const roofMountedSign=(text,color='#65e7ff',width=11,height=1.9)=>{
+        const label=String(text).slice(0,32),key=`visual-a-v1|${label}|${color}`,profile=height<=1?'small':height<=1.5?'medium':'large',boardHeight=roofSignHeightProfiles[profile];let tx=roofSignTextureCache.get(key);
+        if(!tx){const cv=document.createElement('canvas');cv.width=1024;cv.height=256;const c=cv.getContext('2d');c.fillStyle='#070d14';c.fillRect(0,0,cv.width,cv.height);c.strokeStyle=color;c.lineWidth=20;c.strokeRect(14,14,cv.width-28,cv.height-28);c.fillStyle=color;c.fillRect(42,38,cv.width-84,10);let fontSize=132;c.textAlign='center';c.textBaseline='middle';do{c.font=`950 ${fontSize}px system-ui, Arial, sans-serif`;if(c.measureText(label).width<=914)break;fontSize-=5;}while(fontSize>72);c.lineJoin='round';c.strokeStyle='rgba(0,0,0,1)';c.lineWidth=16;c.strokeText(label,cv.width/2,cv.height/2+14);c.fillStyle='#fff8df';c.fillText(label,cv.width/2,cv.height/2+14);tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());tx.generateMipmaps=true;tx.minFilter=THREE.LinearMipmapLinearFilter;tx.magFilter=THREE.LinearFilter;tx.userData.mfzPersistent=true;roofSignTextureCache.set(key,tx);}
+        let faceMat=roofSignFaceMaterialCache.get(key);if(!faceMat){faceMat=new THREE.MeshBasicMaterial({map:tx,transparent:false,toneMapped:false});faceMat.userData.mfzPersistent=true;roofSignFaceMaterialCache.set(key,faceMat);}
+        const root=new THREE.Group(),backing=new THREE.Mesh(roofSignBackingGeometries.get(profile),roofSignBoardMaterial),face=new THREE.Mesh(roofSignFaceGeometry,faceMat);backing.scale.x=width;backing.castShadow=true;backing.receiveShadow=true;face.position.set(0,.62+boardHeight*.5,.151);face.scale.set(Math.max(.5,width-.28),Math.max(.35,boardHeight-.24),1);root.add(backing,face);root.userData={buildingSign:true,label,attachedProfile:`roof-${profile}-two-draw`};renderer.domElement.dataset.roofSignCache=`textures:${roofSignTextureCache.size},faces:${roofSignFaceMaterialCache.size},geometries:${roofSignBackingGeometries.size+1},lights:0`;return root;
       };
       const apartmentLabelSprite=(title,subtitle,color='#e5c66b')=>{
         const heading=String(title||'КВАРТИРА').trim().slice(0,24),detail=String(subtitle||'ГОРОД').trim().slice(0,48),cv=document.createElement('canvas');cv.width=1280;cv.height=384;
@@ -1272,7 +1277,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         if(height>25&&(districtStyle==='downtown'||districtStyle==='rich'||districtStyle==='coast')&&mixed%4===0)id='glass';
         return architectureFamilyById.get(id)||architectureFamilies[0];
       };
+      // Visual-only catalog. It consumes the deterministic architecture family
+      // and never infers business purpose; fixed businesses remain biz_id
+      // driven and converted holdings remain persisted operation_type driven.
+      const buildingVisualProfileCatalog=Object.freeze({
+        glass:Object.freeze({facadeDepth:.72,frameFloors:3,roofForm:'terraced_glass'}),
+        brick:Object.freeze({facadeDepth:.54,frameFloors:2,roofForm:'hipped_masonry'}),
+        limestone:Object.freeze({facadeDepth:.48,frameFloors:3,roofForm:'classical_crown'}),
+        concrete:Object.freeze({facadeDepth:.58,frameFloors:2,roofForm:'mechanical_step'}),
+        deco:Object.freeze({facadeDepth:.66,frameFloors:3,roofForm:'deco_tiers'}),
+        industrial:Object.freeze({facadeDepth:.82,frameFloors:2,roofForm:'sawtooth_plant'}),
+      });
       const roofMat = new THREE.MeshStandardMaterial({color:0x41515d,map:roofTexture,roughness:.48,roughnessMap:roofTexture,metalness:.62,envMap:cityEnvironment,envMapIntensity:.72});
+      const roofMechanicalMat=new THREE.MeshStandardMaterial({color:0x68757d,metalness:.48,roughness:.46}),roofFanMat=new THREE.MeshBasicMaterial({color:0x222a30}),roofTankMat=new THREE.MeshStandardMaterial({color:0x80543a,roughness:.75});
       const neonMats = [0xff496f, 0x46d9ff, 0xffc247].map(color => new THREE.MeshBasicMaterial({ color }));
       const fallbackBuildingDefs = [
         [-24,-23,14,13,15,1,'BAR'],[-8,-24,11,13,11,3,'DELI'],[11,-23,14,14,18,0,'HOTEL'],[27,-23,11,13,13,2,'CAFE'],
@@ -1389,7 +1406,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           if(Math.abs(sr-centerR)<=keepRadius&&Math.abs(sc-centerC)<=keepRadius)continue;
           let warmupInFlight=false;group.traverse(object=>{if(object.userData?.mfzWarmupInFlight)warmupInFlight=true;});if(warmupInFlight)continue;
           const objects=new Set(),geometries=new Set(),materials=new Set(),textures=new Set();
-          group.traverse(object=>{objects.add(object);if(object.geometry&&!persistentStreamResources.has(object.geometry))geometries.add(object.geometry);const list=Array.isArray(object.material)?object.material:[object.material];for(const material of list){if(!material||persistentStreamResources.has(material))continue;materials.add(material);for(const value of Object.values(material))if(value?.isTexture&&!persistentStreamResources.has(value))textures.add(value);}});
+          group.traverse(object=>{objects.add(object);if(object.geometry&&!persistentStreamResources.has(object.geometry)&&!object.geometry.userData?.mfzPersistent)geometries.add(object.geometry);const list=Array.isArray(object.material)?object.material:[object.material];for(const material of list){if(!material||persistentStreamResources.has(material)||material.userData?.mfzPersistent)continue;materials.add(material);for(const value of Object.values(material))if(value?.isTexture&&!persistentStreamResources.has(value)&&!value.userData?.mfzPersistent)textures.add(value);}});
           for(const key of group.userData.buildingKeys||[])loadedBuildingKeys.delete(key);
           for(let i=occluders.length-1;i>=0;i--)if(objects.has(occluders[i]))occluders.splice(i,1);
           for(let i=buildingPickables.length-1;i>=0;i--)if(objects.has(buildingPickables[i]))buildingPickables.splice(i,1);
@@ -1464,21 +1481,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }
       };
       const addChinatownRoof=(x,z,w,d,h,seed)=>{const tier1=box(x,z,w*.82,d*.82,.48,chinaJadeMat);tier1.position.y=h+.28;const tier2=box(x,z,w*.62,d*.62,.42,chinaRedMat);tier2.position.y=h+.73;const tier3=box(x,z,w*.38,d*.38,.34,chinaGoldMat);tier3.position.y=h+1.12;for(const [sx,sz] of [[-1,-1],[-1,1],[1,-1],[1,1]]){const finial=new THREE.Mesh(new THREE.ConeGeometry(.13,.72,8),chinaGoldMat);finial.position.set(x+sx*w*.4,h+.76,z+sz*d*.4);districtProps.add(finial);}if(seed%2===0)addChinaLantern(x,z,h+2.05,seed);};
-      const addRoofDetails=(x,z,w,d,h,variant)=>{
-        // Strong silhouettes are readable even from the fixed isometric camera.
-        const parapet=box(x,z,w+.65,d+.65,.38,detailMat);parapet.position.y=h+.19;
-        const acMat=new THREE.MeshStandardMaterial({color:0x68757d,metalness:.48,roughness:.46});
-        for(let i=0;i<2+(variant%2);i++){const ac=box(x-w*.23+i*w*.23,z+d*.16,1.45,1.05,.72,acMat);ac.position.y=h+.55;const fan=new THREE.Mesh(new THREE.CylinderGeometry(.31,.31,.08,12),new THREE.MeshBasicMaterial({color:0x222a30}));fan.rotation.x=Math.PI/2;fan.position.set(ac.position.x,h+.62,ac.position.z+.55);scene.add(fan);}
+      const addRoofDetails=(x,z,w,d,h,variant,familyId='concrete')=>{
+        // Four bounded roof silhouettes are selected by the visual family;
+        // every material is preallocated and all static geometry joins the
+        // existing spatial merge queue after construction.
+        const profile=buildingVisualProfileCatalog[familyId]||buildingVisualProfileCatalog.concrete,parapet=box(x,z,w+.65,d+.65,.38,detailMat);parapet.position.y=h+.19;
+        if(profile.roofForm==='terraced_glass'||profile.roofForm==='deco_tiers'){const tierA=box(x,z,w*.7,d*.68,.5,profile.roofForm==='deco_tiers'?neonMats[variant%3]:roofMat);tierA.position.y=h+.52;const tierB=box(x,z,w*.46,d*.43,.42,detailMat);tierB.position.y=h+.98;}
+        else if(profile.roofForm==='hipped_masonry'||profile.roofForm==='classical_crown'){const roof=new THREE.Mesh(new THREE.ConeGeometry(Math.max(1.8,Math.min(w,d)*.43),profile.roofForm==='classical_crown'?1.35:1.05,4),profile.roofForm==='classical_crown'?detailMat:roofMat);roof.rotation.y=Math.PI/4;roof.position.set(x,h+.72,z);roof.castShadow=roof.receiveShadow=true;scene.add(roof);}
+        else if(profile.roofForm==='sawtooth_plant'){for(const sx of [-.24,.24]){const shed=new THREE.Mesh(new THREE.ConeGeometry(Math.max(1.4,Math.min(w*.22,d*.38)),1.25,4),roofMechanicalMat);shed.rotation.y=Math.PI/4;shed.scale.z=.72;shed.position.set(x+sx*w,h+.78,z);shed.castShadow=shed.receiveShadow=true;scene.add(shed);}}
+        else{const pent=box(x+w*.12,z-d*.06,w*.44,d*.46,2.05,roofMat);pent.position.y=h+1.03;outline(pent);}
+        for(let i=0;i<2+(variant%2);i++){const ac=box(x-w*.23+i*w*.23,z+d*.16,1.45,1.05,.72,roofMechanicalMat);ac.position.y=h+.55;const fan=new THREE.Mesh(new THREE.CylinderGeometry(.31,.31,.08,12),roofFanMat);fan.rotation.x=Math.PI/2;fan.position.set(ac.position.x,h+.62,ac.position.z+.55);scene.add(fan);}
         if(variant===2||variant===3){const antenna=new THREE.Mesh(new THREE.CylinderGeometry(.07,.11,5.2,7),detailMat);antenna.position.set(x-w*.24,h+2.6,z-d*.2);scene.add(antenna);for(let y=1;y<4;y++){const arm=new THREE.Mesh(new THREE.BoxGeometry(2.5,.07,.07),detailMat);arm.position.set(antenna.position.x,h+y,antenna.position.z);arm.rotation.y=y*.73;scene.add(arm);}}
-        if(variant===0||variant===3){
-          const tank=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.35,2.1,12),new THREE.MeshStandardMaterial({color:0x80543a,roughness:.75}));tank.position.set(x+w*.2,h+2.2,z-d*.12);tank.castShadow=true;scene.add(tank);
-          for(const sx of [-.72,.72]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,1.5,6),detailMat);leg.position.set(tank.position.x+sx,h+.85,tank.position.z);scene.add(leg);}
-        }else if(variant===1){
-          const pent=box(x+w*.16,z-d*.08,w*.42,d*.44,2.2,roofMat);pent.position.y=h+1.1;outline(pent);
-          for(let i=-1;i<=1;i++){const vent=new THREE.Mesh(new THREE.CylinderGeometry(.24,.32,1.7,8),detailMat);vent.position.set(x+i*1.2,h+1.15,z+d*.22);scene.add(vent);}
-        }else{
-          const billboard=box(x,z-d*.08,5.6,.28,2.7,neonMats[variant%3]);billboard.position.y=h+2;outline(billboard);
-        }
+        if(variant===0||variant===3){const tank=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.35,2.1,12),roofTankMat);tank.position.set(x+w*.2,h+2.2,z-d*.12);tank.castShadow=true;scene.add(tank);for(const sx of [-.72,.72]){const leg=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,1.5,6),detailMat);leg.position.set(tank.position.x+sx,h+.85,tank.position.z);scene.add(leg);}}
+        renderer.domElement.dataset.buildingRoofProfiles='glass:terraced,brick:hipped,limestone:classical,concrete:mechanical,deco:tiered,industrial:sawtooth';
       };
       const themedWhite=new THREE.MeshStandardMaterial({color:0xe5e7e3,roughness:.74}),themedRed=new THREE.MeshStandardMaterial({color:0xb93636,roughness:.56}),themedBlue=new THREE.MeshStandardMaterial({color:0x347da1,roughness:.48,metalness:.16}),themedBrick=new THREE.MeshStandardMaterial({color:0x8d4938,roughness:.92}),themedDark=new THREE.MeshStandardMaterial({color:0x252a30,roughness:.62,metalness:.32}),themedGold=new THREE.MeshStandardMaterial({color:0xc79836,roughness:.36,metalness:.72}),themedGlass=new THREE.MeshPhysicalMaterial({color:0x75cce4,roughness:.08,metalness:.05,transmission:.18,clearcoat:1}),pizzaCheese=new THREE.MeshStandardMaterial({color:0xe9ad36,roughness:.66}),pizzaPepper=new THREE.MeshStandardMaterial({color:0xb62d2d,roughness:.6});
       const factorySmokePuffs=[],blackmarketDoorActors=[],blackmarketGuardActors=[];
@@ -1689,8 +1704,22 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         renderer.domElement.dataset.businessExteriorIdentity='authored-v3-roof-mounted-signs';
       };
       const identityStone=new THREE.MeshStandardMaterial({color:0x8b9294,roughness:.72,metalness:.16}),identityDark=new THREE.MeshStandardMaterial({color:0x26313a,roughness:.48,metalness:.58}),identityWood=new THREE.MeshStandardMaterial({color:0x70452d,roughness:.66,metalness:.08}),identityGlass=new THREE.MeshPhysicalMaterial({color:0x72bad0,roughness:.1,metalness:.08,transmission:.1,clearcoat:1,envMap:cityEnvironment,envMapIntensity:1.2}),identityGlow=new THREE.MeshBasicMaterial({color:0xffd27a,toneMapped:false}),identityAccents=[0xb75a45,0x3f8099,0xb28a43,0x4b8465,0x76568d].map(color=>new THREE.MeshStandardMaterial({color,roughness:.48,metalness:.24}));
+      const addArchitecturalFacadeDepth=(x,z,w,d,h,familyId,accent)=>{
+        const profile=buildingVisualProfileCatalog[familyId]||buildingVisualProfileCatalog.concrete,front=z+d/2,depth=profile.facadeDepth,add=(xx,yy,ww,hh,mat,zz=front+depth*.46)=>{const mesh=box(xx,zz,ww,depth,hh,mat);mesh.position.y=yy;return mesh;},upperBase=5.15,availableFloors=Math.max(0,Math.floor((Math.min(h-1,15.7)-upperBase)/3.3)+1),floors=Math.min(profile.frameFloors,availableFloors);
+        // Side piers and projected belt courses create genuine parallax while
+        // leaving the authoritative central doorway and its pooled leaf clear.
+        for(const side of [-1,1])add(x+side*w*.43,Math.min(h-1,7.1)*.5,.26,Math.min(h-1,7.1),side<0?identityStone:accent);
+        for(let floor=0;floor<floors;floor++){
+          const y=upperBase+floor*3.3,bayW=Math.max(1.25,Math.min(2.4,w*.19)),bayH=2.08;
+          add(x,y-bayH*.58,w*.78,.16,accent,front+depth*.62);
+          for(const side of [-1,1]){const cx=x+side*w*.245;add(cx-bayW*.54,y,bayW*.08,bayH,identityDark);add(cx+bayW*.54,y,bayW*.08,bayH,identityDark);add(cx,y+bayH*.53,bayW*1.16,.13,identityStone);add(cx,y-bayH*.53,bayW*1.16,.13,identityStone);}
+        }
+        const cornice=add(x,Math.max(4.4,h-1.05),w*.9,.28,accent,front+depth*.55);cornice.castShadow=false;
+        renderer.domElement.dataset.buildingFacadeDepthProfiles='six-family-catalog-door-clear-static-merged-v1';
+      };
       const addProceduralBuildingIdentity=(x,z,w,d,h,seed,districtStyle,familyId='concrete')=>{
         const familyVariants={glass:[3,5],brick:[0,2],limestone:[4,1],concrete:[5,4],deco:[1,4],industrial:[2,5]},variantPool=familyVariants[familyId]||[0,5],front=z+d/2+.11,accent=identityAccents[(seed+variantPool.length)%identityAccents.length],variant=variantPool[(seed>>>3)%variantPool.length],floors=Math.max(1,Math.floor((h-4)/3.4)),add=(xx,zz,ww,dd,hh,mat,yy=hh/2)=>{const q=box(xx,zz,ww,dd,hh,mat);q.position.y=yy;return q;};
+        addArchitecturalFacadeDepth(x,z,w,d,h,familyId,accent);
         // The pooled authoritative doorway supplies the moving leaf and black
         // interior; this pass keeps only facade trim, light and cornice.
         for(const sx of [-1,1])add(x+sx*Math.min(2,w*.18),front+.22,.24,.3,3.65,identityStone,1.83);
@@ -1812,17 +1841,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         if(sign==='HOTEL'){const tower=box(x-2,z-1,w*.52,d*.58,5.5,wall);tower.position.y=h+2.75;outline(tower);}
         if(sign==='BANK'){const crown=box(x,z,w*.68,d*.7,3.3,wall);crown.position.y=h+1.65;outline(crown);}
         const roofVariantPools={glass:[2,4],brick:[0,3],limestone:[1,5],concrete:[1,4],deco:[2,1],industrial:[4,0]},roofPool=roofVariantPools[architectureFamily.id]||[0,5],roofVariant=roofPool[(buildingSeed>>>5)%roofPool.length];
-        box(x,z,w+.65,d+.65,.48,detailMat).position.y=h-.24;if(architecturalKind)addThemedArchitecture(architecturalKind,x,z,w,d,h,buildingSeed);else if(districtStyle==='chinatown_rich'||districtStyle==='chinatown_market'||districtStyle==='chinatown_neon')addChinatownRoof(x,z,w,d,h,buildingSeed);else addRoofDetails(x,z,w,d,h,roofVariant);
+        box(x,z,w+.65,d+.65,.48,detailMat).position.y=h-.24;if(architecturalKind)addThemedArchitecture(architecturalKind,x,z,w,d,h,buildingSeed);else if(districtStyle==='chinatown_rich'||districtStyle==='chinatown_market'||districtStyle==='chinatown_neon')addChinatownRoof(x,z,w,d,h,buildingSeed);else addRoofDetails(x,z,w,d,h,roofVariant,architectureFamily.id);
         if(!String(architecturalKind||'').startsWith('blackmarket')){const shopGlow=new THREE.MeshBasicMaterial({color:sign==='CLUB'?0xff397d:sign==='CAFE'?0xffa13b:0xffd38a});shopMaterials.push(shopGlow);const shop=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w-2,8),2.8),shopGlow);shop.position.set(x,2.25,z+d/2+.012);scene.add(shop);}
         // Street-level identity: columns, awnings and window canopies.
         if(sign==='BANK')for(let sx=-3;sx<=3;sx+=2){const col=new THREE.Mesh(new THREE.CylinderGeometry(.25,.32,3.7,10),detailMat);col.position.set(x+sx,2.2,z+d/2+.45);col.castShadow=true;scene.add(col);}
         if(sign==='CAFE'||sign==='DELI'){const awning=box(x,z+d/2+.75,Math.min(8,w-1),1.5,.24,new THREE.MeshStandardMaterial({color:sign==='CAFE'?0xe85f43:0x58b8a2,roughness:.5}));awning.position.y=3.65;awning.rotation.x=-.16;}
         if(sign==='CLUB'){const canopy=box(x,z+d/2+1.15,8,2.2,.3,neonMats[0]);canopy.position.y=3.5;}
         if(sign==='HOTEL')for(let floor=6;floor<h-1;floor+=3.2){const balcony=box(x,z+d/2+.5,w*.62,.8,.18,detailMat);balcony.position.y=floor;}
-        if(sign){
-          const signCv=document.createElement('canvas');signCv.width=512;signCv.height=128;const sc=signCv.getContext('2d');sc.fillStyle='#15131b';sc.fillRect(0,0,512,128);sc.strokeStyle=['#ff496f','#46d9ff','#ffc247'][style%3];sc.lineWidth=12;sc.strokeRect(8,8,496,112);sc.fillStyle='#fff2c6';sc.font='bold 68px sans-serif';sc.textAlign='center';sc.textBaseline='middle';sc.fillText(sign,256,68);
-          const signTx=new THREE.CanvasTexture(signCv);signTx.colorSpace=THREE.SRGBColorSpace;signTx.anisotropy=Math.min(16,renderer.capabilities.getMaxAnisotropy());const sm=new THREE.MeshBasicMaterial({map:signTx,transparent:false});const sgn=new THREE.Mesh(new THREE.PlaneGeometry(7.6,1.9),sm);sgn.position.set(x,h+2.15,z+d*.18);scene.add(sgn);
-        }
+        if(sign){const signColor=['#ff496f','#46d9ff','#ffc247'][style%3],sgn=roofMountedSign(sign,signColor,Math.min(9.2,Math.max(5.8,w*.58)),1.35);sgn.position.set(x,h+.08,z+d*.22);scene.add(sgn);renderer.domElement.dataset.genericBuildingSigns='physical-roof-board-two-draw-no-sprite-v1';}
         }
         for(const child of scene.children.slice(detailSceneStart))queueStaticBuildingDetail(child);
       };
