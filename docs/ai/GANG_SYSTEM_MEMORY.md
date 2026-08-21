@@ -319,6 +319,9 @@ reconnect and duplicate resolve requests must be idempotent.
   and an active war. Ownership transfer, operation conversion, peace or
   vassalization terminalizes it before any casualty or property mutation;
   retries return the persisted terminal resolution.
+- Vassal status is global to one NPC family. Its winning transaction closes
+  that leader's pending raids and player-war rows across every player, while
+  leaving every other family's sessions untouched.
 - Raid creation must read the concrete defender roster successfully. A schema
   or SQLite read failure rolls back the complete raid transaction; it must not
   become an unguarded token or debit the attacking family's treasury.

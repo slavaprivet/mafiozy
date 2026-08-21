@@ -62,6 +62,37 @@ async def vassalization_terminalizes_pending() -> None:
     try:
         raid = await prepare_pending_raid(path, now)
         async with aiosqlite.connect(path) as db:
+            await db.execute("INSERT INTO district_control VALUES(202,'south','[]')")
+            await db.execute(
+                "INSERT INTO player_businesses "
+                "VALUES(202,'donut',0,0,'ok',0,0,1,0,NULL)")
+            await db.execute(
+                "INSERT INTO business_property_owners "
+                "VALUES('donut',202,'Two',?,0)", (now - 100,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_relations "
+                "VALUES('leila',202,-100,'war',?)", (now,))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('leila',202,?,0,'',0)", (now,))
+            await db.commit()
+        other_owner_raid = (await ne.state_for(path, 202, now=now))['interior_raids'][0]
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            source = await (await db.execute(
+                "SELECT * FROM npc_empire_interior_raids WHERE token=?",
+                (other_owner_raid['token'],))).fetchone()
+            isolated = dict(source)
+            isolated['token'] = 'other-family-pending'
+            isolated['leader_id'] = 'marco'
+            columns = list(isolated)
+            await db.execute(
+                f"INSERT INTO npc_empire_interior_raids({','.join(columns)}) "
+                f"VALUES({','.join('?' for _ in columns)})",
+                tuple(isolated[name] for name in columns))
+            await db.execute(
+                "INSERT OR REPLACE INTO npc_empire_player_wars "
+                "VALUES('marco',202,?,0,'',0)", (now + 500,))
             await db.execute(
                 "INSERT INTO npc_empire_assaults"
                 "(token,telegram_id,leader_id,guard_hp_json,boss_hp,boss_max_hp,"
@@ -76,18 +107,37 @@ async def vassalization_terminalizes_pending() -> None:
             path, "SELECT status||':'||resolution FROM npc_empire_interior_raids "
                   "WHERE token=?", (raid['token'],)) == 'resolved:diplomacy_changed'
         assert await scalar(
+            path, "SELECT status||':'||resolution FROM npc_empire_interior_raids "
+                  "WHERE token=?", (other_owner_raid['token'],)) \
+            == 'resolved:diplomacy_changed'
+        assert await scalar(
             path, "SELECT COUNT(*) FROM npc_empire_player_wars "
-                  "WHERE telegram_id=101 AND leader_id='leila'") == 0
+                  "WHERE leader_id='leila'") == 0
+        assert await scalar(
+            path, "SELECT status FROM npc_empire_interior_raids "
+                  "WHERE token='other-family-pending'") == 'pending'
+        assert await scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE telegram_id=202 AND leader_id='marco'") == 1
         retry = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'captured',
             attacker_casualties=[], defender_casualties=[1], guard_casualties=[],
             now=now + raid['hold_seconds'])
         assert retry == {'ok': True, 'duplicate': True,
                          'resolution': 'diplomacy_changed'}
+        other_retry = await ne.resolve_interior_raid(
+            path, 202, other_owner_raid['token'], other_owner_raid['apt_key'],
+            'captured', attacker_casualties=[], defender_casualties=[],
+            guard_casualties=[], now=now + other_owner_raid['hold_seconds'])
+        assert other_retry == {'ok': True, 'duplicate': True,
+                               'resolution': 'diplomacy_changed'}
         assert await scalar(path, "SELECT current_hp FROM gang_members WHERE id=1") == 100
         assert await scalar(
             path, "SELECT blocked_until FROM player_businesses "
                   "WHERE telegram_id=101 AND biz_id='coffee'") == 0
+        assert await scalar(
+            path, "SELECT blocked_until FROM player_businesses "
+                  "WHERE telegram_id=202 AND biz_id='donut'") == 0
         assert await scalar(
             path, "SELECT COUNT(*) FROM npc_empire_events "
                   "WHERE kind IN ('player_business_bombed','player_business_captured')") == 0

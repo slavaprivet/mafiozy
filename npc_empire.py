@@ -4905,11 +4905,10 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
             await db.execute("INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?, ?,80,'vassal',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=80,pact='vassal',last_action_at=excluded.last_action_at", (leader_id,telegram_id,now))
             await db.execute(
                 "UPDATE npc_empire_interior_raids SET status='resolved',"
-                "resolution='diplomacy_changed',resolved_at=? WHERE telegram_id=? "
-                "AND leader_id=? AND status='pending'", (now, telegram_id, leader_id))
+                "resolution='diplomacy_changed',resolved_at=? WHERE leader_id=? "
+                "AND status='pending'", (now, leader_id))
             await db.execute(
-                "DELETE FROM npc_empire_player_wars WHERE telegram_id=? AND leader_id=?",
-                (telegram_id, leader_id))
+                "DELETE FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,))
             reward = treasury // 2
             await _reconcile_npc_guards(db, leader_id, now)
         else:
