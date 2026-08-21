@@ -1681,9 +1681,47 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const addBusinessIdentityArchitecture=(kind,x,z,w,d,h,seed)=>{
         const front=z+d/2+.12,add=(xx,zz,ww,dd,hh,mat,yy=hh/2)=>{const q=box(xx,zz,ww,dd,hh,mat);q.position.y=yy;return q;};
         const metal=new THREE.MeshStandardMaterial({color:0x424d55,roughness:.42,metalness:.72}),black=new THREE.MeshStandardMaterial({color:0x101319,roughness:.72,metalness:.26}),rubber=new THREE.MeshStandardMaterial({color:0x111315,roughness:.98}),wood=new THREE.MeshStandardMaterial({color:0x684126,roughness:.84}),warm=new THREE.MeshBasicMaterial({color:0xffc568,toneMapped:false}),cyan=new THREE.MeshBasicMaterial({color:0x65e8ff,toneMapped:false}),pink=new THREE.MeshBasicMaterial({color:0xff4fad,toneMapped:false}),redGlow=new THREE.MeshBasicMaterial({color:0xff4a45,toneMapped:false}),green=new THREE.MeshStandardMaterial({color:0x24583b,roughness:.94}),water=new THREE.MeshPhysicalMaterial({color:0x69d8ef,transparent:true,opacity:.42,roughness:.06,metalness:.08,transmission:.28,depthWrite:false,side:THREE.DoubleSide}),crateMat=new THREE.MeshStandardMaterial({color:0x8d6036,roughness:.92}),hazard=new THREE.MeshStandardMaterial({color:0xe2aa2e,roughness:.48,metalness:.42});
+        const addThirdBuildingSliceStorefront=targetKind=>{
+          // Side bays preserve the authoritative clear central entrance. All
+          // pieces reuse materials above and enter the existing static merge.
+          if(targetKind==='coffee'){
+            for(const side of [-1,1]){
+              const bayX=x+side*w*.285;
+              add(bayX,front+.48,w*.21,.76,3.05,black,1.53);
+              add(bayX,front+.89,w*.145,.12,2.35,warm,1.6);
+              for(const edge of [-1,1])add(bayX+edge*w*.085,front+.94,.1,.16,2.72,themedGold,1.53);
+              add(bayX,front+.94,w*.2,.16,.14,wood,.38);
+            }
+            add(x,front+.45,w*.88,.68,.3,wood,h-.62);
+            add(x,z,w*.72,d*.62,.3,themedGold,h+.34);
+          }else if(targetKind==='barbershop'){
+            for(const side of [-1,1]){
+              const bayX=x+side*w*.28;
+              add(bayX,front+.46,w*.205,.7,3.2,black,1.6);
+              add(bayX,front+.84,w*.14,.12,2.48,themedWhite,1.64);
+              for(const edge of [-1,1])add(bayX+edge*w*.083,front+.9,.09,.18,2.86,themedGold,1.58);
+              add(bayX,front+.91,w*.205,.2,.15,themedGold,.34);
+            }
+            add(x,front+.44,w*.9,.7,.3,themedGold,h-.68);
+            add(x,z,w*.74,d*.66,.32,themedWhite,h+.34);
+            add(x,z,w*.5,d*.44,.28,themedGold,h+.66);
+          }else if(targetKind==='pizza'){
+            for(const side of [-1,1]){
+              const bayX=x+side*w*.3;
+              add(bayX,front+.48,w*.2,.76,3.0,themedBrick,1.5);
+              add(bayX,front+.89,w*.14,.12,2.22,warm,1.55);
+              for(const edge of [-1,1])add(bayX+edge*w*.082,front+.94,.1,.16,2.62,themedWhite,1.5);
+              add(bayX,front+.94,w*.205,.18,.16,themedWhite,.36);
+            }
+            add(x,front+.46,w*.9,.72,.32,themedBrick,h-.58);
+            add(x,z,w*.72,d*.64,.3,themedWhite,h+.36);
+            add(x+w*.28,z-d*.18,1.22,1.05,1.55,themedBrick,h+.78);
+          }
+        };
         const sign=(text,color,_y=h+2.5,scale=1)=>{const s=roofMountedSign(text,color,Math.min(w*.82,12.4)*scale,1.65);s.position.set(x,h+.08,z+d*.22);scene.add(s);return s;};
         const cylinder=(geo,mat,xx,yy,zz,rx=0,ry=0,rz=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(xx,yy,zz);m.rotation.set(rx,ry,rz);m.castShadow=m.receiveShadow=true;scene.add(m);return m;};
         const planter=(xx,zz)=>{const pot=cylinder(new THREE.CylinderGeometry(.48,.62,.72,14),wood,xx,.36,zz),leaf=cylinder(new THREE.DodecahedronGeometry(.72,1),green,xx,1.18,zz);leaf.scale.set(.75,1.15,.75);return pot;};
+        addThirdBuildingSliceStorefront(kind);
         if(kind==='coffee'){
           // Caffe terrace, roof cup and steam make the small corner building unmistakable.
           add(x,front+2.2,w*.86,3.8,.18,wood,.09);for(const sx of [-w*.31,w*.31]){const table=cylinder(new THREE.CylinderGeometry(.68,.68,.16,20),wood,x+sx,.86,front+2.35);cylinder(new THREE.CylinderGeometry(.09,.12,.78,8),metal,x+sx,.43,front+2.35);for(const dz of [-1,1])add(x+sx,front+2.35+dz*.9,.72,.72,.62,green,.31);}for(const sx of [-w*.45,w*.45])planter(x+sx,front+2.75);
@@ -2024,6 +2062,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       // not ordinary block buildings. Build them at their exact authoritative
       // coordinates so labels, prompts, entrances and architecture agree.
       const businessExteriorSpecs={coffee:[9,8,8,0x704431,'#d89a55'],carwash:[12,9,5.8,0x386879,'#55d6e8'],barbershop:[9,8,8,0x735348,'#ef5261'],pizza:[10,9,7,0x8b392d,'#f3c044'],garage:[13,10,6.4,0x46525c,'#f0b72f'],bar:[11,9,8.5,0x351c28,'#ef4b9c'],club:[12,10,10,0x241632,'#a85cff'],warehouse:[15,12,7.2,0x56534b,'#e0a84a'],casino:[13,11,13,0x4c1828,'#ffd24b'],port:[16,12,7,0x40535d,'#ff9a3c']};
+      const storefrontSlice3Profiles=Object.freeze({coffee:'recessed-cafe-bays-cornice',barbershop:'framed-display-bays-stepped-crown',pizza:'warm-window-bays-brick-chimney'});
+      renderer.domElement.dataset.buildingSlice3Profiles=Object.entries(storefrontSlice3Profiles).map(([kind,profile])=>`${kind}:${profile}`).join(',');
+      renderer.domElement.dataset.buildingSlice3Budget='storefronts:3,build-time-static-spatial-merge,frame-allocations:0,frame-scans:0,lights:0,materials:0,programs:0';
       const bounds=worldSnapshot?.bounds||{minR:-Infinity,maxR:Infinity,minC:-Infinity,maxC:Infinity};
       const businessStaticDetailStart=scene.children.length;
       for(const biz of worldSnapshot?.landmarks?.businesses||[]){if(biz.r<bounds.minR-3||biz.r>bounds.maxR+3||biz.c<bounds.minC-3||biz.c>bounds.maxC+3)continue;const spec=businessExteriorSpecs[biz.id];if(!spec)continue;const [w,d,h,color,accent]=spec,x=(biz.c-originC)*WORLD_SCALE,z=(biz.r-originR)*WORLD_SCALE,facade=facades[(Math.abs(Math.round(biz.r*7+biz.c*11))%facades.length)].clone();facade.repeat.set(Math.max(1,w/18),Math.max(1,h/10));const wall=new THREE.MeshStandardMaterial({color,map:facade,bumpMap:facade,bumpScale:.035,roughness:.62,metalness:.08,emissive:new THREE.Color(color).multiplyScalar(.18),emissiveIntensity:.18}),localRoof=roofMat.clone(),main=buildingBox(x,z,w,d,h,wall,localRoof),meta={r:+biz.r,c:+biz.c,w:w/WORLD_SCALE,d:d/WORLD_SCALE,minR:+biz.r-1,maxR:+biz.r+1,minC:+biz.c-1,maxC:+biz.c+1,primary:true,architecturalKind:biz.id,businessId:String(biz.id)};main.userData.fadeMaterials=[wall,localRoof];main.userData.building=meta;main.userData.mainBuilding=true;main.userData.businessId=String(biz.id);occluders.push(main);buildingPickables.push(main);outline(main);const businessSeed=Math.abs(Math.round(biz.r*37+biz.c*53));addThemedArchitecture(biz.id,x,z,w,d,h,businessSeed);addBusinessIdentityArchitecture(biz.id,x,z,w,d,h,businessSeed);const frontZ=z+d/2+.72,propertyLabel=roofMountedSign('СОБСТВЕННОСТЬ','#6ff0ad',Math.min(8.4,w*.66),1.05);propertyLabel.position.set(x,h+1.77,z+d*.22);propertyLabel.visible=!!biz.owned;scene.add(propertyLabel);const entranceGlow=new THREE.Mesh(new THREE.RingGeometry(1.05,1.48,32),new THREE.MeshBasicMaterial({color:accent,transparent:true,opacity:.92,side:THREE.DoubleSide,depthTest:false,toneMapped:false}));entranceGlow.rotation.x=-Math.PI/2;entranceGlow.position.set(x,.17,frontZ+1.05);entranceGlow.renderOrder=18;scene.add(entranceGlow);businessExteriorById.set(String(biz.id),{main,entrance:new THREE.Vector3(x,.18,frontZ+1.05),propertyLabel,biz,x,z,w,d,h,owned:!!biz.owned});}
