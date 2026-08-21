@@ -64255,15 +64255,16 @@ function frame() {
   // Управление, бой, транспорт и активные городские службы сразу возвращают
   // симуляцию к 30 Гц: Three.js продолжает интерполировать, но input/AI больше
   // не ощущаются «вязкими» во время движения и полицейского вызова.
+  const _threeInputResponsive=_threeRendererActive&&(
+    !!player.walking||!!joyL.active||!!joyR.active||!!myDrivingCarId||!!myJetSkiId||!!_murderPoliceArrest);
   let _threeServiceBusy=false;
-  if(_threeRendererActive)for(let i=0,n=serviceVehicles.length;i<n;i++){
+  if(_threeRendererActive&&!_threeInputResponsive)for(let i=0,n=serviceVehicles.length;i<n;i++){
     const v=serviceVehicles[i];if(!v||v.state==='done')continue;
     const state=String(v.state||'');
     if(state!=='idle'&&state!=='parked'&&!state.endsWith('_parked')){_threeServiceBusy=true;break;}
   }
   const _threeResponsiveSim = _threeRendererActive && (
-    !!player.walking || !!joyL.active || !!joyR.active || !!myDrivingCarId || !!myJetSkiId ||
-    !!_murderPoliceArrest || _threeServiceBusy || myWanted>0 ||
+    _threeInputResponsive || _threeServiceBusy || myWanted>0 ||
     t-(+lastShotClientT||0)<1400 || t-(+_localHpHurtAt||0)<1400);
   const _threeSimFps = _threeResponsiveSim ? _THREE_ACTIVE_SIM_FPS : _THREE_IDLE_SIM_FPS;
   const _activeFrameMinMs = _threeRendererActive ? (1000 / _threeSimFps) : _WORLD_FRAME_MIN_MS;
