@@ -7814,7 +7814,10 @@ function eventTick(opts) {
   const phase = getCurrentPhase();
   fetch(`${api}/event/${uid}/tick`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': tg?.initData || '',
+    },
     body: JSON.stringify({ phase: phase, post_battle: !!opts.postBattle }),
   }).then(r => r.json()).then(j => {
     if (!j || !j.ok || !j.event) return;

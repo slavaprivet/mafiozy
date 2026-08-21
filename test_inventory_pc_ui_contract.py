@@ -14,7 +14,7 @@ def block(start: str, end: str) -> str:
 
 def run() -> None:
     authority = block(
-        "const INVENTORY_ARMOR_UI_CONTRACT=", "let _armorBreakPending")
+        "const INVENTORY_ARMOR_UI_CONTRACT=", "let _myC4Count")
     assert "'combat_state.v1'" in authority
     assert "snapshot.combat_state" in authority
     assert "combat.armor" in authority

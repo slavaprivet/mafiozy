@@ -9,6 +9,10 @@ import urllib.parse
 import os
 import secrets
 import re
+import base64
+import contextvars
+import hashlib
+import hmac
 import npc_empire
 import weapon_balance
 from functools import lru_cache
@@ -64,6 +68,195 @@ if _token_src != _BOT_TOKEN_FILE:
         pass
 
 DB_PATH = os.path.join(os.environ.get("DB_DIR", ""), "mafiozi.db")
+_SYNC_WORLD_HARNESS = contextvars.ContextVar('sync_world_harness', default=False)
+
+# Telegram WebApp actor binding. HTTP handlers verify initData directly; the
+# world websocket receives a short-lived token minted only after that check.
+TELEGRAM_INIT_DATA_MAX_AGE = 15 * 60
+WORLD_TOKEN_TTL = 2 * 60
+AUTH_CLOCK_SKEW = 30
+_WORLD_TOKEN_PURPOSE = b"mafiozi.world-token.v1"
+
+
+def _actor_uid(value) -> int:
+    """Normalize a Telegram actor id and reject ambiguous/non-user values."""
+    if isinstance(value, bool):
+        raise ValueError("invalid actor uid")
+    try:
+        uid = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid actor uid") from exc
+    if uid <= 0:
+        raise ValueError("invalid actor uid")
+    return uid
+
+
+def verify_telegram_init_data(
+    init_data: str,
+    *,
+    expected_uid=None,
+    now: int | float | None = None,
+    max_age_seconds: int = TELEGRAM_INIT_DATA_MAX_AGE,
+    bot_token: str | None = None,
+) -> dict:
+    """Verify Telegram WebApp initData and return its authenticated user."""
+    if not isinstance(init_data, str) or not init_data:
+        raise ValueError("missing Telegram initData")
+    try:
+        pairs = urllib.parse.parse_qsl(init_data, keep_blank_values=True)
+    except ValueError as exc:
+        raise ValueError("malformed Telegram initData") from exc
+    fields = {}
+    for key, value in pairs:
+        if not key or key in fields:
+            raise ValueError("duplicate Telegram initData field")
+        fields[key] = value
+
+    supplied_hash = fields.pop("hash", "")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", supplied_hash):
+        raise ValueError("invalid Telegram initData hash")
+    token = BOT_TOKEN if bot_token is None else str(bot_token)
+    if not token:
+        raise ValueError("bot token is unavailable")
+    data_check_string = "\n".join(
+        f"{key}={fields[key]}" for key in sorted(fields)
+    )
+    secret_key = hmac.new(b"WebAppData", token.encode("utf-8"), hashlib.sha256).digest()
+    expected_hash = hmac.new(
+        secret_key, data_check_string.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(expected_hash, supplied_hash.lower()):
+        raise ValueError("invalid Telegram initData signature")
+
+    try:
+        auth_date = int(fields["auth_date"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("invalid Telegram auth_date") from exc
+    current_time = int(time.time() if now is None else now)
+    try:
+        max_age = int(max_age_seconds)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid initData lifetime") from exc
+    if max_age <= 0:
+        raise ValueError("invalid initData lifetime")
+    if auth_date > current_time + AUTH_CLOCK_SKEW:
+        raise ValueError("Telegram initData is from the future")
+    if current_time - auth_date > max_age:
+        raise ValueError("Telegram initData has expired")
+
+    try:
+        user = json.loads(fields["user"])
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid Telegram user") from exc
+    if not isinstance(user, dict):
+        raise ValueError("invalid Telegram user")
+    uid = _actor_uid(user.get("id"))
+    if expected_uid is not None and uid != _actor_uid(expected_uid):
+        raise ValueError("Telegram actor uid mismatch")
+    # Return a copy with a normalized integer id; caller never trusts path/query uid.
+    return {**user, "id": uid}
+
+
+def _world_token_key(bot_token: str) -> bytes:
+    if not bot_token:
+        raise ValueError("bot token is unavailable")
+    return hmac.new(
+        bot_token.encode("utf-8"), _WORLD_TOKEN_PURPOSE, hashlib.sha256
+    ).digest()
+
+
+def _b64url_encode(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+
+def _b64url_decode(value: str) -> bytes:
+    if not isinstance(value, str) or not value or not re.fullmatch(r"[A-Za-z0-9_-]+", value):
+        raise ValueError("invalid world token encoding")
+    try:
+        return base64.b64decode(
+            value + "=" * (-len(value) % 4), altchars=b"-_", validate=True
+        )
+    except (ValueError, TypeError) as exc:
+        raise ValueError("invalid world token encoding") from exc
+
+
+def issue_world_token(
+    uid,
+    *,
+    now: int | float | None = None,
+    ttl_seconds: int = WORLD_TOKEN_TTL,
+    bot_token: str | None = None,
+) -> str:
+    """Mint a compact, short-lived websocket token bound to one Telegram uid."""
+    actor_uid = _actor_uid(uid)
+    issued_at = int(time.time() if now is None else now)
+    try:
+        ttl = int(ttl_seconds)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid world token lifetime") from exc
+    if ttl <= 0 or ttl > WORLD_TOKEN_TTL:
+        raise ValueError("invalid world token lifetime")
+    payload = {
+        "v": 1,
+        "uid": actor_uid,
+        "iat": issued_at,
+        "exp": issued_at + ttl,
+        "nonce": secrets.token_urlsafe(12),
+    }
+    payload_part = _b64url_encode(
+        json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    )
+    token = BOT_TOKEN if bot_token is None else str(bot_token)
+    signature = hmac.new(
+        _world_token_key(token), payload_part.encode("ascii"), hashlib.sha256
+    ).digest()
+    return f"{payload_part}.{_b64url_encode(signature)}"
+
+
+def verify_world_token(
+    world_token: str,
+    *,
+    expected_uid=None,
+    now: int | float | None = None,
+    bot_token: str | None = None,
+) -> dict:
+    """Validate a websocket token and return its signed claims."""
+    if not isinstance(world_token, str) or world_token.count(".") != 1:
+        raise ValueError("invalid world token")
+    payload_part, signature_part = world_token.split(".", 1)
+    signature = _b64url_decode(signature_part)
+    if len(signature) != hashlib.sha256().digest_size:
+        raise ValueError("invalid world token signature")
+    token = BOT_TOKEN if bot_token is None else str(bot_token)
+    expected_signature = hmac.new(
+        _world_token_key(token), payload_part.encode("ascii"), hashlib.sha256
+    ).digest()
+    if not hmac.compare_digest(expected_signature, signature):
+        raise ValueError("invalid world token signature")
+    try:
+        claims = json.loads(_b64url_decode(payload_part).decode("utf-8"))
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError("invalid world token payload") from exc
+    if not isinstance(claims, dict) or claims.get("v") != 1:
+        raise ValueError("invalid world token version")
+    uid = _actor_uid(claims.get("uid"))
+    try:
+        issued_at = int(claims["iat"])
+        expires_at = int(claims["exp"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("invalid world token lifetime") from exc
+    if expires_at <= issued_at or expires_at - issued_at > WORLD_TOKEN_TTL:
+        raise ValueError("invalid world token lifetime")
+    current_time = int(time.time() if now is None else now)
+    if issued_at > current_time + AUTH_CLOCK_SKEW:
+        raise ValueError("world token is from the future")
+    if current_time >= expires_at:
+        raise ValueError("world token has expired")
+    if expected_uid is not None and uid != _actor_uid(expected_uid):
+        raise ValueError("world token actor uid mismatch")
+    if not isinstance(claims.get("nonce"), str) or not claims["nonce"]:
+        raise ValueError("invalid world token nonce")
+    return {**claims, "uid": uid, "iat": issued_at, "exp": expires_at}
 
 
 def _normalize_vehicle_paint(value) -> dict | None:
@@ -755,6 +948,22 @@ ITEMS = {
     "ak74":          {"name": "🎯 АК-74",            "type": "weapon",   "attack_bonus": 72,  "desc": "+72 к атаке. Резиденция."},
 }
 
+# Open-world armor durability is owned by the server. Keep these maxima next
+# to ITEMS so migrations, purchases, damage transactions and API snapshots use
+# one definition; world.html only renders values replicated by the server.
+ARMOR_MAX_HP = {
+    "leather_jacket": 45,
+    "bulletproof": 65,
+    "kevlar_vest": 80,
+    "tactical_vest": 95,
+    "army_armor": 115,
+    "swat_suit": 135,
+    "composite_armor": 160,
+    "exo_armor": 190,
+    "titanium_vest": 150,
+}
+AUTHORITATIVE_RESPAWN_S = 18.0
+
 # Чёрный рынок продаёт по одному представителю каждого реально отличающегося
 # огнестрельного класса открытого мира. Старые melee-предметы и визуальные
 # дубли остаются в ITEMS ради сохранений, но через магазин не продаются.
@@ -868,6 +1077,7 @@ async def init_db():
             ("last_hunt", "INTEGER DEFAULT 0"),
             ("channel_verified", "INTEGER DEFAULT 0"),
             ("wanted_stars", "INTEGER DEFAULT 0"),
+            ("respawn_at", "REAL DEFAULT 0"),
             ("jail_until", "INTEGER DEFAULT 0"),
             ("jail_count", "INTEGER DEFAULT 0"),
             ("wanted_last_fine", "INTEGER DEFAULT 0"),
@@ -935,6 +1145,8 @@ async def init_db():
             ("mafia_family",       "TEXT DEFAULT ''"),
             ("mafia_traitor_until","INTEGER DEFAULT 0"),
             ("mafia_last_family",  "TEXT DEFAULT ''"),
+            # Monotonic revision for authoritative body/armor snapshots.
+            ("combat_version",      "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -964,7 +1176,62 @@ async def init_db():
                 DELETE FROM inventory
                  WHERE id NOT IN (SELECT MIN(id) FROM inventory GROUP BY telegram_id,item_id)
             """)
-            await db.execute("CREATE UNIQUE INDEX ux_inventory_owner_item ON inventory(telegram_id,item_id)")
+        await db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_inventory_owner_item "
+            "ON inventory(telegram_id,item_id)"
+        )
+        for col, definition in (
+                ("armor_hp", "INTEGER DEFAULT NULL"),
+                ("armor_max_hp", "INTEGER DEFAULT NULL"),
+                ("armor_version", "INTEGER DEFAULT 0"),
+                ("armor_instance_id", "TEXT DEFAULT NULL")):
+            try:
+                await db.execute(f"ALTER TABLE inventory ADD COLUMN {col} {definition}")
+            except Exception:
+                pass
+        # Backward-compatible default: every owned legacy armor starts full.
+        # Existing localStorage wear was never authoritative and is discarded.
+        for armor_id, maximum in ARMOR_MAX_HP.items():
+            await db.execute(
+                """UPDATE inventory
+                      SET armor_max_hp=?,
+                          armor_hp=CASE
+                              WHEN armor_hp IS NULL THEN ?
+                              ELSE MAX(0,MIN(?,armor_hp))
+                          END,
+                          armor_version=COALESCE(armor_version,0),
+                          armor_instance_id=COALESCE(
+                              armor_instance_id,
+                              printf('legacy:%s:%s',telegram_id,item_id))
+                    WHERE item_id=? AND quantity>0""",
+                (maximum, maximum, maximum, armor_id),
+            )
+        # Never leave an equipped reference pointing at a missing/broken row.
+        await db.execute(
+            """UPDATE characters AS c SET armor=NULL
+                 WHERE armor IS NOT NULL
+                   AND NOT EXISTS (
+                       SELECT 1 FROM inventory AS i
+                        WHERE i.telegram_id=c.telegram_id
+                          AND i.item_id=c.armor
+                          AND i.quantity>0
+                          AND COALESCE(i.armor_hp,0)>0
+                   )"""
+        )
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS damage_events (
+                telegram_id INTEGER NOT NULL,
+                event_id TEXT NOT NULL,
+                damage_kind TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                PRIMARY KEY (telegram_id,event_id)
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_damage_events_created_at "
+            "ON damage_events(created_at)"
+        )
         await db.execute("""
             CREATE TABLE IF NOT EXISTS active_battles (
                 telegram_id INTEGER PRIMARY KEY,
@@ -1830,6 +2097,19 @@ async def ensure_account_profiles(account_id: int) -> None:
             "VALUES(?,?,?,?)", (int(account_id), int(account_id), slot, int(time.time())))
         await db.commit()
 
+
+async def actor_owns_character(account_id: int, character_id: int) -> bool:
+    """Legacy uid or an explicitly mapped profile belongs to this actor."""
+    if int(account_id) == int(character_id):
+        return True
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            """SELECT 1 FROM account_characters
+                 WHERE account_id=? AND character_id=?""",
+            (int(account_id), int(character_id))
+        ) as cur:
+            return await cur.fetchone() is not None
+
 def _profile_look(char: dict) -> dict:
     try:
         look = json.loads(char.get('look_json') or '{}') or {}
@@ -1930,6 +2210,8 @@ async def update_character(telegram_id: int, **kwargs):
     if not kwargs:
         return
     set_clause = ", ".join(f"{k}=?" for k in kwargs)
+    if 'hp' in kwargs and 'combat_version' not in kwargs:
+        set_clause += ", combat_version=combat_version+1"
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(f"UPDATE characters SET {set_clause} WHERE telegram_id=?", [*kwargs.values(), telegram_id])
         await db.commit()
@@ -1939,13 +2221,479 @@ async def get_inventory(telegram_id: int) -> dict:
         async with db.execute("SELECT item_id, quantity FROM inventory WHERE telegram_id=?", (telegram_id,)) as cur:
             return {r[0]: r[1] for r in await cur.fetchall()}
 
+
+def _empty_armor_state(version: int = 0) -> dict:
+    return {
+        'id': None, 'instance_id': None, 'current': 0, 'max': 0,
+        'version': max(0, int(version or 0)), 'broken': False,
+    }
+
+
+async def get_authoritative_combat_state(telegram_id: int) -> dict | None:
+    """Load durable body/equipped-armor state for API and WS reconnects."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT hp,max_hp,armor,combat_version FROM characters WHERE telegram_id=?",
+            (telegram_id,),
+        ) as cur:
+            char = await cur.fetchone()
+        if not char:
+            return None
+        version = max(0, int(char['combat_version'] or 0))
+        armor = _empty_armor_state(version)
+        armor_id = str(char['armor'] or '')
+        if armor_id:
+            async with db.execute(
+                """SELECT quantity,armor_hp,armor_max_hp,armor_version,
+                          armor_instance_id
+                     FROM inventory WHERE telegram_id=? AND item_id=?""",
+                (telegram_id, armor_id),
+            ) as cur:
+                row = await cur.fetchone()
+            if row and int(row['quantity'] or 0) > 0 and int(row['armor_hp'] or 0) > 0:
+                maximum = max(1, int(row['armor_max_hp'] or ARMOR_MAX_HP.get(armor_id, 1)))
+                armor = {
+                    'id': armor_id,
+                    'instance_id': str(row['armor_instance_id'] or ''),
+                    'current': min(maximum, max(0, int(row['armor_hp'] or 0))),
+                    'max': maximum,
+                    'version': max(0, int(row['armor_version'] or 0)),
+                    'broken': False,
+                }
+        maximum_hp = max(1, int(char['max_hp'] or 100))
+        return {
+            'body': {
+                'current': min(maximum_hp, max(0, int(char['hp'] or 0))),
+                'max': maximum_hp,
+                'dead': int(char['hp'] or 0) <= 0,
+            },
+            'armor': armor,
+            'combat_version': version,
+        }
+
+
+async def mutate_authoritative_body_state(
+        telegram_id: int, *, current: int | None = None, delta: int = 0,
+        respawn_at: float | None = None) -> dict | None:
+    """Atomically mutate durable body/lifecycle state without consuming armor."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT hp,max_hp,respawn_at FROM characters WHERE telegram_id=?",
+            (telegram_id,)
+        ) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return None
+        before = int(row[0] or 0)
+        maximum = max(1, int(row[1] or 100))
+        after = before + int(delta or 0) if current is None else int(current or 0)
+        after = max(0, min(maximum, after))
+        if respawn_at is None:
+            next_respawn = (0.0 if after > 0 else
+                            float(row[2] or 0) or time.time() + AUTHORITATIVE_RESPAWN_S)
+        else:
+            next_respawn = max(0.0, float(respawn_at or 0))
+        await db.execute(
+            """UPDATE characters SET hp=?,respawn_at=?,
+                       combat_version=combat_version+1
+                 WHERE telegram_id=?""", (after, next_respawn, telegram_id))
+        await db.commit()
+    return await get_authoritative_combat_state(telegram_id)
+
+
+async def set_authoritative_body_state(telegram_id: int, current: int) -> dict | None:
+    """Persist heal/respawn body changes without consuming equipped armor."""
+    return await mutate_authoritative_body_state(telegram_id, current=current)
+
+
+async def apply_hub_event_effects_transaction(
+        telegram_id: int, effects: dict, event_at: int) -> dict | None:
+    """Apply one hub event against the latest body row under the write lock."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            """SELECT hp,max_hp,mana,max_mana,cash,wanted_stars,wanted_gangs,
+                      jail_count,captivity_count
+                 FROM characters WHERE telegram_id=?""",
+            (telegram_id,),
+        ) as cur:
+            char = await cur.fetchone()
+        if not char:
+            await db.rollback()
+            return None
+        current_hp = max(0, int(char['hp'] or 0))
+        maximum_hp = max(1, int(char['max_hp'] or 100))
+        current_mana = max(0, int(char['mana'] or 0))
+        maximum_mana = max(0, int(char['max_mana'] or 50))
+        current_wanted = max(0, int(char['wanted_stars'] or 0))
+        current_gang_wanted = max(0, int(char['wanted_gangs'] or 0))
+        hp_delta = int(effects.get('hp', 0))
+        next_hp = max(1 if current_hp > 0 and hp_delta < 0 else 0,
+                      min(maximum_hp, current_hp + hp_delta))
+        if current_hp <= 0:
+            next_hp = current_hp
+        next_mana = max(0, min(
+            maximum_mana, current_mana + int(effects.get('energy', 0))))
+        next_cash = max(0, int(char['cash'] or 0) + int(effects.get('cash', 0)))
+        next_wanted = max(0, min(
+            3, current_wanted + int(effects.get('wanted', 0))))
+        next_gang_wanted = max(0, min(
+            3, current_gang_wanted + int(effects.get('wanted_g', 0))))
+        jailed = next_wanted >= 3 and current_wanted < 3
+        captured = next_gang_wanted >= 3 and current_gang_wanted < 3
+        jail_until = int(event_at + JAIL_DURATION) if jailed else None
+        captivity_until = int(event_at + CAPTIVITY_DURATION) if captured else None
+        await db.execute(
+            """UPDATE characters
+                  SET last_hub_event_at=?,hp=?,mana=?,cash=?,wanted_stars=?,
+                      wanted_gangs=?,
+                      jail_until=CASE WHEN ? IS NULL THEN jail_until ELSE ? END,
+                      jail_count=jail_count+?,
+                      captivity_until=CASE WHEN ? IS NULL THEN captivity_until ELSE ? END,
+                      captivity_count=captivity_count+?,
+                      combat_version=combat_version+1
+                WHERE telegram_id=?""",
+            (event_at, next_hp, next_mana, next_cash, next_wanted,
+             next_gang_wanted, jail_until, jail_until, int(jailed),
+             captivity_until, captivity_until, int(captured), telegram_id),
+        )
+        await db.commit()
+    return {
+        'hp': next_hp, 'mana': next_mana, 'cash': next_cash,
+        'wanted': next_wanted, 'wanted_g': next_gang_wanted,
+        'jailed': jailed, 'captured': captured,
+        'combat_state': await get_authoritative_combat_state(telegram_id),
+    }
+
+
+async def purchase_armor_transaction(telegram_id: int, armor_id: str) -> dict:
+    """Atomically charge, create one fresh armor generation, and equip it."""
+    item = ITEMS.get(str(armor_id)) or {}
+    if item.get('type') != 'armor' or armor_id not in ARMOR_MAX_HP:
+        return {'ok': False, 'error': 'unknown item'}
+    price_cash = int(item.get('price') or 0)
+    price_diamonds = int(item.get('diamonds_price') or 0)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT cash,diamonds FROM characters WHERE telegram_id=?",
+            (telegram_id,)
+        ) as cur:
+            char = await cur.fetchone()
+        if not char:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        cash, diamonds = int(char[0] or 0), int(char[1] or 0)
+        async with db.execute(
+            """SELECT 1 FROM inventory WHERE telegram_id=? AND item_id=?
+                 AND quantity>0""", (telegram_id, armor_id)
+        ) as cur:
+            if await cur.fetchone():
+                await db.rollback()
+                return {'ok': False, 'error': 'already owned',
+                        'cash': cash, 'diamonds': diamonds}
+        if price_diamonds:
+            if diamonds < price_diamonds:
+                await db.rollback()
+                return {'ok': False, 'error': 'no diamonds'}
+            diamonds -= price_diamonds
+            await db.execute(
+                "UPDATE characters SET diamonds=? WHERE telegram_id=?",
+                (diamonds, telegram_id))
+        else:
+            if not price_cash or cash < price_cash:
+                await db.rollback()
+                return {'ok': False, 'error': 'no cash'}
+            cash -= price_cash
+            await db.execute(
+                "UPDATE characters SET cash=? WHERE telegram_id=?",
+                (cash, telegram_id))
+        maximum = int(ARMOR_MAX_HP[armor_id])
+        instance_id = secrets.token_urlsafe(18)
+        await db.execute(
+            """INSERT INTO inventory
+               (telegram_id,item_id,quantity,armor_hp,armor_max_hp,
+                armor_version,armor_instance_id)
+               VALUES(?,?,1,?,?,1,?)""",
+            (telegram_id, armor_id, maximum, maximum, instance_id))
+        await db.execute(
+            """UPDATE characters SET armor=?,combat_version=combat_version+1
+                 WHERE telegram_id=?""",
+            (armor_id, telegram_id))
+        await db.commit()
+    return {'ok': True, 'cash': cash, 'diamonds': diamonds,
+            'item_id': armor_id, 'inventory_qty': 1,
+            'equipped_armor': armor_id, 'instance_id': instance_id}
+
+
+async def equip_item_transaction(telegram_id: int, item_id: str | None,
+                                 slot: str) -> dict:
+    """Serialize equip/unequip against damage and reject broken generations."""
+    if slot not in ('weapon', 'armor'):
+        return {'ok': False, 'error': 'bad slot'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT weapon,armor FROM characters WHERE telegram_id=?",
+            (telegram_id,)
+        ) as cur:
+            char = await cur.fetchone()
+        if not char:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        if item_id:
+            async with db.execute(
+                """SELECT quantity,armor_hp FROM inventory
+                     WHERE telegram_id=? AND item_id=?""",
+                (telegram_id, item_id)
+            ) as cur:
+                inv = await cur.fetchone()
+            if (not inv or int(inv[0] or 0) <= 0 or
+                    (slot == 'armor' and int(inv[1] or 0) <= 0)):
+                await db.rollback()
+                return {'ok': False, 'error': 'not in inventory'}
+        await db.execute(
+            f"""UPDATE characters SET {slot}=?,
+                       combat_version=combat_version+1
+                  WHERE telegram_id=?""", (item_id, telegram_id))
+        async with db.execute(
+            "SELECT weapon,armor FROM characters WHERE telegram_id=?",
+            (telegram_id,)
+        ) as cur:
+            equipped = await cur.fetchone()
+        await db.commit()
+    return {'ok': True, 'equipped_weapon': equipped[0],
+            'equipped_armor': equipped[1]}
+
+
+async def _apply_damage_transaction_once(
+        telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
+        pre_armor_multiplier: float = 1.0) -> dict:
+    """Atomically apply one idempotent, armor-first server damage event.
+
+    Career-police mitigation is composed first through
+    ``pre_armor_multiplier``. Item armor then absorbs one durability point per
+    effective damage point, and only the remainder reaches body HP. Replaying
+    ``event_id`` returns its receipt without another mutation.
+    """
+    uid = int(telegram_id)
+    stable_event_id = str(event_id or '').strip()[:160]
+    if not stable_event_id:
+        raise ValueError('event_id required')
+    kind = str(damage_kind or 'generic').strip().lower()[:32] or 'generic'
+    raw = max(0, min(10000, int(raw_damage or 0)))
+    multiplier = max(0.0, min(1.0, float(pre_armor_multiplier or 0.0)))
+    effective = int(math.ceil(raw * multiplier)) if raw else 0
+    if raw and multiplier > 0:
+        effective = max(1, effective)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('PRAGMA busy_timeout=75')
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT result_json FROM damage_events WHERE telegram_id=? AND event_id=?",
+            (uid, stable_event_id),
+        ) as cur:
+            replay = await cur.fetchone()
+        if replay:
+            await db.commit()
+            result = json.loads(replay['result_json'])
+            result['replayed'] = True
+            return result
+
+        async with db.execute(
+            "SELECT hp,max_hp,armor,combat_version,respawn_at FROM characters WHERE telegram_id=?",
+            (uid,),
+        ) as cur:
+            char = await cur.fetchone()
+        if not char:
+            await db.rollback()
+            raise LookupError('no character')
+
+        body_max = max(1, int(char['max_hp'] or 100))
+        body_before = min(body_max, max(0, int(char['hp'] or 0)))
+        armor_id = str(char['armor'] or '')
+        armor_instance_id = ''
+        armor_before = armor_after = armor_max = armor_version = 0
+        armor_qty = 0
+        if armor_id:
+            async with db.execute(
+                """SELECT quantity,armor_hp,armor_max_hp,armor_version,
+                          armor_instance_id
+                     FROM inventory WHERE telegram_id=? AND item_id=?""",
+                (uid, armor_id),
+            ) as cur:
+                armor_row = await cur.fetchone()
+            if armor_row and int(armor_row['quantity'] or 0) > 0:
+                armor_qty = int(armor_row['quantity'] or 0)
+                armor_max = max(1, int(
+                    armor_row['armor_max_hp'] or ARMOR_MAX_HP.get(armor_id, 1)))
+                armor_before = min(armor_max, max(0, int(armor_row['armor_hp'] or 0)))
+                armor_version = max(0, int(armor_row['armor_version'] or 0))
+                armor_instance_id = str(armor_row['armor_instance_id'] or '')
+            if armor_before <= 0:
+                armor_id = ''
+                armor_instance_id = ''
+                await db.execute(
+                    "UPDATE characters SET armor=NULL WHERE telegram_id=?", (uid,))
+
+        absorbed = min(armor_before, effective)
+        armor_after = armor_before - absorbed
+        body_damage = max(0, effective - absorbed)
+        body_after = max(0, body_before - body_damage)
+        armor_broken = bool(armor_id and armor_before > 0 and armor_after == 0)
+        if armor_id and absorbed:
+            armor_version += 1
+            if armor_broken:
+                if armor_qty <= 1:
+                    await db.execute(
+                        """DELETE FROM inventory
+                             WHERE telegram_id=? AND item_id=? AND armor_instance_id=?""",
+                        (uid, armor_id, armor_instance_id),
+                    )
+                else:
+                    await db.execute(
+                        """UPDATE inventory
+                              SET quantity=quantity-1,armor_hp=?,armor_max_hp=?,
+                                  armor_version=?,armor_instance_id=?
+                            WHERE telegram_id=? AND item_id=? AND armor_instance_id=?""",
+                        (armor_max, armor_max, armor_version,
+                         'reserve:' + secrets.token_urlsafe(12), uid, armor_id,
+                         armor_instance_id),
+                    )
+                await db.execute(
+                    "UPDATE characters SET armor=NULL WHERE telegram_id=? AND armor=?",
+                    (uid, armor_id),
+                )
+            else:
+                await db.execute(
+                    """UPDATE inventory SET armor_hp=?,armor_max_hp=?,armor_version=?
+                         WHERE telegram_id=? AND item_id=? AND armor_instance_id=?""",
+                    (armor_after, armor_max, armor_version, uid, armor_id,
+                     armor_instance_id),
+                )
+
+        combat_version = max(0, int(char['combat_version'] or 0)) + 1
+        respawn_at = float(char['respawn_at'] or 0)
+        if body_after <= 0 and body_before > 0:
+            respawn_at = time.time() + AUTHORITATIVE_RESPAWN_S
+        elif body_after > 0:
+            respawn_at = 0.0
+        await db.execute(
+            """UPDATE characters SET hp=?,combat_version=?,respawn_at=?
+                 WHERE telegram_id=?""",
+            (body_after, combat_version, respawn_at, uid),
+        )
+        result = {
+            'event_id': stable_event_id,
+            'kind': kind,
+            'raw_damage': raw,
+            'effective_damage': effective,
+            'armor': {
+                'id': armor_id or None,
+                'instance_id': armor_instance_id or None,
+                'current': armor_after,
+                'max': armor_max,
+                'version': armor_version,
+                'absorbed': absorbed,
+                'broken': armor_broken,
+            },
+            'body': {
+                'before': body_before,
+                'current': body_after,
+                'max': body_max,
+                'damage': body_damage,
+                'dead': body_after <= 0,
+            },
+            'combat_version': combat_version,
+            'replayed': False,
+        }
+        await db.execute(
+            """INSERT INTO damage_events
+                   (telegram_id,event_id,damage_kind,result_json,created_at)
+                 VALUES(?,?,?,?,?)""",
+            (uid, stable_event_id, kind,
+             json.dumps(result, ensure_ascii=False, separators=(',', ':')),
+             time.time()),
+        )
+        await db.commit()
+        return result
+
+
+async def apply_damage_transaction(
+        telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
+        pre_armor_multiplier: float = 1.0) -> dict:
+    """Retry a short SQLite lock without changing the durable event identity."""
+    for attempt in range(4):
+        try:
+            return await _apply_damage_transaction_once(
+                telegram_id, event_id, damage_kind, raw_damage,
+                pre_armor_multiplier=pre_armor_multiplier)
+        except aiosqlite.OperationalError as exc:
+            locked = any(word in str(exc).lower() for word in ('locked', 'busy'))
+            if not locked or attempt == 3:
+                raise
+            await asyncio.sleep(0.025 * (2 ** attempt))
+    raise RuntimeError('unreachable damage retry state')
+
+
+async def get_damage_event_receipt(telegram_id: int, event_id: str) -> dict | None:
+    """Read an existing receipt without creating a zero-damage event."""
+    stable_event_id = str(event_id or '').strip()[:160]
+    if not stable_event_id:
+        return None
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('PRAGMA busy_timeout=75')
+        async with db.execute(
+            "SELECT result_json FROM damage_events WHERE telegram_id=? AND event_id=?",
+            (int(telegram_id), stable_event_id),
+        ) as cur:
+            row = await cur.fetchone()
+    if not row:
+        return None
+    result = json.loads(row['result_json'])
+    result['replayed'] = True
+    return result
+
 async def add_item(telegram_id: int, item_id: str, qty: int = 1):
     async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        if (ITEMS.get(item_id) or {}).get('type') == 'armor':
+            async with db.execute(
+                "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?",
+                (telegram_id, item_id)) as cur:
+                existing = await cur.fetchone()
+            if existing and int(existing[0] or 0) > 0:
+                await db.rollback()
+                return {'ok': False, 'error': 'already owned', 'duplicate': True}
+            maximum = int(ARMOR_MAX_HP[item_id])
+            instance_id = secrets.token_urlsafe(18)
+            await db.execute(
+                """INSERT INTO inventory
+                   (telegram_id,item_id,quantity,armor_hp,armor_max_hp,
+                    armor_version,armor_instance_id)
+                   VALUES(?,?,1,?,?,1,?)
+                   ON CONFLICT(telegram_id,item_id) DO UPDATE SET
+                     quantity=1,armor_hp=excluded.armor_hp,
+                     armor_max_hp=excluded.armor_max_hp,
+                     armor_version=inventory.armor_version+1,
+                     armor_instance_id=excluded.armor_instance_id""",
+                (telegram_id, item_id, maximum, maximum, instance_id))
+            await db.commit()
+            return {'ok': True, 'item_id': item_id, 'quantity': 1,
+                    'instance_id': instance_id, 'current': maximum, 'max': maximum}
         await db.execute("""
             INSERT INTO inventory (telegram_id,item_id,quantity) VALUES (?,?,?)
             ON CONFLICT(telegram_id,item_id) DO UPDATE SET quantity=quantity+excluded.quantity
         """, (telegram_id, item_id, qty))
         await db.commit()
+    return {'ok': True, 'item_id': item_id, 'quantity_added': int(qty)}
 
 async def ensure_owner_entry_loadout(telegram_id: int) -> bool:
     """Restore the project owner's cash and arsenal without affecting players."""
@@ -9999,10 +10747,17 @@ async def casino_spin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         result_line = f"💵 *Кейс с деньгами! +{prize_val}$* {net_text}"
 
     elif prize_type == "item":
-        await add_item(user_id, prize_val)
+        grant = await add_item(user_id, prize_val)
         item = ITEMS[prize_val]
-        result_line = f"🎁 *Выпало: {item['name']}!*\n_{item['desc']}_"
-        final_cash = new_cash
+        if not grant.get('ok') and grant.get('duplicate'):
+            bonus = 150
+            final_cash = new_cash + bonus
+            await update_character(user_id, cash=final_cash)
+            result_line = (f"🎁 *{item['name']} уже есть.*\n"
+                           f"Казино компенсирует: +{bonus}$")
+        else:
+            result_line = f"🎁 *Выпало: {item['name']}!*\n_{item['desc']}_"
+            final_cash = new_cash
 
     elif prize_type == "weapon":
         weapon_id = casino["weapon"]
@@ -13558,7 +14313,7 @@ class WorldSim:
     GUARD_CHASE_SPEED  = 1.6       # охотится за стрелявшим (быстрее конвоя)
     GUARD_CHASE_R      = 12.0      # радиус «вижу врага» когда отстал от конвоя
     GUARD_RETURN_R     = 18.0      # если отстал дальше — возвращается в формацию
-    PLAYER_RESPAWN_S   = 18.0      # окно для приезда скорой и спасения
+    PLAYER_RESPAWN_S   = AUTHORITATIVE_RESPAWN_S  # окно для скорой и спасения
     # PvP-зона ВО ВРЕМЯ события: пока конвой жив, игроки могут стрелять
     # друг в друга в радиусе PVP_HOT_R от линии маршрута. Это создаёт
     # конкуренцию: подбежал к кушу — попал под огонь не только конвоя,
@@ -14350,7 +15105,8 @@ class WorldSim:
                 }
             escorted_uid = str(p.get('_police_escort_uid') or '')
             if escorted_uid:
-                self._release_online_arrest(escorted_uid, 'cop_left')
+                asyncio.create_task(
+                    self._release_online_arrest_async(escorted_uid, 'cop_left'))
             cop_uid = str(p.get('_police_cuffed_by') or '')
             if cop_uid:
                 cop = self.players.get(cop_uid)
@@ -14385,18 +15141,28 @@ class WorldSim:
             if cop and str(cop.get('_police_downed_target') or '') == str(target_uid):
                 cop.pop('_police_downed_target', None)
 
-    def _release_online_arrest(self, target_uid: str, reason: str = '') -> dict | None:
+    async def _release_online_arrest_async(self, target_uid: str,
+                                           reason: str = '') -> dict | None:
         target = self.players.get(str(target_uid))
         if not target:
             return None
-        cop_uid = str(target.pop('_police_cuffed_by', '') or '')
-        death_arrest = bool(target.pop('_police_death_arrest', False))
+        cop_uid = str(target.get('_police_cuffed_by', '') or '')
+        death_arrest = bool(target.get('_police_death_arrest', False))
+        if death_arrest and reason != 'jailed':
+            release_hp = max(25, int(target.get('hp') or 0))
+            state = await self._persist_body_or_harness(target_uid, release_hp)
+            if state:
+                self._mirror_combat_state(target, state)
+            elif _SYNC_WORLD_HARNESS.get():
+                target['dead'] = False
+                target['hp'] = release_hp
+            else:
+                return None
+            target['_wanted'] = 0.0
+        target.pop('_police_cuffed_by', None)
+        target.pop('_police_death_arrest', None)
         target.pop('_police_cuff_until', None)
         target.pop('_police_stunned_until', None)
-        if death_arrest and reason != 'jailed':
-            target['dead'] = False
-            target['hp'] = max(25, int(target.get('hp') or 0))
-            target['_wanted'] = 0.0
         if cop_uid:
             cop = self.players.get(cop_uid)
             if cop and str(cop.get('_police_escort_uid') or '') == str(target_uid):
@@ -14404,7 +15170,7 @@ class WorldSim:
         return {'kind': 'police_online_released', 'target_uid': str(target_uid),
                 'cop_uid': cop_uid, 'reason': reason, 'death_arrest': death_arrest}
 
-    def _tick_online_arrests(self, now: float | None = None) -> list[dict]:
+    async def _tick_online_arrests_async(self, now: float | None = None) -> list[dict]:
         now = now or time.time()
         events = []
         for target_uid, target in list(self.players.items()):
@@ -14422,7 +15188,7 @@ class WorldSim:
             elif target.get('dead'):
                 reason = 'target_dead'
             if reason:
-                ev = self._release_online_arrest(target_uid, reason)
+                ev = await self._release_online_arrest_async(target_uid, reason)
                 if ev: events.append(ev)
                 continue
             # Сервер ведёт задержанного в 0.7 тайла позади копа. Сам задержанный
@@ -14454,6 +15220,144 @@ class WorldSim:
             local_control = int(score.get('police') or 0) >= int(score.get('mafia') or 0) + 15
             return max(1, int(math.ceil(damage * (0.65 if local_control else 0.70)))) if damage else 0
         return damage
+
+    async def apply_authoritative_damage(self, target_uid: str, event_id: str,
+                                         kind: str, raw_damage: int) -> dict | None:
+        """Single durable armor-first path for validated open-world hits."""
+        target_uid = str(target_uid)
+        target = self.players.get(target_uid)
+        if (not target or target.get('dead') or
+                (not target_uid.isdigit() and not _SYNC_WORLD_HARNESS.get())):
+            return None
+        raw_damage = max(0, int(raw_damage or 0))
+        effective = self.police_vest_damage(target, raw_damage)
+        multiplier = (float(effective) / raw_damage) if raw_damage else 1.0
+        try:
+            if not target_uid.isdigit():
+                raise ValueError('sync harness uid')
+            result = await apply_damage_transaction(
+                int(target_uid), str(event_id)[:160], str(kind)[:32], raw_damage,
+                pre_armor_multiplier=multiplier)
+        except Exception:
+            if not _SYNC_WORLD_HARNESS.get():
+                raise
+            # Old pure-WorldSim tests intentionally construct no DB. This
+            # branch is unreachable from the production event loop.
+            before = int(target.get('hp') or 0)
+            after = max(0, before - effective)
+            result = {
+                'body': {'current': after,
+                         'max': int(target.get('max_hp') or 100),
+                         'dead': after <= 0, 'damage': before - after},
+                'armor': _empty_armor_state(), 'combat_version': 0,
+                'replayed': False,
+            }
+        # A receipt describes that historical event (including a just-broken
+        # generation); it is not necessarily the current state on replay.
+        # Reload the durable canonical shape and only advance the live mirror.
+        if target_uid.isdigit():
+            state = await get_authoritative_combat_state(int(target_uid))
+        else:
+            state = {
+                'body': {
+                    'current': int(result['body']['current']),
+                    'max': int(result['body']['max']),
+                    'dead': bool(result['body']['dead']),
+                },
+                'armor': dict(result['armor']),
+                'combat_version': int(result['combat_version']),
+            }
+        if state is None:
+            return None
+        was_dead = bool(target.get('dead'))
+        if not self._mirror_combat_state(target, state):
+            state = target.get('_combat_state') or state
+        if target['dead'] and not was_dead:
+            target['deaths'] = int(target.get('deaths', 0)) + 1
+            target['_respawn_at'] = time.time() + self.PLAYER_RESPAWN_S
+        return result
+
+    def _sync_test_or_coro(self, coro):
+        """Keep legacy direct-call harnesses while production awaits in its loop."""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            harness_token = _SYNC_WORLD_HARNESS.set(True)
+            try:
+                return asyncio.run(coro)
+            finally:
+                _SYNC_WORLD_HARNESS.reset(harness_token)
+        return coro
+
+    async def _persist_body_or_harness(self, uid, hp):
+        try:
+            return await set_authoritative_body_state(int(uid), int(hp))
+        except Exception:
+            if _SYNC_WORLD_HARNESS.get():
+                return None
+            raise
+
+    @staticmethod
+    def _mirror_combat_state(player: dict, state: dict | None) -> bool:
+        """Advance an online mirror; never roll it back with an old receipt."""
+        if not player or not state:
+            return False
+        live_version = int((player.get('_combat_state') or {}).get(
+            'combat_version') or 0)
+        if int(state.get('combat_version') or 0) < live_version:
+            return False
+        player['_combat_state'] = state
+        player['hp'] = int(state['body']['current'])
+        player['max_hp'] = int(state['body']['max'])
+        player['dead'] = bool(state['body']['dead'])
+        return True
+
+    def tick_event(self, dt):
+        return self._sync_test_or_coro(self._tick_event_async(dt))
+
+    def tick_cops(self, dt):
+        return self._sync_test_or_coro(self._tick_cops_async(dt))
+
+    def tick_pending_bot_shots(self):
+        return self._sync_test_or_coro(self._tick_pending_bot_shots_async())
+
+    def tick_aggro(self, dt):
+        return self._sync_test_or_coro(self._tick_aggro_async(dt))
+
+    def tick_michael_guards(self, dt):
+        return self._sync_test_or_coro(self._tick_michael_guards_async(dt))
+
+    def tick_world_c4(self):
+        return self._sync_test_or_coro(self._tick_world_c4_async())
+
+    def tick_respawn(self, dt):
+        return self._sync_test_or_coro(self._tick_respawn_async(dt))
+
+    def emergency_revive(self, uid, hospital_id='hospital', hospital_x=None,
+                         hospital_y=None):
+        return self._sync_test_or_coro(self._emergency_revive_async(
+            uid, hospital_id, hospital_x, hospital_y))
+
+    def emergency_transport(self, uid, active=True):
+        return self._sync_test_or_coro(
+            self._emergency_transport_async(uid, active))
+
+    def world_heal(self, uid):
+        return self._sync_test_or_coro(self._world_heal_async(uid))
+
+    def _release_online_arrest(self, target_uid, reason=''):
+        return self._sync_test_or_coro(
+            self._release_online_arrest_async(target_uid, reason))
+
+    def _tick_online_arrests(self, now=None):
+        return self._sync_test_or_coro(self._tick_online_arrests_async(now))
+
+    def police_arrest_downed(self, cop_uid, target_uid):
+        return self._sync_test_or_coro(
+            self._police_arrest_downed_async(cop_uid, target_uid))
+
+    def police_turnin_online(self, cop_uid):
+        return self._sync_test_or_coro(self._police_turnin_online_async(cop_uid))
 
     def police_patrol_spawn(self, uid: str) -> dict:
         cop = self.players.get(str(uid))
@@ -14669,7 +15573,8 @@ class WorldSim:
         return {'ok': True, 'target_uid': str(target_uid),
                 'cop_uid': str(cop_uid), 'until': now + self.POLICE_ESCORT_S}
 
-    def police_arrest_downed(self, cop_uid: str, target_uid: str) -> dict:
+    async def _police_arrest_downed_async(self, cop_uid: str,
+                                          target_uid: str) -> dict:
         """Коп принимает решение задержать убитого им разыскиваемого игрока."""
         cop = self.players.get(str(cop_uid)); target = self.players.get(str(target_uid))
         now = time.time()
@@ -14689,9 +15594,15 @@ class WorldSim:
             return {'ok': False, 'error': 'interior'}
         if (float(cop['x'])-float(target['x']))**2 + (float(cop['y'])-float(target['y']))**2 > self.POLICE_ACTION_R**2:
             return {'ok': False, 'error': 'too_far'}
+        state = await self._persist_body_or_harness(target_uid, 1)
+        if state:
+            self._mirror_combat_state(target, state)
+        elif _SYNC_WORLD_HARNESS.get():
+            target['dead'] = False
+            target['hp'] = 1
+        else:
+            return {'ok': False, 'error': 'storage'}
         self._clear_police_downed(str(target_uid))
-        target['dead'] = False
-        target['hp'] = 1
         target.pop('_respawn_at', None)
         target['_police_cuffed_by'] = str(cop_uid)
         target['_police_cuff_until'] = now + self.POLICE_ESCORT_S
@@ -14708,7 +15619,7 @@ class WorldSim:
                 'cop_uid': str(cop_uid), 'until': now + self.POLICE_ESCORT_S,
                 'death_arrest': True}
 
-    def police_turnin_online(self, cop_uid: str) -> dict:
+    async def _police_turnin_online_async(self, cop_uid: str) -> dict:
         cop = self.players.get(str(cop_uid))
         if not cop or not cop.get('_police'):
             return {'ok': False, 'error': 'not_police'}
@@ -14723,12 +15634,10 @@ class WorldSim:
         target['_wanted'] = 0.0
         target['_jail_until'] = int(now + self.POLICE_JAIL_S)
         target['_jail_released'] = False
-        target['dead'] = False
-        target['hp'] = max(1, int(target.get('hp') or 100))
         sx, sy = random.choice(self.JAIL_SPAWNS)
         target['x'], target['y'] = sx, sy
         arrest_did = target.get('_police_arrest_did') or self._district_id_at(target.get('x'), target.get('y'))
-        self._release_online_arrest(target_uid, 'jailed')
+        await self._release_online_arrest_async(target_uid, 'jailed')
         cop.pop('_police_online_target', None)
         self._faction_war_add('police', 8, did=arrest_did, actor_uid=cop_uid,
                               action=f'online_arrest:{target_uid}', cooldown_s=900)
@@ -15950,7 +16859,7 @@ class WorldSim:
                     'skill_up': skill_up, 'new_sc_lvl': new_sc}
         return parked_reply()
 
-    def world_heal(self, uid: str) -> dict:
+    async def _world_heal_async(self, uid: str) -> dict:
         """Полное лечение игрока — если он в радиусе POI больницы (43, 23)
         и кулдаун 60с прошёл. Возвращает {ok, hp, cd_left_s, reason?}."""
         p = self.players.get(uid)
@@ -15970,9 +16879,17 @@ class WorldSim:
             return {'ok': False, 'reason': 'cooldown',
                     'cd_left_s': int(cd_until - now)}
         max_hp = int(p.get('max_hp', 100) or 100)
-        p['hp'] = max_hp
+        state = await self._persist_body_or_harness(uid, max_hp)
+        if state:
+            self._mirror_combat_state(p, state)
+        elif _SYNC_WORLD_HARNESS.get():
+            p['hp'] = max_hp
+            p['dead'] = False
+        else:
+            return {'ok': False, 'reason': 'storage'}
         p['_heal_cd_until'] = now + 60.0
-        return {'ok': True, 'hp': max_hp, 'cd_left_s': 60}
+        return {'ok': True, 'hp': int(p.get('hp') or 0), 'cd_left_s': 60,
+                'combat_state': p.get('_combat_state')}
 
     def gta_status(self, uid: str) -> dict:
         """Снапшот GTA для HUD: счётчик, ресет, активный заказ."""
@@ -16186,7 +17103,8 @@ class WorldSim:
                 'max_hp':   int(self.INKASS_HP),
                 'alive':    True,
                 '_shot_t':  0.0,
-                '_patrol_x': float(bx), '_patrol_y': float(by),
+                '_patrol_x': float(self.INKASS_START_X),
+                '_patrol_y': float(self.INKASS_START_Y),
                 '_patrol_until': 0.0, '_chatter_at': time.time() + random.uniform(4, 12),
                 'act': 'idle', 'threat': '',
                 # Threat: какого игрока запомнил как угрозу + когда последний раз вспоминал
@@ -16220,7 +17138,7 @@ class WorldSim:
                     e['id'], self.INKASS_START_X, self.INKASS_START_Y,
                     self.INKASS_END_X, self.INKASS_END_Y, len(e['guards']))
 
-    def tick_event(self, dt: float) -> list:
+    async def _tick_event_async(self, dt: float) -> list:
         """Тикает событие. Возвращает list пакетов для broadcast:
         - 'inkassator_spawned' — конвой выехал (всем игрокам)
         - 'inkass_shot'        — NPC выстрелил в игрока (trace+dmg)
@@ -16376,14 +17294,13 @@ class WorldSim:
             else:
                 shot_dmg = dmg
                 tx = target['x']; ty = target['y']
-            shot_dmg = self.police_vest_damage(target, shot_dmg)
-            target['hp']    = int(max(0, int(target.get('hp', 100)) - shot_dmg))
+            if shot_dmg:
+                await self.apply_authoritative_damage(
+                    chosen_uid,
+                    f"world:inkass:{e.get('id')}:{actor.get('id')}:{self.tick_no}",
+                    'bullet', shot_dmg)
             killed = False
             if target['hp'] <= 0:
-                target['hp']           = 0
-                target['dead']         = True
-                target['deaths']       = int(target.get('deaths', 0)) + 1
-                target['_respawn_at']  = now + self.PLAYER_RESPAWN_S
                 killed = True
             pkts.append({
                 'kind':       'inkass_shot',
@@ -16468,7 +17385,8 @@ class WorldSim:
             y, x = coords
         return self._safe_respawn_near(x, y)
 
-    def emergency_transport(self, uid: str, active: bool = True) -> dict:
+    async def _emergency_transport_async(self, uid: str,
+                                         active: bool = True) -> dict:
         """Hold normal respawn while the city ambulance transports a downed player."""
         p = self.players.get(str(uid))
         if not p:
@@ -16480,23 +17398,41 @@ class WorldSim:
             if float(p.get('_jail_until') or 0) > now or p.get('_police_downed_by'):
                 return {'ok': False, 'error': 'custody'}
             hold_until = now + 180.0
+            state = await mutate_authoritative_body_state(
+                int(uid), respawn_at=hold_until)
+            if state is None:
+                return {'ok': False, 'error': 'storage'}
+            self._mirror_combat_state(p, state)
             p['_emergency_transport_until'] = hold_until
             p['_respawn_at'] = max(float(p.get('_respawn_at') or 0), hold_until)
             return {'ok': True, 'active': True, 'hold_until': hold_until}
-        p.pop('_emergency_transport_until', None)
+        release_at = 0.0
         if p.get('dead'):
-            p['_respawn_at'] = min(float(p.get('_respawn_at') or now + 5.0), now + 5.0)
+            release_at = min(float(p.get('_respawn_at') or now + 5.0), now + 5.0)
+        state = await mutate_authoritative_body_state(int(uid), respawn_at=release_at)
+        if state is None:
+            return {'ok': False, 'error': 'storage'}
+        self._mirror_combat_state(p, state)
+        p.pop('_emergency_transport_until', None)
+        p['_respawn_at'] = release_at
         return {'ok': True, 'active': False}
 
-    def emergency_revive(self, uid: str, hospital_id: str = 'hospital', hospital_x=None, hospital_y=None) -> dict:
+    async def _emergency_revive_async(self, uid: str, hospital_id: str = 'hospital', hospital_x=None, hospital_y=None) -> dict:
         """Скорая поднимает погибшего игрока до автоматического респавна."""
         p = self.players.get(str(uid))
         if not p or not p.get('dead'):
             return {'ok': False, 'error': 'not_downed'}
         if float(p.get('_jail_until') or 0) > time.time() or p.get('_police_downed_by'):
             return {'ok': False, 'error': 'custody'}
-        p['dead'] = False
-        p['hp'] = max(30, int((p.get('max_hp') or 100) * .4))
+        revived_hp = max(30, int((p.get('max_hp') or 100) * .4))
+        state = await self._persist_body_or_harness(uid, revived_hp)
+        if state:
+            self._mirror_combat_state(p, state)
+        elif _SYNC_WORLD_HARNESS.get():
+            p['dead'] = False
+            p['hp'] = revived_hp
+        else:
+            return {'ok': False, 'error': 'storage'}
         p.pop('_respawn_at', None)
         p.pop('_emergency_transport_until', None)
         target_x, target_y = ((126.0, 46.0) if str(hospital_id) == 'hospital_east'
@@ -16510,7 +17446,7 @@ class WorldSim:
         p['x'], p['y'] = target_x, target_y
         return {'ok': True, 'hp': p['hp'], 'x': p.get('x'), 'y': p.get('y')}
 
-    def tick_respawn(self, dt: float) -> None:
+    async def _tick_respawn_async(self, dt: float) -> None:
         """Воскрешает мёртвых игроков через PLAYER_RESPAWN_S. Раньше эта
         логика была внутри tick_event, поэтому жертвы банды Логова
         (которые умирают в tick_aggro) висели мёртвыми навсегда. Сейчас
@@ -16528,8 +17464,15 @@ class WorldSim:
             if now < p.get('_respawn_at', 0):
                 continue
             self._clear_police_downed(str(p_uid))
-            p['dead'] = False
-            p['hp']   = int(p.get('max_hp', 100))
+            respawn_hp = int(p.get('max_hp', 100))
+            state = await self._persist_body_or_harness(p_uid, respawn_hp)
+            if state:
+                self._mirror_combat_state(p, state)
+            elif _SYNC_WORLD_HARNESS.get():
+                p['dead'] = False
+                p['hp'] = respawn_hp
+            else:
+                continue
             # После смерти кулачки банд обнуляются (как и при тюремном выкупе).
             # Аналогично — wanted-копы. Это разгружает раннюю игру: умер —
             # появился чистым. Push в БД через background-таск.
@@ -16727,8 +17670,8 @@ class WorldSim:
                 }
         return None
 
-    def apply_player_shoot(self, uid: str, target_uid: str,
-                           weapon: str = '') -> dict | None:
+    async def apply_player_shoot(self, uid: str, target_uid: str,
+                           weapon: str = '', shot_id: str = '') -> dict | None:
         """PvP: игрок стреляет в другого игрока. Разрешено в 5 случаях:
           1) Оба в активной PvP-зоне вокруг конвоя инкассатора.
           2) Оба в постоянной PvP-арене.
@@ -16745,14 +17688,39 @@ class WorldSim:
         target  = self.players.get(target_uid)
         if not shooter or not target:
             return None
+        shot_id = str(shot_id or '').strip()[:96]
+        if not shot_id or str(uid) == str(target_uid):
+            return None
+        damage_event_id = f"world:pvp:{uid}:{shot_id}"
+        if str(target_uid).isdigit():
+            cached = await get_damage_event_receipt(
+                int(target_uid), damage_event_id)
+            if cached is not None:
+                state = await get_authoritative_combat_state(int(target_uid))
+                if state is None:
+                    return None
+                live_version = int((target.get('_combat_state') or {}).get(
+                    'combat_version') or 0)
+                if int(state['combat_version']) >= live_version:
+                    target['_combat_state'] = state
+                    target['hp'] = state['body']['current']
+                    target['max_hp'] = state['body']['max']
+                    target['dead'] = state['body']['dead']
+                else:
+                    state = target['_combat_state']
+                return {
+                    'kind': 'pvp_shot', 'shooter_uid': str(uid),
+                    'target_uid': str(target_uid), 'shot_id': shot_id,
+                    'dmg': int(cached.get('raw_damage') or 0),
+                    'killed': bool(cached['body']['dead']),
+                    'replayed': True, 'combat_state': state,
+                }
         if shooter.get('dead') or target.get('dead'):
             return None
         # Задержанный под серверным конвоем неуязвим для игроков: друзья не
         # могут сорвать доставку расстрелом, а коп не использует наручники как
         # способ подставить жертву. Защита исчезает вместе с наручниками.
         if target.get('_police_cuffed_by'):
-            return None
-        if str(uid) == str(target_uid):
             return None
         # PvE-наблюдатели не могут стрелять и в них не попадают
         if shooter.get('_mode') == 'pve' or target.get('_mode') == 'pve':
@@ -16847,8 +17815,22 @@ class WorldSim:
                          int(shot_score.get('mafia') or 0) >= int(shot_score.get('police') or 0) + 15)
         if mafia_control:
             dmg = max(1, min(220, int(math.ceil(dmg * 1.05))))
-        dmg = self.police_vest_damage(target, dmg)
-        target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
+        damage_result = await self.apply_authoritative_damage(
+            target_uid, damage_event_id,
+            'bullet', dmg)
+        if damage_result is None:
+            return None
+        if damage_result.get('replayed'):
+            state = target.get('_combat_state') or await get_authoritative_combat_state(
+                int(target_uid))
+            return {
+                'kind': 'pvp_shot', 'shooter_uid': str(uid),
+                'target_uid': str(target_uid), 'shot_id': shot_id,
+                'dmg': int(damage_result.get('raw_damage') or 0),
+                'killed': bool(state['body']['dead']),
+                'replayed': True,
+                'combat_state': state,
+            }
         # Аптечки разрешены только после боя. Метка ставится обоим участникам
         # лишь после подтверждённого сервером попадания.
         shooter['_combat_until'] = now + 10.0
@@ -16856,10 +17838,6 @@ class WorldSim:
         killed = False
         bounty_done = False
         if target['hp'] <= 0:
-            target['hp']          = 0
-            target['dead']        = True
-            target['deaths']      = int(target.get('deaths', 0)) + 1
-            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
             shooter['kills']      = int(shooter.get('kills', 0)) + 1
             killed = True
             if business_police_fight and shooter.get('_police') and target_is_attacker:
@@ -16910,6 +17888,7 @@ class WorldSim:
             shooter['_pvp_terr_hit'] = s_tid
         return {
             'kind':       'pvp_shot',
+            'shot_id':    shot_id,
             'shooter_uid': str(uid),
             'target_uid':  str(target_uid),
             'sx':          round(float(shooter.get('_interior_x') or 0),2) if (business_defense or business_police_fight) else round(shooter['x'],2),
@@ -16924,6 +17903,7 @@ class WorldSim:
             'business_prevented': bool(killed and business_police_fight and shooter.get('_police') and target_is_attacker),
             'business_defended': bool(killed and business_defense and shooter.get('_business_private') and target_is_attacker),
             'business_id': s_biz if business_police_fight else '',
+            'combat_state': target.get('_combat_state'),
             'decision_until': (round(now + self.POLICE_DOWNED_DECISION_S, 2)
                                if killed and police_pursuit else 0),
             'weapon':      weapon or '',
@@ -17098,7 +18078,7 @@ class WorldSim:
         return {'ok': True, 'server_cop_id': str(cop.get('id') or ''),
                 'server_cop_distance': round(d2 ** 0.5, 2)}
 
-    def tick_cops(self, dt: float) -> list:
+    async def _tick_cops_async(self, dt: float) -> list:
         """Двигает копов, спавнит новых по wanted-уровню, стреляет
         в стрелявших. Возвращает list пакетов для broadcast."""
         import math as _m
@@ -17351,15 +18331,14 @@ class WorldSim:
                         # RPG спецназа: +20 урона
                         dmg = base_dmg + (20 if cop.get('weapon') == 'rpg' else 0)
                         tx = target['x']; ty = target['y']
-                    dmg = self.police_vest_damage(target, dmg)
-                    target['hp'] = int(max(0, int(target.get('hp', 100)) - dmg))
+                    if dmg:
+                        await self.apply_authoritative_damage(
+                            str(target.get('uid') or ''),
+                            f"world:cop:{cop.get('id')}:{self.tick_no}",
+                            'bullet', dmg)
                     killed = False
                     jailed = False
                     if target['hp'] <= 0:
-                        target['hp']          = 0
-                        target['dead']        = True
-                        target['deaths']      = int(target.get('deaths', 0)) + 1
-                        target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
                         killed = True
                         # ЛЮБАЯ смерть от копа = автозак → участок.
                         # Звёзды обнуляются после освобождения через 60с.
@@ -17902,7 +18881,7 @@ class WorldSim:
             'tx': round(tx, 2), 'ty': round(ty, 2),
         }
 
-    def tick_pending_bot_shots(self) -> list:
+    async def _tick_pending_bot_shots_async(self) -> list:
         """Применяет накопленные выстрелы ботов когда пуля «долетела».
         Игрок может УВЕРНУТЬСЯ, если к этому моменту отошёл дальше
         BULLET_DODGE_R от точки удара. Шлёт пакеты 'aggro_apply'."""
@@ -17924,12 +18903,12 @@ class WorldSim:
             killed = False
             dmg = 0
             if not miss:
-                dmg = self.police_vest_damage(target, s['dmg'])
-                target['hp'] = max(0, int(target.get('hp', 100)) - dmg)
+                dmg = int(s['dmg'])
+                await self.apply_authoritative_damage(
+                    str(s['target_uid']),
+                    f"world:aggro:{s.get('tid')}:{s.get('bot_id')}:{s.get('apply_at')}",
+                    'bullet', dmg)
                 if target['hp'] <= 0:
-                    target['dead'] = True
-                    target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                    target['deaths'] = int(target.get('deaths', 0)) + 1
                     killed = True
             pkts.append({
                 'kind':       'aggro_apply',
@@ -17964,7 +18943,7 @@ class WorldSim:
         self._gang_throwables = self._gang_throwables[-24:]
         return {'kind':'gang_throwable_registered', **danger}
 
-    def tick_aggro(self, dt: float) -> list:
+    async def _tick_aggro_async(self, dt: float) -> list:
         """AI агрессивных районов. Возвращает список event-пакетов."""
         import math as _m
         pkts = []
@@ -18161,15 +19140,15 @@ class WorldSim:
                     # Ближний бой — сабля
                     if dist <= self.AGGRO_BOSS_RANGE_M and (now - bot['_shot_t']) >= self.AGGRO_BOSS_CD_M:
                         bot['_shot_t'] = now
-                        dmg = self.police_vest_damage(
-                            target, self._bandit_damage(
-                                int(self.AGGRO_BOSS_DMG_M), bot.get('level', 1)))
-                        target['hp'] = max(0, int(target.get('hp',100)) - dmg)
+                        dmg = self._bandit_damage(
+                            int(self.AGGRO_BOSS_DMG_M), bot.get('level', 1))
+                        await self.apply_authoritative_damage(
+                            t_uid,
+                            f"world:aggro-melee:{tid}:{bot.get('id')}:{self.tick_no}",
+                            'melee', dmg)
                         killed = target['hp'] <= 0
                         if killed:
-                            target['dead'] = True
-                            target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
-                            target['deaths'] = int(target.get('deaths',0)) + 1
+                            pass
                         pkts.append({'kind':'aggro_melee', 'tid':tid,
                                      'bot_id': bot['id'], 'target_uid': t_uid,
                                      'dmg': dmg, 'killed': killed,
@@ -20803,7 +21782,7 @@ class WorldSim:
             g['_target_uid']     = str(shooter_uid)
             g['_hostile_until']  = now + self.MICHAEL_GUARD_HOSTILE_S
 
-    def tick_michael_guards(self, dt: float) -> list:
+    async def _tick_michael_guards_async(self, dt: float) -> list:
         """AI охраны Майкла. Возвращает event-пакеты mg_shot."""
         import math as _m
         pkts = []
@@ -20859,15 +21838,12 @@ class WorldSim:
                 miss = random.random() < 0.30
                 dmg = 0 if miss else self.MICHAEL_GUARD_DMG
                 if not miss:
-                    dmg = self.police_vest_damage(target, dmg)
-                    target['hp'] = int(max(0,
-                        int(target.get('hp', 100)) - dmg))
+                    await self.apply_authoritative_damage(
+                        str(target.get('uid') or ''),
+                        f"world:michael:{g.get('id')}:{self.tick_no}",
+                        'bullet', dmg)
                 killed = False
                 if target['hp'] <= 0 and not miss:
-                    target['hp']     = 0
-                    target['dead']   = True
-                    target['deaths'] = int(target.get('deaths', 0)) + 1
-                    target['_respawn_at'] = now + self.PLAYER_RESPAWN_S
                     killed = True
                 pkts.append({
                     'kind':       'mg_shot',
@@ -21409,7 +22385,7 @@ class WorldSim:
     def rollback_world_c4_plant(self, charge_id: str) -> None:
         self.world_c4.pop(str(charge_id), None)
 
-    def tick_world_c4(self) -> list:
+    async def _tick_world_c4_async(self) -> list:
         """Взрывает созревшие C4. В PvP-режиме 4 тайла = мгновенная смерть."""
         now = time.time(); packets = []
         for charge_id, charge in list(self.world_c4.items()):
@@ -21424,10 +22400,9 @@ class WorldSim:
                     continue
                 if (float(victim.get('x') or 0)-x)**2 + (float(victim.get('y') or 0)-y)**2 > self.WORLD_C4_LETHAL_R**2:
                     continue
-                victim['hp'] = 0
-                victim['dead'] = True
-                victim['deaths'] = int(victim.get('deaths', 0)) + 1
-                victim['_respawn_at'] = now + self.PLAYER_RESPAWN_S
+                await self.apply_authoritative_damage(
+                    victim_uid, f"world:c4:{charge_id}:{victim_uid}",
+                    'explosion', 10000)
                 victims.append({'uid':str(victim_uid),'name':str(victim.get('name') or 'Игрок')[:24]})
                 if owner is not None and str(victim_uid) != str(charge.get('owner_uid')):
                     owner['kills'] = int(owner.get('kills', 0)) + 1
@@ -21695,7 +22670,6 @@ class WorldSim:
 
     def snapshot_for(self, uid: str) -> dict:
         """Снапшот для конкретного игрока: видит себя точно + всех в радиусе."""
-        self._tick_online_arrests()
         me = self.players.get(uid)
         if not me:
             return {'t': 'snap', 'd': {'me': None, 'others': []}}
@@ -21785,6 +22759,13 @@ class WorldSim:
                 # над головой каждого игрока (см. drawPlayerStatuses).
                 'hp':     int(p.get('hp', 100)),
                 'dead':   bool(p.get('dead', False)),
+                'combat_state': p.get('_combat_state') or {
+                    'body': {'current': int(p.get('hp', 100)),
+                             'max': int(p.get('max_hp', 100)),
+                             'dead': bool(p.get('dead', False))},
+                    'armor': _empty_armor_state(),
+                    'combat_version': 0,
+                },
                 'wanted': int(min(3, round(p.get('_wanted') or 0))),
                 'gangs':  int(min(3, p.get('_wanted_gangs') or 0)),
                 'mode':   p.get('_mode') or 'pvp',
@@ -22307,6 +23288,13 @@ class WorldSim:
                     'kills':   int(me.get('kills', 0)),
                     'deaths':  int(me.get('deaths', 0)),
                     'dead':    bool(me.get('dead', False)),
+                    'combat_state': me.get('_combat_state') or {
+                        'body': {'current': int(me.get('hp', 100)),
+                                 'max': int(me.get('max_hp', 100)),
+                                 'dead': bool(me.get('dead', False))},
+                        'armor': _empty_armor_state(),
+                        'combat_version': 0,
+                    },
                     'respawn_in': respawn_in,
                     'wanted':     my_wanted,
                     'gangs':      int(min(3, me.get('_wanted_gangs') or 0)),
@@ -22577,6 +23565,7 @@ class WorldSim:
 
 # Глобальный экземпляр мира — создаётся лениво при первом коннекте.
 _WORLD: 'WorldSim | None' = None
+_WORLD_TASK: 'asyncio.Task | None' = None
 _WORLD_LOCK = asyncio.Lock() if hasattr(asyncio, 'Lock') else None
 
 async def _major_controls_load(world: 'WorldSim') -> None:
@@ -23447,13 +24436,24 @@ async def _tick_owned_business_income(world: 'WorldSim') -> list[dict]:
 
 
 def _world_get() -> 'WorldSim':
-    global _WORLD
-    if _WORLD is None or not _WORLD.alive:
+    global _WORLD, _WORLD_TASK
+    if _WORLD is None:
         _WORLD = WorldSim()
         asyncio.create_task(_major_controls_load(_WORLD))
         asyncio.create_task(_robbed_business_controls_load(_WORLD))
-        asyncio.create_task(_world_run_loop(_WORLD))
         logger.info("WorldSim: started")
+    elif not _WORLD.alive:
+        # Never replace a failed world while sockets still point at it. A new
+        # empty cache would split identity: old WS handlers retain the former
+        # instance while HTTP/producers mutate a different one.
+        if _WORLD.connections:
+            raise RuntimeError("WorldSim unavailable with active connections")
+        _WORLD = WorldSim()
+        asyncio.create_task(_major_controls_load(_WORLD))
+        asyncio.create_task(_robbed_business_controls_load(_WORLD))
+        logger.info("WorldSim: restarted after clean disconnect")
+    if _WORLD_TASK is None or _WORLD_TASK.done():
+        _WORLD_TASK = asyncio.create_task(_world_run_loop(_WORLD))
     return _WORLD
 
 
@@ -23536,7 +24536,7 @@ async def _record_world_event_news(world: 'WorldSim', pkt: dict) -> None:
             f"{kind}:{pkt.get('biz_id')}:{pkt.get('winner')}:{int(time.time()) // 60}")
 
 
-async def _world_run_loop(world: 'WorldSim') -> None:
+async def _world_run_loop_cycle(world: 'WorldSim') -> None:
     """Tick-loop: 15 Гц. Рассылает снапшоты + чистит AFK-игроков
     + тикает эмерджентные события (инкассатор)."""
     try:
@@ -23570,11 +24570,12 @@ async def _world_run_loop(world: 'WorldSim') -> None:
             # broadcast (inkassator_spawned/inkass_shot/inkassator_escaped/
             # cop_spawned/cop_shot). Тикаем только если в мире кто-то есть.
             if world.players:
-                ev_pkts = world.tick_event(WORLD_TICK_DT) or []
+                ev_pkts = await world._tick_online_arrests() or []
+                ev_pkts.extend(await world.tick_event(WORLD_TICK_DT) or [])
                 ev_pkts.extend(await _tick_owned_business_income(world))
                 ev_pkts.extend(await _tick_robbed_business_controls(world))
                 ev_pkts.extend(await _tick_business_war_season(world))
-                ev_pkts.extend(world.tick_cops(WORLD_TICK_DT) or [])
+                ev_pkts.extend(await world.tick_cops(WORLD_TICK_DT) or [])
                 # Проверяем, не дошёл ли конвой до цели — добавляем escape-пакет
                 # (tick_event только помечает finished='escaped', но не шлёт)
                 if (world.event is not None
@@ -23586,16 +24587,16 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                     })
                     world.event = None  # очищаем — следующий по таймеру
                 # Агрессивный район — банда NPC + захват через зачистку
-                ev_pkts.extend(world.tick_aggro(WORLD_TICK_DT) or [])
+                ev_pkts.extend(await world.tick_aggro(WORLD_TICK_DT) or [])
                 # Отложенные пули ботов (dodge-механика): применяем
                 # урон ПОСЛЕ того как пуля «долетит» до точки удара.
-                ev_pkts.extend(world.tick_pending_bot_shots() or [])
+                ev_pkts.extend(await world.tick_pending_bot_shots() or [])
                 # GTA-машины Майкла — чистим брошенные/устаревшие.
                 world.tick_quest_cars(WORLD_TICK_DT)
                 # Пляжники — мирные NPC в купальниках. AI без боевки.
                 world.tick_beachgoers(WORLD_TICK_DT)
                 # Охрана Майкла — стреляет если кто-то открыл огонь рядом.
-                mg_pkts = world.tick_michael_guards(WORLD_TICK_DT) or []
+                mg_pkts = await world.tick_michael_guards(WORLD_TICK_DT) or []
                 ev_pkts.extend(mg_pkts)
                 # Бандитское гнездо в городе (мини-Логово, 4 охранника
                 # вокруг здания, появляется раз в 5 мин, живёт 10 мин).
@@ -23687,13 +24688,13 @@ async def _world_run_loop(world: 'WorldSim') -> None:
                 ev_pkts.extend(gang_pkts)
                 # Свободные C4 тикают на сервере: взрыв и смертельный радиус
                 # происходят один раз для всех клиентов, даже если хозяин вышел.
-                ev_pkts.extend(world.tick_world_c4() or [])
+                ev_pkts.extend(await world.tick_world_c4() or [])
                 # Mission boxes become owner-only ground objects on death and
                 # disappear after five minutes if the owner does not return.
                 ev_pkts.extend(world.tick_box_quests() or [])
                 # Глобальный респаун — воскрешает жертв ЛЮБОЙ системы
                 # (event/aggro/cops/pvp). Должно идти ПОСЛЕ всех tick_*.
-                world.tick_respawn(WORLD_TICK_DT)
+                await world.tick_respawn(WORLD_TICK_DT)
                 # Освобождение из тюрьмы: jail_until истёк → телепорт
                 # за лазерные ворота на дорогу, чтобы игрок не остался
                 # внутри тайла-здания (POI 'police').
@@ -23864,8 +24865,34 @@ async def _world_run_loop(world: 'WorldSim') -> None:
             # Засыпаем 1 тик
             elapsed = time.time() - t0
             await asyncio.sleep(max(0.0, WORLD_TICK_DT - elapsed))
-    except Exception as e:
-        logger.error("WorldSim: loop crash: %r", e)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        raise
+
+
+async def _world_run_loop(world: 'WorldSim') -> None:
+    """Supervise the tick loop without ever replacing its live cache.
+
+    A transient tick/SQLite failure restarts the cycle on the same WorldSim so
+    existing WS handlers, damage producers and HTTP state keep one identity.
+    """
+    failures = 0
+    try:
+        while world.alive:
+            try:
+                await _world_run_loop_cycle(world)
+                break
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                failures += 1
+                delay = min(2.0, 0.10 * (2 ** min(failures - 1, 4)))
+                logger.exception(
+                    "WorldSim: tick cycle failed; retaining cache and restarting "
+                    "attempt=%d delay=%.2fs", failures, delay)
+                if world.alive:
+                    await asyncio.sleep(delay)
     finally:
         world.alive = False
         logger.info("WorldSim: stopped tick=%d", world.tick_no)
@@ -23953,12 +24980,56 @@ async def _coop_http_app():
 
     async def _cors(resp):
         resp.headers['Access-Control-Allow-Origin']  = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Telegram-Init-Data'
         resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
         return resp
 
     async def h_options(req):
         return await _cors(web.Response(status=204))
+
+    @web.middleware
+    async def _actor_binding(req, handler):
+        """Bind all armor/store actors before their handlers see a uid."""
+        path = req.path
+        protected = (path.startswith('/shop/') or path.startswith('/inv/') or
+                     path.startswith('/event/'))
+        if req.method == 'OPTIONS' or not protected:
+            return await handler(req)
+        claimed = str(req.match_info.get('uid') or '')
+        init_data = req.headers.get('X-Telegram-Init-Data', '')
+        try:
+            actor = verify_telegram_init_data(init_data)
+            if not claimed.isdigit() or not await actor_owns_character(
+                    int(actor['id']), int(claimed)):
+                raise ValueError('uid mismatch')
+        except ValueError as exc:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'unauthorized', 'reason': str(exc)},
+                status=401))
+        return await handler(req)
+
+    async def h_world_auth(req):
+        claimed = str(req.match_info.get('uid') or '')
+        if not claimed.isdigit():
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'bad uid'}, status=400))
+        try:
+            actor = verify_telegram_init_data(
+                req.headers.get('X-Telegram-Init-Data', ''))
+            if not await actor_owns_character(int(actor['id']), int(claimed)):
+                raise ValueError('uid mismatch')
+        except ValueError as exc:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'unauthorized', 'reason': str(exc)},
+                status=401))
+        if not await get_character(int(claimed)):
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'no character'}, status=404))
+        return await _cors(web.json_response({
+            'ok': True,
+            'world_token': issue_world_token(claimed),
+            'expires_in': WORLD_TOKEN_TTL,
+        }))
 
     async def h_profiles(req):
         account = str(req.match_info.get('account', '')).strip()
@@ -25975,6 +27046,21 @@ async def _coop_http_app():
             qty = 1
         if not price_d and not price_c:
             return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}))
+        if it.get('type') == 'armor':
+            bought = await purchase_armor_transaction(uid, item_id)
+            if not bought.get('ok'):
+                status = 404 if bought.get('error') == 'no character' else (
+                    409 if bought.get('error') == 'already owned' else 400)
+                return await _cors(web.json_response(bought, status=status))
+            combat_state = await get_authoritative_combat_state(uid)
+            if combat_state and _WORLD is not None:
+                p_ref = _WORLD.players.get(str(uid))
+                if p_ref is not None:
+                    _WORLD._mirror_combat_state(p_ref, combat_state)
+            return await _cors(web.json_response({
+                **bought, 'item_type': 'armor',
+                'combat_state': combat_state,
+            }))
         # Деньги и предмет меняются одной транзакцией. Раньше два быстрых тапа
         # могли оба пройти проверку старого баланса и добавить товар дважды.
         async with aiosqlite.connect(DB_PATH) as db:
@@ -26029,10 +27115,21 @@ async def _coop_http_app():
                     return await _cors(web.json_response({'ok': False, 'error': 'no cash'}))
                 cash -= cost
                 await db.execute('UPDATE characters SET cash=? WHERE telegram_id=?', (cash, uid))
-            await db.execute("""
-                INSERT INTO inventory (telegram_id,item_id,quantity) VALUES (?,?,?)
-                ON CONFLICT(telegram_id,item_id) DO UPDATE SET quantity=quantity+excluded.quantity
-            """, (uid, item_id, qty))
+            if it.get('type') == 'armor':
+                armor_max = int(ARMOR_MAX_HP[item_id])
+                armor_instance_id = secrets.token_urlsafe(18)
+                await db.execute("""
+                    INSERT INTO inventory
+                        (telegram_id,item_id,quantity,armor_hp,armor_max_hp,
+                         armor_version,armor_instance_id)
+                    VALUES (?,?,1,?,?,1,?)
+                """, (uid, item_id, armor_max, armor_max, armor_instance_id))
+            else:
+                await db.execute("""
+                    INSERT INTO inventory (telegram_id,item_id,quantity) VALUES (?,?,?)
+                    ON CONFLICT(telegram_id,item_id)
+                    DO UPDATE SET quantity=quantity+excluded.quantity
+                """, (uid, item_id, qty))
             # В открытом мире купленная броня должна быть надета сразу. Это
             # атомарно с покупкой и не оставляет оплаченный, но не надетый жилет.
             equipped_armor = None
@@ -26048,6 +27145,11 @@ async def _coop_http_app():
                 inv_qty_row = await cur.fetchone()
             inventory_qty = int(inv_qty_row[0] or 0) if inv_qty_row else qty
             await db.commit()
+        combat_state = await get_authoritative_combat_state(uid)
+        if combat_state and _WORLD is not None:
+            p_ref = _WORLD.players.get(str(uid))
+            if p_ref is not None:
+                _WORLD._mirror_combat_state(p_ref, combat_state)
         # Покупка оружия сразу обновляет серверный затвор активной WebSocket-
         # сессии; переподключаться к миру после Витька не требуется.
         if it.get('type') == 'weapon':
@@ -26072,6 +27174,7 @@ async def _coop_http_app():
             'ammo_type': it.get('ammo_type'),
             'rounds': int(it.get('rounds') or 0),
             'equipped_armor': equipped_armor,
+            'combat_state': combat_state,
         }))
 
     async def h_inv_list(req):
@@ -26083,9 +27186,18 @@ async def _coop_http_app():
         char = await get_character(uid)
         if not char:
             return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-        inv = await get_inventory(uid)
+        combat_state = await get_authoritative_combat_state(uid)
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """SELECT item_id,quantity,armor_hp,armor_max_hp,
+                          armor_version,armor_instance_id
+                     FROM inventory WHERE telegram_id=?""", (uid,)
+            ) as cur:
+                inv_rows = await cur.fetchall()
         out = []
-        for iid, qty in (inv or {}).items():
+        for row in inv_rows:
+            iid, qty = str(row['item_id']), int(row['quantity'] or 0)
             it = ITEMS.get(iid)
             if not it:
                 continue
@@ -26104,6 +27216,13 @@ async def _coop_http_app():
                 'rounds':        int(it.get('rounds') or 0),
                 'price':         it.get('price'),
             })
+            if it.get('type') == 'armor':
+                out[-1].update({
+                    'instance_id': str(row['armor_instance_id'] or ''),
+                    'current': int(row['armor_hp'] or 0),
+                    'max': int(row['armor_max_hp'] or ARMOR_MAX_HP.get(iid, 0)),
+                    'version': int(row['armor_version'] or 0),
+                })
         return await _cors(web.json_response({
             'ok':            True,
             'items':         out,
@@ -26114,6 +27233,7 @@ async def _coop_http_app():
             'good_name':       char.get('good_name') or 0,
             'lost_returns':    char.get('lost_returns') or 0,
             'return_streak':   char.get('lost_return_streak') or 0,
+            'combat_state':    combat_state,
         }))
 
     _found_claim_at = {}
@@ -26290,92 +27410,34 @@ async def _coop_http_app():
             # Снятие
             if slot not in ('weapon', 'armor'):
                 return await _cors(web.json_response({'ok': False, 'error': 'bad slot'}, status=400))
-        # Проверка наличия и запись слота обязаны быть одной транзакцией.
-        # Иначе параллельное разрушение брони могло удалить предмет между
-        # SELECT и UPDATE, оставив персонажу ссылку на несуществующий жилет.
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute('BEGIN IMMEDIATE')
-            async with db.execute(
-                'SELECT weapon,armor FROM characters WHERE telegram_id=?', (uid,)
-            ) as cur:
-                char_row = await cur.fetchone()
-            if not char_row:
-                await db.rollback()
-                return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-            if item_id:
-                async with db.execute(
-                    'SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?',
-                    (uid, item_id),
-                ) as cur:
-                    inv_row = await cur.fetchone()
-                if not inv_row or int(inv_row[0] or 0) <= 0:
-                    await db.rollback()
-                    return await _cors(web.json_response({'ok': False, 'error': 'not in inventory'}, status=400))
-            await db.execute(
-                f'UPDATE characters SET {slot}=? WHERE telegram_id=?',
-                (item_id, uid),
-            )
-            async with db.execute(
-                'SELECT weapon,armor FROM characters WHERE telegram_id=?', (uid,)
-            ) as cur:
-                equipped_row = await cur.fetchone()
-            await db.commit()
+        equipped = await equip_item_transaction(uid, item_id, slot)
+        if not equipped.get('ok'):
+            status = 404 if equipped.get('error') == 'no character' else 400
+            return await _cors(web.json_response(equipped, status=status))
+        combat_state = await get_authoritative_combat_state(uid)
+        if combat_state and _WORLD is not None:
+            p_ref = _WORLD.players.get(str(uid))
+            if p_ref is not None:
+                _WORLD._mirror_combat_state(p_ref, combat_state)
         return await _cors(web.json_response({
             'ok':              True,
-            'equipped_weapon': equipped_row[0],
-            'equipped_armor':  equipped_row[1],
+            'equipped_weapon': equipped['equipped_weapon'],
+            'equipped_armor':  equipped['equipped_armor'],
+            'combat_state':    combat_state,
         }))
 
     async def h_inv_break_armor(req):
-        """Destroy the exact armor reported depleted by the client.
-
-        The update is atomic and idempotent. A delayed request from another
-        tab cannot consume the newer vest that is currently equipped.
-        """
+        """Compatibility-only reconciliation; clients never destroy armor."""
         try:
             uid = int(req.match_info['uid'])
         except Exception:
             return await _cors(web.json_response({'ok': False, 'error': 'bad uid'}, status=400))
-        try:
-            body = await req.json()
-        except Exception:
-            body = {}
-        expected_armor_id = str(body.get('armor_id') or '').strip()
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute('BEGIN IMMEDIATE')
-            async with db.execute("SELECT armor FROM characters WHERE telegram_id=?", (uid,)) as cur:
-                row = await cur.fetchone()
-            if not row:
-                await db.rollback()
-                return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-            equipped_armor_id = str(row[0] or '')
-            armor_id = expected_armor_id or equipped_armor_id
-            item = ITEMS.get(armor_id) or {}
-            if not armor_id or item.get('type') != 'armor':
-                await db.commit()
-                return await _cors(web.json_response({'ok': True, 'broken': None, 'equipped_armor': equipped_armor_id or None}))
-            async with db.execute(
-                "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?",
-                (uid, armor_id),
-            ) as cur:
-                inv_row = await cur.fetchone()
-            qty = int(inv_row[0] or 0) if inv_row else 0
-            if qty <= 0:
-                await db.commit()
-                return await _cors(web.json_response({'ok': True, 'broken': None, 'equipped_armor': equipped_armor_id or None}))
-            if qty == 1:
-                await db.execute("DELETE FROM inventory WHERE telegram_id=? AND item_id=?", (uid, armor_id))
-            else:
-                await db.execute(
-                    "UPDATE inventory SET quantity=quantity-1 WHERE telegram_id=? AND item_id=?",
-                    (uid, armor_id),
-                )
-            if equipped_armor_id == armor_id:
-                await db.execute("UPDATE characters SET armor=NULL WHERE telegram_id=?", (uid,))
-                equipped_armor_id = ''
-            await db.commit()
+        combat_state = await get_authoritative_combat_state(uid)
+        if combat_state is None:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'no character'}, status=404))
         return await _cors(web.json_response({
-            'ok': True, 'broken': armor_id, 'equipped_armor': equipped_armor_id or None,
+            'ok': True, 'reconciled': True, 'combat_state': combat_state,
         }))
 
     async def h_inv_consume(req):
@@ -26426,11 +27488,16 @@ async def _coop_http_app():
                 healed=min(medkits[item_id],max_hp-hp);new_hp=hp+healed;left=int(row[0])-1
                 if left: await db.execute('UPDATE inventory SET quantity=? WHERE telegram_id=? AND item_id=?',(left,uid,item_id))
                 else: await db.execute('DELETE FROM inventory WHERE telegram_id=? AND item_id=?',(uid,item_id))
-                await db.execute('UPDATE characters SET hp=? WHERE telegram_id=?',(new_hp,uid));await db.commit()
+                await db.execute(
+                    'UPDATE characters SET hp=?,combat_version=combat_version+1 WHERE telegram_id=?',
+                    (new_hp,uid));await db.commit()
+            combat_state = await get_authoritative_combat_state(uid)
             try:
-                if _WORLD is not None and str(uid) in _WORLD.players:_WORLD.players[str(uid)]['hp']=new_hp
+                if _WORLD is not None and str(uid) in _WORLD.players:
+                    _WORLD._mirror_combat_state(
+                        _WORLD.players[str(uid)], combat_state)
             except Exception: pass
-            return await _cors(web.json_response({'ok':True,'item_id':item_id,'hp':new_hp,'max_hp':max_hp,'healed':healed,'left':left}))
+            return await _cors(web.json_response({'ok':True,'item_id':item_id,'hp':new_hp,'max_hp':max_hp,'healed':healed,'left':left,'combat_state':combat_state}))
         inv=await get_inventory(uid)
         if not inv or int(inv.get(item_id,0))<=0:
             return await _cors(web.json_response({'ok':False,'error':'not in inventory'},status=400))
@@ -26492,56 +27559,27 @@ async def _coop_http_app():
         if not ev:
             return await _cors(web.json_response({'ok': True, 'event': None, 'reason': 'no_event'}))
 
-        # Применяем эффекты
-        effects    = ev.get('effects', {})
-        cur_hp     = max(0, char.get('hp')           or 0)
-        max_hp     = char.get('max_hp')              or 100
-        cur_mp     = max(0, char.get('mana')         or 0)
-        max_mp     = char.get('max_mana')            or 50
-        cur_cash   = char.get('cash')                or 0
-        cur_w_cop  = char.get('wanted_stars')        or 0
-        cur_w_gang = char.get('wanted_gangs')        or 0
-
+        # Compute and persist against the latest row under one write lock so a
+        # concurrent world hit can never be overwritten by this HTTP request.
+        effects = ev.get('effects', {})
         d_hp    = int(effects.get('hp',       0))
         d_en    = int(effects.get('energy',   0))
         d_cash  = int(effects.get('cash',     0))
         d_w_c   = int(effects.get('wanted',   0))
         d_w_g   = int(effects.get('wanted_g', 0))
-
-        new_hp   = max(1 if cur_hp > 0 and d_hp < 0 else 0,
-                       min(max_hp, cur_hp + d_hp))
-        # если игрок и так был мертв (hp=0), не трогаем; иначе минимум 1
-        if cur_hp <= 0:
-            new_hp = cur_hp
-        new_mp   = max(0, min(max_mp, cur_mp + d_en))
-        new_cash = max(0, cur_cash + d_cash)
-        new_w_c  = max(0, min(3, cur_w_cop  + d_w_c))
-        new_w_g  = max(0, min(3, cur_w_gang + d_w_g))
-
-        updates = {
-            'last_hub_event_at': now,
-            'hp':                new_hp,
-            'mana':              new_mp,
-            'cash':              new_cash,
-            'wanted_stars':      new_w_c,
-            'wanted_gangs':      new_w_g,
-        }
-
-        jailed   = False
-        captured = False
-
-        # 3 звезды копов → тюрьма (если стало 3 от события)
-        if new_w_c >= 3 and cur_w_cop < 3:
-            updates['jail_until'] = now + JAIL_DURATION
-            updates['jail_count'] = (char.get('jail_count') or 0) + 1
-            jailed = True
-        # 3 кулака банд → плен (если стало 3 от события)
-        if new_w_g >= 3 and cur_w_gang < 3:
-            updates['captivity_until'] = now + CAPTIVITY_DURATION
-            updates['captivity_count'] = (char.get('captivity_count') or 0) + 1
-            captured = True
-
-        await update_character(uid, **updates)
+        applied = await apply_hub_event_effects_transaction(uid, effects, now)
+        if applied is None:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'no character'}, status=404))
+        new_hp, new_mp, new_cash = (
+            applied['hp'], applied['mana'], applied['cash'])
+        new_w_c, new_w_g = applied['wanted'], applied['wanted_g']
+        jailed, captured = applied['jailed'], applied['captured']
+        combat_state = applied['combat_state']
+        if combat_state and _WORLD is not None:
+            live = _WORLD.players.get(str(uid))
+            if live is not None:
+                _WORLD._mirror_combat_state(live, combat_state)
 
         return await _cors(web.json_response({
             'ok': True,
@@ -26557,6 +27595,7 @@ async def _coop_http_app():
             },
             'jailed':   jailed,
             'captured': captured,
+            'combat_state': combat_state,
         }))
 
     # === HTTP: прокачка навыка из hub.html (страница «Мои навыки») ===
@@ -26730,6 +27769,10 @@ async def _coop_http_app():
             uid_int = int(uid)
         except Exception:
             return web.Response(status=400, text='bad uid')
+        try:
+            verify_world_token(req.query.get('world_token', ''), expected_uid=uid)
+        except ValueError:
+            return web.Response(status=401, text='world token required')
         char = await get_character(uid_int)
         if not char:
             return web.Response(status=404, text='no character')
@@ -26780,7 +27823,7 @@ async def _coop_http_app():
         if ws_mode not in ('pvp', 'pve'):
             ws_mode = 'pvp'
         world.add_or_update(uid, name, look,
-                            wanted=float(char.get('wanted') or 0),
+                            wanted=float(char.get('wanted_stars') or 0),
                             jail_until=int(char.get('jail_until') or 0),
                             mode=ws_mode,
                             wanted_gangs=int(char.get('wanted_gangs') or 0))
@@ -26792,6 +27835,19 @@ async def _coop_http_app():
             leader_id = None
         p_ref = world.players.get(uid)
         if p_ref is not None:
+            combat_state = await get_authoritative_combat_state(uid_int)
+            if combat_state is None:
+                await ws.close(code=4004, message=b'no combat state')
+                return ws
+            p_ref['_combat_state'] = combat_state
+            p_ref['hp'] = combat_state['body']['current']
+            p_ref['max_hp'] = combat_state['body']['max']
+            p_ref['dead'] = combat_state['body']['dead']
+            if p_ref['dead']:
+                p_ref['_respawn_at'] = max(
+                    time.time(), float(char.get('respawn_at') or 0))
+            else:
+                p_ref['_respawn_at'] = 0.0
             p_ref['_gang_leader'] = leader_id
             # Кэшируем cash/diamonds в memory, чтобы HUD клиента видел
             # актуальные значения и реагировал на начисления без get_character
@@ -27095,7 +28151,7 @@ async def _coop_http_app():
                         elif t == 'police_online_cuff':
                             reply = world.police_cuff_online(uid, str(d.get('target_uid') or ''))
                         elif t == 'police_downed_arrest':
-                            reply = world.police_arrest_downed(uid, str(d.get('target_uid') or ''))
+                            reply = await world.police_arrest_downed(uid, str(d.get('target_uid') or ''))
                         else:
                             # Суточное место занимаем ДО фактической сдачи, но
                             # только после дешёвых проверок участка/конвоя.
@@ -27116,12 +28172,12 @@ async def _coop_http_app():
                                 daily = await police_claim_daily_arrest(
                                     int(uid), int((cop_before or {}).get('police_xp') or 0))
                                 if not daily.get('ok'):
-                                    world._release_online_arrest(target_uid, 'daily_limit')
+                                    await world._release_online_arrest(target_uid, 'daily_limit')
                                     reply = {'ok': False, 'error': 'daily_limit',
                                              'daily_count': daily['count'],
                                              'daily_limit': daily['limit']}
                                 else:
-                                    reply = world.police_turnin_online(uid)
+                                    reply = await world.police_turnin_online(uid)
                             if reply.get('ok'):
                                 target_uid = str(reply.get('target_uid') or '')
                                 first_reward = False
@@ -27182,7 +28238,9 @@ async def _coop_http_app():
                         target_uid = str(d.get('target_uid') or '')
                         weapon     = str(d.get('weapon') or '')[:24]
                         if target_uid:
-                            hit_pkt = world.apply_player_shoot(uid, target_uid, weapon)
+                            shot_id = str(d.get('shot_id') or d.get('event_id') or '')[:96]
+                            hit_pkt = await world.apply_player_shoot(
+                                uid, target_uid, weapon, shot_id)
                             if hit_pkt:
                                 shooter_p = world.players.get(uid)
                                 target_p  = world.players.get(target_uid)
@@ -27199,12 +28257,16 @@ async def _coop_http_app():
                                         await update_character(int(uid), cash=old_cash + 150, police_xp=new_xp)
                                         shooter_p['_cash'] = old_cash + 150
                                         shooter_p['_police_xp'] = new_xp
-                                        old_hp=int(shooter_p.get('hp') or 0)
-                                        max_hp=int(shooter_p.get('max_hp') or 100)
-                                        shooter_p['hp']=min(max_hp,old_hp+25)
+                                        old_hp = int(shooter_p.get('hp') or 0)
+                                        heal_state = await mutate_authoritative_body_state(
+                                            int(uid), delta=25)
+                                        if heal_state is None:
+                                            raise RuntimeError('business reward body missing')
+                                        world._mirror_combat_state(shooter_p, heal_state)
                                         hit_pkt.update(cash_reward=150, police_xp=new_xp,
                                                        police_xp_gain=max(0,new_xp-old_xp),
-                                                       hp_reward=max(0,shooter_p['hp']-old_hp))
+                                                       hp_reward=max(0,shooter_p['hp']-old_hp),
+                                                       reward_combat_state=heal_state)
                                     except Exception as exc:
                                         logger.warning('business prevention reward failed: %r', exc)
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
@@ -29774,27 +30836,9 @@ async def _coop_http_app():
                                 try: await _ws2.send_str(pkt)
                                 except Exception: pass
                     elif t == 'gang_dmg':
-                        # Бандиты стреляют по игроку с кулачками. Урон применяем
-                        # авторитативно — только если у игрока действительно
-                        # есть wanted_gangs>0 (anti-cheat).
+                        # Legacy client packets cannot choose damage. Validated
+                        # server AI producers above own every body/armor write.
                         p_obj = world.players.get(uid)
-                        if p_obj is not None and not p_obj.get('dead'):
-                            cur_g = int(p_obj.get('_wanted_gangs') or 0)
-                            if cur_g > 0:
-                                try:
-                                    dmg = int(d.get('dmg') or 0)
-                                except Exception:
-                                    dmg = 0
-                                dmg = max(0, min(30, dmg))   # кламп
-                                if dmg > 0:
-                                    dmg = world.police_vest_damage(p_obj, dmg)
-                                    cur_hp = int(p_obj.get('hp') or 0)
-                                    new_hp = max(0, cur_hp - dmg)
-                                    p_obj['hp'] = new_hp
-                                    if new_hp <= 0:
-                                        p_obj['dead']        = True
-                                        p_obj['deaths']      = int(p_obj.get('deaths', 0)) + 1
-                                        p_obj['_respawn_at'] = time.time() + world.PLAYER_RESPAWN_S
                         # Игрок выстрелил в бандитский кортеж/логово — +1 кулачок.
                         # Анти-спам: один бамп раз в 4 сек на uid.
                         p_obj = world.players.get(uid)
@@ -29887,7 +30931,7 @@ async def _coop_http_app():
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'world_heal':
-                        rep = world.world_heal(uid)
+                        rep = await world.world_heal(uid)
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(rep,
@@ -29964,14 +31008,14 @@ async def _coop_http_app():
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'emergency_transport':
-                        reply = world.emergency_transport(uid, bool(d.get('active', True)) if isinstance(d, dict) else True)
+                        reply = await world.emergency_transport(uid, bool(d.get('active', True)) if isinstance(d, dict) else True)
                         try:
                             await ws.send_str(json.dumps(
                                 {'t': 'event', 'd': dict(reply, kind='emergency_transport_reply')},
                                 ensure_ascii=False))
                         except Exception: pass
                     elif t == 'emergency_revive':
-                        reply = world.emergency_revive(
+                        reply = await world.emergency_revive(
                             uid,
                             d.get('hospital_id', 'hospital') if isinstance(d, dict) else 'hospital',
                             d.get('x') if isinstance(d, dict) else None,
@@ -30034,7 +31078,7 @@ async def _coop_http_app():
                     p_save = world.players.get(uid)
                     if p_save:
                         await update_character(int(uid),
-                            wanted=int(min(3, round(p_save.get('_wanted') or 0))),
+                            wanted_stars=int(min(3, round(p_save.get('_wanted') or 0))),
                             jail_until=int(p_save.get('_jail_until') or 0),
                         )
                 except Exception as _e:
@@ -30432,7 +31476,7 @@ async def _coop_http_app():
         INVITE_QUEUE[uid] = []
         return await _cors(web.json_response({'ok': True, 'items': fresh}))
 
-    aio_app = web.Application()
+    aio_app = web.Application(middlewares=[_actor_binding])
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
     aio_app.router.add_get   ('/profiles/{account}',             h_profiles)
     aio_app.router.add_post  ('/profiles/{account}',             h_profile_create)
@@ -30501,6 +31545,7 @@ async def _coop_http_app():
     aio_app.router.add_get ('/skill/{uid}/state',   h_skill_state)
     aio_app.router.add_post('/skill/{uid}/upgrade', h_skill_upgrade)
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
+    aio_app.router.add_post('/auth/world/{uid}',    h_world_auth)
     aio_app.router.add_post('/world/loot/{uid}',    h_world_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе

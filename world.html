@@ -3102,6 +3102,15 @@ if (_DIRECT_WORLD_ENTRY && !QP.character_uid) QP.character_uid = QP.uid;
 // ── Telegram WebApp ─────────────────────────────────────────────
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
 try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
+function _telegramInitData(){return String(tg?.initData||'');}
+function _apiHeaders(extra={}){
+  const headers={...extra},initData=_telegramInitData();
+  if(initData)headers['X-Telegram-Init-Data']=initData;
+  return headers;
+}
+function _apiRequest(url,options={}){
+  return fetch(url,{...options,headers:_apiHeaders(options.headers||{})});
+}
 // Если из hub пришло дефолтное «Гангстер» (потому что бот не пробросил
 // ?name=...), пытаемся вытащить настоящее имя из Telegram initDataUnsafe.
 try {
@@ -3887,19 +3896,19 @@ function _livePlayerLook(){
 }
 
 const ARMOR_STYLES={
-  leather_jacket:{suit:'#3b2118',hat:null,reduction:.05,durability:45,wear:.42,accent:'#c58a54',label:'Кожанка'},
-  bulletproof:{suit:'#26302a',hat:null,reduction:.10,durability:65,wear:.46,accent:'#7e9b83',label:'Бронежилет'},
-  kevlar_vest:{suit:'#48543a',hat:null,reduction:.14,durability:80,wear:.48,accent:'#a7b96b',label:'Кевларовый жилет'},
-  tactical_vest:{suit:'#263b34',hat:3,reduction:.18,durability:95,wear:.50,accent:'#55a584',label:'Тактический жилет'},
-  army_armor:{suit:'#3e4d32',hat:3,reduction:.22,durability:115,wear:.52,accent:'#9caa69',label:'Армейская броня'},
-  swat_suit:{suit:'#151b22',hat:2,reduction:.26,durability:135,wear:.54,accent:'#5f91bd',label:'Костюм спецназа'},
-  composite_armor:{suit:'#394654',hat:2,reduction:.30,durability:160,wear:.56,accent:'#8eabc4',label:'Композитный доспех'},
-  exo_armor:{suit:'#27313d',hat:2,reduction:.34,durability:190,wear:.58,accent:'#58d5ff',label:'Экзо-броня'},
-  titanium_vest:{suit:'#66717e',hat:2,reduction:.28,durability:150,wear:.54,accent:'#c9e3f4',label:'Титановый жилет'},
+  leather_jacket:{suit:'#3b2118',hat:null,previewMax:45,accent:'#c58a54',label:'Кожанка'},
+  bulletproof:{suit:'#26302a',hat:null,previewMax:65,accent:'#7e9b83',label:'Бронежилет'},
+  kevlar_vest:{suit:'#48543a',hat:null,previewMax:80,accent:'#a7b96b',label:'Кевларовый жилет'},
+  tactical_vest:{suit:'#263b34',hat:3,previewMax:95,accent:'#55a584',label:'Тактический жилет'},
+  army_armor:{suit:'#3e4d32',hat:3,previewMax:115,accent:'#9caa69',label:'Армейская броня'},
+  swat_suit:{suit:'#151b22',hat:2,previewMax:135,accent:'#5f91bd',label:'Костюм спецназа'},
+  composite_armor:{suit:'#394654',hat:2,previewMax:160,accent:'#8eabc4',label:'Композитный доспех'},
+  exo_armor:{suit:'#27313d',hat:2,previewMax:190,accent:'#58d5ff',label:'Экзо-броня'},
+  titanium_vest:{suit:'#66717e',hat:2,previewMax:150,accent:'#c9e3f4',label:'Титановый жилет'},
 };
-function _armorReduction(){
-  if(!_equippedArmor||_armorDurability(_equippedArmor)<=0)return 0;
-  return Math.max(0,Math.min(.34,ARMOR_STYLES[_equippedArmor]?.reduction||0));
+function _lookWithAuthoritativeArmor(look,combatState){
+  const base={...(look||{})},armor=combatState?.armor||{},id=!armor.broken&&+armor.current>0?armor.id:null,style=ARMOR_STYLES[id];
+  return style?{...base,suit:style.suit,hat:style.hat==null?base.hat:style.hat,armorStyle:id}:base;
 }
 
 const JET_SKI_PARKING = [
@@ -4948,42 +4957,38 @@ function _readInventoryArmorUiState(snapshot,equippedId=_equippedArmor){
   if(!raw||!itemId||itemId!==equipped||!instanceId||!Number.isFinite(hp)||!Number.isFinite(maxHp)||!Number.isFinite(version)||maxHp<=0||hp<0||hp>maxHp||broken!==raw.broken)return Object.freeze({available:false,itemId:equipped,instanceId:'',hp:null,maxHp:null,version:null,broken:false,vestSkin:ARMOR_STYLES[equipped]?equipped:'',source:'absent'});
   return Object.freeze({available:true,itemId,instanceId,hp:Math.round(hp),maxHp:Math.round(maxHp),version,broken,vestSkin:ARMOR_STYLES[itemId]?itemId:'',source:INVENTORY_ARMOR_UI_CONTRACT});
 }
-let _armorBreakPending = false;
-let _armorWearFloatAt = 0;
-const _armorDurabilitySaveKey=`mafiozi_armor_durability_v1_${QP.uid||'guest'}`;
-let _armorDurabilityState={};
-try{_armorDurabilityState=JSON.parse(localStorage.getItem(_armorDurabilitySaveKey)||'{}')||{};}catch(e){}
-function _armorMaxDurability(id=_equippedArmor){return Math.max(0,+ARMOR_STYLES[id]?.durability||0);}
-function _saveArmorDurability(){try{localStorage.setItem(_armorDurabilitySaveKey,JSON.stringify(_armorDurabilityState));}catch(e){}}
-function _ensureArmorDurability(id=_equippedArmor,fresh=false){
-  if(!id||!ARMOR_STYLES[id])return 0;const max=_armorMaxDurability(id),has=Object.prototype.hasOwnProperty.call(_armorDurabilityState,id),saved=+_armorDurabilityState[id];
-  if(fresh||!has||!Number.isFinite(saved))_armorDurabilityState[id]=max;
-  else _armorDurabilityState[id]=Math.min(max,Math.max(0,Math.round(saved)));
-  _saveArmorDurability();return _armorDurabilityState[id];
+const _EMPTY_COMBAT_STATE=Object.freeze({
+  body:Object.freeze({current:100,max:100,dead:false}),
+  armor:Object.freeze({id:null,instance_id:null,current:0,max:0,version:0,broken:false}),
+  combat_version:-1,
+});
+let _combatState=_EMPTY_COMBAT_STATE;
+function _normalizeCombatState(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const body=raw.body||{},armor=raw.armor||{},version=Number(raw.combat_version);
+  if(!Number.isFinite(version)||!Number.isFinite(+body.current)||!Number.isFinite(+body.max))return null;
+  const bodyMax=Math.max(1,Math.round(+body.max||100)),armorMax=Math.max(0,Math.round(+armor.max||0));
+  return {
+    body:{current:Math.max(0,Math.min(bodyMax,Math.round(+body.current||0))),max:bodyMax,dead:!!body.dead},
+    armor:{id:armor.id||null,instance_id:armor.instance_id||null,current:Math.max(0,Math.min(armorMax,Math.round(+armor.current||0))),max:armorMax,version:Math.max(0,Math.round(+armor.version||0)),broken:!!armor.broken},
+    combat_version:Math.round(version),
+  };
 }
-function _armorDurability(id=_equippedArmor){return id?_ensureArmorDurability(id,false):0;}
-function _resetArmorDurability(id){return _ensureArmorDurability(id,true);}
-function _damageEquippedArmor(rawDamage,absorbedDamage){
-  const id=_equippedArmor,style=ARMOR_STYLES[id];if(!id||!style||_armorBreakPending)return 0;
-  const before=_armorDurability(id),loss=Math.max(1,Math.ceil(Math.max(1,+rawDamage||0)*(style.wear||.5))),after=Math.max(0,before-loss);
-  _armorDurabilityState[id]=after;_saveArmorDurability();updateArmorHud();
-  const now=performance.now();if(after<=0||now-_armorWearFloatAt>320){_armorWearFloatAt=now;spawnFloatText(player.r,player.c,after>0?`🛡 ${after}/${style.durability}`:'💥 БРОНЯ РАЗБИТА',{color:after>0?style.accent:'#ff776e',size:11,life:after>0?720:1200,tag:'armor_wear'});}
-  if(after<=0)_breakEquippedArmor('hit');
-  return Math.max(0,+absorbedDamage||0);
+function _applyAuthoritativeCombatState(raw){
+  const next=_normalizeCombatState(raw);if(!next)return false;
+  if(next.combat_version<=_combatState.combat_version)return false;
+  const prior=_combatState,wasDead=!!prior.body.dead;
+  _combatState=next;_equippedArmor=!next.armor.broken&&next.armor.current>0?next.armor.id:null;
+  _inventoryArmorUiState=_readInventoryArmorUiState({combat_state:next},_equippedArmor);
+  PVP.max_hp=next.body.max;myHp=next.body.current;myDead=next.body.dead;
+  if(next.body.current<prior.body.current)_selfHpBarUntil=performance.now()+4500;
+  if(prior.armor.id&&prior.armor.current>0&&next.armor.current<=0&&next.armor.broken)showToast(`${ARMOR_STYLES[prior.armor.id]?.label||'Броня'} разбита`,'💥',2200);
+  if(!wasDead&&myDead)myDeathLeft=Math.max(0,myDeathLeft||18);
+  renderHudAvatar();updateArmorHud();
+  return true;
 }
-async function _breakEquippedArmor(reason='death'){
-  if(!_equippedArmor||_armorBreakPending)return;
-  const brokenId=_equippedArmor,label=ARMOR_STYLES[brokenId]?.label||'Броня';
-  _armorBreakPending=true;_equippedArmor=null;_armorDurabilityState[brokenId]=0;_saveArmorDurability();renderHudAvatar();updateArmorHud();
-  showToast(reason==='hit'?`${label} разбита попаданиями`:`${label} уничтожена при смерти`,'💥',2400);
-  try{
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/break-armor`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({armor_id:brokenId})});
-    const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'armor sync failed');delete _armorDurabilityState[brokenId];_saveArmorDurability();
-    await loadInventoryItems();
-  }catch(e){}
-  _armorBreakPending=false;
-}
-function _breakEquippedArmorOnDeath(){return _breakEquippedArmor('death');}
+function _armorMaxDurability(id=_equippedArmor){return id===_combatState.armor.id?_combatState.armor.max:0;}
+function _armorDurability(id=_equippedArmor){return id===_combatState.armor.id?_combatState.armor.current:0;}
 let _myC4Count = 0, _myGrenadeCount = 0, _myMolotovCount = 0;
 const worldC4Charges = new Map(); // id → {x,y,ownerUid,ownerName,expiresAt}
 const districtBossCashDrops = new Map(); // общий серверный дроп $200 с боссов районов
@@ -5012,7 +5017,7 @@ function _previewFoundItems() {
 async function _keepBeachFoundItem(it) {
   const def=BEACH_FOUND_DEFS[it.kind]; if(!def||it._saving)return false; it._saving=true;
   try {
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/found`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:it.kind})});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/found`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:it.kind})});
     const j=await r.json(); if(!j.ok)throw new Error(j.error||'save failed');
     await loadInventoryItems(); showToast(`${def.icon} ${def.name} — в инвентаре`,'🎒',2400); return true;
   } catch(e) {
@@ -5023,7 +5028,7 @@ async function _keepBeachFoundItem(it) {
 }
 async function _returnBeachFoundItem(it) {
   try {
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/found`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:it.kind,action:'return'})});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/found`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:it.kind,action:'return'})});
     const j=await r.json();if(!j.ok)throw new Error(j.error||'reward failed');
     QP.cash=j.cash;myCash=j.cash;_goodName=j.good_name||0;_lostReturns=j.lost_returns||0;_returnStreak=j.return_streak||0;
     await loadInventoryItems();
@@ -10124,14 +10129,14 @@ function _applyEmpirePlayerWeaponHit(n,damage,profile,now=performance.now()){
   else if(effect==='ricochet')_hurtLocal(3,name,true);
   else if(effect==='incendiary')dot('ОГОНЬ',3,2100);
   else if(effect==='burst')_hurtLocal(2,name,true);
-  else if(effect==='breach')_damageEquippedArmor(damage*1.8,0);
+  else if(effect==='breach')updateArmorHud();
   else if(effect==='gold_burst')_hurtLocal(4,name,true);
   else if(effect==='poison')dot('ЯД',2,3000);
   else if(effect==='shock'){player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+1800);spawnShockwave(player.r,player.c,{rad0:2,maxRad:30,life:300,color:'#62c7ef',thick:4});}
   else if(effect==='pull'){const dr=n.r-player.r,dc=n.c-player.c,d=Math.hypot(dr,dc)||1,nr=player.r+dr/d*.8,nc=player.c+dc/d*.8;if(!isBlockedPed(nr,nc)){player.r=nr;player.c=nc;}}
   else if(effect==='bleed')dot('КРОВОТЕЧЕНИЕ',2,2800);
   else if(effect==='arrow'){dot('КРОВОТЕЧЕНИЕ',2,1900);player._empireSlowUntil=now+900;}
-  else if(effect==='armor_piercing')_damageEquippedArmor(damage*2.2,0);
+  else if(effect==='armor_piercing')updateArmorHud();
   else if(effect==='flash'){player._empireBlindUntil=now+1800;player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+700);screenFlash=Math.max(screenFlash,.82);}
   else if(effect==='shadow'){player._empireBlindUntil=now+1200;player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+1050);}
   else if(effect==='sonic'){player._empireSlowUntil=now+1500;player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+950);addShake(5);spawnShockwave(player.r,player.c,{rad0:2,maxRad:42,life:300,color:'#6de0d7',thick:4});}
@@ -20890,7 +20895,7 @@ function _updateGang(dt) {
     } else if (m.targetKind === 'michael_guard') {
       try { ws && ws.send(JSON.stringify({ t: 'mg_shoot', d: { target: m.targetId, weapon: m.weapon } })); } catch(e) {}
     } else if (m.targetKind === 'player') {
-      try { ws && ws.send(JSON.stringify({ t: 'player_shoot', d: { target_uid: m.targetId, weapon: m.weapon } })); } catch(e) {}
+      try { ws && ws.send(JSON.stringify({ t: 'player_shoot', d: { target_uid: m.targetId, weapon: m.weapon, shot_id:_newCombatEventId() } })); } catch(e) {}
     }
     if(['bank_guard','interior_guard','city_cop','gang_car','street_npc'].includes(m.targetKind)){
       const killed=targetWasAlive&&!!(localTarget&&(localTarget.dead||localTarget.alive===false||(+localTarget.hp||0)<=0||localTarget._wrecked));
@@ -21578,14 +21583,9 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     return;
   }
   if (underFire) _registerIncomingFire(dmg);
-  if(typeof _policeHasLevel==='function'&&_policeHasLevel(3)){
+  if(_LOCAL_PREVIEW&&typeof _policeHasLevel==='function'&&_policeHasLevel(3)){
     const raw=Math.max(0,dmg|0),warArmor=_localFactionControls('police') ? .05 : 0,armor=Math.max(.45,.7-_hqLvl('police','armory')*.05-warArmor);dmg=Math.max(1,Math.ceil(raw*armor));
     const now=performance.now();if(now-_policeVestToastAt>1400){_policeVestToastAt=now;spawnFloatText(player.r,player.c,`🦺 БРОНЯ −${raw-dmg}`,{color:'#79c8ff',size:12,life:850});}
-  }
-  const armorReduction=_armorReduction();
-  if(armorReduction>0){
-    const before=Math.max(1,dmg|0);dmg=Math.max(1,Math.ceil(before*(1-armorReduction)));
-    if(before>dmg){spawnFloatText(player.r,player.c,`🦺 −${before-dmg}`,{color:'#a9d6ff',size:11,life:650,tag:'armor_block'});if(underFire)_damageEquippedArmor(before,before-dmg);}
   }
   const appliedDamage=Math.max(1,dmg|0),impactNow=performance.now(),source=deathMode?.cop||deathMode?.source||deathMode||null;
   const sourceR=Number.isFinite(+(source?.r??source?.y))?+(source.r??source.y):NaN;
@@ -21598,6 +21598,9 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     at:impactNow,angle:impactAngle,power:Math.max(.16,Math.min(1,appliedDamage/72)),kind:impactKind,
     bodyPart:deathMode?.bodyPart||(/head|sniper/.test(impactKind)?'head':/leg|fire|пожар/.test(impactKind)?'leg':'torso')
   };
+  // Live body and armor are rendered exclusively from combat_state.v1. Local
+  // sources remain visual until the server validates and routes that source.
+  if(!_LOCAL_PREVIEW)return;
   myHp = Math.max(0, myHp - appliedDamage);
   _localHpHurtAt = impactNow;
   _selfHpBarUntil = _localHpHurtAt + 4500;
@@ -21606,7 +21609,7 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     const policeDeathKind=String(deathMode?.kind||'');
     if(deathMode?.cop&&(policeDeathKind.includes('police')||policeDeathKind==='city_cop'||deathMode.cop._prisonStaff)&&_queueAnyPoliceDeathPickup(deathMode.cop,{},_localHpHurtAt))return;
     myDead = true; _localDeath = true;
-    myDeathBy = by || 'Город'; myDeathLeft = 18;_breakEquippedArmorOnDeath();_dispatchPlayerAmbulance();
+    myDeathBy = by || 'Город'; myDeathLeft = 18;_dispatchPlayerAmbulance();
   }
 }
 let myKills = 0, myDeaths = 0;
@@ -22972,6 +22975,11 @@ function tryMove(obj, dr, dc) {
 // ── WebSocket ──────────────────────────────────────────────────
 let ws = null;
 let wsConnected = false;
+let _combatEventSeq=0;
+function _newCombatEventId(){
+  _combatEventSeq=(_combatEventSeq+1)%1000000000;
+  return `${Date.now().toString(36)}-${_combatEventSeq.toString(36)}-${Math.random().toString(36).slice(2,10)}`;
+}
 let _firstSnap = true;   // первый снап — всегда телепорт + сброс камеры
 let lastInputSent = 0;
 let onlineCount = 1;
@@ -25630,11 +25638,12 @@ function switchModeFlow() {
   location.replace(next.toString());
 }
 
-function wsUrl() {
+function wsUrl(worldToken='') {
   if (!QP.api || !QP.character_uid) return '';
   // QP.api это https?://... → ws(s)://...
   const base = QP.api.replace(/^http/, 'ws').replace(/\/+$/, '');
   const params = new URLSearchParams({ uid: QP.uid, mode: myMode || 'pvp' });
+  if(worldToken)params.set('world_token',worldToken);
   // Прокидываем флаг и название банды (пришли из хаба в URL мира).
   // Сервер также подтянет из БД, но querystring даёт мгновенный эффект.
   const gf = parseInt(_UP.get('gang_flag') || '0', 10);
@@ -25676,14 +25685,30 @@ function setConnecting(msg) {
   }
 }
 
-function wsConnect() {
+let _wsAuthPending=false;
+async function _worldTokenForSocket(){
+  if(_LOCAL_PREVIEW&&!_telegramInitData())return '';
+  const r=await _apiRequest(`${QP.api}/auth/world/${encodeURIComponent(QP.uid)}`,{method:'POST',cache:'no-store'});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||!j.ok||!j.world_token)throw new Error(j.error||'world auth failed');
+  return String(j.world_token);
+}
+async function wsConnect() {
   // Не открываем второй сокет, пока первый ещё подключается или уже работает.
-  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
+  if (_wsAuthPending||(ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN))) return;
   if (_wsReconnectTimer !== null) {
     clearTimeout(_wsReconnectTimer);
     _wsReconnectTimer = null;
   }
-  const url = wsUrl();
+  _wsAuthPending=true;
+  let worldToken='';
+  try{worldToken=await _worldTokenForSocket();}
+  catch(e){
+    _wsAuthPending=false;wsFailStreak++;setError('⚠️ Не удалось подтвердить игрока');
+    _scheduleWsReconnect(Math.min(15000,2000+wsFailStreak*1500));return;
+  }
+  _wsAuthPending=false;
+  const url = wsUrl(worldToken);
   if (!url) {
     if(!QP.character_uid){setConnecting(null);return;}
     setConnecting('⚠️ Сервер недоступен. Переподключаюсь…');
@@ -25812,6 +25837,8 @@ function wsConnect() {
       // Если игрок реально жульничает (тп) — at 15 тайл snap всё равно
       // вернёт его. Если просто инет лагает — игрок не чувствует rubber.
       if (d.me) {
+        const wasDead=myDead;
+        _applyAuthoritativeCombatState(d.me.combat_state);
         _apartmentHosts=Array.isArray(d.me.apartment_hosts)?d.me.apartment_hosts:[];
         if(typeof d.me.spray_cans==='number')_sprayCans=Math.max(0,d.me.spray_cans|0);
         // Внутри банка координаты — комнатные, не мировые → snap игнорируем.
@@ -25854,11 +25881,6 @@ function wsConnect() {
         // Внутри банка HP управляется только локально (_hurtLocal/больница).
         // Сервер не знает об интерьере и шлёт снапы с заниженным HP (копы
         // снаружи «стреляют»). Игнорируем сервер пока _bankInt активен.
-        if (typeof d.me.hp === 'number' && !_bankShield() && !_murderPoliceArrest) {
-          if(d.me.hp<myHp)_selfHpBarUntil=performance.now()+4500;
-          const _localFresh = (performance.now() - _localHpHurtAt) < 2500;
-          if (!_localFresh || d.me.hp <= myHp) myHp = d.me.hp;
-        }
         if (typeof d.me.kills === 'number')   myKills = d.me.kills;
         if (typeof d.me.deaths === 'number')  myDeaths = d.me.deaths;
         if (typeof d.me.cash === 'number') {
@@ -25903,13 +25925,12 @@ function wsConnect() {
           myDiamonds = d.me.diamonds;
           updateMoneyHud();
         }
-        const wasDead = myDead;
         // The lethal cop-shot event and the following snapshot travel as
         // separate websocket packets. If the event is dropped/reordered, the
         // snapshot still carries the authoritative dead+jail state. Start the
         // same physical pickup pipeline here so the prisoner cannot remain at
         // 0 HP, walk or fire while the server already considers him jailed.
-        if(!_localDeath&&!_bankShield()&&!_murderPoliceArrest&&d.me.dead&&(+d.me.jail_in||0)>0){
+        if(!_localDeath&&!_bankShield()&&!_murderPoliceArrest&&myDead&&(+d.me.jail_in||0)>0){
           _queueAnyPoliceDeathPickup(null,{serverAlreadyJailed:true,jailSeconds:+d.me.jail_in||60},performance.now());
         }
         // При локальной смерти (охрана банка) сервер присылает dead=false —
@@ -25918,17 +25939,16 @@ function wsConnect() {
         // знает про интерьер и думает что worldCops застрелили игрока у
         // входа (стационарная savedC/savedR) → слал dead=true+тюрьму при
         // живых 50% HP. Урон в банке наносит только охрана через _hurtLocal.
-        if (!_localDeath && !_bankShield()) {
+        if (!_localDeath && !_bankShield() && d.me.combat_state) {
           // После физической доставки сервер ещё может один-два снапшота
           // присылать старый dead=true. Заключённый уже жив и оформлен, поэтому
           // тюремный статус важнее устаревшей смерти и не возвращает лежачую позу.
           const custodyAlive=(+d.me.jail_in||0)>0||(myJailIn||0)>0||performance.now()<(_custodyPoseResetUntil||0);
-          myDead=!!d.me.dead&&!custodyAlive;
-          if(custodyAlive){_localDeath=false;myHp=Math.max(myHp,Math.ceil((PVP.max_hp||100)*.25));}
+          myDead=!!_combatState.body.dead;
+          if(custodyAlive)_localDeath=false;
           myDeathLeft = d.me.respawn_in || 0;
         }
         if (!wasDead && myDead) {
-          _breakEquippedArmorOnDeath();
           // Только что умер — принудительно выходим из машины, сбрасываем зум
           if (myDrivingCarId) {
             exitCar('death');
@@ -25942,8 +25962,7 @@ function wsConnect() {
           // Серверное HP при переходе dead→alive авторитетно. Обычный фильтр
           // выше не принимает увеличение вскоре после попадания, из-за чего
           // игрок оживал с нулевой полоской здоровья.
-          myHp = Math.max(1, Math.min(PVP.max_hp || 100,
-            Number.isFinite(+d.me.hp) ? +d.me.hp : (PVP.max_hp || 100)));
+          myHp = _combatState.body.current;
           _localHpHurtAt = 0;
           _selfHpBarUntil = performance.now() + 2600;
           myDeathBy = '';
@@ -25999,13 +26018,15 @@ function wsConnect() {
       for (const o of list) {
         seen.add(o.uid);
         let p = others.get(o.uid);
+        const incomingCombat=_normalizeCombatState(o.combat_state);
         if (!p) {
+          const baseLook=o.look||{};
           p = { uid: o.uid,
                 x: o.x, y: o.y, ang: o.ang || 0, w: !!o.w,
                 tx: o.x, ty: o.y, tAng: o.ang || 0,
-                name: o.name || '?', look: o.look || {}, chat: o.chat || '',
+                name: o.name || '?', baseLook, look:_lookWithAuthoritativeArmor(baseLook,incomingCombat), chat: o.chat || '',
                 chatT: o.chat ? performance.now() : 0, lastT: performance.now(),
-                hp: o.hp || PVP.max_hp, dead: !!o.dead,
+                hp: incomingCombat?.body.current??PVP.max_hp, dead: !!incomingCombat?.body.dead, combatState:incomingCombat,
                 wanted: o.wanted || 0, gangs: o.gangs || 0,
                 mode: o.mode || 'pvp', jail_in: o.jail_in || 0,
                 interior: o.interior || null, weapon: o.weapon || 'pistol', police:!!o.police,
@@ -26016,10 +26037,12 @@ function wsConnect() {
         } else {
           p.tx = o.x; p.ty = o.y; p.tAng = o.ang || 0; p.w = !!o.w;
           p.name = o.name || p.name;
-          if (o.look) p.look = o.look;
+          if (o.look) p.baseLook=o.look;
           if (o.chat && o.chat !== p.chat) { p.chat = o.chat; p.chatT = performance.now(); }
-          if (typeof o.hp === 'number') p.hp = o.hp;
-          p.dead = !!o.dead;
+          if(incomingCombat&&incomingCombat.combat_version>(p.combatState?.combat_version??-1)){
+            p.combatState=incomingCombat;p.hp=incomingCombat.body.current;p.dead=incomingCombat.body.dead;
+          }
+          p.look=_lookWithAuthoritativeArmor(p.baseLook,p.combatState);
           // Wanted/gangs/mode/jail_in — обновляем каждый снапшот.
           // Без этого над головой не рисовались ⭐/👊 и не работал PvE-тег.
           if (typeof o.wanted === 'number') p.wanted = o.wanted;
@@ -26087,7 +26110,7 @@ function wsConnect() {
       if (d.me && typeof d.me.respawn_in === 'number' && !_localDeath) {
         myDeathLeft = d.me.respawn_in;
       }
-      if (d.me && typeof d.me.max_hp === 'number') {
+      if (_LOCAL_PREVIEW && d.me && !d.me.combat_state && typeof d.me.max_hp === 'number') {
         PVP.max_hp = d.me.max_hp;
       }
       // Countdown до следующего инкассатора (виден всем игрокам)
@@ -31849,7 +31872,7 @@ function _renderShopItems() {
     const armorOwned=it.type==='armor'&&owned;
     const stat = weaponId ? weaponStatLine(weaponId)
       : ammoDef ? `${it.desc} · запас ${ammoNow}/${ammoDef.max}`
-      : it.atk ? `+${it.atk} атк` : it.def ? `Поглощение ${Math.round((ARMOR_STYLES[it.id]?.reduction||0)*100)}% · ${armorOwned?'в наличии: 1':'одноразовый'}` : it.desc;
+      : it.atk ? `+${it.atk} атк` : it.def ? `Броня первой принимает урон · ${armorOwned?'в наличии: 1':'один экземпляр'}` : it.desc;
     const pending = _shopPurchasesPending.has(it.id);
     const premiumCost=+it.diamondsPrice||0,currencyEnough=premiumCost?shopDiamonds>=premiumCost:shopCash>=(+it.price||0);
     const priceLabel=premiumCost?`💎 ${premiumCost}`:`${it.price}$`;
@@ -31909,7 +31932,7 @@ function _drawArmorPreviews(root){
     c.save();c.shadowColor=style?.accent||'rgba(0,0,0,.65)';c.shadowBlur=7;
     drawArmorSkin(c,px,py,sc,id,0,1);
     c.restore();
-    c.fillStyle=style?.accent||'#d8c68c';c.font='900 7px system-ui';c.textAlign='left';c.fillText(`${style?.durability||0} AP`,6,90);c.textAlign='right';c.fillText(`${Math.round((style?.reduction||0)*100)}%`,134,90);
+    c.fillStyle=style?.accent||'#d8c68c';c.font='900 7px system-ui';c.textAlign='left';c.fillText('ARMOR',6,90);c.textAlign='right';c.fillText('SERVER',134,90);
     c.strokeStyle='rgba(255,255,255,.13)';c.strokeRect(.5,.5,cv.width-1,cv.height-1);
   });
 }
@@ -31935,18 +31958,17 @@ function _seedPreviewInventory(){
     {id:'medkit_medium',name:'🏥 Аптечка',type:'potion',qty:3,heal:130,desc:'Восстанавливает 130 HP'},
   ];
   for(const local of showcase)if(!_inventoryItems.some(i=>i.id===local.id))_inventoryItems.push(local);
-  _equippedArmor='tactical_vest';_ensureArmorDurability(_equippedArmor,false);
+  _equippedArmor='tactical_vest';
   const previewMax=95,previewHp=Math.round(previewMax*Math.max(0,Math.min(1,_UP.has('previewarmorwear')?+_UP.get('previewarmorwear')||0:.72)));
-  _inventoryArmorUiState=_readInventoryArmorUiState({combat_state:{body:{current:100,max:100,dead:false},armor:{id:_equippedArmor,instance_id:'preview:tactical-vest:1',current:previewHp,max:previewMax,version:1,broken:false},combat_version:1}},_equippedArmor);
+  const previewSnapshot={combat_state:{body:{current:100,max:100,dead:false},armor:{id:_equippedArmor,instance_id:'preview:tactical-vest:1',current:previewHp,max:previewMax,version:1,broken:false},combat_version:1}};
+  _applyAuthoritativeCombatState(previewSnapshot.combat_state);
 }
 async function loadInventoryItems() {
   try {
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/list`,{cache:'no-store'});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/list`,{cache:'no-store'});
     const j=await r.json(); if(!j.ok||!Array.isArray(j.items))throw new Error('inventory');
     _inventoryItems=j.items;
-    _equippedArmor=j.equipped_armor||null;
-    _inventoryArmorUiState=_readInventoryArmorUiState(j,_equippedArmor);
-    if(_equippedArmor&&_ensureArmorDurability(_equippedArmor,false)<=0&&!_armorBreakPending)setTimeout(()=>_breakEquippedArmor('hit'),0);
+    _applyAuthoritativeCombatState(j.combat_state);
     _syncMyWeaponsFromInventory(_inventoryItems);
     _goodName=+j.good_name||0;_lostReturns=+j.lost_returns||0;_returnStreak=+j.return_streak||0;
     if(_LOCAL_PREVIEW) {
@@ -31997,7 +32019,7 @@ async function _sellFoundItem(itemId) {
   const it=_inventoryItems.find(x=>x.id===itemId&&x.type==='thing');if(!it)return;
   let caught=false;
   try {
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/sell-found`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId})});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/sell-found`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId})});
     const j=await r.json();if(!j.ok)throw new Error(j.error||'sell failed');QP.cash=j.cash;myCash=j.cash;_returnStreak=0;
     if(j.caught){caught=true;myWanted=j.wanted;}
   } catch(e) {
@@ -32031,7 +32053,7 @@ async function _buyShopItem(itemId) {
   _shopPurchasesPending.add(itemId);
   _renderShopItems();
   try {
-    const r = await fetch(`${QP.api}/shop/${QP.uid}/buy`, {
+    const r = await _apiRequest(`${QP.api}/shop/${QP.uid}/buy`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ item_id: itemId, qty: 1 })
     });
@@ -32060,18 +32082,11 @@ async function _buyShopItem(itemId) {
         await loadInventoryItems();
         showToast(bought.id==='c4' ? `${bought.name} куплен. В наличии: ${_myC4Count}` : `${bought.name} куплен`, bought.pic, 1900);
       } else if (bought.type === 'armor') {
-        let equipped=j.equipped_armor===bought.id;
-        // Совместимость со старым сервером: там покупка и экипировка были
-        // двумя запросами. Новый сервер делает их одной транзакцией.
-        if(!equipped&&j.equipped_armor===undefined){
-          const er=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:bought.id,slot:'armor'})});
-          const ej=await er.json().catch(()=>({}));
-          equipped=!!(er.ok&&ej.ok&&ej.equipped_armor===bought.id);
-        }
-        if(equipped){_equippedArmor=bought.id;_resetArmorDurability(bought.id);}
+        _applyAuthoritativeCombatState(j.combat_state);
         await loadInventoryItems();
         renderHudAvatar();
-        showToast(equipped?`${bought.name} надета · защита ${Math.round(_armorReduction()*100)}%`:`${bought.name} куплена, но не удалось надеть`,equipped?'🦺':'⚠️',2200);
+        const equipped=_combatState.armor.id===bought.id;
+        showToast(equipped?`${bought.name} надета · ${_combatState.armor.current}/${_combatState.armor.max}`:`${bought.name} куплена`,equipped?'🦺':'✅',2200);
       } else {
         await loadInventoryItems();
         showToast('Оружие куплено и добавлено в выбор!', '✅', 1800);
@@ -32942,7 +32957,7 @@ function _sendRemoteWeaponHit(remote, weapon) {
     else if (remote.kind === 'cop') ws && ws.send(JSON.stringify({ t:'cop_shoot', d:{ target:remote.id, weapon } }));
     else if (remote.kind === 'aggro') _sendAggroWeaponHit(remote.id, weapon);
     else if (remote.kind === 'mg') ws && ws.send(JSON.stringify({ t:'mg_shoot', d:{ target:remote.id, weapon } }));
-    else if (remote.kind === 'player') ws && ws.send(JSON.stringify({ t:'player_shoot', d:{ target_uid:remote.id, weapon } }));
+    else if (remote.kind === 'player') ws && ws.send(JSON.stringify({ t:'player_shoot', d:{ target_uid:remote.id, weapon, shot_id:_newCombatEventId() } }));
   } catch(e) {}
 }
 
@@ -33887,7 +33902,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'player_shoot',
-        d: { target_uid: pvpTarget.uid, weapon: currentWeapon } }));
+        d: { target_uid: pvpTarget.uid, weapon: currentWeapon, shot_id:_newCombatEventId() } }));
     } catch(e) {}
     return;
   }
@@ -34783,7 +34798,7 @@ function _syncMyWeaponsFromInventory(items){
 async function loadMyWeapons() {
   if (!QP.api || !QP.uid) return;
   try {
-    const r = await fetch(QP.api + '/inv/' + encodeURIComponent(QP.uid) + '/list',
+    const r = await _apiRequest(QP.api + '/inv/' + encodeURIComponent(QP.uid) + '/list',
                           { cache: 'no-store' });
     const j = await r.json().catch(()=>({}));
     if (!j || !Array.isArray(j.items)) return;
@@ -47452,7 +47467,7 @@ function updateArmorHud(force=false){
   if(!row||!fill||!name||!value||!cv)return;
   const previewId=_LOCAL_PREVIEW&&ARMOR_STYLES[String(_UP.get('previewarmor')||'')]?String(_UP.get('previewarmor')):'',id=previewId||_equippedArmor,style=ARMOR_STYLES[id];
   row.classList.toggle('hidden',!style);if(!style){_armorHudSignature='';return;}
-  const max=_armorMaxDurability(id),previewWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,now=previewId?Math.round(max*previewWear):_armorDurability(id),pct=max?Math.max(0,Math.min(100,now/max*100)):0,sig=`${id}:${now}:${max}`;
+  const max=previewId?(style.previewMax||0):_armorMaxDurability(id),previewWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,now=previewId?Math.round(max*previewWear):_armorDurability(id),pct=max?Math.max(0,Math.min(100,now/max*100)):0,sig=`${id}:${now}:${max}`;
   if(!force&&sig===_armorHudSignature)return;_armorHudSignature=sig;
   name.textContent=style.label.toUpperCase();value.textContent=`${now}/${max}`;fill.style.width=`${pct.toFixed(1)}%`;fill.classList.toggle('low',pct<=50&&pct>25);fill.classList.toggle('crit',pct<=25);
   const g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);const grad=g.createRadialGradient(20,19,2,20,22,24);grad.addColorStop(0,'#27323d');grad.addColorStop(1,'#080b0f');g.fillStyle=grad;g.fillRect(0,0,40,48);
@@ -47504,9 +47519,9 @@ async function _equipArmorFromInventory(itemId){
   if(!owned){showToast('Этой брони уже нет в инвентаре','⚠️',1800);await loadInventoryItems();return;}
   _profileEquipPending=true;renderProfileTab();
   try{
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId,slot:'armor'})});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId,slot:'armor'})});
     const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'equip failed');
-    _equippedArmor=j.equipped_armor||itemId;_ensureArmorDurability(_equippedArmor,false);renderHudAvatar();await loadInventoryItems();
+    _applyAuthoritativeCombatState(j.combat_state);renderHudAvatar();await loadInventoryItems();
     const label=ARMOR_STYLES[itemId]?.label||'Броня';
     showToast(`${label} надета · прежняя броня осталась в инвентаре`,'🦺',2200);
   }catch(e){showToast('Не удалось надеть броню','❌',1800);await loadInventoryItems();}
@@ -47516,9 +47531,9 @@ async function _unequipArmorFromInventory(){
   if(_profileEquipPending||!_equippedArmor)return;
   const removedId=_equippedArmor,label=ARMOR_STYLES[removedId]?.label||'Броня';_profileEquipPending=true;renderProfileTab();
   try{
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:null,slot:'armor'})});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:null,slot:'armor'})});
     const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'unequip failed');
-    _equippedArmor=null;renderHudAvatar();updateArmorHud();await loadInventoryItems();
+    _applyAuthoritativeCombatState(j.combat_state);renderHudAvatar();updateArmorHud();await loadInventoryItems();
     showToast(`${label} снята · сохранена в инвентаре`,'🧥',2000);
   }catch(e){showToast('Не удалось снять броню','❌',1800);await loadInventoryItems();}
   finally{_profileEquipPending=false;renderProfileTab();}
@@ -47528,7 +47543,7 @@ async function _selectProfileWeapon(itemId,granted=false){
   if(raw&&!granted&&!_inventoryItems.some(i=>i.id===raw&&i.type==='weapon'&&(+i.qty||0)>0)){showToast('Этого оружия уже нет в инвентаре','⚠️',1700);await loadInventoryItems();return;}
   _profileEquipPending=true;renderProfileTab();
   try{
-    if(!granted){const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(raw?{item_id:raw,slot:'weapon'}:{item_id:null,slot:'weapon'})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'equip failed');}
+    if(!granted){const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/equip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(raw?{item_id:raw,slot:'weapon'}:{item_id:null,slot:'weapon'})});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'equip failed');}
     cancelWeaponReload();currentWeapon=wid;document.documentElement.dataset.selectedWeapon=wid||'none';if(wid)_lastEquippedWeapon=wid;_saveCurrentWeaponChoice();renderWeaponHud();
     showToast(wid?`${weaponLabel(wid)} выбрано`:'Оружие убрано',wid?'🔫':'✋',1500);
   }catch(e){showToast('Не удалось сменить оружие','❌',1800);await loadInventoryItems();}
@@ -47540,10 +47555,10 @@ async function _useProfileConsumable(itemId){
   if(myHp>=(PVP.max_hp||100)){showToast('Здоровье уже полное','❤️',1800);return;}
   _usingProfileConsumable=true;renderProfileTab();
   try{
-    const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId})});
+    const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:itemId})});
     const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'consume failed');
-    myHp=Math.max(0,Math.min(PVP.max_hp||100,+j.hp||myHp));_selfHpBarUntil=performance.now()+3500;
-    await loadInventoryItems();updateHud();
+    _applyAuthoritativeCombatState(j.combat_state);_selfHpBarUntil=performance.now()+3500;
+    await loadInventoryItems();
     showToast(`Восстановлено ${+j.healed||0} HP · осталось: ${+j.left||0}`,'❤️‍🩹',2200);
   }catch(e){
     const reason=String(e.message);
@@ -47578,7 +47593,7 @@ function renderProfileTab() {
     if(!armorItems.length)html+='<div class="empty">Брони пока нет. Каждый вид можно хранить по одной штуке.</div>';else html+='<div class="inventory-grid">';
     for(const it of armorItems){
       const style=ARMOR_STYLES[it.id]||{},equipped=_equippedArmor===it.id,condition=_inventoryArmorCondition(it.id,equipped),meta=_inventoryUiMeta(it);
-      html+=`<div class="inventory-card${equipped?' equipped':''}"><div class="inventory-visual"><canvas width="140" height="96" data-inventory-armor="${esc(it.id)}"></canvas><span class="inventory-qty">×1</span>${equipped?'<span class="inventory-state">надето</span>':''}</div><div class="inventory-card-body"><div class="inventory-card-name">${esc(it.name||style.label||it.id)}</div><div class="inventory-card-meta">Поглощение ${Math.round((style.reduction||0)*100)}% · жилет: ${esc(style.label||'неизвестный')}</div>${_inventoryUiTags(it,equipped)}<div class="inventory-durability"><div class="inventory-durability-copy"><span>armor HP · сервер</span><b>${condition.available?`${condition.hp}/${condition.maxHp}`:'—/—'}</b></div><div class="inventory-durability-track"><div class="inventory-durability-fill" style="width:${condition.pct}%;color:${style.accent||'#d7aa4d'};background:linear-gradient(90deg,#7d352c,${style.accent||'#d7aa4d'})"></div></div><div class="inventory-armor-note">${esc(condition.label)}</div></div><div class="inventory-price">Цена · ${esc(meta.priceLabel)}</div><div class="inventory-actions"><button class="inventory-btn${equipped?' secondary':''}" onclick="${equipped?'_unequipArmorFromInventory()':`_equipArmorFromInventory('${esc(it.id)}')`}" ${_profileEquipPending?'disabled':''}>${equipped?'Снять':'Надеть'}</button></div></div></div>`;
+      html+=`<div class="inventory-card${equipped?' equipped':''}"><div class="inventory-visual"><canvas width="140" height="96" data-inventory-armor="${esc(it.id)}"></canvas><span class="inventory-qty">×1</span>${equipped?'<span class="inventory-state">надето</span>':''}</div><div class="inventory-card-body"><div class="inventory-card-name">${esc(it.name||style.label||it.id)}</div><div class="inventory-card-meta">Броня первой поглощает урон · HP хранит сервер</div>${_inventoryUiTags(it,equipped)}<div class="inventory-durability"><div class="inventory-durability-copy"><span>armor HP · combat_state.v1</span><b>${condition.available?`${condition.hp}/${condition.maxHp}`:'—/—'}</b></div><div class="inventory-durability-track"><div class="inventory-durability-fill" style="width:${condition.pct}%;color:${style.accent||'#d7aa4d'};background:linear-gradient(90deg,#7d352c,${style.accent||'#d7aa4d'})"></div></div><div class="inventory-armor-note">${esc(condition.label)}</div></div><div class="inventory-price">Цена · ${esc(meta.priceLabel)}</div><div class="inventory-actions"><button class="inventory-btn${equipped?' secondary':''}" onclick="${equipped?'_unequipArmorFromInventory()':`_equipArmorFromInventory('${esc(it.id)}')`}" ${_profileEquipPending?'disabled':''}>${equipped?'Снять':'Надеть'}</button></div></div></div>`;
     } // inventory armor cards
     if(armorItems.length)html+='</div>';html+='</div><div class="inventory-section"><div class="profile-section-title" id="inventoryAmmo">📦 Боезапас</div>';
     if(!ammoItems.length)html+='<div class="empty">Патронов в инвентаре пока нет.</div>';else html+='<div class="inventory-grid">';
@@ -48149,7 +48164,9 @@ function reportCarCrash(qc, impact, kind) {
       myDrivingCarId = null; _exitRequested = false;
       player.r = (qc.y || qc.ty) + (Math.random() - 0.5) * 0.8;
       player.c = (qc.x || qc.tx) + (Math.random() - 0.5) * 0.8;
-      myHp = Math.max(1, myHp - 15);
+      // Visual feedback only. Live body/armor damage is committed by the
+      // server transaction and arrives through combat_state.v1.
+      if(_LOCAL_PREVIEW)myHp=Math.max(1,myHp-15);
       _selfHpBarUntil=performance.now()+4500;
       showToast('💥 Машина взорвалась!', '🔥', 2500);
     }
@@ -51508,7 +51525,7 @@ const _MAX_THROWN_ITEMS=16,_MAX_FIRE_POOLS=12;
 const THROW_GRENADE_RADIUS=4.4;
 const THROW_MOLOTOV_IMPACT_RADIUS=3.6;
 const THROW_MOLOTOV_FIRE_RADIUS=5.0;
-async function _consumeThrowable(kind){if(_ownerFullLoadout)return true;try{const r=await fetch(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:kind})});const j=await r.json();return !!j.ok}catch(e){return _LOCAL_PREVIEW}}
+async function _consumeThrowable(kind){if(_ownerFullLoadout)return true;try{const r=await _apiRequest(`${QP.api}/inv/${encodeURIComponent(QP.uid)}/consume`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({item_id:kind})});const j=await r.json();return !!j.ok}catch(e){return _LOCAL_PREVIEW}}
 async function _throwSelected(kind,angle,throwRange){
   if(_prisonWeaponLocked())return false;
   const count=kind==='grenade'?_myGrenadeCount:_myMolotovCount;if(count<=0)return false;
@@ -57512,7 +57529,7 @@ function _applyNpcEmpireWeaponHit(bi,n,victim,targetR,targetC,damage,profile){
     if(victim.kind==='player'){const now=performance.now();player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+(effect==='shock'?1800:effect==='sonic'?950:800));if(effect==='flash'||effect==='shadow'){player._empireBlindUntil=now+(effect==='flash'?1800:1200);screenFlash=Math.max(screenFlash,effect==='flash' ? .82 : .5);}if(effect==='sonic'){player._empireSlowUntil=now+1500;addShake(5);}}
   }else if(effect==='knockout'){hurt(3);if(victim.kind==='player')player._empireSlowUntil=performance.now()+1700;}
   else if(effect==='ricochet'||effect==='burst')hurt(effect==='ricochet'?3:2);
-  else if(effect==='breach'||effect==='armor_piercing'){if(victim.kind==='player')_damageEquippedArmor(damage*(effect==='armor_piercing'?2.2:1.8),0);}
+  else if(effect==='breach'||effect==='armor_piercing'){if(victim.kind==='player')updateArmorHud();}
   else if(effect==='gold_burst')hurt(4);
   else if(effect==='scatter')hurt(3);
 }
@@ -57830,7 +57847,7 @@ function _updateInteriorNpcs(bi, dt) {
           const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
           spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
           spawnBullet(muzzle.r,muzzle.c,target.y,target.x,{hit:true,fromNpc:true,weapon:n.weapon});
-          try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'player_shoot',d:{target_uid:target.uid,weapon:n.weapon}}));}catch(e){}
+          try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'player_shoot',d:{target_uid:target.uid,weapon:n.weapon,shot_id:_newCombatEventId()}}));}catch(e){}
         }
       }else {
         // В мирное время нанятая охрана обходит зал, останавливается у постов
@@ -64601,7 +64618,7 @@ window.Mafiozi3DBridge = Object.freeze({
   updatePlayerBusinessRaidNavigation(r,c){_updatePlayerBusinessRaidNavigation(r,c);},
   getPlayerState() {
     const stateNow=performance.now(),anim=_threePlayerAnimationTelemetry(stateNow),previewWeaponId=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():'',previewWalking=_LOCAL_PREVIEW&&_UP.has('previewwalk'),reloadId=resolveWeapon(previewWeaponId||currentWeapon),liveReloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),previewReloadProgress=_LOCAL_PREVIEW&&_UP.has('previewreload')?Math.max(0,Math.min(.999,+_UP.get('previewreload')||0)):0,reloading=liveReloading||previewReloadProgress>0,reloadProgress=previewReloadProgress||liveReloading?Math.max(0,Math.min(1,previewReloadProgress||1-(_reloadUntil-stateNow)/reloadStepMs)):0;
-    const previewArmorId=_LOCAL_PREVIEW&&ARMOR_STYLES[String(_UP.get('previewarmor')||'')]?String(_UP.get('previewarmor')):'',armorId=previewArmorId||_equippedArmor,armorMax=_armorMaxDurability(armorId),previewArmorWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,armorDurability=previewArmorId?Math.round(armorMax*previewArmorWear):_armorDurability(armorId);
+    const previewArmorId=_LOCAL_PREVIEW&&ARMOR_STYLES[String(_UP.get('previewarmor')||'')]?String(_UP.get('previewarmor')):'',previewArmorMax=previewArmorId?(ARMOR_STYLES[previewArmorId].previewMax||0):0,previewArmorWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,bridgeCombatState=previewArmorId?{body:{..._combatState.body},armor:{id:previewArmorId,instance_id:`preview:${previewArmorId}`,current:Math.round(previewArmorMax*previewArmorWear),max:previewArmorMax,version:0,broken:false},combat_version:_combatState.combat_version}:_combatState;
     const vehicleEntry=_threeVehicleEntrySequence?{..._threeVehicleEntrySequence,progress:Math.max(0,Math.min(1,(performance.now()-_threeVehicleEntrySequence.startedAt)/_threeVehicleEntrySequence.duration))}:null;
     const arrest=_murderPoliceArrest,arrestPhase=arrest?.phase||'',arrestProgress=arrest?_murderPoliceArrestProgress(arrest):0;
     const jailIn=_effectivePrisonJailSeconds(),servingSentence=jailIn>0;
@@ -64637,7 +64654,7 @@ window.Mafiozi3DBridge = Object.freeze({
       role: prisonBooked ? 'prisoner' : (_policeState?.employed ? 'police' : _mafiaState?.employed ? 'mafia' : 'civilian'),
       family: prisonBooked ? null : (_mafiaState?.employed ? (_mafiaState.family || null) : null),
       prisonBooked,
-      armor:armorId||null,armorDurability,armorMax,
+      combat_state:bridgeCombatState,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
       joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
     };
@@ -65581,7 +65598,7 @@ window.Mafiozi3DBridge = Object.freeze({
     if(fireFx.length>12)fireFx.length=12;
     const players=[];if(!inside&&typeof others!=='undefined')for(const [id,x] of others){
       if(players.length>=24)break;
-      const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',dead:!!(x.dead||x.downed||x.alive===false||(Number.isFinite(+x.hp)&&+x.hp<=0)),recoverable:true,chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});
+      const r=+(x.y??x.r)||0,c=+(x.x??x.c)||0;if(near(r,c))players.push({id:String(id),r,c,ang:+x.ang||0,name:x.name||'',look:x.look||null,combat_state:x.combatState||null,role:x.police?'police':x.mafiaFamily?'mafia':'civilian',police:!!x.police,mafiaFamily:x.mafiaFamily||null,customGangName:x.customGangName||'',dead:!!(x.dead||x.downed||x.alive===false||(Number.isFinite(+x.hp)&&+x.hp<=0)),recoverable:true,chat:x.chat&&fxNow-(+x.chatT||0)<chatDuration(x.chat)?x.chat:''});
     }
     const objects=[];
     const addObject=(kind,id,r,c,label,color,extra={})=>{
