@@ -4242,6 +4242,8 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             await db.rollback(); return {'ok': False, 'error': 'war requires negative relation', 'required': -1}
         if action == 'declare_war' and pact == 'war':
             await db.rollback(); return {'ok': False, 'error': 'already at war'}
+        if action == 'break_pact' and pact not in {'alliance', 'truce', 'vassal'}:
+            await db.rollback(); return {'ok': False, 'error': 'no pact'}
         char = await (await db.execute("SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,))).fetchone()
         cash = int(char['cash'] if char else 0)
         if cost and cash < cost:

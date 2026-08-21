@@ -207,7 +207,8 @@ async def run() -> None:
         world_source = source.read()
     with open(os.path.join(root, "three_preview.js"), encoding="utf-8") as source:
         three_source = source.read()
-    assert "empireFlags" in world_source and ".slice(0,64)" in world_source
+    assert "empireFlags" in world_source
+    assert "if(empireFlags.length>64)empireFlags.length=64" in world_source
     hq_keys_source = re.search(
         r"const NPC_EMPIRE_HQ_BLOCK_KEYS = new Set\(\[(.*?)\]\);",
         world_source, re.S,
@@ -238,6 +239,12 @@ async def run() -> None:
     os.close(fd)
     try:
         await _base_db(path)
+        async with aiosqlite.connect(path) as db:
+            await db.execute(
+                "CREATE TABLE gang_members("
+                "id INTEGER PRIMARY KEY,telegram_id INTEGER,current_hp INTEGER)"
+            )
+            await db.commit()
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empires") == 19
         assert await _scalar(path, "SELECT COUNT(DISTINCT hq_key) FROM npc_empires") == 19
         assert await _scalar(path, "SELECT COUNT(*) FROM npc_empire_diplomacy") == 171
@@ -515,6 +522,23 @@ async def run() -> None:
         assert insult["ok"] and insult["relation"] < 0 and insult["pact"] == "none"
         war = await ne.diplomacy_action(path, 101, "marco", "declare_war", now=2_000_000_922)
         assert war["ok"] and war["pact"] == "war" and war["relation"] == -100
+        # break_pact is not a free escape from war (or a free hostility action
+        # while neutral). War can end only through the authoritative truce path.
+        war_cash = await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101")
+        break_war = await ne.diplomacy_action(
+            path, 101, "marco", "break_pact", now=2_000_000_923)
+        assert break_war == {"ok": False, "error": "no pact"}
+        assert await _scalar(
+            path, "SELECT score FROM npc_empire_relations "
+                  "WHERE leader_id='marco' AND telegram_id=101") == -100
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id='marco' AND telegram_id=101") == 1
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_relation_actions "
+                  "WHERE leader_id='marco' AND telegram_id=101 "
+                  "AND action_kind='break_pact'") == 0
+        assert await _scalar(path, "SELECT cash FROM characters WHERE telegram_id=101") == war_cash
         async with aiosqlite.connect(path) as db:
             await db.execute(
                 "INSERT INTO player_businesses VALUES(101,'pizza',0,0,'ok',0,0,1,0,NULL)"
