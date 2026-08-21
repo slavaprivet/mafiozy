@@ -1300,12 +1300,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         glass:Object.freeze({facadeDepth:.72,frameFloors:3,roofForm:'terraced_glass',slice1:'deep_mullions_shadowbox_roof_screen'}),
         brick:Object.freeze({facadeDepth:.54,frameFloors:2,roofForm:'hipped_masonry',slice1:'corbel_sills_arched_lintels_parapet'}),
         limestone:Object.freeze({facadeDepth:.48,frameFloors:3,roofForm:'classical_crown',slice1:'pediments_quoins_balustrade'}),
-        concrete:Object.freeze({facadeDepth:.58,frameFloors:2,roofForm:'mechanical_step'}),
-        deco:Object.freeze({facadeDepth:.66,frameFloors:3,roofForm:'deco_tiers'}),
-        industrial:Object.freeze({facadeDepth:.82,frameFloors:2,roofForm:'sawtooth_plant'}),
+        concrete:Object.freeze({facadeDepth:.58,frameFloors:2,roofForm:'mechanical_step',slice2:'recessed_frames_mechanical_screen'}),
+        deco:Object.freeze({facadeDepth:.66,frameFloors:3,roofForm:'deco_tiers',slice2:'stepped_fins_glazed_portal'}),
+        industrial:Object.freeze({facadeDepth:.82,frameFloors:2,roofForm:'sawtooth_plant',slice2:'loading_ribs_clerestory_duct_screen'}),
       });
       renderer.domElement.dataset.buildingSlice1Profiles='brick:corbel-sills-arched-lintels-parapet,limestone:pediments-quoins-balustrade,glass:deep-mullions-shadowbox-roof-screen';
       renderer.domElement.dataset.buildingSlice1Budget='families:3,build-time-static-spatial-merge,frame-allocations:0,frame-scans:0,lights:0,materials:0';
+      renderer.domElement.dataset.buildingSlice2Profiles='concrete:recessed-frames-mechanical-screen,deco:stepped-fins-glazed-portal,industrial:loading-ribs-clerestory-duct-screen';
+      renderer.domElement.dataset.buildingSlice2Budget='families:3,build-time-static-spatial-merge,frame-allocations:0,frame-scans:0,lights:0,materials:0,programs:0';
       const roofMat = new THREE.MeshStandardMaterial({color:0x41515d,map:roofTexture,roughness:.48,roughnessMap:roofTexture,metalness:.62,envMap:cityEnvironment,envMapIntensity:.72});
       const roofMechanicalMat=new THREE.MeshStandardMaterial({color:0x68757d,metalness:.48,roughness:.46}),roofFanMat=new THREE.MeshBasicMaterial({color:0x222a30}),roofTankMat=new THREE.MeshStandardMaterial({color:0x80543a,roughness:.75});
       const neonMats = [0xff496f, 0x46d9ff, 0xffc247].map(color => new THREE.MeshBasicMaterial({ color }));
@@ -1735,9 +1737,47 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const cornice=add(x,Math.max(4.4,h-1.05),w*.9,.28,accent,front+depth*.55);cornice.castShadow=false;
         renderer.domElement.dataset.buildingFacadeDepthProfiles='six-family-catalog-door-clear-static-merged-v1';
       };
+      const addSecondBuildingSliceDepth=(x,z,w,d,h,familyId,accent,add)=>{
+        const front=z+d/2+.11;
+        // Slice 2 uses the existing identity palette and the existing box
+        // helper only. The central authoritative doorway stays clear, while
+        // every piece joins the sector/chunk static merge after construction.
+        if(familyId==='concrete'){
+          const visibleFloors=Math.min(4,Math.max(1,Math.floor((h-4)/3.4)));
+          for(let floor=0;floor<visibleFloors;floor++){
+            const y=5.05+floor*3.35;
+            add(x,front+.3,w*.82,.5,.18,identityStone,y-1.22);
+            for(const side of [-1,1]){
+              const bayX=x+side*w*.255;
+              add(bayX,front+.42,w*.22,.72,2.35,identityDark,y);
+              add(bayX,front+.81,w*.15,.14,1.78,identityGlass,y);
+            }
+          }
+          for(const side of [-1,1])add(x+side*w*.34,z,w*.1,d*.54,1.75,accent,h+.88);
+          for(const depthSide of [-1,1])add(x,z+depthSide*d*.25,w*.58,d*.09,.42,identityDark,h+1.54);
+        }else if(familyId==='deco'){
+          const finH=Math.max(5,Math.min(16,h-2.2));
+          for(const side of [-.36,-.18,.18,.36])add(x+side*w,front+.34,.18,.48,finH,side<0?accent:identityStone,finH*.5+1.1);
+          for(const side of [-1,1])add(x+side*w*.25,front+.68,w*.16,.84,3.45,identityGlass,1.73);
+          add(x,front+.42,w*.74,.58,.24,accent,h-.72);
+          add(x,z,w*.7,d*.68,.34,identityStone,h+.44);
+          add(x,z,w*.46,d*.44,.3,accent,h+.82);
+        }else if(familyId==='industrial'){
+          for(const side of [-1,1]){
+            const bayX=x+side*w*.27;
+            add(bayX,front+.44,w*.22,.76,3.5,identityDark,1.75);
+            for(let rail=0;rail<4;rail++)add(bayX,front+.85,w*.18,.1,.1,identityStone,.62+rail*.82);
+            add(bayX,front+.79,w*.18,.14,1.05,identityGlass,4.75);
+          }
+          add(x,front+.38,w*.76,.54,.28,accent,5.5);
+          for(const side of [-1,1])add(x+side*w*.24,z,w*.13,d*.48,1.35,identityDark,h+.68);
+          add(x,z-d*.24,w*.58,d*.1,.32,identityStone,h+1.42);
+        }
+      };
       const addProceduralBuildingIdentity=(x,z,w,d,h,seed,districtStyle,familyId='concrete')=>{
         const familyVariants={glass:[3,5],brick:[0,2],limestone:[4,1],concrete:[5,4],deco:[1,4],industrial:[2,5]},variantPool=familyVariants[familyId]||[0,5],front=z+d/2+.11,accent=identityAccents[(seed+variantPool.length)%identityAccents.length],variant=variantPool[(seed>>>3)%variantPool.length],floors=Math.max(1,Math.floor((h-4)/3.4)),add=(xx,zz,ww,dd,hh,mat,yy=hh/2)=>{const q=box(xx,zz,ww,dd,hh,mat);q.position.y=yy;return q;};
         addArchitecturalFacadeDepth(x,z,w,d,h,familyId,accent);
+        addSecondBuildingSliceDepth(x,z,w,d,h,familyId,accent,add);
         // The pooled authoritative doorway supplies the moving leaf and black
         // interior; this pass keeps only facade trim, light and cornice.
         for(const sx of [-1,1])add(x+sx*Math.min(2,w*.18),front+.22,.24,.3,3.65,identityStone,1.83);
