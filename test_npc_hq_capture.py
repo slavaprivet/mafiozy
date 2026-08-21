@@ -17,6 +17,183 @@ async def _scalar(path: str, sql: str, args=()):
         return row[0] if row else None
 
 
+async def _ruin_terminalizes_sibling_hq(
+        path: str, leader_id: str, choice: str, now: int,
+        other_family_token: str, inject_rollback: bool = False) -> None:
+    profile = ne.PROFILE_BY_ID[leader_id]
+    hq_r, hq_c = ne._hq_coords(profile.hq_key)
+    winner = await ne.prepare_assault(
+        path, 101, leader_id, hq_r, hq_c, now=now
+    )
+    sibling = await ne.prepare_assault(
+        path, 202, leader_id, hq_r, hq_c, now=now
+    )
+    field = await ne.prepare_field_encounter(
+        path, 303, leader_id, hq_r, hq_c, now=now,
+        server_activity={"target_r": hq_r, "target_c": hq_c,
+                         "target_id": f"{leader_id}-field-proof",
+                         "created_at": now},
+    )
+    assert winner["ok"] and sibling["ok"]
+    assert field["ok"] and field["encounter_kind"] == "field"
+    async with aiosqlite.connect(path) as db:
+        await db.execute(
+            "UPDATE npc_empire_assaults SET guard_hp_json=?,boss_hp=0 "
+            "WHERE token=?",
+            (json.dumps([0] * len(winner["guards"])), winner["token"]),
+        )
+        await db.commit()
+
+    if inject_rollback:
+        rollback_cash = await _scalar(
+            path, "SELECT cash FROM characters WHERE telegram_id=101"
+        )
+        rollback_holdings = await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_holdings WHERE leader_id=?",
+            (leader_id,),
+        )
+        rollback_events = await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id=?",
+            (leader_id,),
+        )
+        async with aiosqlite.connect(path) as db:
+            await db.execute("""
+                CREATE TRIGGER reject_ruin_assault_event
+                BEFORE INSERT ON npc_empire_events
+                WHEN NEW.leader_id='rustam' AND NEW.kind='assault_won'
+                BEGIN SELECT RAISE(ABORT, 'forced ruin sibling rollback'); END
+            """)
+            await db.commit()
+        try:
+            await ne.resolve_assault(
+                path, 101, winner["token"], choice, now=now + 1
+            )
+            raise AssertionError("forced ruin sibling failure did not abort")
+        except sqlite3.IntegrityError as error:
+            assert "forced ruin sibling rollback" in str(error)
+        finally:
+            async with aiosqlite.connect(path) as db:
+                await db.execute("DROP TRIGGER reject_ruin_assault_event")
+                await db.commit()
+        assert await _scalar(
+            path, "SELECT status FROM npc_empires WHERE leader_id=?",
+            (leader_id,),
+        ) == "active"
+        for token in (winner["token"], sibling["token"], field["token"],
+                      other_family_token):
+            assert await _scalar(
+                path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+                (token,),
+            ) == "active"
+        assert await _scalar(
+            path, "SELECT cash FROM characters WHERE telegram_id=101"
+        ) == rollback_cash
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_holdings WHERE leader_id=?",
+            (leader_id,),
+        ) == rollback_holdings
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id=?",
+            (leader_id,),
+        ) == rollback_events
+
+    resolved = await ne.resolve_assault(
+        path, 101, winner["token"], choice, now=now + 2
+    )
+    assert resolved["ok"] and resolved["choice"] == choice
+    assert await _scalar(
+        path,
+        "SELECT status||':'||resolution FROM npc_empire_assaults WHERE token=?",
+        (winner["token"],),
+    ) == f"resolved:{choice}"
+    assert await _scalar(
+        path,
+        "SELECT status||':'||resolution FROM npc_empire_assaults WHERE token=?",
+        (sibling["token"],),
+    ) == "resolved:leader_ruined"
+    assert await _scalar(
+        path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+        (field["token"],),
+    ) == "active"
+    assert await _scalar(
+        path, "SELECT status FROM npc_empire_field_encounters WHERE encounter_id=?",
+        (field["encounter_id"],),
+    ) == "active"
+    assert await _scalar(
+        path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+        (other_family_token,),
+    ) == "active"
+
+    sibling_hp = await _scalar(
+        path, "SELECT guard_hp_json||':'||boss_hp FROM npc_empire_assaults "
+              "WHERE token=?", (sibling["token"],),
+    )
+    cash_101 = await _scalar(
+        path, "SELECT cash FROM characters WHERE telegram_id=101"
+    )
+    cash_202 = await _scalar(
+        path, "SELECT cash FROM characters WHERE telegram_id=202"
+    )
+    holdings = await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_holdings WHERE leader_id=?",
+        (leader_id,),
+    )
+    events = await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id=?",
+        (leader_id,),
+    )
+    ruined_state = await _scalar(
+        path, "SELECT status||':'||defeated_by||':'||comeback_at "
+              "FROM npc_empires WHERE leader_id=?", (leader_id,),
+    )
+    terminal = {"ok": True, "duplicate": True, "terminal": True,
+                "resolution": "leader_ruined"}
+    stale_results = await asyncio.gather(
+        ne.assault_hit(path, 202, sibling["token"], "guard", 0, 35,
+                       now=now + 3.0),
+        ne.resolve_assault(path, 202, sibling["token"],
+                           "annex" if choice == "loot" else "vassalize",
+                           now=now + 3),
+    )
+    assert stale_results == [terminal, terminal]
+    assert await ne.assault_hit(
+        path, 202, sibling["token"], "guard", 0, 35, now=now + 4.0
+    ) == terminal
+    assert await ne.resolve_assault(
+        path, 202, sibling["token"], "loot", now=now + 4
+    ) == terminal
+    assert await _scalar(
+        path, "SELECT guard_hp_json||':'||boss_hp FROM npc_empire_assaults "
+              "WHERE token=?", (sibling["token"],),
+    ) == sibling_hp
+    assert await _scalar(
+        path, "SELECT cash FROM characters WHERE telegram_id=101"
+    ) == cash_101
+    assert await _scalar(
+        path, "SELECT cash FROM characters WHERE telegram_id=202"
+    ) == cash_202
+    assert await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_holdings WHERE leader_id=?",
+        (leader_id,),
+    ) == holdings
+    assert await _scalar(
+        path, "SELECT COUNT(*) FROM npc_empire_events WHERE leader_id=?",
+        (leader_id,),
+    ) == events
+    assert await _scalar(
+        path, "SELECT status||':'||defeated_by||':'||comeback_at "
+              "FROM npc_empires WHERE leader_id=?", (leader_id,),
+    ) == ruined_state
+    assert await _scalar(
+        path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+        (field["token"],),
+    ) == "active"
+    assert await _scalar(
+        path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+        (other_family_token,),
+    ) == "active"
+
+
 async def run() -> None:
     fd, path = tempfile.mkstemp(prefix="npc_hq_capture_", suffix=".db")
     os.close(fd)
@@ -54,6 +231,21 @@ async def run() -> None:
             """)
             await db.commit()
         await ne.ensure_schema(path)
+
+        isolated = next(item for item in ne.PROFILES
+                        if item.leader_id == "viktor")
+        isolated_r, isolated_c = ne._hq_coords(isolated.hq_key)
+        other_family = await ne.prepare_assault(
+            path, 303, "viktor", isolated_r, isolated_c, now=now
+        )
+        assert other_family["ok"]
+        await _ruin_terminalizes_sibling_hq(
+            path, "rustam", "loot", now + 10, other_family["token"],
+            inject_rollback=True,
+        )
+        await _ruin_terminalizes_sibling_hq(
+            path, "marat", "annex", now + 20, other_family["token"],
+        )
 
         # Two players can hold real HQ tokens concurrently. The first global
         # vassalization must terminalize the sibling before any later hit or

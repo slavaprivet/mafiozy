@@ -2522,6 +2522,10 @@ async def _collapse_empire(db, leader_id: str, now: int, defeated_by,
         "UPDATE npc_empire_interior_raids SET status='resolved',resolution='owner_ruined',"
         "resolved_at=? WHERE leader_id=? AND status='pending'", (now, leader_id))
     await db.execute(
+        "UPDATE npc_empire_assaults SET status='resolved',resolution='leader_ruined' "
+        "WHERE leader_id=? AND status='active' "
+        "AND COALESCE(encounter_kind,'hq')='hq'", (leader_id,))
+    await db.execute(
         "DELETE FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,))
     await db.execute(
         "UPDATE npc_empires SET status='ruined',treasury=0,members=0,strength=0,hq_key=NULL,"
@@ -4720,11 +4724,12 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
         row = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token, telegram_id))).fetchone()
+        terminal_resolution = str(row['resolution'] or '') if row else ''
         if (row and str(row['status']) == 'resolved'
-                and str(row['resolution'] or '') == 'vassalized'):
+                and terminal_resolution in {'vassalized', 'leader_ruined'}):
             await db.rollback()
             return {'ok': True, 'duplicate': True, 'terminal': True,
-                    'resolution': 'vassalized'}
+                    'resolution': terminal_resolution}
         if not row or row['status'] != 'active' or int(row['expires_at']) <= now_i:
             await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
         if now_f - float(row['last_hit_at'] or 0) < .11:
@@ -4932,11 +4937,12 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
         assault = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token,telegram_id))).fetchone()
+        terminal_resolution = str(assault['resolution'] or '') if assault else ''
         if (assault and str(assault['status']) == 'resolved'
-                and str(assault['resolution'] or '') == 'vassalized'):
+                and terminal_resolution in {'vassalized', 'leader_ruined'}):
             await db.rollback()
             return {'ok': True, 'duplicate': True, 'terminal': True,
-                    'resolution': 'vassalized'}
+                    'resolution': terminal_resolution}
         if (not assault or assault['status'] != 'active'
                 or str(assault['encounter_kind'] or 'hq') != 'hq'
                 or int(assault['boss_hp']) > 0):

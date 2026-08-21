@@ -341,6 +341,9 @@ reconnect and duplicate resolve requests must be idempotent.
 - The winning vassalization transaction resolves every other active HQ assault
   token of that NPC family as `vassalized`; stale hit/resolve retries are
   terminal idempotent, while field encounter and hospital proofs stay isolated.
+- Any global empire collapse likewise resolves exact-family active HQ assault
+  tokens as `leader_ruined`; the winning token keeps its final `loot`/`annex`
+  resolution and sibling retries cannot mutate the ruined generation.
 - Raid creation must read the concrete defender roster successfully. A schema
   or SQLite read failure rolls back the complete raid transaction; it must not
   become an unguarded token or debit the attacking family's treasury.
