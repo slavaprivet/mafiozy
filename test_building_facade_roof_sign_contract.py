@@ -40,7 +40,8 @@ def run() -> None:
     assert "buildingVisualProfileCatalog[familyId]" in depth
     assert "authoritative central doorway" in depth
     assert "new THREE." not in depth
-    assert "buildingFacadeDepthProfiles='six-family-catalog-door-clear-static-merged-v1'" in depth
+    assert "buildingFacadeDepthProfiles='six-family-restraint-single-cornice-door-clear-static-merged-v2'" in depth
+    assert "for(let floor=" not in depth
     assert "addArchitecturalFacadeDepth(x,z,w,d,h,familyId,accent)" in THREE
 
     roof = block("const addRoofDetails=", "const themedWhite=")

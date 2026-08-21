@@ -1351,9 +1351,11 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       // receive matrix updates while opening or closing.
       const buildingDoorDefs=bridge?.getBuildingDoors?.()||[],sharedBuildingDoorDefs=buildingDoorDefs.filter(door=>door.sourceKind!=='bank'&&door.sourceKind!=='blackmarket');
       const buildingDoorActorsById=new Map(),buildingDoorAnimating=new Set(),activeBuildingDoorIds=new Set(),buildingDoorSourceIds=new Map(buildingDoorDefs.filter(door=>door.sourceId).map(door=>[`${door.sourceKind}:${door.sourceId}`,String(door.id)]));
-      const DOOR_W=2.28,DOOR_H=3.42,DOOR_FRAME=.2,doorCount=sharedBuildingDoorDefs.length,doorFrameCount=doorCount*3;
-      const doorLeafMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(DOOR_W,DOOR_H,.14),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.56,metalness:.28,envMap:cityEnvironment,envMapIntensity:.72}),Math.max(1,doorCount));
-      const doorVoidMesh=new THREE.InstancedMesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({color:0x010203,toneMapped:false}),Math.max(1,doorCount));
+      const DOOR_W=2.28,DOOR_H=3.42,DOOR_FRAME=.16,DOOR_LEAF_PLANE=.055,DOOR_VOID_PLANE=.018,doorCount=sharedBuildingDoorDefs.length,doorFrameCount=doorCount*3;
+      const doorLeafMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(DOOR_W,DOOR_H,.08),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.56,metalness:.28,envMap:cityEnvironment,envMapIntensity:.72}),Math.max(1,doorCount));
+      // A shallow opaque box wins the depth test against the solid facade even
+      // while the leaf swings open; a coplanar plane could expose the wall.
+      const doorVoidMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,.025),new THREE.MeshBasicMaterial({color:0x000102,toneMapped:false}),Math.max(1,doorCount));
       const doorFrameMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x252b2f,roughness:.52,metalness:.52}),Math.max(1,doorFrameCount));
       const doorThresholdMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x64615a,roughness:.82,metalness:.18}),Math.max(1,doorCount));
       const doorKnobMesh=new THREE.InstancedMesh(new THREE.SphereGeometry(.09,8,6),new THREE.MeshStandardMaterial({color:0xd7b55c,roughness:.24,metalness:.92}),Math.max(1,doorCount));
@@ -1363,19 +1365,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const updateBuildingDoorLeaf=actor=>{
         const eased=actor.open*actor.open*(3-2*actor.open);
         doorBaseMatrix.makeRotationY(actor.yaw);doorBaseMatrix.setPosition(actor.x,0,actor.z);
-        doorHingeMatrix.makeTranslation(-DOOR_W*.5,DOOR_H*.5,.105);doorSwingMatrix.makeRotationY(-eased*1.34);doorCenterMatrix.makeTranslation(DOOR_W*.5,0,0);
+        doorHingeMatrix.makeTranslation(-DOOR_W*.5,DOOR_H*.5,DOOR_LEAF_PLANE);doorSwingMatrix.makeRotationY(-eased*1.34);doorCenterMatrix.makeTranslation(DOOR_W*.5,0,0);
         doorWorkMatrix.copy(doorBaseMatrix).multiply(doorHingeMatrix).multiply(doorSwingMatrix).multiply(doorCenterMatrix);
         doorLeafMesh.setMatrixAt(actor.index,doorWorkMatrix);doorLeafMesh.instanceMatrix.needsUpdate=true;
         const cy=Math.cos(actor.yaw-eased*1.34),sn=Math.sin(actor.yaw-eased*1.34),hx=actor.x-DOOR_W*.5*Math.cos(actor.yaw),hz=actor.z+DOOR_W*.5*Math.sin(actor.yaw);
-        doorDummy.position.set(hx+DOOR_W*.82*cy,DOOR_H*.54,hz-DOOR_W*.82*sn+.12);doorDummy.rotation.set(0,actor.yaw-eased*1.34,0);doorDummy.scale.set(1,1,1);doorDummy.updateMatrix();doorKnobMesh.setMatrixAt(actor.index,doorDummy.matrix);doorKnobMesh.instanceMatrix.needsUpdate=true;
+        doorDummy.position.set(hx+DOOR_W*.82*cy+DOOR_LEAF_PLANE*sn,DOOR_H*.54,hz-DOOR_W*.82*sn+DOOR_LEAF_PLANE*cy);doorDummy.rotation.set(0,actor.yaw-eased*1.34,0);doorDummy.scale.set(1,1,1);doorDummy.updateMatrix();doorKnobMesh.setMatrixAt(actor.index,doorDummy.matrix);doorKnobMesh.instanceMatrix.needsUpdate=true;
       };
       sharedBuildingDoorDefs.forEach((door,index)=>{
         const actor={id:String(door.id),index,x:(+door.wallC-originC)*WORLD_SCALE,z:(+door.wallR-originR)*WORLD_SCALE,yaw:Math.atan2(+door.facingC||0,+door.facingR||1),open:0,target:0};buildingDoorActorsById.set(actor.id,actor);
-        setDoorPart(doorVoidMesh,index,actor,0,DOOR_H*.5,.065,DOOR_W*1.04,DOOR_H*1.04,1);
-        setDoorPart(doorFrameMesh,index*3,actor,-DOOR_W*.5-DOOR_FRAME*.5,DOOR_H*.5,.02,DOOR_FRAME,DOOR_H+.42,.28);
-        setDoorPart(doorFrameMesh,index*3+1,actor,DOOR_W*.5+DOOR_FRAME*.5,DOOR_H*.5,.02,DOOR_FRAME,DOOR_H+.42,.28);
-        setDoorPart(doorFrameMesh,index*3+2,actor,0,DOOR_H+DOOR_FRAME*.5,.02,DOOR_W+DOOR_FRAME*2,DOOR_FRAME,.28);
-        setDoorPart(doorThresholdMesh,index,actor,0,.08,.34,DOOR_W+DOOR_FRAME*2,.72,.16);
+        setDoorPart(doorVoidMesh,index,actor,0,DOOR_H*.5,DOOR_VOID_PLANE,DOOR_W*1.04,DOOR_H*1.04,1);
+        setDoorPart(doorFrameMesh,index*3,actor,-DOOR_W*.5-DOOR_FRAME*.5,DOOR_H*.5,.05,DOOR_FRAME,DOOR_H+.32,.1);
+        setDoorPart(doorFrameMesh,index*3+1,actor,DOOR_W*.5+DOOR_FRAME*.5,DOOR_H*.5,.05,DOOR_FRAME,DOOR_H+.32,.1);
+        setDoorPart(doorFrameMesh,index*3+2,actor,0,DOOR_H+DOOR_FRAME*.5,.05,DOOR_W+DOOR_FRAME*2,DOOR_FRAME,.1);
+        setDoorPart(doorThresholdMesh,index,actor,0,.055,.13,DOOR_W+DOOR_FRAME*2,.3,.11);
         setDoorPart(doorGlowMesh,index,actor,0,.025,1.05,DOOR_W*1.45,2.5,1);
         doorDummy.rotation.x=-Math.PI/2;doorDummy.updateMatrix();doorGlowMesh.setMatrixAt(index,doorDummy.matrix);doorDummy.rotation.x=0;
         doorLeafMesh.setColorAt(index,new THREE.Color([0x543629,0x263b49,0x47352f,0x314238,0x4a3038][Math.abs(String(door.id).split('').reduce((sum,ch)=>sum+ch.charCodeAt(0),0))%5]));
@@ -1384,6 +1386,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       for(const mesh of [doorVoidMesh,doorFrameMesh,doorThresholdMesh,doorLeafMesh,doorKnobMesh,doorGlowMesh]){mesh.count=mesh===doorFrameMesh?doorFrameCount:doorCount;mesh.instanceMatrix.setUsage(mesh===doorLeafMesh||mesh===doorKnobMesh?THREE.DynamicDrawUsage:THREE.StaticDrawUsage);mesh.castShadow=mesh===doorLeafMesh||mesh===doorFrameMesh;mesh.receiveShadow=true;scene.add(mesh);if(mesh.count){mesh.computeBoundingBox();mesh.computeBoundingSphere();}}
       if(doorLeafMesh.instanceColor)doorLeafMesh.instanceColor.needsUpdate=true;
       renderer.domElement.dataset.buildingDoorCoverage=`${buildingDoorDefs.length}:${sharedBuildingDoorDefs.length}:pooled-v1`;
+      renderer.domElement.dataset.buildingDoorProfile='single-authoritative-flush-dark-void-v1';
       const syncBuildingDoorTargets=(state,interaction)=>{
         const next=new Set(state?.active||[]);if(interaction?.doorId)next.add(String(interaction.doorId));
         for(const id of activeBuildingDoorIds)if(!next.has(id)){const actor=buildingDoorActorsById.get(id);if(actor){actor.target=0;buildingDoorAnimating.add(actor);}}
@@ -1763,17 +1766,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       };
       const identityStone=new THREE.MeshStandardMaterial({color:0x8b9294,roughness:.72,metalness:.16}),identityDark=new THREE.MeshStandardMaterial({color:0x26313a,roughness:.48,metalness:.58}),identityWood=new THREE.MeshStandardMaterial({color:0x70452d,roughness:.66,metalness:.08}),identityGlass=new THREE.MeshPhysicalMaterial({color:0x72bad0,roughness:.1,metalness:.08,transmission:.1,clearcoat:1,envMap:cityEnvironment,envMapIntensity:1.2}),identityGlow=new THREE.MeshBasicMaterial({color:0xffd27a,toneMapped:false}),identityAccents=[0xb75a45,0x3f8099,0xb28a43,0x4b8465,0x76568d].map(color=>new THREE.MeshStandardMaterial({color,roughness:.48,metalness:.24}));
       const addArchitecturalFacadeDepth=(x,z,w,d,h,familyId,accent)=>{
-        const profile=buildingVisualProfileCatalog[familyId]||buildingVisualProfileCatalog.concrete,front=z+d/2,depth=profile.facadeDepth,add=(xx,yy,ww,hh,mat,zz=front+depth*.46)=>{const mesh=box(xx,zz,ww,depth,hh,mat);mesh.position.y=yy;return mesh;},upperBase=5.15,availableFloors=Math.max(0,Math.floor((Math.min(h-1,15.7)-upperBase)/3.3)+1),floors=Math.min(profile.frameFloors,availableFloors);
-        // Side piers and projected belt courses create genuine parallax while
-        // leaving the authoritative central doorway and its pooled leaf clear.
-        for(const side of [-1,1])add(x+side*w*.43,Math.min(h-1,7.1)*.5,.26,Math.min(h-1,7.1),side<0?identityStone:accent);
-        for(let floor=0;floor<floors;floor++){
-          const y=upperBase+floor*3.3,bayW=Math.max(1.25,Math.min(2.4,w*.19)),bayH=2.08;
-          add(x,y-bayH*.58,w*.78,.16,accent,front+depth*.62);
-          for(const side of [-1,1]){const cx=x+side*w*.245;add(cx-bayW*.54,y,bayW*.08,bayH,identityDark);add(cx+bayW*.54,y,bayW*.08,bayH,identityDark);add(cx,y+bayH*.53,bayW*1.16,.13,identityStone);add(cx,y-bayH*.53,bayW*1.16,.13,identityStone);}
-        }
-        const cornice=add(x,Math.max(4.4,h-1.05),w*.9,.28,accent,front+depth*.55);cornice.castShadow=false;
-        renderer.domElement.dataset.buildingFacadeDepthProfiles='six-family-catalog-door-clear-static-merged-v1';
+        const profile=buildingVisualProfileCatalog[familyId]||buildingVisualProfileCatalog.concrete,front=z+d/2,depth=Math.min(.26,profile.facadeDepth*.42),add=(xx,yy,ww,hh,mat,zz=front+depth*.5)=>{const mesh=box(xx,zz,ww,depth,hh,mat);mesh.position.y=yy;return mesh;};
+        // Restraint pass: two shallow edge piers and one cornice provide real
+        // parallax, keep the authoritative central doorway clear and avoid a
+        // second grille over the already textured windows.
+        const pierH=Math.min(h-1,6.8);
+        for(const side of [-1,1])add(x+side*w*.44,pierH*.5,.18,pierH,side<0?identityStone:accent);
+        const cornice=add(x,Math.max(4.4,h-1.05),w*.88,.18,accent);cornice.castShadow=false;
+        renderer.domElement.dataset.buildingFacadeDepthProfiles='six-family-restraint-single-cornice-door-clear-static-merged-v2';
       };
       const addSecondBuildingSliceDepth=(x,z,w,d,h,familyId,accent,add)=>{
         const front=z+d/2+.11;
@@ -1781,21 +1781,12 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // helper only. The central authoritative doorway stays clear, while
         // every piece joins the sector/chunk static merge after construction.
         if(familyId==='concrete'){
-          const visibleFloors=Math.min(4,Math.max(1,Math.floor((h-4)/3.4)));
-          for(let floor=0;floor<visibleFloors;floor++){
-            const y=5.05+floor*3.35;
-            add(x,front+.3,w*.82,.5,.18,identityStone,y-1.22);
-            for(const side of [-1,1]){
-              const bayX=x+side*w*.255;
-              add(bayX,front+.42,w*.22,.72,2.35,identityDark,y);
-              add(bayX,front+.81,w*.15,.14,1.78,identityGlass,y);
-            }
-          }
+          for(const side of [-1,1])add(x+side*w*.29,front+.3,w*.2,.34,2.2,identityDark,2.25);
           for(const side of [-1,1])add(x+side*w*.34,z,w*.1,d*.54,1.75,accent,h+.88);
           for(const depthSide of [-1,1])add(x,z+depthSide*d*.25,w*.58,d*.09,.42,identityDark,h+1.54);
         }else if(familyId==='deco'){
           const finH=Math.max(5,Math.min(16,h-2.2));
-          for(const side of [-.36,-.18,.18,.36])add(x+side*w,front+.34,.18,.48,finH,side<0?accent:identityStone,finH*.5+1.1);
+          for(const side of [-.28,.28])add(x+side*w,front+.25,.16,.26,finH,side<0?accent:identityStone,finH*.5+1.1);
           for(const side of [-1,1])add(x+side*w*.25,front+.68,w*.16,.84,3.45,identityGlass,1.73);
           add(x,front+.42,w*.74,.58,.24,accent,h-.72);
           add(x,z,w*.7,d*.68,.34,identityStone,h+.44);
@@ -1803,8 +1794,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }else if(familyId==='industrial'){
           for(const side of [-1,1]){
             const bayX=x+side*w*.27;
-            add(bayX,front+.44,w*.22,.76,3.5,identityDark,1.75);
-            for(let rail=0;rail<4;rail++)add(bayX,front+.85,w*.18,.1,.1,identityStone,.62+rail*.82);
+            add(bayX,front+.32,w*.2,.4,2.9,identityDark,1.45);
             add(bayX,front+.79,w*.18,.14,1.05,identityGlass,4.75);
           }
           add(x,front+.38,w*.76,.54,.28,accent,5.5);
@@ -1823,62 +1813,37 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const addressLamp=add(x+Math.min(2.6,w*.24),front+.34,.62,.1,.3,identityGlow,3.05);addressLamp.castShadow=false;
         add(x,z,w+.82,d+.82,.32,accent,h-.55);add(x,z,w+.48,d+.48,.24,identityStone,Math.max(4.1,h*.48));
         // The first floor carries the same architectural language as the
-        // facade, so the difference remains obvious at street-camera height.
+        // facade, but every family keeps a wide central doorway gap.
         if(familyId==='glass'){
-          add(x,front+.07,w*.76,.16,3.3,identityGlass,1.65);
-          for(const sx of [-.36,-.12,.12,.36])add(x+sx*w,front+.18,.11,.2,3.55,identityDark,1.78);
+          for(const sx of [-.29,.29])add(x+sx*w,front+.07,w*.18,.14,3.05,identityGlass,1.53);
         }else if(familyId==='brick'){
           add(x,front+.08,w*.86,.24,.68,identityStone,.34);
-          for(const sx of [-w*.38,w*.38])add(x+sx,front+.13,w*.13,.24,3.05,identityDark,1.53);
+          for(const sx of [-w*.34,w*.34])add(x+sx,front+.1,w*.12,.16,2.85,identityDark,1.43);
         }else if(familyId==='limestone'){
-          for(const sx of [-w*.33,-w*.17,w*.17,w*.33])add(x+sx,front+.2,.28,.3,3.9,identityStone,1.95);
+          for(const sx of [-w*.32,w*.32])add(x+sx,front+.14,.22,.2,3.65,identityStone,1.83);
           add(x,front+.42,w*.78,.74,.24,accent,4.02);
         }else if(familyId==='concrete'){
-          add(x,front+.08,w*.82,.22,2.9,identityDark,1.45);
-          for(const sx of [-w*.31,0,w*.31])add(x+sx,front+.2,w*.18,.12,2.18,identityGlass,1.42);
+          for(const sx of [-w*.29,w*.29])add(x+sx,front+.1,w*.19,.16,2.7,identityDark,1.35);
         }else if(familyId==='deco'){
           for(const sx of [-w*.29,w*.29])add(x+sx,front+.2,.32,.3,4.55,accent,2.28);
           add(x,front+.36,w*.62,.55,.22,identityStone,4.38);
         }else if(familyId==='industrial'){
-          add(x,front+.08,w*.58,.24,3.25,identityDark,1.63);
-          for(let y=.55;y<3.1;y+=.55)add(x,front+.22,w*.52,.08,.08,identityStone,y);
+          for(const sx of [-w*.28,w*.28])add(x+sx,front+.1,w*.18,.18,2.95,identityDark,1.48);
         }
         // Building modernization slice 1 targets the three most common generic
         // families only. Every part is build-time static geometry consumed by
         // the existing spatial merge; doors, authored footprints and collision
         // anchors remain untouched and no frame loop scans these decorations.
         if(familyId==='brick'){
-          const visibleFloors=Math.min(4,floors);
-          for(let floor=0;floor<visibleFloors;floor++){
-            const y=5.05+floor*3.35;
-            add(x,front+.31,w*.84,.46,.16,identityStone,y-1.18);
-            for(const side of [-1,1]){
-              const bayX=x+side*w*.245;
-              add(bayX,front+.34,w*.205,.52,.18,accent,y+1.12);
-              add(bayX+side*w*.112,front+.29,.18,.42,2.5,identityDark,y);
-            }
-          }
-          for(const side of [-1,1])for(let q=0;q<4;q++)add(x+side*w*.455,front+.23,w*.055,.34,.32,identityStone,1.05+q*.72);
-          add(x,front+.27,w*.92,.5,.34,accent,h-.92);
+          for(const side of [-1,1])add(x+side*w*.455,front+.16,w*.055,.2,Math.min(6.4,h-1),identityStone,Math.min(6.4,h-1)*.5);
+          add(x,front+.18,w*.9,.24,.22,accent,h-.92);
         }else if(familyId==='limestone'){
-          const visibleFloors=Math.min(4,floors);
-          for(let floor=0;floor<visibleFloors;floor++){
-            const y=5.05+floor*3.35;
-            for(const side of [-1,1]){
-              const bayX=x+side*w*.245;
-              add(bayX,front+.35,w*.225,.5,.2,accent,y+1.14);
-              add(bayX,front+.43,w*.14,.62,.16,identityStone,y+1.34);
-              add(bayX,front+.31,w*.25,.48,.18,identityStone,y-1.16);
-            }
-          }
-          for(const side of [-1,1])for(let y=1.1;y<h-1.3;y+=1.15)add(x+side*w*.455,front+.22,w*.06,.36,.5,identityStone,y);
-          for(let p=-2;p<=2;p++)add(x+p*w*.18,front+.22,.22,.34,.82,identityStone,h+.18);
-          add(x,front+.21,w*.88,.38,.22,accent,h+.58);
+          for(const side of [-1,1])add(x+side*w*.42,front+.16,.18,.2,Math.min(7.2,h-1.2),identityStone,Math.min(7.2,h-1.2)*.5);
+          add(x,front+.17,w*.86,.22,.2,accent,h+.38);
         }else if(familyId==='glass'){
           const glassH=Math.max(4,h-3.2);
-          add(x,front+.42,w*.72,.72,glassH,identityGlass,glassH*.5+1.6);
-          for(const side of [-.36,-.18,0,.18,.36])add(x+side*w,front+.83,.09,.16,glassH,identityDark,glassH*.5+1.6);
-          for(let y=4.7;y<h-1.2&&y<19;y+=3.35)add(x,front+.86,w*.76,.18,.12,identityStone,y);
+          add(x,front+.22,w*.68,.3,glassH,identityGlass,glassH*.5+1.6);
+          for(const side of [-.34,.34])add(x+side*w,front+.38,.08,.1,glassH,identityDark,glassH*.5+1.6);
           const screenH=1.8;
           for(const side of [-1,1])add(x+side*w*.25,z,w*.12,d*.56,screenH,accent,h+screenH*.5);
           for(const depthSide of [-1,1])add(x,z+depthSide*d*.25,w*.62,d*.1,screenH,identityDark,h+screenH*.5);

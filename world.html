@@ -9093,8 +9093,8 @@ function _residentCanVisitBuilding(npc,now=performance.now()) {
     !npc._hostile&&!npc._fighting&&!npc._fightingMelee&&!npc._medicalDowned&&
     !(npc._knockedUntil>now)&&!(npc.panicUntil>now)&&now>=(npc._buildingVisitCooldownUntil||0);
 }
-// One or two real pavement doors per connected building footprint. Door
-// points always remain outside the solid MAP=1 footprint.
+// Exactly one authoritative pavement door per connected generic footprint.
+// Authored POI/business entrances are de-duplicated against it below.
 function _residentBuildingDoors() {
   if(_residentBuildingDoorsCache)return _residentBuildingDoorsCache;
   const doors=[],seen=new Set(),dirs=[[1,0],[-1,0],[0,1],[0,-1]],rowLimit=MAP_ROWS-2;
@@ -9126,10 +9126,6 @@ function _residentBuildingDoors() {
     const residentEligible=!queue.some(tile=>inArena(tile.r,tile.c)||inLair(tile.r,tile.c)||_prisonIslandCollisionAt(tile.r+.5,tile.c+.5));
     const chosen=finishDoor(choices[0],`door_${r}_${c}_0`,{residentEligible});
     for(const tile of queue)_residentDoorByBuildingTile.set(`${tile.r},${tile.c}`,chosen.id);
-    if(queue.length>=12){
-      const second=choices.find(q=>Math.hypot(q.r-chosen.r,q.c-chosen.c)>=4);
-      if(second)finishDoor(second,`door_${r}_${c}_1`,{residentEligible});
-}
   }
   // Include authored entrances that may sit outside a generic MAP=1 footprint,
   // so residents can emerge from casinos, shops and major public buildings.
