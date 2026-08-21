@@ -64312,7 +64312,6 @@ let _threeCombatBleedCleanupAt=0;
 // The visual point prefers open pavement/grass and avoids building footprints,
 // water and narrow pockets that are hidden by several adjacent buildings.
 function _threeAnchorTileAt(r,c){return MAP[Math.floor(r)]?.[Math.floor(c)];}
-function _threeAnchorValid(r,c){return Number.isFinite(r)&&Number.isFinite(c)&&r>=1&&c>=1&&r<MAP_ROWS-1&&c<MAP_COLS-1&&_threeAnchorTileAt(r,c)!==1&&_threeAnchorTileAt(r,c)!==16&&!isBlockedPed(r,c);}
 function _threeAnchorCoverAt(r,c){
   let cover=0;
   for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){
@@ -64328,8 +64327,9 @@ function _threeVisibleObjectAnchor(sourceR,sourceC,maxRadius=7){
     for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
       if(radius&&Math.max(Math.abs(dr),Math.abs(dc))!==radius)continue;
       const r=Math.floor(sr)+dr+.5,c=Math.floor(sc)+dc+.5;
-      if(!_threeAnchorValid(r,c))continue;
-      const tile=_threeAnchorTileAt(r,c),surfaceBonus=tile===8||tile===9||tile===15||tile===17?-2:tile===0||tile===18||tile===19?1.5:0;
+      if(!Number.isFinite(r)||!Number.isFinite(c)||r<1||c<1||r>=MAP_ROWS-1||c>=MAP_COLS-1)continue;
+      const tile=_threeAnchorTileAt(r,c);if(tile===1||tile===16||isBlockedPed(r,c))continue;
+      const surfaceBonus=tile===8||tile===9||tile===15||tile===17?-2:tile===0||tile===18||tile===19?1.5:0;
       const score=Math.hypot(r-sr,c-sc)*2.2+_threeAnchorCoverAt(r,c)*.72+surfaceBonus;
       if(score<bestScore){bestScore=score;best={r,c};}
     }
