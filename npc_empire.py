@@ -4720,6 +4720,11 @@ async def assault_hit(db_path: str, telegram_id: int, token: str, target: str,
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
         row = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token, telegram_id))).fetchone()
+        if (row and str(row['status']) == 'resolved'
+                and str(row['resolution'] or '') == 'vassalized'):
+            await db.rollback()
+            return {'ok': True, 'duplicate': True, 'terminal': True,
+                    'resolution': 'vassalized'}
         if not row or row['status'] != 'active' or int(row['expires_at']) <= now_i:
             await db.rollback(); return {'ok': False, 'error': 'invalid assault'}
         if now_f - float(row['last_hit_at'] or 0) < .11:
@@ -4927,6 +4932,11 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
         assault = await (await db.execute("SELECT * FROM npc_empire_assaults WHERE token=? AND telegram_id=?", (token,telegram_id))).fetchone()
+        if (assault and str(assault['status']) == 'resolved'
+                and str(assault['resolution'] or '') == 'vassalized'):
+            await db.rollback()
+            return {'ok': True, 'duplicate': True, 'terminal': True,
+                    'resolution': 'vassalized'}
         if (not assault or assault['status'] != 'active'
                 or str(assault['encounter_kind'] or 'hq') != 'hq'
                 or int(assault['boss_hp']) > 0):
@@ -4937,6 +4947,12 @@ async def resolve_assault(db_path: str, telegram_id: int, token: str,
         empire = await (await db.execute("SELECT * FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
         treasury = int(empire['treasury'] or 0); reward = 0; captured = [];captured_buildings=[];captured_headquarters=None
         if choice == 'vassalize':
+            await db.execute(
+                "UPDATE npc_empire_assaults SET status='resolved',"
+                "resolution='vassalized' WHERE leader_id=? AND token<>? "
+                "AND status='active' AND COALESCE(encounter_kind,'hq')='hq'",
+                (leader_id, token),
+            )
             await db.execute("UPDATE npc_empires SET status='vassal',members=MAX(2,members/2),strength=MAX(40,strength/2),treasury=treasury/2,defeated_by=?,version=version+1 WHERE leader_id=?", (telegram_id,leader_id))
             await db.execute("INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?, ?,80,'vassal',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=80,pact='vassal',last_action_at=excluded.last_action_at", (leader_id,telegram_id,now))
             await db.execute(

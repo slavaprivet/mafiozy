@@ -338,6 +338,9 @@ reconnect and duplicate resolve requests must be idempotent.
   prior non-war pact and creates no player-war row or guard reserve.
 - HQ assault preparation obeys the same global authority: a vassal family is
   rejected before token, relation, player-war, guard-reserve or event writes.
+- The winning vassalization transaction resolves every other active HQ assault
+  token of that NPC family as `vassalized`; stale hit/resolve retries are
+  terminal idempotent, while field encounter and hospital proofs stay isolated.
 - Raid creation must read the concrete defender roster successfully. A schema
   or SQLite read failure rolls back the complete raid transaction; it must not
   become an unguarded token or debit the attacking family's treasury.
