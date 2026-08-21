@@ -6007,6 +6007,7 @@ function _explodeGasStation(gs) {
   // Global vassal status releases that NPC family's squads for every player.
   // Global ruin also releases that family's player wars before any comeback.
   // Checkpoint and final resolve revalidate war/ownership generation first.
+  // Guard roster writes expire only their exact holding's overdue raid locks.
   // During a property raid, only the server-assigned roster is materialized
   // above. The general following crew must not duplicate unassigned fighters.
   if(!bi.businessInteriorRaid)for (const gm of _myGang) {

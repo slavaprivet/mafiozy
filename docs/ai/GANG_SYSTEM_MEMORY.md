@@ -315,6 +315,8 @@ reconnect and duplicate resolve requests must be idempotent.
   properties are unavailable.
 - Businesses may have 0–12 assigned defenders. The UI must use authoritative
   `holding_guards`, `assigned` and `free`, including an explicit `free=0`.
+- Guard roster writes expire overdue raid locks only for the exact player and
+  holding inside their assignment transaction; a future sibling stays locked.
 - Only assigned guards defend an indoor raid. Free mobile fighters do not
   teleport into the property and no synthetic second guard layer is allowed.
 - An interior raid token is bound to the exact property acquisition generation
