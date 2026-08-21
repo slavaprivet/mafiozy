@@ -1297,13 +1297,15 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       // and never infers business purpose; fixed businesses remain biz_id
       // driven and converted holdings remain persisted operation_type driven.
       const buildingVisualProfileCatalog=Object.freeze({
-        glass:Object.freeze({facadeDepth:.72,frameFloors:3,roofForm:'terraced_glass'}),
-        brick:Object.freeze({facadeDepth:.54,frameFloors:2,roofForm:'hipped_masonry'}),
-        limestone:Object.freeze({facadeDepth:.48,frameFloors:3,roofForm:'classical_crown'}),
+        glass:Object.freeze({facadeDepth:.72,frameFloors:3,roofForm:'terraced_glass',slice1:'deep_mullions_shadowbox_roof_screen'}),
+        brick:Object.freeze({facadeDepth:.54,frameFloors:2,roofForm:'hipped_masonry',slice1:'corbel_sills_arched_lintels_parapet'}),
+        limestone:Object.freeze({facadeDepth:.48,frameFloors:3,roofForm:'classical_crown',slice1:'pediments_quoins_balustrade'}),
         concrete:Object.freeze({facadeDepth:.58,frameFloors:2,roofForm:'mechanical_step'}),
         deco:Object.freeze({facadeDepth:.66,frameFloors:3,roofForm:'deco_tiers'}),
         industrial:Object.freeze({facadeDepth:.82,frameFloors:2,roofForm:'sawtooth_plant'}),
       });
+      renderer.domElement.dataset.buildingSlice1Profiles='brick:corbel-sills-arched-lintels-parapet,limestone:pediments-quoins-balustrade,glass:deep-mullions-shadowbox-roof-screen';
+      renderer.domElement.dataset.buildingSlice1Budget='families:3,build-time-static-spatial-merge,frame-allocations:0,frame-scans:0,lights:0,materials:0';
       const roofMat = new THREE.MeshStandardMaterial({color:0x41515d,map:roofTexture,roughness:.48,roughnessMap:roofTexture,metalness:.62,envMap:cityEnvironment,envMapIntensity:.72});
       const roofMechanicalMat=new THREE.MeshStandardMaterial({color:0x68757d,metalness:.48,roughness:.46}),roofFanMat=new THREE.MeshBasicMaterial({color:0x222a30}),roofTankMat=new THREE.MeshStandardMaterial({color:0x80543a,roughness:.75});
       const neonMats = [0xff496f, 0x46d9ff, 0xffc247].map(color => new THREE.MeshBasicMaterial({ color }));
@@ -1763,6 +1765,46 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           add(x,front+.08,w*.58,.24,3.25,identityDark,1.63);
           for(let y=.55;y<3.1;y+=.55)add(x,front+.22,w*.52,.08,.08,identityStone,y);
         }
+        // Building modernization slice 1 targets the three most common generic
+        // families only. Every part is build-time static geometry consumed by
+        // the existing spatial merge; doors, authored footprints and collision
+        // anchors remain untouched and no frame loop scans these decorations.
+        if(familyId==='brick'){
+          const visibleFloors=Math.min(4,floors);
+          for(let floor=0;floor<visibleFloors;floor++){
+            const y=5.05+floor*3.35;
+            add(x,front+.31,w*.84,.46,.16,identityStone,y-1.18);
+            for(const side of [-1,1]){
+              const bayX=x+side*w*.245;
+              add(bayX,front+.34,w*.205,.52,.18,accent,y+1.12);
+              add(bayX+side*w*.112,front+.29,.18,.42,2.5,identityDark,y);
+            }
+          }
+          for(const side of [-1,1])for(let q=0;q<4;q++)add(x+side*w*.455,front+.23,w*.055,.34,.32,identityStone,1.05+q*.72);
+          add(x,front+.27,w*.92,.5,.34,accent,h-.92);
+        }else if(familyId==='limestone'){
+          const visibleFloors=Math.min(4,floors);
+          for(let floor=0;floor<visibleFloors;floor++){
+            const y=5.05+floor*3.35;
+            for(const side of [-1,1]){
+              const bayX=x+side*w*.245;
+              add(bayX,front+.35,w*.225,.5,.2,accent,y+1.14);
+              add(bayX,front+.43,w*.14,.62,.16,identityStone,y+1.34);
+              add(bayX,front+.31,w*.25,.48,.18,identityStone,y-1.16);
+            }
+          }
+          for(const side of [-1,1])for(let y=1.1;y<h-1.3;y+=1.15)add(x+side*w*.455,front+.22,w*.06,.36,.5,identityStone,y);
+          for(let p=-2;p<=2;p++)add(x+p*w*.18,front+.22,.22,.34,.82,identityStone,h+.18);
+          add(x,front+.21,w*.88,.38,.22,accent,h+.58);
+        }else if(familyId==='glass'){
+          const glassH=Math.max(4,h-3.2);
+          add(x,front+.42,w*.72,.72,glassH,identityGlass,glassH*.5+1.6);
+          for(const side of [-.36,-.18,0,.18,.36])add(x+side*w,front+.83,.09,.16,glassH,identityDark,glassH*.5+1.6);
+          for(let y=4.7;y<h-1.2&&y<19;y+=3.35)add(x,front+.86,w*.76,.18,.12,identityStone,y);
+          const screenH=1.8;
+          for(const side of [-1,1])add(x+side*w*.25,z,w*.12,d*.56,screenH,accent,h+screenH*.5);
+          for(const depthSide of [-1,1])add(x,z+depthSide*d*.25,w*.62,d*.1,screenH,identityDark,h+screenH*.5);
+        }
         if(variant===0){
           // Deep stacked balconies with railings.
           for(let floor=0;floor<Math.min(4,floors);floor++){const y=5.1+floor*3.35,b=add(x,front+.55,w*.62,1.05,.18,identityStone,y);for(let k=-2;k<=2;k++)add(x+k*w*.11,front+1.02,.07,.08,.72,identityDark,y+.39);}
@@ -1789,7 +1831,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const staticDetailBuckets=new Map();
       const deferredRevealRoots=[];
       const buildingIdentitySignatures=new Set();
-      const buildingArchitectureFamilyCounts=new Map();
+      const buildingArchitectureFamilyCounts=new Map(),buildingSlice1Samples=new Map(),buildingSlice1FamilyIds=new Set(['brick','limestone','glass']);
       const queueStaticBuildingDetail=mesh=>{
         if(!mesh?.isMesh||Array.isArray(mesh.material)||mesh.userData?.building||mesh.userData?.mainBuilding)return;
         // Small facade details remain visible and receive the main building
@@ -1816,7 +1858,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const [x,z,w,d,rawH,style,sign,districtStyle='downtown',sourceMeta]=definition,buildingMeta=sourceMeta||{r:originR+z/WORLD_SCALE,c:originC+x/WORLD_SCALE,w:w/WORLD_SCALE,d:d/WORLD_SCALE},architecturalKind=buildingMeta.architecturalKind||null,h=architecturalHeights[architecturalKind]||rawH,buildingSeed=(Math.imul(Math.round((buildingMeta.r??z/WORLD_SCALE)*97),73856093)^Math.imul(Math.round((buildingMeta.c??x/WORLD_SCALE)*97),19349663)^Math.imul(Math.round(w*10),83492791)^Math.imul(Math.round(d*10),2654435761))>>>0,architectureFamily=architectureFamilyFor(districtStyle,buildingSeed,h);
         buildingIdentitySignatures.add(`${districtStyle}:${architecturalKind||architectureFamily.id}:${style}:${buildingSeed%3}:${(buildingSeed>>>3)%6}:${(buildingSeed>>>5)%6}:${Math.round(w*10)}:${Math.round(d*10)}:${Math.round(h*10)}`);
         renderer.domElement.dataset.buildingIdentitySignatures=String(buildingIdentitySignatures.size);
-        if(!architecturalKind){buildingArchitectureFamilyCounts.set(architectureFamily.id,(buildingArchitectureFamilyCounts.get(architectureFamily.id)||0)+1);renderer.domElement.dataset.buildingArchitectureFamilies=[...buildingArchitectureFamilyCounts].map(([id,count])=>`${id}:${count}`).join(',');}
+        if(!architecturalKind){buildingArchitectureFamilyCounts.set(architectureFamily.id,(buildingArchitectureFamilyCounts.get(architectureFamily.id)||0)+1);renderer.domElement.dataset.buildingArchitectureFamilies=[...buildingArchitectureFamilyCounts].map(([id,count])=>`${id}:${count}`).join(',');if(buildingSlice1FamilyIds.has(architectureFamily.id)&&!buildingSlice1Samples.has(architectureFamily.id)){buildingSlice1Samples.set(architectureFamily.id,`${Math.floor(buildingMeta.r)},${Math.floor(buildingMeta.c)}`);renderer.domElement.dataset.buildingSlice1Samples=[...buildingSlice1Samples].map(([id,rc])=>`${id}:${rc}`).join('|');}}
         buildingCurbDefs.push([x,z,w+2,d+2]);
         if(bi>=initialBuildingCount){const streamedCurb=box(x,z,w+2,d+2,.65,curbMat);streamedCurb.position.y=.325;const streamedShadow=makeContactShadow(w*1.08,d*1.08,contactShadowMaterial);streamedShadow.position.set(x,.058,z);scene.add(streamedShadow);}
         const familyFacades=architectureFacadeTextures.get(architectureFamily.id)||architectureFacadeTextures.get('concrete'),facade=familyFacades[buildingSeed%familyFacades.length].clone();facade.repeat.set(Math.max(1,w/24),Math.max(1.35,h/16));facade.needsUpdate=true;
