@@ -35334,8 +35334,9 @@ function update(dt) {
       cam.y += (targetCamY - cam.y) * Math.min(1, dt * 8);
       // Если водитель вышел/пропал, или меня выкинули из пассажиров,
       // освобождаем myDrivingCarId
-      if (!qc.driver_uid ||
-          !(qc.passenger_uids || []).map(String).includes(String(QP.uid))) {
+      const passengerUids=qc.passenger_uids||[],localUid=String(QP.uid);let hasLocalPassenger=false;
+      for(let i=0;i<passengerUids.length;i++)if(String(passengerUids[i])===localUid){hasLocalPassenger=true;break;}
+      if (!qc.driver_uid || !hasLocalPassenger) {
         myDrivingCarId = null;
         myIsPassenger  = false;
       }
