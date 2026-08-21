@@ -49228,7 +49228,7 @@ function drawPerson(x, y, ang, look, walkPhase, name, chat, isSelf, hp, maxHp, i
     const innerW = MAX_W - PAD_X * 2;
     // Разбиваем по словам с word-wrap. Если одно «слово» длиннее innerW —
     // режем посимвольно.
-    const words = String(chat).split(/\s+/).filter(Boolean);
+    const words = String(chat).match(/\S+/g) || [];
     const lines = [];
     let cur = '';
     for (const w of words) {
