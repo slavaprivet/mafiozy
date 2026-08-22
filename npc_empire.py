@@ -68,6 +68,7 @@ NPC_EVENT_MEMORY_LIMIT = 80
 NPC_BOSS_MEMORY_LEDGER_LIMIT = 64
 NPC_BOSS_MEMORY_SUBJECT_LIMIT = 32
 NPC_BOSS_MEMORY_HQ_TTL_SECONDS = 30 * 24 * 60 * 60
+NPC_BOSS_MEMORY_REPULSED_RAID_TTL_SECONDS = 24 * 60 * 60
 NPC_BOSS_MEMORY_CERTAINTY_DECAY_PER_DAY = 25
 
 _STATE_PREPARE_LOCKS: dict[str, asyncio.Lock] = {}
@@ -677,6 +678,17 @@ async def _select_player_business_target_smart(
         "SELECT score FROM npc_empire_relations WHERE leader_id=? AND telegram_id=?",
         (leader_id, telegram_id))).fetchone()
     relation = int(relation_row[0] or 0) if relation_row else 0
+    generation_row = await (await db.execute(
+        "SELECT comebacks FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
+    leader_generation = int(generation_row[0] or 0) if generation_row else 0
+    memory_prefix = f'{int(telegram_id)}|'
+    repulsed_targets = {(str(row[0])[len(memory_prefix):], int(row[1] or 0))
+                        for row in await (await db.execute(
+        "SELECT subject_id,subject_generation FROM npc_empire_memory_events "
+        "WHERE leader_id=? AND leader_generation=? AND subject_kind='player_holding' "
+        "AND subject_id LIKE ? AND kind='raid_defended' AND expires_at>?",
+        (leader_id, leader_generation, f'{memory_prefix}%', now))).fetchall()
+                        if str(row[0]).startswith(memory_prefix)}
     origin_points = [_hq_coords(profile.hq_key)]
     for row in await (await db.execute(
             "SELECT kind,holding_id FROM npc_empire_holdings WHERE leader_id=?",
@@ -704,8 +716,24 @@ async def _select_player_business_target_smart(
     if not feasible:
         return None
     feasible.sort(key=lambda item: (-int(item[1]['score']), str(item[0]['ref'])))
-    best = feasible[0][0]
-    by_ref = {str(target['ref']): (target, metrics) for target, metrics in feasible}
+    remembered = [(target, metrics) for target, metrics in feasible
+                  if (str(target['ref']), int(target.get('acquired_at') or 0))
+                  in repulsed_targets]
+    unremembered = [(target, metrics) for target, metrics in feasible
+                    if (str(target['ref']), int(target.get('acquired_at') or 0))
+                    not in repulsed_targets]
+    memory_switch = bool(remembered and unremembered and
+                         int(unremembered[0][1]['score']) >=
+                         int(remembered[0][1]['score']) - int(policy['stickiness']))
+    choice_pool = unremembered if memory_switch else feasible
+    choice_pool.sort(key=lambda item: (-int(item[1]['score']), str(item[0]['ref'])))
+    best = choice_pool[0][0]
+    if memory_switch:
+        best = {**best, '_raid': {
+            **dict(best['_raid']), 'target_reason': 'remembered-defeat',
+            'metrics': {**dict(best['_raid'].get('metrics') or {}),
+                        'memory': 'repulsed-target-avoided'}}}
+    by_ref = {str(target['ref']): (target, metrics) for target, metrics in choice_pool}
     if last_ref and ':' not in last_ref:
         last_ref = next((ref for ref in by_ref if ref.endswith(f':{last_ref}')), last_ref)
     previous = by_ref.get(str(last_ref))
@@ -2277,6 +2305,7 @@ async def ensure_schema(db_path: str) -> None:
             holding_id TEXT NOT NULL,
             operation_type TEXT NOT NULL DEFAULT '',
             target_acquired_at INTEGER NOT NULL DEFAULT 0,
+            selection_reason TEXT NOT NULL DEFAULT '',
             business_label TEXT NOT NULL DEFAULT '',
             force INTEGER NOT NULL,
             attacker_cost INTEGER NOT NULL,
@@ -2360,6 +2389,7 @@ async def ensure_schema(db_path: str) -> None:
             'guard_down_json': "TEXT NOT NULL DEFAULT '[]'",
             'casualty_version': "INTEGER NOT NULL DEFAULT 0",
             'target_acquired_at': "INTEGER NOT NULL DEFAULT 0",
+            'selection_reason': "TEXT NOT NULL DEFAULT ''",
         }.items():
             if name not in raid_columns:
                 await db.execute(
@@ -3798,12 +3828,13 @@ async def _create_interior_raid(db, telegram_id: int, leader_id: str,
     await db.execute(
         "INSERT INTO npc_empire_interior_raids"
         "(token,telegram_id,leader_id,apt_key,target_ref,target_kind,holding_id,operation_type,"
-        "target_acquired_at,business_label,force,attacker_cost,tier,quality,hp,accuracy,weapon_budget,"
+        "target_acquired_at,selection_reason,business_label,force,attacker_cost,tier,quality,hp,accuracy,weapon_budget,"
         "defender_ids_json,guard_ids_json,guard_count,attack_no,started_at,hold_seconds,expires_at) "
-        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
         (token, telegram_id, leader_id, apt_key, str(target['ref']), str(target['kind']),
          str(target['holding_id']), str(target.get('operation_type') or ''),
-         int(target.get('acquired_at') or 0), label,
+         int(target.get('acquired_at') or 0),
+         str((target.get('_raid') or {}).get('target_reason') or '')[:48], label,
          allocation['count'], allocation['cost'], allocation['tier'], allocation['quality'],
          allocation['hp'], allocation['accuracy'], allocation['weapon_budget'],
          json.dumps(defender_ids), json.dumps(guard_ids), guard_count, attack_no, now,
@@ -4423,6 +4454,21 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
             "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,resolved_at=? "
             "WHERE token=? AND status='pending'", (outcome, now, token))
         if outcome == 'defended':
+            if int(raid['target_acquired_at'] or 0) > 0:
+                empire = await (await db.execute(
+                    "SELECT comebacks FROM npc_empires WHERE leader_id=?", (leader_id,))).fetchone()
+                await _record_boss_memory_fact(
+                    db, event_key=f"interior-raid:{str(raid['token'])}:defended-target",
+                    leader_id=leader_id,
+                    leader_generation=int(empire['comebacks'] or 0) if empire else 0,
+                    subject_kind='player_holding',
+                    subject_id=f"{int(telegram_id)}|{str(raid['target_ref'])}",
+                    subject_generation=int(raid['target_acquired_at'] or 0),
+                    kind='raid_defended', outcome='defended',
+                    magnitude=attacker_losses, certainty_milli=1000,
+                    observed_at=now,
+                    expires_at=now + NPC_BOSS_MEMORY_REPULSED_RAID_TTL_SECONDS,
+                    defeats=1, own_losses=attacker_losses)
             delay = await _player_war_delay_tx(
                 db, telegram_id, leader_id,
                 _player_war_interval(PROFILE_BY_ID[leader_id]), now)
@@ -4730,6 +4776,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                 'force': int(pending.get('force') or 0),
                 'created_at': int(pending.get('started_at') or now),
                 'raid_token': str(pending.get('token') or ''),
+                'target_reason': str(pending.get('selection_reason') or
+                                     activity.get('target_reason') or 'persisted-target'),
             })
         empire['activity'] = activity
     # A persistent NPC-vs-NPC war becomes a physical order in the shared city.
@@ -4843,7 +4891,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'started_at': int(raid['started_at']),
             'hold_seconds': int(raid['hold_seconds']),
             'objective': objective,
-            'target_reason': str(raid_metrics.get('target_reason') or 'persisted-target'),
+            'target_reason': str(raid['selection_reason'] or
+                                 raid_metrics.get('target_reason') or 'persisted-target'),
             'raid_metrics': dict(raid_metrics.get('metrics') or {}),
             'raid_policy': (_boss_player_raid_policy(profile) if profile else {}),
             'expires_at': int(raid['expires_at']),
