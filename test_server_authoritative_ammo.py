@@ -192,6 +192,76 @@ class ServerAuthoritativeAmmoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await bot.get_authoritative_combat_state(self.target_a))["body"]["current"], 76)
         self.assertEqual((await bot.get_authoritative_combat_state(self.target_b))["body"]["current"], 100)
 
+    async def test_world_wrapper_concurrent_duplicate_returns_every_replay(self):
+        await self._set_mag(1)
+        world = bot.WorldSim()
+        world.add_or_update(str(self.shooter), "WrapperProbe", {}, mode="pvp")
+        shooter = world.players[str(self.shooter)]
+        shooter.update(x=50.0, y=26.0, dead=False, _mode="pvp",
+                       _weapon_classes={"pistol"})
+        results = await asyncio.gather(*(
+            world.claim_player_weapon_fire(
+                str(self.shooter), "wrapper-world-20", "pistol", "world", "miss")
+            for _ in range(20)))
+        self.assertEqual(sum(not item.get("replayed", False)
+                             for item in results), 1)
+        self.assertEqual(sum(bool(item.get("replayed")) for item in results), 19)
+        self.assertTrue(all(item.get("ok") for item in results))
+
+    async def test_pvp_wrapper_concurrent_duplicate_returns_every_replay(self):
+        await self._set_mag(1)
+        world = bot.WorldSim()
+        for index, uid in enumerate((self.shooter, self.target_a)):
+            world.add_or_update(str(uid), f"QA{uid}", {}, mode="pvp")
+            player = world.players[str(uid)]
+            player.update(x=50.0 + index * .2, y=26.0, dead=False,
+                          _mode="pvp", _weapon_classes={"pistol"})
+            world._mirror_combat_state(
+                player, await bot.get_authoritative_combat_state(uid))
+        with (mock.patch.object(bot.random, "random", return_value=.9),
+              mock.patch.object(bot, "_world_los", return_value=True)):
+            results = await asyncio.gather(*(
+                world.apply_player_shoot(
+                    str(self.shooter), str(self.target_a), "pistol", "wrapper-pvp-20")
+                for _ in range(20)))
+        self.assertEqual(sum(not item.get("replayed", False)
+                             for item in results), 1)
+        self.assertEqual(sum(bool(item.get("replayed")) for item in results), 19)
+        self.assertTrue(all(item and item.get("kind") == "pvp_shot"
+                            for item in results))
+        self.assertEqual((await bot.get_authoritative_combat_state(
+            self.target_a))["body"]["current"], 76)
+
+    async def test_rejected_los_does_not_poison_next_valid_cadence(self):
+        await self._set_mag(1)
+        world = bot.WorldSim()
+        for index, uid in enumerate((self.shooter, self.target_a)):
+            world.add_or_update(str(uid), f"QA{uid}", {}, mode="pvp")
+            player = world.players[str(uid)]
+            player.update(x=50.0 + index * .2, y=26.0, dead=False,
+                          _mode="pvp", _weapon_classes={"pistol"})
+            world._mirror_combat_state(
+                player, await bot.get_authoritative_combat_state(uid))
+        shooter = world.players[str(self.shooter)]
+        shooter.update(_weapon_shot_t=123.0, _nagan_chain=2,
+                       _last_shot_crit=True)
+        before = {key: shooter.get(key) for key in
+                  ("_weapon_shot_t", "_nagan_chain", "_last_shot_crit")}
+        with mock.patch.object(bot, "_world_los", return_value=False):
+            rejected = await world.apply_player_shoot(
+                str(self.shooter), str(self.target_a), "pistol", "blocked-los")
+        self.assertIsNone(rejected)
+        self.assertEqual({key: shooter.get(key) for key in before}, before)
+        self.assertEqual((await bot.get_authoritative_ammo_state(
+            self.shooter))["mags"]["pistol"], 1)
+        with (mock.patch.object(bot.random, "random", return_value=.9),
+              mock.patch.object(bot, "_world_los", return_value=True)):
+            accepted = await world.apply_player_shoot(
+                str(self.shooter), str(self.target_a), "pistol", "after-block")
+        self.assertEqual(accepted["dmg"], 24)
+        self.assertEqual((await bot.get_authoritative_ammo_state(
+            self.shooter))["mags"]["pistol"], 0)
+
     async def test_legacy_pack_migrates_once_but_ownership_never_grants_ammo(self):
         async with aiosqlite.connect(self.path) as db:
             await db.execute("INSERT INTO inventory(telegram_id,item_id,quantity) VALUES(?,?,1)",

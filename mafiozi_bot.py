@@ -4,6 +4,7 @@ import math
 import random
 import time
 import sqlite3
+import weakref
 import aiosqlite
 import json
 import urllib.parse
@@ -14968,6 +14969,7 @@ class WorldSim:
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
         '_combat_boot_id', '_combat_event_seq',
+        '_player_shot_locks',
         'gang_player_invites', 'custom_gang_player_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
@@ -15546,6 +15548,7 @@ class WorldSim:
         # colliding with an old receipt after tick/source counters restart.
         self._combat_boot_id = secrets.token_hex(8)
         self._combat_event_seq = 0
+        self._player_shot_locks = weakref.WeakValueDictionary()
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
         self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
@@ -18407,9 +18410,24 @@ class WorldSim:
             weapon, distance, shot_profile,
             profiles=cls.WEAPON_PROFILE, aliases=cls.WEAPON_ALIASES)
 
+    def _player_shot_lock(self, uid: str, shot_id: str) -> asyncio.Lock:
+        identity = (str(uid), str(shot_id or '').strip()[:96])
+        lock = self._player_shot_locks.get(identity)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._player_shot_locks[identity] = lock
+        return lock
+
     async def claim_player_weapon_fire(self, uid: str, shot_id: str,
                                        weapon: str, target_kind: str,
                                        target_id: str) -> dict:
+        async with self._player_shot_lock(uid, shot_id):
+            return await self._claim_player_weapon_fire_once(
+                uid, shot_id, weapon, target_kind, target_id)
+
+    async def _claim_player_weapon_fire_once(self, uid: str, shot_id: str,
+                                             weapon: str, target_kind: str,
+                                             target_id: str) -> dict:
         """Authorize and durably consume one player trigger for non-PvP routes."""
         shooter = self.players.get(str(uid))
         if not shooter or shooter.get('dead') or not str(uid).isdigit():
@@ -18520,6 +18538,12 @@ class WorldSim:
 
     async def apply_player_shoot(self, uid: str, target_uid: str,
                            weapon: str = '', shot_id: str = '') -> dict | None:
+        async with self._player_shot_lock(uid, shot_id):
+            return await self._apply_player_shoot_once(
+                uid, target_uid, weapon, shot_id)
+
+    async def _apply_player_shoot_once(self, uid: str, target_uid: str,
+                           weapon: str = '', shot_id: str = '') -> dict | None:
         """PvP: игрок стреляет в другого игрока. Разрешено в 5 случаях:
           1) Оба в активной PvP-зоне вокруг конвоя инкассатора.
           2) Оба в постоянной PvP-арене.
@@ -18574,11 +18598,7 @@ class WorldSim:
             return None
         # Серверный общий затвор: cooldown нельзя обойти сменой типа цели.
         now = time.time()
-        cadence_before = {name: shooter.get(name) for name in
-                          ('_weapon_shot_t', '_nagan_chain', '_last_shot_crit')}
-        profile = self._authorize_weapon_shot(shooter, weapon)
-        if not profile:
-            return None
+        range_profile = self._weapon_profile(weapon)
         # Проверка зоны: один из 4 случаев должен сработать.
         in_active_event = (self.event is not None
                            and not self.event.get('finished'))
@@ -18652,10 +18672,15 @@ class WorldSim:
                    (float(shooter.get('_interior_y') or 0)-float(target.get('_interior_y') or 0))**2
         else:
             d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
-        if d_sq > float(profile['range']) ** 2:
+        if d_sq > float(range_profile['range']) ** 2:
             return None
         # Прямая видимость
         if not (business_defense or business_police_fight) and not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
+            return None
+        cadence_before = {name: shooter.get(name) for name in
+                          ('_weapon_shot_t', '_nagan_chain', '_last_shot_crit')}
+        profile = self._authorize_weapon_shot(shooter, weapon)
+        if not profile:
             return None
         dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
         shot_did = self._district_id_at(shooter.get('x'), shooter.get('y'))

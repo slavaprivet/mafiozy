@@ -17,7 +17,7 @@ class ArmorAuthoritySourceContractTests(unittest.TestCase):
             if isinstance(node, ast.AsyncFunctionDef)
         }
         expected = {
-            "_tick_event_async", "apply_player_shoot", "_tick_cops_async",
+            "_tick_event_async", "_apply_player_shoot_once", "_tick_cops_async",
             "_tick_pending_bot_shots_async", "_tick_aggro_async",
             "_tick_michael_guards_async", "_tick_world_c4_async",
         }
@@ -25,6 +25,9 @@ class ArmorAuthoritySourceContractTests(unittest.TestCase):
         for name in expected:
             segment = ast.get_source_segment(BOT_SOURCE, methods[name]) or ""
             self.assertIn("apply_authoritative_damage", segment, name)
+        wrapper = ast.get_source_segment(BOT_SOURCE, methods["apply_player_shoot"]) or ""
+        self.assertIn("_player_shot_lock", wrapper)
+        self.assertIn("await self._apply_player_shoot_once", wrapper)
 
     def test_client_named_gang_damage_cannot_write_body(self):
         marker = "elif t == 'gang_dmg':"
