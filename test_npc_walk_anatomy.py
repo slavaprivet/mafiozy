@@ -26,7 +26,8 @@ def run() -> None:
     # Gang bands and role gear must consume the same cached pose/root as the body.
     assert "pose=npcFramePoses[i]||npcAnimationPose(src,i,t)" in THREE
     assert "setNpcRoot(pose,i,x,z);setPart(npcParts.gangBand" in THREE
-    assert "bodyProfile.bodyX*shoulderScale*.9,1,bodyProfile.bodyZ*depthScale*1.42" in THREE
+    assert "if(prisonStaff||police||securityGuard)setPart(npcParts.prisonVest" in THREE
+    assert "bodyProfile.bodyX*shoulderScale*(police?.94:.9),1,bodyProfile.bodyZ*depthScale*(police?1.5:1.42)" in THREE
     assert "npcParts.prisonVest" in THREE and "pose.torsoTwist,pose.shoulderSway" in THREE
     assert "npcWalkingRootBobMax" in THREE
     assert "pooled-neck-seam-cuffs-soles-articulated-knees-v370" in THREE
@@ -58,7 +59,7 @@ def run() -> None:
         "qa_walk_civilian_heavy",
     ):
         assert actor_id in WORLD
-    assert "three_preview.js?v=3d417-npc-walk-continuity&opt=burning-pool-v414+pooled-marker-accounting-v416" in WORLD
+    assert "three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1" in WORLD
 
 
 if __name__ == "__main__":

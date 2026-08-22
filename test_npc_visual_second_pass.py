@@ -19,10 +19,14 @@ def run() -> None:
 
     # Weapon pose replaces the entire arm chain, not shoulders alone.
     assert "const leftHand=i*2,rightHand=i*2+1" in THREE
-    assert "setPart(npcParts.forearm,rightHand" in THREE
+    weapon_pose = THREE.split("const renderNpcEmpireWeapon=", 1)[1].split(
+        "const muzzlePool=", 1)[0]
+    assert weapon_pose.count("setNpcSegment(npcParts.forearm,rightHand") == 1
+    assert weapon_pose.count("setNpcSegment(npcParts.forearm,leftHand") == 1
+    assert "setPart(npcParts.forearm,rightHand" not in weapon_pose
     assert "setPart(npcParts.cuff,rightHand" in THREE
     assert "setPart(npcParts.hand,leftHand" in THREE
-    assert "full-arm-chain-support-hand-v371" in THREE
+    assert "npcWeaponGrip='player-contract-ik-family-anchors-v403'" in THREE
 
     # Role details stay in fixed population pools.
     for part in ("epaulette", "holster", "medicMark"):
@@ -34,14 +38,15 @@ def run() -> None:
     # Weapon class survives into impacts and profiles muzzle/impact scale.
     assert "impacts.push({ r: wr, c: wc, weapon, parts })" in WORLD
     assert "weapon:String(x.weapon||'pistol')" in WORLD
-    assert "weapon-profiled-muzzle-and-impact-v371" in THREE
-    assert "impactPower=weaponClass==='rpg'?1.8" in THREE
+    assert "npcCombatFx='weapon-family-projectile-impact-blood-v403'" in THREE
+    assert "rpg:{power:1.85,spray:1.72,rise:1.35}" in THREE
+    assert "impactProfile=impactVisualProfiles[weaponClass]||impactVisualProfiles.pistol,impactPower=impactProfile.power" in THREE
     assert "flash.scale.set(base*width,base*width,base*length)" in THREE
 
     # Local audit alternates actors between walking/stopped and fires weapons.
     assert "qaMoving=!visualAudit" in WORLD
     assert "qaFiring=visualAudit&&!!sample.weapon" in WORLD
-    assert "three_preview.js?v=3d405-owner-readable-labels" in WORLD
+    assert "three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1" in WORLD
 
 
 if __name__ == "__main__":

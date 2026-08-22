@@ -26,8 +26,9 @@ def run() -> None:
         "rifle", "sniper", "taser", "rpg", "melee",
     ):
         assert f"{weapon_class}:{{shape:" in THREE
+    assert "const npcGenericWeaponShapes=Object.freeze({" in THREE
     assert "npcEmpireWeaponShapes[id]||npcGenericWeaponShapes[weaponKey]" in THREE
-    assert "semantic-class-silhouettes-shared-pools-v370" in THREE
+    assert "npcWeaponDetail='boss-and-role-magazine-sight-charm-v403'" in THREE
 
     # Fired weapon type reaches the bounded shell pool and controls casing form.
     assert "vrot: (Math.random() - 0.5) * 10,\n      weapon," in WORLD
@@ -41,7 +42,7 @@ def run() -> None:
     assert "previewNpcShellClasses" in WORLD
     for weapon in ("pistol", "rifle", "smg", "shotgun", "golden_tommy", "sniper"):
         assert f"weapon:'{weapon}'" in WORLD
-    assert "three_preview.js?v=3d405-owner-readable-labels" in WORLD
+    assert "three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1" in WORLD
 
 
 if __name__ == "__main__":
