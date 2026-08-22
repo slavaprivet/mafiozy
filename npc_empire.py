@@ -3779,6 +3779,27 @@ def _player_war_interval(profile: EmpireProfile) -> int:
     return 20 * 60 + max(0, 100 - profile.aggression) * 12
 
 
+def _repulsed_raid_recovery_delay(
+        profile: EmpireProfile, base_delay: int,
+        attacker_losses: int, force: int) -> int:
+    """Bound regrouping time by real losses and the boss's authored mindset."""
+    base = max(1, int(base_delay))
+    committed = max(0, int(force))
+    losses = max(0, min(committed, int(attacker_losses)))
+    if committed <= 0 or losses <= 0:
+        return base
+    mindset = BOSS_MINDSETS[profile.leader_id]
+    loss_ratio = losses / committed
+    # Absolute losses distinguish a small repulsed probe from a destroyed full
+    # squad even though both are authoritative defended outcomes.
+    severity = min(1.0, loss_ratio * .75 + min(8, losses) / 8 * .25)
+    temperament = max(.25, min(1.0,
+        .25 + float(mindset['patience']) * .45
+        + (1 - float(mindset['courage'])) * .35
+        + (1 - float(mindset['adaptability'])) * .15))
+    return max(base, min(base * 2, round(base * (1 + severity * temperament))))
+
+
 async def _create_interior_raid(db, telegram_id: int, leader_id: str,
                                 target: dict, attack_no: int, now: int) -> dict | None:
     profile = PROFILE_BY_ID[leader_id]
@@ -4469,9 +4490,11 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
                     observed_at=now,
                     expires_at=now + NPC_BOSS_MEMORY_REPULSED_RAID_TTL_SECONDS,
                     defeats=1, own_losses=attacker_losses)
+            profile = PROFILE_BY_ID[leader_id]
+            recovery_delay = _repulsed_raid_recovery_delay(
+                profile, _player_war_interval(profile), attacker_losses, force)
             delay = await _player_war_delay_tx(
-                db, telegram_id, leader_id,
-                _player_war_interval(PROFILE_BY_ID[leader_id]), now)
+                db, telegram_id, leader_id, recovery_delay, now)
             await db.execute(
                 "UPDATE npc_empire_player_wars SET next_attack_at=? "
                 "WHERE leader_id=? AND telegram_id=?",
@@ -4547,6 +4570,23 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT leader_id,next_attack_at,attacks,last_business_id,last_attack_at "
             "FROM npc_empire_player_wars WHERE telegram_id=?", (telegram_id,)
         )).fetchall()}
+        recovery_rows = {str(r['leader_id']): int(r['observed_at'] or 0)
+                         for r in await (await db.execute(
+            "SELECT m.leader_id,MAX(m.observed_at) observed_at "
+            "FROM npc_empire_memory_events m JOIN npc_empires e "
+            "ON e.leader_id=m.leader_id AND e.comebacks=m.leader_generation "
+            "WHERE m.subject_kind='player_holding' AND m.subject_id LIKE ? "
+            "AND m.kind='raid_defended' AND m.expires_at>? GROUP BY m.leader_id",
+            (f'{int(telegram_id)}|%', now))).fetchall()}
+        for recovery_leader, recovery_observed_at in recovery_rows.items():
+            recovery_war = war_rows.get(recovery_leader)
+            if (recovery_war
+                    and recovery_observed_at > int(recovery_war.get('last_attack_at') or 0)
+                    and int(recovery_war.get('next_attack_at') or 0) > now):
+                recovery_war['recovery'] = {
+                    'state': 'regrouping',
+                    'label': 'Семья перегруппировывается после отражённого налёта',
+                }
         raid_rows = [dict(r) for r in await (await db.execute(
             "SELECT * FROM npc_empire_interior_raids "
             "WHERE telegram_id=? AND status='pending' ORDER BY started_at,token",
