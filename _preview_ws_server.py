@@ -2549,6 +2549,11 @@ async def world_ws(req):
                 continue
             t = pkt.get("t") or pkt.get("type")
             d = pkt.get("d") or {}
+            # Every websocket action has a player context. The real client
+            # normally sends input first, but reconnect/replay ordering may put
+            # a bank acknowledgement action ahead of it; never let that legal
+            # ordering crash the preview connection.
+            p = players.setdefault(uid, {})
             if t == "business_rob_prepare":
                 biz_id = str(d.get("biz_id") or "")
                 owner = preview_business_owners.get(biz_id) or {}
@@ -3711,26 +3716,75 @@ async def world_ws(req):
                 if rob and rob.get("bank_id") == bank_id:
                     rob["carried"] = 1
                     rob["bags_loaded"] = max(0, int(d.get("bags_loaded") or 0))
+                    bag_id = str(d.get("bag_id") or "")[:80]
+                    if bag_id.startswith("bag_"):
+                        rob["bag_id"] = bag_id
+            elif t == "bank_bag_pickup":
+                bag_id = str(d.get("bag_id") or "")[:80]
+                bag = preview_bank_bags.get(bag_id)
+                rob = preview_bank_robs.get(str(uid))
+                reason = None
+                if p.get("dead"): reason = "dead"
+                elif not bag: reason = "gone"
+                elif str(bag.get("robber_uid") or "") != str(uid): reason = "not_owner"
+                elif not rob or rob.get("bank_id") != bag.get("bank_id"): reason = "no_active_robbery"
+                elif rob.get("carried"): reason = "hands_full"
+                elif (float(p.get("x",0))-float(bag.get("x",0)))**2 + (float(p.get("y",0))-float(bag.get("y",0)))**2 > 2.5**2:
+                    reason = "too_far"
+                if not reason:
+                    preview_bank_bags.pop(bag_id, None)
+                    rob["carried"] = 1
+                    rob["bag_id"] = bag_id
+                await ws.send_str(json.dumps({"t":"event","d":{
+                    "kind":"bank_bag_pickup_reply","ok":not bool(reason),"reason":reason,
+                    "bag_id":bag_id,"bank_id":str((bag or {}).get("bank_id") or ""),
+                    "value":int((bag or {}).get("value") or 0)}}, ensure_ascii=False))
             elif t == "bank_bag_drop":
                 rob = preview_bank_robs.get(str(uid))
                 evidence = p.get("police_evidence_bag")
-                was_carried = bool(rob and rob.get("carried"))
-                if rob:
-                    rob["carried"] = 0
-                    if d.get("confiscated"):
-                        preview_bank_robs.pop(str(uid), None)
-                if not d.get("confiscated") and (evidence or was_carried):
+                confiscated = bool(d.get("confiscated"))
+                requested_id = str(d.get("bag_id") or "")[:80]
+                carried_ok = bool(rob and rob.get("carried") and rob.get("bag_id") == requested_id)
+                existing = preview_bank_bags.get(requested_id)
+                replay_ok = bool(existing and str(existing.get("robber_uid") or "") == str(uid))
+                reason = None
+                if not confiscated and not requested_id.startswith("bag_"): reason = "bad_bag_id"
+                elif not confiscated and not (evidence or carried_ok or replay_ok): reason = "not_carried"
+                drop_x = drop_y = None
+                if not replay_ok:
+                    try:
+                        drop_y = float(d.get("r")); drop_x = float(d.get("c"))
+                        if not (math.isfinite(drop_x) and math.isfinite(drop_y)): raise ValueError
+                        if (drop_x-float(p.get("x",0)))**2 + (drop_y-float(p.get("y",0)))**2 > 4.0**2:
+                            reason = reason or "too_far"
+                    except (TypeError, ValueError):
+                        drop_x = drop_y = None
+                        reason = reason or "bad_position"
+                if confiscated:
+                    preview_bank_robs.pop(str(uid), None)
+                if not confiscated and not reason and not replay_ok:
                     bank_id = str((evidence or {}).get("bank_id") or (rob or {}).get("bank_id") or "")
                     value = int((evidence or {}).get("value") or PREVIEW_BANK_REWARD.get(bank_id, 0))
-                    bag_id = str(d.get("bag_id") or "")[:80]
-                    if not bag_id.startswith("bag_") or bag_id in preview_bank_bags:
-                        bag_id = f"bag_preview_{time.time_ns()}"
-                    preview_bank_bags[bag_id] = {
-                        "id":bag_id, "bank_id":bank_id, "value":value,
-                        "x":float(p.get("x",0)), "y":float(p.get("y",0)),
+                    preview_bank_bags[requested_id] = {
+                        "id":requested_id, "bank_id":bank_id, "value":value,
+                        "x":drop_x, "y":drop_y,
                         "dropped_at":time.time(), "robber_uid":str(uid),
                     }
+                    if rob: rob["carried"] = 0
                     p.pop("police_evidence_bag", None)
+                elif replay_ok:
+                    bank_id = str(existing.get("bank_id") or "")
+                    value = int(existing.get("value") or 0)
+                    drop_x = float(existing.get("x") or 0); drop_y = float(existing.get("y") or 0)
+                    if rob and carried_ok:
+                        rob["carried"] = 0
+                else:
+                    bank_id = str((rob or {}).get("bank_id") or ""); value = 0
+                if not confiscated:
+                    await ws.send_str(json.dumps({"t":"event","d":{
+                        "kind":"bank_bag_drop_reply","ok":not bool(reason),"reason":reason,
+                        "bag_id":requested_id,"bank_id":bank_id,"value":value,
+                        "r":drop_y,"c":drop_x}}, ensure_ascii=False))
             elif t == "police_bank_bag_pickup":
                 bag_id = str(d.get("bag_id") or "")[:80]
                 bag = preview_bank_bags.get(bag_id)
@@ -3824,6 +3878,20 @@ async def world_ws(req):
                     "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
                     "dropped_at":time.time(), "robber_uid":str(uid),
                 }
+            rob = preview_bank_robs.get(str(uid))
+            if rob and rob.get("carried"):
+                bag_id = str(rob.get("bag_id") or "")[:80]
+                if not bag_id.startswith("bag_"):
+                    bag_id = f"bag_preview_{time.time_ns()}"
+                if bag_id not in preview_bank_bags:
+                    bank_id = str(rob.get("bank_id") or "")
+                    preview_bank_bags[bag_id] = {
+                        "id":bag_id, "bank_id":bank_id,
+                        "value":int(PREVIEW_BANK_REWARD.get(bank_id, 0)),
+                        "x":float(leaving.get("x",0)), "y":float(leaving.get("y",0)),
+                        "dropped_at":time.time(), "robber_uid":str(uid),
+                    }
+                rob["carried"] = 0
             release_player_cars(uid)
             players.pop(uid, None)
     return ws

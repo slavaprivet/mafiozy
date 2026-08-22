@@ -15220,6 +15220,24 @@ class WorldSim:
                     'x': float(p.get('x') or 0), 'y': float(p.get('y') or 0),
                     'dropped_at': time.time(), 'robber_uid': str(uid),
                 }
+            for bank_id, loot in list((p.get('_bank_rob') or {}).items()):
+                if int((loot or {}).get('carried') or 0) <= 0:
+                    continue
+                rob = self.bank_robs.get(bank_id)
+                if not rob or rob.get('robber_uid') != uid:
+                    continue
+                bag_id = str((loot or {}).get('bag_id') or '')[:80]
+                if not bag_id.startswith('bag_'):
+                    bag_id = f'bag_{self._next_bank_bag_id}'
+                    self._next_bank_bag_id += 1
+                if bag_id not in self.bank_bags:
+                    self.bank_bags[bag_id] = {
+                        'id': bag_id, 'bank_id': str(bank_id),
+                        'value': {'small': 1200, 'medium': 2500, 'large': 5000}.get(str(bank_id), 0),
+                        'x': float(p.get('x') or 0), 'y': float(p.get('y') or 0),
+                        'dropped_at': time.time(), 'robber_uid': str(uid),
+                    }
+                loot['carried'] = 0
             escorted_uid = str(p.get('_police_escort_uid') or '')
             if escorted_uid:
                 asyncio.create_task(
@@ -30538,11 +30556,54 @@ async def _coop_http_app():
                             if '_bank_rob' not in p:
                                 p['_bank_rob'] = {}
                             prev = p['_bank_rob'].get(bank_id) or {}
+                            bag_id = str((d or {}).get('bag_id') or prev.get('bag_id') or '')[:80]
+                            if not bag_id.startswith('bag_'):
+                                bag_id = f'bag_{world._next_bank_bag_id}'
+                                world._next_bank_bag_id += 1
                             p['_bank_rob'][bank_id] = {
                                 'bags': max(0, int((d or {}).get('bags_loaded') or prev.get('bags') or 0)),
                                 'carried': 1,
+                                'bag_id': bag_id,
                                 'at': prev.get('at') or time.time(),
                             }
+                    elif t == 'bank_bag_pickup':
+                        p = world.players.get(uid)
+                        bag_id = str((d or {}).get('bag_id') or '')[:80]
+                        bag = world.bank_bags.get(bag_id)
+                        bank_id = str((bag or {}).get('bank_id') or '')
+                        rob = world.bank_robs.get(bank_id) if bank_id else None
+                        state = ((p.get('_bank_rob') or {}).get(bank_id) or {}) if p else {}
+                        reason = None
+                        if not p or p.get('dead'):
+                            reason = 'dead'
+                        elif not bag:
+                            reason = 'gone'
+                        elif str(bag.get('robber_uid') or '') != str(uid):
+                            reason = 'not_owner'
+                        elif not rob or rob.get('robber_uid') != uid:
+                            reason = 'no_active_robbery'
+                        elif int(state.get('carried') or 0) > 0:
+                            reason = 'hands_full'
+                        elif ((float(p.get('x') or 0) - float(bag.get('x') or 0)) ** 2 +
+                              (float(p.get('y') or 0) - float(bag.get('y') or 0)) ** 2) > 2.5 ** 2:
+                            reason = 'too_far'
+                        if not reason:
+                            world.bank_bags.pop(bag_id, None)
+                            if '_bank_rob' not in p:
+                                p['_bank_rob'] = {}
+                            p['_bank_rob'][bank_id] = {
+                                'bags': max(0, int(state.get('bags') or 0)),
+                                'carried': 1, 'bag_id': bag_id,
+                                'at': state.get('at') or time.time(),
+                            }
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': {
+                                'kind': 'bank_bag_pickup_reply', 'ok': not bool(reason),
+                                'reason': reason, 'bag_id': bag_id,
+                                'bank_id': bank_id, 'value': int((bag or {}).get('value') or 0),
+                            }}, ensure_ascii=False))
+                        except Exception:
+                            pass
                     elif t == 'bank_rob_apartment_deliver':
                         p = world.players.get(uid)
                         bank_id = str((d or {}).get('bank_id') or '')
@@ -30814,39 +30875,33 @@ async def _coop_http_app():
                                             world.spawn_cop(sc, sr, uid, kind='combat')
                     elif t == 'bank_bag_drop':
                         p = world.players.get(uid)
-                        bank_id = (d or {}).get('bank_id')
+                        bank_id = str((d or {}).get('bank_id') or '')
                         confiscated = bool((d or {}).get('confiscated'))
                         BANK_CFG = {
                             'small': 1200, 'medium': 2500, 'large': 5000,
                         }
                         evidence = p.get('_police_evidence_bag') if p else None
                         state = None
-                        was_carried = False
                         if p and bank_id and '_bank_rob' in p:
                             state = p['_bank_rob'].get(bank_id)
-                            if state:
-                                was_carried = int(state.get('carried') or 0) > 0
-                                state['carried'] = 0
                             if confiscated:
                                 p['_bank_rob'].pop(bank_id, None)
-                        # Обычный бросок создаёт общий серверный объект. Так
-                        # мешок, выпавший после смерти грабителя, видит коп.
                         rob = world.bank_robs.get(bank_id) if bank_id else None
-                        carried_ok = bool(was_carried and rob and rob.get('robber_uid') == uid)
-                        if not confiscated and p and (evidence or carried_ok):
-                            if evidence:
-                                bank_id = str(evidence.get('bank_id') or bank_id or '')
-                                value = int(evidence.get('value') or BANK_CFG.get(bank_id, 0))
-                                p.pop('_police_evidence_bag', None)
-                            else:
-                                value = int(BANK_CFG.get(bank_id, 0))
-                            requested_id = str((d or {}).get('bag_id') or '')[:80]
-                            if not requested_id.startswith('bag_') or requested_id in world.bank_bags:
-                                requested_id = f'bag_{world._next_bank_bag_id}'
-                                world._next_bank_bag_id += 1
-                            # Prefer the coordinates sent with the drop. The server-side
-                            # player position can still be the last pre-interior sample
-                            # for one tick immediately after leaving a bank.
+                        requested_id = str((d or {}).get('bag_id') or '')[:80]
+                        carried_ok = bool(state and int(state.get('carried') or 0) > 0 and
+                                          rob and rob.get('robber_uid') == uid and
+                                          str(state.get('bag_id') or '') == requested_id)
+                        existing = world.bank_bags.get(requested_id)
+                        replay_ok = bool(existing and str(existing.get('robber_uid') or '') == str(uid))
+                        reason = None
+                        drop_x = drop_y = None
+                        if not confiscated and not p:
+                            reason = 'no_player'
+                        elif not confiscated and not requested_id.startswith('bag_'):
+                            reason = 'bad_bag_id'
+                        elif not confiscated and not (evidence or carried_ok or replay_ok):
+                            reason = 'not_carried'
+                        if not confiscated and not reason and not replay_ok:
                             try:
                                 drop_y = float((d or {}).get('r'))
                                 drop_x = float((d or {}).get('c'))
@@ -30854,15 +30909,39 @@ async def _coop_http_app():
                                     raise ValueError
                                 if not (0 <= drop_x < WORLD_MAP_COLS and 0 <= drop_y < WORLD_MAP_ROWS):
                                     raise ValueError
+                                if ((drop_x - float(p.get('x') or 0)) ** 2 +
+                                        (drop_y - float(p.get('y') or 0)) ** 2) > 4.0 ** 2:
+                                    reason = 'too_far'
                             except (TypeError, ValueError):
-                                drop_x = float(p.get('x') or 0)
-                                drop_y = float(p.get('y') or 0)
+                                reason = 'bad_position'
+                        if not confiscated and not reason and not replay_ok:
+                            if evidence:
+                                bank_id = str(evidence.get('bank_id') or bank_id or '')
+                                value = int(evidence.get('value') or BANK_CFG.get(bank_id, 0))
+                                p.pop('_police_evidence_bag', None)
+                            else:
+                                value = int(BANK_CFG.get(bank_id, 0))
                             world.bank_bags[requested_id] = {
                                 'id': requested_id, 'bank_id': str(bank_id or ''),
                                 'value': max(0, value),
                                 'x': drop_x, 'y': drop_y,
                                 'dropped_at': time.time(), 'robber_uid': str(uid),
                             }
+                            if state:
+                                state['carried'] = 0
+                        elif replay_ok:
+                            value = int(existing.get('value') or 0)
+                            bank_id = str(existing.get('bank_id') or bank_id)
+                            drop_x = float(existing.get('x') or 0)
+                            drop_y = float(existing.get('y') or 0)
+                            # A delayed/repeated carried packet must not revive
+                            # the same bag in the robber's hands after its drop
+                            # was already committed. Keep the canonical ground
+                            # coordinates and converge ownership to ground-only.
+                            if state and carried_ok:
+                                state['carried'] = 0
+                        else:
+                            value = 0
                         # Обычный бросок оставляет ограбление активным: мешок
                         # можно снова поднять. При конфискации полиция закрывает
                         # серверное состояние окончательно.
@@ -30870,6 +30949,16 @@ async def _coop_http_app():
                             rob = world.bank_robs[bank_id]
                             if rob.get('robber_uid') == uid:
                                 world.bank_robs.pop(bank_id, None)
+                        if not confiscated:
+                            try:
+                                await ws.send_str(json.dumps({'t': 'event', 'd': {
+                                    'kind': 'bank_bag_drop_reply', 'ok': not bool(reason),
+                                    'reason': reason, 'bag_id': requested_id,
+                                    'bank_id': bank_id, 'value': value,
+                                    'r': drop_y, 'c': drop_x,
+                                }}, ensure_ascii=False))
+                            except Exception:
+                                pass
                     elif t == 'ping':
                         try: await ws.send_str(json.dumps({'t': 'pong'}))
                         except Exception: pass

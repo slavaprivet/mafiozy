@@ -23850,6 +23850,10 @@ function handleEventPacket(d) {
     _myBagWeight=Math.max(1,+d.value||1);
     _vaultDroppedBags=_vaultDroppedBags.filter(b=>String(b.id)!==String(d.bag_id));
     showEventBanner('💼 УЛИКА ИЗЪЯТА',`Отнеси мешок в полицейский участок. Награда за возврат: $${(+d.value||0).toLocaleString('ru')}.`,3900,'win');
+  } else if (kind === 'bank_bag_pickup_reply') {
+    _acceptAuthoritativeBankBagPickup(d);
+  } else if (kind === 'bank_bag_drop_reply') {
+    _acceptAuthoritativeBankBagDrop(d);
   } else if (kind === 'police_bank_bag_turnin_reply') {
     if(!d.ok){showToast(_policeError(d.reason),'⚠️',2500);return;}
     _policeEvidenceBag=null;_myBagWeight=0;
@@ -26154,13 +26158,29 @@ async function wsConnect() {
       applyCopsTargets(d.cops || []);
       // Синхронизация мешков на земле (серверные)
       if (d.dropped_bags) {
-        const serverIds = new Set(d.dropped_bags.map(b => b.id));
+        const serverIds = new Set(d.dropped_bags.map(b => String(b.id)));
         // Добавляем новые серверные мешки
         for (const sb of d.dropped_bags) {
-          if (!_vaultDroppedBags.find(lb => lb.id === sb.id)) {
+          const local = _vaultDroppedBags.find(lb => String(lb.id) === String(sb.id));
+          if (local) {
+            Object.assign(local, {r:sb.r,c:sb.c,value:sb.value||local.value||500,
+              bankId:sb.bank_id||local.bankId||'unknown'});
+          } else {
             _vaultDroppedBags.push({ id: sb.id, r: sb.r, c: sb.c, value: sb.value || 500,
               bankId: sb.bank_id || 'unknown', droppedAt: performance.now() });
           }
+        }
+        // A drop ACK can be lost with the socket. The authoritative snapshot
+        // is an equally strong acknowledgement: reconcile the pending carry
+        // with the canonical id and coordinates instead of leaving the player
+        // permanently hands-full until a full page reload.
+        if (_bankBagDropPending) {
+          const canonical = d.dropped_bags.find(
+            b => String(b.id) === String(_bankBagDropPending.id));
+          if (canonical) _acceptAuthoritativeBankBagDrop({
+            ok:true, bag_id:canonical.id, bank_id:canonical.bank_id,
+            value:canonical.value, r:canonical.r, c:canonical.c,
+          });
         }
         // Удаляем подобранные другими
         for (let i = _vaultDroppedBags.length - 1; i >= 0; i--) {
@@ -26170,7 +26190,8 @@ async function wsConnect() {
           // snapshot makes a freshly dropped bag disappear beside the bank.
           const awaitingServer = Number.isFinite(localBag.droppedAt) &&
             performance.now() - localBag.droppedAt < 3000;
-          if (localBag.id && localBag.id.startsWith('bag_') && !serverIds.has(localBag.id) && !awaitingServer) {
+          if (localBag.id && String(localBag.id).startsWith('bag_') &&
+              !serverIds.has(String(localBag.id)) && !awaitingServer) {
             _vaultDroppedBags.splice(i, 1);
           }
         }
@@ -29622,8 +29643,9 @@ if (_dropBagBtn) {
     if (_bankInt && _bankInt.myBag) {
       if (_bankInt.room === 'vault') {
         const b = _bankInt.myBag;
-        const dropR = player.r + 0.8;
-        const dropC = player.c + 0.4;
+        b.id = _stableBankBagId(b, _bankInt.bank && _bankInt.bank.id, _bankInt.startedAt);
+        const dropR = player.r;
+        const dropC = player.c;
         const orig = (_bankInt.bags || []).find(x => x.id === b.id);
         if (orig) {
           orig.taken = false;
@@ -29632,13 +29654,17 @@ if (_dropBagBtn) {
         }
         if (!_bankInt.bags) _bankInt.bags = [];
         if (!orig) {
-          _bankInt.bags.push({ id: b.id || ('drop_' + Date.now()), taken: false, r: dropR, c: dropC });
+          _bankInt.bags.push({ id: b.id, taken: false, r: dropR, c: dropC });
         }
         _bankInt.myBag = null; _myBagWeight = 0;
         showToast('💼 Мешок брошен на пол', '⚠️', 1400);
       } else {
         if (!_bankInt._lobbyBags) _bankInt._lobbyBags = [];
-        _bankInt._lobbyBags.push({ id: _bankInt.myBag.id || ('ldrop_' + Date.now()), r: player.r + 0.5, c: player.c + 0.3, taken: false });
+        const lobbyBag = _bankInt.myBag;
+        lobbyBag.id = _stableBankBagId(lobbyBag, _bankInt.bank && _bankInt.bank.id, _bankInt.startedAt);
+        const existing = _bankInt._lobbyBags.find(b => String(b.id) === String(lobbyBag.id));
+        if (existing) Object.assign(existing, { r: player.r, c: player.c, taken: false });
+        else _bankInt._lobbyBags.push({ id: lobbyBag.id, r: player.r, c: player.c, taken: false });
         _bankInt.myBag = null; _myBagWeight = 0;
         showToast('💼 Мешок брошен на пол', '⚠️', 1400);
       }
@@ -32991,7 +33017,15 @@ function _sendAggroWeaponHit(targetId, weapon) {
   // позиции игрока. Перед попаданием ставим в WS-очередь свежий input:
   // иначе после быстрого движения/переподключения сервер мог молча
   // отклонить честный выстрел, считая расстояние от предыдущей точки.
-  sendInput(true);
+    sendInput(true);
+    // Same id makes this safe whether the old socket processed the drop, the
+    // disconnect materialized the carried bag, or neither reply reached us.
+    if (_bankBagDropPending) {
+      const pending = _bankBagDropPending;
+      try { socket.send(JSON.stringify({t:'bank_bag_drop',d:{
+        bank_id:pending.bankId,bag_id:pending.id,r:pending.r,c:pending.c,
+      }})); } catch(e) {}
+    }
   ws.send(JSON.stringify({t:'aggro_shoot',d:{
     target:String(targetId),weapon:weapon || currentWeapon,
   }}));
@@ -53820,7 +53854,7 @@ function _takeVaultBagDirect(bag) {
   const int = _bankInt;
   if (!int || int.room !== 'vault' || int.myBag || !bag || bag.taken) return;
   bag.taken = true;
-  int.myBag = { id: bag.id, value: int.bank.reward_per_bag };
+  int.myBag = { id: _stableBankBagId(bag, int.bank.id, int.startedAt), value: int.bank.reward_per_bag };
   _myBagWeight = 1;
   if (_bankRob) _bankRob._bagsTaken = (_bankRob._bagsTaken || 0) + 1;
   showToast(`💰 Взял мешок ($${int.bank.reward_per_bag.toLocaleString('ru')}) — выходи!`, '💼', 2000);
@@ -53856,45 +53890,50 @@ function pickupDroppedBag(bagId) {
     showToast('👮 Изъятие улики…','💼',1200);
     return;
   }
-  // Восстанавливаем _bankRob если он успел сброситься (мешок всё ещё на земле).
+  if (bag._robberPickupPending) return;
+  if (!ws || ws.readyState !== 1) { showToast('Сервер не отвечает','⚠️',1900); return; }
+  if (_bankRob && _bankRob.myBag) { showToast('💼 Руки заняты — уже несёшь мешок', '⚠️', 1600); return; }
+  bag._robberPickupPending = true;
+  ws.send(JSON.stringify({t:'bank_bag_pickup',d:{bag_id:String(bag.id)}}));
+  showToast('💼 Поднимаем мешок…','⏳',1100);
+}
+
+function _acceptAuthoritativeBankBagPickup(d) {
+  const local = _vaultDroppedBags.find(b => String(b.id) === String(d.bag_id));
+  if (!d.ok) {
+    if (local) local._robberPickupPending = false;
+    showToast(d.reason === 'gone' ? 'Этот мешок уже забрали' : 'Не удалось поднять мешок','⚠️',2200);
+    return;
+  }
   if (!_bankRob) {
-    _bankRob = { bank: (BANKS.find(b => b.id === bag.bankId) || { id: bag.bankId, reward_per_bag: bag.value }),
+    _bankRob = { bank: (BANKS.find(b => b.id === d.bank_id) || { id: d.bank_id, reward_per_bag: d.value }),
       phase: 'carrying', bagsLoaded: 0, bagsMax: 99, myBag: null,
       policeTimer: 0, alarmTriggered: true, startedAt: performance.now()/1000,
       crackProgress: 1, crackTotal: 20 };
   }
-  if (_bankRob.myBag) { showToast('💼 Руки заняты — уже несёшь мешок', '⚠️', 1600); return; }
-  _bankRob.myBag = { id: bag.id, value: bag.value };
-  _myBagWeight = bag.value || 1;
-  _vaultDroppedBags.splice(idx, 1);
+  _bankRob.myBag = { id: d.bag_id, value: +d.value || 0 };
+  _bankRob.phase = 'carrying';
+  _myBagWeight = +d.value || 1;
+  _vaultDroppedBags = _vaultDroppedBags.filter(b => String(b.id) !== String(d.bag_id));
   showToast('💼 Поднял мешок', '✅', 1400);
   try { hapticHit && hapticHit(); } catch(e) {}
-  try { ws && ws.send(JSON.stringify({ t: 'bank_rob_bag_carried', d: {
-    bank_id: _bankRob.bank && _bankRob.bank.id,
-    bags_loaded: _bankRob.bagsLoaded || 0,
-  }})); } catch(e) {}
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
 }
 
 // Бросить мешок (снять с плеча) — мешок остаётся на земле
+let _bankBagDropPending = null;
 function dropVaultBag() {
+  if (_bankBagDropPending) return;
   const policeBag=_policeEvidenceBag;
   if ((!_bankRob || !_bankRob.myBag) && !policeBag) return;
   const bag = policeBag || _bankRob.myBag;
   const bankId=policeBag?policeBag.bank_id:(_bankRob.bank ? _bankRob.bank.id : null);
-  const worldBagId='bag_'+String(QP.uid||'p')+'_'+Date.now();
-  _vaultDroppedBags.push({
-    id: worldBagId,
-    r: player.r, c: player.c,
-    value: bag.value || 0,
-    bankId,
-    droppedAt: performance.now()
-  });
-  if(policeBag)_policeEvidenceBag=null;
-  else _bankRob.myBag = null;
-  _myBagWeight = 0;
-  showToast('💼 Мешок брошен', '⚠️', 1800);
-  try { ws && ws.send(JSON.stringify({ t: 'bank_bag_drop', d: { bank_id: bankId, bag_id:worldBagId, r: player.r, c: player.c } })); } catch(e) {}
+  if (!ws || ws.readyState !== 1) { showToast('Сервер не отвечает','⚠️',1900); return; }
+  const worldBagId=_stableBankBagId(bag, bankId, _bankRob && _bankRob.startedAt);
+  bag.id=worldBagId;
+  _bankBagDropPending={id:worldBagId,bag,police:!!policeBag,r:player.r,c:player.c,bankId};
+  showToast('💼 Кладём мешок…', '⏳', 1100);
+  ws.send(JSON.stringify({ t: 'bank_bag_drop', d: { bank_id: bankId, bag_id:worldBagId, r: player.r, c: player.c } }));
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
   if (!_buildingInt && !_bankInt && typeof updateGtaInteractions === 'function') {
     updateGtaInteractions();
@@ -54013,7 +54052,15 @@ function loadBagIntoVan(preferredCar) {
     return;
   }
 
-  // Грузим
+  // Грузим. Машина хранит не только count, но и точные id: иначе два
+  // выгруженных мешка одной robbery получали одинаковый suffix "vault" и
+  // второй server drop ошибочно считался replay первого.
+  const loadedBag = _bankRob.myBag;
+  loadedBag.id = _stableBankBagId(loadedBag, _bankRob.bank && _bankRob.bank.id, _bankRob.startedAt);
+  const bagIds = nearCar._isBankVan
+    ? (_bankRob._bankVanBagIds || (_bankRob._bankVanBagIds = []))
+    : (nearCar._bankBagIds || (nearCar._bankBagIds = []));
+  if (!bagIds.some(id => String(id) === String(loadedBag.id))) bagIds.push(loadedBag.id);
   nearCar._bagsLoaded = curLoaded + 1;
   if (!_bankRob._carId) _bankRob._carId = nearCar.id;
   _bankRob.bagsLoaded = (_bankRob.bagsLoaded || 0) + 1;
@@ -54063,13 +54110,22 @@ function unloadBagFromCar(carId, preferredCar) {
   if (car) car._bagsLoaded = Math.max(0, (car._bagsLoaded || 0) - 1);
   // Снимаем один мешок с общего счётчика, берём в руки
   _bankRob.bagsLoaded = Math.max(0, (_bankRob.bagsLoaded || 0) - 1);
-  _bankRob.myBag = { value: (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200 };
+  const bagIds = car
+    ? (car._bankBagIds || (car._bankBagIds = []))
+    : (_bankRob._bankVanBagIds || (_bankRob._bankVanBagIds = []));
+  let recoveredId = bagIds.pop();
+  if (!recoveredId) {
+    _bankRob._bagSerial = Math.max(0, _bankRob._bagSerial | 0) + 1;
+    recoveredId = `car_${carId || 'bank_van'}_${_bankRob._bagSerial}`;
+  }
+  _bankRob.myBag = { id: recoveredId, value: (_bankRob.bank && _bankRob.bank.reward_per_bag) || 1200 };
+  _bankRob.myBag.id = _stableBankBagId(_bankRob.myBag, _bankRob.bank && _bankRob.bank.id, _bankRob.startedAt);
   _myBagWeight = 1;
   _bankRob.phase = 'carrying';
   showToast('💼 Достал мешок из машины', '🚗', 1600);
   try { ws && ws.send(JSON.stringify({ t: 'bank_rob_bag_loaded', d: { bank_id: _bankRob.bank.id, bags: _bankRob.bagsLoaded } })); } catch(e) {}
   try { ws && ws.send(JSON.stringify({ t: 'bank_rob_bag_carried', d: {
-    bank_id: _bankRob.bank.id, bags_loaded: _bankRob.bagsLoaded,
+    bank_id: _bankRob.bank.id, bags_loaded: _bankRob.bagsLoaded, bag_id: _bankRob.myBag.id,
   }})); } catch(e) {}
   if (typeof _updateBankZoneBtn === 'function') _updateBankZoneBtn();
   else if (typeof updateZoneBtn === 'function') updateZoneBtn();
@@ -57586,6 +57642,32 @@ function _applyNpcEmpireWeaponHit(bi,n,victim,targetR,targetC,damage,profile){
   else if(effect==='breach'||effect==='armor_piercing'){if(victim.kind==='player')updateArmorHud();}
   else if(effect==='gold_burst')hurt(4);
   else if(effect==='scatter')hurt(3);
+}
+
+function _acceptAuthoritativeBankBagDrop(d) {
+  const pending = _bankBagDropPending;
+  if (!pending || String(pending.id) !== String(d.bag_id)) return;
+  _bankBagDropPending = null;
+  if (!d.ok) { showToast('Не удалось положить мешок — он остался у тебя','⚠️',2300); return; }
+  const ground = {id:d.bag_id,r:+d.r,c:+d.c,value:+d.value||pending.bag.value||0,
+    bankId:d.bank_id||pending.bankId,droppedAt:performance.now()};
+  const existing=_vaultDroppedBags.find(b=>String(b.id)===String(ground.id));
+  if(existing)Object.assign(existing,ground);else _vaultDroppedBags.push(ground);
+  if(pending.police)_policeEvidenceBag=null;
+  else if(_bankRob&&_bankRob.myBag&&String(_bankRob.myBag.id)===String(d.bag_id))_bankRob.myBag=null;
+  _myBagWeight=0;
+  showToast('💼 Мешок лежит в точке, где ты его отпустил','✅',1800);
+  if(typeof _updateBankZoneBtn==='function')_updateBankZoneBtn();
+}
+
+function _stableBankBagId(bag, bankId, startedAt) {
+  const current = String(bag && bag.id != null ? bag.id : 'vault');
+  if (current.startsWith('bag_')) return current.slice(0, 80);
+  const owner = String(QP.uid || 'p').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'p';
+  const bank = String(bankId || 'bank').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16) || 'bank';
+  const run = Math.max(0, Math.floor(Number(startedAt || (_bankRob && _bankRob.startedAt) || performance.now()) * 1000));
+  const slot = current.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 16) || 'vault';
+  return `bag_${owner}_${bank}_${run}_${slot}`.slice(0, 80);
 }
 function _fireInteriorGuardRound(bi,n,damage,hitChance=.72,target=null) {
   if(!bi||!n||n.dead)return;
@@ -61501,6 +61583,7 @@ function enterBankInterior(bank) {
     delete _bankCivSave[bank.id];
   }
   const existingRob=_bankRob&&_bankRob.bank.id===bank.id;
+  const carriedBag=existingRob&&_bankRob.myBag?_bankRob.myBag:null;
   // Хранилище открыто при входе ТОЛЬКО если его реально взломали раньше.
   // Раньше vaultOpen=!!existingRob → после «тревога без взлома» банк
   // ошибочно открывался сразу, и игрок не мог взломать его заново.
@@ -61523,13 +61606,14 @@ function enterBankInterior(bank) {
     vaultH:Math.floor(H*0.55),
     phase:vaultOpen?'vault_open':'lobby',
     crackProg:vaultOpen?1:0,_crackStartedAt:null,
-    bags,myBag:false,_bagsLoaded:existingRob?_bankRob.bagsLoaded:0,
+    bags,myBag:carriedBag,_bagsLoaded:existingRob?_bankRob.bagsLoaded:0,
     savedR:player.r,savedC:player.c,
     alarmTriggered:!!existingRob,
     startedAt:existingRob?_bankRob.startedAt:(performance.now()/1000),
     npcs:_spawnBankNpcs(bank,W,H,counterRow),
     panicAt:vaultOpen?performance.now():null,_snitches:[],
     _reinforcementsSpawned:false,_reinforcementCount:0};
+  if (carriedBag) _bankRob.myBag=null;
   if (existingRob && (_bankRob._reinforcementCount | 0) > 0) {
     _bankInt._reinforcementCount = _spawnBankReinforcements(_bankInt, _bankRob._reinforcementCount);
     _bankInt._reinforcementsSpawned = true;
@@ -61618,8 +61702,9 @@ function exitBankInterior(withBag) {
       _bankRob._reinforcementCount=int._reinforcementCount||_bankRob._reinforcementCount||0;
     }
     _myBagWeight=int.myBag.value||1;
+    _bankRob.myBag.id = _stableBankBagId(_bankRob.myBag, int.bank.id, int.startedAt);
     try { ws && ws.send(JSON.stringify({ t: 'bank_rob_bag_carried', d: {
-      bank_id: int.bank.id, bags_loaded: _bankRob.bagsLoaded || 0,
+      bank_id: int.bank.id, bags_loaded: _bankRob.bagsLoaded || 0, bag_id: _bankRob.myBag.id,
     }})); } catch(e) {}
     showToast('💼 Несёшь мешок! Грузи в машину, бизнес или своё здание','⚠️',2800);
   } else if (int.alarmTriggered && !_bankRob) {
