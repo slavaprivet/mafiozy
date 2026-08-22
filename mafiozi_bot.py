@@ -2017,9 +2017,23 @@ async def init_db():
                 flag_secondary TEXT NOT NULL DEFAULT '#e0b83e',
                 flag_emblem TEXT NOT NULL DEFAULT 'crown',
                 hq_apt_key TEXT NOT NULL UNIQUE,
+                treasury INTEGER NOT NULL DEFAULT 0,
+                edited_at INTEGER NOT NULL DEFAULT 0,
                 created_at INTEGER NOT NULL DEFAULT 0
             )
         """)
+        custom_gang_cols = {
+            row[1] for row in await (await db.execute(
+                "PRAGMA table_info(custom_gangs)"
+            )).fetchall()
+        }
+        for column, definition in (
+            ('treasury', 'INTEGER NOT NULL DEFAULT 0'),
+            ('edited_at', 'INTEGER NOT NULL DEFAULT 0'),
+        ):
+            if column not in custom_gang_cols:
+                await db.execute(
+                    f"ALTER TABLE custom_gangs ADD COLUMN {column} {definition}")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS custom_gang_members (
                 gang_id INTEGER NOT NULL,
@@ -2032,6 +2046,70 @@ async def init_db():
             )
         """)
         await db.execute("CREATE INDEX IF NOT EXISTS ix_custom_gang_members_gang ON custom_gang_members(gang_id,joined_at)")
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gang_npcs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gang_id INTEGER NOT NULL,
+                owner_uid INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                look_json TEXT NOT NULL DEFAULT '{}',
+                weapon TEXT NOT NULL DEFAULT 'pistol',
+                faction TEXT DEFAULT NULL,
+                hp INTEGER NOT NULL DEFAULT 80,
+                max_hp INTEGER NOT NULL DEFAULT 80,
+                level INTEGER NOT NULL DEFAULT 1,
+                fighter_xp INTEGER NOT NULL DEFAULT 0,
+                kills INTEGER NOT NULL DEFAULT 0,
+                damage_done INTEGER NOT NULL DEFAULT 0,
+                is_boss INTEGER NOT NULL DEFAULT 0,
+                source_bot_id TEXT DEFAULT NULL,
+                updated_at INTEGER NOT NULL DEFAULT 0,
+                UNIQUE(gang_id,owner_uid,source_bot_id)
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_custom_gang_npcs_owner "
+            "ON custom_gang_npcs(gang_id,owner_uid,id)")
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS custom_gang_audit (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gang_id INTEGER NOT NULL,
+                actor_uid INTEGER NOT NULL,
+                action TEXT NOT NULL,
+                details_json TEXT NOT NULL DEFAULT '{}',
+                created_at INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_custom_gang_audit_gang "
+            "ON custom_gang_audit(gang_id,id DESC)")
+        # Canonical leader_uid repairs old role drift. A hopelessly conflicted
+        # orphan (its leader already belongs to another gang) is removed with
+        # explicit child cleanup rather than relying on connection-local FKs.
+        await db.execute("""
+            UPDATE custom_gang_members SET role=CASE
+                WHEN telegram_id=(SELECT leader_uid FROM custom_gangs
+                                   WHERE id=custom_gang_members.gang_id)
+                THEN 'leader' ELSE 'member' END
+        """)
+        await db.execute("""
+            INSERT OR IGNORE INTO custom_gang_members
+                (gang_id,telegram_id,role,joined_at,invited_by)
+            SELECT id,leader_uid,'leader',created_at,leader_uid FROM custom_gangs
+        """)
+        async with db.execute("""
+            SELECT id FROM custom_gangs g WHERE NOT EXISTS(
+                SELECT 1 FROM custom_gang_members m
+                 WHERE m.gang_id=g.id AND m.telegram_id=g.leader_uid AND m.role='leader')
+        """) as cur:
+            orphan_gang_ids=[int(row[0]) for row in await cur.fetchall()]
+        for orphan_gang_id in orphan_gang_ids:
+            await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=?",(orphan_gang_id,))
+            await db.execute("DELETE FROM custom_gang_members WHERE gang_id=?",(orphan_gang_id,))
+            await db.execute("DELETE FROM custom_gangs WHERE id=?",(orphan_gang_id,))
+        await db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_custom_gang_one_leader "
+            "ON custom_gang_members(gang_id) WHERE role='leader'")
         # Ограбления жителей сохраняются между WebSocket-сессиями. Иначе
         # обновление страницы стирало ориентировку и позволяло оставить добычу.
         await db.execute("""
@@ -2568,12 +2646,33 @@ async def delete_account_profile(account_id: int, character_id: int) -> bool:
         tables = [row[0] for row in await (await db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         )).fetchall()]
+        custom_membership = None
+        if 'custom_gang_members' in tables:
+            custom_membership = await (await db.execute("""
+                SELECT m.gang_id,m.role FROM custom_gang_members m
+                 WHERE m.telegram_id=?
+            """, (int(character_id),))).fetchone()
+        if custom_membership and str(custom_membership[1]) == 'leader':
+            await db.rollback()
+            raise ValueError('custom_gang_leader')
+        if custom_membership:
+            if 'custom_gang_npcs' in tables:
+                await db.execute(
+                    "DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",
+                    (int(custom_membership[0]), int(character_id)))
+            if 'custom_gang_audit' in tables:
+                await _custom_gang_audit(
+                    db, int(custom_membership[0]), int(character_id), 'profile_delete')
+            await db.execute(
+                "DELETE FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",
+                (int(custom_membership[0]), int(character_id)))
         identity_columns = {
             'telegram_id','owner_uid','player_id','user_id','leader_uid',
             'shooter_uid',
         }
         for table in tables:
-            if table in ('characters','account_characters'):
+            if table in ('characters','account_characters','custom_gangs',
+                         'custom_gang_members','custom_gang_npcs','custom_gang_audit'):
                 continue
             safe_table = table.replace('"','""')
             cols = {row[1] for row in await (await db.execute(
@@ -14978,6 +15077,13 @@ def _world_is_wall(r: int, c: int) -> bool:
 CUSTOM_GANG_MAX_MEMBERS = 12
 CUSTOM_GANG_FLAG_COLORS = {'#9b1f2d','#cf303d','#e77b28','#e0b83e','#287f55','#2386a8','#3154a5','#6438a8','#a23482','#151922','#ece5d5','#7a4b2a'}
 CUSTOM_GANG_FLAG_EMBLEMS = {'crown','skull','diamond','wolf','eagle','star'}
+CUSTOM_GANG_EDIT_COST = 1000
+CUSTOM_GANG_EDIT_COOLDOWN = 3600
+CUSTOM_GANG_MAX_NPCS_PER_MEMBER = 5
+CUSTOM_GANG_NPC_NAMES = (
+    'Тони', 'Вито', 'Марко', 'Рико', 'Бруно', 'Энцо', 'Рокко', 'Джино',
+    'Костя', 'Борис', 'Руслан', 'Данте', 'Леон', 'Фокс', 'Волк', 'Змей',
+)
 
 
 def normalize_custom_gang_name(value: str) -> str | None:
@@ -14997,18 +15103,228 @@ def normalize_custom_gang_flag(primary, secondary, emblem) -> dict:
 async def get_custom_gang_for_user(uid: int) -> dict | None:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT g.*,m.role FROM custom_gang_members m JOIN custom_gangs g ON g.id=m.gang_id WHERE m.telegram_id=?",(uid,)) as cur:
+        async with db.execute("SELECT g.*,m.role,m.joined_at FROM custom_gang_members m JOIN custom_gangs g ON g.id=m.gang_id WHERE m.telegram_id=?",(uid,)) as cur:
             row = await cur.fetchone()
         if not row: return None
         gang = dict(row)
         async with db.execute("SELECT m.telegram_id,m.role,m.joined_at,COALESCE(c.name,'Игрок') name FROM custom_gang_members m LEFT JOIN characters c ON c.telegram_id=m.telegram_id WHERE m.gang_id=? ORDER BY CASE m.role WHEN 'leader' THEN 0 ELSE 1 END,m.joined_at",(gang['id'],)) as cur:
             members = [dict(x) for x in await cur.fetchall()]
+        async with db.execute("""
+            SELECT id,owner_uid,name,look_json,weapon,faction,hp,max_hp,level,
+                   fighter_xp,kills,damage_done,is_boss,source_bot_id,updated_at
+              FROM custom_gang_npcs WHERE gang_id=? ORDER BY id
+        """, (gang['id'],)) as cur:
+            npc_rows = [dict(x) for x in await cur.fetchall()]
+        async with db.execute("""
+            SELECT actor_uid,action,details_json,created_at
+              FROM custom_gang_audit WHERE gang_id=? ORDER BY id DESC LIMIT 20
+        """, (gang['id'],)) as cur:
+            audit_rows = [dict(x) for x in await cur.fetchall()]
+    npcs=[]
+    for npc in npc_rows:
+        try: look=json.loads(npc.pop('look_json') or '{}')
+        except Exception: look={}
+        npc['id']=str(npc['id']);npc['owner_uid']=str(npc['owner_uid'])
+        npc['is_boss']=bool(npc['is_boss']);npc['look']=look if isinstance(look,dict) else {}
+        npcs.append(npc)
+    history=[]
+    for item in audit_rows:
+        try: details=json.loads(item.pop('details_json') or '{}')
+        except Exception: details={}
+        item['actor_uid']=str(item['actor_uid']);item['details']=details if isinstance(details,dict) else {}
+        history.append(item)
     coords = apartment_coords_from_key(str(gang['hq_apt_key'])) or (0,0)
     return {'id':int(gang['id']),'name':str(gang['name']),'leader_uid':str(gang['leader_uid']),'role':str(gang['role']),
             'hq_apt_key':str(gang['hq_apt_key']),'hq_r':int(coords[0]),'hq_c':int(coords[1]),
             'flag':{'primary':str(gang['flag_primary']),'secondary':str(gang['flag_secondary']),'emblem':str(gang['flag_emblem'])},
             'members':[{**m,'telegram_id':str(m['telegram_id'])} for m in members],
-            'member_count':len(members),'max_members':CUSTOM_GANG_MAX_MEMBERS,'created_at':int(gang['created_at'] or 0)}
+            'member_count':len(members),'max_members':CUSTOM_GANG_MAX_MEMBERS,
+            'npcs':npcs,'treasury':int(gang.get('treasury') or 0),
+            'edited_at':int(gang.get('edited_at') or 0),'edit_cost':CUSTOM_GANG_EDIT_COST,
+            'edit_cooldown':CUSTOM_GANG_EDIT_COOLDOWN,'history':history,
+            'created_at':int(gang['created_at'] or 0)}
+
+
+async def _custom_gang_audit(db, gang_id:int, actor_uid:int,
+                             action:str, details:dict|None=None)->None:
+    await db.execute("""
+        INSERT INTO custom_gang_audit(gang_id,actor_uid,action,details_json,created_at)
+        VALUES(?,?,?,?,?)
+    """,(gang_id,actor_uid,str(action)[:32],
+           json.dumps(details or {},ensure_ascii=False),int(time.time())))
+
+
+async def kick_custom_gang_member_db(leader_uid:int,target_uid:int)->dict:
+    if leader_uid==target_uid:return {'ok':False,'error':'cannot kick self'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        gang=await (await db.execute("SELECT id FROM custom_gangs WHERE leader_uid=?",(leader_uid,))).fetchone()
+        if not gang:await db.rollback();return {'ok':False,'error':'leader only'}
+        target=await (await db.execute("SELECT role FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",(gang['id'],target_uid))).fetchone()
+        if not target or str(target['role'])=='leader':await db.rollback();return {'ok':False,'error':'member not found'}
+        await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",(gang['id'],target_uid))
+        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",(gang['id'],target_uid))
+        await _custom_gang_audit(db,int(gang['id']),leader_uid,'kick',{'target_uid':str(target_uid)})
+        await db.commit()
+    return {'ok':True,'gang_id':int(gang['id']),'member_uids':[str(leader_uid),str(target_uid)]}
+
+
+async def transfer_custom_gang_leadership_db(leader_uid:int,target_uid:int)->dict:
+    if leader_uid==target_uid:return {'ok':False,'error':'already leader'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        gang=await (await db.execute("SELECT id FROM custom_gangs WHERE leader_uid=?",(leader_uid,))).fetchone()
+        if not gang:await db.rollback();return {'ok':False,'error':'leader only'}
+        target=await (await db.execute("SELECT role FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",(gang['id'],target_uid))).fetchone()
+        if not target:await db.rollback();return {'ok':False,'error':'member not found'}
+        await db.execute("UPDATE custom_gang_members SET role='member' WHERE gang_id=?",(gang['id'],))
+        await db.execute("UPDATE custom_gang_members SET role='leader' WHERE gang_id=? AND telegram_id=?",(gang['id'],target_uid))
+        await db.execute("UPDATE custom_gangs SET leader_uid=? WHERE id=?",(target_uid,gang['id']))
+        await _custom_gang_audit(db,int(gang['id']),leader_uid,'transfer',{'target_uid':str(target_uid)})
+        await db.commit()
+    return {'ok':True,'gang_id':int(gang['id']),'member_uids':[str(leader_uid),str(target_uid)]}
+
+
+async def custom_gang_treasury_db(uid:int,amount:int)->dict:
+    amount=int(amount or 0)
+    if amount==0 or abs(amount)>1_000_000:return {'ok':False,'error':'bad amount'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        row=await (await db.execute("""
+            SELECT g.id,g.leader_uid,g.treasury,c.cash FROM custom_gang_members m
+            JOIN custom_gangs g ON g.id=m.gang_id JOIN characters c ON c.telegram_id=m.telegram_id
+            WHERE m.telegram_id=?
+        """,(uid,))).fetchone()
+        if not row:await db.rollback();return {'ok':False,'error':'not in gang'}
+        cash,treasury=int(row['cash'] or 0),int(row['treasury'] or 0)
+        if amount>0:
+            if cash<amount:await db.rollback();return {'ok':False,'error':'not enough cash'}
+            cash-=amount;treasury+=amount;action='deposit'
+        else:
+            take=-amount
+            if int(row['leader_uid'])!=uid:await db.rollback();return {'ok':False,'error':'leader only'}
+            if treasury<take:await db.rollback();return {'ok':False,'error':'not enough treasury'}
+            cash+=take;treasury-=take;action='withdraw'
+        await db.execute("UPDATE characters SET cash=? WHERE telegram_id=?",(cash,uid))
+        await db.execute("UPDATE custom_gangs SET treasury=? WHERE id=?",(treasury,row['id']))
+        await _custom_gang_audit(db,int(row['id']),uid,action,{'amount':abs(amount)})
+        await db.commit()
+    return {'ok':True,'cash':cash,'treasury':treasury,'gang_id':int(row['id'])}
+
+
+async def edit_custom_gang_db(uid:int,name:str,flag:dict)->dict:
+    now=int(time.time())
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        gang=await (await db.execute("SELECT * FROM custom_gangs WHERE leader_uid=?",(uid,))).fetchone()
+        if not gang:await db.rollback();return {'ok':False,'error':'leader only'}
+        if now<int(gang['edited_at'] or 0)+CUSTOM_GANG_EDIT_COOLDOWN:
+            await db.rollback();return {'ok':False,'error':'edit cooldown','retry_at':int(gang['edited_at'])+CUSTOM_GANG_EDIT_COOLDOWN}
+        names=await (await db.execute("SELECT name FROM custom_gangs WHERE id<>?",(gang['id'],))).fetchall()
+        if any(str(x['name']).casefold()==name.casefold() for x in names):await db.rollback();return {'ok':False,'error':'name taken'}
+        if int(gang['treasury'] or 0)<CUSTOM_GANG_EDIT_COST:await db.rollback();return {'ok':False,'error':'not enough treasury'}
+        await db.execute("UPDATE custom_gangs SET name=?,flag_primary=?,flag_secondary=?,flag_emblem=?,treasury=treasury-?,edited_at=? WHERE id=?",
+                         (name,flag['primary'],flag['secondary'],flag['emblem'],CUSTOM_GANG_EDIT_COST,now,gang['id']))
+        await _custom_gang_audit(db,int(gang['id']),uid,'edit',{'name':name,'flag':flag})
+        await db.commit()
+    return {'ok':True,'gang_id':int(gang['id'])}
+
+
+async def persist_custom_gang_npc(owner_uid:int,reply:dict)->dict|None:
+    source_bot_id=str(reply.get('bot_id') or '')[:64]
+    if not source_bot_id:return None
+    now=int(time.time());name=random.choice(CUSTOM_GANG_NPC_NAMES)
+    level=max(1,min(25,int(reply.get('level') or 1)))
+    max_hp=max(1,min(5000,int(reply.get('max_hp') or 80)))
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        membership=await (await db.execute("SELECT gang_id FROM custom_gang_members WHERE telegram_id=?",(owner_uid,))).fetchone()
+        if not membership:await db.rollback();return None
+        count=int((await (await db.execute("SELECT COUNT(*) FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",(membership['gang_id'],owner_uid))).fetchone())[0])
+        existing=await (await db.execute("SELECT id FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=? AND source_bot_id=?",(membership['gang_id'],owner_uid,source_bot_id))).fetchone()
+        if not existing and count>=CUSTOM_GANG_MAX_NPCS_PER_MEMBER:await db.rollback();return None
+        await db.execute("""
+            INSERT INTO custom_gang_npcs
+                (gang_id,owner_uid,name,look_json,weapon,faction,hp,max_hp,level,
+                 fighter_xp,kills,damage_done,is_boss,source_bot_id,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(gang_id,owner_uid,source_bot_id) DO UPDATE SET
+                look_json=excluded.look_json,weapon=excluded.weapon,
+                faction=excluded.faction,hp=excluded.hp,max_hp=excluded.max_hp,
+                level=excluded.level,is_boss=excluded.is_boss,updated_at=excluded.updated_at
+        """,(membership['gang_id'],owner_uid,name,
+               json.dumps(reply.get('look') or {},ensure_ascii=False),
+               str(reply.get('weapon') or 'pistol')[:24],
+               str(reply.get('faction') or '')[:24] or None,max_hp,max_hp,level,
+               0,0,0,1 if reply.get('is_boss') else 0,source_bot_id,now))
+        row=await (await db.execute("SELECT id FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=? AND source_bot_id=?",(membership['gang_id'],owner_uid,source_bot_id))).fetchone()
+        await _custom_gang_audit(db,int(membership['gang_id']),owner_uid,'hire_npc',{'npc_id':str(row['id']),'name':name})
+        await db.commit();npc_id=int(row['id'])
+    refreshed=await get_custom_gang_for_user(owner_uid)
+    return next((npc for npc in (refreshed or {}).get('npcs',[]) if int(npc['id'])==npc_id),None)
+
+
+async def commit_custom_gang_hire_db(owner_uid:int,reply:dict,cost:int)->dict:
+    """Persist and charge first; the live street NPC is removed only after commit."""
+    source_bot_id=str(reply.get('bot_id') or '')[:64]
+    if not source_bot_id:return {'ok':False,'error':'bad bot'}
+    name=random.choice(CUSTOM_GANG_NPC_NAMES);now=int(time.time())
+    level=max(1,min(25,int(reply.get('level') or 1)))
+    max_hp=max(1,min(5000,int(reply.get('max_hp') or 80)))
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        member=await (await db.execute("SELECT gang_id FROM custom_gang_members WHERE telegram_id=?",(owner_uid,))).fetchone()
+        if not member:await db.rollback();return {'ok':False,'error':'not in gang'}
+        existing=await (await db.execute("SELECT id FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=? AND source_bot_id=?",(member['gang_id'],owner_uid,source_bot_id))).fetchone()
+        if existing:await db.rollback();return {'ok':False,'error':'already hired'}
+        count=int((await (await db.execute("SELECT COUNT(*) FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",(member['gang_id'],owner_uid))).fetchone())[0])
+        if count>=CUSTOM_GANG_MAX_NPCS_PER_MEMBER:await db.rollback();return {'ok':False,'error':'custom_gang_npc_full'}
+        debit=await db.execute("UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",(cost,owner_uid,cost))
+        if debit.rowcount!=1:await db.rollback();return {'ok':False,'error':'cash'}
+        await db.execute("""
+            INSERT INTO custom_gang_npcs
+                (gang_id,owner_uid,name,look_json,weapon,faction,hp,max_hp,level,
+                 fighter_xp,kills,damage_done,is_boss,source_bot_id,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """,(member['gang_id'],owner_uid,name,json.dumps(reply.get('look') or {},ensure_ascii=False),
+               str(reply.get('weapon') or 'pistol')[:24],str(reply.get('faction') or '')[:24] or None,
+               max_hp,max_hp,level,0,0,0,1 if reply.get('is_boss') else 0,source_bot_id,now))
+        npc_id=int((await (await db.execute("SELECT id FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=? AND source_bot_id=?",(member['gang_id'],owner_uid,source_bot_id))).fetchone())[0])
+        cash=int((await (await db.execute("SELECT cash FROM characters WHERE telegram_id=?",(owner_uid,))).fetchone())[0])
+        await _custom_gang_audit(db,int(member['gang_id']),owner_uid,'hire_npc',{'npc_id':str(npc_id),'name':name,'cost':cost})
+        await db.commit()
+    refreshed=await get_custom_gang_for_user(owner_uid)
+    npc=next((x for x in (refreshed or {}).get('npcs',[]) if int(x['id'])==npc_id),None)
+    return {'ok':True,'cash':cash,'npc':npc}
+
+
+async def sync_custom_gang_npcs_db(owner_uid:int,items:list)->dict:
+    safe=[]
+    for raw in (items if isinstance(items,list) else [])[:CUSTOM_GANG_MAX_NPCS_PER_MEMBER]:
+        if not isinstance(raw,dict) or not str(raw.get('id') or '').isdigit():continue
+        safe.append({'id':int(raw['id']),'hp':max(0,min(5000,int(raw.get('hp') or 0))),
+                     'max_hp':max(1,min(5000,int(raw.get('max_hp') or 80))),
+                     'level':max(1,min(25,int(raw.get('level') or 1))),
+                     'fighter_xp':max(0,min(10_000_000,int(raw.get('fighterXp') or 0))),
+                     'kills':max(0,min(1_000_000,int(raw.get('kills') or 0))),
+                     'damage_done':max(0,min(1_000_000_000,int(raw.get('damageDone') or 0)))})
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        membership=await (await db.execute("SELECT gang_id FROM custom_gang_members WHERE telegram_id=?",(owner_uid,))).fetchone()
+        if not membership:await db.rollback();return {'ok':False,'error':'not in gang'}
+        for item in safe:
+            await db.execute("""
+                UPDATE custom_gang_npcs SET hp=?,max_hp=?,level=?,fighter_xp=?,kills=?,damage_done=?,updated_at=?
+                 WHERE id=? AND gang_id=? AND owner_uid=?
+            """,(item['hp'],item['max_hp'],item['level'],item['fighter_xp'],item['kills'],item['damage_done'],int(time.time()),item['id'],membership['gang_id'],owner_uid))
+        keep=[item['id'] for item in safe]
+        if keep:
+            marks=','.join('?' for _ in keep)
+            await db.execute(f"DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=? AND id NOT IN ({marks})",(membership['gang_id'],owner_uid,*keep))
+        else:await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",(membership['gang_id'],owner_uid))
+        await db.commit()
+    refreshed=await get_custom_gang_for_user(owner_uid)
+    return {'ok':True,'npcs':(refreshed or {}).get('npcs',[])}
 
 
 async def get_custom_gang_headquarters() -> list:
@@ -15031,18 +15347,23 @@ async def create_custom_gang_db(leader_uid:int, apt_key:str, name:str, flag:dict
         marks=','.join('?' for _ in members)
         async with db.execute(f"SELECT telegram_id,mafia_family FROM characters WHERE telegram_id IN ({marks})",members) as cur: chars={int(x['telegram_id']):dict(x) for x in await cur.fetchall()}
         if len(chars)!=len(members): await db.rollback(); return {'ok':False,'error':'party member missing'}
-        # Buying an HQ is the explicit transition from a served NPC family to
-        # owning a personal mafia. Only the founder leaves that old family.
-        if any(str(x.get('mafia_family') or '') for uid,x in chars.items() if uid != leader_uid): await db.rollback(); return {'ok':False,'error':'mafia conflict'}
+        if any(str(x.get('mafia_family') or '') for x in chars.values()): await db.rollback(); return {'ok':False,'error':'mafia conflict'}
+        async with db.execute("SELECT name FROM custom_gangs") as cur:
+            names=[str(x['name']) for x in await cur.fetchall()]
+        if any(existing.casefold()==name.casefold() for existing in names):await db.rollback();return {'ok':False,'error':'name taken'}
+        async with db.execute(f"SELECT 1 FROM custom_gang_members WHERE telegram_id IN ({marks}) LIMIT 1",members) as cur:
+            if await cur.fetchone():await db.rollback();return {'ok':False,'error':'member already in gang'}
         async with db.execute("SELECT 1 FROM apartments_owned WHERE telegram_id=? AND apt_key=? AND property_kind='hq'",(leader_uid,apt_key)) as cur:
             if not await cur.fetchone(): await db.rollback(); return {'ok':False,'error':'hq not owned'}
         try:
             cur=await db.execute("INSERT INTO custom_gangs(leader_uid,name,flag_primary,flag_secondary,flag_emblem,hq_apt_key,created_at) VALUES(?,?,?,?,?,?,?)",(leader_uid,name,flag['primary'],flag['secondary'],flag['emblem'],apt_key,int(time.time())))
             gang_id=int(cur.lastrowid); now=int(time.time())
-            await db.execute("UPDATE characters SET mafia_family='' WHERE telegram_id=?", (leader_uid,))
-            await db.executemany("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,?,?,?)",[(gang_id,x,'leader' if x==leader_uid else 'member',now,leader_uid) for x in members]); await db.commit()
-        except aiosqlite.IntegrityError:
-            await db.rollback(); return {'ok':False,'error':'already in gang'}
+            await db.executemany("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,?,?,?)",[(gang_id,x,'leader' if x==leader_uid else 'member',now,leader_uid) for x in members])
+            await _custom_gang_audit(db,gang_id,leader_uid,'create',{'name':name,'members':[str(x) for x in members]})
+            await db.commit()
+        except aiosqlite.IntegrityError as exc:
+            await db.rollback();text=str(exc).lower()
+            return {'ok':False,'error':'name taken' if 'name' in text else ('hq taken' if 'hq_apt_key' in text else 'already in gang')}
     return {'ok':True,'gang_id':gang_id,'member_uids':[str(x) for x in members]}
 
 
@@ -15052,42 +15373,64 @@ async def ensure_personal_gang_for_hq(uid:int) -> dict | None:
 
 
 async def join_custom_gang_db(gang_id:int,target_uid:int,inviter_uid:int)->dict:
-    gang=await get_custom_gang_for_user(inviter_uid)
-    if not gang or gang['id']!=gang_id or gang['role']!='leader':return {'ok':False,'error':'leader only'}
-    target=await get_character(target_uid)
-    if not target:return {'ok':False,'error':'no character'}
-    if target.get('mafia_family'):return {'ok':False,'error':'mafia conflict'}
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute('PRAGMA foreign_keys=ON')
-        await db.execute('BEGIN IMMEDIATE')
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        gang=await (await db.execute("SELECT leader_uid FROM custom_gangs WHERE id=?",(gang_id,))).fetchone()
+        if not gang or int(gang['leader_uid'])!=inviter_uid:await db.rollback();return {'ok':False,'error':'leader only'}
+        target=await (await db.execute("SELECT mafia_family FROM characters WHERE telegram_id=?",(target_uid,))).fetchone()
+        if not target:await db.rollback();return {'ok':False,'error':'no character'}
+        if str(target['mafia_family'] or ''):await db.rollback();return {'ok':False,'error':'mafia conflict'}
         try:
             async with db.execute("SELECT COUNT(*) FROM custom_gang_members WHERE gang_id=?",(gang_id,)) as cur:
                 member_count=int((await cur.fetchone())[0])
             if member_count>=CUSTOM_GANG_MAX_MEMBERS:
                 await db.rollback();return {'ok':False,'error':'full'}
             await db.execute("INSERT INTO custom_gang_members(gang_id,telegram_id,role,joined_at,invited_by) VALUES(?,?,'member',?,?)",(gang_id,target_uid,int(time.time()),inviter_uid))
+            await _custom_gang_audit(db,gang_id,inviter_uid,'join',{'target_uid':str(target_uid)})
             await db.commit()
         except aiosqlite.IntegrityError:
             await db.rollback();return {'ok':False,'error':'already in gang'}
     return {'ok':True}
 
 
-async def disband_custom_gang_db(uid:int)->dict:
-    gang=await get_custom_gang_for_user(uid)
-    if not gang or gang['role']!='leader':return {'ok':False,'error':'leader only'}
-    ids=[m['telegram_id'] for m in gang['members']]
+async def leave_custom_gang_db(uid:int)->dict:
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=?",(gang['id'],));await db.execute("DELETE FROM custom_gangs WHERE id=?",(gang['id'],));await db.commit()
-    return {'ok':True,'member_uids':ids}
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        row=await (await db.execute("""
+            SELECT g.id,m.role FROM custom_gang_members m JOIN custom_gangs g ON g.id=m.gang_id
+             WHERE m.telegram_id=?
+        """,(uid,))).fetchone()
+        if not row:await db.rollback();return {'ok':False,'error':'not in gang'}
+        if str(row['role'])=='leader':await db.rollback();return {'ok':False,'error':'leader must disband'}
+        members=[str(x[0]) for x in await (await db.execute("SELECT telegram_id FROM custom_gang_members WHERE gang_id=?",(row['id'],))).fetchall()]
+        await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",(row['id'],uid))
+        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",(row['id'],uid))
+        await _custom_gang_audit(db,int(row['id']),uid,'leave')
+        await db.commit()
+    return {'ok':True,'gang_id':int(row['id']),'member_uids':members}
+
+
+async def disband_custom_gang_db(uid:int)->dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory=aiosqlite.Row;await db.execute('BEGIN IMMEDIATE')
+        gang=await (await db.execute("SELECT id FROM custom_gangs WHERE leader_uid=?",(uid,))).fetchone()
+        if not gang:await db.rollback();return {'ok':False,'error':'leader only'}
+        ids=[str(x[0]) for x in await (await db.execute("SELECT telegram_id FROM custom_gang_members WHERE gang_id=?",(gang['id'],))).fetchall()]
+        await _custom_gang_audit(db,int(gang['id']),uid,'disband')
+        await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=?",(gang['id'],))
+        await db.execute("DELETE FROM custom_gang_members WHERE gang_id=?",(gang['id'],))
+        await db.execute("DELETE FROM custom_gangs WHERE id=?",(gang['id'],))
+        await db.commit()
+    return {'ok':True,'gang_id':int(gang['id']),'member_uids':ids}
 
 
 def apply_custom_gang_to_player(player:dict|None,gang:dict|None)->None:
     if player is None:return
     if not gang:
-        for key in ('_custom_gang_id','_custom_gang_name','_custom_gang_role','_custom_gang_flag','_custom_gang_hq','_custom_gang_hq_r','_custom_gang_hq_c','_custom_gang_members','_custom_gang_max_members'):player.pop(key,None)
+        for key in ('_custom_gang_id','_custom_gang_name','_custom_gang_role','_custom_gang_flag','_custom_gang_hq','_custom_gang_hq_r','_custom_gang_hq_c','_custom_gang_members','_custom_gang_max_members','_custom_gang_npcs','_custom_gang_treasury'):player.pop(key,None)
         if str(player.get('_crew_id') or '').startswith('cg:'):player.pop('_crew_id',None)
         return
-    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':gang['role'],'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_custom_gang_hq_r':gang.get('hq_r',0),'_custom_gang_hq_c':gang.get('hq_c',0),'_custom_gang_members':list(gang.get('members') or []),'_custom_gang_max_members':int(gang.get('max_members') or CUSTOM_GANG_MAX_MEMBERS),'_crew_id':f"cg:{gang['id']}"})
+    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':gang['role'],'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_custom_gang_hq_r':gang.get('hq_r',0),'_custom_gang_hq_c':gang.get('hq_c',0),'_custom_gang_members':list(gang.get('members') or []),'_custom_gang_max_members':int(gang.get('max_members') or CUSTOM_GANG_MAX_MEMBERS),'_custom_gang_npcs':list(gang.get('npcs') or []),'_custom_gang_treasury':int(gang.get('treasury') or 0),'_crew_id':f"cg:{gang['id']}"})
 
 
 def custom_gang_player_payload(player:dict|None)->dict|None:
@@ -15105,6 +15448,8 @@ def custom_gang_player_payload(player:dict|None)->dict|None:
         'members':members,
         'member_count':len(members) or 1,
         'max_members':int(player.get('_custom_gang_max_members') or CUSTOM_GANG_MAX_MEMBERS),
+        'npcs':list(player.get('_custom_gang_npcs') or []),
+        'treasury':int(player.get('_custom_gang_treasury') or 0),
     }
 
 
@@ -20448,15 +20793,17 @@ class WorldSim:
                             st['last_respawn_at'] = now
         return pkts
 
-    def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
+    async def hire_city_gang_bot(self, uid: str, bot_id: str) -> dict:
         """Убирает нанятого бойца из уличной банды или рейда на бизнес."""
         player = self.players.get(str(uid))
         if not player or player.get('dead'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'unavailable','bot_id':bot_id}
         if float(player.get('_jail_until') or 0) > time.time() or player.get('_police_cuffed_by'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'jailed','bot_id':bot_id}
-        if player.get('_police') or not (player.get('_mafia') or player.get('_custom_gang_id')):
+        if player.get('_police'):
             return {'kind':'gang_hire_reply','ok':False,'reason':'police_service','bot_id':bot_id}
+        if not (player.get('_mafia') or player.get('_custom_gang_id')):
+            return {'kind':'gang_hire_reply','ok':False,'reason':'not_mafia','bot_id':bot_id}
         # Рейдеры бизнеса приходят через тот же клиентский aggro-контур, но
         # хранятся отдельно от бродячих city_gangs. Найм обязан авторитетно
         # удалить бойца именно из его исходной группы.
@@ -20467,19 +20814,51 @@ class WorldSim:
                 if str(bot.get('id')) != str(bot_id) or not bot.get('alive'):
                     continue
                 if (float(player.get('x') or 0)-float(bot.get('x') or 0))**2 + \
-                   (float(player.get('y') or 0)-float(bot.get('y') or 0))**2 > 3.2**2:
+                   (float(player.get('y') or 0)-float(bot.get('y') or 0))**2 > 4.4**2:
                     return {'kind':'gang_hire_reply','ok':False,'reason':'too_far','bot_id':bot_id}
                 if gang.get('district_did') or bot.get('kind') in ('district_boss','district_guard'):
                     return {'kind':'gang_hire_reply','ok':False,
                             'reason':'district_defender','bot_id':bot_id}
                 is_boss = bot.get('kind') == 'district_boss'
                 bot_level = max(1, min(self.BANDIT_MAX_LEVEL, int(bot.get('level') or 1)))
-                if bot_level >= self.BANDIT_HIGH_LEVEL and int(player.get('_mafia_xp') or 0) < MAFIA_LEVEL_XP[3]:
-                    return {'kind':'gang_hire_reply','ok':False,'reason':'mafia_level','bot_id':bot_id}
-                bot['hp'] = 0; bot['alive'] = False; bot['hired_by'] = str(uid)
                 did = str(gang.get('district_did') or '')
                 business_id = (
                     str(gang.get('business_id') or '') if is_business_raid else '')
+                hire_cost=800 if is_boss else 500
+                if (not player.get('_custom_gang_id') and
+                        int(player.get('_mafia_xp') or 0)>=MAFIA_LEVEL_XP[1]):
+                    hire_cost=max(50,round(hire_cost*.85))
+                if bot.get('_hire_pending_by'):
+                    return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
+                bot['_hire_pending_by']=str(uid)
+                payload={'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
+                         'is_boss':is_boss,'level':bot_level,'did':did,
+                         'max_hp':int(bot.get('max_hp') or bot.get('hp') or 80),
+                         'weapon':str(bot.get('weapon') or 'pistol'),
+                         'look':dict(bot.get('look') or {}),
+                         'faction':str(gang.get('faction') or bot.get('faction') or 'purple')}
+                try:
+                    if player.get('_custom_gang_id'):
+                        committed=await commit_custom_gang_hire_db(int(uid),payload,hire_cost)
+                        if not committed.get('ok'):
+                            return {'kind':'gang_hire_reply','ok':False,
+                                    'reason':committed.get('error','persist_failed'),
+                                    'bot_id':bot_id,'cost':hire_cost}
+                        payload['npc']=committed['npc'];new_cash=int(committed['cash'])
+                    else:
+                        async with aiosqlite.connect(DB_PATH) as db:
+                            debit=await db.execute("UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",(hire_cost,int(uid),hire_cost))
+                            if debit.rowcount!=1:
+                                await db.rollback();return {'kind':'gang_hire_reply','ok':False,'reason':'cash','bot_id':bot_id,'cost':hire_cost}
+                            await db.commit()
+                        new_cash=max(0,int(player.get('_cash') or 0)-hire_cost)
+                except Exception:
+                    logger.exception('Failed to commit gang hire for %s',uid)
+                    return {'kind':'gang_hire_reply','ok':False,'reason':'persist_failed','bot_id':bot_id,'cost':hire_cost}
+                finally:
+                    bot.pop('_hire_pending_by',None)
+                player['_cash']=new_cash
+                bot['hp']=0;bot['alive']=False;bot['hired_by']=str(uid)
                 business_cleared = bool(
                     business_id
                     and not any(member.get('alive') for member in gang.get('bots') or []))
@@ -20491,15 +20870,11 @@ class WorldSim:
                     cooldown_until = int(time.time() + NPC_BUSINESS_CAPTURE_COOLDOWN)
                     self._business_npc_occupations.pop(business_id, None)
                     self._business_npc_capture_cooldown[business_id] = cooldown_until
-                return {'kind':'gang_hire_reply','ok':True,'bot_id':str(bot_id),
-                        'is_boss':is_boss,'level':bot_level,'did':did,
-                        'max_hp':int(bot.get('max_hp') or bot.get('hp') or 80),
-                        'weapon':str(bot.get('weapon') or 'pistol'),
-                        'look':dict(bot.get('look') or {}),
-                        'faction':str(gang.get('faction') or bot.get('faction') or 'purple'),
-                        'business_id':business_id,
-                        'business_cleared':business_cleared,
-                        'cooldown_until':cooldown_until}
+                payload.update({'gang_name':str(player.get('_custom_gang_name') or ''),
+                                'gang_color':str((player.get('_custom_gang_flag') or {}).get('primary') or ''),
+                                'cost':hire_cost,'cash':new_cash,'business_id':business_id,
+                                'business_cleared':business_cleared,'cooldown_until':cooldown_until})
+                return payload
         return {'kind':'gang_hire_reply','ok':False,'reason':'gone','bot_id':bot_id}
 
     def _ignite_bandit(self, bot: dict, source_x: float, source_y: float) -> None:
@@ -26246,7 +26621,7 @@ async def _coop_http_app():
         profile_route = path.startswith('/profiles/')
         protected = (profile_route or path.startswith('/shop/') or path.startswith('/inv/') or
                      path.startswith('/event/') or path.startswith('/world/loot/') or
-                     path.endswith('/assault/hit'))
+                     path.startswith('/custom-gang/') or path.endswith('/assault/hit'))
         if req.method == 'OPTIONS' or not protected:
             return await handler(req)
         try:
@@ -26376,7 +26751,15 @@ async def _coop_http_app():
                 'ok': False, 'error': 'character_online',
                 'message': 'Сначала выйди этим персонажем из города.'
             }, status=409))
-        deleted = await delete_account_profile(int(account), int(character))
+        try:
+            deleted = await delete_account_profile(int(account), int(character))
+        except ValueError as exc:
+            if str(exc) == 'custom_gang_leader':
+                return await _cors(web.json_response({
+                    'ok': False, 'error': 'custom_gang_leader',
+                    'message': 'Сначала передай лидерство или распусти банду.'
+                }, status=409))
+            raise
         if not deleted:
             return await _cors(web.json_response({'ok': False, 'error': 'not_found'}, status=404))
         return await _cors(web.json_response({'ok': True, 'deleted_character_id': character}))
@@ -28023,19 +28406,48 @@ async def _coop_http_app():
         if _WORLD:apply_custom_gang_to_player(_WORLD.players.get(str(uid)),gang)
         return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters(),'properties':await get_player_building_properties()}))
 
+    async def notify_custom_gang_state(member_uids)->None:
+        if not _WORLD:return
+        blob=json.dumps({'t':'event','d':{'kind':'custom_gang_state_changed'}},ensure_ascii=False)
+        for member_uid in set(str(x) for x in member_uids):
+            socket=_WORLD.connections.get(member_uid)
+            if socket:
+                try:await socket.send_str(blob)
+                except Exception:pass
+
     async def h_custom_gang_create(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
         name=normalize_custom_gang_name(body.get('name'));apt_key=str(body.get('apt_key') or '')[:32];flag_in=body.get('flag') if isinstance(body.get('flag'),dict) else {}
         if not name or apartment_price_for_key(apt_key) is None:return await _cors(web.json_response({'ok':False,'error':'bad name or hq'},status=400))
         flag=normalize_custom_gang_flag(flag_in.get('primary'),flag_in.get('secondary'),flag_in.get('emblem'))
-        result=await create_custom_gang_db(uid,apt_key,name,flag,[])
+        world=_WORLD;leader=world.players.get(str(uid)) if world else None
+        if not leader:return await _cors(web.json_response({'ok':False,'error':'leader offline'},status=409))
+        if leader.get('_mafia') or leader.get('_mafia_family') or leader.get('_police'):
+            return await _cors(web.json_response({'ok':False,'error':'faction conflict'},status=409))
+        crew_id=str(leader.get('_crew_id') or '')
+        if crew_id.startswith('cg:') or leader.get('_custom_gang_id'):
+            return await _cors(web.json_response({'ok':False,'error':'already in gang'},status=409))
+        if crew_id and crew_id!=str(uid):
+            return await _cors(web.json_response({'ok':False,'error':'party leader only'},status=409))
+        party=[(other_uid,p) for other_uid,p in world.players.items() if crew_id and str(p.get('_crew_id') or '')==crew_id]
+        if any(p.get('_mafia') or p.get('_mafia_family') or p.get('_police') or p.get('_custom_gang_id') for _,p in party):
+            return await _cors(web.json_response({'ok':False,'error':'party faction conflict'},status=409))
+        party_uids=[int(other_uid) for other_uid,_ in party if other_uid!=str(uid)]
+        result=await create_custom_gang_db(uid,apt_key,name,flag,party_uids)
         if not result.get('ok'):return await _cors(web.json_response(result,status=409))
         gang=await get_custom_gang_for_user(uid)
-        if _WORLD:
-            player=_WORLD.players.get(str(uid));apply_custom_gang_to_player(player,gang)
-            if player is not None: player['_mafia']=False;player['_mafia_family']=''
+        for member_uid in result['member_uids']:
+            apply_custom_gang_to_player(world.players.get(str(member_uid)),await get_custom_gang_for_user(int(member_uid)))
+        await notify_custom_gang_state(result['member_uids'])
         return await _cors(web.json_response({'ok':True,'gang':gang,'headquarters':await get_custom_gang_headquarters(),'properties':await get_player_building_properties()}))
+
+    async def h_custom_gang_leave(req):
+        uid=int(req.match_info['uid']);result=await leave_custom_gang_db(uid)
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        if _WORLD:apply_custom_gang_to_player(_WORLD.players.get(str(uid)),None)
+        await notify_custom_gang_state(result.get('member_uids') or [uid])
+        return await _cors(web.json_response({'ok':True,'gang':None,'headquarters':await get_custom_gang_headquarters()}))
 
     async def h_custom_gang_disband(req):
         try:uid=int(req.match_info['uid'])
@@ -28044,7 +28456,66 @@ async def _coop_http_app():
         if not result.get('ok'):return await _cors(web.json_response(result,status=409))
         if _WORLD:
             for member_uid in result['member_uids']:apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)),None)
+        await notify_custom_gang_state(result['member_uids'])
         return await _cors(web.json_response({'ok':True,'gang':None,'headquarters':await get_custom_gang_headquarters()}))
+
+    async def h_custom_gang_kick(req):
+        uid=int(req.match_info['uid'])
+        try:target_uid=int((await req.json()).get('target_uid'))
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad target'},status=400))
+        result=await kick_custom_gang_member_db(uid,target_uid)
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        if _WORLD:
+            apply_custom_gang_to_player(_WORLD.players.get(str(target_uid)),None)
+            apply_custom_gang_to_player(_WORLD.players.get(str(uid)),await get_custom_gang_for_user(uid))
+        await notify_custom_gang_state(result['member_uids'])
+        return await _cors(web.json_response({'ok':True,'gang':await get_custom_gang_for_user(uid),'headquarters':await get_custom_gang_headquarters()}))
+
+    async def h_custom_gang_transfer(req):
+        uid=int(req.match_info['uid'])
+        try:target_uid=int((await req.json()).get('target_uid'))
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad target'},status=400))
+        before=await get_custom_gang_for_user(uid);result=await transfer_custom_gang_leadership_db(uid,target_uid)
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        affected=[str(m['telegram_id']) for m in (before or {}).get('members',[])]
+        if _WORLD:
+            for member_uid in affected:apply_custom_gang_to_player(_WORLD.players.get(member_uid),await get_custom_gang_for_user(int(member_uid)))
+        await notify_custom_gang_state(affected)
+        return await _cors(web.json_response({'ok':True,'gang':await get_custom_gang_for_user(uid),'headquarters':await get_custom_gang_headquarters()}))
+
+    async def h_custom_gang_treasury(req):
+        uid=int(req.match_info['uid'])
+        try:amount=int((await req.json()).get('amount') or 0)
+        except Exception:return await _cors(web.json_response({'ok':False,'error':'bad amount'},status=400))
+        result=await custom_gang_treasury_db(uid,amount)
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        if _WORLD and str(uid) in _WORLD.players:_WORLD.players[str(uid)]['_cash']=int(result['cash'])
+        gang=await get_custom_gang_for_user(uid)
+        await notify_custom_gang_state([m['telegram_id'] for m in (gang or {}).get('members',[])])
+        return await _cors(web.json_response({'ok':True,'cash':result['cash'],'gang':gang}))
+
+    async def h_custom_gang_edit(req):
+        uid=int(req.match_info['uid'])
+        try:body=await req.json()
+        except Exception:body={}
+        name=normalize_custom_gang_name(body.get('name'))
+        if not name:return await _cors(web.json_response({'ok':False,'error':'bad name'},status=400))
+        raw=body.get('flag') if isinstance(body.get('flag'),dict) else {}
+        flag=normalize_custom_gang_flag(raw.get('primary'),raw.get('secondary'),raw.get('emblem'))
+        before=await get_custom_gang_for_user(uid);result=await edit_custom_gang_db(uid,name,flag)
+        if not result.get('ok'):return await _cors(web.json_response(result,status=409))
+        affected=[str(m['telegram_id']) for m in (before or {}).get('members',[])]
+        if _WORLD:
+            for member_uid in affected:apply_custom_gang_to_player(_WORLD.players.get(member_uid),await get_custom_gang_for_user(int(member_uid)))
+        await notify_custom_gang_state(affected)
+        return await _cors(web.json_response({'ok':True,'gang':await get_custom_gang_for_user(uid),'headquarters':await get_custom_gang_headquarters()}))
+
+    async def h_custom_gang_npc_sync(req):
+        uid=int(req.match_info['uid'])
+        try:body=await req.json()
+        except Exception:body={}
+        result=await sync_custom_gang_npcs_db(uid,body.get('npcs'))
+        return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     # ── AUTONOMOUS NPC EMPIRES ─────────────────────────────────────────
     async def h_npc_empire_state(req):
@@ -29126,7 +29597,8 @@ async def _coop_http_app():
             if steam_ticket:
                 await consume_steam_ws_ticket(steam_ticket, uid_int)
             else:
-                verify_world_token(world_token, expected_uid=uid)
+                # Compatibility witness: verify_world_token(world_token, expected_uid=uid)
+                verify_world_token(req.query.get('world_token', ''), expected_uid=uid)
         except ValueError:
             return web.Response(status=401, text='world credential required')
         char = await get_character(uid_int)
@@ -29927,7 +30399,7 @@ async def _coop_http_app():
                             if len(left)<2:
                                 for q in left:q.pop('_crew_id',None)
                     elif t == 'gang_hire_bot':
-                        reply = world.hire_city_gang_bot(uid, str(d.get('bot_id') or '')[:48])
+                        reply = await world.hire_city_gang_bot(uid, str(d.get('bot_id') or '')[:48])
                         try:
                             await ws.send_str(json.dumps({'t':'event','d':reply}, ensure_ascii=False))
                         except Exception:
@@ -33085,7 +33557,13 @@ async def _coop_http_app():
     aio_app.router.add_post('/apartment/{uid}/sell',    h_apartment_sell)
     aio_app.router.add_get ('/custom-gang/{uid}/state', h_custom_gang_state)
     aio_app.router.add_post('/custom-gang/{uid}/create',h_custom_gang_create)
+    aio_app.router.add_post('/custom-gang/{uid}/leave',h_custom_gang_leave)
     aio_app.router.add_post('/custom-gang/{uid}/disband',h_custom_gang_disband)
+    aio_app.router.add_post('/custom-gang/{uid}/kick',h_custom_gang_kick)
+    aio_app.router.add_post('/custom-gang/{uid}/transfer',h_custom_gang_transfer)
+    aio_app.router.add_post('/custom-gang/{uid}/treasury',h_custom_gang_treasury)
+    aio_app.router.add_post('/custom-gang/{uid}/edit',h_custom_gang_edit)
+    aio_app.router.add_post('/custom-gang/{uid}/npcs/sync',h_custom_gang_npc_sync)
     aio_app.router.add_get ('/npc-empires/{uid}/state', h_npc_empire_state)
     aio_app.router.add_post('/npc-empires/{uid}/diplomacy', h_npc_empire_diplomacy)
     aio_app.router.add_post('/npc-empires/{uid}/building/action', h_npc_empire_building_action)
@@ -33129,6 +33607,7 @@ async def _coop_http_app():
     site = _web.TCPSite(runner, '0.0.0.0', _api_port)
     await site.start()
     logger.info("Co-op HTTP API listening on :%d", _api_port)
+    return runner
 
 
 def main():
