@@ -42,7 +42,7 @@ def run() -> None:
         "businessOwnerNpc?`👑 ${nn.name}`:nn.name",
         "kind:'curtain'",
         "const isCurtain=wall.kind==='curtain'",
-        "function _sendAggroWeaponHit(targetId, weapon)",
+        "function _sendAggroWeaponHit(targetId, weapon, shotId = _authoritativeShotId)",
         "_sendAggroWeaponHit(chosenAggro.id",
         "suit:'#f3efe5'",
         "Семья Карло Беллини",
