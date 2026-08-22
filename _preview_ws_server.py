@@ -568,6 +568,14 @@ def make_race_car(slot):
 def tick_race_cars():
     """Keep one preview race car in every pit, like the real server does."""
     now = time.time()
+    # Production keeps the occupied vehicle for eight seconds while a driver
+    # reconnects. Preview used to release it immediately in ``finally``.
+    for car in quest_cars.values():
+        disconnected_at = float(car.get("_driver_disconnected_at") or 0)
+        if not disconnected_at:
+            continue
+        if now - disconnected_at > 8.0:
+            release_car(car)
     for slot in RACE_SLOTS:
         car = quest_cars.get(slot["id"])
         if car is None:
@@ -706,6 +714,8 @@ def preview_civilian_carjack(uid, data):
         "wrecked": False,
         "civilian": True,
         "paint": paint,
+        "state": "driving",
+        "_last_drive_t": time.time(),
     }
     quest_cars[car_id] = car
     p["x"] = x
@@ -3612,12 +3622,20 @@ async def world_ws(req):
                             await other.send_str(spawn_pkt)
             elif t == "gta_drive":
                 car = quest_cars.get(str(d.get("car_id") or ""))
+                if (car and not car.get("driver_uid") and
+                        str(car.get("owner_uid") or "") == str(uid)):
+                    # Same owner rebind as production: a reconnect may lose
+                    # gta_enter, but must not create a client-only phantom car.
+                    car["driver_uid"] = uid
+                    car["state"] = "driving"
                 if car and str(car.get("driver_uid")) == str(uid):
+                    car.pop("_driver_disconnected_at", None)
                     car["x"] = float(d.get("x", car["x"]))
                     car["y"] = float(d.get("y", car["y"]))
                     car["ang"] = float(d.get("ang", car.get("ang", 0.0)))
                     car["vx"] = float(d.get("vx", 0.0))
                     car["vy"] = float(d.get("vy", 0.0))
+                    car["_last_drive_t"] = time.time()
                     speed = math.hypot(car["vx"], car["vy"])
                     cap = 5.9 if car.get("tires_punctured") else 14.0
                     if speed > cap:
@@ -3892,7 +3910,11 @@ async def world_ws(req):
                         "dropped_at":time.time(), "robber_uid":str(uid),
                     }
                 rob["carried"] = 0
-            release_player_cars(uid)
+            # Keep the occupied seat briefly, matching production's reconnect
+            # grace. A new page recovers it from the authoritative snapshot.
+            for car in quest_cars.values():
+                if str(car.get("driver_uid") or "") == str(uid):
+                    car["_driver_disconnected_at"] = time.time()
             players.pop(uid, None)
     return ws
 

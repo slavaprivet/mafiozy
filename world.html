@@ -7436,6 +7436,32 @@ function applyQuestCarsSnapshot(arr) {
       });
     }
   }
+  // A full page reload clears myDrivingCarId and initially creates the player
+  // at the ordinary spawn. Consume the server's occupied-seat authority once
+  // and put the player back on that exact car before driving resumes.
+  if (_vehicleSessionRecoveryPending) {
+    _vehicleSessionRecoveryPending = false;
+    const authoritativeSeats = arr.filter(c =>
+      String(c.driver_uid || '') === String(QP.uid || ''));
+    const recoverDrivingCar = authoritativeSeats.length === 1 ? authoritativeSeats[0] : null;
+    if (recoverDrivingCar && !recoverDrivingCar.wrecked) {
+      const recovered = questCars.get(recoverDrivingCar.id);
+      const locallyParked = recovered &&
+        ((recovered._locallyParkedUntil || 0) > performance.now() ||
+         _recentlyExitedCarId === recovered.id);
+      if (recovered && !locallyParked) {
+        myDrivingCarId = recovered.id;
+        myIsPassenger = false;
+        _exitRequested = false;
+        recovered.x = recovered.tx = +recoverDrivingCar.x;
+        recovered.y = recovered.ty = +recoverDrivingCar.y;
+        recovered.ang = recovered.tAng = +recoverDrivingCar.ang || 0;
+        player.c = recovered.x;
+        player.r = recovered.y;
+        player.ang = recovered.ang;
+      }
+    }
+  }
   // Убираем машины которые больше не приходят (доставлены / сервер их выкинул).
   // НО НИКОГДА не удаляем машину, которой я сейчас рулю/еду пассажиром: на
   // пляже/песке сервер временно перестаёт слать civ-машину (считает её «вне
@@ -7455,6 +7481,7 @@ function applyQuestCarsSnapshot(arr) {
 }
 // Когда я сел в машину — её id; null если иду пешком.
 let myDrivingCarId = null;
+let _vehicleSessionRecoveryPending = true;
 let _recentlyExitedCarId = null;
 let _recentlyExitedCarUntil = 0;
 let _recentlyExitedCarVisual = null;
