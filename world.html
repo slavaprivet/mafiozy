@@ -52266,10 +52266,16 @@ function drawImpacts() {
   const now = performance.now();
   const dy = _bulletY();   // совпадает с уровнем пули в drawBullets
   ctx.save();
+  let centerX = 0, centerY = 0, projectionReady = false;
   for(let i=explosionBursts.length-1;i>=0;i--){
     const b=explosionBursts[i],age=now-b.born;if(age>=b.life)continue;
-    const q=age/b.life,p=w2s(b.r+.5,b.c+.5),rise=Math.min(1,age/500),fade=Math.max(0,1-q);
-    ctx.save();ctx.translate(p.x,p.y-dy-rise*19);ctx.globalCompositeOperation='lighter';
+    if (!projectionReady) {
+      const stage = document.getElementById('stage');
+      centerX = stage.clientWidth / 2; centerY = stage.clientHeight / 2; projectionReady = true;
+    }
+    const q=age/b.life,rise=Math.min(1,age/500),fade=Math.max(0,1-q);
+    const br=b.r+.5,bc=b.c+.5,bx=centerX+(bc-br)*TS*.5-cam.x,by=centerY+(bc+br)*TS*.5*ISO_Y-cam.y;
+    ctx.save();ctx.translate(bx,by-dy-rise*19);ctx.globalCompositeOperation='lighter';
     const flash=Math.max(0,1-age/210),coreR=18+Math.min(1,age/380)*48;
     if(flash>0){const g=ctx.createRadialGradient(0,0,0,0,0,coreR*1.7);g.addColorStop(0,`rgba(255,255,235,${flash})`);g.addColorStop(.22,`rgba(255,224,90,${flash*.95})`);g.addColorStop(.58,`rgba(255,82,15,${flash*.72})`);g.addColorStop(1,'rgba(180,20,0,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,coreR*1.7,0,Math.PI*2);ctx.fill()}
     for(let k=0;k<10;k++){const a=k*2.399+b.seed,spread=(11+(k%4)*8)*Math.min(1,age/330),cx=Math.cos(a)*spread,cy=Math.sin(a)*spread*.48,rr=(22+(k%3)*7)*(.55+fade*.65),g=ctx.createRadialGradient(cx,cy,0,cx,cy,rr);g.addColorStop(0,`rgba(255,250,190,${fade*.92})`);g.addColorStop(.3,`rgba(255,170,35,${fade*.88})`);g.addColorStop(.72,`rgba(230,55,8,${fade*.7})`);g.addColorStop(1,'rgba(90,8,2,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.fill()}
@@ -52279,7 +52285,11 @@ function drawImpacts() {
   }
   for (let i = impacts.length - 1; i >= 0; i--) {
     const imp = impacts[i];
-    const p = w2s(imp.r + 0.5, imp.c + 0.5);
+    if (!projectionReady) {
+      const stage = document.getElementById('stage');
+      centerX = stage.clientWidth / 2; centerY = stage.clientHeight / 2; projectionReady = true;
+    }
+    const ir=imp.r+.5,ic=imp.c+.5,px=centerX+(ic-ir)*TS*.5-cam.x,py=centerY+(ic+ir)*TS*.5*ISO_Y-cam.y;
     for (const pt of imp.parts) {
       if (pt.life <= 0) continue;
       const t = Math.max(0, pt.life / pt.max);
@@ -52289,7 +52299,7 @@ function drawImpacts() {
         // Кровь — без glow, рисуем как непрозрачные капли
         ctx.shadowBlur = 0;
         ctx.beginPath();
-        ctx.arc(p.x + pt._x, p.y - dy + pt._y,
+        ctx.arc(px + pt._x, py - dy + pt._y,
                 (pt.size || 2.4) * (0.6 + t * 0.4), 0, Math.PI * 2);
         ctx.fill();
       } else {
@@ -52297,7 +52307,7 @@ function drawImpacts() {
         ctx.shadowColor = pt.color;
         ctx.shadowBlur = 6;
         ctx.beginPath();
-        ctx.arc(p.x + pt._x, p.y - dy + pt._y,
+        ctx.arc(px + pt._x, py - dy + pt._y,
                 (pt.size || 1.8) + t * 0.6, 0, Math.PI * 2);
         ctx.fill();
       }
