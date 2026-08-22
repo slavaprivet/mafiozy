@@ -190,8 +190,71 @@ async def pair_peace_terminalizes_pending(action: str, now: int) -> None:
 
         hp_before = await scalar(
             path, "SELECT current_hp FROM gang_members WHERE id=1")
-        result = await ne.diplomacy_action(
-            path, 101, 'leila', action, now=now + 1)
+        cash_before = await scalar(
+            path, "SELECT cash FROM characters WHERE telegram_id=101")
+        transition_at = now + 1
+        if action == 'truce':
+            offer = await ne.conditional_truce_action(
+                path, 101, 'leila', 'offer',
+                f'stale-generation:{now}:truce-offer', now=transition_at)
+            assert offer['ok'] and not offer['duplicate']
+            agreement = offer['agreement']
+            assert agreement['kind'] == 'conditional_truce'
+            assert agreement['state'] == 'offered'
+            assert agreement['action'] == 'fulfill'
+            assert agreement['terms'] == [{
+                'kind': 'compensation', 'label': 'Компенсация $300',
+                'state': 'pending'}]
+            async with aiosqlite.connect(path) as db:
+                db.row_factory = aiosqlite.Row
+                generation = int((await (await db.execute(
+                    "SELECT comebacks FROM npc_empires WHERE leader_id='leila'"
+                )).fetchone())[0])
+                agreement_row = await (await db.execute(
+                    "SELECT leader_id,leader_generation,telegram_id,term_kind,"
+                    "term_amount,status,created_at,expires_at FROM "
+                    "npc_empire_player_agreements WHERE agreement_id=?",
+                    (agreement['agreement_id'],))).fetchone()
+            assert dict(agreement_row) == {
+                'leader_id': 'leila', 'leader_generation': generation,
+                'telegram_id': 101, 'term_kind': 'compensation',
+                'term_amount': 300, 'status': 'offered',
+                'created_at': transition_at,
+                'expires_at': transition_at + 1800,
+            }
+            assert await scalar(
+                path, "SELECT pact FROM npc_empire_relations "
+                      "WHERE leader_id='leila' AND telegram_id=101") == 'war'
+            assert await scalar(
+                path, "SELECT status FROM npc_empire_interior_raids "
+                      "WHERE token=?", (raid['token'],)) == 'pending'
+            assert await scalar(
+                path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                      "WHERE leader_id='leila' AND telegram_id=101") == 1
+            assert await scalar(
+                path, "SELECT cash FROM characters WHERE telegram_id=101") \
+                == cash_before
+            transition_at += 1
+            result = await ne.conditional_truce_action(
+                path, 101, 'leila', 'fulfill',
+                f'stale-generation:{now}:truce-fulfill',
+                agreement['agreement_id'], transition_at)
+            assert result['ok'] and not result['duplicate']
+            assert result['relation'] == -20 and result['cost'] == 300
+            assert result['cash'] == cash_before - 300
+            assert result['agreement']['agreement_id'] == agreement['agreement_id']
+            assert result['agreement']['state'] == 'fulfilled'
+            assert result['agreement']['terms'][0]['state'] == 'met'
+            assert await scalar(
+                path, "SELECT cash FROM characters WHERE telegram_id=101") \
+                == cash_before - 300
+            assert await scalar(
+                path, "SELECT status FROM npc_empire_player_agreements "
+                      "WHERE agreement_id=?", (agreement['agreement_id'],)) \
+                == 'fulfilled'
+        else:
+            result = await ne.diplomacy_action(
+                path, 101, 'leila', action, now=transition_at)
         assert result['ok'] and result['pact'] == 'truce'
         assert await scalar(
             path, "SELECT status||':'||resolution FROM npc_empire_interior_raids "
@@ -214,13 +277,13 @@ async def pair_peace_terminalizes_pending(action: str, now: int) -> None:
 
         checkpoint = await ne.checkpoint_interior_raid_casualties(
             path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
-            now=now + 2)
+            now=transition_at + 1)
         assert checkpoint == {
             'ok': True, 'duplicate': True, 'terminal': True,
             'resolution': 'diplomacy_changed', 'version': 0}
         checkpoint_retry = await ne.checkpoint_interior_raid_casualties(
             path, 101, raid['token'], raid['apt_key'], attacker_delta=[0],
-            now=now + 3)
+            now=transition_at + 2)
         assert checkpoint_retry == checkpoint
         resolve_retry = await ne.resolve_interior_raid(
             path, 101, raid['token'], raid['apt_key'], 'captured',

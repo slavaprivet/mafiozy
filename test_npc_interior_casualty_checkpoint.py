@@ -17,6 +17,27 @@ async def run() -> None:
     try:
         await _base_db(path)
         async with aiosqlite.connect(path) as db:
+            # npc_empire.ensure_schema owns the empire tables; gang_members is
+            # supplied by mafiozi_bot.init_db in production.  Model that exact
+            # table and concrete defenders so final casualty writes are real.
+            await db.execute("""
+                CREATE TABLE gang_members (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    telegram_id INTEGER,
+                    member_name TEXT,
+                    role TEXT,
+                    role_display TEXT,
+                    last_collected INTEGER DEFAULT 0,
+                    current_hp INTEGER DEFAULT NULL
+                )
+            """)
+            await db.executemany(
+                "INSERT INTO gang_members"
+                "(id,telegram_id,member_name,role,role_display,last_collected,current_hp) "
+                "VALUES(?,?,?,?,?,?,?)",
+                ((11, 101, "Defender 11", "fighter", "Боец", 0, 100),
+                 (12, 101, "Defender 12", "fighter", "Боец", 0, 100)),
+            )
             columns = {row[1] for row in await (await db.execute(
                 "PRAGMA table_info(npc_empire_interior_raids)"
             )).fetchall()}
@@ -87,6 +108,12 @@ async def run() -> None:
             attacker_casualties=[], defender_casualties=[], guard_casualties=[])
         assert resolved["ok"] and resolved["attacker_losses"] == 4
         assert resolved["defender_losses"] == 2
+        async with aiosqlite.connect(path) as db:
+            defender_hp = await (await db.execute(
+                "SELECT id,current_hp FROM gang_members WHERE telegram_id=101 "
+                "ORDER BY id"
+            )).fetchall()
+        assert defender_hp == [(11, 0), (12, 0)]
         terminal = await ne.checkpoint_interior_raid_casualties(
             path, 101, "casualty-token", "business:coffee", attacker_delta=[0])
         assert terminal["ok"] and terminal["duplicate"] and terminal["terminal"]

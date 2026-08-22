@@ -224,6 +224,42 @@ async def _peace_terminalizes_exact_pair_hq(
                 "WHERE leader_id=? AND telegram_id=101", (leader_id,)
             )
             await db.commit()
+        cash_before = await _scalar(
+            path, "SELECT cash FROM characters WHERE telegram_id=101")
+        offer = await ne.conditional_truce_action(
+            path, 101, leader_id, "offer",
+            f"hq-pair:{leader_id}:{now}:offer", now=now + 1)
+        assert offer["ok"] and not offer["duplicate"]
+        agreement = offer["agreement"]
+        assert agreement["state"] == "offered"
+        assert agreement["terms"] == [{
+            "kind": "compensation", "label": "Компенсация $300",
+            "state": "pending"}]
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            generation = int((await (await db.execute(
+                "SELECT comebacks FROM npc_empires WHERE leader_id=?",
+                (leader_id,))).fetchone())[0])
+            agreement_row = await (await db.execute(
+                "SELECT leader_id,leader_generation,telegram_id,term_amount,"
+                "created_at,expires_at,status FROM npc_empire_player_agreements "
+                "WHERE agreement_id=?", (agreement["agreement_id"],))).fetchone()
+        assert dict(agreement_row) == {
+            "leader_id": leader_id, "leader_generation": generation,
+            "telegram_id": 101, "term_amount": 300,
+            "created_at": now + 1, "expires_at": now + 1801,
+            "status": "offered"}
+        assert await _scalar(
+            path, "SELECT status FROM npc_empire_assaults WHERE token=?",
+            (own["token"],)) == "active"
+        assert await _scalar(
+            path, "SELECT pact FROM npc_empire_relations "
+                  "WHERE leader_id=? AND telegram_id=101", (leader_id,)) == "war"
+        assert await _scalar(
+            path, "SELECT COUNT(*) FROM npc_empire_player_wars "
+                  "WHERE leader_id=? AND telegram_id=101", (leader_id,)) == 1
+        assert await _scalar(
+            path, "SELECT cash FROM characters WHERE telegram_id=101") == cash_before
 
     if inject_rollback:
         async with aiosqlite.connect(path) as db:
@@ -254,9 +290,19 @@ async def _peace_terminalizes_exact_pair_hq(
                   "WHERE leader_id=? AND telegram_id=101", (leader_id,),
         ) == "war"
 
-    peace = await ne.diplomacy_action(
-        path, 101, leader_id, action, now=now + 3
-    )
+    if action == "truce":
+        peace = await ne.conditional_truce_action(
+            path, 101, leader_id, "fulfill",
+            f"hq-pair:{leader_id}:{now}:fulfill",
+            agreement["agreement_id"], now + 3)
+        assert peace["ok"] and not peace["duplicate"]
+        assert peace["pact"] == "truce" and peace["relation"] == -20
+        assert peace["cost"] == 300 and peace["cash"] == cash_before - 300
+        assert peace["agreement"]["state"] == "fulfilled"
+    else:
+        peace = await ne.diplomacy_action(
+            path, 101, leader_id, action, now=now + 3
+        )
     assert peace["ok"] and peace["pact"] in {"truce", "none"}
     assert await _scalar(
         path, "SELECT status||':'||resolution FROM npc_empire_assaults "
