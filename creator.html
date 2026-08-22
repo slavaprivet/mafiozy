@@ -1302,6 +1302,21 @@ window.addEventListener('mafiozi:character3dready',()=>{
 
 // ── SAVE ───────────────────────────────────────────────────────────────────
 let saveInFlight = false;
+const creatorCreationTokenKey = `mafiozi_profile_creation_v1_${creatorAccount || 'guest'}`;
+const creatorCreationReceiptKey = `mafiozi_profile_creation_confirmed_v1_${creatorAccount || 'guest'}`;
+function profileCreationToken() {
+  if (creatorUid) return '';
+  try {
+    const saved=localStorage.getItem(creatorCreationTokenKey);
+    if (/^[A-Za-z0-9._:-]{16,96}$/.test(saved||'')) return saved;
+    const fresh=globalThis.crypto?.randomUUID?.() ||
+      Array.from(globalThis.crypto?.getRandomValues?.(new Uint8Array(16))||[],n=>n.toString(16).padStart(2,'0')).join('') ||
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(creatorCreationTokenKey,fresh);return fresh;
+  } catch(e) {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  }
+}
 function setSaveState(stateName, message) {
   const saveBtn = document.getElementById('save-btn');
   const saveStatus = document.getElementById('save-status');
@@ -1340,15 +1355,18 @@ async function postCharacterLook(apiBase, creatingProfile, payload, timeoutMs=15
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(),timeoutMs);
   try {
+    const headers={'Content-Type':'application/json'};
+    const initData=String(tg?.initData||'');
+    if(initData)headers['X-Telegram-Init-Data']=initData;
     const response = await fetch(endpoint, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), signal:controller.signal
+      method:'POST', headers, body:JSON.stringify(payload), signal:controller.signal
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.ok) throw new Error(result.message || 'Сервер не сохранил персонажа');
     return result;
   } finally { clearTimeout(timeout); }
 }
-function buildCharacterSelectionTarget(savedCharacterId='') {
+function buildCharacterSelectionTarget(savedCharacterId='',starterWeapon='') {
   let target;
   try { target = new URL(creatorReturn || 'world.html',location.href); }
   catch(e) { target = new URL('world.html',location.href); }
@@ -1365,15 +1383,16 @@ function buildCharacterSelectionTarget(savedCharacterId='') {
     target.searchParams.set('character',characterId);
     target.searchParams.set('has_look','1');
   }
+  if(starterWeapon)target.searchParams.set('starter',starterWeapon);
   target.searchParams.set('name',playerName);
   target.searchParams.set('lvl',urlP.get('lvl')||'1');
   target.searchParams.set('cash',urlP.get('cash')||'0');
   Object.entries(state).forEach(([key,value])=>target.searchParams.set(key,String(value|0)));
   return target;
 }
-function returnToCharacterSelection(savedCharacterId, delay=120) {
+function returnToCharacterSelection(savedCharacterId, delay=120, starterWeapon='') {
   const characterId=String(savedCharacterId||creatorUid||creatorAccount||'');
-  const target=buildCharacterSelectionTarget(characterId);
+  const target=buildCharacterSelectionTarget(characterId,starterWeapon);
   document.documentElement.dataset.creatorSelectionTarget=target.href;
   setTimeout(()=>location.replace(target.href),delay);
   return target;
@@ -1394,6 +1413,7 @@ async function saveChar() {
   }
   saveInFlight = true;
   setSaveState('saving','Записываем личное дело на сервере…');
+  const creatingProfile = !creatorUid;
   const payload = {
     a:      'set_look',
     name:   playerName,
@@ -1404,10 +1424,10 @@ async function saveChar() {
     hair:   state.hair,
     hat:    state.hat,
   };
+  if (creatingProfile) payload.creation_token = profileCreationToken();
   if (changeLookMode) payload.change_look = true;
   if (/^\d+$/.test(creatorAccount) && (/^\d+$/.test(creatorUid) || !creatorUid)) {
     try {
-      const creatingProfile = !creatorUid;
       setSaveState('saving','Проверяем адрес игрового сервера…');
       const freshApi=await refreshCreatorApi();
       if(!freshApi)throw new Error('Игровой сервер сейчас недоступен. Персонаж не сохранён.');
@@ -1426,9 +1446,15 @@ async function saveChar() {
       if(!/^\d+$/.test(savedCharacterId)||!authoritativeLook)throw new Error('Сервер не подтвердил созданного персонажа. Повтори сохранение.');
       creatorApi=confirmedApi;document.documentElement.dataset.creatorApi=confirmedApi;
       try { if(savedCharacterId)localStorage.setItem(`mafiozi_character_ready_v1_${savedCharacterId}`,'1'); } catch(e) {}
+      if(creatingProfile){
+        try { localStorage.setItem(creatorCreationReceiptKey,JSON.stringify({
+          token:String(payload.creation_token||''),character_id:savedCharacterId
+        })); } catch(e) {}
+      }
       if (saveBtn) saveBtn.textContent = 'СОХРАНЕНО ✓';
       if (saveStatus) saveStatus.textContent = changeLookMode ? 'Образ сохранён. Возвращаемся к выбору…' : 'Персонаж создан. Выбери его для продолжения…';
-      returnToCharacterSelection(savedCharacterId);
+      const starterWeapon=creatingProfile&&result.profile?.starter_equipped?String(result.profile.starter_weapon||''):'';
+      returnToCharacterSelection(savedCharacterId,120,starterWeapon);
       return;
     } catch(e) {
       saveInFlight = false;

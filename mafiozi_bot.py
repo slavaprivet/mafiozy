@@ -94,6 +94,13 @@ def _actor_uid(value) -> int:
     return uid
 
 
+def verified_profile_account(init_data: str, claimed_account) -> int:
+    """Bind a profile route to its authenticated Telegram account owner."""
+    account_id = _actor_uid(claimed_account)
+    actor = verify_telegram_init_data(init_data, expected_uid=account_id)
+    return int(actor['id'])
+
+
 def verify_telegram_init_data(
     init_data: str,
     *,
@@ -1381,6 +1388,15 @@ async def init_db():
         await db.execute(
             "CREATE INDEX IF NOT EXISTS idx_account_characters_account "
             "ON account_characters(account_id)")
+        try:
+            await db.execute(
+                "ALTER TABLE account_characters ADD COLUMN creation_token TEXT DEFAULT NULL")
+        except Exception:
+            pass
+        await db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ux_account_character_creation_token "
+            "ON account_characters(account_id,creation_token) "
+            "WHERE creation_token IS NOT NULL")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS mafia_family_scores (
                 family TEXT PRIMARY KEY,
@@ -2151,6 +2167,8 @@ async def create_character(telegram_id: int, username: str, name: str, char_clas
 
 PROFILE_CHARACTER_ID_BASE = 800_000_000_000_000
 PROFILE_MAX_CHARACTERS = 3
+PROFILE_STARTER_WEAPON = 'nagan'
+PROFILE_CREATION_TOKEN_RE = re.compile(r'^[A-Za-z0-9._:-]{16,96}$')
 
 async def ensure_account_profiles(account_id: int) -> None:
     """Подхватывает старого единственного персонажа как слот 1."""
@@ -2226,11 +2244,42 @@ async def list_account_profiles(account_id: int) -> list[dict]:
         })
     return out
 
-async def create_account_profile(account_id: int, name: str, look: dict) -> dict:
+async def create_account_profile(account_id: int, name: str, look: dict,
+                                 creation_token: str) -> dict:
+    """Create one profile and its dry starter Nagan as one replay-safe transaction."""
     await ensure_account_profiles(account_id)
+    creation_token = str(creation_token or '').strip()
+    if not PROFILE_CREATION_TOKEN_RE.fullmatch(creation_token):
+        raise ValueError('bad_creation_token')
     cls = CLASSES['fixer']
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('BEGIN IMMEDIATE')
+        db.row_factory = aiosqlite.Row
+        replay = await (await db.execute(
+            """SELECT ac.slot,ac.character_id,c.name,c.look_json,c.weapon,
+                      COALESCE(i.quantity,0) AS starter_quantity
+                 FROM account_characters ac
+                 JOIN characters c ON c.telegram_id=ac.character_id
+            LEFT JOIN inventory i ON i.telegram_id=ac.character_id
+                                 AND i.item_id=?
+                WHERE ac.account_id=? AND ac.creation_token=?""",
+            (PROFILE_STARTER_WEAPON, int(account_id), creation_token))).fetchone()
+        if replay:
+            ammo_state = await _get_authoritative_ammo_state_on_db(
+                db, int(replay['character_id']))
+            await db.commit()
+            return {
+                'slot': int(replay['slot']),
+                'character_id': str(replay['character_id']),
+                'name': str(replay['name'] or name)[:24],
+                'look': _profile_look(dict(replay)),
+                'starter_weapon': PROFILE_STARTER_WEAPON,
+                'starter_equipped': (
+                    replay['weapon'] == PROFILE_STARTER_WEAPON and
+                    int(replay['starter_quantity'] or 0) == 1),
+                'ammo_state': ammo_state,
+                'replayed': True,
+            }
         occupied = {int(row[0]) for row in await (await db.execute(
             "SELECT slot FROM account_characters WHERE account_id=?", (int(account_id),))).fetchall()}
         slot = next((n for n in range(1, PROFILE_MAX_CHARACTERS + 1) if n not in occupied), None)
@@ -2238,20 +2287,45 @@ async def create_account_profile(account_id: int, name: str, look: dict) -> dict
             await db.rollback()
             raise ValueError('profile_limit')
         cur = await db.execute(
-            "INSERT INTO account_characters(account_id,character_id,slot,created_at) VALUES(?,NULL,?,?)",
-            (int(account_id), slot, int(time.time())))
+            """INSERT INTO account_characters
+                   (account_id,character_id,slot,created_at,creation_token)
+                 VALUES(?,NULL,?,?,?)""",
+            (int(account_id), slot, int(time.time()), creation_token))
         mapping_id = int(cur.lastrowid)
         character_id = PROFILE_CHARACTER_ID_BASE + mapping_id
         await db.execute("UPDATE account_characters SET character_id=? WHERE id=?",
                          (character_id, mapping_id))
         await db.execute(
             """INSERT INTO characters
-               (telegram_id,username,name,class,hp,max_hp,mana,max_mana,attack,defense,cash,look_json)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+               (telegram_id,username,name,class,hp,max_hp,mana,max_mana,attack,defense,
+                cash,look_json,weapon)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (character_id, '', name, 'fixer', cls['hp'], cls['hp'], cls['mana'], cls['mana'],
-             cls['attack'], cls['defense'], 0, json.dumps(look, ensure_ascii=False)))
+             cls['attack'], cls['defense'], 0, json.dumps(look, ensure_ascii=False),
+             PROFILE_STARTER_WEAPON))
+        await db.execute(
+            "INSERT INTO inventory (telegram_id,item_id,quantity) VALUES(?,?,1)",
+            (character_id, PROFILE_STARTER_WEAPON))
+        await db.execute(
+            """INSERT INTO weapon_ammo
+                   (telegram_id,weapon_key,magazine,next_fire_at,reload_id,
+                    reload_ready_at,version)
+                 VALUES(?,?,0,0,'',0,0)""",
+            (character_id, PROFILE_STARTER_WEAPON))
+        starter_ammo_type = str(
+            weapon_balance.WEAPON_AMMO[PROFILE_STARTER_WEAPON])
+        await db.execute(
+            """INSERT INTO ammo_reserve(telegram_id,ammo_type,rounds,version)
+                 VALUES(?,?,0,0)""",
+            (character_id, starter_ammo_type))
+        ammo_state = await _get_authoritative_ammo_state_on_db(db, character_id)
         await db.commit()
-    return {'slot': slot, 'character_id': str(character_id)}
+    return {
+        'slot': slot, 'character_id': str(character_id),
+        'starter_weapon': PROFILE_STARTER_WEAPON,
+        'starter_equipped': True, 'ammo_state': ammo_state,
+        'replayed': False,
+    }
 
 async def delete_account_profile(account_id: int, character_id: int) -> bool:
     """Удаляет ровно выбранное сохранение; выданные character_id не переиспользуются."""
@@ -25938,20 +26012,25 @@ async def _coop_http_app():
 
     @web.middleware
     async def _actor_binding(req, handler):
-        """Bind all armor/store actors before their handlers see a uid."""
+        """Bind protected HTTP routes before their handlers see an actor id."""
         path = req.path
-        protected = (path.startswith('/shop/') or path.startswith('/inv/') or
+        profile_route = path.startswith('/profiles/')
+        protected = (profile_route or path.startswith('/shop/') or path.startswith('/inv/') or
                      path.startswith('/event/') or path.startswith('/world/loot/') or
                      path.endswith('/assault/hit'))
         if req.method == 'OPTIONS' or not protected:
             return await handler(req)
-        claimed = str(req.match_info.get('uid') or '')
         init_data = req.headers.get('X-Telegram-Init-Data', '')
         try:
-            actor = verify_telegram_init_data(init_data)
-            if not claimed.isdigit() or not await actor_owns_character(
-                    int(actor['id']), int(claimed)):
-                raise ValueError('uid mismatch')
+            if profile_route:
+                verified_profile_account(
+                    init_data, str(req.match_info.get('account') or ''))
+            else:
+                claimed = str(req.match_info.get('uid') or '')
+                actor = verify_telegram_init_data(init_data)
+                if not claimed.isdigit() or not await actor_owns_character(
+                        int(actor['id']), int(claimed)):
+                    raise ValueError('uid mismatch')
         except ValueError as exc:
             return await _cors(web.json_response(
                 {'ok': False, 'error': 'unauthorized', 'reason': str(exc)},
@@ -26006,17 +26085,24 @@ async def _coop_http_app():
             return await _cors(web.json_response({'ok': False, 'error': 'bad_look'}, status=400))
         name = ''.join(ch for ch in str(body.get('name') or 'Игрок').strip() if ch.isprintable())[:24] or 'Игрок'
         try:
-            created = await create_account_profile(int(account), name, look)
+            created = await create_account_profile(
+                int(account), name, look, str(body.get('creation_token') or ''))
         except ValueError as exc:
             if str(exc) == 'profile_limit':
                 return await _cors(web.json_response({
                     'ok': False, 'error': 'profile_limit',
                     'message': 'Можно создать не больше трёх персонажей.'
                 }, status=409))
+            if str(exc) == 'bad_creation_token':
+                return await _cors(web.json_response({
+                    'ok': False, 'error': 'bad_creation_token',
+                    'message': 'Не удалось подтвердить создание. Обнови редактор.'
+                }, status=400))
             raise
         return await _cors(web.json_response({'ok': True, 'profile': {
-            **created, 'name': name, 'level': 1, 'cash': 0, 'role': 'Гражданский',
-            'has_look': True, 'look': look,
+            **created, 'name': created.get('name', name), 'level': 1, 'cash': 0,
+            'role': 'Гражданский', 'has_look': True,
+            'look': created.get('look', look),
         }}))
 
     async def h_profile_delete(req):
@@ -27971,6 +28057,8 @@ async def _coop_http_app():
             t = it.get('type')
             if t not in ('weapon', 'armor', 'potion', 'throwable', 'ammo'):
                 continue
+            if iid == PROFILE_STARTER_WEAPON:
+                continue
             if t == 'weapon' and iid not in BLACKMARKET_WEAPON_IDS:
                 continue
             if iid == 'energy_drink':
@@ -28017,6 +28105,8 @@ async def _coop_http_app():
         it      = ITEMS.get(item_id)
         if not it:
             return await _cors(web.json_response({'ok': False, 'error': 'unknown item'}, status=400))
+        if item_id == PROFILE_STARTER_WEAPON:
+            return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}, status=400))
         if it.get('type') == 'weapon' and item_id not in BLACKMARKET_WEAPON_IDS:
             return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}, status=400))
         if it.get('type') == 'ammo':
@@ -28409,6 +28499,7 @@ async def _coop_http_app():
             status = 404 if equipped.get('error') == 'no character' else 400
             return await _cors(web.json_response(equipped, status=status))
         combat_state = await get_authoritative_combat_state(uid)
+        ammo_state = await get_authoritative_ammo_state(uid)
         if combat_state and _WORLD is not None:
             p_ref = _WORLD.players.get(str(uid))
             if p_ref is not None:

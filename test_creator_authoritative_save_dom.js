@@ -21,6 +21,7 @@ function response(ok, body) {
 
 function makeScenario(options = {}) {
   const calls = [], markers = [], replacements = [], sent = [];
+  const storage = new Map();
   const elements = {
     'save-btn': {disabled:false,textContent:'',attrs:{},setAttribute(k,v){this.attrs[k]=v;},addEventListener(){}},
     'save-status': {textContent:''},
@@ -28,25 +29,29 @@ function makeScenario(options = {}) {
   };
   let manifestCount = 0, postCount = 0, resolvePost = null;
   const fetch = async (url, init = {}) => {
-    calls.push({url:String(url),method:init.method || 'GET',body:init.body || ''});
+    calls.push({url:String(url),method:init.method || 'GET',body:init.body || '',headers:init.headers || {}});
     if (!init.method) {
       manifestCount++;
       if (options.manifestFailure) throw new TypeError('Failed to fetch');
       return response(true, {base: options.freshApi || 'https://fresh.example.com'});
     }
     postCount++;
-    if(options.deferredPost)return new Promise(resolve=>{resolvePost=()=>resolve(response(true,{ok:true,profile:{character_id:'800000000000789',has_look:true}}));});
+    if(options.deferredPost)return new Promise(resolve=>{resolvePost=()=>resolve(response(true,{ok:true,profile:{character_id:'800000000000789',has_look:true,starter_weapon:'nagan',starter_equipped:true}}));});
     if (options.postFailure) throw new TypeError('Failed to fetch');
     if (options.postResult) return response(true, options.postResult);
     return response(true, options.uid
       ? {ok:true,has_look:true}
-      : {ok:true,profile:{character_id:'800000000000123',has_look:true}});
+      : {ok:true,profile:{character_id:'800000000000123',has_look:true,starter_weapon:'nagan',starter_equipped:true}});
   };
   const context = vm.createContext({
     console, URL, URLSearchParams, AbortController, setTimeout, clearTimeout,
     fetch,
     document: {documentElement:{dataset:{}},getElementById:id=>elements[id] || null},
-    localStorage: {getItem:()=>null,setItem:(key,value)=>markers.push([key,value])},
+    localStorage: {
+      getItem:key=>storage.get(key)||null,
+      setItem:(key,value)=>{storage.set(key,value);if(key.startsWith('mafiozi_character_ready_'))markers.push([key,value]);},
+      removeItem:key=>storage.delete(key),
+    },
     location: {
       href:'https://slavaprivet.github.io/mafiozy/creator.html?account_uid=990000021',
       hostname:'slavaprivet.github.io',replace:url=>replacements.push(String(url)),
@@ -56,10 +61,10 @@ function makeScenario(options = {}) {
     creatorApi:options.creatorApi || '',
     creatorUid:options.uid || '', creatorAccount:options.account !== undefined ? options.account : '990000021',
     creatorReturn:'world.html', changeLookMode:false,
-    tg:options.telegram ? {sendData:data=>{if(options.telegramFailure)throw new Error('send failed');sent.push(data);}} : null,
+    tg:{initData:'signed-test-init-data',sendData:options.telegram ? data=>{if(options.telegramFailure)throw new Error('send failed');sent.push(data);} : undefined},
   });
   vm.runInContext(productionSave, context, {filename:'creator.html#authoritative-save'});
-  return {context,calls,markers,replacements,sent,elements,get manifestCount(){return manifestCount;},get postCount(){return postCount;},resolvePost:()=>resolvePost?.()};
+  return {context,calls,markers,replacements,sent,elements,storage,get manifestCount(){return manifestCount;},get postCount(){return postCount;},resolvePost:()=>resolvePost?.()};
 }
 
 async function run() {
@@ -69,10 +74,17 @@ async function run() {
   assert.equal(empty.calls[0].method, 'GET');
   assert.match(empty.calls[0].url, /coop_api\.json/);
   assert.equal(empty.calls[1].url, 'https://fresh.example.com/profiles/990000021');
+  const createPayload=JSON.parse(empty.calls[1].body);
+  assert.match(createPayload.creation_token,/^[A-Za-z0-9._:-]{16,96}$/);
+  assert.equal(empty.calls[1].headers['X-Telegram-Init-Data'],'signed-test-init-data');
+  assert.equal(empty.storage.get('mafiozi_profile_creation_v1_990000021'),createPayload.creation_token);
+  assert.deepEqual(JSON.parse(empty.storage.get('mafiozi_profile_creation_confirmed_v1_990000021')),
+    {token:createPayload.creation_token,character_id:'800000000000123'});
   assert.deepEqual(empty.markers, [['mafiozi_character_ready_v1_800000000000123','1']]);
   assert.equal(empty.replacements.length, 1);
   assert.match(empty.replacements[0], /character=800000000000123/);
   assert.match(empty.replacements[0], /has_look=1/);
+  assert.match(empty.replacements[0], /starter=nagan/);
 
   const deferred = makeScenario({deferredPost:true});
   const pendingSave = vm.runInContext('saveChar()', deferred.context);

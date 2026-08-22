@@ -3328,7 +3328,7 @@ async function _deleteGameProfile(characterId) {
       // Даём серверному обработчику WebSocket убрать uid из connections.
       await new Promise(resolve=>setTimeout(resolve,80));
     }
-    const response=await fetch(`${QP.api}/profiles/${encodeURIComponent(QP.account_uid)}/${encodeURIComponent(characterId)}`,{method:'DELETE'});
+    const response=await _apiRequest(`${QP.api}/profiles/${encodeURIComponent(QP.account_uid)}/${encodeURIComponent(characterId)}`,{method:'DELETE'});
     const result=await response.json().catch(()=>({})); if(!response.ok||!result.ok)throw new Error(result.message||'Не удалось удалить персонажа');
     try{for(const key of [`mafiozi_police_missions_${characterId}`,`mafiozi_mafia_service_${characterId}`,`mafiozi_last_session_v1_${characterId}`,`mafiozi_character_ready_v1_${characterId}`])localStorage.removeItem(key);}catch(e){}
     if(deletingSelected){
@@ -3348,9 +3348,21 @@ async function _loadGameProfiles() {
   _gameProfilesLoaded=false;_renderGameProfiles();
   try{
     await _fetchApiFallback();
-    const response=await fetch(`${QP.api}/profiles/${encodeURIComponent(QP.account_uid)}`,{cache:'no-store'});
+    const response=await _apiRequest(`${QP.api}/profiles/${encodeURIComponent(QP.account_uid)}`,{cache:'no-store'});
     const result=await response.json();if(!response.ok||!result.ok)throw new Error('profiles');
     _gameProfiles=Array.isArray(result.profiles)?result.profiles:[];_gameProfilesLoaded=true;
+    try{
+      const account=String(QP.account_uid||'guest');
+      const tokenKey=`mafiozi_profile_creation_v1_${account}`;
+      const receiptKey=`mafiozi_profile_creation_confirmed_v1_${account}`;
+      const receipt=JSON.parse(localStorage.getItem(receiptKey)||'null');
+      const confirmed=receipt&&_gameProfiles.some(profile=>
+        String(profile.character_id)===String(receipt.character_id||''));
+      if(confirmed){
+        if(localStorage.getItem(tokenKey)===String(receipt.token||''))localStorage.removeItem(tokenKey);
+        localStorage.removeItem(receiptKey);
+      }
+    }catch(e){}
     const selected=_gameProfiles.find(p=>String(p.character_id)===String(QP.character_uid));
     if(selected){QP.name=selected.name||QP.name;_setGameMenuCharacterReady(!!selected.has_look,selected.look);}
     const primary=document.getElementById('gmmPrimaryAction');
@@ -3361,7 +3373,7 @@ async function _loadGameProfiles() {
       if(menuMode==='enter'&&selected&&selected.has_look)closeGameMainMenu();
       else if(menuMode==='characters')_gameMenuPanel('characters');
       else if(selected&&selected.has_look)_gameMenuPanel('play');else _gameMenuPanel('characters');
-      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');cleanUrl.searchParams.delete('flow');history.replaceState(null,'',cleanUrl.href);
+      const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete('menu');cleanUrl.searchParams.delete('flow');cleanUrl.searchParams.delete('starter');history.replaceState(null,'',cleanUrl.href);
     }
   }catch(e){_gameProfilesLoaded=true;_gameProfiles=[];_renderGameProfiles();showToast('Не удалось загрузить персонажей','⚠️',2600);}
 }
@@ -32239,6 +32251,13 @@ async function loadInventoryItems() {
     _applyAuthoritativeCombatState(j.combat_state);
     _applyAuthoritativeAmmoState(j.ammo_state);
     _syncMyWeaponsFromInventory(_inventoryItems);
+    const starterNagan=_UP.get('starter')==='nagan'&&j.equipped_weapon==='nagan'&&
+      _inventoryItems.some(it=>it.id==='nagan'&&it.type==='weapon'&&(+it.qty||0)===1);
+    if(starterNagan&&!loadInventoryItems.starterNoticeShown){
+      loadInventoryItems.starterNoticeShown=true;currentWeapon='nagan';_lastEquippedWeapon='nagan';
+      _saveCurrentWeaponChoice();renderWeaponHud();
+      showToast('Стартовый Наган выдан и уже в руках','🔫',3200);
+    }
     _goodName=+j.good_name||0;_lostReturns=+j.lost_returns||0;_returnStreak=+j.return_streak||0;
     if(_LOCAL_PREVIEW) {
       const gs=_readPreviewGood();_goodName=Math.max(_goodName,gs.good_name);_lostReturns=Math.max(_lostReturns,gs.lost_returns);_returnStreak=Math.max(_returnStreak,gs.return_streak);
