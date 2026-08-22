@@ -32681,6 +32681,9 @@ let currentWeapon = (() => {
 let _lastEquippedWeapon = currentWeapon || null;
 function _saveCurrentWeaponChoice() {
   try { localStorage.setItem(_weaponChoiceSaveKey, currentWeapon == null ? '__unarmed__' : String(currentWeapon)); } catch(e) {}
+  // Selecting a gun is an earlier, non-combat opportunity to guarantee its
+  // prepared report is cached before the next user shot.
+  try { if(currentWeapon&&typeof _prepareWeaponShotMix==='function')_prepareWeaponShotMix(currentWeapon); } catch(e) {}
 }
 
 // ── Магазины и боезапас ─────────────────────────────────────────────
@@ -48233,19 +48236,48 @@ function _playPreparedExplosion(kind='blast'){
   src.buffer=buf;gain.gain.setValueAtTime(Math.max(.0001,_sfxVol),now);
   src.connect(gain);gain.connect(_sfxOut(ac));src.start(now);return true;
 }
-const _queueSharedNoiseWarmup=()=>{
-  const warm=()=>{try{
-    _prepareSharedNoise();_prepareShotgunSound();
-    for(const id of Object.keys(_weaponShotMixes))_prepareWeaponShotMix(id);
-    for(const kind of ['blast','rpg','grenade'])_prepareExplosionSound(kind);
+let _audioWarmupStarted=false;
+const _audioWarmupQueue=[];
+const _scheduleNextAudioWarmup=()=>{
+  if(!_audioWarmupQueue.length){
     document.documentElement.dataset.weaponAudio='mixed-buffers';
     document.documentElement.dataset.explosionAudio='mixed-buffer';
-  }catch(_){}};
-  if('requestIdleCallback' in window)requestIdleCallback(warm,{timeout:1200});
-  else setTimeout(warm,180);
+    return;
+  }
+  const task=_audioWarmupQueue.shift();
+  const run=()=>{try{task();}catch(_){}finally{_scheduleNextAudioWarmup();}};
+  if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:1200});
+  else setTimeout(run,60);
+};
+const _queueSharedNoiseWarmup=()=>{
+  if(_audioWarmupStarted)return;
+  const ac=_ac();
+  if(!ac){document.documentElement.dataset.weaponAudio='waiting-activation';return;}
+  _audioWarmupStarted=true;
+  const equipped=resolveWeapon(currentWeapon);
+  try{
+    // The equipped report is ready before the first gameplay shot. The old
+    // warmup built every weapon in one callback, creating one long task.
+    _prepareWeaponShotMix(equipped);
+    document.documentElement.dataset.weaponAudio='equipped-ready';
+  }catch(_){}
+  _audioWarmupQueue.push(_prepareSharedNoise);
+  if(equipped!=='shotgun')_audioWarmupQueue.push(_prepareShotgunSound);
+  for(const id of Object.keys(_weaponShotMixes)){
+    if(id!==equipped)_audioWarmupQueue.push(()=>_prepareWeaponShotMix(id));
+  }
+  for(const kind of ['blast','rpg','grenade']){
+    _audioWarmupQueue.push(()=>_prepareExplosionSound(kind));
+  }
+  _scheduleNextAudioWarmup();
 };
 if(document.readyState==='loading')addEventListener('DOMContentLoaded',_queueSharedNoiseWarmup,{once:true});
 else _queueSharedNoiseWarmup();
+// Some Telegram/WebView builds do not expose AudioContext until a trusted
+// gesture. Retry once in capture phase so gameplay fire handlers run after
+// the equipped report has been prepared.
+addEventListener('pointerdown',_queueSharedNoiseWarmup,{once:true,capture:true,passive:true});
+addEventListener('keydown',_queueSharedNoiseWarmup,{once:true,capture:true});
 function _sfxOut(ac) {
   if (_sfxBus) return _sfxBus;
   const comp=ac.createDynamicsCompressor();
