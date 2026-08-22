@@ -47,6 +47,20 @@ async def run() -> None:
     handle, path = tempfile.mkstemp(prefix="boss_capture_cycle_", suffix=".db")
     os.close(handle)
     start = 2_000_100_000
+    initial_members = 20
+    initial_active_wars = 1
+    initial_guard_slots = 0
+    rich_cash = 2 * ne.operating_reserve(
+        initial_members, initial_guard_slots, initial_active_wars
+    )
+    rich_budget = ne.boss_budget_state(
+        treasury=rich_cash,
+        members=initial_members,
+        guard_slots=initial_guard_slots,
+        active_wars=initial_active_wars,
+    )
+    assert rich_budget["band"] == "rich"
+    assert rich_budget["allows"]["aggressive_spend"] is True
     try:
         async with aiosqlite.connect(path) as db:
             await db.executescript("""
@@ -71,9 +85,9 @@ async def run() -> None:
                 (start + 100_000, start),
             )
             await db.execute(
-                "UPDATE npc_empires SET status='active',comeback_at=0,treasury=0,"
-                "members=20,strength=10000,last_tick=? WHERE leader_id='viktor'",
-                (start,),
+                "UPDATE npc_empires SET status='active',comeback_at=0,treasury=?,"
+                "members=?,strength=10000,last_tick=? WHERE leader_id='viktor'",
+                (rich_cash, initial_members, start),
             )
             await db.execute(
                 "UPDATE npc_empires SET status='active',comeback_at=0,treasury=0,"
@@ -98,30 +112,53 @@ async def run() -> None:
             )
             await db.commit()
 
-        captured_at = 0
-        for tick in range(1, 25):
-            now = start + tick * ne.TICK_SECONDS
-            await ne.advance(path, now=now)
-            with sqlite3.connect(path) as db:
-                owner = db.execute(
-                    "SELECT leader_id FROM npc_empire_holdings "
-                    "WHERE kind='building' AND holding_id='4,4'"
-                ).fetchone()[0]
-            if owner == "viktor":
-                captured_at = now
-                break
-        assert captured_at, "Viktor did not capture the configured target"
+        with sqlite3.connect(path) as db:
+            eligible_targets = db.execute(
+                "SELECT kind,holding_id,leader_id FROM npc_empire_holdings "
+                "WHERE leader_id='rustam' AND kind IN ('building','business') "
+                "ORDER BY kind,holding_id"
+            ).fetchall()
+            owner_before, operation_before, acquired_before = db.execute(
+                "SELECT leader_id,operation_type,acquired_at "
+                "FROM npc_empire_holdings WHERE kind='building' AND holding_id='4,4'"
+            ).fetchone()
+            wins_before = db.execute(
+                "SELECT wins FROM npc_empires WHERE leader_id='viktor'"
+            ).fetchone()[0]
+        assert "4,4" in ne.GENERIC_BUILDINGS
+        assert eligible_targets == [("building", "4,4", "rustam")]
+        assert (owner_before, operation_before, acquired_before, wins_before) == (
+            "rustam", old_operation, start, 0
+        )
+
+        captured_at = start + ne.TICK_SECONDS
+        capture_events = await ne.advance(path, now=captured_at)
 
         with sqlite3.connect(path) as db:
             row = db.execute(
                 "SELECT leader_id,operation_type,area,income,acquired_at "
                 "FROM npc_empire_holdings WHERE kind='building' AND holding_id='4,4'"
             ).fetchone()
+            wins_after = db.execute(
+                "SELECT wins FROM npc_empires WHERE leader_id='viktor'"
+            ).fetchone()[0]
         owner, operation, area, income, acquired_at = row
-        assert owner == "viktor" and operation in operation_ids
-        assert operation != old_operation
+        expected_operation = ne.choose_captured_building_operation(
+            ne.PROFILE_BY_ID["viktor"], "4,4", old_operation,
+            captured_at + wins_before,
+        )
+        assert owner == "viktor" and operation == expected_operation
+        assert operation in operation_ids and operation != old_operation
         assert area == 16 and income == ne.building_operation_income(operation, area)
         assert acquired_at == captured_at
+        assert wins_after == wins_before + 1
+        assert any(
+            event.get("leader_id") == "viktor"
+            and event.get("kind") == "war_won"
+            and event.get("target_id") == "rustam"
+            and event.get("operation_type") == operation
+            for event in capture_events
+        )
 
         # The next tick deposits the converted building's exact per-minute
         # revenue into the boss treasury (plus base economy, minus upkeep).
@@ -129,22 +166,58 @@ async def run() -> None:
             treasury_before, members_before = db.execute(
                 "SELECT treasury,members FROM npc_empires WHERE leader_id='viktor'"
             ).fetchone()
+            holding_rows = db.execute(
+                "SELECT kind,holding_id,income FROM npc_empire_holdings "
+                "WHERE leader_id='viktor' ORDER BY kind,holding_id"
+            ).fetchall()
+            guard_rows = db.execute(
+                "SELECT holding_ref,assigned,living "
+                "FROM npc_empire_guard_assignments "
+                "WHERE owner_kind='npc' AND owner_id='viktor' "
+                "ORDER BY holding_ref"
+            ).fetchall()
+            guard_slots = sum(int(row[2] or 0) for row in guard_rows)
+            active_wars = db.execute(
+                "SELECT COUNT(*) FROM npc_empire_diplomacy "
+                "WHERE (leader_a='viktor' OR leader_b='viktor') AND pact='war'"
+            ).fetchone()[0]
+            active_wars += db.execute(
+                "SELECT COUNT(*) FROM npc_empire_player_wars WHERE leader_id='viktor'"
+            ).fetchone()[0]
+        authoritative_holdings = [
+            {"kind": kind, "holding_id": holding_id, "income": holding_income}
+            for kind, holding_id, holding_income in holding_rows
+        ]
+        expected_gross = ne.empire_holding_income_per_tick(authoritative_holdings)
+        expected_upkeep = (
+            max(4, members_before * ne.NPC_MEMBER_UPKEEP_PER_TICK)
+            + guard_slots * ne.NPC_HOLDING_GUARD_UPKEEP_PER_TICK
+            + active_wars * ne.NPC_ACTIVE_WAR_UPKEEP_PER_TICK
+        )
+        expected_net = expected_gross - expected_upkeep
+        assert guard_rows == [("building:4,4", 3, 3)]
+        assert active_wars == 0
+        assert expected_gross == income * 5 + ne.NPC_HQ_FRONT_INCOME_PER_MINUTE * 5
+        assert expected_upkeep == 75 and expected_net == 760
         capture_state = await ne.state_for(path, 101, now=captured_at)
         capture_viktor = next(
             item for item in capture_state["empires"]
             if item["leader_id"] == "viktor"
         )
+        assert capture_viktor["budget"]["band"] == "rich"
+        assert capture_viktor["budget"]["allows"]["aggressive_spend"] is True
+        assert "treasury" not in capture_viktor and "economy" not in capture_viktor
         next_tick = captured_at + ne.TICK_SECONDS
         await ne.advance(path, now=next_tick)
         with sqlite3.connect(path) as db:
             treasury_after = db.execute(
                 "SELECT treasury FROM npc_empires WHERE leader_id='viktor'"
             ).fetchone()[0]
-        # The authoritative economy includes the $24/min HQ front, fighter
-        # payroll, concrete holding guards and the active-war logistics bill.
-        expected_delta = capture_viktor["economy"]["net_per_tick"]
-        assert treasury_after - treasury_before == expected_delta, (
-            treasury_before, treasury_after, expected_delta, operation, income
+        # Economy A keeps cash private, so derive the exact authoritative net
+        # from persisted holdings/guards/wars and the shared production constants.
+        assert treasury_after - treasury_before == expected_net, (
+            treasury_before, treasury_after, expected_gross, expected_upkeep,
+            expected_net, operation, income
         )
 
         state = await ne.state_for(path, 101, now=next_tick)
