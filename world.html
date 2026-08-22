@@ -16962,17 +16962,24 @@ function _spawnParkingLotCars() {
 // Рендер парковочного покрытия — серый асфальт + белая разметка слотов.
 // Рисуется ПОД skid-marks/blood (отдельным проходом перед items.sort).
 function drawParkingLots() {
+  const stage = document.getElementById('stage');
+  const centerX = stage.clientWidth / 2;
+  const centerY = stage.clientHeight / 2;
   for (const lot of PARKING_LOTS) {
-    // Полигон зоны парковки в isometric — 4 угла через w2s
-    const A = w2s(lot.r0,     lot.c0);
-    const B = w2s(lot.r0,     lot.c1 + 1);
-    const C = w2s(lot.r1 + 1, lot.c1 + 1);
-    const D = w2s(lot.r1 + 1, lot.c0);
+    // Полигон зоны парковки в isometric — 4 угла через общий центр stage.
+    const ax = centerX + (lot.c0 - lot.r0) * TS * 0.5 - cam.x;
+    const ay = centerY + (lot.c0 + lot.r0) * TS * 0.5 * ISO_Y - cam.y;
+    const bx = centerX + (lot.c1 + 1 - lot.r0) * TS * 0.5 - cam.x;
+    const by = centerY + (lot.c1 + 1 + lot.r0) * TS * 0.5 * ISO_Y - cam.y;
+    const cx = centerX + (lot.c1 + 1 - (lot.r1 + 1)) * TS * 0.5 - cam.x;
+    const cy = centerY + (lot.c1 + 1 + (lot.r1 + 1)) * TS * 0.5 * ISO_Y - cam.y;
+    const dx = centerX + (lot.c0 - (lot.r1 + 1)) * TS * 0.5 - cam.x;
+    const dy = centerY + (lot.c0 + (lot.r1 + 1)) * TS * 0.5 * ISO_Y - cam.y;
     // Базовый асфальт — тёмно-серый
     ctx.fillStyle = '#2a2c32';
     ctx.beginPath();
-    ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y);
-    ctx.lineTo(C.x, C.y); ctx.lineTo(D.x, D.y);
+    ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+    ctx.lineTo(cx, cy); ctx.lineTo(dx, dy);
     ctx.closePath(); ctx.fill();
     // Тонкая белая окантовка зоны
     ctx.strokeStyle = 'rgba(255,255,255,.35)';
@@ -16989,25 +16996,33 @@ function drawParkingLots() {
       // Для dir south/north — линии вертикальные (вдоль c), длина 2 тайла.
       // Для dir east/west — линии горизонтальные.
       const isHoriz = (slot.dirDx !== 0);
-      let p1, p2, p3, p4;
+      let p1r, p1c, p2r, p2c, p3r, p3c, p4r, p4c;
       if (isHoriz) {
-        p1 = w2s(slot.r - 1.0, slot.c - 1.0);
-        p2 = w2s(slot.r - 1.0, slot.c + 1.0);
-        p3 = w2s(slot.r + 1.0, slot.c - 1.0);
-        p4 = w2s(slot.r + 1.0, slot.c + 1.0);
+        p1r = slot.r - 1.0; p1c = slot.c - 1.0;
+        p2r = slot.r - 1.0; p2c = slot.c + 1.0;
+        p3r = slot.r + 1.0; p3c = slot.c - 1.0;
+        p4r = slot.r + 1.0; p4c = slot.c + 1.0;
       } else {
-        p1 = w2s(slot.r - 1.0, slot.c - 1.0);
-        p2 = w2s(slot.r + 1.0, slot.c - 1.0);
-        p3 = w2s(slot.r - 1.0, slot.c + 1.0);
-        p4 = w2s(slot.r + 1.0, slot.c + 1.0);
+        p1r = slot.r - 1.0; p1c = slot.c - 1.0;
+        p2r = slot.r + 1.0; p2c = slot.c - 1.0;
+        p3r = slot.r - 1.0; p3c = slot.c + 1.0;
+        p4r = slot.r + 1.0; p4c = slot.c + 1.0;
       }
+      const p1x = centerX + (p1c - p1r) * TS * 0.5 - cam.x;
+      const p1y = centerY + (p1c + p1r) * TS * 0.5 * ISO_Y - cam.y;
+      const p2x = centerX + (p2c - p2r) * TS * 0.5 - cam.x;
+      const p2y = centerY + (p2c + p2r) * TS * 0.5 * ISO_Y - cam.y;
+      const p3x = centerX + (p3c - p3r) * TS * 0.5 - cam.x;
+      const p3y = centerY + (p3c + p3r) * TS * 0.5 * ISO_Y - cam.y;
+      const p4x = centerX + (p4c - p4r) * TS * 0.5 - cam.x;
+      const p4y = centerY + (p4c + p4r) * TS * 0.5 * ISO_Y - cam.y;
       ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
-      ctx.moveTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+      ctx.moveTo(p1x, p1y); ctx.lineTo(p2x, p2y);
+      ctx.moveTo(p3x, p3y); ctx.lineTo(p4x, p4y);
       ctx.stroke();
     }
     // Знак «P» в углу зоны (синий квадрат с белой буквой)
-    const sx = (A.x + B.x) / 2, sy = (A.y + B.y) / 2 - 4;
+    const sx = (ax + bx) / 2, sy = (ay + by) / 2 - 4;
     ctx.fillStyle = '#1a4a8a';
     ctx.fillRect(sx - 7, sy - 9, 14, 12);
     ctx.fillStyle = '#fff';
