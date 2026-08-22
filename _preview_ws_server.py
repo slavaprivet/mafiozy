@@ -1874,6 +1874,12 @@ async def npc_empire_state(req):
             neutral_buildings=8, affordable_businesses=3,
         )
         empires[-1]['budget'] = empires[-1]['brain']['budget']
+        empires[-1]['commitments'] = npc_empire.boss_commitment_state(
+            income_per_tick=npc_empire.NPC_HQ_FRONT_INCOME_PER_MINUTE,
+            members=int(empires[-1]['members']), guard_slots=0,
+            active_wars=1 if rank <= 2 else 0,
+            budget_band=empires[-1]['budget']['band'],
+            strength=int(empires[-1]['strength']))
     # The local preview always keeps one deterministic NPC-family war alive so
     # the physical sandbox (convergence, squads, bullets and retreats) can be
     # inspected without waiting for a five-minute production economy tick.

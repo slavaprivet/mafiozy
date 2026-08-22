@@ -3,7 +3,7 @@
 // 3D animation v416: NPC crawl recovery preserves one gait phase and eases cadence through the same root transition.
 // 3D animation v415: armed crawling NPCs keep the whole weapon and both hands above the road with a chest-anchored counter-pitch.
 // 3D UI v362: camera-facing HQ banners show their family primary and accent colors from every city angle.
-// 3D UI v360: empire crew identity cards and focus rings inherit their boss family colors.
+// empire-family-card-v360: crew identity cards and focus rings inherit their boss family colors.
 // 3D character/weapons v356: NPCs gain articulated forearms and role hems; every arsenal family gains semantic detail parts.
 // 3D character v355: shared NPCs gain profiled anatomy, tailoring, jaws, beards, blinking and eye saccades.
 // 3D character v354: the playable avatar and every NPC share a rounded, creator-grade silhouette and face/accessory detail.

@@ -1233,6 +1233,40 @@ def boss_budget_state(*, treasury: int, members: int, guard_slots: int,
     }
 
 
+def boss_commitment_state(*, income_per_tick: int, members: int,
+                          guard_slots: int, active_wars: int,
+                          budget_band: str, strength: int) -> dict:
+    """Describe real operating commitments without publishing their amounts."""
+    burdens = {
+        'payroll': max(4, max(0, int(members)) * NPC_MEMBER_UPKEEP_PER_TICK),
+        'security': max(0, int(guard_slots)) * NPC_HOLDING_GUARD_UPKEEP_PER_TICK,
+        'war': max(0, int(active_wars)) * NPC_ACTIVE_WAR_UPKEEP_PER_TICK,
+    }
+    dominant = max(burdens, key=lambda key: (burdens[key], key))
+    band = str(budget_band or 'poor')
+    readiness_ratio = max(0, int(strength)) / max(1, int(members))
+    readiness = ('underarmed' if readiness_ratio < 12 else
+                 'equipped' if readiness_ratio < 18 else 'supplied')
+    pressure = ('critical' if band == 'poor' else
+                'managed' if band == 'stable' else 'comfortable')
+    labels = {'payroll': 'ЗАРПЛАТЫ БОЙЦОВ', 'security': 'СОДЕРЖАНИЕ ОХРАНЫ',
+              'war': 'ВОЕННАЯ ЛОГИСТИКА'}
+    pressure_labels = {'critical': 'ПОД УГРОЗОЙ', 'managed': 'ПОКРЫТА',
+                       'comfortable': 'ПОКРЫТА С ЗАПАСОМ'}
+    readiness_labels = {'underarmed': 'НЕ ХВАТАЕТ СНАРЯЖЕНИЯ',
+                        'equipped': 'БАЗОВОЕ СНАРЯЖЕНИЕ',
+                        'supplied': 'ПОЛНОЕ СНАБЖЕНИЕ'}
+    return {
+        'dominant': dominant, 'dominant_label': labels[dominant],
+        'pressure': pressure, 'pressure_label': pressure_labels[pressure],
+        'readiness': readiness, 'readiness_label': readiness_labels[readiness],
+        'procurement': ('frozen' if band == 'poor' else
+                        'needed' if readiness != 'supplied' else 'ready'),
+        'income_outlook': ('growing' if int(income_per_tick) > sum(burdens.values())
+                           else 'tight'),
+    }
+
+
 def settle_operating_liquidity(treasury: int, income_per_tick: int, members: int,
                                guard_slots: int, active_wars: int) -> dict:
     """Keep bounded operating cash; distribute mature surplus to the family.
@@ -2041,6 +2075,18 @@ async def ensure_schema(db_path: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_events_time
             ON npc_empire_events(created_at DESC);
+        CREATE TABLE IF NOT EXISTS npc_empire_procurements (
+            leader_id TEXT NOT NULL,
+            leader_generation INTEGER NOT NULL,
+            request_key TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            readiness_before TEXT NOT NULL,
+            readiness_after TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY(leader_id,leader_generation,request_key)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_empire_procurements_leader_time
+            ON npc_empire_procurements(leader_id,created_at DESC);
         CREATE TABLE IF NOT EXISTS npc_empire_memory_events (
             event_key TEXT PRIMARY KEY,
             leader_id TEXT NOT NULL,
@@ -2568,6 +2614,129 @@ def _boss_pair_memory_payload(row, now: int, generation: int) -> dict:
         'last_observed_at': last_observed_at,
         'expires_at': max(0, int(row['expires_at'] or 0)),
     }
+
+
+async def _procure_boss_supplies_in_tx(
+        db, profile: EmpireProfile, *, request_key: str, treasury: int,
+        members: int, strength: int, guard_slots: int, active_wars: int,
+        income_per_tick: int, leader_generation: int, now: int,
+        insolvent_ticks: int = 0, recovery_ticks_remaining: int = 0) -> dict:
+    """Buy one real supply step inside the caller's authoritative transaction."""
+    request_key = str(request_key or '').strip()
+    if not request_key or len(request_key) > 128:
+        return {'ok': False, 'error': 'bad request key'}
+    existing = await (await db.execute(
+        "SELECT readiness_after FROM npc_empire_procurements "
+        "WHERE leader_id=? AND leader_generation=? AND request_key=?",
+        (profile.leader_id, max(0, int(leader_generation)), request_key))).fetchone()
+    if existing:
+        return {'ok': True, 'duplicate': True,
+                'readiness': str(existing['readiness_after'])}
+    budget = boss_budget_state(
+        treasury=treasury, members=members, guard_slots=guard_slots,
+        active_wars=active_wars, insolvent_ticks=insolvent_ticks,
+        recovery_ticks_remaining=recovery_ticks_remaining)
+    before = boss_commitment_state(
+        income_per_tick=income_per_tick, members=members,
+        guard_slots=guard_slots, active_wars=active_wars,
+        budget_band=budget['band'], strength=strength)
+    if before['readiness'] == 'supplied':
+        return {'ok': False, 'error': 'arsenal ready',
+                'commitments': before, 'budget': budget}
+    if not budget['allows']['fortify']:
+        return {'ok': False, 'error': 'budget constrained',
+                'commitments': before, 'budget': budget}
+    cost = 260 + max(1, int(members)) * 22
+    reserve = operating_reserve(members, guard_slots, active_wars)
+    if int(treasury) - cost < reserve:
+        return {'ok': False, 'error': 'budget constrained',
+                'commitments': before, 'budget': budget}
+    target_ratio = 12 if before['readiness'] == 'underarmed' else 18
+    strength_gain = max(8, target_ratio * max(1, int(members)) - int(strength))
+    next_treasury = int(treasury) - cost
+    next_strength = int(strength) + strength_gain
+    next_budget = boss_budget_state(
+        treasury=next_treasury, members=members, guard_slots=guard_slots,
+        active_wars=active_wars, insolvent_ticks=insolvent_ticks,
+        recovery_ticks_remaining=recovery_ticks_remaining)
+    after = boss_commitment_state(
+        income_per_tick=income_per_tick, members=members,
+        guard_slots=guard_slots, active_wars=active_wars,
+        budget_band=next_budget['band'], strength=next_strength)
+    await db.execute(
+        "INSERT INTO npc_empire_procurements"
+        "(leader_id,leader_generation,request_key,kind,readiness_before,"
+        "readiness_after,created_at) VALUES(?,?,?,'supplies',?,?,?)",
+        (profile.leader_id, max(0, int(leader_generation)), request_key,
+         before['readiness'],
+         after['readiness'], int(now)))
+    await db.execute(
+        "UPDATE npc_empires SET treasury=treasury-?,strength=strength+?,"
+        "version=version+1 WHERE leader_id=?",
+        (cost, strength_gain, profile.leader_id))
+    summary = (f'{profile.leader_name} закупил снабжение: '
+               f'{after["readiness_label"].lower()}')
+    event = {
+        'leader_id': profile.leader_id, 'kind': 'supplies_bought',
+        'target_id': request_key, 'summary': summary,
+    }
+    return {
+        'ok': True, 'duplicate': False, 'leader_id': profile.leader_id,
+        'budget': next_budget, 'commitments': after, 'summary': summary,
+        '_treasury': next_treasury, '_strength': next_strength, '_event': event,
+    }
+
+
+async def procure_boss_supplies(db_path: str, leader_id: str, request_key: str,
+                                now: int | None = None) -> dict:
+    """Atomic and idempotent server-authoritative boss supply purchase."""
+    now = int(now or time.time()); leader_id = str(leader_id or '').strip()
+    if leader_id not in PROFILE_BY_ID:
+        return {'ok': False, 'error': 'unknown leader'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        row = await (await db.execute(
+            "SELECT treasury,members,strength,status,comebacks,insolvent_ticks,"
+            "recovery_ticks_remaining FROM npc_empires "
+            "WHERE leader_id=?", (leader_id,))).fetchone()
+        if not row or str(row['status']) not in {'active', 'rebuilding', 'vassal'}:
+            await db.rollback()
+            return {'ok': False, 'error': 'empire unavailable'}
+        guard_slots = int((await (await db.execute(
+            "SELECT COALESCE(SUM(living),0) FROM npc_empire_guard_assignments "
+            "WHERE owner_kind='npc' AND owner_id=?", (leader_id,))).fetchone())[0] or 0)
+        active_wars = int((await (await db.execute(
+            "SELECT COUNT(*) FROM npc_empire_diplomacy WHERE pact='war' "
+            "AND (leader_a=? OR leader_b=?)", (leader_id, leader_id))).fetchone())[0] or 0)
+        active_wars += int((await (await db.execute(
+            "SELECT COUNT(*) FROM npc_empire_player_wars WHERE leader_id=?",
+            (leader_id,))).fetchone())[0] or 0)
+        income_per_tick = empire_holding_income_per_tick(await (await db.execute(
+            "SELECT kind,income FROM npc_empire_holdings WHERE leader_id=?",
+            (leader_id,))).fetchall())
+        result = await _procure_boss_supplies_in_tx(
+            db, PROFILE_BY_ID[leader_id], request_key=request_key,
+            treasury=int(row['treasury'] or 0), members=int(row['members'] or 0),
+            strength=int(row['strength'] or 0), guard_slots=guard_slots,
+            active_wars=active_wars, income_per_tick=income_per_tick,
+            leader_generation=int(row['comebacks'] or 0), now=now,
+            insolvent_ticks=int(row['insolvent_ticks'] or 0),
+            recovery_ticks_remaining=int(row['recovery_ticks_remaining'] or 0))
+        if not result['ok']:
+            await db.rollback()
+            return result
+        if not result.get('duplicate'):
+            event = result['_event']
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+                "VALUES(?,?,?,?,?)",
+                (event['leader_id'], event['kind'], event['target_id'],
+                 event['summary'], now))
+        await db.commit()
+        return {key: value for key, value in result.items()
+                if not str(key).startswith('_')}
 
 
 async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
@@ -3133,12 +3302,37 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 recovery_ticks_remaining=recovery_ticks_remaining)
             boss_available = int(row['hospital_until'] or 0) <= now
             strategic_action_taken = False
+            commitments = boss_commitment_state(
+                income_per_tick=per_tick, members=members,
+                guard_slots=guard_slots, active_wars=active_wars,
+                budget_band=budget_state['band'], strength=strength)
+            supply_due = _strategy_execution_due(
+                profile, 'fortify', now // TICK_SECONDS)
+            if (boss_available and supply_due
+                    and strategy in {'recruit', 'fortify', 'retaliate', 'consolidate'}
+                    and commitments['procurement'] == 'needed'):
+                procurement = await _procure_boss_supplies_in_tx(
+                    db, profile,
+                    request_key=(f'auto-supplies:{leader_id}:'
+                                 f'{int(row["last_tick"])+ticks*TICK_SECONDS}'),
+                    treasury=treasury, members=members, strength=strength,
+                    guard_slots=guard_slots, active_wars=active_wars,
+                    income_per_tick=per_tick,
+                    leader_generation=int(row['comebacks'] or 0), now=now,
+                    insolvent_ticks=insolvent_ticks,
+                    recovery_ticks_remaining=recovery_ticks_remaining)
+                if procurement['ok'] and not procurement.get('duplicate'):
+                    treasury = int(procurement['_treasury'])
+                    strength = int(procurement['_strength'])
+                    events.append(procurement['_event'])
+                    strategic_action_taken = True
             last_recruit_count = max(0, int(row['last_recruit_count'] or 0))
             last_recruit_at = max(0, int(row['last_recruit_at'] or 0))
             recruit_chance = .96 if strategy in {'recover', 'recruit', 'fortify'} else .22
             recruit_wave_due = _strategy_execution_due(
                 profile, 'recruit', now // TICK_SECONDS)
-            if (boss_available and budget_state['allows']['hire']
+            if (boss_available and not strategic_action_taken
+                    and budget_state['allows']['hire']
                     and recruit_wave_due and insolvent_ticks == 0
                     and pending_recruits == 0 and members < target_members
                     and treasury >= recruit_cost and rng.random() < recruit_chance):
@@ -4267,6 +4461,20 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             item['closed_until'] = int(closure.get('closed_until') or 0) if closure else 0
             item['closed_s'] = max(0, item['closed_until'] - now)
             item['building_status'] = 'closed' if item['closed_s'] else 'open'
+        if item.get('kind') == 'business':
+            visible_value = int(BUSINESS_PRICE.get(str(item.get('holding_id') or ''), 0))
+            item['value_band'] = ('premium' if visible_value >= 50000
+                                  else 'established' if visible_value >= 20000
+                                  else 'local')
+        elif item.get('kind') == 'building':
+            item['value_band'] = ('premium' if item.get('size_class') == 'large'
+                                  else 'established' if item.get('size_class') == 'medium'
+                                  else 'local')
+        else:
+            item['value_band'] = 'established'
+        # A dossier may identify a facade and its visible scale, but a live
+        # guard count is confirmed only by contact in the raid snapshot.
+        item['security_band'] = 'unconfirmed'
         holdings.setdefault(str(row['leader_id']), []).append(item)
     events_by_leader: dict[str, list[dict]] = {p.leader_id: [] for p in PROFILES}
     for event in recent:
@@ -4325,6 +4533,10 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             guard_slots=guard_slots, active_wars=active_wars,
             insolvent_ticks=int(row['insolvent_ticks'] or 0),
             recovery_ticks_remaining=int(row['recovery_ticks_remaining'] or 0))
+        public_commitments = boss_commitment_state(
+            income_per_tick=income_per_tick, members=int(row['members'] or 0),
+            guard_slots=guard_slots, active_wars=active_wars,
+            budget_band=public_budget['band'], strength=int(row['strength'] or 0))
         result.append({
             'leader_id': leader_id, 'leader_name': profile.leader_name, 'title': profile.title,
             'gang_name': profile.gang_name, 'color': profile.color, 'accent': profile.accent,
@@ -4335,6 +4547,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                        'intelligence':(profile.commerce+profile.diplomacy+profile.loyalty)//3},
             'doctrine': boss_doctrine(leader_id),
             '_treasury': int(row['treasury']), 'budget': public_budget,
+            'commitments': public_commitments,
             'members': int(row['members']),
             'strength': int(row['strength']), 'status': str(row['status']),
             'hq_key': hq_key, 'hq_r': hq_r, 'hq_c': hq_c,
