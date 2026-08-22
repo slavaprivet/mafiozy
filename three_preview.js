@@ -220,9 +220,10 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
         const key=`${kind}:${base}:${detail}`;if(surfaceTextureCache.has(key))return surfaceTextureCache.get(key);
         const cv=document.createElement('canvas');cv.width=cv.height=512;const c=cv.getContext('2d');c.fillStyle=base;c.fillRect(0,0,512,512);
         let seed=kind.split('').reduce((n,ch)=>(n*33+ch.charCodeAt(0))>>>0,2166136261),rnd=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
+        if(kind==='asphalt')for(let i=0;i<28;i++){const x=rnd()*512,y=rnd()*512,r=34+rnd()*52,light=(i&1)===0,a=.055+rnd()*.07,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,light?`rgba(176,188,196,${a})`:`rgba(5,10,15,${a})`);g.addColorStop(1,light?'rgba(176,188,196,0)':'rgba(5,10,15,0)');c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);}
         for(let i=0;i<2200;i++){const a=.025+rnd()*.11,g=55+Math.floor(rnd()*95);c.fillStyle=`rgba(${g},${g},${g},${a})`;const s=.4+rnd()*2.2;c.fillRect(rnd()*512,rnd()*512,s,s);}
+        if(kind==='asphalt')for(let i=0;i<180;i++){const light=(i%3)!==0,g=light?118+Math.floor(rnd()*46):18+Math.floor(rnd()*28),a=.05+rnd()*.07,s=8+rnd()*16;c.fillStyle=`rgba(${g},${g+Math.floor(rnd()*5)},${g+Math.floor(rnd()*8)},${a})`;c.fillRect(rnd()*512,rnd()*512,s,s*.45);}
         c.strokeStyle=detail;c.lineWidth=1.2;
-        if(kind==='asphalt')for(let i=0;i<19;i++){c.beginPath();let x=rnd()*512,y=rnd()*512;c.moveTo(x,y);for(let k=0;k<5;k++){x+=(rnd()-.5)*42;y+=(rnd()-.5)*42;c.lineTo(x,y);}c.stroke();}
         if(kind==='concrete')for(let x=0;x<512;x+=64){c.globalAlpha=.18;c.strokeRect(x+(rnd()-.5)*4,0,1,512);c.strokeRect(0,x+(rnd()-.5)*4,512,1);}
         if(kind==='metal')for(let y=0;y<512;y+=18){c.globalAlpha=.2;c.fillStyle=detail;c.fillRect(0,y,512,2);}
         c.globalAlpha=1;const tx=new THREE.CanvasTexture(cv);tx.colorSpace=THREE.SRGBColorSpace;tx.wrapS=tx.wrapT=THREE.RepeatWrapping;tx.repeat.set(kind==='asphalt'?18:kind==='concrete'?10:6,kind==='asphalt'?36:10);tx.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());tx.needsUpdate=true;surfaceTextureCache.set(key,tx);return tx;
@@ -1126,7 +1127,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const track=worldSnapshot.landmarks.raceTrack||[],trackMat=new THREE.MeshStandardMaterial({color:0x20252a,roughness:.48,metalness:.18});
         for(let i=0;i<track.length;i++){const a=track[i],b=track[(i+1)%track.length],ax=toX(a.c),az=toZ(a.r),bx=toX(b.c),bz=toZ(b.r),dx=bx-ax,dz=bz-az,len=Math.hypot(dx,dz);const seg=new THREE.Mesh(new THREE.PlaneGeometry(13,len),trackMat);seg.rotation.x=-Math.PI/2;seg.rotation.z=-Math.atan2(dz,dx)+Math.PI/2;seg.position.set((ax+bx)/2,.13,(az+bz)/2);seg.receiveShadow=true;scene.add(seg);}
       }
-      const roadMat = new THREE.MeshStandardMaterial({color:0xaab2b7,map:asphaltTexture,roughness:selectedWeather==='rain'?.24:.84,roughnessMap:asphaltTexture,metalness:selectedWeather==='rain'?.22:.06,bumpMap:asphaltTexture,bumpScale:.07,envMap:cityEnvironment,envMapIntensity:selectedWeather==='rain'?1.3:.16});
+      const roadMat = new THREE.MeshStandardMaterial({color:0xcbd1d4,map:asphaltTexture,roughness:selectedWeather==='rain'?.24:.84,roughnessMap:asphaltTexture,metalness:selectedWeather==='rain'?.22:.06,bumpMap:asphaltTexture,bumpScale:.07,envMap:cityEnvironment,envMapIntensity:selectedWeather==='rain'?1.3:.16});
       const curbMat = new THREE.MeshStandardMaterial({color:0x7a8285,map:concreteTexture,roughness:.94,bumpMap:concreteTexture,bumpScale:.035});
       const lineMat = new THREE.MeshBasicMaterial({ color: 0xd4ae3f });
       if(worldSnapshot){
@@ -1153,13 +1154,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         return out;
       })() : Array.from({length:5},(_,i)=>({axis:'both',p:-72+i*36}));
       const roadMarks=[];
+      const ROAD_SURFACE_TILE=9,scaleRoadSurfaceUvs=(geometry,width,length)=>{const uv=geometry.attributes.uv,uScale=width/ROAD_SURFACE_TILE/18,vScale=length/ROAD_SURFACE_TILE/36;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*uScale,uv.getY(i)*vScale);uv.needsUpdate=true;return geometry;};
       for (const road of roadAxes) {
         const p=road.p;
         if(road.axis==='v'||road.axis==='both'){
-        const rv = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SCALE*4, road.length||190), roadMat); rv.rotation.x = -Math.PI / 2; rv.position.set(p, .025, road.center||0); scene.add(rv);
+        const roadLength=road.length||190,rv = new THREE.Mesh(scaleRoadSurfaceUvs(new THREE.PlaneGeometry(WORLD_SCALE*4,roadLength),WORLD_SCALE*4,roadLength), roadMat); rv.rotation.x = -Math.PI / 2; rv.position.set(p, .025, road.center||0); scene.add(rv);
         }
         if(road.axis==='h'||road.axis==='both'){
-        const horizontalRoadGeometry=new THREE.PlaneGeometry(WORLD_SCALE*4,road.length||190);horizontalRoadGeometry.rotateZ(Math.PI/2);
+        const roadLength=road.length||190,horizontalRoadGeometry=scaleRoadSurfaceUvs(new THREE.PlaneGeometry(WORLD_SCALE*4,roadLength),WORLD_SCALE*4,roadLength);horizontalRoadGeometry.rotateZ(Math.PI/2);
         const rh = new THREE.Mesh(horizontalRoadGeometry, roadMat); rh.rotation.x = -Math.PI / 2; rh.position.set(road.center||0, .026, p); scene.add(rh);
         }
         for (let q = road.min??-86; q <= (road.max??86); q += worldSnapshot?3:9) {
@@ -1187,13 +1189,13 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const roadHardwareMaterial=new THREE.MeshStandardMaterial({color:0x343c41,metalness:.78,roughness:.38});
       addRoadInstances(new THREE.CylinderGeometry(.72,.72,.085,18),roadHardwareMaterial,manholeDefs,.075,false);
       addRoadInstances(new THREE.CircleGeometry(1.3,18),new THREE.MeshBasicMaterial({color:0x090d10,transparent:true,opacity:.38,depthWrite:false}),stainDefs,.069);
-      addRoadInstances(new THREE.PlaneGeometry(2.8,1.45),new THREE.MeshBasicMaterial({color:0x394047,transparent:true,opacity:.74,depthWrite:false}),patchDefs,.068);
+      addRoadInstances(new THREE.PlaneGeometry(2.8,1.45),new THREE.MeshBasicMaterial({color:0x53606a,transparent:true,opacity:.56,depthWrite:false}),patchDefs,.068);
       addRoadInstances(new THREE.PlaneGeometry(.48,.25),new THREE.MeshBasicMaterial({color:0xd7d0bd,side:THREE.DoubleSide}),litterDefs,.082);
       addRoadInstances(new THREE.PlaneGeometry(5.4,.15),new THREE.MeshBasicMaterial({color:0x11161a,transparent:true,opacity:.48,depthWrite:false}),skidDefs,.074);
       const puddleMaterial=new THREE.MeshPhysicalMaterial({color:0x456d80,roughness:.06,metalness:.18,clearcoat:1,clearcoatRoughness:.03,transparent:true,opacity:selectedWeather==='rain'?.62:.27,depthWrite:false,envMap:cityEnvironment,envMapIntensity:1.55});addRoadInstances(new THREE.CircleGeometry(1.45,24),puddleMaterial,puddleDefs,.078);
       addRoadBoxInstances(new THREE.BoxGeometry(1,1,1),curbMat,curbDetailDefs,.085);
       addRoadInstances(new THREE.BoxGeometry(.5,.055,1.08),roadHardwareMaterial,drainDefs,.151,false);
-      renderer.domElement.dataset.visualCRoadProfile='instanced-curb-runs-drains-wear-patches-v1';renderer.domElement.dataset.roadSurfaceContract='asphalt-seams-curb-contact-v1';renderer.domElement.dataset.visualCRoadInstances=`curbs:${curbDetailDefs.length}/404,drains:${drainDefs.length}/80,marks:${roadMarks.length}`;
+      renderer.domElement.dataset.visualCRoadProfile='instanced-curb-runs-drains-wear-patches-v1';renderer.domElement.dataset.roadSurfaceContract='road-scale-aggregate-mottle-repair-v1';renderer.domElement.dataset.visualCRoadInstances=`curbs:${curbDetailDefs.length}/404,drains:${drainDefs.length}/80,marks:${roadMarks.length}`;
 
       // Загородные кварталы — не городская сетка магистралей. Сплошной
       // асфальт и его декор перекрываются землёй, травой и узкими тропами.
