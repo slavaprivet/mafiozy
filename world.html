@@ -25756,6 +25756,10 @@ async function wsConnect() {
     // first snapshot can reconcile against that temporary spawn; otherwise a
     // player who was already walking gets rubber-banded backwards.
     sendInput(true);
+    if (_buildingInt?._lootProbeWanted && !_buildingInt.loot) {
+      _buildingInt._lootProbeRetries = 0;
+      setTimeout(() => { if (_buildingInt) _probeBuildingCashLoot(_buildingInt); }, 250);
+    }
     // Recover an unfinished assault or its post-raid decision after a socket
     // reconnect. The server remains authoritative for guard deaths, pressure
     // and the one-time decision token.
@@ -29571,25 +29575,16 @@ _gtaBtn.addEventListener('click', () => {
   } else if (_gtaActionKind === 'bldg_loot') {
     if (_buildingInt && _buildingInt.loot && !_buildingInt.loot.picked) {
       const lt = _buildingInt.loot;
-      lt.picked = true;
-      const key = _buildingInt.r + ',' + _buildingInt.c;
-      const now = Date.now();
-      _bldgLootCD[key] = now + BLDG_LOOT_LOCAL_CD;
-      _bldgLootGlobalCD = now + BLDG_LOOT_GLOBAL_CD;
       if (lt.hp) {
+        lt.picked = true;
+        const key = _buildingInt.r + ',' + _buildingInt.c;
+        const now = Date.now();
+        _bldgLootCD[key] = now + BLDG_LOOT_LOCAL_CD;
+        _bldgLootGlobalCD = now + BLDG_LOOT_GLOBAL_CD;
         myHp = Math.min((myHp || 0) + lt.amount, PVP.max_hp);
         showToast(`❤️‍🩹 +${lt.amount} HP`, '💊', 2000);
       } else {
-        QP.cash = (parseInt(QP.cash) || 0) + lt.amount;
-        _showLootBanner(lt.amount);
-        if (QP.api && QP.uid) {
-          fetch(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
-            method: 'POST', headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ amount: lt.amount })
-          }).then(r => r.json()).then(j => {
-            if (j.ok && j.cash !== undefined) QP.cash = j.cash;
-          }).catch(() => {});
-        }
+        _claimBuildingCashLoot(_buildingInt, lt);
       }
     }
   }
@@ -60147,6 +60142,65 @@ const BLDG_LOOT_LOCAL_CD  = 600000; // 10 минут кулдаун на кон�
 const BLDG_LOOT_GLOBAL_CD = 180000; // 3 минуты глобальный кулдаун
 const BLDG_LOOT_MIN = 15, BLDG_LOOT_MAX = 80; // диапазон денег
 
+async function _probeBuildingCashLoot(bi) {
+  if (!bi || bi !== _buildingInt || bi._lootProbePending || bi.loot ||
+      bi.type === 'business' || _majorInteriorObjectId || !QP.api || !QP.uid) return;
+  const key = bi.r + ',' + bi.c, now = Date.now();
+  if ((_bldgLootCD[key] || 0) > now || _bldgLootGlobalCD > now) return;
+  bi._lootProbePending = true;
+  try {
+    const r = await _apiRequest(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'probe'})
+    });
+    const j = await r.json().catch(()=>({}));
+    if (bi !== _buildingInt) return;
+    if (!r.ok && j.error === 'player not in building' && (bi._lootProbeRetries || 0) < 2) {
+      bi._lootProbeRetries = (bi._lootProbeRetries || 0) + 1;
+      setTimeout(() => { if (bi === _buildingInt) _probeBuildingCashLoot(bi); }, 400);
+      return;
+    }
+    if (j.next_probe_at) _bldgLootGlobalCD = Math.max(
+      _bldgLootGlobalCD, (+j.next_probe_at || 0) * 1000);
+    if (r.ok && j.ok && j.found && j.claim_token) {
+      const amount = Math.max(BLDG_LOOT_MIN, Math.min(BLDG_LOOT_MAX, +j.amount || 0));
+      const lr = 2 + Math.random() * (bi.H - 5), lc = 2 + Math.random() * (bi.W - 4);
+      bi.loot = {r:lr,c:lc,amount,picked:false,hp:false,
+        claimToken:String(j.claim_token),resumed:!!j.resumed};
+      if (j.resumed) showToast('💼 Найденный кейс всё ещё здесь', '↻', 1800);
+    }
+  } catch (_) {
+    // Pending claim живёт в БД и восстанавливается следующим probe.
+  } finally {
+    if (bi === _buildingInt) bi._lootProbePending = false;
+  }
+}
+
+async function _claimBuildingCashLoot(bi, lt) {
+  if (!bi || bi !== _buildingInt || !lt || lt.picked || lt._claiming) return;
+  if (!lt.claimToken) { showToast('Кейс не подтверждён сервером', '⚠️', 1800); return; }
+  lt._claiming = true;
+  try {
+    const r = await _apiRequest(`${QP.api}/world/loot/${encodeURIComponent(QP.uid)}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'claim',claim_token:lt.claimToken})
+    });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || 'claim failed');
+    lt.picked = true;
+    const now = Date.now(), key = bi.r + ',' + bi.c;
+    _bldgLootCD[key] = now + BLDG_LOOT_LOCAL_CD;
+    _bldgLootGlobalCD = now + BLDG_LOOT_GLOBAL_CD;
+    QP.cash = +j.cash || 0; myCash = QP.cash; updateMoneyHud();
+    if (j.duplicate) showToast('Кейс уже зачислен · повторной выплаты нет', '✅', 2100);
+    else _showLootBanner(+j.amount || lt.amount);
+  } catch (e) {
+    const expired = /expired|invalid/.test(String(e && e.message));
+    if (expired) lt.picked = true;
+    showToast(expired ? 'Кейс уже пуст' : 'Нет связи · нажми ещё раз', expired?'📦':'↻', 1900);
+  } finally { lt._claiming = false; }
+}
+
 function _showLootBanner(amount) {
   const el = document.createElement('div');
   el.style.cssText = `
@@ -60235,23 +60289,21 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   }
   _buildingHideTimer = 0;
   {
-    const chance = type === 'business' ? 0 : (isThemed ? 0.12 : BLDG_LOOT_CHANCE);
     const key = r + ',' + c, now = Date.now();
     // Чистим просроченные записи (защита от утечки памяти)
     const cdKeys = Object.keys(_bldgLootCD);
     if (cdKeys.length > 50) {
       for (const k of cdKeys) { if (now >= _bldgLootCD[k]) delete _bldgLootCD[k]; }
     }
-    const localOk = !_bldgLootCD[key] || now >= _bldgLootCD[key];
-    const globalOk = now >= _bldgLootGlobalCD;
-    if (localOk && globalOk && Math.random() < chance) {
-      const isHpLoot = isThemed && (type === 'hospital' || type === 'gym') && Math.random() < 0.5;
-      const amount = isHpLoot ? (10 + Math.floor(Math.random() * 21))
-        : (BLDG_LOOT_MIN + Math.floor(Math.random() * (BLDG_LOOT_MAX - BLDG_LOOT_MIN + 1)));
+    const localOk = !_bldgLootCD[key] || now >= _bldgLootCD[key], globalOk = now >= _bldgLootGlobalCD;
+    const isHpLoot = isThemed && (type === 'hospital' || type === 'gym') &&
+      localOk && globalOk && Math.random() < 0.06;
+    if (isHpLoot) {
+      const amount = 10 + Math.floor(Math.random() * 21);
       const lr = 2 + Math.random() * (biH - 5);
       const lc = 2 + Math.random() * (biW - 4);
-      _buildingInt.loot = { r: lr, c: lc, amount, picked: false, hp: !!isHpLoot };
-    }
+      _buildingInt.loot = {r:lr,c:lc,amount,picked:false,hp:true};
+    } else _buildingInt._lootProbeWanted = type !== 'business' && !_majorInteriorObjectId;
   }
   player.r = biH - 1.5; player.c = biW / 2;
   for (let gi = 0; gi < _myGang.length; gi++) {
@@ -60264,6 +60316,9 @@ function enterBuildingInterior(r, c, type, bizId = null, options = null) {
   // Не ждём первого 100-мс тика: сервер должен узнать о входе до того,
   // как успеет прислать снапшот со старой мировой позицией.
   sendInput(true);
+  if (_buildingInt?._lootProbeWanted) setTimeout(() => {
+    if (_buildingInt) _probeBuildingCashLoot(_buildingInt);
+  }, 250);
   bullets.length = 0; muzzles.length = 0; impacts.length = 0; lockedTargets.clear();
   const _entryToast = { blackmarket: ['🌌 Чёрный рынок','🌌'], job: ['💼 Биржа труда','💼'], gym: ['💪 Спортзал','💪'], hospital: ['🏥 Больница','🏥'], police_st: ['👮 Участок','👮'], mafia_hq:['🕴️ Главный дом мафии','🕴️'], npc_hq:['⚔️ Вражеский штаб','⚔️'] };
   const _et = type === 'business' && BUSINESS_INTERIORS[bizId]

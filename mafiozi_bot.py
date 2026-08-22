@@ -1134,6 +1134,13 @@ async def init_db():
             # (coffee/carwash/...) — респ рядом с купленным бизнесом.
             ("respawn_point",      "TEXT DEFAULT NULL"),
             ("building_loot_at",   "INTEGER DEFAULT 0"),
+            # Server-authoritative building finds. A successful probe survives
+            # reload/reconnect and the claim remains idempotent until replaced.
+            ("building_loot_probe_at",       "INTEGER DEFAULT 0"),
+            ("building_loot_claim_token",    "TEXT DEFAULT NULL"),
+            ("building_loot_claim_amount",   "INTEGER DEFAULT 0"),
+            ("building_loot_claim_expires",  "INTEGER DEFAULT 0"),
+            ("building_loot_claimed_at",      "INTEGER DEFAULT 0"),
             # Пляжные находки: постоянная репутация и серия честных возвратов.
             ("good_name",          "INTEGER DEFAULT 0"),
             ("lost_returns",       "INTEGER DEFAULT 0"),
@@ -2215,6 +2222,116 @@ async def update_character(telegram_id: int, **kwargs):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(f"UPDATE characters SET {set_clause} WHERE telegram_id=?", [*kwargs.values(), telegram_id])
         await db.commit()
+
+
+BUILDING_LOOT_PROBE_COOLDOWN_S = 180
+BUILDING_LOOT_CLAIM_TTL_S = 5 * 60
+BUILDING_LOOT_CHANCE = 0.05
+BUILDING_LOOT_MIN = 15
+BUILDING_LOOT_MAX = 80
+
+
+async def probe_building_loot(
+    telegram_id: int, *, now: int | None = None, chance_roll=None,
+    amount_roll=None, claim_token: str | None = None,
+) -> dict:
+    """Create or recover one durable, server-priced building find."""
+    now = int(time.time() if now is None else now)
+    chance_roll = chance_roll or random.random
+    amount_roll = amount_roll or random.randint
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute("BEGIN IMMEDIATE")
+        async with db.execute(
+            """SELECT building_loot_probe_at,building_loot_claim_token,
+                      building_loot_claim_amount,building_loot_claim_expires,
+                      building_loot_claimed_at
+                 FROM characters WHERE telegram_id=?""",
+            (int(telegram_id),)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        token = str(row['building_loot_claim_token'] or '')
+        amount = int(row['building_loot_claim_amount'] or 0)
+        expires = int(row['building_loot_claim_expires'] or 0)
+        claimed_at = int(row['building_loot_claimed_at'] or 0)
+        if token and amount > 0 and not claimed_at and expires > now:
+            await db.commit()
+            return {'ok': True, 'found': True, 'claim_token': token,
+                    'amount': amount, 'expires_at': expires, 'resumed': True}
+        last_probe = int(row['building_loot_probe_at'] or 0)
+        remaining = BUILDING_LOOT_PROBE_COOLDOWN_S - (now - last_probe)
+        if remaining > 0:
+            await db.commit()
+            return {'ok': True, 'found': False, 'cooldown': remaining,
+                    'next_probe_at': last_probe + BUILDING_LOOT_PROBE_COOLDOWN_S}
+        found = float(chance_roll()) < BUILDING_LOOT_CHANCE
+        if not found:
+            await db.execute(
+                """UPDATE characters SET building_loot_probe_at=?,
+                       building_loot_claim_token=NULL,building_loot_claim_amount=0,
+                       building_loot_claim_expires=0,building_loot_claimed_at=0
+                     WHERE telegram_id=?""", (now, int(telegram_id)))
+            await db.commit()
+            return {'ok': True, 'found': False,
+                    'next_probe_at': now + BUILDING_LOOT_PROBE_COOLDOWN_S}
+        amount = max(BUILDING_LOOT_MIN, min(
+            BUILDING_LOOT_MAX,
+            int(amount_roll(BUILDING_LOOT_MIN, BUILDING_LOOT_MAX))))
+        token = str(claim_token or secrets.token_urlsafe(18))
+        expires = now + BUILDING_LOOT_CLAIM_TTL_S
+        await db.execute(
+            """UPDATE characters SET building_loot_probe_at=?,
+                   building_loot_claim_token=?,building_loot_claim_amount=?,
+                   building_loot_claim_expires=?,building_loot_claimed_at=0
+                 WHERE telegram_id=?""",
+            (now, token, amount, expires, int(telegram_id)))
+        await db.commit()
+        return {'ok': True, 'found': True, 'claim_token': token,
+                'amount': amount, 'expires_at': expires, 'resumed': False}
+
+
+async def claim_building_loot(
+    telegram_id: int, claim_token: str, *, now: int | None = None,
+) -> dict:
+    """Credit one pending find atomically; retries return the same reward."""
+    now = int(time.time() if now is None else now)
+    token = str(claim_token or '')
+    if not token:
+        return {'ok': False, 'error': 'missing claim'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute("BEGIN IMMEDIATE")
+        async with db.execute(
+            """SELECT cash,building_loot_claim_token,building_loot_claim_amount,
+                      building_loot_claim_expires,building_loot_claimed_at
+                 FROM characters WHERE telegram_id=?""",
+            (int(telegram_id),)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        if not secrets.compare_digest(str(row['building_loot_claim_token'] or ''), token):
+            await db.rollback()
+            return {'ok': False, 'error': 'invalid claim'}
+        amount = int(row['building_loot_claim_amount'] or 0)
+        cash = int(row['cash'] or 0)
+        claimed_at = int(row['building_loot_claimed_at'] or 0)
+        if claimed_at:
+            await db.commit()
+            return {'ok': True, 'duplicate': True, 'amount': amount, 'cash': cash}
+        if amount < BUILDING_LOOT_MIN or int(row['building_loot_claim_expires'] or 0) < now:
+            await db.rollback()
+            return {'ok': False, 'error': 'expired claim'}
+        new_cash = cash + amount
+        await db.execute(
+            """UPDATE characters SET cash=?,building_loot_at=?,building_loot_claimed_at=?
+                 WHERE telegram_id=? AND building_loot_claim_token=?
+                   AND building_loot_claimed_at=0""",
+            (new_cash, now, now, int(telegram_id), token))
+        await db.commit()
+        return {'ok': True, 'duplicate': False, 'amount': amount, 'cash': new_cash}
 
 async def get_inventory(telegram_id: int) -> dict:
     async with aiosqlite.connect(DB_PATH) as db:
@@ -24992,7 +25109,7 @@ async def _coop_http_app():
         """Bind all armor/store actors before their handlers see a uid."""
         path = req.path
         protected = (path.startswith('/shop/') or path.startswith('/inv/') or
-                     path.startswith('/event/'))
+                     path.startswith('/event/') or path.startswith('/world/loot/'))
         if req.method == 'OPTIONS' or not protected:
             return await handler(req)
         claimed = str(req.match_info.get('uid') or '')
@@ -27660,10 +27777,8 @@ async def _coop_http_app():
     # Кулдаун сейфа на одного босса (секунд). 1 час по запросу пользователя.
     SAFE_RESPAWN_S = 3600
 
-    # === HTTP: лут кейса из здания в open world ===
-    # Клиент шлёт {amount}. Сервер: проверка кулдауна (3 мин), лимит суммы (80), начисление.
+    # === HTTP: server-authoritative find/claim в интерьере ===
     async def h_world_loot(req):
-        import time as _time
         try:
             uid = int(req.match_info['uid'])
         except Exception:
@@ -27672,19 +27787,24 @@ async def _coop_http_app():
             b = await req.json()
         except Exception:
             b = {}
-        amount = int(b.get('amount', 0))
-        if amount < 1 or amount > 80:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad amount'}, status=400))
-        char = await get_character(uid)
-        if not char:
-            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-        now = _time.time()
-        last_loot = float(char.get('building_loot_at') or 0)
-        if now - last_loot < 170:
-            return await _cors(web.json_response({'ok': False, 'error': 'cooldown'}))
-        new_cash = (char.get('cash') or 0) + amount
-        await update_character(uid, cash=new_cash, building_loot_at=int(now))
-        return await _cors(web.json_response({'ok': True, 'cash': new_cash}))
+        live = _WORLD.players.get(str(uid)) if _WORLD else None
+        now = time.time()
+        if not (live and live.get('_in_interior') and
+                str(live.get('_interior_kind') or '') == 'building' and
+                now < float(live.get('_in_interior_until') or 0)):
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'player not in building'}, status=409))
+        action = str(b.get('action') or '')
+        if action == 'probe':
+            result = await probe_building_loot(uid)
+        elif action == 'claim':
+            result = await claim_building_loot(uid, str(b.get('claim_token') or ''))
+        else:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'bad action'}, status=400))
+        status = 404 if result.get('error') == 'no character' else (
+            409 if result.get('error') else 200)
+        return await _cors(web.json_response(result, status=status))
 
     # === HTTP: вскрытый сейф из боёвки — серверный roll и начисление ===
     # Клиент шлёт {safe_lvl, big, boss}. Сервер: валидация навыка, проверка
