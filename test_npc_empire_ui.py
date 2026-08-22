@@ -55,8 +55,10 @@ def run() -> None:
     assert "ВОЮЕТ ПРОТИВ ${opponent.toLocaleUpperCase('ru-RU')}" in WORLD
     assert "if(kind==='gang_war')" in WORLD and "Война против ${opponent}" in WORLD
     assert "-webkit-line-clamp:2" in WORLD and "overflow-wrap:anywhere" in WORLD
-    assert "'insufficient treasury'" in WORLD
-    assert "+empire?.insolvent_ticks>0" in WORLD and "Финансовый кризис" in WORLD
+    assert "'budget constrained'" in WORLD
+    assert "empire?.budget?.band==='poor'" in WORLD and "Финансовый кризис" in WORLD
+    assert 'data-ne-budget-band' in WORLD and 'budget.summary' in WORLD
+    assert 'empire.treasury' not in WORLD
     assert "empire_retreat" in WORLD and "EMPIRE_FIELD_THINK_MS=260" in WORLD
     assert "_empirePressUntil" in WORLD and "_empireTargetLockUntil" in WORLD
     assert "confidence>=1.12" in WORLD and "powerRatio<.68" in WORLD

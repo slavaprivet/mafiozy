@@ -1848,7 +1848,7 @@ async def npc_empire_state(req):
             "gang_name": _preview_empire_text(profile.gang_name),
             "color": profile.color, "accent": profile.accent, "emblem": profile.emblem,
             "weapon_id": profile.weapon_id, "weapon_name": _preview_empire_text(profile.weapon_name),
-            "weapon_base": profile.weapon_base, "treasury": profile.starting_cash,
+            "weapon_base": profile.weapon_base,
             "doctrine": npc_empire.boss_doctrine(profile.leader_id),
             "members": preview_empire_street_members.get(profile.leader_id, 8 + rank % 7), "strength": 90 + rank * 3, "status": "active",
             "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
@@ -1873,6 +1873,7 @@ async def npc_empire_state(req):
             active_wars=1 if rank <= 2 else 0,
             neutral_buildings=8, affordable_businesses=3,
         )
+        empires[-1]['budget'] = empires[-1]['brain']['budget']
     # The local preview always keeps one deterministic NPC-family war alive so
     # the physical sandbox (convergence, squads, bullets and retreats) can be
     # inspected without waiting for a five-minute production economy tick.

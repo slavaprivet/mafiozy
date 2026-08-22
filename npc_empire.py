@@ -1194,6 +1194,45 @@ def operating_reserve(members: int, guard_slots: int, active_wars: int) -> int:
     return upkeep * NPC_OPERATING_RESERVE_TICKS
 
 
+def boss_budget_state(*, treasury: int, members: int, guard_slots: int,
+                      active_wars: int, insolvent_ticks: int = 0,
+                      recovery_ticks_remaining: int = 0) -> dict:
+    """Return the causal public budget band without exposing working cash.
+
+    Exact treasury and reserve values stay server-side.  The band is computed
+    only when the authoritative empire row is already being processed; it does
+    not add a city scan, timer or client-side estimate.
+    """
+    cash = max(0, int(treasury))
+    reserve = operating_reserve(members, guard_slots, active_wars)
+    if (max(0, int(insolvent_ticks)) > 0
+            or max(0, int(recovery_ticks_remaining)) > 0
+            or cash < reserve):
+        band = 'poor'
+    elif cash < reserve * 2:
+        band = 'stable'
+    else:
+        band = 'rich'
+    labels = {
+        'poor': 'БЕДНЫЙ БЮДЖЕТ',
+        'stable': 'СТАБИЛЬНЫЙ БЮДЖЕТ',
+        'rich': 'БОГАТЫЙ БЮДЖЕТ',
+    }
+    summaries = {
+        'poor': 'Семья бережёт резерв: найм, укрепление и новые фронты заморожены.',
+        'stable': 'Резерв покрыт: доступен найм и укрепление, но не дорогая экспансия.',
+        'rich': 'Есть устойчивый избыток: босс может финансировать любые планы.',
+    }
+    return {
+        'band': band, 'label': labels[band], 'summary': summaries[band],
+        'allows': {
+            'hire': band in {'stable', 'rich'},
+            'fortify': band in {'stable', 'rich'},
+            'aggressive_spend': band == 'rich',
+        },
+    }
+
+
 def settle_operating_liquidity(treasury: int, income_per_tick: int, members: int,
                                guard_slots: int, active_wars: int) -> dict:
     """Keep bounded operating cash; distribute mature surplus to the family.
@@ -1776,7 +1815,9 @@ def _boss_adaptation(events: list[dict], now: int) -> dict:
 
 def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[dict],
                 now: int, *, active_wars: int = 0, neutral_buildings: int = 0,
-                affordable_businesses: int = 0) -> dict:
+                affordable_businesses: int = 0, guard_slots: int = 0,
+                insolvent_ticks: int = 0,
+                recovery_ticks_remaining: int = 0) -> dict:
     """Choose one explainable strategic priority instead of unrelated random actions."""
     treasury = max(0, int(row['treasury'] or 0))
     members = max(0, int(row['members'] or 0))
@@ -1785,6 +1826,10 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
     building_count = sum(1 for h in holdings if str(h['kind']) == 'building')
     business_count = sum(1 for h in holdings if str(h['kind']) == 'business')
     target_members = min(NPC_EMPIRE_MAX_FIGHTERS, 8 + (profile.aggression + profile.loyalty) // 10)
+    budget = boss_budget_state(
+        treasury=treasury, members=members, guard_slots=guard_slots,
+        active_wars=active_wars, insolvent_ticks=insolvent_ticks,
+        recovery_ticks_remaining=recovery_ticks_remaining)
     memories = _boss_memory_cards(events, now)
     adaptation = _boss_adaptation(events, now)
     remembered = {memory['kind'] for memory in memories}
@@ -1823,17 +1868,29 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
     scores['retaliate'] += win_streak * 7
     scores['expand'] += win_streak * 12
     scores['acquire'] += win_streak * 4
+    if budget['band'] == 'poor':
+        scores['recover'] += 42
+        scores['consolidate'] += 64
+    elif budget['band'] == 'stable':
+        scores['consolidate'] += 18
     if int(row['hospital_until'] or 0) > now:
         scores['recover'] += 180
-    if members >= target_members or treasury < 180 + members * 14:
+    if (members >= target_members or treasury < 180 + members * 14
+            or not budget['allows']['hire']):
         scores['recruit'] = -999
-    if not holdings:
+    if not holdings or not budget['allows']['fortify']:
         scores['fortify'] -= 30
+    if not budget['allows']['fortify']:
+        scores['fortify'] = -999
     if not active_wars and 'player_attack' not in remembered:
         scores['retaliate'] -= 28
     if not affordable_businesses or business_count >= 5:
         scores['acquire'] = -999
     if not neutral_buildings or building_count >= 8:
+        scores['expand'] = -999
+    if not budget['allows']['aggressive_spend']:
+        scores['retaliate'] = -999
+        scores['acquire'] = -999
         scores['expand'] = -999
     ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
     strategy, best = ranked[0]
@@ -1858,7 +1915,7 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
         'recruit': f'В строю {members} из желаемых {target_members}; без людей новый приказ слишком рискован.',
         'fortify': f'У семьи {len(holdings)} владений и {active_wars} активных войн: сначала нужна оборона.',
         'retaliate': f'Босс помнит недавнюю угрозу и считает, что без ответа авторитет семьи упадёт.',
-        'acquire': f'В казне ${treasury:,}; коммерческая хватка подсказывает вложиться в доход, а не в перестрелку.',
+        'acquire': f'{budget["label"].capitalize()}: коммерческая хватка подсказывает вложиться в доход, а не в перестрелку.',
         'expand': f'Сила {strength}, бойцов {members}: семья готова занять ближайшую удобную точку.',
         'consolidate': f'Сейчас выгоднее переждать, собрать доход и не открывать лишний фронт.',
     }
@@ -1867,7 +1924,7 @@ def _boss_brain(profile: EmpireProfile, row, holdings: list[dict], events: list[
         'confidence': confidence, 'risk': risk, 'temperament': dominant,
         'scores': [{'strategy': key, 'score': round(value, 1)} for key, value in ranked[:3]],
         'decided_at': now, 'memory_count': len(memories), 'adaptation': adaptation,
-        'doctrine': boss_doctrine(profile.leader_id),
+        'doctrine': boss_doctrine(profile.leader_id), 'budget': budget,
     }
 
 
@@ -2558,12 +2615,14 @@ async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
         active_wars += int((await (await db.execute(
             "SELECT COUNT(*) FROM npc_empire_player_wars WHERE leader_id=?", (leader_id,)
         )).fetchone())[0] or 0)
+        budget_state = boss_budget_state(
+            treasury=treasury, members=members, guard_slots=guard_slots,
+            active_wars=active_wars)
         reserve = operating_reserve(members + 1, guard_slots, active_wars)
-        if treasury - cost < reserve:
+        if (not budget_state['allows']['hire'] or treasury - cost < reserve):
             await db.rollback()
-            return {'ok': False, 'error': 'insufficient treasury',
-                    'cost': cost, 'treasury': treasury, 'reserve': reserve,
-                    'members': members}
+            return {'ok': False, 'error': 'budget constrained',
+                    'budget': budget_state, 'members': members}
         await db.execute("INSERT INTO npc_empire_street_recruits(source_id,leader_id,family,recruited_at) VALUES(?,?,?,?)", (source_id, leader_id, family, now))
         await db.execute("UPDATE npc_empires SET treasury=treasury-?,members=members+1,strength=strength+?,last_recruit_count=1,last_recruit_at=?,version=version+1 WHERE leader_id=?", (cost, strength_gain, now, leader_id))
         await _reconcile_npc_guards(db, leader_id, now)
@@ -2573,7 +2632,9 @@ async def recruit_street_fighter(db_path: str, leader_id: str, source_id: str,
         await db.commit()
         return {'ok': True, 'leader_id': leader_id, 'members': members + 1,
                 'strength': int(row['strength'] or 0) + strength_gain,
-                'treasury': treasury - cost, 'cost': cost,
+                'budget': boss_budget_state(
+                    treasury=treasury - cost, members=members + 1,
+                    guard_slots=guard_slots, active_wars=active_wars),
                 'family': family, 'summary': summary}
 
 
@@ -3060,8 +3121,16 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                 active_wars=active_wars,
                 neutral_buildings=len(neutral_building_choices),
                 affordable_businesses=len(affordable),
+                guard_slots=guard_slots, insolvent_ticks=insolvent_ticks,
+                recovery_ticks_remaining=recovery_ticks_remaining,
             )
             strategy = str(brain['strategy'])
+            # Focused strategy tests may replace the brain with a deterministic
+            # stub.  Spending authority must still come from the live row.
+            budget_state = brain.get('budget') or boss_budget_state(
+                treasury=treasury, members=members, guard_slots=guard_slots,
+                active_wars=active_wars, insolvent_ticks=insolvent_ticks,
+                recovery_ticks_remaining=recovery_ticks_remaining)
             boss_available = int(row['hospital_until'] or 0) <= now
             strategic_action_taken = False
             last_recruit_count = max(0, int(row['last_recruit_count'] or 0))
@@ -3069,7 +3138,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             recruit_chance = .96 if strategy in {'recover', 'recruit', 'fortify'} else .22
             recruit_wave_due = _strategy_execution_due(
                 profile, 'recruit', now // TICK_SECONDS)
-            if (boss_available and recruit_wave_due and insolvent_ticks == 0
+            if (boss_available and budget_state['allows']['hire']
+                    and recruit_wave_due and insolvent_ticks == 0
                     and pending_recruits == 0 and members < target_members
                     and treasury >= recruit_cost and rng.random() < recruit_chance):
                 hired = max((count for count in range(1, min(3, target_members-members)+1)
@@ -3087,7 +3157,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                     strategic_action_taken = True
             army_pressure = min(1.0, members / NPC_EMPIRE_MAX_FIGHTERS)
             expand_chance = .90 if strategy == 'expand' else .035
-            if (boss_available and not strategic_action_taken and building_count < 8
+            if (boss_available and budget_state['allows']['aggressive_spend']
+                    and not strategic_action_taken and building_count < 8
                     and rng.random() < expand_chance):
                 choices = neutral_building_choices
                 if choices:
@@ -3125,7 +3196,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             # never removed by an offline roll: attacking a player must create
             # a visible, defendable headquarters/business assault instead.
             acquire_chance = .92 if strategy == 'acquire' else .025
-            if (boss_available and not strategic_action_taken and neutral_businesses and len(owned_businesses) < 5
+            if (boss_available and budget_state['allows']['aggressive_spend']
+                    and not strategic_action_taken and neutral_businesses and len(owned_businesses) < 5
                     and rng.random() < acquire_chance):
                 if affordable:
                     hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
@@ -3156,7 +3228,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
                         events.append({'leader_id':leader_id,'kind':'business_bought','target_id':bid,
                                        'summary':f'{profile.gang_name} купили бизнес {bid}'})
                         strategic_action_taken = True
-            if (boss_available and not strategic_action_taken
+            if (boss_available and budget_state['allows']['fortify']
+                    and not strategic_action_taken
                     and strategy == 'fortify' and holdings):
                 fortify_cost = 420 + len(holdings) * 45
                 if treasury - fortify_cost >= operating_reserve(
@@ -3182,7 +3255,8 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
             # Large formations stop behaving like small raiding parties: once
             # the boss has a real army, it continually pressures rival assets.
             war_chance = .82 if strategy == 'retaliate' else (.018 + profile.aggression / 3000)
-            if (boss_available and not strategic_action_taken
+            if (boss_available and budget_state['allows']['aggressive_spend']
+                    and not strategic_action_taken
                     and leader_id not in player_war_leaders
                     and rng.random() < war_chance):
                 holding_counts: dict[str, int] = {}
@@ -4242,7 +4316,15 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             profile, row, leader_holdings, leader_events, now,
             active_wars=active_wars, neutral_buildings=neutral_buildings,
             affordable_businesses=affordable_businesses,
+            guard_slots=guard_slots,
+            insolvent_ticks=int(row['insolvent_ticks'] or 0),
+            recovery_ticks_remaining=int(row['recovery_ticks_remaining'] or 0),
         )
+        public_budget = boss_budget_state(
+            treasury=int(row['treasury'] or 0), members=int(row['members'] or 0),
+            guard_slots=guard_slots, active_wars=active_wars,
+            insolvent_ticks=int(row['insolvent_ticks'] or 0),
+            recovery_ticks_remaining=int(row['recovery_ticks_remaining'] or 0))
         result.append({
             'leader_id': leader_id, 'leader_name': profile.leader_name, 'title': profile.title,
             'gang_name': profile.gang_name, 'color': profile.color, 'accent': profile.accent,
@@ -4252,26 +4334,9 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                        'diplomacy':profile.diplomacy,'loyalty':profile.loyalty,
                        'intelligence':(profile.commerce+profile.diplomacy+profile.loyalty)//3},
             'doctrine': boss_doctrine(leader_id),
-            'treasury': int(row['treasury']), 'members': int(row['members']),
+            '_treasury': int(row['treasury']), 'budget': public_budget,
+            'members': int(row['members']),
             'strength': int(row['strength']), 'status': str(row['status']),
-            'insolvent_ticks': int(row['insolvent_ticks'] or 0),
-            'recovery_ticks_remaining': int(row['recovery_ticks_remaining'] or 0),
-            'distributed_profit': int(row['distributed_profit'] or 0),
-            'economy': {
-                'income_per_tick': income_per_tick,
-                'member_upkeep': max(4, int(row['members'] or 0) * NPC_MEMBER_UPKEEP_PER_TICK),
-                'guard_upkeep': guard_slots * NPC_HOLDING_GUARD_UPKEEP_PER_TICK,
-                'war_upkeep': active_wars * NPC_ACTIVE_WAR_UPKEEP_PER_TICK,
-                'upkeep_per_tick': upkeep_per_tick,
-                'net_per_tick': income_per_tick - upkeep_per_tick,
-                'reserve_target': operating_reserve(
-                    int(row['members'] or 0), guard_slots, active_wars),
-                'recovery_stipend_left': (int(row['recovery_ticks_remaining'] or 0)
-                                          * NPC_RECOVERY_STIPEND_PER_TICK),
-                'liquidity_ceiling': settle_operating_liquidity(
-                    int(row['treasury'] or 0), income_per_tick,
-                    int(row['members'] or 0), guard_slots, active_wars)['ceiling'],
-            },
             'hq_key': hq_key, 'hq_r': hq_r, 'hq_c': hq_c,
             'comeback_at': int(row['comeback_at'] or 0), 'comebacks': int(row['comebacks'] or 0),
             'wins': int(row['wins'] or 0), 'losses': int(row['losses'] or 0),
@@ -4302,7 +4367,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         })
     leaderboard = sorted(result, key=lambda e: (
         -e['district_count'], -e['dominance_score'], -e['strength'],
-        -e['treasury'], e['leader_name'],
+        -e['_treasury'], e['leader_name'],
     ))
     for rank, empire in enumerate(leaderboard, 1):
         empire['rank'] = rank
@@ -4476,6 +4541,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'raid_policy': (_boss_player_raid_policy(profile) if profile else {}),
             'expires_at': int(raid['expires_at']),
         })
+    for empire in result:
+        empire.pop('_treasury', None)
     return {'empires': result, 'leaderboard': [e['leader_id'] for e in leaderboard],
             'districts': districts, 'diplomacy': diplomacy_rows, 'events': recent[:60],
             'player_war_events': player_war_events,

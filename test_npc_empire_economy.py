@@ -89,7 +89,8 @@ async def run() -> None:
         cost = ne.recruitment_cost(8)
         hired = await ne.recruit_street_fighter(
             path, 'leila', 'paid-street-1', 'bellini', now=now)
-        assert hired['ok'] and hired['cost'] == cost and hired['treasury'] == 1000 - cost
+        assert hired['ok'] and hired['budget']['band'] in {'stable', 'rich'}
+        assert not {'treasury', 'reserve', 'cost'} & set(hired)
         after_hire = await _row(
             path, "SELECT treasury,members FROM npc_empires WHERE leader_id='leila'")
         assert tuple(after_hire) == (1000 - cost, 9)
@@ -104,7 +105,7 @@ async def run() -> None:
             await db.commit()
         refused = await ne.recruit_street_fighter(
             path, 'leila', 'unpaid-street-2', 'moretti', now=now + 40)
-        assert not refused['ok'] and refused['error'] == 'insufficient treasury'
+        assert not refused['ok'] and refused['error'] == 'budget constrained'
         assert (await _row(path,
             "SELECT members FROM npc_empires WHERE leader_id='leila'"))[0] == 9
 
@@ -205,16 +206,9 @@ async def run() -> None:
                   "FROM npc_empire_holdings WHERE kind IN ('building','business')")
         assert portfolio['total'] > 0 and portfolio['owners'] > 0
         assert len(snapshot['empires']) == 19
-        assert all(set(empire['economy']) == {
-            'income_per_tick', 'member_upkeep', 'guard_upkeep', 'war_upkeep',
-            'upkeep_per_tick', 'net_per_tick', 'reserve_target',
-            'recovery_stipend_left', 'liquidity_ceiling'}
+        assert all(set(empire['budget']) == {'band', 'label', 'summary', 'allows'}
+                   and 'treasury' not in empire and 'economy' not in empire
                    for empire in snapshot['empires'])
-        assert all(empire['economy']['upkeep_per_tick'] >= empire['economy']['member_upkeep']
-                   for empire in snapshot['empires'])
-        assert all(empire['economy']['income_per_tick'] > 0
-                   for empire in snapshot['empires']
-                   if empire['status'] in {'active', 'rebuilding', 'vassal'})
         assert {row['district_id'] for row in snapshot['districts']} == set(ne.DISTRICTS)
         assert all(row['control_state'] in {'neutral', 'contested', 'leader'}
                    and 0 <= row['control_percent'] <= 100
