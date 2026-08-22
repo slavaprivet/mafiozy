@@ -1817,8 +1817,13 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         if(familyId==='glass'){
           for(const sx of [-.29,.29])add(x+sx*w,front+.07,w*.18,.14,3.05,identityGlass,1.53);
         }else if(familyId==='brick'){
-          add(x,front+.08,w*.86,.24,.68,identityStone,.34);
-          for(const sx of [-w*.34,w*.34])add(x+sx,front+.1,w*.12,.16,2.85,identityDark,1.43);
+          // Two low plinth shoulders tie the facade to the pavement without
+          // crossing the authoritative central doorway or its dark opening.
+          const brickDoorGap=Math.min(w*.7,Math.max(3.2,w*.3));
+          const brickShoulderW=Math.max(.4,w*.43-brickDoorGap*.5);
+          const brickShoulderX=brickDoorGap*.5+brickShoulderW*.5;
+          for(const side of [-1,1])add(x+side*brickShoulderX,front+.08,brickShoulderW,.18,.52,identityStone,.26);
+          for(const sx of [-w*.34,w*.34])add(x+sx,front+.1,w*.12,.16,2.3,identityDark,1.7);
         }else if(familyId==='limestone'){
           for(const sx of [-w*.32,w*.32])add(x+sx,front+.14,.22,.2,3.65,identityStone,1.83);
           add(x,front+.42,w*.78,.74,.24,accent,4.02);
@@ -1835,8 +1840,19 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // the existing spatial merge; doors, authored footprints and collision
         // anchors remain untouched and no frame loop scans these decorations.
         if(familyId==='brick'){
-          for(const side of [-1,1])add(x+side*w*.455,front+.16,w*.055,.2,Math.min(6.4,h-1),identityStone,Math.min(6.4,h-1)*.5);
-          add(x,front+.18,w*.9,.24,.22,accent,h-.92);
+          // Bank-reference composition without copying the bank's ornament:
+          // a split stone plinth and two shallow corner piers give the facade
+          // formal depth. The authored hipped roof and central canopy stay
+          // intact, so there are no intersecting roof tiers or duplicate doors.
+          const brickFormal=(seed&1)===0;
+          const pierH=Math.min(h-1.55,Math.max(3.2,h*(brickFormal?.72:.58)));
+          const pierX=brickFormal?.415:.435;
+          const pierW=w*(brickFormal?.06:.048);
+          for(const side of [-1,1]){
+            add(x+side*w*pierX,front+.2,pierW,.28,pierH,identityStone,pierH*.5);
+            if(brickFormal)add(x+side*w*pierX,front+.22,pierW*1.24,.32,.18,identityStone,pierH-.09);
+          }
+          renderer.domElement.dataset.brickBankReference='single-entry-split-plinth-corner-piers-hipped-roof-v2';
         }else if(familyId==='limestone'){
           for(const side of [-1,1])add(x+side*w*.42,front+.16,.18,.2,Math.min(7.2,h-1.2),identityStone,Math.min(7.2,h-1.2)*.5);
           add(x,front+.17,w*.86,.22,.2,accent,h+.38);
@@ -1848,6 +1864,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           for(const side of [-1,1])add(x+side*w*.25,z,w*.12,d*.56,screenH,accent,h+screenH*.5);
           for(const depthSide of [-1,1])add(x,z+depthSide*d*.25,w*.62,d*.1,screenH,identityDark,h+screenH*.5);
         }
+        if(familyId!=='brick'){
         if(variant===0){
           // Deep stacked balconies with railings.
           for(let floor=0;floor<Math.min(4,floors);floor++){const y=5.1+floor*3.35,b=add(x,front+.55,w*.62,1.05,.18,identityStone,y);for(let k=-2;k<=2;k++)add(x+k*w*.11,front+1.02,.07,.08,.72,identityDark,y+.39);}
@@ -1867,6 +1884,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }else{
           // Modern roof garden/pergola and asymmetrical facade frame.
           const terrace=add(x,z,w*.68,d*.62,.34,identityStone,h+.17);for(const sx of [-.27,.27])for(const sz of [-.22,.22])add(x+sx*w,z+sz*d,.16,.16,2.2,identityWood,h+1.25);for(let k=-2;k<=2;k++)add(x+k*w*.11,z,d*.58,.1,.12,identityWood,h+2.3);add(x+w*.28,front+.25,w*.18,.28,Math.max(4,h*.62),accent,Math.max(4,h*.62)/2+1.8);terrace.castShadow=true;
+        }
         }
         if(districtStyle==='industrial'){add(x-w*.28,z-d*.18,1.15,1.15,2.4,identityDark,h+1.2);}
       };
