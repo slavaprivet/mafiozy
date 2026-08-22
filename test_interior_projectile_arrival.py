@@ -46,17 +46,25 @@ def run() -> None:
     assert "speed:visualSpeed" in raid_fire
     assert "currentWeapon,false,true" in WORLD
     assert "firedWeapon,false,true" in WORLD
+    assert "let _authoritativeShotId = '';" in WORLD
+    assert "const _authoritativeTargetClaims = new Set();" in WORLD
+    assert "_authoritativeShotId = _newCombatEventId();" in WORLD
+    assert "_hitInteriorNpc(npc,dirY,dirX,damage,weapon,false,false,true,shotId,claimReserved)" in queue
 
     script = f"""
 let clock=1000,callbacks=[],impacts=0,damageCalls=0,hurtCalls=0,BULLET_SPEED=20;
+let claimAttempts=[],fallbacks=[],hqDispatches=[],_authoritativeShotId='player-shot-business-1',_authoritativeRemoteSent=false,_serverAuthoritativeAmmo=true;
+const _authoritativeTargetClaims=new Set();
 const performance={{now:()=>clock}},document={{documentElement:{{dataset:{{}}}}}},player={{r:5,c:5}},currentWeapon='rifle';
 const target={{id:'raid-target',r:5,c:11,hp:50,dead:false,businessRaidSide:'defender'}},bi={{npcs:[target],businessInteriorRaid:{{}}}};let _buildingInt=bi,myDead=false;
 function weaponMuzzleD(){{return .5;}} function weaponProfile(){{return {{bulletSpeed:15}};}}
-function _scheduleBallisticFx(ms,fn){{callbacks.push({{ms,fn}});}} function setTimeout(fn,ms){{callbacks.push({{ms,fn}});}}
+function _scheduleBallisticFx(ms,fn){{callbacks.push({{ms,fn}});callbacks.sort((a,b)=>a.ms-b.ms);}} function setTimeout(fn,ms){{callbacks.push({{ms,fn}});callbacks.sort((a,b)=>a.ms-b.ms);}}
 function spawnImpact(){{impacts++;}} function _showCurrentShotCritical(){{}}
+function _reserveAuthoritativeTargetClaim(shotId){{const id=String(shotId||'');claimAttempts.push(id);if(!_serverAuthoritativeAmmo||!id)return true;if(_authoritativeTargetClaims.has(id))return false;_authoritativeTargetClaims.add(id);setTimeout(()=>_authoritativeTargetClaims.delete(id),15000);return true;}}
+function _sendWorldWeaponFire(route='miss',shotId=_authoritativeShotId,weapon=currentWeapon){{fallbacks.push({{route,shotId,weapon}});}}
 {queue}
 function _damageBusinessRaidNpc(_bi,_state,n,dmg){{damageCalls++;n.hp-=dmg;}}
-function _hitNpcEmpireAssaultNpc(n,dmg){{damageCalls++;n.hp-=dmg;}}
+function _hitNpcEmpireAssaultNpc(n,dmg,weapon,shotId,claimReserved){{hqDispatches.push({{weapon,shotId,claimReserved}});damageCalls++;n.hp-=dmg;}}
 function _igniteInteriorCharacter(){{}} function sendInput(){{}}
 let _majorInteriorObjectId=null,_majorRaidLocal=null,ws=null;
 {hit}
@@ -66,10 +74,16 @@ const playerBefore={{hp:target.hp,impacts,damageCalls,playerDelay}};
 clock+=callbacks[0].ms;callbacks.shift().fn();
 const playerAfter={{hp:target.hp,impacts,damageCalls}};
 const hqTarget={{id:'hq-boss',r:5,c:10,hp:60,dead:false,npcEmpireBoss:true}},hq={{type:'npc_hq',npcEmpireAssault:{{}},npcs:[hqTarget]}};
-_buildingInt=hq;_hitInteriorNpc(hqTarget,0,1,14,'rifle',false,true);
+_authoritativeShotId='player-shot-hq-1';_buildingInt=hq;_hitInteriorNpc(hqTarget,0,1,14,'rifle',false,true);
 const hqBefore={{hp:hqTarget.hp,impacts,damageCalls}};
 clock+=callbacks[0].ms;callbacks.shift().fn();
 const hqAfter={{hp:hqTarget.hp,impacts,damageCalls}};
+const replayCallbacksBefore=callbacks.length,replayDamageBefore=damageCalls;
+_hitInteriorNpc(hqTarget,0,1,14,'rifle',false,true);
+const replay={{callbacksBefore:replayCallbacksBefore,callbacksAfter:callbacks.length,damageBefore:replayDamageBefore,damageAfter:damageCalls}};
+const fallbackTarget={{id:'fallback-target',r:5,c:9,hp:44,dead:false,businessRaidSide:'defender'}};bi.npcs.push(fallbackTarget);_buildingInt=bi;_authoritativeShotId='player-shot-fallback-1';
+_hitInteriorNpc(fallbackTarget,0,1,11,'rifle',false,true);fallbackTarget.c=10;clock+=callbacks[0].ms;callbacks.shift().fn();
+const playerFallback={{hp:fallbackTarget.hp,impacts,damageCalls}};
 function _interiorGuardWeaponAi(){{return {{hit:1,damage:9}};}} function _npcMuzzleWorldPoint(r,c){{return {{r,c}};}}
 function spawnMuzzle(){{}} function spawnBullet(){{}} function _majorInteriorLineClear(){{return true;}}
 function _hurtLocal(){{hurtCalls++;}}
@@ -82,7 +96,7 @@ const npcBefore={{hits:state.hits,hurtCalls,impacts}};
 player.r=0;player.c=6;clock+=callbacks[0].ms;callbacks.shift().fn();
 const npcDodged={{hits:state.hits,hurtCalls,impacts}};
 player.c=5;moving.c=5;_fireBusinessRaidRound(bi,state,shooter,moving);clock+=callbacks[0].ms;callbacks.shift().fn();
-console.log(JSON.stringify({{playerBefore,playerAfter,hqBefore,hqAfter,npcBefore,npcDodged,npcArrival:{{hits:state.hits,hurtCalls,impacts}}}}));
+console.log(JSON.stringify({{playerBefore,playerAfter,hqBefore,hqAfter,replay,playerFallback,claimAttempts,fallbacks,hqDispatches,remoteSent:_authoritativeRemoteSent,npcBefore,npcDodged,npcArrival:{{hits:state.hits,hurtCalls,impacts}}}}));
 """
     result = subprocess.run(
         ["node", "-e", script], cwd=ROOT, check=False,
@@ -96,6 +110,15 @@ console.log(JSON.stringify({{playerBefore,playerAfter,hqBefore,hqAfter,npcBefore
     assert data["playerAfter"] == {"hp": 37, "impacts": 1, "damageCalls": 1}
     assert data["hqBefore"] == {"hp": 60, "impacts": 1, "damageCalls": 1}
     assert data["hqAfter"] == {"hp": 46, "impacts": 2, "damageCalls": 2}
+    assert data["hqDispatches"] == [{"weapon": "rifle", "shotId": "player-shot-hq-1", "claimReserved": True}]
+    assert data["replay"] == {"callbacksBefore": 2, "callbacksAfter": 2, "damageBefore": 2, "damageAfter": 2}
+    assert data["playerFallback"] == {"hp": 44, "impacts": 2, "damageCalls": 2}
+    assert data["claimAttempts"] == [
+        "player-shot-business-1", "player-shot-hq-1",
+        "player-shot-hq-1", "player-shot-fallback-1",
+    ]
+    assert data["fallbacks"] == [{"route": "interior_ballistic_fallback", "shotId": "player-shot-fallback-1", "weapon": "rifle"}]
+    assert data["remoteSent"] is True
     assert data["npcBefore"] == {"hits": 0, "hurtCalls": 0, "impacts": 2}
     assert data["npcDodged"] == {"hits": 0, "hurtCalls": 0, "impacts": 2}
     assert data["npcArrival"] == {"hits": 1, "hurtCalls": 1, "impacts": 3}
