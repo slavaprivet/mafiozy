@@ -45488,17 +45488,24 @@ function drawDropZone() {
   // 4 угла зоны (в координатах тайл). Зона узкая 3×5 — раньше была 8×8
   // и закрашивала всю плиточную площадь порта («пляж»), теперь оставляет
   // её видимой. Заливка ещё прозрачнее (×0.20 вместо ×0.45).
-  const a = w2s(DROP_ZONE.r0, DROP_ZONE.c0);
-  const b = w2s(DROP_ZONE.r0, DROP_ZONE.c1);
-  const c = w2s(DROP_ZONE.r1, DROP_ZONE.c1);
-  const d = w2s(DROP_ZONE.r1, DROP_ZONE.c0);
+  const stage = document.getElementById('stage');
+  const cx = stage.clientWidth / 2;
+  const cy = stage.clientHeight / 2;
+  const ax = cx + (DROP_ZONE.c0 - DROP_ZONE.r0) * TS * 0.5 - cam.x;
+  const ay = cy + (DROP_ZONE.c0 + DROP_ZONE.r0) * TS * 0.5 * ISO_Y - cam.y;
+  const bx = cx + (DROP_ZONE.c1 - DROP_ZONE.r0) * TS * 0.5 - cam.x;
+  const by = cy + (DROP_ZONE.c1 + DROP_ZONE.r0) * TS * 0.5 * ISO_Y - cam.y;
+  const cx2 = cx + (DROP_ZONE.c1 - DROP_ZONE.r1) * TS * 0.5 - cam.x;
+  const cy2 = cy + (DROP_ZONE.c1 + DROP_ZONE.r1) * TS * 0.5 * ISO_Y - cam.y;
+  const dx = cx + (DROP_ZONE.c0 - DROP_ZONE.r1) * TS * 0.5 - cam.x;
+  const dy = cy + (DROP_ZONE.c0 + DROP_ZONE.r1) * TS * 0.5 * ISO_Y - cam.y;
   const t = performance.now() * 0.001;
   const pulse = 0.32 + Math.sin(t * 1.8) * 0.10;
   ctx.save();
   ctx.fillStyle = `rgba(255,215,107,${pulse * 0.20})`;
   ctx.beginPath();
-  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-  ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
+  ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+  ctx.lineTo(cx2, cy2); ctx.lineTo(dx, dy);
   ctx.closePath();
   ctx.fill();
   // Рамка ярче чем заливка — чтобы границы было видно, но фон не пропал
@@ -45506,23 +45513,25 @@ function drawDropZone() {
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 4]);
   ctx.beginPath();
-  ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y);
-  ctx.lineTo(d.x, d.y); ctx.closePath();
+  ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx2, cy2);
+  ctx.lineTo(dx, dy); ctx.closePath();
   ctx.stroke();
   ctx.setLineDash([]);
   ctx.restore();
   // Иконка $ в центре зоны (над тайлами)
-  const mid = w2s((DROP_ZONE.r0 + DROP_ZONE.r1) / 2,
-                  (DROP_ZONE.c0 + DROP_ZONE.c1) / 2);
+  const midR = (DROP_ZONE.r0 + DROP_ZONE.r1) / 2;
+  const midC = (DROP_ZONE.c0 + DROP_ZONE.c1) / 2;
+  const midX = cx + (midC - midR) * TS * 0.5 - cam.x;
+  const midY = cy + (midC + midR) * TS * 0.5 * ISO_Y - cam.y;
   const bob = Math.sin(t * 2.5) * 3;
   ctx.font = 'bold 22px system-ui, "Segoe UI Emoji", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd76b';
   ctx.shadowColor = '#000'; ctx.shadowBlur = 8;
-  ctx.fillText('💰', mid.x, mid.y + bob);
+  ctx.fillText('💰', midX, midY + bob);
   ctx.font = 'bold 10px system-ui, sans-serif';
   ctx.fillStyle = '#ffe890';
-  ctx.fillText('СДАЧА', mid.x, mid.y + 14);
+  ctx.fillText('СДАЧА', midX, midY + 14);
   ctx.shadowBlur = 0;
   ctx.textAlign = 'left';
 }
