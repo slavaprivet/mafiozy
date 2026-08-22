@@ -52626,6 +52626,7 @@ function drawSkidMarks() {
 // ── Дым выхлопа и пробуксовки ────────────────────────────────────────
 function drawExhaustPuffs() {
   const now = performance.now();
+  let centerX = 0, centerY = 0, projectionReady = false;
   ctx.save();
   for (let i = exhaustPuffs.length - 1; i >= 0; i--) {
     const p = exhaustPuffs[i];
@@ -52639,7 +52640,15 @@ function drawExhaustPuffs() {
     // Растём в диаметре и затухаем
     p.rad = Math.min(p.rad * 1.01, 14);
     const a = Math.max(0, (p.life / p.max) * (p.isFire ? 0.9 : 0.55));
-    const pos = w2s(p.r + 0.5, p.c + 0.5);
+    const pr = p.r + 0.5, pc = p.c + 0.5;
+    if (!projectionReady) {
+      const stage = document.getElementById('stage');
+      centerX = stage.clientWidth / 2;
+      centerY = stage.clientHeight / 2;
+      projectionReady = true;
+    }
+    const px = centerX + (pc - pr) * TS * 0.5 - cam.x;
+    const py = centerY + (pc + pr) * TS * 0.5 * ISO_Y - cam.y;
     ctx.globalAlpha = a;
     ctx.fillStyle   = p.color + a.toFixed(2) + ')';
     if (p.isFire) {
@@ -52649,7 +52658,7 @@ function drawExhaustPuffs() {
       ctx.shadowBlur  = 0;
     }
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, p.rad * viewZoom, 0, Math.PI * 2);
+    ctx.arc(px, py, p.rad * viewZoom, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
