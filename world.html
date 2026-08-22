@@ -18334,6 +18334,9 @@ async function _recordNpcEmpireStreetAttack(leaderId,damage=1,now=performance.no
 }
 function _queueNpcEmpireBossHit(target,damage,weapon,dirY,dirX,hitNow=performance.now()){
   const leaderId=_empireLeaderIdOf(target);if(!leaderId||!QP.api||!QP.uid||target.dead)return;
+  const shotId=String(_authoritativeShotId||'');
+  if(!_reserveAuthoritativeTargetClaim(shotId))return;
+  _authoritativeRemoteSent=true;
   let session=_npcEmpireFieldSessions.get(leaderId);
   if(!session){session={token:'',expiresAt:0,shotContract:1,nextShotSeq:1,chain:Promise.resolve(),errorAt:0};_npcEmpireFieldSessions.set(leaderId,session);}
   const guarded=hitNow<(target._empireGuardedUntil||0),evasive=hitNow<(target._empireDecoyUntil||0)||hitNow<(target._empireHiddenUntil||0),doctrine=_empireDoctrineOf(target),mitigation=(guarded?(doctrine.id==='armored'?.48:.62):1)*(evasive?.55:1),effectiveDamage=Math.max(1,Math.round((+damage||1)*mitigation));
@@ -18342,26 +18345,28 @@ function _queueNpcEmpireBossHit(target,damage,weapon,dirY,dirX,hitNow=performanc
   _empireRecordIncoming(target,effectiveDamage,weapon,hitNow);_empireScatterSquad(target,player,hitNow);_markCombatBleeding(target,target.r,target.c,damage,dirY,dirX,weapon);
   const nr=target.r+(+dirY||0)*.07,nc=target.c+(+dirX||0)*.07;if(_npcBodyPassable(nr,nc,_empireBossPassable)){target.r=nr;target.c=nc;}
   session.chain=session.chain.then(async()=>{
-    if(target.dead)return;
+    if(target.dead){_sendWorldWeaponFire('empire_field_dead',shotId,shotWeapon);return;}
     try{
       if(!session.token||session.expiresAt<=Date.now()/1000){
-        const prepared=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/prepare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:leaderId,mode:'field'})}),pj=await prepared.json();
+        const prepared=await _apiRequest(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/prepare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:leaderId,mode:'field'})}),pj=await prepared.json();
         if(!prepared.ok||!pj?.ok)throw new Error(pj?.error||'field prepare');
         session.token=String(pj.token||'');session.expiresAt=+pj.expires_at||0;target._empireFieldToken=session.token;
         session.shotContract=Math.max(1,+pj.shot_contract||1);session.nextShotSeq=Math.max(1,+pj.next_shot_seq||1);
         target._empireBattleMaxHp=Math.max(1,+pj.boss?.max_hp||target._empireBattleMaxHp||1);target._empireBattleHp=Math.max(0,+pj.boss?.hp||0);
-        if(pj.proof_ready&&target._empireBattleHp<=0){_downEmpireCombatant(target,performance.now());return;}
+        if(pj.proof_ready&&target._empireBattleHp<=0){_downEmpireCombatant(target,performance.now());_sendWorldWeaponFire('empire_field_proof_dead',shotId,shotWeapon);return;}
       }
-      const shotSeq=session.nextShotSeq,hitPayload=session.shotContract>=2?{token:session.token,target:'boss',target_id:null,weapon:shotWeapon,hit_r:hitR,hit_c:hitC,shot_seq:shotSeq}:{token:session.token,target:'boss',target_id:null,damage:effectiveDamage};
-      let response=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(hitPayload)}),result=await response.json();
-      if(!response.ok&&(result?.error==='rate limit'||result?.error==='weapon shot rejected')){await new Promise(resolve=>setTimeout(resolve,125));response=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(hitPayload)});result=await response.json();}
+      const shotSeq=session.nextShotSeq,hitPayload=session.shotContract>=2?{token:session.token,target:'boss',target_id:null,weapon:shotWeapon,hit_r:hitR,hit_c:hitC,shot_seq:shotSeq,shot_id:shotId}:{token:session.token,target:'boss',target_id:null,weapon:shotWeapon,shot_id:shotId};
+      let response=await _apiRequest(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(hitPayload)}),result=await response.json();
+      if(!response.ok&&(result?.error==='rate limit'||result?.error==='weapon shot rejected')){await new Promise(resolve=>setTimeout(resolve,125));response=await _apiRequest(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(hitPayload)});result=await response.json();}
       if(!response.ok||!result?.ok)throw new Error(result?.error||'field hit');
       if(session.shotContract>=2)session.nextShotSeq=shotSeq+1;
+      _applyAuthoritativeAmmoState(result.ammo_state);
       const wasAlive=(+target._empireBattleHp||0)>0;target._empireBattleMaxHp=Math.max(1,+result.boss_max_hp||target._empireBattleMaxHp||1);target._empireBattleHp=Math.max(0,+result.boss_hp||0);target.hp=target._empireBattleHp;
       document.documentElement.dataset.empireBossServerHit=`${leaderId}:${Math.round(target._empireBattleHp)}:${session.token.slice(0,8)}`;
       if(wasAlive&&result.proof_ready&&target._empireBattleHp<=0)_downEmpireCombatant(target,performance.now());
     }catch(error){
       session.token='';session.expiresAt=0;target._empireFieldToken='';target._lastServerHitError=String(error?.message||'field hit failed');
+      _sendWorldWeaponFire('empire_field_fallback',shotId,shotWeapon);
       if(performance.now()-(session.errorAt||0)>1800){session.errorAt=performance.now();spawnFloatText(target.r-.45,target.c,'СЕРВЕР НЕ ПОДТВЕРДИЛ ПОПАДАНИЕ',{color:'#ff8d78',size:10,life:1500});}
     }
   });
@@ -19955,19 +19960,23 @@ function _drawNpcEmpireWeaponSignature(x,y,ang,id,scale=.9){
   ctx.shadowBlur=3;ctx.fillStyle=sig[1];ctx.strokeStyle='#080b10';ctx.lineWidth=2;ctx.font=`900 ${Math.max(7,8*scale)}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeText(sig[2],px,py);ctx.fillText(sig[2],px,py);ctx.restore();
 }
 
-async function _hitNpcEmpireAssaultNpc(npc,damage){
-  const bi=_buildingInt;if(!bi?.npcEmpireAssault||npc._serverHitPending||npc.dead)return;
+async function _hitNpcEmpireAssaultNpc(npc,damage,weapon=currentWeapon,shotId=_authoritativeShotId,claimReserved=false){
+  const ownsClaim=claimReserved||_reserveAuthoritativeTargetClaim(shotId);
+  if(!ownsClaim)return;
+  const bi=_buildingInt;if(!bi?.npcEmpireAssault||npc._serverHitPending||npc.dead){_sendWorldWeaponFire('empire_hq_fallback',shotId,weapon);return;}
+  _authoritativeRemoteSent=true;
   if(npc.npcEmpireBoss&&bi.npcs.some(n=>n.npcEmpireGuardId!=null&&!n.dead)){
-    spawnFloatText(npc.r,npc.c,'СНАЧАЛА ОХРАНА',{color:'#ffd36b',size:11,life:900});return;
+    spawnFloatText(npc.r,npc.c,'СНАЧАЛА ОХРАНА',{color:'#ffd36b',size:11,life:900});_sendWorldWeaponFire('empire_hq_guarded',shotId,weapon);return;
   }
   const guarded=performance.now()<(npc._guardedUntil||0),effectiveDamage=Math.max(1,Math.round((+damage||1)*(guarded ? .58 : 1)));
   const hitNow=performance.now();npc._serverHitPending=true;npc._hurtAt=hitNow;npc._hurtAnimUntil=hitNow+420;
   try{
     const target=npc.npcEmpireBoss?'boss':'guard';
-    const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_npcEmpireAssaultToken,target,target_id:npc.npcEmpireGuardId,damage:effectiveDamage})
+    const r=await _apiRequest(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/hit`,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_npcEmpireAssaultToken,target,target_id:npc.npcEmpireGuardId,weapon,shot_id:shotId})
     }),j=await r.json();
     if(!r.ok||!j?.ok)throw new Error(j?.error||'failed');
+    _applyAuthoritativeAmmoState(j.ammo_state);
     for(const guard of bi.npcs.filter(n=>n.npcEmpireGuardId!=null)){
       guard.hp=Math.max(0,+j.guards[guard.npcEmpireGuardId]||0);
       if(guard.hp<=0&&!guard.dead){guard.dead=true;guard.deadAt=performance.now();guard.walking=false;guard.walkPhase=0;guard._shotAt=0;_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:guard.r,c:guard.c,radius:5.5+Math.random()*2.5,life:14000,max:14000,rot:guard.ang||0});spawnFloatText(guard.r,guard.c,'УБИТ',{color:'#ff6969',size:14,life:1300});document.documentElement.dataset.npcHqGuardDeath=`falling:${guard.npcEmpireGuardId}:${Math.round(guard.deadAt)}`;}
@@ -19976,7 +19985,7 @@ async function _hitNpcEmpireAssaultNpc(npc,damage){
     spawnFloatText(npc.r,npc.c,guarded?`ЩИТ −${Math.min(35,effectiveDamage)}`:`-${Math.min(35,effectiveDamage)}`,{color:guarded?'#9fd4ff':'#ffca72',size:12,life:800});
     if(j.victory&&boss&&!boss.dead){boss.dead=true;boss.deadAt=performance.now();boss.walking=false;boss.walkPhase=0;boss._shotAt=0;_capArr(bloodSplats,_MAX_BLOOD);bloodSplats.push({r:boss.r,c:boss.c,radius:7.5+Math.random()*2.5,life:16000,max:16000,rot:boss.ang||0});document.documentElement.dataset.npcHqGuardDeath=`boss-falling:${boss.npcEmpireLeaderId}:${Math.round(boss.deadAt)}`;setTimeout(()=>{if(_buildingInt===bi)_showNpcEmpireVictory(bi.npcEmpireLeaderId);},1050);}
     else if(target==='guard'&&!bi.npcs.some(n=>n.npcEmpireGuardId!=null&&!n.dead))showEventBanner('⚔️ ОХРАНА УНИЧТОЖЕНА','Теперь можно атаковать босса',2200,'win');
-  }catch(e){if(String(e.message)!=='rate limit')showToast('Сервер не подтвердил попадание','⚠️',1300);}
+  }catch(e){_sendWorldWeaponFire('empire_hq_fallback',shotId,weapon);if(String(e.message)!=='rate limit')showToast('Сервер не подтвердил попадание','⚠️',1300);}
   finally{npc._serverHitPending=false;}
 }
 
@@ -20972,13 +20981,14 @@ function _updateGang(dt) {
         target: m.targetRef.id, weapon: m.weapon, member: i,
       } })); } catch(e) {}
     } else if (m.targetKind === 'world_cop') {
-      try { ws && ws.send(JSON.stringify({ t: 'cop_shoot', d: { target: m.targetRef.id, weapon: m.weapon } })); } catch(e) {}
+      try { ws && ws.send(JSON.stringify({ t: 'cop_shoot', d: { target: m.targetRef.id, weapon: m.weapon, member:i } })); } catch(e) {}
     } else if (m.targetKind === 'convoy') {
-      try { ws && ws.send(JSON.stringify({ t: 'event_shoot', d: { target: m.targetId, weapon: m.weapon } })); } catch(e) {}
+      try { ws && ws.send(JSON.stringify({ t: 'event_shoot', d: { target: m.targetId, weapon: m.weapon, member:i } })); } catch(e) {}
     } else if (m.targetKind === 'michael_guard') {
-      try { ws && ws.send(JSON.stringify({ t: 'mg_shoot', d: { target: m.targetId, weapon: m.weapon } })); } catch(e) {}
+      try { ws && ws.send(JSON.stringify({ t: 'mg_shoot', d: { target: m.targetId, weapon: m.weapon, member:i } })); } catch(e) {}
     } else if (m.targetKind === 'player') {
-      try { ws && ws.send(JSON.stringify({ t: 'player_shoot', d: { target_uid: m.targetId, weapon: m.weapon, shot_id:_newCombatEventId() } })); } catch(e) {}
+      // PvP companion damage needs a server-owned companion actor. Never
+      // masquerade it as the owner's trigger or spend the owner's magazine.
     }
     if(['bank_guard','interior_guard','city_cop','gang_car','street_npc'].includes(m.targetKind)){
       const killed=targetWasAlive&&!!(localTarget&&(localTarget.dead||localTarget.alive===false||(+localTarget.hp||0)<=0||localTarget._wrecked));
@@ -23759,6 +23769,23 @@ function handleEventPacket(d) {
       _autoLockThreat('convoy', d.shooter_id);
       if (d.killed) myDeathBy = 'Конвой инкассатора';
     }
+  } else if (kind === 'weapon_reload_reply' || kind === 'weapon_shot_reply') {
+    const ammoAdvanced=_applyAuthoritativeAmmoState(d.ammo_state);
+    if(kind==='weapon_shot_reply'&&d.ok&&ammoAdvanced)_maybeAutoReloadAfterServerShot();
+    if(kind==='weapon_shot_reply'&&!d.ok&&d.error==='no_round')showToast('Магазин пуст','⚠️',1200);
+    if(kind==='weapon_reload_reply'){
+      if(d.cancelled){
+        _reloadWeapon=null;_reloadUntil=0;_reloadActionId='';_stopReloadTicker();renderWeaponHud();
+      }else if(d.pending){
+        _reloadWeapon=resolveWeapon(d.weapon||currentWeapon);
+        _reloadUntil=performance.now()+Math.max(0,(+d.ready_at*1000)-Date.now());
+      }else{
+        const finished=resolveWeapon(d.weapon||_reloadWeapon||currentWeapon);
+        _reloadWeapon=null;_reloadUntil=0;_reloadActionId='';_stopReloadTicker();renderWeaponHud();
+        const st=_weaponAmmoState(finished);
+        if((st.cfg.mode==='pump'||st.id==='nagan')&&st.slot.mag<st.cfg.magSize&&st.reserve>0)reloadCurrentWeapon(false);
+      }
+    }
   } else if (kind === 'player_shot') {
     // Игрок выстрелил в конвой — пуля из конца ствола игрока к боссу/охране
     if (!worldEvent) return;
@@ -23781,6 +23808,9 @@ function handleEventPacket(d) {
       if (d.crit) spawnCriticalBlood(ty, tx, Math.sin(ang), Math.cos(ang));
     }
   } else if (kind === 'pvp_shot') {
+    if(String(d.shooter_uid)===String(QP.uid)){
+      if(_applyAuthoritativeAmmoState(d.ammo_state))_maybeAutoReloadAfterServerShot();
+    }
     // PvP: игрок стреляет в другого игрока (стартуем из конца ствола).
     {
       const ang = Math.atan2(d.ty - d.sy, d.tx - d.sx);
@@ -25494,7 +25524,8 @@ function handleEventPacket(d) {
   } else if (kind === 'gang_ammo_picked') {
     gangAmmoDrops.delete(String(d.loot_id||''));
     if(String(d.picker_uid)===String(QP.uid)){
-      const added=addAmmoPack(String(d.ammo_type||'9mm'),+d.rounds||0);
+      if(_serverAuthoritativeAmmo)_applyAuthoritativeAmmoState(d.ammo_state);
+      const added=_serverAuthoritativeAmmo?(+d.rounds||0):addAmmoPack(String(d.ammo_type||'9mm'),+d.rounds||0);
       const label=AMMO_TYPES[d.ammo_type]?.label||d.ammo_type||'патроны';
       showToast(added>0?`Подобрано: ${label} +${added}`:`Запас ${label} уже полный`,'📦',2200);
     }
@@ -26025,6 +26056,7 @@ async function wsConnect() {
       if (d.me) {
         const wasDead=myDead;
         _applyAuthoritativeCombatState(d.me.combat_state);
+        _applyAuthoritativeAmmoState(d.me.ammo_state);
         _apartmentHosts=Array.isArray(d.me.apartment_hosts)?d.me.apartment_hosts:[];
         if(typeof d.me.spray_cans==='number')_sprayCans=Math.max(0,d.me.spray_cans|0);
         // Внутри банка координаты — комнатные, не мировые → snap игнорируем.
@@ -31968,6 +32000,7 @@ const _shopCash = document.getElementById('shopCash');
 const _shopTitle = document.getElementById('shopTitle');
 let _shopTab = 'weapons';
 const _shopPurchasesPending = new Set();
+const _shopPurchaseIds = new Map();
 const BLACKMARKET_SELLERS = Object.freeze({
   blackmarket: {
     name:'Аркадий «Шрам» Мельников', short:'Аркадий «Шрам»',
@@ -32168,6 +32201,7 @@ async function loadInventoryItems() {
     const j=await r.json(); if(!j.ok||!Array.isArray(j.items))throw new Error('inventory');
     _inventoryItems=j.items;
     _applyAuthoritativeCombatState(j.combat_state);
+    _applyAuthoritativeAmmoState(j.ammo_state);
     _syncMyWeaponsFromInventory(_inventoryItems);
     _goodName=+j.good_name||0;_lostReturns=+j.lost_returns||0;_returnStreak=+j.return_streak||0;
     if(_LOCAL_PREVIEW) {
@@ -32247,16 +32281,21 @@ async function _buyShopItem(itemId) {
   }
   if(wanted?.type==='ammo'){
     const def=AMMO_TYPES[wanted.ammoType],now=Math.max(0,+_ammoState.reserve[wanted.ammoType]||0);
-    if(def&&now>=def.max){showToast(`Запас ${def.label} уже полный`,'📦',1500);return;}
+    if(def&&now+(+wanted.rounds||0)>def.max){showToast(`Для целой пачки ${def.label} не хватает места`,'📦',1700);return;}
   }
   _shopPurchasesPending.add(itemId);
   _renderShopItems();
+  const purchaseId=_shopPurchaseIds.get(itemId)||_newCombatEventId();
+  _shopPurchaseIds.set(itemId,purchaseId);
+  let terminalResponse=false;
   try {
     const r = await _apiRequest(`${QP.api}/shop/${QP.uid}/buy`, {
       method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ item_id: itemId, qty: 1 })
+      body: JSON.stringify({ item_id: itemId, qty: 1,
+        purchase_id:purchaseId })
     });
     const j = await r.json().catch(()=>({}));
+    terminalResponse=true;
     if (r.ok && j.ok) {
       const bought = wanted;
       if (j.cash !== undefined) {
@@ -32274,9 +32313,9 @@ async function _buyShopItem(itemId) {
         _syncMyWeaponsFromInventory(_inventoryItems);
       }
       if (bought.type === 'ammo') {
-        const added=addAmmoPack(j.ammo_type||bought.ammoType, +j.rounds||bought.rounds);
+        _applyAuthoritativeAmmoState(j.ammo_state);
         await loadInventoryItems();
-        showToast(`${bought.name}: +${added}`, '📦', 1600);
+        showToast(`${bought.name}: +${+j.rounds_added||0}`, '📦', 1600);
       } else if (bought.type === 'consumable') {
         await loadInventoryItems();
         showToast(bought.id==='c4' ? `${bought.name} куплен. В наличии: ${_myC4Count}` : `${bought.name} куплен`, bought.pic, 1900);
@@ -32297,8 +32336,9 @@ async function _buyShopItem(itemId) {
         : 'Ошибка: ' + j.error;
       showToast(msg, '❌', 1500);
     }
-  } catch(e) { showToast('Ошибка сети', '❌', 1500); }
+  } catch(e) { showToast('Ошибка сети · повтор безопасен', '❌', 1700); }
   finally{
+    if(terminalResponse)_shopPurchaseIds.delete(itemId);
     _shopPurchasesPending.delete(itemId);
     _renderShopItems();
   }
@@ -32656,6 +32696,8 @@ const AMMO_TYPES = {
 };
 const _ammoSaveKey = `mafiozi_weapon_ammo_v2_${QP.uid || 'guest'}`;
 let _ammoState = { reserve:{}, mags:{} };
+let _ammoVersion = -1;
+const _serverAuthoritativeAmmo = !_LOCAL_PREVIEW && !_worldDirectCombatDemo;
 const _ownerFullLoadout = String(QP.uid || '') === '453201199';
 const _ownerAmmoReserve = 9999;
 // Локальное превью — оружейный стенд для проверки всех поз и эффектов.
@@ -32663,16 +32705,16 @@ const _ownerAmmoReserve = 9999;
 const _localWeaponShowcase = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
 const _localCombatPreview = _localWeaponShowcase && _UP.has('cash');
 try {
-  const saved = JSON.parse(localStorage.getItem(_ammoSaveKey) || 'null');
+  const saved = _serverAuthoritativeAmmo ? null : JSON.parse(localStorage.getItem(_ammoSaveKey) || 'null');
   if (saved && saved.reserve && saved.mags) _ammoState = saved;
 } catch(e) {}
 for (const [ammoType, def] of Object.entries(AMMO_TYPES)) {
-  if (!Number.isFinite(+_ammoState.reserve[ammoType])) _ammoState.reserve[ammoType] = def.start;
+  if (!Number.isFinite(+_ammoState.reserve[ammoType])) _ammoState.reserve[ammoType] = _serverAuthoritativeAmmo ? 0 : def.start;
   _ammoState.reserve[ammoType] = Math.max(0, Math.min(def.max, +_ammoState.reserve[ammoType] || 0));
 }
 // Владелец входит с полным боезапасом: резерв и магазины всех стволов
 // восстанавливаются при каждой новой загрузке WebApp.
-if (_ownerFullLoadout) {
+if (_ownerFullLoadout && !_serverAuthoritativeAmmo) {
   for (const ammoType of Object.keys(AMMO_TYPES)) _ammoState.reserve[ammoType] = _ownerAmmoReserve;
   for (const [weapon, cfg] of Object.entries(WEAPON_FX_CFG)) {
     if (cfg.ammoType) _ammoState.mags[weapon] = { mag: cfg.magSize || 1 };
@@ -32686,12 +32728,13 @@ function _weaponAmmoState(weapon) {
   const id = resolveWeapon(weapon);
   const cfg = weaponProfile(id);
   if (!_ammoState.mags[id] || !Number.isFinite(+_ammoState.mags[id].mag)) {
-    _ammoState.mags[id] = { mag: cfg.magSize || 1 };
+    _ammoState.mags[id] = { mag: _serverAuthoritativeAmmo ? 0 : (cfg.magSize || 1) };
   }
   _ammoState.mags[id].mag = Math.max(0, Math.min(cfg.magSize || 1, +_ammoState.mags[id].mag || 0));
   return { id, cfg, slot:_ammoState.mags[id], reserve:Math.max(0, +_ammoState.reserve[cfg.ammoType] || 0) };
 }
 function _saveAmmoState() {
+  if (_serverAuthoritativeAmmo) return;
   try { localStorage.setItem(_ammoSaveKey, JSON.stringify(_ammoState)); } catch(e) {}
 }
 // Тестовый preview с ?cash=... используется для многократных боевых прогонов.
@@ -32712,7 +32755,7 @@ if (_localCombatPreview && currentWeapon) {
 // магазин и резерв. Это исправляет старое состояние 0/0, но не выдаёт патроны
 // повторно при каждой перезагрузке страницы.
 const _ammoEmergencyRecoveryKey = `mafiozi_ammo_emergency_recovery_v1_${QP.uid || 'guest'}`;
-if (currentWeapon && !['grenade','molotov','c4','taser'].includes(resolveWeapon(currentWeapon))) {
+if (!_serverAuthoritativeAmmo && currentWeapon && !['grenade','molotov','c4','taser'].includes(resolveWeapon(currentWeapon))) {
   const recoveryAmmo = _weaponAmmoState(currentWeapon);
   let recoveryUsed = false;
   try { recoveryUsed = localStorage.getItem(_ammoEmergencyRecoveryKey) === '1'; } catch(e) {}
@@ -32727,7 +32770,8 @@ if (currentWeapon && !['grenade','molotov','c4','taser'].includes(resolveWeapon(
   }
 }
 _saveAmmoState();
-let _reloadWeapon = null, _reloadUntil = 0, _reloadTicker = 0, _emptyAmmoToastAt = 0;
+let _reloadWeapon = null, _reloadUntil = 0, _reloadTicker = 0, _emptyAmmoToastAt = 0,
+    _reloadActionId = '';
 function _isReloadingWeapon(weapon) {
   return !!_reloadWeapon && _reloadWeapon === resolveWeapon(weapon) && performance.now() < _reloadUntil;
 }
@@ -32736,13 +32780,22 @@ function _stopReloadTicker() {
   _reloadTicker = 0;
 }
 function cancelWeaponReload() {
+  const cancelledId=_reloadActionId;
+  if(_serverAuthoritativeAmmo&&cancelledId){
+    try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'weapon_reload_cancel',d:{reload_id:cancelledId}}));}catch(e){}
+  }
   _reloadWeapon = null; _reloadUntil = 0;
+  _reloadActionId='';
   _stopReloadTicker();
   if (typeof renderWeaponHud === 'function') renderWeaponHud();
 }
 function _finishWeaponReload() {
   if (!_reloadWeapon) return;
   const weapon = _reloadWeapon;
+  if(_serverAuthoritativeAmmo){
+    try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'weapon_reload',d:{weapon,reload_id:_reloadActionId}}));}catch(e){}
+    return;
+  }
   const st = _weaponAmmoState(weapon);
   const need = Math.max(0, (st.cfg.magSize || 1) - st.slot.mag);
   // Дробовик и наган заряжаются по одному патрону: число в HUD растёт после
@@ -32786,10 +32839,14 @@ function reloadCurrentWeapon(manual = true) {
     return false;
   }
   _reloadWeapon = st.id;
+  _reloadActionId=_newCombatEventId();
   const reloadStepMs = (st.cfg.mode === 'pump' || st.id === 'nagan')
     ? Math.max(360, (st.cfg.reloadMs || 2550) / st.cfg.magSize)
     : (st.cfg.reloadMs || 1800);
   _reloadUntil = performance.now() + reloadStepMs;
+  if(_serverAuthoritativeAmmo){
+    try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'weapon_reload',d:{weapon:st.id,reload_id:_reloadActionId}}));}catch(e){}
+  }
   try { _weaponReloadSound(st.id,'start'); } catch(e) {}
   _stopReloadTicker();
   _reloadTicker = setInterval(() => {
@@ -32822,6 +32879,10 @@ function _spendWeaponRound() {
     }
     return false;
   }
+  // Authenticated play predicts only the trigger animation. The server is
+  // the sole writer of magazine/reserve and the next reply/snapshot carries
+  // a strictly newer ammo_version. Local preview and DEMO remain standalone.
+  if (_serverAuthoritativeAmmo) return true;
   st.slot.mag--;
   _saveAmmoState(); renderWeaponHud();
   if (st.slot.mag === 0 && st.reserve > 0) {
@@ -33154,18 +33215,38 @@ function _projectTargetOnRay(target, sR, sC, dirY, dirX, maxRange, extraRadius =
   return { along, perp };
 }
 
-function _sendRemoteWeaponHit(remote, weapon) {
-  if (!remote) return;
-  try {
-    if (remote.kind === 'event') ws && ws.send(JSON.stringify({ t:'event_shoot', d:{ target:remote.id, weapon } }));
-    else if (remote.kind === 'cop') ws && ws.send(JSON.stringify({ t:'cop_shoot', d:{ target:remote.id, weapon } }));
-    else if (remote.kind === 'aggro') _sendAggroWeaponHit(remote.id, weapon);
-    else if (remote.kind === 'mg') ws && ws.send(JSON.stringify({ t:'mg_shoot', d:{ target:remote.id, weapon } }));
-    else if (remote.kind === 'player') ws && ws.send(JSON.stringify({ t:'player_shoot', d:{ target_uid:remote.id, weapon, shot_id:_newCombatEventId() } }));
-  } catch(e) {}
+let _authoritativeShotId = '';
+let _authoritativeRemoteSent = false;
+const _authoritativeTargetClaims = new Set();
+function _reserveAuthoritativeTargetClaim(shotId){
+  const id=String(shotId||'');if(!_serverAuthoritativeAmmo||!id)return true;
+  if(_authoritativeTargetClaims.has(id))return false;
+  _authoritativeTargetClaims.add(id);setTimeout(()=>_authoritativeTargetClaims.delete(id),15000);
+  return true;
+}
+function _sendWorldWeaponFire(route = 'miss', shotId = _authoritativeShotId, firedWeapon = currentWeapon) {
+  if (!_serverAuthoritativeAmmo || !shotId || !ws || ws.readyState !== 1) return;
+  if(shotId===_authoritativeShotId)_authoritativeShotId='';
+  try { ws.send(JSON.stringify({t:'weapon_fire',d:{
+    shot_id:shotId,weapon:firedWeapon,route:String(route).slice(0,64),
+  }})); } catch(e) {}
 }
 
-function _sendAggroWeaponHit(targetId, weapon) {
+function _sendRemoteWeaponHit(remote, weapon) {
+  if (!remote) return;
+  if(!_reserveAuthoritativeTargetClaim(_authoritativeShotId))return false;
+  _authoritativeRemoteSent = true;
+  try {
+    if (remote.kind === 'event') ws && ws.send(JSON.stringify({ t:'event_shoot', d:{ target:remote.id, weapon, shot_id:_authoritativeShotId } }));
+    else if (remote.kind === 'cop') ws && ws.send(JSON.stringify({ t:'cop_shoot', d:{ target:remote.id, weapon, shot_id:_authoritativeShotId } }));
+    else if (remote.kind === 'aggro') _sendAggroWeaponHit(remote.id, weapon, _authoritativeShotId);
+    else if (remote.kind === 'mg') ws && ws.send(JSON.stringify({ t:'mg_shoot', d:{ target:remote.id, weapon, shot_id:_authoritativeShotId } }));
+    else if (remote.kind === 'player') ws && ws.send(JSON.stringify({ t:'player_shoot', d:{ target_uid:remote.id, weapon, shot_id:_authoritativeShotId } }));
+  } catch(e) {_sendWorldWeaponFire('remote_fallback',_authoritativeShotId,weapon);}
+  return true;
+}
+
+function _sendAggroWeaponHit(targetId, weapon, shotId = _authoritativeShotId) {
   if (!targetId || !ws || ws.readyState !== 1) return;
   // Проверка дальности и LOS выполняется сервером по последней известной
   // позиции игрока. Перед попаданием ставим в WS-очередь свежий input:
@@ -33181,7 +33262,7 @@ function _sendAggroWeaponHit(targetId, weapon) {
       }})); } catch(e) {}
     }
   ws.send(JSON.stringify({t:'aggro_shoot',d:{
-    target:String(targetId),weapon:weapon || currentWeapon,
+    target:String(targetId),weapon:weapon || currentWeapon,shot_id:shotId,
   }}));
 }
 
@@ -33277,6 +33358,31 @@ function _fireShotgunPellets(sR, sC, baseAng, range, remote) {
   // Искусственная остановка симуляции выглядела как лаг в момент выстрела.
   if (damageByTarget.size || damageByCar.size || remoteHit) hapticHit();
 }
+function _applyAuthoritativeAmmoState(raw){
+  if(!_serverAuthoritativeAmmo||!raw||typeof raw!=='object')return false;
+  const version=Math.max(0,+raw.ammo_version||0);
+  if(version<=_ammoVersion)return false;
+  const reserve={},mags={};
+  for(const [kind,def] of Object.entries(AMMO_TYPES))reserve[kind]=Math.max(0,Math.min(def.max,+raw.reserve?.[kind]||0));
+  for(const [weapon,cfg] of Object.entries(WEAPON_FX_CFG))if(cfg.ammoType)mags[weapon]={mag:Math.max(0,Math.min(cfg.magSize||1,+raw.mags?.[weapon]||0))};
+  _ammoState={reserve,mags};_ammoVersion=version;_saveAmmoState();
+  const active=raw.reloads?.[resolveWeapon(currentWeapon)];
+  if(active){
+    _reloadWeapon=resolveWeapon(currentWeapon);_reloadActionId=String(active.id||'');
+    _reloadUntil=performance.now()+Math.max(0,(+active.ready_at*1000)-Date.now());
+    _stopReloadTicker();_reloadTicker=setInterval(()=>{if(_reloadWeapon&&performance.now()>=_reloadUntil)_finishWeaponReload();},80);
+  }
+  if(typeof renderWeaponHud==='function')renderWeaponHud();
+  return true;
+}
+
+function _maybeAutoReloadAfterServerShot(){
+  if(!_serverAuthoritativeAmmo)return;
+  const st=_weaponAmmoState(currentWeapon);
+  if(st.slot.mag<=0&&st.reserve>0&&!_isReloadingWeapon(st.id)){
+    setTimeout(()=>reloadCurrentWeapon(false),160);
+  }
+}
 
 function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
   const cfg = weaponProfile(weapon);
@@ -33324,7 +33430,7 @@ function _firePenetratingRound(sR, sC, dirY, dirX, range, weapon, remote) {
   }
 }
 
-function _spawnRpgExplosion(r, c, remote, firedWeapon) {
+function _spawnRpgExplosion(r, c, remote, firedWeapon, shotId) {
   const cfg = weaponProfile('rpg');
   const radius = 2.7;
   const pooled3D=_usesPooled3DFx();
@@ -33357,12 +33463,15 @@ function _spawnRpgExplosion(r, c, remote, firedWeapon) {
     for (let i = 0; i < 9; i++) spawnSmokePuff(r + (Math.random()-.5)*0.8, c + (Math.random()-.5)*0.8, Math.random()*Math.PI*2);
     _spawnBulletWallImpact(r, c, 'rpg');
   }
-  _damageCasinoPropsInRadius(r,c,radius,'rpg');
+  let authoritativeTarget=_damageCasinoPropsInRadius(r,c,radius,'rpg',shotId)>0;
   for (const t of _localBallisticTargets(firedWeapon)) {
     const d = Math.hypot(t.r-r, t.c-c);
     if (d > radius) continue;
     const dmg = _currentShotDamage(Math.max(8, Math.round(cfg.dmg * (1 - d/radius*0.72))));
-    t.hit(dmg, d > 0.01 ? (t.r-r)/d : 0, d > 0.01 ? (t.c-c)/d : 1);
+    const reservedBefore=_authoritativeTargetClaims.has(String(shotId||''));
+    const pendingId=_authoritativeShotId;_authoritativeShotId=shotId;
+    try{t.hit(dmg, d > 0.01 ? (t.r-r)/d : 0, d > 0.01 ? (t.c-c)/d : 1);}finally{_authoritativeShotId=pendingId;}
+    if(!reservedBefore&&_authoritativeTargetClaims.has(String(shotId||'')))authoritativeTarget=true;
     spawnImpact(t.r, t.c, 'rpg');
     _showCurrentShotCritical(t.r, t.c, d > 0.01 ? (t.r-r)/d : 0, d > 0.01 ? (t.c-c)/d : 1);
   }
@@ -33376,14 +33485,18 @@ function _spawnRpgExplosion(r, c, remote, firedWeapon) {
   }
   const selfD = Math.hypot(player.r-r, player.c-c);
   if (selfD < radius && !myDead) _hurtLocal(Math.max(6, Math.round(70*(1-selfD/radius))), 'взрыв РПГ');
-  if (remote && Math.hypot(remote.r-r, remote.c-c) <= radius) _sendRemoteWeaponHit(remote, firedWeapon);
+  if (remote && Math.hypot(remote.r-r, remote.c-c) <= radius){
+    const pendingId=_authoritativeShotId;_authoritativeShotId=shotId;
+    try{authoritativeTarget=_sendRemoteWeaponHit(remote, firedWeapon)||authoritativeTarget;}finally{_authoritativeShotId=pendingId;}
+  }
+  if(!authoritativeTarget)_sendWorldWeaponFire('rpg_world',shotId,firedWeapon);
   addShake(Math.max(2, 10 - Math.hypot(player.r-r, player.c-c)*2));
   hapticHit();
 }
 
 function _fireRpgRound(sR, sC, dirY, dirX, range, remote) {
   const cfg = weaponProfile('rpg');
-  const firedWeapon = currentWeapon;
+  const firedWeapon = currentWeapon,shotId=_authoritativeShotId;
   const wallD = _weaponWallDistance(sR, sC, dirY, dirX, range);
   let impactD = wallD;
   for (const t of _localBallisticTargets()) {
@@ -33396,7 +33509,7 @@ function _fireRpgRound(sR, sC, dirY, dirX, range, remote) {
   }
   const ir = sR + dirY*impactD, ic = sC + dirX*impactD;
   spawnBullet(sR, sC, ir, ic, { hit:true, fromPlayer:true, weapon:'rpg', thick:true });
-  _scheduleBallisticFx(impactD/(cfg.bulletSpeed||15)*1000, () => _spawnRpgExplosion(ir, ic, remote, firedWeapon));
+  _scheduleBallisticFx(impactD/(cfg.bulletSpeed||15)*1000, () => _spawnRpgExplosion(ir, ic, remote, firedWeapon,shotId));
 }
 
 function placeWorldC4(){
@@ -33605,6 +33718,8 @@ function fire(angle = null) {
   // Пуля списывается до расчёта попаданий: пустой магазин не создаёт ни
   // трассер, ни урон, ни тревогу. При нуле автоматически начинается reload.
   if (!_spendWeaponRound()) return;
+  _authoritativeShotId = _newCombatEventId();
+  _authoritativeRemoteSent = false;
   if(_inPrisonIslandRestrictedZone(player.r,player.c,1.15))_activatePrisonAssault(null,'armed-shot',now);
   document.documentElement.dataset.lastShotWeapon = resolvedShotWeapon;
   _shotCritical = _naganShotCrit || Math.random() < WEAPON_CRIT_CHANCE;
@@ -33951,22 +34066,26 @@ function fire(angle = null) {
       { hit:true, fromPlayer:true, weapon:currentWeapon });
     _hitGasPump(hitGasPump);
     triggerHitStop(20); addShake(2.5); hapticHit();
+    _sendWorldWeaponFire('gas_pump');
     return;
   }
   if(hitDamageableCar&&resolvedShotWeapon!=='shotgun'){
     spawnBullet(sR,sC,hitDamageableCar.point.r,hitDamageableCar.point.c,{hit:true,fromPlayer:true,weapon:currentWeapon,targetVehicleHit:hitDamageableCar});
     _damageCarByGun(hitDamageableCar,currentWeapon,_currentShotDamage(weaponDamageAt(currentWeapon,hitDamageableCar.dist)));
     addShake(wcfg.thick?2.2:1.1);hapticHit();
+    _sendWorldWeaponFire('vehicle');
     return;
   }
   // Эти классы полностью разрешают собственную баллистику и завершают
   // выстрел здесь, чтобы старый одноцелевой raycast не нанёс урон повторно.
   if (resolvedWeapon === 'shotgun') {
     _fireShotgunPellets(sR, sC, _shotAng, range, remoteBallistic);
+    if(!_authoritativeRemoteSent)_sendWorldWeaponFire('shotgun_world');
     return;
   }
   if (resolvedWeapon === 'nagan' || resolvedWeapon === 'rifle' || resolvedWeapon === 'sniper') {
     _firePenetratingRound(sR, sC, dirY, dirX, range, resolvedWeapon, remoteBallistic);
+    if(!_authoritativeRemoteSent)_sendWorldWeaponFire('penetrating_world');
     return;
   }
   if (resolvedWeapon === 'rpg') {
@@ -33995,6 +34114,8 @@ function fire(angle = null) {
       _currentShotDamage(weaponDamageAt(currentWeapon, hitI.dist)), currentWeapon,false,true);
     if(!delayedInteriorHit)_showCurrentShotCritical(hitI.point.r, hitI.point.c, dirY, dirX);
     triggerHitStop(wcfg.thick ? 35 : 18); addShake(wcfg.thick ? 3.5 : 2); hapticHit();
+    if(!delayedInteriorHit&&!hitI.npc?.majorGuard&&!hitI.npc?.majorBoss)_sendWorldWeaponFire('interior_npc');
+    else if(hitI.npc?.businessRaidSide)_sendWorldWeaponFire('business_raid');
     return;
   }
   const hitN  = (_meInJail || _bankInt || _buildingInt) ? null : (forcedNpcHit||_raycastNpc(sR, sC, dirY, dirX, range));
@@ -34014,6 +34135,7 @@ function fire(angle = null) {
     triggerHitStop(15);
     addShake(2);
     hapticHit();
+    _sendWorldWeaponFire('gang_car');
     return;
   }
   // Дистанция до серверной цели по линии огня
@@ -34028,7 +34150,7 @@ function fire(angle = null) {
     spawnImpact(hitB.point.r,hitB.point.c,currentWeapon);
     _hitBeachgoer(hitB.npc,dirY,dirX,_currentShotDamage(weaponDamageAt(currentWeapon,hitB.dist)));
     _showCurrentShotCritical(hitB.point.r, hitB.point.c, dirY, dirX);
-    triggerHitStop(wcfg.thick?35:18);addShake(wcfg.thick?3.5:2);hapticHit();return;
+    triggerHitStop(wcfg.thick?35:18);addShake(wcfg.thick?3.5:2);hapticHit();_sendWorldWeaponFire('beach_npc');return;
   }
   // Житель-декор на линии огня — приоритет если он ближе и обычного NPC,
   // и выбранной цели (стоит ровно перед стволом).
@@ -34042,6 +34164,7 @@ function fire(angle = null) {
     triggerHitStop(wcfg.thick ? 35 : 18);
     addShake(wcfg.thick ? 3.5 : 2);
     hapticHit();
+    _sendWorldWeaponFire('decor_npc');
     return;
   }
   const npcPriority = hitN && (!hitB || hitN.dist < hitB.dist)
@@ -34056,6 +34179,7 @@ function fire(angle = null) {
     triggerHitStop(wcfg.thick ? 35 : 18);
     addShake(wcfg.thick ? 3.5 : 2);
     hapticHit();
+    if(!hitN.npc?._empireBoss)_sendWorldWeaponFire('street_npc');
     return;
   }
   if (chosenConvoy) {
@@ -34063,7 +34187,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'event_shoot',
-        d: { target: chosenConvoy.id, weapon: currentWeapon } }));
+        d: { target: chosenConvoy.id, weapon: currentWeapon, shot_id:_authoritativeShotId } }));
     } catch(e) {}
     return;
   }
@@ -34072,7 +34196,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'cop_shoot',
-        d: { target: chosenCop.id, weapon: currentWeapon } }));
+        d: { target: chosenCop.id, weapon: currentWeapon, shot_id:_authoritativeShotId } }));
     } catch(e) {}
     return;
   }
@@ -34082,13 +34206,14 @@ function fire(angle = null) {
     spawnImpact(chosenCityCop.y, chosenCityCop.x, currentWeapon);
     hitCityCop(chosenCityCop.cop, dirY, dirX, _currentShotDamage(weaponDamageAt(currentWeapon, chosenCityCop.d)));
     _showCurrentShotCritical(chosenCityCop.y, chosenCityCop.x, dirY, dirX);
+    _sendWorldWeaponFire('client_city_cop');
     return;
   }
   if (chosenAggro) {
     spawnBullet(sR, sC, chosenAggro.y, chosenAggro.x,
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
-      _sendAggroWeaponHit(chosenAggro.id, currentWeapon);
+      _sendAggroWeaponHit(chosenAggro.id, currentWeapon, _authoritativeShotId);
     } catch(e) {}
     return;
   }
@@ -34097,7 +34222,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'mg_shoot',
-        d: { target: chosenMg.id, weapon: currentWeapon } }));
+        d: { target: chosenMg.id, weapon: currentWeapon, shot_id:_authoritativeShotId } }));
     } catch(e) {}
     return;
   }
@@ -34107,6 +34232,7 @@ function fire(angle = null) {
     spawnImpact(chosenBankGuard.y, chosenBankGuard.x, currentWeapon);
     _hitBankGuard(chosenBankGuard.npc, dirY, dirX, _currentShotDamage(weaponDamageAt(currentWeapon, chosenBankGuard.d)));
     _showCurrentShotCritical(chosenBankGuard.y, chosenBankGuard.x, dirY, dirX);
+    _sendWorldWeaponFire('bank_guard');
     return;
   }
   if (pvpTarget) {
@@ -34114,7 +34240,7 @@ function fire(angle = null) {
       { hit: true, fromPlayer: true, weapon: currentWeapon });
     try {
       ws && ws.send(JSON.stringify({ t: 'player_shoot',
-        d: { target_uid: pvpTarget.uid, weapon: currentWeapon, shot_id:_newCombatEventId() } }));
+        d: { target_uid: pvpTarget.uid, weapon: currentWeapon, shot_id:_authoritativeShotId } }));
     } catch(e) {}
     return;
   }
@@ -34127,6 +34253,7 @@ function fire(angle = null) {
     const delay = range / (wcfg.bulletSpeed || 26) * 1000;
     _scheduleBallisticFx(delay, () => _spawnBulletWallImpact(sR + dirY*range, sC + dirX*range, resolvedWeapon));
   }
+  _sendWorldWeaponFire('miss');
 }
 // ── Удар кулаком (без оружия) ────────────────────────────────────────
 const PUNCH_CD_MS   = 700;    // кд между ударами
@@ -51808,7 +51935,7 @@ function _damageGangBotsInThrowable(r,c,radius,weapon){
     if(Math.hypot((+bot.y||0)-r,(+bot.x||0)-c)>=radius)continue;
     sent.add(id);
     try{ws.send(JSON.stringify({t:'aggro_shoot',d:{
-      target:id,weapon,fire_x:+c,fire_y:+r
+      target:id,weapon,fire_x:+c,fire_y:+r,shot_id:_authoritativeShotId
     }}))}catch(e){}
   }
 }
@@ -58141,7 +58268,8 @@ function _updateInteriorNpcs(bi, dt) {
           const muzzle=_npcMuzzleWorldPoint(n.r,n.c,n.ang,n.weapon,.88);
           spawnMuzzle(muzzle.r,muzzle.c,n.ang,n.weapon,true);
           spawnBullet(muzzle.r,muzzle.c,target.y,target.x,{hit:true,fromNpc:true,weapon:n.weapon});
-          try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'player_shoot',d:{target_uid:target.uid,weapon:n.weapon,shot_id:_newCombatEventId()}}));}catch(e){}
+          // Damage is visual-only until this guard has a server-owned actor;
+          // never submit an NPC shot as the owning player's authenticated shot.
         }
       }else {
         // В мирное время нанятая охрана обходит зал, останавливается у постов
@@ -58285,25 +58413,27 @@ function _raycastInteriorNpc(sR, sC, dirY, dirX, range, weapon = currentWeapon) 
   return best;
 }
 
-function _queuePlayerInteriorBallisticHit(bi,npc,dirY,dirX,damage,weapon){
+function _queuePlayerInteriorBallisticHit(bi,npc,dirY,dirX,damage,weapon,shotId=_authoritativeShotId){
+  const claimReserved=_reserveAuthoritativeTargetClaim(shotId);if(!claimReserved)return 0;
+  _authoritativeRemoteSent=true;
   const targetR=+npc.r,targetC=+npc.c,ang=Math.atan2(+dirY||0,+dirX||0),md=weaponMuzzleD(weapon,.95),muzzleR=+player.r+Math.sin(ang)*md,muzzleC=+player.c+Math.cos(ang)*md,dist=Math.hypot(targetR-muzzleR,targetC-muzzleC),baseSpeed=+weaponProfile(weapon).bulletSpeed||BULLET_SPEED,visualSpeed=Math.min(baseSpeed,Math.max(1.2,dist/.13)),flightMs=Math.max(80,dist/Math.max(.1,visualSpeed)*1000);
   _scheduleBallisticFx(flightMs,()=>{
-    if(_buildingInt!==bi||npc.dead||!(bi.npcs||[]).includes(npc)||Math.hypot((+npc.r||0)-targetR,(+npc.c||0)-targetC)>.72)return;
-    spawnImpact(+npc.r,+npc.c,weapon);_showCurrentShotCritical(+npc.r,+npc.c,dirY,dirX);_hitInteriorNpc(npc,dirY,dirX,damage,weapon,false,false,true);
+    if(_buildingInt!==bi||npc.dead||!(bi.npcs||[]).includes(npc)||Math.hypot((+npc.r||0)-targetR,(+npc.c||0)-targetC)>.72){_sendWorldWeaponFire('interior_ballistic_fallback',shotId,weapon);return;}
+    spawnImpact(+npc.r,+npc.c,weapon);_showCurrentShotCritical(+npc.r,+npc.c,dirY,dirX);_hitInteriorNpc(npc,dirY,dirX,damage,weapon,false,false,true,shotId,claimReserved);
     document.documentElement.dataset.playerInteriorBallisticImpact=`${String(npc.id||npc.raidRosterId||'target')}:${weapon}:${Math.round(flightMs)}`;
   });
   return flightMs;
 }
-function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTick = false, playerBallistic = false, arrivalApplied = false) {
+function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTick = false, playerBallistic = false, arrivalApplied = false, shotId = _authoritativeShotId, claimReserved = false) {
   if (!npc || npc.dead || !_buildingInt) return;
   const arrivalTarget=!!(npc.businessRaidSide&&_buildingInt.businessInteriorRaid)||!!(_buildingInt.type==='npc_hq'&&_buildingInt.npcEmpireAssault&&(npc.npcEmpireBoss||npc.npcEmpireGuardId!=null));
-  if(playerBallistic&&arrivalTarget&&!arrivalApplied){_queuePlayerInteriorBallisticHit(_buildingInt,npc,dirY,dirX,damage,weapon);return;}
+  if(playerBallistic&&arrivalTarget&&!arrivalApplied){_queuePlayerInteriorBallisticHit(_buildingInt,npc,dirY,dirX,damage,weapon,shotId);return;}
   if(npc.businessRaidSide&&_buildingInt.businessInteriorRaid){
     _damageBusinessRaidNpc(_buildingInt,_buildingInt.businessInteriorRaid,npc,damage,'player');return;
   }
   if (_buildingInt.type === 'npc_hq' && _buildingInt.npcEmpireAssault &&
       (npc.npcEmpireBoss || npc.npcEmpireGuardId != null)) {
-    _hitNpcEmpireAssaultNpc(npc, damage);
+    _hitNpcEmpireAssaultNpc(npc, damage, weapon, shotId, claimReserved);
     return;
   }
   if(!burnTick&&(weapon==='molotov'||weapon==='molotov_fire'))
@@ -58315,11 +58445,14 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTi
       ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'aggro_shoot',d:{
         biz_id:_buildingInt.bizId,nest_id:_buildingInt.businessOccupationId,
         target:npc.serverId,weapon:weapon||currentWeapon,interior_business:true,
+        shot_id:_authoritativeShotId,
       }}));
     } catch(e) {}
     return;
   }
   if (_majorInteriorObjectId && npc.majorGuard) {
+    if(!claimReserved&&!_reserveAuthoritativeTargetClaim(shotId))return;
+    _authoritativeRemoteSent=true;
     const alertNow = performance.now();
     npc._hurtAnimUntil = alertNow + 420;
     if (_majorRaidLocal) _majorRaidLocal.combatStarted = true;
@@ -58340,22 +58473,25 @@ function _hitInteriorNpc(npc, dirY, dirX, damage, weapon = currentWeapon, burnTi
       ws && ws.readyState === 1 && ws.send(JSON.stringify({
         t:'major_guard_hit',
         d:{object_id:_majorInteriorObjectId, guard_id:npc.id,
-           weapon:weapon || currentWeapon,
+           weapon:weapon || currentWeapon, shot_id:shotId,
            damage:Math.max(1, Math.round(damage || 1))},
       }));
     } catch(e) {}
     return;
   }
   if (_majorInteriorObjectId && npc.majorBoss) {
+    if(!claimReserved&&!_reserveAuthoritativeTargetClaim(shotId))return;
+    _authoritativeRemoteSent=true;
     if (Math.hypot(player.r-npc.r, player.c-npc.c) > 3.4) {
       showToast('Подойди к главарю ближе, чтобы заставить его уступить', '🕴️', 1800);
+      _sendWorldWeaponFire('major_boss_too_far',shotId,weapon);
       return;
     }
     npc._hurtAnimUntil = performance.now() + 420;
     try {
       ws && ws.readyState === 1 && ws.send(JSON.stringify({
         t:'major_boss_pressure',
-        d:{object_id:_majorInteriorObjectId},
+        d:{object_id:_majorInteriorObjectId,weapon:weapon || currentWeapon,shot_id:shotId},
       }));
     } catch(e) {}
     return;
@@ -59347,21 +59483,26 @@ function _raycastCasinoProp(sR,sC,dirY,dirX,maxRange) {
   return best;
 }
 
-function _hitCasinoProp(prop,weapon,impactR=prop?.r,impactC=prop?.c) {
-  if(!prop||!_casinoPropAlive(prop.id)||!ws||ws.readyState!==1)return;
+function _hitCasinoProp(prop,weapon,impactR=prop?.r,impactC=prop?.c,shotId=_authoritativeShotId) {
+  if(!prop||!_casinoPropAlive(prop.id)||!ws||ws.readyState!==1)return false;
+  if(!_reserveAuthoritativeTargetClaim(shotId))return false;
+  _authoritativeRemoteSent=true;
   sendInput(true);
   try{ws.send(JSON.stringify({t:'major_prop_hit',d:{
     object_id:'casino',prop_id:prop.id,weapon:weapon||currentWeapon,
+    shot_id:shotId,
     impact_r:+(+impactR||0).toFixed(2),impact_c:+(+impactC||0).toFixed(2),
-  }}));}catch(e){}
+  }}));return true;}catch(e){_sendWorldWeaponFire('casino_prop_fallback',shotId,weapon);return false;}
 }
 
-function _damageCasinoPropsInRadius(r,c,radius,weapon) {
-  if(_buildingInt?.bizId!=='major_casino')return;
+function _damageCasinoPropsInRadius(r,c,radius,weapon,shotId=_authoritativeShotId) {
+  if(_buildingInt?.bizId!=='major_casino')return 0;
+  let hits=0;
   for(const prop of MAJOR_CASINO_STATIC_BLOCKERS){
     if(_casinoPropAlive(prop.id)&&Math.hypot(prop.r-r,prop.c-c)<=radius+
-       Math.max(prop.w,prop.d)*.3)_hitCasinoProp(prop,weapon,r,c);
+       Math.max(prop.w,prop.d)*.3&&_hitCasinoProp(prop,weapon,r,c,shotId))hits++;
   }
+  return hits;
 }
 
 function _spawnCasinoPropDestruction(prop) {

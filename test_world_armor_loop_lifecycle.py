@@ -142,6 +142,9 @@ class WorldArmorLoopLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_pvp_same_shot_replays_before_weapon_cooldown(self):
         await self.add_character(8082010)
         await self.add_character(8082011)
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("INSERT INTO weapon_ammo(telegram_id,weapon_key,magazine,version) VALUES(8082010,'pistol',1,1)")
+            await db.commit()
         world = bot.WorldSim()
         for index, uid in enumerate(("8082010", "8082011")):
             world.add_or_update(uid, f"P{uid}", {}, mode="pvp")
@@ -165,6 +168,9 @@ class WorldArmorLoopLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_stale_receipt_replay_never_rolls_live_state_backward(self):
         await self.add_character(8082020)
         await self.add_character(8082021)
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute("INSERT INTO weapon_ammo(telegram_id,weapon_key,magazine,version) VALUES(8082020,'pistol',1,1)")
+            await db.commit()
         world = bot.WorldSim()
         for index, uid in enumerate(("8082020", "8082021")):
             world.add_or_update(uid, f"P{uid}", {}, mode="pvp")

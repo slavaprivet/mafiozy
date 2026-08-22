@@ -62,8 +62,8 @@ class ArmorAuthoritySourceContractTests(unittest.TestCase):
         start = BOT_SOURCE.index("async def apply_player_shoot")
         end = BOT_SOURCE.index("def _in_pvp_zone", start)
         block = BOT_SOURCE[start:end]
-        self.assertIn("get_damage_event_receipt", block)
-        self.assertIn("cached.get('raw_damage')", block)
+        self.assertIn("get_weapon_shot_receipt", block)
+        self.assertIn("saved['damage'].get('raw_damage')", block)
         self.assertNotIn("get('body_damage')", block)
 
 

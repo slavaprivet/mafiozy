@@ -3,6 +3,7 @@ import logging
 import math
 import random
 import time
+import sqlite3
 import aiosqlite
 import json
 import urllib.parse
@@ -69,6 +70,7 @@ if _token_src != _BOT_TOKEN_FILE:
 
 DB_PATH = os.path.join(os.environ.get("DB_DIR", ""), "mafiozi.db")
 _SYNC_WORLD_HARNESS = contextvars.ContextVar('sync_world_harness', default=False)
+_DAMAGE_TX_DB = contextvars.ContextVar('damage_tx_db', default=None)
 
 # Telegram WebApp actor binding. HTTP handlers verify initData directly; the
 # world websocket receives a short-lived token minted only after that check.
@@ -979,6 +981,22 @@ WEAPON_ITEM_CLASSES = {
     "sniper": "sniper", "rpg": "rpg",
     "golden_colt": "pistol_gold", "tommy_gun": "tommy_gun",
 }
+WEAPON_MAG_SIZE = {
+    "pistol": 12, "nagan": 6, "revolver": 6, "pistol_heavy": 7,
+    "pistol_gold": 15, "shotgun": 6, "smg": 30, "tommy_gun": 40,
+    "golden_tommy": 40, "rifle": 30, "sniper": 5, "rpg": 1,
+}
+AMMO_LIMITS = {
+    "9mm": 240, "magnum": 72, "shell": 72,
+    "rifle": 180, "sniper": 30, "rocket": 6,
+}
+WEAPON_RELOAD_S = {
+    "pistol": 1.40, "nagan": 0.36, "revolver": 2.25,
+    "pistol_heavy": 1.90, "pistol_gold": 1.35, "shotgun": 0.41,
+    "smg": 1.80, "tommy_gun": 2.10, "golden_tommy": 2.10,
+    "rifle": 2.05, "sniper": 2.65, "rpg": 1.65,
+}
+SHELL_RELOAD_WEAPONS = frozenset({"nagan", "shotgun"})
 
 # Персональный набор владельца проекта. Восстанавливается при загрузке
 # инвентаря открытого мира и никогда не выдаётся остальным игрокам.
@@ -1239,6 +1257,56 @@ async def init_db():
             "CREATE INDEX IF NOT EXISTS ix_damage_events_created_at "
             "ON damage_events(created_at)"
         )
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS weapon_ammo (
+                telegram_id INTEGER NOT NULL,
+                weapon_key TEXT NOT NULL,
+                magazine INTEGER NOT NULL DEFAULT 0 CHECK(magazine>=0),
+                next_fire_at REAL NOT NULL DEFAULT 0,
+                reload_id TEXT NOT NULL DEFAULT '',
+                reload_ready_at REAL NOT NULL DEFAULT 0,
+                version INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (telegram_id,weapon_key)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS ammo_reserve (
+                telegram_id INTEGER NOT NULL,
+                ammo_type TEXT NOT NULL,
+                rounds INTEGER NOT NULL DEFAULT 0 CHECK(rounds>=0),
+                version INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (telegram_id,ammo_type)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS weapon_ammo_versions (
+                telegram_id INTEGER PRIMARY KEY,
+                version INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS weapon_shots (
+                shooter_uid INTEGER NOT NULL,
+                shot_id TEXT NOT NULL,
+                weapon_key TEXT NOT NULL,
+                weapon_generation TEXT NOT NULL,
+                target_kind TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                PRIMARY KEY (shooter_uid,shot_id)
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS ammo_purchase_events (
+                telegram_id INTEGER NOT NULL,
+                purchase_id TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                PRIMARY KEY (telegram_id,purchase_id)
+            )
+        """)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS active_battles (
                 telegram_id INTEGER PRIMARY KEY,
@@ -2196,7 +2264,10 @@ async def delete_account_profile(account_id: int, character_id: int) -> bool:
         tables = [row[0] for row in await (await db.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
         )).fetchall()]
-        identity_columns = {'telegram_id','owner_uid','player_id','user_id','leader_uid'}
+        identity_columns = {
+            'telegram_id','owner_uid','player_id','user_id','leader_uid',
+            'shooter_uid',
+        }
         for table in tables:
             if table in ('characters','account_characters'):
                 continue
@@ -2587,6 +2658,42 @@ async def equip_item_transaction(telegram_id: int, item_id: str | None,
             'equipped_armor': equipped[1]}
 
 
+class _NoOpSql:
+    def __await__(self):
+        async def done():
+            return None
+        return done().__await__()
+
+
+class _BorrowedDamageDb:
+    """Let the damage primitive join an already-open SQLite writer txn."""
+    def __init__(self, db):
+        object.__setattr__(self, '_db', db)
+
+    def __getattr__(self, name):
+        return getattr(self._db, name)
+
+    def __setattr__(self, name, value):
+        setattr(self._db, name, value)
+
+    def execute(self, sql, parameters=None):
+        if str(sql).strip().upper().startswith('BEGIN'):
+            return _NoOpSql()
+        return self._db.execute(sql, parameters or ())
+
+    async def commit(self):
+        return None
+
+    async def rollback(self):
+        return None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+
 async def _apply_damage_transaction_once(
         telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
         pre_armor_multiplier: float = 1.0,
@@ -2609,9 +2716,12 @@ async def _apply_damage_transaction_once(
     if raw and multiplier > 0:
         effective = max(1, effective)
 
-    async with aiosqlite.connect(DB_PATH) as db:
+    borrowed_db = _DAMAGE_TX_DB.get()
+    db_context = (_BorrowedDamageDb(borrowed_db) if borrowed_db is not None
+                  else aiosqlite.connect(DB_PATH))
+    async with db_context as db:
         db.row_factory = aiosqlite.Row
-        await db.execute('PRAGMA busy_timeout=75')
+        await db.execute('PRAGMA busy_timeout=2000')
         await db.execute('BEGIN IMMEDIATE')
         async with db.execute(
             "SELECT result_json FROM damage_events WHERE telegram_id=? AND event_id=?",
@@ -2710,6 +2820,12 @@ async def _apply_damage_transaction_once(
                  WHERE telegram_id=?""",
             (body_after, combat_version, respawn_at, uid),
         )
+        if body_after <= 0 and body_before > 0:
+            cancelled = await db.execute(
+                """UPDATE weapon_ammo SET reload_id='',reload_ready_at=0
+                   WHERE telegram_id=? AND reload_id<>''""", (uid,))
+            if int(cancelled.rowcount or 0) > 0:
+                await _bump_ammo_version_on_db(db, uid)
         result = {
             'event_id': stable_event_id,
             'kind': kind,
@@ -2772,7 +2888,7 @@ async def get_damage_event_receipt(telegram_id: int, event_id: str) -> dict | No
         return None
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        await db.execute('PRAGMA busy_timeout=75')
+        await db.execute('PRAGMA busy_timeout=2000')
         async with db.execute(
             "SELECT result_json FROM damage_events WHERE telegram_id=? AND event_id=?",
             (int(telegram_id), stable_event_id),
@@ -2783,6 +2899,508 @@ async def get_damage_event_receipt(telegram_id: int, event_id: str) -> dict | No
     result = json.loads(row['result_json'])
     result['replayed'] = True
     return result
+
+
+def _public_ammo_state(reserve_rows, weapon_rows, global_version: int = 0) -> dict:
+    reserve = {kind: 0 for kind in AMMO_LIMITS}
+    mags = {weapon: 0 for weapon in WEAPON_MAG_SIZE}
+    reloads = {}
+    version = max(0, int(global_version or 0))
+    for row in reserve_rows:
+        kind = str(row['ammo_type'])
+        if kind in reserve:
+            reserve[kind] = max(0, min(AMMO_LIMITS[kind], int(row['rounds'] or 0)))
+            version = max(version, int(row['version'] or 0))
+    for row in weapon_rows:
+        weapon = str(row['weapon_key'])
+        if weapon in mags:
+            mags[weapon] = max(0, min(WEAPON_MAG_SIZE[weapon], int(row['magazine'] or 0)))
+            version = max(version, int(row['version'] or 0))
+            reload_id = str(row['reload_id'] or '')
+            if reload_id and float(row['reload_ready_at'] or 0) > 0:
+                reloads[weapon] = {'id': reload_id,
+                                   'ready_at': float(row['reload_ready_at'] or 0)}
+    return {'reserve': reserve, 'mags': mags, 'reloads': reloads,
+            'ammo_version': version}
+
+
+async def _bump_ammo_version_on_db(db, telegram_id: int) -> int:
+    await db.execute("""INSERT INTO weapon_ammo_versions(telegram_id,version)
+        VALUES(?,1) ON CONFLICT(telegram_id) DO UPDATE SET version=version+1""",
+        (int(telegram_id),))
+    row = await (await db.execute(
+        "SELECT version FROM weapon_ammo_versions WHERE telegram_id=?",
+        (int(telegram_id),))).fetchone()
+    return int(row[0] or 0)
+
+
+async def _get_authoritative_ammo_state_on_db(db, telegram_id: int) -> dict:
+    db.row_factory = aiosqlite.Row
+    custody = await (await db.execute(
+        "SELECT hp FROM characters WHERE telegram_id=?",
+        (int(telegram_id),))).fetchone()
+    if custody and int(custody['hp'] or 0) <= 0:
+        cancelled = await db.execute("""UPDATE weapon_ammo
+            SET reload_id='',reload_ready_at=0 WHERE telegram_id=? AND reload_id<>''""",
+            (int(telegram_id),))
+        if int(cancelled.rowcount or 0) > 0:
+            await _bump_ammo_version_on_db(db, int(telegram_id))
+    existing = {str(row[0]) for row in await (await db.execute(
+        "SELECT ammo_type FROM ammo_reserve WHERE telegram_id=?",
+        (int(telegram_id),))).fetchall()}
+    for item_id, item in ITEMS.items():
+        ammo_type = str(item.get('ammo_type') or '')
+        if item.get('type') != 'ammo' or ammo_type in existing:
+            continue
+        legacy = await (await db.execute(
+            "SELECT quantity FROM inventory WHERE telegram_id=? AND item_id=?",
+            (int(telegram_id), item_id))).fetchone()
+        legacy_rounds = min(int(AMMO_LIMITS.get(ammo_type) or 0),
+                            max(0, int((legacy or [0])[0] or 0)) *
+                            max(0, int(item.get('rounds') or 0)))
+        if legacy_rounds:
+            await db.execute("""INSERT OR IGNORE INTO ammo_reserve
+                (telegram_id,ammo_type,rounds,version) VALUES(?,?,?,1)""",
+                (int(telegram_id), ammo_type, legacy_rounds))
+            existing.add(ammo_type)
+    reserve_rows = await (await db.execute(
+        "SELECT ammo_type,rounds,version FROM ammo_reserve WHERE telegram_id=?",
+        (int(telegram_id),))).fetchall()
+    weapon_rows = await (await db.execute(
+        """SELECT weapon_key,magazine,reload_id,reload_ready_at,version
+             FROM weapon_ammo WHERE telegram_id=?""",
+        (int(telegram_id),))).fetchall()
+    version_row = await (await db.execute(
+        "SELECT version FROM weapon_ammo_versions WHERE telegram_id=?",
+        (int(telegram_id),))).fetchone()
+    if not version_row:
+        inherited = max([int(row['version'] or 0) for row in reserve_rows] +
+                        [int(row['version'] or 0) for row in weapon_rows] + [0])
+        if inherited:
+            await db.execute("INSERT OR IGNORE INTO weapon_ammo_versions(telegram_id,version) VALUES(?,?)",
+                             (int(telegram_id), inherited))
+            version_row = (inherited,)
+    return _public_ammo_state(reserve_rows, weapon_rows,
+                              int((version_row or [0])[0] or 0))
+
+
+async def get_authoritative_ammo_state(telegram_id: int) -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        state = await _get_authoritative_ammo_state_on_db(db, int(telegram_id))
+        await db.commit()
+        return state
+
+
+async def get_weapon_shot_receipt(shooter_uid: int, shot_id: str) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        row = await (await db.execute("""SELECT weapon_key,weapon_generation,
+            target_kind,target_id,result_json FROM weapon_shots
+            WHERE shooter_uid=? AND shot_id=?""",
+            (int(shooter_uid), str(shot_id or '')[:96]))).fetchone()
+    if not row:
+        return None
+    return {key: row[key] for key in row.keys()}
+
+
+async def get_weapon_generation(shooter_uid: int, weapon: str) -> str:
+    key = weapon_balance.weapon_key(weapon)
+    async with aiosqlite.connect(DB_PATH) as db:
+        rows = await (await db.execute(
+            "SELECT id,item_id,quantity FROM inventory WHERE telegram_id=? ORDER BY id",
+            (int(shooter_uid),))).fetchall()
+    for row_id, item_id, quantity in rows:
+        if int(quantity or 0) > 0 and WEAPON_ITEM_CLASSES.get(str(item_id), str(item_id)) == key:
+            return f"inventory:{int(row_id)}"
+    return f"server-grant:{key}"
+
+
+async def purchase_ammo_transaction(telegram_id: int, item_id: str,
+                                    purchase_id: str, qty: int = 1) -> dict:
+    uid = int(telegram_id)
+    purchase_id = str(purchase_id or '').strip()[:96]
+    item_id = str(item_id or '')
+    item = ITEMS.get(item_id) or {}
+    if not purchase_id or item.get('type') != 'ammo':
+        return {'ok': False, 'error': 'bad_ammo_purchase'}
+    qty = max(1, min(99, int(qty or 1)))
+    purchase_binding = f"{item_id}:qty={qty}"
+    ammo_type = str(item.get('ammo_type') or '')
+    rounds = max(0, int(item.get('rounds') or 0)) * qty
+    maximum = int(AMMO_LIMITS.get(ammo_type) or 0)
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        replay = await (await db.execute(
+            """SELECT item_id,result_json FROM ammo_purchase_events
+                 WHERE telegram_id=? AND purchase_id=?""",
+            (uid, purchase_id))).fetchone()
+        if replay:
+            await db.commit()
+            if str(replay['item_id']) != purchase_binding:
+                return {'ok': False, 'error': 'purchase_conflict'}
+            result = json.loads(replay['result_json'])
+            result['replayed'] = True
+            return result
+        char = await (await db.execute(
+            'SELECT cash FROM characters WHERE telegram_id=?', (uid,))).fetchone()
+        if not char:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        row = await (await db.execute(
+            "SELECT rounds,version FROM ammo_reserve WHERE telegram_id=? AND ammo_type=?",
+            (uid, ammo_type))).fetchone()
+        before = max(0, int(row['rounds'] or 0)) if row else 0
+        if maximum <= 0 or before + rounds > maximum:
+            await db.rollback()
+            return {'ok': False, 'error': 'ammo_full', 'rounds': before,
+                    'maximum': maximum}
+        cost = int(item.get('price') or 0) * qty
+        cash = int(char['cash'] or 0)
+        if cash < cost:
+            await db.rollback()
+            return {'ok': False, 'error': 'no cash'}
+        version = await _bump_ammo_version_on_db(db, uid)
+        after = before + rounds
+        await db.execute('UPDATE characters SET cash=cash-? WHERE telegram_id=?',
+                         (cost, uid))
+        await db.execute("""INSERT INTO ammo_reserve
+            (telegram_id,ammo_type,rounds,version) VALUES(?,?,?,?)
+            ON CONFLICT(telegram_id,ammo_type) DO UPDATE SET
+              rounds=excluded.rounds,version=excluded.version""",
+            (uid, ammo_type, after, version))
+        ammo_state = await _get_authoritative_ammo_state_on_db(db, uid)
+        result = {'ok': True, 'item_id': item_id, 'ammo_type': ammo_type,
+                  'rounds_added': rounds, 'cash': cash - cost,
+                  'ammo_state': ammo_state, 'replayed': False}
+        await db.execute("""INSERT INTO ammo_purchase_events
+            (telegram_id,purchase_id,item_id,result_json,created_at)
+            VALUES(?,?,?,?,?)""",
+            (uid, purchase_id, purchase_binding,
+             json.dumps(result, ensure_ascii=False, separators=(',', ':')),
+             time.time()))
+        await db.commit()
+        return result
+
+
+async def grant_ammo_transaction(telegram_id: int, event_id: str,
+                                 ammo_type: str, rounds: int) -> dict:
+    """Idempotently credit server loot without trusting a client quantity."""
+    uid = int(telegram_id)
+    event_id = str(event_id or '').strip()[:96]
+    ammo_type = str(ammo_type or '')[:24]
+    rounds = max(0, int(rounds or 0))
+    maximum = int(AMMO_LIMITS.get(ammo_type) or 0)
+    if not event_id or not rounds or not maximum:
+        return {'ok': False, 'error': 'bad_ammo_grant'}
+    receipt_id = f"loot:{event_id}"[:96]
+    item_id = f"grant:{ammo_type}"
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        replay = await (await db.execute("""SELECT item_id,result_json
+            FROM ammo_purchase_events WHERE telegram_id=? AND purchase_id=?""",
+            (uid, receipt_id))).fetchone()
+        if replay:
+            await db.commit()
+            if str(replay['item_id']) != item_id:
+                return {'ok': False, 'error': 'grant_conflict'}
+            result = json.loads(replay['result_json'])
+            result['replayed'] = True
+            return result
+        row = await (await db.execute("""SELECT rounds,version FROM ammo_reserve
+            WHERE telegram_id=? AND ammo_type=?""", (uid, ammo_type))).fetchone()
+        before = max(0, int(row['rounds'] or 0)) if row else 0
+        added = min(rounds, max(0, maximum - before))
+        version = (await _bump_ammo_version_on_db(db, uid)
+                   if added else (int(row['version'] or 0) if row else 0))
+        if added:
+            await db.execute("""INSERT INTO ammo_reserve
+                (telegram_id,ammo_type,rounds,version) VALUES(?,?,?,?)
+                ON CONFLICT(telegram_id,ammo_type) DO UPDATE SET
+                  rounds=excluded.rounds,version=excluded.version""",
+                (uid, ammo_type, before + added, version))
+        state = await _get_authoritative_ammo_state_on_db(db, uid)
+        result = {'ok': True, 'event_id': event_id, 'ammo_type': ammo_type,
+                  'rounds_added': added, 'ammo_state': state, 'replayed': False}
+        await db.execute("""INSERT INTO ammo_purchase_events
+            (telegram_id,purchase_id,item_id,result_json,created_at)
+            VALUES(?,?,?,?,?)""", (uid, receipt_id, item_id,
+            json.dumps(result, ensure_ascii=False, separators=(',', ':')),
+            time.time()))
+        await db.commit()
+        return result
+
+
+async def weapon_reload_transaction(telegram_id: int, weapon: str,
+                                    reload_id: str, now: float | None = None) -> dict:
+    uid = int(telegram_id)
+    key = weapon_balance.weapon_key(weapon)
+    reload_id = str(reload_id or '').strip()[:96]
+    now = float(time.time() if now is None else now)
+    ammo_type = str(weapon_balance.WEAPON_AMMO.get(key) or '')
+    if not reload_id or key not in WEAPON_MAG_SIZE or ammo_type not in AMMO_LIMITS:
+        return {'ok': False, 'error': 'bad_reload'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        weapon_row = await (await db.execute(
+            """SELECT magazine,reload_id,reload_ready_at,version
+                 FROM weapon_ammo WHERE telegram_id=? AND weapon_key=?""",
+            (uid, key))).fetchone()
+        other_reload = await (await db.execute("""SELECT weapon_key FROM weapon_ammo
+            WHERE telegram_id=? AND weapon_key<>? AND reload_id<>''
+              AND reload_ready_at>0 LIMIT 1""", (uid, key))).fetchone()
+        if other_reload:
+            await db.rollback()
+            return {'ok': False, 'error': 'reload_conflict'}
+        reserve_row = await (await db.execute(
+            "SELECT rounds,version FROM ammo_reserve WHERE telegram_id=? AND ammo_type=?",
+            (uid, ammo_type))).fetchone()
+        magazine = max(0, int(weapon_row['magazine'] or 0)) if weapon_row else 0
+        reserve = max(0, int(reserve_row['rounds'] or 0)) if reserve_row else 0
+        active_id = str(weapon_row['reload_id'] or '') if weapon_row else ''
+        ready_at = float(weapon_row['reload_ready_at'] or 0) if weapon_row else 0.0
+        version = max(int(weapon_row['version'] or 0) if weapon_row else 0,
+                      int(reserve_row['version'] or 0) if reserve_row else 0)
+        if active_id and active_id != reload_id and ready_at <= 0:
+            active_id = ''
+        if active_id:
+            if active_id == reload_id and ready_at <= 0:
+                state = await _get_authoritative_ammo_state_on_db(db, uid)
+                await db.commit()
+                return {'ok': True, 'pending': False, 'replayed': True,
+                        'ammo_state': state}
+            if active_id != reload_id:
+                await db.rollback()
+                return {'ok': False, 'error': 'reload_conflict'}
+            if now < ready_at:
+                state = await _get_authoritative_ammo_state_on_db(db, uid)
+                await db.commit()
+                return {'ok': True, 'pending': True, 'ready_at': ready_at,
+                        'ammo_state': state}
+            take = min(1 if key in SHELL_RELOAD_WEAPONS else WEAPON_MAG_SIZE[key],
+                       WEAPON_MAG_SIZE[key] - magazine, reserve)
+            magazine += take
+            reserve -= take
+            version = await _bump_ammo_version_on_db(db, uid)
+            await db.execute("""UPDATE weapon_ammo SET magazine=?,reload_id=?,
+                reload_ready_at=-1,version=? WHERE telegram_id=? AND weapon_key=?""",
+                (magazine, reload_id, version, uid, key))
+            await db.execute("""INSERT INTO ammo_reserve
+                (telegram_id,ammo_type,rounds,version) VALUES(?,?,?,?)
+                ON CONFLICT(telegram_id,ammo_type) DO UPDATE SET
+                  rounds=excluded.rounds,version=excluded.version""",
+                (uid, ammo_type, reserve, version))
+            state = await _get_authoritative_ammo_state_on_db(db, uid)
+            await db.commit()
+            return {'ok': True, 'pending': False, 'ammo_state': state}
+        if magazine >= WEAPON_MAG_SIZE[key] or reserve <= 0:
+            state = await _get_authoritative_ammo_state_on_db(db, uid)
+            await db.rollback()
+            return {'ok': False, 'error': 'mag_full' if magazine >= WEAPON_MAG_SIZE[key]
+                    else 'no_ammo', 'ammo_state': state}
+        ready_at = now + float(WEAPON_RELOAD_S[key])
+        version = await _bump_ammo_version_on_db(db, uid)
+        await db.execute("""INSERT INTO weapon_ammo
+            (telegram_id,weapon_key,magazine,reload_id,reload_ready_at,version)
+            VALUES(?,?,?,?,?,?) ON CONFLICT(telegram_id,weapon_key) DO UPDATE SET
+              reload_id=excluded.reload_id,reload_ready_at=excluded.reload_ready_at,
+              version=excluded.version""",
+            (uid, key, magazine, reload_id, ready_at, version))
+        state = await _get_authoritative_ammo_state_on_db(db, uid)
+        await db.commit()
+        return {'ok': True, 'pending': True, 'ready_at': ready_at,
+                'ammo_state': state}
+
+
+async def cancel_weapon_reload_transaction(telegram_id: int,
+                                           reload_id: str) -> dict:
+    uid = int(telegram_id)
+    reload_id = str(reload_id or '').strip()[:96]
+    if not reload_id:
+        return {'ok': False, 'error': 'bad_reload'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        row = await (await db.execute("""SELECT weapon_key FROM weapon_ammo
+            WHERE telegram_id=? AND reload_id=? AND reload_ready_at>0""",
+            (uid, reload_id))).fetchone()
+        if row:
+            version = await _bump_ammo_version_on_db(db, uid)
+            await db.execute("""UPDATE weapon_ammo SET reload_id='',reload_ready_at=0,
+                version=? WHERE telegram_id=? AND reload_id=?""",
+                (version, uid, reload_id))
+        state = await _get_authoritative_ammo_state_on_db(db, uid)
+        await db.commit()
+        return {'ok': True, 'cancelled': bool(row), 'ammo_state': state}
+
+
+async def apply_authoritative_player_shot_transaction(
+        shooter_uid: int, target_uid: int, shot_id: str, weapon: str,
+        target_kind: str, target_id: str, raw_damage: int,
+        cooldown_s: float, weapon_generation: str = 'grant') -> dict:
+    shooter_uid, target_uid = int(shooter_uid), int(target_uid)
+    shot_id = str(shot_id or '').strip()[:96]
+    key = weapon_balance.weapon_key(weapon)
+    target_kind = str(target_kind or '')[:32]
+    target_id = str(target_id or '')[:96]
+    binding = (key, str(weapon_generation or 'grant')[:96], target_kind, target_id)
+    if not shot_id or key not in WEAPON_MAG_SIZE or not target_kind or not target_id:
+        return {'ok': False, 'error': 'bad_shot'}
+    ammo_type = weapon_balance.WEAPON_AMMO[key]
+    damage_event_id = f"world:pvp:{shooter_uid}:{shot_id}"
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('PRAGMA busy_timeout=1000')
+        for lock_attempt in range(6):
+            try:
+                await db.execute('BEGIN IMMEDIATE')
+                break
+            except sqlite3.OperationalError as exc:
+                if 'locked' not in str(exc).lower() or lock_attempt >= 5:
+                    raise
+                await asyncio.sleep(0.025 * (lock_attempt + 1))
+        prior = await (await db.execute("""SELECT weapon_key,weapon_generation,
+            target_kind,target_id,result_json FROM weapon_shots
+            WHERE shooter_uid=? AND shot_id=?""", (shooter_uid, shot_id))).fetchone()
+        if prior:
+            await db.commit()
+            prior_binding = (str(prior['weapon_key']), str(prior['weapon_generation']),
+                             str(prior['target_kind']), str(prior['target_id']))
+            if prior_binding != binding:
+                return {'ok': False, 'error': 'shot_conflict'}
+            result = json.loads(prior['result_json'])
+            result['replayed'] = True
+            return result
+        weapon_row = await (await db.execute("""SELECT magazine,next_fire_at,
+            reload_id,reload_ready_at,version FROM weapon_ammo
+            WHERE telegram_id=? AND weapon_key=?""", (shooter_uid, key))).fetchone()
+        magazine = max(0, int(weapon_row['magazine'] or 0)) if weapon_row else 0
+        next_fire_at = float(weapon_row['next_fire_at'] or 0) if weapon_row else 0.0
+        version = int(weapon_row['version'] or 0) if weapon_row else 0
+        now = time.time()
+        if magazine <= 0:
+            state = await _get_authoritative_ammo_state_on_db(db, shooter_uid)
+            await db.rollback()
+            return {'ok': False, 'error': 'no_round', 'ammo_state': state}
+        if now < next_fire_at:
+            state = await _get_authoritative_ammo_state_on_db(db, shooter_uid)
+            await db.rollback()
+            return {'ok': False, 'error': 'cooldown', 'ammo_state': state,
+                    'ready_at': next_fire_at}
+        magazine -= 1
+        version = await _bump_ammo_version_on_db(db, shooter_uid)
+        await db.execute("""INSERT INTO weapon_ammo
+            (telegram_id,weapon_key,magazine,next_fire_at,reload_id,reload_ready_at,version)
+            VALUES(?,?,?,?, '',0,?) ON CONFLICT(telegram_id,weapon_key) DO UPDATE SET
+              magazine=excluded.magazine,next_fire_at=excluded.next_fire_at,
+              reload_id='',reload_ready_at=0,version=excluded.version""",
+            (shooter_uid, key, magazine, now + max(0.0, float(cooldown_s)), version))
+        token = _DAMAGE_TX_DB.set(db)
+        try:
+            damage = await _apply_damage_transaction_once(
+                target_uid, damage_event_id, 'bullet', int(raw_damage))
+        except Exception:
+            await db.rollback()
+            raise
+        finally:
+            _DAMAGE_TX_DB.reset(token)
+        if damage is None:
+            await db.rollback()
+            return {'ok': False, 'error': 'target_dead'}
+        ammo_state = await _get_authoritative_ammo_state_on_db(db, shooter_uid)
+        result = {'ok': True, 'shot_id': shot_id, 'weapon': key,
+                  'target_kind': target_kind, 'target_id': target_id,
+                  'damage': damage, 'ammo_state': ammo_state, 'replayed': False}
+        await db.execute("""INSERT INTO weapon_shots
+            (shooter_uid,shot_id,weapon_key,weapon_generation,target_kind,
+             target_id,result_json,created_at) VALUES(?,?,?,?,?,?,?,?)""",
+            (shooter_uid, shot_id, *binding,
+             json.dumps(result, ensure_ascii=False, separators=(',', ':')), now))
+        await db.commit()
+        return result
+
+
+async def claim_authoritative_weapon_fire(
+        shooter_uid: int, shot_id: str, weapon: str, target_kind: str,
+        target_id: str, cooldown_s: float, shot_profile: dict,
+        weapon_generation: str = 'grant') -> dict:
+    """Consume one durable round and bind a trigger to exactly one route.
+
+    This is used for server NPC targets and misses.  PvP uses the stronger
+    sibling transaction above, which joins the target damage write too.
+    """
+    shooter_uid = int(shooter_uid)
+    shot_id = str(shot_id or '').strip()[:96]
+    key = weapon_balance.weapon_key(weapon)
+    target_kind = str(target_kind or '')[:32]
+    target_id = str(target_id or '')[:96]
+    binding = (key, str(weapon_generation or 'grant')[:96], target_kind, target_id)
+    if not shot_id or key not in WEAPON_MAG_SIZE or not target_kind or not target_id:
+        return {'ok': False, 'error': 'bad_shot'}
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('PRAGMA busy_timeout=1000')
+        for lock_attempt in range(6):
+            try:
+                await db.execute('BEGIN IMMEDIATE')
+                break
+            except sqlite3.OperationalError as exc:
+                if 'locked' not in str(exc).lower() or lock_attempt >= 5:
+                    raise
+                await asyncio.sleep(0.025 * (lock_attempt + 1))
+        prior = await (await db.execute("""SELECT weapon_key,weapon_generation,
+            target_kind,target_id,result_json FROM weapon_shots
+            WHERE shooter_uid=? AND shot_id=?""", (shooter_uid, shot_id))).fetchone()
+        if prior:
+            await db.commit()
+            old = (str(prior['weapon_key']), str(prior['weapon_generation']),
+                   str(prior['target_kind']), str(prior['target_id']))
+            if old != binding:
+                return {'ok': False, 'error': 'shot_conflict', 'shot_id': shot_id}
+            result = json.loads(prior['result_json'])
+            result['replayed'] = True
+            return result
+        row = await (await db.execute("""SELECT magazine,next_fire_at,version
+            FROM weapon_ammo WHERE telegram_id=? AND weapon_key=?""",
+            (shooter_uid, key))).fetchone()
+        magazine = max(0, int(row['magazine'] or 0)) if row else 0
+        next_fire_at = float(row['next_fire_at'] or 0) if row else 0.0
+        version = int(row['version'] or 0) if row else 0
+        now = time.time()
+        if magazine <= 0:
+            state = await _get_authoritative_ammo_state_on_db(db, shooter_uid)
+            await db.rollback()
+            return {'ok': False, 'error': 'no_round', 'shot_id': shot_id,
+                    'ammo_state': state}
+        if now < next_fire_at:
+            state = await _get_authoritative_ammo_state_on_db(db, shooter_uid)
+            await db.rollback()
+            return {'ok': False, 'error': 'cooldown', 'shot_id': shot_id,
+                    'ready_at': next_fire_at, 'ammo_state': state}
+        magazine -= 1
+        version = await _bump_ammo_version_on_db(db, shooter_uid)
+        await db.execute("""INSERT INTO weapon_ammo
+            (telegram_id,weapon_key,magazine,next_fire_at,reload_id,reload_ready_at,version)
+            VALUES(?,?,?,?, '',0,?) ON CONFLICT(telegram_id,weapon_key) DO UPDATE SET
+              magazine=excluded.magazine,next_fire_at=excluded.next_fire_at,
+              reload_id='',reload_ready_at=0,version=excluded.version""",
+            (shooter_uid, key, magazine, now + max(0.0, float(cooldown_s)), version))
+        ammo_state = await _get_authoritative_ammo_state_on_db(db, shooter_uid)
+        safe_profile = {k: v for k, v in dict(shot_profile or {}).items()
+                        if isinstance(v, (str, int, float, bool))}
+        result = {'ok': True, 'shot_id': shot_id, 'weapon': key,
+                  'target_kind': target_kind, 'target_id': target_id,
+                  'shot_profile': safe_profile, 'ammo_state': ammo_state,
+                  'replayed': False}
+        await db.execute("""INSERT INTO weapon_shots
+            (shooter_uid,shot_id,weapon_key,weapon_generation,target_kind,
+             target_id,result_json,created_at) VALUES(?,?,?,?,?,?,?,?)""",
+            (shooter_uid, shot_id, *binding,
+             json.dumps(result, ensure_ascii=False, separators=(',', ':')), now))
+        await db.commit()
+        return result
 
 async def add_item(telegram_id: int, item_id: str, qty: int = 1):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -17789,8 +18407,59 @@ class WorldSim:
             weapon, distance, shot_profile,
             profiles=cls.WEAPON_PROFILE, aliases=cls.WEAPON_ALIASES)
 
+    async def claim_player_weapon_fire(self, uid: str, shot_id: str,
+                                       weapon: str, target_kind: str,
+                                       target_id: str) -> dict:
+        """Authorize and durably consume one player trigger for non-PvP routes."""
+        shooter = self.players.get(str(uid))
+        if not shooter or shooter.get('dead') or not str(uid).isdigit():
+            return {'ok': False, 'error': 'not_available'}
+        shot_id = str(shot_id or '').strip()[:96]
+        if not shot_id or not str(target_kind or '') or not str(target_id or ''):
+            return {'ok': False, 'error': 'bad_shot'}
+        key = self._weapon_key(weapon)
+        generation = await get_weapon_generation(int(uid), key)
+        prior = await get_weapon_shot_receipt(int(uid), shot_id)
+        if prior:
+            expected = (key, generation, str(target_kind), str(target_id))
+            actual = (str(prior['weapon_key']), str(prior['weapon_generation']),
+                      str(prior['target_kind']), str(prior['target_id']))
+            if actual != expected:
+                return {'ok': False, 'error': 'shot_conflict', 'shot_id': shot_id}
+            saved = json.loads(prior['result_json'])
+            saved['replayed'] = True
+            return saved
+        cadence_before = {name: shooter.get(name) for name in
+                          ('_weapon_shot_t', '_nagan_chain', '_last_shot_crit')}
+        profile = self._authorize_weapon_shot(shooter, key)
+        if not profile:
+            return {'ok': False, 'error': 'weapon_denied', 'shot_id': shot_id}
+        result = await claim_authoritative_weapon_fire(
+            int(uid), shot_id, key, target_kind, target_id,
+            float(profile.get('cd') or 0), profile, generation)
+        if not result.get('ok'):
+            for name, value in cadence_before.items():
+                if value is None:
+                    shooter.pop(name, None)
+                else:
+                    shooter[name] = value
+        return result
+
+    def _claim_companion_shot(self, shooter: dict, member: int | None) -> dict | None:
+        companions = shooter.get('_gang_companions') or []
+        if not isinstance(member, int) or not (0 <= member < len(companions)):
+            return None
+        origin = companions[member]
+        now = time.time()
+        times = shooter.setdefault('_gang_shot_times', {})
+        if now - float(times.get(member, 0) or 0) < 1.0:
+            return None
+        times[member] = now
+        return origin
+
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
-                          weapon: str = '') -> dict | None:
+                          weapon: str = '', shot_profile: dict | None = None,
+                          gang_member: int | None = None) -> dict | None:
         """Игрок стреляет в одну из целей конвоя ('b' / 'g0' / 'g1' / 'g2').
         Возвращает kill-пакет если ИНКАССАТОР добит (награда), иначе None.
         Проверки: дистанция INKASS_FIRE_R, прямая видимость (LOS, нет стен)."""
@@ -17813,15 +18482,20 @@ class WorldSim:
                     break
         if not target or not target.get('alive'):
             return None
-        profile = self._authorize_weapon_shot(shooter, weapon)
-        if not profile:
+        origin = self._claim_companion_shot(shooter, gang_member) if gang_member is not None else None
+        profile = (shot_profile or self._authorize_weapon_shot(shooter, weapon)) if origin is None else None
+        if not profile and origin is None:
             return None
-        d_sq = (shooter['x'] - target['x'])**2 + (shooter['y'] - target['y'])**2
-        if d_sq > float(profile['range']) ** 2:
+        sx, sy = ((float(origin['x']), float(origin['y'])) if origin else
+                  (float(shooter['x']), float(shooter['y'])))
+        shot_range = 10.0 if origin else float(profile['range'])
+        d_sq = (sx - target['x'])**2 + (sy - target['y'])**2
+        if d_sq > shot_range ** 2:
             return None
-        if not _world_los(shooter['x'], shooter['y'], target['x'], target['y']):
+        if not _world_los(sx, sy, target['x'], target['y']):
             return None  # стена между стрелком и целью — пуля не доходит
-        dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
+        dmg = (round(random.randint(10,18)*(1+(int(origin.get('level') or 1)-1)*.03))
+               if origin else max(1,min(220,self._weapon_damage(weapon,d_sq**.5,profile))))
         target['hp'] -= dmg
         # Threat memory: NPC запоминает кто его ранил, реагирует следующие 12с
         target['_threat_uid']   = str(uid)
@@ -17865,30 +18539,29 @@ class WorldSim:
         shot_id = str(shot_id or '').strip()[:96]
         if not shot_id or str(uid) == str(target_uid):
             return None
-        damage_event_id = f"world:pvp:{uid}:{shot_id}"
-        if str(target_uid).isdigit():
-            cached = await get_damage_event_receipt(
-                int(target_uid), damage_event_id)
-            if cached is not None:
-                state = await get_authoritative_combat_state(int(target_uid))
-                if state is None:
-                    return None
-                live_version = int((target.get('_combat_state') or {}).get(
-                    'combat_version') or 0)
-                if int(state['combat_version']) >= live_version:
-                    target['_combat_state'] = state
-                    target['hp'] = state['body']['current']
-                    target['max_hp'] = state['body']['max']
-                    target['dead'] = state['body']['dead']
-                else:
-                    state = target['_combat_state']
-                return {
-                    'kind': 'pvp_shot', 'shooter_uid': str(uid),
-                    'target_uid': str(target_uid), 'shot_id': shot_id,
-                    'dmg': int(cached.get('raw_damage') or 0),
-                    'killed': bool(cached['body']['dead']),
-                    'replayed': True, 'combat_state': state,
-                }
+        if str(uid).isdigit():
+            prior = await get_weapon_shot_receipt(int(uid), shot_id)
+            if prior:
+                generation = await get_weapon_generation(int(uid), weapon)
+                expected = (self._weapon_key(weapon), generation,
+                            'player', str(target_uid))
+                actual = (str(prior['weapon_key']), str(prior['weapon_generation']),
+                          str(prior['target_kind']), str(prior['target_id']))
+                if actual != expected:
+                    return {'kind': 'weapon_shot_reply', 'ok': False,
+                            'error': 'shot_conflict', 'shot_id': shot_id,
+                            'weapon': expected[0]}
+                saved = json.loads(prior['result_json'])
+                state = (await get_authoritative_combat_state(int(target_uid))
+                         if str(target_uid).isdigit() else target.get('_combat_state'))
+                if state:
+                    self._mirror_combat_state(target, state)
+                return {'kind': 'pvp_shot', 'shooter_uid': str(uid),
+                        'target_uid': str(target_uid), 'shot_id': shot_id,
+                        'dmg': int(saved['damage'].get('raw_damage') or 0),
+                        'killed': False, 'replayed': True,
+                        'combat_state': state, 'ammo_state': saved['ammo_state'],
+                        'weapon': expected[0]}
         if shooter.get('dead') or target.get('dead'):
             return None
         # Задержанный под серверным конвоем неуязвим для игроков: друзья не
@@ -17901,6 +18574,8 @@ class WorldSim:
             return None
         # Серверный общий затвор: cooldown нельзя обойти сменой типа цели.
         now = time.time()
+        cadence_before = {name: shooter.get(name) for name in
+                          ('_weapon_shot_t', '_nagan_chain', '_last_shot_crit')}
         profile = self._authorize_weapon_shot(shooter, weapon)
         if not profile:
             return None
@@ -17989,11 +18664,40 @@ class WorldSim:
                          int(shot_score.get('mafia') or 0) >= int(shot_score.get('police') or 0) + 15)
         if mafia_control:
             dmg = max(1, min(220, int(math.ceil(dmg * 1.05))))
-        damage_result = await self.apply_authoritative_damage(
-            target_uid, damage_event_id,
-            'bullet', dmg)
-        if damage_result is None:
-            return None
+        if str(uid).isdigit() and str(target_uid).isdigit():
+            weapon_generation = await get_weapon_generation(int(uid), weapon)
+            shot_result = await apply_authoritative_player_shot_transaction(
+                int(uid), int(target_uid), shot_id, weapon, 'player',
+                str(target_uid), dmg, float(profile.get('cd') or 0),
+                weapon_generation)
+            if shot_result.get('ammo_state'):
+                shooter['_ammo_state'] = shot_result['ammo_state']
+            if not shot_result.get('ok'):
+                for name, value in cadence_before.items():
+                    if value is None:
+                        shooter.pop(name, None)
+                    else:
+                        shooter[name] = value
+                return {'kind': 'weapon_shot_reply', **shot_result,
+                        'shot_id': shot_id, 'weapon': self._weapon_key(weapon)}
+            damage_result = shot_result['damage']
+            if shot_result.get('replayed'):
+                state = await get_authoritative_combat_state(int(target_uid))
+                if state:
+                    self._mirror_combat_state(target, state)
+                return {
+                    'kind': 'pvp_shot', 'shooter_uid': str(uid),
+                    'target_uid': str(target_uid), 'shot_id': shot_id,
+                    'dmg': int(damage_result.get('raw_damage') or 0),
+                    'killed': False, 'replayed': True,
+                    'combat_state': state, 'ammo_state': shot_result['ammo_state'],
+                }
+            self._mirror_combat_state(target, damage_result)
+        else:
+            damage_result = await self.apply_authoritative_damage(
+                target_uid, f"world:pvp:{uid}:{shot_id}", 'bullet', dmg)
+            if damage_result is None:
+                return None
         if damage_result.get('replayed'):
             state = target.get('_combat_state') or await get_authoritative_combat_state(
                 int(target_uid))
@@ -18070,7 +18774,7 @@ class WorldSim:
             'tx':          round(float(target.get('_interior_x') or 0),2) if (business_defense or business_police_fight) else round(target['x'],2),
             'ty':          round(float(target.get('_interior_y') or 0),2) if (business_defense or business_police_fight) else round(target['y'],2),
             'dmg':         int(dmg),
-            'crit':        bool(profile.get('_crit')),
+            'crit':        bool(profile and profile.get('_crit')),
             'killed':      killed,
             'bounty':      bounty_done,
             'police_downed': bool(killed and police_pursuit),
@@ -18081,6 +18785,9 @@ class WorldSim:
             'decision_until': (round(now + self.POLICE_DOWNED_DECISION_S, 2)
                                if killed and police_pursuit else 0),
             'weapon':      weapon or '',
+            'ammo_state':  (shot_result.get('ammo_state')
+                            if str(uid).isdigit() and str(target_uid).isdigit()
+                            else None),
         }
 
     def _in_pvp_zone(self, x: float, y: float) -> bool:
@@ -18723,7 +19430,8 @@ class WorldSim:
         return pkts
 
     def apply_cop_shoot(self, uid: str, cop_id: str,
-                        weapon: str = '') -> dict | None:
+                        weapon: str = '', shot_profile: dict | None = None,
+                        gang_member: int | None = None) -> dict | None:
         """Игрок стреляет в копа. Возвращает hit-пакет для broadcast,
         либо None если выстрел отклонён (нет копа/LOS/дальность)."""
         shooter = self.players.get(uid)
@@ -18733,18 +19441,19 @@ class WorldSim:
             return None   # в тюрьме — нельзя стрелять
         if shooter.get('_mode') == 'pve':
             return None   # PvE — нельзя стрелять
-        profile = self._authorize_weapon_shot(shooter, weapon)
-        if not profile:
-            return None
+        origin = self._claim_companion_shot(shooter, gang_member) if gang_member is not None else None
+        profile = (shot_profile or self._authorize_weapon_shot(shooter, weapon)) if origin is None else None
+        if not profile and origin is None:return None
         cop = next((c for c in self.cops if c['id'] == cop_id and c.get('alive')), None)
         if not cop:
             return None
-        d_sq = (shooter['x'] - cop['x'])**2 + (shooter['y'] - cop['y'])**2
-        if d_sq > float(profile['range']) ** 2:
+        sx,sy=((float(origin['x']),float(origin['y'])) if origin else (float(shooter['x']),float(shooter['y'])))
+        d_sq = (sx - cop['x'])**2 + (sy - cop['y'])**2
+        if d_sq > (10.0 if origin else float(profile['range'])) ** 2:
             return None
-        if not _world_los(shooter['x'], shooter['y'], cop['x'], cop['y']):
+        if not _world_los(sx, sy, cop['x'], cop['y']):
             return None
-        dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
+        dmg=(round(random.randint(10,18)*(1+(int(origin.get('level') or 1)-1)*.03)) if origin else max(1,min(220,self._weapon_damage(weapon,d_sq**.5,profile))))
         cop['hp'] -= dmg
         # Wanted: стрельба по копу — серьёзный exploit-блок
         self._bump_wanted(shooter, self.WANTED_PER_COP_HIT)
@@ -18766,7 +19475,7 @@ class WorldSim:
             'tx':          round(cop['x'], 2),
             'ty':          round(cop['y'], 2),
             'dmg':         int(dmg),
-            'crit':        bool(profile.get('_crit')),
+            'crit':        bool(profile and profile.get('_crit')),
             'killed':      killed,
         }
 
@@ -19561,7 +20270,8 @@ class WorldSim:
         return fx, fy
 
     def aggro_shoot_bot(self, uid: str, bot_id: str, weapon: str = '',
-                        fire_x=None, fire_y=None) -> dict | None:
+                        fire_x=None, fire_y=None,
+                        shot_profile: dict | None = None) -> dict | None:
         """Игрок стреляет в банда-бота. Из-за зоны хиты не наносятся."""
         shooter = self.players.get(uid)
         if not shooter or shooter.get('dead'):
@@ -19570,7 +20280,7 @@ class WorldSim:
             return None
         if shooter.get('_mode') == 'pve':
             return None
-        profile = self._authorize_weapon_shot(shooter, weapon)
+        profile = shot_profile or self._authorize_weapon_shot(shooter, weapon)
         if not profile:
             return None
         for tid, td in self.TERRITORIES_DEF.items():
@@ -22042,7 +22752,8 @@ class WorldSim:
         return pkts
 
     def apply_mg_shoot(self, uid: str, guard_id: str,
-                        weapon: str = '') -> dict | None:
+                        weapon: str = '', shot_profile: dict | None = None,
+                        gang_member: int | None = None) -> dict | None:
         """Игрок стреляет в охранника Майкла. Возвращает hit-пакет."""
         shooter = self.players.get(uid)
         if not shooter or shooter.get('dead'):
@@ -22051,19 +22762,20 @@ class WorldSim:
             return None
         if shooter.get('_mode') == 'pve':
             return None
-        profile = self._authorize_weapon_shot(shooter, weapon)
-        if not profile:
-            return None
+        origin=self._claim_companion_shot(shooter,gang_member) if gang_member is not None else None
+        profile=(shot_profile or self._authorize_weapon_shot(shooter,weapon)) if origin is None else None
+        if not profile and origin is None:return None
         g = next((x for x in self.michael_guards
                    if x['id'] == guard_id and x.get('alive')), None)
         if not g:
             return None
-        d_sq = (shooter['x'] - g['x'])**2 + (shooter['y'] - g['y'])**2
-        if d_sq > float(profile['range']) ** 2:
+        sx,sy=((float(origin['x']),float(origin['y'])) if origin else (float(shooter['x']),float(shooter['y'])))
+        d_sq = (sx - g['x'])**2 + (sy - g['y'])**2
+        if d_sq > (10.0 if origin else float(profile['range'])) ** 2:
             return None
-        if not _world_los(shooter['x'], shooter['y'], g['x'], g['y']):
+        if not _world_los(sx, sy, g['x'], g['y']):
             return None
-        dmg = max(1, min(220, self._weapon_damage(weapon, d_sq ** 0.5, profile)))
+        dmg=(round(random.randint(10,18)*(1+(int(origin.get('level') or 1)-1)*.03)) if origin else max(1,min(220,self._weapon_damage(weapon,d_sq**.5,profile))))
         g['hp'] -= dmg
         # Хостайл на стрелка вне зависимости от радиуса (попали → агро)
         g['_state']         = 'hostile'
@@ -22091,12 +22803,13 @@ class WorldSim:
             'tx':          round(g['x'], 2),
             'ty':          round(g['y'], 2),
             'dmg':         int(dmg),
-            'crit':        bool(profile.get('_crit')),
+            'crit':        bool(profile and profile.get('_crit')),
             'killed':      killed,
         }
 
     def gang_nest_shoot_bot(self, uid: str, bot_id: str,
-                             weapon: str = '', fire_x=None, fire_y=None) -> dict | None:
+                             weapon: str = '', fire_x=None, fire_y=None,
+                             shot_profile: dict | None = None) -> dict | None:
         """Стрельба игрока по бойцу гнезда."""
         shooter = self.players.get(uid)
         if not shooter or shooter.get('dead'):
@@ -22105,7 +22818,7 @@ class WorldSim:
             return None
         if shooter.get('_mode') == 'pve':
             return None
-        profile = self._authorize_weapon_shot(shooter, weapon)
+        profile = shot_profile or self._authorize_weapon_shot(shooter, weapon)
         if not profile:
             return None
         for ne in self.gang_nests:
@@ -22716,7 +23429,8 @@ class WorldSim:
                                 'picker_uid':str(picker_uid),
                                 'picker_name':str(picker.get('name') or 'Игрок')[:24],
                                 'ammo_type':str(loot.get('ammo_type') or '9mm'),
-                                'rounds':int(loot.get('rounds') or 0)})
+                                'rounds':int(loot.get('rounds') or 0),
+                                '_loot_restore':dict(loot)})
                 else:
                     out.append({'kind':'district_boss_cash_picked','loot_id':loot_id,
                                 'did':loot.get('did'),'picker_uid':str(picker_uid),
@@ -23475,6 +24189,11 @@ class WorldSim:
                                  'dead': bool(me.get('dead', False))},
                         'armor': _empty_armor_state(),
                         'combat_version': 0,
+                    },
+                    'ammo_state': me.get('_ammo_state') or {
+                        'reserve': {kind: 0 for kind in AMMO_LIMITS},
+                        'mags': {weapon: 0 for weapon in WEAPON_MAG_SIZE},
+                        'reloads': {}, 'ammo_version': 0,
                     },
                     'respawn_in': respawn_in,
                     'wanted':     my_wanted,
@@ -24850,6 +25569,30 @@ async def _world_run_loop_cycle(world: 'WorldSim') -> None:
                                 await check_level_up(puid, ch2)
                         except Exception as _e:
                             logger.warning("WorldSim: nest reward failed: %r", _e)
+                # Ammo loot becomes durable before the pickup is broadcast.
+                # A storage failure puts the exact object back on the ground.
+                for np in list(nest_pkts):
+                    if np.get('kind') != 'gang_ammo_picked':
+                        continue
+                    try:
+                        grant = await grant_ammo_transaction(
+                            int(np.get('picker_uid')), str(np.get('loot_id') or ''),
+                            str(np.get('ammo_type') or ''), int(np.get('rounds') or 0))
+                        if not grant.get('ok'):
+                            raise RuntimeError(str(grant.get('error') or 'grant failed'))
+                        np['rounds'] = int(grant.get('rounds_added') or 0)
+                        np['ammo_state'] = grant.get('ammo_state')
+                        live_picker = world.players.get(str(np.get('picker_uid') or ''))
+                        if live_picker is not None:
+                            live_picker['_ammo_state'] = grant.get('ammo_state')
+                    except Exception as _e:
+                        restore = np.get('_loot_restore')
+                        if isinstance(restore, dict) and np.get('loot_id'):
+                            world.district_loot[str(np['loot_id'])] = restore
+                        nest_pkts.remove(np)
+                        logger.warning("WorldSim: ammo loot grant failed: %r", _e)
+                    finally:
+                        np.pop('_loot_restore', None)
                 ev_pkts.extend(nest_pkts)
                 # Бродячие городские банды (threat-фразы, hostile-fight).
                 # Threat-фразы сохраняем на боте чтобы snapshot.aggro мог
@@ -25173,7 +25916,8 @@ async def _coop_http_app():
         """Bind all armor/store actors before their handlers see a uid."""
         path = req.path
         protected = (path.startswith('/shop/') or path.startswith('/inv/') or
-                     path.startswith('/event/') or path.startswith('/world/loot/'))
+                     path.startswith('/event/') or path.startswith('/world/loot/') or
+                     path.endswith('/assault/hit'))
         if req.method == 'OPTIONS' or not protected:
             return await handler(req)
         claimed = str(req.match_info.get('uid') or '')
@@ -27020,11 +27764,21 @@ async def _coop_http_app():
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
         token=str(body.get('token') or '')[:64]
         if 'shot_seq' not in body:
-            # Rolling compatibility: HQ and already-active v1 field sessions
-            # drain through their original client-damage contract.
+            weapon=str(body.get('weapon') or '')[:32]
+            target=str(body.get('target') or '')[:12]
+            target_id=str(body.get('target_id') if body.get('target_id') is not None else 'boss')[:48]
+            claim=(await _WORLD.claim_player_weapon_fire(
+                str(uid),str(body.get('shot_id') or '')[:96],weapon,
+                'npc_empire',f'{token}:{target}:{target_id}')
+                if _WORLD else {'ok':False,'error':'world unavailable'})
+            if not claim.get('ok') or claim.get('replayed'):
+                return await _cors(web.json_response(
+                    claim,status=200 if claim.get('replayed') else 409))
+            profile=claim.get('shot_profile') or {}
+            damage=WorldSim._weapon_damage(weapon,0,profile)
             result=await npc_empire.assault_hit(
-                DB_PATH,uid,token,str(body.get('target') or '')[:12],
-                body.get('target_id'),int(body.get('damage') or 1))
+                DB_PATH,uid,token,target,body.get('target_id'),damage)
+            result['ammo_state']=claim.get('ammo_state')
             return await _cors(web.json_response(
                 result,status=200 if result.get('ok') else 409))
         try:
@@ -27066,16 +27820,25 @@ async def _coop_http_app():
                     result={'ok':False,'error':geometry.get('error') or 'bad shot'}
                 else:
                     live=geometry['live'];distance=float(geometry['distance'])
-                    shot_profile=_WORLD._authorize_weapon_shot(live,raw_key)
-                    if shot_profile is None:
-                        result={'ok':False,'error':'weapon shot rejected'}
+                    empire_shot_id=str(body.get('shot_id') or '')[:96]
+                    claim=await _WORLD.claim_player_weapon_fire(
+                        str(uid),empire_shot_id,raw_key,'npc_empire_field',
+                        f"{context.get('leader_id') or token[:24]}:{shot_seq}")
+                    if not claim.get('ok'):
+                        result={'ok':False,'error':claim.get('error') or 'weapon shot rejected',
+                                'ammo_state':claim.get('ammo_state')}
+                    elif claim.get('replayed'):
+                        result={'ok':False,'error':'shot replayed',
+                                'ammo_state':claim.get('ammo_state')}
                     else:
+                        shot_profile=claim.get('shot_profile') or {}
                         damage=_WORLD._weapon_damage(
                             raw_key,distance,shot_profile)
                         result=await npc_empire.assault_field_hit_authorized(
                             DB_PATH,uid,token,shot_seq,raw_key,damage)
                         if result.get('ok'):
                             result['critical']=bool(shot_profile.get('_crit'))
+                            result['ammo_state']=claim.get('ammo_state')
         return await _cors(web.json_response(result,status=200 if result.get('ok') else 409))
 
     async def h_npc_empire_assault_resolve(req):
@@ -27226,6 +27989,17 @@ async def _coop_http_app():
             return await _cors(web.json_response({'ok': False, 'error': 'unknown item'}, status=400))
         if it.get('type') == 'weapon' and item_id not in BLACKMARKET_WEAPON_IDS:
             return await _cors(web.json_response({'ok': False, 'error': 'not for sale'}, status=400))
+        if it.get('type') == 'ammo':
+            purchase_id = str(b.get('purchase_id') or '')[:96]
+            bought = await purchase_ammo_transaction(uid, item_id, purchase_id, qty)
+            if bought.get('ammo_state') and _WORLD is not None:
+                p_ref = _WORLD.players.get(str(uid))
+                if p_ref is not None:
+                    p_ref['_ammo_state'] = bought['ammo_state']
+            status = 200 if bought.get('ok') else (409 if bought.get('error') in (
+                'ammo_full', 'purchase_conflict') else 400)
+            return await _cors(web.json_response({**bought, 'item_type': 'ammo'},
+                                                 status=status))
         price_c  = it.get('price')
         price_d  = it.get('diamonds_price')
         # Оружие и броня продаются только по одному экземпляру за запрос.
@@ -27333,6 +28107,7 @@ async def _coop_http_app():
             inventory_qty = int(inv_qty_row[0] or 0) if inv_qty_row else qty
             await db.commit()
         combat_state = await get_authoritative_combat_state(uid)
+        ammo_state = await get_authoritative_ammo_state(uid)
         if combat_state and _WORLD is not None:
             p_ref = _WORLD.players.get(str(uid))
             if p_ref is not None:
@@ -27387,6 +28162,8 @@ async def _coop_http_app():
             iid, qty = str(row['item_id']), int(row['quantity'] or 0)
             it = ITEMS.get(iid)
             if not it:
+                continue
+            if it.get('type') == 'ammo':
                 continue
             out.append({
                 'id':            iid,
@@ -27611,6 +28388,7 @@ async def _coop_http_app():
             'equipped_weapon': equipped['equipped_weapon'],
             'equipped_armor':  equipped['equipped_armor'],
             'combat_state':    combat_state,
+            'ammo_state':      ammo_state,
         }))
 
     async def h_inv_break_armor(req):
@@ -28030,6 +28808,7 @@ async def _coop_http_app():
                 await ws.close(code=4004, message=b'no combat state')
                 return ws
             p_ref['_combat_state'] = combat_state
+            p_ref['_ammo_state'] = await get_authoritative_ammo_state(uid_int)
             p_ref['hp'] = combat_state['body']['current']
             p_ref['max_hp'] = combat_state['body']['max']
             p_ref['dead'] = combat_state['body']['dead']
@@ -28180,11 +28959,25 @@ async def _coop_http_app():
                         # Игрок стреляет в конвой. d = {target:'b'|'g0'..'g2', weapon:'pistol'}
                         target_id = str(d.get('target') or 'b')[:3]
                         weapon    = str(d.get('weapon') or '')[:24]
+                        shot_id   = str(d.get('shot_id') or '')[:96]
+                        try: gang_member=int(d['member']) if 'member' in d else None
+                        except (TypeError,ValueError): gang_member=None
+                        claim = None
+                        if gang_member is None:
+                            claim = await world.claim_player_weapon_fire(
+                                uid, shot_id, weapon, 'event', target_id)
+                            try:
+                                await ws.send_str(json.dumps({'t':'event','d':{
+                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                            except Exception: pass
+                            if not claim.get('ok') or claim.get('replayed'): continue
                         # Trace для всех клиентов (даже промах — слышим выстрел)
                         shooter = world.players.get(uid)
                         if shooter:
                             shooter['_last_shot_crit'] = False
-                        kill_pkt = world.apply_event_shoot(uid, target_id, weapon)
+                        kill_pkt = world.apply_event_shoot(
+                            uid, target_id, weapon,
+                            claim.get('shot_profile') if claim else None, gang_member)
                         if shooter:
                             trace_pkt = json.dumps({
                                 't': 'event',
@@ -28422,6 +29215,54 @@ async def _coop_http_app():
                                 if ws2 is ws: continue
                                 try: await ws2.send_str(blob)
                                 except Exception: pass
+                    elif t == 'weapon_reload':
+                        reload_weapon = str(d.get('weapon') or '')
+                        reload_key = world._weapon_key(reload_weapon)
+                        reload_player = world.players.get(uid) or {}
+                        reload_owned = reload_key in (reload_player.get('_weapon_classes') or set())
+                        reload_blocked = (reload_player.get('dead') or
+                                          reload_player.get('_police_cuffed_by'))
+                        if reload_blocked or not reload_owned:
+                            reply = {'ok':False, 'error':('unavailable' if reload_blocked
+                                                          else 'weapon_denied'),
+                                     'ammo_state':await get_authoritative_ammo_state(int(uid))}
+                        else:
+                            reply = await weapon_reload_transaction(
+                                int(uid), reload_weapon,
+                                str(d.get('reload_id') or ''))
+                        reply['kind'] = 'weapon_reload_reply'
+                        reply['weapon'] = reload_key
+                        p_ref = world.players.get(uid)
+                        if p_ref is not None and reply.get('ammo_state'):
+                            p_ref['_ammo_state'] = reply['ammo_state']
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': reply},
+                                                         ensure_ascii=False))
+                        except Exception:
+                            pass
+                    elif t == 'weapon_reload_cancel':
+                        reply = await cancel_weapon_reload_transaction(
+                            int(uid), str(d.get('reload_id') or ''))
+                        reply['kind'] = 'weapon_reload_reply'
+                        p_ref = world.players.get(uid)
+                        if p_ref is not None and reply.get('ammo_state'):
+                            p_ref['_ammo_state'] = reply['ammo_state']
+                        try: await ws.send_str(json.dumps({'t':'event','d':reply}, ensure_ascii=False))
+                        except Exception: pass
+                    elif t == 'weapon_fire':
+                        # Выстрел в локальный декор/стену/пустоту всё равно
+                        # расходует один серверный патрон. Клиент не сообщает
+                        # damage/hit и не может выбрать чужого target uid.
+                        claim = await world.claim_player_weapon_fire(
+                            uid, str(d.get('shot_id') or '')[:96],
+                            str(d.get('weapon') or '')[:24], 'world',
+                            str(d.get('route') or 'miss')[:64])
+                        claim['kind'] = 'weapon_shot_reply'
+                        try:
+                            await ws.send_str(json.dumps({'t':'event','d':claim},
+                                                         ensure_ascii=False))
+                        except Exception:
+                            pass
                     elif t == 'player_shoot':
                         # PvP: игрок стреляет в другого игрока. Работает только
                         # в активной зоне инкассатора. d = {target_uid, weapon}
@@ -28432,6 +29273,14 @@ async def _coop_http_app():
                             hit_pkt = await world.apply_player_shoot(
                                 uid, target_uid, weapon, shot_id)
                             if hit_pkt:
+                                if hit_pkt.get('kind') == 'weapon_shot_reply':
+                                    try:
+                                        await ws.send_str(json.dumps(
+                                            {'t': 'event', 'd': hit_pkt},
+                                            ensure_ascii=False))
+                                    except Exception:
+                                        pass
+                                    continue
                                 shooter_p = world.players.get(uid)
                                 target_p  = world.players.get(target_uid)
                                 if shooter_p:
@@ -28548,7 +29397,20 @@ async def _coop_http_app():
                         cop_id = str(d.get('target') or '')[:16]
                         weapon = str(d.get('weapon') or '')[:24]
                         if cop_id:
-                            hit_pkt = world.apply_cop_shoot(uid, cop_id, weapon)
+                            try: gang_member=int(d['member']) if 'member' in d else None
+                            except (TypeError,ValueError): gang_member=None
+                            claim=None
+                            if gang_member is None:
+                                claim = await world.claim_player_weapon_fire(
+                                    uid, str(d.get('shot_id') or '')[:96],
+                                    weapon, 'cop', cop_id)
+                                try: await ws.send_str(json.dumps({'t':'event','d':{
+                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                                except Exception: pass
+                                if not claim.get('ok') or claim.get('replayed'): continue
+                            hit_pkt = world.apply_cop_shoot(
+                                uid, cop_id, weapon,
+                                claim.get('shot_profile') if claim else None, gang_member)
                             if hit_pkt:
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
@@ -28559,7 +29421,20 @@ async def _coop_http_app():
                         guard_id = str(d.get('target') or '')[:16]
                         weapon   = str(d.get('weapon') or '')[:24]
                         if guard_id:
-                            hit_pkt = world.apply_mg_shoot(uid, guard_id, weapon)
+                            try: gang_member=int(d['member']) if 'member' in d else None
+                            except (TypeError,ValueError): gang_member=None
+                            claim=None
+                            if gang_member is None:
+                                claim = await world.claim_player_weapon_fire(
+                                    uid, str(d.get('shot_id') or '')[:96],
+                                    weapon, 'michael_guard', guard_id)
+                                try: await ws.send_str(json.dumps({'t':'event','d':{
+                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                                except Exception: pass
+                                if not claim.get('ok') or claim.get('replayed'): continue
+                            hit_pkt = world.apply_mg_shoot(
+                                uid, guard_id, weapon,
+                                claim.get('shot_profile') if claim else None, gang_member)
                             if hit_pkt:
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
@@ -28686,11 +29561,19 @@ async def _coop_http_app():
                             except Exception:
                                 pass
                     elif t == 'major_guard_hit':
+                        object_id = str(d.get('object_id') or '')[:24]
+                        guard_id = str(d.get('guard_id') or '')[:64]
+                        weapon = str(d.get('weapon') or '')[:24]
+                        claim = await world.claim_player_weapon_fire(
+                            uid, str(d.get('shot_id') or '')[:96], weapon,
+                            'major_guard', f'{object_id}:{guard_id}')
+                        try: await ws.send_str(json.dumps({'t':'event','d':{
+                            'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                        except Exception: pass
+                        if not claim.get('ok') or claim.get('replayed'):
+                            continue
                         reply = world.major_guard_hit(
-                            uid,
-                            str(d.get('object_id') or '')[:24],
-                            str(d.get('guard_id') or '')[:64],
-                            str(d.get('weapon') or '')[:24])
+                            uid, object_id, guard_id, weapon)
                         blob = json.dumps(
                             {'t':'event','d':reply}, ensure_ascii=False)
                         for _uid2, _ws2 in list(world.connections.items()):
@@ -28699,11 +29582,19 @@ async def _coop_http_app():
                             except Exception:
                                 pass
                     elif t == 'major_prop_hit':
+                        object_id = str(d.get('object_id') or '')[:24]
+                        prop_id = str(d.get('prop_id') or '')[:48]
+                        weapon = str(d.get('weapon') or '')[:24]
+                        claim = await world.claim_player_weapon_fire(
+                            uid, str(d.get('shot_id') or '')[:96], weapon,
+                            'major_prop', f'{object_id}:{prop_id}')
+                        try: await ws.send_str(json.dumps({'t':'event','d':{
+                            'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                        except Exception: pass
+                        if not claim.get('ok') or claim.get('replayed'):
+                            continue
                         reply = world.major_prop_hit(
-                            uid,
-                            str(d.get('object_id') or '')[:24],
-                            str(d.get('prop_id') or '')[:48],
-                            str(d.get('weapon') or '')[:24],
+                            uid, object_id, prop_id, weapon,
                             float(d.get('impact_r') or 0),
                             float(d.get('impact_c') or 0))
                         blob = json.dumps(
@@ -28714,8 +29605,18 @@ async def _coop_http_app():
                             except Exception:
                                 pass
                     elif t == 'major_boss_pressure':
+                        object_id = str(d.get('object_id') or '')[:24]
+                        weapon = str(d.get('weapon') or '')[:24]
+                        claim = await world.claim_player_weapon_fire(
+                            uid, str(d.get('shot_id') or '')[:96], weapon,
+                            'major_boss', object_id)
+                        try: await ws.send_str(json.dumps({'t':'event','d':{
+                            'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                        except Exception: pass
+                        if not claim.get('ok') or claim.get('replayed'):
+                            continue
                         reply = world.major_boss_pressure(
-                            uid, str(d.get('object_id') or '')[:24])
+                            uid, object_id)
                         if reply.get('captured'):
                             object_id = str(reply.get('object_id') or '')
                             await _major_control_save(
@@ -28769,13 +29670,25 @@ async def _coop_http_app():
                         except (TypeError, ValueError):
                             gang_member = None
                         if bot_id:
+                            claim = None
+                            throwable = world._weapon_key(weapon) in ('grenade', 'molotov_fire')
+                            if gang_member is None and not throwable:
+                                claim = await world.claim_player_weapon_fire(
+                                    uid, str(d.get('shot_id') or '')[:96],
+                                    weapon, 'aggro', bot_id)
+                                try: await ws.send_str(json.dumps({'t':'event','d':{
+                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                                except Exception: pass
+                                if not claim.get('ok') or claim.get('replayed'):
+                                    continue
                             hit_pkt = (world.city_gang_shoot_bot(
                                 uid, bot_id, weapon, gang_member=gang_member,
                                 fire_x=d.get('fire_x'), fire_y=d.get('fire_y'))
                                 if gang_member is not None
                                 else world.aggro_shoot_bot(
                                     uid, bot_id, weapon,
-                                    fire_x=d.get('fire_x'), fire_y=d.get('fire_y')))
+                                    fire_x=d.get('fire_x'), fire_y=d.get('fire_y'),
+                                    shot_profile=(claim.get('shot_profile') if claim else None)))
                             if hit_pkt:
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
