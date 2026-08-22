@@ -53,6 +53,7 @@ NPC_BANKRUPTCY_DESERTION_TICKS = 2
 NPC_WAR_IDLE_TRUCE_SECONDS = 3 * 24 * 60 * 60
 NPC_WAR_EXHAUSTION_TENSION = 100
 NPC_TRUCE_SCORE = -35
+NPC_PLAYER_TRUCE_OFFER_SECONDS = 30 * 60
 NPC_OPERATING_RESERVE_TICKS = 12
 NPC_RECOVERY_STIPEND_PER_TICK = 600
 NPC_RECOVERY_STIPEND_TICKS = 12
@@ -2042,6 +2043,30 @@ async def ensure_schema(db_path: str) -> None:
             last_action_at INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (leader_id, telegram_id, action_kind)
         );
+        CREATE TABLE IF NOT EXISTS npc_empire_player_agreements (
+            leader_id TEXT NOT NULL,
+            leader_generation INTEGER NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            agreement_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            offer_request_key TEXT NOT NULL,
+            fulfill_request_key TEXT,
+            term_kind TEXT NOT NULL,
+            term_amount INTEGER NOT NULL,
+            term_band TEXT NOT NULL,
+            status TEXT NOT NULL,
+            relation_at_offer INTEGER NOT NULL,
+            pact_at_offer TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            fulfilled_at INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(leader_id,leader_generation,telegram_id,agreement_id),
+            UNIQUE(leader_id,leader_generation,telegram_id,offer_request_key),
+            UNIQUE(leader_id,leader_generation,telegram_id,fulfill_request_key)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_player_agreement_pair
+            ON npc_empire_player_agreements(
+                telegram_id,leader_id,leader_generation,status,expires_at);
         CREATE TABLE IF NOT EXISTS npc_empire_diplomacy (
             leader_a TEXT NOT NULL,
             leader_b TEXT NOT NULL,
@@ -4380,6 +4405,14 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         relations = {str(r['leader_id']): dict(r) for r in await (await db.execute(
             "SELECT * FROM npc_empire_relations WHERE telegram_id=?", (telegram_id,)
         )).fetchall()}
+        agreement_rows = await (await db.execute(
+            "SELECT a.* FROM npc_empire_player_agreements a "
+            "JOIN npc_empires e ON e.leader_id=a.leader_id "
+            "AND e.comebacks=a.leader_generation WHERE a.telegram_id=? "
+            "ORDER BY a.created_at DESC", (telegram_id,))).fetchall()
+        agreements = {}
+        for agreement_row in agreement_rows:
+            agreements.setdefault(str(agreement_row['leader_id']), agreement_row)
         holdings_rows = await (await db.execute(
             "SELECT kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area FROM npc_empire_holdings"
         )).fetchall()
@@ -4562,6 +4595,9 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'recruitment': recruitment,
             'relation': score, 'relation_band': relation_band(score),
             'pact': str(relation.get('pact') or 'none'),
+            'player_agreement': _public_player_agreement(
+                agreements.get(leader_id), score=score,
+                pact=str(relation.get('pact') or 'none'), now=now),
             'war_pressure': war_rows.get(leader_id),
             'holdings': leader_holdings,
             'brain': brain,
@@ -4931,6 +4967,206 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
             'message': 'Ты ответишь за это. Заведение закрыто на ремонт.'}
 
 
+def _public_player_agreement(row, *, score: int, pact: str, now: int) -> dict | None:
+    """Return only the player's explicit terms and qualitative consequences."""
+    if row:
+        status = str(row['status'] or 'offered')
+        if status == 'offered' and int(row['expires_at'] or 0) <= int(now):
+            status = 'expired'
+        fulfilled = status == 'fulfilled'
+        return {
+            'kind': 'conditional_truce', 'state': status,
+            'status_label': ({'offered': 'УСЛОВИЯ ПОЛУЧЕНЫ',
+                              'fulfilled': 'УСЛОВИЯ ВЫПОЛНЕНЫ',
+                              'expired': 'ПРЕДЛОЖЕНИЕ ИСТЕКЛО',
+                              'invalidated': 'ПРЕДЛОЖЕНИЕ ОТОЗВАНО'}.get(
+                                  status, 'СОСТОЯНИЕ НЕИЗВЕСТНО')),
+            'summary': ('Компенсация принята; нападения этой семьи приостановлены.'
+                        if fulfilled and pact == 'truce'
+                        else 'Семья назвала открытую компенсацию за перемирие.'
+                        if status == 'offered'
+                        else 'Условия сохранены в истории договора.'),
+            'agreement_id': str(row['agreement_id']),
+            'terms': [{'kind': 'compensation',
+                       'label': f'Компенсация ${int(row["term_amount"] or 0)}',
+                       'state': 'met' if fulfilled else 'pending'}],
+            'consequences': [{
+                'kind': 'attacks',
+                'label': ('Нападения приостановлены перемирием'
+                          if fulfilled and pact == 'truce'
+                          else 'Война продолжается до выполнения условия'),
+                'state': 'paused' if fulfilled and pact == 'truce' else 'normal',
+            }],
+            'action': ('fulfill' if status == 'offered' and pact == 'war'
+                       else 'offer' if status == 'expired' and pact == 'war'
+                       and int(score) >= -60 else 'none'),
+        }
+    if pact == 'war' and int(score) >= -60:
+        return {
+            'kind': 'conditional_truce', 'state': 'available',
+            'status_label': 'МОЖНО ЗАПРОСИТЬ УСЛОВИЯ',
+            'summary': 'Босс готов назвать открытую цену перемирия.',
+            'agreement_id': '', 'terms': [],
+            'consequences': [{'kind': 'attacks',
+                              'label': 'Война продолжается до выполнения условия',
+                              'state': 'normal'}],
+            'action': 'offer',
+        }
+    return None
+
+
+async def conditional_truce_action(
+        db_path: str, telegram_id: int, leader_id: str, operation: str,
+        request_key: str, agreement_id: str = '', now: int | None = None) -> dict:
+    """Offer or fulfill one generation-scoped conditional player truce."""
+    now = int(now or time.time()); operation = str(operation or '')
+    request_key = str(request_key or '').strip()
+    agreement_id = str(agreement_id or '').strip()
+    if leader_id not in PROFILE_BY_ID:
+        return {'ok': False, 'error': 'unknown leader'}
+    if operation not in {'offer', 'fulfill'}:
+        return {'ok': False, 'error': 'bad operation'}
+    if not request_key or len(request_key) > 128:
+        return {'ok': False, 'error': 'bad request key'}
+    if operation == 'fulfill' and (not agreement_id or len(agreement_id) > 128):
+        return {'ok': False, 'error': 'bad agreement'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        empire = await (await db.execute(
+            "SELECT status,comebacks FROM npc_empires WHERE leader_id=?",
+            (leader_id,))).fetchone()
+        if not empire or str(empire['status']) not in {'active', 'rebuilding'}:
+            await db.rollback(); return {'ok': False, 'error': 'leader unavailable'}
+        generation = max(0, int(empire['comebacks'] or 0))
+        rel = await (await db.execute(
+            "SELECT score,pact FROM npc_empire_relations "
+            "WHERE leader_id=? AND telegram_id=?", (leader_id, telegram_id))).fetchone()
+        score = int(rel['score'] if rel else 0)
+        pact = str(rel['pact'] if rel else 'none')
+        if operation == 'offer':
+            replay = await (await db.execute(
+                "SELECT * FROM npc_empire_player_agreements WHERE leader_id=? "
+                "AND leader_generation=? AND telegram_id=? AND offer_request_key=?",
+                (leader_id, generation, telegram_id, request_key))).fetchone()
+            if replay:
+                await db.rollback()
+                return {'ok': True, 'duplicate': True, 'agreement':
+                        _public_player_agreement(replay, score=score, pact=pact, now=now)}
+            existing = await (await db.execute(
+                "SELECT * FROM npc_empire_player_agreements WHERE leader_id=? "
+                "AND leader_generation=? AND telegram_id=? AND status='offered' "
+                "AND expires_at>? ORDER BY created_at DESC LIMIT 1",
+                (leader_id, generation, telegram_id, now))).fetchone()
+            if existing:
+                await db.rollback()
+                return {'ok': True, 'duplicate': True, 'agreement':
+                        _public_player_agreement(existing, score=score, pact=pact, now=now)}
+            if pact != 'war':
+                await db.rollback(); return {'ok': False, 'error': 'war required'}
+            if score < -60:
+                await db.rollback(); return {'ok': False, 'error': 'relation too low',
+                                             'required': -60}
+            agreement_id = secrets.token_urlsafe(18)
+            await db.execute(
+                "INSERT INTO npc_empire_player_agreements"
+                "(leader_id,leader_generation,telegram_id,agreement_id,kind,"
+                "offer_request_key,term_kind,term_amount,term_band,status,"
+                "relation_at_offer,pact_at_offer,created_at,expires_at) "
+                "VALUES(?,?,?,?,'conditional_truce',?,'compensation',300,"
+                "'modest','offered',?,'war',?,?)",
+                (leader_id, generation, telegram_id, agreement_id, request_key,
+                 score, now, now + NPC_PLAYER_TRUCE_OFFER_SECONDS))
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+                "VALUES(?,'truce_terms_offered',?,?,?)",
+                (leader_id, str(telegram_id),
+                 f'{PROFILE_BY_ID[leader_id].leader_name} назвал условия перемирия', now))
+            row = await (await db.execute(
+                "SELECT * FROM npc_empire_player_agreements WHERE leader_id=? "
+                "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+                (leader_id, generation, telegram_id, agreement_id))).fetchone()
+            await db.commit()
+            return {'ok': True, 'duplicate': False, 'agreement':
+                    _public_player_agreement(row, score=score, pact=pact, now=now)}
+
+        agreement = await (await db.execute(
+            "SELECT * FROM npc_empire_player_agreements WHERE leader_id=? "
+            "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+            (leader_id, generation, telegram_id, agreement_id))).fetchone()
+        if not agreement:
+            await db.rollback(); return {'ok': False, 'error': 'stale agreement'}
+        status = str(agreement['status'] or '')
+        if status == 'fulfilled':
+            if str(agreement['fulfill_request_key'] or '') == request_key:
+                await db.rollback()
+                return {'ok': True, 'duplicate': True, 'agreement':
+                        _public_player_agreement(agreement, score=score, pact=pact, now=now)}
+            await db.rollback(); return {'ok': False, 'error': 'already fulfilled'}
+        if status != 'offered' or int(agreement['expires_at'] or 0) <= now:
+            await db.rollback(); return {'ok': False, 'error': 'agreement expired'}
+        if pact != 'war':
+            await db.rollback(); return {'ok': False, 'error': 'pact changed'}
+        if score != int(agreement['relation_at_offer'] or 0):
+            await db.rollback(); return {'ok': False, 'error': 'stale agreement'}
+        cost = max(0, int(agreement['term_amount'] or 0))
+        debit = await db.execute(
+            "UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",
+            (cost, telegram_id, cost))
+        if debit.rowcount != 1:
+            await db.rollback(); return {'ok': False, 'error': 'no cash', 'cost': cost}
+        await db.execute(
+            "UPDATE npc_empires SET treasury=treasury+?,version=version+1 "
+            "WHERE leader_id=? AND comebacks=?", (cost, leader_id, generation))
+        next_score = max(-20, clamp_relation(score + 8))
+        await db.execute(
+            "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) "
+            "VALUES(?,? ,?,'truce',?) ON CONFLICT(leader_id,telegram_id) DO UPDATE SET "
+            "score=excluded.score,pact='truce',last_action_at=excluded.last_action_at",
+            (leader_id, telegram_id, next_score, now))
+        await db.execute(
+            "INSERT INTO npc_empire_relation_actions"
+            "(leader_id,telegram_id,action_kind,last_action_at) VALUES(?,?,?,?) "
+            "ON CONFLICT(leader_id,telegram_id,action_kind) DO UPDATE SET "
+            "last_action_at=excluded.last_action_at",
+            (leader_id, telegram_id, 'truce_fulfill', now))
+        await db.execute(
+            "UPDATE npc_empire_assaults SET status='resolved',"
+            "resolution='diplomacy_changed' WHERE leader_id=? AND telegram_id=? "
+            "AND status='active' AND COALESCE(encounter_kind,'hq')='hq'",
+            (leader_id, telegram_id))
+        await db.execute(
+            "UPDATE npc_empire_interior_raids SET status='resolved',"
+            "resolution='diplomacy_changed',resolved_at=? WHERE leader_id=? "
+            "AND telegram_id=? AND status='pending'", (now, leader_id, telegram_id))
+        await db.execute(
+            "DELETE FROM npc_empire_player_wars WHERE leader_id=? AND telegram_id=?",
+            (leader_id, telegram_id))
+        await db.execute(
+            "UPDATE npc_empire_player_agreements SET status='fulfilled',"
+            "fulfill_request_key=?,fulfilled_at=? WHERE leader_id=? "
+            "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+            (request_key, now, leader_id, generation, telegram_id, agreement_id))
+        await db.execute(
+            "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+            "VALUES(?,'conditional_truce_fulfilled',?,?,?)",
+            (leader_id, str(telegram_id),
+             f'Игрок выполнил условия перемирия с {PROFILE_BY_ID[leader_id].gang_name}', now))
+        await _reconcile_npc_guards(db, leader_id, now)
+        row = await (await db.execute(
+            "SELECT * FROM npc_empire_player_agreements WHERE leader_id=? "
+            "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+            (leader_id, generation, telegram_id, agreement_id))).fetchone()
+        cash = int((await (await db.execute(
+            "SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,))).fetchone())[0])
+        await db.commit()
+        return {'ok': True, 'duplicate': False, 'relation': next_score,
+                'relation_band': relation_band(next_score), 'pact': 'truce',
+                'cost': cost, 'cash': cash, 'agreement':
+                _public_player_agreement(row, score=next_score, pact='truce', now=now)}
+
+
 async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                            action: str, now: int | None = None) -> dict:
     now = int(now or time.time())
@@ -4945,7 +5181,6 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
         'threaten': (0, -18, 1800),
         'street_attack': (0, -12, 0),
         'declare_war': (0, -200, 0),
-        'truce': (300, 8, 0),
         'alliance': (1000, 5, 0),
         'break_pact': (0, -20, 0),
     }
@@ -4975,8 +5210,6 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
             await db.rollback(); return {'ok': False, 'error': 'cooldown', 'retry_after': cooldown-(now-last_action_at)}
         if action == 'alliance' and score < 60:
             await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': 60}
-        if action == 'truce' and score < -60:
-            await db.rollback(); return {'ok': False, 'error': 'relation too low', 'required': -60}
         if action == 'declare_war' and str(empire['status']) == 'vassal':
             await db.rollback(); return {'ok': False, 'error': 'leader vassal'}
         if action == 'declare_war' and score >= 0:
@@ -5003,7 +5236,6 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                     and previous_pact in {'vassal', 'truce', 'alliance'})
                     else 'none' if str(empire['status']) == 'vassal' else 'war')
         elif action == 'alliance': score = clamp_relation(score + delta); pact = 'alliance'
-        elif action == 'truce': score = max(-20, clamp_relation(score + delta)); pact = 'truce'
         elif action == 'break_pact': score = clamp_relation(score + delta); pact = 'none'
         else:
             score = clamp_relation(score + delta)

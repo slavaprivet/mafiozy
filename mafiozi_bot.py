@@ -26877,9 +26877,15 @@ async def _coop_http_app():
     async def h_npc_empire_diplomacy(req):
         try: uid=int(req.match_info['uid']);body=await req.json()
         except Exception:return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
-        result=await npc_empire.diplomacy_action(
-            DB_PATH,uid,str(body.get('leader_id') or '')[:32],str(body.get('action') or '')[:24])
-        status=200 if result.get('ok') else (409 if result.get('error') in {'cooldown','relation too low'} else 400)
+        leader_id=str(body.get('leader_id') or '')[:32];action=str(body.get('action') or '')[:24]
+        if action in {'truce_offer','truce_fulfill'}:
+            result=await npc_empire.conditional_truce_action(
+                DB_PATH,uid,leader_id,'offer' if action=='truce_offer' else 'fulfill',
+                str(body.get('request_key') or '')[:129],
+                str(body.get('agreement_id') or '')[:129])
+        else:
+            result=await npc_empire.diplomacy_action(DB_PATH,uid,leader_id,action)
+        status=200 if result.get('ok') else (409 if result.get('error') not in {'bad action','bad request key','bad agreement','unknown leader'} else 400)
         return await _cors(web.json_response(result,status=status))
 
     async def h_npc_empire_building_action(req):

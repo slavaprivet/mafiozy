@@ -19776,16 +19776,27 @@ openNpcEmpirePanel=function(leaderId,allowAssault=false){
     hero.insertAdjacentElement('afterend',brainBoard);
   }
   ov.querySelector('[data-ne-action="declare_war"]')?.remove();
+  ov.querySelector('[data-ne-action="truce"]')?.remove();
   const actions=ov.querySelector('.ne-actions');
   if(actions&&empire.status!=='offline'&&empire.status!=='ruined'){
     actions.insertAdjacentHTML('beforeend','<button class="ne-btn good" data-ne-extra="apologize">🙏 Извиниться<small>Отношение +8 · раз в 3 часа</small></button><button class="ne-btn good" data-ne-extra="compensation">💼 Выплатить компенсацию $1500<small>Отношение +30 · при −60 война сменится перемирием</small></button>');
     actions.querySelectorAll('[data-ne-extra]').forEach(button=>button.onclick=()=>runNpcEmpireDiplomacy(empire.leader_id,button.dataset.neExtra));
   }
   const diplomacySection=actions?.closest('.ne-section');diplomacySection?.classList.add('ne-diplomacy-section');
+  const agreement=empire.player_agreement||null;
+  if(agreement&&diplomacySection){
+    const terms=(agreement.terms||[]).map(term=>`<div class="ne-event" data-ne-term-state="${_npcEmpireEsc(term.state||'pending')}"><b>${_npcEmpireEsc(term.label||'Условие')}</b> · ${term.state==='met'?'ВЫПОЛНЕНО':'ОЖИДАЕТ ВЫПОЛНЕНИЯ'}</div>`).join('');
+    const consequences=(agreement.consequences||[]).map(item=>`<div class="ne-event"><b>ПОСЛЕДСТВИЕ</b> · ${_npcEmpireEsc(item.label||'Статус не определён')}</div>`).join('');
+    const actionButton=agreement.action==='offer'?'<button class="ne-btn good" data-ne-truce-action="truce_offer">📜 ЗАПРОСИТЬ УСЛОВИЯ</button>':agreement.action==='fulfill'?'<button class="ne-btn good" data-ne-truce-action="truce_fulfill">✓ ВЫПОЛНИТЬ УСЛОВИЕ</button>':'';
+    const contract=document.createElement('section');contract.className='ne-section ne-contract-card';contract.dataset.neTruceState=String(agreement.state||'unknown');
+    contract.innerHTML=`<h3>УСЛОВНОЕ ПЕРЕМИРИЕ · ${_npcEmpireEsc(agreement.status_label||'СТАТУС НЕИЗВЕСТЕН')}</h3><div class="ne-event">${_npcEmpireEsc(agreement.summary||'')}</div>${terms}${consequences}${actionButton}`;
+    diplomacySection.insertAdjacentElement('beforebegin',contract);
+    contract.querySelector('[data-ne-truce-action]')?.addEventListener('click',button=>runNpcEmpireDiplomacy(empire.leader_id,button.currentTarget.dataset.neTruceAction,agreement.agreement_id||''));
+  }
   const warBox=document.createElement('section');
   const unavailable=empire.status==='offline'||empire.status==='ruined';
   warBox.className=`ne-war-box ${pact==='war'?'active':relation>=0?'safe':''}`;
-  if(pact==='war')warBox.innerHTML='<p><b>ВОЙНА ИДЁТ.</b> Этот босс и его бойцы атакуют тебя при встрече. Его семья периодически выводит из строя один из твоих бизнесов.</p><button class="ne-btn war" disabled>⚔️ ВОЙНА ОБЪЯВЛЕНА</button>';
+  if(pact==='war')warBox.innerHTML=`<p><b>ВОЙНА ИДЁТ.</b> ${agreement?.state==='offered'?'Условия получены, но нападения продолжатся до их выполнения.':'Этот босс и его бойцы атакуют тебя при встрече. Его семья периодически выводит из строя один из твоих бизнесов.'}</p><button class="ne-btn war" disabled>⚔️ ВОЙНА ОБЪЯВЛЕНА</button>`;
   else if(unavailable)warBox.innerHTML='<p>Объявление войны требует доступного сервера и действующей империи.</p><button class="ne-btn war" disabled>⚔️ ОБЪЯВИТЬ ВОЙНУ</button>';
   else if(relation>=0)warBox.innerHTML=`<p>Объявить войну можно, только когда отношение босса стало <b>негативным — ниже 0</b>. Сейчас: ${relation>0?'+':''}${relation}, ${attitude.label.toLowerCase()}.</p><button class="ne-btn war" disabled>⚔️ ОБЪЯВИТЬ ВОЙНУ · НУЖНО НИЖЕ 0</button>`;
   else warBox.innerHTML='<p>После объявления войны босс и его банда откроют огонь при встрече и начнут атаковать твои бизнесы.</p><button class="ne-btn war" data-ne-declare-war>⚔️ ОБЪЯВИТЬ ВОЙНУ</button>';
@@ -19808,10 +19819,10 @@ openNpcEmpirePanel=function(leaderId,allowAssault=false){
   }
   _paintNpcEmpireUiPortraits(ov);
 };
-async function runNpcEmpireDiplomacy(leaderId,action){
+async function runNpcEmpireDiplomacy(leaderId,action,agreementId=''){
   if(_npcEmpireBusy)return;_npcEmpireBusy=true;const ov=_npcEmpireOverlay();ov.querySelectorAll('button').forEach(b=>b.disabled=true);
-  try{const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/diplomacy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:leaderId,action})}),j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'failed');if(j.cash!=null){myCash=+j.cash||0;QP.cash=myCash;updateMoneyHud();}await loadNpcEmpireState();showEventBanner('🤝 ДИПЛОМАТИЯ',`${_npcEmpireById.get(leaderId)?.leader_name||leaderId}: отношение ${j.relation>0?'+':''}${j.relation}`,2400,j.relation<0?'warn':'win');}
-  catch(e){showToast(({cooldown:'Повторить это действие пока нельзя','relation too low':'Отношение недостаточно хорошее','war requires negative relation':'Войну можно объявить только при негативном отношении — ниже 0','already at war':'Война с этим боссом уже идёт','no cash':'Недостаточно денег'})[String(e.message)]||'Дипломатическое действие отклонено','⚠️',2500);openNpcEmpirePanel(leaderId,ov.dataset.allowAssault==='1');}finally{_npcEmpireBusy=false;}
+  try{const truceAction=action==='truce_offer'||action==='truce_fulfill',requestKey=action==='truce_fulfill'?`fulfill:${agreementId}`:(globalThis.crypto?.randomUUID?.()||`offer:${leaderId}:${Date.now()}`),payload={leader_id:leaderId,action};if(truceAction){payload.request_key=requestKey;payload.agreement_id=agreementId;}const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/diplomacy`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),j=await r.json();if(!r.ok||!j.ok)throw new Error(j.error||'failed');if(j.cash!=null){myCash=+j.cash||0;QP.cash=myCash;updateMoneyHud();}await loadNpcEmpireState();const relationNow=j.relation??_npcEmpireById.get(leaderId)?.relation??0,message=j.agreement?.status_label?`${_npcEmpireById.get(leaderId)?.leader_name||leaderId}: ${j.agreement.status_label}`:`${_npcEmpireById.get(leaderId)?.leader_name||leaderId}: отношение ${relationNow>0?'+':''}${relationNow}`;showEventBanner('🤝 ДИПЛОМАТИЯ',message,2400,relationNow<0?'warn':'win');}
+  catch(e){showToast(({cooldown:'Повторить это действие пока нельзя','relation too low':'Сначала смягчи отношение до −60 или выше','war required':'Условия перемирия доступны только во время войны','pact changed':'Договорённость больше не действует','stale agreement':'Условия устарели — запроси новые','agreement expired':'Срок предложения истёк','already fulfilled':'Условия уже были выполнены','war requires negative relation':'Войну можно объявить только при негативном отношении — ниже 0','already at war':'Война с этим боссом уже идёт','no cash':'Недостаточно денег для выполнения условия'})[String(e.message)]||'Дипломатическое действие отклонено','⚠️',2500);openNpcEmpirePanel(leaderId,ov.dataset.allowAssault==='1');}finally{_npcEmpireBusy=false;}
 }
 async function startNpcEmpireAssault(leaderId){
   if(_npcEmpireBusy||!QP.api||!QP.uid)return;

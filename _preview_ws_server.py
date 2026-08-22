@@ -2,6 +2,7 @@ import asyncio
 import json
 import math
 import random
+import secrets
 import os
 from pathlib import Path
 import time
@@ -119,6 +120,7 @@ preview_business_claims = {}
 preview_business_sabotage = {}
 preview_business_wars = {}
 preview_empire_relations = {}
+preview_empire_agreements = {}
 preview_empire_hospitals = {}
 preview_empire_street_members = {}
 preview_connections = {}
@@ -1853,7 +1855,11 @@ async def npc_empire_state(req):
             "members": preview_empire_street_members.get(profile.leader_id, 8 + rank % 7), "strength": 90 + rank * 3, "status": "active",
             "hq_key": profile.hq_key, "hq_r": hq_r, "hq_c": hq_c,
             "relation": relation, "relation_band": npc_empire.relation_band(relation),
-            "pact": pact, "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
+            "pact": pact,
+            "player_agreement": npc_empire._public_player_agreement(
+                preview_empire_agreements.get((uid, profile.leader_id)),
+                score=relation, pact=pact, now=now),
+            "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
                                            "income": 0, "defense": 80}],
             "activity": _preview_empire_activity(profile, now),
             "rank": rank, "wins": rank % 4, "losses": rank % 3, "knockouts": rank % 2,
@@ -1912,10 +1918,63 @@ async def npc_empire_diplomacy(req):
     if leader_id not in npc_empire.PROFILE_BY_ID:
         return cors(web.json_response({"ok": False, "error": "unknown leader"}, status=400))
     score, pact = preview_empire_relations.get((uid, leader_id), (0, "none"))
+    if action == 'truce_offer':
+        request_key = str(body.get('request_key') or '')
+        if not request_key or len(request_key) > 128:
+            return cors(web.json_response({'ok': False, 'error': 'bad request key'}, status=400))
+        if pact != 'war':
+            return cors(web.json_response({'ok': False, 'error': 'war required'}, status=409))
+        if score < -60:
+            return cors(web.json_response({'ok': False, 'error': 'relation too low'}, status=409))
+        agreement = preview_empire_agreements.get((uid, leader_id))
+        duplicate = bool(agreement and int(agreement.get('expires_at') or 0) > int(time.time())
+                         and agreement.get('status') == 'offered')
+        if not duplicate:
+            now = int(time.time())
+            agreement = {'leader_id': leader_id, 'leader_generation': 0,
+                'telegram_id': int(uid), 'agreement_id': secrets.token_urlsafe(18),
+                'offer_request_key': request_key, 'fulfill_request_key': '',
+                'term_amount': 300, 'status': 'offered',
+                'relation_at_offer': score, 'created_at': now,
+                'expires_at': now + npc_empire.NPC_PLAYER_TRUCE_OFFER_SECONDS,
+                'fulfilled_at': 0}
+            preview_empire_agreements[(uid, leader_id)] = agreement
+        public = npc_empire._public_player_agreement(
+            agreement, score=score, pact=pact, now=int(time.time()))
+        return cors(web.json_response({'ok': True, 'duplicate': duplicate,
+            'leader_id': leader_id, 'action': action, 'agreement': public}))
+    if action == 'truce_fulfill':
+        agreement = preview_empire_agreements.get((uid, leader_id))
+        request_key = str(body.get('request_key') or '')
+        if (not agreement or str(body.get('agreement_id') or '')
+                != str(agreement.get('agreement_id') or '')):
+            return cors(web.json_response({'ok': False, 'error': 'stale agreement'}, status=409))
+        if agreement.get('status') == 'fulfilled':
+            duplicate = agreement.get('fulfill_request_key') == request_key
+            if not duplicate:
+                return cors(web.json_response({'ok': False, 'error': 'already fulfilled'}, status=409))
+        else:
+            if pact != 'war' or score != int(agreement.get('relation_at_offer') or 0):
+                return cors(web.json_response({'ok': False, 'error': 'stale agreement'}, status=409))
+            account = preview_account(uid); cost = int(agreement.get('term_amount') or 0)
+            if account['cash'] < cost:
+                return cors(web.json_response({'ok': False, 'error': 'no cash'}, status=409))
+            account['cash'] -= cost; score = max(-20, npc_empire.clamp_relation(score + 8)); pact = 'truce'
+            agreement.update(status='fulfilled', fulfill_request_key=request_key,
+                             fulfilled_at=int(time.time()))
+            preview_empire_relations[(uid, leader_id)] = (score, pact)
+            duplicate = False
+        public = npc_empire._public_player_agreement(
+            agreement, score=score, pact=pact, now=int(time.time()))
+        return cors(web.json_response({'ok': True, 'duplicate': duplicate,
+            'leader_id': leader_id, 'action': action, 'relation': score,
+            'relation_band': npc_empire.relation_band(score), 'pact': pact,
+            'cost': int(agreement.get('term_amount') or 0),
+            'cash': preview_account(uid)['cash'], 'agreement': public}))
     rules = {"respect": (0, 3), "gift": (500, 12), "apologize": (0, 8),
              "compensation": (1500, 30), "insult": (0, -10), "threaten": (0, -18),
              "street_attack": (0, -12),
-             "truce": (300, 8), "alliance": (1000, 5), "break_pact": (0, -20)}
+             "alliance": (1000, 5), "break_pact": (0, -20)}
     if action == "declare_war":
         if score >= 0:
             return cors(web.json_response({"ok": False, "error": "war requires negative relation"}, status=409))
@@ -1928,7 +1987,7 @@ async def npc_empire_diplomacy(req):
         account["cash"] -= cost
         score = npc_empire.clamp_relation(score + delta)
         if action == "street_attack": score, pact = min(-1, score), "war"
-        if action == "truce" or (action == "compensation" and pact == "war" and score >= -60): pact = "truce"
+        if action == "compensation" and pact == "war" and score >= -60: pact = "truce"
         elif action == "alliance": pact = "alliance"
         elif action == "break_pact": pact = "none"
     else:
