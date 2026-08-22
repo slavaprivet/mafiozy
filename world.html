@@ -22596,6 +22596,27 @@ function spawnBullet(sr, sc, er, ec, opts) {
 // чтобы лепестки пламени успели разлететься). Плюс: маленькое shockwave-кольцо
 // у ствола + 2 клуба дыма (порохового), стелющиеся вверх.
 // npc=true — упрощённая вспышка без shockwave и дыма (иначе при 100 NPC крэш)
+const _cinematicMuzzlePetalCache = new WeakMap();
+function _prepareCinematicMuzzle(m) {
+  let cached = _cinematicMuzzlePetalCache.get(m);
+  if (cached) return cached;
+  const heavy = !!m.heavy;
+  const seed = m.seed || 0;
+  const petals = heavy ? 5 : 4;
+  cached = new Array(petals * 4);
+  for (let k = 0; k < petals; k++) {
+    const s1 = Math.sin(seed + k * 13.37) * 0.5 + 0.5;
+    const s2 = Math.sin(seed * 1.7 + k * 7.11) * 0.5 + 0.5;
+    const dev = (s1 - 0.5) * (heavy ? 0.7 : 0.55);
+    const i = k * 4;
+    cached[i] = s1;
+    cached[i + 1] = s2;
+    cached[i + 2] = Math.cos(dev);
+    cached[i + 3] = Math.sin(dev);
+  }
+  _cinematicMuzzlePetalCache.set(m, cached);
+  return cached;
+}
 function spawnMuzzle(r, c, angle, weapon, npc) {
   const w = resolveWeapon(weapon);
   const wcfg = WEAPON_FX_CFG[w] || {};
@@ -22613,6 +22634,7 @@ function spawnMuzzle(r, c, angle, weapon, npc) {
     npc: !!npc,
   });
   if (!npc) {
+    _prepareCinematicMuzzle(muzzles[muzzles.length - 1]);
     // Shockwave и дым только для выстрела игрока — слишком дорого для NPC
     spawnShockwave(r, c, {
       rad0: 3,
@@ -48406,6 +48428,7 @@ function spawnShot(wr, wc, ang, weapon, isMyShot) {
   _capArr(muzzles,_MAX_MUZZLES);
   muzzles.push({ r: wr, c: wc, ang: ang || 0,
                  life: _mLife, max: _mLife, weapon, npc: !isMyShot });
+  if (isMyShot) _prepareCinematicMuzzle(muzzles[muzzles.length - 1]);
   // Гильзы — 1-3шт вылетают вбок от ствола. Для огнестрела (не melee)
   const nShells = (weapon === 'shotgun') ? 2 :
                   (weapon === 'rpg' || weapon === 'sniper') ? 0 : 1;
@@ -52311,7 +52334,7 @@ function drawMuzzles() {
 
     const heavy = !!m.heavy;
     const sizeMul = heavy ? 1.2 : 1.0;
-    const seed = m.seed || 0;
+    const muzzlePetals = _prepareCinematicMuzzle(m);
     // 1. ореол — radial gradient (уменьшен вдвое от прежнего)
     ctx.save();
     const oreolR = TS * 0.26 * t2 * sizeMul;
@@ -52330,17 +52353,17 @@ function drawMuzzles() {
     ctx.rotate(ang);
     const petals = heavy ? 5 : 4;
     for (let k = 0; k < petals; k++) {
-      const s1 = Math.sin(seed + k * 13.37) * 0.5 + 0.5;
-      const s2 = Math.sin(seed * 1.7 + k * 7.11) * 0.5 + 0.5;
-      const dev = (s1 - 0.5) * (heavy ? 0.7 : 0.55);
+      const i = k * 4;
+      const s1 = muzzlePetals[i], s2 = muzzlePetals[i + 1];
+      const devCos = muzzlePetals[i + 2], devSin = muzzlePetals[i + 3];
       const len = TS * (0.28 + s2 * 0.20) * t2 * sizeMul;
       const wid = TS * (0.04 + s1 * 0.04) * t2;
       ctx.fillStyle = `rgba(255,${200 + Math.floor(s2 * 50)},${80 + Math.floor(s1 * 60)},${t * 0.80})`;
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(dev) * len * 0.6, Math.sin(dev) * len * 0.6 - wid);
-      ctx.lineTo(Math.cos(dev) * len,       Math.sin(dev) * len);
-      ctx.lineTo(Math.cos(dev) * len * 0.6, Math.sin(dev) * len * 0.6 + wid);
+      ctx.lineTo(devCos * len * 0.6, devSin * len * 0.6 - wid);
+      ctx.lineTo(devCos * len,       devSin * len);
+      ctx.lineTo(devCos * len * 0.6, devSin * len * 0.6 + wid);
       ctx.closePath();
       ctx.fill();
     }
