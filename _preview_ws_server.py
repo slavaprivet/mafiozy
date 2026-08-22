@@ -121,6 +121,7 @@ preview_business_sabotage = {}
 preview_business_wars = {}
 preview_empire_relations = {}
 preview_empire_agreements = {}
+preview_empire_tribute_agreements = {}
 preview_empire_hospitals = {}
 preview_empire_street_members = {}
 preview_connections = {}
@@ -1869,6 +1870,9 @@ async def npc_empire_state(req):
             "player_agreement": npc_empire._public_player_agreement(
                 preview_empire_agreements.get((uid, profile.leader_id)),
                 score=relation, pact=pact, now=now),
+            "player_tribute": npc_empire._public_player_tribute(
+                preview_empire_tribute_agreements.get((uid, profile.leader_id)),
+                score=relation, pact=pact, now=now),
             "holdings": [{"kind": "hq", "holding_id": profile.hq_key,
                                            "income": 0, "defense": 80}],
             "activity": _preview_empire_activity(profile, now),
@@ -1928,6 +1932,76 @@ async def npc_empire_diplomacy(req):
     if leader_id not in npc_empire.PROFILE_BY_ID:
         return cors(web.json_response({"ok": False, "error": "unknown leader"}, status=400))
     score, pact = preview_empire_relations.get((uid, leader_id), (0, "none"))
+    if action == 'tribute_offer':
+        request_key = str(body.get('request_key') or '')
+        if not request_key or len(request_key) > 128:
+            return cors(web.json_response({'ok': False, 'error': 'bad request key'}, status=400))
+        if pact != 'war':
+            return cors(web.json_response({'ok': False, 'error': 'war required'}, status=409))
+        if score >= -60:
+            return cors(web.json_response({'ok': False, 'error': 'tribute unavailable'}, status=409))
+        now = int(time.time())
+        agreement = preview_empire_tribute_agreements.get((uid, leader_id))
+        duplicate = bool(agreement and (
+            agreement.get('status') == 'active' and int(agreement.get('active_until') or 0) > now
+            or agreement.get('status') == 'offered'
+            and int(agreement.get('offer_expires_at') or 0) > now))
+        if not duplicate:
+            agreement = {
+                'leader_id': leader_id, 'leader_generation': 0,
+                'telegram_id': int(uid), 'agreement_id': secrets.token_urlsafe(18),
+                'offer_request_key': request_key, 'accept_request_key': '',
+                'term_amount': npc_empire.NPC_PLAYER_TRIBUTE_AMOUNT,
+                'term_seconds': npc_empire.NPC_PLAYER_TRIBUTE_ACTIVE_SECONDS,
+                'status': 'offered', 'relation_at_offer': score,
+                'pact_at_offer': 'war', 'created_at': now,
+                'offer_expires_at': now + npc_empire.NPC_PLAYER_TRIBUTE_OFFER_SECONDS,
+                'accepted_at': 0, 'active_until': 0,
+                'closed_at': 0, 'closed_reason': ''}
+            preview_empire_tribute_agreements[(uid, leader_id)] = agreement
+        public = npc_empire._public_player_tribute(
+            agreement, score=score, pact=pact, now=now)
+        return cors(web.json_response({'ok': True, 'duplicate': duplicate,
+            'leader_id': leader_id, 'action': action, 'agreement': public}))
+    if action == 'tribute_accept':
+        request_key = str(body.get('request_key') or '')
+        agreement_id = str(body.get('agreement_id') or '')
+        if not request_key or len(request_key) > 128:
+            return cors(web.json_response({'ok': False, 'error': 'bad request key'}, status=400))
+        if not agreement_id or len(agreement_id) > 128:
+            return cors(web.json_response({'ok': False, 'error': 'bad agreement'}, status=400))
+        agreement = preview_empire_tribute_agreements.get((uid, leader_id))
+        if not agreement or agreement_id != str(agreement.get('agreement_id') or ''):
+            return cors(web.json_response({'ok': False, 'error': 'stale agreement'}, status=409))
+        now = int(time.time()); status = str(agreement.get('status') or '')
+        if status in {'active', 'expired', 'breached', 'invalidated'}:
+            duplicate = str(agreement.get('accept_request_key') or '') == request_key
+            if not duplicate:
+                return cors(web.json_response({'ok': False, 'error':
+                    'already active' if status == 'active' else 'agreement closed'}, status=409))
+        else:
+            if int(agreement.get('offer_expires_at') or 0) <= now:
+                agreement.update(status='expired', closed_at=now, closed_reason='expired')
+                return cors(web.json_response({'ok': False, 'error': 'agreement expired'}, status=409))
+            if pact != 'war':
+                return cors(web.json_response({'ok': False, 'error': 'pact changed'}, status=409))
+            if score != int(agreement.get('relation_at_offer') or 0):
+                return cors(web.json_response({'ok': False, 'error': 'stale agreement'}, status=409))
+            account = preview_account(uid); cost = int(agreement.get('term_amount') or 0)
+            if account['cash'] < cost:
+                return cors(web.json_response({'ok': False, 'error': 'no cash'}, status=409))
+            account['cash'] -= cost
+            agreement.update(status='active', accept_request_key=request_key,
+                             accepted_at=now,
+                             active_until=now + int(agreement.get('term_seconds') or 0))
+            duplicate = False
+        public = npc_empire._public_player_tribute(
+            agreement, score=score, pact=pact, now=now)
+        return cors(web.json_response({'ok': True, 'duplicate': duplicate,
+            'leader_id': leader_id, 'action': action, 'relation': score,
+            'relation_band': npc_empire.relation_band(score), 'pact': pact,
+            'cost': int(agreement.get('term_amount') or 0),
+            'cash': preview_account(uid)['cash'], 'agreement': public}))
     if action == 'truce_offer':
         request_key = str(body.get('request_key') or '')
         if not request_key or len(request_key) > 128:
@@ -2003,6 +2077,15 @@ async def npc_empire_diplomacy(req):
     else:
         return cors(web.json_response({"ok": False, "error": "bad action"}, status=400))
     preview_empire_relations[(uid, leader_id)] = (score, pact)
+    tribute = preview_empire_tribute_agreements.get((uid, leader_id))
+    if tribute and tribute.get('status') == 'active':
+        now = int(time.time())
+        if action == 'street_attack':
+            tribute.update(status='breached', closed_at=now,
+                           closed_reason='street_attack')
+        elif pact != 'war':
+            tribute.update(status='invalidated', closed_at=now,
+                           closed_reason='pact_changed')
     cash = preview_account(uid)["cash"]
     return cors(web.json_response({"ok": True, "leader_id": leader_id, "action": action,
         "relation": score, "relation_band": npc_empire.relation_band(score),

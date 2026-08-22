@@ -54,6 +54,10 @@ NPC_WAR_IDLE_TRUCE_SECONDS = 3 * 24 * 60 * 60
 NPC_WAR_EXHAUSTION_TENSION = 100
 NPC_TRUCE_SCORE = -35
 NPC_PLAYER_TRUCE_OFFER_SECONDS = 30 * 60
+NPC_PLAYER_TRIBUTE_OFFER_SECONDS = 30 * 60
+NPC_PLAYER_TRIBUTE_ACTIVE_SECONDS = 60 * 60
+NPC_PLAYER_TRIBUTE_AMOUNT = 150
+NPC_PLAYER_TRIBUTE_DELAY_MULTIPLIER = 2
 NPC_OPERATING_RESERVE_TICKS = 12
 NPC_RECOVERY_STIPEND_PER_TICK = 600
 NPC_RECOVERY_STIPEND_TICKS = 12
@@ -2067,6 +2071,32 @@ async def ensure_schema(db_path: str) -> None:
         CREATE INDEX IF NOT EXISTS ix_npc_player_agreement_pair
             ON npc_empire_player_agreements(
                 telegram_id,leader_id,leader_generation,status,expires_at);
+        CREATE TABLE IF NOT EXISTS npc_empire_player_tribute_agreements (
+            leader_id TEXT NOT NULL,
+            leader_generation INTEGER NOT NULL,
+            telegram_id INTEGER NOT NULL,
+            agreement_id TEXT NOT NULL,
+            offer_request_key TEXT NOT NULL,
+            accept_request_key TEXT,
+            term_amount INTEGER NOT NULL,
+            term_seconds INTEGER NOT NULL,
+            status TEXT NOT NULL,
+            relation_at_offer INTEGER NOT NULL,
+            pact_at_offer TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            offer_expires_at INTEGER NOT NULL,
+            accepted_at INTEGER NOT NULL DEFAULT 0,
+            active_until INTEGER NOT NULL DEFAULT 0,
+            closed_at INTEGER NOT NULL DEFAULT 0,
+            closed_reason TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY(leader_id,leader_generation,telegram_id,agreement_id),
+            UNIQUE(leader_id,leader_generation,telegram_id,offer_request_key),
+            UNIQUE(leader_id,leader_generation,telegram_id,accept_request_key)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_player_tribute_pair
+            ON npc_empire_player_tribute_agreements(
+                telegram_id,leader_id,leader_generation,status,
+                offer_expires_at,active_until);
         CREATE TABLE IF NOT EXISTS npc_empire_diplomacy (
             leader_a TEXT NOT NULL,
             leader_b TEXT NOT NULL,
@@ -3805,6 +3835,9 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
+        # Tribute expiry/pact invalidation shares the pressure transaction and
+        # is resolved before due attacks are selected at the boundary second.
+        await _reconcile_player_tributes_tx(db, telegram_id, now)
         # An abandoned browser must not pin a family forever. Expiry is handled
         # in the same bounded player-state transaction and creates no event.
         await db.execute(
@@ -3821,10 +3854,13 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
         )).fetchall()
         active = {str(row['leader_id']) for row in wars}
         if active:
-            await db.executemany(
-                "INSERT OR IGNORE INTO npc_empire_player_wars(leader_id,telegram_id,next_attack_at) VALUES(?,?,?)",
-                [(leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS) for leader_id in active],
-            )
+            for leader_id in active:
+                first_delay = await _player_war_delay_tx(
+                    db, telegram_id, leader_id, PLAYER_WAR_FIRST_STRIKE_SECONDS, now)
+                await db.execute(
+                    "INSERT OR IGNORE INTO npc_empire_player_wars"
+                    "(leader_id,telegram_id,next_attack_at) VALUES(?,?,?)",
+                    (leader_id, telegram_id, now + first_delay))
         stale = await (await db.execute(
             "SELECT leader_id FROM npc_empire_player_wars WHERE telegram_id=?", (telegram_id,)
         )).fetchall()
@@ -3894,7 +3930,9 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                     await db.execute(
                         "UPDATE npc_empire_player_wars SET next_attack_at=? "
                         "WHERE leader_id=? AND telegram_id=?",
-                        (now + _player_war_interval(profile), leader_id, telegram_id))
+                        (now + await _player_war_delay_tx(
+                            db, telegram_id, leader_id,
+                            _player_war_interval(profile), now), leader_id, telegram_id))
                     continue
                 target_ref = str(target['ref'])
                 target_kind = str(target['kind'])
@@ -3925,7 +3963,9 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                     await db.execute(
                         "UPDATE npc_empire_player_wars SET next_attack_at=? "
                         "WHERE leader_id=? AND telegram_id=?",
-                        (now + _player_war_interval(profile), leader_id, telegram_id))
+                        (now + await _player_war_delay_tx(
+                            db, telegram_id, leader_id,
+                            _player_war_interval(profile), now), leader_id, telegram_id))
                     continue
                 objective = _player_business_raid_objective(
                     attack_no, last_biz, target_ref, biz_id)
@@ -4005,9 +4045,11 @@ async def _apply_player_war_pressure(db_path: str, telegram_id: int, now: int,
                 "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
                 (leader_id, kind, str(telegram_id), summary, now),
             )
-            next_pressure_at = now + (PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
-                                      if kind == 'player_business_bombed'
-                                      else _player_war_interval(profile))
+            base_pressure_delay = (PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
+                                   if kind == 'player_business_bombed'
+                                   else _player_war_interval(profile))
+            next_pressure_at = now + await _player_war_delay_tx(
+                db, telegram_id, leader_id, base_pressure_delay, now)
             await db.execute(
                 "UPDATE npc_empire_player_wars SET attacks=attacks+1,last_business_id=?,last_attack_at=?,"
                 "next_attack_at=? WHERE leader_id=? AND telegram_id=?",
@@ -4225,9 +4267,11 @@ async def _apply_resolved_interior_raid_phase_tx(
     await db.execute(
         "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
         "VALUES(?,?,?,?,?)", (leader_id, kind, str(telegram_id), summary, now))
-    next_pressure_at = now + (PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
-                              if kind == 'player_business_bombed'
-                              else _player_war_interval(profile))
+    base_pressure_delay = (PLAYER_WAR_CAPTURE_FOLLOWUP_SECONDS
+                           if kind == 'player_business_bombed'
+                           else _player_war_interval(profile))
+    next_pressure_at = now + await _player_war_delay_tx(
+        db, telegram_id, leader_id, base_pressure_delay, now)
     await db.execute(
         "UPDATE npc_empire_player_wars SET attacks=attacks+1,last_business_id=?,"
         "last_attack_at=?,next_attack_at=? WHERE leader_id=? AND telegram_id=?",
@@ -4379,10 +4423,13 @@ async def resolve_interior_raid(db_path: str, telegram_id: int, token: str,
             "UPDATE npc_empire_interior_raids SET status='resolved',resolution=?,resolved_at=? "
             "WHERE token=? AND status='pending'", (outcome, now, token))
         if outcome == 'defended':
+            delay = await _player_war_delay_tx(
+                db, telegram_id, leader_id,
+                _player_war_interval(PROFILE_BY_ID[leader_id]), now)
             await db.execute(
                 "UPDATE npc_empire_player_wars SET next_attack_at=? "
                 "WHERE leader_id=? AND telegram_id=?",
-                (now + _player_war_interval(PROFILE_BY_ID[leader_id]), leader_id, telegram_id))
+                (now + delay, leader_id, telegram_id))
         await db.commit()
     return {'ok': True, 'resolution': outcome, 'attacker_losses': attacker_losses,
             'defender_losses': defender_losses, 'phase_events': phase_events}
@@ -4413,6 +4460,14 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         agreements = {}
         for agreement_row in agreement_rows:
             agreements.setdefault(str(agreement_row['leader_id']), agreement_row)
+        tribute_rows = await (await db.execute(
+            "SELECT t.* FROM npc_empire_player_tribute_agreements t "
+            "JOIN npc_empires e ON e.leader_id=t.leader_id "
+            "AND e.comebacks=t.leader_generation WHERE t.telegram_id=? "
+            "ORDER BY t.created_at DESC", (telegram_id,))).fetchall()
+        tributes = {}
+        for tribute_row in tribute_rows:
+            tributes.setdefault(str(tribute_row['leader_id']), tribute_row)
         holdings_rows = await (await db.execute(
             "SELECT kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area FROM npc_empire_holdings"
         )).fetchall()
@@ -4597,6 +4652,9 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             'pact': str(relation.get('pact') or 'none'),
             'player_agreement': _public_player_agreement(
                 agreements.get(leader_id), score=score,
+                pact=str(relation.get('pact') or 'none'), now=now),
+            'player_tribute': _public_player_tribute(
+                tributes.get(leader_id), score=score,
                 pact=str(relation.get('pact') or 'none'), now=now),
             'war_pressure': war_rows.get(leader_id),
             'holdings': leader_holdings,
@@ -4953,6 +5011,8 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
             "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,pact=excluded.pact,last_action_at=excluded.last_action_at",
             (leader_id, telegram_id, new_score, pact, now),
         )
+        await _breach_player_tribute_tx(
+            db, telegram_id, leader_id, now, 'building_sabotage')
         await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
             (leader_id, 'building_sabotaged', str(telegram_id),
@@ -4965,6 +5025,138 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
             'fuse_s': 3, 'c4_left': c4_count - 1,
             'relation': new_score, 'relation_delta': -relation_loss, 'pact': pact,
             'message': 'Ты ответишь за это. Заведение закрыто на ремонт.'}
+
+
+async def _reconcile_player_tributes_tx(db, telegram_id: int, now: int) -> None:
+    """Terminalize this player's current-generation tribute rows before pressure."""
+    rows = await (await db.execute(
+        "SELECT t.leader_id,t.leader_generation,t.agreement_id,t.status,"
+        "t.offer_expires_at,t.active_until,r.pact FROM npc_empire_player_tribute_agreements t "
+        "JOIN npc_empires e ON e.leader_id=t.leader_id "
+        "AND e.comebacks=t.leader_generation "
+        "LEFT JOIN npc_empire_relations r ON r.leader_id=t.leader_id "
+        "AND r.telegram_id=t.telegram_id WHERE t.telegram_id=? "
+        "AND t.status IN ('offered','active')", (telegram_id,))).fetchall()
+    for row in rows:
+        status = str(row['status'])
+        reason = ''
+        if status == 'offered' and int(row['offer_expires_at'] or 0) <= now:
+            reason = 'expired'
+        elif status == 'active' and int(row['active_until'] or 0) <= now:
+            reason = 'expired'
+        elif str(row['pact'] or 'none') != 'war':
+            reason = 'invalidated'
+        if not reason:
+            continue
+        changed = await db.execute(
+            "UPDATE npc_empire_player_tribute_agreements SET status=?,"
+            "closed_at=?,closed_reason=? WHERE leader_id=? AND leader_generation=? "
+            "AND telegram_id=? AND agreement_id=? AND status=?",
+            (reason, now, reason, str(row['leader_id']), int(row['leader_generation']),
+             telegram_id, str(row['agreement_id']), status))
+        if changed.rowcount == 1:
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+                "VALUES(?,?,?,?,?)", (str(row['leader_id']), f'tribute_{reason}',
+                str(telegram_id), f'Договор дани завершён: {reason}', now))
+
+
+async def _active_player_tribute_tx(db, telegram_id: int, leader_id: str,
+                                    now: int):
+    return await (await db.execute(
+        "SELECT t.* FROM npc_empire_player_tribute_agreements t "
+        "JOIN npc_empires e ON e.leader_id=t.leader_id "
+        "AND e.comebacks=t.leader_generation WHERE t.telegram_id=? "
+        "AND t.leader_id=? AND t.status='active' AND t.active_until>? "
+        "ORDER BY t.accepted_at DESC LIMIT 1",
+        (telegram_id, leader_id, now))).fetchone()
+
+
+async def _player_war_delay_tx(db, telegram_id: int, leader_id: str,
+                               base_delay: int, now: int) -> int:
+    active = await _active_player_tribute_tx(db, telegram_id, leader_id, now)
+    multiplier = NPC_PLAYER_TRIBUTE_DELAY_MULTIPLIER if active else 1
+    return max(1, int(base_delay)) * multiplier
+
+
+async def _breach_player_tribute_tx(db, telegram_id: int, leader_id: str,
+                                    now: int, reason: str) -> bool:
+    active = await _active_player_tribute_tx(db, telegram_id, leader_id, now)
+    if not active:
+        return False
+    changed = await db.execute(
+        "UPDATE npc_empire_player_tribute_agreements SET status='breached',"
+        "closed_at=?,closed_reason=? WHERE leader_id=? AND leader_generation=? "
+        "AND telegram_id=? AND agreement_id=? AND status='active'",
+        (now, str(reason)[:40], leader_id, int(active['leader_generation']),
+         telegram_id, str(active['agreement_id'])))
+    if changed.rowcount != 1:
+        return False
+    normal_at = now + _player_war_interval(PROFILE_BY_ID[leader_id])
+    await db.execute(
+        "UPDATE npc_empire_player_wars SET next_attack_at=MIN(next_attack_at,?) "
+        "WHERE leader_id=? AND telegram_id=?", (normal_at, leader_id, telegram_id))
+    await db.execute(
+        "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+        "VALUES(?,'tribute_breached',?,?,?)", (leader_id, str(telegram_id),
+        f'Игрок нарушил договор дани: {str(reason)[:40]}', now))
+    return True
+
+
+def _public_player_tribute(row, *, score: int, pact: str, now: int) -> dict | None:
+    if row:
+        state = str(row['status'] or 'offered')
+        if state == 'offered' and int(row['offer_expires_at'] or 0) <= now:
+            state = 'expired'
+        if state == 'active' and int(row['active_until'] or 0) <= now:
+            state = 'expired'
+        amount = max(0, int(row['term_amount'] or 0))
+        active_until = max(0, int(row['active_until'] or 0))
+        offer_expires_at = max(0, int(row['offer_expires_at'] or 0))
+        active = state == 'active' and pact == 'war'
+        return {
+            'kind': 'bounded_tribute', 'state': state,
+            'status_label': {
+                'offered': 'ТРЕБОВАНИЕ ПОЛУЧЕНО', 'active': 'ДАНЬ ПРИНЯТА',
+                'expired': 'СРОК ДОГОВОРА ИСТЁК', 'breached': 'ДОГОВОР НАРУШЕН',
+                'invalidated': 'ДОГОВОР БОЛЬШЕ НЕ ДЕЙСТВУЕТ',
+            }.get(state, 'СОСТОЯНИЕ НЕИЗВЕСТНО'),
+            'summary': ('Семья временно снизила давление, но война продолжается.'
+                        if active else 'Семья назвала открытую цену короткой передышки.'
+                        if state == 'offered' else 'Договор сохранён в истории пары.'),
+            'agreement_id': str(row['agreement_id']),
+            'term': {'kind': 'cash', 'amount': amount,
+                     'label': f'Дань ${amount}'},
+            'window': {
+                'ends_at': active_until if active else offer_expires_at,
+                'remaining_s': max(0, (active_until if active else offer_expires_at) - now),
+                'label': ('Передышка действует ещё ограниченное время' if active
+                          else 'Требование нужно принять до истечения срока'),
+            },
+            'obligations': [{'kind': 'non_aggression',
+                             'state': 'kept' if active else state,
+                             'label': 'Ответная агрессия нарушит договор без возврата'}],
+            'consequences': [{'kind': 'attacks',
+                              'state': 'reduced' if active else 'normal',
+                              'label': ('Новые нападения становятся реже; безопасность не гарантирована'
+                                        if active else 'Война и обычное давление продолжаются')}],
+            'action': ('accept' if state == 'offered' and pact == 'war'
+                       and int(score) == int(row['relation_at_offer'] or 0)
+                       else 'offer' if state == 'expired' and pact == 'war'
+                       and int(score) < -60 else 'none'),
+        }
+    if pact == 'war' and int(score) < -60:
+        return {
+            'kind': 'bounded_tribute', 'state': 'available',
+            'status_label': 'МОЖНО ЗАПРОСИТЬ ДАНЬ',
+            'summary': 'Босс готов назвать цену короткой передышки.',
+            'agreement_id': '', 'term': {}, 'window': {},
+            'obligations': [],
+            'consequences': [{'kind': 'attacks', 'state': 'normal',
+                              'label': 'Война и обычное давление продолжаются'}],
+            'action': 'offer',
+        }
+    return None
 
 
 def _public_player_agreement(row, *, score: int, pact: str, now: int) -> dict | None:
@@ -5167,6 +5359,149 @@ async def conditional_truce_action(
                 _public_player_agreement(row, score=next_score, pact='truce', now=now)}
 
 
+async def bounded_tribute_action(
+        db_path: str, telegram_id: int, leader_id: str, operation: str,
+        request_key: str, agreement_id: str = '', now: int | None = None) -> dict:
+    """Offer or accept one current-generation, time-bounded tribute."""
+    now = int(now or time.time()); operation = str(operation or '')
+    request_key = str(request_key or '').strip()
+    agreement_id = str(agreement_id or '').strip()
+    if leader_id not in PROFILE_BY_ID:
+        return {'ok': False, 'error': 'unknown leader'}
+    if operation not in {'offer', 'accept'}:
+        return {'ok': False, 'error': 'bad operation'}
+    if not request_key or len(request_key) > 128:
+        return {'ok': False, 'error': 'bad request key'}
+    if operation == 'accept' and (not agreement_id or len(agreement_id) > 128):
+        return {'ok': False, 'error': 'bad agreement'}
+    await ensure_schema(db_path)
+    async with aiosqlite.connect(db_path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        empire = await (await db.execute(
+            "SELECT status,comebacks FROM npc_empires WHERE leader_id=?",
+            (leader_id,))).fetchone()
+        if not empire or str(empire['status']) not in {'active', 'rebuilding'}:
+            await db.rollback(); return {'ok': False, 'error': 'leader unavailable'}
+        generation = max(0, int(empire['comebacks'] or 0))
+        rel = await (await db.execute(
+            "SELECT score,pact FROM npc_empire_relations "
+            "WHERE leader_id=? AND telegram_id=?", (leader_id, telegram_id))).fetchone()
+        score = int(rel['score'] if rel else 0)
+        pact = str(rel['pact'] if rel else 'none')
+        await _reconcile_player_tributes_tx(db, telegram_id, now)
+
+        if operation == 'offer':
+            replay = await (await db.execute(
+                "SELECT * FROM npc_empire_player_tribute_agreements "
+                "WHERE leader_id=? AND leader_generation=? AND telegram_id=? "
+                "AND offer_request_key=?", (leader_id, generation, telegram_id,
+                                             request_key))).fetchone()
+            if replay:
+                await db.commit()
+                return {'ok': True, 'duplicate': True, 'agreement':
+                        _public_player_tribute(replay, score=score, pact=pact, now=now)}
+            existing = await (await db.execute(
+                "SELECT * FROM npc_empire_player_tribute_agreements "
+                "WHERE leader_id=? AND leader_generation=? AND telegram_id=? "
+                "AND status IN ('offered','active') ORDER BY created_at DESC LIMIT 1",
+                (leader_id, generation, telegram_id))).fetchone()
+            if existing:
+                await db.commit()
+                return {'ok': True, 'duplicate': True, 'agreement':
+                        _public_player_tribute(existing, score=score, pact=pact, now=now)}
+            if pact != 'war':
+                await db.rollback(); return {'ok': False, 'error': 'war required'}
+            if score >= -60:
+                await db.rollback(); return {'ok': False, 'error': 'tribute unavailable'}
+            agreement_id = secrets.token_urlsafe(18)
+            await db.execute(
+                "INSERT INTO npc_empire_player_tribute_agreements"
+                "(leader_id,leader_generation,telegram_id,agreement_id,"
+                "offer_request_key,term_amount,term_seconds,status,relation_at_offer,"
+                "pact_at_offer,created_at,offer_expires_at) "
+                "VALUES(?,?,?,?,?,?,?,'offered',?,'war',?,?)",
+                (leader_id, generation, telegram_id, agreement_id, request_key,
+                 NPC_PLAYER_TRIBUTE_AMOUNT, NPC_PLAYER_TRIBUTE_ACTIVE_SECONDS,
+                 score, now, now + NPC_PLAYER_TRIBUTE_OFFER_SECONDS))
+            await db.execute(
+                "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+                "VALUES(?,'tribute_terms_offered',?,?,?)", (leader_id, str(telegram_id),
+                f'{PROFILE_BY_ID[leader_id].leader_name} потребовал дань за передышку', now))
+            row = await (await db.execute(
+                "SELECT * FROM npc_empire_player_tribute_agreements WHERE leader_id=? "
+                "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+                (leader_id, generation, telegram_id, agreement_id))).fetchone()
+            await db.commit()
+            return {'ok': True, 'duplicate': False, 'agreement':
+                    _public_player_tribute(row, score=score, pact=pact, now=now)}
+
+        agreement = await (await db.execute(
+            "SELECT * FROM npc_empire_player_tribute_agreements WHERE leader_id=? "
+            "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+            (leader_id, generation, telegram_id, agreement_id))).fetchone()
+        if not agreement:
+            await db.rollback(); return {'ok': False, 'error': 'stale agreement'}
+        status = str(agreement['status'] or '')
+        if status in {'active', 'expired', 'breached', 'invalidated'}:
+            if str(agreement['accept_request_key'] or '') == request_key:
+                await db.commit()
+                return {'ok': True, 'duplicate': True, 'agreement':
+                        _public_player_tribute(agreement, score=score, pact=pact, now=now)}
+            terminal_error = ('already active' if status == 'active'
+                              else 'agreement expired' if status == 'expired'
+                              else 'pact changed' if status == 'invalidated'
+                              else 'agreement closed')
+            await db.rollback(); return {'ok': False, 'error': terminal_error}
+        if status != 'offered' or int(agreement['offer_expires_at'] or 0) <= now:
+            await db.rollback(); return {'ok': False, 'error': 'agreement expired'}
+        if pact != 'war':
+            await db.rollback(); return {'ok': False, 'error': 'pact changed'}
+        if score != int(agreement['relation_at_offer'] or 0):
+            await db.rollback(); return {'ok': False, 'error': 'stale agreement'}
+        cost = max(0, int(agreement['term_amount'] or 0))
+        debit = await db.execute(
+            "UPDATE characters SET cash=cash-? WHERE telegram_id=? AND cash>=?",
+            (cost, telegram_id, cost))
+        if debit.rowcount != 1:
+            await db.rollback(); return {'ok': False, 'error': 'no cash', 'cost': cost}
+        credit = await db.execute(
+            "UPDATE npc_empires SET treasury=treasury+?,version=version+1 "
+            "WHERE leader_id=? AND comebacks=?", (cost, leader_id, generation))
+        if credit.rowcount != 1:
+            await db.rollback(); return {'ok': False, 'error': 'stale agreement'}
+        term_seconds = max(1, int(agreement['term_seconds'] or 0))
+        active_until = now + term_seconds
+        await db.execute(
+            "UPDATE npc_empire_player_tribute_agreements SET status='active',"
+            "accept_request_key=?,accepted_at=?,active_until=? WHERE leader_id=? "
+            "AND leader_generation=? AND telegram_id=? AND agreement_id=? "
+            "AND status='offered'", (request_key, now, active_until, leader_id,
+            generation, telegram_id, agreement_id))
+        base_delay = _player_war_interval(PROFILE_BY_ID[leader_id])
+        await db.execute(
+            "UPDATE npc_empire_player_wars SET next_attack_at=MAX(next_attack_at,?) "
+            "WHERE leader_id=? AND telegram_id=?",
+            (now + base_delay * NPC_PLAYER_TRIBUTE_DELAY_MULTIPLIER,
+             leader_id, telegram_id))
+        await db.execute(
+            "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) "
+            "VALUES(?,'tribute_activated',?,?,?)", (leader_id, str(telegram_id),
+            f'Игрок заплатил дань семье {PROFILE_BY_ID[leader_id].gang_name}', now))
+        row = await (await db.execute(
+            "SELECT * FROM npc_empire_player_tribute_agreements WHERE leader_id=? "
+            "AND leader_generation=? AND telegram_id=? AND agreement_id=?",
+            (leader_id, generation, telegram_id, agreement_id))).fetchone()
+        cash_row = await (await db.execute(
+            "SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,))).fetchone()
+        await db.commit()
+        return {'ok': True, 'duplicate': False, 'cost': cost,
+                'cash': int(cash_row['cash'] or 0), 'pact': pact,
+                'relation': score, 'relation_band': relation_band(score),
+                'agreement': _public_player_tribute(
+                    row, score=score, pact=pact, now=now)}
+
+
 async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                            action: str, now: int | None = None) -> dict:
     now = int(now or time.time())
@@ -5279,6 +5614,9 @@ async def diplomacy_action(db_path: str, telegram_id: int, leader_id: str,
                 (leader_id, telegram_id),
             )
         await _reconcile_npc_guards(db, leader_id, now)
+        if action == 'street_attack':
+            await _breach_player_tribute_tx(
+                db, telegram_id, leader_id, now, 'street_attack')
         summary = (f'Игрок атаковал людей семьи: отношение {score:+d}'
                    if action == 'street_attack' else f'{action}: отношение {score:+d}')
         await db.execute(
@@ -5348,6 +5686,8 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
             (leader_id, telegram_id, now + PLAYER_WAR_FIRST_STRIKE_SECONDS),
         )
         await _reconcile_npc_guards(db, leader_id, now)
+        await _breach_player_tribute_tx(
+            db, telegram_id, leader_id, now, 'headquarters_assault')
         await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
             (leader_id, 'assault_started', str(telegram_id), f'Начат штурм штаба {profile.gang_name}', now),
@@ -5681,6 +6021,8 @@ async def assault_field_hit_authorized(
         await db.execute(
             "UPDATE npc_empire_assaults SET last_shot_seq=?,last_hit_at=? WHERE token=?",
             (shot_seq, now_f, token))
+        await _breach_player_tribute_tx(
+            db, telegram_id, str(row['leader_id']), now_i, 'authorized_field_hit')
         await _sync_field_assault_mirrors(db, encounter_id)
         await db.commit()
     return {

@@ -27716,6 +27716,11 @@ async def _coop_http_app():
                 DB_PATH,uid,leader_id,'offer' if action=='truce_offer' else 'fulfill',
                 str(body.get('request_key') or '')[:129],
                 str(body.get('agreement_id') or '')[:129])
+        elif action in {'tribute_offer','tribute_accept'}:
+            result=await npc_empire.bounded_tribute_action(
+                DB_PATH,uid,leader_id,'offer' if action=='tribute_offer' else 'accept',
+                str(body.get('request_key') or '')[:129],
+                str(body.get('agreement_id') or '')[:129])
         else:
             result=await npc_empire.diplomacy_action(DB_PATH,uid,leader_id,action)
         status=200 if result.get('ok') else (409 if result.get('error') not in {'bad action','bad request key','bad agreement','unknown leader'} else 400)
