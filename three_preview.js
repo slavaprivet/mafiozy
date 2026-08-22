@@ -1159,7 +1159,8 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const rv = new THREE.Mesh(new THREE.PlaneGeometry(WORLD_SCALE*4, road.length||190), roadMat); rv.rotation.x = -Math.PI / 2; rv.position.set(p, .025, road.center||0); scene.add(rv);
         }
         if(road.axis==='h'||road.axis==='both'){
-        const rh = new THREE.Mesh(new THREE.PlaneGeometry(road.length||190, WORLD_SCALE*4), roadMat); rh.rotation.x = -Math.PI / 2; rh.position.set(road.center||0, .026, p); scene.add(rh);
+        const horizontalRoadGeometry=new THREE.PlaneGeometry(WORLD_SCALE*4,road.length||190);horizontalRoadGeometry.rotateZ(Math.PI/2);
+        const rh = new THREE.Mesh(horizontalRoadGeometry, roadMat); rh.rotation.x = -Math.PI / 2; rh.position.set(road.center||0, .026, p); scene.add(rh);
         }
         for (let q = road.min??-86; q <= (road.max??86); q += worldSnapshot?3:9) {
           if(road.axis==='v'||road.axis==='both')roadMarks.push([p,.04,worldSnapshot?(q-originR)*WORLD_SCALE:q,0]);
@@ -1175,8 +1176,8 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       roadAxes.forEach((road,ri)=>{const len=road.length||190,center=road.center||0;for(let i=0;i<7;i++){const q=center-len*.43+i*len*.143,vertical=road.axis==='v'||(road.axis==='both'&&ri%2===0),x=vertical?road.p:q,z=vertical?q:road.p,target=(ri+i)%3===0?manholeDefs:(ri+i)%3===1?stainDefs:patchDefs;target.push([x+(vertical?((i&1)?2.3:-2.2):0),z+(!vertical?((i&1)?2.3:-2.2):0),(ri*.71+i*.93)%Math.PI]);if((ri+i)%2===0)litterDefs.push([x+(vertical?3.8:-3.8),z+(!vertical?3.6:-3.6),(ri+i)*.54]);}});
       roadAxes.forEach((road,ri)=>{const len=road.length||190,center=road.center||0,vertical=road.axis==='v'||(road.axis==='both'&&ri%2===0),turn=vertical?Math.PI/2:0;for(let i=0;i<4;i++){const q=center-len*.34+i*len*.225,x=vertical?road.p:q,z=vertical?q:road.p,side=(i&1)?.32:-.32;skidDefs.push([x+(vertical?side:0),z+(!vertical?side:0),turn],[x-(vertical?side:0),z-(!vertical?side:0),turn]);if((ri+i)%2===0)puddleDefs.push([x+(vertical?2.8:-2.8),z+(!vertical?2.5:-2.5),(ri+i)*.67]);}});
       const verticalRoads=roadAxes.filter(road=>road.axis==='v'||road.axis==='both'),horizontalRoads=roadAxes.filter(road=>road.axis==='h'||road.axis==='both'),curbInset=WORLD_SCALE*2-.16;
-      for(const road of verticalRoads)for(let i=0;i<horizontalRoads.length-1;i++){const a=horizontalRoads[i].p,b=horizontalRoads[i+1].p,len=Math.max(.8,Math.abs(b-a)-WORLD_SCALE*4-.34),z=(a+b)*.5;curbDetailDefs.push([road.p-curbInset,z,.26,.12,len],[road.p+curbInset,z,.26,.12,len]);}
-      for(const road of horizontalRoads)for(let i=0;i<verticalRoads.length-1;i++){const a=verticalRoads[i].p,b=verticalRoads[i+1].p,len=Math.max(.8,Math.abs(b-a)-WORLD_SCALE*4-.34),x=(a+b)*.5;curbDetailDefs.push([x,road.p-curbInset,len,.12,.26],[x,road.p+curbInset,len,.12,.26]);}
+      for(const road of verticalRoads)for(let i=0;i<horizontalRoads.length-1;i++){const a=horizontalRoads[i].p,b=horizontalRoads[i+1].p,len=Math.max(.8,Math.abs(b-a)-WORLD_SCALE*4-.34),z=(a+b)*.5;curbDetailDefs.push([road.p-curbInset,z,.32,.12,len],[road.p+curbInset,z,.32,.12,len]);}
+      for(const road of horizontalRoads)for(let i=0;i<verticalRoads.length-1;i++){const a=verticalRoads[i].p,b=verticalRoads[i+1].p,len=Math.max(.8,Math.abs(b-a)-WORLD_SCALE*4-.34),x=(a+b)*.5;curbDetailDefs.push([x,road.p-curbInset,len,.12,.32],[x,road.p+curbInset,len,.12,.32]);}
       if(curbDetailDefs.length>404){const curbStride=curbDetailDefs.length/404;for(let i=0;i<404;i++)curbDetailDefs[i]=curbDetailDefs[Math.floor(i*curbStride)];curbDetailDefs.length=404;}
       for(let i=0;i<curbDetailDefs.length&&drainDefs.length<80;i+=5){const [x,z,sx,,sz]=curbDetailDefs[i],vertical=sz>sx;drainDefs.push([x,z,vertical?0:Math.PI/2]);}
       const roadMatrix=new THREE.Matrix4(),roadScale=new THREE.Vector3(1,1,1),roadQuat=new THREE.Quaternion();
@@ -1190,9 +1191,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       addRoadInstances(new THREE.PlaneGeometry(.48,.25),new THREE.MeshBasicMaterial({color:0xd7d0bd,side:THREE.DoubleSide}),litterDefs,.082);
       addRoadInstances(new THREE.PlaneGeometry(5.4,.15),new THREE.MeshBasicMaterial({color:0x11161a,transparent:true,opacity:.48,depthWrite:false}),skidDefs,.074);
       const puddleMaterial=new THREE.MeshPhysicalMaterial({color:0x456d80,roughness:.06,metalness:.18,clearcoat:1,clearcoatRoughness:.03,transparent:true,opacity:selectedWeather==='rain'?.62:.27,depthWrite:false,envMap:cityEnvironment,envMapIntensity:1.55});addRoadInstances(new THREE.CircleGeometry(1.45,24),puddleMaterial,puddleDefs,.078);
-      addRoadBoxInstances(new THREE.BoxGeometry(1,1,1),curbMat,curbDetailDefs,.092);
+      addRoadBoxInstances(new THREE.BoxGeometry(1,1,1),curbMat,curbDetailDefs,.085);
       addRoadInstances(new THREE.BoxGeometry(.5,.055,1.08),roadHardwareMaterial,drainDefs,.151,false);
-      renderer.domElement.dataset.visualCRoadProfile='instanced-curb-runs-drains-wear-patches-v1';renderer.domElement.dataset.visualCRoadInstances=`curbs:${curbDetailDefs.length}/404,drains:${drainDefs.length}/80,marks:${roadMarks.length}`;
+      renderer.domElement.dataset.visualCRoadProfile='instanced-curb-runs-drains-wear-patches-v1';renderer.domElement.dataset.roadSurfaceContract='asphalt-seams-curb-contact-v1';renderer.domElement.dataset.visualCRoadInstances=`curbs:${curbDetailDefs.length}/404,drains:${drainDefs.length}/80,marks:${roadMarks.length}`;
 
       // Загородные кварталы — не городская сетка магистралей. Сплошной
       // асфальт и его декор перекрываются землёй, травой и узкими тропами.
