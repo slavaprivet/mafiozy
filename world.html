@@ -1068,6 +1068,33 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   color: #ffb0b0; padding: 10px 14px; font-size: 12px; text-align: center; z-index: 8;
   display: none;
 }
+#directDemoBadge {
+  position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%;
+  transform: translateX(-50%); z-index: 9; display: none; align-items: center; gap: 9px;
+  max-width: min(520px, calc(100vw - 28px)); padding: 7px 10px;
+  border: 1px solid #d7b85f; border-radius: 9px;
+  background: rgba(20,17,12,.93); color: #f5dfaa;
+  box-shadow: 0 5px 18px rgba(0,0,0,.48), inset 0 1px rgba(255,255,255,.05);
+  font-size: 11px; font-weight: 850; line-height: 1.2; letter-spacing: .15px;
+  pointer-events: none;
+}
+#directDemoBadge.show { display: flex; }
+#directDemoBadge.dead { z-index: 16; pointer-events: auto; }
+#directDemoBadge .demo-mark { color: #ffcf58; white-space: nowrap; }
+#directDemoBadge .demo-copy { color: #e8deca; overflow: hidden; text-overflow: ellipsis; }
+#directDemoReset, #directDemoHit {
+  display: none; flex: 0 0 auto; min-height: 30px; padding: 6px 10px;
+  border: 1px solid #d7b85f; border-radius: 7px; background: #332817; color: #fff0bd;
+  font: 850 10px/1 inherit; cursor: pointer; pointer-events: auto; touch-action: manipulation;
+}
+#directDemoHit { display: none; }
+#directDemoBadge.qa #directDemoHit { display: block; }
+#directDemoBadge.dead #directDemoReset { display: block; }
+@media (max-width: 620px) {
+  #directDemoBadge { top: max(6px, env(safe-area-inset-top)); width: calc(100vw - 18px); padding: 6px 8px; font-size: 10px; }
+  #directDemoBadge .demo-copy { white-space: normal; }
+  #directDemoReset { min-height: 36px; }
+}
 
 /* Правый стик — ТОЛЬКО прицел/маркировка целей (open-world).
    Тянешь на врага — он магнитится в lockedTargets (auto-lock).
@@ -1799,6 +1826,8 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 /* Temporarily keep the death card and its dark backdrop out of every death flow.
    Death, arrest, respawn and ambulance state continue to run behind this dormant UI. */
 #deathOverlay.show { display: none; }
+#deathOverlay[data-demo="1"].show { display: flex; }
+#deathOverlay[data-demo="1"] .death-footer { display: none; }
 #deathOverlay[data-mode="rescue"] { --death-accent:#d9bd69; --death-hot:#f26a5c; --death-soft:#f4e2b2; }
 #deathOverlay[data-mode="police"] { --death-accent:#68aee8; --death-hot:#efca61; --death-soft:#d6eaff; }
 #deathOverlay[data-mode="dead"]   { --death-accent:#b88f48; --death-hot:#e0514a; --death-soft:#e8d2a6; }
@@ -2710,6 +2739,12 @@ body:has(#shopOverlay.open) #districtRepHud,body:has(#profileModal.show) #distri
   </div>
 
   <div id="errorBanner"></div>
+  <div id="directDemoBadge" role="status" aria-live="polite">
+    <span class="demo-mark">🎮 DEMO</span>
+    <span class="demo-copy">урон и прогресс не сохраняются</span>
+    <button id="directDemoHit" type="button">ТЕСТ УДАРА</button>
+    <button id="directDemoReset" type="button">СБРОСИТЬ</button>
+  </div>
   <div id="toast"></div>
 
   <aside id="leftCommandHud" aria-label="Игровое досье и задания"></aside>
@@ -3071,6 +3106,7 @@ if(_UP.get('force3d')==='1'||!_UP.has('render')){
   try{const canonical=new URL(location.href);canonical.searchParams.set('render','3d');history.replaceState(history.state,'',canonical.href);}catch(_){}
 }
 const _LOCAL_PREVIEW = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+const _DIRECT_COMBAT_DEMO = _LOCAL_PREVIEW && _DIRECT_WORLD_ENTRY && _UP.get('combatdemo') === '1';
 function _q(k, d) { return _UP.get(k) || d; }
 function _qInt(k, d) { const v = parseInt(_UP.get(k)); return isFinite(v) ? v : d; }
 function _qStr(k, d) { try { return decodeURIComponent(_UP.get(k) || '') || d; } catch(e){ return d; } }
@@ -21654,10 +21690,25 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     at:impactNow,angle:impactAngle,power:Math.max(.16,Math.min(1,appliedDamage/72)),kind:impactKind,
     bodyPart:deathMode?.bodyPart||(/head|sniper/.test(impactKind)?'head':/leg|fire|пожар/.test(impactKind)?'leg':'torso')
   };
-  // Live body and armor are rendered exclusively from combat_state.v1. Local
-  // sources remain visual until the server validates and routes that source.
-  if(!_LOCAL_PREVIEW)return;
-  myHp = Math.max(0, myHp - appliedDamage);
+  // Authenticated live body/armor remain exclusively combat_state.v1. The
+  // public direct showcase has no socket and owns only an explicit ephemeral
+  // demo state, so its visible hostile hits must still match its local HUD.
+  if(!_LOCAL_PREVIEW&&!_worldDirectCombatDemo)return;
+  let bodyDamage=appliedDamage;
+  if(_worldDirectCombatDemo){
+    const armor=_combatState.armor||{},absorbed=Math.min(Math.max(0,+armor.current||0),bodyDamage);
+    bodyDamage-=absorbed;
+    const armorLeft=Math.max(0,(+armor.current||0)-absorbed),bodyMax=Math.max(1,+_combatState.body?.max||+PVP.max_hp||100);
+    myHp=Math.max(0,myHp-bodyDamage);
+    _combatState={body:{current:myHp,max:bodyMax,dead:myHp<=0},armor:{...armor,current:armorLeft,
+      broken:!!armor.id&&armorLeft<=0},combat_version:-1};
+    _equippedArmor=armorLeft>0?armor.id:null;
+    _inventoryArmorUiState=_readInventoryArmorUiState({combat_state:_combatState},_equippedArmor);
+    if(absorbed>0)spawnFloatText(player.r-.15,player.c,`🦺 −${absorbed}`,{color:'#79c8ff',size:12,life:850});
+    if((+armor.current||0)>0&&armorLeft<=0)spawnFloatText(player.r-.35,player.c,'🛡 БРОНЯ СЛОМАНА',{color:'#ffe08a',size:11,life:1050});
+    if(bodyDamage>0)spawnFloatText(player.r-.15,player.c,`−${bodyDamage} HP`,{color:'#ffb6a7',size:12,life:900});
+    renderHudAvatar();updateArmorHud();_renderDirectDemoArmorHud();
+  }else myHp = Math.max(0, myHp - bodyDamage);
   _localHpHurtAt = impactNow;
   _selfHpBarUntil = _localHpHurtAt + 4500;
   if (myHp <= 0 && !myDead) {
@@ -21665,7 +21716,12 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     const policeDeathKind=String(deathMode?.kind||'');
     if(deathMode?.cop&&(policeDeathKind.includes('police')||policeDeathKind==='city_cop'||deathMode.cop._prisonStaff)&&_queueAnyPoliceDeathPickup(deathMode.cop,{},_localHpHurtAt))return;
     myDead = true; _localDeath = true;
-    myDeathBy = by || 'Город'; myDeathLeft = 18;_dispatchPlayerAmbulance();
+    myDeathBy = by || 'Город'; myDeathLeft = _worldDirectCombatDemo ? 0 : 18;
+    if(_worldDirectCombatDemo){
+      const badge=document.getElementById('directDemoBadge');
+      if(badge)badge.classList.add('dead');
+      if(_deathOv)_deathOv.dataset.demo='1';
+    }else _dispatchPlayerAmbulance();
   }
 }
 let myKills = 0, myDeaths = 0;
@@ -25745,17 +25801,83 @@ function setConnecting(msg) {
   }
 }
 
+let _worldDirectCombatDemo=false,_worldDirectDemoArmorMax=0,_worldDirectDemoNativeFetch=null,_worldDirectDemoStorageFns=null,_worldDirectDemoQaHits=0;
+function _renderDirectDemoArmorHud(){
+  if(!_worldDirectCombatDemo)return;
+  const armor=_combatState.armor||{},max=Math.max(0,+armor.max||0),current=Math.max(0,+armor.current||0);
+  const row=document.getElementById('armorHudRow');if(!row||max<=0)return;
+  row.classList.remove('hidden');
+  const name=document.getElementById('armorHudName'),value=document.getElementById('armorHudValue'),fill=document.getElementById('armorBarFill');
+  if(name)name.textContent=current>0?'ТАКТИЧЕСКИЙ ЖИЛЕТ':'ЖИЛЕТ · СЛОМАН';
+  if(value)value.textContent=`${Math.round(current)}/${Math.round(max)}`;
+  if(fill)fill.style.width=`${Math.max(0,Math.min(100,current/max*100))}%`;
+}
+function _setDirectWorldNetworkSilence(active){
+  if(active){
+    if(!_worldDirectDemoNativeFetch)_worldDirectDemoNativeFetch=window.fetch.bind(window);
+    window.fetch=()=>Promise.reject(new Error('direct demo is local-only'));
+    if(!_worldDirectDemoStorageFns&&typeof Storage!=='undefined'){
+      const p=Storage.prototype;_worldDirectDemoStorageFns={getItem:p.getItem,setItem:p.setItem,removeItem:p.removeItem,clear:p.clear};
+      p.getItem=()=>null;p.setItem=()=>{};p.removeItem=()=>{};p.clear=()=>{};
+    }
+  }else if(_worldDirectDemoNativeFetch){
+    window.fetch=_worldDirectDemoNativeFetch;_worldDirectDemoNativeFetch=null;
+    if(_worldDirectDemoStorageFns&&typeof Storage!=='undefined'){
+      Object.assign(Storage.prototype,_worldDirectDemoStorageFns);_worldDirectDemoStorageFns=null;
+    }
+  }
+}
+function resetDirectWorldCombatDemo(){
+  if(!_worldDirectCombatDemo)return false;
+  const bodyMax=Math.max(1,+PVP.max_hp||100),armorMax=Math.max(0,_worldDirectDemoArmorMax|0);
+  _combatState={body:{current:bodyMax,max:bodyMax,dead:false},armor:{
+    id:armorMax?'tactical_vest':null,instance_id:armorMax?'demo:direct:vest':null,
+    current:armorMax,max:armorMax,version:0,broken:false},combat_version:-1};
+  _equippedArmor=armorMax?'tactical_vest':null;
+  _inventoryArmorUiState=_readInventoryArmorUiState({combat_state:_combatState},_equippedArmor);
+  myHp=bodyMax;myDead=false;_localDeath=false;myDeathBy='';myDeathLeft=0;
+  _worldDirectDemoQaHits=0;
+  _localHpHurtAt=0;_selfHpBarUntil=0;_suppressedUntil=0;screenFlash=0;camShake=0;camKickX=0;camKickY=0;
+  _threePlayerImpactState={at:0,angle:0,power:0,kind:'generic',bodyPart:'torso'};
+  impacts.length=0;floatTexts.length=0;
+  const badge=document.getElementById('directDemoBadge');if(badge)badge.classList.remove('dead');
+  const death=document.getElementById('deathOverlay');if(death){death.classList.remove('show');delete death.dataset.demo;}
+  const event=document.getElementById('eventBanner');if(event)event.className='';
+  const toast=document.getElementById('toast');if(toast){toast.className='';toast.textContent='';}
+  if(typeof _toastQueue!=='undefined')_toastQueue.length=0;
+  renderHudAvatar();updateArmorHud();_renderDirectDemoArmorHud();
+  return true;
+}
+function startDirectWorldCombatDemo() {
+  // A public direct link is never an auth bypass. After the server rejects the
+  // missing/invalid Telegram identity, it becomes an explicit local-only demo:
+  // combat is honest on this page, but nothing can be persisted or uploaded.
+  _worldDirectCombatDemo=true;
+  _setDirectWorldNetworkSilence(true);
+  QP.uid='demo';QP.character_uid='';QP.account_uid='demo';QP.api='';
+  document.documentElement.dataset.worldAccess='demo-local-combat';
+  _worldDirectDemoArmorMax=Math.max(0,Math.min(500,_qInt('demoarmor',0)));
+  resetDirectWorldCombatDemo();
+  setConnecting(null);
+  setError(null);
+  const badge=document.getElementById('directDemoBadge');if(badge){
+    badge.classList.add('show');
+    if(_DIRECT_COMBAT_DEMO&&_qInt('demoqa',0)===1)badge.classList.add('qa');
+  }
+}
+
 let _wsAuthPending=false;
 async function _worldTokenForSocket(){
   if(_LOCAL_PREVIEW&&!_telegramInitData())return '';
   const r=await _apiRequest(`${QP.api}/auth/world/${encodeURIComponent(QP.uid)}`,{method:'POST',cache:'no-store'});
   const j=await r.json().catch(()=>({}));
-  if(!r.ok||!j.ok||!j.world_token)throw new Error(j.error||'world auth failed');
+  if(!r.ok||!j.ok||!j.world_token){const e=new Error(j.error||'world auth failed');e.status=r.status;throw e;}
   return String(j.world_token);
 }
 async function wsConnect() {
   // Не открываем второй сокет, пока первый ещё подключается или уже работает.
   if (_wsAuthPending||(ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN))) return;
+  if(_DIRECT_COMBAT_DEMO){startDirectWorldCombatDemo();return;}
   if (_wsReconnectTimer !== null) {
     clearTimeout(_wsReconnectTimer);
     _wsReconnectTimer = null;
@@ -25764,7 +25886,11 @@ async function wsConnect() {
   let worldToken='';
   try{worldToken=await _worldTokenForSocket();}
   catch(e){
-    _wsAuthPending=false;wsFailStreak++;setError('⚠️ Не удалось подтвердить игрока');
+    _wsAuthPending=false;
+    if(_DIRECT_WORLD_ENTRY&&!_LOCAL_PREVIEW&&(e?.status===401||e?.status===403)){
+      startDirectWorldCombatDemo();return;
+    }
+    wsFailStreak++;setError('⚠️ Не удалось подтвердить игрока');
     _scheduleWsReconnect(Math.min(15000,2000+wsFailStreak*1500));return;
   }
   _wsAuthPending=false;
@@ -25791,6 +25917,10 @@ async function wsConnect() {
     if (ws !== socket) return;
     wsConnected = true;
     wsFailStreak = 0;
+    _worldDirectCombatDemo=false;
+    _setDirectWorldNetworkSilence(false);
+    document.documentElement.dataset.worldAccess='authenticated';
+    const demoBadge=document.getElementById('directDemoBadge');if(demoBadge)demoBadge.className='';
     setConnecting(null);
     setError(null);
     // On reconnect the server creates a fresh player row at its default
@@ -32492,6 +32622,11 @@ function drawDistrictAtmosphereTint(){
   ctx.fillStyle=g;ctx.fillRect(0,0,gc.width,gc.height);ctx.restore();
 }
 const _deathOv   = document.getElementById('deathOverlay');
+document.getElementById('directDemoReset')?.addEventListener('click',resetDirectWorldCombatDemo);
+document.getElementById('directDemoHit')?.addEventListener('click',()=>{
+  if(!_DIRECT_COMBAT_DEMO||!_worldDirectCombatDemo||_qInt('demoqa',0)!==1||myDead)return;
+  const sequence=[12,18,999];_hurtLocal(sequence[Math.min(_worldDirectDemoQaHits++,sequence.length-1)],'QA-противник',true,{kind:'demo_qa'});
+});
 const _deathTitle= document.getElementById('deathTitle');
 const _deathBy   = document.getElementById('deathBy');
 const _deathCnt  = document.getElementById('deathCnt');
@@ -34423,6 +34558,10 @@ function updatePvpUI() {
     _deathCntLabel.textContent=rescueComing?'Медицинская эвакуация':'Респаун через ';
     _deathCnt.textContent=rescueComing?'':Math.max(0,Math.ceil(myDeathLeft));
     _deathCntSuffix.textContent=rescueComing?'':' сек';
+    if(_worldDirectCombatDemo){
+      _deathCntLabel.textContent='DEMO завершено';_deathCnt.textContent='';_deathCntSuffix.textContent='';
+      _deathBy.textContent=`${myDeathBy ? `Тебя завалил ${myDeathBy}. ` : ''}Нажми «СБРОСИТЬ» в DEMO-плашке.`;
+    }
   } else if (_deathOv.classList.contains('show')) {
     _deathOv.classList.remove('show');
     _deathTitle.textContent='УБИТ';
@@ -36065,7 +36204,7 @@ function update(dt) {
 
   // ── Локальная смерть: сервер о ней не знает (убила охрана банка),
   // поэтому счётчик респауна тикаем сами и возрождаем у госпиталя.
-  if (_localDeath && myDead && !_murderPoliceArrest) {
+  if (_localDeath && myDead && !_murderPoliceArrest && !_worldDirectCombatDemo) {
     if(!_playerEmergencyPatient)myDeathLeft -= dt;
     if (myDeathLeft <= 0) {
       _localDeath = false;
