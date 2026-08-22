@@ -51741,11 +51741,22 @@ function drawTargetLock() {
   const t = performance.now() * 0.005;
   const pulse = 0.7 + 0.3 * Math.sin(t * 3);
   ctx.save();
+  let stageCenterReady = false;
+  let centerX, centerY;
   for (const [id, m] of lockedTargets) {
     const pos = m.entry.getPos();
     if (!pos) continue;
-    const p = w2s(pos.r + 0.5, pos.c + 0.5);
-    const y = p.y - TS * 1.2;
+    const projectedR = pos.r + 0.5;
+    const projectedC = pos.c + 0.5;
+    if (!stageCenterReady) {
+      const stage = document.getElementById('stage');
+      centerX = stage.clientWidth / 2;
+      centerY = stage.clientHeight / 2;
+      stageCenterReady = true;
+    }
+    const screenX = centerX + (projectedC - projectedR) * TS * 0.5 - cam.x;
+    const screenY = centerY + (projectedC + projectedR) * TS * 0.5 * ISO_Y - cam.y;
+    const y = screenY - TS * 1.2;
     const isActive = (id === activeId);
     const melee = !_isArmed();
     // В ближнем режиме — оранжевый; в огнестрельном — красный
@@ -51761,7 +51772,7 @@ function drawTargetLock() {
     ctx.shadowColor = melee ? '#ff6010' : '#ff3030';
     ctx.shadowBlur = isActive ? 14 : 6;
     ctx.beginPath();
-    ctx.arc(p.x, y, baseR * (isActive ? pulse : 1), 0, Math.PI * 2);
+    ctx.arc(screenX, y, baseR * (isActive ? pulse : 1), 0, Math.PI * 2);
     ctx.stroke();
     // Точка / иконка кулака
     if (melee && isActive) {
@@ -51770,13 +51781,13 @@ function drawTargetLock() {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.globalAlpha = 0.9;
-      ctx.fillText('✊', p.x, y);
+      ctx.fillText('✊', screenX, y);
       ctx.globalAlpha = 1;
       ctx.textBaseline = 'alphabetic';
     } else {
       ctx.fillStyle = col;
       ctx.beginPath();
-      ctx.arc(p.x, y, isActive ? 2.5 : 1.8, 0, Math.PI * 2);
+      ctx.arc(screenX, y, isActive ? 2.5 : 1.8, 0, Math.PI * 2);
       ctx.fill();
     }
     // 4 уголка только у активной
@@ -51786,10 +51797,10 @@ function drawTargetLock() {
       ctx.strokeStyle = melee ? `rgba(255,130,20,${0.85 + 0.15 * pulse})` : `rgba(255,80,80,${0.85 + 0.15 * pulse})`;
       ctx.beginPath();
       const r1 = 10 * pulse, r2 = 18 * pulse;
-      ctx.moveTo(p.x - r2, y - r2); ctx.lineTo(p.x - r1, y - r2); ctx.lineTo(p.x - r2, y - r1);
-      ctx.moveTo(p.x + r2, y - r2); ctx.lineTo(p.x + r1, y - r2); ctx.lineTo(p.x + r2, y - r1);
-      ctx.moveTo(p.x - r2, y + r2); ctx.lineTo(p.x - r1, y + r2); ctx.lineTo(p.x - r2, y + r1);
-      ctx.moveTo(p.x + r2, y + r2); ctx.lineTo(p.x + r1, y + r2); ctx.lineTo(p.x + r2, y + r1);
+      ctx.moveTo(screenX - r2, y - r2); ctx.lineTo(screenX - r1, y - r2); ctx.lineTo(screenX - r2, y - r1);
+      ctx.moveTo(screenX + r2, y - r2); ctx.lineTo(screenX + r1, y - r2); ctx.lineTo(screenX + r2, y - r1);
+      ctx.moveTo(screenX - r2, y + r2); ctx.lineTo(screenX - r1, y + r2); ctx.lineTo(screenX - r2, y + r1);
+      ctx.moveTo(screenX + r2, y + r2); ctx.lineTo(screenX + r1, y + r2); ctx.lineTo(screenX + r2, y + r1);
       ctx.stroke();
       // Метка над маркером: в ближнем бою — дистанция + иконка, иначе LOCKED
       ctx.font = 'bold 9px system-ui, sans-serif';
@@ -51799,10 +51810,10 @@ function drawTargetLock() {
         const dist = tpos ? Math.hypot(tpos.r - player.r, tpos.c - player.c) : 0;
         const inRng = dist <= PUNCH_RANGE;
         ctx.fillStyle = inRng ? '#ff9030' : '#aaaaaa';
-        ctx.fillText(inRng ? '✊ БИТЬ' : `${dist.toFixed(1)}т далеко`, p.x, y - 22);
+        ctx.fillText(inRng ? '✊ БИТЬ' : `${dist.toFixed(1)}т далеко`, screenX, y - 22);
       } else {
         ctx.fillStyle = '#ff5050';
-        ctx.fillText('LOCKED', p.x, y - 22);
+        ctx.fillText('LOCKED', screenX, y - 22);
       }
       ctx.textAlign = 'left';
     }
