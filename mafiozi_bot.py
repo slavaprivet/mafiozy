@@ -2589,7 +2589,8 @@ async def equip_item_transaction(telegram_id: int, item_id: str | None,
 
 async def _apply_damage_transaction_once(
         telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
-        pre_armor_multiplier: float = 1.0) -> dict:
+        pre_armor_multiplier: float = 1.0,
+        ignore_if_dead: bool = False) -> dict | None:
     """Atomically apply one idempotent, armor-first server damage event.
 
     Career-police mitigation is composed first through
@@ -2634,6 +2635,9 @@ async def _apply_damage_transaction_once(
 
         body_max = max(1, int(char['max_hp'] or 100))
         body_before = min(body_max, max(0, int(char['hp'] or 0)))
+        if ignore_if_dead and body_before <= 0:
+            await db.rollback()
+            return None
         armor_id = str(char['armor'] or '')
         armor_instance_id = ''
         armor_before = armor_after = armor_max = armor_version = 0
@@ -2744,13 +2748,15 @@ async def _apply_damage_transaction_once(
 
 async def apply_damage_transaction(
         telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
-        pre_armor_multiplier: float = 1.0) -> dict:
+        pre_armor_multiplier: float = 1.0,
+        ignore_if_dead: bool = False) -> dict | None:
     """Retry a short SQLite lock without changing the durable event identity."""
     for attempt in range(4):
         try:
             return await _apply_damage_transaction_once(
                 telegram_id, event_id, damage_kind, raw_damage,
-                pre_armor_multiplier=pre_armor_multiplier)
+                pre_armor_multiplier=pre_armor_multiplier,
+                ignore_if_dead=ignore_if_dead)
         except aiosqlite.OperationalError as exc:
             locked = any(word in str(exc).lower() for word in ('locked', 'busy'))
             if not locked or attempt == 3:
@@ -14343,6 +14349,7 @@ class WorldSim:
     POLICE_BACKUP_CD = 90.0
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
+        '_combat_boot_id', '_combat_event_seq',
         'gang_player_invites', 'custom_gang_player_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
@@ -14916,6 +14923,11 @@ class WorldSim:
         self.tick_no         = 0
         self.started_at      = time.time()
         self.last_tick_at    = self.started_at
+        # Durable damage receipts outlive this process. A random boot id plus
+        # a monotonic server sequence prevents a newly spawned cop/NPC from
+        # colliding with an old receipt after tick/source counters restart.
+        self._combat_boot_id = secrets.token_hex(8)
+        self._combat_event_seq = 0
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
         self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
@@ -15356,6 +15368,15 @@ class WorldSim:
             return max(1, int(math.ceil(damage * (0.65 if local_control else 0.70)))) if damage else 0
         return damage
 
+    def _next_world_damage_event(self, source_kind: str, source_id: str,
+                                 target_uid: str) -> str:
+        """Create an immutable server-owned identity for one damaging act."""
+        self._combat_event_seq += 1
+        kind = ''.join(ch for ch in str(source_kind) if ch.isalnum() or ch in '-_')[:24] or 'npc'
+        source = ''.join(ch for ch in str(source_id) if ch.isalnum() or ch in '-_:.')[:48] or 'unknown'
+        target = ''.join(ch for ch in str(target_uid) if ch.isdigit())[:24] or 'unknown'
+        return f"world:{kind}:{self._combat_boot_id}:{source}:{target}:{self._combat_event_seq}"
+
     async def apply_authoritative_damage(self, target_uid: str, event_id: str,
                                          kind: str, raw_damage: int) -> dict | None:
         """Single durable armor-first path for validated open-world hits."""
@@ -15411,6 +15432,23 @@ class WorldSim:
             target['deaths'] = int(target.get('deaths', 0)) + 1
             target['_respawn_at'] = time.time() + self.PLAYER_RESPAWN_S
         return result
+
+    async def apply_authoritative_damage_bound_projectile(
+            self, target_uid: str, event_id: str, kind: str, raw_damage: int,
+            pre_armor_multiplier: float = 1.0) -> dict | None:
+        """Resolve a server-fired shot even if its bound target disconnected."""
+        target_uid = str(target_uid)
+        if self.players.get(target_uid) is not None:
+            return await self.apply_authoritative_damage(
+                target_uid, event_id, kind, raw_damage)
+        if not target_uid.isdigit():
+            return None
+        return await apply_damage_transaction(
+            int(target_uid), str(event_id)[:160], str(kind)[:32],
+            max(0, int(raw_damage or 0)),
+            pre_armor_multiplier=max(0.0, min(1.0, float(pre_armor_multiplier))),
+            ignore_if_dead=True,
+        )
 
     def _sync_test_or_coro(self, coro):
         """Keep legacy direct-call harnesses while production awaits in its loop."""
@@ -17432,7 +17470,8 @@ class WorldSim:
             if shot_dmg:
                 await self.apply_authoritative_damage(
                     chosen_uid,
-                    f"world:inkass:{e.get('id')}:{actor.get('id')}:{self.tick_no}",
+                    self._next_world_damage_event(
+                        'inkass', f'{e.get("id")}:{actor.get("id")}', chosen_uid),
                     'bullet', shot_dmg)
             killed = False
             if target['hp'] <= 0:
@@ -18469,7 +18508,8 @@ class WorldSim:
                     if dmg:
                         await self.apply_authoritative_damage(
                             str(target.get('uid') or ''),
-                            f"world:cop:{cop.get('id')}:{self.tick_no}",
+                            self._next_world_damage_event(
+                                'cop', cop.get('id'), target.get('uid')),
                             'bullet', dmg)
                     killed = False
                     jailed = False
@@ -18999,6 +19039,11 @@ class WorldSim:
             'tx': tx, 'ty': ty,
             'dmg': dmg, 'weapon': weapon,
             'bot_id': bot_id, 'tid': tid,
+            'event_id': self._next_world_damage_event(
+                'npc-shot', f'{tid}:{bot_id}', target.get('uid')),
+            'pre_armor_multiplier': (
+                float(self.police_vest_damage(target, dmg)) / float(dmg)
+                if dmg else 1.0),
             'apply_at': now + eta_s,
         })
         if len(self._pending_bot_shots) > self.CITY_GANG_PENDING_SHOT_CAP:
@@ -19028,10 +19073,10 @@ class WorldSim:
                 survivors.append(s)
                 continue
             target = self.players.get(s['target_uid'])
-            if not target or target.get('dead'):
+            if target and target.get('dead'):
                 continue
-            dx = target.get('x', 0) - s['tx']
-            dy = target.get('y', 0) - s['ty']
+            dx = (target.get('x', 0) - s['tx']) if target else 0.0
+            dy = (target.get('y', 0) - s['ty']) if target else 0.0
             d2 = dx * dx + dy * dy
             dodge_r2 = self.BULLET_DODGE_R * self.BULLET_DODGE_R
             miss = (d2 > dodge_r2)
@@ -19039,12 +19084,11 @@ class WorldSim:
             dmg = 0
             if not miss:
                 dmg = int(s['dmg'])
-                await self.apply_authoritative_damage(
+                result = await self.apply_authoritative_damage_bound_projectile(
                     str(s['target_uid']),
-                    f"world:aggro:{s.get('tid')}:{s.get('bot_id')}:{s.get('apply_at')}",
-                    'bullet', dmg)
-                if target['hp'] <= 0:
-                    killed = True
+                    str(s['event_id']),
+                    'bullet', dmg, float(s.get('pre_armor_multiplier') or 1.0))
+                killed = bool(result and result.get('body', {}).get('dead'))
             pkts.append({
                 'kind':       'aggro_apply',
                 'tid':        s['tid'],
@@ -19279,7 +19323,8 @@ class WorldSim:
                             int(self.AGGRO_BOSS_DMG_M), bot.get('level', 1))
                         await self.apply_authoritative_damage(
                             t_uid,
-                            f"world:aggro-melee:{tid}:{bot.get('id')}:{self.tick_no}",
+                            self._next_world_damage_event(
+                                'npc-melee', f'{tid}:{bot.get("id")}', t_uid),
                             'melee', dmg)
                         killed = target['hp'] <= 0
                         if killed:
@@ -21975,7 +22020,8 @@ class WorldSim:
                 if not miss:
                     await self.apply_authoritative_damage(
                         str(target.get('uid') or ''),
-                        f"world:michael:{g.get('id')}:{self.tick_no}",
+                        self._next_world_damage_event(
+                            'michael', g.get('id'), target.get('uid')),
                         'bullet', dmg)
                 killed = False
                 if target['hp'] <= 0 and not miss:
