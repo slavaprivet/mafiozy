@@ -3142,13 +3142,59 @@ if (_DIRECT_WORLD_ENTRY && !QP.character_uid) QP.character_uid = QP.uid;
 const tg = (typeof window.Telegram !== 'undefined') ? window.Telegram.WebApp : null;
 try { if (tg) { tg.ready(); tg.expand(); } } catch(e) {}
 function _telegramInitData(){return String(tg?.initData||'');}
+const _steamNativeFetch=window.fetch.bind(window);
+const _steamSessionKey='mafiozi_steam_session_v1';
+let _steamSession=null,_steamSessionPending=null;
+try{
+  const saved=JSON.parse(sessionStorage.getItem(_steamSessionKey)||'null');
+  if(saved?.bearer&&(+saved.expires_at||0)>Date.now()/1000+5)_steamSession=saved;
+}catch(e){}
+function _steamBridgeAvailable(){
+  const api=window.electronAPI;
+  return !!(api&&(api.getSteamAuthTicket||api.requestSteamAuthTicket||api.steamAuthTicket));
+}
+async function _requestSteamAuthTicket(){
+  const api=window.electronAPI,fn=api?.getSteamAuthTicket||api?.requestSteamAuthTicket||api?.steamAuthTicket;
+  if(typeof fn!=='function')return '';
+  const result=await fn.call(api);
+  return String(typeof result==='string'?result:(result?.ticket||result?.authTicket||''));
+}
+async function _ensureSteamSession(force=false){
+  if(!_steamBridgeAvailable())return null;
+  if(!force&&_steamSession&&(+_steamSession.expires_at||0)>Date.now()/1000+5)return _steamSession;
+  if(_steamSessionPending&&!force)return _steamSessionPending;
+  _steamSessionPending=(async()=>{
+    const ticket=await _requestSteamAuthTicket();
+    if(!ticket)throw new Error('Steam ticket unavailable');
+    const response=await _steamNativeFetch(`${QP.api}/auth/steam/session`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ticket,selected_character:QP.character_uid||0})
+    });
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok||!payload.ok||!payload.session?.bearer){const error=new Error(payload.reason||payload.error||'Steam auth failed');error.status=response.status;throw error;}
+    const session=payload.session,claimed=_UP.has('account_uid')?String(QP.account_uid||''):'';
+    if(claimed&&claimed!==String(session.account_id)){throw new Error('Steam account disagreement');}
+    QP.account_uid=String(session.account_id);_steamSession=session;
+    try{sessionStorage.setItem(_steamSessionKey,JSON.stringify(session));}catch(e){}
+    return session;
+  })();
+  try{return await _steamSessionPending;}finally{_steamSessionPending=null;}
+}
 function _apiHeaders(extra={}){
   const headers={...extra},initData=_telegramInitData();
   if(initData)headers['X-Telegram-Init-Data']=initData;
+  if(_steamSession?.bearer)headers.Authorization=`Bearer ${_steamSession.bearer}`;
   return headers;
 }
-function _apiRequest(url,options={}){
-  return fetch(url,{...options,headers:_apiHeaders(options.headers||{})});
+async function _apiRequest(url,options={},_retried=false){
+  if(_steamBridgeAvailable()&&!_steamSession)await _ensureSteamSession(false);
+  const response=await fetch(url,{...options,headers:_apiHeaders(options.headers||{})});
+  if(response.status===401&&_steamBridgeAvailable()&&!_retried){
+    _steamSession=null;try{sessionStorage.removeItem(_steamSessionKey);}catch(e){}
+    await _ensureSteamSession(true);
+    return _apiRequest(url,options,true);
+  }
+  return response;
 }
 // Если из hub пришло дефолтное «Гангстер» (потому что бот не пробросил
 // ?name=...), пытаемся вытащить настоящее имя из Telegram initDataUnsafe.
@@ -25825,12 +25871,14 @@ function switchModeFlow() {
   location.replace(next.toString());
 }
 
-function wsUrl(worldToken='') {
+function wsUrl(credential='') {
   if (!QP.api || !QP.character_uid) return '';
   // QP.api это https?://... → ws(s)://...
   const base = QP.api.replace(/^http/, 'ws').replace(/\/+$/, '');
   const params = new URLSearchParams({ uid: QP.uid, mode: myMode || 'pvp' });
-  if(worldToken)params.set('world_token',worldToken);
+  if(typeof credential==='string'&&credential)params.set('world_token',credential);
+  else if(credential?.ws_ticket)params.set('ws_ticket',String(credential.ws_ticket));
+  else if(credential?.world_token)params.set('world_token',String(credential.world_token));
   // Прокидываем флаг и название банды (пришли из хаба в URL мира).
   // Сервер также подтянет из БД, но querystring даёт мгновенный эффект.
   const gf = parseInt(_UP.get('gang_flag') || '0', 10);
@@ -25945,6 +25993,20 @@ async function _worldTokenForSocket(){
   if(!r.ok||!j.ok||!j.world_token){const e=new Error(j.error||'world auth failed');e.status=r.status;throw e;}
   return String(j.world_token);
 }
+async function _worldCredentialForSocket(){
+  if(_steamBridgeAvailable()||_steamSession){
+    await _ensureSteamSession(false);
+    const response=await _apiRequest(`${QP.api}/auth/steam/ws-ticket`,{
+      method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',
+      body:JSON.stringify({character_id:QP.character_uid})
+    });
+    const payload=await response.json().catch(()=>({}));
+    if(!response.ok||!payload.ok||!payload.ws_ticket){const error=new Error(payload.error||'Steam websocket auth failed');error.status=response.status;throw error;}
+    return {ws_ticket:String(payload.ws_ticket)};
+  }
+  const worldToken=await _worldTokenForSocket();
+  return worldToken?{world_token:worldToken}:{};
+}
 async function wsConnect() {
   // Не открываем второй сокет, пока первый ещё подключается или уже работает.
   if (_wsAuthPending||(ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN))) return;
@@ -25954,8 +26016,8 @@ async function wsConnect() {
     _wsReconnectTimer = null;
   }
   _wsAuthPending=true;
-  let worldToken='';
-  try{worldToken=await _worldTokenForSocket();}
+  let worldCredential={};
+  try{worldCredential=await _worldCredentialForSocket();}
   catch(e){
     _wsAuthPending=false;
     if(_DIRECT_WORLD_ENTRY&&!_LOCAL_PREVIEW&&(e?.status===401||e?.status===403)){
@@ -25965,7 +26027,7 @@ async function wsConnect() {
     _scheduleWsReconnect(Math.min(15000,2000+wsFailStreak*1500));return;
   }
   _wsAuthPending=false;
-  const url = wsUrl(worldToken);
+  const url = wsUrl(worldCredential);
   if (!url) {
     if(!QP.character_uid){setConnecting(null);return;}
     setConnecting('⚠️ Сервер недоступен. Переподключаюсь…');

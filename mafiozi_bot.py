@@ -8,6 +8,8 @@ import weakref
 import aiosqlite
 import json
 import urllib.parse
+import urllib.request
+import urllib.error
 import os
 import secrets
 import re
@@ -78,6 +80,10 @@ _DAMAGE_TX_DB = contextvars.ContextVar('damage_tx_db', default=None)
 TELEGRAM_INIT_DATA_MAX_AGE = 15 * 60
 WORLD_TOKEN_TTL = 2 * 60
 AUTH_CLOCK_SKEW = 30
+STEAM_SESSION_TTL = 12 * 60 * 60
+STEAM_WS_TICKET_TTL = 30
+STEAM_ACCOUNT_ID_BASE = 900_000_000_000_000
+STEAM_AUTH_URL = "https://partner.steam-api.com/ISteamUserAuth/AuthenticateUserTicket/v1/"
 _WORLD_TOKEN_PURPOSE = b"mafiozi.world-token.v1"
 
 
@@ -267,6 +273,196 @@ def verify_world_token(
     if not isinstance(claims.get("nonce"), str) or not claims["nonce"]:
         raise ValueError("invalid world token nonce")
     return {**claims, "uid": uid, "iat": issued_at, "exp": expires_at}
+
+
+def _auth_secret_hash(secret: str) -> str:
+    value = str(secret or '').strip()
+    if len(value) < 32 or len(value) > 512:
+        raise ValueError('invalid bearer secret')
+    return hashlib.sha256(value.encode('utf-8')).hexdigest()
+
+
+def _steam_ticket_request(ticket: str) -> dict:
+    """Validate a Steam auth ticket server-side; tests replace this network edge."""
+    api_key = os.environ.get('STEAM_WEB_API_KEY', '').strip()
+    app_id = os.environ.get('STEAM_APP_ID', '').strip()
+    if not api_key or not app_id.isdigit():
+        raise ValueError('steam auth unavailable')
+    query = urllib.parse.urlencode({'key': api_key, 'appid': app_id, 'ticket': ticket})
+    request = urllib.request.Request(
+        STEAM_AUTH_URL + '?' + query,
+        headers={'Accept': 'application/json', 'User-Agent': 'mafiozi-steam-auth'})
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            if response.status != 200:
+                raise ValueError('steam ticket rejected')
+            return json.loads(response.read().decode('utf-8'))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise ValueError('steam ticket validation failed') from exc
+
+
+async def validate_steam_ticket(ticket: str) -> dict:
+    ticket = str(ticket or '').strip()
+    if not re.fullmatch(r'[A-Fa-f0-9]{32,4096}', ticket):
+        raise ValueError('invalid steam ticket')
+    payload = await asyncio.to_thread(_steam_ticket_request, ticket)
+    response = payload.get('response', {}) if isinstance(payload, dict) else {}
+    params = response.get('params', {}) if isinstance(response, dict) else {}
+    steam_id = str(params.get('steamid') or '')
+    owner_id = str(params.get('ownersteamid') or steam_id)
+    if (str(response.get('error', {}).get('errorcode') or '') not in ('', '0')
+            or str(params.get('result') or 'OK') != 'OK'
+            or not re.fullmatch(r'7656\d{13}', steam_id)
+            or owner_id != steam_id
+            or bool(params.get('vacbanned')) or bool(params.get('publisherbanned'))):
+        raise ValueError('steam ticket rejected')
+    return {'provider': 'steam', 'subject': steam_id}
+
+
+async def resolve_provider_account(provider: str, subject: str) -> int:
+    """Map an external identity to a stable account without creating a character."""
+    provider = str(provider or '').strip().lower()
+    subject = str(subject or '').strip()
+    if provider != 'steam' or not re.fullmatch(r'7656\d{13}', subject):
+        raise ValueError('invalid provider identity')
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        row = await (await db.execute(
+            "SELECT account_id FROM account_identities WHERE provider=? AND provider_subject=?",
+            (provider, subject))).fetchone()
+        if row:
+            await db.commit()
+            return int(row[0])
+        cur = await db.execute(
+            "INSERT INTO identity_account_sequence(created_at) VALUES(?)", (int(time.time()),))
+        account_id = STEAM_ACCOUNT_ID_BASE + int(cur.lastrowid)
+        await db.execute(
+            "INSERT INTO account_identities(provider,provider_subject,account_id,created_at) VALUES(?,?,?,?)",
+            (provider, subject, account_id, int(time.time())))
+        await db.commit()
+        return account_id
+
+
+async def create_steam_bearer_session(ticket: str, selected_character=0,
+                                      now: int | float | None = None) -> dict:
+    identity = await validate_steam_ticket(ticket)
+    account_id = await resolve_provider_account(identity['provider'], identity['subject'])
+    character_id = int(selected_character or 0)
+    if character_id and not await actor_owns_character(account_id, character_id):
+        raise ValueError('selected character mismatch')
+    current = int(time.time() if now is None else now)
+    bearer = secrets.token_urlsafe(36)
+    token_hash = _auth_secret_hash(bearer)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        await db.execute("DELETE FROM auth_sessions WHERE expires_at<=?", (current,))
+        await db.execute(
+            """INSERT INTO auth_sessions
+               (token_hash,account_id,provider,selected_character_id,created_at,expires_at)
+               VALUES(?,?,?,?,?,?)""",
+            (token_hash, account_id, 'steam', character_id, current,
+             current + STEAM_SESSION_TTL))
+        await db.commit()
+    return {'bearer': bearer, 'account_id': account_id, 'provider': 'steam',
+            'selected_character_id': character_id, 'expires_at': current + STEAM_SESSION_TTL}
+
+
+async def verify_bearer_session(authorization: str,
+                                now: int | float | None = None) -> dict:
+    match = re.fullmatch(r'Bearer\s+([A-Za-z0-9_-]{32,512})', str(authorization or '').strip())
+    if not match:
+        raise ValueError('missing bearer session')
+    token_hash = _auth_secret_hash(match.group(1))
+    current = int(time.time() if now is None else now)
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        row = await (await db.execute(
+            """SELECT account_id,provider,selected_character_id,expires_at
+                 FROM auth_sessions WHERE token_hash=?""", (token_hash,))).fetchone()
+    if not row or current >= int(row['expires_at']):
+        raise ValueError('expired bearer session')
+    return {'account_id': int(row['account_id']), 'provider': str(row['provider']),
+            'selected_character_id': int(row['selected_character_id'] or 0)}
+
+
+async def resolve_request_identity(headers, *, expected_account=None,
+                                   expected_character=None) -> dict:
+    """Resolve Telegram and Steam credentials and reject any disagreement."""
+    authorization = str(headers.get('Authorization', '') or '')
+    init_data = str(headers.get('X-Telegram-Init-Data', '') or '')
+    bearer = await verify_bearer_session(authorization) if authorization else None
+    telegram = None
+    if init_data:
+        actor = ({'id': verified_profile_account(init_data, expected_account)}
+                 if expected_account is not None else verify_telegram_init_data(init_data))
+        telegram = {'account_id': int(actor['id']), 'provider': 'telegram',
+                    'selected_character_id': 0}
+    if bearer and telegram and bearer['account_id'] != telegram['account_id']:
+        raise ValueError('identity disagreement')
+    identity = bearer or telegram
+    if not identity:
+        raise ValueError('missing authenticated identity')
+    if expected_account is not None and identity['account_id'] != _actor_uid(expected_account):
+        raise ValueError('account mismatch')
+    if expected_character is not None:
+        character_id = _actor_uid(expected_character)
+        selected = int(identity.get('selected_character_id') or 0)
+        if selected and selected != character_id:
+            raise ValueError('selected character mismatch')
+        if not await actor_owns_character(identity['account_id'], character_id):
+            raise ValueError('character mismatch')
+    return identity
+
+
+async def issue_steam_ws_ticket(account_id: int, character_id: int,
+                                now: int | float | None = None) -> dict:
+    account_id, character_id = _actor_uid(account_id), _actor_uid(character_id)
+    if not await actor_owns_character(account_id, character_id):
+        raise ValueError('character mismatch')
+    current = int(time.time() if now is None else now)
+    raw_ticket = secrets.token_urlsafe(36)
+    ticket_hash = _auth_secret_hash(raw_ticket)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute('BEGIN IMMEDIATE')
+        await db.execute("DELETE FROM ws_auth_tickets WHERE expires_at<=?", (current,))
+        await db.execute(
+            """INSERT INTO ws_auth_tickets
+               (ticket_hash,account_id,character_id,created_at,expires_at,consumed_at)
+               VALUES(?,?,?,?,?,NULL)""",
+            (ticket_hash, account_id, character_id, current,
+             current + STEAM_WS_TICKET_TTL))
+        await db.commit()
+    return {'ws_ticket': raw_ticket, 'expires_in': STEAM_WS_TICKET_TTL,
+            'account_id': account_id, 'character_id': character_id}
+
+
+async def consume_steam_ws_ticket(raw_ticket: str, expected_character,
+                                  now: int | float | None = None) -> dict:
+    ticket_hash = _auth_secret_hash(raw_ticket)
+    character_id = _actor_uid(expected_character)
+    current = int(time.time() if now is None else now)
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute('BEGIN IMMEDIATE')
+        row = await (await db.execute(
+            "SELECT account_id,character_id,expires_at,consumed_at FROM ws_auth_tickets WHERE ticket_hash=?",
+            (ticket_hash,))).fetchone()
+        if (not row or row['consumed_at'] is not None or current >= int(row['expires_at'])
+                or int(row['character_id']) != character_id
+                or not await (await db.execute(
+                    "SELECT 1 FROM account_characters WHERE account_id=? AND character_id=?",
+                    (int(row['account_id']), character_id))).fetchone()):
+            await db.rollback()
+            raise ValueError('invalid websocket ticket')
+        changed = await db.execute(
+            "UPDATE ws_auth_tickets SET consumed_at=? WHERE ticket_hash=? AND consumed_at IS NULL",
+            (current, ticket_hash))
+        if int(changed.rowcount or 0) != 1:
+            await db.rollback()
+            raise ValueError('invalid websocket ticket')
+        await db.commit()
+    return {'account_id': int(row['account_id']), 'character_id': character_id,
+            'provider': 'steam'}
 
 
 def _normalize_vehicle_paint(value) -> dict | None:
@@ -1397,6 +1593,39 @@ async def init_db():
             "CREATE UNIQUE INDEX IF NOT EXISTS ux_account_character_creation_token "
             "ON account_characters(account_id,creation_token) "
             "WHERE creation_token IS NOT NULL")
+        await db.executescript("""
+            CREATE TABLE IF NOT EXISTS identity_account_sequence (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS account_identities (
+                provider TEXT NOT NULL,
+                provider_subject TEXT NOT NULL,
+                account_id INTEGER NOT NULL UNIQUE,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY(provider,provider_subject)
+            );
+            CREATE TABLE IF NOT EXISTS auth_sessions (
+                token_hash TEXT PRIMARY KEY,
+                account_id INTEGER NOT NULL,
+                provider TEXT NOT NULL,
+                selected_character_id INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_auth_sessions_account
+                ON auth_sessions(account_id,expires_at);
+            CREATE TABLE IF NOT EXISTS ws_auth_tickets (
+                ticket_hash TEXT PRIMARY KEY,
+                account_id INTEGER NOT NULL,
+                character_id INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                consumed_at INTEGER DEFAULT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_ws_auth_tickets_expiry
+                ON ws_auth_tickets(expires_at);
+        """)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS mafia_family_scores (
                 family TEXT PRIMARY KEY,
@@ -26003,7 +26232,7 @@ async def _coop_http_app():
 
     async def _cors(resp):
         resp.headers['Access-Control-Allow-Origin']  = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Telegram-Init-Data'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-Telegram-Init-Data, Authorization'
         resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS'
         return resp
 
@@ -26020,22 +26249,48 @@ async def _coop_http_app():
                      path.endswith('/assault/hit'))
         if req.method == 'OPTIONS' or not protected:
             return await handler(req)
-        init_data = req.headers.get('X-Telegram-Init-Data', '')
         try:
             if profile_route:
-                verified_profile_account(
-                    init_data, str(req.match_info.get('account') or ''))
+                identity = await resolve_request_identity(
+                    req.headers, expected_account=str(req.match_info.get('account') or ''))
             else:
                 claimed = str(req.match_info.get('uid') or '')
-                actor = verify_telegram_init_data(init_data)
-                if not claimed.isdigit() or not await actor_owns_character(
-                        int(actor['id']), int(claimed)):
+                if not claimed.isdigit():
                     raise ValueError('uid mismatch')
+                identity = await resolve_request_identity(
+                    req.headers, expected_character=claimed)
+            req['identity'] = identity
         except ValueError as exc:
             return await _cors(web.json_response(
                 {'ok': False, 'error': 'unauthorized', 'reason': str(exc)},
                 status=401))
         return await handler(req)
+
+    async def h_steam_session(req):
+        try:
+            body = await req.json()
+            session = await create_steam_bearer_session(
+                str(body.get('ticket') or ''), body.get('selected_character') or 0)
+        except (ValueError, TypeError) as exc:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'steam_auth_failed', 'reason': str(exc)}, status=401))
+        return await _cors(web.json_response({'ok': True, 'session': session}))
+
+    async def h_steam_ws_ticket(req):
+        try:
+            session = await verify_bearer_session(req.headers.get('Authorization', ''))
+            if session.get('provider') != 'steam':
+                raise ValueError('steam bearer required')
+            body = await req.json()
+            character_id = _actor_uid(body.get('character_id'))
+            selected = int(session.get('selected_character_id') or 0)
+            if selected and selected != character_id:
+                raise ValueError('selected character mismatch')
+            ticket = await issue_steam_ws_ticket(session['account_id'], character_id)
+        except (ValueError, TypeError) as exc:
+            return await _cors(web.json_response(
+                {'ok': False, 'error': 'unauthorized', 'reason': str(exc)}, status=401))
+        return await _cors(web.json_response({'ok': True, **ticket}))
 
     async def h_world_auth(req):
         claimed = str(req.match_info.get('uid') or '')
@@ -26074,6 +26329,11 @@ async def _coop_http_app():
         account = str(req.match_info.get('account', '')).strip()
         if not account.isdigit():
             return await _cors(web.json_response({'ok': False, 'error': 'bad_account'}, status=400))
+        if (req.get('identity') or {}).get('provider') != 'telegram':
+            return await _cors(web.json_response({
+                'ok': False, 'error': 'steam_creator_handoff_required',
+                'message': 'Создание Steam-персонажа требует отдельного обновления редактора.'
+            }, status=403))
         try:
             body = await req.json()
         except Exception:
@@ -28858,10 +29118,17 @@ async def _coop_http_app():
             uid_int = int(uid)
         except Exception:
             return web.Response(status=400, text='bad uid')
+        world_token = req.query.get('world_token', '')
+        steam_ticket = req.query.get('ws_ticket', '')
         try:
-            verify_world_token(req.query.get('world_token', ''), expected_uid=uid)
+            if bool(world_token) == bool(steam_ticket):
+                raise ValueError('exactly one websocket credential required')
+            if steam_ticket:
+                await consume_steam_ws_ticket(steam_ticket, uid_int)
+            else:
+                verify_world_token(world_token, expected_uid=uid)
         except ValueError:
-            return web.Response(status=401, text='world token required')
+            return web.Response(status=401, text='world credential required')
         char = await get_character(uid_int)
         if not char:
             return web.Response(status=404, text='no character')
@@ -32773,6 +33040,8 @@ async def _coop_http_app():
 
     aio_app = web.Application(middlewares=[_actor_binding])
     aio_app.router.add_route('OPTIONS', '/{path_info:.*}', h_options)
+    aio_app.router.add_post  ('/auth/steam/session',         h_steam_session)
+    aio_app.router.add_post  ('/auth/steam/ws-ticket',       h_steam_ws_ticket)
     aio_app.router.add_get   ('/profiles/{account}',             h_profiles)
     aio_app.router.add_post  ('/profiles/{account}',             h_profile_create)
     aio_app.router.add_delete('/profiles/{account}/{character}', h_profile_delete)
