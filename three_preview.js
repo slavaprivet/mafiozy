@@ -5098,8 +5098,8 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
             const impact=age>480&&age<760?Math.sin((age-480)/280*Math.PI)*.13:0;
             const x=npcVisualXs[i],z=npcVisualZs[i];
             const deathForward=Number.isFinite(+motion?.deathForward)?+motion.deathForward:1,sideDominant=Math.abs(deathForward)<.5,deathSide=motion?.deathSide||1,fallPitch=-Math.PI*.5*fall*(sideDominant?.2:(deathForward>=0?1:-1)),fallRoll=(sideDominant?deathSide*Math.PI*.5:deathSide*.08)*fall;
-            instanceQuat.setFromEuler(new THREE.Euler(fallPitch,npcFacingYaws[i],fallRoll,'XYZ'));
-            rootMatrix.compose(new THREE.Vector3(x,.46+impact,z),instanceQuat,npcScale);
+            instanceQuat.setFromEuler(instanceEuler.set(fallPitch,npcFacingYaws[i],fallRoll,'XYZ'));
+            rootMatrix.compose(instancePosition.set(x,.46+impact,z),instanceQuat,npcScale);
             setPart(npcParts.body,i,rootMatrix,0,2.05,0,0,npcBodyScale.set(1,1-.08*fall,1));
             setPart(npcParts.head,i,rootMatrix,0,3.3,0,.08*fall);
             setPart(npcParts.neck,i,rootMatrix,0,2.88,0,.04*fall);
