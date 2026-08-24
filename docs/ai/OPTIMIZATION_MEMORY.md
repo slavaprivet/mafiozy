@@ -1854,6 +1854,23 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   Target selection may sort the already bounded candidate lists by proximity,
   yield, defense and relative force; it must not add map-wide frame scans.
 
+## Readable holding guards, casualties and heraldry (2026-08-25)
+
+- Keep holding-guard identity inside the existing 72-slot NPC label pool. Use
+  the authoritative `empireHoldingGuard` bridge flag for the explicit
+  `ОХРАНА ВЛАДЕНИЯ` title; do not infer the role from a display name or create
+  another badge/scan.
+- Ordinary corpse cards may share the established 12.2 x 3.05 transform used
+  by the casualty texture. Preserve the 2.6-second lifecycle and 0.9-second
+  fade; readability must not turn a transient corpse into permanent UI.
+- Empire speech belongs to its actor, not a nearby facade. Gate ordinary
+  family `cryText` by distance in the existing bridge while leaving police
+  warnings and direct interaction state on their authoritative paths.
+- Ownership cards and flags continue to repaint only when the bounded holding
+  signature changes. A transparent pennant silhouette, larger cached glyphs
+  and larger pooled label transform add no marker, draw call or frame canvas
+  work and never replace server ownership fields.
+
 ## Switchable business exteriors and pooled ruin FX (2026-08-14, v404)
 
 - A captured building keeps its authored shell. Rebuild only the bounded
