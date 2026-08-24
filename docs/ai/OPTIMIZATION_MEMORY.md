@@ -1,5 +1,19 @@
 # Mafiozi 3D optimization memory
 
+## Architecture minification quality at overview zoom (2026-08-25, v424)
+
+- Do not raise the full renderer pixel ratio when wheel zoom makes architecture
+  smaller on screen: that multiplies the cost of every shaded city pixel and
+  reverses the stable native-density policy.
+- Immutable power-of-two facade canvases and static architectural signs should
+  generate mipmaps, use `LinearMipmapLinearFilter` for minification and retain
+  the existing capped maximum anisotropy. This gives the GPU stable prefiltered
+  detail at `.82` overview zoom without adding objects, draw calls, triangles,
+  render-loop work, texture repaint churn or a dynamic quality branch.
+- Keep frequently repainted player/NPC labels on their existing non-mipmapped
+  path. Regenerating an entire mip chain for every health/name update would
+  trade distant sharpness for upload spikes and extra texture memory.
+
 ## Exact vehicle-trim scene batches without a quality cut (2026-08-25)
 
 - The bounded 18-slot vehicle renderer created twelve immutable trim meshes per
