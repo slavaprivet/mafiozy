@@ -1,5 +1,35 @@
 # Mafiozi 3D optimization memory
 
+## Exact vehicle-trim scene batches without a quality cut (2026-08-25)
+
+- The bounded 18-slot vehicle renderer created twelve immutable trim meshes per
+  slot: bumpers, mirror stems, sills, exhaust, plate and four lamps. Preserve
+  their exact local dimensions, materials and day/brake colour rules, but keep
+  one non-rendered local anchor per part and stream the 216 world matrices into
+  six scene-wide `InstancedMesh` batches. Body, cab, hood, paint mirrors,
+  wheels, opening doors, damage, wrecks and service equipment remain on their
+  authored paths.
+- Do not call `car.updateMatrixWorld(true)` for batching: it force-traverses the
+  complete high-detail vehicle subtree a second time every frame. Update the
+  root matrix only, multiply it by each cached `matrixAutoUpdate=false` anchor
+  matrix, and let the ordinary renderer perform its normal hierarchy pass.
+- Create `instanceColor` before material warm-up for the two lamp batches, then
+  reuse one colour scratch. This prevents a late shader variant. An attempted
+  physical-paint mirror batch raised the warmed program count from 115 to 117
+  for only 35 more saved calls, so it was rejected and the original paint
+  mirrors were retained.
+- Same-tab A/B on exact `8ca40a8c`, native pixel ratio `1.00`, kept 115 warmed
+  programs. The ordinary start scene moved from 1978–2038 draws and 1592–1600
+  geometries to 1804–1839 draws and 1492–1493 geometries. Candidate render
+  samples were normally 27.4–30.9 ms; one 52.4 ms transient was retained in the
+  evidence. NPC population differed between runs, so this proves lower GPU
+  submission/geometry fragmentation, not an isolated FPS claim.
+- A five-wreck calm fixture kept the collapsed charred live-shell profile,
+  exact 216-instance batch, 115 programs and native resolution, with no runtime
+  error. Wreck/restore visibility continues to use the existing `standardParts`
+  lifecycle because the local anchors occupy the same hierarchy positions as
+  the replaced trim meshes.
+
 ## NPC walk pose-chain continuity (2026-08-21, v417)
 
 - `walking` is a semantic/telemetry threshold, not a safe pose switch. Root bob,
