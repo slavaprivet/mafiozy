@@ -16655,7 +16655,16 @@ class WorldSim:
                 (not target_uid.isdigit() and not _SYNC_WORLD_HARNESS.get())):
             return None
         raw_damage = max(0, int(raw_damage or 0))
-        effective = self.police_vest_damage(target, raw_damage)
+        damage_kind = str(kind or '').lower()
+        melee_damage = (
+            any(token in damage_kind for token in
+                ('melee', 'punch', 'kick', 'fist', 'unarmed', 'рукопаш', 'кулак'))
+            and not any(token in damage_kind for token in
+                        ('weapon', 'bullet', 'shot', 'gun', 'firearm'))
+        )
+        melee_blocked = bool(target.get('_melee_block')) and melee_damage
+        block_adjusted = max(1, math.floor(raw_damage * 0.10 + 0.5)) if melee_blocked and raw_damage else raw_damage
+        effective = self.police_vest_damage(target, block_adjusted)
         multiplier = (float(effective) / raw_damage) if raw_damage else 1.0
         try:
             if not target_uid.isdigit():
@@ -16700,6 +16709,10 @@ class WorldSim:
         if target['dead'] and not was_dead:
             target['deaths'] = int(target.get('deaths', 0)) + 1
             target['_respawn_at'] = time.time() + self.PLAYER_RESPAWN_S
+        if melee_blocked:
+            result['melee_blocked'] = True
+            result['melee_block_ratio'] = 0.10
+            result['raw_melee_damage'] = raw_damage
         return result
 
     async def apply_authoritative_damage_bound_projectile(
@@ -29787,7 +29800,14 @@ async def _coop_http_app():
                         world.connections[uid] = ws
                     if world.connections.get(uid) is not ws:
                         continue
-                    if t == 'input':
+                    if t == 'melee_block':
+                        block_player = world.players.get(uid)
+                        if block_player:
+                            block_player['_melee_block'] = bool(d.get('active')) and not bool(block_player.get('dead'))
+                            block_player['_melee_block_seq'] = max(
+                                int(block_player.get('_melee_block_seq') or 0),
+                                max(0, int(d.get('seq') or 0)))
+                    elif t == 'input':
                         role_before = (
                             bool((world.players.get(uid) or {}).get('_mafia')),
                             str((world.players.get(uid) or {}).get('_mafia_family') or ''),

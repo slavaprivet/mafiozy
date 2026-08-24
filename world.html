@@ -10241,7 +10241,7 @@ function _empireFieldCombatThink(n,now,dt){
 }
 function _applyEmpirePlayerWeaponHit(n,damage,profile,now=performance.now()){
   const effect=String(profile?.effect||''),name=n._empireWeaponName||n.name||'оружие босса';
-  _hurtLocal(Math.max(1,Math.round(damage)),name,true);flashHitOverlay(n.r,n.c,`empire_${_empireLeaderIdOf(n)}`,'street_npc',n);
+  _hurtLocal(Math.max(1,Math.round(damage)),name,true,{kind:profile?.kind==='melee'?'melee':'weapon',weapon:profile?.kind||'',source:n});flashHitOverlay(n.r,n.c,`empire_${_empireLeaderIdOf(n)}`,'street_npc',n);
   const dot=(kind,amount,duration)=>{player._empireDotKind=kind;player._empireDotDamage=Math.max(player._empireDotDamage||0,amount);player._empireDotUntil=Math.max(player._empireDotUntil||0,now+duration);player._empireDotAt=Math.min(player._empireDotAt||Infinity,now+650);};
   if(effect==='tranquilizer'){player._empireSlowUntil=Math.max(player._empireSlowUntil||0,now+2400);player._empireWeaponJamUntil=Math.max(player._empireWeaponJamUntil||0,now+700);spawnFloatText(player.r,player.c,'ТРАНКВИЛИЗАТОР',{color:'#dff8e8',size:11,life:1000});}
   else if(effect==='nailed_bat'||effect==='knockout'){const dr=player.r-n.r,dc=player.c-n.c,d=Math.hypot(dr,dc)||1,nr=player.r+dr/d*.65,nc=player.c+dc/d*.65;if(!isBlockedPed(nr,nc)){player.r=nr;player.c=nc;}player._empireSlowUntil=now+(effect==='knockout'?1700:900);addShake(effect==='knockout'?6:4);}
@@ -16206,7 +16206,7 @@ function updateNpcs(dt) {
         const dmg = n._meleeDmg || 8;
         addShake(2);
         flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
-        _hurtLocal(dmg, 'Охранник', true);
+        _hurtLocal(dmg, 'Охранник', true, {kind:'melee',source:n});
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff4444', size: 16, life: 1000 });
         if (Math.random() < 0.5) {
           n.cryText = ['Стой!', 'На пол!', 'Не двигайся!'][Math.floor(Math.random()*3)];
@@ -16325,7 +16325,7 @@ function updateNpcs(dt) {
         hapticHit();
         flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
         const dmg = 5 + Math.floor(Math.random() * 6);
-        _hurtLocal(dmg, 'Бандит', true);
+        _hurtLocal(dmg, 'Бандит', true, {kind:'melee',source:n});
         spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
         // Боевой выкрик
         n.cryText  = ['Вот тебе!', 'На!', 'Получай!', 'Не лезь!'][Math.floor(Math.random()*4)];
@@ -21778,6 +21778,14 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
   if(_murderPoliceArrest&&(damageCop||damageKind.includes('police')||damageKind==='city_cop')){
     document.documentElement.dataset.policeCustodyDamageBlocked=String((+document.documentElement.dataset.policeCustodyDamageBlocked||0)+1);
     return;
+  }
+  const meleeDamage=deathMode?.melee===true||/melee|punch|kick|fists|baton|кулак|рукопаш/.test(damageKind);
+  if(_meleeBlockHeld&&meleeDamage){
+    const raw=Math.max(0,Math.round(+dmg||0));
+    dmg=raw?Math.max(1,Math.round(raw*.10)):0;
+    document.documentElement.dataset.meleeBlockImpact=`${raw}>${dmg}:${Math.round(performance.now())}`;
+    spawnFloatText(player.r-.38,player.c,`БЛОК −${Math.max(0,raw-dmg)}`,{color:'#7de6ff',size:12,life:800});
+    try{hapticHit?.();}catch(e){}
   }
   if (underFire) _registerIncomingFire(dmg);
   if(_LOCAL_PREVIEW&&typeof _policeHasLevel==='function'&&_policeHasLevel(3)){
@@ -34415,11 +34423,25 @@ function fire(angle = null) {
   _sendWorldWeaponFire('miss');
 }
 // ── Удар кулаком (без оружия) ────────────────────────────────────────
-const PUNCH_CD_MS   = 700;    // кд между ударами
+const PUNCH_CD_MS   = 300;    // кд между ударами: 0,3 секунды
 const PUNCH_RANGE   = 1.7;    // дистанция в тайлах
-const PUNCH_DAMAGE  = 12;     // урон за удар
+const PUNCH_DAMAGE  = 12;     // урон за удар рукой
+const KICK_CRIT_CHANCE = 0.20;
+const KICK_CRIT_MULTIPLIER = 1.75;
 let lastPunchClientT = 0;
-let _punchAnim = null;        // { startAt, ang, type:'punch'|'kick', dmg } | null
+let _punchAnim = null;        // authoritative presentation state for Canvas + Three.js
+let _meleeAttackSeq = 0;
+let _meleeHandSide = 1;
+let _meleeBlockHeld = false;
+let _meleeBlockSeq = 0;
+function _setMeleeBlock(active) {
+  const next=!!active&&!_isArmed()&&!myDead&&!myDrivingCarId&&!myJetSkiId&&!_playerSwimmingDeep&&!_inBus;
+  if(next===_meleeBlockHeld)return next;
+  _meleeBlockHeld=next;
+  document.documentElement.dataset.meleeBlock=next?'held:90-percent-melee-reduction':'released';
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'melee_block',d:{active:next,seq:++_meleeBlockSeq}}));}catch(e){}
+  return next;
+}
 let _policeBatonAnim = null;  // { startAt, ang } — короткий замах полицейской дубинкой
 
 // Поиск ближайшей цели для удара без lock (авто-захват в ближнем бою)
@@ -34487,12 +34509,12 @@ function _findNearestMeleeTarget(aimAngle = null) {
 }
 
 function punch(force, aimAngle = null) {
-  if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return; }
-  if (myDead || myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return;
-  if (!force && _isArmed()) return;   // есть оружие — использовать fire() (кроме тюрьмы: force)
-  if (!force && !lockedTargets.size) return; // сначала выбрать цель правым стиком/тапом
+  if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return false; }
+  if (myDead || myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
+  if (!force && _isArmed()) return false;   // есть оружие — использовать fire() (кроме тюрьмы: force)
+  if (!force && !lockedTargets.size) return false; // мобильная кнопка сохраняет lock-on правило
   const now = performance.now();
-  if (now - lastPunchClientT < PUNCH_CD_MS) return;
+  if (now - lastPunchClientT < PUNCH_CD_MS) return false;
 
   // Берём locked-цель, или авто-выбираем ближайшую в PUNCH_RANGE
   let tgt = null;
@@ -34516,23 +34538,34 @@ function punch(force, aimAngle = null) {
     tgt = getActiveTarget();
     if (!tgt && force) tgt = _findNearestMeleeTarget();
   }
-  if (!tgt) return;
-  const pos = tgt.getPos();
-  if (!pos) return;
+  if (!tgt && !force) return false;
+  const fallbackAng=typeof aimAngle==='number'?aimAngle:(Number.isFinite(player.ang)?player.ang:0);
+  const pos = tgt?.getPos?.() || {
+    r:player.r+Math.sin(fallbackAng)*PUNCH_RANGE*.78,
+    c:player.c+Math.cos(fallbackAng)*PUNCH_RANGE*.78,
+  };
+  if (!pos) return false;
   const dist = Math.hypot(pos.r - player.r, pos.c - player.c);
-  if (dist > PUNCH_RANGE) {
+  if (tgt && dist > PUNCH_RANGE) {
     showToast('✊ Подойди ближе!', '⚠️', 1200);
-    return;
+    return false;
   }
 
   lastPunchClientT = now;
   const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
   player.ang = ang;
-  // Запускаем анимацию замах → удар → отдача
-  // 20% шанс удара ногой (немного сильнее)
-  const isKick = Math.random() < 0.20;
-  const dmg    = isKick ? PUNCH_DAMAGE + 5 : PUNCH_DAMAGE;
-  _punchAnim = { startAt: now, ang, type: isKick ? 'kick' : 'punch', dmg };
+  // Каждая пятая атака в среднем — критический удар ногой. Обычные удары
+  // чередуют левую и правую руку, чтобы скелет не выглядел одноруким.
+  const previewMeleeType=_LOCAL_PREVIEW?String(_UP.get('previewmeleeattack')||''):'';
+  const isKick = previewMeleeType==='kick' ? true : previewMeleeType==='punch' ? false : Math.random() < KICK_CRIT_CHANCE;
+  const dmg = isKick ? Math.round(PUNCH_DAMAGE*KICK_CRIT_MULTIPLIER) : PUNCH_DAMAGE;
+  _meleeHandSide*=-1;
+  _punchAnim = {
+    seq:++_meleeAttackSeq,startAt:now,ang,type:isKick?'kick':'punch',
+    hand:isKick?'right':(_meleeHandSide>0?'right':'left'),dmg,
+    critical:isKick,hit:!!tgt,impactAt:now+(isKick?165:175),duration:isKick?470:430,
+  };
+  document.documentElement.dataset.meleeAttack=`${_punchAnim.seq}:${_punchAnim.type}:${_punchAnim.hand}:${tgt?'hit':'miss'}:${dmg}`;
 
   // Визуал и ощущения
   addKick(ang, 0.6);
@@ -34572,7 +34605,11 @@ function punch(force, aimAngle = null) {
     impacts.push({ r, c, parts });
   }
 
-  // Урон по типу цели (kick даёт +5 к урону)
+  // Удар в воздух всё равно проигрывает полную анимацию, но не пытается
+  // обращаться к отсутствующей цели и не создаёт урон/кровь.
+  if (!tgt) return true;
+
+  // Урон по типу цели (критический удар ногой использует множитель)
   const hitDmg = _punchAnim.dmg || PUNCH_DAMAGE;
   const kind = tgt.kind;
   if (kind === 'npc') {
@@ -34768,6 +34805,7 @@ window.addEventListener('keyup', (e) => {
 });
 
 function updatePvpUI() {
+  if(_meleeBlockHeld&&_isArmed())_setMeleeBlock(false);
   const inPvp      = inArena(player.r, player.c);
   const convoyT    = findNearestConvoyTarget();
   // PvE-наблюдатели НЕ стреляют вообще — все боевые UI скрыты.
@@ -36693,7 +36731,7 @@ function update(dt) {
     (_injuryHpRatio <= 0.35 ? 0.62 : 1.0);
   _tickEmpirePlayerStatuses(performance.now());
   const speed = 5.0 * _bagSpeedMul * _waterSpeedMul * _injurySpeedMul * _empirePlayerSpeedMultiplier() *
-    _shotMoveMultiplier(); // тайлов/сек
+    _shotMoveMultiplier() * (_meleeBlockHeld ? .80 : 1); // блок замедляет ход на 20%
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
   // в той же точке где умер (баг: «бегать могу и возрождаюсь там же»).
@@ -62523,7 +62561,7 @@ function _updateBankInterior(dt) {
           npc._punchAnim = now;
           npc._punchDir = Math.atan2(player.r - npc.r, player.c - npc.c);
           const dmg = 12 + Math.floor(Math.random()*6);
-          _hurtLocal(dmg, 'Охрана банка', true);
+          _hurtLocal(dmg, 'Охрана банка', true, {kind:'melee',source:npc});
           flashHitOverlay(npc.r, npc.c, int.npcs.indexOf(npc), 'bank_guard', npc);
           spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
           try { hapticHit && hapticHit(); } catch(e) {}
@@ -65362,6 +65400,8 @@ window.Mafiozi3DBridge = Object.freeze({
       family: prisonBooked ? null : (_mafiaState?.employed ? (_mafiaState.family || null) : null),
       prisonBooked,
       combat_state:bridgeCombatState,
+      melee:_punchAnim?{..._punchAnim,elapsed:Math.max(0,stateNow-_punchAnim.startAt)}:null,
+      meleeBlock:!!_meleeBlockHeld,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
       joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
     };
@@ -65376,6 +65416,12 @@ window.Mafiozi3DBridge = Object.freeze({
       player.ang=_threeMouseAimAngle;
     }
     document.documentElement.dataset.mouseAimHeld=_threeMouseAimHeld?'1':'0';
+  },
+  setMeleeBlock(active) { return _setMeleeBlock(active); },
+  melee(angle) {
+    if(myDead||myMode==='pve'||_isArmed())return false;
+    if(_meleeBlockHeld)return false;
+    return punch(true,Number.isFinite(angle)?angle:null)===true;
   },
   selectBuilding(r,c,screenX,screenY) { return selectBuildingFrom3D(+r,+c,+screenX,+screenY); },
   getNearbyBuildingInteraction() { return _nearbyBuildingInteractionFor3D(); },
