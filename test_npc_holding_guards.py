@@ -46,7 +46,16 @@ async def run() -> None:
             await db.commit()
         await ne.ensure_schema(path)
         async with aiosqlite.connect(path) as db:
-            await db.execute("UPDATE npc_empires SET last_tick=?", (now,))
+            await db.execute(
+                "UPDATE npc_empires SET last_tick=?", (now,))
+            await db.execute(
+                "UPDATE npc_empires SET members=3,status='active' "
+                "WHERE leader_id='viktor'")
+            await db.execute(
+                "UPDATE npc_empire_diplomacy SET pact='none' "
+                "WHERE leader_a='viktor' OR leader_b='viktor'")
+            await db.execute(
+                "DELETE FROM npc_empire_player_wars WHERE leader_id='viktor'")
             await db.execute(
                 "INSERT OR REPLACE INTO npc_empire_holdings"
                 "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
@@ -61,11 +70,57 @@ async def run() -> None:
             )
             await db.commit()
 
-        state = await ne.state_for(path, 777, now=now)
-        viktor = next(empire for empire in state["empires"] if empire["leader_id"] == "viktor")
-        guarded = [holding for holding in viktor["holdings"] if holding["kind"] in {"building", "business"}]
+        # A raw holding row is not a synthetic guard spawn. Until the normal
+        # authoritative assignment pass runs, both holdings truthfully expose
+        # zero living guards in the snapshot.
+        unassigned = await ne.state_for(path, 777, now=now)
+        viktor = next(empire for empire in unassigned["empires"]
+                      if empire["leader_id"] == "viktor")
+        guarded = [holding for holding in viktor["holdings"]
+                   if holding["kind"] in {"building", "business"}]
         assert len(guarded) == 2
-        assert all(1 <= holding["guard_count"] <= 3 for holding in guarded)
+        assert {holding["guard_count"] for holding in guarded} == {0}
+
+        # Three living members must keep the two-member mobile reserve. The
+        # ordinary reconciler therefore assigns exactly one real fighter to
+        # the higher-value coffee holding and intentionally leaves 4,4 empty.
+        async with aiosqlite.connect(path) as db:
+            db.row_factory = aiosqlite.Row
+            await db.execute("BEGIN IMMEDIATE")
+            assigned = await ne._reconcile_npc_guards(db, "viktor", now)
+            await db.commit()
+        assert assigned == 1, assigned
+
+        async with aiosqlite.connect(path) as db:
+            db_rows = await (await db.execute(
+                "SELECT holding_ref,living FROM npc_empire_guard_assignments "
+                "WHERE owner_kind='npc' AND owner_id='viktor' "
+                "ORDER BY holding_ref"
+            )).fetchall()
+            members = int((await (await db.execute(
+                "SELECT members FROM npc_empires WHERE leader_id='viktor'"
+            )).fetchone())[0])
+        db_counts = {str(ref): int(living) for ref, living in db_rows}
+        assert db_counts == {"business:coffee": 1}
+        assert all(1 <= living <= 3 for living in db_counts.values())
+
+        state = await ne.state_for(path, 777, now=now)
+        viktor = next(empire for empire in state["empires"]
+                      if empire["leader_id"] == "viktor")
+        guarded = [holding for holding in viktor["holdings"]
+                   if holding["kind"] in {"building", "business"}]
+        snapshot_counts = {
+            f"{holding['kind']}:{holding['holding_id']}": int(holding["guard_count"])
+            for holding in guarded
+        }
+        assert snapshot_counts == {"building:4,4": 0, "business:coffee": 1}
+        assert snapshot_counts == {
+            ref: db_counts.get(ref, 0) for ref in snapshot_counts
+        }
+        total_assigned = sum(db_counts.values())
+        mobile_reserve = min(max(2, 0 * 2 + 1), max(2, members))
+        assert total_assigned <= members
+        assert members - total_assigned >= mobile_reserve
         hq = next(holding for holding in viktor["holdings"] if holding["kind"] == "hq")
         assert hq["guard_count"] == 0
 
@@ -89,7 +144,7 @@ async def run() -> None:
         )
         for marker in required:
             assert marker in world, marker
-        print("npc holding guards: stable 1-3 count, family patrol and hostile retaliation bridge OK")
+        print("npc holding guards: DB-exact 0..3 living roster, mobile reserve, family patrol and hostile retaliation bridge OK")
     finally:
         try:
             os.remove(path)

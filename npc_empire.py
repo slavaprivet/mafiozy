@@ -1208,7 +1208,7 @@ def relation_band(score: int) -> str:
 
 def holding_guard_count(leader_id: str, kind: str, holding_id: str,
                         acquired_at: int) -> int:
-    """Stable authoritative 1..3 guard roll for one captured property."""
+    """Legacy deterministic 1..3 planning roll, not live NPC roster truth."""
     if str(kind) not in {'building', 'business'}:
         return 0
     seed = f'{leader_id}:{kind}:{holding_id}:{int(acquired_at or 0)}:guards'

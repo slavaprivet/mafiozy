@@ -503,10 +503,13 @@
 
 ## Streamed guards for NPC-owned holdings (2026-08-13)
 
-- Keep the authoritative guard roll on the server holding snapshot. A SHA-256
-  roll over owner, holding identity and `acquired_at` gives every captured
-  building/business a stable 1–3 guards and naturally rerolls after takeover
-  without another table or background timer.
+- The server holding snapshot publishes the exact living rows from
+  `npc_empire_guard_assignments`, not a synthetic per-property roll. A holding
+  may intentionally have zero guards; every nonzero assignment remains capped
+  at 1–3 and the snapshot must equal the assignment table after reconnect.
+- Rebalance the actual family roster by threat and holding value while keeping
+  the bounded mobile reserve. Total assigned guards may never exceed living
+  members, and wars increase the reserve instead of manufacturing defenders.
 - Materialize guards only for the six nearest owned holdings, with a hard cap
   of 18 living guards. They reuse the existing NPC array, collision-aware
   routes, empire combat pool, family outfit and bounded 3D NPC snapshot; never
@@ -515,6 +518,8 @@
   anchor. Hostility comes from the shared boss-diplomacy snapshot, and a direct
   hit locks the attacking family as the response target, so guard combat uses
   the existing empire weapon, damage, retreat, muzzle and casualty systems.
+- Ownership transfer, casualties, collapse and comeback reconcile or release
+  the same assignment rows; they must not revive a deterministic shadow roster.
 
 ## Cell-centre police route passability (2026-08-13)
 
