@@ -8604,6 +8604,7 @@ function spawnNpc(seed,opts=null) {
     const _spt = MAP[r][c];
     const _isBeach = (_spt === 14);
     if (_spt === 9 || _spt === 8 || _spt === 14) {
+      if (!_npcBodyPassable(r + 0.5, c + 0.5)) continue;
       if(cityOnly&&_isBeach)continue;
       // Песок плотный → рандом-спавн валит на пляж непропорционально много.
       // Держим квоту пляжных ~18 (как было beachgoers), остальные — в город.
@@ -8770,7 +8771,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
   // Knockback
   const kb = 0.09;
   const nr = npc.r + dirY * kb, nc = npc.c + dirX * kb;
-  if (npcPassable(nr, nc)) { npc.r = nr; npc.c = nc; }
+  if (_npcPathPassable(npc.r, npc.c, nr, nc)) { npc.r = nr; npc.c = nc; }
   // Flinch
   npc.idleUntil = performance.now() + 250;
   // Запоминает агрессию игрока — становится враждебным
@@ -9382,7 +9383,9 @@ function _updateResidentsIndoors(now) {
       const safer=_pickResidentRespawnDoor();if(!safer){n._residentInsideUntil=now+1200;continue;}n._residentDoor=safer;
     }
     const wasRespawn=!!n._residentRespawn;
-    const exit=n._residentDoor;n.r=exit.r;n.c=exit.c;n.tr=exit.r;n.tc=exit.c;
+    const exit=n._residentDoor,doorOccupied=NPCS.some(other=>other&&other!==n&&!other.dead&&!other._residentIndoors&&Math.hypot(other.r-exit.r,other.c-exit.c)<.42);
+    if(doorOccupied){n._residentInsideUntil=now+320+Math.random()*280;n._residentExitOpening=false;continue;}
+    n.r=exit.r;n.c=exit.c;n.tr=exit.r;n.tc=exit.c;
     n._residentIndoors=false;n._residentRespawn=false;n._residentInsideUntil=0;
     n._residentExitOpening=false;n._residentExitDeadline=0;_openResidentDoorVisual(exit,now,1250);
     n._buildingVisitCooldownUntil=now+18000+Math.random()*26000;n.idleUntil=now+150+Math.random()*350;
@@ -9415,7 +9418,15 @@ function pickNpcWaypoint(npc) {
   }
   if(!pool.length){_clearNpcRoute(npc);npc.tr=npc.r;npc.tc=npc.c;npc.idleUntil=performance.now()+900+Math.random()*1200;return false;}
   const farthest=Math.max(...pool.map(p=>p.depth)),far=pool.filter(p=>p.depth>=Math.max(6,farthest-3));
-  let goal=far[Math.floor(Math.random()*far.length)],path=[];
+  const occupiedGoals=new Set();
+  for(const other of NPCS){
+    if(!other||other===npc||other.dead||other._residentIndoors)continue;
+    occupiedGoals.add(`${Math.floor(other.r)},${Math.floor(other.c)}`);
+    if(Number.isFinite(other._routeGoalR)&&Number.isFinite(other._routeGoalC))occupiedGoals.add(`${Math.floor(other._routeGoalR)},${Math.floor(other._routeGoalC)}`);
+  }
+  const goalStart=Math.floor(Math.random()*far.length);let goal=null,path=[];
+  for(let probe=0;probe<far.length;probe++){const candidate=far[(goalStart+probe)%far.length];if(!occupiedGoals.has(`${candidate.r},${candidate.c}`)){goal=candidate;break;}}
+  if(!goal){_clearNpcRoute(npc);npc.tr=npc.r;npc.tc=npc.c;npc.idleUntil=performance.now()+500+Math.random()*700;return false;}
   while(goal&&goal.key!==startKey){path.push({r:goal.r+.5,c:goal.c+.5});goal=nodes.get(goal.parent);}
   path.reverse();
   if(!path.length){_clearNpcRoute(npc);npc.tr=npc.r;npc.tc=npc.c;return false;}
