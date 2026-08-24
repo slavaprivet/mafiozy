@@ -19501,7 +19501,9 @@ async function loadCustomGangState(showError=false){
 async function loadNpcEmpireState(showError=false){
   if(!QP.api||!QP.uid)return false;
   try{
-    const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/state`,{cache:'no-store'}),j=await r.json();
+    const previewBossMemoryToken=_LOCAL_PREVIEW?String(globalThis.__previewBossMemoryToken||''):'';
+    const stateOptions={cache:'no-store'};if(previewBossMemoryToken)stateOptions.headers={'X-Mafiosi-Preview-Fixture':previewBossMemoryToken};
+    const r=await fetch(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/state`,stateOptions),j=await r.json();
     if(!r.ok||!j?.ok)throw new Error(j?.error||'state');
     _npcEmpires=Array.isArray(j.empires)?j.empires:[];
     _npcEmpireEvents=Array.isArray(j.events)?j.events:[];
@@ -19510,6 +19512,7 @@ async function loadNpcEmpireState(showError=false){
     _npcEmpireLeaderboard=Array.isArray(j.leaderboard)?j.leaderboard:[];
     _npcEmpireInteriorRaids=Array.isArray(j.interior_raids)?j.interior_raids:[];
     _npcEmpireServerTime=+j.server_time||Math.floor(Date.now()/1000);
+    if(previewBossMemoryToken){const memoryBoss=_npcEmpires.find(item=>item.leader_id==='leila');document.documentElement.dataset.previewBossMemory=`${memoryBoss?.activity?.kind||'missing'}:${memoryBoss?.war_pressure?.recovery?.state||'missing'}`;if(memoryBoss&&!document.documentElement.dataset.previewBossMemoryPanel){document.documentElement.dataset.previewBossMemoryPanel='opened';queueMicrotask(()=>openNpcEmpirePanel(memoryBoss.leader_id,false));}}
     if(_buildingInt&&!_buildingInt.type&&!_buildingInt.businessInteriorRaid){const insideProperty=_buildingPropertyAt(_buildingInt.r,_buildingInt.c);if(insideProperty?.property_kind==='business')_seedBusinessInteriorRaid(_buildingInt,insideProperty);}
     _stagePreviewPlayerBusinessRaid();
     _reconcileBusinessInteriorRaidCheckpoint();
@@ -19937,7 +19940,7 @@ openNpcEmpirePanel=function(leaderId,allowAssault=false){
   const warBox=document.createElement('section');
   const unavailable=empire.status==='offline'||empire.status==='ruined';
   warBox.className=`ne-war-box ${pact==='war'?'active':relation>=0?'safe':''}`;
-  const recovery=empire?.war_pressure?.recovery,recoveryNote=recovery?.state==='regrouping'?`<p class="ne-muted" data-ne-recovery-state="regrouping">${escapeHtml(recovery.label||'Семья перегруппировывается после отражённого налёта')}</p>`:'';
+  const recovery=empire?.war_pressure?.recovery,recoveryNote=recovery?.state==='regrouping'?`<p class="ne-muted" data-ne-recovery-state="regrouping">${_npcEmpireEsc(recovery.label||'Семья перегруппировывается после отражённого налёта')}</p>`:'';
   if(pact==='war')warBox.innerHTML=`<p><b>ВОЙНА ИДЁТ.</b> ${tribute?.state==='active'?'Дань принята: новые нападения временно становятся реже, но безопасность не гарантирована.':agreement?.state==='offered'?'Условия получены, но нападения продолжатся до их выполнения.':'Этот босс и его бойцы атакуют тебя при встрече. Его семья периодически выводит из строя один из твоих бизнесов.'}</p>${recoveryNote}<button class="ne-btn war" disabled>⚔️ ВОЙНА ОБЪЯВЛЕНА</button>`;
   else if(unavailable)warBox.innerHTML='<p>Объявление войны требует доступного сервера и действующей империи.</p><button class="ne-btn war" disabled>⚔️ ОБЪЯВИТЬ ВОЙНУ</button>';
   else if(relation>=0)warBox.innerHTML=`<p>Объявить войну можно, только когда отношение босса стало <b>негативным — ниже 0</b>. Сейчас: ${relation>0?'+':''}${relation}, ${attitude.label.toLowerCase()}.</p><button class="ne-btn war" disabled>⚔️ ОБЪЯВИТЬ ВОЙНУ · НУЖНО НИЖЕ 0</button>`;

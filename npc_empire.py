@@ -4610,6 +4610,13 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         pending_by_leader = {
             str(raid.get('leader_id') or ''): raid for raid in raid_rows
         }
+        # Starting the next authoritative raid ends the qualitative recovery
+        # witness even though last_attack_at is committed only by its resolver.
+        # Otherwise the dossier says "regrouping" while a persisted assault is
+        # already physically entering the player's business.
+        for pending_leader in pending_by_leader:
+            if pending_leader in war_rows:
+                war_rows[pending_leader].pop('recovery', None)
         smart_player_targets = {
             leader_id: await _select_player_business_target_smart(
                 db, telegram_id, leader_id, player_business_targets_by_leader[leader_id],
@@ -4773,6 +4780,22 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
         if not war or int(empire.get('hospital_until') or 0) > now:
             continue
         pending = pending_by_leader.get(str(empire['leader_id']))
+        recovery = war.get('recovery')
+        if recovery and not pending:
+            # A defended physical raid starts a real server-side recovery
+            # window. Do not publish a contradictory march order while that
+            # deadline is still active; the client would otherwise spawn an
+            # immediate second assault despite the persisted regrouping delay.
+            profile = PROFILE_BY_ID[str(empire['leader_id'])]
+            hq_r, hq_c = _hq_coords(profile.hq_key)
+            empire['activity'] = {
+                'kind': 'recover', 'intent': 'regroup', 'phase': 'regroup',
+                'stance': 'defend', 'target_r': hq_r, 'target_c': hq_c,
+                'created_at': int(war.get('last_attack_at') or now),
+                'summary': str(recovery.get('label') or
+                               'Семья перегруппировывается после отражённого налёта'),
+            }
+            continue
         leader_targets = player_business_targets_by_leader.get(
             str(empire['leader_id']), player_business_targets)
         target = (next((item for item in leader_targets

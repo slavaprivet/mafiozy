@@ -5,7 +5,10 @@ import random
 import secrets
 import os
 from pathlib import Path
+import re
 import time
+from urllib.parse import urlsplit
+import aiosqlite
 from aiohttp import web
 import npc_empire
 import weapon_balance
@@ -124,6 +127,12 @@ preview_empire_agreements = {}
 preview_empire_tribute_agreements = {}
 preview_empire_hospitals = {}
 preview_empire_street_members = {}
+preview_boss_memory_profiles = {}
+preview_boss_memory_sessions = {}
+preview_boss_memory_locks = {}
+preview_boss_memory_failures = set()
+preview_boss_memory_pending = set()
+preview_boss_memory_admission_lock = asyncio.Lock()
 preview_connections = {}
 preview_apartments = {}
 preview_custom_gangs = {}
@@ -1803,13 +1812,267 @@ async def coop_api(req):
     return cors(web.json_response({"base": f"{req.scheme}://{req.host}"}))
 
 
-async def preview_world(_req):
+_PREVIEW_FIXTURE_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{32,96}$")
+_PREVIEW_FIXTURE_HOST_RE = re.compile(
+    r"^(?:localhost|127\.0\.0\.1|\[::1\])(?::[1-9][0-9]{0,4})?$")
+_PREVIEW_FIXTURE_TTL_SECONDS = 30 * 60
+_PREVIEW_FIXTURE_MAX_PROFILES = 4
+_PREVIEW_FIXTURE_MAX_SESSIONS = 8
+
+
+def _preview_fixture_error(error, status):
+    return web.json_response({"ok": False, "error": error}, status=status)
+
+
+def _preview_loopback_request(req, *, state_fetch=False):
+    """Fail closed before a local-only fixture can reach wildcard CORS."""
+    if str(req.remote or "") not in {"127.0.0.1", "::1"}:
+        return False
+    host = str(req.headers.get("Host") or "")
+    if not _PREVIEW_FIXTURE_HOST_RE.fullmatch(host):
+        return False
+    port_text = host.rsplit(":", 1)[-1] if ":" in host and not host.endswith("]") else ""
+    if port_text and (not port_text.isdigit() or int(port_text) > 65535):
+        return False
+    expected_origin = f"{req.scheme}://{host}"
+    origin = str(req.headers.get("Origin") or "")
+    if origin and origin != expected_origin:
+        return False
+    fetch_site = str(req.headers.get("Sec-Fetch-Site") or "")
+    allowed_sites = {"same-origin"} if state_fetch else {"none", "same-origin"}
+    if fetch_site not in allowed_sites:
+        return False
+    if state_fetch:
+        referer = str(req.headers.get("Referer") or "")
+        parsed = urlsplit(referer)
+        if (not referer or parsed.scheme != req.scheme or parsed.netloc != host
+                or parsed.path != "/preview/world.html"):
+            return False
+    return True
+
+
+def _preview_fixture_response_headers(response):
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Referrer-Policy"] = "same-origin"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def _preview_boss_memory_sweep(now=None):
+    now = int(now or time.time())
+    expired = [token for token, session in preview_boss_memory_sessions.items()
+               if int(session.get("expires_at") or 0) <= now]
+    for token in expired:
+        preview_boss_memory_sessions.pop(token, None)
+
+
+def _preview_boss_memory_root():
+    root = Path(os.getenv(
+        "MAFIOZI_PREVIEW_FIXTURE_ROOT",
+        r"D:\CodexTemp\mafiozi_preview_boss_memory",
+    ))
+    resolved = root.resolve()
+    if resolved.drive.upper() != "D:":
+        raise RuntimeError("preview fixture root must be on D:")
+    resolved.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
+async def _preview_boss_memory_seed(uid):
+    """Create one real, retained D: snapshot using production NPC APIs only."""
+    now = int(time.time())
+    path = _preview_boss_memory_root() / (
+        f"boss-memory-{os.getpid()}-{uid}-{secrets.token_hex(6)}.sqlite3")
+    async with aiosqlite.connect(str(path)) as db:
+        await db.executescript("""
+        CREATE TABLE characters (
+          telegram_id INTEGER PRIMARY KEY, cash INTEGER NOT NULL DEFAULT 0);
+        CREATE TABLE business_property_owners (
+          biz_id TEXT PRIMARY KEY, owner_uid INTEGER, owner_name TEXT,
+          acquired_at INTEGER, protected_until INTEGER);
+        CREATE TABLE player_businesses (
+          telegram_id INTEGER, biz_id TEXT PRIMARY KEY, bought_at INTEGER,
+          last_collect INTEGER, status TEXT, blocked_until INTEGER,
+          last_event_at INTEGER, level INTEGER, guards INTEGER, pending_notice TEXT);
+        CREATE TABLE apartments_owned (
+          telegram_id INTEGER, apt_key TEXT PRIMARY KEY, price INTEGER,
+          bought_at INTEGER, property_kind TEXT, operation_type TEXT, area INTEGER,
+          income_per_minute INTEGER, last_income_at INTEGER DEFAULT 0);
+        CREATE TABLE gang_members (
+          id INTEGER PRIMARY KEY, telegram_id INTEGER, current_hp INTEGER);
+        """)
+        await db.execute(
+            "INSERT INTO characters(telegram_id,cash) VALUES(?,10000)", (uid,))
+        await db.commit()
+    await npc_empire.ensure_schema(str(path))
+    acquired_at = now - 100
+    async with aiosqlite.connect(str(path)) as db:
+        db.row_factory = aiosqlite.Row
+        await db.executemany(
+            "INSERT INTO apartments_owned"
+            "(telegram_id,apt_key,price,bought_at,property_kind,operation_type,"
+            "area,income_per_minute,last_income_at) "
+            "VALUES(?,?,?,?, 'business','pawnshop',24,120,0)",
+            [(uid, "tile:6,36", 20000, acquired_at),
+             (uid, "tile:6,46", 18000, acquired_at)],
+        )
+        await db.execute(
+            "INSERT OR REPLACE INTO npc_empire_relations"
+            "(leader_id,telegram_id,score,pact,last_action_at) "
+            "VALUES('leila',?,-100,'war',?)", (uid, acquired_at))
+        await db.execute(
+            "UPDATE npc_empires SET members=20,strength=420,treasury=80000,"
+            "status='active' WHERE leader_id='leila'")
+        await db.execute(
+            "UPDATE npc_empires SET last_tick=?,next_action_at=?",
+            (now, now + npc_empire.TICK_SECONDS))
+        await db.execute(
+            "INSERT OR REPLACE INTO npc_empire_player_wars"
+            "(leader_id,telegram_id,next_attack_at,attacks,last_business_id,last_attack_at) "
+            "VALUES('leila',?,?,0,'',0)", (uid, now + 99999))
+        await db.commit()
+        targets = await npc_empire._player_business_targets(db, uid)
+        first = await npc_empire._select_player_business_target_smart(
+            db, uid, "leila", targets, 0, "", now)
+        if not first or str(first.get("ref")) != "building:0,3":
+            raise RuntimeError("preview memory seed target drift")
+        await db.execute("BEGIN IMMEDIATE")
+        raid = await npc_empire._create_interior_raid(
+            db, uid, "leila", first, 0,
+            now - npc_empire.PLAYER_INTERIOR_RAID_MIN_SECONDS)
+        await db.commit()
+    resolution = await npc_empire.resolve_interior_raid(
+        str(path), uid, raid["token"], raid["apt_key"], "defended",
+        attacker_casualties=list(range(int(raid["force"]))),
+        defender_casualties=[], guard_casualties=[], now=now)
+    if not resolution.get("ok") or resolution.get("duplicate"):
+        raise RuntimeError("preview memory seed resolution failed")
+    state = await npc_empire.state_for(str(path), uid, now=now + 1)
+    leila = next(item for item in state["empires"] if item["leader_id"] == "leila")
+    if (leila.get("activity", {}).get("kind") != "recover"
+            or leila.get("war_pressure", {}).get("recovery", {}).get("state") != "regrouping"):
+        raise RuntimeError("preview memory production witness missing")
+    return {
+        "uid": uid, "path": str(path), "generation": secrets.token_hex(8),
+        "seeded_at": now, "raid_token": str(raid["token"]),
+        "original_target": "building:0,3",
+    }
+
+
+async def _preview_boss_memory_profile(uid):
+    async with preview_boss_memory_admission_lock:
+        profile = preview_boss_memory_profiles.get(uid)
+        if profile is not None:
+            return profile
+        if uid in preview_boss_memory_failures:
+            raise RuntimeError("preview fixture seed previously failed")
+        if uid not in preview_boss_memory_pending:
+            occupied = (len(preview_boss_memory_profiles)
+                        + len(preview_boss_memory_failures)
+                        + len(preview_boss_memory_pending))
+            if occupied >= _PREVIEW_FIXTURE_MAX_PROFILES:
+                raise RuntimeError("preview fixture profile capacity reached")
+            preview_boss_memory_pending.add(uid)
+        lock = preview_boss_memory_locks.setdefault(uid, asyncio.Lock())
+    async with lock:
+        async with preview_boss_memory_admission_lock:
+            profile = preview_boss_memory_profiles.get(uid)
+            if profile is not None:
+                return profile
+            if uid in preview_boss_memory_failures:
+                raise RuntimeError("preview fixture seed previously failed")
+            if uid not in preview_boss_memory_pending:
+                occupied = (len(preview_boss_memory_profiles)
+                            + len(preview_boss_memory_failures)
+                            + len(preview_boss_memory_pending))
+                if occupied >= _PREVIEW_FIXTURE_MAX_PROFILES:
+                    raise RuntimeError("preview fixture profile capacity reached")
+                preview_boss_memory_pending.add(uid)
+                preview_boss_memory_locks[uid] = lock
+        try:
+            profile = await _preview_boss_memory_seed(uid)
+        except asyncio.CancelledError:
+            async with preview_boss_memory_admission_lock:
+                preview_boss_memory_pending.discard(uid)
+                if preview_boss_memory_locks.get(uid) is lock:
+                    preview_boss_memory_locks.pop(uid, None)
+            raise
+        except Exception as exc:
+            async with preview_boss_memory_admission_lock:
+                preview_boss_memory_pending.discard(uid)
+                preview_boss_memory_failures.add(uid)
+                if preview_boss_memory_locks.get(uid) is lock:
+                    preview_boss_memory_locks.pop(uid, None)
+            raise RuntimeError("preview fixture seed failed") from exc
+        async with preview_boss_memory_admission_lock:
+            preview_boss_memory_pending.discard(uid)
+            preview_boss_memory_profiles[uid] = profile
+            if preview_boss_memory_locks.get(uid) is lock:
+                preview_boss_memory_locks.pop(uid, None)
+        return profile
+
+
+def _preview_boss_memory_session(req, uid):
+    token = str(req.headers.get("X-Mafiosi-Preview-Fixture") or "")
+    if not _PREVIEW_FIXTURE_TOKEN_RE.fullmatch(token):
+        return None, "invalid"
+    session = preview_boss_memory_sessions.get(token)
+    if session and int(session["expires_at"]) <= int(time.time()):
+        preview_boss_memory_sessions.pop(token, None)
+        _preview_boss_memory_sweep()
+        return None, "expired"
+    _preview_boss_memory_sweep()
+    if not session:
+        return None, "invalid"
+    if int(session["uid"]) != uid:
+        return None, "invalid"
+    profile = preview_boss_memory_profiles.get(uid)
+    if not profile or profile["generation"] != session["generation"]:
+        return None, "invalid"
+    return profile, "ok"
+
+
+async def preview_world(req):
     html = Path("world.html").read_text(encoding="utf-8", errors="replace")
     html = html.replace(
         "https://slavaprivet.github.io/mafiozi-battle/coop_api.json?t=",
-        f"{_req.scheme}://{_req.host}/coop_api.json?t=",
+        f"{req.scheme}://{req.host}/coop_api.json?t=",
     )
-    return web.Response(text=html, content_type="text/html")
+    values = req.query.getall("previewbossmemory", [])
+    if values:
+        if values != ["1"]:
+            return _preview_fixture_error("bad preview fixture", 400)
+        if not _preview_loopback_request(req):
+            return _preview_fixture_error("preview fixture forbidden", 403)
+        uid_text = str(req.query.get("uid") or "")
+        if (not uid_text.isdigit() or not (1 <= len(uid_text) <= 18)
+                or int(uid_text) <= 0):
+            return _preview_fixture_error("bad preview fixture uid", 400)
+        uid = int(uid_text)
+        try:
+            profile = await _preview_boss_memory_profile(uid)
+        except (OSError, RuntimeError) as exc:
+            return _preview_fixture_error(str(exc), 503)
+        _preview_boss_memory_sweep()
+        for old_token, session in list(preview_boss_memory_sessions.items()):
+            if int(session.get("uid") or 0) == uid:
+                preview_boss_memory_sessions.pop(old_token, None)
+        if len(preview_boss_memory_sessions) >= _PREVIEW_FIXTURE_MAX_SESSIONS:
+            return _preview_fixture_error("preview fixture session capacity reached", 429)
+        token = secrets.token_urlsafe(36)
+        preview_boss_memory_sessions[token] = {
+            "uid": uid, "generation": profile["generation"],
+            "expires_at": int(time.time()) + _PREVIEW_FIXTURE_TTL_SECONDS,
+        }
+        script = ("<script>globalThis.__previewBossMemoryToken="
+                  + json.dumps(token) + ";</script>")
+        if html.count("</head>") != 1:
+            preview_boss_memory_sessions.pop(token, None)
+            return _preview_fixture_error("preview fixture anchor missing", 503)
+        html = html.replace("</head>", script + "</head>", 1)
+    response = web.Response(text=html, content_type="text/html")
+    return (_preview_fixture_response_headers(response) if values else response)
 
 
 async def preview_three_module(_req):
@@ -1844,6 +2107,22 @@ def _preview_empire_activity(profile, now):
 
 async def npc_empire_state(req):
     uid = str(req.match_info.get("uid") or "1")
+    fixture_token = str(req.headers.get("X-Mafiosi-Preview-Fixture") or "")
+    if fixture_token:
+        if (not uid.isdigit() or not (1 <= len(uid) <= 18) or int(uid) <= 0
+                or not _preview_loopback_request(req, state_fetch=True)):
+            return _preview_fixture_error("preview fixture forbidden", 403)
+        profile, status = _preview_boss_memory_session(req, int(uid))
+        if not profile:
+            return _preview_fixture_error(
+                "preview fixture expired" if status == "expired" else "invalid preview fixture",
+                410 if status == "expired" else 403)
+        try:
+            state = await npc_empire.state_for(profile["path"], int(uid))
+        except (OSError, RuntimeError):
+            return _preview_fixture_error("preview fixture unavailable", 503)
+        return _preview_fixture_response_headers(
+            cors(web.json_response({"ok": True, **state})))
     now = int(time.time())
     empires = []
     for rank, profile in enumerate(npc_empire.PROFILES, 1):
