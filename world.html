@@ -11555,6 +11555,9 @@ const AMBULANCES_PER_HOSPITAL=3,AMBULANCE_FLEET_SIZE=6,AMBULANCE_RESPONSE_SPEED=
 const FIRETRUCK_FLEET_SIZE=3,FIRETRUCK_RESPONSE_SPEED=7.4;
 const TOW_FLEET_SIZE=3,TOW_RESPONSE_SPEED=6.6;
 const POLICE_RESPONSE_FLEET_SIZE=3,POLICE_RESPONSE_SPEED=12.4,POLICE_RETURN_SPEED=7.6,POLICE_BOARDING_TIMEOUT_MS=4200;
+const SERVICE_TURN_KINDS=new Set(['ambulance','firetruck','tow','police']);
+const SERVICE_TURN_REAR_DOT=-.18,SERVICE_TURN_MIN_REVERSE=.55;
+const SERVICE_TURN_REVERSE_SPEED=3.2,SERVICE_TURN_MAX_MS=12000;
 const POLICE_MURDER_ZONE_R=11,POLICE_MURDER_SEARCH_MS=5000;
 const POLICE_ARREST_CUFF_MS=2700,POLICE_ARREST_LOAD_MS=1350;
 const POLICE_ARREST_UNLOAD_MS=1800,POLICE_ARREST_HANDOFF_MS=2200,POLICE_ARREST_BOOK_MS=1400;
@@ -11910,6 +11913,89 @@ function _yieldTrafficForService(v, car, dirR, dirC, dt) {
   return false;
 }
 
+function _syncServiceVehicleCargo(v){
+  if(!v)return;
+  if(v.kind==='tow'&&v._loaded&&v.payload?.carRef){
+    const cr=v.payload.carRef;
+    cr.r=v.y-Math.sin(v.ang)*.6;cr.c=v.x-Math.cos(v.ang)*.6;
+    if('y'in cr)cr.y=cr.r;if('x'in cr)cr.x=cr.c;cr._towLoadingProgress=1;
+  }
+  const ar=_murderPoliceArrest;
+  if(v.kind==='police'&&v._policePrisonTransport&&ar?.playerBoarded&&
+      String(ar.playerAttachedVehicleId||ar.vehicleId||'')===String(v.id||'')){
+    player.r=v.y;player.c=v.x;player.ang=v.ang;player.vr=0;player.vc=0;player.walking=false;
+    document.documentElement.dataset.serviceCustodyAttached=Math.hypot(player.r-v.y,player.c-v.x)<.01?'1':'0';
+  }
+}
+
+function _serviceRouteHeading(v){
+  if(!v?.path?.length)return null;
+  for(let i=Math.max(0,+v.pathIdx||0);i<v.path.length;i++){
+    const wp=v.path[i],dr=wp.r-v.y,dc=wp.c-v.x,d=Math.hypot(dr,dc);
+    if(d>.42)return {ang:Math.atan2(dr,dc),dr,dc,d,index:i};
+  }
+  return null;
+}
+
+function _beginServiceVehicleTurn(v,targetAng,reason='rear-waypoint',now=performance.now(),routeIndex=null){
+  if(!v||!SERVICE_TURN_KINDS.has(v.kind)||!Number.isFinite(targetAng))return false;
+  if(v._serviceTurn){v._serviceTurn.targetAng=targetAng;return true;}
+  if(Number.isFinite(+routeIndex))v.pathIdx=Math.max(+v.pathIdx||0,+routeIndex||0);
+  v._serviceTurn={phase:'reverse',reason,startedAt:now,lastProgressAt:now,
+    initialAng:Number.isFinite(+v.ang)?+v.ang:targetAng,targetAng,reverseDistance:0};
+  v._blockedSince=0;v._bodyBlockedSince=0;
+  document.documentElement.dataset.serviceTurnStarted=`${v.kind}:${reason}`;
+  document.documentElement.dataset.serviceTurnPhase='reverse';
+  return true;
+}
+
+// A rearward route never makes an emergency vehicle translate through its
+// own bonnet. It first reverses along the current lane until the complete body
+// can rotate, then performs a collision-safe 180-degree police turn and only
+// resumes ordinary forward travel after its nose faces the route.
+function _stepServiceVehicleTurn(v,dt,now=performance.now()){
+  const turn=v?._serviceTurn;if(!turn)return false;
+  const delta=Math.atan2(Math.sin(turn.targetAng-v.ang),Math.cos(turn.targetAng-v.ang));
+  if(Math.abs(delta)<.085){
+    v.ang=turn.targetAng;v._serviceTurn=null;v._serviceTurnCompletedAt=now;
+    v._lastMoveT=now;v._blockedSince=0;v._bodyBlockedSince=0;_syncServiceVehicleCargo(v);
+    document.documentElement.dataset.serviceTurnPhase='forward';
+    document.documentElement.dataset.serviceTurnCompleted=`${v.kind}:${turn.reason}:${turn.reverseDistance.toFixed(2)}`;
+    return false;
+  }
+  const turnStep=Math.max(.025,Math.min(.16,dt*2.75)),nextAng=v.ang+Math.sign(delta)*Math.min(Math.abs(delta),turnStep);
+  if(turn.reverseDistance>=SERVICE_TURN_MIN_REVERSE&&_serviceVehicleFootprintClear(v,v.y,v.x,nextAng)){
+    v.ang=nextAng;turn.phase='turn';turn.lastProgressAt=now;_syncServiceVehicleCargo(v);
+    document.documentElement.dataset.serviceTurnPhase='turn';return true;
+  }
+  const reverseStep=Math.max(.018,Math.min(.11,SERVICE_TURN_REVERSE_SPEED*dt));
+  const steer=Math.sign(delta)||1;
+  for(const offset of [0,steer*.12,-steer*.12]){
+    const reverseAng=v.ang+offset;
+    if(offset&&(!_serviceVehicleFootprintClear(v,v.y,v.x,reverseAng)))continue;
+    const nr=v.y-Math.sin(reverseAng)*reverseStep,nc=v.x-Math.cos(reverseAng)*reverseStep;
+    if(!_vehicleRoadPassable(nr,nc)||!_serviceVehicleFootprintClear(v,nr,nc,reverseAng))continue;
+    if(_vehicleBlockedByCar(v,nr,nc))continue;
+    v.y=nr;v.x=nc;v.ang=reverseAng;turn.reverseDistance+=reverseStep;turn.lastProgressAt=now;
+    v._lastMoveT=now;_syncServiceVehicleCargo(v);
+    document.documentElement.dataset.serviceTurnReverseDistance=turn.reverseDistance.toFixed(2);
+    return true;
+  }
+  // If straight reversing is blocked but the current footprint can rotate,
+  // start the second leg immediately. No position is ever teleported.
+  if(_serviceVehicleFootprintClear(v,v.y,v.x,nextAng)){
+    v.ang=nextAng;turn.phase='turn';turn.lastProgressAt=now;_syncServiceVehicleCargo(v);
+    document.documentElement.dataset.serviceTurnPhase='turn';return true;
+  }
+  if(now-turn.startedAt>SERVICE_TURN_MAX_MS){
+    turn.startedAt=now;turn.lastProgressAt=now;turn.reverseDistance=0;turn.phase='reverse';
+    _setVehicleRoute(v,v.y,v.x,v.finalTarget?.y??v.homeR,v.finalTarget?.x??v.homeC);
+    const rerouted=_serviceRouteHeading(v);if(rerouted)turn.targetAng=rerouted.ang;
+    document.documentElement.dataset.serviceTurnRetries=String((+document.documentElement.dataset.serviceTurnRetries||0)+1);
+  }
+  return true;
+}
+
 // Один шаг машины службы по своему пути. Возвращает true когда машина
 // прибыла к финальной цели. path — массив дорожных waypoint'ов;
 // финальный подъезд тоже ИДЁТ ПО ДОРОГЕ — спецтранспорт НЕ выезжает на
@@ -11919,6 +12005,16 @@ function _yieldTrafficForService(v, car, dirR, dirC, dt) {
 // тайла и работает «через капот».
 function _vehicleStep(v, dt) {
   const step = v.speed * dt;
+  if(v._serviceTurn&&_stepServiceVehicleTurn(v,dt))return false;
+  const routeHeading=SERVICE_TURN_KINDS.has(v.kind)?_serviceRouteHeading(v):null;
+  if(routeHeading){
+    const headingR=Math.sin(+v.ang||0),headingC=Math.cos(+v.ang||0);
+    const routeDot=(routeHeading.dr*headingR+routeHeading.dc*headingC)/routeHeading.d;
+    if(routeDot<SERVICE_TURN_REAR_DOT){
+      _beginServiceVehicleTurn(v,routeHeading.ang,'rear-waypoint',performance.now(),routeHeading.index);
+      if(_stepServiceVehicleTurn(v,dt))return false;
+    }
+  }
   // Если идём по дорожному пути
   if (v.path && v.pathIdx < v.path.length) {
     const wp = v.path[v.pathIdx];
@@ -11969,7 +12065,12 @@ function _vehicleStep(v, dt) {
           // body has turned. Rotate in place through collision-safe angles;
           // the following frame can then advance along the same road path.
           if(_serviceVehicleFootprintClear(v,v.y,v.x,safeAng))v.ang=safeAng;
-          v._bodyBlockedSince||=performance.now();return false;
+          const blockedNow=performance.now();v._bodyBlockedSince||=blockedNow;
+          if(blockedNow-v._bodyBlockedSince>550){
+            _beginServiceVehicleTurn(v,nextAng,'body-corner',blockedNow);
+            _stepServiceVehicleTurn(v,dt,blockedNow);
+          }
+          return false;
         }
       }
       v._bodyBlockedSince=0;
@@ -12001,8 +12102,14 @@ function _vehicleStep(v, dt) {
       }
     }
     v._blockedSince = 0;
+    const oldX=v.x,oldY=v.y;
     v.x = nx; v.y = ny;
     v.ang = safeAng;
+    _syncServiceVehicleCargo(v);
+    if(v._serviceTurnCompletedAt&&performance.now()-v._serviceTurnCompletedAt<5000){
+      const moved=Math.hypot(v.y-oldY,v.x-oldX)||1,forward=((v.y-oldY)*Math.sin(v.ang)+(v.x-oldX)*Math.cos(v.ang))/moved;
+      document.documentElement.dataset.serviceTurnForwardDot=forward.toFixed(3);
+    }
     return false;
   }
   // Путь закончился — считаем что прибыли (стоим у ближайшего к цели
@@ -67017,7 +67124,22 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
       const sr=stop.r+dr,sc=stop.c+dc,d=Math.hypot(dr,dc);if(d<7||d>17||!_vehicleRoadPassable(sr,sc))continue;
       const path=_bfsRoadPath(sr,sc,stop.r,stop.c,20);if(path?.length&&(!best||path.length>best.path.length))best={r:sr,c:sc,path};
     }
-    if(best){v.y=best.r;v.x=best.c;player.r=v.y;player.c=v.x;v.state='returning';v.speed=_UP.has('previewprisonconvoyspeed')?Math.max(.5,Math.min(POLICE_RESPONSE_SPEED,+_UP.get('previewprisonconvoyspeed')||1)):POLICE_RESPONSE_SPEED;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;_setVehicleRoute(v,v.y,v.x,stop.r,stop.c);_murderPoliceArrest.previewDriveStart={r:v.y,c:v.x};}
+    if(best){v.y=best.r;v.x=best.c;player.r=v.y;player.c=v.x;v.state='returning';v.speed=_UP.has('previewprisonconvoyspeed')?Math.max(.5,Math.min(POLICE_RESPONSE_SPEED,+_UP.get('previewprisonconvoyspeed')||1)):POLICE_RESPONSE_SPEED;v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;_setVehicleRoute(v,v.y,v.x,stop.r,stop.c);_murderPoliceArrest.previewDriveStart={r:v.y,c:v.x};
+      if(_UP.has('previewserviceturn')){
+        const bridgeR=Math.floor((CITY_BRIDGE_R0+CITY_BRIDGE_R1)*.5)+.5;
+        const bridgePath=[];
+        for(let c=CITY_CANAL_C1-1.5;c>=CITY_CANAL_C0+.5;c-=1)bridgePath.push({r:bridgeR,c});
+        if(bridgePath.length>4&&bridgePath.every(p=>_vehicleRoadPassable(p.r,p.c))){
+          v.y=bridgePath[0].r;v.x=bridgePath[0].c;v.path=bridgePath;v.pathIdx=0;v.finalTarget={y:stop.r,x:stop.c};
+          v.ang=0;player.r=v.y;player.c=v.x;_murderPoliceArrest.previewDriveStart={r:v.y,c:v.x};
+          _murderPoliceArrest.playerBoarded=true;_murderPoliceArrest.playerAttachedVehicleId=v.id;
+          document.documentElement.dataset.previewServiceTurn=`bridge:${v.id}:${bridgePath.length}`;
+        }else{
+          const heading=_serviceRouteHeading(v);
+          if(heading){v.ang=heading.ang+Math.PI;_murderPoliceArrest.playerBoarded=true;_murderPoliceArrest.playerAttachedVehicleId=v.id;
+            document.documentElement.dataset.previewServiceTurn=`fallback:${v.id}:${best.path.length}`;}
+        }
+      }}
     else _startMurderPolicePrisonHandoff(v,now,'preview-no-road-start');
   }else _startMurderPolicePrisonHandoff(v,now,'preview-direct');
   const trace=setInterval(()=>{
@@ -67030,7 +67152,12 @@ if(_LOCAL_PREVIEW&&_UP.has('previewprisonconvoy'))setTimeout(()=>{
       player:[+player.r.toFixed(2),+player.c.toFixed(2)],
       lead:lead?[+lead.y.toFixed(2),+lead.x.toFixed(2)]:null,
       distance:lead?+Math.hypot(lead.y-target.spawnR,lead.x-target.spawnC).toFixed(2):0,
-      delivered:+document.documentElement.dataset.policeArrestDelivered||0
+      delivered:+document.documentElement.dataset.policeArrestDelivered||0,
+      serviceTurnPhase:document.documentElement.dataset.serviceTurnPhase||'',
+      serviceTurnReverse:+document.documentElement.dataset.serviceTurnReverseDistance||0,
+      serviceTurnCompleted:document.documentElement.dataset.serviceTurnCompleted||'',
+      serviceTurnForwardDot:+document.documentElement.dataset.serviceTurnForwardDot||0,
+      custodyAttached:Math.hypot(player.r-v.y,player.c-v.x)<.01
     });
     if(!ar)clearInterval(trace);
   },200);
