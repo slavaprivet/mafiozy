@@ -1,5 +1,27 @@
 # Mafiozi 3D optimization memory
 
+## Budget streamed landmark lights before their first visible frame (2026-08-25, v425)
+
+- A streamed landmark can be constructed inside the visible animation frame
+  before the sector idle callback performs its ordinary scene-wide light
+  registration. The junkyard proximity path exposed seven intensity-18 wreck
+  `PointLight`s for one render before the existing outdoor budget hid them in
+  daytime. That single frame changed the complete visible shader family from
+  three to ten point lights.
+- Register and budget a newly proximity-built landmark immediately, before the
+  render at the end of that same frame. Reuse `registerOutdoorPointLights()` and
+  `updateOutdoorPointLightBudget()`; do not lower the authored night intensity,
+  remove wreck fire, reduce materials, or add another light scan/timer.
+- Same-tab 1280x720 QA on exact `06b0c8f2` used the production
+  `previewApproachJunkyard()` bridge. Baseline grew from 115 to 186 programs,
+  only 147 of them unique GLSL sources, changed `PointLight 3 -> 10`, and
+  recorded a 15006.9 ms frame gap. The corrected run retained 115/115 unique
+  programs, `PointLight:3`, zero duplicate sources and no runtime error. A
+  causal repeat recorded a 347.2 ms maximum gap with warmup inactive and both
+  deferred-root/building queues empty; its warmup maximum was 85.0 ms. This
+  proves removal of the accidental 71-program family, not a universal FPS or
+  all-hitch claim.
+
 ## Architecture minification quality at overview zoom (2026-08-25, v424)
 
 - Do not raise the full renderer pixel ratio when wheel zoom makes architecture

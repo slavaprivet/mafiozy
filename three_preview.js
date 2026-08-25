@@ -4801,12 +4801,12 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         if(!roots.length)return;
         deferredWarmupRunning=true;
         const warmupScene=new THREE.Scene();warmupScene.environment=scene.environment;warmupScene.fog=scene.fog;
-        for(const root of roots){root.userData.mfzWarmupInFlight=true;const clone=root.clone(true);clone.visible=true;clone.traverse?.(object=>{object.visible=true;object.frustumCulled=false;});warmupScene.add(clone);}
+        let warmupMeshes=0;for(const root of roots){root.userData.mfzWarmupInFlight=true;const clone=root.clone(true);clone.visible=true;clone.traverse?.(object=>{object.visible=true;object.frustumCulled=false;if(object.isMesh||object.isLine||object.isPoints)warmupMeshes++;});warmupScene.add(clone);}
         scene.traverseVisible(object=>{if(object.isLight)warmupScene.add(object.clone());});
         let pendingCompile=null;
         try{pendingCompile=renderer.compileAsync?.(warmupScene,camera)||null;}catch(error){console.warn('[ThreeStream] parallel material warmup failed',error);}
         const warmupElapsed=performance.now()-warmupStartedAt;renderer.domElement.dataset.deferredWarmupSubmitMs=warmupElapsed.toFixed(1);renderer.domElement.dataset.deferredWarmupSubmitMaxMs=Math.max(warmupElapsed,+renderer.domElement.dataset.deferredWarmupSubmitMaxMs||0).toFixed(1);
-        const reveal=()=>{warmupScene.clear();for(const root of roots){delete root.userData.mfzWarmupInFlight;if(root.parent){root.visible=true;delete root.userData.mfzDeferredReveal;}}deferredWarmupRunning=false;if(realTimeShadows)renderer.shadowMap.needsUpdate=true;if(deferredRevealRoots.length)onIdle(warmDeferredSceneRoots);};
+        const reveal=()=>{const totalElapsed=performance.now()-warmupStartedAt;renderer.domElement.dataset.deferredWarmupTotalMs=totalElapsed.toFixed(1);renderer.domElement.dataset.deferredWarmupTotalMaxMs=Math.max(totalElapsed,+renderer.domElement.dataset.deferredWarmupTotalMaxMs||0).toFixed(1);renderer.domElement.dataset.deferredWarmupSlice=`roots:${roots.length},meshes:${warmupMeshes}`;warmupScene.clear();for(const root of roots){delete root.userData.mfzWarmupInFlight;if(root.parent){root.visible=true;delete root.userData.mfzDeferredReveal;}}deferredWarmupRunning=false;if(realTimeShadows)renderer.shadowMap.needsUpdate=true;if(deferredRevealRoots.length)onIdle(warmDeferredSceneRoots);};
         if(pendingCompile?.then)pendingCompile.then(reveal,error=>{console.warn('[ThreeStream] material warmup fallback',error);reveal();});
         else reveal();
       };
@@ -4883,7 +4883,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const s = viewSize();
         if (s.W !== lastW || s.H !== lastH) { lastW = s.W; lastH = s.H; camera.left = -cameraSpan * s.W / s.H; camera.right = cameraSpan * s.W / s.H; camera.updateProjectionMatrix(); renderer.setSize(s.W, s.H, false); }
         updateOutdoorPointLightBudget(t);
-        const frameGapMs=Math.max(0,t-lastT),dt=Math.min(.05,frameGapMs/1000);lastT=t;const tt=t*.00035;if(frameGapMs>16.8){renderer.domElement.dataset.lastFrameGapMs=frameGapMs.toFixed(1);renderer.domElement.dataset.maxFrameGapMs=Math.max(frameGapMs,+renderer.domElement.dataset.maxFrameGapMs||0).toFixed(1);}if(eHoldStarted&&!eHoldTriggered&&keys.has('KeyE'))vehicleHoldFill.style.width=`${Math.min(100,(t-eHoldStarted)/vehicleHoldMs*100).toFixed(1)}%`;updateDayNight(t);casinoExteriorAnimation(t,environmentNight);skyDome.position.copy(player.position);starField.position.copy(player.position);starField.rotation.y=t*.000004;windLeafMaterials.forEach(m=>{if(m.userData.shader)m.userData.shader.uniforms.mfzWindTime.value=t*.00115;});
+        const frameGapMs=Math.max(0,t-lastT),dt=Math.min(.05,frameGapMs/1000);lastT=t;const tt=t*.00035;if(frameGapMs>16.8){renderer.domElement.dataset.lastFrameGapMs=frameGapMs.toFixed(1);const previousGapMax=+renderer.domElement.dataset.maxFrameGapMs||0;if(frameGapMs>previousGapMax){renderer.domElement.dataset.maxFrameGapMs=frameGapMs.toFixed(1);renderer.domElement.dataset.maxFrameGapAt=String(Math.round(t));renderer.domElement.dataset.maxFrameGapPrograms=String(renderer.info.programs?.length||0);renderer.domElement.dataset.maxFrameGapDeferred=`running:${deferredWarmupRunning?1:0},roots:${deferredRevealRoots.length},buildings:${sectorBuildQueue.length}`;}}if(eHoldStarted&&!eHoldTriggered&&keys.has('KeyE'))vehicleHoldFill.style.width=`${Math.min(100,(t-eHoldStarted)/vehicleHoldMs*100).toFixed(1)}%`;updateDayNight(t);casinoExteriorAnimation(t,environmentNight);skyDome.position.copy(player.position);starField.position.copy(player.position);starField.rotation.y=t*.000004;windLeafMaterials.forEach(m=>{if(m.userData.shader)m.userData.shader.uniforms.mfzWindTime.value=t*.00115;});
         for(const fx of businessExteriorFx){const wave=Math.sin(t*.006+fx.phase*11);if(fx.kind==='wash-brush'){fx.mesh.rotation.y=t*.003*(fx.phase<0?-1:1);fx.mesh.scale.x=.92+wave*.08;}else if(fx.kind==='wash-water'){fx.mesh.material.opacity=.3+wave*.12;fx.mesh.position.y=1.72+wave*.08;}else if(fx.kind==='garage-spark'){const cycle=(t*.0018+fx.phase)%1;fx.mesh.position.set(fx.baseX+(cycle-.5)*1.2,.48+Math.sin(cycle*Math.PI)*1.35,fx.baseZ+(fx.phase-.5)*.65);fx.mesh.visible=cycle<.82;}else if(fx.kind==='bar-neon')fx.material.color.setHSL(.91,.9,.54+wave*.09);else if(fx.kind==='club-meter')fx.mesh.scale.y=.55+(wave+1)*.45;else if(fx.kind==='forklift-beacon'){fx.mesh.visible=wave>.05;fx.mesh.scale.setScalar(1.05+Math.max(0,wave)*.45);}}
         if(interiorLightingActive)for(const fx of interiorVisualFx){if(fx.kind==='factory-hoist'){const lift=(Math.sin(t*.0011+fx.phase)+1)*.42;fx.meshes.forEach((m,i)=>m.position.y=fx.baseY[i]-lift);}else if(fx.kind==='factory-belt'){const cycle=(t*.00012+fx.phase)%1;fx.mesh.position.x=fx.baseX+(cycle-.5)*fx.span*.78;}else if(fx.kind==='factory-press'){const press=(Math.sin(t*.00145+fx.phase)+1)*.42;fx.meshes.forEach((m,i)=>m.position.y=fx.baseY[i]-press*(i?.65:1));}}
         for(const smoke of factorySmokePuffs){const fx=smoke.userData.factorySmoke,cycle=(t*.000045+fx.phase)%1,wobble=Math.sin(t*.00065+fx.phase*9);smoke.position.set(fx.baseX+wobble*(.55+cycle)*fx.drift,fx.baseY+cycle*8.5,fx.baseZ+Math.cos(t*.00048+fx.phase*7)*.42);smoke.scale.setScalar(.72+cycle*1.65);smoke.material.opacity=.04+Math.sin(cycle*Math.PI)*.24;smoke.visible=!interiorLightingActive;}
@@ -5377,7 +5377,15 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           if(telemetryDue){renderer.domElement.dataset.prisonAlarmBeaconProfile='fixed-lightbar-double-pulse-soft-glow-v327';renderer.domElement.dataset.prisonAlarmVisual=prisonAlarmActive?`active:red-${prisonAlarmRedPower.toFixed(2)}:blue-${prisonAlarmBluePower.toFixed(2)}:${prisonAlarmBeacons.length}`:'quiet';renderer.domElement.dataset.prisonVehicleGateLock=prisonAlarmActive?'closed':'open';}
           if(!junkyardVisualBuilt&&t>=junkyardProbeAt&&Math.hypot((+state.r||0)-86,(+state.c||0)-66)<=WORLD_SNAPSHOT_RADIUS+4){
             junkyardProbeAt=t+750;
-            ensureJunkyardVisual(bridge.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS),'proximity');
+            if(ensureJunkyardVisual(bridge.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS),'proximity')){
+              // Proximity discovery runs inside the visible frame, before the
+              // sector idle callback. Admit its seven wreck lights to the
+              // existing bounded budget immediately so they cannot render one
+              // unbudgeted frame and compile a 3 -> 10 PointLight shader family.
+              registerOutdoorPointLights(scene);
+              updateOutdoorPointLightBudget(t,true);
+              renderer.domElement.dataset.junkyardLightBudget='registered-before-first-frame-v425';
+            }
           }
           vehicleEntryState=state.vehicleEntry||null;
           scheduleSectorLoad(+state.r||0,+state.c||0);
