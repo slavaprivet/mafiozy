@@ -42,6 +42,7 @@ vm.runInContext(
 
 vm.runInContext(`
   const first={r:1,c:1};
+  first._empireActionKey='gang:7:100';
   _planEmpireRouteTo(first,10,10,.8,42000,'empire_action',4000,EMPIRE_ROUTE_REQUEST_REASON.ACTION_ROUTE_MISSING,'gang:7:100');
   _planEmpireRouteTo(first,10.24,10.24,.8,42000,'empire_action',4000,EMPIRE_ROUTE_REQUEST_REASON.ACTION_ROUTE_MISSING,'gang:7:100');
   if(_empireRoutePlanQueue.length!==1)throw new Error('coalescing duplicated queue entry');
