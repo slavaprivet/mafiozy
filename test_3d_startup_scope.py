@@ -19,7 +19,7 @@ def run() -> None:
     assert "const state=playerFrameState=bridge.getPlayerState()" in THREE
     assert "!!playerFrameState?.prone" in THREE
     assert "!!playerFrameState?.crouching" in THREE
-    assert "three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416+junkyard-light-budget-v425+bridge-hangers-v426+vehicle-admission-v427&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1" in WORLD
+    assert "three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416+junkyard-light-budget-v425+bridge-hangers-v426+vehicle-admission-v427+building-reveal-v428&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1" in WORLD
     assert "_residentBuildingRouteBudget=1" in WORLD
     assert "if(_residentBuildingRouteBudget<=0)" in WORLD
     assert "if(telemetryDue){renderer.domElement.dataset.buildingDoorMoving" in THREE

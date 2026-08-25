@@ -4802,8 +4802,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         // gameplay freezes on WebView GPUs. Warm a small slice, reveal it, then
         // yield before the next slice; authored geometry and materials stay the
         // same, only the scheduling changes.
-        const roots=[...new Set(deferredRevealRoots.splice(0,mobileRenderProfile?1:2))].filter(root=>root?.parent);
-        if(!roots.length)return;
+        const rootCap=mobileRenderProfile?1:2,roots=[];let scannedRoots=0,staleRoots=0;
+        // Static-detail batching replaces source meshes after they were queued
+        // for reveal. Skip those detached entries without letting an empty head
+        // slice strand the still-live building shells behind them. Keep both the
+        // authored reveal cap and a bounded amount of idle-callback queue work.
+        while(deferredRevealRoots.length&&roots.length<rootCap&&scannedRoots<64){const root=deferredRevealRoots.shift();scannedRoots++;if(!root?.parent||roots.includes(root)){staleRoots++;continue;}roots.push(root);}
+        renderer.domElement.dataset.deferredRevealQueue=`pending:${deferredRevealRoots.length},live:${roots.length},stale:${staleRoots},scanned:${scannedRoots}`;
+        if(!roots.length){if(deferredRevealRoots.length)onIdle(warmDeferredSceneRoots);return;}
         deferredWarmupRunning=true;
         const warmupScene=new THREE.Scene();warmupScene.environment=scene.environment;warmupScene.fog=scene.fog;
         let warmupMeshes=0;for(const root of roots){root.userData.mfzWarmupInFlight=true;const clone=root.clone(true);clone.visible=true;clone.traverse?.(object=>{object.visible=true;object.frustumCulled=false;if(object.isMesh||object.isLine||object.isPoints)warmupMeshes++;});warmupScene.add(clone);}

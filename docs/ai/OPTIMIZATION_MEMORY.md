@@ -2893,3 +2893,24 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   and an admitted ambient car displaced to index 18 by a service prepend. Live
   telemetry must report the interaction ID at index 0..17 and still report
   exactly 18 vehicle slots. A missing preferred ID preserves existing order.
+
+## Streamed building reveal queue must skip detached detail roots (2026-08-26, v428)
+
+- Static-detail batching can replace source meshes after `createBuilding()` has
+  already appended those meshes to `deferredRevealRoots`. The merged batch is
+  appended later, while each replaced source becomes parentless. Filtering one
+  fixed head slice and returning when it contains no live root strands every
+  valid wall/roof root behind that stale slice at `visible=false`; persistent
+  door, collision and interaction layers remain, producing an empty foundation
+  with a usable door.
+- Exact fresh `f942942e` one-tab `previewbuilding` reproduced missing shells for
+  more than 13 seconds after `pendingBuildings` drained from 47 to zero. The
+  first and only observed warmup submit handled two roots in 41.2 ms
+  (`total=41.3 ms`); no later submit telemetry appeared, and runtime/console
+  errors stayed empty. This is a queue-liveness correctness failure, not an FPS
+  claim.
+- Drain detached/duplicate entries with a bounded 64-entry scan inside the
+  existing idle callback, while retaining the existing one-root mobile and
+  two-root desktop live warmup caps. If a bounded scan finds no live root but
+  entries remain, schedule the next idle slice. Do not force all roots visible,
+  disable streaming, raise the reveal cap, or bypass material warmup.
