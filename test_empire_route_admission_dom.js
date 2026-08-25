@@ -21,6 +21,7 @@ const context = vm.createContext({
   document: {documentElement: {dataset: {}}},
   performance: {now: () => 1000},
   _empireBossPassable: () => true,
+  _empireBossWaypointPassable: () => true,
   _clearNpcRoute: npc => {
     npc._route = null; npc._routeGoalR = null; npc._routeGoalC = null;
   },
