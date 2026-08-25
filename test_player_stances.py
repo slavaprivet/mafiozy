@@ -52,12 +52,12 @@ def test_renderer_uses_one_cached_stance_rig_and_smooth_blends():
     assert "const stanceCadence=playerCrawling?1.16:playerCrouching?.96:playerLimping?.86:1" in THREE
 
 
-def test_stances_do_not_lock_combat_or_reload():
+def test_prone_locks_attacks_but_not_reload_or_crouch():
     lock_line = next(line for line in THREE.splitlines() if "animationActionLocked=playerAnimationLayer" in line)
     assert "prone" not in lock_line and "crouch" not in lock_line and "stance" not in lock_line
     shoot = re.search(r"function shoot\(now\)\{(.+?)\n\s*\}\n\s*const spawnReloadDebris", THREE, re.S)
     assert shoot, "shoot() contract not found"
-    assert "state.prone" not in shoot.group(1)
+    assert "_effectivePlayerStance()==='prone'" in WORLD
     assert "state.crouching" not in shoot.group(1)
     assert "activeReloadProgress" in THREE
 

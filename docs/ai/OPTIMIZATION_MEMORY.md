@@ -2804,3 +2804,28 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Defer a due war row to the pending raid expiry and resolve abandoned sessions
   silently in the same player-state transaction. This bounds reconnect work and
   prevents duplicate raid events without adding a timer or client poll.
+## MELEE V2: общая поза атак и bounded-синяки (2026-08-25)
+
+- Удары всех NPC нельзя реализовывать отдельными `Mesh`/материалами на актёра:
+  `_shotAt`, пустой/непустой weapon key и `meleeType` должны кормить уже
+  существующий общий instanced-скелет (`NPC_CAP`).
+- След попадания на лице — один shared instanced slot на видимого NPC. Слот
+  прячется при death/despawn/reuse; создание геометрии, текстуры или материала
+  в frame loop запрещено.
+- В 3D нельзя оставлять очистку action-state только Canvas-отрисовщику:
+  presentation state удара обязан истекать по собственному `duration` внутри
+  общего bridge snapshot, иначе последняя боксёрская поза зависает навсегда.
+- Шкала заряда над игроком использует один заранее созданный CanvasTexture и
+  обновляется только по 20 дискретным ступеням. Нельзя перерисовывать текстуру
+  каждый кадр или создавать новый Sprite при каждом удержании кнопки.
+- Серверный усиленный удар должен подтверждать собственный timestamp начала
+  удержания и расходовать его один раз; клиентские `heavy`/damage не являются
+  доказательством заряда. Визуальный рывок остаётся слоем позы и не двигает
+  серверную позицию игрока.
+- Фингал игрока — один заранее созданный mesh, а фингалы NPC используют уже
+  существующий instanced-пул. Видимость и плавное исчезновение считаются от
+  timestamp за 60 секунд; в frame loop нельзя создавать новые объекты или
+  материалы.
+- Звёзды нокаута используют одну общую extruded-геометрию: четыре mesh игрока
+  и фиксированный instanced-пул `NPC_CAP * 4`. При окончании нокаута слоты
+  детерминированно скрываются, а не удаляются и не пересоздаются.

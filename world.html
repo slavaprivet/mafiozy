@@ -16219,6 +16219,7 @@ function updateNpcs(dt) {
       }
       if (_localHostileCanResolveHit()&&dist < 1.5 && now > (n._attackCd || 0)) {
         n._attackCd = now + 1200;
+        n._shotAt=now;n._shotWeapon='';n._meleeType=Math.random()<KICK_CRIT_CHANCE?'kick':'punch';if(n._meleeType==='kick')n._meleeKickSide=(+n._meleeKickSide||1)*-1;
         const dmg = n._meleeDmg || 8;
         addShake(2);
         flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
@@ -16305,47 +16306,57 @@ function updateNpcs(dt) {
 
     // ── Рукопашная контратака NPC (кулаки/ногой) ─────────────────────
     if (n._fightingMelee && !_buildingInt && !_bankInt) {
+      if(now<(+n._meleeStunnedUntil||0)){n.walkPhase=0;n._pendingMeleeImpactAt=0;n._meleeChargeUntil=0;continue;}
       const d = Math.hypot(player.r - n.r, player.c - n.c);
-      // Останавливаем рукопашный бой если далеко или мёртв
-      if (d > 6 || myDead) { n._fightingMelee = false; n._nextHitAt = 0; continue; }
+      // A civilian who chose to fight pursues through the nearby block instead
+      // of giving up as soon as the player takes a few running steps.
+      if (d > 28 || myDead) { n._fightingMelee = false; n._nextHitAt = 0; n._pendingMeleeImpactAt=0;n._meleeChargeUntil=0;n._meleeChargeStartedAt=0;n._meleeBlockUntil=0; continue; }
       // NPC идёт к игроку если не вплотную
       n.ang = Math.atan2(player.r - n.r, player.c - n.c);
-      if (d > 1.4) {
-        const sp = (n.speed || 0.8) * 1.6 * dt;
-        const nr = n.r + Math.sin(n.ang) * sp;
-        const nc = n.c + Math.cos(n.ang) * sp;
-        if (_npcBodyPassable(nr, nc)) { n.r = nr; n.c = nc; }
-        n.walkPhase += dt * 12;
+      if (d > 1.18) {
+        const chaseSpeed=Math.max(4.25,(n.speed || 0.8)*2.2),goalShift=Math.hypot((+n._routeGoalR||0)-player.r,(+n._routeGoalC||0)-player.c);
+        if(n._routeKind!=='melee-chase'||!n._route?.length||goalShift>1.35||now>=(+n._meleeRepathAt||0)){_planNpcRouteTo(n,player.r,player.c,npcPassableForSnitch,1.2,900,'melee-chase');n._meleeRepathAt=now+850;}
+        const routed=_npcAdvanceRoute(n,dt,chaseSpeed,npcPassableForSnitch),sp=chaseSpeed*dt;
+        const detourSide=+n._meleeDetourSide||1,angles=[0,detourSide*.55,detourSide*1.02,detourSide*Math.PI/2,-detourSide*.55,-detourSide*1.02,-detourSide*Math.PI/2];
+        let moved=routed===true;
+        if(!moved)for(const offset of angles){const moveAng=n.ang+offset,nr=n.r+Math.sin(moveAng)*sp,nc=n.c+Math.cos(moveAng)*sp,nextD=Math.hypot(player.r-nr,player.c-nc);if(_npcBodyPassable(nr,nc,npcPassableForSnitch)&&nextD<=d+.08){n.r=nr;n.c=nc;moved=true;if(offset===0)n._meleeDetourSide=0;else n._meleeDetourSide=Math.sign(offset);break;}}
+        if(moved)n._meleeChaseMovedAt=now;
+        if(!moved)n._meleeDetourSide=-detourSide;
+        n.walking=moved;
+        if(moved&&routed!==true)n.walkPhase += dt * 12;
       } else {
-        n.walkPhase = 0;
+        n.walkPhase = 0;n.walking=false;n._meleeDetourSide=0;if(n._routeKind==='melee-chase')_clearNpcRoute(n);
+      }
+      if(!n._pendingMeleeImpactAt&&!n._meleeChargeUntil&&now>=(+n._nextMeleeDefenseThinkAt||0)){
+        n._nextMeleeDefenseThinkAt=now+520+Math.random()*520;
+        if(d<=2.15&&Math.random()<.24){n._meleeBlockUntil=now+480+Math.random()*300;n._meleeBlockCooldownUntil=now+1200;}
+      }
+      if(n._meleeChargeUntil&&now>=n._meleeChargeUntil){
+        n._meleeChargeUntil=0;n._meleeChargeStartedAt=0;n._meleeBlockUntil=0;n._shotAt=now;n._shotWeapon='';n._meleeType='heavy';n._npcHeavyAttack=true;n._pendingMeleeImpactAt=now+330;
+        const rush=.48,nr=n.r+Math.sin(n.ang)*rush,nc=n.c+Math.cos(n.ang)*rush;if(_npcBodyPassable(nr,nc,npcPassableForSnitch)){n.r=nr;n.c=nc;}
+        document.documentElement.dataset.npcMeleeTactics=`heavy-rush:${NPCS.indexOf(n)}`;
+      }
+      if(n._pendingMeleeImpactAt&&now>=n._pendingMeleeImpactAt){
+        // The visual melee type can outlive its impact. Only the explicit
+        // one-shot heavy token is allowed to knock a target down.
+        const heavyAttack=n._npcHeavyAttack===true,contactRange=heavyAttack?1.68:n._meleeType==='kick'?1.48:1.24;
+        n._pendingMeleeImpactAt=0;
+        const impactDistance=Math.hypot(player.r-n.r,player.c-n.c);
+        if(_localHostileCanResolveHit()&&impactDistance<=contactRange){
+          const hitAng=Math.atan2(player.r-n.r,player.c-n.c),impR=player.r-Math.sin(hitAng)*.3,impC=player.c-Math.cos(hitAng)*.3,parts=[];
+          for(let pi=0;pi<5;pi++){const a2=hitAng+(Math.random()-.5)*1.4,sp2=.5+Math.random();parts.push({vr:Math.sin(a2)*sp2,vc:Math.cos(a2)*sp2,life:220+Math.random()*150,max:370,color:Math.random()<.7?'#aa0f0f':'#5a0808',isBlood:true,size:1.4+Math.random()*1.2});}
+          _capArr(impacts,_MAX_IMPACTS);impacts.push({r:impR,c:impC,parts});addShake(1.5);hapticHit();flashHitOverlay(n.r,n.c,n._policeTargetId||`street_npc_${NPCS.indexOf(n)}`,'street_npc',n);
+          const dmg=heavyAttack?14:5+Math.floor(Math.random()*6);_hurtLocal(dmg,'Бандит',true,{kind:heavyAttack?'melee_heavy':'melee',source:n,blockPiercing:heavyAttack});if(heavyAttack&&(Math.random()<.30||(_LOCAL_PREVIEW&&_UP.has('previewmeleestun')))){_meleeStunnedIn=2;_meleeStunPoseAt=performance.now();_meleeStunEndsAt=_meleeStunPoseAt+2000;const stunToken=_meleeStunPoseAt;_setMeleeBlock(false);if(_LOCAL_PREVIEW&&_UP.has('previewmeleestun'))n._nextHitAt=now+5000;setTimeout(()=>{if(_meleeStunPoseAt===stunToken){_meleeStunnedIn=0;_meleeStunPoseAt=0;_meleeStunEndsAt=0;}},2000);spawnFloatText(player.r-.72,player.c,'⭐ НОКАУТ ⭐',{color:'#ffe36b',size:18,life:2000});}spawnFloatText(player.r-.4,player.c,`−${dmg}${heavyAttack?' СУПЕР':''}`,{color:heavyAttack?'#ffd15c':'#ff6644',size:heavyAttack?16:14,life:1000});
+          n.cryText=['Вот тебе!','На!','Получай!','Не лезь!'][Math.floor(Math.random()*4)];n.cryUntil=now+1000;
+          document.documentElement.dataset.npcMeleeImpact=`contact:${n._meleeType}:${contactRange}`;
+        }else document.documentElement.dataset.npcMeleeImpact=`miss:${n._meleeType}:no-contact`;
+        n._npcHeavyAttack=false;
       }
       if (!n._nextHitAt) n._nextHitAt = now + 800;
-      if (_localHostileCanResolveHit()&&now >= n._nextHitAt && d <= 1.6) {
+      if (!n._pendingMeleeImpactAt&&!n._meleeChargeUntil&&now >= n._nextHitAt && d <= 1.6) {
         n._nextHitAt = now + 900 + Math.random() * 600;
-        // Короткий импакт-флеш у позиции игрока
-        const hitAng = Math.atan2(player.r - n.r, player.c - n.c);
-        const impR = player.r - Math.sin(hitAng) * 0.3;
-        const impC = player.c - Math.cos(hitAng) * 0.3;
-        // Маленькие брызги крови у игрока
-        const parts = [];
-        for (let pi = 0; pi < 5; pi++) {
-          const a2 = hitAng + (Math.random()-0.5)*1.4;
-          const sp2 = 0.5 + Math.random() * 1.0;
-          parts.push({ vr: Math.sin(a2)*sp2, vc: Math.cos(a2)*sp2,
-            life: 220+Math.random()*150, max: 370,
-            color: Math.random()<0.7?'#aa0f0f':'#5a0808', isBlood:true, size:1.4+Math.random()*1.2 });
-        }
-        _capArr(impacts, _MAX_IMPACTS);
-        impacts.push({ r: impR, c: impC, parts });
-        addShake(1.5);
-        hapticHit();
-        flashHitOverlay(n.r, n.c, n._policeTargetId || `street_npc_${NPCS.indexOf(n)}`, 'street_npc', n);
-        const dmg = 5 + Math.floor(Math.random() * 6);
-        _hurtLocal(dmg, 'Бандит', true, {kind:'melee',source:n});
-        spawnFloatText(player.r - 0.4, player.c, `−${dmg}`, { color: '#ff6644', size: 14, life: 1000 });
-        // Боевой выкрик
-        n.cryText  = ['Вот тебе!', 'На!', 'Получай!', 'Не лезь!'][Math.floor(Math.random()*4)];
-        n.cryUntil = now + 1000;
+        if(Math.random()<.16){n._meleeChargeStartedAt=now;n._meleeChargeUntil=now+1200;n._meleeType='heavy';n._meleeBlockUntil=0;n.cryText='Сейчас получишь!';n.cryUntil=now+1050;document.documentElement.dataset.npcMeleeTactics=`heavy-charge:${NPCS.indexOf(n)}`;}
+        else{n._npcHeavyAttack=false;n._shotAt=now;n._shotWeapon='';n._meleeType=Math.random()<KICK_CRIT_CHANCE?'kick':'punch';if(n._meleeType==='kick')n._meleeKickSide=(+n._meleeKickSide||1)*-1;n._pendingMeleeImpactAt=now+(n._meleeType==='kick'?165:175);}
       }
       continue;
     }
@@ -21791,7 +21802,8 @@ function _drawSuppressedByFire(px, py) {
 // Compact authoritative combat impulse consumed by the 3D procedural rig.
 // It deliberately stores only numbers/strings so polling it does not allocate
 // scene objects or leak renderer state in Telegram WebView.
-let _threePlayerImpactState={at:0,angle:0,power:0,kind:'generic',bodyPart:'torso'};
+const MELEE_BRUISE_LIFETIME_MS=60000;
+let _threePlayerImpactState={at:0,angle:0,power:0,kind:'generic',bodyPart:'torso'},_meleeBruiseAt=0;
 function _localHostileCanResolveHit(){return _LOCAL_PREVIEW||_worldDirectCombatDemo;}
 // Применить локальный урон: вычесть HP, отметить время, проверить смерть.
 function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
@@ -21801,12 +21813,15 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     return;
   }
   const meleeDamage=deathMode?.melee===true||/melee|punch|kick|fists|baton|кулак|рукопаш/.test(damageKind);
-  if(_meleeBlockHeld&&meleeDamage){
+  const blockSource=deathMode?.cop||deathMode?.source||deathMode||null,blockSourceR=Number.isFinite(+(blockSource?.r??blockSource?.y))?+(blockSource.r??blockSource.y):NaN,blockSourceC=Number.isFinite(+(blockSource?.c??blockSource?.x))?+(blockSource.c??blockSource.x):NaN,blockIncomingAng=Number.isFinite(blockSourceR)&&Number.isFinite(blockSourceC)?Math.atan2(blockSourceR-player.r,blockSourceC-player.c):NaN,blockFromFront=!Number.isFinite(blockIncomingAng)||Math.cos(blockIncomingAng-(+player.ang||0))>=0;
+  if(_meleeBlockHeld&&meleeDamage&&!deathMode?.blockPiercing&&blockFromFront){
     const raw=Math.max(0,Math.round(+dmg||0));
     dmg=raw?Math.max(1,Math.round(raw*.10)):0;
     document.documentElement.dataset.meleeBlockImpact=`${raw}>${dmg}:${Math.round(performance.now())}`;
     spawnFloatText(player.r-.38,player.c,`БЛОК −${Math.max(0,raw-dmg)}`,{color:'#7de6ff',size:12,life:800});
     try{hapticHit?.();}catch(e){}
+  }else if(_meleeBlockHeld&&meleeDamage&&!blockFromFront){
+    document.documentElement.dataset.meleeBlockImpact=`backstab-bypass:${Math.round(performance.now())}`;
   }
   if (underFire) _registerIncomingFire(dmg);
   if(_LOCAL_PREVIEW&&typeof _policeHasLevel==='function'&&_policeHasLevel(3)){
@@ -21814,6 +21829,7 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     const now=performance.now();if(now-_policeVestToastAt>1400){_policeVestToastAt=now;spawnFloatText(player.r,player.c,`🦺 БРОНЯ −${raw-dmg}`,{color:'#79c8ff',size:12,life:850});}
   }
   const appliedDamage=Math.max(1,dmg|0),impactNow=performance.now(),source=deathMode?.cop||deathMode?.source||deathMode||null;
+  if(meleeDamage)_meleeBruiseAt=impactNow;
   const sourceR=Number.isFinite(+(source?.r??source?.y))?+(source.r??source.y):NaN;
   const sourceC=Number.isFinite(+(source?.c??source?.x))?+(source.c??source.x):NaN;
   const impactAngle=Number.isFinite(sourceR)&&Number.isFinite(sourceC)
@@ -22828,7 +22844,7 @@ let _onlineWantedBoard = [];
 let _onlineWantedBoardUiSig = '';
 let _onlinePoliceArrest = null;
 let _policeDowned = null;
-let _policeStunnedIn = 0,_policeStunPoseAt=0;
+let _policeStunnedIn = 0,_policeStunPoseAt=0,_meleeStunnedIn=0,_meleeStunPoseAt=0,_meleeStunEndsAt=0;
 let _policeDailyCount=0,_policeDailyLimit=3,_policePendingNpcTurnin=null;
 let _policeSpikesReadyAt=0,_policeSpikesPending=false;
 let _policePatrolReadyAt=0,_policeBackupReadyAt=0;
@@ -23059,6 +23075,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyZ' && !e.repeat && _playerStanceAllowed()) {
     _playerStance.prone=!_playerStance.prone;
     _playerStance.changedAt=performance.now();
+    if(_playerStance.prone)_setMeleeBlock(false);
     e.preventDefault();
   }
 });
@@ -23968,6 +23985,32 @@ function handleEventPacket(d) {
       spawnImpact(ty, tx, d.weapon, true);
       if (d.crit) spawnCriticalBlood(ty, tx, Math.sin(ang), Math.cos(ang));
     }
+  } else if (kind === 'pvp_melee') {
+    const meIsShooter=String(d.shooter_uid)===String(QP.uid);
+    const meIsTarget=String(d.target_uid)===String(QP.uid);
+    if(meIsShooter&&d.target_uid)_markCombat(d.target_uid);
+    if(meIsTarget&&d.shooter_uid)_markCombat(d.shooter_uid);
+    const remoteFighter=others.get(String(d.shooter_uid));
+    if(remoteFighter){
+      remoteFighter._meleeAt=performance.now();
+      remoteFighter._meleeType=d.melee_type||'punch';
+    }
+    if(meIsShooter&&_punchAnim&&String(d.attack_id||'').endsWith(`:${_punchAnim.seq}`)){
+      _punchAnim.type=d.melee_type==='heavy'?'heavy':d.melee_type==='kick'?'kick':'punch';
+      _punchAnim.critical=!!d.critical;
+      _punchAnim.dmg=+d.raw_dmg||+d.dmg||PUNCH_DAMAGE;
+    }
+    if(meIsTarget&&d.combat_state){
+      _meleeBruiseAt=performance.now();
+      _applyAuthoritativeCombatState(d.combat_state);
+      _registerIncomingFire(d.dmg||1);
+      flashHitOverlay(d.sy,d.sx,d.shooter_uid,'player-melee');
+      addShake(d.critical?3.4:2.2);
+      _autoLockThreat('player',d.shooter_uid);
+      if(d.blocked)showToast('🥊 Блок: получено только 10% урона','🛡️',1200);
+      if(d.killed)myDeathBy=d.shooter_name||'игрок';
+    }
+    document.documentElement.dataset.onlineMelee=`${d.attack_id||''}:${d.melee_type||'punch'}:${d.dmg||0}:${d.blocked?'blocked':'open'}:${d.replayed?'replay':'fresh'}`;
   } else if (kind === 'pvp_shot') {
     if(String(d.shooter_uid)===String(QP.uid)){
       if(_applyAuthoritativeAmmoState(d.ammo_state))_maybeAutoReloadAfterServerShot();
@@ -26115,6 +26158,11 @@ async function wsConnect() {
   }
   socket.onopen = () => {
     if (ws !== socket) return;
+    // Reconnect starts from a neutral guard state; a stale held RMB may not
+    // survive a lost pointer-up while the socket was down.
+    _meleeBlockHeld=false;
+    _punchAnim=null;
+    document.documentElement.dataset.meleeBlock='released:reconnect';
     wsConnected = true;
     wsFailStreak = 0;
     _worldDirectCombatDemo=false;
@@ -26427,7 +26475,7 @@ async function wsConnect() {
                 mode: o.mode || 'pvp', jail_in: o.jail_in || 0,
                 interior: o.interior || null, weapon: o.weapon || 'pistol', police:!!o.police,
                 mafia:!!o.mafia,mafiaFamily:o.mafia_family||'',customGangId:+o.custom_gang_id||0,customGangName:o.custom_gang_name||'',customGangRole:o.custom_gang_role||'',crewMate:!!o.crew_mate,swimming:!!o.swimming,
-                policeCuffed:!!o.police_cuffed, policeStunnedIn:+o.police_stunned_in||0,
+                policeCuffed:!!o.police_cuffed, policeStunnedIn:+o.police_stunned_in||0, meleeStunnedIn:+o.melee_stunned_in||0,
                 policeEscort:o.police_escort||null, businessAttacker:!!o.business_attacker };
           others.set(o.uid, p);
         } else {
@@ -26451,7 +26499,7 @@ async function wsConnect() {
           p.police=!!o.police;
           p.mafia=!!o.mafia;p.mafiaFamily=o.mafia_family||'';p.customGangId=+o.custom_gang_id||0;p.customGangName=o.custom_gang_name||'';p.customGangRole=o.custom_gang_role||'';p.crewMate=!!o.crew_mate;p.swimming=!!o.swimming;
           p.policeCuffed=!!o.police_cuffed;
-          p.policeStunnedIn=+o.police_stunned_in||0;
+          p.policeStunnedIn=+o.police_stunned_in||0;p.meleeStunnedIn=+o.melee_stunned_in||0;
           p.policeEscort=o.police_escort||null;
           p.businessAttacker=!!o.business_attacker;
           p.bag = o.bag || 0;
@@ -26487,6 +26535,10 @@ async function wsConnect() {
         if(typeof d.me.police_patrol_cd==='number')_policePatrolReadyAt=performance.now()+Math.max(0,+d.me.police_patrol_cd||0)*1000;
         if(typeof d.me.police_backup_cd==='number')_policeBackupReadyAt=performance.now()+Math.max(0,+d.me.police_backup_cd||0)*1000;
         _policeStunnedIn = +d.me.police_stunned_in || 0;
+        _meleeStunnedIn = +d.me.melee_stunned_in || 0;
+        _meleeStunEndsAt = _meleeStunnedIn>0 ? performance.now()+_meleeStunnedIn*1000 : 0;
+        if(_meleeStunnedIn>0&&!_meleeStunPoseAt)_meleeStunPoseAt=performance.now();
+        if(_meleeStunnedIn<=0)_meleeStunPoseAt=0;
         _policeEvidenceBag = d.me.police_evidence_bag || null;
         if(_policeEvidenceBag)_myBagWeight=Math.max(1,+_policeEvidenceBag.value||1);
         else if(!(_bankRob&&_bankRob.myBag))_myBagWeight=0;
@@ -32906,6 +32958,10 @@ const _deathEmblem=document.getElementById('deathEmblem');
 // Дефолт — pistol (он есть у всех). Реальный урон — на сервере (WEAPON_DMG).
 const _weaponChoiceSaveKey = `mafiozi_selected_weapon_v1_${QP.uid || 'guest'}`;
 let currentWeapon = (() => {
+  if (_LOCAL_PREVIEW && _UP.has('weapon')) {
+    const previewWeapon=String(QP.weapon||'').toLowerCase();
+    return ['','none','fists','unarmed'].includes(previewWeapon)?null:previewWeapon;
+  }
   try {
     const saved = localStorage.getItem(_weaponChoiceSaveKey);
     if (saved === '__unarmed__') return null;
@@ -33912,7 +33968,7 @@ function fire(angle = null) {
     showToast('🕵️ Ты в режиме наблюдателя — стрелять нельзя', 'ℹ️', 1500);
     return;
   }
-  if (myDead||_murderPoliceArrest) return;
+  if (myDead||_murderPoliceArrest||_effectivePlayerStance()==='prone') return;
   if (_peacefulInteriorGunLock()) return;
   if (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) { showToast('🎒 С мешком нельзя стрелять', '⚠️', 1400); return; }
   if(_prisonWeaponLocked())return;
@@ -34497,27 +34553,45 @@ function fire(angle = null) {
 const PUNCH_CD_MS   = 300;    // кд между ударами: 0,3 секунды
 const PUNCH_RANGE   = 1.7;    // дистанция в тайлах
 const PUNCH_DAMAGE  = 12;     // урон за удар рукой
+const HEAVY_MELEE_CHARGE_MS = 1200;
+const HEAVY_MELEE_DAMAGE = 18;
 const KICK_CRIT_CHANCE = 0.20;
 const KICK_CRIT_MULTIPLIER = 1.75;
 let lastPunchClientT = 0;
 let _punchAnim = null;        // authoritative presentation state for Canvas + Three.js
 let _meleeAttackSeq = 0;
 let _meleeHandSide = 1;
+let _meleeKickSide = 1;
 let _meleeBlockHeld = false;
 let _meleeBlockSeq = 0;
+let _meleeChargeStartedAt = 0;
+let _meleeChargeSeq = 0;
+function _meleeActionLocked(){
+  const arresting=!!_murderPoliceArrest||_onlinePoliceArrest?.role==='detainee';
+  return myDead||_meleeStunnedIn>0||_effectivePlayerStance()==='prone'||arresting||
+    !!myDrivingCarId||!!myJetSkiId||_playerSwimmingDeep||_inBus;
+}
 function _setMeleeBlock(active) {
-  const next=!!active&&!_isArmed()&&!myDead&&!myDrivingCarId&&!myJetSkiId&&!_playerSwimmingDeep&&!_inBus;
+  const next=!!active&&!_isArmed()&&!_meleeActionLocked();
   if(next===_meleeBlockHeld)return next;
   _meleeBlockHeld=next;
   document.documentElement.dataset.meleeBlock=next?'held:90-percent-melee-reduction':'released';
   try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'melee_block',d:{active:next,seq:++_meleeBlockSeq}}));}catch(e){}
   return next;
 }
+function _setMeleeCharge(active){
+  const next=!!active&&!_isArmed()&&!_meleeActionLocked()&&!_meleeBlockHeld;
+  if(next&&!_meleeChargeStartedAt)_meleeChargeStartedAt=performance.now();
+  if(!next)_meleeChargeStartedAt=0;
+  document.documentElement.dataset.meleeCharge=next?'charging:1200ms':'released';
+  try{ws&&ws.readyState===1&&ws.send(JSON.stringify({t:'melee_charge',d:{active:next,seq:++_meleeChargeSeq}}));}catch(e){}
+  return next;
+}
 let _policeBatonAnim = null;  // { startAt, ang } — короткий замах полицейской дубинкой
 
 // Поиск ближайшей цели для удара без lock (авто-захват в ближнем бою)
-function _findNearestMeleeTarget(aimAngle = null) {
-  let best = null, bestD = PUNCH_RANGE;
+function _findNearestMeleeTarget(aimAngle = null, searchRange = PUNCH_RANGE, minAimDot = 0.72) {
+  let best = null, bestD = searchRange;
   // Обычные NPC
   for (let i = 0; i < NPCS.length; i++) {
     const n = NPCS[i];
@@ -34535,7 +34609,7 @@ function _findNearestMeleeTarget(aimAngle = null) {
       const d = Math.hypot(b.y - player.r, b.x - player.c);
       if (d < bestD) {
         bestD = d;
-        best = { kind:'aggro_bot', id:b.id, getPos:()=>({r:b.y,c:b.x}) };
+        best = { kind:'aggro_bot', id:b.id, getPos:()=>({r:b.y,c:b.x}), _ref:b };
       }
     }
   }
@@ -34574,40 +34648,77 @@ function _findNearestMeleeTarget(aimAngle = null) {
     const dr = pos.r - player.r, dc = pos.c - player.c;
     const d = Math.hypot(dr, dc) || 1;
     const dot = (dr * Math.sin(aimAngle) + dc * Math.cos(aimAngle)) / d;
-    if (dot < 0.72) return null; // only the forward ~44 degree melee cone
+    if (dot < minAimDot) return null;
   }
   return best;
 }
 
-function punch(force, aimAngle = null) {
+function _meleeTargetIsProne(tgt) {
+  if(!tgt)return false;
+  let ref=tgt._ref||null;
+  if(tgt.kind==='npc')ref=NPCS[Number(tgt.id)]||ref;
+  else if(tgt.kind==='player')ref=others.get(tgt.id)||others.get(String(tgt.id))||ref;
+  else if(tgt.kind==='bank_guard')ref=_bankInt?.npcs?.[Number(tgt.id)]||ref;
+  else if(tgt.kind==='interior_guard')ref=_buildingInt?.npcs?.find((row,index)=>String(row?.id||index)===String(tgt.id))||ref;
+  else if(tgt.kind==='citycop')ref=cityCops.find(row=>String(row?.id)===String(tgt.id))||ref;
+  if(!ref)return false;
+  return !!(ref.prone||ref.downed||ref._medicalDowned||ref._forcedCrawl||
+    ref._police_downed_by||String(ref.stance||ref._stance||ref.state||'').toLowerCase()==='prone');
+}
+
+function _meleeTargetNpcRef(tgt){
+  if(!tgt||tgt.kind==='player')return null;
+  if(tgt._ref)return tgt._ref;
+  if(tgt.kind==='npc')return NPCS[Number(tgt.id)]||null;
+  if(tgt.kind==='bank_guard')return _bankInt?.npcs?.[Number(tgt.id)]||null;
+  if(tgt.kind==='interior_guard')return _buildingInt?.npcs?.find((row,index)=>String(row?.id||index)===String(tgt.id))||null;
+  if(tgt.kind==='citycop')return cityCops.find(row=>String(row?.id)===String(tgt.id))||null;
+  return null;
+}
+
+function _npcConsiderMeleeBlock(npc,now=performance.now()){
+  if(!npc||npc.dead||npc._shotWeapon||now<(+npc._meleeBlockCooldownUntil||0))return false;
+  npc._meleeBlockCooldownUntil=now+1250+Math.random()*650;
+  if(Math.random()>=.28)return false;
+  npc._meleeBlockUntil=now+520+Math.random()*180;
+  document.documentElement.dataset.npcMeleeDefense=`guard:${String(npc.id??NPCS.indexOf(npc))}`;
+  return true;
+}
+
+function punch(force, aimAngle = null, heavy = false) {
   if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return false; }
-  if (myDead || myDrivingCarId || myJetSkiId || _playerSwimmingDeep || _inBus) return false;
+  if (_meleeActionLocked()) return false;
   if (!force && _isArmed()) return false;   // есть оружие — использовать fire() (кроме тюрьмы: force)
   if (!force && !lockedTargets.size) return false; // мобильная кнопка сохраняет lock-on правило
   const now = performance.now();
+  if(heavy&&(!_meleeChargeStartedAt||now-_meleeChargeStartedAt<HEAVY_MELEE_CHARGE_MS-35))return false;
   if (now - lastPunchClientT < PUNCH_CD_MS) return false;
 
-  // Берём locked-цель, или авто-выбираем ближайшую в PUNCH_RANGE
+  // Суперудар захватывает цель до рывка: его начальная дальность равна
+  // контактной дистанции плюс короткий разбег, а сектор чуть шире.
+  const acquireRange=heavy?2.42:PUNCH_RANGE,acquireDot=heavy?.45:.72;
   let tgt = null;
   if (typeof aimAngle === 'number') {
     const dirY = Math.sin(aimAngle), dirX = Math.cos(aimAngle);
     tgt = _findLaserTarget(dirY, dirX);
+    if(!tgt&&heavy)tgt=_findNearestMeleeTarget(aimAngle,acquireRange,acquireDot);
+    if(!tgt&&!heavy)tgt=_findNearestMeleeTarget(null,1.38);
     if (!tgt) {
       const active = getActiveTarget();
       const p = active && active.getPos();
       if (p) {
         const dr = p.r - player.r, dc = p.c - player.c;
         const d = Math.hypot(dr, dc) || 1;
-        if (d <= PUNCH_RANGE && (dr * dirY + dc * dirX) / d >= 0.72) tgt = active;
+        if (d <= acquireRange && (dr * dirY + dc * dirX) / d >= acquireDot) tgt = active;
       }
     }
     if (tgt) {
       const p = tgt.getPos();
-      if (!p || Math.hypot(p.r - player.r, p.c - player.c) > PUNCH_RANGE) tgt = null;
+      if (!p || Math.hypot(p.r - player.r, p.c - player.c) > acquireRange) tgt = null;
     }
   } else {
     tgt = getActiveTarget();
-    if (!tgt && force) tgt = _findNearestMeleeTarget();
+    if (!tgt && force) tgt = _findNearestMeleeTarget(null,acquireRange,acquireDot);
   }
   if (!tgt && !force) return false;
   const fallbackAng=typeof aimAngle==='number'?aimAngle:(Number.isFinite(player.ang)?player.ang:0);
@@ -34617,25 +34728,49 @@ function punch(force, aimAngle = null) {
   };
   if (!pos) return false;
   const dist = Math.hypot(pos.r - player.r, pos.c - player.c);
-  if (tgt && dist > PUNCH_RANGE) {
+  if (tgt && dist > acquireRange) {
     showToast('✊ Подойди ближе!', '⚠️', 1200);
     return false;
   }
 
   lastPunchClientT = now;
-  const ang = Math.atan2(pos.r - player.r, pos.c - player.c);
+  let ang = Math.atan2(pos.r - player.r, pos.c - player.c);
   player.ang = ang;
   // Каждая пятая атака в среднем — критический удар ногой. Обычные удары
   // чередуют левую и правую руку, чтобы скелет не выглядел одноруким.
   const previewMeleeType=_LOCAL_PREVIEW?String(_UP.get('previewmeleeattack')||''):'';
-  const isKick = previewMeleeType==='kick' ? true : previewMeleeType==='punch' ? false : Math.random() < KICK_CRIT_CHANCE;
-  const dmg = isKick ? Math.round(PUNCH_DAMAGE*KICK_CRIT_MULTIPLIER) : PUNCH_DAMAGE;
+  const proneTarget=_meleeTargetIsProne(tgt);
+  const isKick = !heavy&&(proneTarget || previewMeleeType==='kick' ? true : previewMeleeType==='punch' ? false : Math.random() < KICK_CRIT_CHANCE);
+  const dmg = heavy?HEAVY_MELEE_DAMAGE:(isKick ? Math.round(PUNCH_DAMAGE*KICK_CRIT_MULTIPLIER) : PUNCH_DAMAGE);
+  const kickLeg=isKick?((_meleeKickSide*=-1)>0?'right':'left'):'';
+  const targetNpcRef=_meleeTargetNpcRef(tgt);
+  if(targetNpcRef)_npcConsiderMeleeBlock(targetNpcRef,now);
   _meleeHandSide*=-1;
   _punchAnim = {
-    seq:++_meleeAttackSeq,startAt:now,ang,type:isKick?'kick':'punch',
-    hand:isKick?'right':(_meleeHandSide>0?'right':'left'),dmg,
-    critical:isKick,hit:!!tgt,impactAt:now+(isKick?165:175),duration:isKick?470:430,
+    seq:++_meleeAttackSeq,startAt:now,ang,type:heavy?'heavy':isKick?'kick':'punch',
+    hand:isKick?kickLeg:(_meleeHandSide>0?'right':'left'),leg:kickLeg,dmg,
+    critical:isKick,heavy,blockPiercing:heavy,proneTarget,hit:!!tgt,impactAt:now+(heavy?330:isKick?165:175),duration:heavy?650:isKick?470:430,
   };
+  if(heavy){
+    const dashSeq=_punchAnim.seq,dashStepDistance=.09,dashSteps=7;
+    // The charged punch owns a short real displacement as well as the skeleton
+    // lunge. Seven small collision-checked steps read as a brief forward run,
+    // rather than a teleport, and finish before the existing impact moment.
+    setTimeout(()=>{
+      let step=0,totalMoved=0;
+      const dashTimer=setInterval(()=>{
+        if(_punchAnim?.seq!==dashSeq||_punchAnim.type!=='heavy'||myDead||_localDeath||_murderPoliceArrest){clearInterval(dashTimer);return;}
+        const liveTarget=tgt?.getPos?.();if(liveTarget){ang=Math.atan2(liveTarget.r-player.r,liveTarget.c-player.c);player.ang=ang;_punchAnim.ang=ang;}
+        const beforeR=player.r,beforeC=player.c;
+        tryMove(player,Math.sin(ang)*dashStepDistance,Math.cos(ang)*dashStepDistance);
+        const moved=Math.hypot(player.r-beforeR,player.c-beforeC);
+        totalMoved+=moved;step++;
+        if(moved>.005){player.walking=true;player.walkPhase+=.72;}
+        document.documentElement.dataset.meleeHeavyDash=`${totalMoved.toFixed(3)}:${step}/${dashSteps}:short-forward-run`;
+        if(step>=dashSteps||moved<.005)clearInterval(dashTimer);
+      },16);
+    },0);
+  }
   document.documentElement.dataset.meleeAttack=`${_punchAnim.seq}:${_punchAnim.type}:${_punchAnim.hand}:${tgt?'hit':'miss'}:${dmg}`;
 
   // Визуал и ощущения
@@ -34680,14 +34815,25 @@ function punch(force, aimAngle = null) {
   // обращаться к отсутствующей цели и не создаёт урон/кровь.
   if (!tgt) return true;
 
-  // Урон по типу цели (критический удар ногой использует множитель)
-  const hitDmg = _punchAnim.dmg || PUNCH_DAMAGE;
-  const kind = tgt.kind;
+  // Damage resolves only when the animated limb reaches its strike phase.
+  // Re-sample the target then: stepping out before contact is a real miss.
+  const attackSeq=_punchAnim.seq,impactDelay=heavy?330:isKick?165:175;
+  setTimeout(()=>{
+  if(_meleeActionLocked())return;
+  const impactPos=tgt.getPos?.(),contactRange=heavy?1.75:tgt.kind==='player'?(proneTarget?1.55:1.38):(isKick?1.55:1.38);
+  if(!impactPos||Math.hypot(impactPos.r-player.r,impactPos.c-player.c)>contactRange){
+    document.documentElement.dataset.meleeImpact=`${attackSeq}:miss:no-contact`;
+    return;
+  }
+  const pos=impactPos,kind=tgt.kind,npcBlockActive=!!targetNpcRef&&performance.now()<Number(targetNpcRef._meleeBlockUntil||0),blocked=npcBlockActive&&!heavy,hitDmg=blocked?Math.max(1,Math.round(dmg*.10)):dmg;
+  document.documentElement.dataset.meleeImpact=`${attackSeq}:contact:${kind}:${contactRange}`;
+  if(npcBlockActive)spawnFloatText(pos.r-.35,pos.c,heavy?'ПРОБИТ БЛОК':'БЛОК',{color:heavy?'#ffd36b':'#8fd7ff',size:13,life:850});
   if (kind === 'npc') {
     const idx = typeof tgt.id === 'number' ? tgt.id : parseInt(tgt.id);
     const npc = NPCS[idx];
     if (npc && !npc.dead) {
       hitNpc(npc, Math.sin(ang), Math.cos(ang), 'fists', hitDmg);
+      if(heavy&&(Math.random()<.30||(_LOCAL_PREVIEW&&_UP.has('previewmeleestun')))){npc._meleeStunnedAt=performance.now();npc._meleeStunnedUntil=npc._meleeStunnedAt+2000;npc._meleeBlockUntil=0;spawnFloatText(npc.r-.72,npc.c,'⭐ НОКАУТ ⭐',{color:'#ffe36b',size:18,life:2000});}
       _spawnPunchBlood(npc.r, npc.c, ang);
       const dmgCol = isKick ? '#ff4080' : '#ff8040';
       spawnFloatText(pos.r, pos.c, `−${hitDmg}`, { color: dmgCol, size: 18, life: 1200 });
@@ -34746,7 +34892,8 @@ function punch(force, aimAngle = null) {
     // Коп / конвой / aggro_bot / охранник Майкла / PvP-игрок — серверный удар
     try {
       const msg = kind === 'player'
-        ? { t: 'pvp_punch', d: { target_uid: tgt.id, dmg: hitDmg } }
+        ? { t: 'player_melee', d: { target_uid: tgt.id,
+              attack_id:`melee:${String(QP.uid||'local')}:${attackSeq}`,heavy:!!heavy } }
         : { t: 'melee_hit',  d: { kind, id: tgt.id, dmg: hitDmg,
               x: +pos.c.toFixed(2), y: +pos.r.toFixed(2) } };
       ws && ws.send(JSON.stringify(msg));
@@ -34771,6 +34918,8 @@ function punch(force, aimAngle = null) {
       panicCries:  ['Ай!', 'Помогите!', 'Стой!'],
     });
   }
+  },impactDelay);
+  return true;
 }
 
 // ── Бандит/враждебный NPC достаёт пушку и отвечает ──────────────────
@@ -34786,11 +34935,14 @@ function _npcTriggerFight(npc) {
   npc._hits = (npc._hits || 0) + 1;
   const now = performance.now();
 
-  // ── Бандит: сразу достаёт пушку ─────────────────────────────────
+  // ── Бандит: использует только реально имеющееся оружие ──────────
   if (isBandit) {
-    npc._fighting    = true;
-    npc._fightWeapon = 'pistol';
-    npc._nextShootAt = now + 500 + Math.random() * 300;
+    const carriedWeapon=String(npc.weapon||npc._fightWeapon||'');
+    npc._fighting=!!carriedWeapon;
+    npc._fightingMelee=!carriedWeapon;
+    npc._fightWeapon=carriedWeapon;
+    if(carriedWeapon)npc._nextShootAt=now+500+Math.random()*300;
+    else npc._nextHitAt=now+650+Math.random()*350;
     npc.panicUntil   = 0;
     npc.snitching    = false;
     npc.idleUntil    = 0;
@@ -34802,47 +34954,32 @@ function _npcTriggerFight(npc) {
     return;
   }
 
-  // ── Обычный NPC — шансы реакции ──────────────────────────────────
-  // На первый удар всегда паника, после 2+ ударов начинает злиться
-  if (npc._hits < 2) {
-    // Первый удар — убегает
+  // ── Мирный прохожий: одно стабильное решение на весь конфликт ────
+  // Ровно 20% дают отпор, 80% убегают. Решение кешируется, иначе игрок
+  // мог бы бить повторно до тех пор, пока случайно не выпадет драка.
+  if(!npc._civilianFightDecision)
+    npc._civilianFightDecision=Math.random()<.20?'fight':'flee';
+  if(npc._civilianFightDecision==='flee'){
     _npcBeginPanic(npc,now,now+4000+Math.random()*2000,player.r,player.c,'fight');
     npc.cryText     = ['Ай!', 'Помогите!', 'Что вы делаете!?', 'Ауч!'][Math.floor(Math.random()*4)];
     npc.cryUntil    = now + 1500;
     return;
   }
-
-  const roll = Math.random();
-  if (roll < 0.55) {
-    // 55% — убегает с криком
-    _npcBeginPanic(npc,now,now+5000+Math.random()*3000,player.r,player.c,'fight');
-    npc.cryText     = ['Стой! Стой!', 'ПОМОГИТЕ!', 'Буду жаловаться!', 'ОН БЬЁТ!'][Math.floor(Math.random()*4)];
-    npc.cryUntil    = now + 2000;
-  } else if (roll < 0.90) {
-    // 35% — бьёт в ответ кулаками/ногами
+  const civilianWeapon=String(npc.weapon||npc._fightWeapon||'');
+  if(!civilianWeapon){
     npc._fightingMelee = true;
     npc._nextHitAt     = now + 700 + Math.random() * 400;
-    npc.panicUntil     = 0;
-    npc.snitching      = false;
-    npc.idleUntil      = 0;
-    npc.cryText  = ['Ах ты!', 'Получи!', 'Сам напросился!', 'Не трогай меня!!'][Math.floor(Math.random()*4)];
-    npc.cryUntil = now + 1500;
-    npc._alertUntil=now+5000;_npcRememberEvent(npc,'fight',now,player.r,player.c,.9);
-    _npcSetLifeState(npc,NPC_LIFE_STATES.ALERT,now,5000,'fight');
-  } else {
-    // 10% — достаёт пушку (случайный прохожий оказался вооружён)
+  }else{
     npc._fighting    = true;
-    npc._fightWeapon = 'pistol';
+    npc._fightWeapon = civilianWeapon;
     npc._nextShootAt = now + 800 + Math.random() * 400;
-    npc._copWillReact = true;   // маркер: копы среагируют на вооружённого
-    npc.panicUntil   = 0;
-    npc.snitching    = false;
-    npc.idleUntil    = 0;
-    npc.cryText  = 'У меня есть пушка!!';
-    npc.cryUntil = now + 2000;
-    npc._alertUntil=now+5000;_npcRememberEvent(npc,'fight',now,player.r,player.c,1);
-    _npcSetLifeState(npc,NPC_LIFE_STATES.ALERT,now,5000,'fight');
+    npc._copWillReact = true;
   }
+  npc.panicUntil=0;npc.snitching=false;npc.idleUntil=0;
+  npc.cryText=['Ах ты!','Получи!','Сам напросился!','Не трогай меня!'][Math.floor(Math.random()*4)];
+  npc.cryUntil=now+1500;
+  npc._alertUntil=now+5000;_npcRememberEvent(npc,'fight',now,player.r,player.c,.9);
+  _npcSetLifeState(npc,NPC_LIFE_STATES.ALERT,now,5000,'fight');
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -35446,6 +35583,8 @@ function sendInput(force = false) {
        mafia_family:(_mafiaState&&_mafiaState.employed&&MAFIA_FAMILIES[_mafiaState.family])?_mafiaState.family:'',
        bag: (_myBagWeight > 0 && ((_bankRob && _bankRob.myBag) || _policeEvidenceBag)) ? 1 : 0,
        swimming: _playerInWater ? 1 : 0 };
+  inputData.stance=_effectivePlayerStance();
+  if(_meleeBlockHeld&&(_meleeActionLocked()||_isArmed()))_setMeleeBlock(false);
   const pe=_policeState&&_policeState.escort;
   inputData.police_escort=pe&&!pe._inside?{r:+pe.r.toFixed(2),c:+pe.c.toFixed(2),ang:+(pe.ang||0).toFixed(2),name:String(pe.name||'Задержанный').slice(0,32),look:pe.look||{},waiting:!!pe.waiting}:null;
   // Бизнес-интерьер — отдельное сетевое пространство. Сервер сам проверяет
@@ -36806,7 +36945,7 @@ function update(dt) {
   player.walking = false;
   // Мёртвый игрок не двигается — ждём респауна сервера, иначе появлялся
   // в той же точке где умер (баг: «бегать могу и возрождаюсь там же»).
-  if (myDead || _murderPoliceArrest || _policeStunnedIn > 0 || _onlinePoliceArrest?.role === 'detainee') inDx = 0, inDy = 0;
+  if (myDead || _murderPoliceArrest || _policeStunnedIn > 0 || _meleeStunnedIn > 0 || _onlinePoliceArrest?.role === 'detainee') inDx = 0, inDy = 0;
   if (!myJetSkiId && (Math.abs(inDx) > 0.08 || Math.abs(inDy) > 0.08)) {
     const d = inDx, s = inDy / ISO_Y;
     const dc = (s + d) * 0.5;
@@ -62657,6 +62796,7 @@ function _updateBankInterior(dt) {
         if (now > npc._nextHitAt) {
           npc._nextHitAt = now + 1200;
           npc._punchAnim = now;
+          npc._shotAt=now;npc._shotWeapon='';npc._meleeType=Math.random()<KICK_CRIT_CHANCE?'kick':'punch';if(npc._meleeType==='kick')npc._meleeKickSide=(+npc._meleeKickSide||1)*-1;
           npc._punchDir = Math.atan2(player.r - npc.r, player.c - npc.c);
           const dmg = 12 + Math.floor(Math.random()*6);
           _hurtLocal(dmg, 'Охрана банка', true, {kind:'melee',source:npc});
@@ -65468,6 +65608,10 @@ window.Mafiozi3DBridge = Object.freeze({
   updatePlayerBusinessRaidNavigation(r,c){_updatePlayerBusinessRaidNavigation(r,c);},
   getPlayerState() {
     const stateNow=performance.now(),anim=_threePlayerAnimationTelemetry(stateNow),previewWeaponId=_LOCAL_PREVIEW&&_UP.get('previewweapon')?String(_UP.get('previewweapon')).toLowerCase():'',previewWalking=_LOCAL_PREVIEW&&_UP.has('previewwalk'),reloadId=resolveWeapon(previewWeaponId||currentWeapon),liveReloading=_isReloadingWeapon(reloadId),reloadCfg=weaponProfile(reloadId),reloadStepMs=(reloadCfg.mode==='pump'||reloadId==='nagan')?Math.max(360,(reloadCfg.reloadMs||2550)/(reloadCfg.magSize||1)):(reloadCfg.reloadMs||1800),previewReloadProgress=_LOCAL_PREVIEW&&_UP.has('previewreload')?Math.max(0,Math.min(.999,+_UP.get('previewreload')||0)):0,reloading=liveReloading||previewReloadProgress>0,reloadProgress=previewReloadProgress||liveReloading?Math.max(0,Math.min(1,previewReloadProgress||1-(_reloadUntil-stateNow)/reloadStepMs)):0;
+    // The Canvas renderer used to own melee cleanup. In 3D it may not call
+    // _drawPunchAnim, so expire presentation here as well or the boxing guard
+    // from the last strike remains forever and looks like a stuck RMB block.
+    if(_punchAnim&&stateNow-_punchAnim.startAt>=Math.max(1,+_punchAnim.duration||430))_punchAnim=null;
     const previewArmorId=_LOCAL_PREVIEW&&ARMOR_STYLES[String(_UP.get('previewarmor')||'')]?String(_UP.get('previewarmor')):'',previewArmorMax=previewArmorId?(ARMOR_STYLES[previewArmorId].previewMax||0):0,previewArmorWear=_UP.has('previewarmorwear')?Math.max(0,Math.min(1,+_UP.get('previewarmorwear')||0)):1,bridgeCombatState=previewArmorId?{body:{..._combatState.body},armor:{id:previewArmorId,instance_id:`preview:${previewArmorId}`,current:Math.round(previewArmorMax*previewArmorWear),max:previewArmorMax,version:0,broken:false},combat_version:_combatState.combat_version}:_combatState;
     const vehicleEntry=_threeVehicleEntrySequence?{..._threeVehicleEntrySequence,progress:Math.max(0,Math.min(1,(performance.now()-_threeVehicleEntrySequence.startedAt)/_threeVehicleEntrySequence.duration))}:null;
     const arrest=_murderPoliceArrest,arrestPhase=arrest?.phase||'',arrestProgress=arrest?_murderPoliceArrestProgress(arrest):0;
@@ -65507,6 +65651,9 @@ window.Mafiozi3DBridge = Object.freeze({
       combat_state:bridgeCombatState,
       melee:_punchAnim?{..._punchAnim,elapsed:Math.max(0,stateNow-_punchAnim.startAt)}:null,
       meleeBlock:!!_meleeBlockHeld,
+      meleeBruiseAt:stateNow-_meleeBruiseAt<MELEE_BRUISE_LIFETIME_MS?_meleeBruiseAt:0,
+      meleeStunned:_meleeStunnedIn>0?{remaining:Math.max(0,_meleeStunEndsAt?(_meleeStunEndsAt-stateNow)/1000:_meleeStunnedIn),duration:2,startedAt:_meleeStunPoseAt}:null,
+      meleeCharge:_meleeChargeStartedAt?{startedAt:_meleeChargeStartedAt,elapsed:Math.max(0,stateNow-_meleeChargeStartedAt),duration:HEAVY_MELEE_CHARGE_MS,hand:_meleeHandSide>0?'left':'right'}:null,
       joyL: { active: !!joyL.active, dx: +joyL.dx || 0, dy: +joyL.dy || 0 },
       joyR: { active: !!joyR.active, dx: +joyR.dx || 0, dy: +joyR.dy || 0, hasAim: !!joyR.hasAim },
     };
@@ -65523,10 +65670,11 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.mouseAimHeld=_threeMouseAimHeld?'1':'0';
   },
   setMeleeBlock(active) { return _setMeleeBlock(active); },
-  melee(angle) {
-    if(myDead||myMode==='pve'||_isArmed())return false;
+  setMeleeCharge(active) { return _setMeleeCharge(active); },
+  melee(angle,heavy=false) {
+    if(_meleeActionLocked()||myMode==='pve'||_isArmed())return false;
     if(_meleeBlockHeld)return false;
-    return punch(true,Number.isFinite(angle)?angle:null)===true;
+    return punch(true,Number.isFinite(angle)?angle:null,!!heavy)===true;
   },
   selectBuilding(r,c,screenX,screenY) { return selectBuildingFrom3D(+r,+c,+screenX,+screenY); },
   getNearbyBuildingInteraction() { return _nearbyBuildingInteractionFor3D(); },
@@ -65644,7 +65792,7 @@ window.Mafiozi3DBridge = Object.freeze({
       if(interiorNpcs.length>=40)break;
       if(!n)continue;
       const i=interiorNpcs.length,id=String(n.id??i),death=_threeNpcDeathState(n,`interior:${src.bizId||src.type||'room'}:${id}`,fxNow),role=n.role||n.type||'civilian',guard=!!n.majorGuard||role==='biz_guard'||role==='biz_ally_guard',owner=src.type==='business'&&(role==='owner'||role==='manager');
-      interiorNpcs.push({id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!!n.walking,moving:!death.dead&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss||!!n.businessRaidSide,empireCrew:!!n.businessRaidSide,bossColor:String(n.raidFamilyColor||''),bossAccent:String(n.raidFamilyAccent||''),family:String(n.raidFamilyName||''),familyEmblem:n.raidFamilyEmblem||'',visualRole:n.businessRaidSide?'gang':guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.businessRaidSide?`raid_${n.businessRaidSide}`:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),businessRaidSide:n.businessRaidSide||'',raidHeavy:!!n.raidHeavy,allied:!!n._allied,weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||0,_shotWeapon:n.weapon||'',hitAt:+n._hurtAt||0,alerted:!!(n._alerted||n._hostile||n.hostile),speech:fxNow<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead,deadAt:death.deadAt});
+      const meleeStunned=fxNow<(+n._meleeStunnedUntil||0);interiorNpcs.push({id,r:+n.r||0,c:+n.c||0,ang:+n.ang||0,walking:!death.dead&&!meleeStunned&&!!n.walking,moving:!death.dead&&!meleeStunned&&!!n.walking,walkPhase:+n.walkPhase||0,role,name:n.name||'',look:n.look||null,uniqueNpc:!!n.npcEmpireBoss,gang:!!n.npcEmpireBoss||!!n.businessRaidSide,empireCrew:!!n.businessRaidSide,bossColor:String(n.raidFamilyColor||''),bossAccent:String(n.raidFamilyAccent||''),family:String(n.raidFamilyName||''),familyEmblem:n.raidFamilyEmblem||'',visualRole:n.businessRaidSide?'gang':guard?'guard':owner?'owner':undefined,ownerStyle:owner?(Number.isFinite(+n.ownerStyle)?+n.ownerStyle:+n.look?.ownerStyle||0):undefined,guardClass:n.businessRaidSide?`raid_${n.businessRaidSide}`:n.majorGuard?'major':role==='biz_guard'?'business':role==='biz_ally_guard'?'allied':'',guardStyle:String(src.bizId||src.type||'generic').replace(/^major_/,''),businessRaidSide:n.businessRaidSide||'',raidHeavy:!!n.raidHeavy,allied:!!n._allied,weapon:n.weapon||'',uniqueWeaponId:String(n.uniqueWeaponId||''),uniqueWeaponName:String(n.uniqueWeaponName||''),uniqueWeaponProfile:n.uniqueWeaponProfile||null,_shotAt:+n._shotAt||+n._punchAnim||0,_shotWeapon:n.weapon||'',meleeType:n._meleeType||'punch',meleeEngaged:!!n._fightingMelee,meleeKickSide:+n._meleeKickSide||1,meleeBlock:fxNow<(+n._meleeBlockUntil||0),meleeCharging:fxNow<(+n._meleeChargeUntil||0),meleeStunned,meleeChargeProgress:n._meleeChargeUntil?Math.max(0,Math.min(1,(fxNow-(+n._meleeChargeStartedAt||fxNow))/1200)):0,hitAt:+n._hurtAt||0,bruiseAt:+n._bruiseAt||+n._hurtAt||0,alerted:!!(n._alerted||n._hostile||n.hostile),speech:meleeStunned?'⭐ НОКАУТ ⭐':fxNow<(+n._sayUntil||0)?String(n._sayText||''):'',hp:death.dead?0:(Number.isFinite(+n.hp)?+n.hp:(+n.max_hp||+n.maxHp||60)),maxHp:Math.max(1,+n.max_hp||+n.maxHp||60),dead:death.dead||meleeStunned,deadAt:death.deadAt||+n._meleeStunnedAt||fxNow});
     }
     return {
       kind:_buildingInt?'building':'bank',type:src.type||(_bankInt?'bank':'generic'),bizId:src.bizId||null,room:src.room||(_bankInt?'lobby':'main'),
@@ -66219,9 +66367,9 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.npcLifePools=`mission:${npcPoolMissionCount},police:${npcPoolPoliceCount},guard:${npcPoolGuardCount},gang:${npcPoolGangCount},civilian:${npcPoolCivilianCount},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
     const npcs=[];for(let i=0;i<npcSelected.length;i++){const x=npcSelected[i],id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id,fxNow),role=String(x.role||x.type||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,fxNow,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
-      id,r,c,ang:+x.ang||0,walking:!death.dead&&declaredMoving,moving:!death.dead&&declaredMoving,walkPhase:declaredMoving?(+x.walkPhase||0):0,speed:+x.speed||0,
+      id,r,c,ang:+x.ang||0,walking:!death.dead&&fxNow>=(+x._meleeStunnedUntil||0)&&declaredMoving,moving:!death.dead&&fxNow>=(+x._meleeStunnedUntil||0)&&declaredMoving,walkPhase:declaredMoving?(+x.walkPhase||0):0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
-      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||(_bankInt&&x.type==='guard'?'Охранник банка':''),speech:_bankInt&&x.type==='guard'?'':(copSpeech||(((+x.cryUntil||0)>fxNow&&Math.hypot(r-player.r,c-player.c)<=5.4)?String(x.cryText||'').slice(0,84):'')),speechContext:String(x._empireSpeechMood||''),hp,maxHp,
+      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:fxNow<(+x._meleeStunnedUntil||0)?'⭐ НОКАУТ ⭐':(x.name||(_bankInt&&x.type==='guard'?'Охранник банка':'')),speech:_bankInt&&x.type==='guard'?'':(fxNow<(+x._meleeStunnedUntil||0)?'⭐ НОКАУТ ⭐':(copSpeech||(((+x.cryUntil||0)>fxNow&&Math.hypot(r-player.r,c-player.c)<=5.4)?String(x.cryText||'').slice(0,84):''))),speechContext:String(x._empireSpeechMood||''),hp,maxHp,
       said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireCrew:!!x._empireCrew,empireHoldingGuard:!!x._empireHoldingGuard,empireHoldingId:String(x._empireHoldingId||''),empireLeaderId:String(x._empireLeaderId||x._specialistId||''),empireGang:String(x._empireGang||''),empireAction:x._empireBoss?_empireActivityLabel(x._empireAction):'',
       weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),uniqueWeaponProfile:x._empireWeaponProfile||x.uniqueWeaponProfile||null,bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),empireTacticalRole:String(x._empireTacticalRole||''),
       important:!!(x._uniqueNpc||x._said||x._keyNpc||x._invulnerable),talkable:!!(x._uniqueNpc||x._said),hired:!!(x._said&&_saidState?.hired),
@@ -66232,10 +66380,10 @@ window.Mafiozi3DBridge = Object.freeze({
       groupId:String(x._npcGroupId||''),groupRole:String(x._npcGroupRole||''),routine:String(x._npcRoutine||''),
       prisonStaff:!!x._prisonStaff,staffVariant:+x.staffVariant||0,prisonGear:x.prisonGear||'',shield:!!x.shield,
       responseTier:Math.max(0,+x.responseTier||0),
-      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),_shotAt:+x._shotAt||+x._lastShotAt||+x.lastShotAt||0,_shotWeapon:x._shotWeapon||x._empireWeaponBase||x.weapon||'',_shotSeq:+x._shotSeq||0,
+      weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),_shotAt:+x._shotAt||+x._punchAnim||+x._lastShotAt||+x.lastShotAt||0,_shotWeapon:x._shotWeapon||x._empireWeaponBase||x.weapon||'',_shotSeq:+x._shotSeq||0,meleeType:x._meleeType||'punch',meleeEngaged:!!x._fightingMelee,meleeKickSide:+x._meleeKickSide||1,meleeBlock:fxNow<(+x._meleeBlockUntil||0),meleeCharging:fxNow<(+x._meleeChargeUntil||0),meleeChargeProgress:x._meleeChargeUntil?Math.max(0,Math.min(1,(fxNow-(+x._meleeChargeStartedAt||fxNow))/1200)):0,
       level:gang?Math.max(1,+x.level||+x.lvl||+x.rank||1):null,family:gang?_threeGangFamilyLabel(x):(x.family||x.mafiaFamily||''),faction:x.faction||x.gangFaction||'',
-      gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',dead:death.dead,deadAt:death.deadAt,recoverable:!!x._empireBoss,
-      burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
+      gang,police,visualRole:gang?'gang':police?'police':roleKey.includes('guard')?'guard':'civilian',meleeStunned:fxNow<(+x._meleeStunnedUntil||0),dead:death.dead||fxNow<(+x._meleeStunnedUntil||0),deadAt:death.deadAt||+x._meleeStunnedAt||fxNow,recoverable:!!x._empireBoss,
+      burning:!!x.burning||fxNow<(+x._burnUntil||0),hitAt:combatFx.hitAt,bruiseAt:+x._bruiseAt||+x._hurtAt||combatFx.hitAt,bleeding:combatFx.bleeding,bleedSeverity:combatFx.bleedSeverity,
       hitAngle:Number.isFinite(+x._threeHitAngle)?+x._threeHitAngle:null,hitPower:+x._threeHitPower||0,hitWeapon:x._threeHitWeapon||'',
       bloodDirR:+x._bloodDirR||0,bloodDirC:+x._bloodDirC||1,
       severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
@@ -66645,6 +66793,30 @@ if(_LOCAL_PREVIEW&&_UP.get('previewpurpose'))setTimeout(()=>window.Mafiozi3DBrid
 if(_LOCAL_PREVIEW&&_UP.get('previewbuildingpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewbuildingpurpose'),_UP.get('previewbuildingowner')||'player',!_UP.has('previewbuildingexterior')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewinventory'))setTimeout(async()=>{if(document.body.classList.contains('game-menu-open')){_gameMenuOpen=false;document.body.classList.remove('game-menu-open');document.getElementById('gameMainMenu')?.classList.add('hidden');}document.getElementById('modeModal')?.classList.remove('show');await loadInventoryItems();const surface=_UP.get('previewinventory')==='shop'?'shop':'profile';document.documentElement.dataset.inventoryPreviewSurface=surface;if(surface==='shop'){openShop();document.querySelector('.shop-tab[data-tab="armor"]')?.click();return;}_profileTab='inv';const modal=document.getElementById('profileModal');modal?.setAttribute('data-profile-tab','inv');modal?.classList.add('show');renderProfileTab();},1200);
 if(_LOCAL_PREVIEW&&_UP.has('previewbusinessinteriorraid'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInteriorRaid(),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewcivilianfight'))setTimeout(function seedCivilianFightPreview(){
+  const civilian=NPCS.find(n=>n&&!n.dead&&!n._guard&&!n.police&&n._arc?.panicMult!==0);
+  if(!civilian){
+    const attempt=(+document.documentElement.dataset.previewCivilianFightAttempts||0)+1;
+    document.documentElement.dataset.previewCivilianFightAttempts=String(attempt);
+    if(attempt<24)setTimeout(seedCivilianFightPreview,400);
+    else document.documentElement.dataset.previewCivilianFight='missing-after-retries';
+    return;
+  }
+  civilian.r=player.r+1.15;civilian.c=player.c+.25;civilian.tr=civilian.r;civilian.tc=civilian.c;
+  if(_UP.has('previewmeleeheavy'))player.ang=Math.atan2(civilian.r-player.r,civilian.c-player.c);
+  civilian.weapon=null;civilian._fightWeapon='';civilian._civilianFightDecision='fight';
+  myHp=Math.max(PVP.max_hp||100,+myHp||0);myDead=false;_localDeath=false;
+  civilian._hits=Math.max(1,+civilian._hits||0);civilian.panicUntil=0;
+  _npcTriggerFight(civilian);civilian._nextHitAt=performance.now()+420;
+  if(_UP.has('previewmeleestun')&&_UP.get('previewmeleestun')!=='target'){const qaNow=performance.now();civilian._meleeChargeStartedAt=qaNow;civilian._meleeChargeUntil=qaNow+1200;civilian._meleeType='heavy';civilian._nextHitAt=qaNow+2600;}
+  document.documentElement.dataset.previewCivilianFight=`active:${NPCS.indexOf(civilian)}:unarmed:20-percent-production-chance`;
+  const previewFightTelemetry=setInterval(()=>{
+    if(!civilian||civilian.dead){clearInterval(previewFightTelemetry);return;}
+    const now=performance.now(),distance=Math.hypot(player.r-civilian.r,player.c-civilian.c);
+    const targetAng=Math.atan2(player.r-civilian.r,player.c-civilian.c),facingError=Math.abs(Math.atan2(Math.sin((+civilian.ang||0)-targetAng),Math.cos((+civilian.ang||0)-targetAng)));
+    document.documentElement.dataset.previewCivilianFightState=JSON.stringify({distance:+distance.toFixed(2),npcHp:Math.max(0,+civilian.hp||0),playerHp:Math.max(0,+myHp||0),fighting:!!civilian._fightingMelee,walking:now-(+civilian._meleeChaseMovedAt||0)<180,attack:String(civilian._meleeType||''),pending:Math.max(0,Math.round((+civilian._pendingMeleeImpactAt||0)-now)),blocking:now<(+civilian._meleeBlockUntil||0),charging:now<(+civilian._meleeChargeUntil||0),stunned:now<(+civilian._meleeStunnedUntil||0),playerStunned:_meleeStunnedIn>0,facingError:+facingError.toFixed(3),tactics:String(document.documentElement.dataset.npcMeleeTactics||''),impact:String(document.documentElement.dataset.npcMeleeImpact||'')});
+  },100);
+},3800);
 if(_LOCAL_PREVIEW&&_UP.has('previewlandmarkdefense'))setTimeout(()=>window.Mafiozi3DBridge.previewOpenLandmarkBusinessDefense(String(_UP.get('previewlandmarkdefense')||'coffee'),6,3,6,4),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewblackmarket'))setTimeout(()=>window.Mafiozi3DBridge.previewBlackmarketEntryAudit(_UP.get('previewblackmarket'),_UP.get('previewblackmarketenter')!=='0'),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
@@ -70561,6 +70733,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1"></script>
+<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1&melee=smart-heavy-forward-kick-v16"></script>
 </body>
 </html>

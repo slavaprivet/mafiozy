@@ -1462,6 +1462,20 @@ async def init_db():
             "ON damage_events(created_at)"
         )
         await db.execute("""
+            CREATE TABLE IF NOT EXISTS melee_events (
+                attacker_uid INTEGER NOT NULL,
+                attack_id TEXT NOT NULL,
+                target_uid INTEGER NOT NULL,
+                result_json TEXT NOT NULL,
+                created_at REAL NOT NULL,
+                PRIMARY KEY (attacker_uid,attack_id)
+            )
+        """)
+        await db.execute(
+            "CREATE INDEX IF NOT EXISTS ix_melee_events_created_at "
+            "ON melee_events(created_at)"
+        )
+        await db.execute("""
             CREATE TABLE IF NOT EXISTS weapon_ammo (
                 telegram_id INTEGER NOT NULL,
                 weapon_key TEXT NOT NULL,
@@ -3302,6 +3316,37 @@ async def get_damage_event_receipt(telegram_id: int, event_id: str) -> dict | No
     result = json.loads(row['result_json'])
     result['replayed'] = True
     return result
+
+
+async def get_melee_event_receipt(attacker_uid: int, attack_id: str) -> dict | None:
+    stable_id = str(attack_id or '').strip()[:96]
+    if not stable_id:
+        return None
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        row = await (await db.execute(
+            "SELECT target_uid,result_json FROM melee_events "
+            "WHERE attacker_uid=? AND attack_id=?",
+            (int(attacker_uid), stable_id))).fetchone()
+    if not row:
+        return None
+    result = json.loads(row['result_json'])
+    result['target_uid'] = str(row['target_uid'])
+    result['replayed'] = True
+    return result
+
+
+async def store_melee_event_receipt(attacker_uid: int, attack_id: str,
+                                    target_uid: int, result: dict) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT OR IGNORE INTO melee_events
+                   (attacker_uid,attack_id,target_uid,result_json,created_at)
+                 VALUES(?,?,?,?,?)""",
+            (int(attacker_uid), str(attack_id or '').strip()[:96],
+             int(target_uid), json.dumps(result, ensure_ascii=False,
+             separators=(',', ':')), time.time()))
+        await db.commit()
 
 
 def _public_ammo_state(reserve_rows, weapon_rows, global_version: int = 0) -> dict:
@@ -16667,7 +16712,9 @@ class WorldSim:
             and not any(token in damage_kind for token in
                         ('weapon', 'bullet', 'shot', 'gun', 'firearm'))
         )
-        melee_blocked = bool(target.get('_melee_block')) and melee_damage
+        heavy_melee = melee_damage and 'heavy' in damage_kind
+        back_melee = melee_damage and 'back' in damage_kind
+        melee_blocked = bool(target.get('_melee_block')) and melee_damage and not heavy_melee and not back_melee
         block_adjusted = max(1, math.floor(raw_damage * 0.10 + 0.5)) if melee_blocked and raw_damage else raw_damage
         effective = self.police_vest_damage(target, block_adjusted)
         multiplier = (float(effective) / raw_damage) if raw_damage else 1.0
@@ -16712,12 +16759,17 @@ class WorldSim:
         if not self._mirror_combat_state(target, state):
             state = target.get('_combat_state') or state
         if target['dead'] and not was_dead:
+            target['_melee_block'] = False
+            target['_melee_charge_t'] = 0
             target['deaths'] = int(target.get('deaths', 0)) + 1
             target['_respawn_at'] = time.time() + self.PLAYER_RESPAWN_S
         if melee_blocked:
             result['melee_blocked'] = True
             result['melee_block_ratio'] = 0.10
             result['raw_melee_damage'] = raw_damage
+        elif (heavy_melee or back_melee) and target.get('_melee_block'):
+            result['melee_block_pierced'] = True
+            result['melee_block_bypass'] = 'heavy' if heavy_melee else 'back'
         return result
 
     async def apply_authoritative_damage_bound_projectile(
@@ -17624,12 +17676,25 @@ class WorldSim:
         # «после респа стою на месте, потом отбрасывает назад».
         if p.get('dead'):
             return
+        if float(p.get('_melee_stunned_until') or 0) > time.time():
+            p['last_seen'] = time.time()
+            p['_input_t'] = time.time()
+            p['_melee_block'] = False
+            return
         if p.get('_police_cuffed_by'):
             # Позицию задержанного задаёт серверный конвой. Клиентские x/y
             # игнорируются, но соединение считаем живым.
             p['last_seen'] = time.time()
             p['_input_t'] = time.time()
             return
+        requested_stance = str(d.get('stance') or 'stand').lower()
+        p['_stance'] = requested_stance if requested_stance in ('stand', 'crouch', 'prone') else 'stand'
+        if 'weapon' in d:
+            p['_weapon'] = str(d.get('weapon') or 'fists')[:32].lower()
+        if (p['_stance'] == 'prone' or
+                p.get('_weapon') not in ('', 'none', 'fists', 'unarmed')):
+            p['_melee_block'] = False
+            p['_melee_charge_t'] = 0
         was_police = bool(p.get('_police'))
         requested_police = bool(d.get('police', False))
         requested_mafia = bool(d.get('mafia', False))
@@ -19036,6 +19101,11 @@ class WorldSim:
         отдельные таймеры обработчиков не защищают скорострельность. Один ключ
         закрывает этот обход и не позволяет заявить некупленный РПГ/снайперку.
         """
+        if (not shooter or shooter.get('dead') or shooter.get('_police_cuffed_by') or
+                shooter.get('_police_downed_by') or
+                float(shooter.get('_melee_stunned_until') or 0) > time.time() or
+                str(shooter.get('_stance') or 'stand') == 'prone'):
+            return None
         key = cls._weapon_key(weapon)
         owned = shooter.get('_weapon_classes')
         mafia_reward = key == 'golden_tommy' and int(shooter.get('_mafia_xp') or 0) >= 4000 and shooter.get('_mafia') and not shooter.get('_police')
@@ -19201,6 +19271,166 @@ class WorldSim:
                     'reward':      int(e['reward']),
                 }
         return None
+
+    @staticmethod
+    def _melee_state_locked(player: dict | None) -> bool:
+        if not player:
+            return True
+        weapon = str(player.get('_weapon') or 'fists').lower()
+        return bool(
+            player.get('dead') or player.get('_police_cuffed_by') or
+            player.get('_police_downed_by') or
+            float(player.get('_melee_stunned_until') or 0) > time.time() or
+            str(player.get('_stance') or 'stand') == 'prone' or
+            weapon not in ('', 'none', 'fists', 'unarmed'))
+
+    async def apply_player_melee(self, uid: str, target_uid: str,
+                                 attack_id: str = '', heavy: bool = False) -> dict | None:
+        """Server-owned online melee: target/range/LOS/cadence and damage.
+
+        The client supplies only an opaque attack identity and a target. It
+        never supplies damage or critical state. Durable receipts bind one
+        attack id to one target across reconnects and make replays harmless.
+        """
+        uid, target_uid = str(uid), str(target_uid)
+        attack_id = str(attack_id or '').strip()[:96]
+        if not attack_id or uid == target_uid:
+            return None
+        async with self._player_shot_lock(uid, 'melee:' + attack_id):
+            shooter = self.players.get(uid)
+            target = self.players.get(target_uid)
+            if not shooter or not target or not uid.isdigit() or not target_uid.isdigit():
+                return None
+            prior = await get_melee_event_receipt(int(uid), attack_id)
+            if prior:
+                if str(prior.get('target_uid')) != target_uid:
+                    return {'kind': 'melee_reply', 'ok': False,
+                            'error': 'attack_conflict', 'attack_id': attack_id}
+                state = await get_authoritative_combat_state(int(target_uid))
+                if state:
+                    self._mirror_combat_state(target, state)
+                return {**prior, 'kind': 'pvp_melee', 'attack_id': attack_id,
+                        'shooter_uid': uid, 'target_uid': target_uid,
+                        'combat_state': state, 'replayed': True}
+            if self._melee_state_locked(shooter) or target.get('dead'):
+                return None
+            if target.get('_police_cuffed_by') or shooter.get('_mode') == 'pve' or target.get('_mode') == 'pve':
+                return None
+
+            now = time.time()
+            charge_started = float(shooter.get('_melee_charge_t') or 0)
+            if heavy:
+                charge_age = now - charge_started if charge_started else 0
+                if charge_age < 1.17 or charge_age > 4.0:
+                    return None
+                shooter['_melee_charge_t'] = 0
+            else:
+                shooter['_melee_charge_t'] = 0
+            in_event = self.event is not None and not self.event.get('finished')
+            both_event = (in_event and self._in_pvp_zone(shooter['x'], shooter['y'])
+                          and self._in_pvp_zone(target['x'], target['y']))
+            both_arena = self._in_arena(shooter['x'], shooter['y']) and self._in_arena(target['x'], target['y'])
+            s_tid, _ = self._territory_at(shooter['x'], shooter['y'])
+            t_tid, _ = self._territory_at(target['x'], target['y'])
+            both_territory = bool(s_tid) and s_tid == t_tid
+            bounty = int(target.get('_wanted_gangs') or 0) >= 3
+            both_jailed = ((shooter.get('_jail_until') or 0) > now and
+                           (target.get('_jail_until') or 0) > now and
+                           self._in_jail(shooter['x'], shooter['y']) and
+                           self._in_jail(target['x'], target['y']))
+            police_pursuit = (bool(shooter.get('_police')) and
+                              not bool(target.get('_police')) and
+                              float(target.get('_wanted') or 0) >= 1 and
+                              not shooter.get('_business_interior') and
+                              not target.get('_business_interior'))
+            s_biz = str(shooter.get('_business_interior') or '')
+            t_biz = str(target.get('_business_interior') or '')
+            same_business = bool(s_biz) and s_biz == t_biz
+            shooter_attacks = self._business_aggro_until.get((uid, s_biz), 0) > now
+            target_attacks = self._business_aggro_until.get((target_uid, s_biz), 0) > now
+            business_fight = same_business and (
+                (bool(shooter.get('_business_private')) and target_attacks) or
+                (bool(target.get('_business_private')) and shooter_attacks) or
+                (bool(shooter.get('_police')) and target_attacks) or
+                (bool(target.get('_police')) and shooter_attacks))
+            if ((shooter.get('_in_interior') or target.get('_in_interior')) and
+                    not same_business):
+                return None
+            if same_business and not business_fight:
+                return None
+            if not (both_event or both_arena or both_territory or bounty or
+                    both_jailed or police_pursuit or business_fight):
+                return None
+            if not both_arena:
+                sh_family = str(shooter.get('_mafia_family') or '')
+                tg_family = str(target.get('_mafia_family') or '')
+                if sh_family and sh_family == tg_family:
+                    return None
+                if (shooter.get('_gang_leader') and
+                        shooter.get('_gang_leader') == target.get('_gang_leader')):
+                    return None
+
+            if same_business:
+                sx, sy = float(shooter.get('_interior_x') or 0), float(shooter.get('_interior_y') or 0)
+                tx, ty = float(target.get('_interior_x') or 0), float(target.get('_interior_y') or 0)
+            else:
+                sx, sy = float(shooter['x']), float(shooter['y'])
+                tx, ty = float(target['x']), float(target['y'])
+            grounded_target = bool(
+                target.get('_police_downed_by') or
+                str(target.get('_stance') or 'stand').lower() == 'prone')
+            target_ang = float(target.get('ang') or 0)
+            incoming_ang = math.atan2(sy - ty, sx - tx)
+            back_attack = math.cos(incoming_ang - target_ang) < 0
+            contact_range = 1.75 if heavy else (1.55 if grounded_target else 1.38)
+            distance = math.hypot(tx - sx, ty - sy)
+            if distance > contact_range or (not same_business and not _world_los(sx, sy, tx, ty)):
+                return None
+            if now - float(shooter.get('_melee_attack_t') or 0) < 0.30:
+                return None
+            shooter['_melee_attack_t'] = now
+            # A grounded target is always kicked. This decision is server-owned
+            # for online combat; clients cannot promote a punch to critical.
+            critical = False if heavy else (grounded_target or random.random() < 0.20)
+            melee_type = 'heavy' if heavy else ('kick' if critical else 'punch')
+            raw_damage = 18 if heavy else (21 if critical else 12)
+            event_id = f"world:melee:{uid}:{attack_id}"
+            damage_kind = f"melee_{'back_' if back_attack else ''}{melee_type}"
+            damage = await self.apply_authoritative_damage(
+                target_uid, event_id, damage_kind, raw_damage)
+            if not damage:
+                return None
+            killed = bool((damage.get('body') or {}).get('dead'))
+            applied_damage = int(damage.get('effective_damage')
+                                 if damage.get('effective_damage') is not None
+                                 else raw_damage)
+            stunned = bool(heavy and not killed and random.random() < 0.30)
+            if stunned:
+                target['_melee_stunned_until'] = max(
+                    float(target.get('_melee_stunned_until') or 0), now + 2.0)
+                target['_melee_block'] = False
+            shooter['_combat_until'] = target['_combat_until'] = now + 10.0
+            if killed:
+                shooter['kills'] = int(shooter.get('kills') or 0) + 1
+            result = {
+                'ok': True, 'kind': 'pvp_melee', 'attack_id': attack_id,
+                'shooter_uid': uid, 'target_uid': target_uid,
+                'sx': round(sx, 2), 'sy': round(sy, 2),
+                'tx': round(tx, 2), 'ty': round(ty, 2),
+                'melee_type': melee_type, 'critical': critical,
+                'heavy': bool(heavy), 'block_piercing': bool(heavy),
+                'stunned': stunned, 'stun_seconds': 2.0 if stunned else 0.0,
+                'back_attack': back_attack,
+                'grounded_target': grounded_target,
+                'dmg': applied_damage, 'raw_dmg': raw_damage, 'killed': killed,
+                'blocked': bool(damage.get('melee_blocked')),
+                'block_pierced': bool(damage.get('melee_block_pierced')),
+                'combat_state': target.get('_combat_state'),
+                'replayed': bool(damage.get('replayed')),
+            }
+            await store_melee_event_receipt(int(uid), attack_id,
+                                            int(target_uid), result)
+            return result
 
     async def apply_player_shoot(self, uid: str, target_uid: str,
                            weapon: str = '', shot_id: str = '') -> dict | None:
@@ -24387,6 +24617,11 @@ class WorldSim:
                 'mode':   p.get('_mode') or 'pvp',
                 'jail_in': jail_left,
                 'weapon': p.get('_weapon') or 'pistol',
+                'stance': str(p.get('_stance') or 'stand'),
+                # Guard is snapshot state, not client damage authority. It is
+                # always cleared on reconnect and invalidated by input state.
+                'melee_block': bool(p.get('_melee_block')),
+                'melee_stunned_in': max(0.0, float(p.get('_melee_stunned_until') or 0) - time.time()),
                 'police': bool(p.get('_police')),
                 'mafia': bool(p.get('_mafia')),
                 'mafia_family': str(p.get('_mafia_family') or ''),
@@ -29818,10 +30053,26 @@ async def _coop_http_app():
                     if t == 'melee_block':
                         block_player = world.players.get(uid)
                         if block_player:
-                            block_player['_melee_block'] = bool(d.get('active')) and not bool(block_player.get('dead'))
-                            block_player['_melee_block_seq'] = max(
-                                int(block_player.get('_melee_block_seq') or 0),
-                                max(0, int(d.get('seq') or 0)))
+                            incoming_seq = max(0, int(d.get('seq') or 0))
+                            current_seq = int(block_player.get('_melee_block_seq') or 0)
+                            if incoming_seq > current_seq:
+                                block_player['_melee_block_seq'] = incoming_seq
+                                block_player['_melee_block'] = (
+                                    bool(d.get('active')) and
+                                    not world._melee_state_locked(block_player))
+                    elif t == 'melee_charge':
+                        charge_player = world.players.get(uid)
+                        if charge_player:
+                            incoming_seq = max(0, int(d.get('seq') or 0))
+                            current_seq = int(charge_player.get('_melee_charge_seq') or 0)
+                            if incoming_seq > current_seq:
+                                charge_player['_melee_charge_seq'] = incoming_seq
+                                if (bool(d.get('active')) and
+                                        not world._melee_state_locked(charge_player)):
+                                    if not charge_player.get('_melee_charge_t'):
+                                        charge_player['_melee_charge_t'] = time.time()
+                                else:
+                                    charge_player['_melee_charge_t'] = 0
                     elif t == 'input':
                         role_before = (
                             bool((world.players.get(uid) or {}).get('_mafia')),
@@ -30286,6 +30537,35 @@ async def _coop_http_app():
                                         for u2, ws2 in list(world.connections.items()):
                                             try: await ws2.send_str(blob)
                                             except Exception: pass
+                    elif t == 'player_melee':
+                        target_uid = str(d.get('target_uid') or '')
+                        attack_id = str(d.get('attack_id') or '')[:96]
+                        if target_uid and attack_id:
+                            hit_pkt = await world.apply_player_melee(
+                                uid, target_uid, attack_id, bool(d.get('heavy')))
+                            if hit_pkt:
+                                if hit_pkt.get('kind') == 'melee_reply':
+                                    try:
+                                        await ws.send_str(json.dumps(
+                                            {'t': 'event', 'd': hit_pkt},
+                                            ensure_ascii=False))
+                                    except Exception:
+                                        pass
+                                    continue
+                                shooter_p = world.players.get(uid) or {}
+                                target_p = world.players.get(target_uid) or {}
+                                hit_pkt['shooter_name'] = str(
+                                    shooter_p.get('name') or '')[:24]
+                                hit_pkt['target_name'] = str(
+                                    target_p.get('name') or '')[:24]
+                                blob = json.dumps(
+                                    {'t': 'event', 'd': hit_pkt},
+                                    ensure_ascii=False)
+                                for ws2 in list(world.connections.values()):
+                                    try:
+                                        await ws2.send_str(blob)
+                                    except Exception:
+                                        pass
                     elif t == 'cop_shoot':
                         # Игрок стреляет в копа (тоже копит wanted).
                         # d = {target: 'cop123', weapon: 'pistol'}
