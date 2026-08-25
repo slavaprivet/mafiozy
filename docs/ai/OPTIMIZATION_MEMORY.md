@@ -1,5 +1,30 @@
 # Mafiozi 3D optimization memory
 
+## Instance immutable suspension-bridge hangers (2026-08-26, v426)
+
+- The premium suspension span authored 38 vertical hangers as 38 separate
+  `Mesh` objects, each with its own six-sided `CylinderGeometry`, although they
+  shared one material and differed only by position and Y length. Use one
+  unit-height cylinder and one static `InstancedMesh` with 38 exact transforms.
+  Preserve radius `.045`, six radial segments, world centres, heights, material,
+  no-shadow flags and explicit instance bounds; this removes exactly 37 draw
+  submissions and 37 resident geometry objects without changing triangles,
+  lighting, cables, pylons, bridge collision or visual quality.
+- Same-tab Steam-like desktop QA at 1366x768 on exact `a5c3ff21` used the
+  production `previewApproachBridge()` fixture. Baseline kept bridge access
+  `open:ped0:car0/93`, `114/114` unique programs, no duplicate sources,
+  `1959-1984` view-dependent calls and `1466-1468` geometries. The candidate
+  exposed `static-instanced-exact-v426:38`, retained the same access result,
+  `114/114` programs, zero duplicates and no runtime error; sampled dynamic
+  totals were `1861-1873` calls and `1403-1405` geometries. Population and
+  streaming differed, so only the exact structural `-37/-37` replacement is a
+  causal claim, not the larger noisy scene delta or an FPS promise.
+- A separate ordinary-city long-session sample grew from 1,589 to 1,713
+  geometries while deferred content was still entering, then stabilized at
+  1,720-1,721 for the following minute with programs fixed at `115/115`.
+  Do not label that startup/streaming plateau as a geometry leak without a
+  post-settle monotonic reproduction.
+
 ## Budget streamed landmark lights before their first visible frame (2026-08-25, v425)
 
 - A streamed landmark can be constructed inside the visible animation frame
