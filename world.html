@@ -9998,8 +9998,8 @@ function _empireMovementWatch(n,target,now=performance.now(),moveResult=null){
   return true;
 }
 function _empireActivityGenerationKey(activity,empire={}){
-  const value=activity||{},coord=v=>Number.isFinite(+v)?Math.round(+v*100)/100:'';
-  return [String(value.kind||''),String(value.target_id||empire?.hq_key||''),String(value.created_at||0),coord(value.target_r),coord(value.target_c)].join(':');
+  const value=activity||{},kind=String(value.kind||''),coord=v=>Number.isFinite(+v)?Math.round(+v*100)/100:'',created=kind==='recover'?(+empire?.war_pressure?.next_attack_at||+value.created_at||0):(+value.created_at||0);
+  return [kind,String(value.target_id||empire?.hq_key||''),String(created),coord(value.target_r),coord(value.target_c)].join(':');
 }
 function _empireActivityTarget(empire) {
   const activity=empire?.activity||{},id=String(activity.target_id||'');

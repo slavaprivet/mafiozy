@@ -64,17 +64,38 @@ async def run():
         assert leila["war_pressure"]["recovery"]["state"] == "regrouping"
         assert leila["activity"]["kind"] == "recover"
         assert leila["activity"]["phase"] == "regroup"
+        assert leila["activity"]["created_at"] == resolved_at
         assert "target_id" not in leila["activity"]
         assert not recovery_state["interior_raids"]
         passed.append("no-immediate-reattack")
 
+        deadline_before = int(leila["war_pressure"]["next_attack_at"])
+        second_poll = await ne.state_for(path, 101, now=resolved_at + 2)
+        second_leila = next(item for item in second_poll["empires"]
+                            if item["leader_id"] == "leila")
+        assert second_leila["activity"]["created_at"] == resolved_at
+        assert int(second_leila["war_pressure"]["next_attack_at"]) == deadline_before
+        passed.append("sequential-generation-stable")
+
         reloaded = importlib.reload(ne)
-        reconnect = await reloaded.state_for(path, 101, now=resolved_at + 2)
+        reconnect = await reloaded.state_for(path, 101, now=resolved_at + 3)
         reconnect_leila = next(item for item in reconnect["empires"]
                                if item["leader_id"] == "leila")
         assert reconnect_leila["activity"]["kind"] == "recover"
+        assert reconnect_leila["activity"]["created_at"] == resolved_at
         assert reconnect_leila["war_pressure"]["recovery"]["state"] == "regrouping"
         passed.append("reload-stable")
+
+        concurrent = await asyncio.gather(*(
+            reloaded.state_for(path, 101, now=resolved_at + offset)
+            for offset in (4, 5, 6)))
+        concurrent_leila = [next(item for item in state["empires"]
+                                 if item["leader_id"] == "leila")
+                            for state in concurrent]
+        assert {item["activity"]["created_at"] for item in concurrent_leila} == {resolved_at}
+        assert {int(item["war_pressure"]["next_attack_at"])
+                for item in concurrent_leila} == {deadline_before}
+        passed.append("concurrent-generation-stable")
 
         deadline = int((await _row(
             path, "SELECT next_attack_at FROM npc_empire_player_wars "
@@ -90,10 +111,11 @@ async def run():
         world = open("world.html", encoding="utf-8").read()
         assert "${_npcEmpireEsc(recovery.label||'Семья перегруппировывается" in world
         assert "${escapeHtml(recovery.label" not in world
+        assert "kind==='recover'?(+empire?.war_pressure?.next_attack_at||+value.created_at||0)" in world
         passed.append("deadline-resumes-remembered-target")
 
-        assert len(passed) == 4, passed
-        print("recovery activity contract: 4/4 gates OK — " + ", ".join(passed))
+        assert len(passed) == 6, passed
+        print("recovery activity contract: 6/6 gates OK — " + ", ".join(passed))
     finally:
         os.unlink(path)
 

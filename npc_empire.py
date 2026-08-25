@@ -4938,7 +4938,12 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             empire['activity'] = {
                 'kind': 'recover', 'intent': 'regroup', 'phase': 'regroup',
                 'stance': 'defend', 'target_r': hq_r, 'target_c': hq_c,
-                'created_at': int(war.get('last_attack_at') or now),
+                # The defended-raid memory is the persisted start of this
+                # recovery generation.  `last_attack_at` can legitimately be
+                # zero after the first defended raid, while `now` changes on
+                # every poll and would make clients restart the route.
+                'created_at': int(recovery_rows.get(str(empire['leader_id']))
+                                  or war.get('last_attack_at') or now),
                 'summary': str(recovery.get('label') or
                                'Семья перегруппировывается после отражённого налёта'),
             }
