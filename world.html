@@ -62020,7 +62020,7 @@ function drawBuildingInterior() {
 
 // ── BANK INTERIOR CFG — единая большая комната ─────────────────
 // The detailed 2D bank below is the canonical visual source for every renderer.
-const BANK_INTERIOR_VISUAL_VERSION = 4;
+const BANK_INTERIOR_VISUAL_VERSION = 6;
 const _BINT = {
   small:  { W:28, H:24, crackTime:10, counterRow:15 },
   medium: { W:36, H:30, crackTime:15, counterRow:19 },
@@ -62057,8 +62057,14 @@ function _spawnBankNpcs(bank, W, H, counterRow) {
     npcs.push({ type:'lounge', r:6, c:W-5, state:'normal', look:_BANK_NPC_LOOKS.client1, walkPhase:1.1, ang:Math.PI });
   }
   const cc=sz==='small'?2:sz==='medium'?4:6;
+  const lobbyLayout={room:'lobby',W,H,counterRow};
   for (let i=0;i<cc;i++) {
-    npcs.push({ type:'client', r:counterRow+1+Math.random()*4, c:2+Math.random()*(W-4),
+    let r=counterRow+1+Math.random()*4,c=2+Math.random()*(W-4);
+    for(let attempt=0;attempt<12&&_isBlockedBankInterior(lobbyLayout,r,c);attempt++){
+      r=counterRow+1+Math.random()*4;c=2+Math.random()*(W-4);
+    }
+    if(_isBlockedBankInterior(lobbyLayout,r,c)){r=counterRow+3;c=W/2+(i%2?3.6:-3.6);}
+    npcs.push({ type:'client', r, c,
       state:'normal', look:_BANK_NPC_LOOKS['client'+(i%4)]||_BANK_NPC_LOOKS.client0,
       walkPhase:Math.random()*6.28, ang:Math.random()*6.28,
       wanderTimer:Math.random()*3, wanderVr:0, wanderVc:0 });
@@ -62077,11 +62083,13 @@ function _spawnBankReinforcements(int, requestedCount) {
   if (!int || !int.npcs) return 0;
   const existing = int.npcs.filter(n => n.type === 'guard').length;
   const count = Math.max(0, Math.min(requestedCount | 0, BANK_GUARD_MAX_COUNT - existing));
+  // Точки подкрепления стоят в свободных боковых полосах, а не внутри
+  // будки охраны или кассовой линии.
   const points = [
-    { r:int.counterRow + 2.0, c:2.0 },
-    { r:int.counterRow + 3.5, c:4.2 },
-    { r:int.counterRow + 1.0, c:6.4 },
-    { r:int.counterRow + 4.5, c:7.8 },
+    { r:int.counterRow + 1.5, c:int.W/2 - 4.2 },
+    { r:int.counterRow + 3.4, c:int.W/2 + 4.2 },
+    { r:int.counterRow + 4.8, c:int.W/2 - 5.8 },
+    { r:int.counterRow + 5.8, c:int.W/2 + 5.8 },
   ];
   for (let i = 0; i < count; i++) {
     const p = points[i % points.length];
@@ -62348,8 +62356,8 @@ function exitBankInterior(withBag) {
   _dispatchDeferredInteriorPoliceCalls(performance.now());
 }
 
-function _isBlockedInterior(r,c) {
-  const int=_bankInt; if (!int) return false;
+function _isBlockedBankInterior(int,r,c) {
+  if (!int) return false;
   if (int.room === 'vault') {
     const vW = int.vaultW || 8, vH = int.vaultH || 12;
     if (r < 0.3 || c < 0.3 || c > vW - 0.3) return true;
@@ -62366,29 +62374,50 @@ function _isBlockedInterior(r,c) {
     const eDL=Math.floor(W/2)-2, eDR=Math.floor(W/2)+2;
     if (!(c>=eDL && c<eDR)) return true;
   }
-  const archRow=counterRow-4;
-  // Внутренняя стена на archRow — 1.5-тайловая зона чтобы не проскочить при высокой скорости
-  if (r>archRow-0.5&&r<archRow+1.5) {
-    const staffL=Math.floor(W*.10),staffR=staffL+3;
-    const loungeL=Math.floor(W*.65),loungeR=loungeL+3;
-    const cenL=Math.floor(W/2)-3,cenR=Math.floor(W/2)+3;
-    const inArch=(c>=staffL&&c<staffR)||(c>=loungeL&&c<loungeR)||(c>=cenL&&c<cenR);
-    if (!inArch) return true;
+  const archRow=Math.max(4.8,counterRow-4),staffEnd=W*.38,loungeStart=W*.62;
+  const archGaps=[
+    [Math.max(.8,staffEnd*.23),Math.min(staffEnd-.4,staffEnd*.23+2.4)],
+    [W/2-3,W/2+3],
+    [loungeStart+.45,Math.min(W-.6,loungeStart+2.85)],
+  ];
+  if(Math.abs(r-archRow)<.18&&!archGaps.some(([a,b])=>c>=a&&c<=b))return true;
+  if(r>=.15&&r<archRow+.18){
+    if(Math.abs(c-staffEnd)<.18)return true;
+    if(Math.abs(c-loungeStart)<.18)return true;
   }
-  // Перегородки внутри задней зоны. Раньше блок начинался с r>=0.5 — у
-  // северной стены (r<0.5) оставалась ЩЕЛЬ, через которую можно было
-  // проскользнуть сквозь нарисованную перегородку («через некоторые
-  // стены можно пройти»). Теперь блокируем от самого верха (r>=0).
-  if (r<archRow-0.5 && r>=0) {
-    const pL=Math.floor(W*.38), pR=Math.floor(W*.62);
-    // Перегородки сплошные (обход — через арки на archRow). Раньше были
-    // условия c>=staffArchR / c<loungeArchL, но pL/pR всегда им
-    // удовлетворяют → по сути сплошная стена. Оставляем сплошными явно.
-    if (c>=pL-0.5 && c<pL+0.5) return true;   // персонал | хранилище
-    if (c>=pR-0.5 && c<pR+0.5) return true;   // хранилище | отдых
+  if(Math.abs(r-counterRow)<=.54){
+    const wingCount=W<36?2:W<44?3:4;
+    for(let i=0;i<wingCount;i++)for(const tellerC of [1.8+i*3.05,W-1.8-i*3.05]){
+      if(Math.abs(c-tellerC)<=1.275)return true;
+    }
   }
+  const guardC=Math.min(3.35,W*.22),guardR=H-4.45,guardRight=Math.min(6,guardC+2.7);
+  if(c>=.65&&c<=guardRight&&r>=guardR-1.65&&r<=guardR+1.55)return true;
+  const atmRows=[counterRow+1.5,counterRow+3.8,H-2.15].filter((row,i,a)=>row<H-1&&a.findIndex(v=>Math.abs(v-row)<1.2)===i);
+  if(c>=W-1.12&&atmRows.some(row=>Math.abs(r-row)<=.56))return true;
   return false;
 }
+
+function _bankPanicSeparation(int,npc){
+  let pushR=0,pushC=0;
+  for(const other of int.npcs){
+    if(other===npc||other.dead||other.state!=='panic')continue;
+    let dr=npc.r-other.r,dc=npc.c-other.c,dist=Math.hypot(dr,dc);
+    if(dist>=.92)continue;
+    if(dist<.01){const a=((npc._civIdx||0)+1)*2.31;dr=Math.sin(a);dc=Math.cos(a);dist=1;}
+    const strength=(.92-dist)/.92;pushR+=dr/dist*strength;pushC+=dc/dist*strength;
+  }
+  return {r:pushR,c:pushC};
+}
+
+function _setBankPanicRoute(int,npc,speed=3.8){
+  const lanes=[-1.5,-.9,-.3,.3,.9,1.5],lane=lanes[(+npc._civIdx||0)%lanes.length];
+  npc._fleeLane=lane;
+  const dr=int.H+1-npc.r,dc=int.W/2+lane-npc.c,mag=Math.hypot(dr,dc)||1;
+  npc.fleeVr=dr/mag*speed;npc.fleeVc=dc/mag*speed;
+}
+
+function _isBlockedInterior(r,c) { return _isBlockedBankInterior(_bankInt,r,c); }
 
 // Проверяем не только центр, а весь круг столкновения игрока. Это закрывает
 // проход сквозь углы и тонкие банковские перегородки по диагонали.
@@ -62456,8 +62485,7 @@ function _updateBankInterior(dt) {
           int._weaponPanicTriggered=true;
           npc.state='panic';
           npc.cryText='Помогите! Он вооружён!'; npc.cryUntil=now+3000;
-          const dr=H+1-npc.r,dc=W/2-npc.c,mag=Math.hypot(dr,dc)||1;
-          npc.fleeVr=dr/mag*4; npc.fleeVc=dc/mag*4;
+          _setBankPanicRoute(int,npc,4);
           break;
         }
       }
@@ -62487,8 +62515,7 @@ function _updateBankInterior(dt) {
       npc.cryUntil=now+2500;
       const pool=_panicPhrases[npc.type]||_panicPhrases.client;
       npc.cryText=pool[Math.floor(Math.random()*pool.length)];
-      const dr=H+1-npc.r,dc=W/2-npc.c,mag=Math.hypot(dr,dc)||1;
-      npc.fleeVr=dr/mag*3.8; npc.fleeVc=dc/mag*3.8;
+      _setBankPanicRoute(int,npc,3.8);
     }
     int.panicAt=null;
   }
@@ -62582,8 +62609,8 @@ function _updateBankInterior(dt) {
           npc.wanderTimer=1.5+Math.random()*2;npc.ang=Math.atan2(npc.wanderVr,npc.wanderVc);
         }
         const nr=npc.r+(npc.wanderVr||0)*dt,nc=npc.c+(npc.wanderVc||0)*dt;
-        if(!_isBlockedInterior(nr,npc.c))npc.r=nr;
-        if(!_isBlockedInterior(npc.r,nc))npc.c=nc;
+        if(_canStandBankInterior(nr,npc.c,.2))npc.r=nr;
+        if(_canStandBankInterior(npc.r,nc,.2))npc.c=nc;
       }
       if (npc.type==='guard') {
         // Патрульное движение — охранник ходит по маршруту в лобби
@@ -62608,8 +62635,8 @@ function _updateBankInterior(dt) {
           const sep = _bankGuardSeparation(int, npc);
           const nr2 = npc.r + (pdr/pdist + sep.r * 1.4) * spd;
           const nc2 = npc.c + (pdc/pdist + sep.c * 1.4) * spd;
-          if (!_isBlockedInterior(nr2, npc.c)) npc.r = nr2;
-          if (!_isBlockedInterior(npc.r, nc2)) npc.c = nc2;
+          if (_canStandBankInterior(nr2, npc.c, .2)) npc.r = nr2;
+          if (_canStandBankInterior(npc.r, nc2, .2)) npc.c = nc2;
           npc.ang = Math.atan2(pdc, pdr);
         }
       }
@@ -62620,8 +62647,8 @@ function _updateBankInterior(dt) {
         const sep=_bankGuardSeparation(int,npc);
         const vr=dr/dist*2.5+sep.r*3.2,vc=dc/dist*2.5+sep.c*3.2;
         const nr=npc.r+vr*dt,nc=npc.c+vc*dt;
-        if(!_isBlockedInterior(nr,npc.c))npc.r=nr;
-        if(!_isBlockedInterior(npc.r,nc))npc.c=nc;
+        if(_canStandBankInterior(nr,npc.c,.2))npc.r=nr;
+        if(_canStandBankInterior(npc.r,nc,.2))npc.c=nc;
         npc.ang=Math.atan2(dr,dc);
       }
       else {
@@ -62661,6 +62688,10 @@ function _updateBankInterior(dt) {
           npc.ang = shootAng;
           npc._shotAt = now;
           const muzzle = _npcMuzzleWorldPoint(npc.r, npc.c, shootAng, 'pistol', .88);
+          // A bank is a compact room: the ordinary world projectile crossed it
+          // in one or two frames. Keep this visual tracer alive for about 320 ms
+          // so the player can read which guard fired before the hit vignette.
+          const visualBulletSpeed = Math.max(3.5, dist / .32);
           // Промах зависит от дистанции: вблизи 15%, у края 60%
           const missChance = 0.15 + (dist - 1.5) / 6.5 * 0.45;
           const missed = Math.random() < missChance;
@@ -62670,10 +62701,10 @@ function _updateBankInterior(dt) {
             const missAng = shootAng + spread;
             const missTargR = npc.r + Math.sin(missAng) * dist;
             const missTargC = npc.c + Math.cos(missAng) * dist;
-            spawnBullet(muzzle.r, muzzle.c, missTargR, missTargC, { hit: false, fromNpc: true, weapon: 'pistol' });
+            spawnBullet(muzzle.r, muzzle.c, missTargR, missTargC, { hit: false, fromNpc: true, weapon: 'pistol', speed:visualBulletSpeed, fullSizeNpc:true, bulletScale:1.12, trailScale:1.65, color:'#ffd56a' });
             spawnMuzzle(muzzle.r, muzzle.c, missAng, 'pistol', true);
           } else {
-            spawnBullet(muzzle.r, muzzle.c, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
+            spawnBullet(muzzle.r, muzzle.c, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol', speed:visualBulletSpeed, fullSizeNpc:true, bulletScale:1.12, trailScale:1.65, color:'#ffd56a' });
             spawnMuzzle(muzzle.r, muzzle.c, shootAng, 'pistol', true);
             spawnImpact(player.r, player.c, 'pistol', true);
             if (typeof addShake === 'function') addShake(2.5);
@@ -62690,7 +62721,10 @@ function _updateBankInterior(dt) {
       }
     }
     if (npc.state==='panic') {
-      npc.r+=(npc.fleeVr||0)*dt;npc.c+=(npc.fleeVc||0)*dt;
+      const targetR=H+1,targetC=W/2+(Number.isFinite(+npc._fleeLane)?+npc._fleeLane:0),dr=targetR-npc.r,dc=targetC-npc.c,mag=Math.hypot(dr,dc)||1,sep=_bankPanicSeparation(int,npc);
+      const speed=3.8,nr=npc.r+(dr/mag*speed+sep.r*2.4)*dt,nc=npc.c+(dc/mag*speed+sep.c*2.4)*dt;
+      if(_canStandBankInterior(nr,npc.c,.18)||nr>H-.7)npc.r=nr;
+      if(_canStandBankInterior(npc.r,nc,.18)||npc.r>H-.7)npc.c=nc;
       npc.ang=Math.atan2(npc.fleeVr||0,npc.fleeVc||0);
       if (npc.r>H+1 && npc.state!=='fled'){
         npc.state='fled';
@@ -66132,7 +66166,7 @@ window.Mafiozi3DBridge = Object.freeze({
       npcSource=combat;
     }
     const npcLifePool=x=>{
-      const role=String(x?.role||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
+      const role=String(x?.role||x?.type||x?._arcKey||'').toLowerCase(),behavior=String(x?.behavior||'').toLowerCase();
       if(x?._uniqueNpc||x?._said||x?._keyNpc||role==='said'||role==='unique_npc')return 'mission';
       if(role.includes('medic')||role.includes('quest')||role.includes('convoy')||role.includes('michael')||role.includes('race_')||behavior.includes('mission'))return 'mission';
       if(x?.police||role.includes('police')||role.includes('cop'))return 'police';
@@ -66184,10 +66218,10 @@ window.Mafiozi3DBridge = Object.freeze({
     _threeStickyNpcIds.clear();for(const npc of npcSelected)_threeStickyNpcIds.add(_threeNpcEntityId(npc));
     document.documentElement.dataset.npcLifePools=`mission:${npcPoolMissionCount},police:${npcPoolPoliceCount},guard:${npcPoolGuardCount},gang:${npcPoolGangCount},civilian:${npcPoolCivilianCount},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
-    const npcs=[];for(let i=0;i<npcSelected.length;i++){const x=npcSelected[i],id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id,fxNow),role=String(x.role||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,fxNow,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
+    const npcs=[];for(let i=0;i<npcSelected.length;i++){const x=npcSelected[i],id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id,fxNow),role=String(x.role||x.type||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,fxNow,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
       id,r,c,ang:+x.ang||0,walking:!death.dead&&declaredMoving,moving:!death.dead&&declaredMoving,walkPhase:declaredMoving?(+x.walkPhase||0):0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
-      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||'',speech:copSpeech||(((+x.cryUntil||0)>fxNow&&Math.hypot(r-player.r,c-player.c)<=5.4)?String(x.cryText||'').slice(0,84):''),speechContext:String(x._empireSpeechMood||''),hp,maxHp,
+      role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:x.name||(_bankInt&&x.type==='guard'?'Охранник банка':''),speech:_bankInt&&x.type==='guard'?'':(copSpeech||(((+x.cryUntil||0)>fxNow&&Math.hypot(r-player.r,c-player.c)<=5.4)?String(x.cryText||'').slice(0,84):'')),speechContext:String(x._empireSpeechMood||''),hp,maxHp,
       said:!!x._said,uniqueNpc:!!(x._uniqueNpc||x._said),specialistId:String(x._specialistId||''),specialistTitle:String(x._specialistTitle||''),salary:Math.max(0,+x._salary||0),empireBoss:!!x._empireBoss,empireCrew:!!x._empireCrew,empireHoldingGuard:!!x._empireHoldingGuard,empireHoldingId:String(x._empireHoldingId||''),empireLeaderId:String(x._empireLeaderId||x._specialistId||''),empireGang:String(x._empireGang||''),empireAction:x._empireBoss?_empireActivityLabel(x._empireAction):'',
       weapon:String(x._empireBoss?(x._empireWeaponBase||'pistol_heavy'):(x.weapon||x._fightWeapon||'')),uniqueWeaponId:String(x._empireWeaponId||x.uniqueWeaponId||''),uniqueWeaponName:String(x._empireWeaponName||x.uniqueWeaponName||''),uniqueWeaponProfile:x._empireWeaponProfile||x.uniqueWeaponProfile||null,bossStyle:Math.max(0,+x._empireStyle||0),bossColor:String(x._empireColor||x.look?.suit||''),bossAccent:String(x._empireAccent||x.look?.accent||''),empireTacticalRole:String(x._empireTacticalRole||''),
       important:!!(x._uniqueNpc||x._said||x._keyNpc||x._invulnerable),talkable:!!(x._uniqueNpc||x._said),hired:!!(x._said&&_saidState?.hired),
@@ -66597,6 +66631,15 @@ if(_LOCAL_PREVIEW&&_UP.has('previeweffectlifecycleqa'))setTimeout(()=>{
   setTimeout(()=>{const final=window.Mafiozi3DBridge.effectLifecycleQa('sample');document.documentElement.dataset.previewEffectLifecycleQa=`settled:g${final.gore}:q${final.pendingTimers}`;},900);
 },1800);
 if(_LOCAL_PREVIEW&&_UP.get('threeinterior'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterMajorInterior(_UP.get('threeinterior')),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewbankinterior'))setTimeout(()=>{
+  const requested=String(_UP.get('previewbankinterior')||'small');
+  const bank=BANKS.find(item=>item.size===requested)||BANKS[0];
+  if(bank&&!_bankInt){
+    enterBankInterior(bank);document.documentElement.dataset.previewBankInterior=`${bank.size}:${bank.id}`;
+    if(_UP.has('previewbankdoor')){player.r=2.8;player.c=_bankInt.W/2;cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;}
+    if(_UP.has('previewbankpanic')){_bankInt.alarmTriggered=true;_bankInt.panicAt=performance.now();document.documentElement.dataset.previewBankPanic='seeded-separated-exit-lanes';}
+  }
+},900);
 if(_LOCAL_PREVIEW&&_UP.has('previewnpchqassault'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterNpcHqAssault(),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewpurpose'),'npc',_UP.get('previewpurposeview')!=='exterior'),2600);
 if(_LOCAL_PREVIEW&&_UP.get('previewbuildingpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewbuildingpurpose'),_UP.get('previewbuildingowner')||'player',!_UP.has('previewbuildingexterior')),900);
