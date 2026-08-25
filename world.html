@@ -2564,7 +2564,7 @@ body:has(#shopOverlay.open) #districtRepHud,body:has(#profileModal.show) #distri
       <div class="deal-stats">
         <div class="deal-stat price"><span class="lbl">Цена объекта</span><span class="lim" id="bizCnfPrice">—</span></div>
         <div class="deal-stat income"><span class="lbl">Прогноз дохода</span><span class="lim" id="bizCnfIncome">—</span></div>
-        <div class="deal-stat"><span class="lbl">Начисление</span><span class="lim">раз в сутки</span></div>
+        <div class="deal-stat"><span class="lbl">Начисление</span><span class="lim">прямо на счёт · поминутно</span></div>
         <div class="deal-stat payback"><span class="lbl">Окупаемость</span><span class="lim" id="bizCnfPayback">—</span></div>
       </div>
       <div class="deal-footnote"><span>⚖</span><span>После оформления объект появится в разделе «Мой бизнес». Доход и владелец подтверждаются сервером.</span></div>
@@ -30356,7 +30356,7 @@ function buyBusinessHere(biz_id) {
       myCash = j.cash || myCash;
       updateMoneyHud();
       showEventBanner(`🎉 Куплено: ${b.emoji} ${b.name}`,
-        `Доход капает раз в сутки. Подходи к точке или открывай «Мой бизнес».`,
+        `Серверная суточная ставка показана в досье. Доход пропорционально зачисляется прямо на счёт за каждую завершённую минуту.`,
         4000, 'win');
       // Откладываем sync на 2 сек — сервер успеет закоммитить INSERT
       setTimeout(() => { _bizLastSync = 0; syncMyBusinesses(); }, 2000);

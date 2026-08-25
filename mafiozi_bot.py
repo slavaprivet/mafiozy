@@ -1238,6 +1238,17 @@ def exp_for_level(level: int) -> int:
 # БАЗА ДАННЫХ
 # ============================================================
 
+async def _ensure_player_business_income_remainder(db) -> None:
+    """Add the persisted fixed-point carry used by automatic business income."""
+    try:
+        await db.execute(
+            "ALTER TABLE player_businesses "
+            "ADD COLUMN income_remainder INTEGER NOT NULL DEFAULT 0")
+    except (aiosqlite.OperationalError, sqlite3.OperationalError) as exc:
+        if "duplicate column" not in str(exc).lower():
+            raise
+
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
@@ -1835,6 +1846,7 @@ async def init_db():
                 level         INTEGER DEFAULT 1,
                 guards        INTEGER DEFAULT 0,
                 npc_capture_cooldown_until INTEGER DEFAULT 0,
+                income_remainder INTEGER NOT NULL DEFAULT 0,
                 PRIMARY KEY (telegram_id, biz_id)
             )
         """)
@@ -1861,6 +1873,7 @@ async def init_db():
                 "ADD COLUMN npc_capture_cooldown_until INTEGER DEFAULT 0")
         except Exception:
             pass
+        await _ensure_player_business_income_remainder(db)
         # Однократная миграция старой одиночной модели: у бизнеса теперь один
         # мировой владелец. Сохраняем последнюю покупку, а владельцам старых
         # дублей возвращаем полную цену перед удалением записи.
@@ -6933,7 +6946,13 @@ BIZ_INCOME_PERIOD = 24 * 3600  # сутки = одна полная порция
 BIZ_EVENT_CHANCE  = 0.20       # шанс события на бизнес при сборе (если не на кулдауне)
 BIZ_EVENT_COOLDOWN = 6 * 3600  # 6 часов между событиями на одном бизнесе
 BIZ_MAX_LEVEL = 5
-BIZ_LEVEL_MULTIPLIERS = {1: 1.00, 2: 1.35, 3: 1.75, 4: 2.25, 5: 3.00}
+BIZ_LEVEL_MULTIPLIER_SCALE = 10_000
+BIZ_LEVEL_MULTIPLIER_FIXED = {1: 10_000, 2: 13_500, 3: 17_500, 4: 22_500, 5: 30_000}
+BIZ_LEVEL_MULTIPLIERS = {
+    level: fixed / BIZ_LEVEL_MULTIPLIER_SCALE
+    for level, fixed in BIZ_LEVEL_MULTIPLIER_FIXED.items()
+}
+BIZ_INCOME_FIXED_SCALE = 1_000_000
 BIZ_UPGRADE_COST_RATIOS = {2: 0.45, 3: 0.75, 4: 1.15, 5: 1.70}
 SAID_DAILY_SALARY = 500
 SAID_SALARY_PERIOD = 24 * 3600
@@ -7031,6 +7050,33 @@ def business_level(value) -> int:
 
 def business_income_multiplier(level) -> float:
     return BIZ_LEVEL_MULTIPLIERS[business_level(level)]
+
+
+def business_daily_income_fixed(biz: dict, level) -> int:
+    """Authoritative average daily income in integer micro-dollars."""
+    daily_sum = max(
+        0, int(biz.get('daily_min') or 0) + int(biz.get('daily_max') or 0))
+    multiplier = BIZ_LEVEL_MULTIPLIER_FIXED[business_level(level)]
+    return (
+        daily_sum * multiplier * BIZ_INCOME_FIXED_SCALE
+        // (2 * BIZ_LEVEL_MULTIPLIER_SCALE)
+    )
+
+
+def business_elapsed_income(biz: dict, level, elapsed_seconds: int,
+                            remainder: int = 0) -> tuple[int, int]:
+    """Return whole-dollar payout and persisted fixed-point carry.
+
+    ``remainder`` is the numerator left after division by one day in fixed
+    dollars. Keeping it in SQLite makes frequent ticks, reloads and restarts
+    produce the same total as one uninterrupted calculation.
+    """
+    elapsed = max(0, int(elapsed_seconds or 0))
+    divisor = BIZ_INCOME_PERIOD * BIZ_INCOME_FIXED_SCALE
+    carry = max(0, min(int(remainder or 0), divisor - 1))
+    accrued = carry + business_daily_income_fixed(biz, level) * elapsed
+    payout, next_remainder = divmod(accrued, divisor)
+    return int(payout), int(next_remainder)
 
 
 def business_upgrade_cost(biz: dict, next_level: int) -> int:
@@ -26236,47 +26282,54 @@ async def _tick_business_war_season(world: 'WorldSim') -> list[dict]:
 _owned_business_income_next_check = 0.0
 
 
-async def _tick_owned_business_income(world: 'WorldSim') -> list[dict]:
-    """Automatically pay every purchased business once per completed minute."""
+async def _tick_owned_business_income(world: 'WorldSim', *,
+                                      now: float | None = None) -> list[dict]:
+    """Pay completed minutes with a persisted, deterministic fixed-point carry."""
     global _owned_business_income_next_check
-    now = time.time()
+    now = time.time() if now is None else float(now)
     if now < _owned_business_income_next_check:
         return []
     _owned_business_income_next_check = now + 2.0
     events: list[dict] = []
+    live_credits: list[tuple[int, int]] = []
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
+        # Serialize competing tickers before either reads the timestamp/carry.
+        # Balance, cursor and carry then commit as one transaction.
+        await db.execute("BEGIN IMMEDIATE")
         rows = await (await db.execute(
-            "SELECT telegram_id,biz_id,last_collect,level FROM player_businesses"
+            "SELECT telegram_id,biz_id,last_collect,level,income_remainder "
+            "FROM player_businesses"
         )).fetchall()
         for raw in rows:
             row = dict(raw)
             last_collect = int(row.get('last_collect') or int(now))
-            due = max(0, int((now - last_collect) // 60))
-            if due <= 0:
+            completed_minutes = max(0, int((now - last_collect) // 60))
+            if completed_minutes <= 0:
                 continue
             biz = get_business(str(row.get('biz_id') or ''))
             if not biz:
                 continue
             level = business_level(row.get('level'))
-            avg_daily = (
-                int(biz.get('daily_min') or 0) + int(biz.get('daily_max') or 0)
-            ) / 2.0
-            per_minute = max(
-                1, int(round(avg_daily * business_income_multiplier(level) / 1440.0)))
-            amount = per_minute * due
+            elapsed = completed_minutes * 60
+            amount, next_remainder = business_elapsed_income(
+                biz, level, elapsed, row.get('income_remainder') or 0)
             owner_uid = int(row['telegram_id'])
-            paid_until = last_collect + due * 60
+            paid_until = last_collect + elapsed
+            if amount > 0:
+                credit = await db.execute(
+                    "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
+                    (amount, owner_uid))
+                if credit.rowcount != 1:
+                    continue
             await db.execute(
-                "UPDATE player_businesses SET last_collect=? "
+                "UPDATE player_businesses "
+                "SET last_collect=?,income_remainder=? "
                 "WHERE telegram_id=? AND biz_id=?",
-                (paid_until, owner_uid, row['biz_id']))
-            await db.execute(
-                "UPDATE characters SET cash=cash+? WHERE telegram_id=?",
-                (amount, owner_uid))
-            live = world.players.get(str(owner_uid))
-            if live is not None:
-                live['_cash'] = int(live.get('_cash') or 0) + amount
+                (paid_until, next_remainder, owner_uid, row['biz_id']))
+            if amount <= 0:
+                continue
+            live_credits.append((owner_uid, amount))
             events.append({
                 'kind': 'owned_business_income',
                 'owner_uid': str(owner_uid),
@@ -26284,10 +26337,14 @@ async def _tick_owned_business_income(world: 'WorldSim') -> list[dict]:
                 'biz_name': str(biz.get('name') or row['biz_id']),
                 'biz_icon': str(biz.get('icon') or '🏪'),
                 'amount': amount,
-                'per_minute': per_minute,
-                'minutes': due,
+                'daily_rate_fixed': business_daily_income_fixed(biz, level),
+                'minutes': completed_minutes,
             })
         await db.commit()
+    for owner_uid, amount in live_credits:
+        live = world.players.get(str(owner_uid))
+        if live is not None:
+            live['_cash'] = int(live.get('_cash') or 0) + amount
     return events
 
 
