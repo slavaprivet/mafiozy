@@ -43,6 +43,8 @@ PLAYER_INTERIOR_RAID_EXPIRES_SECONDS = 12 * 60
 PLAYER_INTERIOR_RAID_MAX_ATTACKERS = 8
 PLAYER_INTERIOR_RAID_MAX_DEFENDERS = 12
 VISIBLE_ACTIVITY_SECONDS = 75
+VISIBLE_ACTIVITY_MIN_TARGET_SHIFT = 26.0
+VISIBLE_ACTIVITY_ROUTE_SECTORS = 3
 NPC_EMPIRE_MAX_FIGHTERS = 20
 RECRUITMENT_SECONDS = 0
 NPC_BUILDING_SABOTAGE_SECONDS = 5 * 60
@@ -1696,8 +1698,8 @@ async def _advance_npc_peace(db, diplomacy_state: dict, now: int,
                 'target_id': pair[1],
                 'summary': f'{left.gang_name} и {right.gang_name} завершили перемирие без новой войны',
             })
-def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int,
-                      brain: dict | None = None) -> dict:
+def _visible_activity_candidate(profile: EmpireProfile, row, holdings: list[dict], now: int,
+                                brain: dict | None = None) -> dict:
     """Give the client one concrete, slowly changing destination for this boss."""
     if int(_row_field(row, 'hospital_until', 0) or 0) > now:
         hospital_id = str(_row_field(row, 'hospital_id', 'hospital') or 'hospital')
@@ -1796,6 +1798,85 @@ def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: in
             'phase': 'travel', 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
             'ui_label': BOSS_FIELD_JOBS[profile.leader_id], 'intent': strategy,
             'summary': f'{profile.leader_name} {label}'}
+
+
+def _visible_activity_destination(activity: dict | None) -> tuple[float, float] | None:
+    if not activity or activity.get('target_r') is None or activity.get('target_c') is None:
+        return None
+    return float(activity['target_r']), float(activity['target_c'])
+
+
+def _visible_activity_itinerary_target(profile: EmpireProfile, slot: int) -> dict:
+    """Choose from three disjoint city sectors, making each next leg a real trip."""
+    west_targets = [
+        {'target_id': bid, 'target_r': coords[0], 'target_c': coords[1],
+         'target_kind': 'business'}
+        for bid, coords in BUSINESS_COORDS.items() if bid != 'port'
+    ]
+    east_targets = [
+        {'target_id': f'roam:{key}', 'target_r': r, 'target_c': c,
+         'target_kind': 'street'}
+        for key, r, c in EMPIRE_PUBLIC_ROAM_POINTS if key.startswith('east_')
+    ]
+    south_targets = [
+        {'target_id': f'roam:{key}', 'target_r': r, 'target_c': c,
+         'target_kind': 'street'}
+        for key, r, c in EMPIRE_PUBLIC_ROAM_POINTS if not key.startswith('east_')
+    ]
+    port_r, port_c = BUSINESS_COORDS['port']
+    south_targets.append({'target_id': 'port', 'target_r': port_r,
+                          'target_c': port_c, 'target_kind': 'business'})
+    profile_index = next(i for i, item in enumerate(PROFILES)
+                         if item.leader_id == profile.leader_id)
+    sector = (profile_index + int(slot)) % VISIBLE_ACTIVITY_ROUTE_SECTORS
+    pool = (west_targets, east_targets, south_targets)[sector]
+    target = dict(pool[((profile_index // 3) + int(slot)) % len(pool)])
+    target['route_sector'] = ('west', 'east', 'south')[sector]
+    return target
+
+
+def _visible_activity(profile: EmpireProfile, row, holdings: list[dict], now: int,
+                      brain: dict | None = None) -> dict:
+    """Keep consecutive ambient jobs on a visibly moving, stable itinerary."""
+    activity = _visible_activity_candidate(profile, row, holdings, now, brain)
+    ordinary = {'return_hq', 'inspect', 'patrol', 'collect'}
+    if str(activity.get('kind') or '') not in ordinary:
+        return activity
+    slot = int(now) // VISIBLE_ACTIVITY_SECONDS
+    target = _visible_activity_itinerary_target(profile, slot)
+    if target:
+        target_id = str(target['target_id'])
+        target_kind = str(target.get('target_kind') or '')
+        hq_id = str(_row_field(row, 'hq_key', profile.hq_key) or profile.hq_key)
+        owned = {str(item.get('holding_id') or ''): str(item.get('kind') or '')
+                 for item in holdings}
+        if target_id == hq_id:
+            kind, label, ui_label = 'return_hq', 'возвращается в штаб', 'ВОЗВРАЩАЕТСЯ В ШТАБ'
+        elif owned.get(target_id) == 'business':
+            kind, label, ui_label = 'collect', 'проверяет доход своего бизнеса', 'ПРОВЕРЯЕТ ДОХОД'
+        elif target_id in owned:
+            kind, label, ui_label = 'inspect', 'проверяет подконтрольное здание', 'ИНСПЕКТИРУЕТ СВОЙ ПОСТ'
+        else:
+            kind = 'inspect' if target_kind in {'building', 'business'} else 'patrol'
+            label = 'разведывает цель для захвата' if kind == 'inspect' else 'патрулирует дальний район'
+            ui_label = BOSS_FIELD_JOBS[profile.leader_id]
+        return {
+            'kind': kind, 'target_id': target_id,
+            'target_r': target['target_r'], 'target_c': target['target_c'],
+            'phase': 'travel', 'created_at': slot * VISIBLE_ACTIVITY_SECONDS,
+            'ui_label': ui_label,
+            'intent': str((brain or {}).get('strategy') or ''),
+            'target_reason': 'activity-itinerary',
+            'route_stop': int(slot),
+            'route_sector': str(target['route_sector']),
+            'route_length': VISIBLE_ACTIVITY_ROUTE_SECTORS,
+            'replaces_kind': str(activity.get('kind') or ''),
+            'replaces_target_id': str(activity.get('target_id') or ''),
+            'summary': f'{profile.leader_name} {label}',
+        }
+    activity = dict(activity)
+    activity['target_repeat_unavoidable'] = True
+    return activity
 
 
 MEMORY_KINDS = {
