@@ -102,7 +102,13 @@ def main():
     assert 'const _playerBusinessRaidBreaches = new Map()' in world
     assert 'function _markPlayerBusinessRaidBreached(n,now=performance.now())' in world
     assert '_playerBusinessRaidBreaches.has(token)' in world
-    assert 'if(raidActivity&&!_playerBusinessRaidBreachFor(raidActivity))' in world
+    assert 'if(raidActivity&&!_playerBusinessRaidBreachFor(raidActivity)&&!provoked)' in world
+    assert 'provokedUntil=now+12000' in world
+    assert 'playerProvoked=playerBusinessRaid&&now<(+leader._empirePlayerProvokedUntil||0)' in world
+    provoke = world.split('async function _recordNpcEmpireStreetAttack', 1)[1].split(
+        'function _queueNpcEmpireBossHit', 1)[0]
+    assert '_markPlayerBusinessRaidBreached' not in provoke
+    assert '_playerBusinessRaidBreaches.set' not in provoke
     assert "n._empireAction?.kind==='player_business_raid')_markPlayerBusinessRaidBreached" in world
     assert 'dataset.playerBusinessRaidBreach=' in world
     assert "dataset.businessInteriorRaidGate=breach?`breached:" in world
@@ -113,8 +119,8 @@ def main():
     assert "token=alertPreview?`preview-raid-alert:${meta.key}`:`preview-business-raid:${fixtureId}`" in world
     assert 'raid_token:token' in world
     assert 'apt_key:`preview-raid:${meta.key}`' in world
-    assert 'activeTokens=new Set((_npcEmpireInteriorRaids||[])' in world
-    assert 'if(!activeTokens.has(token))_playerBusinessRaidBreaches.delete(token)' in world
+    assert 'activeTokens=new Set(candidates.map(entry=>' in world
+    assert "if(!activeTokens.has(token)&&!candidates.some(entry=>String(entry.empire?.leader_id||'')===String(breach.leaderId||'')&&String(entry.activity?.target_id||'')===String(breach.targetId||'')))_playerBusinessRaidBreaches.delete(token)" in world
     assert "'guard_count': guard_count" in bot
     assert "npc_empire.holding_guard_count(" in bot
 

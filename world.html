@@ -8750,7 +8750,7 @@ function hitNpc(npc, dirY, dirX, weapon, damage, source=null) {
   if((npc._empireBoss||npc._empireCrew)&&playerAttack){
     npc._lastViolentSource=source||{kind:'player',uid:String(QP?.uid||'local')};npc._lastViolentAt=hitNow;
     _recordNpcEmpireStreetAttack(_empireLeaderIdOf(npc),Math.max(1,+damage||1),hitNow);
-    if(npc._empireBoss&&!_LOCAL_PREVIEW)_queueNpcEmpireBossHit(npc,damage,weapon,dirY,dirX,hitNow);
+    if(npc._empireBoss&&(!_LOCAL_PREVIEW||_UP.has('previewbossauth')))_queueNpcEmpireBossHit(npc,damage,weapon,dirY,dirX,hitNow);
     else _hitEmpireCombatant(npc,damage,player,weapon,dirY,dirX,hitNow);
     return;
   }
@@ -9862,14 +9862,15 @@ function _syncEmpireBossCrews(now=performance.now()){
   let spawnBudget=3;
   for(const leader of leaders){
     const id=String(leader._specialistId),want=desired.get(id)||0,pendingWant=pending.get(id)||0;
-    const playerBusinessRaid=String(leader._empireAction?.kind||'')==='player_business_raid',raidDefender=playerBusinessRaid?EMPIRE_HOLDING_GUARDS.find(x=>x._empireRaidDefender&&!x.dead&&!x._evacuated&&String(x._empireEnemyLeaderId)===id):null;
-    if(playerBusinessRaid){leader._empireEnemyLeaderId=raidDefender?_empireLeaderIdOf(raidDefender):'';leader._empirePlayerWar=!raidDefender;}
+    const playerBusinessRaid=String(leader._empireAction?.kind||'')==='player_business_raid',raidDefender=playerBusinessRaid?EMPIRE_HOLDING_GUARDS.find(x=>x._empireRaidDefender&&!x.dead&&!x._evacuated&&String(x._empireEnemyLeaderId)===id):null,playerProvoked=playerBusinessRaid&&now<(+leader._empirePlayerProvokedUntil||0);
+    if(playerBusinessRaid){leader._empireEnemyLeaderId=raidDefender?_empireLeaderIdOf(raidDefender):'';leader._empirePlayerWar=playerProvoked||!raidDefender;}
     let active=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated&&!x._empireRecruitCandidate),candidates=EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id&&!x.dead&&!x._evacuated&&x._empireRecruitCandidate&&!x._empireStreetNegotiating);
     while(active.length<want&&candidates.length){const crew=candidates.shift();_promoteEmpireRecruit(crew,leader,active.length,want,now);active.push(crew);}
     if((+leader._empireMembers||0)<EMPIRE_MAX_ESCORTS&&!leader._empireStreetNegotiation){const found=_findEmpireStreetRecruit(leader);if(found)_adoptEmpireStreetRecruit(leader,id,active.length,Math.max(want,active.length+1),now,found);}
     for(const crew of EMPIRE_CREW_NPCS.filter(x=>x._empireLeaderId===id)){
       if(crew._empireRecruitCandidate)continue;
       crew._empirePlayerWar=!!leader._empirePlayerWar;
+      crew._empirePlayerProvokedUntil=Math.max(+crew._empirePlayerProvokedUntil||0,+leader._empirePlayerProvokedUntil||0);
       crew._empireEnemyLeaderId=String(leader._empireEnemyLeaderId||'');
       crew._empireWarStance=String(leader._empireWarStance||'');
       crew._empireStrength=+leader._empireStrength||80;
@@ -10177,9 +10178,13 @@ function _empireScatterSquad(target,source,now=performance.now()){
   }
   if(now>=(target._empireScatterCryAt||0)){target._empireScatterCryAt=now+6500;_empireSpeak(target,'scatter',now,1700,true);}
 }
+function _empireDisplayHealth(n,dead=false){
+  const authoritative=!!(n?._empireBoss||n?._empireCrew||n?._empireHoldingGuard)&&Number.isFinite(+n?._empireBattleHp)&&Number.isFinite(+n?._empireBattleMaxHp),max=Math.max(1,authoritative?+n._empireBattleMaxHp:(+n?.max_hp||+n?.maxHp||100)),hp=dead?0:Math.max(0,Math.min(max,authoritative?+n._empireBattleHp:(Number.isFinite(+n?.hp)?+n.hp:max)));return {hp,maxHp:max,authoritative};
+}
 function _empireCombatReady(n,now=performance.now()){
   if(!n)return false;
-  const max=n._empireBoss?Math.max(150,Math.min(520,150+(+n._empireStrength||80)*1.55)):Math.max(72,+n._empireBattleMaxHp||92);
+  if(n._empireFieldEncounterStatus==='defeated')return false;
+  const hydrated=n._empireFieldEncounterStatus==='active'&&Number.isFinite(+n._empireBattleMaxHp),max=hydrated?Math.max(1,+n._empireBattleMaxHp):(n._empireBoss?Math.max(150,Math.min(520,150+(+n._empireStrength||80)*1.55)):Math.max(72,+n._empireBattleMaxHp||92));
   n._empireBattleMaxHp=max;
   if(!Number.isFinite(+n._empireBattleHp))n._empireBattleHp=max;
   if(n._empireDownUntil&&now>=n._empireDownUntil){n._empireDownUntil=0;n._knockedUntil=0;n._empireBattleHp=Math.round(max*.62);n._empireRetreatUntil=now+12000;_empireSpeak(n,'return',now,2200,true);}
@@ -10324,7 +10329,7 @@ function _queueEmpirePlayerBallisticHit(n,damage,profile,weapon,muzzle,visualSpe
 }
 function _empirePlayerCombatThink(n,now,dt){
   if(!n?._empirePlayerWar||myDead||_buildingInt||_bankInt||!_empireCombatReady(n,now))return false;
-  const raidActivity=_playerBusinessRaidActivityForActor(n);if(raidActivity&&!_playerBusinessRaidBreachFor(raidActivity)){n._empireWarFighting=false;return false;}
+  const raidActivity=_playerBusinessRaidActivityForActor(n),provoked=now<(+n._empirePlayerProvokedUntil||0);if(raidActivity&&!_playerBusinessRaidBreachFor(raidActivity)&&!provoked){n._empireWarFighting=false;return false;}
   const dr=player.r-n.r,dc=player.c-n.c,d=Math.hypot(dr,dc)||.001;if(d>15.5){n._empireWarFighting=false;return false;}
   const order=_empirePlayerSquadOrder(n,now),doctrine=order.doctrine||_empireDoctrineOf(n),mind=order.mindset||_empireMindsetOf(doctrine);n._empireWarFighting=true;n._fighting=false;n._empireTacticalRole=_empireTacticalRole(n,order);_empireUseSignature(n,order,now);
   if(order.type==='withdraw'&&d<12){n._empireRetreatUntil=Math.max(+n._empireRetreatUntil||0,now+6500);return _empireRetreatStep(n,now,dt);}
@@ -18337,7 +18342,7 @@ function _playerBusinessRaidTargetName(empire,activity){
 }
 function _playerRaidThreatPresentation(activity,target=null){
   target=target||{};
-  const assetKind=String(activity?.target_kind||'')==='hq'?'hq':'business',capture=String(activity?.objective||'')==='followup-capture',assetLabel=assetKind==='hq'?'штаб':'бизнес',assetTitle=assetKind==='hq'?'Штаб':String(target?.name||'Бизнес'),verb=capture?'захватывают':'атакуют',title=`Ваш ${assetLabel} ${verb}`;
+  const assetKind=String(activity?.target_kind||'')==='hq'?'hq':'business',phase=String(activity?._displayPhase||''),capture=phase?phase==='capture':String(activity?.objective||'')==='followup-capture',assetLabel=assetKind==='hq'?'штаб':'бизнес',assetTitle=assetKind==='hq'?'Штаб':String(target?.name||'Бизнес'),verb=capture?'захватывают':phase==='approach'?'идут атаковать':'атакуют',title=phase==='approach'?`К вашему ${assetLabel} идут`:`Ваш ${assetLabel} ${verb}`;
   return {assetKind,assetLabel,assetTitle,capture,verb,title,markerLabel:title.toUpperCase(),signature:`${assetKind}:${capture?'capture':'attack'}:${title}`};
 }
 function _playerBusinessRaidActivityIsActive(activity,now=Math.floor(Date.now()/1000)){
@@ -18348,9 +18353,8 @@ function _playerBusinessRaidActivityIsActive(activity,now=Math.floor(Date.now()/
 function _playerBusinessRaidToken(activity){return String(activity?.raid_token||activity?.token||'');}
 function _playerBusinessRaidBreachFor(activity){const token=_playerBusinessRaidToken(activity);return token?_playerBusinessRaidBreaches.get(token)||null:null;}
 function _playerBusinessRaidActivityForActor(n){
-  if(String(n?._empireAction?.kind||'')==='player_business_raid')return n._empireAction;
-  const leader=n?._empireCrew?SPECIALIST_NPCS.find(x=>String(x._specialistId)===_empireLeaderIdOf(n)):null;
-  return String(leader?._empireAction?.kind||'')==='player_business_raid'?leader._empireAction:null;
+  const leaderId=_empireLeaderIdOf(n),own=String(n?._empireAction?.kind||'')==='player_business_raid'?n._empireAction:null,leader=n?._empireCrew?SPECIALIST_NPCS.find(x=>String(x._specialistId)===leaderId):null,action=own||(String(leader?._empireAction?.kind||'')==='player_business_raid'?leader._empireAction:null),interior=(_npcEmpireInteriorRaids||[]).find(raid=>String(raid?.leader_id||'')===leaderId&&(!action||String(raid?.target_id||'')===String(action?.target_id||'')));
+  return interior||action;
 }
 function _markPlayerBusinessRaidBreached(n,now=performance.now()){
   const activity=_playerBusinessRaidActivityForActor(n),token=_playerBusinessRaidToken(activity);if(!activity||!token||_playerBusinessRaidBreaches.has(token))return false;
@@ -18367,15 +18371,15 @@ function _playerBusinessRaidDecision(empire,activity){
   return {policyId,policyMismatch,profileLabel:policyMismatch?'Серверный расчёт':String(doctrine.label||'Профиль выбора цели'),reasonId,reason,summary:[reason,...parts].join(' · '),valueBand:String(metrics.value_band||''),distanceBand:String(metrics.distance_band||''),defenseBand:String(metrics.defense_band||''),certainty:String(metrics.certainty||'')};
 }
 function _playerBusinessRaidPlan(empire,activity){
-  const objective=String(activity?.objective||'')==='followup-capture'?'followup-capture':'first-close',breachPhase=_playerBusinessRaidBreachFor(activity)?'breach':'approach',doctrine=empire?.doctrine||{},hold=Math.max(20,+activity?.hold_seconds||20),doctrineLabel=String(doctrine.label||'Прямой штурм'),boss=String(empire?.leader_name||activity?.leader_name||'Босс'),decision=_playerBusinessRaidDecision(empire,activity),objectiveLabel=objective==='followup-capture'?'ЗАХВАТИТЬ':'ЗАКРЫТЬ';
+  const objective=String(activity?.objective||'')==='followup-capture'?'followup-capture':'first-close',leaderId=String(empire?.leader_id||activity?.leader_id||''),targetId=String(activity?.target_id||''),breach=!!(_playerBusinessRaidBreachFor(activity)||[..._playerBusinessRaidBreaches.values()].find(item=>String(item.leaderId||'')===leaderId&&String(item.targetId||'')===targetId)),provoked=!breach&&[...SPECIALIST_NPCS,...EMPIRE_CREW_NPCS,...EMPIRE_HOLDING_GUARDS].some(n=>_empireLeaderIdOf(n)===leaderId&&performance.now()<(+n._empirePlayerProvokedUntil||0)),exteriorPhase=breach?(objective==='followup-capture'?'capture':'fight'):(provoked?'fight':'approach'),breachPhase=breach?'breach':'approach',doctrine=empire?.doctrine||{},hold=Math.max(20,+activity?.hold_seconds||20),doctrineLabel=String(doctrine.label||'Прямой штурм'),boss=String(empire?.leader_name||activity?.leader_name||'Босс'),decision=_playerBusinessRaidDecision(empire,activity),objectiveLabel=objective==='followup-capture'?'ЗАХВАТИТЬ':'ЗАКРЫТЬ',phaseStep=exteriorPhase==='approach'?'1/3':exteriorPhase==='fight'?'2/3':'3/3';
   const stakes=objective==='followup-capture'?'поражение передаст бизнес семье босса':'поражение закроет бизнес на 10 минут',counterTip='Контрход: сорви непрерывное удержание кассы';
-  return {objective,objectiveLabel,breachPhase,hold,doctrineId:String(doctrine.id||'direct'),doctrineLabel,profileLabel:decision.profileLabel,decision,stakes,counterTip,plan:`План ${boss}: прорыв → касса ${hold} с → ${objective==='followup-capture'?'захват':'закрытие'}`};
+  return {objective,objectiveLabel,breachPhase,exteriorPhase,phaseStep,hold,doctrineId:String(doctrine.id||'direct'),doctrineLabel,profileLabel:decision.profileLabel,decision,stakes,counterTip,plan:`План ${boss}: прорыв → касса ${hold} с → ${objective==='followup-capture'?'захват':'закрытие'}`};
 }
 function _playerBusinessRaidCompass(alert,r,c){
   const pr=+r,pc=+c,tr=+alert?.r,tc=+alert?.c;if(!alert||![pr,pc,tr,tc].every(Number.isFinite))return null;
   const dr=tr-pr,dc=tc-pc,distance=Math.round(Math.hypot(dr,dc)),screenDx=dc-dr,screenDy=(dc+dr)*ISO_Y;
   const arrows=['→','↘','↓','↙','←','↖','↑','↗'],names=['ВОСТОК','ЮГО-ВОСТОК','ЮГ','ЮГО-ЗАПАД','ЗАПАД','СЕВЕРО-ЗАПАД','СЕВЕР','СЕВЕРО-ВОСТОК'],atTarget=Math.hypot(screenDx,screenDy)<.08,index=atTarget?0:(Math.round(Math.atan2(screenDy,screenDx)/(Math.PI/4))+8)%8;
-  const state=alert.plan?.breachPhase==='approach'?'ПРИБЛИЖАЮТСЯ':alert.plan?.objective==='followup-capture'?'ЗАХВАТЫВАЮТ':'АТАКУЮТ',direction=atTarget?'◎':arrows[index],directionName=atTarget?'ВЫ НА МЕСТЕ':names[index];
+  const state=alert.plan?.exteriorPhase==='capture'?'ЗАХВАТЫВАЮТ':alert.plan?.exteriorPhase==='fight'?'БОЙ У ОБЪЕКТА':'ПРИБЛИЖАЮТСЯ',direction=atTarget?'◎':arrows[index],directionName=atTarget?'ВЫ НА МЕСТЕ':names[index];
   return {direction,directionName,index:atTarget?-1:index,angle:atTarget?0:index*45,distance,state,text:`${directionName} · ${distance} м · ${String(alert.name||'БИЗНЕС').toUpperCase()} · ${state}`,signature:`${alert.key}:${atTarget?'here':index}:${distance}:${state}:${alert.name||''}`};
 }
 function _ensurePlayerBusinessRaidHud(){
@@ -18388,7 +18392,7 @@ function _renderPlayerBusinessRaidHud(activity){
   const hud=_ensurePlayerBusinessRaidHud();if(!_activePlayerBusinessRaidAlert){hud.classList.remove('show');hud.dataset.navigation='';if(hud._raidCompass){hud._raidCompass.style.setProperty('--raid-angle','0deg');hud._raidCompass.textContent='➤';}if(hud._raidNavigation)hud._raidNavigation.textContent='';return;}
   const alert=_activePlayerBusinessRaidAlert,guards=Number.isFinite(+activity?.assigned_object_guards)?Math.max(0,+activity.assigned_object_guards):null,free=Number.isFinite(+activity?.assigned_free_squad)?Math.max(0,+activity.assigned_free_squad):null;
   hud.querySelector('b').textContent=`🚨 ${alert.title} · ${alert.name}`;hud.querySelector('span').textContent=`${alert.boss} · ${alert.family} · Профиль выбора: ${alert.plan.profileLabel}`;
-  hud.querySelector('small').textContent=(guards===null&&free===null?`ЦЕЛЬ: ${alert.plan.objectiveLabel} · следуйте к красной метке`:`Атака ${free??'—'} · защита ${guards??'—'} · цель: ${alert.plan.objectiveLabel}`)+` · ${alert.plan.decision.summary}`;
+  const phaseLabel=alert.plan.exteriorPhase==='capture'?'ЗАХВАТ':alert.plan.exteriorPhase==='fight'?'БОЙ':'ПОДХОД';hud.querySelector('small').textContent=`ФАЗА ${alert.plan.phaseStep} · ${phaseLabel} · `+(guards===null&&free===null?`ЦЕЛЬ: ${alert.plan.objectiveLabel} · следуйте к красной метке`:`Атака ${free??'—'} · защита ${guards??'—'} · цель: ${alert.plan.objectiveLabel}`)+` · ${alert.plan.decision.summary}`;
   hud.classList.add('show');hud.dataset.raidKey=alert.key;
 }
 function _updatePlayerBusinessRaidNavigation(r,c){
@@ -18398,16 +18402,16 @@ function _updatePlayerBusinessRaidNavigation(r,c){
   document.documentElement.dataset.playerBusinessRaidCompass=`${alert.key}:${compass.directionName}:${compass.distance}:${compass.state}`;
 }
 function _syncPlayerBusinessRaidAlert(){
-  const now=Math.floor(Date.now()/1000),activeTokens=new Set((_npcEmpireInteriorRaids||[]).filter(raid=>_playerBusinessRaidActivityIsActive(raid,now)).map(raid=>String(raid?.token||'')).filter(Boolean));for(const token of _playerBusinessRaidBreaches.keys())if(!activeTokens.has(token))_playerBusinessRaidBreaches.delete(token);const activity=(_npcEmpireInteriorRaids||[]).find(raid=>_playerBusinessRaidActivityIsActive(raid,now)),empire=activity?_npcEmpireById.get(String(activity.leader_id||'')):null,entry=activity&&empire&&empire.status!=='ruined'?{empire,activity}:null;
+  const now=Math.floor(Date.now()/1000),exterior=(_npcEmpires||[]).map(empire=>({empire,activity:empire?.activity})).filter(entry=>String(entry.activity?.kind||'')==='player_business_raid'&&Number.isFinite(+entry.activity?.target_r)&&Number.isFinite(+entry.activity?.target_c)).map(entry=>({empire:entry.empire,activity:{...entry.activity,leader_id:String(entry.empire.leader_id||''),token:`exterior:${entry.empire.leader_id}:${+entry.activity.created_at||0}`}})),interior=(_npcEmpireInteriorRaids||[]).map(activity=>({empire:_npcEmpireById.get(String(activity?.leader_id||'')),activity})),candidates=[...interior,...exterior].filter(entry=>entry.empire&&entry.empire.status!=='ruined'&&_playerBusinessRaidActivityIsActive(entry.activity,now)),activeTokens=new Set(candidates.map(entry=>String(entry.activity?.token||'')).filter(Boolean));for(const [token,breach] of _playerBusinessRaidBreaches)if(!activeTokens.has(token)&&!candidates.some(entry=>String(entry.empire?.leader_id||'')===String(breach.leaderId||'')&&String(entry.activity?.target_id||'')===String(breach.targetId||'')))_playerBusinessRaidBreaches.delete(token);const entry=candidates[0]||null,activity=entry?.activity,empire=entry?.empire;
   if(!entry){_activePlayerBusinessRaidAlert=null;_renderPlayerBusinessRaidHud(null);document.documentElement.dataset.playerBusinessRaidAlert='inactive';document.documentElement.dataset.playerBusinessRaidCompass='inactive';return null;}
   const targetR=activity?.target_r,targetC=activity?.target_c;if(targetR===null||targetR===undefined||targetR===''||targetC===null||targetC===undefined||targetC===''||!Number.isFinite(+targetR)||!Number.isFinite(+targetC)){_activePlayerBusinessRaidAlert=null;_renderPlayerBusinessRaidHud(null);document.documentElement.dataset.playerBusinessRaidAlert='inactive:invalid-target';return null;}
-  const target=_playerBusinessRaidTargetName(empire,activity),presentation=_playerRaidThreatPresentation(activity,target),key=`${empire.leader_id}:${activity.token}:${activity.target_kind||''}:${activity.target_id||''}`;
-  const plan=_playerBusinessRaidPlan(empire,activity);_activePlayerBusinessRaidAlert={key,r:+targetR,c:+targetC,targetId:String(activity.target_id||''),targetKind:String(activity.target_kind||''),title:presentation.title,name:target.name,boss:String(empire.leader_name||'Босс'),family:String(empire.gang_name||'Криминальная семья'),leaderId:String(empire.leader_id||''),presentation,plan,assignedObjectGuards:Number.isFinite(+activity.defender_count)?Math.max(0,+activity.defender_count):null,assignedFreeSquad:Number.isFinite(+activity.force)?Math.max(0,+activity.force):null};
+  const target=_playerBusinessRaidTargetName(empire,activity),plan=_playerBusinessRaidPlan(empire,activity),presentation=_playerRaidThreatPresentation({...activity,_displayPhase:plan.exteriorPhase},target),key=`${empire.leader_id}:${activity.token}:${activity.target_kind||''}:${activity.target_id||''}`;
+  _activePlayerBusinessRaidAlert={key,r:+targetR,c:+targetC,targetId:String(activity.target_id||''),targetKind:String(activity.target_kind||''),title:presentation.title,name:target.name,boss:String(empire.leader_name||'Босс'),family:String(empire.gang_name||'Криминальная семья'),leaderId:String(empire.leader_id||''),presentation,plan,assignedObjectGuards:Number.isFinite(+activity.defender_count)?Math.max(0,+activity.defender_count):null,assignedFreeSquad:Number.isFinite(+activity.force)?Math.max(0,+activity.force):null};
   if(!_seenPlayerBusinessRaidAlerts.has(key)){
     _seenPlayerBusinessRaidAlerts.add(key);while(_seenPlayerBusinessRaidAlerts.size>24)_seenPlayerBusinessRaidAlerts.delete(_seenPlayerBusinessRaidAlerts.values().next().value);
     showEventBanner(`🚨 ${_activePlayerBusinessRaidAlert.title.toUpperCase()}`,`${target.name} · ${_activePlayerBusinessRaidAlert.boss} · ${_activePlayerBusinessRaidAlert.family}`,5200,'warn');
   }
-  _renderPlayerBusinessRaidHud({assigned_object_guards:activity.defender_count,assigned_free_squad:activity.force});const guards=Number.isFinite(+activity.defender_count)?Math.max(0,+activity.defender_count):'na',attackers=Number.isFinite(+activity.force)?Math.max(0,+activity.force):'na';document.documentElement.dataset.playerBusinessRaidAlert=`active:${key}:${_activePlayerBusinessRaidAlert.r.toFixed(2)},${_activePlayerBusinessRaidAlert.c.toFixed(2)}:guards-${guards}:attackers-${attackers}:phase-${plan.breachPhase}:objective-${plan.objective}:doctrine-${plan.doctrineId}`;
+  _renderPlayerBusinessRaidHud({assigned_object_guards:activity.defender_count,assigned_free_squad:activity.force});const guards=Number.isFinite(+activity.defender_count)?Math.max(0,+activity.defender_count):'na',attackers=Number.isFinite(+activity.force)?Math.max(0,+activity.force):'na';document.documentElement.dataset.playerBusinessRaidAlert=`active:${key}:${_activePlayerBusinessRaidAlert.r.toFixed(2)},${_activePlayerBusinessRaidAlert.c.toFixed(2)}:guards-${guards}:attackers-${attackers}:phase-${plan.exteriorPhase}:step-${plan.phaseStep}:objective-${plan.objective}:doctrine-${plan.doctrineId}`;
   return _activePlayerBusinessRaidAlert;
 }
 function _stagePreviewPlayerBusinessRaid(){
@@ -18442,6 +18446,8 @@ function _setNpcEmpirePlayerHostile(leaderId,relation=null){
 async function _recordNpcEmpireStreetAttack(leaderId,damage=1,now=performance.now()){
   const id=String(leaderId||'');if(!id)return;
   _setNpcEmpirePlayerHostile(id);
+  const provokedUntil=now+12000;for(const member of [...SPECIALIST_NPCS,...EMPIRE_CREW_NPCS,...EMPIRE_HOLDING_GUARDS])if(_empireLeaderIdOf(member)===id&&!member.dead)member._empirePlayerProvokedUntil=Math.max(+member._empirePlayerProvokedUntil||0,provokedUntil);
+  _syncPlayerBusinessRaidAlert();
   const last=+_npcEmpireStreetAttackAt.get(id)||0;if(now-last<900||_npcEmpireStreetAttackBusy.has(id))return;
   _npcEmpireStreetAttackAt.set(id,now);_npcEmpireStreetAttackBusy.add(id);
   spawnFloatText(player.r-.65,player.c,'ОТНОШЕНИЕ С СЕМЬЁЙ УХУДШЕНО',{color:'#ff5964',size:12,life:1500});
@@ -18455,9 +18461,10 @@ function _queueNpcEmpireBossHit(target,damage,weapon,dirY,dirX,hitNow=performanc
   if(!_reserveAuthoritativeTargetClaim(shotId))return;
   _authoritativeRemoteSent=true;
   let session=_npcEmpireFieldSessions.get(leaderId);
-  if(!session){session={token:'',expiresAt:0,shotContract:1,nextShotSeq:1,chain:Promise.resolve(),errorAt:0};_npcEmpireFieldSessions.set(leaderId,session);}
+  if(!session){session={token:'',expiresAt:0,shotContract:1,nextShotSeq:1,anchorR:null,anchorC:null,actionKey:'',chain:Promise.resolve(),errorAt:0};_npcEmpireFieldSessions.set(leaderId,session);}
   const guarded=hitNow<(target._empireGuardedUntil||0),evasive=hitNow<(target._empireDecoyUntil||0)||hitNow<(target._empireHiddenUntil||0),doctrine=_empireDoctrineOf(target),mitigation=(guarded?(doctrine.id==='armored'?.48:.62):1)*(evasive?.55:1),effectiveDamage=Math.max(1,Math.round((+damage||1)*mitigation));
   const hitR=+target.r,hitC=+target.c,shotWeapon=String(weapon||'pistol');
+  const actionKey=String(target._empireActionKey||'');if(session.token&&((Number.isFinite(+session.anchorR)&&Math.hypot(hitR-session.anchorR,hitC-session.anchorC)>8)||(session.actionKey&&session.actionKey!==actionKey))){session.token='';session.expiresAt=0;}
   target._threeHitAngle=Math.atan2(+dirY||0,+dirX||0);target._threeHitPower=Math.max(.18,Math.min(1.6,(+damage||0)/72));target._threeHitWeapon=String(weapon||'pistol');target._lastServerHitQueuedAt=hitNow;
   _empireRecordIncoming(target,effectiveDamage,weapon,hitNow);_empireScatterSquad(target,player,hitNow);_markCombatBleeding(target,target.r,target.c,damage,dirY,dirX,weapon);
   const nr=target.r+(+dirY||0)*.07,nc=target.c+(+dirX||0)*.07;if(_npcBodyPassable(nr,nc,_empireBossPassable)){target.r=nr;target.c=nc;}
@@ -18465,11 +18472,12 @@ function _queueNpcEmpireBossHit(target,damage,weapon,dirY,dirX,hitNow=performanc
     if(target.dead){_sendWorldWeaponFire('empire_field_dead',shotId,shotWeapon);return;}
     try{
       if(!session.token||session.expiresAt<=Date.now()/1000){
-        const prepared=await _apiRequest(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/prepare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:leaderId,mode:'field'})}),pj=await prepared.json();
+        const prepared=await _apiRequest(`${QP.api.replace(/\/+$/,'')}/npc-empires/${encodeURIComponent(QP.uid)}/assault/prepare`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({leader_id:leaderId,mode:'field',actor_r:hitR,actor_c:hitC})}),pj=await prepared.json();
         if(!prepared.ok||!pj?.ok)throw new Error(pj?.error||'field prepare');
         session.token=String(pj.token||'');session.expiresAt=+pj.expires_at||0;target._empireFieldToken=session.token;
+        session.anchorR=Number.isFinite(+pj.anchor?.r)?+pj.anchor.r:hitR;session.anchorC=Number.isFinite(+pj.anchor?.c)?+pj.anchor.c:hitC;session.actionKey=actionKey;
         session.shotContract=Math.max(1,+pj.shot_contract||1);session.nextShotSeq=Math.max(1,+pj.next_shot_seq||1);
-        target._empireBattleMaxHp=Math.max(1,+pj.boss?.max_hp||target._empireBattleMaxHp||1);target._empireBattleHp=Math.max(0,+pj.boss?.hp||0);
+        target._empireFieldEncounterId=String(pj.encounter_id||'');target._empireFieldEncounterStatus=pj.proof_ready?'defeated':'active';target._empireBattleMaxHp=Math.max(1,+pj.boss?.max_hp||target._empireBattleMaxHp||1);target._empireBattleHp=Math.max(0,+pj.boss?.hp||0);target.max_hp=target._empireBattleMaxHp;target.hp=target._empireBattleHp;
         if(pj.proof_ready&&target._empireBattleHp<=0){_downEmpireCombatant(target,performance.now());_sendWorldWeaponFire('empire_field_proof_dead',shotId,shotWeapon);return;}
       }
       const shotSeq=session.nextShotSeq,hitPayload=session.shotContract>=2?{token:session.token,target:'boss',target_id:null,weapon:shotWeapon,hit_r:hitR,hit_c:hitC,shot_seq:shotSeq,shot_id:shotId}:{token:session.token,target:'boss',target_id:null,weapon:shotWeapon,shot_id:shotId};
@@ -18478,7 +18486,7 @@ function _queueNpcEmpireBossHit(target,damage,weapon,dirY,dirX,hitNow=performanc
       if(!response.ok||!result?.ok)throw new Error(result?.error||'field hit');
       if(session.shotContract>=2)session.nextShotSeq=shotSeq+1;
       _applyAuthoritativeAmmoState(result.ammo_state);
-      const wasAlive=(+target._empireBattleHp||0)>0;target._empireBattleMaxHp=Math.max(1,+result.boss_max_hp||target._empireBattleMaxHp||1);target._empireBattleHp=Math.max(0,+result.boss_hp||0);target.hp=target._empireBattleHp;
+      const wasAlive=(+target._empireBattleHp||0)>0;target._empireBattleMaxHp=Math.max(1,+result.boss_max_hp||target._empireBattleMaxHp||1);target._empireBattleHp=Math.max(0,+result.boss_hp||0);target.hp=target._empireBattleHp;target.max_hp=target._empireBattleMaxHp;
       document.documentElement.dataset.empireBossServerHit=`${leaderId}:${Math.round(target._empireBattleHp)}:${session.token.slice(0,8)}`;
       if(wasAlive&&result.proof_ready&&target._empireBattleHp<=0)_downEmpireCombatant(target,performance.now());
     }catch(error){
@@ -19545,6 +19553,15 @@ async function loadCustomGangState(showError=false){
   catch(e){if(showError)showToast('Не удалось загрузить состояние банды','⚠️',2200);}
 }
 
+function _hydrateNpcEmpireFieldEncounter(npc,empire){
+  const field=empire?.field_encounter,status=String(field?.status||''),max=+field?.max_hp,hp=+field?.hp;if(!npc||!['active','defeated'].includes(status)||!Number.isFinite(max)||max<1||!Number.isFinite(hp))return false;
+  npc._empireFieldEncounterId=String(field.encounter_id||'');npc._empireFieldEncounterStatus=status;npc._empireBattleMaxHp=Math.max(1,max);npc._empireBattleHp=Math.max(0,Math.min(npc._empireBattleMaxHp,hp));npc.max_hp=npc._empireBattleMaxHp;npc.hp=npc._empireBattleHp;
+  const anchorR=+field.anchor?.r,anchorC=+field.anchor?.c;if(status==='active'&&Number.isFinite(anchorR)&&Number.isFinite(anchorC)){npc._empireFieldAnchorR=anchorR;npc._empireFieldAnchorC=anchorC;if(Math.hypot(npc.r-anchorR,npc.c-anchorC)>4){npc.r=npc.tr=anchorR;npc.c=npc.tc=anchorC;_clearNpcRoute(npc);document.documentElement.dataset.empireBossAnchorReconcile=`${npc._specialistId}:${String(field.encounter_id||'').slice(0,8)}`;}}
+  if(status==='defeated'&&npc._empireBattleHp<=0&&!npc.dead){npc.dead=true;npc.deadAt=performance.now();npc._deathR=npc.r;npc._deathC=npc.c;npc.walking=false;npc._empireFieldDefeatProjected=true;}
+  else if(status==='active'&&npc._empireBattleHp>0&&npc._empireFieldDefeatProjected){npc.dead=false;npc.deadAt=0;npc._empireFieldDefeatProjected=false;}
+  return true;
+}
+
 async function loadNpcEmpireState(showError=false){
   if(!QP.api||!QP.uid)return false;
   try{
@@ -19600,6 +19617,7 @@ async function loadNpcEmpireState(showError=false){
         npc._empireRecruitment=empire.recruitment&&(+empire.recruitment.pending>0||empire.recruitment.completed)?{...empire.recruitment}:null;
         npc._empireRelation=+empire.relation||0;npc._empireRelationBand=String(empire.relation_band||'neutral');npc._empirePact=String(empire.pact||'none');
         npc._empireHospitalUntil=hospitalUntil;if(empire.hospital_id)npc._empireHospitalId=String(empire.hospital_id);
+        _hydrateNpcEmpireFieldEncounter(npc,empire);
         if(hospitalized)npc._empireWasHospitalized=true;
         else if(npc._empireWasHospitalized){
           npc._empireWasHospitalized=false;npc._empireHospitalRequest=false;npc.dead=false;npc.deadAt=0;npc._evacuated=false;npc._ambulanceDeliveredAt=0;npc._empireBattleHp=npc._empireBattleMaxHp||220;
@@ -44694,7 +44712,8 @@ function drawNpc(npc) {
     NPC_LIFE_STATES.PANIC,NPC_LIFE_STATES.COWER,NPC_LIFE_STATES.SURRENDER,
     NPC_LIFE_STATES.HELPING,NPC_LIFE_STATES.SOCIAL,
   ].includes(npc._lifeState);
-  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walking?npc.walkPhase:0, null, null, false, npc.hp, npc.max_hp,
+  const _drawHealth=_empireDisplayHealth(npc,!!npc.dead);
+  drawPerson(p.x, p.y, npc.ang, npc.look, npc.walking?npc.walkPhase:0, null, null, false, _drawHealth.hp, _drawHealth.maxHp,
              !!npc.dead, _knocked?(npc._knockedAt||_drawNow):(npc.deadAt||0), !!(npc._fighting && !npc.dead&&!_knocked)||_lifePoseArms, false, _knocked);
   drawNpcLifePose2D(p,npc,_drawNow);
   if(!npc.dead&&performance.now()<(npc._burnUntil||0))
@@ -66407,7 +66426,7 @@ window.Mafiozi3DBridge = Object.freeze({
     _threeStickyNpcIds.clear();for(const npc of npcSelected)_threeStickyNpcIds.add(_threeNpcEntityId(npc));
     document.documentElement.dataset.npcLifePools=`mission:${npcPoolMissionCount},police:${npcPoolPoliceCount},guard:${npcPoolGuardCount},gang:${npcPoolGangCount},civilian:${npcPoolCivilianCount},shown:${npcSelected.length},cap:${NPC_LIFE_NPC_CAP}`;
     _threeNpcActionRefs.clear();
-    const npcs=[];for(let i=0;i<npcSelected.length;i++){const x=npcSelected[i],id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id,fxNow),role=String(x.role||x.type||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),maxHp=Math.max(1,empireMember?(+x._empireBattleMaxHp||100):(+x.max_hp||+x.maxHp||60)),hp=death.dead?0:(empireMember?Math.max(0,+x._empireBattleHp||maxHp):(Number.isFinite(+x.hp)?Math.max(0,+x.hp):maxHp)),combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,fxNow,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
+    const npcs=[];for(let i=0;i<npcSelected.length;i++){const x=npcSelected[i],id=_threeNpcEntityId(x,i),death=_threeNpcDeathState(x,id,fxNow),role=String(x.role||x.type||x._arcKey||'civilian'),roleKey=role.toLowerCase(),gang=!!(x.gang||x._gang||x.gangId||x.gang_id||roleKey.includes('gang')||roleKey.includes('boss')||roleKey.includes('district_')||roleKey.includes('occupier')),police=!!(x.police||roleKey==='police'||roleKey==='cop'||roleKey.includes('police')),empireMember=!!(x._empireBoss||x._empireCrew),liveR=+(x.r??x.y)||0,liveC=+(x.c??x.x)||0,r=death.dead&&Number.isFinite(+x._deathR)?+x._deathR:liveR,c=death.dead&&Number.isFinite(+x._deathC)?+x._deathC:liveC,declaredMoving=!!(x.walking||x.moving||x.isMoving||x._moving),health=_empireDisplayHealth(x,death.dead),maxHp=health.maxHp,hp=health.hp,combatFx=_threeTrackCombatBleed(id,hp,maxHp,r,c,death.dead,fxNow,+x._lastHitAt||+x.hitAt||0),lifeState=String(x._empireDownUntil>fxNow?'downed':(x._lifeState||x.lifeState||'')),panic=!death.dead&&((+x.panicUntil||0)>fxNow||lifeState==='panic'),cowering=!death.dead&&(lifeState==='cower'||x._panicCowerUntil>fxNow),surrendering=!death.dead&&(lifeState==='surrender'||x._npcSurrenderUntil>fxNow),helping=!death.dead&&(lifeState==='helping'||x._npcHelpingUntil>fxNow),social=!death.dead&&(lifeState==='social'||(!lifeState&&x._talking>fxNow)),copChat=police?_copChats.get(x._actionRef?.id??x.id):null,copSpeech=copChat&&copChat.untilMs>fxNow?String(copChat.text||'').slice(0,84):'';const view={
       id,r,c,ang:+x.ang||0,walking:!death.dead&&fxNow>=(+x._meleeStunnedUntil||0)&&declaredMoving,moving:!death.dead&&fxNow>=(+x._meleeStunnedUntil||0)&&declaredMoving,walkPhase:declaredMoving?(+x.walkPhase||0):0,speed:+x.speed||0,
       elevation:_buildingInt?.bizId==='major_casino'?_casinoVisualElevation(_buildingInt,+(x.r??x.y)||0,+(x.c??x.x)||0):0,
       role,behavior:x.behavior||'',sourceId:x.sourceId||'',hireable:!!x.hireable,look:x.look||null,name:fxNow<(+x._meleeStunnedUntil||0)?'⭐ НОКАУТ ⭐':(x.name||(_bankInt&&x.type==='guard'?'Охранник банка':'')),speech:_bankInt&&x.type==='guard'?'':(fxNow<(+x._meleeStunnedUntil||0)?'⭐ НОКАУТ ⭐':(copSpeech||(((+x.cryUntil||0)>fxNow&&Math.hypot(r-player.r,c-player.c)<=5.4)?String(x.cryText||'').slice(0,84):''))),speechContext:String(x._empireSpeechMood||''),hp,maxHp,
@@ -66430,7 +66449,7 @@ window.Mafiozi3DBridge = Object.freeze({
       severMask:+x._severMask||0,forcedCrawl:!!x._forcedCrawl,
       medicCarry:!!x._medicCarry,medicSlot:+x._medicSlot||0,
       medicAction:x._medicAction||'',medicActionProgress:+x._medicActionProgress||0,
-    };if(empireMember&&Number.isFinite(+x._empireBattleHp)){view.hp=Math.max(0,+x._empireBattleHp);view.maxHp=maxHp;}_threeNpcActionRefs.set(String(id),{ref:x._actionRef||x,view});npcs.push(view);}
+    };_threeNpcActionRefs.set(String(id),{ref:x._actionRef||x,view});npcs.push(view);}
     if(_LOCAL_PREVIEW&&_UP.has('previewnpcactions')&&npcs[0]){npcs[0].r=player.r+1.5;npcs[0].c=player.c+.25;npcs[0].walking=npcs[0].moving=false;}
     if(_LOCAL_PREVIEW&&_UP.has('previewbosses'))for(const [j,npc] of npcs.filter(x=>x.empireBoss).slice(0,8).entries()){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*4.6;npc.c=player.c+Math.cos(a)*4.6;npc.ang=a+Math.PI;npc.walking=npc.moving=j%2===0;if(_UP.has('previewweaponmodels')){npc._shotAt=fxNow-(fxNow%900);npc._shotWeapon=npc.weapon;}}
     if(_LOCAL_PREVIEW&&_UP.has('previewlimp'))for(const [j,npc] of npcs.slice(0,8).entries())if(!npc.dead){const a=j*Math.PI/4;npc.r=player.r+Math.sin(a)*3.8;npc.c=player.c+Math.cos(a)*3.8;npc.ang=a;npc.hp=Math.min(npc.hp,npc.maxHp*.2);npc.forcedCrawl=false;npc.severMask=0;npc.walking=true;}
@@ -66834,6 +66853,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previewbossbridge'))setTimeout(()=>window.Mafiozi3DB
 if(_LOCAL_PREVIEW&&_UP.get('previewpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewpurpose'),'npc',_UP.get('previewpurposeview')!=='exterior'),2600);
 if(_LOCAL_PREVIEW&&_UP.get('previewbuildingpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewbuildingpurpose'),_UP.get('previewbuildingowner')||'player',!_UP.has('previewbuildingexterior')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewinventory'))setTimeout(async()=>{if(document.body.classList.contains('game-menu-open')){_gameMenuOpen=false;document.body.classList.remove('game-menu-open');document.getElementById('gameMainMenu')?.classList.add('hidden');}document.getElementById('modeModal')?.classList.remove('show');await loadInventoryItems();const surface=_UP.get('previewinventory')==='shop'?'shop':'profile';document.documentElement.dataset.inventoryPreviewSurface=surface;if(surface==='shop'){openShop();document.querySelector('.shop-tab[data-tab="armor"]')?.click();return;}_profileTab='inv';const modal=document.getElementById('profileModal');modal?.setAttribute('data-profile-tab','inv');modal?.classList.add('show');renderProfileTab();},1200);
+if(_LOCAL_PREVIEW&&_UP.has('previewbossp0'))setTimeout(()=>{currentWeapon='pistol_heavy';_saveCurrentWeaponChoice();renderWeaponHud();document.getElementById('profileModal')?.classList.remove('show');document.getElementById('npcEmpireOverlay')?.classList.remove('show');const keepAlive=setInterval(()=>{if(!document.documentElement.isConnected){clearInterval(keepAlive);return;}myDead=false;myHp=Math.max(1000,+myHp||0);player.hp=myHp;const boss=SPECIALIST_NPCS.find(n=>n._empireBoss&&!n.dead&&String(n._empireAction?.kind||'')==='player_business_raid');if(boss&&!document.documentElement.dataset.empireBossServerHit){boss.r=boss.tr=player.r+4;boss.c=boss.tc=player.c-3;boss.walking=false;_clearNpcRoute(boss);}const p=boss?w2s(boss.r,boss.c):null;document.documentElement.dataset.previewBossP0=boss&&p?`armed:alive:${boss._specialistId}:${Math.round(p.x)}:${Math.round(p.y)}:${Math.round(+boss._empireBattleHp||0)}/${Math.round(+boss._empireBattleMaxHp||0)}:war-${boss._empirePlayerWar?1:0}:prov-${performance.now()<(+boss._empirePlayerProvokedUntil||0)?1:0}:err-${String(boss._lastServerHitError||'none').replace(/:/g,'-')}`:'armed:alive:missing';},80);},1750);
 if(_LOCAL_PREVIEW&&_UP.has('previewbusinessinteriorraid'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInteriorRaid(),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcivilianfight'))setTimeout(function seedCivilianFightPreview(){
   const civilian=NPCS.find(n=>n&&!n.dead&&!n._guard&&!n.police&&n._arc?.panicMult!==0);

@@ -26830,6 +26830,50 @@ def _npc_empire_live_field_position(world, uid: int,
         return None
 
 
+def _npc_empire_field_route_witness(empire: dict, player_r: float,
+                                    player_c: float) -> dict:
+    """Bind a field encounter to the nearest server-authored activity corridor."""
+    activity = empire.get('activity') if isinstance(empire, dict) else None
+    if not isinstance(activity, dict):
+        return {'ok': False, 'error': 'activity unavailable'}
+    try:
+        target_r=float(activity['target_r']);target_c=float(activity['target_c'])
+        origin_r=float(activity.get('source_r', empire.get('hq_r')))
+        origin_c=float(activity.get('source_c', empire.get('hq_c')))
+    except (KeyError,TypeError,ValueError):
+        return {'ok': False, 'error': 'activity corridor unavailable'}
+    if not all(math.isfinite(value) for value in (
+            target_r,target_c,origin_r,origin_c,float(player_r),float(player_c))):
+        return {'ok': False, 'error': 'activity corridor unavailable'}
+    def route_endpoint(c: float, r: float) -> tuple[float, float] | None:
+        for radius in range(5):
+            for dr in range(-radius,radius+1):
+                for dc in range(-radius,radius+1):
+                    if max(abs(dr),abs(dc))!=radius:continue
+                    candidate=(int(c)+dc+.5,int(r)+dr+.5)
+                    if _world_bot_passable(*candidate):return candidate
+        return None
+    origin=route_endpoint(origin_c,origin_r);target=route_endpoint(target_c,target_r)
+    if not origin or not target:
+        return {'ok': False, 'error': 'activity corridor unavailable'}
+    route=[origin,*_world_bot_path(origin[0],origin[1],target[0],target[1])]
+    if len(route)<2:
+        return {'ok': False, 'error': 'activity corridor unavailable'}
+    best=None
+    for (ax,ay),(bx,by) in zip(route,route[1:]):
+        dx=bx-ax;dy=by-ay;length_sq=dx*dx+dy*dy
+        along=0.0 if length_sq<=1e-9 else max(0.0,min(1.0,
+            ((float(player_c)-ax)*dx+(float(player_r)-ay)*dy)/length_sq))
+        witness_r=ay+dy*along;witness_c=ax+dx*along
+        distance=math.hypot(float(player_r)-witness_r,float(player_c)-witness_c)
+        if best is None or distance<best[0]:best=(distance,witness_r,witness_c)
+    if best is None or best[0]>npc_empire.FIELD_ACTOR_WITNESS_RANGE:
+        return {'ok': False, 'error': 'player outside activity corridor'}
+    generation=f"{activity.get('kind','')}:{activity.get('target_id','')}:{int(activity.get('created_at') or 0)}"
+    return {'ok':True,'r':best[1],'c':best[2],'distance':best[0],
+            'generation':generation[:160]}
+
+
 def _npc_empire_field_shot_geometry(world, uid: int, context: dict,
                                     weapon: str, hit_r: float, hit_c: float,
                                     now: float | None = None) -> dict:
@@ -28855,9 +28899,22 @@ async def _coop_http_app():
             published=await npc_empire.state_for(DB_PATH,uid)
             empire=next((item for item in published.get('empires',[])
                          if str(item.get('leader_id') or '')==leader_id),None)
-            result=await npc_empire.prepare_field_encounter(
-                DB_PATH,uid,leader_id,r,c,
-                server_activity=(empire or {}).get('activity'))
+            witness=_npc_empire_field_route_witness(empire or {},r,c)
+            if not witness.get('ok'):
+                result=witness
+            else:
+                result=await npc_empire.prepare_field_encounter(
+                    DB_PATH,uid,leader_id,r,c,
+                    server_activity=(empire or {}).get('activity'),
+                    actor_r=witness['r'],actor_c=witness['c'])
+                if result.get('ok'):
+                    result['position_authority']='server-route-v1'
+                    result['activity_generation']=witness['generation']
+                    try:
+                        hint_distance=math.hypot(float(body.get('actor_r'))-witness['r'],
+                                                 float(body.get('actor_c'))-witness['c'])
+                    except (TypeError,ValueError):hint_distance=0.0
+                    result['reconcile_required']=hint_distance>4.0
         elif mode == 'hq':
             live=_WORLD.players.get(str(uid)) if _WORLD else None
             # Preserve the existing explicit-coordinate preview fallback for HQ.

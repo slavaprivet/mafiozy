@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import math
 import random
 import secrets
 import time
@@ -25,6 +26,7 @@ NPC_DIPLOMACY_PEACE_STEP_SECONDS = 6 * 60 * 60
 ASSAULT_SECONDS = 20 * 60
 FIELD_ENCOUNTER_SECONDS = 5 * 60
 FIELD_HOSPITAL_CLAIM_SECONDS = 3 * 60
+FIELD_ACTOR_WITNESS_RANGE = 12.0
 COMEBACK_MIN_SECONDS = 30 * 60
 COMEBACK_MAX_SECONDS = 90 * 60
 RELATION_MIN = -100
@@ -4720,7 +4722,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             (telegram_id,))).fetchall()]
         field_encounters = {str(r['leader_id']): dict(r) for r in await (await db.execute(
             "SELECT encounter_id,leader_id,boss_hp,boss_max_hp,status,expires_at,"
-            "defeated_at FROM npc_empire_field_encounters "
+            "defeated_at,anchor_r,anchor_c,anchor_id,anchor_at,version "
+            "FROM npc_empire_field_encounters "
             "WHERE status IN ('active','defeated')"
         )).fetchall()}
         npc_guard_assignments = {
@@ -4901,6 +4904,12 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                 'status': str(field_encounters[leader_id]['status']),
                 'expires_at': int(field_encounters[leader_id]['expires_at']),
                 'defeated_at': int(field_encounters[leader_id]['defeated_at']),
+                'anchor': {'r': float(field_encounters[leader_id]['anchor_r']),
+                           'c': float(field_encounters[leader_id]['anchor_c']),
+                           'id': str(field_encounters[leader_id]['anchor_id']),
+                           'at': int(field_encounters[leader_id]['anchor_at'])},
+                'version': int(field_encounters[leader_id]['version']),
+                'position_authority': 'server-route-v1',
             } if leader_id in field_encounters else None),
         })
     leaderboard = sorted(result, key=lambda e: (
@@ -6029,7 +6038,9 @@ async def prepare_assault(db_path: str, telegram_id: int, leader_id: str,
 async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str,
                                   player_r: float, player_c: float,
                                   now: int | None = None,
-                                  server_activity: dict | None = None) -> dict:
+                                  server_activity: dict | None = None,
+                                  actor_r: float | None = None,
+                                  actor_c: float | None = None) -> dict:
     """Issue the existing assault proof for a nearby, server-located street boss."""
     now = int(now or time.time())
     profile = PROFILE_BY_ID.get(str(leader_id or ''))
@@ -6052,11 +6063,31 @@ async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str
         activity = (dict(server_activity) if isinstance(server_activity, dict)
                     else _visible_activity(profile, row, holdings, now))
         hq_r, hq_c = _hq_coords(str(row['hq_key'] or profile.hq_key))
-        anchor_r = float(activity.get('target_r', hq_r))
-        anchor_c = float(activity.get('target_c', hq_c))
+        target_r = float(activity.get('target_r', hq_r))
+        target_c = float(activity.get('target_c', hq_c))
+        witnessed_actor = actor_r is not None or actor_c is not None
+        if witnessed_actor:
+            try:
+                actor_r = float(actor_r); actor_c = float(actor_c)
+            except (TypeError, ValueError):
+                await db.rollback()
+                return {'ok': False, 'error': 'bad actor witness'}
+            if not math.isfinite(actor_r) or not math.isfinite(actor_c):
+                await db.rollback()
+                return {'ok': False, 'error': 'bad actor witness'}
+            if math.hypot(float(player_r) - actor_r,
+                          float(player_c) - actor_c) > FIELD_ACTOR_WITNESS_RANGE:
+                await db.rollback()
+                return {'ok': False, 'error': 'actor not nearby'}
+            anchor_r, anchor_c = actor_r, actor_c
+        else:
+            # Rolling clients keep the old target-bound proof until they send
+            # a physical actor witness. New clients bind the proof to the boss
+            # actually visible beside the authoritative websocket player.
+            anchor_r, anchor_c = target_r, target_c
         anchor_id = str(activity.get('target_id') or row['hq_key'] or profile.hq_key)
         anchor_at = int(activity.get('created_at') or now)
-        if (float(player_r) - anchor_r) ** 2 + (float(player_c) - anchor_c) ** 2 > 100:
+        if (float(player_r) - anchor_r) ** 2 + (float(player_c) - anchor_c) ** 2 > FIELD_ACTOR_WITNESS_RANGE ** 2:
             await db.rollback()
             return {'ok': False, 'error': 'too far'}
         active_rows = await (await db.execute(
@@ -6079,7 +6110,22 @@ async def prepare_field_encounter(db_path: str, telegram_id: int, leader_id: str
                         "UPDATE npc_empire_assaults SET status='abandoned',"
                         "resolution='missing_field_encounter' WHERE token=?", (active['token'],))
                     continue
-                await db.rollback()
+                if (witnessed_actor and str(encounter['status']) == 'active'
+                        and str(encounter['anchor_id']) == anchor_id
+                        and (abs(float(encounter['anchor_r']) - anchor_r) > .05
+                             or abs(float(encounter['anchor_c']) - anchor_c) > .05)):
+                    await db.execute(
+                        "UPDATE npc_empire_field_encounters SET anchor_r=?,anchor_c=?,"
+                        "updated_at=?,version=version+1 WHERE encounter_id=? AND status='active'",
+                        (anchor_r, anchor_c, now, encounter['encounter_id']))
+                    await db.execute(
+                        "UPDATE npc_empire_assaults SET anchor_r=?,anchor_c=? "
+                        "WHERE field_encounter_id=? AND status='active'",
+                        (anchor_r, anchor_c, encounter['encounter_id']))
+                    encounter = await _field_encounter(db, str(encounter['encounter_id']))
+                    await db.commit()
+                else:
+                    await db.rollback()
                 return {
                     'ok': True, 'duplicate': True, 'token': str(active['token']),
                     'leader_id': leader_id, 'leader_name': profile.leader_name,

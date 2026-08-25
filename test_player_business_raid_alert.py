@@ -36,15 +36,17 @@ def main():
     assert '_npcEmpireInteriorRaids=Array.isArray(j.interior_raids)?j.interior_raids:[]' in world
     assert '(_npcEmpireInteriorRaids||[]).find(raid=>' in world
     assert 'function _playerBusinessRaidActivityIsActive(activity' in world
-    assert '.find(raid=>_playerBusinessRaidActivityIsActive(raid,now))' in world
-    assert 'activity?_npcEmpireById.get(String(activity.leader_id' in world
+    assert "String(entry.activity?.kind||'')==='player_business_raid'" in world
+    assert 'candidates=[...interior,...exterior]' in world
+    assert 'entry=candidates[0]||null' in world
+    assert "interior=(_npcEmpireInteriorRaids||[]).map(activity=>({empire:_npcEmpireById.get" in world
     assert "['resolved','expired'].includes" in world
     assert '_seenPlayerBusinessRaidAlerts.size>24' in world
     assert 'function _playerRaidThreatPresentation(activity,target=null)' in world
     assert "const id=String(activity?.target_id||''),kind=String(activity?.target_kind||''),hq=kind==='hq'" in world
     assert "id===String(empire?.hq_key||'')" not in world
-    assert "capture=String(activity?.objective||'')==='followup-capture'" in world
-    assert "verb=capture?'захватывают':'атакуют'" in world
+    assert "capture=phase?phase==='capture':String(activity?.objective||'')==='followup-capture'" in world
+    assert "verb=capture?'захватывают':phase==='approach'?'идут атаковать':'атакуют'" in world
     assert 'title:presentation.title' in world
     assert 'Атака ${free??\'—\'} · защита ${guards??\'—\'} · цель: ${alert.plan.objectiveLabel}' in world
     assert 'assignedObjectGuards:Number.isFinite(+activity.defender_count)' in world
@@ -57,6 +59,9 @@ def main():
     assert 'stakes,counterTip,plan:' in world and 'plan.counterTip' in world
     assert 'raid_policy' in world and 'raid_metrics' in world and 'target_reason' in world
     assert ':objective-${plan.objective}:doctrine-${plan.doctrineId}`' in world
+    assert ':phase-${plan.exteriorPhase}:step-${plan.phaseStep}:objective-${plan.objective}' in world
+    assert "?'ЗАХВАТЫВАЮТ':alert.plan?.exteriorPhase==='fight'?'БОЙ У ОБЪЕКТА':'ПРИБЛИЖАЮТСЯ'" in world
+    assert 'ФАЗА ${alert.plan.phaseStep}' in world
     assert "'objective': objective" in server
     assert '_player_business_raid_objective(' in server
     war_activity = server.split('def _player_war_activity', 1)[1].split(
