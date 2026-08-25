@@ -2876,3 +2876,20 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Звёзды нокаута используют одну общую extruded-геометрию: четыре mesh игрока
   и фиксированный instanced-пул `NPC_CAP * 4`. При окончании нокаута слоты
   детерминированно скрываются, а не удаляются и не пересоздаются.
+
+## Vehicle interaction/render admission parity (2026-08-26)
+
+- A desktop live baseline exposed `liveCars=30` while the renderer intentionally
+  kept `vehicleSlots=18/18`. The interaction bridge scanned all enterable cars,
+  but sticky ambient admission plus later service/quest/bus prepends could place
+  that same nearby car outside the first 18 records. The prompt and brass ring
+  therefore remained valid while no 3D body owned a slot.
+- Keep the 18-slot render budget. Pass the already sampled nearby interaction ID
+  into the existing dynamic snapshot and rank it before sticky/distance policy;
+  after higher-priority fleet prepends, move that one record back into the
+  renderer prefix. This replaces one farther car and adds no draw call, timer,
+  network request, geometry, material or slot.
+- Test both causal failures: a non-sticky near car against 18 sticky candidates,
+  and an admitted ambient car displaced to index 18 by a service prepend. Live
+  telemetry must report the interaction ID at index 0..17 and still report
+  exactly 18 vehicle slots. A missing preferred ID preserves existing order.

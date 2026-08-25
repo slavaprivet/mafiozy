@@ -66218,19 +66218,20 @@ window.Mafiozi3DBridge = Object.freeze({
     const streamableLandmarks=pois.filter(p=>p.id==='junkyard');
     return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,obstacles,pois,streamableLandmarks,coast,canal,neighborhoods,landmarks};
   },
-  getDynamicEntities(radius = 38) {
+  getDynamicEntities(radius = 38, preferredVehicleId = '') {
     const streamRadius=Math.max(12,Math.min(65,+radius||38)),rad2=streamRadius**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;
+    const preferredId=String(preferredVehicleId||'');
     const fxNow=performance.now(),wallNow=Date.now();
     const inside=!!(_buildingInt||_bankInt);
     const carCandidates=[],carSource=inside?[]:(typeof CARS!=='undefined'?CARS:[]);
     for(const x of carSource){
       if(!x||x._hidden||x._towed)continue;
-      const id=_threeVehicleEntityId(x),d2=((+x.r||0)-player.r)**2+((+x.c||0)-player.c)**2,sticky=_threeStickyVehicleIds.has(id);
+      const id=_threeVehicleEntityId(x),d2=((+x.r||0)-player.r)**2+((+x.c||0)-player.c)**2,sticky=_threeStickyVehicleIds.has(id),preferred=id===preferredId;
       if(d2>rad2&&!(sticky&&d2<=(streamRadius+7)**2))continue;
       let lo=0,hi=carCandidates.length;
       while(lo<hi){
         const mid=(lo+hi)>>1,other=carCandidates[mid],otherId=_threeVehicleEntityId(other),otherD2=((+other.r||0)-player.r)**2+((+other.c||0)-player.c)**2;
-        const order=(sticky?0:1)-(_threeStickyVehicleIds.has(otherId)?0:1)||d2-otherD2||id.localeCompare(otherId);
+        const order=(preferred?0:1)-(otherId===preferredId?0:1)||(sticky?0:1)-(_threeStickyVehicleIds.has(otherId)?0:1)||d2-otherD2||id.localeCompare(otherId);
         if(order<0)hi=mid;else lo=mid+1;
       }
       if(lo>=18)continue;
@@ -66329,6 +66330,10 @@ window.Mafiozi3DBridge = Object.freeze({
       cars.unshift({id:`quest_${q.id}`,r:+q.y||0,c:+q.x||0,ang:+q.ang||0,model:modelName,paint:policePatrol?'#19558c':q.color||q.paint||model?.palette?.[0]||'#b8323d',parked:!q.driver_uid,length:+model?.L||1.7,width:+model?.W||.85,height:+model?.height||.55,wheelR:+model?.wheelR||.18,sport:!!model?.sport,pickup:!!model?.pickup,van:!!model?.van,suv:!!model?.suv,cabrio:!!model?.cabrio,taxi:!!model?.taxi,limo:!!model?.limo,muscle:!!model?.muscle,classic:!!model?.classic,gang:false,helicopter:!!model?.helicopter,emergency:policePatrol?'police':'',emergencyLights:policePatrol&&!!q.siren,stripe:policePatrol?'#e7f0f5':q.owner_uid?'#ffd76b':'',serviceKind:policePatrol?'police_patrol':'',policePatrol,policeTier:0,dirR:+q.vy||0,dirC:+q.vx||0,velR:+q.vy||0,velC:+q.vx||0,braking:false,turning:false,quest:true,damageRatio:Number.isFinite(q._ballisticHp)?Math.max(0,q._ballisticHp/Math.max(1,q._ballisticMax||q.max_hp||240)):1,bulletHoles:+q._bulletHoleCount||0,bulletMarks:q._threeBulletMarks||[],hitAge:fxNow-(+q._lastCarHitAt||0),smoking:!!q._hoodSmoking,burning:!!q._hoodBurning,wrecked:!!(q._shotWrecked||q._wrecked||q.wrecked),destroying:!!q._destroySequenceAt,destroyAge:q._destroySequenceAt?Math.max(0,fxNow-q._destroySequenceAt):0,destroyDelay:+q._destroySequenceDelay||CAR_GUN_DESTRUCTION_DELAY,burnedOut:!!q._burnedOut,wreckAge:q._explosionT?Math.max(0,fxNow-q._explosionT):99999});
     }
     if(!inside&&typeof BUS!=='undefined'&&near(+BUS.r||0,+BUS.c||0))cars.unshift({id:'city_bus',r:+BUS.r||0,c:+BUS.c||0,ang:+BUS.ang||0,model:'city_bus',paint:'#d5aa35',parked:BUS.state==='stopped',length:2.65,width:1.05,height:1.08,wheelR:.22,sport:false,pickup:false,van:true,suv:false,cabrio:false,taxi:false,limo:false,muscle:false,classic:false,gang:false,helicopter:false,emergency:'',stripe:'#26364a',dirR:Math.sin(+BUS.ang||0),dirC:Math.cos(+BUS.ang||0),velR:Math.sin(+BUS.ang||0)*(+BUS.speed||0),velC:Math.cos(+BUS.ang||0)*(+BUS.speed||0),braking:BUS.state==='stopped',turning:false,bus:true});
+    // Interaction and rendering must admit the same vehicle. Service/quest/bus
+    // unshifts and the sticky ambient budget may otherwise leave a valid E
+    // prompt pointing at a car beyond the renderer's fixed first 18 slots.
+    if(preferredId){const preferredIndex=cars.findIndex(car=>String(car?.id||'')===preferredId);if(preferredIndex>0)cars.unshift(cars.splice(preferredIndex,1)[0]);}
     // Службы имеют отдельный запас и больше не вытесняют стабильный ambient-
     // набор при каждом приближении. Это убирает мерцание машин у границы cap.
     if(cars.length>30){
@@ -70810,6 +70815,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416+junkyard-light-budget-v425+bridge-hangers-v426&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1&melee=smart-heavy-forward-kick-v16"></script>
+<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416+junkyard-light-budget-v425+bridge-hangers-v426+vehicle-admission-v427&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1&melee=smart-heavy-forward-kick-v16"></script>
 </body>
 </html>
