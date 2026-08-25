@@ -26329,6 +26329,7 @@ async function wsConnect() {
       // вернёт его. Если просто инет лагает — игрок не чувствует rubber.
       if (d.me) {
         const wasDead=myDead;
+        if(typeof d.me.police==='boolean')_applyAuthoritativePoliceEmployment(d.me.police);
         _applyAuthoritativeCombatState(d.me.combat_state);
         _applyAuthoritativeAmmoState(d.me.ammo_state);
         _apartmentHosts=Array.isArray(d.me.apartment_hosts)?d.me.apartment_hosts:[];
@@ -55963,6 +55964,20 @@ function _policeUniformLook(base){base=base||{};return{gender:base.gender|0,skin
 function _setPoliceLook(look){QP.look=Object.assign({},look||{});_spriteCache?.clear?.();try{getSprite(QP.look);renderHudAvatar();}catch(e){}}
 function _applyPoliceUniform(){if(!_policeState.employed)return;_setPoliceLook(_policeUniformLook(_policeState.civilianLook||QP.look||{}));}
 function _savePoliceState(){try{localStorage.setItem(_policeStoreKey,JSON.stringify(_policeState));localStorage.setItem('mafiozi_police_employed',_policeState.employed?'1':'0');}catch(e){}}
+function _applyAuthoritativePoliceEmployment(value){
+  if(typeof value!=='boolean'||_policeState.employed===value)return false;
+  if(value){
+    if(!_policeState.civilianLook)_policeState.civilianLook=Object.assign({},QP.look||{});
+    _policeState.employed=true;_disbandGangForPolice();_applyPoliceUniform();
+  }else{
+    const civilianLook=_policeState.civilianLook;
+    _policeState.employed=false;_policeState.civilianLook=null;
+    if(civilianLook)_setPoliceLook(civilianLook);
+  }
+  _savePoliceState();_refreshMafiaPerks();renderJobStatus();renderPoliceModal();
+  if(_profileTab==='status')renderProfileTab();renderWeaponHud();if(_wepPickOpen)renderWeaponPick();
+  return true;
+}
 function _loadPoliceState(){try{const s=JSON.parse(localStorage.getItem(_policeStoreKey)||'null');if(s&&Array.isArray(s.missions)){let escort=s.escort||null,missions=s.missions.slice(0,POLICE_MISSION_MAX),cuffs=Math.max(0,+s.cuffs||0);if(escort&&(escort._submitted||!missions.some(m=>String(m.id)===String(escort.missionId)))){missions=missions.filter(m=>String(m.id)!==String(escort.missionId));cuffs=Math.min(3,cuffs+1);escort=null;}else if(escort){const now=performance.now();escort._turningIn=false;escort._inside=false;escort.waiting=!!escort.waiting;escort.cryText=_policePickDifferent(_POLICE_ESCORT_CRIES,escort.cryText);escort.cryUntil=now+1900;escort._nextCryAt=now+2600+Math.random()*900;}_policeState={employed:!!s.employed,missions,cuffs,escort,earnedXp:Math.min(POLICE_TASER_XP,+s.earnedXp||0),seq:+s.seq||0,civilianLook:s.civilianLook||null,resetPending:false};}}catch(e){}if(_policeState.employed){_disbandGangForPolice();if(!_policeState.civilianLook)_policeState.civilianLook=Object.assign({},QP.look||{});_applyPoliceUniform();}_savePoliceState();}
 let _lastPoliceTaserAt=0,_policeTaserAmmo=5;
 function _findPoliceTaserTarget(angle){
