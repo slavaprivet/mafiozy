@@ -134,6 +134,14 @@ preview_boss_memory_failures = set()
 preview_boss_memory_pending = set()
 preview_boss_memory_admission_lock = asyncio.Lock()
 preview_connections = {}
+preview_c4_profiles = {}
+preview_c4_sessions = {}
+preview_c4_uid_locks = {}
+preview_c4_failures = set()
+preview_c4_pending = set()
+preview_c4_admission_lock = asyncio.Lock()
+PREVIEW_C4_MAX_PROFILES = 4
+PREVIEW_C4_SESSION_SECONDS = 10 * 60
 preview_apartments = {}
 preview_custom_gangs = {}
 preview_custom_gang_by_uid = {}
@@ -1859,6 +1867,14 @@ def _preview_fixture_response_headers(response):
     return response
 
 
+def _preview_c4_no_store(response):
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Referrer-Policy"] = "same-origin"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 def _preview_boss_memory_sweep(now=None):
     now = int(now or time.time())
     expired = [token for token, session in preview_boss_memory_sessions.items()
@@ -2031,6 +2047,157 @@ def _preview_boss_memory_session(req, uid):
     if not profile or profile["generation"] != session["generation"]:
         return None, "invalid"
     return profile, "ok"
+def _preview_c4_page_allowed(req):
+    return (_preview_loopback_request(req)
+            and str(req.headers.get("Sec-Fetch-Dest") or "") == "document")
+
+
+def _preview_c4_root():
+    root = Path(os.getenv(
+        "MAFIOZI_PREVIEW_C4_ROOT", r"D:\CodexTemp\mafiozi_preview_c4_sabotage"))
+    resolved = root.resolve()
+    if resolved.drive.upper() != "D:":
+        raise RuntimeError("preview C4 root must be on D:")
+    resolved.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
+async def _preview_c4_seed(uid):
+    generation = secrets.token_hex(8)
+    path = _preview_c4_root() / (
+        f"boss-c4-{os.getpid()}-{uid}-{generation}.sqlite3")
+    async with aiosqlite.connect(path) as db:
+        await db.executescript("""
+        CREATE TABLE characters(
+            telegram_id INTEGER PRIMARY KEY,cash INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE business_property_owners(
+            biz_id TEXT PRIMARY KEY,owner_uid TEXT,owner_name TEXT,
+            acquired_at INTEGER,protected_until INTEGER
+        );
+        CREATE TABLE player_businesses(
+            telegram_id INTEGER,biz_id TEXT PRIMARY KEY,bought_at INTEGER,
+            last_collect INTEGER,status TEXT,blocked_until INTEGER,
+            last_event_at INTEGER,level INTEGER,guards INTEGER,pending_notice TEXT
+        );
+        CREATE TABLE apartments_owned(
+            telegram_id INTEGER,apt_key TEXT,price INTEGER,bought_at INTEGER,
+            property_kind TEXT,operation_type TEXT,area INTEGER,
+            income_per_minute INTEGER,last_income_at INTEGER,
+            PRIMARY KEY(telegram_id,apt_key)
+        );
+        CREATE TABLE inventory(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,telegram_id INTEGER,
+            item_id TEXT,quantity INTEGER DEFAULT 1
+        );
+        """)
+        await db.execute(
+            "INSERT INTO characters(telegram_id,cash) VALUES(?,1000000)", (uid,))
+        await db.execute(
+            "INSERT INTO inventory(telegram_id,item_id,quantity) VALUES(?,'c4',2)",
+            (uid,))
+        await db.commit()
+    await npc_empire.ensure_schema(str(path))
+    holding_id = "0,5"
+    area = npc_empire.BUILDING_AREAS[holding_id]
+    async with aiosqlite.connect(path) as db:
+        db.row_factory = aiosqlite.Row
+        await db.execute(
+            "INSERT OR REPLACE INTO npc_empire_holdings"
+            "(kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area) "
+            "VALUES('building',?,?,?,?,?,?,?)",
+            (holding_id, "leila",
+             npc_empire.building_operation_income("beer_bar", area),
+             58, int(time.time()) - 300, "beer_bar", area))
+        await db.execute(
+            "INSERT OR REPLACE INTO npc_empire_relations"
+            "(leader_id,telegram_id,score,pact,last_action_at) "
+            "VALUES('leila',?,-35,'none',0)", (uid,))
+        await npc_empire._reconcile_npc_guards(db, "leila", int(time.time()))
+        await db.commit()
+    return {"uid": uid, "path": str(path), "generation": generation,
+            "leader_id": "leila", "holding_id": holding_id}
+
+
+async def _preview_c4_profile(uid):
+    async with preview_c4_admission_lock:
+        profile = preview_c4_profiles.get(uid)
+        if profile:
+            return profile
+        if uid in preview_c4_failures:
+            raise RuntimeError("preview C4 seed previously failed")
+        if uid not in preview_c4_pending:
+            occupied = (len(preview_c4_profiles) + len(preview_c4_failures)
+                        + len(preview_c4_pending))
+            if occupied >= PREVIEW_C4_MAX_PROFILES:
+                raise RuntimeError("preview C4 profile capacity reached")
+            preview_c4_pending.add(uid)
+        lock = preview_c4_uid_locks.setdefault(uid, asyncio.Lock())
+    async with lock:
+        async with preview_c4_admission_lock:
+            profile = preview_c4_profiles.get(uid)
+            if profile:
+                return profile
+            if uid in preview_c4_failures:
+                raise RuntimeError("preview C4 seed previously failed")
+            if uid not in preview_c4_pending:
+                occupied = (len(preview_c4_profiles) + len(preview_c4_failures)
+                            + len(preview_c4_pending))
+                if occupied >= PREVIEW_C4_MAX_PROFILES:
+                    raise RuntimeError("preview C4 profile capacity reached")
+                preview_c4_pending.add(uid)
+                preview_c4_uid_locks[uid] = lock
+        try:
+            profile = await _preview_c4_seed(uid)
+        except asyncio.CancelledError:
+            async with preview_c4_admission_lock:
+                preview_c4_pending.discard(uid)
+                # Retain the same per-UID lock. Existing waiters and a fresh
+                # caller must serialize through it instead of racing a new lock.
+            raise
+        except Exception as exc:
+            async with preview_c4_admission_lock:
+                preview_c4_pending.discard(uid)
+                preview_c4_failures.add(uid)
+                if preview_c4_uid_locks.get(uid) is lock:
+                    preview_c4_uid_locks.pop(uid, None)
+            raise RuntimeError("preview C4 seed failed") from exc
+        async with preview_c4_admission_lock:
+            preview_c4_pending.discard(uid)
+            preview_c4_profiles[uid] = profile
+            if preview_c4_uid_locks.get(uid) is lock:
+                preview_c4_uid_locks.pop(uid, None)
+        return profile
+
+
+def _preview_c4_api_profile(req):
+    token = str(req.headers.get("X-Mafiosi-Preview-Fixture") or "")
+    session = preview_c4_sessions.get(token)
+    if not session or not re.fullmatch(r"[0-9a-f]{48}", token):
+        return None, "invalid token"
+    now = int(time.time())
+    if int(session.get("expires_at") or 0) <= now:
+        preview_c4_sessions.pop(token, None)
+        return None, "expired token"
+    uid_text = str(req.match_info.get("uid") or "")
+    if (not uid_text.isdigit() or not (1 <= len(uid_text) <= 18)
+            or int(uid_text) <= 0):
+        return None, "bad uid"
+    uid = int(uid_text)
+    profile = preview_c4_profiles.get(uid)
+    expected_origin = str(session.get("origin") or "")
+    if (uid != int(session.get("uid") or 0) or not profile
+            or profile.get("generation") != session.get("generation")):
+        return None, "profile mismatch"
+    if not _preview_loopback_request(req, state_fetch=True):
+        return None, "origin mismatch"
+    current_origin = f"{req.scheme}://{str(req.headers.get('Host') or '')}"
+    if current_origin != expected_origin:
+        return None, "origin mismatch"
+    origin = str(req.headers.get("Origin") or "")
+    if req.method != "GET" and origin != expected_origin:
+        return None, "origin mismatch"
+    return profile, ""
 
 
 async def preview_world(req):
@@ -2040,6 +2207,9 @@ async def preview_world(req):
         f"{req.scheme}://{req.host}/coop_api.json?t=",
     )
     values = req.query.getall("previewbossmemory", [])
+    c4_values = req.query.getall("previewc4sabotage", [])
+    if values and c4_values:
+        return _preview_fixture_error("mixed preview fixtures", 400)
     if values:
         if values != ["1"]:
             return _preview_fixture_error("bad preview fixture", 400)
@@ -2072,7 +2242,38 @@ async def preview_world(req):
             return _preview_fixture_error("preview fixture anchor missing", 503)
         html = html.replace("</head>", script + "</head>", 1)
     response = web.Response(text=html, content_type="text/html")
-    return (_preview_fixture_response_headers(response) if values else response)
+    if values:
+        return _preview_fixture_response_headers(response)
+    if c4_values and c4_values != ["1"]:
+        return _preview_c4_no_store(web.Response(status=400, text="bad preview fixture"))
+    c4_enabled = c4_values == ["1"]
+    if c4_enabled:
+        if not _preview_c4_page_allowed(req):
+            return _preview_c4_no_store(web.Response(status=403, text="forbidden"))
+        uid_values = req.query.getall("uid", [])
+        uid_text = uid_values[0] if len(uid_values) == 1 else ""
+        if (not uid_text.isdigit() or not (1 <= len(uid_text) <= 18)
+                or int(uid_text) <= 0):
+            return _preview_c4_no_store(web.Response(status=400, text="uid required"))
+        uid = int(uid_text)
+        try:
+            profile = await _preview_c4_profile(uid)
+        except (OSError, RuntimeError) as exc:
+            return _preview_c4_no_store(web.Response(status=503, text=str(exc)))
+        for old_token, old_session in list(preview_c4_sessions.items()):
+            if int(old_session.get("uid") or 0) == uid:
+                preview_c4_sessions.pop(old_token, None)
+        token = secrets.token_hex(24)
+        origin = f"{req.scheme}://{req.host}"
+        preview_c4_sessions[token] = {
+            "uid": uid, "generation": profile["generation"], "origin": origin,
+            "expires_at": int(time.time()) + PREVIEW_C4_SESSION_SECONDS,
+        }
+        bootstrap = ("<script>globalThis.__previewC4SabotageToken="
+                     + json.dumps(token) + ";</script>")
+        html = html.replace("</head>", bootstrap + "</head>", 1)
+    response = web.Response(text=html, content_type="text/html")
+    return _preview_c4_no_store(response) if c4_enabled else response
 
 
 async def preview_three_module(_req):
@@ -2106,8 +2307,16 @@ def _preview_empire_activity(profile, now):
 
 
 async def npc_empire_state(req):
-    uid = str(req.match_info.get("uid") or "1")
     fixture_token = str(req.headers.get("X-Mafiosi-Preview-Fixture") or "")
+    if fixture_token in preview_c4_sessions:
+        profile, error = _preview_c4_api_profile(req)
+        if error:
+            return _preview_c4_no_store(web.json_response(
+                {"ok": False, "error": error}, status=403))
+        payload = await npc_empire.state_for(profile["path"], int(profile["uid"]))
+        payload["ok"] = True
+        return _preview_c4_no_store(web.json_response(payload))
+    uid = str(req.match_info.get("uid") or "1")
     if fixture_token:
         if (not uid.isdigit() or not (1 <= len(uid) <= 18) or int(uid) <= 0
                 or not _preview_loopback_request(req, state_fetch=True)):
@@ -2122,7 +2331,7 @@ async def npc_empire_state(req):
         except (OSError, RuntimeError):
             return _preview_fixture_error("preview fixture unavailable", 503)
         return _preview_fixture_response_headers(
-            cors(web.json_response({"ok": True, **state})))
+            web.json_response({"ok": True, **state}))
     now = int(time.time())
     empires = []
     for rank, profile in enumerate(npc_empire.PROFILES, 1):
@@ -2202,6 +2411,52 @@ async def npc_empire_state(req):
     return cors(web.json_response({"ok": True, "empires": empires,
         "leaderboard": [e["leader_id"] for e in empires], "districts": [],
         "diplomacy": diplomacy, "events": [], "player_war_events": [], "server_time": now}))
+
+
+async def npc_empire_building_action(req):
+    profile, error = _preview_c4_api_profile(req)
+    if error:
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": error}, status=403))
+    content_type = str(req.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+    if content_type != "application/json":
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": "json required"}, status=415))
+    try:
+        declared = int(req.headers.get("Content-Length") or 0)
+    except ValueError:
+        declared = 513
+    if declared > 512:
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": "payload too large"}, status=413))
+    try:
+        raw = await req.content.readexactly(513)
+    except asyncio.IncompleteReadError as exc:
+        raw = exc.partial
+    if len(raw) > 512:
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": "payload too large"}, status=413))
+    try:
+        body = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": "bad json"}, status=400))
+    allowed = {"leader_id", "holding_id", "action", "request_key"}
+    if not isinstance(body, dict) or set(body) - allowed:
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": "bad fields"}, status=400))
+    if (body.get("leader_id") != profile["leader_id"]
+            or body.get("holding_id") != profile["holding_id"]
+            or body.get("action") != "sabotage"):
+        return _preview_c4_no_store(web.json_response(
+            {"ok": False, "error": "fixture target required"}, status=400))
+    result = await npc_empire.npc_building_action(
+        profile["path"], int(profile["uid"]), body["leader_id"],
+        body["holding_id"], body["action"],
+        request_key=str(body.get("request_key") or ""))
+    status = 200 if result.get("ok") else (
+        400 if result.get("error") in {"bad action", "bad request key"} else 409)
+    return _preview_c4_no_store(web.json_response(result, status=status))
 
 
 async def npc_empire_diplomacy(req):
@@ -4312,6 +4567,7 @@ app.router.add_post("/custom-gang/{uid}/treasury", custom_gang_treasury)
 app.router.add_post("/custom-gang/{uid}/edit", custom_gang_edit)
 app.router.add_post("/custom-gang/{uid}/npcs/sync", custom_gang_npc_sync)
 app.router.add_get("/npc-empires/{uid}/state", npc_empire_state)
+app.router.add_post("/npc-empires/{uid}/building/action", npc_empire_building_action)
 app.router.add_post("/npc-empires/{uid}/diplomacy", npc_empire_diplomacy)
 app.router.add_post("/npc-empires/{uid}/hospitalize", npc_empire_hospitalize)
 app.router.add_post("/npc-empires/{uid}/street-recruit", npc_empire_street_recruit)

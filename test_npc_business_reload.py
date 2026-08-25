@@ -144,15 +144,20 @@ async def run():
         # fresh SQLite connection must reconstruct the same CLOSED skin,
         # operation, economy, relation and deterministic garrison.
         sabotaged = await ne.npc_building_action(
-            path, PLAYER, 'leila', npc_key, 'sabotage', now=NOW + 1)
-        assert sabotaged['ok'] and sabotaged['closed_until'] == NOW + 301
+            path, PLAYER, 'leila', npc_key, 'sabotage', now=NOW + 1,
+            request_key='reload-leila-c4-0001')
+        assert sabotaged['ok'] and sabotaged['closed_until'] == NOW + 304
         ne_reloaded = importlib.reload(ne)
         after_reload = await ne_reloaded.state_for(path, PLAYER, NOW + 2)
-        closed_holding = holding(after_reload, 'leila', npc_key)
+        armed_holding = holding(after_reload, 'leila', npc_key)
+        assert armed_holding['building_status'] == 'armed' and armed_holding['fuse_s'] == 2
+        assert armed_holding['guard_count'] == initial_guards
+        after_detonation = await ne_reloaded.state_for(path, PLAYER, NOW + 4)
+        closed_holding = holding(after_detonation, 'leila', npc_key)
         assert closed_holding['operation_type'] == 'pawnshop'
         assert closed_holding['area'] == npc_area
         assert closed_holding['income'] == ne_reloaded.building_operation_income('pawnshop', npc_area)
-        assert closed_holding['building_status'] == 'closed' and closed_holding['closed_s'] == 299
+        assert closed_holding['building_status'] == 'closed' and closed_holding['closed_s'] == 300
         assert closed_holding['guard_count'] == initial_guards
         assert empire(after_reload, 'leila')['relation'] == sabotaged['relation']
         assert exterior_signature('leila', closed_holding) != initial_exterior
@@ -204,7 +209,9 @@ async def run():
         exec(compile(ast.Module(body=[owned_node], type_ignores=[]),
                      str(root / 'mafiozi_bot.py'), 'exec'), owned_namespace)
         original_time = owned_namespace['time'].time
-        owned_namespace['time'].time = lambda: NOW + 21
+        # Observe the closure no earlier than the authoritative raid resolution
+        # that created it; a future-dated closure must not suppress income.
+        owned_namespace['time'].time = lambda: NOW + 20 + raid['hold_seconds']
         try:
             reconnected_apartments = await owned_namespace['get_apartments_owned'](PLAYER)
         finally:
@@ -288,8 +295,9 @@ async def run():
         # eligible for the new operation's income.
         closed_at = economy_start + ne_reloaded.TICK_SECONDS + 1
         sabotaged_capture = await ne_reloaded.npc_building_action(
-            path, PLAYER, 'marco', player_key, 'sabotage', now=closed_at)
-        assert sabotaged_capture['ok'] and sabotaged_capture['closed_until'] == closed_at + 300
+            path, PLAYER, 'marco', player_key, 'sabotage', now=closed_at,
+            request_key='reload-marco-c4-0001')
+        assert sabotaged_capture['ok'] and sabotaged_capture['closed_until'] == closed_at + 303
         async with aiosqlite.connect(path) as db:
             await db.execute(
                 "UPDATE npc_empires SET last_tick=?,next_action_at=? WHERE leader_id='marco'",

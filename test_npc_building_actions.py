@@ -61,22 +61,31 @@ async def run() -> None:
         assert negative['ok'] and not negative['sold'] and negative['sale_chance'] == 0
 
         await _seed(path, third, relation=10)
-        missing_c4 = await ne.npc_building_action(path, 101, 'leila', third, 'sabotage', now=now)
+        missing_c4 = await ne.npc_building_action(
+            path, 101, 'leila', third, 'sabotage', now=now,
+            request_key='c4-missing-0001')
         assert not missing_c4['ok'] and missing_c4['error'] == 'no c4'
         async with aiosqlite.connect(path) as db:
             await db.execute("INSERT INTO inventory(telegram_id,item_id,quantity) VALUES(101,'c4',2)")
             await db.commit()
-        sabotaged = await ne.npc_building_action(path, 101, 'leila', third, 'sabotage', now=now)
-        assert sabotaged['sabotaged'] and sabotaged['closed_until'] == now + 300
+        sabotaged = await ne.npc_building_action(
+            path, 101, 'leila', third, 'sabotage', now=now,
+            request_key='c4-success-0001')
+        assert sabotaged['sabotaged'] and sabotaged['closed_until'] == now + 303
+        assert sabotaged['armed'] and sabotaged['detonate_at'] == now + 3
         assert sabotaged['fuse_s'] == 3 and sabotaged['c4_left'] == 1
         assert -30 <= sabotaged['relation_delta'] <= -20
         async with aiosqlite.connect(path) as db:
             assert (await (await db.execute("SELECT quantity FROM inventory WHERE telegram_id=101 AND item_id='c4'")).fetchone())[0] == 1
         locked = await ne.npc_building_action(path, 101, 'leila', third, 'purchase', now=now + 1, roll=1)
-        assert not locked['ok'] and locked['error'] == 'closed'
+        assert not locked['ok'] and locked['error'] == 'armed'
         state = await ne.state_for(path, 101, now=now + 2)
         holding = next(h for e in state['empires'] if e['leader_id'] == 'leila' for h in e['holdings'] if h.get('holding_id') == third)
-        assert holding['building_status'] == 'closed' and holding['closed_s'] == 298
+        assert holding['building_status'] == 'armed' and holding['fuse_s'] == 1
+        assert holding['closed_s'] == 300 and holding['sabotage_action_id'] == 'c4-success-0001'
+        detonated = await ne.state_for(path, 101, now=now + 3)
+        holding = next(h for e in detonated['empires'] if e['leader_id'] == 'leila' for h in e['holdings'] if h.get('holding_id') == third)
+        assert holding['building_status'] == 'closed' and holding['closed_s'] == 300
     finally:
         os.unlink(path)
 

@@ -4027,6 +4027,7 @@ async def get_district_control(loc_id: str) -> Optional[dict]:
 async def get_guard_member_ids(telegram_id: int) -> set:
     """Возвращает set id наёмников, стоящих на охране хоть одного района игрока."""
     guard_ids = set()
+    now = int(time.time())
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
@@ -4037,7 +4038,7 @@ async def get_guard_member_ids(telegram_id: int) -> set:
         try:
             closure_rows = await (await db.execute(
                 "SELECT holding_id,closed_until FROM npc_empire_building_closures "
-                "WHERE closed_until>?", (int(time.time()),)
+                "WHERE created_at<=? AND closed_until>?", (now, now)
             )).fetchall()
             closures = {str(row[0]): int(row[1] or 0) for row in closure_rows}
         except Exception:
@@ -4734,6 +4735,7 @@ async def ensure_apartment_tables():
 
 async def get_apartments_owned(telegram_id: int) -> dict:
     await ensure_apartment_tables()
+    now = int(time.time())
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(
             """
@@ -4755,8 +4757,9 @@ async def get_apartments_owned(telegram_id: int) -> dict:
             owner_name = 'Игрок'
         try:
             async with db.execute(
-                "SELECT holding_id,closed_until FROM npc_empire_building_closures WHERE closed_until>?",
-                (int(time.time()),)
+                "SELECT holding_id,closed_until FROM npc_empire_building_closures "
+                "WHERE created_at<=? AND closed_until>?",
+                (now, now)
             ) as cur:
                 closure_rows = await cur.fetchall()
             closures = {str(row[0]): int(row[1] or 0) for row in closure_rows}
@@ -4799,6 +4802,7 @@ async def get_apartments_owned(telegram_id: int) -> dict:
 async def get_player_building_properties() -> list:
     """Small authoritative world snapshot for player-owned converted buildings."""
     await ensure_apartment_tables()
+    now = int(time.time())
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         rows = await (await db.execute(
@@ -4812,7 +4816,7 @@ async def get_player_building_properties() -> list:
         try:
             closure_rows = await (await db.execute(
                 "SELECT holding_id,closed_until FROM npc_empire_building_closures "
-                "WHERE closed_until>?", (int(time.time()),)
+                "WHERE created_at<=? AND closed_until>?", (now, now)
             )).fetchall()
             closures = {str(row[0]): int(row[1] or 0) for row in closure_rows}
         except Exception:
@@ -5010,7 +5014,8 @@ async def collect_apartment_income_db(telegram_id: int, apt_key: str) -> dict:
         try:
             closure = await (await db.execute(
                 "SELECT closed_until FROM npc_empire_building_closures "
-                "WHERE holding_id=? AND closed_until>?", (building_key, now)
+                "WHERE holding_id=? AND created_at<=? AND closed_until>?",
+                (building_key, now, now)
             )).fetchone()
         except Exception:
             closure = None
@@ -26611,6 +26616,15 @@ def _npc_empire_field_shot_geometry(world, uid: int, context: dict,
     return {'ok': True, 'live': live, 'distance': distance, 'profile': profile}
 
 
+def _requires_actor_binding(path):
+    """Return whether an HTTP route may read or mutate a claimed actor."""
+    path = str(path or '')
+    return (path.startswith('/profiles/') or path.startswith('/shop/') or
+            path.startswith('/inv/') or path.startswith('/event/') or
+            path.startswith('/world/loot/') or path.startswith('/custom-gang/') or
+            path.endswith('/assault/hit') or path.endswith('/building/action'))
+
+
 async def _coop_http_app():
     try:
         from aiohttp import web
@@ -26632,9 +26646,7 @@ async def _coop_http_app():
         """Bind protected HTTP routes before their handlers see an actor id."""
         path = req.path
         profile_route = path.startswith('/profiles/')
-        protected = (profile_route or path.startswith('/shop/') or path.startswith('/inv/') or
-                     path.startswith('/event/') or path.startswith('/world/loot/') or
-                     path.startswith('/custom-gang/') or path.endswith('/assault/hit'))
+        protected = _requires_actor_binding(path)
         if req.method == 'OPTIONS' or not protected:
             return await handler(req)
         try:
@@ -28563,7 +28575,8 @@ async def _coop_http_app():
             return await _cors(web.json_response({'ok':False,'error':'bad request'},status=400))
         result=await npc_empire.npc_building_action(
             DB_PATH,uid,str(body.get('leader_id') or '')[:32],
-            str(body.get('holding_id') or '')[:32],str(body.get('action') or '')[:16])
+            str(body.get('holding_id') or '')[:32],str(body.get('action') or '')[:16],
+            request_key=str(body.get('request_key') or '')[:129])
         if result.get('ok') and result.get('sold'):
             properties=await get_player_building_properties()
             result['properties']=properties
@@ -28572,7 +28585,9 @@ async def _coop_http_app():
                 player_state=_WORLD.players[str(uid)]
                 player_state['cash']=int(result.get('cash') or player_state.get('cash') or 0)
                 player_state.setdefault('_owned_apartments',set()).add(str(result.get('apt_key') or ''))
-        status=200 if result.get('ok') else (404 if result.get('error')=='no character' else 409)
+        status=(200 if result.get('ok') else 404 if result.get('error')=='no character'
+                else 400 if result.get('error') in {'bad action','bad request key','bad building','unknown leader'}
+                else 409)
         return await _cors(web.json_response(result,status=status))
 
     async def h_npc_empire_hospitalize(req):

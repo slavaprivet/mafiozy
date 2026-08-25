@@ -46,6 +46,9 @@ VISIBLE_ACTIVITY_SECONDS = 75
 NPC_EMPIRE_MAX_FIGHTERS = 20
 RECRUITMENT_SECONDS = 0
 NPC_BUILDING_SABOTAGE_SECONDS = 5 * 60
+NPC_BUILDING_SABOTAGE_FUSE_SECONDS = 3
+NPC_BUILDING_SABOTAGE_RECEIPT_LIMIT = 64
+NPC_BUILDING_SABOTAGE_RECEIPT_TTL_SECONDS = 24 * 60 * 60
 NPC_MEMBER_UPKEEP_PER_TICK = 3
 NPC_HOLDING_GUARD_UPKEEP_PER_TICK = 6
 NPC_ACTIVE_WAR_UPKEEP_PER_TICK = 18
@@ -1075,7 +1078,8 @@ async def _reconcile_npc_guards(db, leader_id: str, now: int,
     if threatened_refs is None:
         closed_ids = {str(item[0]) for item in await (await db.execute(
             "SELECT holding_id FROM npc_empire_building_closures "
-            "WHERE leader_id=? AND closed_until>?", (leader_id, now)
+            "WHERE leader_id=? AND created_at<=? AND closed_until>?",
+            (leader_id, now, now)
         )).fetchall()}
         threatened_refs = {
             f"building:{str(item['holding_id'])}" for item in holdings
@@ -2356,6 +2360,24 @@ async def ensure_schema(db_path: str) -> None:
         );
         CREATE INDEX IF NOT EXISTS ix_npc_empire_building_closures_until
             ON npc_empire_building_closures(closed_until);
+        CREATE TABLE IF NOT EXISTS npc_empire_building_sabotage_receipts (
+            telegram_id INTEGER NOT NULL,
+            request_key TEXT NOT NULL,
+            leader_id TEXT NOT NULL,
+            holding_id TEXT NOT NULL,
+            armed_at INTEGER NOT NULL,
+            detonate_at INTEGER NOT NULL,
+            closed_until INTEGER NOT NULL,
+            relation_delta INTEGER NOT NULL,
+            relation INTEGER NOT NULL,
+            pact TEXT NOT NULL,
+            c4_left INTEGER NOT NULL,
+            tribute_breached INTEGER NOT NULL DEFAULT 0,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY(telegram_id,request_key)
+        );
+        CREATE INDEX IF NOT EXISTS ix_npc_empire_building_sabotage_receipts_expiry
+            ON npc_empire_building_sabotage_receipts(closed_until);
         """)
         now = int(time.time())
         columns = {str(r[1]) for r in await (await db.execute("PRAGMA table_info(npc_empires)")).fetchall()}
@@ -3191,19 +3213,33 @@ async def advance(db_path: str, now: int | None = None) -> list[dict]:
         await db.execute('BEGIN IMMEDIATE')
         # Preserve the bounded batch's closure intervals before pruning rows
         # that reopened between the last empire tick and this catch-up call.
+        closure_rows = await (await db.execute(
+            "SELECT holding_id,leader_id,created_at,closed_until "
+            "FROM npc_empire_building_closures"
+        )).fetchall()
         closure_windows = {
             str(row['holding_id']): (int(row['created_at'] or 0),
                                      int(row['closed_until'] or 0))
-            for row in await (await db.execute(
-                "SELECT holding_id,created_at,closed_until "
-                "FROM npc_empire_building_closures"
-            )).fetchall()
+            for row in closure_rows
+        }
+        # A future closure is only an armed fuse. Rebalancing that family before
+        # detonation can silently move a guard while the building is still open.
+        # Active and expired closures do need a reconcile for close/reopen.
+        closure_leaders = {
+            str(row['leader_id']) for row in closure_rows
+            if int(row['created_at'] or 0) <= now
         }
         await db.execute("DELETE FROM npc_empire_building_closures WHERE closed_until<=?", (now,))
         closed_buildings = {
-            holding_id for holding_id, (_, closed_until) in closure_windows.items()
-            if closed_until > now
+            holding_id for holding_id, (closed_from, closed_until) in closure_windows.items()
+            if closed_from <= now < closed_until
         }
+        # A player-installed charge leaves guards and income active during its
+        # authoritative fuse. The first poll at/after detonation rebalances the
+        # affected family; the first poll after reopening restores its reserve.
+        for closure_leader in sorted(closure_leaders):
+            if closure_leader in PROFILE_BY_ID:
+                await _reconcile_npc_guards(db, closure_leader, now)
         await _revive_due_empires(db, now, events)
         rows = await (await db.execute(
             "SELECT * FROM npc_empires WHERE status IN ('active','rebuilding','vassal')"
@@ -4541,9 +4577,19 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             "SELECT kind,holding_id,leader_id,income,defense,acquired_at,operation_type,area FROM npc_empire_holdings"
         )).fetchall()
         closure_rows = {str(r['holding_id']): dict(r) for r in await (await db.execute(
-            "SELECT holding_id,leader_id,closed_until,created_at FROM npc_empire_building_closures WHERE closed_until>?",
+            "SELECT holding_id,leader_id,saboteur_uid,closed_until,created_at "
+            "FROM npc_empire_building_closures WHERE closed_until>?",
             (now,),
         )).fetchall()}
+        sabotage_rows = await (await db.execute(
+            "SELECT request_key,leader_id,holding_id,armed_at,detonate_at,closed_until "
+            "FROM npc_empire_building_sabotage_receipts "
+            "WHERE telegram_id=? AND closed_until>? ORDER BY created_at DESC",
+            (telegram_id, now),
+        )).fetchall()
+        sabotage_by_holding = {}
+        for sabotage_row in sabotage_rows:
+            sabotage_by_holding.setdefault(str(sabotage_row['holding_id']), dict(sabotage_row))
         diplomacy_rows = [dict(r) for r in await (await db.execute(
             "SELECT leader_a,leader_b,score,pact,tension,last_event_at FROM npc_empire_diplomacy"
         )).fetchall()]
@@ -4640,8 +4686,18 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
             item['size_class'] = 'large' if area >= 24 else 'medium' if area >= 16 else 'small'
             closure = closure_rows.get(str(item['holding_id']))
             item['closed_until'] = int(closure.get('closed_until') or 0) if closure else 0
-            item['closed_s'] = max(0, item['closed_until'] - now)
-            item['building_status'] = 'closed' if item['closed_s'] else 'open'
+            detonate_at = int(closure.get('created_at') or 0) if closure else 0
+            item['detonate_at'] = detonate_at
+            item['fuse_s'] = max(0, detonate_at - now)
+            item['closed_s'] = (max(0, item['closed_until'] - max(now, detonate_at))
+                                if closure else 0)
+            item['building_status'] = ('armed' if item['fuse_s'] else
+                                       'closed' if item['closed_until'] > now else 'open')
+            sabotage = sabotage_by_holding.get(str(item['holding_id']))
+            if (sabotage and closure
+                    and str(sabotage.get('leader_id') or '') == str(item['leader_id'])
+                    and int(sabotage.get('detonate_at') or 0) == detonate_at):
+                item['sabotage_action_id'] = str(sabotage.get('request_key') or '')
         if item.get('kind') == 'business':
             visible_value = int(BUSINESS_PRICE.get(str(item.get('holding_id') or ''), 0))
             item['value_band'] = ('premium' if visible_value >= 50000
@@ -4690,7 +4746,7 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                           for holding in leader_holdings)
         income_per_tick = empire_holding_income_per_tick([
             holding for holding in leader_holdings
-            if int(holding.get('closed_until') or 0) <= now
+            if str(holding.get('building_status') or 'open') != 'closed'
         ])
         upkeep_per_tick = (
             max(4, int(row['members'] or 0) * NPC_MEMBER_UPKEEP_PER_TICK)
@@ -4727,7 +4783,8 @@ async def state_for(db_path: str, telegram_id: int, now: int | None = None) -> d
                        'diplomacy':profile.diplomacy,'loyalty':profile.loyalty,
                        'intelligence':(profile.commerce+profile.diplomacy+profile.loyalty)//3},
             'doctrine': boss_doctrine(leader_id),
-            '_treasury': int(row['treasury']), 'budget': public_budget,
+            '_treasury': int(row['treasury']), 'income_per_tick': income_per_tick,
+            'budget': public_budget,
             'commitments': public_commitments,
             'members': int(row['members']),
             'strength': int(row['strength']), 'status': str(row['status']),
@@ -4981,24 +5038,87 @@ def _apartment_key_building_key(apt_key: str) -> str:
         return ''
 
 
+def _valid_building_action_request_key(request_key: str) -> bool:
+    request_key = str(request_key or '')
+    return (8 <= len(request_key) <= 128
+            and all(char.isascii() and (char.isalnum() or char in '-_:')
+                    for char in request_key))
+
+
+def _building_sabotage_receipt_payload(row, now: int, *, duplicate: bool) -> dict:
+    receipt = dict(row)
+    detonate_at = int(receipt.get('detonate_at') or 0)
+    closed_until = int(receipt.get('closed_until') or 0)
+    status = ('armed' if now < detonate_at else
+              'closed' if now < closed_until else 'open')
+    message = ('Заряд установлен. Отойди: до взрыва три секунды.' if status == 'armed'
+               else 'Ты ответишь за это. Заведение закрыто на ремонт.' if status == 'closed'
+               else 'Саботаж завершён; заведение снова работает.')
+    return {
+        'ok': True, 'sabotaged': True, 'armed': status == 'armed',
+        'duplicate': bool(duplicate), 'request_key': str(receipt.get('request_key') or ''),
+        'leader_id': str(receipt.get('leader_id') or ''),
+        'leader_name': PROFILE_BY_ID[str(receipt.get('leader_id') or '')].leader_name,
+        'holding_id': str(receipt.get('holding_id') or ''),
+        'armed_at': int(receipt.get('armed_at') or 0),
+        'detonate_at': detonate_at, 'fuse_s': max(0, detonate_at - now),
+        'closed_until': closed_until,
+        'closed_s': max(0, closed_until - max(now, detonate_at)),
+        'building_status': status, 'c4_left': max(0, int(receipt.get('c4_left') or 0)),
+        'relation': int(receipt.get('relation') or 0),
+        'relation_delta': int(receipt.get('relation_delta') or 0),
+        'pact': str(receipt.get('pact') or 'none'), 'server_time': now,
+        'tribute_breached': bool(receipt.get('tribute_breached')),
+        'message': message,
+    }
+
+
 async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
                               holding_id: str, action: str,
-                              now: int | None = None, roll: int | None = None) -> dict:
+                              now: int | None = None, roll: int | None = None,
+                              request_key: str = '') -> dict:
     """Negotiate for or sabotage one generic NPC-owned business building."""
     now = int(now or time.time())
     leader_id, holding_id = str(leader_id or ''), str(holding_id or '')
     action = str(action or '')
+    request_key = str(request_key or '').strip()
     if leader_id not in PROFILE_BY_ID:
         return {'ok': False, 'error': 'unknown leader'}
     if holding_id not in BUILDING_AREAS:
         return {'ok': False, 'error': 'bad building'}
     if action not in {'purchase', 'sabotage'}:
         return {'ok': False, 'error': 'bad action'}
+    if action == 'sabotage' and not _valid_building_action_request_key(request_key):
+        return {'ok': False, 'error': 'bad request key'}
     await ensure_schema(db_path)
     profile = PROFILE_BY_ID[leader_id]
     async with aiosqlite.connect(db_path) as db:
         db.row_factory = aiosqlite.Row
         await db.execute('BEGIN IMMEDIATE')
+        if action == 'sabotage':
+            receipt = await (await db.execute(
+                "SELECT * FROM npc_empire_building_sabotage_receipts "
+                "WHERE telegram_id=? AND request_key=?",
+                (telegram_id, request_key),
+            )).fetchone()
+            if receipt:
+                if (str(receipt['leader_id']) != leader_id
+                        or str(receipt['holding_id']) != holding_id):
+                    await db.rollback()
+                    return {'ok': False, 'error': 'request conflict'}
+                await db.rollback()
+                return _building_sabotage_receipt_payload(receipt, now, duplicate=True)
+            await db.execute(
+                "DELETE FROM npc_empire_building_sabotage_receipts "
+                "WHERE telegram_id=? AND closed_until<?",
+                (telegram_id, now - NPC_BUILDING_SABOTAGE_RECEIPT_TTL_SECONDS))
+            await db.execute(
+                "DELETE FROM npc_empire_building_sabotage_receipts WHERE telegram_id=? "
+                "AND closed_until<=? AND request_key IN (SELECT request_key FROM "
+                "npc_empire_building_sabotage_receipts WHERE telegram_id=? AND closed_until<=? "
+                "ORDER BY created_at DESC,request_key DESC LIMIT -1 OFFSET ?)",
+                (telegram_id, now, telegram_id, now,
+                 NPC_BUILDING_SABOTAGE_RECEIPT_LIMIT - 1))
         holding = await (await db.execute(
             "SELECT leader_id,income,operation_type,area FROM npc_empire_holdings "
             "WHERE kind='building' AND holding_id=?", (holding_id,)
@@ -5007,14 +5127,18 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
             await db.rollback()
             return {'ok': False, 'error': 'ownership changed'}
         closure = await (await db.execute(
-            "SELECT closed_until FROM npc_empire_building_closures WHERE holding_id=?",
+            "SELECT created_at,closed_until FROM npc_empire_building_closures WHERE holding_id=?",
             (holding_id,),
         )).fetchone()
         closed_until = int(closure['closed_until'] or 0) if closure else 0
         if closed_until > now:
+            detonate_at = int(closure['created_at'] or 0)
+            status = 'armed' if now < detonate_at else 'closed'
             await db.rollback()
-            return {'ok': False, 'error': 'closed', 'closed_until': closed_until,
-                    'closed_s': closed_until - now}
+            return {'ok': False, 'error': status, 'building_status': status,
+                    'detonate_at': detonate_at, 'fuse_s': max(0, detonate_at-now),
+                    'closed_until': closed_until,
+                    'closed_s': max(0, closed_until-max(now, detonate_at))}
         if closure:
             await db.execute("DELETE FROM npc_empire_building_closures WHERE holding_id=?", (holding_id,))
         relation = await (await db.execute(
@@ -5108,35 +5232,43 @@ async def npc_building_action(db_path: str, telegram_id: int, leader_id: str,
         new_score = clamp_relation(score - relation_loss)
         if pact in {'alliance', 'truce', 'vassal'} and new_score < 0:
             pact = 'none'
-        closed_until = now + NPC_BUILDING_SABOTAGE_SECONDS
+        detonate_at = now + NPC_BUILDING_SABOTAGE_FUSE_SECONDS
+        closed_until = detonate_at + NPC_BUILDING_SABOTAGE_SECONDS
         await db.execute(
             "INSERT INTO npc_empire_building_closures"
             "(holding_id,leader_id,saboteur_uid,closed_until,created_at) VALUES(?,?,?,?,?) "
             "ON CONFLICT(holding_id) DO UPDATE SET leader_id=excluded.leader_id,"
             "saboteur_uid=excluded.saboteur_uid,closed_until=excluded.closed_until,created_at=excluded.created_at",
-            (holding_id, leader_id, telegram_id, closed_until, now),
+            (holding_id, leader_id, telegram_id, closed_until, detonate_at),
         )
-        await _reconcile_npc_guards(
-            db, leader_id, now, {f'building:{holding_id}'})
         await db.execute(
             "INSERT INTO npc_empire_relations(leader_id,telegram_id,score,pact,last_action_at) VALUES(?,?,?,?,?) "
             "ON CONFLICT(leader_id,telegram_id) DO UPDATE SET score=excluded.score,pact=excluded.pact,last_action_at=excluded.last_action_at",
             (leader_id, telegram_id, new_score, pact, now),
         )
-        await _breach_player_tribute_tx(
+        tribute_breached = await _breach_player_tribute_tx(
             db, telegram_id, leader_id, now, 'building_sabotage')
         await db.execute(
             "INSERT INTO npc_empire_events(leader_id,kind,target_id,summary,created_at) VALUES(?,?,?,?,?)",
             (leader_id, 'building_sabotaged', str(telegram_id),
-             f'Игрок подорвал заведение {holding_id}; закрыто на 5 минут', now),
+             f'Игрок установил C4 в заведении {holding_id}; взрыв через 3 секунды', now),
+        )
+        await db.execute(
+            "INSERT INTO npc_empire_building_sabotage_receipts"
+            "(telegram_id,request_key,leader_id,holding_id,armed_at,detonate_at,"
+            "closed_until,relation_delta,relation,pact,c4_left,tribute_breached,created_at) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (telegram_id, request_key, leader_id, holding_id, now, detonate_at,
+             closed_until, -relation_loss, new_score, pact, c4_count - 1,
+             int(tribute_breached), now),
         )
         await db.commit()
-    return {'ok': True, 'sabotaged': True, 'leader_id': leader_id,
-            'leader_name': profile.leader_name, 'holding_id': holding_id,
-            'closed_until': closed_until, 'closed_s': NPC_BUILDING_SABOTAGE_SECONDS,
-            'fuse_s': 3, 'c4_left': c4_count - 1,
-            'relation': new_score, 'relation_delta': -relation_loss, 'pact': pact,
-            'message': 'Ты ответишь за это. Заведение закрыто на ремонт.'}
+    return _building_sabotage_receipt_payload({
+        'request_key': request_key, 'leader_id': leader_id, 'holding_id': holding_id,
+        'armed_at': now, 'detonate_at': detonate_at, 'closed_until': closed_until,
+        'relation_delta': -relation_loss, 'relation': new_score, 'pact': pact,
+        'c4_left': c4_count - 1, 'tribute_breached': tribute_breached,
+    }, now, duplicate=False)
 
 
 async def _reconcile_player_tributes_tx(db, telegram_id: int, now: int) -> None:
