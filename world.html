@@ -7474,9 +7474,18 @@ const DROP_ZONE = { r0: 167, r1: 173, c0: 37, c1: 43 };  // деревянный
 //                       state, reward, tx, ty, tAng}
 const questCars = new Map();    // car_id → entry
 function applyQuestCarsSnapshot(arr) {
+  // The server can publish its new civilian car before the personal hijack ACK.
+  // Keep the one optimistic car authoritative until that ACK performs the ID swap.
+  const pendingHijackId = _pendingHijackLocalId &&
+    myDrivingCarId === _pendingHijackLocalId &&
+    questCars.get(_pendingHijackLocalId)?._pendingServerHijack
+      ? _pendingHijackLocalId : null;
   const fresh = new Set();
   for (const c of arr) {
     fresh.add(c.id);
+    const pendingHijackServerCar = !!pendingHijackId && !!c.civilian &&
+      String(c.driver_uid || '') === String(QP.uid || '');
+    if (pendingHijackServerCar) continue;
     const prev = questCars.get(c.id);
     if (prev) {
       // Своей машиной рулю Я — не даём серверному эху затирать локальные
@@ -7545,7 +7554,7 @@ function applyQuestCarsSnapshot(arr) {
   // A full page reload clears myDrivingCarId and initially creates the player
   // at the ordinary spawn. Consume the server's occupied-seat authority once
   // and put the player back on that exact car before driving resumes.
-  if (_vehicleSessionRecoveryPending) {
+  if (_vehicleSessionRecoveryPending && !pendingHijackId) {
     _vehicleSessionRecoveryPending = false;
     const authoritativeSeats = arr.filter(c =>
       String(c.driver_uid || '') === String(QP.uid || ''));
@@ -7579,7 +7588,8 @@ function applyQuestCarsSnapshot(arr) {
     const _q = questCars.get(id);
     const _keepRecent = _recentlyExitedQuestCarMustStay(id, _q);
     const _keepParked = _q && (_q._locallyParkedUntil || 0) > performance.now();
-    if (!fresh.has(id) && id !== myDrivingCarId && !_keepRecent && !_keepParked) {
+    const _keepPendingHijack = id === pendingHijackId;
+    if (!fresh.has(id) && id !== myDrivingCarId && !_keepRecent && !_keepParked && !_keepPendingHijack) {
       questCars.delete(id);
       if (_recentlyExitedCarId === id) { _recentlyExitedCarId = null; _recentlyExitedCarUntil = 0; }
     }

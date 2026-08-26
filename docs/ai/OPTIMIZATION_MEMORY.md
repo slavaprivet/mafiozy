@@ -2914,3 +2914,19 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   two-root desktop live warmup caps. If a bounded scan finds no live root but
   entries remain, schedule the next idle slice. Do not force all roots visible,
   disable streaming, raise the reveal cap, or bypass material warmup.
+
+## Preserve the optimistic hijack car until its ACK (2026-08-26)
+
+- The server can create and publish the authoritative civilian car in a world
+  snapshot before its personal `civilian_hijack_reply` reaches the client. If
+  that packet is also the first vehicle snapshot, one-shot session recovery
+  switches `myDrivingCarId` from `local_hijack_*` to the server id; the cleanup
+  pass then deletes the optimistic placeholder because it is absent from the
+  snapshot.
+- While the exact `_pendingServerHijack` placeholder is current, keep it as the
+  sole local car, defer admission of the matching local driver's civilian
+  server row, and leave one-shot reload recovery pending. The existing ACK owns
+  the atomic id swap; reject and timeout continue to own their existing cleanup.
+- Reconciliation adds only constant-time predicates to the existing bounded
+  snapshot traversal. It adds no timer, poll, render scan, vehicle slot, network
+  message or server state and does not change ordinary reload recovery.
