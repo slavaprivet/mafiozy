@@ -2930,3 +2930,20 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - Reconciliation adds only constant-time predicates to the existing bounded
   snapshot traversal. It adds no timer, poll, render scan, vehicle slot, network
   message or server state and does not change ordinary reload recovery.
+
+## Snapshot-generation pruning for 3D NPC state (2026-08-26, v429)
+
+- Motion and facing state previously allocated two live-id `Set` objects and
+  scanned both state maps on every rendered frame, although the authoritative
+  dynamic snapshot changes only every 45 ms (70 ms below 24 FPS). At the
+  72-NPC cap and 60 FPS that path performed 120 temporary allocations and
+  17,280 `Set.add`/`Set.has` operations per second.
+- Increment one scalar generation only when a non-null dynamic snapshot is
+  accepted. Stamp the existing motion/facing state objects and prune both maps
+  only on that snapshot cadence. Retain an actor through one missing generation
+  so priority admission churn does not reset interpolation, gait, hit/death or
+  facing continuity; delete it after the second consecutive miss.
+- Admission remains 72 actors with a 24-civilian reserve. One-generation grace
+  bounds each state map to the union of two capped snapshots, at most 144
+  entries. The change adds no render object, draw call, timer, poll, gameplay
+  state or quality reduction and preserves reconnect/reload semantics.
