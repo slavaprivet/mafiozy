@@ -22,7 +22,7 @@ import weapon_balance
 from functools import lru_cache
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.error import Forbidden, BadRequest
+from telegram.error import Forbidden, BadRequest, InvalidToken
 from telegram.ext import (
     Application, ApplicationBuilder, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes, ConversationHandler,
@@ -31,6 +31,60 @@ from telegram.ext import (
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# HTTPX logs the full Telegram Bot API URL at INFO; that URL contains the bot
+# token in its path. Keep application/PTB lifecycle INFO while silencing the
+# transport request line (httpcore currently emits its wire trace at DEBUG).
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+_AUTH_LOG_BOT_URL_RE = re.compile(
+    r"(?i)(https://api\.telegram\.org/bot)[^/\s?]{1,512}")
+_AUTH_LOG_QUERY_RE = re.compile(
+    r"(?i)([?&](?:key|ticket|world_token|ws_ticket)=)[^&#\s\"']{1,4096}")
+_AUTH_LOG_BEARER_RE = re.compile(
+    r"(?i)(\b(?:Bearer|token)\s+)[A-Za-z0-9._~+/=-]{8,512}")
+_AUTH_LOG_HEADER_RE = re.compile(
+    r"(?i)(\bX-Telegram-Init-Data\s*[:=]\s*)[^\r\n,]{1,8192}")
+
+
+def _redact_secret_log_text(value) -> str:
+    """Remove runtime credentials from one fully formatted log record."""
+    text = str(value)
+    for secret in (globals().get('BOT_TOKEN', ''),
+                   os.environ.get('STEAM_WEB_API_KEY', '').strip()):
+        if secret:
+            text = text.replace(str(secret), '[REDACTED]')
+    text = _AUTH_LOG_BOT_URL_RE.sub(r"\1[REDACTED]", text)
+    text = _AUTH_LOG_QUERY_RE.sub(r"\1[REDACTED]", text)
+    text = _AUTH_LOG_BEARER_RE.sub(r"\1[REDACTED]", text)
+    return _AUTH_LOG_HEADER_RE.sub(r"\1[REDACTED]", text)
+
+
+class _SecretRedactingFormatter(logging.Formatter):
+    """Wrap an existing formatter and redact after it renders ``exc_info``."""
+
+    def __init__(self, delegate: logging.Formatter | None = None):
+        super().__init__()
+        self.delegate = delegate or logging.Formatter()
+
+    def format(self, record):
+        previous_exc_text = record.exc_text
+        try:
+            rendered = self.delegate.format(record)
+        finally:
+            # Formatter.format caches traceback text on the record. Do not let
+            # an unredacted cache escape to a later handler.
+            record.exc_text = previous_exc_text
+        return _redact_secret_log_text(rendered)
+
+
+def _install_secret_log_redaction() -> None:
+    """Idempotently protect every currently configured root output handler."""
+    for handler in logging.getLogger().handlers:
+        if isinstance(handler.formatter, _SecretRedactingFormatter):
+            continue
+        handler.setFormatter(_SecretRedactingFormatter(handler.formatter))
 
 # ⬇️ ТОКЕН БОТА читаем из файла .bot-token (он в .gitignore — не попадёт в репозиторий).
 # Fallback: bot-token-backup.txt в этой же папке или на десктопе пользователя.
@@ -70,6 +124,8 @@ if _token_src != _BOT_TOKEN_FILE:
         print(f"    Скопировал в {_BOT_TOKEN_FILE} — больше fallback не понадобится.")
     except OSError:
         pass
+
+_install_secret_log_redaction()
 
 DB_PATH = os.path.join(os.environ.get("DB_DIR", ""), "mafiozi.db")
 _SYNC_WORLD_HARNESS = contextvars.ContextVar('sync_world_harness', default=False)
@@ -34662,13 +34718,23 @@ def main():
     app.add_error_handler(_error_handler)
 
     logger.info("Bot starting (polling; Telegram bootstrap retries enabled)...")
-    # Не завершаем весь процесс, если Telegram временно недоступен при старте.
-    # Без bootstrap_retries первый же ConnectError закрывал бота, а внешний
-    # монитор показывал бесконечный цикл «сервер перезапускается».
-    app.run_polling(
-        drop_pending_updates=True,
-        bootstrap_retries=-1,
-    )
+    _run_polling_secret_safe(app)
+
+
+def _run_polling_secret_safe(app) -> None:
+    """Run polling while keeping PTB's token-bearing InvalidToken private."""
+    try:
+        # Не завершаем весь процесс, если Telegram временно недоступен при старте.
+        # Без bootstrap_retries первый же ConnectError закрывал бота, а внешний
+        # монитор показывал бесконечный цикл «сервер перезапускается».
+        app.run_polling(
+            drop_pending_updates=True,
+            bootstrap_retries=-1,
+        )
+    except InvalidToken:
+        logger.critical(
+            "Telegram отклонил учётные данные бота; проверь BOT_TOKEN.")
+        raise SystemExit(2) from None
 
 
 if __name__ == "__main__":
