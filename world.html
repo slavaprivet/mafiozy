@@ -26396,6 +26396,12 @@ async function wsConnect() {
     const demoBadge=document.getElementById('directDemoBadge');if(demoBadge)demoBadge.className='';
     setConnecting(null);
     setError(null);
+    // Ownership REST and family-control WS snapshots arrive independently.
+    // Keep their cached values for action eligibility, but do not present them
+    // as freshly authoritative after reconnect until each channel confirms.
+    _markBusinessAuthorityUnverified();
+    _bizLastSync=0;
+    void syncMyBusinesses();
     // On reconnect the server creates a fresh player row at its default
     // spawn. Publish the client's current world/interior position before the
     // first snapshot can reconcile against that temporary spawn; otherwise a
@@ -26949,6 +26955,8 @@ async function wsConnect() {
         for (const [id, control] of Object.entries(fresh)) {
           _robbedBusinessControls[id] = {...control};
         }
+        _businessFamilyAuthorityReady=true;
+        _businessActionSignature='';
       }
       if (d.business_family_wars !== undefined) {
         const fresh=d.business_family_wars||{};
@@ -27130,6 +27138,7 @@ async function wsConnect() {
     ws = null;
     const wasConnected = wsConnected;
     wsConnected = false;
+    _markBusinessAuthorityUnverified();
     if (_wsReconnectSuppressed) {
       setConnecting(null);
       return;
@@ -28007,6 +28016,16 @@ function _businessRaidActionLabel(biz,cfg){
 function _majorRaidActionLabel(poi){
   return _majorObjectsState[poi.id]?.raid?`⚔️ Присоединиться к штурму: ${poi.name}`:`💥 Совершить налёт: ${poi.name} · ★★★★★`;
 }
+function _selectedBusinessAuthorityDossier(bizId){
+  const owner=_businessPropertyOwners.get(String(bizId)),ownerUid=String(owner?.uid||''),ownerReady=!!_businessOwnerAuthorityReady;
+  const displayedOwnerName=!ownerReady?'СВЕРКА С СЕРВЕРОМ…':!ownerUid?'НЕТ':ownerUid===String(QP.uid||'')?'ВЫ':String(owner?.name||'').trim()||'Игрок';
+  const control=_robbedBusinessControls[String(bizId)],rawFamily=String(control?.mafia_family||'').trim().toLowerCase();
+  const normalizedFamilyKey=rawFamily==='bellini'||rawFamily==='moretti'?rawFamily:'',familyReady=!!_businessFamilyAuthorityReady;
+  const displayedFamilyName=!familyReady?'СВЕРКА С СЕРВЕРОМ…':normalizedFamilyKey==='bellini'?'БЕЛЛИНИ':normalizedFamilyKey==='moretti'?'МОРЕТТИ':'НЕЙТРАЛЬНЫЙ';
+  return {ownerReady,ownerUid,displayedOwnerName,familyReady,normalizedFamilyKey,
+    signature:[ownerReady,ownerUid,displayedOwnerName,familyReady,normalizedFamilyKey],
+    html:`<div class="bac-owner" data-owner-ready="${ownerReady?'1':'0'}" data-family-ready="${familyReady?'1':'0'}"><span>СОБСТВЕННИК · <b>${_npcEmpireEsc(displayedOwnerName)}</b></span><span>СЕМЕЙНЫЙ КОНТРОЛЬ · <b>${_npcEmpireEsc(displayedFamilyName)}</b></span></div>`};
+}
 function _syncBusinessActionCard(){
   const sel=_businessActionSelection;if(!sel)return;
   if(_modeChoiceVisible()){_deferBusinessActionCardForModeChoice();return;}
@@ -28026,10 +28045,11 @@ function _syncBusinessActionCard(){
   if(sel.kind==='business'&&_zoneEl.dataset.bizId===sel.id&&_zoneEl.style.display==='block')actions.push(['zone','peace',_zoneEl.textContent]);
   if(_gtaBtn.style.display==='block'&&String(_gtaActionCarId)===String(sel.id))actions.push(['gta','buy',_gtaBtn.textContent]);
   if(_robBtn&&_robBtn.style.display==='block'&&((sel.kind==='business'&&_robTargetBiz?.id===sel.id)||(sel.kind==='major'&&_robBtn._majorAssaultId===sel.id)))actions.push(['rob','raid',_robBtn.textContent]);
-  const closedSeconds=Math.max(0,Math.ceil(closedLeft/1000)),fuseTenths=Math.max(0,Math.ceil(fuseLeft*10)),sig=JSON.stringify([actions.map(a=>[a[0],a[2],a[3],_gtaActionKind]),foreign?property?.leader_id:'',foreign?property?.relation:0,closedSeconds,fuseTenths]);
+  const landmarkAuthority=sel.kind==='business'?_selectedBusinessAuthorityDossier(sel.id):null;
+  const closedSeconds=Math.max(0,Math.ceil(closedLeft/1000)),fuseTenths=Math.max(0,Math.ceil(fuseLeft*10)),sig=JSON.stringify([sel.kind,String(sel.id),actions.map(a=>[a[0],a[2],a[3],_gtaActionKind]),foreign?property?.leader_id:'',foreign?property?.relation:0,closedSeconds,fuseTenths,landmarkAuthority?.signature||null]);
   if(sig!==_businessActionSignature){
     _businessActionSignature=sig;
-    const title=foreign?`${property.operation_icon||'🏴'} ${property.operation_name||'Криминальный бизнес'}`:poi.name,subtitle=foreign?'ЧУЖОЕ ВЛАДЕНИЕ':sel.kind==='business'?'Городской бизнес':sel.kind==='major'?'Особый объект':'Точка входа',owner=foreign?`<div class="bac-owner"><span>ВЛАДЕЛЕЦ · <b>${_npcEmpireEsc(property.owner_name)}</b></span><span>${_npcEmpireEsc(property.gang_name)} · охрана ${Math.max(0,+property.defender_count||+property.guard_count||0)}</span></div>`:'',closed=armed?`<div class="bac-closed">🧨 C4 УСТАНОВЛЕНА · ${Math.max(0,fuseLeft).toFixed(1)} С</div>`:closedSeconds?`<div class="bac-closed">⛔ CLOSED · РЕМОНТ ${Math.floor(closedSeconds/60)}:${String(closedSeconds%60).padStart(2,'0')}</div>`:'';
+    const title=foreign?`${property.operation_icon||'🏴'} ${property.operation_name||'Криминальный бизнес'}`:poi.name,subtitle=foreign?'ЧУЖОЕ ВЛАДЕНИЕ':sel.kind==='business'?'Городской бизнес':sel.kind==='major'?'Особый объект':'Точка входа',owner=foreign?`<div class="bac-owner"><span>ВЛАДЕЛЕЦ · <b>${_npcEmpireEsc(property.owner_name)}</b></span><span>${_npcEmpireEsc(property.gang_name)} · охрана ${Math.max(0,+property.defender_count||+property.guard_count||0)}</span></div>`:landmarkAuthority?.html||'',closed=armed?`<div class="bac-closed">🧨 C4 УСТАНОВЛЕНА · ${Math.max(0,fuseLeft).toFixed(1)} С</div>`:closedSeconds?`<div class="bac-closed">⛔ CLOSED · РЕМОНТ ${Math.floor(closedSeconds/60)}:${String(closedSeconds%60).padStart(2,'0')}</div>`:'';
     _businessActionCard.innerHTML=`<div class="bac-top"><span class="bac-eyebrow">Досье объекта</span><button class="bac-close" aria-label="Закрыть"></button></div><div class="bac-head"><span class="bac-seal" aria-hidden="true"></span><span class="bac-title"><strong>${_npcEmpireEsc(title)}</strong><small>${subtitle}</small></span></div>${owner}${closed}<div class="bac-actions">${actions.map(a=>{const copy=_businessActionCopy(a[0],a[1],a[2],poi);return `<button class="bac-btn ${a[1]}" data-source="${a[0]}"${a[3]?' disabled':''}><span class="bac-glyph ${copy.glyph}" aria-hidden="true"></span><span class="bac-copy"><strong>${copy.title}</strong><small>${copy.detail}</small></span><span class="bac-chevron" aria-hidden="true">›</span></button>`;}).join('')}</div>`;
   }
   const p=_businessActionPointerAnchor||w2s(poi.r+.5,poi.c+.5),margin=12,w=Math.min(326,innerWidth*.84);
@@ -28215,6 +28235,12 @@ let _robCashierNpc = null;   // ссылка на NPC из NPCS — кассир
 const _robCooldowns = {};    // biz_id → timestamp окончания кулдауна
 const _businessClosures = {}; // biz_id → общий серверный респавн владельца/охраны
 const _robbedBusinessControls = {}; // biz_id → постоянный семейный владелец до отжима
+let _businessOwnerAuthorityReady=false,_businessFamilyAuthorityReady=false;
+function _markBusinessAuthorityUnverified(){
+  _businessOwnerAuthorityReady=false;
+  _businessFamilyAuthorityReady=false;
+  _businessActionSignature='';
+}
 const _businessFamilyWars = {}; // biz_id → открытая война семей
 let _businessWarScore = {
   bellini:{influence:0,treasury:0,captures:0,defenses:0,robberies:0,controlled:0},
@@ -43795,7 +43821,7 @@ function syncMyBusinesses() {
   if (_bizLastSync > 0 && now - _bizLastSync < 15000) return;
   _bizLastSync = now;
   return fetch(`${QP.api.replace(/\/+$/, '')}/biz/${QP.uid}/list`, { cache: 'no-store' })
-    .then(r => r.json())
+    .then(async r => {const j=await r.json();if(!r.ok)throw new Error(j?.error||`business list ${r.status}`);return j;})
     .then(j => {
       if (j.said) {
         _saidState = { ..._saidState, ...j.said };
@@ -43848,6 +43874,8 @@ function syncMyBusinesses() {
           });
         }
       }
+      _businessOwnerAuthorityReady=true;
+      _businessActionSignature='';
       if (Number.isFinite(+j.cash)) {
         myCash = +j.cash;
         QP.cash = myCash;
@@ -66212,6 +66240,24 @@ window.Mafiozi3DBridge = Object.freeze({
     document.documentElement.dataset.previewLandmarkBusinessDefense=`${id}:staff-${state.guards}:here-${state.holding_guards}:assigned-${state.guard_assigned}:free-${state.guard_free}`;
     return {ok:true,bizId:id,staff:state.guards,here:state.holding_guards,assigned:state.guard_assigned,free:state.guard_free,text:card?.innerText||''};
   },
+  previewOpenBusinessAuthority(ownerKind='missing',family='neutral',ready='ready',bizId='coffee'){
+    if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
+    const id=String(bizId||'coffee'),biz=BUSINESS_POIS.find(item=>item.id===id);if(!biz)return {ok:false,reason:'business-not-found'};
+    document.body.classList.remove('game-menu-open');document.getElementById('gameMainMenu')?.classList.add('hidden');
+    const modeModal=document.getElementById('modeModal');if(modeModal){modeModal.style.display='none';modeModal.classList.remove('show');}
+    _businessPropertyOwners.clear();delete _robbedBusinessControls[id];myBusinesses.delete(id);
+    if(ownerKind==='self'){_businessPropertyOwners.set(id,{uid:String(QP.uid||'preview'),name:String(QP.name||'Игрок')});myBusinesses.set(id,{owned:true,pending:0,status:'ok',level:1});}
+    else if(ownerKind==='foreign')_businessPropertyOwners.set(id,{uid:'preview-foreign',name:''});
+    if(family==='bellini'||family==='moretti')_robbedBusinessControls[id]={mafia_family:family,owner_uid:'preview-family'};
+    _businessOwnerAuthorityReady=ready==='ready'||ready==='owner';
+    _businessFamilyAuthorityReady=ready==='ready'||ready==='family';
+    _businessActionSignature='';
+    const entrance=_businessInteractionAnchor(biz);player.r=entrance.r;player.c=entrance.c;player.tr=player.r;player.tc=player.c;
+    _openBusinessActionCard('business',biz);
+    const state=_selectedBusinessAuthorityDossier(id),actions=Array.from(_businessActionCard.querySelectorAll('.bac-btn')).map(btn=>({source:btn.dataset.source||'',disabled:btn.disabled,text:btn.innerText||''}));
+    document.documentElement.dataset.previewBusinessAuthority=JSON.stringify({id,ownerKind,family,ready,state:{ownerReady:state.ownerReady,ownerUid:state.ownerUid,displayedOwnerName:state.displayedOwnerName,familyReady:state.familyReady,normalizedFamilyKey:state.normalizedFamilyKey},actions});
+    return {ok:true,...state,actions};
+  },
   previewOpenBurnedBusiness(bizId='coffee'){
     if(!_LOCAL_PREVIEW)return {ok:false,reason:'preview-only'};
     const id=String(bizId||'coffee'),biz=BUSINESS_POIS.find(item=>item.id===id);if(!biz)return {ok:false,reason:'business-not-found'};
@@ -67183,6 +67229,7 @@ if(_LOCAL_PREVIEW&&_UP.has('previewcivilianfight'))setTimeout(function seedCivil
   },100);
 },3800);
 if(_LOCAL_PREVIEW&&_UP.has('previewlandmarkdefense'))setTimeout(()=>window.Mafiozi3DBridge.previewOpenLandmarkBusinessDefense(String(_UP.get('previewlandmarkdefense')||'coffee'),6,3,6,4),900);
+if(_LOCAL_PREVIEW&&_UP.has('previewbusinessauthority'))setTimeout(()=>window.Mafiozi3DBridge.previewOpenBusinessAuthority(String(_UP.get('previewbusinessauthority')||'missing'),String(_UP.get('previewauthorityfamily')||'neutral'),String(_UP.get('previewauthorityready')||'ready'),String(_UP.get('previewpoi')||'coffee')),900);
 if(_LOCAL_PREVIEW&&_UP.get('previewblackmarket'))setTimeout(()=>window.Mafiozi3DBridge.previewBlackmarketEntryAudit(_UP.get('previewblackmarket'),_UP.get('previewblackmarketenter')!=='0'),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcombatregression'))setTimeout(()=>{const npc=NPCS.find(n=>n&&!n.dead&&!n._evacuated&&!n._ambientGang),car=(typeof CARS!=='undefined'?CARS:[]).find(x=>x&&!x._hidden&&!x._towed&&!x._destroySequenceAt&&!x._shotWrecked&&!x._wrecked&&!x.wrecked),until=performance.now()+12000;if(!npc||!car)return;document.documentElement.dataset.combatQaNpc=_threeNpcEntityId(npc);document.documentElement.dataset.combatQaVehicle=_threeVehicleEntityId(car);const pin=setInterval(()=>{document.documentElement.dataset.combatQaNpcHp=String(Math.max(0,+npc.hp||0));document.documentElement.dataset.combatQaVehicleHp=String(Number.isFinite(+car._ballisticHp)?+car._ballisticHp:240);document.documentElement.dataset.combatQaVehicleHoles=String(+car._bulletHoleCount||0);if(performance.now()>until||npc.dead||car._shotWrecked||car._wrecked||car.wrecked){clearInterval(pin);return;}npc.r=player.r+3.2;npc.c=player.c+1.6;npc.tr=npc.r;npc.tc=npc.c;npc.walking=false;npc.moving=false;car.r=player.r+1.8;car.c=player.c-3.1;car.v=0;car.speed=0;},40);},1200);
 if(_LOCAL_PREVIEW&&_UP.get('threebusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInterior(_UP.get('threebusiness')),900);
