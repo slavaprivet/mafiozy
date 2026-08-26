@@ -1466,6 +1466,15 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 #leftCommandHud #jobStatusHud.custom-gang-status .js-state{margin-top:7px;color:#fff1c8;font:900 15px/1.12 Georgia,"Times New Roman",serif;letter-spacing:.2px;white-space:normal;overflow-wrap:anywhere;text-shadow:0 2px 4px #000,0 0 9px rgba(224,185,99,.2)}
 #leftCommandHud #jobStatusHud.custom-gang-status .js-sub{margin-top:6px;color:#bdb5a5;font-size:9px}
 @media(max-width:680px){#leftCommandHud{padding:6px;gap:5px;border-radius:10px}#leftCommandHud::after{top:24px}#leftCommandHud #btnHome,#leftCommandHud #btnNews{height:33px;line-height:31px}#leftCommandHud #hudPlayer{padding:7px;gap:8px;border-radius:8px}#leftCommandHud #hudPlayer .hud-name{font-size:13px}#leftCommandHud #hudPlayer .hp-row .label{font-size:8px}#leftCommandHud #modeHud,#leftCommandHud #missionHudBtn{min-height:32px}#leftCommandHud #gangRosterHud,#leftCommandHud #jobStatusHud{padding:7px 8px;border-radius:8px}}
+@media (min-width:681px) and (max-width:1440px), (min-width:681px) and (max-height:820px){
+  #leftCommandHud{width:244px;padding:6px;gap:5px}
+  #leftCommandHud #btnHome,#leftCommandHud #btnNews{height:33px;line-height:31px}
+  #leftCommandHud #hudPlayer{padding:7px;gap:8px}
+  #leftCommandHud #hudPlayer .hud-ava{width:58px;height:58px}
+  #leftCommandHud #hudPlayer #hudAvatar{width:54px;height:54px}
+  #leftCommandHud #modeHud,#leftCommandHud #missionHudBtn{min-height:32px}
+  #leftCommandHud #gangRosterHud,#leftCommandHud #jobStatusHud{padding:7px 8px}
+}
 #policeModal{display:none;position:fixed;inset:0;z-index:121;background:rgba(3,5,10,.8);align-items:center;justify-content:center;padding:15px}
 #policeModal.show{display:flex}
 #policeModal .police-card{width:min(560px,96vw);max-height:88vh;overflow:auto;border-radius:15px;padding:15px;background:linear-gradient(155deg,#18243b,#0a101d);border:1px solid #507cc4;box-shadow:0 22px 65px rgba(0,0,0,.75);color:#edf5ff;font:700 12px system-ui,sans-serif}
