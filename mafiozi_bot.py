@@ -15560,6 +15560,138 @@ def _world_bot_passable(x: float, y: float, radius: float = 0.30) -> bool:
     )
 
 
+_WORLD_BANDIT_SEPARATION = 0.70
+_WORLD_BANDIT_PROGRESS_EPS = 0.12
+_WORLD_BANDIT_STALL_S = 4.0
+_WORLD_BANDIT_RESEED_WINDOW_S = 15.0
+_WORLD_BANDIT_RESEED_CAP = 3
+_WORLD_BANDIT_FAN = (0.0, .42, -.42, .82, -.82, 1.22, -1.22, math.pi)
+
+
+def _world_bandit_point_ok(x: float, y: float, zone_ok=None,
+                            reserved=(), separation: float = _WORLD_BANDIT_SEPARATION):
+    """Validate the same rounded, full-body point clients will receive."""
+    try:
+        x = round(float(x), 2); y = round(float(y), 2)
+    except (TypeError, ValueError):
+        return False
+    if not math.isfinite(x) or not math.isfinite(y):
+        return False
+    if zone_ok is not None and not zone_ok(x, y):
+        return False
+    if not _world_bot_passable(x, y):
+        return False
+    return all(
+        math.hypot(x - float(rx), y - float(ry)) >= separation
+        for rx, ry in reserved
+    )
+
+
+def _world_bandit_nearest_point(x: float, y: float, zone_ok=None,
+                                 reserved=(), max_distance: float = 1.5,
+                                 phase: float = 0.0, include_origin: bool = True,
+                                 corridor_from=None):
+    """Bounded deterministic spawn/recovery fallback; never runs per tick."""
+    radii = ([0.0] if include_origin else []) + [
+        radius for radius in (.25, .5, .75, 1.0, 1.25, 1.5)
+        if radius <= max_distance + 1e-9
+    ]
+    for radius in radii:
+        angles = (0.0,) if radius == 0 else tuple(
+            phase + index * math.tau / 16 for index in range(16))
+        for angle in angles:
+            nx = round(float(x) + math.cos(angle) * radius, 2)
+            ny = round(float(y) + math.sin(angle) * radius, 2)
+            if (corridor_from is not None
+                    and not _world_bandit_corridor_ok(
+                        corridor_from[0], corridor_from[1], nx, ny,
+                        zone_ok, reserved)):
+                continue
+            if _world_bandit_point_ok(nx, ny, zone_ok, reserved):
+                return nx, ny
+    return None
+
+
+def _world_bandit_corridor_ok(sx: float, sy: float, tx: float, ty: float,
+                               zone_ok=None, reserved=()) -> bool:
+    """Validate a <=1.5 recovery corridor in at most eight body probes."""
+    distance = math.hypot(float(tx) - float(sx), float(ty) - float(sy))
+    if distance > 1.5 + 1e-9:
+        return False
+    probes = max(1, min(8, int(math.ceil(distance / .20))))
+    for index in range(1, probes + 1):
+        ratio = index / probes
+        x = float(sx) + (float(tx) - float(sx)) * ratio
+        y = float(sy) + (float(ty) - float(sy)) * ratio
+        if not _world_bandit_point_ok(x, y, zone_ok, reserved):
+            return False
+    return True
+
+
+def _world_bandit_safe_step(bot: dict, target_x: float, target_y: float,
+                             step: float, zone_ok=None, reserved=()) -> bool:
+    """Try the authored heading then seven bounded collision-safe turns."""
+    dx = float(target_x) - float(bot['x'])
+    dy = float(target_y) - float(bot['y'])
+    distance = math.hypot(dx, dy)
+    if distance <= 1e-9 or step <= 0:
+        return False
+    heading = math.atan2(dy, dx)
+    travel = min(distance, max(0.0, float(step)))
+    for offset in _WORLD_BANDIT_FAN:
+        angle = heading + offset
+        nx = round(float(bot['x']) + math.cos(angle) * travel, 2)
+        ny = round(float(bot['y']) + math.sin(angle) * travel, 2)
+        if not _world_bandit_point_ok(nx, ny, zone_ok, reserved):
+            continue
+        bot['x'], bot['y'], bot['ang'] = nx, ny, angle
+        return True
+    return False
+
+
+def _world_bandit_recovery_due(bot: dict, now: float, intended: bool) -> bool:
+    """Return one bounded recovery admission after four seconds without progress."""
+    bot['_mobility_intent'] = bool(intended)
+    if not intended:
+        bot['_mobility_progress_x'] = float(bot['x'])
+        bot['_mobility_progress_y'] = float(bot['y'])
+        bot['_mobility_progress_at'] = float(now)
+        return False
+    anchor_x = bot.get('_mobility_progress_x')
+    anchor_y = bot.get('_mobility_progress_y')
+    progress_at = bot.get('_mobility_progress_at')
+    if anchor_x is None or anchor_y is None or progress_at is None:
+        bot['_mobility_progress_x'] = float(bot['x'])
+        bot['_mobility_progress_y'] = float(bot['y'])
+        bot['_mobility_progress_at'] = float(now)
+        return False
+    if (math.hypot(float(bot['x']) - float(anchor_x),
+                   float(bot['y']) - float(anchor_y)) + 1e-9
+            >= _WORLD_BANDIT_PROGRESS_EPS):
+        bot['_mobility_progress_x'] = float(bot['x'])
+        bot['_mobility_progress_y'] = float(bot['y'])
+        bot['_mobility_progress_at'] = float(now)
+        return False
+    if float(now) - float(progress_at) < _WORLD_BANDIT_STALL_S:
+        return False
+    stamps = [
+        float(stamp) for stamp in (bot.get('_mobility_reseeds') or [])
+        if float(stamp) > float(now) - _WORLD_BANDIT_RESEED_WINDOW_S
+    ]
+    if len(stamps) >= _WORLD_BANDIT_RESEED_CAP:
+        bot['_mobility_reseeds'] = stamps
+        return False
+    stamps.append(float(now))
+    bot['_mobility_reseeds'] = stamps
+    bot['_mobility_progress_at'] = float(now)
+    return True
+
+
+def _world_bandit_recovery_phase(bot: dict) -> float:
+    """Stable across runs; unlike hash(), this does not depend on PYTHONHASHSEED."""
+    return (sum(ord(ch) for ch in str(bot.get('id') or 'bandit')) % 16) * math.tau / 16
+
+
 def _world_bot_path(sx: float, sy: float, tx: float, ty: float,
                     max_nodes: int = 12000) -> list[tuple[float, float]]:
     """A* по пешеходной сетке: маршрут NPC огибает здания и воду."""
@@ -20572,17 +20704,33 @@ class WorldSim:
         bots = []
         cx, cy = td['c'], td['r']
         rad = td.get('radius', self.TERR_RADIUS)
-        # 5 обычных бойцов — рандомно вокруг центра, в зоне
+        zone_ok = lambda x, y: _m.hypot(x - cx, y - cy) <= rad - .31
+        boss_point = _world_bandit_nearest_point(cx, cy, zone_ok)
+        if boss_point is None:
+            return False
+        # Reserve the boss before fighters so all 21 authored actors arrive
+        # full-body passable and never stacked in the first snapshot.
+        reserved = [boss_point]
+        next_bot_id = self._next_bot_id
+        # 20 бойцов — рандомно вокруг центра, в зоне. Each random reseed has
+        # one bounded deterministic <=1.5 fallback; no A* runs at spawn/tick.
         for i in range(self.AGGRO_BOTS_COUNT):
-            for _try in range(20):
+            chosen = None
+            for _try in range(8):
                 ang  = random.random() * 2 * _m.pi
                 dist = 1.5 + random.random() * (rad - 2.0)
                 bx = cx + _m.cos(ang) * dist
                 by = cy + _m.sin(ang) * dist
-                if _world_is_wall(int(by), int(bx)):
-                    continue
-                break
-            self._next_bot_id += 1
+                chosen = _world_bandit_nearest_point(
+                    bx, by, zone_ok, reserved, max_distance=1.5,
+                    phase=(i * 8 + _try) * _m.tau / 128)
+                if chosen is not None:
+                    break
+            if chosen is None:
+                return False
+            bx, by = chosen
+            reserved.append(chosen)
+            next_bot_id += 1
             # Look — банда-стиль: сиреневая футболка, балаклава или
             # тёмные волосы. body=2 (футболка-цвет), hat=4 (балаклава/маска),
             # hair=0/3, face=0/1. Каждый чуть разный.
@@ -20591,7 +20739,7 @@ class WorldSim:
             bot_hp = self._bandit_hp(
                 int(self.AGGRO_BOT_HP * (1.8 if is_elite else 1.0)), bot_level)
             bots.append({
-                'id':       f'gbot{self._next_bot_id}',
+                'id':       f'gbot{next_bot_id}',
                 'x':        float(bx),
                 'y':        float(by),
                 'ang':      0.0,
@@ -20607,6 +20755,9 @@ class WorldSim:
                 '_sentry': i < self.LAIR_SENTRY_COUNT,
                 '_sentry_slot': i if i < self.LAIR_SENTRY_COUNT else -1,
                 '_strafe_t':0.0, '_strafe_s': 0.0,
+                '_mobility_progress_x': None, '_mobility_progress_y': None,
+                '_mobility_progress_at': None, '_mobility_reseeds': [],
+                '_mobility_intent': False,
                 'look':     {
                     'gender': 0,
                     'skin':   random.choice([1,2,3]),
@@ -20618,13 +20769,13 @@ class WorldSim:
                 },
             })
         # Босс — главарь банды. Чуть толще, сабля + узи.
-        self._next_bot_id += 1
+        next_bot_id += 1
         boss_level = self.BANDIT_MAX_LEVEL
         boss_hp = self._bandit_hp(self.AGGRO_BOSS_HP, boss_level)
         bots.append({
-            'id':       f'gboss{self._next_bot_id}',
-            'x':        float(cx),
-            'y':        float(cy),
+            'id':       f'gboss{next_bot_id}',
+            'x':        float(boss_point[0]),
+            'y':        float(boss_point[1]),
             'ang':      0.0,
             'hp':       boss_hp,
             'max_hp':   boss_hp,
@@ -20638,6 +20789,9 @@ class WorldSim:
             'act': 'idle', 'threat': '',
             '_warned':  {},
             '_spin_t':  0.0,    # анимация «крутится с саблей»
+            '_mobility_progress_x': None, '_mobility_progress_y': None,
+            '_mobility_progress_at': None, '_mobility_reseeds': [],
+            '_mobility_intent': False,
             'look':     {
                 'gender': 0,
                 'skin':   1,
@@ -20649,6 +20803,7 @@ class WorldSim:
                 'boss':   1,
             },
         })
+        self._next_bot_id = next_bot_id
         self.aggro[tid] = {
             'bots':            bots,
             'state':           'alive',     # alive / capturing / claimed_cd
@@ -20685,6 +20840,7 @@ class WorldSim:
                 })
                 break
         self.aggro_covers[tid] = covers
+        return True
 
     def _pick_aggro_weapon(self) -> str:
         """Случайное оружие из AGGRO_BOT_WEAPON_WEIGHTS с учётом весов."""
@@ -20808,7 +20964,8 @@ class WorldSim:
             if not td.get('aggro'):
                 continue
             if tid not in self.aggro:
-                self._aggro_spawn(tid, td)
+                if not self._aggro_spawn(tid, td):
+                    continue
                 pkts.append({'kind': 'aggro_spawned', 'tid': tid,
                              'count': len(self.aggro[tid]['bots'])})
         for tid, td in self.TERRITORIES_DEF.items():
@@ -20833,7 +20990,8 @@ class WorldSim:
             st['_boss_alive_last'] = boss_alive
             # Респаун партии: state=='claimed_cd' (зачищен) или alive==0 → таймер
             if not alive_bots and (now - st['last_respawn_at']) >= self.AGGRO_RESPAWN_S:
-                self._aggro_spawn(tid, td)
+                if not self._aggro_spawn(tid, td):
+                    continue
                 pkts.append({'kind': 'aggro_spawned', 'tid': tid,
                              'count': len(self.aggro[tid]['bots'])})
                 continue
@@ -20927,6 +21085,7 @@ class WorldSim:
                 if self._tick_bandit_fire_flee(
                         bot, dt,
                         lambda nx, ny: abs(nx - cx) <= rad and abs(ny - cy) <= rad):
+                    bot['_mobility_intent'] = False
                     continue
                 # Цель — только игрок, который уже нанёс реальный урон банде.
                 if not hostile_players:
@@ -20935,26 +21094,51 @@ class WorldSim:
                     target = min(hostile_players,
                                  key=lambda pp: (pp['x']-bot['x'])**2 + (pp['y']-bot['y'])**2)
                 if target is None:
+                    zone_ok = lambda x, y: _m.hypot(x - cx, y - cy) <= rad - .31
+                    reserved = [
+                        (float(other['x']), float(other['y']))
+                        for other in alive_bots if other is not bot
+                    ]
                     if now >= float(bot.get('_patrol_until') or 0):
                         for _try in range(12):
                             pa = random.random() * 2 * _m.pi
                             pd = random.uniform(1.5, max(2.0, rad - 2.0))
                             px, py = cx + _m.cos(pa) * pd, cy + _m.sin(pa) * pd
-                            if not _world_is_wall(int(py), int(px)):
-                                bot['_patrol_x'], bot['_patrol_y'] = px, py
+                            point = _world_bandit_nearest_point(
+                                px, py, zone_ok, reserved, max_distance=1.5,
+                                phase=_world_bandit_recovery_phase(bot) + _try * .42)
+                            if point is not None:
+                                bot['_patrol_x'], bot['_patrol_y'] = point
                                 break
                         bot['_patrol_until'] = now + random.uniform(5.0, 11.0)
                     dx = float(bot.get('_patrol_x', bot['x'])) - bot['x']
                     dy = float(bot.get('_patrol_y', bot['y'])) - bot['y']
                     dist = _m.hypot(dx, dy)
                     bot['act'] = 'idle'
+                    moved = False
                     if dist > 0.25:
                         step = min(dist, (1.0 if bot['kind'] == 'aggro_boss' else 0.8) * dt)
-                        nx, ny = bot['x'] + dx / dist * step, bot['y'] + dy / dist * step
-                        if not _world_is_wall(int(ny), int(nx)):
-                            bot['x'], bot['y'] = nx, ny
-                            bot['ang'] = _m.atan2(dy, dx)
+                        moved = _world_bandit_safe_step(
+                            bot, bot.get('_patrol_x', bot['x']),
+                            bot.get('_patrol_y', bot['y']), step, zone_ok, reserved)
+                        if moved:
                             bot['act'] = 'walk'
+                    if _world_bandit_recovery_due(bot, now, dist > .25):
+                        attempt = len(bot.get('_mobility_reseeds') or [])
+                        phase = (_world_bandit_recovery_phase(bot)
+                                 + (attempt - 1) * _m.pi / 2)
+                        point = _world_bandit_nearest_point(
+                            bot['x'], bot['y'], zone_ok, reserved,
+                            max_distance=1.5, phase=phase, include_origin=False,
+                            corridor_from=(bot['x'], bot['y']))
+                        if point is not None:
+                            if attempt >= _WORLD_BANDIT_RESEED_CAP:
+                                bot['x'], bot['y'] = point
+                                bot['act'] = 'walk'
+                                bot['_mobility_progress_x'] = float(bot['x'])
+                                bot['_mobility_progress_y'] = float(bot['y'])
+                            bot['_patrol_x'], bot['_patrol_y'] = point
+                            bot['_patrol_until'] = now + 4.0
                     if now >= float(bot.get('_chatter_at') or 0):
                         bot['threat'] = random.choice([
                             'Чего уставился?', 'Это наша земля.', 'Проходи мимо.',
@@ -20965,6 +21149,7 @@ class WorldSim:
                     if now > float(bot.get('_threat_until') or 0):
                         bot['threat'] = ''
                     continue
+                bot['_mobility_intent'] = False
                 tx, ty = target['x'], target['y']
                 bot['act'] = 'idle'
                 dx, dy = tx - bot['x'], ty - bot['y']
@@ -22882,48 +23067,8 @@ class WorldSim:
         else:
             return
         gid = f'nest{self._gang_nest_next_id}'
-        self._gang_nest_next_id += 1
-        faction = 'yellow' if self._gang_nest_next_id % 2 else 'purple'
-        bots = []
-        for i in range(self.NEST_BOTS):
-            # Сажаем рядом со зданием на проходимый тайл
-            for _try in range(15):
-                ang = random.random() * 2 * _m.pi
-                dist = 1.8 + random.random() * 2.0
-                bx = c + _m.cos(ang) * dist
-                by = r + _m.sin(ang) * dist
-                if not _world_is_wall(int(by), int(bx)):
-                    break
-            else:
-                continue
-            self._next_bot_id += 1
-            bot_level = random.randint(1, 18)
-            bot_hp = self._bandit_hp(self.AGGRO_BOT_HP, bot_level)
-            bots.append({
-                'id':       f'cgbot{self._next_bot_id}',
-                'x':        float(bx), 'y': float(by),
-                'ang':      0.0,
-                'hp':       bot_hp,
-                'max_hp':   bot_hp,
-                'level':    bot_level,
-                'alive':    True,
-                'kind':     'aggro_grunt',
-                'weapon':   self._pick_aggro_weapon(),
-                '_shot_t':  0.0,
-                '_act':     'idle',
-                '_act_until': 0.0,
-                'look':     {
-                    'gender': 0,
-                    'skin':   random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
-                    'body':   3 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
-                    'hair':   random.choice([0,1,3]),
-                    'hat':    2 if faction == 'yellow' else 4,
-                    'gang':   2 if faction == 'yellow' else 1,
-                    **({'suit':'#f3efe5'} if faction == 'yellow' else {}),
-                },
-            })
-        if not bots:
-            return
+        next_nest_id = self._gang_nest_next_id + 1
+        faction = 'yellow' if next_nest_id % 2 else 'purple'
         defenders = []
         for i in range(guard_count):
             ang = (i / max(1, guard_count)) * 2 * _m.pi
@@ -22935,6 +23080,61 @@ class WorldSim:
                 'hp': 100, 'max_hp': 100, 'alive': True,
                 'weapon': 'pistol', '_shot_t': 0.0,
             })
+        reserved = [(float(guard['x']), float(guard['y'])) for guard in defenders]
+        zone_ok = lambda x, y: _m.hypot(x - c, y - r) <= self.NEST_GUARD_R + .5
+        bots = []
+        next_bot_id = self._next_bot_id
+        for i in range(self.NEST_BOTS):
+            # Сажаем рядом со зданием полным составом: округлённая full-body
+            # точка не пересекает стену, охранника или уже размещённого рейдера.
+            chosen = None
+            for _try in range(8):
+                ang = random.random() * 2 * _m.pi
+                dist = 1.8 + random.random() * 2.0
+                bx = c + _m.cos(ang) * dist
+                by = r + _m.sin(ang) * dist
+                chosen = _world_bandit_nearest_point(
+                    bx, by, zone_ok, reserved, max_distance=1.5,
+                    phase=(i * 8 + _try) * _m.tau / 64)
+                if chosen is not None:
+                    break
+            if chosen is None:
+                return
+            bx, by = chosen
+            reserved.append(chosen)
+            next_bot_id += 1
+            bot_level = random.randint(1, 18)
+            bot_hp = self._bandit_hp(self.AGGRO_BOT_HP, bot_level)
+            bots.append({
+                'id':       f'cgbot{next_bot_id}',
+                'x':        float(bx), 'y': float(by),
+                'ang':      0.0,
+                'hp':       bot_hp,
+                'max_hp':   bot_hp,
+                'level':    bot_level,
+                'alive':    True,
+                'kind':     'aggro_grunt',
+                'weapon':   self._pick_aggro_weapon(),
+                '_shot_t':  0.0,
+                '_act':     'idle',
+                '_act_until': 0.0,
+                '_mobility_progress_x': None, '_mobility_progress_y': None,
+                '_mobility_progress_at': None, '_mobility_reseeds': [],
+                '_mobility_intent': False, '_nest_phase_bias': 0.0,
+                'look':     {
+                    'gender': 0,
+                    'skin':   random.choice([0,2,3]) if faction == 'yellow' else random.choice([1,2,3]),
+                    'body':   3 if faction == 'yellow' else 2, 'face': random.choice([0,1,2]),
+                    'hair':   random.choice([0,1,3]),
+                    'hat':    2 if faction == 'yellow' else 4,
+                    'gang':   2 if faction == 'yellow' else 1,
+                    **({'suit':'#f3efe5'} if faction == 'yellow' else {}),
+                },
+            })
+        if len(bots) != self.NEST_BOTS:
+            return
+        self._next_bot_id = next_bot_id
+        self._gang_nest_next_id = next_nest_id
         nest = {
             'id':              gid,
             'bots':            bots,
@@ -23027,11 +23227,15 @@ class WorldSim:
                 if self._tick_bandit_fire_flee(
                         bot, dt,
                         lambda nx, ny: _m.hypot(nx - ac, ny - ar) <= self.NEST_GUARD_R + 5.0):
+                    bot['_mobility_intent'] = False
                     fire_flee_ids.add(str(bot['id']))
             alive_guards = [g for g in ne.get('defenders', []) if g.get('alive')]
             for guard in alive_guards:
                 guard['_moving'] = False
             npc_defense_combat = bool(alive_bots and alive_guards)
+            if npc_defense_combat:
+                for bot in alive_bots:
+                    bot['_mobility_intent'] = False
             # Business security and raiders fight in world space instead of
             # silently trading HP on a fixed timer.
             if npc_defense_combat:
@@ -23151,19 +23355,36 @@ class WorldSim:
                 for index, bot in enumerate(alive_bots):
                     if str(bot['id']) in fire_flee_ids:
                         continue
-                    phase = now * .34 + index * _m.tau / max(1, len(alive_bots))
+                    zone_ok = lambda x, y: _m.hypot(x - ac, y - ar) <= self.NEST_GUARD_R + .5
+                    reserved = [
+                        (float(other['x']), float(other['y']))
+                        for other in alive_bots if other is not bot
+                    ]
+                    phase = (now * .34 + index * _m.tau / max(1, len(alive_bots))
+                             + float(bot.get('_nest_phase_bias') or 0))
                     patrol_x = ac + _m.cos(phase) * 3.8
                     patrol_y = ar + _m.sin(phase) * 3.8
                     dx = patrol_x - bot['x']; dy = patrol_y - bot['y']
                     dist = _m.hypot(dx, dy)
                     if dist > .08:
                         step = min(dist, .72 * dt)
-                        nx = bot['x'] + (dx/dist) * step
-                        ny = bot['y'] + (dy/dist) * step
-                        if _world_bot_passable(nx, ny):
-                            bot['x'] = nx; bot['y'] = ny
-                            bot['ang'] = _m.atan2(dy, dx)
+                        if _world_bandit_safe_step(
+                                bot, patrol_x, patrol_y, step, zone_ok, reserved):
                             bot['_moving'] = True
+                    if _world_bandit_recovery_due(bot, now, dist > .08):
+                        attempt = len(bot.get('_mobility_reseeds') or [])
+                        direction = 1 if attempt % 2 else -1
+                        bot['_nest_phase_bias'] = float(bot.get('_nest_phase_bias') or 0) + direction * _m.pi / 2
+                        point = _world_bandit_nearest_point(
+                            bot['x'], bot['y'], zone_ok, reserved, max_distance=1.5,
+                            phase=_world_bandit_recovery_phase(bot) + attempt * _m.pi / 2,
+                            include_origin=False,
+                            corridor_from=(bot['x'], bot['y']))
+                        if point is not None and attempt >= _WORLD_BANDIT_RESEED_CAP:
+                            bot['x'], bot['y'] = point
+                            bot['_moving'] = True
+                            bot['_mobility_progress_x'] = float(bot['x'])
+                            bot['_mobility_progress_y'] = float(bot['y'])
             elif ne['state'] == 'hostile' and not npc_defense_combat:
                 # HOSTILE — стреляем по target_uid (как обычная городская)
                 target = self.players.get(ne['_target_uid']) if ne['_target_uid'] else None
@@ -23179,6 +23400,7 @@ class WorldSim:
                 for bot in alive_bots:
                     if str(bot['id']) in fire_flee_ids:
                         continue
+                    bot['_mobility_intent'] = False
                     dx = tx - bot['x']; dy = ty - bot['y']
                     dist = _m.hypot(dx, dy) + 1e-6
                     bot['ang'] = _m.atan2(dy, dx)
@@ -24958,6 +25180,7 @@ class WorldSim:
                     'evading_c4': bool(bot.get('_evading_c4')),
                     'burning': now_t < float(bot.get('_burn_until') or 0),
                     'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
+                    'move_intent': bool(bot.get('_mobility_intent')),
                     'look':    bot.get('look') or {},
                 })
             covers_out = []
@@ -25058,6 +25281,7 @@ class WorldSim:
                     'act':     'walk' if bot.get('_moving') else 'idle',
                     'burning': now_t < float(bot.get('_burn_until') or 0),
                     'fleeing_fire': now_t < float(bot.get('_fire_flee_until') or 0),
+                    'move_intent': bool(bot.get('_mobility_intent')),
                 })
             aggro_payload[ne['id']] = {
                 'state':         ne.get('state', 'guard'),

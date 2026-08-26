@@ -23525,7 +23525,20 @@ function applyCopsTargets(newCops) {
 // каждые 66мс. Сохраняем текущие x/y, кладём серверные в tx/ty, а interpWorldNpcs
 // плавно подтягивает позицию. Сопоставление ботов по id (стабилен в пределах
 // жизни респауна — назначается из _next_bot_id на сервере).
+const _gangMobilityQa = _UP.get('bossqa') === 'gang-mobility';
+const _gangMobilityWitness = new Map();
+function _observeGangMobilitySnapshot(tid,bot,now,seen){
+  if(!_gangMobilityQa||typeof bot?.move_intent!=='boolean')return;
+  const key=`${tid}:${bot.id}`,x=+bot.x||0,y=+bot.y||0;
+  seen.add(key);
+  let sample=_gangMobilityWitness.get(key);
+  if(!sample){sample={x,y,progressAt:now,maxStall:0,samples:0,intent:false};_gangMobilityWitness.set(key,sample);}
+  if(Math.hypot(x-sample.x,y-sample.y)+1e-9>=.12||!bot.move_intent){sample.x=x;sample.y=y;sample.progressAt=now;}
+  sample.intent=!!bot.move_intent;sample.samples++;
+  sample.maxStall=Math.max(sample.maxStall,sample.intent?now-sample.progressAt:0);
+}
 function applyAggroTargets(newAggro) {
+  const mobilityNow=_gangMobilityQa?performance.now():0,mobilitySeen=_gangMobilityQa?new Set():null;
   const freshTids = new Set(Object.keys(newAggro || {}));
   // Удаляем зоны которых больше нет
   for (const tid of Object.keys(aggroZones)) {
@@ -23542,6 +23555,7 @@ function applyAggroTargets(newAggro) {
       // Нанятые игроком боты (сервер про найм не знает) — фильтруем по id
       z.bots = (z.bots || []).filter(b => !_hiredBotIds.has(String(b.id))&&!_empireRecruitedBotIds.has(String(b.id)));
       for (const b of z.bots) {
+        if(_gangMobilityQa)_observeGangMobilitySnapshot(tid,b,mobilityNow,mobilitySeen);
         b.faction = b.faction || z.faction || 'purple';
         b.tx = b.x; b.ty = b.y; b.tAng = b.ang || 0;
       }
@@ -23562,6 +23576,7 @@ function applyAggroTargets(newAggro) {
     const oldById = new Map((cur.bots || []).map(b => [b.id, b]));
     const merged = [];
     for (const nb of newBots) {
+      if(_gangMobilityQa)_observeGangMobilitySnapshot(tid,nb,mobilityNow,mobilitySeen);
       // Запоминаем последнюю позицию/look каждого бота — чтобы при убийстве
       // (бот пропадает из снапшота) спавн трупа знал где его положить.
       _botLastSeen.set(String(nb.id), { x: nb.x, y: nb.y, ang: nb.ang || 0, look: nb.look, max_hp: nb.max_hp || 100, t: performance.now() });
@@ -23581,6 +23596,7 @@ function applyAggroTargets(newAggro) {
         ob.kind  = nb.kind;
         ob.faction = nb.faction || fresh.faction || cur.faction || 'purple';
         ob.weapon = nb.weapon;
+        ob.move_intent = !!nb.move_intent;
         ob.burning = !!nb.burning;
         ob.fleeing_fire = !!nb.fleeing_fire;
         // Серверный walk остаётся walk даже между двумя одинаково округлёнными
@@ -23603,6 +23619,11 @@ function applyAggroTargets(newAggro) {
     cur.bots = merged;
     // Укрытия не двигаются — перетираем как есть
     cur.covers = fresh.covers || [];
+  }
+  if(_gangMobilityQa){
+    for(const key of _gangMobilityWitness.keys())if(!mobilitySeen.has(key))_gangMobilityWitness.delete(key);
+    const samples=[..._gangMobilityWitness.values()],intent=samples.filter(s=>s.intent),stalled=intent.filter(s=>mobilityNow-s.progressAt>=4000);
+    document.documentElement.dataset.gangMobilityWitness=[`actors-${samples.length}`,`intent-${intent.length}`,`stalled4-${stalled.length}`,`max-${Math.round(Math.max(0,...intent.map(s=>mobilityNow-s.progressAt)))}`,`samples-${samples.reduce((sum,s)=>sum+s.samples,0)}`].join(':');
   }
   // Чистим устаревшие записи позиций (бот мёртв/деспавнен >30с назад)
   if (_botLastSeen.size > 120) {
