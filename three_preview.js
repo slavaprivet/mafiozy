@@ -3259,7 +3259,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         };
         const basic=(color,transparent=false,opacity=1)=>new THREE.MeshBasicMaterial({color,transparent,opacity,toneMapped:true,side:THREE.DoubleSide});
         const glass=new THREE.MeshPhysicalMaterial({color:0xa8dce8,transparent:true,opacity:.34,roughness:.08,metalness:.12,transmission:.28,side:THREE.DoubleSide});
-        const steel=std('#65727b',.28,.82),dark=std('#171b20',.52,.38),black=std('#0d1116',.4,.48),wood=std('#5b3423',.72,.02),brass=std('#c49a3e',.28,.72),cream=std('#e0d7c5',.88,.02),felt=std('#176342',.88,.01),rubber=std('#181b20',.92,.02);
+        const steel=std('#65727b',.28,.82),dark=std('#171b20',.52,.38),black=std('#0d1116',.4,.48),wood=std('#5b3423',.72,.02),brass=std('#c49a3e',.28,.72),cream=std('#e0d7c5',.88,.02),felt=std('#176342',.88,.01),rubber=std('#181b20',.92,.02),red=std('#a52f37',.64,.05);
         const metal=steel,pink=basic('#ff4fad'),cyan=basic('#65e8ff'),warm=basic('#ffc568');
         const add=(geometry,material,c,y,r,parent=interiorGroup)=>{
           const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x(c),y,z(r));mesh.castShadow=mesh.receiveShadow=true;mesh.layers.set(1);parent.add(mesh);propCount++;return mesh;
