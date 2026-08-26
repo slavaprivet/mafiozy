@@ -7204,6 +7204,120 @@ SHOP_ROB_INTERIOR_WIDTHS = {
     "casino": 28, "port": 30,
 }
 
+# Frozen ordinary-business collision contract.  This is the server-owned
+# normalized (r, c, width, depth) projection of world.html layout V2; client
+# collision_v is only a compatibility handshake and never supplies geometry.
+BUSINESS_INTERIOR_COLLISION_VERSION = 2
+BUSINESS_INTERIOR_COLLISION_PAD = 0.12
+BUSINESS_INTERIOR_COLLISION_STEP = 0.20
+BUSINESS_INTERIOR_COLLISION_V2 = {
+    "coffee": {"size": (16, 11), "signature": "10:cc0874aa", "blockers": (
+        (2.9, 8, 6.2, 1.15), (6.2, 3.2, 2.4, 1.4),
+        (8.3, 8.8, 2.4, 1.4), (6.4, 14.2, 2.4, 1.4),
+        (4.5, 13.8, 4.5, 1.3), (3.2, 14.4, 2.4, 1.2),
+        (3.8, 3.1, 3.2, 1.1), (9.6, 14.7, 2.1, 1.4),
+        (3.1, 8.3, 2.2, 1.1), (10.2, 3.1, 2.2, 1.1),
+    )},
+    "carwash": {"size": (18, 12), "signature": "11:b9ef9f08", "blockers": (
+        (2.9, 9, 6.2, 1.15), (7, 8.8, 5.8, 2.8),
+        (7.1, 8.8, 4.1, 1.8), (5.1, 6.1, .85, .85),
+        (5.1, 11.5, .85, .85), (4.2, 2.5, 1.25, 1.25),
+        (6.2, 2.5, 1.25, 1.25), (8.5, 2.7, 2.3, 1.2),
+        (4.5, 15.1, 2.2, 1.15), (8.7, 14.8, 2.4, 1.3),
+    )},
+    "barbershop": {"size": (18, 12), "signature": "8:557ef756", "blockers": (
+        (2.9, 9, 6.2, 1.15), (4.2, 3.5, 1.55, 1.55),
+        (4.2, 9, 1.55, 1.55), (4.2, 14.5, 1.55, 1.55),
+        (8.5, 14.2, 2.4, 1.4), (9.5, 4, 4, 1.2),
+        (8.7, 9, 2.2, 1.2), (3.5, 17, 1.3, 1),
+    )},
+    "pizza": {"size": (19, 13), "signature": "11:466910d0", "blockers": (
+        (2.9, 9.5, 6.2, 1.15), (3.9, 14.2, 3.5, 2.2),
+        (5.2, 3.2, 3.5, 1.6), (5.2, 6.5, 2.4, 1.25),
+        (3.5, 2.1, 1.6, 1.25), (3.8, 9.1, 3.3, 1.1),
+        (8, 3.3, 2.4, 1.4), (8.3, 9, 2.4, 1.4),
+        (8, 14.3, 2.4, 1.4), (10.3, 3.2, 2.6, 1.2),
+        (10.2, 14.5, 2.4, 1.4),
+    )},
+    "garage": {"size": (21, 14), "signature": "9:5f0b0b62", "blockers": (
+        (2.9, 10.5, 6.2, 1.15), (6.8, 8.8, 6.2, 3),
+        (6.8, 8.8, 4.4, 1.9), (4.1, 3, 2.2, 1.6),
+        (7.7, 3, 2.1, 1.5), (10, 3.1, 2.1, 1.3),
+        (5, 14.7, 2.8, 1.3), (9.5, 14.4, 3, 1.6),
+        (3.2, 9, 2.3, 1.1),
+    )},
+    "bar": {"size": (21, 14), "signature": "10:380cb868", "blockers": (
+        (2.9, 10.5, 6.2, 1.15), (4.5, 13.7, 7.2, 1.4),
+        (2.2, 13.8, 6.8, .8), (3.2, 10.5, 1.5, 1.1),
+        (6.8, 3.4, 2.4, 1.4), (9.5, 8.8, 2.4, 1.4),
+        (3.8, 3.3, 3.7, 2.2), (9.5, 14.4, 3.4, 1.5),
+        (8, 12, 3.3, 1.9),
+    )},
+    "club": {"size": (23, 15), "signature": "10:714cdf5a", "blockers": (
+        (2.9, 11.5, 6.2, 1.15), (6, 3.6, 2.4, 1.4),
+        (8.8, 14.2, 2.4, 1.4), (3.8, 14.3, 4.8, 2.5),
+        (9.8, 3.3, 4.2, 1.25), (3.8, 3, 2.2, 1.2),
+        (9.7, 9, 2.7, 1.8), (6.7, 15.8, 2.4, 1.2),
+    )},
+    "warehouse": {"size": (25, 17), "signature": "9:e254fcb6", "blockers": (
+        (2.9, 12.5, 6.2, 1.15), (4, 2.7, 4, 1.15),
+        (4, 8.7, 4, 1.15), (4, 14.7, 4, 1.15),
+        (7.5, 3, 2.6, 2), (7.5, 9, 3, 1.8),
+        (8.1, 14.3, 2.9, 1.9), (10.3, 5.8, 3.2, 1.5),
+        (10, 14.5, 2.6, 1.4),
+    )},
+    "casino": {"size": (28, 19), "signature": "10:6fbf4265", "blockers": (
+        (2.9, 14, 6.2, 1.15), (5.1, 3.6, 3.3, 2),
+        (7.7, 8.8, 3.3, 2), (9.5, 3.6, 3.3, 2),
+        (4.5, 14.7, 3.5, 1.2), (7.4, 14.7, 3.5, 1.2),
+        (10, 14.2, 3.2, 1.3), (9.8, 9.5, 3, 1.2),
+        (3.6, 8.8, 3.3, 1.8), (10.2, 3.2, 2.2, 1.2),
+    )},
+    "port": {"size": (30, 21), "signature": "6:e23b2d37", "blockers": (
+        (2.9, 15, 6.2, 1.15), (4.7, 3.2, 4, 2),
+        (4.7, 14.2, 4, 2), (6.8, 9, 5.2, 2),
+        (8, 5, 3, 2), (8, 13, 3, 1.5),
+    )},
+}
+
+
+def _business_interior_melee_los_clear(
+        biz_id: str, shooter: dict | None, target: dict | None) -> bool:
+    """Fail-closed LOS against the server-owned frozen business V2 layout."""
+    profile = BUSINESS_INTERIOR_COLLISION_V2.get(str(biz_id or ''))
+    if not profile or not shooter or not target:
+        return False
+    if (shooter.get('_business_collision_v') != BUSINESS_INTERIOR_COLLISION_VERSION
+            or target.get('_business_collision_v') != BUSINESS_INTERIOR_COLLISION_VERSION):
+        return False
+    try:
+        sx = float(shooter['_interior_x'])
+        sy = float(shooter['_interior_y'])
+        tx = float(target['_interior_x'])
+        ty = float(target['_interior_y'])
+    except (KeyError, TypeError, ValueError):
+        return False
+    if not all(math.isfinite(value) for value in (sx, sy, tx, ty)):
+        return False
+    width, height = profile['size']
+    if not all((.25 <= x <= width - .25 and .25 <= y <= height - .25)
+               for x, y in ((sx, sy), (tx, ty))):
+        return False
+
+    def blocked(x: float, y: float) -> bool:
+        return any(
+            abs(y - row) < depth / 2 + BUSINESS_INTERIOR_COLLISION_PAD
+            and abs(x - col) < item_width / 2 + BUSINESS_INTERIOR_COLLISION_PAD
+            for row, col, item_width, depth in profile['blockers'])
+
+    distance = math.hypot(tx - sx, ty - sy)
+    steps = max(1, math.ceil(distance / BUSINESS_INTERIOR_COLLISION_STEP))
+    for index in range(steps + 1):
+        ratio = index / steps
+        if blocked(sx + (tx - sx) * ratio, sy + (ty - sy) * ratio):
+            return False
+    return True
+
 
 def robbery_difficulty_for_guards(guards: int) -> int:
     guards = max(0, int(guards or 0))
@@ -17996,6 +18110,7 @@ class WorldSim:
             p['_major_interior'] = major_id
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
+            p.pop('_business_collision_v', None)
             p['_interior_kind'] = 'major'
             p['_in_interior'] = True
             p['_in_interior_until'] = time.time() + 30.0
@@ -18016,6 +18131,11 @@ class WorldSim:
             except Exception:
                 return
             p['_business_interior'] = biz_id
+            try:
+                collision_v = int(interior.get('collision_v'))
+            except (TypeError, ValueError):
+                collision_v = 0
+            p['_business_collision_v'] = collision_v
             # Клиент не может сам объявить помещение закрытым: собственность
             # проверяется по серверному кешу, загруженному из БД.
             p['_business_private'] = biz_id in (p.get('_owned_biz') or set())
@@ -18029,6 +18149,7 @@ class WorldSim:
         if interior_kind in ('bank', 'building'):
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
+            p.pop('_business_collision_v', None)
             apartment_key = str(interior.get('apartment_key') or '')[:32]
             apartment_owner_uid = str(interior.get('apartment_owner_uid') or '')[:32]
             if interior_kind == 'building' and apartment_key and apartment_owner_uid:
@@ -18069,6 +18190,7 @@ class WorldSim:
         if p.get('_business_interior'):
             p.pop('_business_interior', None)
             p.pop('_business_private', None)
+            p.pop('_business_collision_v', None)
             p.pop('_interior_x', None)
             p.pop('_interior_y', None)
         p['_in_interior'] = False
@@ -19549,6 +19671,9 @@ class WorldSim:
                     return None
 
             if same_business:
+                if not _business_interior_melee_los_clear(
+                        s_biz, shooter, target):
+                    return None
                 sx, sy = float(shooter.get('_interior_x') or 0), float(shooter.get('_interior_y') or 0)
                 tx, ty = float(target.get('_interior_x') or 0), float(target.get('_interior_y') or 0)
             else:

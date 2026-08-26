@@ -24,3 +24,20 @@ directions and produces no HP, blood, hit-stop or retaliation side effect.
 NPC bruises use one shared instanced mark per visible NPC (`NPC_CAP`). A mark is
 shown from the stable hit timestamp, then hidden deterministically on death,
 despawn or slot reuse. No materials, textures or meshes are created per frame.
+
+## Server same-business melee LOS
+
+Online players in the same ordinary business use the server-owned frozen
+business collision layout V2. The client sends only `collision_v: 2` as a
+compatibility/diagnostic handshake; it never supplies blockers, room bounds or
+an LOS verdict. Both players must report V2, the business id must be one of the
+ten exact ordinary-business ids, and all interior coordinates must be finite
+and inside that business's real room bounds. Unknown ids, missing/mismatched
+versions, NaN/infinity, blocked endpoints and out-of-room coordinates fail
+closed before melee cadence, receipt storage or damage.
+
+The authoritative segment samples at no more than `0.20` interior units with
+the frozen V2 solid AABBs and `0.12` padding. This guard is called only by the
+`apply_player_melee` same-business branch. `apply_player_shoot`, weapon receipts,
+ammo authority and every firearm LOS rule are explicitly outside this slice and
+must remain unchanged.

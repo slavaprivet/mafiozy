@@ -35798,6 +35798,10 @@ function sendInput(force = false) {
       kind: _majorInteriorObjectId ? 'major' :
         (_buildingInt.type === 'business' ? 'business' : 'building'),
       biz_id: _buildingInt.bizId || undefined,
+      // Version handshake only. The server owns its frozen V2 geometry and
+      // never accepts collision shapes or LOS decisions from the client.
+      collision_v: _buildingInt.type === 'business'
+        ? BUSINESS_INTERIOR_COLLISION_LAYOUT_VERSION : undefined,
       object_id: _majorInteriorObjectId || undefined,
       apartment_key: _buildingInt.apartmentKey || undefined,
       apartment_owner_uid: _buildingInt.apartmentOwnerUid || undefined,
