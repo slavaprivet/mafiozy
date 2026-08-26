@@ -20491,17 +20491,20 @@ async function upgradeCurrentApartment(upgrade) {
   try {
     const r = await fetch(`${QP.api.replace(/\/+$/, '')}/apartment/${encodeURIComponent(QP.uid)}/upgrade`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apt_key: key, upgrade, cost }),
+      body: JSON.stringify({ apt_key: key, upgrade }),
     });
     const j = await r.json();
     if (!j.ok) {
-      showToast(j.error === 'no cash' ? '💸 Недостаточно денег' : '❌ Не удалось улучшить', '❌', 2200);
+      if(j.cash!==undefined){QP.cash=j.cash;myCash=parseInt(j.cash)||0;updateMoneyHud();}
+      if(j.owned)_myApartments=j.owned;
+      showToast(j.error === 'no cash' ? `💸 Нужно $${(+j.cost||cost).toLocaleString('ru')}` : j.error === 'maxed' ? '⭐ Улучшение уже максимальное' : '❌ Не удалось улучшить', '❌', 2200);
+      if(document.getElementById('apartmentControlPanel')?.classList.contains('show'))renderApartmentControlPanel();
       return;
     }
     if (j.cash !== undefined) { QP.cash = j.cash; myCash = parseInt(j.cash) || 0; updateMoneyHud(); }
     if (j.owned) _myApartments = j.owned;
     const u = APT_UPGRADES[upgrade];
-    showToast(`${u.label} улучшен до Lv.${lvl + 1}`, '✅', 2200);
+    showToast(`${u.label} улучшен до Lv.${+j.level||lvl+1} · $${(+j.cost||cost).toLocaleString('ru')}`, '✅', 2200);
     if(document.getElementById('apartmentControlPanel')?.classList.contains('show'))renderApartmentControlPanel();
     if (_profileTab === 'status') renderProfileTab();
   } catch (e) { showToast('⚠️ Ошибка связи с сервером', '❌', 2200); }

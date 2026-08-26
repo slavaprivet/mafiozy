@@ -4701,6 +4701,27 @@ APARTMENT_DISTRICT_PRICES = {
     "countryside": 8500, "nightlife": 14000, "downtown": 18000,
     "coast": 24000, "rich": 32000, "standard": 6500,
 }
+APARTMENT_UPGRADES = {
+    "safe": {"column": "safe_level", "base_cost": 700},
+    "weapon_rack": {"column": "weapon_rack_level", "base_cost": 900},
+    "garage": {"column": "garage_level", "base_cost": 1400},
+    "cameras": {"column": "cameras_level", "base_cost": 1100},
+    "repair": {"column": "repair_level", "base_cost": 500},
+}
+APARTMENT_UPGRADE_MAX_LEVEL = 3
+
+
+def apartment_upgrade_cost(upgrade: str, level: int) -> int | None:
+    """Return the fixed server price for the next apartment upgrade level."""
+    definition = APARTMENT_UPGRADES.get(str(upgrade or ''))
+    current_level = int(level or 0)
+    if not definition or current_level < 0 or current_level >= APARTMENT_UPGRADE_MAX_LEVEL:
+        return None
+    # Same visible curve as world.html: round(base * 1.75 ** level), expressed
+    # with integers so the authority does not depend on floating-point quirks.
+    numerator = int(definition["base_cost"]) * (7 ** current_level)
+    denominator = 4 ** current_level
+    return (numerator + denominator // 2) // denominator
 
 
 def apartment_coords_from_key(apt_key: str):
@@ -5129,25 +5150,63 @@ async def sell_apartment_db(telegram_id: int, apt_key: str):
         await db.commit()
     return {"refund": refund, "cash": int((cash_row or [0])[0] or 0)}
 
-async def upgrade_apartment_db(telegram_id: int, apt_key: str, upgrade: str, cost: int):
+async def upgrade_apartment_db(telegram_id: int, apt_key: str, upgrade: str) -> dict:
+    """Atomically price, debit and advance one server-defined upgrade."""
     await ensure_apartment_tables()
-    col_map = {
-        "safe": "safe_level",
-        "weapon_rack": "weapon_rack_level",
-        "garage": "garage_level",
-        "cameras": "cameras_level",
-        "repair": "repair_level",
-    }
-    col = col_map.get(upgrade)
-    if not col:
-        return False
+    definition = APARTMENT_UPGRADES.get(str(upgrade or ''))
+    if not definition:
+        return {'ok': False, 'error': 'bad upgrade'}
+    col = str(definition['column'])
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            f"UPDATE apartments_owned SET {col}={col}+1 WHERE telegram_id=? AND apt_key=?",
-            (telegram_id, apt_key)
+        await db.execute('BEGIN IMMEDIATE')
+        async with db.execute(
+            "SELECT cash FROM characters WHERE telegram_id=?", (telegram_id,)
+        ) as cur:
+            char = await cur.fetchone()
+        if not char:
+            await db.rollback()
+            return {'ok': False, 'error': 'no character'}
+        async with db.execute(
+            f"SELECT COALESCE({col},0) FROM apartments_owned "
+            "WHERE telegram_id=? AND apt_key=?", (telegram_id, apt_key)
+        ) as cur:
+            apartment = await cur.fetchone()
+        cash = int(char[0] or 0)
+        if not apartment:
+            await db.rollback()
+            return {'ok': False, 'error': 'not owned', 'cash': cash}
+        level = int(apartment[0] or 0)
+        if level >= APARTMENT_UPGRADE_MAX_LEVEL:
+            await db.rollback()
+            return {'ok': False, 'error': 'maxed', 'cash': cash, 'level': level}
+        cost = apartment_upgrade_cost(upgrade, level)
+        if cost is None:
+            await db.rollback()
+            return {'ok': False, 'error': 'bad upgrade', 'cash': cash, 'level': level}
+        debited = await db.execute(
+            "UPDATE characters SET cash=COALESCE(cash,0)-? "
+            "WHERE telegram_id=? AND COALESCE(cash,0)>=?",
+            (cost, telegram_id, cost),
         )
+        if int(debited.rowcount or 0) != 1:
+            await db.rollback()
+            return {'ok': False, 'error': 'no cash', 'cash': cash,
+                    'cost': cost, 'level': level}
+        advanced = await db.execute(
+            f"UPDATE apartments_owned SET {col}=COALESCE({col},0)+1 "
+            f"WHERE telegram_id=? AND apt_key=? AND COALESCE({col},0)=? "
+            f"AND COALESCE({col},0)<?",
+            (telegram_id, apt_key, level, APARTMENT_UPGRADE_MAX_LEVEL),
+        )
+        if int(advanced.rowcount or 0) != 1:
+            await db.rollback()
+            return {'ok': False, 'error': 'upgrade conflict', 'cash': cash,
+                    'cost': cost, 'level': level}
+        new_level = level + 1
+        new_cash = cash - cost
         await db.commit()
-    return True
+    return {'ok': True, 'cash': new_cash, 'cost': cost, 'level': new_level,
+            'owned': await get_apartments_owned(telegram_id)}
 
 def get_status_points(owned_items: list, kills: int = 0) -> int:
     """Статус = очки имущества + 10 за каждую победу в драке."""
@@ -29092,22 +29151,11 @@ async def _coop_http_app():
             b = {}
         apt_key = str(b.get('apt_key', '')).strip()[:32]
         upgrade = str(b.get('upgrade', '')).strip()
-        cost = max(1, int(b.get('cost', 0) or 0))
-        char = await get_character(uid)
-        if not char:
-            return await _cors(web.json_response({'ok': False, 'error': 'no character'}, status=404))
-        owned = await get_apartments_owned(uid)
-        if apt_key not in owned:
-            return await _cors(web.json_response({'ok': False, 'error': 'not owned'}))
-        cash = int(char.get('cash') or 0)
-        if cash < cost:
-            return await _cors(web.json_response({'ok': False, 'error': 'no cash', 'cash': cash}))
-        ok = await upgrade_apartment_db(uid, apt_key, upgrade, cost)
-        if not ok:
-            return await _cors(web.json_response({'ok': False, 'error': 'bad upgrade'}))
-        await update_character(uid, cash=cash - cost)
-        owned = await get_apartments_owned(uid)
-        return await _cors(web.json_response({'ok': True, 'cash': cash - cost, 'owned': owned}))
+        result = await upgrade_apartment_db(uid, apt_key, upgrade)
+        status = (200 if result.get('ok') else
+                  404 if result.get('error') == 'no character' else
+                  400 if result.get('error') == 'bad upgrade' else 409)
+        return await _cors(web.json_response(result, status=status))
 
     async def h_apartment_sell(req):
         try:
