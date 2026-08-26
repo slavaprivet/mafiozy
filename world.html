@@ -1063,9 +1063,16 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
 }
 
 #errorBanner {
-  position: absolute; left: 14px; right: 14px; top: 60px;
-  background: rgba(80,20,20,.92); border: 1px solid #c83030; border-radius: 10px;
-  color: #ffb0b0; padding: 10px 14px; font-size: 12px; text-align: center; z-index: 8;
+  position: absolute;
+  top: max(60px, calc(env(safe-area-inset-top, 0px) + 52px));
+  right: max(14px, env(safe-area-inset-right, 0px));
+  width: min(360px, calc(100vw - 28px)); max-width: calc(100vw - 28px);
+  box-sizing: border-box; padding: 10px 14px 10px 16px;
+  border: 1px solid rgba(209,73,67,.88); border-left: 4px solid #d7b85f; border-radius: 4px 12px 4px 12px;
+  background: linear-gradient(112deg,rgba(78,17,22,.97),rgba(20,12,16,.96) 68%);
+  box-shadow: 0 12px 34px rgba(0,0,0,.52), 0 0 18px rgba(180,43,43,.2), inset 0 1px rgba(255,236,190,.08);
+  color: #ffd4ca; font-size: 12px; font-weight: 750; line-height: 1.35; text-align: left;
+  overflow-wrap: anywhere; z-index: 8; pointer-events: none;
   display: none;
 }
 #directDemoBadge {
@@ -2738,7 +2745,7 @@ body:has(#shopOverlay.open) #districtRepHud,body:has(#profileModal.show) #distri
     <input id="chatInput" placeholder="Введите сообщение…" maxlength="80" autocomplete="off" aria-label="Сообщение в общий чат">
   </div>
 
-  <div id="errorBanner"></div>
+  <div id="errorBanner" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="directDemoBadge" role="status" aria-live="polite">
     <span class="demo-mark">🎮 DEMO</span>
     <span class="demo-copy">урон и прогресс не сохраняются</span>
