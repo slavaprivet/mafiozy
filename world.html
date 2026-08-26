@@ -10647,11 +10647,12 @@ function _updateBizClients(now) {
       );
       if (cands.length) {
         const n = cands[Math.floor(Math.random() * cands.length)];
+        const entrance=_businessInteractionAnchor(biz);
         n._clientOfBiz = biz.id;
         n._clientStage = 'going';
         n._clientUntil = now + 18000;
         _clearNpcRoute(n);
-        n.tr = biz.r; n.tc = biz.c;
+        n.tr = entrance.r; n.tc = entrance.c;
         n.cryText  = BIZ_VISIT_ANNOUNCE[Math.floor(Math.random() * BIZ_VISIT_ANNOUNCE.length)];
         n.cryUntil = now + 1800;
       }
@@ -10667,7 +10668,8 @@ function _updateBizClients(now) {
     }
     const biz = BUSINESS_POIS.find(x => x.id === n._clientOfBiz);
     if (!biz) { n._clientOfBiz = null; continue; }
-    const d = Math.hypot(n.r - biz.r, n.c - biz.c);
+    const entrance=_businessInteractionAnchor(biz);
+    const d = Math.hypot(n.r - entrance.r, n.c - entrance.c);
     if (n._clientStage === 'going' && d < 2.0) {
       n._clientStage = 'thanking';
       n.cryText = BIZ_VISIT_THANKS[Math.floor(Math.random() * BIZ_VISIT_THANKS.length)];
@@ -10676,8 +10678,8 @@ function _updateBizClients(now) {
       // Цель — отойти от бизнеса в случайную сторону
       const ang = Math.random() * Math.PI * 2;
       _clearNpcRoute(n);
-      n.tr = biz.r + Math.sin(ang) * 6;
-      n.tc = biz.c + Math.cos(ang) * 6;
+      n.tr = entrance.r + Math.sin(ang) * 6;
+      n.tc = entrance.c + Math.cos(ang) * 6;
     }
   }
 }
@@ -19107,7 +19109,7 @@ function _currentBuildingEntryTarget() {
 
   if (_zoneEl && _zoneEl.style.display === 'block' && _zoneEl.dataset.bizId) {
     const biz = BUSINESS_POIS.find(b => b.id === _zoneEl.dataset.bizId);
-    if (biz) return { r: biz.r + .5, c: biz.c + .5, radius: 1.05 };
+    if (biz) {const entrance=_businessInteractionAnchor(biz);return {r:entrance.r,c:entrance.c,radius:1.05};}
   }
 
   if ((_gtaActionKind === 'building_enter'||_gtaActionKind === 'apt_guest_enter') && typeof _gtaActionCarId === 'string') {
@@ -23293,6 +23295,26 @@ function _isThreeWholeBuildingBlocked(r,c){
   if(!rects){rects=_connectedBuildingParts(r0,c0,Math.min(r0+BLOCK,MAP_ROWS),Math.min(c0+BLOCK,MAP_COLS));_threeBuildingBlockCache.set(key,rects);}
   return rects.some(q=>r>=q.minR&&r<q.maxR+1&&c>=q.minC&&c<q.maxC+1);
 }
+// Business shells are authored later than the base map and collision helpers.
+// Keep this registry inert until every footprint and its pre-collision entrance
+// have been resolved; otherwise entrance fallback would recurse into itself.
+const _businessExteriorCollisionCache=new Map();
+let _businessExteriorPedCollisionEnabled=false;
+function _businessExteriorDoorCorridorAt(exterior,r,c){
+  const a=exterior.corridorStart,b=exterior.anchor,dr=b.r-a.r,dc=b.c-a.c;
+  const length2=dr*dr+dc*dc||1;
+  const t=Math.max(0,Math.min(1,((r-a.r)*dr+(c-a.c)*dc)/length2));
+  return Math.hypot(r-(a.r+dr*t),c-(a.c+dc*t))<=exterior.corridorHalfWidth;
+}
+function _businessExteriorPedBlocked(r,c){
+  if(!_businessExteriorPedCollisionEnabled)return false;
+  for(const exterior of _businessExteriorCollisionCache.values()){
+    if(Math.abs(r-exterior.center.r)>exterior.halfDepth||Math.abs(c-exterior.center.c)>exterior.halfWidth)continue;
+    if(_businessExteriorDoorCorridorAt(exterior,r,c))return false;
+    return true;
+  }
+  return false;
+}
 function isBlocked(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
@@ -23332,7 +23354,7 @@ function _isRaceWaterEdgeBlockedForPed(r, c) {
 }
 function isBlockedPed(r, c) {
   if(_openCityBridgeSurface(r,c,.04))return false;
-  return isBlocked(r, c) || _isRaceWaterEdgeBlockedForPed(r, c);
+  return isBlocked(r, c) || _isRaceWaterEdgeBlockedForPed(r, c) || _businessExteriorPedBlocked(r,c);
 }
 // Машина стоит на песке? (для замедления + анимации зарывания колёс)
 // Разгонная прямая с пляжа к старту гонки — асфальт, песком не считается.
@@ -26194,7 +26216,7 @@ function wsUrl(credential='') {
   if (_LOCAL_PREVIEW && _UP.get('wanted')) params.set('wanted', String(Math.max(0,Math.min(3,_qInt('wanted',0)))));
   if (_LOCAL_PREVIEW && _UP.get('previewpoi') && typeof BUSINESS_POIS !== 'undefined') {
     const previewBiz=BUSINESS_POIS.find(b=>b.id===_UP.get('previewpoi'));
-    if(previewBiz){params.set('spawn_r',String(previewBiz.r+1.8));params.set('spawn_c',String(previewBiz.c+.5));}
+    if(previewBiz){const entrance=_businessInteractionAnchor(previewBiz);params.set('spawn_r',String(entrance.r));params.set('spawn_c',String(entrance.c));}
   }
   return `${base}/world/sim?${params.toString()}`;
 }
@@ -42022,7 +42044,8 @@ if (_LOCAL_PREVIEW && _UP.get('previewmafia')) {
   setTimeout(applyPreviewRole, 500);
   setInterval(applyPreviewRole, 1000);
   setTimeout(() => {
-    player.r = previewPoi.r + 1.2; player.c = previewPoi.c + 0.4;
+    const entrance=_businessInteractionAnchor(previewPoi);
+    player.r=entrance.r;player.c=entrance.c;
     player.tr = player.r; player.tc = player.c;
     cam.x=(player.c-player.r)*TS*.5;cam.y=(player.c+player.r)*TS*.5*ISO_Y;
     showToast(`Тест: ${MAFIA_FAMILIES[previewFamily]?.short || 'семья'} · ${previewPoi.name}`, '🏴', 2600);
@@ -42512,6 +42535,8 @@ const BUSINESS_EXTERIOR_GEOMETRY_3D = Object.freeze({
   casino:{w:13,d:11,h:13},port:{w:16,d:12,h:7},
 });
 function _businessInteractionAnchor(b) {
+  const cached=_businessExteriorCollisionCache.get(String(b?.id||''));
+  if(cached)return cached.anchor;
   const geometry=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||{d:8};
   // The 3D exterior is centred at the authored tile centre. Its entrance ring
   // sits 1.77 world units beyond the front wall. Convert through the exact
@@ -42521,6 +42546,25 @@ function _businessInteractionAnchor(b) {
     r:+b.r+.5+(geometry.d/2+1.77)/worldScale,c:+b.c+.5
   });
 }
+function _cacheBusinessExteriorCollisions(){
+  _businessExteriorPedCollisionEnabled=false;
+  _businessExteriorCollisionCache.clear();
+  const worldScale=Math.max(3,Math.min(5,+window.MAFIOZI_RENDERER_CONFIG?.worldScale||4.1));
+  for(const b of BUSINESS_POIS){
+    const geometry=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||{w:9,d:8};
+    const center={r:+b.r+.5,c:+b.c+.5};
+    const halfDepth=geometry.d/(worldScale*2),halfWidth=geometry.w/(worldScale*2);
+    const wall={r:center.r+halfDepth,c:center.c};
+    const preferred={r:wall.r+1.77/worldScale,c:wall.c};
+    const anchor=_walkableEstablishmentAnchor(preferred);
+    _businessExteriorCollisionCache.set(String(b.id),{
+      id:String(b.id),center,halfDepth,halfWidth,wall,anchor:{r:+anchor.r,c:+anchor.c},
+      corridorStart:{r:wall.r-.45,c:wall.c},corridorHalfWidth:.42,
+    });
+  }
+  _businessExteriorPedCollisionEnabled=true;
+}
+_cacheBusinessExteriorCollisions();
 function _businessInteractionDistance(b, r=player.r, c=player.c) {
   const a=_businessInteractionAnchor(b);
   const geometry=BUSINESS_EXTERIOR_GEOMETRY_3D[b.id]||{w:9,d:8};
@@ -61483,7 +61527,12 @@ function exitBuildingInterior() {
   document.body.classList.remove('in-building-interior');
   _majorInteriorObjectId = null;
   _majorRaidLocal = null;
-  player.r = bi.r + 1.5; player.c = bi.c + 0.5;
+  if(bi.type==='business'&&bi.bizId){
+    const biz=BUSINESS_POIS.find(b=>b.id===bi.bizId),entrance=biz?_businessInteractionAnchor(biz):null;
+    player.r=entrance?.r??bi.r+1.5;player.c=entrance?.c??bi.c+.5;
+  }else{
+    player.r = bi.r + 1.5; player.c = bi.c + 0.5;
+  }
   if (bi.type === 'police_st' && _policeState?.escort && !_policeState.escort._submitted) {
     _policeState.escort.r = player.r + .7; _policeState.escort.c = player.c + .7;
     _policeState.escort._inside = false; _policeState.escort._turningIn = false;
