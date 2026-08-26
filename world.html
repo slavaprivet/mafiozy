@@ -1233,6 +1233,7 @@ body:not(.in-building-interior) #robActionBtn[data-establishment-action="1"] { d
   -webkit-tap-highlight-color: transparent;
 }
 #modeHud:active { background: rgba(40,50,70,.95); }
+#modeHud:focus-visible { outline: 2px solid #ffe1a0; outline-offset: 2px; }
 #modeHud.pvp { border-color: #b8202a; color: #ffae90; }
 #modeHud.pve { border-color: #2a6a4a; color: #a8d0ff; }
 #modeHud .sw { color: #ffd76b; margin-left: 6px; font-size: 10px; font-weight: 800; }
@@ -2680,7 +2681,7 @@ body:has(#shopOverlay.open) #districtRepHud,body:has(#profileModal.show) #distri
     <div class="qhd-nav" id="questHudNav"></div>
   </div>
   <!-- Индикатор режима PvP/PvE (тап → выбрать другой режим) -->
-  <div id="modeHud" title="Сменить режим">🔫 PvP <span class="sw">сменить</span></div>
+  <button id="modeHud" type="button" title="Сменить режим">🔫 PvP <span class="sw">сменить</span></button>
   <button id="missionHudBtn" type="button" title="Открыть активные миссии">
     <span class="mission-label">📋 Миссии</span><span class="mission-count">0</span>
   </button>
