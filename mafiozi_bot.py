@@ -26282,6 +26282,22 @@ async def _tick_business_war_season(world: 'WorldSim') -> list[dict]:
 _owned_business_income_next_check = 0.0
 
 
+async def _normalize_expired_business_blocks(db, now: int, *,
+                                             telegram_id: int | None = None) -> int:
+    """Open expired event blocks without paying for the closed interval."""
+    where = "status='blocked' AND blocked_until>0 AND blocked_until<=?"
+    args: list[int] = [int(now)]
+    if telegram_id is not None:
+        where += " AND telegram_id=?"
+        args.append(int(telegram_id))
+    result = await db.execute(
+        "UPDATE player_businesses "
+        "SET last_collect=MAX(COALESCE(last_collect,0),blocked_until),"
+        "status='ok',blocked_until=0 "
+        f"WHERE {where}", tuple(args))
+    return max(0, int(result.rowcount or 0))
+
+
 async def _tick_owned_business_income(world: 'WorldSim', *,
                                       now: float | None = None) -> list[dict]:
     """Pay completed minutes with a persisted, deterministic fixed-point carry."""
@@ -26297,8 +26313,10 @@ async def _tick_owned_business_income(world: 'WorldSim', *,
         # Serialize competing tickers before either reads the timestamp/carry.
         # Balance, cursor and carry then commit as one transaction.
         await db.execute("BEGIN IMMEDIATE")
+        await _normalize_expired_business_blocks(db, int(now))
         rows = await (await db.execute(
-            "SELECT telegram_id,biz_id,last_collect,level,income_remainder "
+            "SELECT telegram_id,biz_id,last_collect,level,income_remainder,"
+            "status,blocked_until "
             "FROM player_businesses"
         )).fetchall()
         for raw in rows:
@@ -26306,6 +26324,16 @@ async def _tick_owned_business_income(world: 'WorldSim', *,
             last_collect = int(row.get('last_collect') or int(now))
             completed_minutes = max(0, int((now - last_collect) // 60))
             if completed_minutes <= 0:
+                continue
+            if (row.get('status') == 'blocked' and
+                    int(row.get('blocked_until') or 0) > now):
+                # Move the cursor while closed so reopening cannot award a
+                # catch-up windfall for minutes the business did not operate.
+                await db.execute(
+                    "UPDATE player_businesses SET last_collect=? "
+                    "WHERE telegram_id=? AND biz_id=?",
+                    (last_collect + completed_minutes * 60,
+                     int(row['telegram_id']), row['biz_id']))
                 continue
             biz = get_business(str(row.get('biz_id') or ''))
             if not biz:
@@ -28126,6 +28154,9 @@ async def _coop_http_app():
         owned = {}
         async with aiosqlite.connect(DB_PATH) as db:
             db.row_factory = aiosqlite.Row
+            await _normalize_expired_business_blocks(
+                db, now, telegram_id=uid)
+            await db.commit()
             async with db.execute(
                 "SELECT * FROM player_businesses WHERE telegram_id=?", (uid,)
             ) as cur:
@@ -28500,6 +28531,8 @@ async def _coop_http_app():
             # Снятие кассы и зачисление игроку — одна транзакция. Иначе при
             # обрыве между двумя записями касса уже обнулена, а деньги потеряны.
             await db.execute('BEGIN IMMEDIATE')
+            await _normalize_expired_business_blocks(
+                db, now, telegram_id=uid)
             q = "SELECT * FROM player_businesses WHERE telegram_id=?"
             args = [uid]
             if biz_id_filter:

@@ -30880,6 +30880,12 @@ function openBusinessManagement(bizId) {
   const controlDistrict=districtAt(biz.r,biz.c),controlOwner=controlDistrict?districtOwners[controlDistrict.id]:null;
   const controlFamily=MAFIA_FAMILIES[controlOwner?.mafiaFamily]||null;
   const occupied = !!(owned && _isBusinessGangOccupied(bizId, state));
+  const blockedLeft = owned && state.status === 'blocked'
+    ? Math.max(0, (+state.blocked_until || 0) - Math.floor(Date.now() / 1000))
+    : 0;
+  const blockedText = blockedLeft > 0
+    ? `${Math.floor(blockedLeft / 3600)} ч ${Math.ceil((blockedLeft % 3600) / 60)} мин`
+    : '';
   const cooldownLeft = owned
     ? Math.max(0, (+state.npc_capture_cooldown_until || 0) - Math.floor(Date.now() / 1000))
     : 0;
@@ -30892,12 +30898,12 @@ function openBusinessManagement(bizId) {
       <button id="bmClose" style="border:0;background:#2a2e38;color:#fff;border-radius:50%;width:34px;height:34px;font-size:18px">×</button>
     </div>
     <div style="padding:9px;margin-bottom:10px;border-radius:10px;background:#171922;border:1px solid ${controlFamily?.accent||'#566071'};color:#e8edf5"><b>Семейный контроль:</b> ${controlFamily?controlFamily.name:'нейтральный объект'}${controlDistrict?` · ${controlDistrict.name}`:''}</div>
-    ${owned ? `${occupied ? `<div style="padding:11px;margin-bottom:12px;border-radius:11px;background:#351015;border:1px solid #ff4354;color:#ff9ca5;font-weight:800">🔴 Бизнес захвачен вражеской бандой и не может приносить прибыль. Зачисти бойцов возле здания.</div>` : `<div style="padding:9px;margin-bottom:12px;border-radius:10px;background:#10291a;border:1px solid #2c8b50;color:#7eff9a;font-weight:800">🟢 Бизнес работает и приносит прибыль</div>`}${cooldownLeft > 0 && !occupied ? `<div style="padding:9px;margin:-4px 0 12px;border-radius:10px;background:#102239;border:1px solid #367bc0;color:#8dcbff;font-weight:800">🛡️ Защита после зачистки: банда не сможет снова захватить этот бизнес ещё ${cooldownText}</div>` : ''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px">
+    ${owned ? `${occupied ? `<div style="padding:11px;margin-bottom:12px;border-radius:11px;background:#351015;border:1px solid #ff4354;color:#ff9ca5;font-weight:800">🔴 Бизнес захвачен вражеской бандой и не может приносить прибыль. Зачисти бойцов возле здания.</div>` : blockedLeft > 0 ? `<div style="padding:11px;margin-bottom:12px;border-radius:11px;background:#332511;border:1px solid #d28a31;color:#ffd290;font-weight:800">⏳ Бизнес закрыт ещё ${blockedText}. Доход не начисляется.</div>` : `<div style="padding:9px;margin-bottom:12px;border-radius:10px;background:#10291a;border:1px solid #2c8b50;color:#7eff9a;font-weight:800">🟢 Бизнес работает и приносит прибыль</div>`}${cooldownLeft > 0 && !occupied ? `<div style="padding:9px;margin:-4px 0 12px;border-radius:10px;background:#102239;border:1px solid #367bc0;color:#8dcbff;font-weight:800">🛡️ Защита после зачистки: банда не сможет снова захватить этот бизнес ещё ${cooldownText}</div>` : ''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px">
       <div style="padding:11px;border-radius:11px;background:#101b18;border:1px solid #285d45"><small style="color:#8fa99d">УРОВЕНЬ</small><div style="font-size:20px;font-weight:900;color:#70ee9b">${level}/${BIZ_MAX_LEVEL}</div></div>
       <div style="padding:11px;border-radius:11px;background:#191711;border:1px solid #64552c"><small style="color:#b3a678">ДОХОД</small><div style="font-size:16px;font-weight:900;color:#ffd76b">×${mult.toFixed(2)}</div></div>
     </div>
     <div style="font-size:13px;color:#cbd2dc;line-height:1.6;margin-bottom:14px">Доход: <b style="color:#fff">$${min.toLocaleString('ru')}–$${max.toLocaleString('ru')}/сутки</b><br>В кассе: <b style="color:#7eff9a">$${pending.toLocaleString('ru')}</b></div>
-    <div style="display:flex;gap:8px"><button id="bmCollect" ${pending<=0?'disabled':''} style="flex:1;padding:12px;border:0;border-radius:11px;background:#23874c;color:#fff;font-weight:900;opacity:${pending>0?1:.45}">💰 Собрать</button>
+    <div style="display:flex;gap:8px"><button id="bmCollect" ${pending<=0||blockedLeft>0?'disabled':''} style="flex:1;padding:12px;border:0;border-radius:11px;background:#23874c;color:#fff;font-weight:900;opacity:${pending>0&&blockedLeft<=0?1:.45}">💰 Собрать</button>
     ${level < BIZ_MAX_LEVEL ? `<button id="bmUpgrade" style="flex:1;padding:12px;border:0;border-radius:11px;background:linear-gradient(#f4cc62,#bd8427);color:#211506;font-weight:900">⬆ Улучшить<br><small>$${cost.toLocaleString('ru')}</small></button>` : '<div style="flex:1;padding:13px;text-align:center;border-radius:11px;background:#242833;color:#ffd76b;font-weight:900">★ Максимум</div>'}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
       <button id="bmSecurity" style="padding:11px;border:1px solid #596271;border-radius:11px;background:#222732;color:#fff;font-weight:900">🛡️ Штатная охрана<br><small>${Math.max(0,+state.guards||0)}/6 · улица</small></button>
@@ -43692,6 +43698,7 @@ function syncMyBusinesses() {
             owned: true,
             pending: b.pending || 0,
             status: b.status || 'ok',
+            blocked_until: +b.blocked_until || 0,
             npc_occupied: !!b.npc_occupied,
             notice: b.notice || '',
             level: b.level || 1,
@@ -48628,8 +48635,13 @@ function renderProfileTab() {
       const emoji = poi ? (poi.emoji || BIZ_EMOJI[poi.type] || '🏢') : '🏢';
       const pending = val.pending || 0;
       const occupied = _isBusinessGangOccupied(id, val);
-      html += `<div class="item" style="${occupied?'border-color:#9e3442;background:#241419':''}"><div class="icon">${occupied?'☠️':emoji}</div><div class="info"><div class="nm">${name} <span style="color:${occupied?'#ff6574':'#69db91'}">${occupied?'🔴 ЗАХВАЧЕН':'🟢'}</span></div><div class="sub">${occupied
+      const blockedLeft = val.status === 'blocked'
+        ? Math.max(0, (+val.blocked_until || 0) - Math.floor(Date.now() / 1000))
+        : 0;
+      const blockedText = `${Math.floor(blockedLeft / 3600)} ч ${Math.ceil((blockedLeft % 3600) / 60)} мин`;
+      html += `<div class="item" style="${occupied?'border-color:#9e3442;background:#241419':blockedLeft>0?'border-color:#a56b2d;background:#2a2115':''}"><div class="icon">${occupied?'☠️':blockedLeft>0?'⏳':emoji}</div><div class="info"><div class="nm">${name} <span style="color:${occupied?'#ff6574':blockedLeft>0?'#ffd290':'#69db91'}">${occupied?'🔴 ЗАХВАЧЕН':blockedLeft>0?'🟠 ЗАКРЫТ':'🟢'}</span></div><div class="sub">${occupied
         ? 'Бизнес захвачен вражеской бандой и не может приносить прибыль. Зачисти бойцов возле здания.'
+        : blockedLeft > 0 ? `Закрыт ещё ${blockedText} · доход остановлен`
         : `В кассе: $${Number(pending).toLocaleString('ru')} · работает`}</div></div></div>`;
     });
     html += '</div>';
