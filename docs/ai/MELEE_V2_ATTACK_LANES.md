@@ -15,6 +15,12 @@ RMB block is valid only for a live, standing/crouched, unarmed player and only
 while the held-input sequence remains active. Melee damage is reduced to 10%;
 weapon damage does not use the melee block.
 
+Local player/NPC damage resolves only at the animated impact frame and requires
+both contact range and a clear line through the active collision space. Exterior
+combat reuses the bounded world LOS cache; bank and authored business interiors
+sample their existing collision helpers. A blocked line is a miss in both
+directions and produces no HP, blood, hit-stop or retaliation side effect.
+
 NPC bruises use one shared instanced mark per visible NPC (`NPC_CAP`). A mark is
 shown from the stable hit timestamp, then hidden deterministically on death,
 despawn or slot reuse. No materials, textures or meshes are created per frame.

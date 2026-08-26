@@ -1,6 +1,8 @@
 import asyncio
+import json
 import math
 import os
+import subprocess
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -68,7 +70,7 @@ def test_side_kick_and_bounded_npc_bruises_contract():
     assert "leftKneelShin.visible=rightKneelShin.visible=false" in THREE
     assert "let _meleeKickSide = 1" in WORLD
     assert "melee=smart-heavy-forward-kick-v16" in WORLD
-    assert "dataset.meleeImpact=`${attackSeq}:miss:no-contact`" in WORLD
+    assert "dataset.meleeImpact=`${attackSeq}:miss:${!impactLineClear?'blocked-line':'no-contact'}`" in WORLD
     assert "n._pendingMeleeImpactAt=now+(n._meleeType==='kick'?165:175)" in WORLD
     assert "if (d > 28 || myDead)" in WORLD
     assert "bruise:makeInstances" in THREE
@@ -279,6 +281,42 @@ def test_online_back_attack_is_classified_before_block_resolution():
                 "202", "world:melee:101:back-1", "melee_back_punch", 12)
 
     asyncio.run(scenario())
+
+
+def test_local_melee_requires_clear_line_at_impact_in_both_directions():
+    assert "function _meleeLineClear(r0,c0,r1,c1)" in WORLD
+    assert "if(_bankInt)" in WORLD
+    assert "if(_buildingInt)return _majorInteriorLineClear" in WORLD
+    assert "return _policeWorldLineClear(r0,c0,r1,c1)" in WORLD
+    assert "impactLineClear=!!impactPos&&_meleeLineClear(player.r,player.c" in WORLD
+    assert "impactDistance>contactRange||!impactLineClear" in WORLD
+    assert "impactLineClear=_meleeLineClear(n.r,n.c,player.r,player.c)" in WORLD
+    assert "impactDistance<=contactRange&&impactLineClear" in WORLD
+    assert "'blocked-line':'no-contact'" in WORLD
+
+    start = WORLD.index("function _meleeLineClear(r0,c0,r1,c1)")
+    source = WORLD[start:WORLD.index("function _npcConsiderMeleeBlock", start)]
+    script = f"""
+let _bankInt=null,_buildingInt=null;
+let policeResult=false,interiorResult=false,bankBlocked=false;
+const _policeWorldLineClear=()=>policeResult;
+const _majorInteriorLineClear=()=>interiorResult;
+const _isBlockedInterior=()=>bankBlocked;
+{source}
+const result=[];
+result.push(_meleeLineClear(0,0,1,1));
+policeResult=true;result.push(_meleeLineClear(0,0,1,1));
+_buildingInt={{H:8,W:8}};result.push(_meleeLineClear(1,1,2,2));
+interiorResult=true;result.push(_meleeLineClear(1,1,2,2));
+_buildingInt=null;_bankInt={{H:8,W:8}};bankBlocked=true;
+result.push(_meleeLineClear(1,1,2,2));
+bankBlocked=false;result.push(_meleeLineClear(1,1,2,2));
+console.log(JSON.stringify(result));
+"""
+    completed = subprocess.run(
+        ["node", "-e", script], cwd=ROOT, text=True,
+        capture_output=True, check=True)
+    assert json.loads(completed.stdout) == [False, True, False, True, False, True]
 
 
 if __name__ == "__main__":

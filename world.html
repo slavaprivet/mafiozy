@@ -16484,14 +16484,15 @@ function updateNpcs(dt) {
         const heavyAttack=n._npcHeavyAttack===true,contactRange=heavyAttack?1.68:n._meleeType==='kick'?1.48:1.24;
         n._pendingMeleeImpactAt=0;
         const impactDistance=Math.hypot(player.r-n.r,player.c-n.c);
-        if(_localHostileCanResolveHit()&&impactDistance<=contactRange){
+        const impactLineClear=_meleeLineClear(n.r,n.c,player.r,player.c);
+        if(_localHostileCanResolveHit()&&impactDistance<=contactRange&&impactLineClear){
           const hitAng=Math.atan2(player.r-n.r,player.c-n.c),impR=player.r-Math.sin(hitAng)*.3,impC=player.c-Math.cos(hitAng)*.3,parts=[];
           for(let pi=0;pi<5;pi++){const a2=hitAng+(Math.random()-.5)*1.4,sp2=.5+Math.random();parts.push({vr:Math.sin(a2)*sp2,vc:Math.cos(a2)*sp2,life:220+Math.random()*150,max:370,color:Math.random()<.7?'#aa0f0f':'#5a0808',isBlood:true,size:1.4+Math.random()*1.2});}
           _capArr(impacts,_MAX_IMPACTS);impacts.push({r:impR,c:impC,parts});addShake(1.5);hapticHit();flashHitOverlay(n.r,n.c,n._policeTargetId||`street_npc_${NPCS.indexOf(n)}`,'street_npc',n);
           const dmg=heavyAttack?14:5+Math.floor(Math.random()*6);_hurtLocal(dmg,'Бандит',true,{kind:heavyAttack?'melee_heavy':'melee',source:n,blockPiercing:heavyAttack});if(heavyAttack&&(Math.random()<.30||(_LOCAL_PREVIEW&&_UP.has('previewmeleestun')))){_meleeStunnedIn=2;_meleeStunPoseAt=performance.now();_meleeStunEndsAt=_meleeStunPoseAt+2000;const stunToken=_meleeStunPoseAt;_setMeleeBlock(false);if(_LOCAL_PREVIEW&&_UP.has('previewmeleestun'))n._nextHitAt=now+5000;setTimeout(()=>{if(_meleeStunPoseAt===stunToken){_meleeStunnedIn=0;_meleeStunPoseAt=0;_meleeStunEndsAt=0;}},2000);spawnFloatText(player.r-.72,player.c,'⭐ НОКАУТ ⭐',{color:'#ffe36b',size:18,life:2000});}spawnFloatText(player.r-.4,player.c,`−${dmg}${heavyAttack?' СУПЕР':''}`,{color:heavyAttack?'#ffd15c':'#ff6644',size:heavyAttack?16:14,life:1000});
           n.cryText=['Вот тебе!','На!','Получай!','Не лезь!'][Math.floor(Math.random()*4)];n.cryUntil=now+1000;
           document.documentElement.dataset.npcMeleeImpact=`contact:${n._meleeType}:${contactRange}`;
-        }else document.documentElement.dataset.npcMeleeImpact=`miss:${n._meleeType}:no-contact`;
+        }else document.documentElement.dataset.npcMeleeImpact=`miss:${n._meleeType}:${!impactLineClear?'blocked-line':'no-contact'}`;
         n._npcHeavyAttack=false;
       }
       if (!n._nextHitAt) n._nextHitAt = now + 800;
@@ -34832,6 +34833,19 @@ function _meleeTargetNpcRef(tgt){
   return null;
 }
 
+function _meleeLineClear(r0,c0,r1,c1){
+  if(_bankInt){
+    const distance=Math.hypot(r1-r0,c1-c0),steps=Math.max(1,Math.ceil(distance/.16));
+    for(let i=1;i<steps;i++){
+      const t=i/steps;
+      if(_isBlockedInterior(r0+(r1-r0)*t,c0+(c1-c0)*t))return false;
+    }
+    return true;
+  }
+  if(_buildingInt)return _majorInteriorLineClear(_buildingInt,r0,c0,r1,c1);
+  return _policeWorldLineClear(r0,c0,r1,c1);
+}
+
 function _npcConsiderMeleeBlock(npc,now=performance.now()){
   if(!npc||npc.dead||npc._shotWeapon||now<(+npc._meleeBlockCooldownUntil||0))return false;
   npc._meleeBlockCooldownUntil=now+1250+Math.random()*650;
@@ -34977,8 +34991,10 @@ function punch(force, aimAngle = null, heavy = false) {
   setTimeout(()=>{
   if(_meleeActionLocked())return;
   const impactPos=tgt.getPos?.(),contactRange=heavy?1.75:tgt.kind==='player'?(proneTarget?1.55:1.38):(isKick?1.55:1.38);
-  if(!impactPos||Math.hypot(impactPos.r-player.r,impactPos.c-player.c)>contactRange){
-    document.documentElement.dataset.meleeImpact=`${attackSeq}:miss:no-contact`;
+  const impactDistance=impactPos?Math.hypot(impactPos.r-player.r,impactPos.c-player.c):Infinity;
+  const impactLineClear=!!impactPos&&_meleeLineClear(player.r,player.c,impactPos.r,impactPos.c);
+  if(!impactPos||impactDistance>contactRange||!impactLineClear){
+    document.documentElement.dataset.meleeImpact=`${attackSeq}:miss:${!impactLineClear?'blocked-line':'no-contact'}`;
     return;
   }
   const pos=impactPos,kind=tgt.kind,npcBlockActive=!!targetNpcRef&&performance.now()<Number(targetNpcRef._meleeBlockUntil||0),blocked=npcBlockActive&&!heavy,hitDmg=blocked?Math.max(1,Math.round(dmg*.10)):dmg;
