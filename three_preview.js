@@ -1359,6 +1359,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const initialBuildingCount=buildingDefs.length;
       const loadedBuildingKeys=new Set(buildingDefs.map(d=>`${d[8]?.minR}:${d[8]?.minC}:${d[8]?.maxR}:${d[8]?.maxC}`));
       const occluders=[],buildingPickables=[],facadeMaterials=[],shopMaterials=[],buildingCurbDefs=[],businessExteriorById=new Map();
+      renderer.domElement.dataset.genericStorefrontGlow='signed-only-circadian-opacity-v1';
       // One pooled doorway system covers every authoritative resident exit.
       // Static frames/voids are instanced; only leaves whose target changed
       // receive matrix updates while opening or closing.
@@ -1975,7 +1976,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         if(sign==='BANK'){const crown=box(x,z,w*.68,d*.7,3.3,wall);crown.position.y=h+1.65;outline(crown);}
         const roofVariantPools={glass:[2,4],brick:[0,3],limestone:[1,5],concrete:[1,4],deco:[2,1],industrial:[4,0]},roofPool=roofVariantPools[architectureFamily.id]||[0,5],roofVariant=roofPool[(buildingSeed>>>5)%roofPool.length];
         box(x,z,w+.65,d+.65,.48,detailMat).position.y=h-.24;if(architecturalKind)addThemedArchitecture(architecturalKind,x,z,w,d,h,buildingSeed);else if(districtStyle==='chinatown_rich'||districtStyle==='chinatown_market'||districtStyle==='chinatown_neon')addChinatownRoof(x,z,w,d,h,buildingSeed);else addRoofDetails(x,z,w,d,h,roofVariant,architectureFamily.id);
-        if(!String(architecturalKind||'').startsWith('blackmarket')){const shopGlow=new THREE.MeshBasicMaterial({color:sign==='CLUB'?0xff397d:sign==='CAFE'?0xffa13b:0xffd38a});shopMaterials.push(shopGlow);const shop=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w-2,8),2.8),shopGlow);shop.position.set(x,2.25,z+d/2+.012);scene.add(shop);}
+        if(sign&&!String(architecturalKind||'').startsWith('blackmarket')){const shopGlow=new THREE.MeshBasicMaterial({color:sign==='CLUB'?0xff397d:sign==='CAFE'?0xffa13b:0xffd38a,transparent:true,opacity:.74,depthWrite:false});shopMaterials.push(shopGlow);const shop=new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w-2,8),2.8),shopGlow);shop.position.set(x,2.25,z+d/2+.012);scene.add(shop);}
         // Street-level identity: columns, awnings and window canopies.
         if(sign==='BANK')for(let sx=-3;sx<=3;sx+=2){const col=new THREE.Mesh(new THREE.CylinderGeometry(.25,.32,3.7,10),detailMat);col.position.set(x+sx,2.2,z+d/2+.45);col.castShadow=true;scene.add(col);}
         if(sign==='CAFE'||sign==='DELI'){const awning=box(x,z+d/2+.75,Math.min(8,w-1),1.5,.24,new THREE.MeshStandardMaterial({color:sign==='CAFE'?0xe85f43:0x58b8a2,roughness:.5}));awning.position.y=3.65;awning.rotation.x=-.16;}
