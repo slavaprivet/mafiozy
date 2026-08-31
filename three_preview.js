@@ -364,7 +364,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         }[id]||[56,48,28,22],stepX=familyGrid[0],stepY=familyGrid[1],winW=familyGrid[2],winH=familyGrid[3],variant=seed%3;
         for (let y = 24, iy = 0; y < 488; y += stepY, iy++) for (let x = 20, ix = 0; x < 488; x += stepX, ix++) {
           if(variant===1&&((ix+iy)&3)===0)continue;
-          const lit=((ix*17+iy*31+seed*13)%9)<3,ww=winW+(variant===2&&id!=='glass'?6:0),hh=winH;
+          const room=Math.floor(ix/2),floor=iy,lit=((room*17+floor*31+seed*13)%9)<3,ww=winW+(variant===2&&id!=='glass'?6:0),hh=winH;
           c.fillStyle=id==='limestone'?'rgba(54,48,42,.62)':'#071018';c.fillRect(x-3,y-3,ww+6,hh+6);
           c.fillStyle=lit?(id==='glass'?'#d7f1ff':'#ffd67d'):(id==='glass'?'#163e52':id==='industrial'?'#172d35':'#11283a');c.fillRect(x,y,ww,hh);
           c.fillStyle=lit?'rgba(255,249,205,.68)':'rgba(116,190,222,.28)';c.fillRect(x+4,y+3,Math.max(7,ww*.28),hh-6);
@@ -1286,6 +1286,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         {id:'industrial',base:'#505a5e',roughness:.74,metalness:.31,env:.4,nightEnv:.18,bump:.046,roof:0x30393d},
       ],architectureFamilyById=new Map(architectureFamilies.map(q=>[q.id,q])),architectureFacadeTextures=new Map(),facades=[];
       for(const family of architectureFamilies){const variants=[];for(let variant=0;variant<2;variant++){const tx=facadeTexture(family,variant);variants.push(tx);facades.push(tx);}architectureFacadeTextures.set(family.id,variants);}
+      renderer.domElement.dataset.buildingWindowLighting='room-pair-floor-seeded-circadian-v1';
       const architectureFamilyPools={
         poor:['brick','brick','concrete','limestone','brick','industrial'],
         downtown:['glass','deco','limestone','concrete','glass','brick'],
