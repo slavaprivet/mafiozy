@@ -2947,3 +2947,21 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   bounds each state map to the union of two capped snapshots, at most 144
   entries. The change adds no render object, draw call, timer, poll, gameplay
   state or quality reduction and preserves reconnect/reload semantics.
+
+## Local-cell social NPC pairing (2026-09-01)
+
+- The periodic social conversation search previously compared every eligible
+  NPC pair in the gameplay tick. At the 72-NPC cap that is up to 2,556 distance
+  comparisons in one frame, despite a valid pair needing to be no farther than
+  2.4 tiles apart.
+- Index eligible NPCs by 2.4-tile cells and inspect only the same and eight
+  adjacent cells. Every pair within the original radius remains reachable;
+  eligibility, distance band, player visibility, conversation construction,
+  speech slots, groups, memories and cooldowns remain owned by existing code.
+- Preserve the original nested-loop winner exactly: eligible first actors keep
+  their `NPCS` order and each local search selects the lowest eligible partner
+  index before returning. Cell traversal order must never select a different
+  visible conversation pair.
+- The change adds no timer, network state, render object or gameplay rule. It
+  removes broad-map candidate comparisons from the periodic social tick while
+  retaining the existing 3.5-6.7 second schedule.
