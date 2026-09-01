@@ -1789,7 +1789,15 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const pierH=Math.min(h-1,6.8);
         for(const side of [-1,1])add(x+side*w*.44,pierH*.5,.18,pierH,side<0?identityStone:accent);
         const cornice=add(x,Math.max(4.4,h-1.05),w*.88,.18,accent);cornice.castShadow=false;
+        // A shallow edge downpipe gives ordinary facades a believable drainage
+        // detail while keeping the authoritative central doorway fully clear.
+        // Both pieces reuse the existing material/helper and enter the same
+        // build-time static merge as the piers and cornice above.
+        const downpipeSide=(familyId==='glass'||familyId==='limestone'||familyId==='deco')?1:-1,downpipeX=x+downpipeSide*w*.38,downpipeH=Math.max(3.6,Math.min(h-1.1,8.8));
+        add(downpipeX,downpipeH*.5+.45,.13,downpipeH,identityDark,front+depth+.08);
+        add(downpipeX-downpipeSide*.2,.43,.48,.12,identityDark,front+depth+.12);
         renderer.domElement.dataset.buildingFacadeDepthProfiles='six-family-restraint-single-cornice-door-clear-static-merged-v2';
+        renderer.domElement.dataset.buildingDownpipeProfile='ordinary-edge-vertical-outlet-door-clear-static-merged-v1';
       };
       const addSecondBuildingSliceDepth=(x,z,w,d,h,familyId,accent,add)=>{
         const front=z+d/2+.11;
