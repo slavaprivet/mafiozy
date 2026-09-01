@@ -26389,11 +26389,9 @@ async function wsConnect() {
   }
   socket.onopen = () => {
     if (ws !== socket) return;
-    // Reconnect starts from a neutral guard state; a stale held RMB may not
-    // survive a lost pointer-up while the socket was down.
-    _meleeBlockHeld=false;
-    _punchAnim=null;
-    document.documentElement.dataset.meleeBlock='released:reconnect';
+    // Reconnect starts from a neutral melee state. Neither a held guard nor a
+    // charged strike may survive a lost pointer-up while the socket was down.
+    _resetMeleeTransientState('reconnect-open');
     wsConnected = true;
     wsFailStreak = 0;
     _worldDirectCombatDemo=false;
@@ -27142,6 +27140,7 @@ async function wsConnect() {
     // Закрытие старого сокета не должно запускать ещё одну цепочку reconnect.
     if (ws !== socket) return;
     ws = null;
+    _resetMeleeTransientState('reconnect-close');
     const wasConnected = wsConnected;
     wsConnected = false;
     _markBusinessAuthorityUnverified();
@@ -34865,6 +34864,14 @@ let _meleeBlockHeld = false;
 let _meleeBlockSeq = 0;
 let _meleeChargeStartedAt = 0;
 let _meleeChargeSeq = 0;
+function _resetMeleeTransientState(reason='neutral'){
+  _meleeBlockHeld=false;
+  _meleeChargeStartedAt=0;
+  _punchAnim=null;
+  document.documentElement.dataset.meleeBlock=reason==='reconnect-open'
+    ?'released:reconnect':`released:${reason}`;
+  document.documentElement.dataset.meleeCharge=`released:${reason}`;
+}
 function _meleeActionLocked(){
   const arresting=!!_murderPoliceArrest||_onlinePoliceArrest?.role==='detainee';
   return myDead||_meleeStunnedIn>0||_effectivePlayerStance()==='prone'||arresting||
@@ -35328,6 +35335,7 @@ window.addEventListener('keyup', (e) => {
 
 function updatePvpUI() {
   if(_meleeBlockHeld&&_isArmed())_setMeleeBlock(false);
+  if(_meleeChargeStartedAt&&(_isArmed()||_meleeActionLocked()))_setMeleeCharge(false);
   const inPvp      = inArena(player.r, player.c);
   const convoyT    = findNearestConvoyTarget();
   // PvE-наблюдатели НЕ стреляют вообще — все боевые UI скрыты.
@@ -35899,6 +35907,7 @@ function sendInput(force = false) {
        swimming: _playerInWater ? 1 : 0 };
   inputData.stance=_effectivePlayerStance();
   if(_meleeBlockHeld&&(_meleeActionLocked()||_isArmed()))_setMeleeBlock(false);
+  if(_meleeChargeStartedAt&&(_meleeActionLocked()||_isArmed()))_setMeleeCharge(false);
   const pe=_policeState&&_policeState.escort;
   inputData.police_escort=pe&&!pe._inside?{r:+pe.r.toFixed(2),c:+pe.c.toFixed(2),ang:+(pe.ang||0).toFixed(2),name:String(pe.name||'Задержанный').slice(0,32),look:pe.look||{},waiting:!!pe.waiting}:null;
   // Бизнес-интерьер — отдельное сетевое пространство. Сервер сам проверяет
