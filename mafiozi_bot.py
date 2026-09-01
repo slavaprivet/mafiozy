@@ -3418,6 +3418,18 @@ async def store_melee_event_receipt(attacker_uid: int, attack_id: str,
         await db.commit()
 
 
+async def _deliver_world_melee_packet(world, requester_ws, payload: dict) -> None:
+    """Replay receipts only to their requester; fresh hits remain broadcasts."""
+    blob = json.dumps({'t': 'event', 'd': payload}, ensure_ascii=False)
+    recipients = ((requester_ws,) if payload.get('replayed')
+                  else tuple(world.connections.values()))
+    for recipient in recipients:
+        try:
+            await recipient.send_str(blob)
+        except Exception:
+            pass
+
+
 def _public_ammo_state(reserve_rows, weapon_rows, global_version: int = 0) -> dict:
     reserve = {kind: 0 for kind in AMMO_LIMITS}
     mags = {weapon: 0 for weapon in WEAPON_MAG_SIZE}
@@ -19713,20 +19725,27 @@ class WorldSim:
             return None
         async with self._player_shot_lock(uid, 'melee:' + attack_id):
             shooter = self.players.get(uid)
-            target = self.players.get(target_uid)
-            if not shooter or not target or not uid.isdigit() or not target_uid.isdigit():
+            if not shooter or not uid.isdigit() or not target_uid.isdigit():
                 return None
             prior = await get_melee_event_receipt(int(uid), attack_id)
             if prior:
                 if str(prior.get('target_uid')) != target_uid:
                     return {'kind': 'melee_reply', 'ok': False,
                             'error': 'attack_conflict', 'attack_id': attack_id}
-                state = await get_authoritative_combat_state(int(target_uid))
-                if state:
-                    self._mirror_combat_state(target, state)
+                target = self.players.get(target_uid)
+                state = prior.get('combat_state')
+                if target:
+                    current_state = await get_authoritative_combat_state(
+                        int(target_uid))
+                    if current_state:
+                        self._mirror_combat_state(target, current_state)
+                        state = current_state
                 return {**prior, 'kind': 'pvp_melee', 'attack_id': attack_id,
                         'shooter_uid': uid, 'target_uid': target_uid,
                         'combat_state': state, 'replayed': True}
+            target = self.players.get(target_uid)
+            if not target:
+                return None
             if self._melee_state_locked(shooter) or target.get('dead'):
                 return None
             if target.get('_police_cuffed_by') or shooter.get('_mode') == 'pve' or target.get('_mode') == 'pve':
@@ -31173,14 +31192,8 @@ async def _coop_http_app():
                                     shooter_p.get('name') or '')[:24]
                                 hit_pkt['target_name'] = str(
                                     target_p.get('name') or '')[:24]
-                                blob = json.dumps(
-                                    {'t': 'event', 'd': hit_pkt},
-                                    ensure_ascii=False)
-                                for ws2 in list(world.connections.values()):
-                                    try:
-                                        await ws2.send_str(blob)
-                                    except Exception:
-                                        pass
+                                await _deliver_world_melee_packet(
+                                    world, ws, hit_pkt)
                     elif t == 'cop_shoot':
                         # Игрок стреляет в копа (тоже копит wanted).
                         # d = {target: 'cop123', weapon: 'pistol'}
