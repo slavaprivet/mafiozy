@@ -1278,15 +1278,16 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       // like one cloned brick block. They change materials and facade rhythm,
       // while the authored footprint remains the only collision source.
       const architectureFamilies=[
-        {id:'glass',base:'#214e65',roughness:.13,metalness:.18,env:1.35,nightEnv:.46,bump:.004,roof:0x20333f,physical:true,clearcoat:.92,clearcoatRoughness:.09},
-        {id:'brick',base:'#844638',roughness:.94,metalness:.012,env:.1,nightEnv:.06,bump:.062,roof:0x3c3030},
-        {id:'limestone',base:'#aaa087',roughness:.72,metalness:.045,env:.32,nightEnv:.14,bump:.028,roof:0x42535b},
-        {id:'concrete',base:'#69747a',roughness:.86,metalness:.08,env:.22,nightEnv:.1,bump:.041,roof:0x353f45},
-        {id:'deco',base:'#45625e',roughness:.47,metalness:.18,env:.56,nightEnv:.24,bump:.016,roof:0x2d3f41},
-        {id:'industrial',base:'#505a5e',roughness:.74,metalness:.31,env:.4,nightEnv:.18,bump:.046,roof:0x30393d},
+        {id:'glass',base:'#214e65',roughness:.13,metalness:.18,env:1.35,nightEnv:.46,bump:.004,roof:0x20333f,roofRoughness:.22,roofMetalness:.38,roofEnv:1.1,physical:true,clearcoat:.92,clearcoatRoughness:.09},
+        {id:'brick',base:'#844638',roughness:.94,metalness:.012,env:.1,nightEnv:.06,bump:.062,roof:0x3c3030,roofRoughness:.88,roofMetalness:.04,roofEnv:.18},
+        {id:'limestone',base:'#aaa087',roughness:.72,metalness:.045,env:.32,nightEnv:.14,bump:.028,roof:0x42535b,roofRoughness:.72,roofMetalness:.08,roofEnv:.3},
+        {id:'concrete',base:'#69747a',roughness:.86,metalness:.08,env:.22,nightEnv:.1,bump:.041,roof:0x353f45,roofRoughness:.82,roofMetalness:.12,roofEnv:.25},
+        {id:'deco',base:'#45625e',roughness:.47,metalness:.18,env:.56,nightEnv:.24,bump:.016,roof:0x2d3f41,roofRoughness:.38,roofMetalness:.48,roofEnv:.78},
+        {id:'industrial',base:'#505a5e',roughness:.74,metalness:.31,env:.4,nightEnv:.18,bump:.046,roof:0x30393d,roofRoughness:.62,roofMetalness:.55,roofEnv:.52},
       ],architectureFamilyById=new Map(architectureFamilies.map(q=>[q.id,q])),architectureFacadeTextures=new Map(),facades=[];
       for(const family of architectureFamilies){const variants=[];for(let variant=0;variant<2;variant++){const tx=facadeTexture(family,variant);variants.push(tx);facades.push(tx);}architectureFacadeTextures.set(family.id,variants);}
       renderer.domElement.dataset.buildingWindowLighting='room-pair-floor-seeded-circadian-v1';
+      renderer.domElement.dataset.buildingRoofMaterialResponse='glass-reflective|brick-matte|limestone-stone|concrete-matte|deco-satin|industrial-weathered-metal-v1';
       const architectureFamilyPools={
         poor:['brick','brick','concrete','limestone','brick','industrial'],
         downtown:['glass','deco','limestone','concrete','glass','brick'],
@@ -1941,7 +1942,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         const wallOptions={map:facade,bumpMap:facade,bumpScale:architectureFamily.bump,roughness:architectureFamily.roughness,metalness:architectureFamily.metalness,envMap:cityEnvironment,envMapIntensity:architectureFamily.env,emissive:architectureFamily.id==='glass'?0x8dd8ef:0xffb24c,emissiveMap:facade,emissiveIntensity:architectureFamily.id==='glass'?.105:.075},wall=architectureFamily.physical?new THREE.MeshPhysicalMaterial({...wallOptions,clearcoat:architectureFamily.clearcoat,clearcoatRoughness:architectureFamily.clearcoatRoughness,ior:1.46,specularIntensity:.82}):new THREE.MeshStandardMaterial(wallOptions);
         wall.userData.mfzFacadeDayEnv=architectureFamily.env;wall.userData.mfzFacadeNightEnv=architectureFamily.nightEnv;wall.userData.mfzFacadeFamily=architectureFamily.id;
         wall.userData.mfzOcclusionOpacity=.52;
-        const localRoof=roofMat.clone();localRoof.color.setHex(architectureFamily.roof);localRoof.userData.mfzOcclusionOpacity=.28;
+        const localRoof=roofMat.clone();localRoof.color.setHex(architectureFamily.roof);localRoof.roughness=architectureFamily.roofRoughness;localRoof.metalness=architectureFamily.roofMetalness;localRoof.envMapIntensity=architectureFamily.roofEnv;localRoof.userData.mfzOcclusionOpacity=.28;
         if(architecturalKind){const palette={hospital:0xdfe7e5,hospital_east:0xdfe7e5,police:0xaeb8bd,mafia_hq:0x20364b,mansion:0xd0c6ad,pizza:0xc96b43,coffee:0x8f553b,carwash:0x5496ab,barbershop:0xd6d2c8,garage:0x596872,firestation:0xd7d4ca,warehouse:0x667177,port:0x59666d,bar:0x4a2934,club:0x332c4d,casino:0x5a3b52,market:0x98734a,factory:0x655b54,gym:0x556d82,job_office:0x84745b,blackmarket:0x211c23,blackmarket_bellini:0x29251d,blackmarket_moretti:0x281d20}[architecturalKind];if(palette)wall.color.setHex(palette);wall.emissiveIntensity=['bar','club','casino','mafia_hq','blackmarket','blackmarket_bellini','blackmarket_moretti'].includes(architecturalKind)?.18:.035;}
         wall.userData.mfzFacadeDayEmissive=wall.emissiveIntensity;wall.userData.mfzFacadeNightEmissive=Math.max(architectureFamily.id==='glass'?.46:.4,wall.emissiveIntensity+.24);facadeMaterials.push(wall);renderer.domElement.dataset.buildingMaterialProfiles='glass:opaque-physical-clearcoat,brick:dry-masonry,limestone:soft-stone,concrete:matte,deco:satin-metal,industrial:weathered-metal';renderer.domElement.dataset.buildingMaterialBudget='meshes:0,geometries:0,textures:0,draws:0,lights:0,programs:1,frame-allocations:0';renderer.domElement.dataset.buildingFacadeTextures='source:12,clones:stream-bounded';
         // Keep every visible facade at full fidelity, but do not construct
