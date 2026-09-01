@@ -16124,7 +16124,8 @@ class WorldSim:
         # Агрессивные районы (Логово): NPC-банда + укрытия + таймер
         # 3-сек хадера. Сейчас захват отключён (no_capture), но AggroState
         # всё ещё держит ботов, респаун и AI.
-        'aggro', 'aggro_covers', 'aggro_capturing_at', '_next_bot_id',
+        'aggro', 'aggro_covers', 'aggro_capturing_at',
+        '_aggro_spawn_retry_at', '_next_bot_id',
         # Бродячие городские банды + бандитское гнездо.
         'city_gangs', '_city_gang_next_id', '_city_gang_next_spawn_at',
         '_city_gang_encounters', '_street_control', '_gang_throwables',
@@ -16389,6 +16390,7 @@ class WorldSim:
     # Тайминги агрессивного района
     AGGRO_WARN_S        = 4.0       # сколько секунд предупреждаем «проваливай»
     AGGRO_RESPAWN_S     = 10 * 60   # раз в 10 мин полная партия снова на месте
+    AGGRO_SPAWN_RETRY_S = 15.0      # bounded retry after atomic admission failure
     AGGRO_CAP_HOLD_S    = 3.0       # сколько сек надо удержать после зачистки
     AGGRO_BOTS_COUNT    = 20        # бойцов до главаря — рассчитано на 30+ игроков
     AGGRO_ELITE_COUNT   = 4         # крупные усиленные громилы внутри орды
@@ -16756,6 +16758,7 @@ class WorldSim:
         # {tid -> {bots: [...], state, last_respawn, last_kill_t,
         #          in_combat_uids, last_warn_t}}
         self.aggro = {}
+        self._aggro_spawn_retry_at = {}
         self._next_bot_id = 1
         # Укрытия в агрессивных районах: {tid -> [{x,y,hp,max_hp,r}]}
         self.aggro_covers = {}
@@ -21100,8 +21103,7 @@ class WorldSim:
                 'boss':   1,
             },
         })
-        self._next_bot_id = next_bot_id
-        self.aggro[tid] = {
+        spawn_state = {
             'bots':            bots,
             'state':           'alive',     # alive / capturing / claimed_cd
             'last_respawn_at': time.time(),
@@ -21136,7 +21138,12 @@ class WorldSim:
                     'r': 0.5,
                 })
                 break
+        # No await or authoritative mutation occurs while the generation is
+        # assembled.  Publish the complete roster, state and auxiliary cover
+        # key together only after every required actor was admitted.
+        self.aggro[tid] = spawn_state
         self.aggro_covers[tid] = covers
+        self._next_bot_id = next_bot_id
         return True
 
     def _pick_aggro_weapon(self) -> str:
@@ -21261,14 +21268,23 @@ class WorldSim:
             if not td.get('aggro'):
                 continue
             if tid not in self.aggro:
-                if not self._aggro_spawn(tid, td):
+                if now < float(self._aggro_spawn_retry_at.get(tid) or 0):
                     continue
+                if not self._aggro_spawn(tid, td):
+                    self._aggro_spawn_retry_at[tid] = (
+                        now + self.AGGRO_SPAWN_RETRY_S)
+                    continue
+                self._aggro_spawn_retry_at.pop(tid, None)
                 pkts.append({'kind': 'aggro_spawned', 'tid': tid,
                              'count': len(self.aggro[tid]['bots'])})
         for tid, td in self.TERRITORIES_DEF.items():
             if not td.get('aggro'):
                 continue
-            st  = self.aggro[tid]
+            st = self.aggro.get(tid)
+            if st is None:
+                # Atomic admission may fail on a crowded authored zone. Keep
+                # the rest of the shared world tick live until its retry.
+                continue
             rad = td.get('radius', self.TERR_RADIUS)
             cx, cy = td['c'], td['r']
             alive_bots = [b for b in st['bots'] if b['alive']]
@@ -21287,8 +21303,13 @@ class WorldSim:
             st['_boss_alive_last'] = boss_alive
             # Респаун партии: state=='claimed_cd' (зачищен) или alive==0 → таймер
             if not alive_bots and (now - st['last_respawn_at']) >= self.AGGRO_RESPAWN_S:
-                if not self._aggro_spawn(tid, td):
+                if now < float(self._aggro_spawn_retry_at.get(tid) or 0):
                     continue
+                if not self._aggro_spawn(tid, td):
+                    self._aggro_spawn_retry_at[tid] = (
+                        now + self.AGGRO_SPAWN_RETRY_S)
+                    continue
+                self._aggro_spawn_retry_at.pop(tid, None)
                 pkts.append({'kind': 'aggro_spawned', 'tid': tid,
                              'count': len(self.aggro[tid]['bots'])})
                 continue
