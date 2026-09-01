@@ -17216,6 +17216,7 @@ function initCars() {
   CARS.length = 0;
   // buildMap мог перестроить дороги; старый граф больше невалиден.
   _trafficRoadGraph = null;
+  _trafficPathCache.clear();
   const initTarget = _getTrafficTarget();
   for (let i = 0; i < initTarget; i++) {
     const c = spawnCar(i);
@@ -17855,7 +17856,13 @@ function _assignCarGoal(car) {
 // карты. Поэтому южные потоки неизбежно упирались в пляж. Теперь узлы — это
 // перекрёстки 3×3, рёбра — односторонние полосы, а каждая машина получает
 // достижимую точку назначения и последовательность дорожных waypoint'ов.
+const _TRAFFIC_PATH_CACHE_MAX=1024;
 let _trafficRoadGraph = null;
+const _trafficPathCache=new Map();
+function _trafficRememberNodePath(key,path){
+  if(_trafficPathCache.size>=_TRAFFIC_PATH_CACHE_MAX)_trafficPathCache.delete(_trafficPathCache.keys().next().value);
+  _trafficPathCache.set(key,path);return path;
+}
 function _trafficRoadTile(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ci < 0 || ri >= Math.min(BEACH_R0, MAP_ROWS) || ci >= MAP_COLS) return false;
@@ -17934,6 +17941,12 @@ function _trafficAheadNode(car) {
 function _trafficFindNodePath(start, goal) {
   if (!start || !goal) return null;
   if (start === goal) return [start];
+  const cacheKey=`${start.key}>${goal.key}`;
+  if(_trafficPathCache.has(cacheKey)){
+    const cached=_trafficPathCache.get(cacheKey);
+    _trafficPathCache.delete(cacheKey);_trafficPathCache.set(cacheKey,cached);
+    return cached;
+  }
   const queue = [start], came = new Map([[start.key, null]]);
   let head = 0;
   while (head < queue.length) {
@@ -17946,12 +17959,12 @@ function _trafficFindNodePath(start, goal) {
         let cur = n;
         while (cur) { path.push(cur); cur = came.get(cur.key); }
         path.reverse();
-        return path;
+        return _trafficRememberNodePath(cacheKey,path);
       }
       queue.push(next);
     }
   }
-  return null;
+  return _trafficRememberNodePath(cacheKey,null);
 }
 function _trafficGoalScore(goal, start, kind) {
   const r = goal.r, c = goal.c;

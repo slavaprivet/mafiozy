@@ -2965,3 +2965,18 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
 - The change adds no timer, network state, render object or gameplay rule. It
   removes broad-map candidate comparisons from the periodic social tick while
   retaining the existing 3.5-6.7 second schedule.
+
+## Traffic node-path LRU cache (2026-09-01)
+
+- Road-graph nodes are immutable between `initCars()` calls. Repeated traffic
+  route planning was therefore repeating identical BFS searches for the same
+  ordered start/goal node pair.
+- Keep a bounded 1,024-entry LRU keyed by `start.key>goal.key`. Cache both a
+  completed node-path array and an unreachable `null`; `Map.has()` is required
+  to distinguish a cached null from a miss. Promote hits and evict only the
+  oldest entry at capacity.
+- Preserve the early missing-node and same-node results before cache lookup,
+  all BFS queue/came/neighbor order, node identities, route candidate order and
+  randomness. Clear the cache in the same `initCars()` block that invalidates
+  `_trafficRoadGraph`; no collision, density, spawn, service or render rule is
+  owned by this cache.
