@@ -73,6 +73,7 @@
 <meta name="mafiozy-city-gang-cops-redispatch-contract" content="invalid-target-unlatch-v1">
 <meta name="mafiozy-city-gang-ammo-routing-contract" content="district-pickup-durable-v1">
 <meta name="mafiozy-npc-melee-direction-contract" content="authoritative-front-back-v1">
+<meta name="mafiozy-melee-input-dash-contract" content="pve-reason-target-aware-v1">
 <title>🌆 Город — Мафиози</title>
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -83,7 +84,7 @@ html, body { margin: 0; padding: 0; height: 100%; background: #0b0d12; color: #f
 #stage { position: fixed; inset: 0; overflow: hidden; }
 #gc    { display: block; width: 100%; height: 100%; touch-action: none; background: #0a0a10; }
 #pixiFx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; }
-#threePreview { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+#threePreview { position:absolute; inset:0; width:100%; height:100%; pointer-events:auto; z-index:1; }
 #stage.three-mode #gc { opacity:0; }
 
 /* Верхняя плашка: онлайн + кнопка выхода */
@@ -35061,7 +35062,11 @@ function _npcConsiderMeleeBlock(npc,now=performance.now()){
 }
 
 function punch(force, aimAngle = null, heavy = false) {
-  if (myMode === 'pve') { showToast('🕵️ Наблюдатель не может драться', 'ℹ️', 1500); return false; }
+  if (myMode === 'pve') {
+    document.documentElement.dataset.meleeInputDecision='rejected:pve-observer';
+    showToast('🕵️ В PvE наблюдатель не дерётся. Нажми «PvE сменить» и выбери PvP.', 'ℹ️', 2600);
+    return false;
+  }
   if (_meleeActionLocked()) return false;
   if (!force && _isArmed()) return false;   // есть оружие — использовать fire() (кроме тюрьмы: force)
   if (!force && !lockedTargets.size) return false; // мобильная кнопка сохраняет lock-on правило
@@ -35101,7 +35106,7 @@ function punch(force, aimAngle = null, heavy = false) {
     r:player.r+Math.sin(fallbackAng)*PUNCH_RANGE*.78,
     c:player.c+Math.cos(fallbackAng)*PUNCH_RANGE*.78,
   };
-  if (!pos) return false;
+  if(!pos||!Number.isFinite(+pos.r)||!Number.isFinite(+pos.c))return false;
   const dist = Math.hypot(pos.r - player.r, pos.c - player.c);
   if (tgt && dist > acquireRange) {
     showToast('✊ Подойди ближе!', '⚠️', 1200);
@@ -35126,23 +35131,43 @@ function punch(force, aimAngle = null, heavy = false) {
     hand:isKick?kickLeg:(_meleeHandSide>0?'right':'left'),leg:kickLeg,dmg,
     critical:isKick,heavy,blockPiercing:heavy,proneTarget,hit:!!tgt,impactAt:now+(heavy?330:isKick?165:175),duration:heavy?650:isKick?470:430,
   };
+  document.documentElement.dataset.meleeInputDecision=`accepted:${_punchAnim.type}`;
   if(heavy){
-    const dashSeq=_punchAnim.seq,dashStepDistance=.09,dashSteps=7;
-    // The charged punch owns a short real displacement as well as the skeleton
-    // lunge. Seven small collision-checked steps read as a brief forward run,
-    // rather than a teleport, and finish before the existing impact moment.
+    const dashSeq=_punchAnim.seq,dashStepDistance=.11,dashTargetGap=1.08,
+      dashMaxDistance=1.18,dashAirDistance=1.0,initialDashTarget=tgt?.getPos?.(),
+      initialDashDistance=initialDashTarget?Math.hypot(initialDashTarget.r-player.r,initialDashTarget.c-player.c):Infinity,
+      dashBudget=initialDashTarget?Math.min(dashMaxDistance,Math.max(0,initialDashDistance-dashTargetGap)):dashAirDistance,
+      dashSteps=Math.max(1,Math.ceil(dashBudget/dashStepDistance)),dashDurationMs=Math.max(96,dashSteps*16),
+      dashStartedAt=performance.now(),dashSampleCap=24;
+    // The charged punch owns a readable real displacement as well as the
+    // skeleton lunge. Small collision-checked steps stop before a live target,
+    // never exceed the initial budget, and finish before the impact moment.
     setTimeout(()=>{
       let step=0,totalMoved=0;
       const dashTimer=setInterval(()=>{
         if(_punchAnim?.seq!==dashSeq||_punchAnim.type!=='heavy'||myDead||_localDeath||_murderPoliceArrest){clearInterval(dashTimer);return;}
-        const liveTarget=tgt?.getPos?.();if(liveTarget){ang=Math.atan2(liveTarget.r-player.r,liveTarget.c-player.c);player.ang=ang;_punchAnim.ang=ang;}
-        const beforeR=player.r,beforeC=player.c;
-        tryMove(player,Math.sin(ang)*dashStepDistance,Math.cos(ang)*dashStepDistance);
-        const moved=Math.hypot(player.r-beforeR,player.c-beforeC);
-        totalMoved+=moved;step++;
-        if(moved>.005){player.walking=true;player.walkPhase+=.72;}
-        document.documentElement.dataset.meleeHeavyDash=`${totalMoved.toFixed(3)}:${step}/${dashSteps}:short-forward-run`;
-        if(step>=dashSteps||moved<.005)clearInterval(dashTimer);
+        const dashElapsed=Math.max(0,performance.now()-dashStartedAt),dashProgress=Math.min(1,dashElapsed/dashDurationMs),
+          desiredMoved=dashBudget*dashProgress;
+        let catchUpSteps=0,stopReason='';
+        if(dashBudget<.005)stopReason='target-gap';
+        while(!stopReason&&desiredMoved-totalMoved>=.005&&catchUpSteps<12&&step<dashSampleCap){
+          const liveTarget=tgt?.getPos?.(),liveTargetValid=!!liveTarget&&Number.isFinite(+liveTarget.r)&&Number.isFinite(+liveTarget.c);
+          let stepDistance=Math.min(dashStepDistance,desiredMoved-totalMoved,Math.max(0,dashBudget-totalMoved));
+          if(liveTargetValid){
+            ang=Math.atan2(+liveTarget.r-player.r,+liveTarget.c-player.c);player.ang=ang;_punchAnim.ang=ang;
+            const liveDistance=Math.hypot(+liveTarget.r-player.r,+liveTarget.c-player.c);
+            stepDistance=Math.min(stepDistance,Math.max(0,liveDistance-dashTargetGap));
+          }
+          if(stepDistance<.005){stopReason='target-gap';break;}
+          const beforeR=player.r,beforeC=player.c;
+          tryMove(player,Math.sin(ang)*stepDistance,Math.cos(ang)*stepDistance);
+          const moved=Math.hypot(player.r-beforeR,player.c-beforeC);
+          totalMoved+=moved;step++;catchUpSteps++;
+          if(moved>.005){player.walking=true;player.walkPhase+=.72;}
+          if(moved<.005){stopReason='collision-stop';break;}
+        }
+        document.documentElement.dataset.meleeHeavyDash=`${totalMoved.toFixed(3)}:${dashBudget.toFixed(3)}:${step}/${dashSteps}:${stopReason||'target-aware-run'}`;
+        if(stopReason||dashProgress>=1||totalMoved>=dashBudget-.005||step>=dashSampleCap)clearInterval(dashTimer);
       },16);
     },0);
   }
@@ -49628,7 +49653,7 @@ function weaponHandPose(x,y,ang,weapon){
 function _drawPunchAnim(px, py) {
   if (!_punchAnim) return;
   const elapsed = performance.now() - _punchAnim.startAt;
-  const TOTAL = 400;
+  const TOTAL = Math.max(1,+_punchAnim.duration||400);
   if (elapsed >= TOTAL) { _punchAnim = null; return; }
   if (_punchAnim.type === 'kick') { _drawKickAnim(px, py, elapsed); return; }
 
@@ -66127,7 +66152,8 @@ window.Mafiozi3DBridge = Object.freeze({
   setMeleeBlock(active) { return _setMeleeBlock(active); },
   setMeleeCharge(active) { return _setMeleeCharge(active); },
   melee(angle,heavy=false) {
-    if(_meleeActionLocked()||myMode==='pve'||_isArmed())return false;
+    if(_meleeActionLocked()||_isArmed())return false;
+    if(myMode==='pve')return punch(true,Number.isFinite(angle)?angle:null,!!heavy)===true;
     if(_meleeBlockHeld)return false;
     return punch(true,Number.isFinite(angle)?angle:null,!!heavy)===true;
   },
@@ -67311,12 +67337,23 @@ if(_LOCAL_PREVIEW&&_UP.has('previewcivilianfight'))setTimeout(function seedCivil
     else document.documentElement.dataset.previewCivilianFight='missing-after-retries';
     return;
   }
-  civilian.r=player.r+1.15;civilian.c=player.c+.25;civilian.tr=civilian.r;civilian.tc=civilian.c;
+  const previewHeavyDistance=_UP.get('previewmeleeheavy')==='far'?2.35:1.15;
+  civilian.r=player.r+previewHeavyDistance;civilian.c=player.c+.25;civilian.tr=civilian.r;civilian.tc=civilian.c;
   if(_UP.has('previewmeleeheavy'))player.ang=Math.atan2(civilian.r-player.r,civilian.c-player.c);
+  if(_UP.get('previewmeleeheavy')==='far'){
+    // Keep the outer-band QA target deterministic until the charged strike
+    // begins. Production NPC pursuit remains untouched; this localhost-only
+    // fixture proves the player dash itself closes the distance.
+    const pinR=civilian.r,pinC=civilian.c,heavyTargetPin=setInterval(()=>{
+      if(civilian.dead||document.documentElement.dataset.meleeImpact){clearInterval(heavyTargetPin);return;}
+      civilian.r=civilian.tr=pinR;civilian.c=civilian.tc=pinC;civilian.walking=false;civilian.moving=false;
+    },16);
+    setTimeout(()=>clearInterval(heavyTargetPin),3600);
+  }
   civilian.weapon=null;civilian._fightWeapon='';civilian._civilianFightDecision='fight';
   myHp=Math.max(PVP.max_hp||100,+myHp||0);myDead=false;_localDeath=false;
   civilian._hits=Math.max(1,+civilian._hits||0);civilian.panicUntil=0;
-  _npcTriggerFight(civilian);civilian._nextHitAt=performance.now()+420;
+  _npcTriggerFight(civilian);civilian._nextHitAt=performance.now()+(_UP.get('previewmeleeheavy')==='far'?5000:420);
   if(_UP.has('previewmeleestun')&&_UP.get('previewmeleestun')!=='target'){const qaNow=performance.now();civilian._meleeChargeStartedAt=qaNow;civilian._meleeChargeUntil=qaNow+1200;civilian._meleeType='heavy';civilian._nextHitAt=qaNow+2600;}
   document.documentElement.dataset.previewCivilianFight=`active:${NPCS.indexOf(civilian)}:unarmed:20-percent-production-chance`;
   const previewFightTelemetry=setInterval(()=>{

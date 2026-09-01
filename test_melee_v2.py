@@ -135,8 +135,11 @@ def test_heavy_melee_requires_hold_and_pierces_block():
     assert "if(meleeGuard||meleePose?.type!=='kick')poseBoxingGuard()" in THREE
     assert "Math.random()<.16" in WORLD
     assert "blockPiercing:heavyAttack" in WORLD
-    assert "dashStepDistance=.09,dashSteps=7" in WORLD
-    assert "short-forward-run" in WORLD
+    assert "dashStepDistance=.11,dashTargetGap=1.08" in WORLD
+    assert "dashMaxDistance=1.18,dashAirDistance=1.0" in WORLD
+    assert "target-aware-run" in WORLD and "collision-stop" in WORLD
+    assert "dashDurationMs=Math.max(96,dashSteps*16)" in WORLD
+    assert "const TOTAL = Math.max(1,+_punchAnim.duration||400)" in WORLD
     assert "},16);" in WORLD and "},0);" in WORLD
     assert "bridge?.setMeleeCharge?.(false);" in THREE
 
