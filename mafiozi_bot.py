@@ -22426,9 +22426,23 @@ class WorldSim:
                 if bot.get('alive') and bot.get('_despawn_at') \
                         and now >= float(bot['_despawn_at']):
                     bot['alive'] = False
-        # Удаляем группы где все мертвы (без респауна — следующая придёт позже)
+        # Удаляем группы где все мертвы (без респауна — следующая придёт позже).
+        # Replacement cooldown starts at the terminal loss, not at the last
+        # successful spawn. Otherwise a patrol older than the global deadline
+        # is replaced in this same tick and the player never clears the street.
+        terminal_ordinary = any(
+            not g.get('district_did') and g.get('bots') and
+            str(g.get('_business_mode') or '') != 'guard' and
+            not any(b.get('alive') for b in g['bots'])
+            for g in self.city_gangs
+        )
         self.city_gangs = [g for g in self.city_gangs
                             if any(b['alive'] for b in g['bots'])]
+        if terminal_ordinary:
+            self._city_gang_next_spawn_at = max(
+                self._city_gang_next_spawn_at,
+                now + self.CITY_GANG_SPAWN_GAP_S,
+            )
         # Спавн новой группы если их меньше CITY_GANG_MAX
         # Garrison squads remain visible and therefore consume city actor slots.
         # Гарнизон остаётся полноценной видимой уличной группой. Раньше он
