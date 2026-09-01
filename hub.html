@@ -4318,7 +4318,7 @@ function tacUpdate(dt){
     if(p.reloadTimer<=0){p.reloading=false;p.ammo=tac.pw.mag||0;tacUpdateAmmoHud();}
   }
   tacUpdateDetectBar();
-  tacCheckBodyDiscovery();
+  tacCheckBodyDiscovery(dt);
   // ── ALERT CASCADE: if any enemy is in active combat, all others join ──
   {
     const COMBAT_ST=['approach','take_cover','behind_cover','peeking','throw_grenade','throw_molotov'];
@@ -5162,7 +5162,7 @@ function tacUpdateDetectBar(){
 }
 
 // ── BODY DISCOVERY SYSTEM ────────────────────────────────────────────
-function tacCheckBodyDiscovery(){
+function tacCheckBodyDiscovery(dt){
   if(!tac)return;
   // Count unsilenced corpses (stealthKill bodies don't trigger unless they're in a visible spot)
   const corpses=tac.enemies.filter(e=>e.hp<=0&&e.deathTimer>0);
@@ -5172,7 +5172,10 @@ function tacCheckBodyDiscovery(){
     if(e.hp<=0)return;
     if(e.alerted&&!e._searchMode)return; // already fighting — no need
     // Tick down cooldown every frame
-    if(e._foundBodyCD>0){e._foundBodyCD-=16;return;}
+    if(e._foundBodyCD>0){
+      e._foundBodyCD=Math.max(0,e._foundBodyCD-dt*1000);
+      if(e._foundBodyCD>0)return;
+    }
     corpses.forEach(c=>{
       // stealthKill bodies are hidden — harder to spot (only in very close range)
       const visRange=c.stealthKill?(e.viewDist*.5):(e.viewDist*1.5);

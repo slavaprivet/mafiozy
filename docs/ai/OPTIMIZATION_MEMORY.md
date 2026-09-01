@@ -2980,3 +2980,18 @@ the full quality, pooling, streaming, warmup, shadow and input-transition rules.
   randomness. Clear the cache in the same `initCars()` block that invalidates
   `_trafficRoadGraph`; no collision, density, spawn, service or render rule is
   owned by this cache.
+
+## Frame-rate-independent tactical body-discovery cooldown (2026-09-02)
+
+- The tactical body-discovery watchdog received the main loop's already
+  clamped simulation delta indirectly but subtracted a fixed 16 milliseconds
+  per rendered frame. Its nominal nine-second cooldown therefore lasted 18.75
+  seconds at 30 FPS, 9.375 seconds at 60 FPS and 4.688 seconds at 120 FPS.
+- Pass the existing clamped `dt` into `tacCheckBodyDiscovery()` and subtract
+  `dt * 1000`, clamped at zero. Keep the same NPC/corpse traversal order,
+  visibility cone and range checks, and the authored 9,000/7,000 millisecond
+  self/ally resets; this adds no timer, scan, allocation or gameplay source.
+- A controlled-clock regression executes the production helper at 30, 60 and
+  120 FPS. Each cadence stays silent before nine simulated seconds, discovers
+  within one simulation step after the deadline and never exposes a negative
+  cooldown.
