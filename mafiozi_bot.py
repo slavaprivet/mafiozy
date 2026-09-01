@@ -27108,30 +27108,6 @@ async def _world_run_loop_cycle(world: 'WorldSim') -> None:
                                 await check_level_up(puid, ch2)
                         except Exception as _e:
                             logger.warning("WorldSim: nest reward failed: %r", _e)
-                # Ammo loot becomes durable before the pickup is broadcast.
-                # A storage failure puts the exact object back on the ground.
-                for np in list(nest_pkts):
-                    if np.get('kind') != 'gang_ammo_picked':
-                        continue
-                    try:
-                        grant = await grant_ammo_transaction(
-                            int(np.get('picker_uid')), str(np.get('loot_id') or ''),
-                            str(np.get('ammo_type') or ''), int(np.get('rounds') or 0))
-                        if not grant.get('ok'):
-                            raise RuntimeError(str(grant.get('error') or 'grant failed'))
-                        np['rounds'] = int(grant.get('rounds_added') or 0)
-                        np['ammo_state'] = grant.get('ammo_state')
-                        live_picker = world.players.get(str(np.get('picker_uid') or ''))
-                        if live_picker is not None:
-                            live_picker['_ammo_state'] = grant.get('ammo_state')
-                    except Exception as _e:
-                        restore = np.get('_loot_restore')
-                        if isinstance(restore, dict) and np.get('loot_id'):
-                            world.district_loot[str(np['loot_id'])] = restore
-                        nest_pkts.remove(np)
-                        logger.warning("WorldSim: ammo loot grant failed: %r", _e)
-                    finally:
-                        np.pop('_loot_restore', None)
                 ev_pkts.extend(nest_pkts)
                 # Бродячие городские банды (threat-фразы, hostile-fight).
                 # Threat-фразы сохраняем на боте чтобы snapshot.aggro мог
@@ -27197,6 +27173,30 @@ async def _world_run_loop_cycle(world: 'WorldSim') -> None:
                 # РАЙОНЫ: тик захвата штабов + доход владельцу НА ЛИЧНЫЙ СЧЁТ
                 # (сразу видно в HUD-деньгах; копилку банды юзер не видел).
                 dist_pkts = world.tick_district_capture(WORLD_TICK_DT) or []
+                # Ammo loot becomes durable before the pickup is broadcast.
+                # A storage failure puts the exact object back on the ground.
+                for dp in list(dist_pkts):
+                    if dp.get('kind') != 'gang_ammo_picked':
+                        continue
+                    try:
+                        grant = await grant_ammo_transaction(
+                            int(dp.get('picker_uid')), str(dp.get('loot_id') or ''),
+                            str(dp.get('ammo_type') or ''), int(dp.get('rounds') or 0))
+                        if not grant.get('ok'):
+                            raise RuntimeError(str(grant.get('error') or 'grant failed'))
+                        dp['rounds'] = int(grant.get('rounds_added') or 0)
+                        dp['ammo_state'] = grant.get('ammo_state')
+                        live_picker = world.players.get(str(dp.get('picker_uid') or ''))
+                        if live_picker is not None:
+                            live_picker['_ammo_state'] = grant.get('ammo_state')
+                    except Exception as _e:
+                        restore = dp.get('_loot_restore')
+                        if isinstance(restore, dict) and dp.get('loot_id'):
+                            world.district_loot[str(dp['loot_id'])] = restore
+                        dist_pkts.remove(dp)
+                        logger.warning("WorldSim: ammo loot grant failed: %r", _e)
+                    finally:
+                        dp.pop('_loot_restore', None)
                 for dp in dist_pkts:
                     if dp.get('kind') == 'district_boss_cash_picked':
                         try:
