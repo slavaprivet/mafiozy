@@ -23072,27 +23072,65 @@ class WorldSim:
                     business_entry = self._city_gang_business_entrance(
                         self._city_gang_business_id(g))
                     holding_entrance = bool(
-                        business_entry and business_mode in ('breach', 'capture'))
+                        business_entry and business_mode in (
+                            'assault', 'breach', 'capture'))
+                    guarding_business = bool(
+                        business_entry and business_mode == 'guard')
                     if holding_entrance:
-                        # Once the breach begins the squad owns the authored
-                        # door position.  The generic patrol planner must not
-                        # replace the exhausted business route with a random
-                        # city waypoint while the capture timer is running.
+                        # From the first contested breach onward the squad owns
+                        # the authored door position.  The generic patrol
+                        # planner must not replace the exhausted business route
+                        # with a random city waypoint while the fight/capture
+                        # operation is running.
                         g['_patrol_route'] = []
                         g['_patrol_route_i'] = 0
                         g['_patrol_wp'] = (business_entry[1], business_entry[0])
                         g['_patrol_wp_until'] = now + 2.0
                     route = g.get('_patrol_route') or []
                     route_i = int(g.get('_patrol_route_i') or 0)
-                    need_route = (not holding_entrance and (
+                    if guarding_business and (
+                            not route or route_i >= len(route)
+                            or now >= float(g.get('_patrol_wp_until') or 0)):
+                        # A captured business owns a bounded authored patrol.
+                        # Renew it before the generic city planner can turn the
+                        # visible garrison into an unrelated wandering gang.
+                        guard_far = _m.hypot(
+                            business_entry[1] - cx,
+                            business_entry[0] - cy,
+                        ) > self.CITY_GANG_BUSINESS_FIGHT_R
+                        guard_route = (
+                            _world_bot_path(
+                                cx, cy, business_entry[1], business_entry[0])
+                            if guard_far else
+                            self._city_gang_guard_route(
+                                self._city_gang_business_id(g))
+                        )
+                        if not guard_route:
+                            guard_route = [(business_entry[1], business_entry[0])]
+                        g['_patrol_route'] = guard_route
+                        g['_patrol_route_i'] = 0
+                        g['_patrol_wp'] = guard_route[0]
+                        g['_patrol_wp_until'] = now + 90.0
+                        route, route_i = guard_route, 0
+                    need_route = (not holding_entrance and not guarding_business and (
                         route_i >= len(route)
                         or now >= float(g.get('_patrol_wp_until') or 0)
                     ))
                     if (not holding_entrance and not need_route and
                             _m.hypot(wx - cx, wy - cy) < 1.0):
-                        route_i += 1
-                        g['_patrol_route_i'] = route_i
-                        need_route = route_i >= len(route)
+                        if guarding_business and route and route_i + 1 >= len(route):
+                            guard_route = self._city_gang_guard_route(
+                                self._city_gang_business_id(g))
+                            if not guard_route:
+                                guard_route = [(business_entry[1], business_entry[0])]
+                            g['_patrol_route'] = guard_route
+                            g['_patrol_route_i'] = 0
+                            g['_patrol_wp_until'] = now + 90.0
+                            route, route_i = guard_route, 0
+                        else:
+                            route_i += 1
+                            g['_patrol_route_i'] = route_i
+                            need_route = route_i >= len(route)
                     if need_route:
                         for _ in range(60):
                             nwx = random.uniform(5.5, WORLD_MAP_COLS - 5.5)

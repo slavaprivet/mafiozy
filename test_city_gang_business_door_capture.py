@@ -156,6 +156,69 @@ def run():
     assert [p["kind"] for p in fight] == ["npc_business_breach_started"]
     assert not _tick_strategy(contested, raiders, 6000.1)
 
+    # Full production ticks must keep a contested assault at the authored
+    # entrance.  `assault` renders as BREACH and is not an ordinary patrol
+    # state whose exhausted route may be replaced with a random city route.
+    contested.cops.clear()
+    contested._city_gang_next_spawn_at = 99_999_999_999.0
+    for squad in (defenders, raiders):
+        squad["_motion_check_at"] = 99_999_999_999.0
+        squad["_rival_replan_at"] = 99_999_999_999.0
+    raiders["_patrol_route"] = []
+    raiders["_patrol_route_i"] = 0
+    raiders["_patrol_wp"] = (entry_c, entry_r)
+    with (
+        patch.object(game.time, "time", return_value=6000.1),
+        patch.object(game.random, "random", return_value=.99),
+        patch.object(game, "_world_bot_path",
+                     side_effect=AssertionError("random route during assault")),
+    ):
+        contested.tick_city_gangs(.05)
+    assert raiders["_business_mode"] == "assault"
+    assert raiders["_patrol_wp"] == (entry_c, entry_r)
+
+    # A valid captured-business garrison loops/replenishes its authored route
+    # before exhaustion.  It never falls through to generic city wandering.
+    guard_world = game.WorldSim()
+    guard_world.city_gangs.clear()
+    guard_world.cops.clear()
+    guard_world._city_gang_next_spawn_at = 99_999_999_999.0
+    guards = _gang(guard_world)
+    _place_at(guards, entry_r, entry_c)
+    guards.update(
+        _business_mode="guard", _business_guard_id="coffee",
+        _business_target_id="", _business_operation_id="guard:coffee:1",
+        _business_phase_seq=3, _motion_check_at=99_999_999_999.0,
+        _rival_replan_at=99_999_999_999.0,
+        _patrol_route=[(entry_c, entry_r)], _patrol_route_i=0,
+        _patrol_wp=(entry_c, entry_r), _patrol_wp_until=99_999_999_999.0,
+    )
+    guard_world._npc_business_controls["coffee"] = {
+        "biz_id": "coffee", "faction": "purple",
+        "guard_gid": guards["id"], "defense_level": 1,
+    }
+    guard_cycles = []
+
+    def authored_guard_route(_biz_id):
+        guard_cycles.append(len(guard_cycles) + 1)
+        return [(entry_c, entry_r)]
+
+    with (
+        patch.object(game.random, "random", return_value=.99),
+        patch.object(game.WorldSim, "_city_gang_guard_route",
+                     side_effect=authored_guard_route),
+        patch.object(game, "_world_bot_path",
+                     side_effect=AssertionError("random route during guard")),
+    ):
+        for now in (7000.0, 7001.0, 7002.0):
+            with patch.object(game.time, "time", return_value=now):
+                guard_world.tick_city_gangs(.05)
+            _place_at(guards, entry_r, entry_c)
+    assert guard_cycles == [1, 2, 3]
+    assert guards["_business_mode"] == "guard"
+    assert guards["_patrol_wp"] == (entry_c, entry_r)
+    assert guard_world._npc_business_controls["coffee"]["guard_gid"] == guards["id"]
+
     # Blocking ownership work cancels a pending operation exactly once.
     cancel = _gang(world, "yellow")
     assert world._city_gang_set_business_target(cancel, "bar", 2000.0)
@@ -186,6 +249,7 @@ def run():
     assert "operation_id:String(raw.operation_id||'')" in client
     assert "op.phase_seq<prior.phase_seq" in client
     assert "npcBusinessOperationHud" in client
+    assert "previewCityBusinessRouteGuard='server-authored-loop-v2'" in client
 
     print("city gang business door capture: 10 entrances + 4 phases + reconnect OK")
 
