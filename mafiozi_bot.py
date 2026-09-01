@@ -22923,6 +22923,7 @@ class WorldSim:
                     g['state'] = 'patrol'
                     g['_target_uid'] = None
                     g['_hostile_until'] = 0.0
+                    g['_cops_dispatched'] = False
                     target = None
                 if target is None:
                     continue
