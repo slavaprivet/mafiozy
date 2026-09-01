@@ -17115,6 +17115,25 @@ class WorldSim:
         target = ''.join(ch for ch in str(target_uid) if ch.isdigit())[:24] or 'unknown'
         return f"world:{kind}:{self._combat_boot_id}:{source}:{target}:{self._combat_event_seq}"
 
+    @staticmethod
+    def _directional_npc_melee_kind(attacker: dict | None,
+                                    target: dict | None) -> str:
+        """Classify a validated NPC melee hit from authoritative positions."""
+        try:
+            ax = float(attacker['x'])
+            ay = float(attacker['y'])
+            tx = float(target['x'])
+            ty = float(target['y'])
+            target_ang = float(target.get('ang') or 0)
+        except (KeyError, TypeError, ValueError):
+            return 'melee'
+        if not all(math.isfinite(value)
+                   for value in (ax, ay, tx, ty, target_ang)):
+            return 'melee'
+        incoming_ang = math.atan2(ay - ty, ax - tx)
+        return ('melee_back'
+                if math.cos(incoming_ang - target_ang) < 0 else 'melee')
+
     async def apply_authoritative_damage(self, target_uid: str, event_id: str,
                                          kind: str, raw_damage: int) -> dict | None:
         """Single durable armor-first path for validated open-world hits."""
@@ -21445,7 +21464,7 @@ class WorldSim:
                             t_uid,
                             self._next_world_damage_event(
                                 'npc-melee', f'{tid}:{bot.get("id")}', t_uid),
-                            'melee', dmg)
+                            self._directional_npc_melee_kind(bot, target), dmg)
                         killed = target['hp'] <= 0
                         if killed:
                             pass
