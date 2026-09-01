@@ -7412,7 +7412,40 @@ let street_control = Object.create(null);
 let npc_business_controls = Object.create(null);
 let npc_gang_economy = Object.create(null);
 let npc_business_operations = [];
-function drawNpcBusinessControl(){ /* rendered by the shared POI ownership layer */ }
+let _previewNpcBusinessOperationOverride=null;
+const _npcBusinessOperationByBiz=new Map(),_npcBusinessPresentedPhase=new Map(),_npcBusinessEventKeys=new Set();
+function _normalizeNpcBusinessOperation(raw){
+  if(!raw)return null;const bizId=String(raw.biz_id||''),gid=String(raw.gid||''),rawPhase=String(raw.phase||'APPROACH').toUpperCase(),phase=rawPhase==='TRAVEL'?'APPROACH':rawPhase==='ASSAULT'?'BREACH':rawPhase;
+  if(!bizId||!gid||!['APPROACH','BREACH','CAPTURE','GUARD'].includes(phase))return null;
+  const progress=Math.max(0,Math.min(1,+raw.progress||0));return {...raw,biz_id:bizId,gid,phase,operation_id:String(raw.operation_id||''),phase_seq:Math.max(0,+raw.phase_seq||0),faction:String(raw.faction||''),progress,required_s:Math.max(0,+raw.required_s||0),remaining_s:Math.max(0,+raw.remaining_s||0),remaining_distance:Math.max(0,+raw.remaining_distance||0),entrance_r:raw.entrance_r!=null&&Number.isFinite(+raw.entrance_r)?+raw.entrance_r:null,entrance_c:raw.entrance_c!=null&&Number.isFinite(+raw.entrance_c)?+raw.entrance_c:null};
+}
+function _npcBusinessOperationKey(op){return `${String(op?.gid||'')}:${String(op?.biz_id||'')}`;}
+function _npcBusinessDoor(bizId){
+  try{_residentBuildingDoors();const id=_residentDoorBySource.get(`business:${String(bizId||'')}`);return id?_residentDoorById(id):null;}catch(_){return null;}
+}
+function _presentNpcBusinessOperation(op,fromEvent=false){
+  if(!op)return;const key=`${op.gid}:${op.biz_id}`,prior=_npcBusinessPresentedPhase.get(key);_npcBusinessPresentedPhase.set(key,op.phase);
+  if(prior!==op.phase&&['BREACH','CAPTURE'].includes(op.phase)){const door=_npcBusinessDoor(op.biz_id);if(door)_openResidentDoorVisual(door,performance.now(),op.phase==='BREACH'?2600:1800);}
+  if(!fromEvent||prior===op.phase)return;const biz=BUSINESS_POIS.find(row=>String(row.id)===op.biz_id),name=String(biz?.name||biz?.label||op.biz_id),family=op.faction==='yellow'?'Жёлтые Псы':'Фиолетовые Короли',label=op.phase==='BREACH'?'ломают вход':op.phase==='CAPTURE'?'захватывают объект':op.phase==='GUARD'?'взяли объект под охрану':'идут к объекту';showEventBanner(op.phase==='GUARD'?'🏴 БИЗНЕС ЗАХВАЧЕН':'⚠️ НАЛЁТ БАНДЫ',`${family} · ${name} · ${label}`,op.phase==='GUARD'?3600:2400,op.phase==='GUARD'?'lose':'warn');
+}
+function drawNpcBusinessControl(){
+  const next=new Map();for(const raw of Array.isArray(npc_business_operations)?npc_business_operations:[]){const op=_normalizeNpcBusinessOperation(raw);if(!op)continue;next.set(_npcBusinessOperationKey(op),op);_presentNpcBusinessOperation(op,false);}
+  _npcBusinessOperationByBiz.clear();for(const [key,value] of next)_npcBusinessOperationByBiz.set(key,value);
+  for(const key of Array.from(_npcBusinessPresentedPhase.keys()))if(![...next.values()].some(op=>`${op.gid}:${op.biz_id}`===key))_npcBusinessPresentedPhase.delete(key);
+  const visible=[...next.values()].filter(op=>op.phase!=='GUARD').sort((a,b)=>(b.phase==='CAPTURE'?3:b.phase==='BREACH'?2:1)-(a.phase==='CAPTURE'?3:a.phase==='BREACH'?2:1))[0]||null;
+  let hud=document.getElementById('npcBusinessOperationHud');if(!hud){hud=document.createElement('div');hud.id='npcBusinessOperationHud';hud.style.cssText='position:fixed;left:50%;top:86px;transform:translateX(-50%);z-index:1200;display:none;min-width:250px;max-width:72vw;padding:8px 12px;border:1px solid #d7ad53;border-radius:7px;background:rgba(9,11,16,.9);box-shadow:0 5px 22px #000b;color:#f5ead8;text-align:center;font:800 11px system-ui;pointer-events:none';document.body.appendChild(hud);}if(visible){const biz=BUSINESS_POIS.find(row=>String(row.id)===visible.biz_id),family=visible.faction==='yellow'?'ЖЁЛТЫЕ ПСЫ':'ФИОЛЕТОВЫЕ КОРОЛИ',phase=visible.phase==='BREACH'?'ВЗЛОМ':visible.phase==='CAPTURE'?'ЗАХВАТ':'ПОДХОД';hud.textContent=`${phase} · ${biz?.name||visible.biz_id} · ${family} · ${Math.round(visible.progress*100)}%`;hud.style.display='block';}else hud.style.display='none';
+  document.documentElement.dataset.npcBusinessOperations=[...next.values()].map(op=>`${op.biz_id}:${op.phase}:${op.progress.toFixed(3)}:${op.gid}:${op.phase_seq}`).sort().join('|')||'none';
+}
+function _consumeNpcBusinessOperationEvent(d){
+  const kind=String(d?.kind||''),bizId=String(d?.biz_id||'');if(!kind.startsWith('npc_business_')||!bizId)return false;
+  if(kind==='npc_business_released'||kind==='npc_business_operation_cancelled'){
+    const gid=String(d?.gid||''),operationId=String(d?.operation_id||'');npc_business_operations=(npc_business_operations||[]).filter(row=>{if(String(row?.biz_id||'')!==bizId||gid&&String(row?.gid||'')!==gid)return true;if(operationId&&String(row?.operation_id||'')&&String(row.operation_id)!==operationId)return true;return false;});drawNpcBusinessControl();return true;
+  }
+  if(!['npc_business_march','npc_business_breach_started','npc_business_capture_started','npc_business_captured'].includes(kind))return false;
+  const op=_normalizeNpcBusinessOperation(d);if(!op)return false;const key=_npcBusinessOperationKey(op),prior=_npcBusinessOperationByBiz.get(key);if(prior&&op.operation_id&&prior.operation_id===op.operation_id&&op.phase_seq<prior.phase_seq)return true;_npcBusinessOperationByBiz.set(key,op);npc_business_operations=[...(npc_business_operations||[]).filter(row=>_npcBusinessOperationKey(row)!==key),op];
+  const eventKey=`${kind}:${op.operation_id||key}:${op.phase_seq}`;if(!_npcBusinessEventKeys.has(eventKey)){_npcBusinessEventKeys.add(eventKey);while(_npcBusinessEventKeys.size>32)_npcBusinessEventKeys.delete(_npcBusinessEventKeys.values().next().value);_presentNpcBusinessOperation(op,true);}drawNpcBusinessControl();return true;
+}
+function _npcBusinessOperationFor(bizId){const rows=[..._npcBusinessOperationByBiz.values()].filter(op=>op.biz_id===String(bizId||'')),rank={CAPTURE:4,BREACH:3,APPROACH:2,GUARD:1};return rows.sort((a,b)=>(rank[b.phase]||0)-(rank[a.phase]||0)||b.phase_seq-a.phase_seq)[0]||null;}
 function _gangSquadMorale(g){return Math.max(0,Math.min(1,+g?.morale||0));}
 const _worldGangArrivalGates=new Map();
 function _worldGangArrivalGate(kind,id,delayMs=0){
@@ -23908,6 +23941,7 @@ function handleEventPacket(d) {
       showToast(`🕴️ +${d.mafia_xp_gain} XP мафии · ${d.mafia_reason||'авторитет вырос'}`,'🏅',2600);
   }
   if (!kind) return;
+  if(_consumeNpcBusinessOperationEvent(d))return;
   if(kind==='npc_cash_action_reply'){
     const pending=_pendingNpcGift;_pendingNpcGift=null;
     if(pending&&d.ok){
@@ -26514,6 +26548,7 @@ async function wsConnect() {
         npc_business_controls=d.npc_business_controls||{};
         npc_gang_economy=d.npc_gang_economy||{};
         npc_business_operations=d.npc_business_operations||[];
+        if(_LOCAL_PREVIEW&&_previewNpcBusinessOperationOverride){const previewOp=_previewNpcBusinessOperationOverride;npc_business_operations=[...npc_business_operations.filter(row=>String(row?.biz_id||'')!==String(previewOp.biz_id||'')),previewOp];}
         street_control=d.street_control||{};
         drawNpcBusinessControl();
       }
@@ -43046,6 +43081,24 @@ function _drawBusinessConflictVisuals(b,r,c,t){
   ctx.restore();
 }
 
+function _drawNpcBusinessOperation(b,r,c,t){
+  const op=_npcBusinessOperationFor(b?.id);if(!op)return;
+  const anchor=(Number.isFinite(op.entrance_r)&&Number.isFinite(op.entrance_c))
+    ?{r:op.entrance_r,c:op.entrance_c}:_businessInteractionAnchor(b,r,c);
+  if(!anchor||!Number.isFinite(+anchor.r)||!Number.isFinite(+anchor.c))return;
+  const p=w2s(+anchor.r,+anchor.c),phase=String(op.phase||'APPROACH'),progress=Math.max(0,Math.min(1,+op.progress||0));
+  const color=op.faction==='yellow'?'#ffd34e':'#b477ff',pulse=.55+.45*Math.sin(t*5.2),radius=15+pulse*2;
+  const phaseLabel=phase==='BREACH'?'ВЗЛОМ ВХОДА':phase==='CAPTURE'?'ЗАХВАТ':phase==='GUARD'?'ОХРАНА':'ПОДХОД';
+  const family=op.faction==='yellow'?'ЖЁЛТЫЕ ПСЫ':'ФИОЛЕТОВЫЕ КОРОЛИ';
+  ctx.save();ctx.translate(p.x,p.y-3);ctx.lineCap='round';
+  ctx.fillStyle='rgba(7,9,13,.78)';ctx.strokeStyle='rgba(255,255,255,.16)';ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(0,0,radius+4,(radius+4)*.48,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.strokeStyle=color;ctx.shadowColor=color;ctx.shadowBlur=8;ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(0,0,radius,radius*.48,0,-Math.PI/2,-Math.PI/2+Math.PI*2*progress);ctx.stroke();ctx.shadowBlur=0;
+  ctx.fillStyle='#11151d';ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(-62,-42,124,26,5);ctx.fill();ctx.stroke();
+  ctx.textAlign='center';ctx.fillStyle=color;ctx.font='900 10px system-ui';ctx.fillText(`${phaseLabel} · ${Math.round(progress*100)}%`,0,-31);
+  ctx.fillStyle='#f4eee4';ctx.font='700 8px system-ui';ctx.fillText(family,0,-21);
+  ctx.restore();
+}
+
 function drawBusinessBuilding(r, c, b) {
   const t = performance.now() / 1000;
   // Купленный бизнес — рисуем ДО основного здания зелёный пульсирующий
@@ -43720,6 +43773,7 @@ function drawBusinessBuilding(r, c, b) {
     _drawRobbedBusinessState(b,r,c,t,closedLeft);
   }
   _drawBusinessConflictVisuals(b,r,c,t);
+  _drawNpcBusinessOperation(b,r,c,t);
 
   // Купленный бизнес — добавляем флажок-вымпел поверх крыши: золотой
   // шток, зелёный треугольный вымпел с галочкой «✓». Колышется на ветру.
@@ -67238,6 +67292,13 @@ if(_LOCAL_PREVIEW&&_UP.get('previewpurpose'))setTimeout(()=>window.Mafiozi3DBrid
 if(_LOCAL_PREVIEW&&_UP.get('previewbuildingpurpose'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBuildingPurpose(_UP.get('previewbuildingpurpose'),_UP.get('previewbuildingowner')||'player',!_UP.has('previewbuildingexterior')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewinventory'))setTimeout(async()=>{if(document.body.classList.contains('game-menu-open')){_gameMenuOpen=false;document.body.classList.remove('game-menu-open');document.getElementById('gameMainMenu')?.classList.add('hidden');}document.getElementById('modeModal')?.classList.remove('show');await loadInventoryItems();const surface=_UP.get('previewinventory')==='shop'?'shop':'profile';document.documentElement.dataset.inventoryPreviewSurface=surface;if(surface==='shop'){openShop();document.querySelector('.shop-tab[data-tab="armor"]')?.click();return;}_profileTab='inv';const modal=document.getElementById('profileModal');modal?.setAttribute('data-profile-tab','inv');modal?.classList.add('show');renderProfileTab();},1200);
 if(_LOCAL_PREVIEW&&_UP.has('previewbossp0'))setTimeout(()=>{currentWeapon='pistol_heavy';_saveCurrentWeaponChoice();renderWeaponHud();document.getElementById('profileModal')?.classList.remove('show');document.getElementById('npcEmpireOverlay')?.classList.remove('show');const keepAlive=setInterval(()=>{if(!document.documentElement.isConnected){clearInterval(keepAlive);return;}myDead=false;myHp=Math.max(1000,+myHp||0);player.hp=myHp;const boss=SPECIALIST_NPCS.find(n=>n._empireBoss&&!n.dead&&String(n._empireAction?.kind||'')==='player_business_raid');if(boss&&!document.documentElement.dataset.empireBossServerHit){boss.r=boss.tr=player.r+4;boss.c=boss.tc=player.c-3;boss.walking=false;_clearNpcRoute(boss);}const p=boss?w2s(boss.r,boss.c):null;document.documentElement.dataset.previewBossP0=boss&&p?`armed:alive:${boss._specialistId}:${Math.round(p.x)}:${Math.round(p.y)}:${Math.round(+boss._empireBattleHp||0)}/${Math.round(+boss._empireBattleMaxHp||0)}:war-${boss._empirePlayerWar?1:0}:prov-${performance.now()<(+boss._empirePlayerProvokedUntil||0)?1:0}:err-${String(boss._lastServerHitError||'none').replace(/:/g,'-')}`:'armed:alive:missing';},80);},1750);
+if(_LOCAL_PREVIEW&&_UP.has('previewcitybusinesscapture'))setTimeout(()=>{
+  const bizId=String(_UP.get('previewpoi')||'bar'),biz=BUSINESS_POIS.find(row=>String(row.id)===bizId),entry=biz?_businessInteractionAnchor(biz):null;if(!entry)return;
+  const operationId=`preview-city-business:${bizId}:1`,base={gid:'preview_city_yellow',biz_id:bizId,faction:'yellow',operation_id:operationId,strength:5,morale:.92,entrance_r:entry.r,entrance_c:entry.c};
+  const emit=(kind,phase,phaseSeq,progress,required,remaining)=>{_previewNpcBusinessOperationOverride={kind,...base,phase,phase_seq:phaseSeq,progress,required_s:required,remaining_s:remaining,started_at:Date.now()/1000};handleEventPacket(_previewNpcBusinessOperationOverride);document.documentElement.dataset.previewCityBusinessCapture=`${phase}:${progress.toFixed(2)}:${bizId}`;};
+  emit('npc_business_march','APPROACH',0,.35,0,4.2);setTimeout(()=>emit('npc_business_breach_started','BREACH',1,0,1.5,1.5),900);
+  setTimeout(()=>{emit('npc_business_capture_started','CAPTURE',2,0,7,7);let step=0;const captureTimer=setInterval(()=>{step++;if(step>=6){clearInterval(captureTimer);emit('npc_business_captured','GUARD',3,1,0,0);return;}emit('npc_business_capture_started','CAPTURE',2,step/6,7,Math.max(0,7-step*7/6));},1100);},2400);
+},4500);
 if(_LOCAL_PREVIEW&&_UP.has('previewbusinessinteriorraid'))setTimeout(()=>window.Mafiozi3DBridge.previewEnterBusinessInteriorRaid(),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewburnedbusiness'))setTimeout(()=>window.Mafiozi3DBridge.previewOpenBurnedBusiness(String(_UP.get('previewburnedbusiness')||'coffee')),900);
 if(_LOCAL_PREVIEW&&_UP.has('previewcivilianfight'))setTimeout(function seedCivilianFightPreview(){

@@ -7227,6 +7227,23 @@ BUSINESS_POIS_RC = {
     "casino":     (13, 45),
     "port":       (181, 31),
 }
+# Authoritative exterior entrances for autonomous city-gang operations.
+# BUSINESS_POIS_RC points at the authored building tile/centre; sending an
+# armed squad there made it stop at an arbitrary wall.  These coordinates are
+# the passable pavement anchors in front of the visible doors.  The client
+# asserts the same table before drawing any capture presentation.
+BUSINESS_ENTRANCES_RC = {
+    "coffee":     (34.9073, 13.5000),
+    "carwash":    (24.5293, 26.0000),
+    "barbershop": (54.9073, 23.5000),
+    "pizza":      (55.0293, 53.5000),
+    "garage":     (15.1512, 63.5000),
+    "bar":        (45.0293, 33.5000),
+    "club":       (65.1512, 53.5000),
+    "warehouse":  (75.3951, 23.5000),
+    "casino":     (14.5232, 46.2500),
+    "port":       (183.3951, 31.5000),
+}
 # Награды за ограбление и рейтинг сложности (★) по числу охранников.
 # Звёзды сложности не связаны с полицейским розыском.
 # чтобы ограбления не вытесняли честный доход от бизнесов и работ.
@@ -16432,6 +16449,8 @@ class WorldSim:
     CITY_GANG_REINFORCE_DELAY_S = 6.0
     CITY_GANG_BUSINESS_REPLAN_MIN_S = 18.0
     CITY_GANG_BUSINESS_REPLAN_MAX_S = 38.0
+    CITY_GANG_BUSINESS_BREACH_S = 1.5
+    CITY_GANG_BUSINESS_ENTRY_RADIUS = 2.1
     CITY_GANG_BUSINESS_CAPTURE_S = 7.0
     CITY_GANG_BUSINESS_RADIUS = 5.2
     CITY_GANG_BUSINESS_FIGHT_R = 9.0
@@ -21949,6 +21968,9 @@ class WorldSim:
             '_retreat_until': 0.0, '_morale': 1.0,
             '_business_mode': '', '_business_target_id': '',
             '_business_guard_id': '', '_business_capture_started': 0.0,
+            '_business_breach_started': 0.0,
+            '_business_approach_start_distance': 0.0,
+            '_business_operation_id': '', '_business_phase_seq': 0,
             '_business_replan_at': time.time() + random.uniform(4.0, 12.0),
         }
         self.city_gangs.append(gang)
@@ -21958,6 +21980,94 @@ class WorldSim:
     def _city_gang_business_id(gang: dict) -> str:
         return str(gang.get('_business_target_id') or
                    gang.get('_business_guard_id') or '')
+
+    @staticmethod
+    def _city_gang_business_entrance(biz_id: str) -> tuple[float, float] | None:
+        """Return the authoritative passable exterior entrance as ``(r,c)``."""
+        rc = BUSINESS_ENTRANCES_RC.get(str(biz_id))
+        if not rc:
+            return None
+        r, c = float(rc[0]), float(rc[1])
+        return (r, c) if _world_bot_passable(c, r) else None
+
+    def _city_gang_business_capture_required(self, gang: dict,
+                                              biz_id: str) -> float:
+        control = self._npc_business_controls.get(str(biz_id)) or {}
+        faction = str(gang.get('faction') or 'purple')
+        owner = str(control.get('faction') or '')
+        defense_level = (max(0, int(control.get('defense_level') or 0))
+                         if owner and owner != faction else 0)
+        aggression = max(.55, float(self._npc_gang_profile(faction)['aggression']))
+        return (self.CITY_GANG_BUSINESS_CAPTURE_S *
+                (1.0 + defense_level * .22) / aggression
+                if defense_level else self.CITY_GANG_BUSINESS_CAPTURE_S)
+
+    @staticmethod
+    def _city_gang_business_phase(mode: str) -> str:
+        return {
+            'travel': 'APPROACH', 'assault': 'BREACH', 'breach': 'BREACH',
+            'capture': 'CAPTURE', 'guard': 'GUARD',
+        }.get(str(mode or ''), 'APPROACH')
+
+    def _city_gang_business_set_phase(self, gang: dict, mode: str,
+                                      now: float) -> None:
+        before = self._city_gang_business_phase(gang.get('_business_mode'))
+        after = self._city_gang_business_phase(mode)
+        if before != after:
+            gang['_business_phase_seq'] = int(gang.get('_business_phase_seq') or 0) + 1
+        gang['_business_mode'] = mode
+        if after == 'APPROACH':
+            gang['_business_operation_started'] = now
+
+    def _city_gang_business_operation(self, gang: dict, now: float) -> dict:
+        """Snapshot/event contract for one authoritative exterior operation."""
+        biz_id = self._city_gang_business_id(gang)
+        entry = self._city_gang_business_entrance(biz_id)
+        mode = str(gang.get('_business_mode') or 'travel')
+        phase = self._city_gang_business_phase(mode)
+        required = 0.0
+        started_at = float(gang.get('_business_operation_started') or now)
+        if phase == 'BREACH':
+            required = float(self.CITY_GANG_BUSINESS_BREACH_S)
+            started_at = float(gang.get('_business_breach_started') or now)
+        elif phase == 'CAPTURE':
+            required = float(self._city_gang_business_capture_required(gang, biz_id))
+            started_at = float(gang.get('_business_capture_started') or now)
+        elapsed = max(0.0, float(now) - started_at)
+        remaining_distance = 0.0
+        if phase == 'APPROACH' and entry:
+            alive = [bot for bot in gang.get('bots', []) if bot.get('alive')]
+            if alive:
+                cx = sum(float(bot.get('x') or 0) for bot in alive) / len(alive)
+                cy = sum(float(bot.get('y') or 0) for bot in alive) / len(alive)
+                remaining_distance = math.hypot(float(entry[1])-cx,
+                                                float(entry[0])-cy)
+            approach_required = max(
+                remaining_distance,
+                float(gang.get('_business_approach_start_distance') or 0))
+            progress = (max(0.0, min(1.0, 1.0-remaining_distance/approach_required))
+                        if approach_required > 0 else 0.0)
+        else:
+            progress = (1.0 if phase == 'GUARD' else
+                        min(1.0, elapsed / required) if required > 0 else 0.0)
+        remaining = remaining_distance if phase == 'APPROACH' else max(0.0, required-elapsed)
+        return {
+            'gid': str(gang.get('id') or ''), 'biz_id': biz_id,
+            'operation_id': str(gang.get('_business_operation_id') or ''),
+            'phase_seq': int(gang.get('_business_phase_seq') or 0),
+            'faction': str(gang.get('faction') or ''), 'phase': phase,
+            'strength': sum(1 for bot in gang.get('bots', [])
+                            if bot.get('alive') and not bot.get('_custody_id')),
+            'morale': round(float(gang.get('_morale') or 1.0), 2),
+            'started_at': started_at,
+            'required_s': round(required, 3),
+            'progress': round(progress, 4),
+            'remaining_s': round(max(0.0, required-elapsed), 3),
+            'remaining_distance': round(remaining_distance, 3),
+            'remaining': round(remaining, 3),
+            'entrance_r': round(float(entry[0]), 4) if entry else None,
+            'entrance_c': round(float(entry[1]), 4) if entry else None,
+        }
 
     def _npc_gang_profile(self, faction: str) -> dict:
         return self.NPC_GANG_PROFILES.get(
@@ -22075,6 +22185,10 @@ class WorldSim:
         }
         scored = []
         for biz_id, (r, c) in BUSINESS_POIS_RC.items():
+            entrance = self._city_gang_business_entrance(biz_id)
+            if not entrance:
+                continue
+            entry_r, entry_c = entrance
             if self._npc_business_strategy_blocked(biz_id, now):
                 continue
             control = self._npc_business_controls.get(biz_id) or {}
@@ -22084,10 +22198,10 @@ class WorldSim:
                 continue
             if biz_id in reserved:
                 continue
-            distance = math.hypot(float(c) - cx, float(r) - cy)
+            distance = math.hypot(entry_c - cx, entry_r - cy)
             if distance > 155.0:
                 continue
-            route = _world_bot_path(cx, cy, float(c), float(r))
+            route = _world_bot_path(cx, cy, entry_c, entry_r)
             if not route:
                 continue
             # Neutral and abandoned holdings are sensible low-risk targets.
@@ -22130,7 +22244,7 @@ class WorldSim:
 
     def _city_gang_set_business_target(self, gang: dict, biz_id: str,
                                        now: float) -> bool:
-        rc = BUSINESS_POIS_RC.get(str(biz_id))
+        rc = self._city_gang_business_entrance(str(biz_id))
         alive = [bot for bot in gang.get('bots', []) if bot.get('alive')]
         if (not rc or not alive or
                 self._npc_business_strategy_blocked(str(biz_id), now)):
@@ -22138,17 +22252,25 @@ class WorldSim:
         cx = sum(float(bot.get('x') or 0) for bot in alive) / len(alive)
         cy = sum(float(bot.get('y') or 0) for bot in alive) / len(alive)
         r, c = rc
-        route = _world_bot_path(cx, cy, float(c), float(r))
-        if not route and math.hypot(float(c)-cx, float(r)-cy) > self.CITY_GANG_BUSINESS_RADIUS:
+        route = _world_bot_path(cx, cy, c, r)
+        if not route and math.hypot(c-cx, r-cy) > self.CITY_GANG_BUSINESS_RADIUS:
             return False
+        continuing = (self._city_gang_business_id(gang) == str(biz_id) and
+                      bool(gang.get('_business_operation_id')))
         gang['_business_target_id'] = str(biz_id)
         gang['_business_guard_id'] = ''
         control = self._npc_business_controls.get(str(biz_id)) or {}
-        gang['_business_mode'] = ('assault' if control and
-                                  str(control.get('faction') or '') !=
-                                  str(gang.get('faction') or '') else 'travel')
-        gang['_business_capture_started'] = 0.0
-        gang['_business_operation_started'] = now
+        if not continuing:
+            gang['_business_mode'] = 'travel'
+            gang['_business_capture_started'] = 0.0
+            gang['_business_breach_started'] = 0.0
+            gang['_business_approach_start_distance'] = math.hypot(c-cx, r-cy)
+            serial = int(gang.get('_business_operation_serial') or 0) + 1
+            gang['_business_operation_serial'] = serial
+            gang['_business_operation_id'] = (
+                f"{str(gang.get('id') or '')}:{str(biz_id)}:{serial}")
+            gang['_business_phase_seq'] = 0
+            gang['_business_operation_started'] = now
         gang['_business_replan_at'] = (now + self.CITY_GANG_BUSINESS_ROUTE_TTL_S *
                                        float(self._npc_gang_profile(
                                            str(gang.get('faction') or 'purple'))['replan']))
@@ -22194,22 +22316,47 @@ class WorldSim:
                                            now: float) -> list:
         """Advance travel, assault, capture and physical garrison states."""
         packets = []
-        if gang.get('district_did') or gang.get('state') != 'patrol' or not alive_bots:
+        if gang.get('district_did'):
+            gang['_business_target_id'] = ''
+            gang['_business_guard_id'] = ''
+            gang['_business_mode'] = ''
+            gang['_business_capture_started'] = 0.0
+            gang['_business_breach_started'] = 0.0
+            gang['_business_operation_id'] = ''
+            gang['_business_phase_seq'] = 0
+            return packets
+        if gang.get('state') != 'patrol' or not alive_bots:
+            if gang.get('_business_mode') in ('assault', 'breach', 'capture'):
+                gang['_business_capture_started'] = 0.0
+                gang['_business_breach_started'] = 0.0
+                self._city_gang_business_set_phase(gang, 'travel', now)
             return packets
         faction = str(gang.get('faction') or 'purple')
         mode = str(gang.get('_business_mode') or '')
         biz_id = self._city_gang_business_id(gang)
         if biz_id and self._npc_business_strategy_blocked(biz_id, now):
             released = self._npc_business_controls.pop(biz_id, None) is not None
+            operation_id = str(gang.get('_business_operation_id') or '')
+            phase_seq = int(gang.get('_business_phase_seq') or 0)
             gang['_business_target_id'] = ''
             gang['_business_guard_id'] = ''
             gang['_business_mode'] = ''
             gang['_business_capture_started'] = 0.0
+            gang['_business_breach_started'] = 0.0
+            gang['_business_approach_start_distance'] = 0.0
+            gang['_business_operation_id'] = ''
+            gang['_business_phase_seq'] = 0
             gang['_business_replan_at'] = now + random.uniform(5.0, 10.0)
+            entrance = self._city_gang_business_entrance(biz_id)
             packets.append({'kind':('npc_business_released' if released else
                                     'npc_business_operation_cancelled'),
                             'gid':gang['id'], 'biz_id':biz_id,
-                            'faction':faction, 'reason':'player_or_family_event'})
+                            'faction':faction, 'phase':'CANCELLED',
+                            'operation_id':operation_id,
+                            'phase_seq':phase_seq + 1,
+                            'entrance_r':entrance[0] if entrance else None,
+                            'entrance_c':entrance[1] if entrance else None,
+                            'reason':'player_or_family_event'})
             return packets
         if mode == 'guard' and biz_id:
             control = self._npc_business_controls.get(biz_id)
@@ -22217,6 +22364,11 @@ class WorldSim:
                 gang['_business_mode'] = ''
                 gang['_business_target_id'] = ''
                 gang['_business_guard_id'] = ''
+                gang['_business_breach_started'] = 0.0
+                gang['_business_capture_started'] = 0.0
+                gang['_business_approach_start_distance'] = 0.0
+                gang['_business_operation_id'] = ''
+                gang['_business_phase_seq'] = 0
                 gang['_business_replan_at'] = now + random.uniform(4.0, 9.0)
             return packets
         if not biz_id and now >= float(gang.get('_business_replan_at') or 0):
@@ -22227,23 +22379,29 @@ class WorldSim:
             if target_id and self._city_gang_set_business_target(gang, target_id, now):
                 biz_id = target_id
                 mode = str(gang.get('_business_mode') or 'travel')
-                packets.append({'kind':'npc_business_march', 'gid':gang['id'],
-                                'biz_id':biz_id, 'faction':faction,
-                                'x':round(cx,2), 'y':round(cy,2)})
+                operation = self._city_gang_business_operation(gang, now)
+                packets.append({'kind':'npc_business_march', **operation,
+                                'x':operation['entrance_c'],
+                                'y':operation['entrance_r']})
         if not biz_id:
             return packets
-        rc = BUSINESS_POIS_RC.get(biz_id)
+        rc = self._city_gang_business_entrance(biz_id)
         if not rc:
             gang['_business_target_id'] = ''
             gang['_business_mode'] = ''
+            gang['_business_breach_started'] = 0.0
+            gang['_business_capture_started'] = 0.0
+            gang['_business_approach_start_distance'] = 0.0
+            gang['_business_operation_id'] = ''
+            gang['_business_phase_seq'] = 0
             return packets
         r, c = rc
-        distance = math.hypot(float(c)-cx, float(r)-cy)
+        distance = math.hypot(c-cx, r-cy)
         control = self._npc_business_controls.get(biz_id) or {}
         current_owner = str(control.get('faction') or '')
         if current_owner == faction:
             if not self._city_gang_business_guard_alive(control):
-                if distance > self.CITY_GANG_BUSINESS_RADIUS:
+                if distance > self.CITY_GANG_BUSINESS_ENTRY_RADIUS:
                     if now >= float(gang.get('_business_replan_at') or 0):
                         self._city_gang_set_business_target(gang, biz_id, now)
                     return packets
@@ -22252,15 +22410,30 @@ class WorldSim:
                                 'guard_gid':str(gang['id']),
                                 'last_reinforced_at':now})
                 self._npc_business_controls[biz_id] = control
-                gang['_business_mode'] = 'guard'
+                self._city_gang_business_set_phase(gang, 'guard', now)
+                gang['_business_operation_started'] = now
                 gang['_business_guard_id'] = biz_id
                 gang['_business_target_id'] = ''
+                gang['_business_breach_started'] = 0.0
+                gang['_business_capture_started'] = 0.0
+                gang['_business_approach_start_distance'] = 0.0
             else:
                 gang['_business_target_id'] = ''
                 gang['_business_mode'] = ''
                 gang['_business_replan_at'] = now + random.uniform(5.0, 12.0)
             return packets
-        if distance > self.CITY_GANG_BUSINESS_RADIUS:
+        if distance > self.CITY_GANG_BUSINESS_ENTRY_RADIUS:
+            if mode in ('assault', 'breach', 'capture') or float(
+                    gang.get('_business_breach_started') or 0) or float(
+                    gang.get('_business_capture_started') or 0):
+                gang['_business_capture_started'] = 0.0
+                gang['_business_breach_started'] = 0.0
+                self._city_gang_business_set_phase(gang, 'travel', now)
+                operation = self._city_gang_business_operation(gang, now)
+                packets.append({'kind':'npc_business_march', **operation,
+                                'reason':'left_entrance',
+                                'x':operation['entrance_c'],
+                                'y':operation['entrance_r']})
             if now >= float(gang.get('_business_replan_at') or 0):
                 self._city_gang_set_business_target(gang, biz_id, now)
             return packets
@@ -22278,26 +22451,42 @@ class WorldSim:
             if math.hypot(rx-cx, ry-cy) <= self.CITY_GANG_BUSINESS_FIGHT_R:
                 defenders.append(rival)
         if defenders:
-            gang['_business_mode'] = 'assault'
+            first_breach = not float(gang.get('_business_breach_started') or 0)
+            self._city_gang_business_set_phase(gang, 'assault', now)
             gang['_business_capture_started'] = 0.0
+            if not float(gang.get('_business_breach_started') or 0):
+                gang['_business_breach_started'] = now
             gang['_rival_target_gid'] = str(defenders[0].get('id') or '')
+            if first_breach:
+                operation = self._city_gang_business_operation(gang, now)
+                packets.append({'kind':'npc_business_breach_started', **operation,
+                                'x':operation['entrance_c'],
+                                'y':operation['entrance_r']})
             return packets
         started = float(gang.get('_business_capture_started') or 0)
         if not started:
+            breach_started = float(gang.get('_business_breach_started') or 0)
+            if mode not in ('breach', 'assault') or not breach_started:
+                self._city_gang_business_set_phase(gang, 'breach', now)
+                gang['_business_breach_started'] = now
+                operation = self._city_gang_business_operation(gang, now)
+                packets.append({'kind':'npc_business_breach_started', **operation,
+                                'x':operation['entrance_c'],
+                                'y':operation['entrance_r']})
+                return packets
+            if now - breach_started < self.CITY_GANG_BUSINESS_BREACH_S:
+                self._city_gang_business_set_phase(gang, 'breach', now)
+                return packets
             gang['_business_capture_started'] = now
-            gang['_business_mode'] = 'capture'
-            packets.append({'kind':'npc_business_capture_started',
-                            'gid':gang['id'], 'biz_id':biz_id,
-                            'faction':faction, 'x':float(c), 'y':float(r)})
+            self._city_gang_business_set_phase(gang, 'capture', now)
+            operation = self._city_gang_business_operation(gang, now)
+            packets.append({'kind':'npc_business_capture_started', **operation,
+                            'x':operation['entrance_c'],
+                            'y':operation['entrance_r']})
             return packets
-        defense_level = (max(0, int(control.get('defense_level') or 0))
-                         if current_owner and current_owner != faction else 0)
-        aggression = max(.55, float(self._npc_gang_profile(faction)['aggression']))
-        capture_required = (self.CITY_GANG_BUSINESS_CAPTURE_S *
-                            (1.0 + defense_level * .22) / aggression
-                            if defense_level else self.CITY_GANG_BUSINESS_CAPTURE_S)
+        capture_required = self._city_gang_business_capture_required(gang, biz_id)
         if now - started < capture_required:
-            gang['_business_mode'] = 'capture'
+            self._city_gang_business_set_phase(gang, 'capture', now)
             return packets
         previous_faction = current_owner
         family = str(gang.get('mafia_family') or '')
@@ -22312,9 +22501,11 @@ class WorldSim:
         self._npc_business_controls[biz_id] = control
         gang['_business_target_id'] = ''
         gang['_business_guard_id'] = biz_id
-        gang['_business_mode'] = 'guard'
-        gang['_business_operation_started'] = 0.0
+        self._city_gang_business_set_phase(gang, 'guard', now)
+        gang['_business_operation_started'] = now
         gang['_business_capture_started'] = 0.0
+        gang['_business_breach_started'] = 0.0
+        gang['_business_approach_start_distance'] = 0.0
         gang['_business_replan_at'] = now + 3600.0
         guard_route = self._city_gang_guard_route(biz_id)
         if guard_route:
@@ -22325,13 +22516,14 @@ class WorldSim:
         self._faction_war_add('mafia', 5,
             did=self._district_id_at(float(c), float(r)),
             action=f'npc_business_capture:{biz_id}:{faction}', cooldown_s=20)
-        packets.append({'kind':'npc_business_captured', 'gid':gang['id'],
-                        'biz_id':biz_id, 'faction':faction,
+        operation = self._city_gang_business_operation(gang, now)
+        packets.append({'kind':'npc_business_captured', **operation,
                         'mafia_family':family, 'color':control['color'],
                         'gang_name':control['gang_name'],
                         'previous_faction':previous_faction,
                         'defense_level':control['defense_level'],
-                        'x':float(c), 'y':float(r), 'global':True})
+                        'x':operation['entrance_c'],
+                        'y':operation['entrance_r'], 'global':True})
         return packets
 
 
@@ -22876,13 +23068,28 @@ class WorldSim:
                                 g['_patrol_progress_at'] = now
                                 break
                 else:
+                    business_mode = str(g.get('_business_mode') or '')
+                    business_entry = self._city_gang_business_entrance(
+                        self._city_gang_business_id(g))
+                    holding_entrance = bool(
+                        business_entry and business_mode in ('breach', 'capture'))
+                    if holding_entrance:
+                        # Once the breach begins the squad owns the authored
+                        # door position.  The generic patrol planner must not
+                        # replace the exhausted business route with a random
+                        # city waypoint while the capture timer is running.
+                        g['_patrol_route'] = []
+                        g['_patrol_route_i'] = 0
+                        g['_patrol_wp'] = (business_entry[1], business_entry[0])
+                        g['_patrol_wp_until'] = now + 2.0
                     route = g.get('_patrol_route') or []
                     route_i = int(g.get('_patrol_route_i') or 0)
-                    need_route = (
+                    need_route = (not holding_entrance and (
                         route_i >= len(route)
                         or now >= float(g.get('_patrol_wp_until') or 0)
-                    )
-                    if not need_route and _m.hypot(wx - cx, wy - cy) < 1.0:
+                    ))
+                    if (not holding_entrance and not need_route and
+                            _m.hypot(wx - cx, wy - cy) < 1.0):
                         route_i += 1
                         g['_patrol_route_i'] = route_i
                         need_route = route_i >= len(route)
@@ -25842,19 +26049,12 @@ class WorldSim:
                     if faction in ('purple', 'yellow')
                 },
                 'npc_business_operations': [
-                    {
-                        'gid': str(gang.get('id') or ''),
-                        'biz_id': self._city_gang_business_id(gang),
-                        'faction': str(gang.get('faction') or ''),
-                        'phase': str(gang.get('_business_mode') or 'travel'),
-                        'strength': sum(1 for bot in gang.get('bots', [])
-                                        if bot.get('alive') and not bot.get('_custody_id')),
-                        'morale': round(float(gang.get('_morale') or 1.0), 2),
-                        'started_at': float(gang.get('_business_operation_started') or now_t),
-                    }
+                    self._city_gang_business_operation(gang, now_t)
                     for gang in self.city_gangs
                     if self._city_gang_business_id(gang)
-                    and str(gang.get('_business_mode') or '') != 'guard'
+                    and not gang.get('district_did')
+                    and gang.get('state') == 'patrol'
+                    and any(bot.get('alive') for bot in gang.get('bots', []))
                 ],
                 'business_closures': {
                     bid: max(0, int(until - now_t))
