@@ -78,6 +78,7 @@
 // Reversible Three.js city prototype. Canvas stays the default and emergency
 // fallback. The central flag can disable 3D without removing this module.
 const rendererParams = new URLSearchParams(location.search);
+const cityV3BuildingPreviewRequested=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.get('preview')==='1'&&rendererParams.get('previewcityv3')==='stage-a'&&rendererParams.get('cityv3buildings')==='1';
 const NPC_GANG_RENDER_STATES = 'sentry-last-stand-retreat-surrender';
 const businessControl = Object.create(null);
 const stanceMotionQaEnabled=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewstancemotion');
@@ -87,11 +88,46 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
     const stage = document.getElementById('stage');
     const rendererBootAt=performance.now();
     const startupTrace=[];
+    let cityV3AcceptedRollbackContext=null;
     const startupMark=label=>{const elapsed=(performance.now()-rendererBootAt).toFixed(1);startupTrace.push(`${label}:${elapsed}`);document.documentElement.dataset.threeStartup=startupTrace.join(',');console.info(`[ThreeStartup] ${label} ${elapsed}ms`);};
     try {
       window.MafioziLoading?.set(52, 'Загружаем трёхмерный движок…');
       const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js');
       startupMark('module');
+      // The immutable authored-building path is intentionally absent from a
+      // normal startup. Only the explicit local Stage A triple-gate imports its
+      // resolver, verifies every byte and parses the GLB. Any exception leaves
+      // the procedural city untouched.
+      let cityV3BuildingRuntime=null,cityV3BuildingCandidate=null,cityV3BuildingLoadError='';
+      let cityV3AcceptedRuntime=null,cityV3AcceptedCandidates=[],cityV3AcceptedLoadErrors=[];
+      const cityV3AcceptedErrorCode=error=>{const code=String(error?.code||'error'),message=String(error?.message||error||'unknown'),prefix=`${code}: `,detail=message.startsWith(prefix)?message.slice(prefix.length):message;return `${code}:${detail}`.replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,220);};
+      if(cityV3BuildingPreviewRequested){
+        document.documentElement.dataset.cityV3BuildingLoader='loading:civic_hall_landmark@1';
+        try{
+          cityV3BuildingRuntime=await import('../assets/buildings/city_v3/registry.v1.js?v=registry-v1-1551ff8b');
+          cityV3BuildingCandidate=await cityV3BuildingRuntime.loadCityV3BuildingCandidate({THREE,params:rendererParams,hostname:location.hostname,key:'civic_hall_landmark@1'});
+          document.documentElement.dataset.cityV3BuildingLoader=`validated:${cityV3BuildingCandidate.assetSha256.slice(0,12)}`;
+          startupMark('city-v3-glb-validated');
+        }catch(error){
+          cityV3BuildingLoadError=String(error?.code||error?.message||error||'load-failed').replace(/[^a-z0-9_.:-]/gi,'-').slice(0,160);
+          document.documentElement.dataset.cityV3BuildingLoader=`fallback:${cityV3BuildingLoadError}`;
+          console.error('[CityV3Building] validated asset load rejected; retaining legacy placeholder',error);
+        }
+        try{
+          cityV3AcceptedRuntime=await import('../assets/buildings/city_v3/accepted_v1/registry.v1.js?v=accepted-main-v1-c1b79fe6-atomic-v1');
+          const acceptedBatch=await cityV3AcceptedRuntime.loadCityV3AcceptedCandidates({THREE,params:rendererParams,hostname:location.hostname,keys:['pawnshop@1','print_shop@1']});
+          cityV3AcceptedCandidates=acceptedBatch.candidates;cityV3AcceptedLoadErrors=acceptedBatch.errors;
+          const rejected=cityV3AcceptedLoadErrors.map(item=>`${item.key}:${cityV3AcceptedErrorCode(item.error)}`).join(',')||'none';
+          document.documentElement.dataset.cityV3AcceptedBuildingLoader=`validated:${cityV3AcceptedCandidates.map(x=>x.key).join(',')||'none'}:rejected:${cityV3AcceptedLoadErrors.length}`;
+          document.documentElement.dataset.cityV3AcceptedBuildingLoadErrors=rejected;
+          startupMark('city-v3-accepted-validated');
+        }catch(error){
+          const reason=cityV3AcceptedErrorCode(error);
+          document.documentElement.dataset.cityV3AcceptedBuildingLoader=`fallback:${reason}`;
+          document.documentElement.dataset.cityV3AcceptedBuildingLoadErrors=`batch:${reason}`;
+          console.error('[CityV3AcceptedBuilding] registry load rejected; retaining all legacy placeholders',error);
+        }
+      }else document.documentElement.dataset.cityV3BuildingLoader='inactive:gate-closed';
       window.MafioziLoading?.set(61, 'Настраиваем свет, материалы и тени…');
       const viewSize = () => ({ W: Math.max(1, stage.clientWidth || innerWidth), H: Math.max(1, stage.clientHeight || innerHeight) });
       const size = viewSize();
@@ -143,6 +179,7 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       renderer.domElement.dataset.targetRenderFps=String(targetRenderFps);
       renderer.domElement.dataset.realTimeShadows=realTimeShadows?'on':'off';
       renderer.domElement.dataset.architectureTextureMinification='trilinear-mips-anisotropic-v424';
+      renderer.domElement.dataset.cityV3BuildingDiagnostics='loadedBuildings:0,replacedPlaceholder:0,overlap:0';
       // The weapon reticle is hold-to-aim. Outside RMB aiming the city keeps a
       // normal pointer instead of showing a misleading permanent crosshair.
       renderer.domElement.style.cursor = 'default';
@@ -169,6 +206,9 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
         setTimeout(()=>{const hit=bridge?.previewAttackSaid?.();renderer.domElement.dataset.saidDamageQa=hit?`alive:${hit.dead?0:1}:hp:${hit.hp}:burn:${hit.burning?1:0}:important:${hit.important?1:0}`:'missing';},4200);
       }
       if(rendererParams.get('previewmajor')){const previewMajorId=rendererParams.get('previewmajor'),pinPreviewMajor=()=>bridge?.previewApproachMajor?.(previewMajorId);pinPreviewMajor();const previewMajorTimer=setInterval(pinPreviewMajor,550);setTimeout(()=>clearInterval(previewMajorTimer),24000);}
+      const cityV3FocusKey=rendererParams.get('cityv3focus')||'pawnshop@1';
+      if(cityV3AcceptedCandidates.some(candidate=>candidate.key===cityV3FocusKey))bridge?.previewApproachCityV3Building?.(cityV3FocusKey);
+      else if(cityV3BuildingCandidate)bridge?.previewApproachCityV3Building?.(cityV3BuildingCandidate.key);
       const initialState=bridge?.getPlayerState?.()||null;
       // Стартуем только с ближайшего сектора. Остальные кварталы достраиваются
       // по мере движения и кэшируются — большая двухчастная карта не создаёт
@@ -179,9 +219,52 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       // adjacent sectors are requested before the player reaches their edge.
       const WORLD_SNAPSHOT_RADIUS=Math.max(28,Math.min(58,+rendererConfig.snapshotRadius||34));
       const STREAM_SECTOR_SIZE=24;
-      const worldSnapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS)||null;
       const envSnapshot=bridge?.getEnvironmentState?.()||null;
       const originR=initialState?.r||0,originC=initialState?.c||0,WORLD_SCALE=Math.max(3,Math.min(5,+rendererConfig.worldScale||4.1)),selectedWeather=(rendererParams.get('weather')||envSnapshot?.weather||'clear').toLowerCase();
+      let cityV3BuildingInstance=null;
+      if(cityV3BuildingCandidate&&bridge){
+        try{
+          cityV3BuildingInstance=cityV3BuildingRuntime.installCityV3BuildingCandidate(cityV3BuildingCandidate,{THREE,scene,bridge,renderer,originR,originC,worldScale:WORLD_SCALE});
+          renderer.domElement.dataset.cityV3BuildingActivation=`active:${cityV3BuildingInstance.key}`;
+          startupMark('city-v3-glb-installed');
+        }catch(error){
+          cityV3BuildingLoadError=String(error?.code||error?.message||error||'install-failed').replace(/[^a-z0-9_.:-]/gi,'-').slice(0,160);
+          renderer.domElement.dataset.cityV3BuildingAsset=`fallback:${cityV3BuildingLoadError}`;
+          renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics||'loadedBuildings:0,replacedPlaceholder:0,overlap:0';
+          document.documentElement.dataset.cityV3BuildingLoader=`fallback:${cityV3BuildingLoadError}`;
+          console.error('[CityV3Building] scene activation rejected; retaining legacy placeholder',error);
+        }
+      }else if(cityV3BuildingCandidate&&!bridge){
+        cityV3BuildingLoadError='gameplay-bridge-missing';
+        document.documentElement.dataset.cityV3BuildingLoader=`fallback:${cityV3BuildingLoadError}`;
+      }
+      const cityV3AcceptedInstances=[];
+      cityV3AcceptedRollbackContext={runtime:cityV3AcceptedRuntime,instances:cityV3AcceptedInstances,scene,bridge,renderer};
+      if(cityV3AcceptedCandidates.length&&bridge){
+        for(const candidate of cityV3AcceptedCandidates){
+          let instance=null;
+          try{
+            instance=cityV3AcceptedRuntime.installCityV3AcceptedCandidate(candidate,{THREE,scene,bridge,renderer,originR,originC,worldScale:WORLD_SCALE});
+            cityV3AcceptedInstances.push(instance);startupMark(`city-v3-${candidate.key}-installed`);
+          }catch(error){
+            let reportedError=error;
+            if(instance?.installed){
+              try{
+                cityV3AcceptedRuntime.rollbackCityV3AcceptedCandidate(instance,{scene,bridge,renderer});
+                const at=cityV3AcceptedInstances.indexOf(instance);if(at>=0)cityV3AcceptedInstances.splice(at,1);
+              }catch(rollbackError){reportedError=rollbackError;}
+            }
+            const reason=cityV3AcceptedErrorCode(reportedError);
+            cityV3AcceptedLoadErrors.push({key:candidate.key,error:reportedError});
+            renderer.domElement.dataset.cityV3AcceptedBuildingFallback=[renderer.domElement.dataset.cityV3AcceptedBuildingFallback,`${candidate.key}:${reason}`].filter(Boolean).join(',');
+            console.error(`[CityV3AcceptedBuilding] ${candidate.key} activation rejected or rolled back; retaining exact legacy placeholder`,reportedError);
+          }
+        }
+        renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics||'loadedBuildings:0,replacedPlaceholder:0,overlap:0';
+      }
+      // Snapshot comes after activation: the exact legacy shell and resident
+      // marker are suppressed only when the authored root is already present.
+      const worldSnapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS)||null;
       window.MafioziLoading?.set(69, 'Разворачиваем ближайший сектор города…');
 
       const skyLight=new THREE.HemisphereLight(0xb9d7ff,0x302634,2.65);scene.add(skyLight);
@@ -1361,6 +1444,50 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const initialBuildingCount=buildingDefs.length;
       const loadedBuildingKeys=new Set(buildingDefs.map(d=>`${d[8]?.minR}:${d[8]?.minC}:${d[8]?.maxR}:${d[8]?.maxC}`));
       const occluders=[],buildingPickables=[],facadeMaterials=[],shopMaterials=[],buildingCurbDefs=[],businessExteriorById=new Map();
+      if(cityV3BuildingInstance){
+        const placement=cityV3BuildingInstance.manifest.placement,meta={
+          r:placement.center_grid_rc[0],c:placement.center_grid_rc[1],
+          w:placement.corrected_footprint_grid_cr[2][0]-placement.corrected_footprint_grid_cr[0][0],
+          d:placement.corrected_footprint_grid_cr[2][1]-placement.corrected_footprint_grid_cr[0][1],
+          minR:placement.corrected_footprint_grid_cr[0][1],maxR:placement.corrected_footprint_grid_cr[2][1],
+          minC:placement.corrected_footprint_grid_cr[0][0],maxC:placement.corrected_footprint_grid_cr[2][0],
+          architecturalKind:'civic_hall_landmark',cityV3Key:cityV3BuildingInstance.key,nonInteractive:true,
+        };
+        cityV3BuildingInstance.visibleMeshes.forEach(mesh=>{
+          mesh.userData.building=meta;mesh.userData.cityV3Building=true;mesh.userData.cityV3Key=cityV3BuildingInstance.key;
+          mesh.userData.fadeMaterials=(Array.isArray(mesh.material)?mesh.material:[mesh.material]).filter(Boolean);
+          mesh.userData.fadeMaterials.forEach(material=>{material.userData=material.userData||{};material.userData.mfzOcclusionOpacity=.46;});
+          occluders.push(mesh);
+        });
+        const civicShadow=makeContactShadow(16.4*WORLD_SCALE/4.1,14.7*WORLD_SCALE/4.1,contactShadowMaterial);
+        civicShadow.position.set(cityV3BuildingInstance.placementRoot.position.x,.058,cityV3BuildingInstance.placementRoot.position.z);
+        civicShadow.userData.cityV3Building=true;scene.add(civicShadow);
+        renderer.domElement.dataset.cityV3BuildingMeshes=String(cityV3BuildingInstance.visibleMeshes.length);
+        renderer.domElement.dataset.cityV3BuildingPlaceholder='suppressed:legacy:procedural:60:60:65:65:68:68';
+        renderer.domElement.dataset.cityV3BuildingDoor=`open:${placement.public_door.anchor_grid_rc[0].toFixed(3)},${placement.public_door.anchor_grid_rc[1].toFixed(3)}`;
+        renderer.domElement.dataset.cityV3BuildingDiagnostics='loadedBuildings:1,replacedPlaceholder:1,overlap:0';
+      }
+      for(const instance of cityV3AcceptedInstances){
+        const binding=instance.binding,points=binding.footprint_polygon_grid_cr,cs=points.map(point=>point[0]),rs=points.map(point=>point[1]),meta={
+          r:binding.center_grid_rc[0],c:binding.center_grid_rc[1],w:Math.max(...cs)-Math.min(...cs),d:Math.max(...rs)-Math.min(...rs),
+          minR:Math.min(...rs),maxR:Math.max(...rs),minC:Math.min(...cs),maxC:Math.max(...cs),primary:true,
+          architecturalKind:binding.key.split('@')[0],cityV3Key:binding.key,nonInteractive:true,
+        };
+        instance.visibleMeshes.forEach(mesh=>{
+          mesh.userData.building=meta;mesh.userData.cityV3Building=true;mesh.userData.cityV3Key=binding.key;
+          mesh.userData.fadeMaterials=(Array.isArray(mesh.material)?mesh.material:[mesh.material]).filter(Boolean);
+          mesh.userData.fadeMaterials.forEach(material=>{material.userData=material.userData||{};material.userData.mfzOcclusionOpacity=.46;});
+          occluders.push(mesh);
+        });
+        const shadow=makeContactShadow((instance.correctedBox.dimensions[0]+1)*WORLD_SCALE/4.1,(instance.correctedBox.dimensions[2]+1)*WORLD_SCALE/4.1,contactShadowMaterial);
+        shadow.position.set(instance.placementRoot.position.x,.058,instance.placementRoot.position.z);shadow.userData.cityV3Building=true;shadow.userData.cityV3Key=binding.key;scene.add(shadow);
+      }
+      if(cityV3AcceptedInstances.length){
+        renderer.domElement.dataset.cityV3AcceptedBuildingMeshes=cityV3AcceptedInstances.map(instance=>`${instance.key}:${instance.visibleMeshes.length}`).join(',');
+        renderer.domElement.dataset.cityV3AcceptedBuildingPlaceholder=cityV3AcceptedInstances.map(instance=>`suppressed:${instance.binding.legacy_structure_id}`).join(',');
+        renderer.domElement.dataset.cityV3AcceptedBuildingDoor=cityV3AcceptedInstances.map(instance=>`open:${instance.key}:${instance.binding.public_door.actual_anchor_grid_rc.join(':')}`).join(',');
+        renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics||`loadedBuildings:${cityV3AcceptedInstances.length},replacedPlaceholder:${cityV3AcceptedInstances.length},overlap:0`;
+      }
       renderer.domElement.dataset.genericStorefrontGlow='signed-only-circadian-opacity-v1';
       // One pooled doorway system covers every authoritative resident exit.
       // Static frames/voids are instanced; only leaves whose target changed
@@ -5655,6 +5782,11 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       renderer.domElement.dataset.rendererDefault='3d-unless-explicit-canvas';
       console.info('[ThreePreview] procedural 3D city enabled');
     } catch (error) {
+      if(cityV3AcceptedRollbackContext){
+        const {runtime,instances,scene,bridge,renderer}=cityV3AcceptedRollbackContext,failures=[];
+        for(const instance of [...instances].reverse())try{runtime?.rollbackCityV3AcceptedCandidate(instance,{scene,bridge,renderer});}catch(rollbackError){failures.push(`${instance?.key||'unknown'}:${String(rollbackError?.code||rollbackError?.message||rollbackError||'rollback-error').replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,180)}`);}
+        if(failures.length)document.documentElement.dataset.cityV3AcceptedRollbackFailure=failures.join(',');
+      }
       stage.classList.remove('three-mode');
       document.getElementById('threeCinematicGrade')?.remove();
       document.body.dataset.threeError=String(error?.stack||error?.message||error).slice(0,1200);

@@ -14965,7 +14965,7 @@ function dispatchEmergencyServices() {
   document.documentElement.dataset.towLoadingParking='three-permanent-bays-road-wreck-side-v230';
   document.documentElement.dataset.fireParkingDistances=serviceVehicles.filter(v=>v?.kind==='firetruck'&&_fireTruckTarget(v)).map(v=>Math.hypot(v.y-_fireTruckTarget(v).r,v.x-_fireTruckTarget(v).c).toFixed(2)).join(',')||'idle';
   document.documentElement.dataset.serviceBuildingOverlaps=serviceVehicles.filter(v=>v&&v.state!=='done'&&['firetruck','tow'].includes(v.kind)&&!_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0)).map(v=>`${v.kind}:${v.id}`).join(',')||'0';
-  document.documentElement.dataset.ambulanceParkingBodyOverlaps=serviceVehicles.filter(v=>v?.kind==='ambulance'&&['ambulance_parked','medical_response','working'].includes(v.state)&&!_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0)).map(v=>v.id).join(',')||'0';
+  document.documentElement.dataset.ambulanceParkingBodyOverlaps=serviceVehicles.filter(v=>v?.kind==='ambulance'&&['ambulance_parked','medical_response','working'].includes(v.state)&&!_serviceVehicleFootprintClear(v,+v.y||0,+v.x||0,+v.ang||0,_serviceVehicleFootprintCapabilities(v))).map(v=>v.id).join(',')||'0';
   document.documentElement.dataset.serviceBuildingCollisionProfile='full-body-hard-world-v231';
   document.documentElement.dataset.towEligibleWrecks=String(CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).length);
   document.documentElement.dataset.towCandidateAges=CARS.filter(car=>car&&_vehicleIsWrecked(car)&&car._burnedOut&&!car._towDispatched&&!car._towed).map(car=>Math.round(now-(+car._burnedOutAt||now))).join(',')||'idle';
@@ -19639,6 +19639,12 @@ function _nearbyBuildingInteractionFor3D() {
   const intake=JAIL_ISLAND_LAYOUT.intake;
   if(JAIL_ISLAND_3D_ENABLED&&player.r>=intake.north-.2&&player.r<=intake.south+.2&&player.c>=intake.west-.2&&player.c<=intake.east+.2)return null;
   let best=null,bestD=Infinity;
+  // The exact accepted-v1 threshold is already protected by activation
+  // preflight. While the player is within its narrow 3.05-cell interaction
+  // radius it must own E unconditionally; broad legacy business footprint
+  // distances (often zero) cannot steal the visible authored doorway.
+  const accepted=_cityV3AcceptedInteractionFor3D();
+  if(accepted){accepted.doorId=accepted.doorId||_residentDoorIdForInteraction(accepted);return accepted;}
   if(JAIL_ISLAND_3D_ENABLED&&(myJailIn||0)<=0){
     const q=JAIL_POLICE_STATION_3D,d=Math.hypot(player.r-q.entryR,player.c-q.entryC);
     if(d<=q.interactRadius){best={kind:'building',id:'prison-police-admin',r:q.buildingR,c:q.buildingC,targetR:q.targetR,targetC:q.targetC,entryR:q.entryR,entryC:q.entryC,name:'Полицейский участок',type:'police_st',distance:d,islandEntry:true};bestD=d;}
@@ -19650,7 +19656,7 @@ function _nearbyBuildingInteractionFor3D() {
   if(market&&market.distance<bestD){const p=market.poi,a=market.entrance;best={kind:'building',id:String(p.id),r:+p.r,c:+p.c,entryR:a.r,entryC:a.c,name:p.name||'Чёрный рынок',type:'blackmarket',distance:market.distance};bestD=market.distance;}
   // A landmark/business facade owns the nearby E action. Ordinary blocked
   // tiles behind a large exterior must never steal it.
-  if(best){best.doorId=_residentDoorIdForInteraction(best);return best;}
+  if(best){best.doorId=best.doorId||_residentDoorIdForInteraction(best);return best;}
   const pr=Math.floor(player.r),pc=Math.floor(player.c);
   for(let r=Math.max(1,pr-5);r<=Math.min(MAP_ROWS-2,pr+5);r++)for(let c=Math.max(1,pc-5);c<=Math.min(MAP_COLS-2,pc+5);c++){
     if(MAP[r]?.[c]!==1)continue;
@@ -23475,6 +23481,285 @@ function _connectedBuildingParts(r0,c0,r1,c1){
   }
   return parts;
 }
+// One deliberately narrow Stage A bridge lets the corrected authored civic
+// hall replace one addressed procedural shell. It is inert in normal play and
+// stores no asset bytes: the Three.js loader must first prove the immutable
+// registry, manifest, sidecar, GLB, raw entrance direction and final AABB.
+const CITY_V3_CIVIC_PREVIEW_CONTRACT=Object.freeze({
+  key:'civic_hall_landmark@1',instanceId:'landmark:civic_hall',parcelId:'C-HALL-01',
+  legacyStructureId:'legacy:procedural:60:60:65:65:68:68',
+  registrySha256:'1551ff8bcf6df0b37fb9d07dbbb3632c075f9aeef41c8674488f928f1a0d4745',
+  manifestSha256:'7f692c40fddac3577528c944a4e4cbcde1439e961912368d1546cade5b145592',
+  sidecarSha256:'45a57298bb1a32bffbb78b16ab2bbfb7e4b090552bfc8a41ac9531d4aae53641',
+  glbSha256:'2ef23fb5e7f9888fe465c896811d3f88bb4fbc027f91394ca3b4e7477075cc35',
+  center:{r:68,c:69},parcel:{minR:65.3170731707317,maxR:70.6829268292683,minC:66.3170731707317,maxC:71.6829268292683},
+  footprint:{minR:66.33231707317073,maxR:69.66768292682927,minC:67.1219512195122,maxC:70.8780487804878},
+  legacy:{minR:65,maxR:69,minC:65,maxC:69},
+  door:{anchorR:69.62499997673965,anchorC:69,startR:69.55,startC:69,endR:70.6829268292683,endC:69,halfWidth:.36},
+  route:Array.from({length:11},(_,index)=>({r:70.5,c:66.5+index*.5})),
+});
+const CITY_V3_ACCEPTED_PREVIEW_CONTRACTS=Object.freeze({
+  'pawnshop@1':Object.freeze({
+    key:'pawnshop@1',instanceId:'MAIN-AV1-INST-PAWNSHOP-01',districtId:'downtown',legacyStructureId:'legacy:procedural:0:60:5:65:8:68',
+    registrySha256:'c1b79fe64b550b4898351155a1cd17dac2b23b64075a6e0f9b77d202b853635e',bindingsSha256:'af32124e3581fca1cc01bae31691f6ba17a0c381974638e4134457f7134ae297',manifestSha256:'2ba165499140834cd6a85a5e2d54e626bc5e37192792e5469aea010d5fcf19ea',sidecarSha256:'f428a09b9b8076376e6632f3aa71cf030fca18f1adba88bb224525342ff969de',glbSha256:'1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f',
+    center:{r:7,c:67},uniformAssetScale:.68,yawDeg:0,dimensionsM:[9.452,7.803,7.477],
+    block:{r0:0,c0:60,r1:10,c1:70},legacy:{minR:5,maxR:9,minC:65,maxC:69},
+    footprint:{minR:6.08822,maxR:7.91178,minC:65.847317,maxC:68.152683},pad:{minR:5.600415,maxR:8.399585,minC:65.359512,maxC:68.640488},
+    door:{anchorR:7.755878,anchorC:66.900488,corridor:{minR:7.755878,maxR:10.25,minC:66.534634,maxC:67.266341},roadProbe:{r:10.5,c:66.900488}},
+    service:{anchorR:6.46222,anchorC:67.953659,corridor:{minR:5.974415,maxR:6.950024,minC:67.953659,maxC:70.25},roadProbe:{r:6.46222,c:70.5}},
+  }),
+  'print_shop@1':Object.freeze({
+    key:'print_shop@1',instanceId:'MAIN-AV1-INST-PRINT_SHOP-01',districtId:'industrial',legacyStructureId:'legacy:procedural:90:40:95:45:98:48',
+    registrySha256:'c1b79fe64b550b4898351155a1cd17dac2b23b64075a6e0f9b77d202b853635e',bindingsSha256:'af32124e3581fca1cc01bae31691f6ba17a0c381974638e4134457f7134ae297',manifestSha256:'c348f00ae5ebfab59e56d2f1b5a40bed27712c7f21925acb9d17bb11ebe980c4',sidecarSha256:'60b7d9d16fb99750f18b324ca169990a54a30daa5942a3b5b71d460717735ace',glbSha256:'ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97',
+    center:{r:97,c:47},uniformAssetScale:.68,yawDeg:0,dimensionsM:[13.791,8.323,10.88],
+    block:{r0:90,c0:40,r1:100,c1:50},legacy:{minR:95,maxR:99,minC:45,maxC:49},
+    footprint:{minR:95.673171,maxR:98.326829,minC:45.318161,maxC:48.681839},pad:{minR:95.185366,maxR:98.814634,minC:44.830356,maxC:49.169644},
+    door:{anchorR:97.855805,anchorC:46.081088,corridor:{minR:97.855805,maxR:100.25,minC:45.715234,maxC:46.446941},roadProbe:{r:100.5,c:46.081088}},
+    service:{anchorR:96.018146,anchorC:47.490844,corridor:{minR:93.75,maxR:96.018146,minC:47.003039,maxC:47.978649},roadProbe:{r:93.5,c:47.490844}},
+  }),
+});
+let _cityV3ActiveCivicPreview=null;
+const _cityV3ActiveArtistInstances=new Map();
+const _cityV3ActiveAcceptedBuildings=new Map();
+document.documentElement.dataset.cityV3BuildingDiagnostics='loadedBuildings:0,replacedPlaceholder:0,overlap:0';
+function _cityV3UpdateBuildingDiagnostics(overlap=0){
+  const count=(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size;
+  const value=`loadedBuildings:${count},replacedPlaceholder:${count},overlap:${overlap?1:0}`;
+  document.documentElement.dataset.cityV3BuildingDiagnostics=value;return value;
+}
+function _cityV3BuildingPreviewGateRequested(){
+  return _LOCAL_PREVIEW&&_UP.get('preview')==='1'&&_UP.get('previewcityv3')==='stage-a'&&_UP.get('cityv3buildings')==='1';
+}
+function _cityV3RectContains(rect,r,c){return r>=rect.minR&&r<rect.maxR&&c>=rect.minC&&c<rect.maxC;}
+function _cityV3RectsOverlap(a,b){return a.minR<b.maxR&&a.maxR>b.minR&&a.minC<b.maxC&&a.maxC>b.minC;}
+function _cityV3CivicDoorCorridorAt(r,c){
+  const d=CITY_V3_CIVIC_PREVIEW_CONTRACT.door,dr=d.endR-d.startR,dc=d.endC-d.startC,length2=dr*dr+dc*dc||1;
+  const t=Math.max(0,Math.min(1,((r-d.startR)*dr+(c-d.startC)*dc)/length2));
+  return Math.hypot(r-(d.startR+dr*t),c-(d.startC+dc*t))<=d.halfWidth;
+}
+function _cityV3CivicLegacyPart(){
+  const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT.legacy;
+  const matches=_connectedBuildingParts(60,60,70,70).filter(q=>q.minR===expected.minR&&q.maxR+1===expected.maxR&&q.minC===expected.minC&&q.maxC+1===expected.maxC&&q.tiles?.length===16);
+  if(matches.length!==1)return null;
+  const part=matches[0],protectedTile=part.tiles.some(([r,c])=>
+    _bankTileSet.has(`${r},${c}`)||(typeof POI_BY_RC!=='undefined'&&POI_BY_RC.has(`${r},${c}`))||
+    (typeof BUSINESS_BY_RC!=='undefined'&&BUSINESS_BY_RC.has(`${r},${c}`)));
+  return protectedTile?null:part;
+}
+function _cityV3RectCellBounds(rect){
+  return {minR:Math.floor(rect.minR),maxR:Math.ceil(rect.maxR)-1,minC:Math.floor(rect.minC),maxC:Math.ceil(rect.maxC)-1};
+}
+function _cityV3CivicPreflight(legacyPart){
+  const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT,targetTiles=new Set(legacyPart.tiles.map(([r,c])=>`${r},${c}`));
+  // The parcel/pad may contain frontage, but no unaddressed building, POI,
+  // bank or business is allowed anywhere inside it. This prevents a broad
+  // visual override from silently demolishing a neighbour.
+  const pad=_cityV3RectCellBounds(expected.parcel);
+  for(let r=pad.minR;r<=pad.maxR;r++)for(let c=pad.minC;c<=pad.maxC;c++){
+    const key=`${r},${c}`,tile=MAP[r]?.[c];
+    if((tile===1&&!targetTiles.has(key))||_bankTileSet.has(key)||(typeof POI_BY_RC!=='undefined'&&POI_BY_RC.has(key))||(typeof BUSINESS_BY_RC!=='undefined'&&BUSINESS_BY_RC.has(key)))return {ok:false,reason:`pad-occupied:${r}:${c}`};
+  }
+  // Every cell touched by the physical OBB must be dry buildable ground or
+  // one of the 16 exact target cells. In particular, a footprint may not
+  // consume a road/bridge/track merely because collision would be overridden.
+  const body=_cityV3RectCellBounds(expected.footprint);
+  for(let r=body.minR;r<=body.maxR;r++)for(let c=body.minC;c<=body.maxC;c++){
+    const key=`${r},${c}`,tile=MAP[r]?.[c];
+    if(tile===1&&!targetTiles.has(key))return {ok:false,reason:`body-building:${r}:${c}`};
+    if(tile===16)return {ok:false,reason:`body-water:${r}:${c}`};
+    if(tile===0||tile===18||tile===19||inRaceTrack(r,c))return {ok:false,reason:`body-transport:${r}:${c}`};
+  }
+  // Sample the complete public corridor, not just the anchor. Roads are valid
+  // at the frontage end; buildings and water are not.
+  const d=expected.door;
+  for(let index=0;index<=24;index++){
+    const t=index/24,r=d.startR+(d.endR-d.startR)*t,c=d.startC+(d.endC-d.startC)*t,tile=MAP[Math.floor(r)]?.[Math.floor(c)];
+    if(tile===1||tile===16)return {ok:false,reason:`door-corridor:${Math.floor(r)}:${Math.floor(c)}`};
+  }
+  return {ok:true};
+}
+function _cityV3AcceptedLegacyPart(contract){
+  const b=contract.block,e=contract.legacy,matches=_connectedBuildingParts(b.r0,b.c0,b.r1,b.c1).filter(q=>q.minR===e.minR&&q.maxR+1===e.maxR&&q.minC===e.minC&&q.maxC+1===e.maxC&&q.tiles?.length===16);
+  if(matches.length!==1)return null;
+  if(NPC_EMPIRE_HQ_BLOCK_KEYS.has(`${Math.floor(e.minR/BLOCK)},${Math.floor(e.minC/BLOCK)}`))return null;
+  const protectedTile=matches[0].tiles.some(([r,c])=>{
+    const key=`${r},${c}`;
+    return _bankTileSet.has(key)||(typeof POI_BY_RC!=='undefined'&&POI_BY_RC.has(key))||(typeof BUSINESS_BY_RC!=='undefined'&&BUSINESS_BY_RC.has(key))||(typeof MAJOR_CASINO_WORLD_TILES!=='undefined'&&MAJOR_CASINO_WORLD_TILES.has(key));
+  });
+  return protectedTile?null:matches[0];
+}
+function _cityV3AcceptedGameplayAnchorConflict(rect){
+  const clearance=typeof DIST_ACTION_RAD==='number'?DIST_ACTION_RAD:2.8;
+  const contains=point=>point&&point.r>=rect.minR-clearance&&point.r<=rect.maxR+clearance&&point.c>=rect.minC-clearance&&point.c<=rect.maxC+clearance;
+  for(const district of (typeof DISTRICTS!=='undefined'?DISTRICTS:[])){
+    if(contains(district.hq)||contains(district.intel)||contains(district.escape))return district.id;
+    for(const point of district.sabotage||[])if(contains(point))return district.id;
+  }
+  return '';
+}
+function _cityV3AcceptedOrdinaryRoadAt(r,c){
+  const ri=Math.floor(r),ci=Math.floor(c);
+  return MAP[ri]?.[ci]===0&&!inRaceTrack(ri,ci);
+}
+function _cityV3AcceptedPreflight(contract,legacyPart){
+  const targetTiles=new Set(legacyPart.tiles.map(([r,c])=>`${r},${c}`));
+  const scan=(rect,kind,{allowTarget=false,allowRoad=false}={})=>{
+    const bounds=_cityV3RectCellBounds(rect);
+    for(let r=bounds.minR;r<=bounds.maxR;r++)for(let c=bounds.minC;c<=bounds.maxC;c++){
+      const key=`${r},${c}`,tile=MAP[r]?.[c],target=targetTiles.has(key);
+      if(tile==null)return `${kind}-outside:${r}:${c}`;
+      if(tile===1&&!(allowTarget&&target))return `${kind}-building:${r}:${c}`;
+      if(tile===16)return `${kind}-water:${r}:${c}`;
+      if(tile===18||tile===19||inRaceTrack(r,c)||(tile===0&&!allowRoad))return `${kind}-transport:${r}:${c}`;
+      if((_bankTileSet.has(key)||(typeof POI_BY_RC!=='undefined'&&POI_BY_RC.has(key))||(typeof BUSINESS_BY_RC!=='undefined'&&BUSINESS_BY_RC.has(key))||(typeof MAJOR_CASINO_WORLD_TILES!=='undefined'&&MAJOR_CASINO_WORLD_TILES.has(key)))&&!target)return `${kind}-gameplay:${r}:${c}`;
+    }
+    const anchor=_cityV3AcceptedGameplayAnchorConflict(rect);return anchor?`${kind}-district-anchor:${anchor}`:'';
+  };
+  let reason=scan(contract.pad,'pad',{allowTarget:true});if(reason)return {ok:false,reason};
+  reason=scan(contract.footprint,'body',{allowTarget:true});if(reason)return {ok:false,reason};
+  reason=scan(contract.door.corridor,'door',{allowTarget:true,allowRoad:true});if(reason)return {ok:false,reason};
+  reason=scan(contract.service.corridor,'service',{allowTarget:true,allowRoad:true});if(reason)return {ok:false,reason};
+  for(const active of _cityV3ActiveArtistInstances.values())if(_cityV3RectsOverlap(contract.pad,active.parcel))return {ok:false,reason:'artist-instance-overlap'};
+  if(!_cityV3AcceptedOrdinaryRoadAt(contract.door.roadProbe.r,contract.door.roadProbe.c))return {ok:false,reason:'door-road-probe'};
+  if(!_cityV3AcceptedOrdinaryRoadAt(contract.service.roadProbe.r,contract.service.roadProbe.c))return {ok:false,reason:'service-road-probe'};
+  return {ok:true};
+}
+function _cityV3AcceptedCorridorAt(contract,r,c){
+  const inside=rect=>r>=rect.minR-1e-6&&r<=rect.maxR+1e-6&&c>=rect.minC-1e-6&&c<=rect.maxC+1e-6;
+  return inside(contract.door.corridor)||inside(contract.service.corridor);
+}
+function _cityV3AcceptedSurfaceAt(r,c){
+  for(const active of _cityV3ActiveAcceptedBuildings.values()){
+    const contract=active.contract;
+    if(!_cityV3RectContains(contract.legacy,r,c))continue;
+    return {blocked:_cityV3RectContains(contract.footprint,r,c)&&!_cityV3AcceptedCorridorAt(contract,r,c),key:contract.key,replacementId:contract.legacyStructureId};
+  }
+  return null;
+}
+function _cityV3AcceptedDoorApproachAt(contract,r,c,maxDistance=3.05){
+  const door=contract?.door,aR=+door?.anchorR,aC=+door?.anchorC,bR=+door?.roadProbe?.r,bC=+door?.roadProbe?.c;
+  if(![aR,aC,bR,bC,r,c].every(Number.isFinite))return false;
+  const dr=bR-aR,dc=bC-aC,length2=dr*dr+dc*dc;if(length2<=1e-9)return false;
+  const length=Math.sqrt(length2),t=((r-aR)*dr+(c-aC)*dc)/length2,lateral=Math.abs((r-aR)*-dc+(c-aC)*dr)/length;
+  const q=door.corridor;if(!q||![q.minR,q.maxR,q.minC,q.maxC].every(Number.isFinite))return false;
+  const corners=[[q.minR,q.minC],[q.minR,q.maxC],[q.maxR,q.minC],[q.maxR,q.maxC]];
+  const halfWidth=Math.max(...corners.map(([rr,cc])=>Math.abs((rr-aR)*-dc+(cc-aC)*dr)/length));
+  return Math.hypot(r-aR,c-aC)<=maxDistance+1e-6&&t>=-1e-6&&t<=1+1e-6&&lateral<=halfWidth+1e-6;
+}
+function _cityV3AcceptedInteractionFor3D(maxDistance=3.05){
+  let best=null,bestD=Math.max(0,+maxDistance||0);
+  for(const active of _cityV3ActiveAcceptedBuildings.values()){
+    const contract=active.contract,door=contract?.door;if(!door)continue;
+    const distance=Math.hypot(player.r-door.anchorR,player.c-door.anchorC);
+    if(distance>bestD||!_cityV3AcceptedDoorApproachAt(contract,player.r,player.c,maxDistance))continue;
+    const label=contract.key==='pawnshop@1'?'Ломбард':contract.key==='print_shop@1'?'Типография':'Здание';
+    const r=Math.floor(contract.center.r),c=Math.floor(contract.center.c);
+    best={kind:'building',id:`city-v3:${contract.key}`,r,c,targetR:r,targetC:c,entryR:door.anchorR,entryC:door.anchorC,name:label,type:null,distance,cityV3AcceptedKey:contract.key,doorId:`city-v3:${contract.key}:public`};bestD=distance;
+  }
+  return best;
+}
+function _cityV3CivicSurfaceAt(r,c){
+  if(!_cityV3ActiveCivicPreview)return null;
+  const contract=CITY_V3_CIVIC_PREVIEW_CONTRACT;
+  if(!_cityV3RectContains(contract.parcel,r,c)&&!_cityV3RectContains(contract.legacy,r,c))return null;
+  const blocked=_cityV3RectContains(contract.footprint,r,c)&&!_cityV3CivicDoorCorridorAt(r,c);
+  return {blocked,key:contract.key,replacementId:contract.legacyStructureId};
+}
+function _cityV3SuppressLegacyPart(q){
+  if(!q)return false;
+  if(_cityV3ActiveCivicPreview){
+    const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT.legacy;
+    if(q.minR===expected.minR&&q.maxR+1===expected.maxR&&q.minC===expected.minC&&q.maxC+1===expected.maxC)return true;
+  }
+  for(const active of _cityV3ActiveAcceptedBuildings.values()){
+    const expected=active.contract.legacy;
+    if(q.minR===expected.minR&&q.maxR+1===expected.maxR&&q.minC===expected.minC&&q.maxC+1===expected.maxC)return true;
+  }
+  return false;
+}
+function _cityV3SuppressLegacyDoor(door){
+  if(!door)return false;
+  const r=Math.floor(+door.wallR),c=Math.floor(+door.wallC);if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+  if(_cityV3ActiveCivicPreview){const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT.legacy;if(r>=expected.minR&&r<expected.maxR&&c>=expected.minC&&c<expected.maxC)return true;}
+  for(const active of _cityV3ActiveAcceptedBuildings.values()){const expected=active.contract.legacy;if(r>=expected.minR&&r<expected.maxR&&c>=expected.minC&&c<expected.maxC)return true;}
+  return false;
+}
+function _activateCityV3BuildingPreview(receipt){
+  const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT,deny=(reason,overlap=false)=>{
+    document.documentElement.dataset.cityV3BuildingActivation=`rejected:${reason}`;
+    const diagnostics=_cityV3UpdateBuildingDiagnostics(overlap);
+    return {ok:false,reason,loadedBuildings:(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size,replacedPlaceholder:(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size,overlapCount:overlap?1:0,diagnostics};
+  };
+  if(!_cityV3BuildingPreviewGateRequested())return deny('gate-closed');
+  if(_cityV3ActiveCivicPreview)return receipt?.key===expected.key?{ok:true,active:expected.key,idempotent:true}:deny('different-instance-active');
+  const exact=(field,value)=>String(receipt?.[field]||'').toLowerCase()===String(value).toLowerCase();
+  if(!exact('key',expected.key)||!exact('instanceId',expected.instanceId)||!exact('parcelId',expected.parcelId)||!exact('legacyStructureId',expected.legacyStructureId))return deny('identity');
+  if(!exact('registrySha256',expected.registrySha256)||!exact('manifestSha256',expected.manifestSha256)||!exact('sidecarSha256',expected.sidecarSha256)||!exact('glbSha256',expected.glbSha256))return deny('hash');
+  if(receipt?.loaded!==true||receipt?.eligible!==true||receipt?.registered!==true||!(+receipt.visibleMeshCount>0))return deny('loader-readiness');
+  const near=(a,b,e=.02)=>Number.isFinite(+a)&&Math.abs(+a-b)<=e;
+  if(!Array.isArray(receipt.centerGridRC)||!near(receipt.centerGridRC[0],68,1e-8)||!near(receipt.centerGridRC[1],69,1e-8))return deny('center');
+  if(!near(receipt.contractYawDeg,0,1e-8)||!near(receipt.correctionYawDeg,180,1e-8)||!near(receipt.finalYawDeg,180,1e-8))return deny('yaw');
+  if(!Array.isArray(receipt.dimensionsM)||!near(receipt.dimensionsM[0],15.4)||!near(receipt.dimensionsM[1],13.25)||!near(receipt.dimensionsM[2],13.675))return deny('aabb');
+  if(!Array.isArray(receipt.doorAnchorGridRC)||!near(receipt.doorAnchorGridRC[0],expected.door.anchorR,1e-6)||!near(receipt.doorAnchorGridRC[1],expected.door.anchorC,1e-6))return deny('door-anchor');
+  const legacyPart=_cityV3CivicLegacyPart();if(!legacyPart)return deny('legacy-ownership');
+  if(!_cityV3RectsOverlap(expected.footprint,expected.legacy)||!_cityV3RectContains(expected.parcel,expected.door.anchorR,expected.door.anchorC)||!_cityV3CivicDoorCorridorAt(expected.door.anchorR,expected.door.anchorC))return deny('overlap-or-door');
+  const preflight=_cityV3CivicPreflight(legacyPart);if(!preflight.ok)return deny(preflight.reason,true);
+  for(const active of _cityV3ActiveArtistInstances.values())if(_cityV3RectsOverlap(expected.parcel,active.parcel))return deny('artist-instance-overlap',true);
+  const routeBefore=expected.route.every(point=>!isBlockedPed(point.r,point.c));if(!routeBefore)return deny('before-route');
+  const active={key:expected.key,instanceId:expected.instanceId,parcel:{...expected.parcel},legacyStructureId:expected.legacyStructureId,legacyPart:{minR:legacyPart.minR,maxR:legacyPart.maxR,minC:legacyPart.minC,maxC:legacyPart.maxC},routingPreserved:false,activatedAt:performance.now()};
+  _cityV3ActiveCivicPreview=active;_cityV3ActiveArtistInstances.set(expected.key,active);
+  const routeAfter=expected.route.every(point=>!isBlockedPed(point.r,point.c)),doorPassable=!isBlockedPed(expected.door.anchorR,expected.door.anchorC);
+  if(!routeAfter||!doorPassable){_cityV3ActiveCivicPreview=null;_cityV3ActiveArtistInstances.delete(expected.key);return deny(!routeAfter?'after-route':'door-blocked');}
+  active.routingPreserved=true;
+  document.documentElement.dataset.cityV3BuildingActivation=`active:${expected.key}:${expected.glbSha256.slice(0,12)}`;
+  document.documentElement.dataset.cityV3BuildingReplacement=`${expected.legacyStructureId}->${expected.instanceId}:routing-preserved`;
+  _cityV3UpdateBuildingDiagnostics(0);
+  return {ok:true,active:expected.key,suppressedLegacyId:expected.legacyStructureId,routingPreserved:true,doorAnchorPassable:true,loadedBuildings:1,replacedPlaceholder:1,overlapCount:0};
+}
+function _activateCityV3AcceptedBuildingPreview(receipt){
+  const expected=CITY_V3_ACCEPTED_PREVIEW_CONTRACTS[String(receipt?.key||'')],deny=(reason,overlap=false)=>{
+    document.documentElement.dataset.cityV3AcceptedBuildingActivation=`rejected:${String(receipt?.key||'unknown')}:${reason}`;
+    const diagnostics=_cityV3UpdateBuildingDiagnostics(overlap);
+    return {ok:false,reason,loadedBuildings:(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size,replacedPlaceholder:(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size,overlapCount:overlap?1:0,diagnostics};
+  };
+  if(!_cityV3BuildingPreviewGateRequested())return deny('gate-closed');
+  if(!expected)return deny('unknown-key');
+  if(_cityV3ActiveAcceptedBuildings.has(expected.key))return {ok:true,active:expected.key,idempotent:true};
+  const exact=(field,value)=>String(receipt?.[field]||'').toLowerCase()===String(value).toLowerCase(),near=(a,b,e=.02)=>Number.isFinite(+a)&&Math.abs(+a-b)<=e;
+  if(!exact('key',expected.key)||!exact('instanceId',expected.instanceId)||!exact('legacyStructureId',expected.legacyStructureId))return deny('identity');
+  if(!exact('registrySha256',expected.registrySha256)||!exact('bindingsSha256',expected.bindingsSha256)||!exact('manifestSha256',expected.manifestSha256)||!exact('sidecarSha256',expected.sidecarSha256)||!exact('glbSha256',expected.glbSha256))return deny('hash');
+  if(receipt?.loaded!==true||receipt?.eligible!==true||receipt?.registered!==true||!(+receipt.visibleMeshCount>0))return deny('loader-readiness');
+  if(!Array.isArray(receipt.centerGridRC)||!near(receipt.centerGridRC[0],expected.center.r,1e-8)||!near(receipt.centerGridRC[1],expected.center.c,1e-8)||!near(receipt.uniformAssetScale,expected.uniformAssetScale,1e-9)||!near(receipt.yawDeg,expected.yawDeg,1e-9))return deny('transform');
+  if(!Array.isArray(receipt.dimensionsM)||receipt.dimensionsM.length!==3||receipt.dimensionsM.some((value,index)=>!near(value,expected.dimensionsM[index])))return deny('aabb');
+  if(!Array.isArray(receipt.doorAnchorGridRC)||!near(receipt.doorAnchorGridRC[0],expected.door.anchorR,1e-6)||!near(receipt.doorAnchorGridRC[1],expected.door.anchorC,1e-6))return deny('door-anchor');
+  if(!Array.isArray(receipt.serviceAnchorGridRC)||!near(receipt.serviceAnchorGridRC[0],expected.service.anchorR,1e-6)||!near(receipt.serviceAnchorGridRC[1],expected.service.anchorC,1e-6))return deny('service-anchor');
+  const legacyPart=_cityV3AcceptedLegacyPart(expected);if(!legacyPart)return deny('legacy-ownership');
+  const preflight=_cityV3AcceptedPreflight(expected,legacyPart);if(!preflight.ok)return deny(preflight.reason,true);
+  const routeBefore=!isBlockedPed(expected.door.roadProbe.r,expected.door.roadProbe.c)&&!isBlockedPed(expected.service.roadProbe.r,expected.service.roadProbe.c);if(!routeBefore)return deny('before-route');
+  const rollbackToken=Object.freeze({key:expected.key,instanceId:expected.instanceId,legacyStructureId:expected.legacyStructureId,nonce:Object.freeze({})});
+  const active={key:expected.key,instanceId:expected.instanceId,contract:expected,parcel:{...expected.pad},legacyStructureId:expected.legacyStructureId,legacyPart:{minR:legacyPart.minR,maxR:legacyPart.maxR,minC:legacyPart.minC,maxC:legacyPart.maxC},routingPreserved:false,rollbackToken,activatedAt:performance.now()};
+  _cityV3ActiveAcceptedBuildings.set(expected.key,active);_cityV3ActiveArtistInstances.set(expected.key,active);
+  const routeAfter=!isBlockedPed(expected.door.roadProbe.r,expected.door.roadProbe.c)&&!isBlockedPed(expected.service.roadProbe.r,expected.service.roadProbe.c),doorPassable=!isBlockedPed(expected.door.anchorR,expected.door.anchorC),servicePassable=!isBlockedPed(expected.service.anchorR,expected.service.anchorC);
+  if(!routeAfter||!doorPassable||!servicePassable){_cityV3ActiveAcceptedBuildings.delete(expected.key);_cityV3ActiveArtistInstances.delete(expected.key);return deny(!routeAfter?'after-route':!doorPassable?'door-blocked':'service-blocked');}
+  active.routingPreserved=true;
+  document.documentElement.dataset.cityV3AcceptedBuildingActivation=`active:${expected.key}:${expected.glbSha256.slice(0,12)}`;
+  document.documentElement.dataset.cityV3AcceptedReplacement=`${expected.legacyStructureId}->${expected.instanceId}:routing-preserved`;
+  _cityV3UpdateBuildingDiagnostics(0);
+  return {ok:true,active:expected.key,suppressedLegacyId:expected.legacyStructureId,routingPreserved:true,doorAnchorPassable:true,serviceAnchorPassable:true,rollbackToken};
+}
+function _rollbackCityV3AcceptedBuildingPreview(token){
+  if(!_cityV3BuildingPreviewGateRequested())return {ok:false,reason:'gate-closed'};
+  const key=String(token?.key||''),active=_cityV3ActiveAcceptedBuildings.get(key);
+  if(!active)return {ok:false,reason:'not-active'};
+  // Identity, not merely matching strings, prevents stale or forged receipts
+  // from restoring a placeholder over a later successful installation.
+  if(token!==active.rollbackToken)return {ok:false,reason:'rollback-token'};
+  _cityV3ActiveAcceptedBuildings.delete(key);_cityV3ActiveArtistInstances.delete(key);
+  document.documentElement.dataset.cityV3AcceptedBuildingActivation=`rolled-back:${key}`;
+  document.documentElement.dataset.cityV3AcceptedReplacement=`restored:${active.legacyStructureId}`;
+  const diagnostics=_cityV3UpdateBuildingDiagnostics(0);
+  return {ok:true,rolledBack:key,restoredLegacyId:active.legacyStructureId,diagnostics};
+}
 function _isThreeWholeBuildingBlocked(r,c){
   if(!_THREE_WHOLE_BUILDING_COLLISIONS)return false;
   const r0=Math.floor(r/BLOCK)*BLOCK,c0=Math.floor(c/BLOCK)*BLOCK,key=`${r0}:${c0}`;
@@ -23507,6 +23792,10 @@ function isBlocked(r, c) {
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
   const prisonSurface=_prisonIslandCollisionAt(r,c);
   if(prisonSurface)return prisonSurface.blocked;
+  const cityV3Surface=_cityV3CivicSurfaceAt(r,c);
+  if(cityV3Surface)return cityV3Surface.blocked;
+  const cityV3AcceptedSurface=_cityV3AcceptedSurfaceAt(r,c);
+  if(cityV3AcceptedSurface)return cityV3AcceptedSurface.blocked;
   if (_isPortContainerSolid(r,c)) return true;
   if (_isThreeWholeBuildingBlocked(r,c)) return true;
   return !PASSABLE.has(MAP[ri][ci]);
@@ -66682,11 +66971,44 @@ window.Mafiozi3DBridge = Object.freeze({
     window._studioTeleportUntil=Date.now()+10000;
     return {r:best.br,c:best.bc};
   },
+  previewApproachCityV3Building(key='civic_hall_landmark@1') {
+    if(!_cityV3BuildingPreviewGateRequested())return false;
+    const accepted=CITY_V3_ACCEPTED_PREVIEW_CONTRACTS[String(key)],door=String(key)===CITY_V3_CIVIC_PREVIEW_CONTRACT.key?CITY_V3_CIVIC_PREVIEW_CONTRACT.door:accepted?.door;
+    if(!door)return false;
+    player.r=accepted?door.roadProbe.r:70.5;player.c=accepted?door.roadProbe.c:door.anchorC;player.vr=0;player.vc=0;player.walking=false;
+    window._studioTeleportUntil=Date.now()+10000;
+    return {key:String(key),r:player.r,c:player.c,doorR:door.anchorR,doorC:door.anchorC};
+  },
+  activateCityV3BuildingPreview(receipt) {
+    return _activateCityV3BuildingPreview(receipt);
+  },
+  activateCityV3AcceptedBuildingPreview(receipt) {
+    return _activateCityV3AcceptedBuildingPreview(receipt);
+  },
+  rollbackCityV3AcceptedBuildingPreview(token) {
+    return _rollbackCityV3AcceptedBuildingPreview(token);
+  },
+  getCityV3BuildingPreviewStatus() {
+    const active=_cityV3ActiveCivicPreview,contract=CITY_V3_CIVIC_PREVIEW_CONTRACT;
+    return {gate:_cityV3BuildingPreviewGateRequested(),active:active?.key||'',legacyStructureId:contract.legacyStructureId,
+      suppressed:!!active,routingPreserved:!!active?.routingPreserved,doorAnchorBlocked:isBlockedPed(contract.door.anchorR,contract.door.anchorC),
+      activation:document.documentElement.dataset.cityV3BuildingActivation||'inactive',diagnostics:document.documentElement.dataset.cityV3BuildingDiagnostics||'loadedBuildings:0,replacedPlaceholder:0,overlap:0'};
+  },
+  getCityV3AcceptedBuildingPreviewStatus() {
+    return {gate:_cityV3BuildingPreviewGateRequested(),active:[..._cityV3ActiveAcceptedBuildings.keys()],suppressed:[..._cityV3ActiveAcceptedBuildings.values()].map(x=>x.legacyStructureId),
+      routingPreserved:[..._cityV3ActiveAcceptedBuildings.values()].every(x=>x.routingPreserved),activation:document.documentElement.dataset.cityV3AcceptedBuildingActivation||'inactive',diagnostics:document.documentElement.dataset.cityV3BuildingDiagnostics||'loadedBuildings:0,replacedPlaceholder:0,overlap:0'};
+  },
+  getCityV3AcceptedBindingPreflight() {
+    return Object.values(CITY_V3_ACCEPTED_PREVIEW_CONTRACTS).map(contract=>{
+      const legacyPart=_cityV3AcceptedLegacyPart(contract),result=legacyPart?_cityV3AcceptedPreflight(contract,legacyPart):{ok:false,reason:'legacy-ownership'};
+      return {key:contract.key,ok:!!result.ok,reason:result.reason||'',legacyStructureId:contract.legacyStructureId,center:{...contract.center},doorAnchorBlocked:isBlockedPed(contract.door.anchorR,contract.door.anchorC),serviceAnchorBlocked:isBlockedPed(contract.service.anchorR,contract.service.anchorC)};
+    });
+  },
   previewResidentDoorCycle() {
     return _previewResidentDoorCycle();
   },
   getBuildingDoors() {
-    return _residentBuildingDoors().map(door=>({id:door.id,r:door.r,c:door.c,wallR:door.wallR,wallC:door.wallC,
+    return _residentBuildingDoors().filter(door=>!_cityV3SuppressLegacyDoor(door)).map(door=>({id:door.id,r:door.r,c:door.c,wallR:door.wallR,wallC:door.wallC,
       facingR:door.facingR,facingC:door.facingC,sourceId:door.sourceId||'',sourceKind:door.sourceKind||'building',authored:!!door.authored,residentEligible:door.residentEligible!==false}));
   },
   getBuildingDoorStates() {
@@ -66727,6 +67049,7 @@ window.Mafiozi3DBridge = Object.freeze({
         _threeBuildingBlockCache.set(blockKey,cachedBuildingParts);
       }
       const buildingParts=cachedBuildingParts
+        .filter(q=>!_cityV3SuppressLegacyPart(q))
         .filter(q=>!(JAIL_ISLAND_3D_ENABLED&&JAIL_CENTER_R>=q.minR&&JAIL_CENTER_R<=q.maxR&&JAIL_CENTER_C>=q.minC&&JAIL_CENTER_C<=q.maxC))
         .map((q,i)=>({...q,height:heightBase+((seed+i*13)%heightSpread)}));
       blocks.push({
@@ -71436,6 +71759,6 @@ function chatDuration(text) {
 
 <script type="module" src="character_3d_preview.js?v=6"></script>
 <!-- 3d368-visible-empire-flags remains a compatibility QA marker; the live renderer is v370. -->
-<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416+junkyard-light-budget-v425+bridge-hangers-v426+vehicle-admission-v427+building-reveal-v428&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1&melee=smart-heavy-forward-kick-v16&interior=business-red-material-v1&npcstate=npc-state-prune-v429&storeglow=signed-circadian-v1&windows=room-pair-floor-circadian-v1&roofmat=family-physical-response-v1&downpipe=ordinary-edge-drain-v1"></script>
+<script type="module" src="three_preview.js?v=3d418-authoritative-business-skins&opt=burning-pool-v414+pooled-marker-accounting-v416+junkyard-light-budget-v425+bridge-hangers-v426+vehicle-admission-v427+building-reveal-v428&facade=depth-roof-sign-v1&building=brick-limestone-glass-depth-v2&building2=concrete-deco-industrial-depth-v1&building3=coffee-barbershop-pizza-storefront-v1&npcgear=police-layer-separation-v1&brick=bank-reference-massing-v2&material=physical-glass-soft-shadow-v1&visual=roads-trees-smoke-v1&road=road-scale-aggregate-mottle-repair-v1&lighting=authoritative-circadian-v1&melee=smart-heavy-forward-kick-v16&interior=business-red-material-v1&npcstate=npc-state-prune-v429&storeglow=signed-circadian-v1&windows=room-pair-floor-circadian-v1&roofmat=family-physical-response-v1&downpipe=ordinary-edge-drain-v1&cityv3=accepted-c1b79fe6-atomic-v1"></script>
 </body>
 </html>

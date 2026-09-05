@@ -1,0 +1,157 @@
+{
+  "schema": "mafiozi.city-v3-building-asset/v1",
+  "key": "civic_hall_landmark@1",
+  "status": "conditional_preview_only",
+  "asset": {
+    "canonical_asset_id": "BLDG_CIVIC_HALL_01",
+    "stable_instance_id": "landmark:civic_hall",
+    "file": "civic_hall_landmark_v1.2ef23fb5e7f9.glb",
+    "bytes": 823628,
+    "sha256": "2ef23fb5e7f9888fe465c896811d3f88bb4fbc027f91394ca3b4e7477075cc35",
+    "sidecar_file": "civic_hall_landmark_v1.45a57298bb1a.asset.json",
+    "sidecar_bytes": 4391,
+    "sidecar_sha256": "45a57298bb1a32bffbb78b16ab2bbfb7e4b090552bfc8a41ac9531d4aae53641",
+    "source_blend_sha256": "fa521bf9cae0ac440f7e9a365d8fdda5a260db3985b14cff8fe2702e34e2e0a8",
+    "validation_sha256": "103cf501ff334060fa5766ae32017331c047bc1d7372261e236fc1befbbe6e6b"
+  },
+  "provenance": {
+    "origin": "project_generated",
+    "generator_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\work\\build_civic_hall_landmark_v1.py",
+    "generator_sha256": "ebc25b92803a182bcf71ee2b47bf03d18d22c89fa7ab46d2864afe82568781f7",
+    "external_sources": [],
+    "usage": "internal_project_asset"
+  },
+  "source_contracts": {
+    "placement_contract_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-city-replacement\\outputs\\city_building_placement_v1\\city_building_placement_v1.contract.json",
+    "placement_contract_sha256": "afe4459677228424412e273ec3a32a04cc17b1a3a3c24d4f70d2cafb022ce58c",
+    "placement_contract_status": "STAGING_PLACEMENT_CONTRACT_NOT_MAIN",
+    "environment_contract_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-city-replacement\\outputs\\city_environment_diversity_v1\\city_environment_diversity_v1.contract.json",
+    "environment_contract_sha256": "4c304c28a9f041d69f36bc085330dd0c14338393b022f0e9fc522ad971b25b88",
+    "environment_package_manifest_sha256": "fe3171a80840ada32838c5570246970bb3ec3e71301c6bf7dc388b1411c939d8"
+  },
+  "style_gate": {
+    "status": "review_pending_candidate",
+    "activation": "explicit_preview_only_until_live_review",
+    "bible_json_sha256": "fbe59a7b89ec6ed48bfbcf8cc2f33a2caebf5b8c1c2bea937a0a3fff90d5c91e",
+    "bible_markdown_sha256": "a935f0e4aeeaa64dc0affd21de6c8f3b04b491b30c24a8f8b78db9274adccd3e",
+    "bible_package_manifest_sha256": "fab7718ee7b15a60469c3afba5973229b982db747a6127372d6fec7060f76850",
+    "budget": {
+      "profile": "landmark_civic",
+      "triangles": 25332,
+      "triangles_max": 35000,
+      "materials": 8,
+      "materials_max": 10,
+      "primitives": 55,
+      "lod_present": false,
+      "live_review_required": true
+    }
+  },
+  "placement": {
+    "district_id": "central_district",
+    "parcel_id": "C-HALL-01",
+    "center_grid_rc": [68, 69],
+    "world_position_xyz_m": [282.9, 0.9, 278.8],
+    "terrain_elevation_m": 0.9,
+    "runtime_scene_y_rule": "world_y_minus_terrain_elevation",
+    "runtime_scene_y_m": 0.0,
+    "contract_yaw_deg": 0,
+    "authored_source_front": "+Y",
+    "raw_gltf_front": "-Z",
+    "raw_node_evidence": {
+      "node": "ACTION_CIVIC_HALL_01_MAIN",
+      "translation_xyz_m": [0.0, 0.15000000596046448, -2.3499999046325684]
+    },
+    "asset_correction_yaw_deg": 180,
+    "final_runtime_yaw_deg": 180,
+    "raw_gltf_building_bounds_m": {
+      "min_xyz": [-7.7, 0.03, -2.525],
+      "max_xyz": [7.7, 13.28, 11.15],
+      "horizontal_center_xyz": [0.0, 0.0, 4.3125]
+    },
+    "pre_rotation_recenter_xyz_m": [0.0, 0.0, -4.3125],
+    "corrected_centered_runtime_bounds_m": {
+      "min_xyz": [-7.7, 0.03, -6.8375],
+      "max_xyz": [7.7, 13.28, 6.8375],
+      "dimensions_xyz": [15.4, 13.25, 13.675]
+    },
+    "parcel_polygon_grid_cr": [
+      [66.3170731707317, 65.3170731707317],
+      [71.6829268292683, 65.3170731707317],
+      [71.6829268292683, 70.6829268292683],
+      [66.3170731707317, 70.6829268292683]
+    ],
+    "corrected_footprint_grid_cr": [
+      [67.1219512195122, 66.33231707317073],
+      [70.8780487804878, 66.33231707317073],
+      [70.8780487804878, 69.66768292682927],
+      [67.1219512195122, 69.66768292682927]
+    ],
+    "pad_m": [22.0, 22.0],
+    "fit_check": {
+      "building_width_m": 15.4,
+      "building_depth_m": 13.675,
+      "pad_width_m": 22.0,
+      "pad_depth_m": 22.0,
+      "width_total_margin_m": 6.6,
+      "depth_total_margin_m": 8.325,
+      "fits": true
+    },
+    "public_door": {
+      "anchor_node": "ACTION_CIVIC_HALL_01_MAIN",
+      "corrected_centered_local_xyz_m": [0.0, 0.15000000596046448, 6.662499904632568],
+      "anchor_grid_rc": [69.62499997673965, 69.0],
+      "corridor_start_grid_rc": [69.55, 69.0],
+      "corridor_end_grid_rc": [70.6829268292683, 69.0],
+      "corridor_half_width_cells": 0.36,
+      "clear_opening_m": [2.4, 3.65],
+      "accessible": true
+    }
+  },
+  "corrective_substitution": {
+    "old_glb_sha256": "d2ba44546903b555ba25df1dea0c1f11799bae6283f14466b13b04736057c134",
+    "new_glb_sha256": "2ef23fb5e7f9888fe465c896811d3f88bb4fbc027f91394ca3b4e7477075cc35",
+    "reason": "Corrected civic hall asset deepens the validated building envelope from 13.5m to 13.675m while preserving stable instance, parcel, center, yaw and public entrance contract.",
+    "preserved_fields": ["stable_instance_id", "canonical_asset_id", "parcel_id", "district_id", "center_grid_rc", "contract_yaw_deg"],
+    "depth_13_675_inside_22m_pad": true
+  },
+  "replacement": {
+    "policy": "addressed_removal_only",
+    "legacy_structure_id": "legacy:procedural:60:60:65:65:68:68",
+    "legacy_structure_tile_bounds": {
+      "min_r": 65,
+      "max_r_inclusive": 68,
+      "min_c": 65,
+      "max_c_inclusive": 68
+    },
+    "replacement_purpose": "civic_hall_landmark",
+    "replacement_id": "landmark:civic_hall",
+    "before_route": "south_frontage_r70_5_c66_5_to71_5",
+    "after_route": "south_frontage_r70_5_c66_5_to71_5",
+    "routing_preserved": true,
+    "zero_untracked_demolition": true,
+    "suppression_rule": "Suppress this exact legacy visual, collision and resident-door marker only after GLB, manifest, sidecar, raw-node, AABB, overlap and door-corridor eligibility all pass. On any failure retain the legacy structure."
+  },
+  "runtime_gate": {
+    "required_query": {
+      "preview": "1",
+      "previewcityv3": "stage-a",
+      "cityv3buildings": "1"
+    },
+    "required_nodes": [
+      "BLDG_CIVIC_HALL_01",
+      "ACTION_CIVIC_HALL_01_MAIN",
+      "CivicHall_DoorLeaf_Main_L",
+      "CivicHall_DoorLeaf_Main_R",
+      "CivicHall_DoorThreshold"
+    ],
+    "excluded_planning_nodes": [
+      "PAD_CIVIC_HALL_01",
+      "FRONTAGE_CIVIC_HALL_01_MAIN",
+      "Public_Pedestrian_Band_4m",
+      "Emergency_Route_4m",
+      "SERVICE_CIVIC_HALL_01_REAR"
+    ],
+    "direct_versioned_key_only": true,
+    "fail_closed": true
+  }
+}

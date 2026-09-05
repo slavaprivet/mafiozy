@@ -1,0 +1,36 @@
+{
+  "schema": "mafiozi.city-v3-building-registry/v1",
+  "revision": 1,
+  "activation_policy": "explicit_preview_only_fail_closed",
+  "entries": [
+    {
+      "key": "civic_hall_landmark@1",
+      "role": "civic_hall_landmark",
+      "status": "conditional_preview_only",
+      "canonical_asset_id": "BLDG_CIVIC_HALL_01",
+      "stable_instance_id": "landmark:civic_hall",
+      "manifest": {
+        "url": "./civic_hall_landmark/v1/manifest.v1.json",
+        "bytes": 6744,
+        "sha256": "7f692c40fddac3577528c944a4e4cbcde1439e961912368d1546cade5b145592"
+      },
+      "asset": {
+        "url": "./civic_hall_landmark/v1/civic_hall_landmark_v1.2ef23fb5e7f9.glb",
+        "bytes": 823628,
+        "sha256": "2ef23fb5e7f9888fe465c896811d3f88bb4fbc027f91394ca3b4e7477075cc35"
+      },
+      "sidecar": {
+        "url": "./civic_hall_landmark/v1/civic_hall_landmark_v1.45a57298bb1a.asset.json",
+        "bytes": 4391,
+        "sha256": "45a57298bb1a32bffbb78b16ab2bbfb7e4b090552bfc8a41ac9531d4aae53641"
+      },
+      "required_query": {
+        "preview": "1",
+        "previewcityv3": "stage-a",
+        "cityv3buildings": "1"
+      },
+      "style_gate": "review_pending_candidate",
+      "live_activation": false
+    }
+  ]
+}

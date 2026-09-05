@@ -1,0 +1,79 @@
+{
+  "schema": "mafiozi.city-v3-main-native-bindings/v1",
+  "revision": 1,
+  "status": "explicit_local_stage_a_preview",
+  "world_units_per_contract_cell_m": 4.1,
+  "reason": "Planning v2 is superseded. Planning v3 is a topology-only authority whose own package forbids direct current-MAIN rollout. These deterministic bindings independently target exact non-gameplay connectedBuildingParts in current MAIN while preserving asset identity, scale and internal-project provenance.",
+  "planning_authority": {
+    "superseded_v2": {
+      "contract_sha256": "e917883063d0dcc3326ed2ea508f4d3956e10688296d1f063a34c61378bc4c78",
+      "package_manifest_sha256": "20d870396569a00380f812adce2b6ec5bb3fd89b03e2c104a2a8ef8e71ccf489",
+      "status": "superseded_do_not_apply"
+    },
+    "superseding_v3": {
+      "contract_sha256": "9a8ee4a98062c0b1e171cafc5552cfd1d65e91d2da167ee45f282c47a83787f7",
+      "package_manifest_sha256": "5b0cd9bc7ee0f9357dd8f21bb409569ac9dfc03cefc5d078ac7da94aaa6fdd48",
+      "status": "stage_a_topology_only_main_native_runtime_rollout_ready_false"
+    },
+    "runtime_transform_authority": "this_main_native_binding_after_current_main_preflight_only"
+  },
+  "prohibited_targets": ["gameplay_poi", "bank", "business", "police", "premium_red_bridge", "water", "road", "rail", "race_track"],
+  "bindings": [
+    {
+      "key": "pawnshop@1",
+      "asset_sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f",
+      "instance_id": "MAIN-AV1-INST-PAWNSHOP-01",
+      "district_id": "downtown",
+      "center_grid_rc": [7.0, 67.0],
+      "center_grid_cr": [67.0, 7.0],
+      "uniform_asset_scale": 0.68,
+      "yaw_deg": 0.0,
+      "legacy_structure_id": "legacy:procedural:0:60:5:65:8:68",
+      "legacy_block_bounds": {"r0": 0, "c0": 60, "r1": 10, "c1": 70},
+      "legacy_tile_bounds": {"min_r": 5, "max_r_exclusive": 9, "min_c": 65, "max_c_exclusive": 69, "tile_count": 16},
+      "footprint_polygon_grid_cr": [[65.847317,6.08822],[68.152683,6.08822],[68.152683,7.91178],[65.847317,7.91178]],
+      "pad_polygon_grid_cr": [[65.359512,5.600415],[68.640488,5.600415],[68.640488,8.399585],[65.359512,8.399585]],
+      "public_door": {
+        "actual_anchor_grid_rc": [7.755878,66.900488],
+        "corridor_polygon_grid_cr": [[66.534634,7.755878],[67.266341,7.755878],[67.266341,10.25],[66.534634,10.25]],
+        "road_probe_grid_rc": [10.5,66.900488]
+      },
+      "service_access": {
+        "actual_anchor_grid_rc": [6.46222,67.953659],
+        "corridor_polygon_grid_cr": [[67.953659,5.974415],[67.953659,6.950024],[70.25,6.950024],[70.25,5.974415]],
+        "road_probe_grid_rc": [6.46222,70.5]
+      },
+      "superseded_planning_v2_binding": {"instance_id": "AV1-INST-PAWNSHOP-01", "center_grid_cr": [77.53,30.661], "incompatible_with_main_reason": "body intersects MAIN road rows 30-31 and no exact runtime legacy shell exists"},
+      "planning_v3_topology_candidate": {"instance_id": "AV1-V3-PAWNSHOP-01", "addressed_parcel_id": "AV1-V3-PARCEL-PAWNSHOP-01", "center_grid_cr": [77.5993,31.2063], "yaw_deg": 266.757, "runtime_main_scope_tested": false, "applied_by_this_binding": false},
+      "replacement": {"policy": "addressed_removal_only", "before_route": "north/south block roads", "after_route": "north/south block roads", "routing_preserved": true, "zero_untracked_demolition": true}
+    },
+    {
+      "key": "print_shop@1",
+      "asset_sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "instance_id": "MAIN-AV1-INST-PRINT_SHOP-01",
+      "district_id": "industrial",
+      "center_grid_rc": [97.0, 47.0],
+      "center_grid_cr": [47.0,97.0],
+      "uniform_asset_scale": 0.68,
+      "yaw_deg": 0.0,
+      "legacy_structure_id": "legacy:procedural:90:40:95:45:98:48",
+      "legacy_block_bounds": {"r0": 90, "c0": 40, "r1": 100, "c1": 50},
+      "legacy_tile_bounds": {"min_r": 95, "max_r_exclusive": 99, "min_c": 45, "max_c_exclusive": 49, "tile_count": 16},
+      "footprint_polygon_grid_cr": [[45.318161,95.673171],[48.681839,95.673171],[48.681839,98.326829],[45.318161,98.326829]],
+      "pad_polygon_grid_cr": [[44.830356,95.185366],[49.169644,95.185366],[49.169644,98.814634],[44.830356,98.814634]],
+      "public_door": {
+        "actual_anchor_grid_rc": [97.855805,46.081088],
+        "corridor_polygon_grid_cr": [[45.715234,97.855805],[46.446941,97.855805],[46.446941,100.25],[45.715234,100.25]],
+        "road_probe_grid_rc": [100.5,46.081088]
+      },
+      "service_access": {
+        "actual_anchor_grid_rc": [96.018146,47.490844],
+        "corridor_polygon_grid_cr": [[47.003039,96.018146],[47.978649,96.018146],[47.978649,93.75],[47.003039,93.75]],
+        "road_probe_grid_rc": [93.5,47.490844]
+      },
+      "superseded_planning_v2_binding": {"instance_id": "AV1-INST-PRINT_SHOP-01", "center_grid_cr": [136.872,29.218], "incompatible_with_main_reason": "body intersects MAIN road row 30 and only partially covers a procedural shell"},
+      "planning_v3_topology_candidate": {"instance_id": "AV1-V3-PRINT_SHOP-01", "addressed_parcel_id": "AV1-V3-PARCEL-PRINT_SHOP-01", "center_grid_cr": [135.0065,16.5849], "yaw_deg": 179.427, "runtime_main_scope_tested": false, "applied_by_this_binding": false},
+      "replacement": {"policy": "addressed_removal_only", "before_route": "north/south block roads", "after_route": "north/south block roads", "routing_preserved": true, "zero_untracked_demolition": true}
+    }
+  ]
+}

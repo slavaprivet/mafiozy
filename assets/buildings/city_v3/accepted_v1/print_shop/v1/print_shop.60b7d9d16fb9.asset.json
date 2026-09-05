@@ -1,0 +1,24 @@
+{
+  "asset_id": "artist15_print_shop_reference",
+  "business_kind": "print_shop",
+  "display_name_ru": "Фальшивая типография",
+  "authoring_status": "coordinator_gate_pass_user_review_pending",
+  "owner_branding": "dynamic_not_baked",
+  "units": "meters",
+  "up_axis": "Z",
+  "front_axis": "-Y",
+  "source": "artist15_print_shop_reference.blend",
+  "runtime_candidate": "artist15_print_shop_reference.glb",
+  "integration_authorized": false,
+  "master_benchmark": "artist14_pawnshop_clean_composition.png",
+  "soft_edge_policy": "object_scale_bevel_plus_weighted_normals",
+  "visual_features": [
+    "stepped Art-Deco administration tower",
+    "three production clerestory roof monitors",
+    "owner-neutral printing roller and paper relief",
+    "paper receiving shutter and loading dock",
+    "paper rolls, ink drums and pallet stock",
+    "roof turbines, extractor and solvent exhaust",
+    "rear production windows and service utilities"
+  ]
+}

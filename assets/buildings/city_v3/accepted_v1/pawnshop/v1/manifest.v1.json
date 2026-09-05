@@ -1,0 +1,111 @@
+{
+  "schema": "mafiozi.city-v3-accepted-building/v1",
+  "key": "pawnshop@1",
+  "status": "preview_only_fail_closed",
+  "asset": {
+    "canonical_asset_id": "pawnshop",
+    "instance_id": "AV1-INST-PAWNSHOP-01",
+    "file": "pawnshop.1a95f97569d9.glb",
+    "bytes": 1453452,
+    "sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f",
+    "sidecar_file": "pawnshop.f428a09b9b80.asset.json",
+    "sidecar_bytes": 803,
+    "sidecar_sha256": "f428a09b9b8076376e6632f3aa71cf030fca18f1adba88bb224525342ff969de"
+  },
+  "provenance": {
+    "origin": "project_generated",
+    "generator_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-02\\mafiozy-artist14\\work\\build_pawnshop_asset.py",
+    "generator_sha256": "54d9f00bd2c9548de621b939513eac840eb6ab9110df1315fea4d5bc9aec3882",
+    "external_sources": [],
+    "usage": "internal_project_asset"
+  },
+  "authority": {
+    "accepted_v1_manifest_sha256": "687d2ff4927a43859100c6b8475138664e67839781bdd00789e206f3e4e2612d",
+    "placement_v2_contract_sha256": "e917883063d0dcc3326ed2ea508f4d3956e10688296d1f063a34c61378bc4c78",
+    "placement_v2_package_manifest_sha256": "20d870396569a00380f812adce2b6ec5bb3fd89b03e2c104a2a8ef8e71ccf489",
+    "placement_v2_status": "superseded_do_not_apply",
+    "placement_v3_contract_sha256": "9a8ee4a98062c0b1e171cafc5552cfd1d65e91d2da167ee45f282c47a83787f7",
+    "placement_v3_package_manifest_sha256": "5b0cd9bc7ee0f9357dd8f21bb409569ac9dfc03cefc5d078ac7da94aaa6fdd48",
+    "placement_v3_status": "stage_a_topology_only_main_native_runtime_rollout_ready_false",
+    "main_native_bindings_sha256": "af32124e3581fca1cc01bae31691f6ba17a0c381974638e4134457f7134ae297",
+    "binding_status": "CURRENT_MAIN_EXPLICIT_PREVIEW_BINDING_SOLE_RUNTIME_TRANSFORM_AUTHORITY"
+  },
+  "style_gate": {
+    "status": "primary_approved_visual_master_live_recheck",
+    "activation": "explicit_local_stage_a_preview_only",
+    "style_bible_json_sha256": "fbe59a7b89ec6ed48bfbcf8cc2f33a2caebf5b8c1c2bea937a0a3fff90d5c91e"
+  },
+  "geometry": {
+    "front": "+Z",
+    "raw_bounds_m": {"min_xyz": [-6.35, 0.0, -4.805], "max_xyz": [7.55, 11.475, 6.19]},
+    "horizontal_center_xyz_m": [0.6, 0.0, 0.6925],
+    "pre_rotation_recenter_xyz_m": [-0.6, 0.0, -0.6925],
+    "root_node": "SKIN_ROOT_pawnshop__front_negative_Y",
+    "required_nodes": ["Double oak door", "Door brass split", "Door handle", "Door handle.001", "Service steel door"],
+    "public_door_node": "Double oak door",
+    "public_door_visual_nodes": ["Double oak door", "Door brass split", "Door handle", "Door handle.001"],
+    "public_door_local_xyz_m": [0.0, 1.92, 5.25],
+    "service_door_node": "Service steel door",
+    "service_door_local_xyz_m": [6.35, 1.62, -2.55]
+  },
+  "superseded_placement_v2": {
+    "status": "superseded_do_not_apply",
+    "grid_coordinate_order": "c,r",
+    "district_id": "old_town",
+    "addressed_parcel_id": "AV1-PARCEL-PAWNSHOP-01",
+    "source_legacy_parcel_ids": ["PAR-OL-0028"],
+    "center_grid_cr": [77.53, 30.661],
+    "world_position_xyz_m": [317.873, 3.12, 125.709],
+    "runtime_scene_y_m": 0.0,
+    "uniform_scale": 0.68,
+    "yaw_deg": 266.76,
+    "pad_polygon_grid_cr": [[79.02,29.102],[78.835,32.378],[76.04,32.219],[76.226,28.944]],
+    "footprint_polygon_grid_cr": [[78.506,29.561],[78.375,31.863],[76.555,31.76],[76.685,29.458]],
+    "size_world_xyz_m": [9.452,7.803,7.477],
+    "public_door": {
+      "contract_anchor_grid_cr": [76.661,30.611],
+      "corridor_polygon_grid_cr": [[76.682,30.246],[76.64,30.976],[75.423,30.907],[75.464,30.177]],
+      "connects_road_id": "L-OL-V-019",
+      "minimum_clearance_m": 3.0
+    },
+    "service_access": {
+      "contract_anchor_grid_cr": [78.32,30.805],
+      "corridor_polygon_grid_cr": [[78.292,31.292],[78.348,30.318],[79.565,30.387],[79.51,31.361]],
+      "connects_road_id": "L-OL-H-013",
+      "minimum_width_m": 4.0
+    }
+  },
+  "placement_v3_topology_candidate": {
+    "status": "not_current_main_runtime_ready",
+    "instance_id": "AV1-V3-PAWNSHOP-01",
+    "addressed_parcel_id": "AV1-V3-PARCEL-PAWNSHOP-01",
+    "source_legacy_parcel_ids": ["PAR-OL-0028"],
+    "center_grid_cr": [77.5993, 31.2063],
+    "world_position_xyz_m": [318.157, 3.12, 127.946],
+    "uniform_scale": 0.68,
+    "yaw_deg": 266.757,
+    "runtime_main_scope_tested": false,
+    "applied_by_this_manifest": false
+  },
+  "replacement": {
+    "replacement_id": "AV1-REPLACE-PAWNSHOP-01",
+    "policy": "addressed_removal_only",
+    "source_legacy_parcel_ids": ["PAR-OL-0028"],
+    "legacy_asset_ids": ["terracotta_arcade_narrow"],
+    "runtime_legacy_structure_id": null,
+    "runtime_mapping_required": true,
+    "runtime_mapping_source": "../../main_native_bindings.v1.json#MAIN-AV1-INST-PAWNSHOP-01",
+    "routing_before": ["L-OL-H-013","L-OL-V-019"],
+    "routing_after": ["L-OL-H-013","L-OL-V-019"],
+    "routing_preserved_by_contract": true,
+    "zero_untracked_demolition": true
+  },
+  "runtime_gate": {
+    "direct_versioned_key_only": true,
+    "fail_closed": true,
+    "require_exact_runtime_legacy_mapping": true,
+    "require_body_pad_door_service_preflight": true,
+    "public_door_visual_policy": "hide_exact_closed_leaf_and_hardware_for_open_preview_passage",
+    "failure_keeps_legacy": true
+  }
+}

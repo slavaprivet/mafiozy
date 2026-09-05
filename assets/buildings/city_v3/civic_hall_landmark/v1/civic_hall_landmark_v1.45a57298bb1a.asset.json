@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 1,
+  "assetId": "C-HALL-01",
+  "buildingId": "BLDG_CIVIC_HALL_01",
+  "frontageId": "FRONTAGE_CIVIC_HALL_01_MAIN",
+  "actionId": "ACTION_CIVIC_HALL_01_MAIN",
+  "serviceId": "SERVICE_CIVIC_HALL_01_REAR",
+  "padId": "PAD_CIVIC_HALL_01",
+  "coordinateSystem": {
+    "source": {
+      "up": "+Z",
+      "front": "+Y",
+      "right": "+X",
+      "units": "metres"
+    },
+    "runtime": {
+      "up": "+Y",
+      "front": "+Z",
+      "right": "+X",
+      "conversion": "Blender glTF 2.0 export_yup"
+    }
+  },
+  "placement": {
+    "worldCoordinates": null,
+    "terrainDatumSourceXYZ": [
+      0,
+      0,
+      0
+    ]
+  },
+  "envelopes": {
+    "terrainPadMinimumM": [
+      22,
+      22
+    ],
+    "terrainPadAuthoredM": [
+      30,
+      30
+    ],
+    "buildingObbMaximumM": [
+      16,
+      16,
+      20
+    ],
+    "frontCivicSquareMinimumM": [
+      12,
+      10
+    ],
+    "frontCivicSquareAuthoredM": [
+      14,
+      10
+    ],
+    "clearPedestrianBandM": 4,
+    "separateEmergencyRouteM": 4,
+    "rearServicePocketM": [
+      4,
+      7
+    ]
+  },
+  "anchors": {
+    "entrance": {
+      "id": "ACTION_CIVIC_HALL_01_MAIN",
+      "sourceXYZ": [
+        0,
+        2.35,
+        0.15
+      ],
+      "facingSourceXYZ": [
+        0,
+        1,
+        0
+      ],
+      "facingRuntimeXYZ": [
+        0,
+        0,
+        1
+      ]
+    },
+    "publicClearance": {
+      "id": "FRONTAGE_CIVIC_HALL_01_MAIN",
+      "sourceCenterXYZ": [
+        0,
+        7,
+        0.035
+      ],
+      "sizeM": [
+        14,
+        10
+      ]
+    },
+    "service": {
+      "id": "SERVICE_CIVIC_HALL_01_REAR",
+      "sourceCenterXYZ": [
+        0,
+        -11,
+        0.1
+      ],
+      "sizeM": [
+        4,
+        7
+      ]
+    },
+    "terrainPad": {
+      "id": "PAD_CIVIC_HALL_01",
+      "sourceCenterXYZ": [
+        0,
+        0,
+        -0.32
+      ],
+      "sizeM": [
+        30,
+        30
+      ],
+      "datumXYZ": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "entranceDoor": {
+    "type": "visible_static_double_leaf",
+    "leafNodes": [
+      "CivicHall_DoorLeaf_Main_L",
+      "CivicHall_DoorLeaf_Main_R"
+    ],
+    "glassNodes": [
+      "CivicHall_DoorGlass_L",
+      "CivicHall_DoorGlass_R",
+      "CivicHall_DoorTransom"
+    ],
+    "handleNodes": [
+      "CivicHall_DoorHandle_L",
+      "CivicHall_DoorHandle_R"
+    ],
+    "clearOpeningSourceM": [
+      2.4,
+      3.65
+    ],
+    "runtimeInteractionAnchor": "ACTION_CIVIC_HALL_01_MAIN",
+    "animationContract": "external_staging_adapter_if_openable_behavior_is_required"
+  },
+  "styleGate": {
+    "style": "smooth-clay civic landmark",
+    "roundedSilhouette": true,
+    "bevels": true,
+    "weightedNormals": true,
+    "matteMaterials": true,
+    "limitedPaletteMaterialCount": 8,
+    "ambientOcclusionProof": "EEVEE GTAO enabled for proof renders",
+    "contactShadows": "soft area lighting plus GTAO",
+    "textures": [],
+    "proceduralNoise": false,
+    "sharpEdgeDesign": false,
+    "flatFloatingSlabs": false
+  },
+  "files": {
+    "runtime": "civic_hall_landmark_v1.glb",
+    "source": "civic_hall_landmark_v1.blend",
+    "proofs": [
+      "civic_hall_landmark_v1_hero.png",
+      "civic_hall_landmark_v1_front.png",
+      "civic_hall_landmark_v1_entrance.png",
+      "civic_hall_landmark_v1_plan.png"
+    ],
+    "validation": "civic_hall_landmark_v1.validation.json",
+    "handoff": "HANDOFF.md"
+  },
+  "runtimeBytes": 823628,
+  "runtimeSha256": "2EF23FB5E7F9888FE465C896811D3F88BB4FBC027F91394CA3B4E7477075CC35",
+  "validatedBoundsReverseImportedBlenderXYZ": {
+    "overall": {
+      "min": [
+        -15.0,
+        -15.0,
+        -0.62
+      ],
+      "max": [
+        15.0,
+        15.0,
+        13.28
+      ],
+      "dimensions": [
+        30.0,
+        30.0,
+        13.9
+      ]
+    },
+    "building": {
+      "min": [
+        -7.7,
+        -11.15,
+        0.03
+      ],
+      "max": [
+        7.7,
+        2.525,
+        13.28
+      ],
+      "dimensions": [
+        15.4,
+        13.675,
+        13.25
+      ]
+    }
+  },
+  "reverseImportValidation": {
+    "status": "pass",
+    "validator": "Blender 3.4 reverse GLB import",
+    "report": "civic_hall_landmark_v1.validation.json"
+  }
+}

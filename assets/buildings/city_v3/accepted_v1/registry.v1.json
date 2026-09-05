@@ -1,0 +1,28 @@
+{
+  "schema": "mafiozi.city-v3-accepted-building-registry/v1",
+  "revision": 1,
+  "activation_policy": "explicit_local_stage_a_preview_fail_closed",
+  "bindings": {
+    "url": "./main_native_bindings.v1.json",
+    "bytes": 5427,
+    "sha256": "af32124e3581fca1cc01bae31691f6ba17a0c381974638e4134457f7134ae297"
+  },
+  "entries": [
+    {
+      "key": "pawnshop@1",
+      "status": "main_native_preview_binding",
+      "manifest": {"url": "./pawnshop/v1/manifest.v1.json", "bytes": 5236, "sha256": "2ba165499140834cd6a85a5e2d54e626bc5e37192792e5469aea010d5fcf19ea"},
+      "asset": {"url": "./pawnshop/v1/pawnshop.1a95f97569d9.glb", "bytes": 1453452, "sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f"},
+      "sidecar": {"url": "./pawnshop/v1/pawnshop.f428a09b9b80.asset.json", "bytes": 803, "sha256": "f428a09b9b8076376e6632f3aa71cf030fca18f1adba88bb224525342ff969de"},
+      "live_activation": false
+    },
+    {
+      "key": "print_shop@1",
+      "status": "main_native_preview_binding",
+      "manifest": {"url": "./print_shop/v1/manifest.v1.json", "bytes": 5182, "sha256": "c348f00ae5ebfab59e56d2f1b5a40bed27712c7f21925acb9d17bb11ebe980c4"},
+      "asset": {"url": "./print_shop/v1/print_shop.ad7b8ef7e7e4.glb", "bytes": 966720, "sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97"},
+      "sidecar": {"url": "./print_shop/v1/print_shop.60b7d9d16fb9.asset.json", "bytes": 968, "sha256": "60b7d9d16fb99750f18b324ca169990a54a30daa5942a3b5b71d460717735ace"},
+      "live_activation": false
+    }
+  ]
+}

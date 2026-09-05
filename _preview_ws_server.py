@@ -2283,12 +2283,46 @@ async def preview_three_module(_req):
     integrated backend run. Without this explicit route aiohttp returned 404
     and browser QA silently exercised the 2D fallback instead of Three.js.
     """
-    return web.FileResponse(Path("three_preview.js"))
+    return web.FileResponse(Path("three_preview.js"), headers={
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 async def preview_character_module(_req):
     """Serve the 3D portrait renderer used by dossiers and empire cards."""
     return web.FileResponse(Path("character_3d_preview.js"))
+
+
+CITY_V3_ASSET_ROOT = (
+    Path(__file__).resolve().parent / "assets" / "buildings" / "city_v3"
+).resolve()
+CITY_V3_ASSET_CONTENT_TYPES = {
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".glb": "model/gltf-binary",
+}
+
+
+async def preview_city_v3_asset(req):
+    """Serve only the pinned City V3 runtime files used by local live QA.
+
+    A dedicated, contained route avoids exposing the rest of the repository and
+    makes ``../assets/...`` imports from ``/preview/three_preview.js`` work in
+    the same origin as the playable preview. Unknown file types and every path
+    outside the immutable City V3 directory fail closed.
+    """
+    relative = Path(str(req.match_info.get("tail") or ""))
+    candidate = (CITY_V3_ASSET_ROOT / relative).resolve()
+    if (not candidate.is_relative_to(CITY_V3_ASSET_ROOT)
+            or not candidate.is_file()
+            or candidate.suffix.lower() not in CITY_V3_ASSET_CONTENT_TYPES):
+        raise web.HTTPNotFound()
+    return web.FileResponse(candidate, headers={
+        "Cache-Control": "no-store",
+        "Content-Type": CITY_V3_ASSET_CONTENT_TYPES[candidate.suffix.lower()],
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 def _preview_empire_text(value):
@@ -4541,6 +4575,7 @@ app.router.add_route("OPTIONS", "/{tail:.*}", options)
 app.router.add_get("/preview/world.html", preview_world)
 app.router.add_get("/preview/three_preview.js", preview_three_module)
 app.router.add_get("/preview/character_3d_preview.js", preview_character_module)
+app.router.add_get("/assets/buildings/city_v3/{tail:.*}", preview_city_v3_asset)
 app.router.add_get("/coop_api.json", coop_api)
 app.router.add_get("/world/sim", world_ws)
 app.router.add_get("/inv/{uid}/list", inv_list)

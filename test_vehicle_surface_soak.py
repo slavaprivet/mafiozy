@@ -70,6 +70,14 @@ def vehicle_route_source() -> str:
     return WORLD[start:end]
 
 
+def ambulance_overlap_diagnostic_source() -> str:
+    start = WORLD.index(
+        "document.documentElement.dataset.ambulanceParkingBodyOverlaps="
+    )
+    end = WORLD.index(";\n", start)
+    return WORLD[start:end + 1]
+
+
 def run_node(script: str) -> str:
     completed = subprocess.run(
         ["node", "-e", script],
@@ -138,6 +146,7 @@ function inArena(){return false;}
 function inLair(){return false;}
 function _prisonIslandCollisionAt(){return null;}
 function _cityV3CivicSurfaceAt(){return null;}
+function _cityV3AcceptedSurfaceAt(){return null;}
 function _isPortContainerSolid(){return false;}
 function _isThreeWholeBuildingBlocked(){return false;}
 const PASSABLE=new Set([0,7,8,9,14,15,17,18,19]);
@@ -270,6 +279,39 @@ console.log(JSON.stringify(result));
         }
         self.assertEqual(result["gas"], expected_rescue)
         self.assertEqual(result["fallback"], expected_rescue)
+
+    def test_ambulance_overlap_diagnostic_honors_authored_rescue_capability(self):
+        diagnostic = ambulance_overlap_diagnostic_source()
+        self.assertIn("_serviceVehicleFootprintCapabilities(v)", diagnostic)
+        script = f"""
+let MAP_ROWS=9,MAP_COLS=11;
+let MAP=Array.from({{length:MAP_ROWS}},()=>Array(MAP_COLS).fill(9));
+function _isPortContainerSolid(){{return false;}}
+function _isThreeWholeBuildingBlocked(){{return false;}}
+{surface_contract_source()}
+{service_footprint_source()}
+const document={{documentElement:{{dataset:{{}}}}}};
+const serviceVehicles=[
+  {{id:'amb_rescue',kind:'ambulance',state:'medical_response',ang:0,
+    _offroadRoute:true,y:3.5,x:5.5}},
+  {{id:'amb_bad',kind:'ambulance',state:'ambulance_parked',ang:0,
+    y:3.5,x:5.5}},
+];
+{diagnostic}
+console.log(JSON.stringify({{
+  overlaps:document.documentElement.dataset.ambulanceParkingBodyOverlaps,
+  rescueClear:_serviceVehicleFootprintClear(
+    serviceVehicles[0],3.5,5.5,0,
+    _serviceVehicleFootprintCapabilities(serviceVehicles[0])),
+  parkedClear:_serviceVehicleFootprintClear(
+    serviceVehicles[1],3.5,5.5,0,
+    _serviceVehicleFootprintCapabilities(serviceVehicles[1])),
+}}));
+"""
+        result = json.loads(run_node(script))
+        self.assertTrue(result["rescueClear"])
+        self.assertFalse(result["parkedClear"])
+        self.assertEqual(result["overlaps"], "amb_bad")
 
     def test_beach_route_authors_outbound_and_return_sand_waypoints(self):
         script = f"""

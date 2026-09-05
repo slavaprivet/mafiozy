@@ -1,0 +1,111 @@
+{
+  "schema": "mafiozi.city-v3-accepted-building/v1",
+  "key": "print_shop@1",
+  "status": "preview_only_fail_closed",
+  "asset": {
+    "canonical_asset_id": "print_shop",
+    "instance_id": "AV1-INST-PRINT_SHOP-01",
+    "file": "print_shop.ad7b8ef7e7e4.glb",
+    "bytes": 966720,
+    "sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+    "sidecar_file": "print_shop.60b7d9d16fb9.asset.json",
+    "sidecar_bytes": 968,
+    "sidecar_sha256": "60b7d9d16fb99750f18b324ca169990a54a30daa5942a3b5b71d460717735ace"
+  },
+  "provenance": {
+    "origin": "project_generated",
+    "generator_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-02\\mafiozy-artist15\\work\\build_print_shop.py",
+    "generator_sha256": "d0a008725444947f70623f75acbcd6de6e06b9ac1501c72da7bc5cb8027b0d6a",
+    "external_sources": [],
+    "usage": "internal_project_asset"
+  },
+  "authority": {
+    "accepted_v1_manifest_sha256": "687d2ff4927a43859100c6b8475138664e67839781bdd00789e206f3e4e2612d",
+    "placement_v2_contract_sha256": "e917883063d0dcc3326ed2ea508f4d3956e10688296d1f063a34c61378bc4c78",
+    "placement_v2_package_manifest_sha256": "20d870396569a00380f812adce2b6ec5bb3fd89b03e2c104a2a8ef8e71ccf489",
+    "placement_v2_status": "superseded_do_not_apply",
+    "placement_v3_contract_sha256": "9a8ee4a98062c0b1e171cafc5552cfd1d65e91d2da167ee45f282c47a83787f7",
+    "placement_v3_package_manifest_sha256": "5b0cd9bc7ee0f9357dd8f21bb409569ac9dfc03cefc5d078ac7da94aaa6fdd48",
+    "placement_v3_status": "stage_a_topology_only_main_native_runtime_rollout_ready_false",
+    "main_native_bindings_sha256": "af32124e3581fca1cc01bae31691f6ba17a0c381974638e4134457f7134ae297",
+    "binding_status": "CURRENT_MAIN_EXPLICIT_PREVIEW_BINDING_SOLE_RUNTIME_TRANSFORM_AUTHORITY"
+  },
+  "style_gate": {
+    "status": "accepted_reference_individual_live_proof_recheck",
+    "activation": "explicit_local_stage_a_preview_only",
+    "style_bible_json_sha256": "fbe59a7b89ec6ed48bfbcf8cc2f33a2caebf5b8c1c2bea937a0a3fff90d5c91e"
+  },
+  "geometry": {
+    "front": "+Z",
+    "raw_bounds_m": {"min_xyz": [-10.0, 0.0, -8.0], "max_xyz": [10.281, 12.24, 8.0]},
+    "horizontal_center_xyz_m": [0.1405, 0.0, 0.0],
+    "pre_rotation_recenter_xyz_m": [-0.1405, 0.0, 0.0],
+    "root_node": null,
+    "required_nodes": ["Burgundy entry door", "Entry brass split", "Rear ink service door"],
+    "public_door_node": "Burgundy entry door",
+    "public_door_visual_nodes": ["Burgundy entry door", "Entry brass split"],
+    "public_door_local_xyz_m": [-5.4, 2.05, 5.16],
+    "service_door_node": "Rear ink service door",
+    "service_door_local_xyz_m": [3.1, 1.85, -5.92]
+  },
+  "superseded_placement_v2": {
+    "status": "superseded_do_not_apply",
+    "grid_coordinate_order": "c,r",
+    "district_id": "eastside",
+    "addressed_parcel_id": "AV1-PARCEL-PRINT_SHOP-01",
+    "source_legacy_parcel_ids": ["PAR-EA-0045"],
+    "center_grid_cr": [136.872, 29.218],
+    "world_position_xyz_m": [561.175, 2.37, 119.796],
+    "runtime_scene_y_m": 0.0,
+    "uniform_scale": 0.68,
+    "yaw_deg": 168.87,
+    "pad_polygon_grid_cr": [[138.651,31.418],[134.393,30.58],[135.093,27.019],[139.351,27.857]],
+    "footprint_polygon_grid_cr": [[138.266,30.845],[134.966,30.196],[135.478,27.592],[138.778,28.241]],
+    "size_world_xyz_m": [13.791,8.323,10.88],
+    "public_door": {
+      "contract_anchor_grid_cr": [137.994,28.154],
+      "corridor_polygon_grid_cr": [[138.353,28.225],[137.635,28.083],[137.87,26.887],[138.588,27.028]],
+      "connects_road_id": "L-EA-H-025",
+      "minimum_clearance_m": 3.0
+    },
+    "service_access": {
+      "contract_anchor_grid_cr": [136.593,30.516],
+      "corridor_polygon_grid_cr": [[136.114,30.422],[137.072,30.61],[136.836,31.807],[135.879,31.618]],
+      "connects_road_id": "C-ES-01",
+      "minimum_width_m": 4.0
+    }
+  },
+  "placement_v3_topology_candidate": {
+    "status": "not_current_main_runtime_ready",
+    "instance_id": "AV1-V3-PRINT_SHOP-01",
+    "addressed_parcel_id": "AV1-V3-PARCEL-PRINT_SHOP-01",
+    "source_legacy_parcel_ids": ["PAR-EA-0027"],
+    "center_grid_cr": [135.0065, 16.5849],
+    "world_position_xyz_m": [553.526, 2.36, 67.998],
+    "uniform_scale": 0.68,
+    "yaw_deg": 179.427,
+    "runtime_main_scope_tested": false,
+    "applied_by_this_manifest": false
+  },
+  "replacement": {
+    "replacement_id": "AV1-REPLACE-PRINT_SHOP-01",
+    "policy": "addressed_removal_only",
+    "source_legacy_parcel_ids": ["PAR-EA-0045"],
+    "legacy_asset_ids": ["sage_boulevard_block"],
+    "runtime_legacy_structure_id": null,
+    "runtime_mapping_required": true,
+    "runtime_mapping_source": "../../main_native_bindings.v1.json#MAIN-AV1-INST-PRINT_SHOP-01",
+    "routing_before": ["C-ES-01","L-EA-H-025"],
+    "routing_after": ["C-ES-01","L-EA-H-025"],
+    "routing_preserved_by_contract": true,
+    "zero_untracked_demolition": true
+  },
+  "runtime_gate": {
+    "direct_versioned_key_only": true,
+    "fail_closed": true,
+    "require_exact_runtime_legacy_mapping": true,
+    "require_body_pad_door_service_preflight": true,
+    "public_door_visual_policy": "hide_exact_closed_leaf_and_hardware_for_open_preview_passage",
+    "failure_keeps_legacy": true
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "asset_id": "business_skin.artist14.pawnshop.v1",
+  "operation_type": "pawnshop",
+  "display_name": "Owner-neutral street pawnbroker",
+  "front_axis": "-Y",
+  "unit_scale_m": 1.0,
+  "owner_branding": "dynamic_not_baked",
+  "art_direction": "mid-century American crime city, Art-Deco/noir",
+  "authored_features": [
+    "deep secured storefront windows",
+    "recessed double-door public entrance",
+    "neutral three-sphere pawnbroker emblem",
+    "burgundy entrance canopy",
+    "side receiving hatch and service door",
+    "fire escape and downpipes",
+    "roof utility room, vents, chimney and water tank"
+  ],
+  "integration_status": "art_only_not_integrated",
+  "review_status": "user_pass",
+  "frozen": true,
+  "source": "pawnshop_artist14_v1.blend",
+  "runtime": "pawnshop_artist14_v1.glb"
+}
