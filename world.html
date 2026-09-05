@@ -11708,19 +11708,53 @@ function _markVehicleExtinguished(car, now = performance.now()) {
   return true;
 }
 
-// Спецтранспорт едет ПО ДОРОГАМ (тип 0). На последнем участке (от
-// ближайшего к цели дорожного тайла до самой цели) разрешён выезд на
-// тротуар/газон, иначе скорая не может подъехать к телу на бордюре.
+// Vehicle access is a capability of the authored surface, not generic
+// pedestrian passability. Keeping this table explicit prevents a grass,
+// pavement, beach or pier tile from silently becoming a road when PASSABLE is
+// expanded for pedestrians. Tile 18 is dedicated race asphalt: race cars may
+// use it, but ambient traffic and ordinary player cars may not.
+const VEHICLE_SURFACE_CAPABILITY = Object.freeze({
+  ORDINARY: 1,
+  AMBIENT_TRAFFIC: 2,
+  SERVICE_ROUTE: 4,
+  RACE: 8,
+  RESCUE_APPROACH: 16,
+  BEACH_RESCUE: 32,
+});
+const LEGACY_VEHICLE_TILE_CAPABILITIES = Object.freeze({
+  0: VEHICLE_SURFACE_CAPABILITY.ORDINARY |
+     VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC |
+     VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE |
+     VEHICLE_SURFACE_CAPABILITY.RACE |
+     VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH,
+  8: VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH,
+  9: VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH,
+  14: VEHICLE_SURFACE_CAPABILITY.BEACH_RESCUE,
+  18: VEHICLE_SURFACE_CAPABILITY.RACE,
+  19: VEHICLE_SURFACE_CAPABILITY.ORDINARY |
+      VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC |
+      VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE |
+      VEHICLE_SURFACE_CAPABILITY.RACE |
+      VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH,
+});
+function _vehicleSurfaceAllows(r, c, capability = VEHICLE_SURFACE_CAPABILITY.ORDINARY) {
+  const ri = Math.floor(r), ci = Math.floor(c);
+  if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS || !MAP[ri]) return false;
+  const mask = LEGACY_VEHICLE_TILE_CAPABILITIES[MAP[ri][ci]] || 0;
+  return (mask & capability) === capability;
+}
+
+// Спецтранспорт едет ПО ДОРОГАМ. На последнем участке (от ближайшего к
+// цели дорожного тайла до самой цели) отдельная rescue-логика может разрешить
+// контролируемый выезд, иначе скорая не сможет подъехать к телу на бордюре.
 function _vehicleRoadPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 1 || ri >= MAP_ROWS - 1 || ci < 1 || ci >= MAP_COLS - 1) return false;
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;    // копы/техника не въезжают в логово
-  if (!MAP[ri]) return false;
-  // 19 — проезжая часть большого моста через городской канал. Без неё
-  // восточная больница оказывалась в отдельном дорожном графе: скорая могла
-  // забрать пациента, но не могла физически вернуться через мост.
-  return MAP[ri][ci] === 0 || MAP[ri][ci] === 19;
+  // 19 — проезжая часть большого моста через городской канал. Она объявлена
+  // SERVICE_ROUTE в единой таблице выше, поэтому обе половины города связаны.
+  return _vehicleSurfaceAllows(r, c, VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE);
 }
 function _vehicleOffroadPassable(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
@@ -11728,8 +11762,7 @@ function _vehicleOffroadPassable(r, c) {
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;    // транспорт не въезжает в логово
   if (!MAP[ri]) return false;
-  const t = MAP[ri][ci];
-  return (t === 0 || t === 9 || t === 8 || t === 19);
+  return _vehicleSurfaceAllows(r, c, VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH);
 }
 
 // The centre can remain on asphalt while a long emergency vehicle clips a
@@ -12121,7 +12154,7 @@ function _vehicleStep(v, dt) {
     // Жёсткая проверка: на пути ОБЯЗАН быть дорожный тайл. Никаких
     // тротуаров — пожарка/скорая едет только по асфальту.
     const beachAmbulance = v.kind === 'ambulance' && ny >= 140 && ny < BEACH_R1 &&
-      MAP[Math.floor(ny)] && MAP[Math.floor(ny)][Math.floor(nx)] === 14;
+      _vehicleSurfaceAllows(ny,nx,VEHICLE_SURFACE_CAPABILITY.BEACH_RESCUE);
     const gasFireResponse = v.kind === 'firetruck' && v.payload?.fireRef?.kind === 'gas_station' &&
       _vehicleOffroadPassable(ny,nx);
     const fallbackRoute = !!v._offroadRoute && _vehicleOffroadPassable(ny,nx);
@@ -17867,7 +17900,9 @@ function _trafficRememberNodePath(key,path){
 function _trafficRoadTile(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ci < 0 || ri >= Math.min(BEACH_R0, MAP_ROWS) || ci >= MAP_COLS) return false;
-  if (!MAP[ri] || MAP[ri][ci] !== 0) return false;
+  // Ambient traffic shares the same authored surface contract as player and
+  // service vehicles. In particular, bridge deck tile 19 is a real road.
+  if (!_vehicleSurfaceAllows(r, c, VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC)) return false;
   const jdr = ri - JAIL_CENTER_R, jdc = ci - JAIL_CENTER_C;
   return jdr * jdr + jdc * jdc >= JAIL_RADIUS_TILES * JAIL_RADIUS_TILES;
 }
@@ -18094,7 +18129,9 @@ function _trafficHardTileAt(r, c) {
   return tile === 1 || tile === 15 || tile === 16 || tile === 17;
 }
 function _trafficCarFootprintClear(car, r = car.r, c = car.c) {
-  // Check the whole body: a car centre may be on asphalt while its nose is in a building.
+  // Check the whole body: a car centre may be on asphalt while its nose is in
+  // a building, on grass or over water. Parked curb cars retain their authored
+  // off-lane bays; this driving-surface rule applies to moving ambient traffic.
   let dirR = Number(car.dirDy) || 0, dirC = Number(car.dirDx) || 0;
   const dl = Math.hypot(dirR, dirC) || 1;
   dirR /= dl; dirC /= dl;
@@ -18105,8 +18142,13 @@ function _trafficCarFootprintClear(car, r = car.r, c = car.c) {
     [0, 0], [ halfL, 0], [-halfL, 0],
     [ halfL, halfW], [ halfL,-halfW], [-halfL, halfW], [-halfL,-halfW],
   ];
-  return samples.every(([f, s]) =>
-    !_trafficHardTileAt(r + dirR * f + sideR * s, c + dirC * f + sideC * s));
+  return samples.every(([f, s]) => {
+    const sampleR = r + dirR * f + sideR * s;
+    const sampleC = c + dirC * f + sideC * s;
+    if (_trafficHardTileAt(sampleR, sampleC)) return false;
+    return car.parked || _vehicleSurfaceAllows(
+      sampleR, sampleC, VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC);
+  });
 }
 function _snapTrafficCarToRoad(car) {
   const target = _nearestCityTrafficRoad(car.r, car.c, 18);
@@ -18137,12 +18179,17 @@ function _recoverTrafficCarToRoad(car, dt) {
   const dirR = dr / d, dirC = dc / d;
   const step = Math.min(d, dt * 1.05);
   const nr = car.r + dirR * step, nc = car.c + dirC * step;
-  const nextTile = MAP[Math.floor(nr)] && MAP[Math.floor(nr)][Math.floor(nc)];
-  // Из песка/трековой площадки можно аккуратно вернуться, но через воду,
-  // здания и пирс автомобили не «проплывают».
-  if (nextTile === 16 || nextTile === 15 || nextTile === 17 || nextTile === 1) return false;
+  const previousDirDy=car.dirDy,previousDirDx=car.dirDx,previousAng=car.ang;
   car.dirDy = dirR; car.dirDx = dirC;
   car.ang = Math.atan2(car.dirDy, car.dirDx);
+  // Recovery never becomes a second off-road driving mode. A visible car that
+  // already landed on grass/sand stays stopped until it can be recycled out of
+  // view; a car whose body is still on asphalt may turn back along the road.
+  if (!_vehicleSurfaceAllows(nr,nc,VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC) ||
+      !_trafficCarFootprintClear(car,nr,nc)) {
+    car.dirDy=previousDirDy;car.dirDx=previousDirDx;car.ang=previousAng;
+    return false;
+  }
   const recoveryLead = _trafficLeadGap(car);
   if (recoveryLead.gap < 1.9) {
     car.vr = 0; car.vc = 0; car.braking = true;
@@ -21483,10 +21530,10 @@ function updateCars(dt) {
     const _ambientInBeachRaceZone = car.r >= BEACH_R0;
     const _carTileR = Math.floor(car.r), _carTileC = Math.floor(car.c);
     const _carTile = MAP[_carTileR] && MAP[_carTileR][_carTileC];
-    // Движущийся городской транспорт обязан находиться только на дороге (0).
-    // Проверка по реальному тайлу ловит песок севернее формальной BEACH_R0,
-    // воду и декор, где старая логика лишь тормозила машину рядом с игроком.
-    const _movingCityCarOffRoad = !car.parked && _carTile !== 0;
+    // Движущийся городской транспорт обязан находиться на surface с
+    // AMBIENT_TRAFFIC capability: обычная дорога (0) или мост (19).
+    const _movingCityCarOffRoad = !car.parked && !_vehicleSurfaceAllows(
+      car.r, car.c, VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC);
     // A car that entered a solid structure must not crawl back through its wall.
     if (!car.parked && !car.gang && !car._convoy &&
         (_trafficHardTileAt(car.r, car.c) || !_trafficCarFootprintClear(car))) {
@@ -21500,8 +21547,11 @@ function updateCars(dt) {
       }
       continue;
     }
-    // Песок/вода (18/16) запрещены даже припаркованным и разбитым CARS.
-    const _cityCarOnForbiddenSurface = _carTile === 18 || _carTile === 16;
+    // Песок, причал, вода, палуба и гоночное полотно запрещены даже случайно
+    // припаркованным/разбитым CARS. Обочины 8/9 остаются парковочными bays.
+    const _cityCarOnForbiddenSurface =
+      _carTile === 14 || _carTile === 15 || _carTile === 16 ||
+      _carTile === 17 || _carTile === 18;
     const _anyCityCarInRaceZone = inRaceDriveArea(car.r, car.c) ||
                                   _ambientInBeachRaceZone || _movingCityCarOffRoad ||
                                   _cityCarOnForbiddenSurface;
@@ -23417,18 +23467,38 @@ function _openCityBridgeSurface(r,c,pad=0){
   return r>=CITY_BRIDGE_R0+.34+p&&r<=CITY_BRIDGE_R1-.34-p&&
     c>=CITY_CANAL_C0-1.75-p&&c<=CITY_CANAL_C1+1.75+p;
 }
-// Коллизия для МАШИНЫ: в отличие от пешехода, машина НЕ заезжает на песок
-// пляжа (тайл 14), кроме асфальтовой дороги к Майклу (c=40..43). Песок для
-// пешехода остаётся проходимым через обычный isBlocked.
-// Песок (14) ТЕПЕРЬ ПРОХОДИМ для машин — можно ездить по пляжу (медленно,
-// колёса зарываются, см. sand-эффект ниже в физике). Блокируем только то же,
-// что и пешеходу (здания/вода/границы) через isBlocked. Раньше тут стоял
-// доп. блок песка — машина «врезалась в пляж».
-function isBlockedCar(r, c) {
+function _playerVehicleSurfaceCapability(vehicle) {
+  const model = vehicle && (QUEST_CAR_MODELS[vehicle.model] || resolveCarModel(vehicle.model));
+  return vehicle && (vehicle._race || model?.race)
+    ? VEHICLE_SURFACE_CAPABILITY.RACE
+    : VEHICLE_SURFACE_CAPABILITY.ORDINARY;
+}
+// Collision for one point of a player-controlled vehicle. Pedestrian
+// PASSABLE remains independent: grass, pavement, sand, pier and ship deck stay
+// walkable, but only road/bridge surfaces accept an ordinary car. Dedicated
+// race cars additionally accept tile 18.
+function isBlockedCar(r, c, vehicle = null) {
+  const capability = _playerVehicleSurfaceCapability(vehicle);
+  if (!_vehicleSurfaceAllows(r, c, capability)) return true;
   if(_openCityBridgeSurface(r,c,.08))return false;
   // The service causeway and prison yard are pedestrian-only.
   if(_prisonIslandCollisionAt(r,c))return true;
   return isBlocked(r, c);
+}
+function _playerVehicleFootprintClear(vehicle, r, c, ang = null) {
+  if (!vehicle) return !isBlockedCar(r, c);
+  const model = QUEST_CAR_MODELS[vehicle.model] || resolveCarModel(vehicle.model) || {};
+  const heading = Number.isFinite(+ang) ? +ang : (Number.isFinite(+vehicle.ang) ? +vehicle.ang : 0);
+  const forwardR = Math.sin(heading), forwardC = Math.cos(heading);
+  const sideR = Math.cos(heading), sideC = -Math.sin(heading);
+  const halfLength = Math.min(1.10, Math.max(.58, (+model.L || 1.8) * .43));
+  const halfWidth = Math.min(.50, Math.max(.26, (+model.W || .88) * .38));
+  const samples = [[0,0],[halfLength,0],[-halfLength,0],
+    [halfLength,halfWidth],[halfLength,-halfWidth],[-halfLength,halfWidth],[-halfLength,-halfWidth]];
+  return samples.every(([forward, side]) => !isBlockedCar(
+    r + forwardR * forward + sideR * side,
+    c + forwardC * forward + sideC * side,
+    vehicle));
 }
 function _isRaceWaterEdgeBlockedForPed(r, c) {
   const ri = Math.floor(r), ci = Math.floor(c);
@@ -36698,8 +36768,8 @@ function update(dt) {
           curVx *= k; curVy *= k;
         }
       }
-      // ── ПЕСОК: машина вязнет ───────────────────────────────────────
-      // По пляжу ездить можно, но медленно и с трением (колёса зарываются).
+      // Legacy recovery guard: current surface capabilities keep ordinary
+      // cars off beach sand; retain the drag for old snapshots already there.
       const _onSand = !_qcMdl?.helicopter && _carOnSand(qc.y, qc.x);
       if (_onSand) {
         const sandMax = CAR_MAX_SPEED * 0.42;       // ~42% от макс. на песке
@@ -36808,21 +36878,20 @@ function update(dt) {
         curVx += (targetVx - curVx) * k;
         curVy += (targetVy - curVy) * k;
       }
-      // Применяем позицию с проверкой стен
+      // Применяем позицию с проверкой всей площади кузова, а не только центра.
       const newX = qc.x + curVx * dt;
       const newY = qc.y + curVy * dt;
       // Машина чуть «упругая» — если в стене, остановка + урон при ударе.
-      // Угнанная машина блокируется любым непроходимым тайлом — стены домов
-      // (1), вода (16), припаркованные машины (2), декор. Используем общий
-      // isBlocked, чтобы не въехать в море с пирса.
+      // Угнанная машина следует явным surface capabilities: обычная дорога и
+      // мост; только настоящие race-модели получают гоночный асфальт.
       let _wallTouch = false;
-      if (_qcMdl?.helicopter || !isBlockedCar(newY, newX)) {
+      if (_qcMdl?.helicopter || _playerVehicleFootprintClear(qc, newY, newX, qc.ang)) {
         qc.x = Math.max(.5,Math.min(MAP_COLS-.5,newX)); qc.y = Math.max(.5,Math.min(MAP_ROWS-.5,newY));
       } else {
         _wallTouch = true;
         const impact = curSpeed;
-        const slideX = !isBlockedCar(qc.y, newX);
-        const slideY = !isBlockedCar(newY, qc.x);
+        const slideX = _playerVehicleFootprintClear(qc, qc.y, newX, qc.ang);
+        const slideY = _playerVehicleFootprintClear(qc, newY, qc.x, qc.ang);
         if (slideX) {
           qc.x = newX;
           curVy = 0; curVx *= 0.7;   // слегка тормозим вдоль стены — меньше зигзаг
