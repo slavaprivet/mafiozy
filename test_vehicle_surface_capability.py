@@ -195,6 +195,27 @@ console.log(JSON.stringify({{centreClear,noseBlocked,rotatedCornerBlocked,raceTr
         self.assertIn("isBlocked(r, c)", pedestrian)
         self.assertIn("const PASSABLE = new Set([0, 7, 8, 9, 14, 15, 17, 18, 19]);", WORLD)
 
+    def test_service_body_uses_route_scoped_capability_lists(self):
+        selector = function_body(WORLD, "_serviceVehicleFootprintCapabilities")
+        footprint = function_body(WORLD, "_serviceVehicleFootprintClear")
+        body_point = function_body(WORLD, "_serviceVehicleBodyPointBlocked")
+        route_start = WORLD.index("function _setVehicleRoute(")
+        route_end = WORLD.index("function _ambulanceSceneParking", route_start)
+        route = WORLD[route_start:route_end]
+        step = function_body(WORLD, "_vehicleStep")
+
+        self.assertIn("_beachRescueRoute", selector)
+        self.assertIn("_offroadRoute", selector)
+        self.assertIn("fireRef?.kind==='gas_station'", selector)
+        self.assertIn("?capabilities:_SERVICE_ROUTE_FOOTPRINT_CAPABILITIES", footprint)
+        self.assertIn("_serviceVehicleBodyPointBlocked(sampleR, sampleC, allowedCapabilities)", footprint)
+        self.assertIn("allowedCapabilities.some(capability=>_vehicleSurfaceAllows", body_point)
+        self.assertIn("v._offroadRoute = false", route)
+        self.assertIn("v._beachRescueRoute = false", route)
+        self.assertIn("v._beachRescueRoute=beachSandWaypoints>0", route)
+        self.assertEqual(step.count("safeAng,footprintCapabilities"), 2)
+        self.assertIn("oldAng,footprintCapabilities", step)
+
 
 if __name__ == "__main__":
     unittest.main()

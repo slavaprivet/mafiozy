@@ -11765,11 +11765,41 @@ function _vehicleOffroadPassable(r, c) {
   return _vehicleSurfaceAllows(r, c, VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH);
 }
 
+const _SERVICE_ROUTE_FOOTPRINT_CAPABILITIES=Object.freeze([
+  VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE,
+]);
+const _SERVICE_OFFROAD_FOOTPRINT_CAPABILITIES=Object.freeze([
+  VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE,
+  VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH,
+]);
+const _SERVICE_BEACH_FOOTPRINT_CAPABILITIES=Object.freeze([
+  VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE,
+  VEHICLE_SURFACE_CAPABILITY.BEACH_RESCUE,
+]);
+const _SERVICE_BEACH_OFFROAD_FOOTPRINT_CAPABILITIES=Object.freeze([
+  VEHICLE_SURFACE_CAPABILITY.SERVICE_ROUTE,
+  VEHICLE_SURFACE_CAPABILITY.RESCUE_APPROACH,
+  VEHICLE_SURFACE_CAPABILITY.BEACH_RESCUE,
+]);
+function _serviceVehicleFootprintCapabilities(v){
+  const beach=!!v?._beachRescueRoute;
+  const offroad=!!v?._offroadRoute||
+    (v?.kind==='firetruck'&&v?.payload?.fireRef?.kind==='gas_station');
+  if(beach&&offroad)return _SERVICE_BEACH_OFFROAD_FOOTPRINT_CAPABILITIES;
+  if(beach)return _SERVICE_BEACH_FOOTPRINT_CAPABILITIES;
+  if(offroad)return _SERVICE_OFFROAD_FOOTPRINT_CAPABILITIES;
+  return _SERVICE_ROUTE_FOOTPRINT_CAPABILITIES;
+}
+
 // The centre can remain on asphalt while a long emergency vehicle clips a
-// neighbouring facade. Driving, depot and work parking validate the complete
-// visible body against buildings/water; ordinary traffic remains non-blocking.
-function _serviceVehicleFootprintClear(v, r, c, ang = null) {
+// neighbouring non-road surface. Driving validates both the centre and every
+// body sample against the route's explicit capabilities; ordinary parking and
+// turn checks default to the authored road/bridge surface only.
+function _serviceVehicleFootprintClear(v, r, c, ang = null,
+    capabilities = _SERVICE_ROUTE_FOOTPRINT_CAPABILITIES) {
   if (!v || !['ambulance','firetruck','tow','police','taxi'].includes(v.kind)) return true;
+  const allowedCapabilities=Array.isArray(capabilities)&&capabilities.length
+    ?capabilities:_SERVICE_ROUTE_FOOTPRINT_CAPABILITIES;
   const heading = Number.isFinite(+ang) ? +ang : (Number.isFinite(+v.ang) ? +v.ang : 0);
   const halfLength = v.kind === 'firetruck' ? 1.22 : v.kind === 'tow' ? 1.16 : v.kind === 'ambulance' ? 1.04 : .98;
   const halfWidth = v.kind === 'firetruck' ? .58 : v.kind === 'tow' ? .54 : .5;
@@ -11780,17 +11810,19 @@ function _serviceVehicleFootprintClear(v, r, c, ang = null) {
   for (const [forward, side] of samples) {
     const sampleR = r + forwardR * forward + sideR * side;
     const sampleC = c + forwardC * forward + sideC * side;
-    if (_serviceVehicleBodyPointBlocked(sampleR, sampleC)) return false;
+    if (_serviceVehicleBodyPointBlocked(sampleR, sampleC, allowedCapabilities)) return false;
   }
   return true;
 }
 
-function _serviceVehicleBodyPointBlocked(r,c){
+function _serviceVehicleBodyPointBlocked(r,c,
+    capabilities=_SERVICE_ROUTE_FOOTPRINT_CAPABILITIES){
   const ri=Math.floor(r),ci=Math.floor(c);
   if(ri<0||ri>=MAP_ROWS||ci<0||ci>=MAP_COLS)return true;
   if(_isPortContainerSolid(r,c)||_isThreeWholeBuildingBlocked(r,c))return true;
-  const tile=MAP[ri]?.[ci];
-  return tile===1||tile===16;
+  const allowedCapabilities=Array.isArray(capabilities)&&capabilities.length
+    ?capabilities:_SERVICE_ROUTE_FOOTPRINT_CAPABILITIES;
+  return !allowedCapabilities.some(capability=>_vehicleSurfaceAllows(r,c,capability));
 }
 
 // Ближайший дорожный тайл (тип 0) к точке (r,c) в радиусе до 12.
@@ -12164,6 +12196,7 @@ function _vehicleStep(v, dt) {
       v.pathIdx++;
       return false;
     }
+    const footprintCapabilities=_serviceVehicleFootprintCapabilities(v);
     // Впереди — другая машина? Тормозим (пробка), не въезжаем в неё.
     // Emergency ambulances keep their route through ordinary traffic. Road and
     // building collision checks above still apply, so this cannot cut through
@@ -12178,13 +12211,13 @@ function _vehicleStep(v, dt) {
       const turnDelta=Math.atan2(Math.sin(nextAng-oldAng),Math.cos(nextAng-oldAng));
       const turnLimit=Math.max(.04,Math.min(.22,dt*3.4));
       safeAng=oldAng+Math.max(-turnLimit,Math.min(turnLimit,turnDelta));
-      if(!_serviceVehicleFootprintClear(v,ny,nx,safeAng)){
-        if(_serviceVehicleFootprintClear(v,ny,nx,oldAng))safeAng=oldAng;
+      if(!_serviceVehicleFootprintClear(v,ny,nx,safeAng,footprintCapabilities)){
+        if(_serviceVehicleFootprintClear(v,ny,nx,oldAng,footprintCapabilities))safeAng=oldAng;
         else {
           // At a tight road corner the nose cannot translate until the long
           // body has turned. Rotate in place through collision-safe angles;
           // the following frame can then advance along the same road path.
-          if(_serviceVehicleFootprintClear(v,v.y,v.x,safeAng))v.ang=safeAng;
+          if(_serviceVehicleFootprintClear(v,v.y,v.x,safeAng,footprintCapabilities))v.ang=safeAng;
           const blockedNow=performance.now();v._bodyBlockedSince||=blockedNow;
           if(blockedNow-v._bodyBlockedSince>550){
             _beginServiceVehicleTurn(v,nextAng,'body-corner',blockedNow);
@@ -12343,12 +12376,29 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
   const sceneC = toC;
   let path = _bfsRoadPathForVehicle(v,fromR,fromC,sceneR,sceneC,v.kind === 'ambulance' ? 30 : 20);
   v._offroadRoute = false;
+  v._beachRescueRoute = false;
   // После дорисовки кварталов часть дорожной сетки может оказаться
   // разорвана тротуаром. В таком случае строим безопасный запасной маршрут
   // по дороге/тротуару/открытой площадке, а не теряем вызов.
   if (!path || !path.length) {
     path = _bfsFireStationPath(fromR, fromC, sceneR, sceneC);
     v._offroadRoute = !!(path && path.length);
+  }
+  let beachSandWaypoints=0;
+  // A returning ambulance can start with its complete body on sand while the
+  // first BFS node is already on asphalt. Add explicit sand exit waypoints so
+  // the narrow beach capability remains active until the road seam is clear.
+  if(path&&path.length&&v.kind==='ambulance'&&MAP[Math.floor(fromR)]?.[Math.floor(fromC)]===14){
+    const first=path[0],dist=Math.hypot(first.r-fromR,first.c-fromC);
+    const steps=Math.max(2,Math.ceil(dist/.7)),sandExit=[];
+    for(let i=1;i<steps;i++){
+      const k=i/steps,p={r:fromR+(first.r-fromR)*k,c:fromC+(first.c-fromC)*k};
+      if(MAP[Math.floor(p.r)]?.[Math.floor(p.c)]===14){sandExit.push(p);beachSandWaypoints++;}
+    }
+    // A vehicle parked directly on the seam still needs one explicit sand
+    // waypoint even when the first interpolation sample already lies on road.
+    if(!sandExit.length){sandExit.push({r:fromR,c:fromC});beachSandWaypoints++;}
+    path=[...sandExit,...path];
   }
   // Обычный BFS заканчивается на ближайшей дороге. Для скорой продлеваем
   // последний участок непосредственно по песку короткими waypoint'ами.
@@ -12359,9 +12409,12 @@ function _setVehicleRoute(v, fromR, fromC, toR, toC) {
     const steps = Math.max(1, Math.ceil(dist / 0.7));
     for (let i = 1; i <= steps; i++) {
       const k = i / steps;
-      path.push({ r: last.r + (sceneR - last.r) * k, c: last.c + (sceneC - last.c) * k });
+      const waypoint={ r: last.r + (sceneR - last.r) * k, c: last.c + (sceneC - last.c) * k };
+      path.push(waypoint);
+      if(MAP[Math.floor(waypoint.r)]?.[Math.floor(waypoint.c)]===14)beachSandWaypoints++;
     }
   }
+  v._beachRescueRoute=beachSandWaypoints>0;
   v.path = path || [];
   v.pathIdx = 0;
   v.finalTarget = { x: sceneC, y: sceneR };
