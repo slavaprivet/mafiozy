@@ -1,0 +1,1327 @@
+{
+  "schema": "mafiozi.civic-park-decor-placement-candidate/v1",
+  "revision": 1,
+  "status": "READY_STATIC_RUNTIME_WIRE_REQUIRED",
+  "runtimeActivation": false,
+  "placementAuthorized": false,
+  "coordinateSpace": "main_map_row_column",
+  "worldUnitsPerGridCellM": 4.1,
+  "requiredLocalPreviewQuery": {
+    "preview": "1",
+    "previewcityv3": "stage-a",
+    "cityv3decor": "1"
+  },
+  "baseMapContract": {
+    "rows": 200,
+    "cols": 180,
+    "blockCells": 10,
+    "westCityParkRule": "((blockR*17 + blockC*31) % 11) in {0,7}",
+    "westCityRoadRemainders": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "westCitySidewalkRemainders": [
+      4,
+      9
+    ],
+    "eastExpansionStartC": 100,
+    "eastExpansionEndRExclusive": 150,
+    "canal": {
+      "minR": 0,
+      "maxR": 149.999,
+      "minC": 80,
+      "maxC": 100
+    },
+    "redBridge": {
+      "minR": 47,
+      "maxR": 56,
+      "minC": 80,
+      "maxC": 100
+    },
+    "southRailEnvelope": {
+      "minR": 139.0,
+      "maxR": 153.6,
+      "minC": 4.4,
+      "maxC": 176.6
+    },
+    "southSeaKeepout": {
+      "minR": 164.0,
+      "maxR": 200,
+      "minC": 0,
+      "maxC": 180
+    }
+  },
+  "protectedZones": [
+    {
+      "id": "police-jail",
+      "shape": "circle",
+      "r": 76,
+      "c": 76,
+      "radius": 8
+    },
+    {
+      "id": "premium-red-bridge",
+      "shape": "rect",
+      "minR": 47,
+      "maxR": 56,
+      "minC": 80,
+      "maxC": 100
+    }
+  ],
+  "buildingAndDoorObstacles": [
+    {
+      "id": "building-pad:pawnshop@1",
+      "kind": "building_pad",
+      "polygonGridCR": [
+        [
+          65.359512,
+          5.600415
+        ],
+        [
+          68.640488,
+          5.600415
+        ],
+        [
+          68.640488,
+          8.399585
+        ],
+        [
+          65.359512,
+          8.399585
+        ]
+      ]
+    },
+    {
+      "id": "public-door:pawnshop@1",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          66.534634,
+          7.755878
+        ],
+        [
+          67.266341,
+          7.755878
+        ],
+        [
+          67.266341,
+          10.25
+        ],
+        [
+          66.534634,
+          10.25
+        ]
+      ]
+    },
+    {
+      "id": "service-door:pawnshop@1",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          67.953659,
+          5.974415
+        ],
+        [
+          67.953659,
+          6.950024
+        ],
+        [
+          70.25,
+          6.950024
+        ],
+        [
+          70.25,
+          5.974415
+        ]
+      ]
+    },
+    {
+      "id": "building-pad:print_shop@1",
+      "kind": "building_pad",
+      "polygonGridCR": [
+        [
+          44.830356,
+          95.185366
+        ],
+        [
+          49.169644,
+          95.185366
+        ],
+        [
+          49.169644,
+          98.814634
+        ],
+        [
+          44.830356,
+          98.814634
+        ]
+      ]
+    },
+    {
+      "id": "public-door:print_shop@1",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          45.715234,
+          97.855805
+        ],
+        [
+          46.446941,
+          97.855805
+        ],
+        [
+          46.446941,
+          100.25
+        ],
+        [
+          45.715234,
+          100.25
+        ]
+      ]
+    },
+    {
+      "id": "service-door:print_shop@1",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          47.003039,
+          96.018146
+        ],
+        [
+          47.978649,
+          96.018146
+        ],
+        [
+          47.978649,
+          93.75
+        ],
+        [
+          47.003039,
+          93.75
+        ]
+      ]
+    },
+    {
+      "id": "candidate-building-pad:gun_shop@1",
+      "kind": "building_pad",
+      "polygonGridCR": [
+        [
+          15.856585,
+          85.937317
+        ],
+        [
+          19.643415,
+          85.937317
+        ],
+        [
+          19.643415,
+          88.812683
+        ],
+        [
+          15.856585,
+          88.812683
+        ]
+      ]
+    },
+    {
+      "id": "candidate-public-door:gun_shop@1:0",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          16.907317073,
+          88.121756098
+        ],
+        [
+          17.63902439,
+          88.121756098
+        ],
+        [
+          17.63902439,
+          90.25
+        ],
+        [
+          16.907317073,
+          90.25
+        ]
+      ]
+    },
+    {
+      "id": "candidate-service-door:gun_shop@1:0",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          18.986439024,
+          86.650439024
+        ],
+        [
+          20.25,
+          86.650439024
+        ],
+        [
+          20.25,
+          87.62604878
+        ],
+        [
+          18.986439024,
+          87.62604878
+        ]
+      ]
+    },
+    {
+      "id": "candidate-building-pad:bookmaker@1",
+      "kind": "building_pad",
+      "polygonGridCR": [
+        [
+          45.856463,
+          45.876951
+        ],
+        [
+          48.893537,
+          45.876951
+        ],
+        [
+          48.893537,
+          49.623049
+        ],
+        [
+          45.856463,
+          49.623049
+        ]
+      ]
+    },
+    {
+      "id": "candidate-public-door:bookmaker@1:0",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          48.039243902,
+          47.96504878
+        ],
+        [
+          50.25,
+          47.96504878
+        ],
+        [
+          50.25,
+          48.696756098
+        ],
+        [
+          48.039243902,
+          48.696756098
+        ]
+      ]
+    },
+    {
+      "id": "candidate-service-door:bookmaker@1:0",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          46.461780488,
+          43.75
+        ],
+        [
+          47.437390244,
+          43.75
+        ],
+        [
+          47.437390244,
+          46.46504878
+        ],
+        [
+          46.461780488,
+          46.46504878
+        ]
+      ]
+    },
+    {
+      "id": "candidate-building-pad:strip_club@1",
+      "kind": "building_pad",
+      "polygonGridCR": [
+        [
+          149.107439,
+          96.256707
+        ],
+        [
+          152.392561,
+          96.256707
+        ],
+        [
+          152.392561,
+          99.243293
+        ],
+        [
+          149.107439,
+          99.243293
+        ]
+      ]
+    },
+    {
+      "id": "candidate-public-door:strip_club@1:0",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          150.32402439,
+          98.535731707
+        ],
+        [
+          151.055731707,
+          98.535731707
+        ],
+        [
+          151.055731707,
+          100.25
+        ],
+        [
+          150.32402439,
+          100.25
+        ]
+      ]
+    },
+    {
+      "id": "candidate-service-door:strip_club@1:0",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          151.711536585,
+          96.596707317
+        ],
+        [
+          153.5,
+          96.596707317
+        ],
+        [
+          153.5,
+          97.572317073
+        ],
+        [
+          151.711536585,
+          97.572317073
+        ]
+      ]
+    },
+    {
+      "id": "candidate-service-door:strip_club@1:1",
+      "kind": "door_corridor",
+      "polygonGridCR": [
+        [
+          153.012195122,
+          97.084512195
+        ],
+        [
+          153.987804878,
+          97.084512195
+        ],
+        [
+          153.987804878,
+          100.25
+        ],
+        [
+          153.012195122,
+          100.25
+        ]
+      ]
+    }
+  ],
+  "densityPolicy": {
+    "automaticScatter": false,
+    "placementCount": 30,
+    "fountainCount": 3,
+    "pedestrianLightCount": 3,
+    "maxPedestrianLights": 4,
+    "notes": "Three authored micro-scenes and two transit edges; no lamp rows and no catalog-layout placement."
+  },
+  "placements": [
+    {
+      "id": "DEC-FNT-NORTH-01",
+      "asset": "fountain_district",
+      "r": 17.0,
+      "c": 37.0,
+      "yawDeg": 0,
+      "district": "northside",
+      "scene": "Northside neighbourhood green",
+      "surface": "park",
+      "uniformScale": 1.3,
+      "key": "fountain_district@2",
+      "clearanceGridRC": [
+        2.917073,
+        2.917073
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 15.541463,
+        "maxR": 18.458537,
+        "minC": 35.541463,
+        "maxC": 38.458537
+      },
+      "focusQuery": "cityv3decorfocus=DEC-FNT-NORTH-01"
+    },
+    {
+      "id": "DEC-FNT-CENTRAL-01",
+      "asset": "fountain_central",
+      "r": 27.0,
+      "c": 67.0,
+      "yawDeg": 0,
+      "district": "downtown",
+      "scene": "Downtown civic garden",
+      "surface": "park",
+      "uniformScale": 1.22,
+      "key": "fountain_central@2",
+      "clearanceGridRC": [
+        3.927805,
+        3.927805
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 25.036098,
+        "maxR": 28.963902,
+        "minC": 65.036098,
+        "maxC": 68.963902
+      },
+      "focusQuery": "cityv3decorfocus=DEC-FNT-CENTRAL-01"
+    },
+    {
+      "id": "DEC-FNT-RICH-01",
+      "asset": "fountain_park",
+      "r": 77.0,
+      "c": 17.0,
+      "yawDeg": 90,
+      "district": "southside",
+      "scene": "Rich-quarter sculpture garden",
+      "surface": "park",
+      "uniformScale": 1.3,
+      "key": "fountain_park@2",
+      "clearanceGridRC": [
+        3.487805,
+        2.980488
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 75.256098,
+        "maxR": 78.743902,
+        "minC": 15.509756,
+        "maxC": 18.490244
+      },
+      "focusQuery": "cityv3decorfocus=DEC-FNT-RICH-01"
+    },
+    {
+      "id": "DEC-BEN-CENT-W",
+      "asset": "bench_civic",
+      "r": 27.0,
+      "c": 64.6,
+      "yawDeg": 90,
+      "district": "downtown",
+      "scene": "Downtown civic garden west edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.897561,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 26.55122,
+        "maxR": 27.44878,
+        "minC": 64.305488,
+        "maxC": 64.894512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-CENT-W"
+    },
+    {
+      "id": "DEC-BEN-CENT-E",
+      "asset": "bench_civic",
+      "r": 27.0,
+      "c": 69.4,
+      "yawDeg": 270,
+      "district": "downtown",
+      "scene": "Downtown civic garden east edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.897561,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 26.55122,
+        "maxR": 27.44878,
+        "minC": 69.105488,
+        "maxC": 69.694512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-CENT-E"
+    },
+    {
+      "id": "DEC-BIN-CENT",
+      "asset": "bin_civic",
+      "r": 28.7,
+      "c": 64.6,
+      "yawDeg": 0,
+      "district": "downtown",
+      "scene": "Downtown civic garden service edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bin_civic@2",
+      "clearanceGridRC": [
+        0.392683,
+        0.392683
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 28.503659,
+        "maxR": 28.896341,
+        "minC": 64.403659,
+        "maxC": 64.796341
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BIN-CENT"
+    },
+    {
+      "id": "DEC-BIKE-CENT",
+      "asset": "bike_rack_5",
+      "r": 29.4,
+      "c": 65.4,
+      "yawDeg": 0,
+      "district": "downtown",
+      "scene": "Downtown civic garden south edge",
+      "surface": "park_or_sidewalk",
+      "uniformScale": 1.15,
+      "key": "bike_rack_5@2",
+      "clearanceGridRC": [
+        0.841463,
+        1.290244
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 28.979268,
+        "maxR": 29.820732,
+        "minC": 64.754878,
+        "maxC": 66.045122
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BIKE-CENT"
+    },
+    {
+      "id": "DEC-PLANT-CENT",
+      "asset": "planter_rect",
+      "r": 29.4,
+      "c": 68.2,
+      "yawDeg": 0,
+      "district": "downtown",
+      "scene": "Downtown civic garden south edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "planter_rect@2",
+      "clearanceGridRC": [
+        0.44878,
+        0.841463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 29.17561,
+        "maxR": 29.62439,
+        "minC": 67.779268,
+        "maxC": 68.620732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-PLANT-CENT"
+    },
+    {
+      "id": "DEC-LIGHT-CENT",
+      "asset": "ped_light_double",
+      "r": 24.65,
+      "c": 69.35,
+      "yawDeg": 90,
+      "district": "downtown",
+      "scene": "Downtown civic garden entrance",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "ped_light_double@2",
+      "clearanceGridRC": [
+        0.673171,
+        0.392683
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 24.313415,
+        "maxR": 24.986585,
+        "minC": 69.153659,
+        "maxC": 69.546341
+      },
+      "focusQuery": "cityv3decorfocus=DEC-LIGHT-CENT"
+    },
+    {
+      "id": "DEC-WAY-CENT",
+      "asset": "sign_wayfinding",
+      "r": 29.4,
+      "c": 69.35,
+      "yawDeg": 90,
+      "district": "downtown",
+      "scene": "Downtown civic garden wayfinding",
+      "surface": "sidewalk",
+      "uniformScale": 1.0,
+      "key": "sign_wayfinding@2",
+      "clearanceGridRC": [
+        0.609756,
+        0.341463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 29.095122,
+        "maxR": 29.704878,
+        "minC": 69.179268,
+        "maxC": 69.520732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-WAY-CENT"
+    },
+    {
+      "id": "DEC-BEN-NORTH-W",
+      "asset": "bench_civic",
+      "r": 17.0,
+      "c": 34.6,
+      "yawDeg": 90,
+      "district": "northside",
+      "scene": "Northside green west edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.897561,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 16.55122,
+        "maxR": 17.44878,
+        "minC": 34.305488,
+        "maxC": 34.894512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-NORTH-W"
+    },
+    {
+      "id": "DEC-BEN-NORTH-E",
+      "asset": "bench_civic",
+      "r": 17.0,
+      "c": 39.4,
+      "yawDeg": 270,
+      "district": "northside",
+      "scene": "Northside green east edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.897561,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 16.55122,
+        "maxR": 17.44878,
+        "minC": 39.105488,
+        "maxC": 39.694512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-NORTH-E"
+    },
+    {
+      "id": "DEC-BIN-NORTH",
+      "asset": "bin_civic",
+      "r": 14.6,
+      "c": 37.0,
+      "yawDeg": 0,
+      "district": "northside",
+      "scene": "Northside green north edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bin_civic@2",
+      "clearanceGridRC": [
+        0.392683,
+        0.392683
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 14.403659,
+        "maxR": 14.796341,
+        "minC": 36.803659,
+        "maxC": 37.196341
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BIN-NORTH"
+    },
+    {
+      "id": "DEC-PLANT-NORTH",
+      "asset": "planter_round",
+      "r": 19.4,
+      "c": 37.8,
+      "yawDeg": 0,
+      "district": "northside",
+      "scene": "Northside green south edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "planter_round@2",
+      "clearanceGridRC": [
+        0.589024,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 19.105488,
+        "maxR": 19.694512,
+        "minC": 37.505488,
+        "maxC": 38.094512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-PLANT-NORTH"
+    },
+    {
+      "id": "DEC-WAY-NORTH",
+      "asset": "sign_wayfinding",
+      "r": 14.6,
+      "c": 39.35,
+      "yawDeg": 90,
+      "district": "northside",
+      "scene": "Northside green wayfinding",
+      "surface": "sidewalk",
+      "uniformScale": 1.0,
+      "key": "sign_wayfinding@2",
+      "clearanceGridRC": [
+        0.609756,
+        0.341463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 14.295122,
+        "maxR": 14.904878,
+        "minC": 39.179268,
+        "maxC": 39.520732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-WAY-NORTH"
+    },
+    {
+      "id": "DEC-BEN-RICH-W",
+      "asset": "bench_civic",
+      "r": 77.0,
+      "c": 14.6,
+      "yawDeg": 90,
+      "district": "southside",
+      "scene": "Rich garden west edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.897561,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 76.55122,
+        "maxR": 77.44878,
+        "minC": 14.305488,
+        "maxC": 14.894512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-RICH-W"
+    },
+    {
+      "id": "DEC-BEN-RICH-E",
+      "asset": "bench_civic",
+      "r": 77.0,
+      "c": 19.4,
+      "yawDeg": 270,
+      "district": "southside",
+      "scene": "Rich garden east edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.897561,
+        0.589024
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 76.55122,
+        "maxR": 77.44878,
+        "minC": 19.105488,
+        "maxC": 19.694512
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-RICH-E"
+    },
+    {
+      "id": "DEC-BIN-RICH",
+      "asset": "bin_civic",
+      "r": 79.4,
+      "c": 15.5,
+      "yawDeg": 0,
+      "district": "southside",
+      "scene": "Rich garden south edge",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bin_civic@2",
+      "clearanceGridRC": [
+        0.392683,
+        0.392683
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 79.203659,
+        "maxR": 79.596341,
+        "minC": 15.303659,
+        "maxC": 15.696341
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BIN-RICH"
+    },
+    {
+      "id": "DEC-LIGHT-RICH-N",
+      "asset": "ped_light_bollard",
+      "r": 74.6,
+      "c": 16.2,
+      "yawDeg": 0,
+      "district": "southside",
+      "scene": "Rich garden north entrance",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "ped_light_bollard@2",
+      "clearanceGridRC": [
+        0.336585,
+        0.336585
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 74.431707,
+        "maxR": 74.768293,
+        "minC": 16.031707,
+        "maxC": 16.368293
+      },
+      "focusQuery": "cityv3decorfocus=DEC-LIGHT-RICH-N"
+    },
+    {
+      "id": "DEC-LIGHT-RICH-S",
+      "asset": "ped_light_bollard",
+      "r": 79.4,
+      "c": 18.5,
+      "yawDeg": 0,
+      "district": "southside",
+      "scene": "Rich garden south entrance",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "ped_light_bollard@2",
+      "clearanceGridRC": [
+        0.336585,
+        0.336585
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 79.231707,
+        "maxR": 79.568293,
+        "minC": 18.331707,
+        "maxC": 18.668293
+      },
+      "focusQuery": "cityv3decorfocus=DEC-LIGHT-RICH-S"
+    },
+    {
+      "id": "DEC-KIOSK-OLD",
+      "asset": "kiosk_civic",
+      "r": 37.0,
+      "c": 7.0,
+      "yawDeg": 0,
+      "district": "northside",
+      "scene": "Old-neighbourhood pocket park",
+      "surface": "park",
+      "uniformScale": 1.15,
+      "key": "kiosk_civic@2",
+      "clearanceGridRC": [
+        1.402439,
+        1.514634
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 36.29878,
+        "maxR": 37.70122,
+        "minC": 6.242683,
+        "maxC": 7.757317
+      },
+      "focusQuery": "cityv3decorfocus=DEC-KIOSK-OLD"
+    },
+    {
+      "id": "DEC-BEN-OLD",
+      "asset": "bench_civic",
+      "r": 39.4,
+      "c": 7.0,
+      "yawDeg": 180,
+      "district": "northside",
+      "scene": "Old-neighbourhood pocket park",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bench_civic@2",
+      "clearanceGridRC": [
+        0.589024,
+        0.897561
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 39.105488,
+        "maxR": 39.694512,
+        "minC": 6.55122,
+        "maxC": 7.44878
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BEN-OLD"
+    },
+    {
+      "id": "DEC-BIN-OLD",
+      "asset": "bin_civic",
+      "r": 39.4,
+      "c": 8.4,
+      "yawDeg": 0,
+      "district": "northside",
+      "scene": "Old-neighbourhood pocket park",
+      "surface": "sidewalk",
+      "uniformScale": 1.15,
+      "key": "bin_civic@2",
+      "clearanceGridRC": [
+        0.392683,
+        0.392683
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 39.203659,
+        "maxR": 39.596341,
+        "minC": 8.203659,
+        "maxC": 8.596341
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BIN-OLD"
+    },
+    {
+      "id": "DEC-BIKE-OLD",
+      "asset": "bike_rack_5",
+      "r": 37.0,
+      "c": 4.6,
+      "yawDeg": 90,
+      "district": "northside",
+      "scene": "Old-neighbourhood pocket park",
+      "surface": "park_or_sidewalk",
+      "uniformScale": 1.15,
+      "key": "bike_rack_5@2",
+      "clearanceGridRC": [
+        1.290244,
+        0.841463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 36.354878,
+        "maxR": 37.645122,
+        "minC": 4.179268,
+        "maxC": 5.020732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-BIKE-OLD"
+    },
+    {
+      "id": "DEC-SHELTER-DOWNTOWN",
+      "asset": "shelter_transit",
+      "r": 37.0,
+      "c": 8.9,
+      "yawDeg": 90,
+      "district": "northside",
+      "scene": "Old-neighbourhood park east transit stop",
+      "surface": "park_or_sidewalk",
+      "uniformScale": 1.15,
+      "key": "shelter_transit@2",
+      "clearanceGridRC": [
+        1.963415,
+        1.178049
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 36.018293,
+        "maxR": 37.981707,
+        "minC": 8.310976,
+        "maxC": 9.489024
+      },
+      "focusQuery": "cityv3decorfocus=DEC-SHELTER-DOWNTOWN"
+    },
+    {
+      "id": "DEC-SHELTER-INDUSTRIAL",
+      "asset": "shelter_transit",
+      "r": 35.0,
+      "c": 6.5,
+      "yawDeg": 0,
+      "district": "northside",
+      "scene": "Old-neighbourhood park north transit stop",
+      "surface": "park_or_sidewalk",
+      "uniformScale": 1.15,
+      "key": "shelter_transit@2",
+      "clearanceGridRC": [
+        1.178049,
+        1.963415
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 34.410976,
+        "maxR": 35.589024,
+        "minC": 5.518293,
+        "maxC": 7.481707
+      },
+      "focusQuery": "cityv3decorfocus=DEC-SHELTER-INDUSTRIAL"
+    },
+    {
+      "id": "DEC-SIGN-PED-DOWNTOWN",
+      "asset": "sign_ped_crossing",
+      "r": 34.6,
+      "c": 74.6,
+      "yawDeg": 0,
+      "district": "downtown",
+      "scene": "Downtown crossing approach",
+      "surface": "sidewalk",
+      "uniformScale": 1.0,
+      "key": "sign_ped_crossing@2",
+      "clearanceGridRC": [
+        0.341463,
+        0.341463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 34.429268,
+        "maxR": 34.770732,
+        "minC": 74.429268,
+        "maxC": 74.770732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-SIGN-PED-DOWNTOWN"
+    },
+    {
+      "id": "DEC-SIGN-PED-COUNTRY",
+      "asset": "sign_ped_crossing",
+      "r": 84.6,
+      "c": 44.6,
+      "yawDeg": 0,
+      "district": "industrial",
+      "scene": "Country-industrial crossing approach",
+      "surface": "sidewalk",
+      "uniformScale": 1.0,
+      "key": "sign_ped_crossing@2",
+      "clearanceGridRC": [
+        0.341463,
+        0.341463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 84.429268,
+        "maxR": 84.770732,
+        "minC": 44.429268,
+        "maxC": 44.770732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-SIGN-PED-COUNTRY"
+    },
+    {
+      "id": "DEC-SIGN-NOPARK-EAST",
+      "asset": "sign_no_parking",
+      "r": 44.6,
+      "c": 104.6,
+      "yawDeg": 0,
+      "district": "eastside",
+      "scene": "Eastside service-corner restriction",
+      "surface": "sidewalk",
+      "uniformScale": 1.0,
+      "key": "sign_no_parking@2",
+      "clearanceGridRC": [
+        0.341463,
+        0.341463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 44.429268,
+        "maxR": 44.770732,
+        "minC": 104.429268,
+        "maxC": 104.770732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-SIGN-NOPARK-EAST"
+    },
+    {
+      "id": "DEC-SIGN-NOPARK-IND",
+      "asset": "sign_no_parking",
+      "r": 94.6,
+      "c": 44.6,
+      "yawDeg": 0,
+      "district": "industrial",
+      "scene": "Industrial service-corner restriction",
+      "surface": "sidewalk",
+      "uniformScale": 1.0,
+      "key": "sign_no_parking@2",
+      "clearanceGridRC": [
+        0.341463,
+        0.341463
+      ],
+      "clearanceAabbGridRC": {
+        "minR": 94.429268,
+        "maxR": 94.770732,
+        "minC": 44.429268,
+        "maxC": 44.770732
+      },
+      "focusQuery": "cityv3decorfocus=DEC-SIGN-NOPARK-IND"
+    }
+  ],
+  "focusCoordinates": [
+    {
+      "id": "DEC-FNT-NORTH-01",
+      "r": 17.0,
+      "c": 37.0,
+      "query": "cityv3decorfocus=DEC-FNT-NORTH-01"
+    },
+    {
+      "id": "DEC-FNT-CENTRAL-01",
+      "r": 27.0,
+      "c": 67.0,
+      "query": "cityv3decorfocus=DEC-FNT-CENTRAL-01"
+    },
+    {
+      "id": "DEC-FNT-RICH-01",
+      "r": 77.0,
+      "c": 17.0,
+      "query": "cityv3decorfocus=DEC-FNT-RICH-01"
+    },
+    {
+      "id": "DEC-BEN-CENT-W",
+      "r": 27.0,
+      "c": 64.6,
+      "query": "cityv3decorfocus=DEC-BEN-CENT-W"
+    },
+    {
+      "id": "DEC-BEN-CENT-E",
+      "r": 27.0,
+      "c": 69.4,
+      "query": "cityv3decorfocus=DEC-BEN-CENT-E"
+    },
+    {
+      "id": "DEC-BIN-CENT",
+      "r": 28.7,
+      "c": 64.6,
+      "query": "cityv3decorfocus=DEC-BIN-CENT"
+    },
+    {
+      "id": "DEC-BIKE-CENT",
+      "r": 29.4,
+      "c": 65.4,
+      "query": "cityv3decorfocus=DEC-BIKE-CENT"
+    },
+    {
+      "id": "DEC-PLANT-CENT",
+      "r": 29.4,
+      "c": 68.2,
+      "query": "cityv3decorfocus=DEC-PLANT-CENT"
+    },
+    {
+      "id": "DEC-LIGHT-CENT",
+      "r": 24.65,
+      "c": 69.35,
+      "query": "cityv3decorfocus=DEC-LIGHT-CENT"
+    },
+    {
+      "id": "DEC-WAY-CENT",
+      "r": 29.4,
+      "c": 69.35,
+      "query": "cityv3decorfocus=DEC-WAY-CENT"
+    },
+    {
+      "id": "DEC-BEN-NORTH-W",
+      "r": 17.0,
+      "c": 34.6,
+      "query": "cityv3decorfocus=DEC-BEN-NORTH-W"
+    },
+    {
+      "id": "DEC-BEN-NORTH-E",
+      "r": 17.0,
+      "c": 39.4,
+      "query": "cityv3decorfocus=DEC-BEN-NORTH-E"
+    },
+    {
+      "id": "DEC-BIN-NORTH",
+      "r": 14.6,
+      "c": 37.0,
+      "query": "cityv3decorfocus=DEC-BIN-NORTH"
+    },
+    {
+      "id": "DEC-PLANT-NORTH",
+      "r": 19.4,
+      "c": 37.8,
+      "query": "cityv3decorfocus=DEC-PLANT-NORTH"
+    },
+    {
+      "id": "DEC-WAY-NORTH",
+      "r": 14.6,
+      "c": 39.35,
+      "query": "cityv3decorfocus=DEC-WAY-NORTH"
+    },
+    {
+      "id": "DEC-BEN-RICH-W",
+      "r": 77.0,
+      "c": 14.6,
+      "query": "cityv3decorfocus=DEC-BEN-RICH-W"
+    },
+    {
+      "id": "DEC-BEN-RICH-E",
+      "r": 77.0,
+      "c": 19.4,
+      "query": "cityv3decorfocus=DEC-BEN-RICH-E"
+    },
+    {
+      "id": "DEC-BIN-RICH",
+      "r": 79.4,
+      "c": 15.5,
+      "query": "cityv3decorfocus=DEC-BIN-RICH"
+    },
+    {
+      "id": "DEC-LIGHT-RICH-N",
+      "r": 74.6,
+      "c": 16.2,
+      "query": "cityv3decorfocus=DEC-LIGHT-RICH-N"
+    },
+    {
+      "id": "DEC-LIGHT-RICH-S",
+      "r": 79.4,
+      "c": 18.5,
+      "query": "cityv3decorfocus=DEC-LIGHT-RICH-S"
+    },
+    {
+      "id": "DEC-KIOSK-OLD",
+      "r": 37.0,
+      "c": 7.0,
+      "query": "cityv3decorfocus=DEC-KIOSK-OLD"
+    },
+    {
+      "id": "DEC-BEN-OLD",
+      "r": 39.4,
+      "c": 7.0,
+      "query": "cityv3decorfocus=DEC-BEN-OLD"
+    },
+    {
+      "id": "DEC-BIN-OLD",
+      "r": 39.4,
+      "c": 8.4,
+      "query": "cityv3decorfocus=DEC-BIN-OLD"
+    },
+    {
+      "id": "DEC-BIKE-OLD",
+      "r": 37.0,
+      "c": 4.6,
+      "query": "cityv3decorfocus=DEC-BIKE-OLD"
+    },
+    {
+      "id": "DEC-SHELTER-DOWNTOWN",
+      "r": 37.0,
+      "c": 8.9,
+      "query": "cityv3decorfocus=DEC-SHELTER-DOWNTOWN"
+    },
+    {
+      "id": "DEC-SHELTER-INDUSTRIAL",
+      "r": 35.0,
+      "c": 6.5,
+      "query": "cityv3decorfocus=DEC-SHELTER-INDUSTRIAL"
+    },
+    {
+      "id": "DEC-SIGN-PED-DOWNTOWN",
+      "r": 34.6,
+      "c": 74.6,
+      "query": "cityv3decorfocus=DEC-SIGN-PED-DOWNTOWN"
+    },
+    {
+      "id": "DEC-SIGN-PED-COUNTRY",
+      "r": 84.6,
+      "c": 44.6,
+      "query": "cityv3decorfocus=DEC-SIGN-PED-COUNTRY"
+    },
+    {
+      "id": "DEC-SIGN-NOPARK-EAST",
+      "r": 44.6,
+      "c": 104.6,
+      "query": "cityv3decorfocus=DEC-SIGN-NOPARK-EAST"
+    },
+    {
+      "id": "DEC-SIGN-NOPARK-IND",
+      "r": 94.6,
+      "c": 44.6,
+      "query": "cityv3decorfocus=DEC-SIGN-NOPARK-IND"
+    }
+  ],
+  "runtimePreflightRequired": [
+    "exact map dimensions and world scale",
+    "continuous clearance sampling against live road/water/building masks",
+    "SAT against active building pads and public/service door corridors",
+    "SAT against active rail/station/crossing masks",
+    "protected police/jail and premium red bridge keep-outs",
+    "all selected GLBs loaded and hash-validated before one atomic scene attach"
+  ],
+  "rollback": {
+    "atomic": true,
+    "sceneRoot": "CITY_V3_CIVIC_PARK_V2_ROOT",
+    "removeOnlyThisRoot": true,
+    "disposeOwnedGeometryAndMaterials": true,
+    "removeRegisteredCollisionHandles": true,
+    "mutatesMapTiles": false,
+    "suppressesLegacyDecor": false,
+    "restoresLegacyStructures": false
+  }
+}

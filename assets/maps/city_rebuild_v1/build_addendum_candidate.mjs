@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {compileAddendum} from './addendum.mjs';
+const [sourcePath,outPath,policePath]=process.argv.slice(2);
+if(!sourcePath||!outPath)throw new Error('Usage: node build_addendum_candidate.mjs <addendum-v2.json> <new-output.json> [police-ledger.json]');
+const sha=b=>createHash('sha256').update(b).digest('hex'),bytes=fs.readFileSync(sourcePath),source=JSON.parse(bytes);
+const baseInfo=source.sources.authoritative_handoff_v1,baseBytes=fs.readFileSync(baseInfo.path);
+if(baseBytes.length!==baseInfo.bytes||sha(baseBytes)!==baseInfo.sha256)throw new Error('Authoritative base fingerprint mismatch');
+const police=policePath?JSON.parse(fs.readFileSync(policePath,'utf8')):undefined;
+const result=compileAddendum(source,{base:JSON.parse(baseBytes),policeProtectedCells:police?.policeProtectedCells??police});
+const resolved=path.resolve(outPath);if([sourcePath,baseInfo.path,policePath].filter(Boolean).some(p=>path.resolve(p)===resolved))throw new Error('Output cannot replace input');
+fs.writeFileSync(resolved,JSON.stringify({...result,sourceSha256:sha(bytes),baseSha256:sha(baseBytes)},null,2)+'\n',{flag:'wx'});
+console.log(JSON.stringify({status:result.status,output:resolved,errors:result.validation.errors.reduce((a,e)=>(a[e.code]=(a[e.code]||0)+1,a),{}),components:result.validation.connectivity.length}));
+if(result.status==='REJECTED')process.exitCode=2;

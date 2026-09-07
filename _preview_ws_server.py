@@ -2302,6 +2302,32 @@ CITY_V3_ASSET_CONTENT_TYPES = {
     ".json": "application/json; charset=utf-8",
     ".glb": "model/gltf-binary",
 }
+CITY_V3_RAIL_ASSET_ROOT = (
+    Path(__file__).resolve().parent / "assets" / "rail"
+).resolve()
+CITY_V3_RAIL_ASSET_CONTENT_TYPES = {
+    ".js": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".glb": "model/gltf-binary",
+}
+CITY_V3_DECOR_ASSET_ROOT = (
+    Path(__file__).resolve().parent / "assets" / "decor" / "civic_park_v2"
+).resolve()
+
+
+async def preview_city_v3_decor_asset(req):
+    """Serve approved civic runtime JS/JSON/GLB for local staged integration."""
+    relative = Path(str(req.match_info.get("tail") or ""))
+    candidate = (CITY_V3_DECOR_ASSET_ROOT / relative).resolve()
+    if (not candidate.is_relative_to(CITY_V3_DECOR_ASSET_ROOT)
+            or not candidate.is_file()
+            or candidate.suffix.lower() not in CITY_V3_ASSET_CONTENT_TYPES):
+        raise web.HTTPNotFound()
+    return web.FileResponse(candidate, headers={
+        "Cache-Control": "no-store",
+        "Content-Type": CITY_V3_ASSET_CONTENT_TYPES[candidate.suffix.lower()],
+        "X-Content-Type-Options": "nosniff",
+    })
 
 
 async def preview_city_v3_asset(req):
@@ -2321,6 +2347,21 @@ async def preview_city_v3_asset(req):
     return web.FileResponse(candidate, headers={
         "Cache-Control": "no-store",
         "Content-Type": CITY_V3_ASSET_CONTENT_TYPES[candidate.suffix.lower()],
+        "X-Content-Type-Options": "nosniff",
+    })
+
+
+async def preview_city_v3_rail_asset(req):
+    """Serve only hash-pinned rail runtime files for explicit local QA."""
+    relative = Path(str(req.match_info.get("tail") or ""))
+    candidate = (CITY_V3_RAIL_ASSET_ROOT / relative).resolve()
+    if (not candidate.is_relative_to(CITY_V3_RAIL_ASSET_ROOT)
+            or not candidate.is_file()
+            or candidate.suffix.lower() not in CITY_V3_RAIL_ASSET_CONTENT_TYPES):
+        raise web.HTTPNotFound()
+    return web.FileResponse(candidate, headers={
+        "Cache-Control": "no-store",
+        "Content-Type": CITY_V3_RAIL_ASSET_CONTENT_TYPES[candidate.suffix.lower()],
         "X-Content-Type-Options": "nosniff",
     })
 
@@ -4576,6 +4617,8 @@ app.router.add_get("/preview/world.html", preview_world)
 app.router.add_get("/preview/three_preview.js", preview_three_module)
 app.router.add_get("/preview/character_3d_preview.js", preview_character_module)
 app.router.add_get("/assets/buildings/city_v3/{tail:.*}", preview_city_v3_asset)
+app.router.add_get("/assets/rail/{tail:.*}", preview_city_v3_rail_asset)
+app.router.add_get("/assets/decor/civic_park_v2/{tail:.*}", preview_city_v3_decor_asset)
 app.router.add_get("/coop_api.json", coop_api)
 app.router.add_get("/world/sim", world_ws)
 app.router.add_get("/inv/{uid}/list", inv_list)

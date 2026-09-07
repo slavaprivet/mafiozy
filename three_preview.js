@@ -78,7 +78,9 @@
 // Reversible Three.js city prototype. Canvas stays the default and emergency
 // fallback. The central flag can disable 3D without removing this module.
 const rendererParams = new URLSearchParams(location.search);
+const cityV3DecorPreviewRequested=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.get('preview')==='1'&&rendererParams.get('previewcityv3')==='stage-a'&&rendererParams.get('cityv3decor')==='1';
 const cityV3BuildingPreviewRequested=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.get('preview')==='1'&&rendererParams.get('previewcityv3')==='stage-a'&&rendererParams.get('cityv3buildings')==='1';
+const cityV3RailPreviewRequested=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.get('preview')==='1'&&rendererParams.get('previewcityv3')==='stage-a'&&rendererParams.get('cityv3rail')==='1';
 const NPC_GANG_RENDER_STATES = 'sentry-last-stand-retreat-surrender';
 const businessControl = Object.create(null);
 const stanceMotionQaEnabled=(location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewstancemotion');
@@ -88,7 +90,10 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
     const stage = document.getElementById('stage');
     const rendererBootAt=performance.now();
     const startupTrace=[];
-    let cityV3AcceptedRollbackContext=null;
+    let cityV3AcceptedRollbackContext=null,cityV3RailRollbackContext=null;
+    let cityV3GlassInstance=null,cityV3GlassAbort=null;
+    let cityV3NextInstance=null,cityV3NextAbort=null;
+    let disposeWorldZoomControls=()=>{};
     const startupMark=label=>{const elapsed=(performance.now()-rendererBootAt).toFixed(1);startupTrace.push(`${label}:${elapsed}`);document.documentElement.dataset.threeStartup=startupTrace.join(',');console.info(`[ThreeStartup] ${label} ${elapsed}ms`);};
     try {
       window.MafioziLoading?.set(52, 'Загружаем трёхмерный движок…');
@@ -100,6 +105,7 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       // the procedural city untouched.
       let cityV3BuildingRuntime=null,cityV3BuildingCandidate=null,cityV3BuildingLoadError='';
       let cityV3AcceptedRuntime=null,cityV3AcceptedCandidates=[],cityV3AcceptedLoadErrors=[];
+      let cityV3RailRuntime=null,cityV3RailCandidate=null,cityV3RailLoadError='';
       const cityV3AcceptedErrorCode=error=>{const code=String(error?.code||'error'),message=String(error?.message||error||'unknown'),prefix=`${code}: `,detail=message.startsWith(prefix)?message.slice(prefix.length):message;return `${code}:${detail}`.replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,220);};
       if(cityV3BuildingPreviewRequested){
         document.documentElement.dataset.cityV3BuildingLoader='loading:civic_hall_landmark@1';
@@ -128,6 +134,19 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
           console.error('[CityV3AcceptedBuilding] registry load rejected; retaining all legacy placeholders',error);
         }
       }else document.documentElement.dataset.cityV3BuildingLoader='inactive:gate-closed';
+      if(cityV3RailPreviewRequested){
+        document.documentElement.dataset.cityV3RailLoader='loading:hash-pinned-main-native-slice';
+        try{
+          cityV3RailRuntime=await import('../assets/rail/city_v3/registry.v1.js?v=rail-main-native-v1-fb63b530');
+          cityV3RailCandidate=await cityV3RailRuntime.loadCityV3RailCandidate({THREE,params:rendererParams,hostname:location.hostname});
+          document.documentElement.dataset.cityV3RailLoader=`validated:${cityV3RailCandidate.hashes.asset.slice(0,12)}`;
+          startupMark('city-v3-rail-glb-validated');
+        }catch(error){
+          cityV3RailLoadError=String(error?.code||error?.message||error||'load-failed').replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,220);
+          document.documentElement.dataset.cityV3RailLoader=`fallback:${cityV3RailLoadError}`;
+          console.error('[CityV3Rail] pinned rail slice rejected; rail remains inactive',error);
+        }
+      }else document.documentElement.dataset.cityV3RailLoader='inactive:gate-closed';
       window.MafioziLoading?.set(61, 'Настраиваем свет, материалы и тени…');
       const viewSize = () => ({ W: Math.max(1, stage.clientWidth || innerWidth), H: Math.max(1, stage.clientHeight || innerHeight) });
       const size = viewSize();
@@ -207,9 +226,14 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       }
       if(rendererParams.get('previewmajor')){const previewMajorId=rendererParams.get('previewmajor'),pinPreviewMajor=()=>bridge?.previewApproachMajor?.(previewMajorId);pinPreviewMajor();const previewMajorTimer=setInterval(pinPreviewMajor,550);setTimeout(()=>clearInterval(previewMajorTimer),24000);}
       const cityV3FocusKey=rendererParams.get('cityv3focus')||'pawnshop@1';
-      if(cityV3AcceptedCandidates.some(candidate=>candidate.key===cityV3FocusKey))bridge?.previewApproachCityV3Building?.(cityV3FocusKey);
-      else if(cityV3BuildingCandidate)bridge?.previewApproachCityV3Building?.(cityV3BuildingCandidate.key);
-      const initialState=bridge?.getPlayerState?.()||null;
+      const cityV3StartupFocusKey=cityV3BuildingPreviewRequested&&['glass_pavilion_small@1','gun_shop@1','bookmaker@1','strip_club@1'].includes(cityV3FocusKey)?cityV3FocusKey:
+        cityV3AcceptedCandidates.some(candidate=>candidate.key===cityV3FocusKey)?cityV3FocusKey:cityV3BuildingCandidate?.key||'';
+      // Plan the render origin without consuming the 10s server-correction
+      // grace period during asynchronous GLB loading. Move the player once,
+      // only after those loads settle, immediately before the world snapshot.
+      const cityV3PlannedFocus=cityV3StartupFocusKey?bridge?.getCityV3BuildingFocusTarget?.(cityV3StartupFocusKey):null;
+      const sampledInitialState=bridge?.getPlayerState?.()||null;
+      const initialState=cityV3PlannedFocus?{...sampledInitialState,r:cityV3PlannedFocus.r,c:cityV3PlannedFocus.c}:sampledInitialState;
       // Стартуем только с ближайшего сектора. Остальные кварталы достраиваются
       // по мере движения и кэшируются — большая двухчастная карта не создаёт
       // сотни тяжёлых фасадов в первом кадре.
@@ -221,6 +245,42 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
       const STREAM_SECTOR_SIZE=24;
       const envSnapshot=bridge?.getEnvironmentState?.()||null;
       const originR=initialState?.r||0,originC=initialState?.c||0,WORLD_SCALE=Math.max(3,Math.min(5,+rendererConfig.worldScale||4.1)),selectedWeather=(rendererParams.get('weather')||envSnapshot?.weather||'clear').toLowerCase();
+      let cityV3DecorInstance=null,cityV3DecorStarted=false;
+      const cityV3DecorGardens=bridge?.getCityV3DecorGardenLots?.()||[];
+      const cityV3DecorGardenAt=(r,c)=>cityV3DecorGardens.some(q=>r>=q.r&&r<q.r+q.size&&c>=q.c&&c<q.c+q.size);
+      if(cityV3DecorGardens.length){
+        const paving=new THREE.MeshStandardMaterial({color:0xb4a38b,roughness:.88}),grass=new THREE.MeshStandardMaterial({color:0x56765b,roughness:.98});
+        const addGardenPlane=(r,c,w,d,y,material)=>{const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w*WORLD_SCALE,d*WORLD_SCALE),material);mesh.rotation.x=-Math.PI/2;mesh.position.set((c-originC)*WORLD_SCALE,y,(r-originR)*WORLD_SCALE);mesh.receiveShadow=true;scene.add(mesh);};
+        for(const q of cityV3DecorGardens){
+          const r=q.r+3,c=q.c+3;
+          addGardenPlane(r,c,6,6,.02,paving);addGardenPlane(r,c,4,4,.024,grass);
+          addGardenPlane(r,c,1.1,6,.028,paving);addGardenPlane(r,c,6,1.1,.028,paving);
+          const plaza=new THREE.Mesh(new THREE.CircleGeometry(1.9*WORLD_SCALE,48),paving);plaza.rotation.x=-Math.PI/2;plaza.position.set((c-originC)*WORLD_SCALE,.031,(r-originR)*WORLD_SCALE);plaza.receiveShadow=true;scene.add(plaza);
+        }
+        renderer.domElement.dataset.cityV3DecorGardenLots=String(cityV3DecorGardens.length);
+      }
+      const cityV3DecorAbort=new AbortController();
+      const disposeCityV3Decor=()=>{cityV3DecorAbort.abort();cityV3DecorInstance?.dispose();cityV3DecorInstance=null;};
+      addEventListener('pagehide',disposeCityV3Decor,{once:true});
+      const startCityV3Decor=()=>{
+        if(cityV3DecorStarted||!cityV3DecorPreviewRequested)return;
+        cityV3DecorStarted=true;
+        document.documentElement.dataset.cityV3DecorLoader='loading:approved-civic-park-v2';
+        // This optional import begins only once the first full city frame is ready.
+        Promise.all([
+          import('../assets/decor/civic_park_v2/runtime.v1.js?v=civic-live-v1'),
+          import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js'),
+        ]).then(async([runtime,{GLTFLoader}])=>{
+          if(cityV3DecorAbort.signal.aborted||!document.body.contains(renderer.domElement))return;
+          cityV3DecorInstance=await runtime.mountCivicParkDecor({THREE,GLTFLoader,scene,bridge,renderer,params:rendererParams,hostname:location.hostname,originR,originC,worldScale:WORLD_SCALE,signal:cityV3DecorAbort.signal});
+          if(!document.body.contains(renderer.domElement)){disposeCityV3Decor();return;}
+          document.documentElement.dataset.cityV3DecorLoader='active:30-objects:3-fountains';
+        }).catch(error=>{
+          document.documentElement.dataset.cityV3DecorLoader=`fallback:${String(error?.message||error).slice(0,240)}`;
+          console.error('[CityV3Decor] atomic installation rejected',error);
+        });
+      };
+      if(!cityV3DecorPreviewRequested)document.documentElement.dataset.cityV3DecorLoader='inactive:gate-closed';
       let cityV3BuildingInstance=null;
       if(cityV3BuildingCandidate&&bridge){
         try{
@@ -262,9 +322,82 @@ if ((rendererParams.get('force3d') === '1' || rendererParams.get('render') !== '
         }
         renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics||'loadedBuildings:0,replacedPlaceholder:0,overlap:0';
       }
+      let cityV3RailInstance=null,cityV3RailSnapshot=null;
+      if(cityV3RailCandidate&&bridge){
+        try{
+          cityV3RailInstance=cityV3RailRuntime.installCityV3RailCandidate(cityV3RailCandidate,{THREE,scene,bridge,renderer,originR,originC,worldScale:WORLD_SCALE});
+          cityV3RailRollbackContext={runtime:cityV3RailRuntime,instance:cityV3RailInstance,scene,bridge,renderer};
+          if(rendererParams.get('cityv3railfocus')==='1')bridge.previewApproachCityV3Rail?.();
+          cityV3RailSnapshot=bridge.getCityV3RailSnapshot?.()||null;
+          renderer.domElement.dataset.cityV3RailStations=String(cityV3RailSnapshot?.stations?.length||0);
+          renderer.domElement.dataset.cityV3RailTrainVisible=cityV3RailSnapshot?.trainVisible?'1':'0';
+          startupMark('city-v3-rail-installed');
+        }catch(error){
+          cityV3RailLoadError=String(error?.code||error?.message||error||'install-failed').replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,220);
+          document.documentElement.dataset.cityV3RailLoader=`fallback:${cityV3RailLoadError}`;
+          renderer.domElement.dataset.cityV3RailActivation=`fallback:${cityV3RailLoadError}`;
+          console.error('[CityV3Rail] atomic scene/world activation rejected; rail remains inactive',error);
+        }
+      }else if(cityV3RailCandidate&&!bridge){
+        cityV3RailLoadError='gameplay-bridge-missing';document.documentElement.dataset.cityV3RailLoader=`fallback:${cityV3RailLoadError}`;
+      }
       // Snapshot comes after activation: the exact legacy shell and resident
       // marker are suppressed only when the authored root is already present.
+      if(cityV3BuildingPreviewRequested&&bridge){
+        cityV3GlassAbort=new AbortController();
+        let glassTimeout;
+        document.documentElement.dataset.cityV3GlassLoader='loading:approved-GALLERIA';
+        const cancelGlass=()=>{cityV3GlassAbort.abort();cityV3GlassInstance?.dispose();cityV3GlassInstance=null;};
+        addEventListener('pagehide',cancelGlass,{once:true});
+        try{
+          const loadGlass=(async()=>{
+            const [runtime,{GLTFLoader}]=await Promise.all([
+              import('../assets/buildings/city_v3/glass_v1/runtime.v1.js?v=galleria-live-v1'),
+              import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js'),
+            ]);
+            if(cityV3GlassAbort.signal.aborted)throw new DOMException('Glass load cancelled','AbortError');
+            return runtime.installCityV3GlassBuilding({THREE,GLTFLoader,scene,bridge,renderer,originR,originC,worldScale:WORLD_SCALE,signal:cityV3GlassAbort.signal});
+          })();
+          const timeout=new Promise((_,reject)=>{glassTimeout=setTimeout(()=>{cityV3GlassAbort.abort();reject(new Error('GALLERIA load timeout20s'));},20000);});
+          cityV3GlassInstance=await Promise.race([loadGlass,timeout]);
+          document.documentElement.dataset.cityV3GlassLoader='active:GALLERIA:full-size';startupMark('city-v3-glass-installed');
+        }catch(error){
+          cityV3GlassAbort.abort();document.documentElement.dataset.cityV3GlassLoader=`fallback:${String(error?.message||error).slice(0,180)}`;
+          console.error('[CityV3Glass] retaining exact legacy shell',error);
+        }finally{clearTimeout(glassTimeout);}
+      }
+      if(cityV3BuildingPreviewRequested&&bridge){
+        cityV3NextAbort=new AbortController();let nextTimeout;
+        document.documentElement.dataset.cityV3NextLoader='loading:3-accepted-buildings';
+        const cancelNext=()=>{cityV3NextAbort.abort();cityV3NextInstance?.dispose();cityV3NextInstance=null;};
+        addEventListener('pagehide',cancelNext,{once:true});
+        try{
+          const loadNext=(async()=>{
+            const [runtime,{GLTFLoader}]=await Promise.all([
+              import('../assets/buildings/city_v3/next_batch_v1/runtime.v1.js?v=next-live-v1'),
+              import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js'),
+            ]);
+            if(cityV3NextAbort.signal.aborted)throw new DOMException('Next buildings cancelled','AbortError');
+            return runtime.installCityV3NextBuildings({THREE,GLTFLoader,scene,bridge,renderer,originR,originC,worldScale:WORLD_SCALE,signal:cityV3NextAbort.signal});
+          })();
+          const timeout=new Promise((_,reject)=>{nextTimeout=setTimeout(()=>{cityV3NextAbort.abort();reject(new Error('next buildings load timeout20s'));},20000);});
+          cityV3NextInstance=await Promise.race([loadNext,timeout]);
+          document.documentElement.dataset.cityV3NextLoader='active:3';startupMark('city-v3-next-installed');
+        }catch(error){
+          cityV3NextAbort.abort();document.documentElement.dataset.cityV3NextLoader=`fallback:${String(error?.message||error).slice(0,180)}`;
+          console.error('[CityV3Next] retaining all three exact legacy shells',error);
+        }finally{clearTimeout(nextTimeout);}
+      }
+      if(cityV3StartupFocusKey){
+        const applied=bridge?.previewApproachCityV3Building?.(cityV3StartupFocusKey);
+        const proof={phase:'after-asset-install-before-snapshot',key:cityV3StartupFocusKey,applied:!!applied,count:applied?1:0,
+          r:applied?.r??null,c:applied?.c??null,originR,originC};
+        document.documentElement.dataset.cityV3StartupFocus=JSON.stringify(proof);
+        renderer.domElement.dataset.cityV3StartupFocus=JSON.stringify(proof);
+      }
       const worldSnapshot=bridge?.getWorldSnapshot?.(WORLD_SNAPSHOT_RADIUS)||null;
+      if(cityV3RailInstance)cityV3RailSnapshot=worldSnapshot?.rail||cityV3RailSnapshot;
+      const cityV3RailPrompt=document.createElement('div');cityV3RailPrompt.id='cityV3RailPrompt';cityV3RailPrompt.style.cssText='display:none;position:absolute;left:50%;bottom:112px;transform:translateX(-50%);z-index:48;padding:11px 18px;border:1px solid #e5bd62;border-radius:13px;background:rgba(13,18,23,.94);color:#f6ecd8;font:800 14px system-ui;box-shadow:0 8px 28px #0008;pointer-events:none';stage.appendChild(cityV3RailPrompt);
       window.MafioziLoading?.set(69, 'Разворачиваем ближайший сектор города…');
 
       const skyLight=new THREE.HemisphereLight(0xb9d7ff,0x302634,2.65);scene.add(skyLight);
@@ -1488,11 +1621,35 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         renderer.domElement.dataset.cityV3AcceptedBuildingDoor=cityV3AcceptedInstances.map(instance=>`open:${instance.key}:${instance.binding.public_door.actual_anchor_grid_rc.join(':')}`).join(',');
         renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics||`loadedBuildings:${cityV3AcceptedInstances.length},replacedPlaceholder:${cityV3AcceptedInstances.length},overlap:0`;
       }
+      if(cityV3GlassInstance){
+        const q=cityV3GlassInstance.receipt.footprint,meta={r:47,c:67,minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,w:q.maxC-q.minC,d:q.maxR-q.minR,cityV3Key:'glass_pavilion_small@1',nonInteractive:true};
+        cityV3GlassInstance.root.traverse(mesh=>{if(!mesh.isMesh)return;mesh.userData.building=meta;mesh.userData.cityV3Building=true;mesh.userData.fadeMaterials=(Array.isArray(mesh.material)?mesh.material:[mesh.material]).filter(Boolean);mesh.userData.fadeMaterials.forEach(m=>{m.userData.mfzOcclusionOpacity=.46;});occluders.push(mesh);});
+        const shadow=makeContactShadow(14.5*WORLD_SCALE/4.1,12.24*WORLD_SCALE/4.1,contactShadowMaterial);
+        shadow.position.set(cityV3GlassInstance.root.position.x,.058,cityV3GlassInstance.root.position.z);scene.add(shadow);
+        renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics;
+      }
+      if(cityV3NextInstance){
+        cityV3NextInstance.roots.forEach((root,i)=>{
+          const contract=cityV3NextInstance.receipt.buildings[i],q=contract.footprint,meta={r:contract.centerGridRC[0],c:contract.centerGridRC[1],minR:q.minR,maxR:q.maxR,minC:q.minC,maxC:q.maxC,w:q.maxC-q.minC,d:q.maxR-q.minR,cityV3Key:contract.key,nonInteractive:true};
+          root.traverse(mesh=>{if(!mesh.isMesh)return;mesh.userData.building=meta;mesh.userData.cityV3Building=true;mesh.userData.fadeMaterials=(Array.isArray(mesh.material)?mesh.material:[mesh.material]).filter(Boolean);mesh.userData.fadeMaterials.forEach(m=>{m.userData.mfzOcclusionOpacity=.46;});occluders.push(mesh);});
+          const shadow=makeContactShadow((q.maxC-q.minC+.25)*WORLD_SCALE,(q.maxR-q.minR+.25)*WORLD_SCALE,contactShadowMaterial);
+          shadow.position.set(root.position.x,.058,root.position.z);scene.add(shadow);
+        });
+        renderer.domElement.dataset.cityV3BuildingDiagnostics=document.documentElement.dataset.cityV3BuildingDiagnostics;
+      }
       renderer.domElement.dataset.genericStorefrontGlow='signed-only-circadian-opacity-v1';
       // One pooled doorway system covers every authoritative resident exit.
       // Static frames/voids are instanced; only leaves whose target changed
       // receive matrix updates while opening or closing.
       const buildingDoorDefs=bridge?.getBuildingDoors?.()||[],sharedBuildingDoorDefs=buildingDoorDefs.filter(door=>door.sourceKind!=='bank'&&door.sourceKind!=='blackmarket');
+      if(cityV3GlassInstance){
+        const ownedLegacy=sharedBuildingDoorDefs.filter(d=>d.id==='door_45_65_0');
+        const authoredLeaves=['Small_Public_Double_Door_GLASS_LEAF_L','Small_Public_Double_Door_GLASS_LEAF_R'].map(name=>{
+          const node=cityV3GlassInstance.root.getObjectByName(name);let visible=!!node;for(let p=node;p;p=p.parent)if(p.visible===false)visible=false;
+          return {name,exists:!!node,visible};
+        });
+        renderer.domElement.dataset.cityV3GlassRenderedDoors=JSON.stringify({legacyPooledActorCount:ownedLegacy.length,legacyPooledActorIds:ownedLegacy.map(d=>d.id),authoredPublicLeaves:authoredLeaves});
+      }
       const buildingDoorActorsById=new Map(),buildingDoorAnimating=new Set(),activeBuildingDoorIds=new Set(),buildingDoorSourceIds=new Map(buildingDoorDefs.filter(door=>door.sourceId).map(door=>[`${door.sourceKind}:${door.sourceId}`,String(door.id)]));
       const DOOR_W=2.28,DOOR_H=3.42,DOOR_FRAME=.16,DOOR_LEAF_PLANE=.055,DOOR_VOID_PLANE=.018,doorCount=sharedBuildingDoorDefs.length,doorFrameCount=doorCount*3;
       const doorLeafMesh=new THREE.InstancedMesh(new THREE.BoxGeometry(DOOR_W,DOOR_H,.08),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.56,metalness:.28,envMap:cityEnvironment,envMapIntensity:.72}),Math.max(1,doorCount));
@@ -2253,7 +2410,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const lampMat = new THREE.MeshStandardMaterial({ color: 0x35434a, metalness: .82, roughness: .26 }),lampTrimMat=new THREE.MeshStandardMaterial({color:0x7a878d,metalness:.9,roughness:.2}),lampShadeMat=new THREE.MeshStandardMaterial({color:0x182127,metalness:.56,roughness:.4});
       const bulbMat = new THREE.MeshBasicMaterial({ color: 0x24292e, toneMapped:false });
       const streetLights=[];
-      const fixedLampDefs=[],addLampDef=(r,c)=>{if(snapshotStyleAt(r+.5,c+.5)==='countryside')return;const probe=bridge?.collisionProbe?.(r+.5,c+.5);if(probe&&!probe.blocked&&probe.tile!==16)fixedLampDefs.push([(c-originC)*WORLD_SCALE,(r-originR)*WORLD_SCALE]);};for(let r=6;r<(envSnapshot?.mapRows||worldSnapshot?.bounds?.maxR||80)-2;r+=10)for(let c=3;c<(envSnapshot?.mapCols||worldSnapshot?.bounds?.maxC||200)-2;c+=10){addLampDef(r,c);if(c+14<(envSnapshot?.mapCols||worldSnapshot?.bounds?.maxC||200)-2)addLampDef(r,c+14);}
+      const fixedLampDefs=[],addLampDef=(r,c)=>{if(cityV3DecorGardenAt(r,c)||snapshotStyleAt(r+.5,c+.5)==='countryside')return;const probe=bridge?.collisionProbe?.(r+.5,c+.5);if(probe&&!probe.blocked&&probe.tile!==16)fixedLampDefs.push([(c-originC)*WORLD_SCALE,(r-originR)*WORLD_SCALE]);};for(let r=6;r<(envSnapshot?.mapRows||worldSnapshot?.bounds?.maxR||80)-2;r+=10)for(let c=3;c<(envSnapshot?.mapCols||worldSnapshot?.bounds?.maxC||200)-2;c+=10){addLampDef(r,c);if(c+14<(envSnapshot?.mapCols||worldSnapshot?.bounds?.maxC||200)-2)addLampDef(r,c+14);}
       const lampHeadGlowCanvas=document.createElement('canvas');lampHeadGlowCanvas.width=lampHeadGlowCanvas.height=96;const lampHeadGlowContext=lampHeadGlowCanvas.getContext('2d'),lampHeadGlowGradient=lampHeadGlowContext.createRadialGradient(48,48,3,48,48,47);lampHeadGlowGradient.addColorStop(0,'rgba(255,244,205,1)');lampHeadGlowGradient.addColorStop(.18,'rgba(255,205,119,.78)');lampHeadGlowGradient.addColorStop(.5,'rgba(255,166,70,.24)');lampHeadGlowGradient.addColorStop(1,'rgba(255,135,40,0)');lampHeadGlowContext.fillStyle=lampHeadGlowGradient;lampHeadGlowContext.fillRect(0,0,96,96);const lampHeadGlowTexture=new THREE.CanvasTexture(lampHeadGlowCanvas);lampHeadGlowTexture.colorSpace=THREE.SRGBColorSpace;lampHeadGlowTexture.generateMipmaps=false;const lampHeadGlowMat=new THREE.MeshBasicMaterial({map:lampHeadGlowTexture,color:0xffc36b,toneMapped:false,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),fixedLampHeadGlows=new THREE.InstancedMesh(new THREE.PlaneGeometry(2.6,2.6),lampHeadGlowMat,fixedLampDefs.length),fixedPostMatrices=new THREE.InstancedMesh(new THREE.CylinderGeometry(.15,.25,7.2,12),lampMat,fixedLampDefs.length),fixedLampBases=new THREE.InstancedMesh(new THREE.CylinderGeometry(.42,.5,.3,14),lampTrimMat,fixedLampDefs.length),fixedLampCollars=new THREE.InstancedMesh(new THREE.CylinderGeometry(.23,.23,.18,12),lampTrimMat,fixedLampDefs.length),fixedLampArms=new THREE.InstancedMesh(new THREE.BoxGeometry(2.25,.16,.16),lampMat,fixedLampDefs.length),fixedLampShades=new THREE.InstancedMesh(new THREE.CylinderGeometry(.42,.56,.34,12),lampShadeMat,fixedLampDefs.length),fixedBulbMatrices=new THREE.InstancedMesh(new THREE.SphereGeometry(.38,14,10),bulbMat,fixedLampDefs.length),fixedLampMatrix=new THREE.Matrix4(),fixedLampQuat=new THREE.Quaternion(),fixedLampScale=new THREE.Vector3(1,1,1),lampGlowFacingOffset=new THREE.Vector3(0,0,.22).applyQuaternion(camera.quaternion),fixedLampHeads=[];fixedLampDefs.forEach(([x,z],i)=>{const turn=(i%2)*Math.PI/2,dx=Math.cos(turn)*1.08,dz=-Math.sin(turn)*1.08,hx=x+dx*1.72,hz=z+dz*1.72;fixedLampHeads.push([hx,hz]);fixedLampMatrix.compose(new THREE.Vector3(x,3.6,z),fixedLampQuat.identity(),fixedLampScale);fixedPostMatrices.setMatrixAt(i,fixedLampMatrix);fixedLampMatrix.compose(new THREE.Vector3(x,.15,z),fixedLampQuat.identity(),fixedLampScale);fixedLampBases.setMatrixAt(i,fixedLampMatrix);fixedLampMatrix.compose(new THREE.Vector3(x,6.72,z),fixedLampQuat.identity(),fixedLampScale);fixedLampCollars.setMatrixAt(i,fixedLampMatrix);fixedLampQuat.setFromEuler(new THREE.Euler(0,turn,0));fixedLampMatrix.compose(new THREE.Vector3(x+dx*.82,6.82,z+dz*.82),fixedLampQuat,fixedLampScale);fixedLampArms.setMatrixAt(i,fixedLampMatrix);fixedLampMatrix.compose(new THREE.Vector3(hx,6.72,hz),fixedLampQuat.identity(),fixedLampScale);fixedLampShades.setMatrixAt(i,fixedLampMatrix);fixedLampMatrix.compose(new THREE.Vector3(hx,6.45,hz),fixedLampQuat.identity(),new THREE.Vector3(1,.7,1));fixedBulbMatrices.setMatrixAt(i,fixedLampMatrix);fixedLampMatrix.compose(new THREE.Vector3(hx+lampGlowFacingOffset.x,6.45+lampGlowFacingOffset.y,hz+lampGlowFacingOffset.z),camera.quaternion,fixedLampScale);fixedLampHeadGlows.setMatrixAt(i,fixedLampMatrix);});for(const mesh of [fixedPostMatrices,fixedLampBases,fixedLampCollars,fixedLampArms,fixedLampShades,fixedBulbMatrices,fixedLampHeadGlows]){mesh.instanceMatrix.needsUpdate=true;sealStaticInstanceBounds(mesh);mesh.castShadow=![fixedBulbMatrices,fixedLampHeadGlows].includes(mesh);mesh.receiveShadow=mesh.castShadow;if(mesh===fixedLampHeadGlows)mesh.renderOrder=19;scene.add(mesh);}
       const lampGlowCanvas=document.createElement('canvas');lampGlowCanvas.width=lampGlowCanvas.height=256;const lampGlowContext=lampGlowCanvas.getContext('2d'),lampGlowGradient=lampGlowContext.createRadialGradient(128,128,3,128,128,126);lampGlowGradient.addColorStop(0,'rgba(255,225,150,.72)');lampGlowGradient.addColorStop(.24,'rgba(255,194,92,.34)');lampGlowGradient.addColorStop(.62,'rgba(255,151,55,.1)');lampGlowGradient.addColorStop(1,'rgba(255,130,35,0)');lampGlowContext.fillStyle=lampGlowGradient;lampGlowContext.fillRect(0,0,256,256);const lampGlowTexture=new THREE.CanvasTexture(lampGlowCanvas);lampGlowTexture.colorSpace=THREE.SRGBColorSpace;lampGlowTexture.minFilter=THREE.LinearFilter;lampGlowTexture.magFilter=THREE.LinearFilter;lampGlowTexture.generateMipmaps=false;const lampGlowMat=new THREE.MeshBasicMaterial({map:lampGlowTexture,color:0xffd08a,transparent:true,opacity:.02,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}),fixedLampGlows=new THREE.InstancedMesh(new THREE.PlaneGeometry(13,13),lampGlowMat,fixedLampHeads.length),lampGlowQuat=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0)),lampGlowScale=new THREE.Vector3(1,1,1);fixedLampHeads.forEach(([x,z],i)=>{fixedLampMatrix.compose(new THREE.Vector3(x,.075,z),lampGlowQuat,lampGlowScale);fixedLampGlows.setMatrixAt(i,fixedLampMatrix);});fixedLampGlows.instanceMatrix.needsUpdate=true;fixedLampGlows.frustumCulled=false;fixedLampGlows.renderOrder=2;scene.add(fixedLampGlows);
       const lampSpots=[[-14,-7],[14,-7],[-14,7],[14,7]];
@@ -4268,6 +4425,14 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const buildingPromptStyle=document.createElement('style');buildingPromptStyle.textContent='@keyframes mfzBuildingPromptIn{0%{opacity:0}100%{opacity:1}}@keyframes mfzNpcPromptIn{0%{opacity:0}100%{opacity:1}}@keyframes mfzBuildingKeyPulse{0%,100%{box-shadow:0 3px 10px #0009,0 0 9px #ffd76b55}50%{box-shadow:0 3px 10px #0009,0 0 20px #fff0a8cc}}';document.head.appendChild(buildingPromptStyle);
       const buildingPrompt=document.createElement('div');buildingPrompt.style.cssText='position:absolute;left:0;top:0;transform:translate(-999px,-999px) translate(-50%,-100%);z-index:22;display:none;min-width:210px;max-width:min(340px,calc(100vw - 28px));padding:10px 16px 11px;border:1px solid rgba(255,225,118,.96);border-radius:14px;background:linear-gradient(145deg,rgba(9,16,27,.985),rgba(44,29,10,.965));color:#fff4bd;font:900 13px system-ui;line-height:1.2;text-align:center;pointer-events:none;white-space:normal;box-shadow:0 12px 34px #000e,0 0 0 1px rgba(255,190,45,.22) inset,0 0 28px #ffcb3c55;backdrop-filter:blur(9px)';stage.appendChild(buildingPrompt);
       const buildingPromptKey=document.createElement('span');buildingPromptKey.textContent='E';buildingPromptKey.style.cssText='display:inline-grid;place-items:center;min-width:23px;height:23px;margin-right:8px;border:1px solid #fff4b9;border-radius:7px;background:linear-gradient(#ffe27c,#b87519);color:#171008;font:1000 12px system-ui;animation:mfzBuildingKeyPulse 1.25s ease-in-out infinite';buildingPrompt.appendChild(buildingPromptKey);const buildingPromptText=document.createElement('span');buildingPrompt.appendChild(buildingPromptText);const buildingPromptHint=document.createElement('small');buildingPromptHint.style.cssText='display:block;margin:5px 0 0 31px;color:#8debd1;font:800 9px system-ui;letter-spacing:1.5px;text-transform:uppercase';buildingPrompt.appendChild(buildingPromptHint);
+      // Keep the authored entrance visible instead of covering the small facade
+      // with a larger interaction card. This changes presentation, not E input.
+      if(cityV3BuildingPreviewRequested){
+        buildingPrompt.dataset.layout='city-v3-compact-bottom-dock';
+        buildingPrompt.style.minWidth='0';buildingPrompt.style.padding='7px 12px';
+        buildingPrompt.style.borderRadius='9px';buildingPrompt.style.boxShadow='0 4px 14px #0009';
+        buildingPromptKey.style.animation='none';buildingPromptHint.style.marginTop='3px';
+      }
       const npcPrompt=document.createElement('div');npcPrompt.id='npcActionPrompt';npcPrompt.style.cssText='position:absolute;left:0;top:0;z-index:23;display:none;min-width:158px;padding:7px 11px 8px;border:1px solid #dfb75b;border-radius:11px;background:linear-gradient(145deg,#0a0f16,#2b180e);color:#fff0bd;font:900 13px system-ui;text-align:center;text-shadow:0 1px 0 #000;pointer-events:none;box-shadow:0 7px 20px #000c,0 0 16px #d49b3d55;transform:translate(-999px,-999px) translate(-50%,-100%);animation:mfzNpcPromptIn .12s linear both';npcPrompt.innerHTML='<span style="display:inline-grid;place-items:center;min-width:22px;height:22px;margin-right:7px;border:1px solid #fff4b9;border-radius:7px;background:linear-gradient(#ffe27c,#b87519);color:#171008;font:1000 12px Arial,sans-serif;text-shadow:none;animation:mfzBuildingKeyPulse 1.25s ease-in-out infinite">E</span><span>Действия</span>';stage.appendChild(npcPrompt);const npcPromptProjection=new THREE.Vector3();
       const vehicleHoldPrompt=document.createElement('div');vehicleHoldPrompt.style.cssText='position:absolute;left:0;top:0;transform:translate(-999px,-999px) translate(-50%,-100%);z-index:24;display:none;min-width:220px;max-width:min(330px,calc(100vw - 34px));padding:9px 13px 10px;border:1px solid #ffe07a;border-radius:12px;background:linear-gradient(145deg,rgba(9,15,24,.985),rgba(48,30,8,.97));color:#fff4c2;font:900 13px system-ui;text-align:center;text-shadow:0 1px #000;box-shadow:0 10px 32px #000d,0 0 22px #ffd24a45;pointer-events:none';vehicleHoldPrompt.innerHTML='<div>🚗 Угнать (удерживайте E)</div><div style="height:7px;margin-top:7px;border-radius:6px;background:#2b3038;overflow:hidden"><i style="display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#d18b25,#ffe67e);box-shadow:0 0 10px #ffd86b"></i></div>';stage.appendChild(vehicleHoldPrompt);const vehicleHoldFill=vehicleHoldPrompt.querySelector('i'),vehiclePromptProjection=new THREE.Vector3(),bizConfirmModal=document.getElementById('bizConfirmModal');
       const rollback=document.createElement('button');rollback.type='button';rollback.textContent='↩ Вернуться в 2D';rollback.title='Безопасный откат на прежний Canvas-рендер';
@@ -4293,7 +4458,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const updateNearbyVehiclePromptPosition=near=>{if(!near||vehicleHoldPrompt.style.display==='none')return;vehiclePromptProjection.set(nearbyVehicleRing.position.x,4.9,nearbyVehicleRing.position.z).project(camera);const anchorX=(vehiclePromptProjection.x*.5+.5)*lastW,anchorY=(-vehiclePromptProjection.y*.5+.5)*lastH,w=Math.min(280,lastW-24),h=54,pad=12,x=Math.round(Math.max(pad+w/2,Math.min(lastW-pad-w/2,anchorX))),y=Math.round(Math.max(pad+h,Math.min(lastH-pad,anchorY)));vehicleHoldPrompt.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`;vehicleHoldPrompt.dataset.anchor='vehicle-roof-crisp-pixel-v321';};
       const updateNearbyNpcPromptPosition=near=>{if(!near||npcPrompt.style.display==='none')return;npcPromptProjection.set(nearbyNpcRing.position.x,12.3,nearbyNpcRing.position.z).project(camera);const anchorX=(npcPromptProjection.x*.5+.5)*lastW,anchorY=(-npcPromptProjection.y*.5+.5)*lastH,w=Math.min(190,lastW-24),h=44,pad=12,x=Math.round(Math.max(pad+w/2,Math.min(lastW-pad-w/2,anchorX))),y=Math.round(Math.max(pad+h,Math.min(lastH-pad,anchorY)));npcPrompt.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%)`;npcPrompt.dataset.anchor='above-raised-npc-labels-v347';};
       addEventListener('keydown',e=>{if(npcActionMenuOpen()){keys.clear();return;}const typing=e.target?.matches?.('input,textarea,select,[contenteditable="true"]'),chatMode=document.documentElement.dataset.chatMode==='open';if(typing||chatMode){keys.clear();return;}keys.add(e.code);if(e.code==='KeyE'&&!e.repeat){const vehicle=nearbyVehicleState,building=nearbyActionState,npc=nearbyNpcState;eHoldStarted=performance.now();eHoldTriggered=false;eHoldVehicleId=String(vehicle?.id||'');eHoldHasBuilding=!!building;eHoldNpcKey=String(npc?.key||'');if(vehicle){vehicleHoldPrompt.firstElementChild.textContent=eHoldNpcKey?'Короткое E — действия NPC · удержание — машина':vehiclePromptLabel(vehicle);vehicleHoldPrompt.style.display='block';vehicleHoldFill.style.width='0';renderer.domElement.dataset.vehicleHold=`waiting:${eHoldVehicleId}`;renderer.domElement.dataset.interactionPriority=eHoldNpcKey?'tap-npc-hold-vehicle':eHoldHasBuilding?'tap-building-hold-vehicle':'hold-vehicle-only';eHoldTimer=setTimeout(()=>{if(keys.has('KeyE'))triggerVehicleEntry();},vehicleHoldMs);}else renderer.domElement.dataset.interactionPriority=eHoldNpcKey?'npc-actions':building?'building-only':'none';e.preventDefault();e.stopImmediatePropagation();}else if(e.code==='Escape'){bridge?.closeBuildingActions?.();}else if(e.code==='Space'){e.preventDefault();e.stopImmediatePropagation();if(currentWeaponId==='c4')bridge?.plantC4?.();else if(!isThrowablePrimary())shoot(performance.now());}},true);
-      addEventListener('keyup',e=>{keys.delete(e.code);if(npcActionMenuOpen())return;const typing=e.target?.matches?.('input,textarea,select,[contenteditable="true"]'),chatMode=document.documentElement.dataset.chatMode==='open';if(typing||chatMode){if(e.code==='KeyE'){clearTimeout(eHoldTimer);vehicleHoldPrompt.style.display='none';eHoldStarted=0;eHoldVehicleId='';eHoldHasBuilding=false;eHoldNpcKey='';}return;}if(e.code!=='KeyE')return;clearTimeout(eHoldTimer);vehicleHoldPrompt.style.display='none';if(!eHoldTriggered){if(eHoldNpcKey){const result=bridge?.openNpcActions?.(eHoldNpcKey);renderer.domElement.dataset.npcAction=result?.ok?`open:${result.kind}:${eHoldNpcKey}`:`rejected:${result?.reason||'none'}`;renderer.domElement.dataset.interactionPriority=result?.ok?'npc-actions-open':'npc-actions-rejected';}else{const bankResult=bridge?.interactBank?.(),result=bankResult?.ok?bankResult:bridge?.toggleNearbyBuildingActions?.(innerWidth/2,innerHeight*.58);renderer.domElement.dataset.buildingAction=result?.ok?(result.closed?'closed':`${result.kind}:${result.id||''}`):`rejected:${result?.reason||'none'}`;renderer.domElement.dataset.interactionPriority=eHoldHasBuilding?'building-tap-complete':eHoldVehicleId?'vehicle-short-ignored':'building-only-complete';}}if(eHoldTriggered)renderer.domElement.dataset.vehicleHold='complete';else renderer.domElement.dataset.vehicleHold=eHoldNpcKey?'short-npc-action':'short-building-action';eHoldStarted=0;eHoldVehicleId='';eHoldHasBuilding=false;eHoldNpcKey='';},true);
+      addEventListener('keyup',e=>{keys.delete(e.code);if(npcActionMenuOpen())return;const typing=e.target?.matches?.('input,textarea,select,[contenteditable="true"]'),chatMode=document.documentElement.dataset.chatMode==='open';if(typing||chatMode){if(e.code==='KeyE'){clearTimeout(eHoldTimer);vehicleHoldPrompt.style.display='none';eHoldStarted=0;eHoldVehicleId='';eHoldHasBuilding=false;eHoldNpcKey='';}return;}if(e.code!=='KeyE')return;clearTimeout(eHoldTimer);vehicleHoldPrompt.style.display='none';if(!eHoldTriggered){if(cityV3RailSnapshot&&(cityV3RailSnapshot.aboard||cityV3RailSnapshot.boarding?.canInteract)){const result=bridge?.toggleCityV3RailBoarding?.();renderer.domElement.dataset.cityV3RailInteraction=result?.ok?`${result.aboard?'board':'exit'}:${result.stationId}`:`rejected:${result?.reason||'none'}`;renderer.domElement.dataset.interactionPriority=result?.ok?'rail-passenger':'rail-rejected';}else if(eHoldNpcKey){const result=bridge?.openNpcActions?.(eHoldNpcKey);renderer.domElement.dataset.npcAction=result?.ok?`open:${result.kind}:${eHoldNpcKey}`:`rejected:${result?.reason||'none'}`;renderer.domElement.dataset.interactionPriority=result?.ok?'npc-actions-open':'npc-actions-rejected';}else{const bankResult=bridge?.interactBank?.(),result=bankResult?.ok?bankResult:bridge?.toggleNearbyBuildingActions?.(innerWidth/2,innerHeight*.58);renderer.domElement.dataset.buildingAction=result?.ok?(result.closed?'closed':`${result.kind}:${result.id||''}`):`rejected:${result?.reason||'none'}`;renderer.domElement.dataset.interactionPriority=eHoldHasBuilding?'building-tap-complete':eHoldVehicleId?'vehicle-short-ignored':'building-only-complete';}}if(eHoldTriggered)renderer.domElement.dataset.vehicleHold='complete';else renderer.domElement.dataset.vehicleHold=eHoldNpcKey?'short-npc-action':'short-building-action';eHoldStarted=0;eHoldVehicleId='';eHoldHasBuilding=false;eHoldNpcKey='';},true);
       addEventListener('keyup',e=>{if(e.code==='KeyE')vehicleHoldFill.style.width='0';},true);
       const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2(),frameMove=new THREE.Vector3(),occlusionSight=new THREE.Vector3(),occlusionRaycaster=new THREE.Raycaster(),occlusionHits=[];let activeAimSurface=ground,mouseAimActive=false,mouseClientX=0,mouseClientY=0,selectedNpcSourceId='',selectedNpcUntil=0,activeGangShotSourceId='',activeNpcShotId='',activeVehicleShotId='';
       if(rendererParams.has('previewlaseraim')){laserAimHeld=true;mouseAimActive=true;mouseClientX=innerWidth*.68;mouseClientY=innerHeight*.52;renderer.domElement.dataset.laserAimPreview='forced-held-local-qa';}
@@ -4809,6 +4974,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       const updateOcclusionMaterials=(dt,t)=>{let fading=0,restoring=0;for(const [material,state] of occlusionMaterialStates){if(state.targetOpacity===state.fadeOpacity&&t-state.lastBlockedAt>OCCLUSION_RELEASE_HOLD_MS)state.targetOpacity=state.baseOpacity;const towardFade=state.targetOpacity<state.baseOpacity-.001,ease=1-Math.exp(-dt*(towardFade?13:9)),next=THREE.MathUtils.lerp(material.opacity,state.targetOpacity,ease);if(towardFade){if(!material.transparent){material.transparent=true;material.needsUpdate=true;}material.depthWrite=false;fading++;}else restoring++;material.opacity=Math.abs(next-state.targetOpacity)<.004?state.targetOpacity:next;if(!towardFade&&material.opacity===state.baseOpacity){material.depthWrite=state.baseDepthWrite;if(material.transparent!==state.baseTransparent){material.transparent=state.baseTransparent;material.needsUpdate=true;}occlusionMaterialStates.delete(material);}}renderer.domElement.dataset.occlusionMaterials=`fade:${fading}:restore:${restoring}`;};
       renderer.domElement.dataset.roofOcclusionProfile='visible-facade-roof-split-highlight-restore-v330';
       if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewzoom')){worldZoom=THREE.MathUtils.clamp(+rendererParams.get('previewzoom')||1,.82,2.6);camera.zoom=worldZoom;camera.updateProjectionMatrix();renderer.domElement.dataset.worldZoom=worldZoom.toFixed(2);}
+      // Authored details are readable without a debug URL. Normal gameplay
+      // keeps its original framing; an explicit existing previewzoom wins.
+      if(!((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&rendererParams.has('previewzoom')))worldZoom=cityV3BuildingPreviewRequested?1.3:1;
+      camera.zoom=worldZoom;camera.updateProjectionMatrix();renderer.domElement.dataset.worldZoom=worldZoom.toFixed(2);
       const playerAnim={speed:0,gait:0,accel:0,rootYaw:0,legYaw:0,stepBucket:-1,lastStepAt:0,cameraKick:0,crouchBlend:0,proneBlend:0,visualTravelSpeed:0};
       const expDamp=(value,target,rate,dt)=>THREE.MathUtils.lerp(value,target,1-Math.exp(-Math.max(0,rate)*dt));
       const smooth01=value=>{const q=Math.max(0,Math.min(1,value));return q*q*(3-2*q);};
@@ -4829,14 +4998,35 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         roots.sort((a,b)=>b[1]-a[1]);window.Mafiozi3DDiagnostics={visibleMeshes,visibleLights,visibleMaterials:materials.size,invalidMaterials:invalidMaterials.slice(0,24),topRoots:roots.slice(0,24),drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles,fps:measuredFps};
         renderer.domElement.dataset.visibleMeshes=String(visibleMeshes);renderer.domElement.dataset.visibleMaterials=String(materials.size);renderer.domElement.dataset.visibleLights=String(visibleLights);renderer.domElement.dataset.sceneRoots=roots.slice(0,24).map(([name,count])=>`${name}:${count}`).join('|');
       };
+      function createWorldZoomControls({host,getZoom,setZoom,getMode}){
+        const controls=document.createElement('div');controls.id='worldZoomControls';
+        controls.setAttribute('role','group');controls.setAttribute('aria-label','Масштаб города');
+        controls.style.cssText='position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:42;display:flex;align-items:center;gap:3px;padding:3px;border:1px solid #c9a85c;border-radius:12px;background:rgba(14,20,26,.94);color:#f9e8b8;box-shadow:0 4px 14px #0005;pointer-events:auto;touch-action:manipulation';
+        const output=document.createElement('output');output.setAttribute('aria-label','Текущий масштаб города');output.style.cssText='min-width:58px;text-align:center;font:800 13px system-ui;user-select:none';
+        const button=(label,text)=>{const b=document.createElement('button');b.type='button';b.textContent=text;b.setAttribute('aria-label',label);b.title=label;b.style.cssText='width:44px;height:40px;border:0;border-radius:9px;background:#28313b;color:#f9e8b8;font:900 23px system-ui;cursor:pointer;outline-offset:2px';return b;};
+        const minus=button('Отдалить город','−'),plus=button('Приблизить город','+');
+        controls.append(minus,output,plus);host.appendChild(controls);let disposed=false;
+        const stop=e=>e.stopPropagation();
+        const sync=()=>{if(disposed)return;const zoom=getZoom(),world=getMode()==='world';controls.style.display=world?'flex':'none';output.textContent=`${Math.round(zoom*100)}%`;minus.disabled=!world||zoom<=.820001;plus.disabled=!world||zoom>=2.599999;minus.style.opacity=minus.disabled?'.4':'1';plus.style.opacity=plus.disabled?'.4':'1';};
+        const change=delta=>e=>{stop(e);if(disposed||getMode()!=='world')return;setZoom(getZoom()+delta);sync();};
+        const down=change(-.15),up=change(.15);
+        minus.addEventListener('click',down);plus.addEventListener('click',up);
+        controls.addEventListener('pointerdown',stop);controls.addEventListener('pointerup',stop);controls.addEventListener('keydown',stop);controls.addEventListener('keyup',stop);
+        sync();return {sync,dispose(){if(disposed)return;disposed=true;minus.removeEventListener('click',down);plus.removeEventListener('click',up);controls.removeEventListener('pointerdown',stop);controls.removeEventListener('pointerup',stop);controls.removeEventListener('keydown',stop);controls.removeEventListener('keyup',stop);controls.remove();}};
+      }
+      const setWorldZoom=value=>{
+        worldZoom=THREE.MathUtils.clamp(value,.82,2.6);
+        if(cameraZoomMode==='world'){camera.zoom=worldZoom;camera.updateProjectionMatrix();}
+        renderer.domElement.dataset.worldZoom=worldZoom.toFixed(2);
+      };
+      const worldZoomControls=createWorldZoomControls({host:stage,getZoom:()=>worldZoom,setZoom:setWorldZoom,getMode:()=>cameraZoomMode});
       let cameraWheelEvents=0;
       const handleCameraWheel=e=>{
         if(!stage.classList.contains('three-mode'))return;
         e.preventDefault();
         const direction=e.deltaY<0?1:-1,step=Math.min(.22,Math.max(.08,Math.abs(e.deltaY)*.0022));
         if(cameraZoomMode==='world'){
-          worldZoom=THREE.MathUtils.clamp(worldZoom+direction*step,.82,1.3);
-          camera.zoom=worldZoom;renderer.domElement.dataset.worldZoom=worldZoom.toFixed(2);
+          setWorldZoom(worldZoom+direction*step);worldZoomControls.sync();
         }else{
           interiorZoom=THREE.MathUtils.clamp(interiorZoom+direction*step,.55,1.9);
           camera.zoom=interiorZoom;renderer.domElement.dataset.interiorZoom=interiorZoom.toFixed(2);
@@ -4845,6 +5035,9 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         renderer.domElement.dataset.cameraWheelEvents=String(cameraWheelEvents);
       };
       window.addEventListener('wheel',handleCameraWheel,{passive:false,capture:true});
+      let zoomControlsDisposed=false;
+      disposeWorldZoomControls=()=>{if(zoomControlsDisposed)return;zoomControlsDisposed=true;worldZoomControls.dispose();window.removeEventListener('wheel',handleCameraWheel,true);window.removeEventListener('pagehide',disposeWorldZoomControls);};
+      window.addEventListener('pagehide',disposeWorldZoomControls,{once:true});
       const onIdle=callback=>typeof requestIdleCallback==='function'?requestIdleCallback(callback,{timeout:180}):setTimeout(()=>callback({timeRemaining:()=>4}),16);
       let sectorAnchor=initialState?`${Math.floor((+initialState.r||0)/STREAM_SECTOR_SIZE)}:${Math.floor((+initialState.c||0)/STREAM_SECTOR_SIZE)}`:'',sectorLoadScheduled=false,sectorBuildQueue=deferredInitialBuildings.slice(),junkyardProbeAt=0;
       let buildingPumpStarted=false,staticDetailFlushScheduled=false,initialCompileRunning=false,deferredWarmupRunning=false;
@@ -5013,7 +5206,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       });
       let threeFrameErrorStreak=0,threeFrameRecoveryCount=0,threeFrameLastError='',previewFrameErrorInjected=false;
       const animate = t => {
-        if (!document.body.contains(renderer.domElement)) return;
+        if (!document.body.contains(renderer.domElement)) {disposeWorldZoomControls();disposeCityV3Decor();return;}
         // Queue the next frame before doing any scene work. A transient error in
         // one NPC/vehicle animation must drop one frame, not permanently stop
         // the whole 3D city until the player reloads the WebApp.
@@ -5024,6 +5217,25 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         lastPresentedAt=t;
         if(rendererParams.has('previewframeerror')&&!previewFrameErrorInjected){previewFrameErrorInjected=true;throw new Error('preview-frame-recovery-qa');}
         const telemetryDue=t>=telemetryAt;if(telemetryDue)telemetryAt=t+250;
+        if(fullMaterialsReady)startCityV3Decor();
+        cityV3DecorInstance?.update(t,bridge?.getPlayerState?.(),telemetryDue);
+        if(cityV3GlassInstance&&telemetryDue){const gs=bridge?.getPlayerState?.();if(gs)cityV3GlassInstance.update({distanceM:Math.hypot(gs.r-47,gs.c-67)*WORLD_SCALE});}
+        if(cityV3RailInstance){
+          cityV3RailSnapshot=bridge?.getCityV3RailSnapshot?.()||null;
+          if(cityV3RailSnapshot)cityV3RailRuntime.updateCityV3RailCandidate(cityV3RailInstance,cityV3RailSnapshot,{originR,originC,worldScale:WORLD_SCALE});
+          const boarding=cityV3RailSnapshot?.boarding,railInteract=!!cityV3RailSnapshot&&(cityV3RailSnapshot.aboard||boarding?.canInteract);
+          cityV3RailPrompt.style.display=railInteract?'block':'none';
+          if(railInteract)cityV3RailPrompt.textContent=cityV3RailSnapshot.aboard?'E · Выйти на платформу':'E · Сесть в поезд';
+          if(telemetryDue){
+            renderer.domElement.dataset.railStations=String(cityV3RailSnapshot?.stations?.length||0);renderer.domElement.dataset.railTrains=String(cityV3RailSnapshot?.trains||0);
+            renderer.domElement.dataset.trainVisible=cityV3RailSnapshot?.trainVisible?'1':'0';renderer.domElement.dataset.stationId=cityV3RailSnapshot?.stationId||'';
+            renderer.domElement.dataset.dwellRemaining=Number.isFinite(+cityV3RailSnapshot?.dwellRemaining)?(+cityV3RailSnapshot.dwellRemaining).toFixed(3):'';
+            renderer.domElement.dataset.railAssetSha256=cityV3RailSnapshot?.assetSha256||'';renderer.domElement.dataset.railCollisionBodies=String(cityV3RailSnapshot?.collision?.bodies||0);
+            renderer.domElement.dataset.railObstruction=cityV3RailSnapshot?.obstruction?'1':'0';renderer.domElement.dataset.railRouteAuthority=cityV3RailSnapshot?.routeAuthority?.ready?'ready':'held';
+            renderer.domElement.dataset.railSignalAspect=(cityV3RailSnapshot?.signals||[]).map(signal=>`${signal.stationId}:${signal.aspect}`).join(',');
+            renderer.domElement.dataset.railCrossingRoadState=(cityV3RailSnapshot?.crossings||[]).map(crossing=>`${crossing.id}:${crossing.roadState}:${crossing.roadOccupied?'occupied':'clear'}`).join(',');
+          }
+        }
         if(telemetryDue){
           const raid=bridge?.getPlayerBusinessRaidAlert?.(),active=!!raid&&Number.isFinite(+raid.r)&&Number.isFinite(+raid.c),pr=originR+player.position.z/WORLD_SCALE,pc=originC+player.position.x/WORLD_SCALE;
           playerBusinessRaidMarker.visible=active&&!interiorLightingActive;
@@ -5603,6 +5815,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
               nextCameraKey=interiorData.bizId==='major_casino'?'casino':interiorData.kind==='bank'?`bank:${bankSize}:${bankRoom}`:'standard';
             if(cameraZoomMode!=='interior'||cameraZoomKey!==nextCameraKey){
               cameraZoomMode='interior';cameraZoomKey=nextCameraKey;
+              worldZoomControls.sync();
               if(interiorData.bizId==='major_casino')interiorZoom=1.12;
               else if(interiorData.kind==='bank'){
                 const roomSpan=Math.max(+interiorData.width||1,+interiorData.height||1);
@@ -5617,7 +5830,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
           else{
             interiorLightingActive=false;playerFloorElevation=0;interiorGroup.visible=false;camera.layers.set(0);activeAimSurface=ground;
             scene.background.copy(skyColor);scene.fog.color.copy(skyColor);scene.fog.density=environmentFogDensity;
-            if(cameraZoomMode!=='world'){cameraZoomMode='world';cameraZoomKey='';camera.zoom=worldZoom;camera.updateProjectionMatrix();}
+            if(cameraZoomMode!=='world'){cameraZoomMode='world';cameraZoomKey='';camera.zoom=worldZoom;camera.updateProjectionMatrix();worldZoomControls.sync();}
             if(!state.interior)interiorSignature='';
           }
           player.visible=!state.driving&&!playerArrestHidden&&!state.medicalEvacuated;
@@ -5738,6 +5951,10 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
         for(let i=reloadDebris.length-1;i>=0;i--){const d=reloadDebris[i];d.life-=dt;d.vel.y-=7.5*dt;d.mesh.position.addScaledVector(d.vel,dt);if(d.mesh.position.y<.12){d.mesh.position.y=.12;d.vel.y*=-.28;d.vel.x*=.72;d.vel.z*=.72;}d.mesh.rotation.x+=d.spin.x*dt;d.mesh.rotation.y+=d.spin.y*dt;d.mesh.rotation.z+=d.spin.z*dt;if(d.life<=0){scene.remove(d.mesh);d.mesh.geometry.dispose();if(d.mesh.material!==gunDark&&d.mesh.material!==weaponGold)d.mesh.material.dispose();reloadDebris.splice(i,1);}}
         if(muzzleLife>0&&!playerDead&&!playerArrestPhase&&!vehicleEntryState){muzzleLife-=dt;const flashFade=Math.max(0,muzzleLife/.14);muzzle.intensity=96*flashFade;localMuzzleFlash.visible=true;localMuzzleFlash.scale.multiplyScalar(.91);for(const child of localMuzzleFlash.children)child.material.opacity=flashFade;}else{muzzle.intensity=0;localMuzzleFlash.visible=false;}
         camera.position.set(player.position.x+54,62+playerFloorElevation,player.position.z+54);camera.lookAt(player.position.x,1.6+playerFloorElevation-crouchBlend*.28-proneBlend*.72,player.position.z);updateBuildingPromptPosition();updateNearbyNpcPromptPosition(nearbyNpcState);updateNearbyVehiclePromptPosition(nearbyVehicleState);
+        if(cityV3BuildingPreviewRequested&&buildingPrompt.style.display!=='none'){
+          buildingPrompt.style.transform=`translate(${Math.round(lastW*.5)}px,${Math.max(64,lastH-94)}px) translate(-50%,-100%)`;
+          buildingPrompt.dataset.avoidsPlayer='bottom-dock-keeps-authored-facade-clear';
+        }
         sun.position.copy(player.position).add(sunOffsetVector);sun.target.position.set(player.position.x,playerFloorElevation,player.position.z);sun.target.updateMatrixWorld();
         // Ray tests stay throttled, while material state persists between samples.
         // The release hold absorbs triangle-edge jitter and eased opacity prevents
@@ -5782,6 +5999,15 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       renderer.domElement.dataset.rendererDefault='3d-unless-explicit-canvas';
       console.info('[ThreePreview] procedural 3D city enabled');
     } catch (error) {
+      disposeWorldZoomControls();
+      cityV3GlassAbort?.abort();
+      cityV3NextAbort?.abort();
+      if(cityV3NextInstance){try{cityV3NextInstance.dispose();cityV3NextInstance=null;}catch(rollbackError){document.documentElement.dataset.cityV3NextRollbackFailure=String(rollbackError?.message||rollbackError);}}
+      if(cityV3GlassInstance){try{cityV3GlassInstance.dispose();cityV3GlassInstance=null;}catch(rollbackError){document.documentElement.dataset.cityV3GlassRollbackFailure=String(rollbackError?.message||rollbackError);}}
+      if(cityV3RailRollbackContext){
+        const {runtime,instance,scene,bridge,renderer}=cityV3RailRollbackContext;
+        try{runtime?.rollbackCityV3RailCandidate(instance,{scene,bridge,renderer});}catch(rollbackError){document.documentElement.dataset.cityV3RailRollbackFailure=String(rollbackError?.code||rollbackError?.message||rollbackError||'rollback-error').replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,220);}
+      }
       if(cityV3AcceptedRollbackContext){
         const {runtime,instances,scene,bridge,renderer}=cityV3AcceptedRollbackContext,failures=[];
         for(const instance of [...instances].reverse())try{runtime?.rollbackCityV3AcceptedCandidate(instance,{scene,bridge,renderer});}catch(rollbackError){failures.push(`${instance?.key||'unknown'}:${String(rollbackError?.code||rollbackError?.message||rollbackError||'rollback-error').replace(/[^a-z0-9_.:@-]/gi,'-').slice(0,180)}`);}
@@ -5789,6 +6015,7 @@ transformed.z+=cos(mfzWindTime*.82+mfzPhase*1.31+position.z*.42)*mfzGust*mfzWeig
       }
       stage.classList.remove('three-mode');
       document.getElementById('threeCinematicGrade')?.remove();
+      document.getElementById('cityV3RailPrompt')?.remove();
       document.body.dataset.threeError=String(error?.stack||error?.message||error).slice(0,1200);
       console.warn('[ThreePreview] Canvas fallback:', error);
       window.MafioziLoading?.complete('3D недоступен — открыт безопасный режим');

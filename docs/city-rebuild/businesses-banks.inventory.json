@@ -1,0 +1,1722 @@
+{
+  "schemaVersion": 1,
+  "inspectedOn": "2026-09-07",
+  "purpose": "Read-only pre-rebuild economic identity inventory; not a demolition authorization.",
+  "coordinateConvention": {
+    "order": "r,c",
+    "world": "r=row,c=column",
+    "serverBusinessWorldPos": "x=c,y=r",
+    "candidateNominalCoordinates": "pricing sample br*10+6,bc*10+6; NOT authored footprint or door"
+  },
+  "counts": {
+    "fixedBusinesses": 10,
+    "banks": 3,
+    "majorSites": 5,
+    "staticPrimarySites": 18,
+    "operationArchetypes": 8,
+    "eligibleGenericBuildingKeys": 101,
+    "activeDynamicProperties": null
+  },
+  "coverage": {
+    "staticDefinitions": "complete for cited catalogs",
+    "dynamicProperties": "unknown",
+    "allLivePersistentInstancesComplete": false,
+    "localDatabase": {
+      "path": "mafiozi.db",
+      "bytes": 0,
+      "readMode": "SQLite URI mode=ro",
+      "relevantTablesFound": 0
+    },
+    "deployedDatabase": "not inspected; DB_PATH uses optional DB_DIR environment value (mafiozi_bot.py:130)",
+    "demolitionSafe": false,
+    "requiredBeforeMigration": "Export authoritative apartments_owned and npc_empire_holdings identifiers, property kind, operation_type, area and anchor relations; preserve existing ownership/interior relationships; do not include personal identifiers in public inventory."
+  },
+  "businesses": [
+    {
+      "inventoryId": "business:coffee",
+      "persistentId": "coffee",
+      "name": "Кофейня «У Дона»",
+      "coordinates": {
+        "r": 33,
+        "c": 13
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "coffee"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:carwash",
+      "persistentId": "carwash",
+      "name": "Автомойка",
+      "coordinates": {
+        "r": 23,
+        "c": 25
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "carwash"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:barbershop",
+      "persistentId": "barbershop",
+      "name": "Парикмахерская",
+      "coordinates": {
+        "r": 53,
+        "c": 23
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "barbershop"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:pizza",
+      "persistentId": "pizza",
+      "name": "Пиццерия",
+      "coordinates": {
+        "r": 53,
+        "c": 53
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "pizza"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:garage",
+      "persistentId": "garage",
+      "name": "Гараж-СТО",
+      "coordinates": {
+        "r": 13,
+        "c": 63
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "garage"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:bar",
+      "persistentId": "bar",
+      "name": "Бар «Чёрная вдова»",
+      "coordinates": {
+        "r": 43,
+        "c": 33
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "bar"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:club",
+      "persistentId": "club",
+      "name": "Подпольный клуб",
+      "coordinates": {
+        "r": 63,
+        "c": 53
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "club"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:warehouse",
+      "persistentId": "warehouse",
+      "name": "Склад",
+      "coordinates": {
+        "r": 73,
+        "c": 23
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "warehouse"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:casino",
+      "persistentId": "casino",
+      "name": "Казино",
+      "coordinates": {
+        "r": 13,
+        "c": 45
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "casino"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    },
+    {
+      "inventoryId": "business:port",
+      "persistentId": "port",
+      "name": "Доля в порту",
+      "coordinates": {
+        "r": 181,
+        "c": 31
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "port"
+      },
+      "sourceRefs": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ]
+    }
+  ],
+  "banks": [
+    {
+      "inventoryId": "bank:small",
+      "persistentId": "small",
+      "name": "Банк «Окраина»",
+      "coordinates": {
+        "r": 5,
+        "c": 15
+      },
+      "interior": {
+        "type": "bank",
+        "bankId": "small",
+        "sizeArchetype": "small",
+        "width": 28,
+        "height": 24,
+        "crackTime": 10,
+        "entryFunction": "enterBankInterior(bank)",
+        "doorFormula": "r=bank.r+2.8,c=bank.c+1.5"
+      },
+      "sourceRefs": [
+        "world.html:6024",
+        "world.html:63294",
+        "world.html:63467",
+        "mafiozi_bot.py:33501"
+      ]
+    },
+    {
+      "inventoryId": "bank:medium",
+      "persistentId": "medium",
+      "name": "Банк «Район»",
+      "coordinates": {
+        "r": 15,
+        "c": 55
+      },
+      "interior": {
+        "type": "bank",
+        "bankId": "medium",
+        "sizeArchetype": "medium",
+        "width": 36,
+        "height": 30,
+        "crackTime": 15,
+        "entryFunction": "enterBankInterior(bank)",
+        "doorFormula": "r=bank.r+2.8,c=bank.c+1.5"
+      },
+      "sourceRefs": [
+        "world.html:6024",
+        "world.html:63294",
+        "world.html:63467",
+        "mafiozi_bot.py:33501"
+      ]
+    },
+    {
+      "inventoryId": "bank:large",
+      "persistentId": "large",
+      "name": "Банк «Центральный»",
+      "coordinates": {
+        "r": 55,
+        "c": 35
+      },
+      "interior": {
+        "type": "bank",
+        "bankId": "large",
+        "sizeArchetype": "large",
+        "width": 44,
+        "height": 36,
+        "crackTime": 20,
+        "entryFunction": "enterBankInterior(bank)",
+        "doorFormula": "r=bank.r+2.8,c=bank.c+1.5"
+      },
+      "sourceRefs": [
+        "world.html:6024",
+        "world.html:63294",
+        "world.html:63467",
+        "mafiozi_bot.py:33501"
+      ]
+    }
+  ],
+  "majorSites": [
+    {
+      "inventoryId": "major:casino",
+      "persistentId": "casino",
+      "name": "Казино",
+      "coordinates": {
+        "r": 46,
+        "c": 16
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "major_casino"
+      },
+      "sourceRefs": [
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ]
+    },
+    {
+      "inventoryId": "major:market",
+      "persistentId": "market",
+      "name": "Рынок",
+      "coordinates": {
+        "r": 16,
+        "c": 16
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "major_market"
+      },
+      "sourceRefs": [
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ]
+    },
+    {
+      "inventoryId": "major:factory",
+      "persistentId": "factory",
+      "name": "Промзона",
+      "coordinates": {
+        "r": 46,
+        "c": 56
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "major_factory"
+      },
+      "sourceRefs": [
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ]
+    },
+    {
+      "inventoryId": "major:mansion",
+      "persistentId": "mansion",
+      "name": "Резиденция",
+      "coordinates": {
+        "r": 136,
+        "c": 16
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "major_mansion"
+      },
+      "sourceRefs": [
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ]
+    },
+    {
+      "inventoryId": "major:port",
+      "persistentId": "port",
+      "name": "Грузовой порт",
+      "coordinates": {
+        "r": 165,
+        "c": 38
+      },
+      "interior": {
+        "type": "business",
+        "bizId": "major_port"
+      },
+      "sourceRefs": [
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ]
+    }
+  ],
+  "operationArchetypes": [
+    {
+      "id": "beer_bar",
+      "name": "Пивной бар",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "pawnshop",
+      "name": "Скупка краденого",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "bookmaker",
+      "name": "Букмекерская",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "strip_club",
+      "name": "Стрип-клуб",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "gun_shop",
+      "name": "Оружейная лавка",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "chop_shop",
+      "name": "Авторазборка",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "poker_club",
+      "name": "Подпольный покер",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    },
+    {
+      "id": "print_shop",
+      "name": "Фальшивая типография",
+      "category": "operation_archetype_not_instance",
+      "sourceRefs": [
+        "npc_empire.py:296",
+        "world.html:18854"
+      ]
+    }
+  ],
+  "eligibleGenericBuildings": {
+    "sourceRefs": [
+      "npc_empire.py:279",
+      "npc_empire.py:295",
+      "npc_empire.py:335"
+    ],
+    "classification": "candidate property keys, not a list of active businesses",
+    "items": [
+      {
+        "buildingKey": "0,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,4",
+        "area": 4,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,5",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 56
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,13",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,17",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,5",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 56
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,10",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 106
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,14",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 146
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,13",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,17",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,6",
+        "area": 12,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,10",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 106
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,14",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 146
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,5",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 56
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,13",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,17",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,10",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 106
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,14",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 146
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      }
+    ]
+  },
+  "persistence": [
+    {
+      "table": "business_property_owners",
+      "key": [
+        "biz_id"
+      ],
+      "source": "mafiozi_bot.py:1910"
+    },
+    {
+      "table": "player_businesses",
+      "key": [
+        "telegram_id",
+        "biz_id"
+      ],
+      "source": "mafiozi_bot.py:1893"
+    },
+    {
+      "table": "apartments_owned",
+      "key": [
+        "telegram_id",
+        "apt_key"
+      ],
+      "source": "mafiozi_bot.py:4848"
+    },
+    {
+      "table": "npc_empire_holdings",
+      "key": [
+        "kind",
+        "holding_id"
+      ],
+      "source": "npc_empire.py:2225"
+    }
+  ],
+  "renderReplacements": {
+    "classification": "visual replacement IDs, not newly created persistent businesses",
+    "items": [
+      {
+        "id": "pawnshop@1",
+        "r": 7,
+        "c": 67
+      },
+      {
+        "id": "print_shop@1",
+        "r": 97,
+        "c": 47
+      },
+      {
+        "id": "gun_shop@1",
+        "r": 87.375,
+        "c": 17.75
+      },
+      {
+        "id": "bookmaker@1",
+        "r": 47.75,
+        "c": 47.375
+      },
+      {
+        "id": "strip_club@1",
+        "r": 97.75,
+        "c": 150.75
+      },
+      {
+        "id": "glass_pavilion_small@1",
+        "r": 47,
+        "c": 67
+      }
+    ],
+    "sourceRefs": [
+      "assets/buildings/city_v3/accepted_v1/main_native_bindings.v1.json",
+      "assets/buildings/city_v3/next_batch_v1/bindings.candidate.v1.json",
+      "assets/buildings/city_v3/glass_v1/runtime.v1.js"
+    ]
+  },
+  "ancillaryCommerce": {
+    "includedInPrimaryCount": false,
+    "blackMarkets": [
+      {
+        "id": "blackmarket",
+        "name": "Чёрный рынок",
+        "r": 6,
+        "c": 26
+      },
+      {
+        "id": "blackmarket_bellini",
+        "name": "Рынок Беллини",
+        "r": 36,
+        "c": 46
+      },
+      {
+        "id": "blackmarket_moretti",
+        "name": "Рынок Моретти",
+        "r": 136,
+        "c": 26
+      }
+    ],
+    "gasStations": [
+      {
+        "id": null,
+        "name": "АЗС Север-Запад",
+        "r": 13,
+        "c": 13
+      },
+      {
+        "id": null,
+        "name": "АЗС Север-Восток",
+        "r": 13,
+        "c": 63
+      },
+      {
+        "id": null,
+        "name": "АЗС Центр",
+        "r": 63,
+        "c": 23
+      },
+      {
+        "id": null,
+        "name": "АЗС Юг",
+        "r": 73,
+        "c": 63
+      }
+    ],
+    "sourceRefs": [
+      "world.html:6892",
+      "world.html:6034"
+    ],
+    "note": "Gas station at (13,63) and garage business share marker coordinates; do not deduplicate by position."
+  }
+}

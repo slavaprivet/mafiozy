@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+import {planBuildings} from './building_placement.mjs';
+const here=path.dirname(fileURLToPath(import.meta.url)),root=path.resolve(here,'../../..');
+const [topologyPath,sourcePath]=process.argv.slice(2);if(!topologyPath||!sourcePath)throw Error('Pass topology_for_placement.json and rich-world.contract.json');
+const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
+const input={topology:read(topologyPath),catalog:read(path.join(here,'buildings_catalog.v1.json')),source:read(sourcePath),ledger:read(path.join(root,'docs/city-rebuild/rebuild-ledger.generated.json'))};
+const result=planBuildings(input);result.inputs=[topologyPath,sourcePath,path.join(here,'buildings_catalog.v1.json')].map(p=>({path:p,sha256:createHash('sha256').update(fs.readFileSync(p)).digest('hex')}));
+fs.writeFileSync(path.join(here,'buildings_placement.v1.json'),JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify({status:result.status,counts:result.counts,unresolved:result.unresolved,errors:result.errors},null,2));

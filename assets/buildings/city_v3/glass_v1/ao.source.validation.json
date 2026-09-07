@@ -1,0 +1,99 @@
+{
+  "schema": "mafiozi.galleria-runtime-fidelity-ao-validation/v1",
+  "status": "PASS_RUNTIME_FIDELITY_CANDIDATE_NOT_APPLIED",
+  "canonical_source": {
+    "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\outputs\\glass_buildings_smooth_clay_v1\\glass_pavilion_small_v1\\glass_pavilion_small_v1.glb",
+    "bytes": 2108880,
+    "sha256": "0dfd79a8d670568aa4aa572ea13fd2584abfaaaed2df1f574ca7b7fcd15ef33c"
+  },
+  "candidate": {
+    "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\outputs\\galleria_runtime_fidelity_ao_v1\\glass_pavilion_small_v1_runtime_ao_v1.glb",
+    "bytes": 3773048,
+    "sha256": "ecae5f97bd53e9466bea3a520ec95a58ecacd7a232fbde902de0a1a7d4672873"
+  },
+  "checks": {
+    "glb_2_container": true,
+    "three_0_180_gltf_standard": "core glTF 2.0 occlusionTexture; no custom extension",
+    "three_0_180_gltfloader_probe": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\outputs\\galleria_runtime_fidelity_ao_v1\\three_gltfloader_0.180_probe.json",
+      "bytes": 3342,
+      "sha256": "f1ceef6ed170550750ce5e441fdcb49f2111d1e448898919df67b01054b7d318"
+    },
+    "three_0_180_gltfloader_probe_pass": true,
+    "three_loaded_primitives_with_ao": 122,
+    "three_loaded_missing_uv_for_ao": 0,
+    "node_set_exact_match": true,
+    "node_count": 165,
+    "mesh_count": 153,
+    "triangle_count": 31772,
+    "world_triangle_geometry_match": true,
+    "world_triangle_digest_checks": [
+      {
+        "decimals": 6,
+        "source_sha256": "d695de40be801f45e080a82753013ad8fe3fec762722f673e50064257e17e8f1",
+        "candidate_sha256": "221008bdc02993da6a0be54f6ec8499cd011c5778f6ca7fdf69d064f60751506",
+        "triangle_count_source": 31772,
+        "triangle_count_candidate": 31772,
+        "match": false
+      },
+      {
+        "decimals": 5,
+        "source_sha256": "a2b11c341e2b1c507faf383e37ca15adf34613a6b944debdc0587e208c6a16c7",
+        "candidate_sha256": "44f195de9525ded98a19ca67a5eaf05a25fb0b3d3aaf43ed89938202f838342f",
+        "triangle_count_source": 31772,
+        "triangle_count_candidate": 31772,
+        "match": false
+      },
+      {
+        "decimals": 4,
+        "source_sha256": "29be311391d8926022cf42d58c9c5a237bb478a288ef5cf549517e6fdc0cfeac",
+        "candidate_sha256": "29be311391d8926022cf42d58c9c5a237bb478a288ef5cf549517e6fdc0cfeac",
+        "triangle_count_source": 31772,
+        "triangle_count_candidate": 31772,
+        "match": true
+      },
+      {
+        "decimals": 3,
+        "source_sha256": "c9c03c12a75ad2e8e0e1e0fc0593009323978e4c3b972f0e8ac4c60cc4fbe082",
+        "candidate_sha256": "c9c03c12a75ad2e8e0e1e0fc0593009323978e4c3b972f0e8ac4c60cc4fbe082",
+        "triangle_count_source": 31772,
+        "triangle_count_candidate": 31772,
+        "match": true
+      }
+    ],
+    "material_palette_numeric_match": true,
+    "material_count": 10,
+    "ao_material_count": 8,
+    "ao_texture_entries": 8,
+    "ao_image_count": 1,
+    "ao_texture_embedded_png_matches_external": true,
+    "ao_texture_size": [
+      2048,
+      2048
+    ],
+    "ao_texture_extrema": [
+      0,
+      255
+    ],
+    "ao_texture_mean": 23.1028,
+    "ao_texture_stddev": 66.5301,
+    "glass_alpha_mode": "BLEND",
+    "glass_double_sided_glb_unchanged": true,
+    "glass_runtime_side_contract": "Existing runtime correction keeps THREE.FrontSide; this candidate does not alter glass behavior.",
+    "glass_ao_excluded": true,
+    "emissive_ao_excluded": true,
+    "root_identity": true,
+    "required_doors_sockets_collision_nodes_preserved": true,
+    "camera_count": 0,
+    "main_or_runtime_modified": false
+  },
+  "scope_guards": {
+    "geometry_positions_or_triangles_changed": false,
+    "color_palette_or_pbr_factors_changed": false,
+    "dimensions_changed": false,
+    "doors_changed": false,
+    "collision_contract_changed": false,
+    "original_overwritten": false,
+    "main_or_runtime_modified": false
+  }
+}

@@ -1,0 +1,560 @@
+{
+  "schema": "mafiozi.civic-park-decor-source-audit/v1",
+  "status": "PASS_WITH_INTERNAL_PROJECT_SCOPE_RESTRICTION",
+  "sourceAssetId": "CIVIC_PARK_DECOR_KIT_V2",
+  "glbCount": 57,
+  "runtimeGlbCount": 54,
+  "catalogOnlyGlbCount": 3,
+  "totalGlbBytes": 3668632,
+  "hashMismatches": 0,
+  "reverseImportFailures": 0,
+  "lodTriangleDescentFailures": 0,
+  "missingSocketFailures": 0,
+  "embeddedImageOrTextureFailures": 0,
+  "sourceBlend": {
+    "file": "civic_park_decor_kit_v2.blend",
+    "bytes": 4247056,
+    "sha256": "f7673bf60fd9e589f9d47cb59d55025d442129dcb555e0c5951daaf86e92a910"
+  },
+  "proofs": [
+    {
+      "file": "civic_park_decor_kit_v2_day.png",
+      "bytes": 1659725,
+      "sha256": "b3d34c71c9e47933887314ceacd587a72fff791067ad79cf1a5864b742755d2e"
+    },
+    {
+      "file": "civic_park_decor_kit_v2_night.png",
+      "bytes": 1563610,
+      "sha256": "663f6728bf9c5575e9f57f756e3e7e16ae186621afb6917efd84bfe5b551f29f"
+    },
+    {
+      "file": "civic_park_decor_kit_v2_game_camera.png",
+      "bytes": 1629004,
+      "sha256": "2d3f2a34220298237a07dafc192b65cfff3f1c58548c5b354e406ba4944832a4"
+    }
+  ],
+  "files": [
+    {
+      "file": "bench_civic_lod0_v2.glb",
+      "bytes": 68200,
+      "sha256": "52e0e6a7d32620c651d986a8563d2551e52ce7ed292d0d3bee6a4c85cfb4a9d2",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 1212,
+      "catalogOnly": false
+    },
+    {
+      "file": "bench_civic_lod1_v2.glb",
+      "bytes": 27876,
+      "sha256": "83de855700a952d824f24e617cd3f2f967b3a88c2399727f7b956d37c724e941",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 444,
+      "catalogOnly": false
+    },
+    {
+      "file": "bench_civic_lod2_v2.glb",
+      "bytes": 8836,
+      "sha256": "a82811f5b9b3b243ef56e2cd25ee1ac4c7587f05aeee01878eadcb6c9e930b1f",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 100,
+      "catalogOnly": false
+    },
+    {
+      "file": "bike_rack_5_lod0_v2.glb",
+      "bytes": 30936,
+      "sha256": "f1fe9b7f7c45922fe885cd92265dee9b9f96e5516dd8b2d9d32f599d5bc71bcd",
+      "nodes": 8,
+      "meshes": 6,
+      "trianglesIndependent": 1932,
+      "catalogOnly": false
+    },
+    {
+      "file": "bike_rack_5_lod1_v2.glb",
+      "bytes": 14364,
+      "sha256": "f7d3db8458dca2444576945a2d966bca89ae0e2fe50194356392ef60ac5f8beb",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 732,
+      "catalogOnly": false
+    },
+    {
+      "file": "bike_rack_5_lod2_v2.glb",
+      "bytes": 7968,
+      "sha256": "67ae2710b3f95b54632cfd96074be47383bc1724aec85102c17ca52cce042eb9",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 300,
+      "catalogOnly": false
+    },
+    {
+      "file": "bin_civic_lod0_v2.glb",
+      "bytes": 37504,
+      "sha256": "327412e2446a34d5f0c02fb107fcd7532a28903cb1a94422614991eabd4b9fe8",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 1376,
+      "catalogOnly": false
+    },
+    {
+      "file": "bin_civic_lod1_v2.glb",
+      "bytes": 12204,
+      "sha256": "29806183182dfab201800c69a1a0d29ee671e8b20030ce5ae83182f148c957f0",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 532,
+      "catalogOnly": false
+    },
+    {
+      "file": "bin_civic_lod2_v2.glb",
+      "bytes": 8844,
+      "sha256": "e27019fcda4a0e98842cde4e8d4554302d6187fcaa669a1b24b4d2131826fb64",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 260,
+      "catalogOnly": false
+    },
+    {
+      "file": "civic_park_decor_catalog_lod0_v2.glb",
+      "bytes": 1185884,
+      "sha256": "e3e71f325e2be7f09269c14286e5ea5917ea8e557ef4b24a780c1d5e66b767b1",
+      "nodes": 161,
+      "meshes": 101,
+      "trianglesIndependent": 44420,
+      "catalogOnly": true
+    },
+    {
+      "file": "civic_park_decor_catalog_lod1_v2.glb",
+      "bytes": 408680,
+      "sha256": "4d1badb5266fbe95e688349e61c9d96ef5486d0c99d7a4e7eeb9ad11d34094fe",
+      "nodes": 136,
+      "meshes": 76,
+      "trianglesIndependent": 14328,
+      "catalogOnly": true
+    },
+    {
+      "file": "civic_park_decor_catalog_lod2_v2.glb",
+      "bytes": 184056,
+      "sha256": "40debb3c4f1ca54d1f240371ffde6b59f4f2da021c937a9eed4de235cb6e3f3e",
+      "nodes": 127,
+      "meshes": 67,
+      "trianglesIndependent": 5064,
+      "catalogOnly": true
+    },
+    {
+      "file": "fountain_central_lod0_v2.glb",
+      "bytes": 129052,
+      "sha256": "a0206f44910e910ef90367f07e40a27b680ab0bae2c57532bf9a718c7280343f",
+      "nodes": 27,
+      "meshes": 15,
+      "trianglesIndependent": 7596,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_central_lod1_v2.glb",
+      "bytes": 48656,
+      "sha256": "d1aef72399f74966ad6e69a523d9f94fc851cd320f6e543e8ba796aac7ac8681",
+      "nodes": 19,
+      "meshes": 7,
+      "trianglesIndependent": 2564,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_central_lod2_v2.glb",
+      "bytes": 19860,
+      "sha256": "4a85402edafdb292903b78e781d1d462a3a24891fe9a6b7b373497d7ed84410c",
+      "nodes": 18,
+      "meshes": 6,
+      "trianglesIndependent": 812,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_district_lod0_v2.glb",
+      "bytes": 110632,
+      "sha256": "3738605a3393f004759546d5517fc6ef4f50a2f4fe766e44d9faf4a8139d624e",
+      "nodes": 18,
+      "meshes": 10,
+      "trianglesIndependent": 6224,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_district_lod1_v2.glb",
+      "bytes": 43708,
+      "sha256": "ec544301e7d9af769eaf7978d630f88dd882331851fae9165dc3c3d54f00cbcf",
+      "nodes": 14,
+      "meshes": 6,
+      "trianglesIndependent": 2232,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_district_lod2_v2.glb",
+      "bytes": 22428,
+      "sha256": "27821bff31d9045015ee499680f6186fcff99b22b60fbbc9ad069f8ee378c401",
+      "nodes": 14,
+      "meshes": 6,
+      "trianglesIndependent": 912,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_park_lod0_v2.glb",
+      "bytes": 159504,
+      "sha256": "db15b5de2b8d041f8ab3123e7760d140292adaf6ef6bf0136e9d89f61c8eb037",
+      "nodes": 16,
+      "meshes": 6,
+      "trianglesIndependent": 7236,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_park_lod1_v2.glb",
+      "bytes": 44960,
+      "sha256": "28487ee1d66bc48013f8a4166bf218427f56f8e961a078bc71c6396a751ef36e",
+      "nodes": 15,
+      "meshes": 5,
+      "trianglesIndependent": 1684,
+      "catalogOnly": false
+    },
+    {
+      "file": "fountain_park_lod2_v2.glb",
+      "bytes": 15228,
+      "sha256": "7ae121e4fb58d8f2baff6799908bd05c7000cc48dd3b0cb8bd2fa101578ac896",
+      "nodes": 14,
+      "meshes": 4,
+      "trianglesIndependent": 324,
+      "catalogOnly": false
+    },
+    {
+      "file": "kiosk_civic_lod0_v2.glb",
+      "bytes": 87364,
+      "sha256": "95a0925db0d7973b6bcfcb92961f60dae5759c4804e0d680bb732f10a40694f9",
+      "nodes": 8,
+      "meshes": 6,
+      "trianglesIndependent": 1512,
+      "catalogOnly": false
+    },
+    {
+      "file": "kiosk_civic_lod1_v2.glb",
+      "bytes": 35516,
+      "sha256": "84e2fd91ff0abc4643eada411a06d80c0db30a7af0d539b171dec1b213b58dfa",
+      "nodes": 8,
+      "meshes": 6,
+      "trianglesIndependent": 552,
+      "catalogOnly": false
+    },
+    {
+      "file": "kiosk_civic_lod2_v2.glb",
+      "bytes": 15488,
+      "sha256": "aa1ffeff2b10482bc9f1e394439bdd2c026f990ce7c9efc459fefe948f0af4f0",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 188,
+      "catalogOnly": false
+    },
+    {
+      "file": "ped_light_bollard_lod0_v2.glb",
+      "bytes": 20588,
+      "sha256": "f01b1019a95539ef8e241f74be7a25f22f4358ed29a772d1cbe2a1fb842a8179",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 1076,
+      "catalogOnly": false
+    },
+    {
+      "file": "ped_light_bollard_lod1_v2.glb",
+      "bytes": 12424,
+      "sha256": "998a973a99049f69af94637dea1e221f35d6e9fa69896caa34e3b8e3ce7a18b4",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 532,
+      "catalogOnly": false
+    },
+    {
+      "file": "ped_light_bollard_lod2_v2.glb",
+      "bytes": 8096,
+      "sha256": "9db78419adfb9f62a39f08da1d9548bb851d439c3f8adb70934d7efd439fb9cf",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 244,
+      "catalogOnly": false
+    },
+    {
+      "file": "ped_light_double_lod0_v2.glb",
+      "bytes": 61660,
+      "sha256": "8fc891d9fac83a8002dfc7e9426cf2e55189cfe3e05ccb46175f1e94aef400e5",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 1420,
+      "catalogOnly": false
+    },
+    {
+      "file": "ped_light_double_lod1_v2.glb",
+      "bytes": 26808,
+      "sha256": "9930a956e1b17a4c87ade9a30ebe4869c81b1b9f554866cad0185add30e87448",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 572,
+      "catalogOnly": false
+    },
+    {
+      "file": "ped_light_double_lod2_v2.glb",
+      "bytes": 14788,
+      "sha256": "dcccda935ce70e2423edd0c169458990c45fd251bf4e4c9a1f520d83d3c3deea",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 236,
+      "catalogOnly": false
+    },
+    {
+      "file": "planter_rect_lod0_v2.glb",
+      "bytes": 73440,
+      "sha256": "a47e617bc0dfea3865fde03f9feeac8f4b0fa5889a59fdcbda0cfa3b085b1bb7",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 3192,
+      "catalogOnly": false
+    },
+    {
+      "file": "planter_rect_lod1_v2.glb",
+      "bytes": 23420,
+      "sha256": "e305d806574e8936e82260e0f56856a6d3ee59690962689bcea2aff04123c030",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 840,
+      "catalogOnly": false
+    },
+    {
+      "file": "planter_rect_lod2_v2.glb",
+      "bytes": 8564,
+      "sha256": "ff39a074dc18873da4a24e8327aa535475005a21bfbe0a622fa273c7acdf56f3",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 176,
+      "catalogOnly": false
+    },
+    {
+      "file": "planter_round_lod0_v2.glb",
+      "bytes": 67788,
+      "sha256": "cf90d5772eb28218a64e0fcdc7866857b1f953be39fb1cfd7b95042ab57c1cad",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 3448,
+      "catalogOnly": false
+    },
+    {
+      "file": "planter_round_lod1_v2.glb",
+      "bytes": 23196,
+      "sha256": "24870a5bb4c9ca667c2bba3e8955216229f6a4a95a4e5800398bb2551e8dc12e",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 1016,
+      "catalogOnly": false
+    },
+    {
+      "file": "planter_round_lod2_v2.glb",
+      "bytes": 8976,
+      "sha256": "2d83fb996f718abcdb44ac019eb0d3a102c00e499063f34fe410e50fec62bbf9",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 272,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_edge_corner_4m_lod0_v2.glb",
+      "bytes": 36040,
+      "sha256": "42ba0875e9819231aa3441d920d441e246314fc3b4e8b55766cd9798392ec780",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 612,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_edge_corner_4m_lod1_v2.glb",
+      "bytes": 15300,
+      "sha256": "d752c8796970666e6307a0325096ff60399361b6f694ade399ce14eb893008b5",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 228,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_edge_corner_4m_lod2_v2.glb",
+      "bytes": 8764,
+      "sha256": "11eb1da458cf18cc601ec91d9f9e68f07cd1a06ff18dc258e6dd4e011779bf36",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 100,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_edge_straight_4m_lod0_v2.glb",
+      "bytes": 19160,
+      "sha256": "01522ad14f5439c411741f630177091b359b56b2cb0e0f76e1ddf465c699e70b",
+      "nodes": 4,
+      "meshes": 2,
+      "trianglesIndependent": 312,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_edge_straight_4m_lod1_v2.glb",
+      "bytes": 8792,
+      "sha256": "b860f63506d41839076ddf3acad0f25d5f3c98415757b91056c22d19e83ebdab",
+      "nodes": 4,
+      "meshes": 2,
+      "trianglesIndependent": 120,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_edge_straight_4m_lod2_v2.glb",
+      "bytes": 5524,
+      "sha256": "b9e4c6ff3b222226a57e1994645a5b2f3b8eae520e01e9181939c7a346012841",
+      "nodes": 4,
+      "meshes": 2,
+      "trianglesIndependent": 56,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_tile_4m_lod0_v2.glb",
+      "bytes": 51564,
+      "sha256": "65ac2649d499e0fe25503a272742af2b70da769bb767a2484708f08b8c89c561",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 900,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_tile_4m_lod1_v2.glb",
+      "bytes": 7180,
+      "sha256": "5257d7d7cca16c14bc078080d4e457bb6b35a16259d25d246bfe46bd06c823f0",
+      "nodes": 3,
+      "meshes": 1,
+      "trianglesIndependent": 108,
+      "catalogOnly": false
+    },
+    {
+      "file": "plaza_tile_4m_lod2_v2.glb",
+      "bytes": 3912,
+      "sha256": "2fb18054306de83ee56b9b595e589398a3eaaa0b0a04fdc4f98cab75a449f083",
+      "nodes": 3,
+      "meshes": 1,
+      "trianglesIndependent": 44,
+      "catalogOnly": false
+    },
+    {
+      "file": "shelter_transit_lod0_v2.glb",
+      "bytes": 102476,
+      "sha256": "a3b0534441826143d6253045b04fc63d9a1a0ad8fedab32a72072ce1443ff0ab",
+      "nodes": 9,
+      "meshes": 7,
+      "trianglesIndependent": 1812,
+      "catalogOnly": false
+    },
+    {
+      "file": "shelter_transit_lod1_v2.glb",
+      "bytes": 34900,
+      "sha256": "cbc5b4f2c00cc279c2da88fb0cc000b9c87bd3f4741708df20e27800f14bb016",
+      "nodes": 8,
+      "meshes": 6,
+      "trianglesIndependent": 552,
+      "catalogOnly": false
+    },
+    {
+      "file": "shelter_transit_lod2_v2.glb",
+      "bytes": 18948,
+      "sha256": "1bb8e05c4d434805097c651f26b96f6df9e2eaf4fb7a3923eb488365b35957b4",
+      "nodes": 8,
+      "meshes": 6,
+      "trianglesIndependent": 232,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_no_parking_lod0_v2.glb",
+      "bytes": 45300,
+      "sha256": "a3799a826d1002c3829537c893f35d97bf4eb9ddd77586b879cc5f245d0fe780",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 1760,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_no_parking_lod1_v2.glb",
+      "bytes": 24176,
+      "sha256": "0bb53aa235f0ec36bc9168abd867c51e9c80d0ff5c1df33a47387e1a4bbbd1e0",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 880,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_no_parking_lod2_v2.glb",
+      "bytes": 13608,
+      "sha256": "a27088df84865433d04c7e464c920c059ffd265a4d8a499b8ba7a94ab8704d75",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 468,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_ped_crossing_lod0_v2.glb",
+      "bytes": 50756,
+      "sha256": "1a504c3190c9629481baac09695647f0a09d5a580f79dbb9a7465a875966bff7",
+      "nodes": 7,
+      "meshes": 5,
+      "trianglesIndependent": 1288,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_ped_crossing_lod1_v2.glb",
+      "bytes": 15384,
+      "sha256": "0efdb67445a020ac162df6ea70934bf5eeb4aa7b519b615fecd35070b542a157",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 404,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_ped_crossing_lod2_v2.glb",
+      "bytes": 9516,
+      "sha256": "72f4a78d63cd50ba5abc82a1ef831d753f483f922a2f1a970df4ca3f8797481e",
+      "nodes": 5,
+      "meshes": 3,
+      "trianglesIndependent": 196,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_wayfinding_lod0_v2.glb",
+      "bytes": 85456,
+      "sha256": "b8d77696febe680fd190967e77a06c9686008449b16e1b265a2874aad2ed9137",
+      "nodes": 8,
+      "meshes": 6,
+      "trianglesIndependent": 1512,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_wayfinding_lod1_v2.glb",
+      "bytes": 22288,
+      "sha256": "4eaaaf1775d69069a2fc952de1fa0557697baec03623bc3b57bd0d9a288767d5",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 336,
+      "catalogOnly": false
+    },
+    {
+      "file": "sign_wayfinding_lod2_v2.glb",
+      "bytes": 12092,
+      "sha256": "f1564d6050a1c414b8bd58bb99771045c87a90cc2df617968d7c9db787e40862",
+      "nodes": 6,
+      "meshes": 4,
+      "trianglesIndependent": 144,
+      "catalogOnly": false
+    }
+  ],
+  "rightsAndProvenance": {
+    "sourceBlendDeclared": true,
+    "externalRuntimeUrisInGlb": 0,
+    "embeddedImagesOrTextures": 0,
+    "explicitThirdPartyLicenseFiles": 0,
+    "explicitPublicRedistributionGrant": false,
+    "allowedScope": "internal_project_staging_only",
+    "note": "Technical provenance is self-contained; public redistribution remains fail-closed until an explicit rights declaration is supplied."
+  }
+}

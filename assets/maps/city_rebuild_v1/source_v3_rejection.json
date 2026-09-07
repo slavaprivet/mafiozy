@@ -1,0 +1,2710 @@
+{
+  "schema": "mafiozy.native-topology-candidate/v1",
+  "status": "REJECTED",
+  "map": {
+    "rows": 200,
+    "cols": 180
+  },
+  "tiles": {
+    "water": 16,
+    "grass": 8,
+    "sand": 14,
+    "sidewalk": 9,
+    "road": 0,
+    "bridge": 19
+  },
+  "sourceVersion": "city_masterplan_v3_rich_world",
+  "grid": null,
+  "validation": {
+    "errors": [
+      {
+        "code": "BEACH_ENVELOPE_REQUIRED",
+        "id": "BEACH-GILDED"
+      },
+      {
+        "code": "CROSSING_ENVELOPE_REQUIRED",
+        "id": "XR-HIGH-01"
+      },
+      {
+        "code": "EXACT_POLICE_CELLS_REQUIRED",
+        "id": "host"
+      },
+      {
+        "code": "MULTILAYER_TUNNEL_UNSUPPORTED",
+        "id": "XR-TUN-01"
+      },
+      {
+        "code": "NO_ROADS_COMPILED",
+        "id": "roads"
+      },
+      {
+        "code": "PEDESTRIAN_ENVELOPE_REQUIRED",
+        "id": "PZ-STRAND"
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-CIVIC-SPINE",
+        "sampleCR": [
+          [
+            68,
+            115
+          ],
+          [
+            68,
+            115.2
+          ],
+          [
+            68,
+            115.4
+          ],
+          [
+            68,
+            115.6
+          ],
+          [
+            68,
+            115.8
+          ],
+          [
+            68,
+            116
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-EAST-RING",
+        "sampleCR": [
+          [
+            140,
+            136.6
+          ],
+          [
+            140,
+            136.8
+          ],
+          [
+            140,
+            137
+          ],
+          [
+            140,
+            137.2
+          ],
+          [
+            140,
+            137.4
+          ],
+          [
+            140,
+            137.6
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-EAST-SPINE",
+        "sampleCR": [
+          [
+            112,
+            115.6
+          ],
+          [
+            112,
+            115.8
+          ],
+          [
+            112,
+            116
+          ],
+          [
+            112,
+            116.2
+          ],
+          [
+            112,
+            116.4
+          ],
+          [
+            112,
+            116.6
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-NORTH",
+        "sampleCR": [
+          [
+            22.6,
+            20
+          ],
+          [
+            22.8,
+            20
+          ],
+          [
+            23,
+            20
+          ],
+          [
+            23.2,
+            20
+          ],
+          [
+            23.4,
+            20
+          ],
+          [
+            23.6,
+            20
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-RED",
+        "sampleCR": [
+          [
+            54.344,
+            51.813
+          ],
+          [
+            54.543,
+            51.81
+          ],
+          [
+            54.742,
+            51.807
+          ],
+          [
+            54.941,
+            51.805
+          ],
+          [
+            55.141,
+            51.802
+          ],
+          [
+            55.34,
+            51.799
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-SOUTH",
+        "sampleCR": [
+          [
+            0,
+            132
+          ],
+          [
+            0.2,
+            132
+          ],
+          [
+            0.4,
+            132
+          ],
+          [
+            0.6,
+            132
+          ],
+          [
+            0.8,
+            132
+          ],
+          [
+            1,
+            132
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-WATERFRONT-E",
+        "sampleCR": [
+          [
+            133.535,
+            146.651
+          ],
+          [
+            133.733,
+            146.674
+          ],
+          [
+            133.93,
+            146.698
+          ],
+          [
+            134.128,
+            146.721
+          ],
+          [
+            134.326,
+            146.744
+          ],
+          [
+            134.523,
+            146.767
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-WATERFRONT-W",
+        "sampleCR": [
+          [
+            0,
+            150
+          ],
+          [
+            0.198,
+            149.984
+          ],
+          [
+            0.397,
+            149.968
+          ],
+          [
+            0.595,
+            149.952
+          ],
+          [
+            0.794,
+            149.937
+          ],
+          [
+            0.992,
+            149.921
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "A-WEST-SPINE",
+        "sampleCR": [
+          [
+            20,
+            135
+          ],
+          [
+            20,
+            135.2
+          ],
+          [
+            20,
+            135.4
+          ],
+          [
+            20,
+            135.6
+          ],
+          [
+            20,
+            135.8
+          ],
+          [
+            20,
+            136
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "AL-069",
+        "sampleCR": [
+          [
+            59.5,
+            120.8
+          ],
+          [
+            59.5,
+            121
+          ],
+          [
+            59.5,
+            121.2
+          ],
+          [
+            59.5,
+            121.4
+          ],
+          [
+            59.5,
+            121.6
+          ],
+          [
+            59.5,
+            121.8
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "AL-073",
+        "sampleCR": [
+          [
+            33.5,
+            170.8
+          ],
+          [
+            33.5,
+            171
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "AL-075",
+        "sampleCR": [
+          [
+            135.5,
+            133.6
+          ],
+          [
+            135.5,
+            133.8
+          ],
+          [
+            135.5,
+            134
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "AL-078",
+        "sampleCR": [
+          [
+            168.5,
+            153.8
+          ],
+          [
+            168.5,
+            154
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-CD-01",
+        "sampleCR": [
+          [
+            82,
+            66
+          ],
+          [
+            82,
+            66
+          ],
+          [
+            82.197,
+            65.97
+          ],
+          [
+            82.394,
+            65.939
+          ],
+          [
+            82.591,
+            65.909
+          ],
+          [
+            82.788,
+            65.879
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-CD-02",
+        "sampleCR": [
+          [
+            79.864,
+            88.636
+          ],
+          [
+            80.061,
+            88.606
+          ],
+          [
+            80.258,
+            88.576
+          ],
+          [
+            80.455,
+            88.545
+          ],
+          [
+            80.652,
+            88.515
+          ],
+          [
+            80.848,
+            88.485
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-CD-03",
+        "sampleCR": [
+          [
+            79.237,
+            109.186
+          ],
+          [
+            79.424,
+            109.119
+          ],
+          [
+            79.61,
+            109.051
+          ],
+          [
+            79.797,
+            108.983
+          ],
+          [
+            79.983,
+            108.915
+          ],
+          [
+            80.169,
+            108.847
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-GC-01",
+        "sampleCR": [
+          [
+            112,
+            124
+          ],
+          [
+            112.198,
+            123.985
+          ],
+          [
+            112.397,
+            123.969
+          ],
+          [
+            112.595,
+            123.954
+          ],
+          [
+            112.794,
+            123.939
+          ],
+          [
+            112.992,
+            123.924
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-GC-02",
+        "sampleCR": [
+          [
+            136.03,
+            142.303
+          ],
+          [
+            136.227,
+            142.273
+          ],
+          [
+            136.424,
+            142.242
+          ],
+          [
+            136.621,
+            142.212
+          ],
+          [
+            136.818,
+            142.182
+          ],
+          [
+            137.015,
+            142.152
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-IH-01",
+        "sampleCR": [
+          [
+            52.861,
+            125.65
+          ],
+          [
+            53.051,
+            125.708
+          ],
+          [
+            53.241,
+            125.766
+          ],
+          [
+            53.431,
+            125.825
+          ],
+          [
+            53.62,
+            125.883
+          ],
+          [
+            53.81,
+            125.942
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-IH-02",
+        "sampleCR": [
+          [
+            8,
+            145
+          ],
+          [
+            8.196,
+            144.973
+          ],
+          [
+            8.393,
+            144.946
+          ],
+          [
+            8.589,
+            144.92
+          ],
+          [
+            8.786,
+            144.893
+          ],
+          [
+            8.982,
+            144.866
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-NH-01",
+        "sampleCR": [
+          [
+            51.13,
+            47.511
+          ],
+          [
+            51.304,
+            47.609
+          ],
+          [
+            51.478,
+            47.707
+          ],
+          [
+            51.652,
+            47.804
+          ],
+          [
+            51.826,
+            47.902
+          ],
+          [
+            52,
+            48
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-OT-01",
+        "sampleCR": [
+          [
+            84.342,
+            13.423
+          ],
+          [
+            84.541,
+            13.405
+          ],
+          [
+            84.739,
+            13.387
+          ],
+          [
+            84.937,
+            13.369
+          ],
+          [
+            85.135,
+            13.351
+          ],
+          [
+            85.333,
+            13.333
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "C-OT-02",
+        "sampleCR": [
+          [
+            84.648,
+            35.521
+          ],
+          [
+            84.845,
+            35.549
+          ],
+          [
+            85.042,
+            35.577
+          ],
+          [
+            85.239,
+            35.606
+          ],
+          [
+            85.437,
+            35.634
+          ],
+          [
+            85.634,
+            35.662
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-052",
+        "sampleCR": [
+          [
+            80.594,
+            58.29
+          ],
+          [
+            80.792,
+            58.317
+          ],
+          [
+            80.991,
+            58.344
+          ],
+          [
+            81.189,
+            58.371
+          ],
+          [
+            81.387,
+            58.398
+          ],
+          [
+            81.585,
+            58.424
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-053",
+        "sampleCR": [
+          [
+            81.963,
+            66.99
+          ],
+          [
+            82.159,
+            67.019
+          ],
+          [
+            82.355,
+            67.048
+          ],
+          [
+            82.551,
+            67.077
+          ],
+          [
+            82.748,
+            67.106
+          ],
+          [
+            82.944,
+            67.135
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-054",
+        "sampleCR": [
+          [
+            80.198,
+            76.135
+          ],
+          [
+            80.397,
+            76.14
+          ],
+          [
+            80.595,
+            76.145
+          ],
+          [
+            80.793,
+            76.15
+          ],
+          [
+            80.992,
+            76.156
+          ],
+          [
+            81.19,
+            76.161
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-055",
+        "sampleCR": [
+          [
+            79.382,
+            84.889
+          ],
+          [
+            79.581,
+            84.875
+          ],
+          [
+            79.779,
+            84.862
+          ],
+          [
+            79.978,
+            84.848
+          ],
+          [
+            80.176,
+            84.835
+          ],
+          [
+            80.375,
+            84.821
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-056",
+        "sampleCR": [
+          [
+            80.59,
+            93.654
+          ],
+          [
+            80.787,
+            93.626
+          ],
+          [
+            80.984,
+            93.597
+          ],
+          [
+            81.18,
+            93.568
+          ],
+          [
+            81.377,
+            93.54
+          ],
+          [
+            81.574,
+            93.511
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-057",
+        "sampleCR": [
+          [
+            80.595,
+            100.695
+          ],
+          [
+            80.793,
+            100.677
+          ],
+          [
+            80.992,
+            100.659
+          ],
+          [
+            81.19,
+            100.641
+          ],
+          [
+            81.388,
+            100.623
+          ],
+          [
+            81.587,
+            100.605
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-H-058",
+        "sampleCR": [
+          [
+            79.382,
+            107.801
+          ],
+          [
+            79.581,
+            107.801
+          ],
+          [
+            79.779,
+            107.802
+          ],
+          [
+            79.978,
+            107.803
+          ],
+          [
+            80.176,
+            107.804
+          ],
+          [
+            80.375,
+            107.805
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CE-V-061",
+        "sampleCR": [
+          [
+            79.134,
+            81.304
+          ],
+          [
+            79.125,
+            81.5
+          ],
+          [
+            79.116,
+            81.696
+          ],
+          [
+            79.107,
+            81.891
+          ],
+          [
+            79.098,
+            82.087
+          ],
+          [
+            79.089,
+            82.283
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-CH-H-034",
+        "sampleCR": [
+          [
+            54.5,
+            52.245
+          ],
+          [
+            54.688,
+            52.282
+          ],
+          [
+            54.875,
+            52.319
+          ],
+          [
+            55.063,
+            52.356
+          ],
+          [
+            55.25,
+            52.393
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-GO-H-092",
+        "sampleCR": [
+          [
+            119.197,
+            128.784
+          ],
+          [
+            119.393,
+            128.758
+          ],
+          [
+            119.59,
+            128.732
+          ],
+          [
+            119.787,
+            128.706
+          ],
+          [
+            119.984,
+            128.68
+          ],
+          [
+            120.18,
+            128.654
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-GO-H-093",
+        "sampleCR": [
+          [
+            130.187,
+            137.69
+          ],
+          [
+            130.386,
+            137.703
+          ],
+          [
+            130.584,
+            137.717
+          ],
+          [
+            130.783,
+            137.731
+          ],
+          [
+            130.982,
+            137.744
+          ],
+          [
+            131.181,
+            137.758
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-GO-H-094",
+        "sampleCR": [
+          [
+            134.792,
+            150.262
+          ],
+          [
+            134.991,
+            150.25
+          ],
+          [
+            135.189,
+            150.238
+          ],
+          [
+            135.387,
+            150.225
+          ],
+          [
+            135.585,
+            150.213
+          ],
+          [
+            135.783,
+            150.201
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-GO-H-095",
+        "sampleCR": [
+          [
+            105.776,
+            157.495
+          ],
+          [
+            105.974,
+            157.525
+          ],
+          [
+            106.171,
+            157.554
+          ],
+          [
+            106.368,
+            157.584
+          ],
+          [
+            106.566,
+            157.613
+          ],
+          [
+            106.763,
+            157.643
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-GO-V-100",
+        "sampleCR": [
+          [
+            158.891,
+            141.196
+          ],
+          [
+            158.923,
+            141.391
+          ],
+          [
+            158.954,
+            141.587
+          ],
+          [
+            158.985,
+            141.783
+          ],
+          [
+            159.017,
+            141.978
+          ],
+          [
+            159.048,
+            142.174
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-H-081",
+        "sampleCR": [
+          [
+            47.984,
+            129.684
+          ],
+          [
+            48.18,
+            129.66
+          ],
+          [
+            48.377,
+            129.637
+          ],
+          [
+            48.574,
+            129.614
+          ],
+          [
+            48.77,
+            129.59
+          ],
+          [
+            48.967,
+            129.567
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-H-082",
+        "sampleCR": [
+          [
+            34.129,
+            141.706
+          ],
+          [
+            34.323,
+            141.705
+          ],
+          [
+            34.516,
+            141.703
+          ],
+          [
+            34.71,
+            141.702
+          ],
+          [
+            34.903,
+            141.701
+          ],
+          [
+            35.097,
+            141.699
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-H-084",
+        "sampleCR": [
+          [
+            59.553,
+            164.774
+          ],
+          [
+            59.75,
+            164.79
+          ],
+          [
+            59.947,
+            164.806
+          ],
+          [
+            60.145,
+            164.822
+          ],
+          [
+            60.342,
+            164.837
+          ],
+          [
+            60.539,
+            164.853
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-V-085",
+        "sampleCR": [
+          [
+            4.6,
+            131.19
+          ],
+          [
+            4.603,
+            131.389
+          ],
+          [
+            4.607,
+            131.588
+          ],
+          [
+            4.61,
+            131.787
+          ],
+          [
+            4.614,
+            131.986
+          ],
+          [
+            4.618,
+            132.185
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-V-086",
+        "sampleCR": [
+          [
+            16.709,
+            133.392
+          ],
+          [
+            16.719,
+            133.59
+          ],
+          [
+            16.728,
+            133.789
+          ],
+          [
+            16.738,
+            133.988
+          ],
+          [
+            16.748,
+            134.187
+          ],
+          [
+            16.758,
+            134.386
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-V-088",
+        "sampleCR": [
+          [
+            47.088,
+            130.574
+          ],
+          [
+            47.059,
+            130.77
+          ],
+          [
+            47.03,
+            130.967
+          ],
+          [
+            47.001,
+            131.164
+          ],
+          [
+            46.972,
+            131.361
+          ],
+          [
+            46.943,
+            131.557
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-IR-V-090",
+        "sampleCR": [
+          [
+            75.377,
+            147.197
+          ],
+          [
+            75.353,
+            147.393
+          ],
+          [
+            75.33,
+            147.59
+          ],
+          [
+            75.306,
+            147.787
+          ],
+          [
+            75.283,
+            147.984
+          ],
+          [
+            75.259,
+            148.18
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-NO-H-002",
+        "sampleCR": [
+          [
+            23.397,
+            14.77
+          ],
+          [
+            23.596,
+            14.79
+          ],
+          [
+            23.794,
+            14.811
+          ],
+          [
+            23.993,
+            14.831
+          ],
+          [
+            24.191,
+            14.851
+          ],
+          [
+            24.39,
+            14.871
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-NO-H-003",
+        "sampleCR": [
+          [
+            29.396,
+            29.642
+          ],
+          [
+            29.593,
+            29.623
+          ],
+          [
+            29.791,
+            29.604
+          ],
+          [
+            29.989,
+            29.584
+          ],
+          [
+            30.187,
+            29.565
+          ],
+          [
+            30.385,
+            29.546
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-NO-H-004",
+        "sampleCR": [
+          [
+            47.581,
+            38.253
+          ],
+          [
+            47.774,
+            38.257
+          ],
+          [
+            47.968,
+            38.261
+          ],
+          [
+            48.161,
+            38.265
+          ],
+          [
+            48.355,
+            38.269
+          ],
+          [
+            48.548,
+            38.274
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-NO-V-008",
+        "sampleCR": [
+          [
+            31.921,
+            9.785
+          ],
+          [
+            31.922,
+            9.983
+          ],
+          [
+            31.924,
+            10.182
+          ],
+          [
+            31.925,
+            10.38
+          ],
+          [
+            31.926,
+            10.579
+          ],
+          [
+            31.927,
+            10.777
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-NO-V-009",
+        "sampleCR": [
+          [
+            45.234,
+            12.974
+          ],
+          [
+            45.264,
+            13.171
+          ],
+          [
+            45.295,
+            13.368
+          ],
+          [
+            45.325,
+            13.566
+          ],
+          [
+            45.356,
+            13.763
+          ],
+          [
+            45.386,
+            13.961
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-OL-H-010",
+        "sampleCR": [
+          [
+            85.77,
+            2.442
+          ],
+          [
+            85.967,
+            2.45
+          ],
+          [
+            86.164,
+            2.458
+          ],
+          [
+            86.361,
+            2.466
+          ],
+          [
+            86.557,
+            2.474
+          ],
+          [
+            86.754,
+            2.482
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-OL-H-011",
+        "sampleCR": [
+          [
+            84.787,
+            10.5
+          ],
+          [
+            84.984,
+            10.532
+          ],
+          [
+            85.18,
+            10.565
+          ],
+          [
+            85.377,
+            10.597
+          ],
+          [
+            85.574,
+            10.63
+          ],
+          [
+            85.77,
+            10.662
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-OL-H-012",
+        "sampleCR": [
+          [
+            84.787,
+            19.692
+          ],
+          [
+            84.984,
+            19.726
+          ],
+          [
+            85.18,
+            19.759
+          ],
+          [
+            85.377,
+            19.792
+          ],
+          [
+            85.574,
+            19.825
+          ],
+          [
+            85.77,
+            19.858
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-OL-H-013",
+        "sampleCR": [
+          [
+            85.967,
+            29.168
+          ],
+          [
+            86.164,
+            29.178
+          ],
+          [
+            86.361,
+            29.188
+          ],
+          [
+            86.557,
+            29.198
+          ],
+          [
+            86.754,
+            29.208
+          ],
+          [
+            86.951,
+            29.218
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-OL-H-014",
+        "sampleCR": [
+          [
+            84.197,
+            37.776
+          ],
+          [
+            84.395,
+            37.752
+          ],
+          [
+            84.592,
+            37.727
+          ],
+          [
+            84.789,
+            37.703
+          ],
+          [
+            84.987,
+            37.679
+          ],
+          [
+            85.184,
+            37.655
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_CENTERLINE_UNAUTHORIZED_WATER",
+        "id": "L-OL-H-015",
+        "sampleCR": [
+          [
+            81.14,
+            45.303
+          ],
+          [
+            81.336,
+            45.273
+          ],
+          [
+            81.533,
+            45.243
+          ],
+          [
+            81.729,
+            45.214
+          ],
+          [
+            81.925,
+            45.184
+          ],
+          [
+            82.121,
+            45.154
+          ]
+        ]
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-CIVIC-SPINE",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-COAST-SPINE",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-EAST-RING",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-EAST-SPINE",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-NORTH",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-RED",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-SOUTH",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-WATERFRONT-E",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-WATERFRONT-W",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "A-WEST-SPINE",
+        "group": "arterials"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-001",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-002",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-003",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-004",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-005",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-006",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-007",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-008",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-009",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-010",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-011",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-012",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-013",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-014",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-015",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-016",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-017",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-018",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-019",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-020",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-021",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-022",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-023",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-024",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-025",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-026",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-027",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-028",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-029",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-030",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-031",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-032",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-033",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-034",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-035",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-036",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-037",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-038",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-039",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-040",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-041",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-042",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-043",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-044",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-045",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-046",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-047",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-048",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-049",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-050",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-051",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-052",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-053",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-054",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-055",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-056",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-057",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-058",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-059",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-060",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-061",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-062",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-063",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-064",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-065",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-066",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-067",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-068",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-069",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-070",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-071",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-072",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-073",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-074",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-075",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-076",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-077",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "AL-078",
+        "group": "alleys_service"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-CD-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-CD-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-CD-03",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-CH-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-CH-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-ES-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-ES-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-GC-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-GC-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-IH-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-IH-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-NH-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-NH-SW",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-OT-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-OT-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-SS-01",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-SS-02",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "C-SS-03",
+        "group": "collectors"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-051",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-052",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-053",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-054",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-055",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-056",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-057",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-H-058",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-V-059",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-V-060",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-V-061",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-V-062",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CE-V-063",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-034",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-035",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-036",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-037",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-038",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-039",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-040",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-041",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-042",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-H-043",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-044",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-045",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-046",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-047",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-048",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-049",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-CH-V-050",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-H-023",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-H-024",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-H-025",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-H-026",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-H-027",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-V-028",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-V-029",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-V-030",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-V-031",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-V-032",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-EA-V-033",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-H-091",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-H-092",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-H-093",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-H-094",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-H-095",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-V-096",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-V-097",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-V-098",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-V-099",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-V-100",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-GO-V-101",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-H-080",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-H-081",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-H-082",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-H-083",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-H-084",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-V-085",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-V-086",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-V-087",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-V-088",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-V-089",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-IR-V-090",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-H-001",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-H-002",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-H-003",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-H-004",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-H-005",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-V-006",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-V-007",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-V-008",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-NO-V-009",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-010",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-011",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-012",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-013",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-014",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-015",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-H-016",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-V-017",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-V-018",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-V-019",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-V-020",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-V-021",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-OL-V-022",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-064",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-065",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-066",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-067",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-068",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-069",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-070",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-071",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-H-072",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-073",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-074",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-075",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-076",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-077",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-078",
+        "group": "local_roads"
+      },
+      {
+        "code": "ROAD_WIDTH_REQUIRED",
+        "id": "L-SO-V-079",
+        "group": "local_roads"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "RUNTIME_NOT_CONNECTED",
+        "detail": "No gameplay, buildings, vehicles, rail or spawn migration is performed."
+      }
+    ],
+    "counts": {
+      "8": 22281,
+      "9": 1793,
+      "16": 11716,
+      "19": 210
+    },
+    "waterMaskCells": 11916,
+    "roadCoverage": [],
+    "connectivity": [
+      {
+        "cells": 210,
+        "firstRC": [
+          47,
+          80
+        ]
+      }
+    ],
+    "policeProtectedCellCount": 0,
+    "immutableRedBridgeCells": 210,
+    "allCells": 36000
+  },
+  "sourceSha256": "54e3d1bdade7038769cc6540cafa4f8d921dd25b20480f48091674ff1d01d7df"
+}

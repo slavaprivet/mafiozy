@@ -1,0 +1,14 @@
+{
+  "asset_id": "business_skin.artist14.bookmaker.v1",
+  "operation_type": "bookmaker",
+  "display_name": "Owner-neutral street bookmaker",
+  "front_axis": "-Y",
+  "unit_scale_m": 1.0,
+  "owner_branding": "dynamic_not_baked",
+  "authored_features": ["wide odds-board storefront", "ticket windows", "rounded clock pylon", "continuous burgundy ribbon canopy", "queue rails", "side payout hatch", "roof broadcast mast and ticker drum"],
+  "integration_status": "art_only_not_integrated",
+  "review_status": "user_pass",
+  "frozen": true,
+  "source": "bookmaker_artist14_v1.blend",
+  "runtime": "bookmaker_artist14_v1.glb"
+}

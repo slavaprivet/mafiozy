@@ -1,0 +1,20 @@
+{
+  "schema": "regional-rail-runtime-timetable/1.0.0",
+  "coordinateSpace": "main_map_row_column",
+  "geographyBinding": "runtime_slice.main_binding.json#MAIN-NATIVE-SOUTH-COAST-RL-01",
+  "serviceId": "MAIN-NATIVE-RL-QA-LOOP",
+  "direction": "forward_closed_loop",
+  "stops": [
+    {"sequence":1,"stationId":"MAIN-RL-ST-01","platformSide":"L","nominalDwellMs":4000},
+    {"sequence":2,"stationId":"MAIN-RL-ST-02","platformSide":"R","nominalDwellMs":4000},
+    {"sequence":3,"stationId":"MAIN-RL-ST-03","platformSide":"L","nominalDwellMs":4000},
+    {"sequence":4,"stationId":"MAIN-RL-ST-04","platformSide":"R","nominalDwellMs":4000},
+    {"sequence":5,"stationId":"MAIN-RL-ST-05","platformSide":"L","nominalDwellMs":4000},
+    {"sequence":6,"stationId":"MAIN-RL-ST-06","platformSide":"R","nominalDwellMs":4000},
+    {"sequence":7,"stationId":"MAIN-RL-ST-07","platformSide":"L","nominalDwellMs":4000},
+    {"sequence":8,"stationId":"MAIN-RL-ST-08","platformSide":"R","nominalDwellMs":4000}
+  ],
+  "dwellProfile": {"openMs":400,"holdMs":3200,"closeMs":400,"nominalTotalMs":4000},
+  "nextStopDisplay": true,
+  "audibleVisualCountdown": true
+}

@@ -146,9 +146,13 @@ console.log(JSON.stringify({{bridgePath,waterPath}}));
         capability = function_source(WORLD, "_playerVehicleSurfaceCapability")
         car_point = function_source(WORLD, "isBlockedCar")
         car_body = function_source(WORLD, "_playerVehicleFootprintClear")
+        decor_collision = function_source(WORLD, "_cityV3DecorBlocked")
         script = f"""
 let MAP_ROWS=5,MAP_COLS=5;
 let MAP=Array.from({{length:MAP_ROWS}},()=>Array(MAP_COLS).fill(0));
+// This surface-only fixture has no placed civic bodies; use the real helper.
+const _cityV3DecorBodies=new Map();
+{decor_collision}
 const QUEST_CAR_MODELS={{sedan:{{L:1.8,W:.88}},racer:{{L:1.8,W:.88,race:true}}}};
 function resolveCarModel(id){{return QUEST_CAR_MODELS[id]||QUEST_CAR_MODELS.sedan;}}
 function _openCityBridgeSurface(){{return false;}}

@@ -1,0 +1,145 @@
+{
+  "schema": "mafiozi.smooth-clay-glass-building-manifest/v1",
+  "asset_id": "glass_pavilion_small_v1",
+  "status": "AUDIT_PASS_STANDALONE_NOT_APPLIED",
+  "deliverable": {
+    "path": "glass_pavilion_small_v1\\glass_pavilion_small_v1.glb",
+    "bytes": 2108880,
+    "sha256": "0dfd79a8d670568aa4aa572ea13fd2584abfaaaed2df1f574ca7b7fcd15ef33c"
+  },
+  "dimensions_and_geometry": {
+    "bounds_min_xyz": [
+      -6.5,
+      -0.2,
+      -5.295
+    ],
+    "bounds_max_xyz": [
+      7.0,
+      12.0,
+      5.945
+    ],
+    "bounds_size_xyz": [
+      13.5,
+      12.2,
+      11.24
+    ],
+    "vertex_count_all_lods": 59528,
+    "triangle_count_all_lods": 31772,
+    "glass_primitive_uses": 18,
+    "glass_alpha_mode": "BLEND"
+  },
+  "runtime_contract": {
+    "pivot": "identity ground-center",
+    "front_axis_gltf": "+Z",
+    "public_door_socket_local_xyz": [
+      0.0,
+      0.0,
+      5.05
+    ],
+    "service_door_socket_local_xyz": [
+      4.35,
+      0.0,
+      -4.55
+    ],
+    "public_door_nodes": [
+      "Small_Public_Double_Door_BRASS_PULL_L",
+      "Small_Public_Double_Door_BRASS_PULL_R",
+      "Small_Public_Double_Door_BURGUNDY_RAIL_L",
+      "Small_Public_Double_Door_BURGUNDY_RAIL_R",
+      "Small_Public_Double_Door_DEEP_LOBBY_BACKDROP",
+      "Small_Public_Double_Door_FRAME_HEADER",
+      "Small_Public_Double_Door_FRAME_POST",
+      "Small_Public_Double_Door_FRAME_POST.001",
+      "Small_Public_Double_Door_FRAME_POST.002",
+      "Small_Public_Double_Door_GLASS_LEAF_L",
+      "Small_Public_Double_Door_GLASS_LEAF_R",
+      "Small_Public_Double_Door_LOBBY_CEILING_LIGHT",
+      "Small_Public_Double_Door_LOBBY_RECEPTION_SILHOUETTE",
+      "Small_Public_Double_Door_LOBBY_SCONCE_L",
+      "Small_Public_Double_Door_LOBBY_SCONCE_R",
+      "Small_Public_Double_Door_THRESHOLD"
+    ],
+    "service_door_nodes": [
+      "Small_Service_Door_CANOPY",
+      "Small_Service_Door_HANDLE",
+      "Small_Service_Door_LEAF",
+      "Small_Service_Door_RECESS",
+      "Small_Service_Door_STEP"
+    ],
+    "collision_node": "COLLISION_BODY",
+    "parcel_pad_node": "PARCEL_PAD",
+    "lod_mesh_counts": [
+      150,
+      2,
+      1
+    ],
+    "exclusive_lod_visibility_required": true,
+    "placement_bound": false
+  },
+  "proofs": [
+    {
+      "path": "glass_pavilion_small_v1\\glass_pavilion_small_v1_day_proof.png",
+      "bytes": 819176,
+      "sha256": "c50e136cffe1a2956bf66c105bb132b687ad267f047143415435a39c394a1553"
+    },
+    {
+      "path": "glass_pavilion_small_v1\\glass_pavilion_small_v1_night_proof.png",
+      "bytes": 733368,
+      "sha256": "967eea574f5ea24965b1b31e845ac8641909444ad5f03a727bb3efb541f93bc1"
+    },
+    {
+      "path": "glass_pavilion_small_v1\\glass_pavilion_small_v1_game_camera_proof.png",
+      "bytes": 816009,
+      "sha256": "415120b08c82292690de61d055c6747240e3aefc24229f04eec95100ed8773b4"
+    },
+    {
+      "path": "glass_pavilion_small_v1\\glass_pavilion_small_v1_proof_contact_sheet.png",
+      "bytes": 1611252,
+      "sha256": "08994d525abd1c7713c33415909446d412462254cbca6c82da0fdce2c852d54d"
+    }
+  ],
+  "provenance_and_rights": {
+    "generator": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\work\\build_glass_buildings_smooth_clay_v1.py",
+      "bytes": 24351,
+      "sha256": "9c9e7dff1e87eab1d56c2e57528e7237ffe696258a96ed6fc7f267eb990f4218"
+    },
+    "style_bible": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-coordinator12-live\\outputs\\mafiozi_smooth_clay_style_bible_v1\\mafiozi_smooth_clay_style_bible_v1.json",
+      "bytes": 24003,
+      "sha256": "fbe59a7b89ec6ed48bfbcf8cc2f33a2caebf5b8c1c2bea937a0a3fff90d5c91e"
+    },
+    "rights_basis": "Project-authored procedural geometry, materials, doors, LODs, sockets and proof renders created for Mafiozi; no third-party model or texture dependency.",
+    "external_textures": 0,
+    "external_images": 0,
+    "third_party_assets_detected": false
+  },
+  "audit": {
+    "root_identity": true,
+    "three_progressive_lods": true,
+    "transparent_glass_verified": true,
+    "public_double_door_complete": true,
+    "service_door_complete": true,
+    "proof_nodes_excluded": true,
+    "day_night_game_camera_visual_qa": "PASS",
+    "main_modified": false
+  },
+  "user_approved_reference": {
+    "status": "USER_APPROVED_CANONICAL_BUILDING_AND_GLASS_REFERENCE",
+    "reference_record": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\outputs\\glass_buildings_smooth_clay_v1\\reference\\glass_building_canonical_reference_v1.json",
+      "bytes": 2098,
+      "sha256": "38d0517b1f88fd322918557b772c827f1e7f92e85dbb8a02afb734ae9e089577"
+    },
+    "approval_screenshot": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\outputs\\glass_buildings_smooth_clay_v1\\reference\\user_approved_glass_pavilion_reference.png",
+      "bytes": 1034916,
+      "sha256": "068b8f93faf6f4298e3cfc5863325b6c335ae56686784cec1f3f2af233221040"
+    },
+    "project_memory": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\PROJECT_MEMORY.md",
+      "bytes": 2309,
+      "sha256": "10590cdfbc79bd94d7ea6381d876269ad33547f8a1400b91e6d1ef0086237990"
+    }
+  }
+}

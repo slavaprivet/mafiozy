@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import {createHash} from 'node:crypto';
+import {buildPlacementTopology} from './placement_topology.mjs';
+const [sourcePath,outPath]=process.argv.slice(2);
+if(!sourcePath||!outPath)throw new Error('Usage: node build_placement_topology.mjs <v3-addendum.json> <new-output.json>');
+const sha=b=>createHash('sha256').update(b).digest('hex'),sourceBytes=fs.readFileSync(sourcePath),source=JSON.parse(sourceBytes);
+if(sha(sourceBytes)!=='dbd287d1aa692d3706ae7cc5c1cba17972538e248805100f19cd95a2ef9f5a0f')throw new Error('Unreviewed source revision');
+const baseInfo=source.sources.authoritative_handoff_v1,baseBytes=fs.readFileSync(baseInfo.path);
+if(baseBytes.length!==baseInfo.bytes||sha(baseBytes)!==baseInfo.sha256)throw new Error('Base fingerprint mismatch');
+const result=buildPlacementTopology(source,{base:JSON.parse(baseBytes)});
+result.sources={addendum:{path:sourcePath,bytes:sourceBytes.length,sha256:sha(sourceBytes)},base:{...baseInfo}};
+fs.writeFileSync(outPath,JSON.stringify(result)+'\n',{flag:'wx'});
+console.log(JSON.stringify({output:outPath,status:result.status,pendingHostSnapshot:result.pendingHostSnapshot,validation:result.validation}));

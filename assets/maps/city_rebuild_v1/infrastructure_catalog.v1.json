@@ -1,0 +1,510 @@
+{
+  "schema": "mafiozi.city-rebuild.infrastructure-bindings/v1",
+  "scope": "isolated_walk_preview",
+  "source": {
+    "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-industry-replacement\\outputs\\latest_ready_asset_manifest_v1\\latest_ready_asset_manifest_v1.json",
+    "bytes": 49804,
+    "sha256": "28bd36d94fce6fb1c85cb4f070699bf6d35f1eb9dd96aa602b0c01ac48c16e85"
+  },
+  "roadMaterials": {
+    "source": {
+      "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-industry-replacement\\outputs\\smooth_clay_road_rail_crossing_kit_v1\\smooth_clay_road_rail_crossing_kit_v1.glb",
+      "bytes": 1082836,
+      "sha256": "a6ae02ec0f3ff26937f9dae71eb13bec312b3697976570d1e708a395d674ed6e"
+    },
+    "usage": "Extracted PBR descriptors only. Combined 12-module GLB is NOT instantiated or staged as one map model.",
+    "materialDescriptors": [
+      {
+        "id": "MAT_CLAY_WARM_CONCRETE",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.4699999988079071,
+          0.4399999976158142,
+          0.3799999952316284,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_MARKING_IVORY",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.8799999952316284,
+          0.8199999928474426,
+          0.6600000262260437,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_MARKING_OCHRE",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.8999999761581421,
+          0.550000011920929,
+          0.09000000357627869,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_CLEAN",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.10499999672174454,
+          0.11500000208616257,
+          0.11999999731779099,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_WORN",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.1550000011920929,
+          0.15000000596046448,
+          0.13500000536441803,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_CURB",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.6700000166893005,
+          0.6200000047683716,
+          0.5199999809265137,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_PATCH",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.07500000298023224,
+          0.0820000022649765,
+          0.08500000089406967,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_AGED",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.20000000298023224,
+          0.18000000715255737,
+          0.15000000596046448,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      }
+    ]
+  },
+  "lampAdapters": {
+    "lamp_civic_double_v1": {
+      "placementOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "placementOriginEvidence": {
+        "sourceNode": "Lamp_Base_CIVIC_DOUBLE",
+        "sourceSocketGltfM": [
+          43,
+          0,
+          14
+        ],
+        "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+        "sha256": "47ae1fe13f50413fde7ee6a2dc35126765b34ff10ab725bf5983fbaa789a9a89"
+      },
+      "clearanceM": [
+        4.299996948242187,
+        1.4399999737739564,
+        6.8
+      ],
+      "collisionEvidence": {
+        "sourceNode": "Lamp_Base_CIVIC_DOUBLE",
+        "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+        "sha256": "47ae1fe13f50413fde7ee6a2dc35126765b34ff10ab725bf5983fbaa789a9a89"
+      },
+      "groundBodiesGltfM": [
+        {
+          "node": "Lamp_Base_CIVIC_DOUBLE",
+          "min": [
+            -0.41999998688697815,
+            0,
+            -0.41999998688697815
+          ],
+          "max": [
+            0.41999998688697815,
+            0.5600000023841858,
+            0.41999998688697815
+          ]
+        }
+      ],
+      "visualBoundsGltfM": {
+        "min": [
+          -1.8499984741210938,
+          0,
+          -0.41999998688697815
+        ],
+        "max": [
+          1.8499984741210938,
+          6.5,
+          0.41999998688697815
+        ]
+      }
+    },
+    "lamp_bellini_v1": {
+      "placementOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "placementOriginEvidence": {
+        "sourceNode": "Lamp_Base_BELLINI",
+        "sourceSocketGltfM": [
+          31,
+          0,
+          14
+        ],
+        "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+      },
+      "clearanceM": [
+        3.859999215602875,
+        1.559999978542328,
+        6.8
+      ],
+      "collisionEvidence": {
+        "sourceNode": "Lamp_Base_BELLINI",
+        "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+      },
+      "groundBodiesGltfM": [
+        {
+          "node": "Lamp_Base_BELLINI",
+          "min": [
+            -0.41999998688697815,
+            0,
+            -0.41999998688697815
+          ],
+          "max": [
+            0.41999998688697815,
+            0.5600000023841858,
+            0.41999998688697815
+          ]
+        }
+      ],
+      "visualBoundsGltfM": {
+        "min": [
+          -0.41999998688697815,
+          0,
+          -0.47999998927116394
+        ],
+        "max": [
+          1.6299996078014374,
+          6.5,
+          0.47999998927116394
+        ]
+      }
+    },
+    "lamp_pine_v1": {
+      "placementOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "placementOriginEvidence": {
+        "sourceNode": "Lamp_Base_PINE",
+        "sourceSocketGltfM": [
+          20,
+          0,
+          14
+        ],
+        "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+        "sha256": "fe092a7d5833b2008fa90a54ae0580f03ee19d90f03dd26297ad54f0647b54c1"
+      },
+      "clearanceM": [
+        1.700000023841858,
+        1.700000023841858,
+        6.9400000154972075
+      ],
+      "collisionEvidence": {
+        "sourceNode": "Lamp_Base_PINE",
+        "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+        "sha256": "fe092a7d5833b2008fa90a54ae0580f03ee19d90f03dd26297ad54f0647b54c1"
+      },
+      "groundBodiesGltfM": [
+        {
+          "node": "Lamp_Base_PINE",
+          "min": [
+            -0.41999998688697815,
+            0,
+            -0.41999998688697815
+          ],
+          "max": [
+            0.41999998688697815,
+            0.5600000023841858,
+            0.41999998688697815
+          ]
+        }
+      ],
+      "visualBoundsGltfM": {
+        "min": [
+          -0.550000011920929,
+          0,
+          -0.550000011920929
+        ],
+        "max": [
+          0.550000011920929,
+          6.640000015497208,
+          0.550000011920929
+        ]
+      }
+    },
+    "lamp_foundry_v1": {
+      "placementOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "placementOriginEvidence": {
+        "sourceNode": "Lamp_Base_FOUNDRY",
+        "sourceSocketGltfM": [
+          9,
+          0,
+          14
+        ],
+        "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+        "sha256": "efed19a8fe04819321de8304e71f9c4e4ed892662e2844cb4bdbdcdb29492bb6"
+      },
+      "clearanceM": [
+        4.549999809265136,
+        1.5479993648529047,
+        6.8
+      ],
+      "collisionEvidence": {
+        "sourceNode": "Lamp_Base_FOUNDRY",
+        "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+        "sha256": "efed19a8fe04819321de8304e71f9c4e4ed892662e2844cb4bdbdcdb29492bb6"
+      },
+      "groundBodiesGltfM": [
+        {
+          "node": "Lamp_Base_FOUNDRY",
+          "min": [
+            -0.41999998688697815,
+            0,
+            -0.41999998688697815
+          ],
+          "max": [
+            0.41999998688697815,
+            0.5600000023841858,
+            0.41999998688697815
+          ]
+        }
+      ],
+      "visualBoundsGltfM": {
+        "min": [
+          -0.41999998688697815,
+          0,
+          -0.41999998688697815
+        ],
+        "max": [
+          1.9749999046325684,
+          6.5,
+          0.4739996824264523
+        ]
+      }
+    }
+  },
+  "bridgeBindings": [
+    {
+      "assetId": "stream_footbridge",
+      "source": {
+        "absolutePath": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\outputs\\district_rural_waterfront_kit_v1\\stream_footbridge_lod0_v1.glb",
+        "bytes": 222028,
+        "sha256": "1529134a80cbbfd7662aeaad1a83589fe2bd70e1cec2c6218337c75c30ec3437",
+        "integrityVerifiedAtGeneration": true,
+        "assetId": "stream_footbridge",
+        "lod": "LOD0",
+        "dimensionsXYZM": [
+          2.2,
+          7,
+          1.6
+        ]
+      }
+    },
+    {
+      "assetId": "stream_footbridge",
+      "source": {
+        "absolutePath": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\outputs\\district_rural_waterfront_kit_v1\\stream_footbridge_lod1_v1.glb",
+        "bytes": 76772,
+        "sha256": "627979dc87e6b3b493ff8b270c795bdb043808ec7d68a8b22859fb49b4813025",
+        "integrityVerifiedAtGeneration": true,
+        "assetId": "stream_footbridge",
+        "lod": "LOD1",
+        "dimensionsXYZM": [
+          2.2,
+          7,
+          1.6
+        ]
+      }
+    },
+    {
+      "assetId": "stream_footbridge",
+      "source": {
+        "absolutePath": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\outputs\\district_rural_waterfront_kit_v1\\stream_footbridge_lod2_v1.glb",
+        "bytes": 19780,
+        "sha256": "d80b75e0d2ccc8d2ff9201d91c49db7e383e1734c730879138d1d81d2187b096",
+        "integrityVerifiedAtGeneration": true,
+        "assetId": "stream_footbridge",
+        "lod": "LOD2",
+        "dimensionsXYZM": [
+          2.2,
+          7,
+          1.6
+        ]
+      }
+    },
+    {
+      "assetId": "mini_vehicle_bridge",
+      "source": {
+        "absolutePath": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\outputs\\district_rural_waterfront_kit_v1\\mini_vehicle_bridge_lod0_v1.glb",
+        "bytes": 222296,
+        "sha256": "59d3dff9fdbff59a5b14b893436ee9ef7fba564d663bc042abb420b8dd4fde01",
+        "integrityVerifiedAtGeneration": true,
+        "assetId": "mini_vehicle_bridge",
+        "lod": "LOD0",
+        "dimensionsXYZM": [
+          4.2,
+          9,
+          1.6
+        ]
+      }
+    },
+    {
+      "assetId": "mini_vehicle_bridge",
+      "source": {
+        "absolutePath": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\outputs\\district_rural_waterfront_kit_v1\\mini_vehicle_bridge_lod1_v1.glb",
+        "bytes": 77000,
+        "sha256": "d0e748730e8f00b56ad0a09300fe54a24da781e95150ec12eb583836392cc6c2",
+        "integrityVerifiedAtGeneration": true,
+        "assetId": "mini_vehicle_bridge",
+        "lod": "LOD1",
+        "dimensionsXYZM": [
+          4.2,
+          9,
+          1.6
+        ]
+      }
+    },
+    {
+      "assetId": "mini_vehicle_bridge",
+      "source": {
+        "absolutePath": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-civic-replacement\\outputs\\district_rural_waterfront_kit_v1\\mini_vehicle_bridge_lod2_v1.glb",
+        "bytes": 20028,
+        "sha256": "c3ee2590fc29c5ca7e324aebb6bda464bc0fec27dbc597f6ab1f006050c0fb39",
+        "integrityVerifiedAtGeneration": true,
+        "assetId": "mini_vehicle_bridge",
+        "lod": "LOD2",
+        "dimensionsXYZM": [
+          4.2,
+          9,
+          1.6
+        ]
+      }
+    }
+  ],
+  "findings": [
+    {
+      "assetId": "lamp_civic_double_v1",
+      "code": "STALE_PLACEMENT_SOCKET",
+      "sourceSocketGltfM": [
+        43,
+        0,
+        14
+      ],
+      "groundOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "mitigation": "evidence-backed per-asset visual-origin override, source GLB untouched"
+    },
+    {
+      "assetId": "lamp_bellini_v1",
+      "code": "STALE_PLACEMENT_SOCKET",
+      "sourceSocketGltfM": [
+        31,
+        0,
+        14
+      ],
+      "groundOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "mitigation": "evidence-backed per-asset visual-origin override, source GLB untouched"
+    },
+    {
+      "assetId": "lamp_pine_v1",
+      "code": "STALE_PLACEMENT_SOCKET",
+      "sourceSocketGltfM": [
+        20,
+        0,
+        14
+      ],
+      "groundOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "mitigation": "evidence-backed per-asset visual-origin override, source GLB untouched"
+    },
+    {
+      "assetId": "lamp_foundry_v1",
+      "code": "STALE_PLACEMENT_SOCKET",
+      "sourceSocketGltfM": [
+        9,
+        0,
+        14
+      ],
+      "groundOriginGltfM": [
+        0,
+        0,
+        0
+      ],
+      "mitigation": "evidence-backed per-asset visual-origin override, source GLB untouched"
+    }
+  ],
+  "artAcceptance": "needs_visual_review"
+}

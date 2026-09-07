@@ -14,6 +14,10 @@ class CityV3PreviewAssetServerTests(unittest.IsolatedAsyncioTestCase):
             preview_server.preview_city_v3_asset,
         )
         app.router.add_get(
+            "/assets/rail/{tail:.*}",
+            preview_server.preview_city_v3_rail_asset,
+        )
+        app.router.add_get(
             "/preview/three_preview.js",
             preview_server.preview_three_module,
         )
@@ -62,6 +66,31 @@ class CityV3PreviewAssetServerTests(unittest.IsolatedAsyncioTestCase):
             response.headers.get("Content-Type", "").startswith("text/javascript")
         )
         self.assertIn("cityV3BuildingPreviewRequested", await response.text())
+
+    async def test_hash_pinned_rail_registry_and_glb_are_served_safely(self):
+        registry = await self.client.get("/assets/rail/city_v3/registry.v1.js")
+        self.assertEqual(registry.status, 200)
+        self.assertEqual(registry.headers.get("Cache-Control"), "no-store")
+        self.assertEqual(registry.headers.get("X-Content-Type-Options"), "nosniff")
+        self.assertTrue(registry.headers.get("Content-Type", "").startswith("text/javascript"))
+        self.assertIn("loadCityV3RailCandidate", await registry.text())
+
+        glb = await self.client.get(
+            "/assets/rail/city_v3/v1/regional_train_and_track_tiles_v1.glb"
+        )
+        self.assertEqual(glb.status, 200)
+        self.assertEqual(glb.headers.get("Content-Type"), "model/gltf-binary")
+        self.assertEqual((await glb.read())[:4], b"glTF")
+
+    async def test_rail_route_rejects_traversal_unknown_types_and_missing_files(self):
+        for path in (
+            "/assets/rail/..%2F..%2Fworld.html",
+            "/assets/rail/city_v3/registry.v1.py",
+            "/assets/rail/city_v3/missing.glb",
+        ):
+            with self.subTest(path=path):
+                response = await self.client.get(path)
+                self.assertEqual(response.status, 404)
 
 
 if __name__ == "__main__":

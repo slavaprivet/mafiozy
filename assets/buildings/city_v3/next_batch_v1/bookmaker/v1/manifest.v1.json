@@ -1,0 +1,53 @@
+{
+  "schema": "mafiozi.city-v3-next-building-asset/v1",
+  "key": "bookmaker@1",
+  "status": "asset_accepted_runtime_rebind_required",
+  "asset": {
+    "canonical_asset_id": "bookmaker",
+    "file": "bookmaker.cf7da54c2037.glb",
+    "bytes": 1218304,
+    "sha256": "cf7da54c2037182ca975bf5d08c291a8c7a41e7a1107c7f223b5522468ce8d70",
+    "sidecar_file": "bookmaker.dc83704901c9.asset.json",
+    "sidecar_bytes": 621,
+    "sidecar_sha256": "dc83704901c9c317b73ffeb21bbd106d1a720edfa3948785e726596f112f7e99"
+  },
+  "provenance": {
+    "origin": "project_generated",
+    "generator_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-02\\mafiozy-artist14\\work\\build_bookmaker_asset.py",
+    "generator_sha256": "ac6dfa5ac70dd58fc735c40f42215503504aee8d1e6cf8fd0fa4841c13b0314d",
+    "external_sources": [],
+    "usage": "internal_project_asset",
+    "source_audit": "procedural Blender primitives only; no imports, libraries, network or downloads"
+  },
+  "review": {
+    "source_sidecar_review_status": "user_pass",
+    "source_sidecar_frozen": true,
+    "accepted_release_manifest_sha256": "687d2ff4927a43859100c6b8475138664e67839781bdd00789e206f3e4e2612d",
+    "accepted_visual_bible_sha256": "c2030c3758582c91f9a7b0bb05745496451a096846c520f5a06cafda0af00239"
+  },
+  "geometry": {
+    "front": "+Z",
+    "root_node": "SKIN_ROOT_bookmaker__front_negative_Y",
+    "raw_bounds_m": {
+      "min_xyz": [-8.0, 0.0, -4.9],
+      "max_xyz": [8.705, 13.6, 7.53]
+    },
+    "horizontal_center_xyz_m": [0.3525, 0.0, 1.315],
+    "public_anchor_authority": "accepted_release_manifest_entrance",
+    "public_anchor_local_xyz_m": [-3.15, 0.0, 5.32],
+    "public_door_node": "Glazed burgundy door",
+    "public_door_visual_nodes": ["Glazed burgundy door", "Door brass split", "Door pull", "Door pull.001"],
+    "public_door_local_xyz_m": [-3.15, 1.9, 5.32],
+    "service_anchor_authority": "exact_glb_node_translation",
+    "service_anchor_local_xyz_m": [8.1, 1.75, -1.25],
+    "service_door_node": "Employee door",
+    "service_door_local_xyz_m": [8.1, 1.75, -1.25]
+  },
+  "runtime_gate": {
+    "runtime_activation": false,
+    "legacy_suppression": false,
+    "current_head_rebind_required": true,
+    "exact_authored_service_anchor_required": true,
+    "failure_keeps_legacy": true
+  }
+}

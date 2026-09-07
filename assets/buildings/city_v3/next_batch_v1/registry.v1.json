@@ -1,0 +1,68 @@
+{
+  "schema": "mafiozi.city-v3-next-building-asset-registry/v1",
+  "revision": 1,
+  "status": "ASSET_ACCEPTED_CORRECTED_BINDING_CANDIDATE_RUNTIME_INACTIVE",
+  "activation_policy": "metadata_only_fail_closed_no_legacy_suppression",
+  "audited_worktree": {
+    "commit": "5762a6a8f5fbef9172eefad770660abb7dc0520f",
+    "world_html_sha256": "f0a9983364793143b169a290cec4972f1b7d4ec643c83482a1c99cdb3bd3d0e6",
+    "three_preview_js_sha256": "3f2cdf01defa5a5bf895f542ff9d759cb75b2fb4240fca996549a1bb17168fe6"
+  },
+  "recommended_atomic_slice": ["gun_shop@1", "bookmaker@1", "strip_club@1"],
+  "bindings_candidate": {
+    "url": "./bindings.candidate.v1.json",
+    "bytes": 13008,
+    "sha256": "7c1c3326d003743a95df83d44e978907e22716ab7dbd284bcc97b49c97a9a8e8",
+    "status": "corrected_static_sat_pass_runtime_inactive_live_probe_required"
+  },
+  "source_authority": {
+    "accepted_release_manifest_sha256": "687d2ff4927a43859100c6b8475138664e67839781bdd00789e206f3e4e2612d",
+    "accepted_visual_bible_sha256": "c2030c3758582c91f9a7b0bb05745496451a096846c520f5a06cafda0af00239",
+    "placement_addendum_contract_sha256": "a442adede545463546a994384d1a90b5de17e937d0fce3fc259d7f23a8b697f4",
+    "placement_addendum_snapshot_sha256": "14cab22200589a453adc1a983dcbe8ec1a5872d535fd09f78c0fa0a97c42073c",
+    "placement_addendum_world_sha256": "fd696f7a0ce54df6ea32554b632be3a8663b09e565854c0a798b3464986104a6",
+    "placement_addendum_three_preview_sha256": "f7f960312cb1ef2b85a990d411ea1a3051ec60f167a9c3cca8e97304aa4f02d6"
+  },
+  "negative_control_wrapper_package": {
+    "package_manifest_sha256": "a7a3065369aa44a6d8c8444a0ad73943fe178cc935db2b30f42838666fdf6141",
+    "status": "blocked_for_current_recentering_loader",
+    "reason": "origin-based public socket metadata and synthetic rear-center service sockets"
+  },
+  "entries": [
+    {
+      "key": "gun_shop@1",
+      "status": "asset_accepted_runtime_rebind_required",
+      "manifest": {"url": "./gun_shop/v1/manifest.v1.json", "bytes": 2309, "sha256": "b91a61eca799520ff08e875f8350528f06a8da4c478c8302db7027303ceb869b"},
+      "asset": {"url": "./gun_shop/v1/gun_shop.e97d6fac4097.glb", "bytes": 1568892, "sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755"},
+      "sidecar": {"url": "./gun_shop/v1/gun_shop.d8855a9a0ec6.asset.json", "bytes": 828, "sha256": "d8855a9a0ec60e57fcf3fdfa966eccff8117a665004063fa18d8bdc89ce91303"},
+      "runtime_activation": false,
+      "legacy_suppression": false
+    },
+    {
+      "key": "bookmaker@1",
+      "status": "asset_accepted_runtime_rebind_required",
+      "manifest": {"url": "./bookmaker/v1/manifest.v1.json", "bytes": 2279, "sha256": "2fc974ed6b78806d0fee682cec382c6e883e28fb3df6405fd3bdb8e74b504d24"},
+      "asset": {"url": "./bookmaker/v1/bookmaker.cf7da54c2037.glb", "bytes": 1218304, "sha256": "cf7da54c2037182ca975bf5d08c291a8c7a41e7a1107c7f223b5522468ce8d70"},
+      "sidecar": {"url": "./bookmaker/v1/bookmaker.dc83704901c9.asset.json", "bytes": 621, "sha256": "dc83704901c9c317b73ffeb21bbd106d1a720edfa3948785e726596f112f7e99"},
+      "runtime_activation": false,
+      "legacy_suppression": false
+    },
+    {
+      "key": "strip_club@1",
+      "status": "asset_accepted_runtime_rebind_required",
+      "manifest": {"url": "./strip_club/v1/manifest.v1.json", "bytes": 2324, "sha256": "e05227daf6f89c2666ef834c5dffe3a422e6545f0b31c2359e2c23dc10744e31"},
+      "asset": {"url": "./strip_club/v1/strip_club.a29f4603767b.glb", "bytes": 978332, "sha256": "a29f4603767b74b71baae3d42c4cbd44e7831b90634bc1bfa7dbfe23e3f4272c"},
+      "sidecar": {"url": "./strip_club/v1/strip_club.9ee63b05a351.asset.json", "bytes": 819, "sha256": "9ee63b05a351501b706e72d882d5537305607c2b3c2864b98837fb24dd16964a"},
+      "runtime_activation": false,
+      "legacy_suppression": false
+    }
+  ],
+  "runtime_gate": {
+    "require_current_head_runtime_snapshot": true,
+    "require_exact_public_and_service_anchor_rebind": false,
+    "corrected_public_and_service_anchor_static_validation": true,
+    "require_post_rail_live_runtime_probe": true,
+    "require_all_selected_assets_loaded_before_any_suppression": true,
+    "failure_keeps_every_legacy_structure": true
+  }
+}

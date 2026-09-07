@@ -1,0 +1,215 @@
+{
+  "schema": "mafiozi.city-v3-next-building-bindings-candidate/v1",
+  "revision": 1,
+  "status": "CORRECTED_STATIC_SAT_PASS_RUNTIME_INACTIVE_LIVE_PROBE_REQUIRED",
+  "world_units_per_contract_cell_m": 4.1,
+  "runtime_activation": false,
+  "legacy_suppression": false,
+  "audited_head": {
+    "commit": "5762a6a8f5fbef9172eefad770660abb7dc0520f",
+    "audited_worktree_world_html_sha256": "f0a9983364793143b169a290cec4972f1b7d4ec643c83482a1c99cdb3bd3d0e6",
+    "audited_worktree_three_preview_js_sha256": "3f2cdf01defa5a5bf895f542ff9d759cb75b2fb4240fca996549a1bb17168fe6",
+    "git_blob_world_html_sha256": "05599fd4b3cb415321e89c8ccfd070cdbca8ee7075a46be242e2282d085fa74e",
+    "git_blob_three_preview_js_sha256": "306978418154c3b61d96a23e5bfe158a9549c22a2db8403ee0c0aa98e7a7c8db"
+  },
+  "placement_authority": {
+    "source_contract_sha256": "a442adede545463546a994384d1a90b5de17e937d0fce3fc259d7f23a8b697f4",
+    "source_runtime_snapshot_sha256": "14cab22200589a453adc1a983dcbe8ec1a5872d535fd09f78c0fa0a97c42073c",
+    "source_status": "geometry_sat_pass_but_authored_door_recenter_incorrect",
+    "correction": "Public and service anchors are recomputed from exact authored GLB nodes after horizontal recenter, uniform scale, yaw, and 4.1 m/cell conversion. Service routes use the actual authored service door rather than a synthetic rear-center anchor."
+  },
+  "atomic_apply_policy": {
+    "all_three_assets_required": true,
+    "exact_asset_bytes_and_sha_required": true,
+    "current_runtime_preflight_required": true,
+    "visible_mesh_required": true,
+    "public_and_service_road_probe_required": true,
+    "partial_legacy_suppression_forbidden": true,
+    "failure_keeps_every_legacy_structure_and_door": true
+  },
+  "post_integration_focus_urls": {
+    "gun_shop@1": "http://127.0.0.1:8081/preview/world.html?preview=1&direct=1&previewcityv3=stage-a&cityv3buildings=1&cityv3focus=gun_shop%401&force3d=1&render=3d",
+    "bookmaker@1": "http://127.0.0.1:8081/preview/world.html?preview=1&direct=1&previewcityv3=stage-a&cityv3buildings=1&cityv3focus=bookmaker%401&force3d=1&render=3d",
+    "strip_club@1": "http://127.0.0.1:8081/preview/world.html?preview=1&direct=1&previewcityv3=stage-a&cityv3buildings=1&cityv3focus=strip_club%401&force3d=1&render=3d"
+  },
+  "bindings": [
+    {
+      "key": "gun_shop@1",
+      "district_id": "southside",
+      "instance_id": "MAIN-NATIVE-V3-GUN_SHOP-01",
+      "canonical_asset_id": "gun_shop",
+      "asset_sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755",
+      "manifest_url": "./gun_shop/v1/manifest.v1.json",
+      "center_grid_rc": [87.375, 17.75],
+      "center_grid_cr": [17.75, 87.375],
+      "uniform_asset_scale": 0.68,
+      "yaw_deg": 0.0,
+      "footprint_rect_grid_rc": {"minR": 86.425122, "maxR": 88.324878, "minC": 16.34439, "maxC": 19.15561},
+      "footprint_polygon_grid_cr": [[16.34439, 86.425122], [19.15561, 86.425122], [19.15561, 88.324878], [16.34439, 88.324878]],
+      "pad_rect_grid_rc": {"minR": 85.937317, "maxR": 88.812683, "minC": 15.856585, "maxC": 19.643415},
+      "pad_polygon_grid_cr": [[15.856585, 85.937317], [19.643415, 85.937317], [19.643415, 88.812683], [15.856585, 88.812683]],
+      "public_door": {
+        "anchor_authority": "accepted_release_manifest_entrance",
+        "primary_visual_node": "Armored public door",
+        "authored_local_xyz_m": [-2.35, 0.0, 5.33],
+        "exact_anchor_grid_rc": [88.121756098, 17.273170732],
+        "superseded_addendum_anchor_grid_rc": [88.259, 17.360244],
+        "superseded_error_cells": 0.162535,
+        "approach_width_m": 3.0,
+        "approach_segments_rect_grid_rc": [
+          {"minR": 88.121756098, "maxR": 90.25, "minC": 16.907317073, "maxC": 17.63902439}
+        ],
+        "route_grid_rc": [[88.121756098, 17.273170732], [90.25, 17.273170732], [90.5, 17.273170732]],
+        "road_probe": {"id": "runtime:road-tile:90:17", "grid_rc": [90.5, 17.273170732]}
+      },
+      "service_access": {
+        "anchor_authority": "exact_glb_node_translation",
+        "authored_node": "Armored delivery shutter",
+        "authored_local_xyz_m": [7.98, 2.0, -0.6],
+        "exact_anchor_grid_rc": [87.138243902, 18.986439024],
+        "superseded_addendum_anchor_grid_rc": [86.501112, 17.75],
+        "superseded_error_cells": 1.390942,
+        "approach_width_m": 4.0,
+        "approach_segments_rect_grid_rc": [
+          {"minR": 86.650439024, "maxR": 87.62604878, "minC": 18.986439024, "maxC": 20.25}
+        ],
+        "route_grid_rc": [[87.138243902, 18.986439024], [87.138243902, 20.25], [87.138243902, 20.5]],
+        "road_probe": {"id": "runtime:road-tile:87:20", "grid_rc": [87.138243902, 20.5]}
+      },
+      "legacy": {
+        "gameplay_poi": null,
+        "gameplay_identity": "procedural_shell_only_no_fixed_business_poi",
+        "structure_id": "legacy:procedural:80:10:85:15:89:19",
+        "block_bounds": {"r0": 80, "c0": 10, "r1": 90, "c1": 20},
+        "tile_bounds": {"min_r": 85, "max_r_exclusive": 89, "min_c": 15, "max_c_exclusive": 19, "tile_count": 16},
+        "tile_ids": [
+          "runtime:building-tile:85:15", "runtime:building-tile:85:16", "runtime:building-tile:85:17", "runtime:building-tile:85:18",
+          "runtime:building-tile:86:15", "runtime:building-tile:86:16", "runtime:building-tile:86:17", "runtime:building-tile:86:18",
+          "runtime:building-tile:87:15", "runtime:building-tile:87:16", "runtime:building-tile:87:17", "runtime:building-tile:87:18",
+          "runtime:building-tile:88:15", "runtime:building-tile:88:16", "runtime:building-tile:88:17", "runtime:building-tile:88:18"
+        ],
+        "door": {"id": "door_85_15_0", "grid_rc": [84.5, 18.5], "wall_grid_rc": [85.0, 18.5], "facing_grid_rc": [-1.0, 0.0]},
+        "before_road_probe": {"id": "runtime:road-tile:83:18", "grid_rc": [83.5, 18.5]}
+      }
+    },
+    {
+      "key": "bookmaker@1",
+      "district_id": "industrial",
+      "instance_id": "MAIN-NATIVE-V3-BOOKMAKER-01",
+      "canonical_asset_id": "bookmaker",
+      "asset_sha256": "cf7da54c2037182ca975bf5d08c291a8c7a41e7a1107c7f223b5522468ce8d70",
+      "manifest_url": "./bookmaker/v1/manifest.v1.json",
+      "center_grid_rc": [47.75, 47.375],
+      "center_grid_cr": [47.375, 47.75],
+      "uniform_asset_scale": 0.68,
+      "yaw_deg": 90.0,
+      "footprint_rect_grid_rc": {"minR": 46.364756, "maxR": 49.135244, "minC": 46.344268, "maxC": 48.405732},
+      "footprint_polygon_grid_cr": [[46.344268, 46.364756], [48.405732, 46.364756], [48.405732, 49.135244], [46.344268, 49.135244]],
+      "pad_rect_grid_rc": {"minR": 45.876951, "maxR": 49.623049, "minC": 45.856463, "maxC": 48.893537},
+      "pad_polygon_grid_cr": [[45.856463, 45.876951], [48.893537, 45.876951], [48.893537, 49.623049], [45.856463, 49.623049]],
+      "public_door": {
+        "anchor_authority": "accepted_release_manifest_entrance",
+        "primary_visual_node": "Glazed burgundy door",
+        "authored_local_xyz_m": [-3.15, 0.0, 5.32],
+        "exact_anchor_grid_rc": [48.330902439, 48.039243902],
+        "superseded_addendum_anchor_grid_rc": [48.272439, 48.257341],
+        "superseded_error_cells": 0.225797,
+        "approach_width_m": 3.0,
+        "approach_segments_rect_grid_rc": [
+          {"minR": 47.96504878, "maxR": 48.696756098, "minC": 48.039243902, "maxC": 50.25}
+        ],
+        "route_grid_rc": [[48.330902439, 48.039243902], [48.330902439, 50.25], [48.330902439, 50.5]],
+        "road_probe": {"id": "runtime:road-tile:48:50", "grid_rc": [48.330902439, 50.5]}
+      },
+      "service_access": {
+        "anchor_authority": "exact_glb_node_translation",
+        "authored_node": "Employee door",
+        "authored_local_xyz_m": [8.1, 1.75, -1.25],
+        "exact_anchor_grid_rc": [46.46504878, 46.949585366],
+        "superseded_addendum_anchor_grid_rc": [47.75, 46.426727],
+        "superseded_error_cells": 1.387256,
+        "approach_width_m": 4.0,
+        "approach_segments_rect_grid_rc": [
+          {"minR": 43.75, "maxR": 46.46504878, "minC": 46.461780488, "maxC": 47.437390244}
+        ],
+        "route_grid_rc": [[46.46504878, 46.949585366], [43.75, 46.949585366], [43.5, 46.949585366]],
+        "road_probe": {"id": "runtime:road-tile:43:46", "grid_rc": [43.5, 46.949585366]}
+      },
+      "legacy": {
+        "gameplay_poi": null,
+        "gameplay_identity": "procedural_shell_only_no_fixed_business_poi",
+        "structure_id": "legacy:procedural:40:40:45:45:49:49",
+        "block_bounds": {"r0": 40, "c0": 40, "r1": 50, "c1": 50},
+        "tile_bounds": {"min_r": 45, "max_r_exclusive": 49, "min_c": 45, "max_c_exclusive": 49, "tile_count": 16},
+        "tile_ids": [
+          "runtime:building-tile:45:45", "runtime:building-tile:45:46", "runtime:building-tile:45:47", "runtime:building-tile:45:48",
+          "runtime:building-tile:46:45", "runtime:building-tile:46:46", "runtime:building-tile:46:47", "runtime:building-tile:46:48",
+          "runtime:building-tile:47:45", "runtime:building-tile:47:46", "runtime:building-tile:47:47", "runtime:building-tile:47:48",
+          "runtime:building-tile:48:45", "runtime:building-tile:48:46", "runtime:building-tile:48:47", "runtime:building-tile:48:48"
+        ],
+        "door": {"id": "door_45_45_0", "grid_rc": [44.5, 46.5], "wall_grid_rc": [45.0, 46.5], "facing_grid_rc": [-1.0, 0.0]},
+        "before_road_probe": {"id": "runtime:road-tile:43:46", "grid_rc": [43.5, 46.5]}
+      }
+    },
+    {
+      "key": "strip_club@1",
+      "district_id": "docklands",
+      "instance_id": "MAIN-NATIVE-V3-STRIP_CLUB-01",
+      "canonical_asset_id": "strip_club",
+      "asset_sha256": "a29f4603767b74b71baae3d42c4cbd44e7831b90634bc1bfa7dbfe23e3f4272c",
+      "manifest_url": "./strip_club/v1/manifest.v1.json",
+      "center_grid_rc": [97.75, 150.75],
+      "center_grid_cr": [150.75, 97.75],
+      "uniform_asset_scale": 0.68,
+      "yaw_deg": 0.0,
+      "footprint_rect_grid_rc": {"minR": 96.744512, "maxR": 98.755488, "minC": 149.595244, "maxC": 151.904756},
+      "footprint_polygon_grid_cr": [[149.595244, 96.744512], [151.904756, 96.744512], [151.904756, 98.755488], [149.595244, 98.755488]],
+      "pad_rect_grid_rc": {"minR": 96.256707, "maxR": 99.243293, "minC": 149.107439, "maxC": 152.392561},
+      "pad_polygon_grid_cr": [[149.107439, 96.256707], [152.392561, 96.256707], [152.392561, 99.243293], [149.107439, 99.243293]],
+      "public_door": {
+        "anchor_authority": "accepted_release_manifest_entrance",
+        "primary_visual_node": "Entrance_Door",
+        "authored_local_xyz_m": [0.0, 0.0, 5.7],
+        "exact_anchor_grid_rc": [98.535731707, 150.689878049],
+        "superseded_addendum_anchor_grid_rc": [98.695366, 150.75],
+        "superseded_error_cells": 0.170581,
+        "approach_width_m": 3.0,
+        "approach_segments_rect_grid_rc": [
+          {"minR": 98.535731707, "maxR": 100.25, "minC": 150.32402439, "maxC": 151.055731707}
+        ],
+        "route_grid_rc": [[98.535731707, 150.689878049], [100.25, 150.689878049], [100.5, 150.689878049]],
+        "road_probe": {"id": "runtime:road-tile:100:150", "grid_rc": [100.5, 150.689878049]}
+      },
+      "service_access": {
+        "anchor_authority": "exact_glb_node_translation",
+        "authored_node": "Service_Door",
+        "authored_local_xyz_m": [6.16, 1.65, -3.05],
+        "exact_anchor_grid_rc": [97.084512195, 151.711536585],
+        "superseded_addendum_anchor_grid_rc": [96.824951, 150.75],
+        "superseded_error_cells": 0.995954,
+        "approach_width_m": 4.0,
+        "approach_segments_rect_grid_rc": [
+          {"minR": 96.596707317, "maxR": 97.572317073, "minC": 151.711536585, "maxC": 153.5},
+          {"minR": 97.084512195, "maxR": 100.25, "minC": 153.012195122, "maxC": 153.987804878}
+        ],
+        "route_grid_rc": [[97.084512195, 151.711536585], [97.084512195, 153.5], [100.25, 153.5], [100.5, 153.5]],
+        "road_probe": {"id": "runtime:road-tile:100:153", "grid_rc": [100.5, 153.5]}
+      },
+      "legacy": {
+        "gameplay_poi": null,
+        "gameplay_identity": "procedural_shell_only_no_fixed_business_poi",
+        "structure_id": "legacy:procedural:90:150:95:150:99:153",
+        "block_bounds": {"r0": 90, "c0": 150, "r1": 100, "c1": 160},
+        "tile_bounds": {"min_r": 95, "max_r_exclusive": 99, "min_c": 150, "max_c_exclusive": 153, "tile_count": 12},
+        "tile_ids": [
+          "runtime:building-tile:95:150", "runtime:building-tile:95:151", "runtime:building-tile:95:152",
+          "runtime:building-tile:96:150", "runtime:building-tile:96:151", "runtime:building-tile:96:152",
+          "runtime:building-tile:97:150", "runtime:building-tile:97:151", "runtime:building-tile:97:152",
+          "runtime:building-tile:98:150", "runtime:building-tile:98:151", "runtime:building-tile:98:152"
+        ],
+        "door": {"id": "door_95_150_0", "grid_rc": [94.5, 151.5], "wall_grid_rc": [95.0, 151.5], "facing_grid_rc": [-1.0, 0.0]},
+        "before_road_probe": {"id": "runtime:road-tile:93:152", "grid_rc": [93.5, 152.5]}
+      }
+    }
+  ]
+}

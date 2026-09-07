@@ -38,7 +38,12 @@ class ZoomTextureQualityTests(unittest.TestCase):
     def test_zoom_quality_does_not_raise_global_render_cost_or_reduce_world_detail(self):
         self.assertIn("const baseRenderPixelRatio=Math.min(mobileRenderProfile?1:1.25", SOURCE)
         self.assertIn("renderer.domElement.dataset.renderResolutionPolicy='quality-locked-native-v234'", SOURCE)
-        self.assertIn("worldZoom=THREE.MathUtils.clamp(worldZoom+direction*step,.82,1.3)", SOURCE)
+        # The visible +/- control and wheel now share the wider camera-only
+        # range. This changes framing, not the render-resolution budget.
+        self.assertIn("worldZoom=THREE.MathUtils.clamp(value,.82,2.6)", SOURCE)
+        self.assertIn("setWorldZoom(worldZoom+direction*step)", SOURCE)
+        self.assertIn("worldZoom=cityV3BuildingPreviewRequested?1.3:1", SOURCE)
+        self.assertIn("interiorZoom=THREE.MathUtils.clamp(interiorZoom+direction*step,.55,1.9)", SOURCE)
         self.assertIn("NPC_CAP", SOURCE)
         self.assertIn("renderer.shadowMap.type = THREE.PCFSoftShadowMap", SOURCE)
 

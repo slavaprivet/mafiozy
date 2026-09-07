@@ -1,0 +1,3471 @@
+{
+  "schema": "mafiozi.city-rebuild.loss-prevention-ledger/v1",
+  "status": "IN_PROGRESS_NOT_APPLIED",
+  "coordinateOrder": [
+    "r",
+    "c"
+  ],
+  "counts": {
+    "catalogRows": 52,
+    "banks": 3,
+    "fixedBusinesses": 10,
+    "majorAliasesNotAdditionalBuildings": 5,
+    "plannedCatalogRows": 30,
+    "genericPotentialKeysNotActiveBuildings": 101
+  },
+  "rows": [
+    {
+      "id": "bank:small",
+      "name": "Банк «Окраина»",
+      "oldRC": [
+        5,
+        15
+      ],
+      "interior": {
+        "type": "bank",
+        "bankId": "small",
+        "sizeArchetype": "small",
+        "width": 28,
+        "height": 24,
+        "crackTime": 10,
+        "entryFunction": "enterBankInterior(bank)",
+        "doorFormula": "r=bank.r+2.8,c=bank.c+1.5"
+      },
+      "sources": [
+        "world.html:6024",
+        "world.html:63294",
+        "world.html:63467",
+        "mafiozi_bot.py:33501"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        86,
+        30
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "bank:medium",
+      "name": "Банк «Район»",
+      "oldRC": [
+        15,
+        55
+      ],
+      "interior": {
+        "type": "bank",
+        "bankId": "medium",
+        "sizeArchetype": "medium",
+        "width": 36,
+        "height": 30,
+        "crackTime": 15,
+        "entryFunction": "enterBankInterior(bank)",
+        "doorFormula": "r=bank.r+2.8,c=bank.c+1.5"
+      },
+      "sources": [
+        "world.html:6024",
+        "world.html:63294",
+        "world.html:63467",
+        "mafiozi_bot.py:33501"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        92,
+        132
+      ],
+      "plannedDistrict": "southside",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "bank:large",
+      "name": "Банк «Центральный»",
+      "oldRC": [
+        55,
+        35
+      ],
+      "interior": {
+        "type": "bank",
+        "bankId": "large",
+        "sizeArchetype": "large",
+        "width": 44,
+        "height": 36,
+        "crackTime": 20,
+        "entryFunction": "enterBankInterior(bank)",
+        "doorFormula": "r=bank.r+2.8,c=bank.c+1.5"
+      },
+      "sources": [
+        "world.html:6024",
+        "world.html:63294",
+        "world.html:63467",
+        "mafiozi_bot.py:33501"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        60,
+        69
+      ],
+      "plannedDistrict": "central_district",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:coffee",
+      "name": "Кофейня «У Дона»",
+      "oldRC": [
+        33,
+        13
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "coffee"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        70,
+        35
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:carwash",
+      "name": "Автомойка",
+      "oldRC": [
+        23,
+        25
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "carwash"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        112,
+        52
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:barbershop",
+      "name": "Парикмахерская",
+      "oldRC": [
+        53,
+        23
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "barbershop"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        66,
+        54
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:pizza",
+      "name": "Пиццерия",
+      "oldRC": [
+        53,
+        53
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "pizza"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        92,
+        145
+      ],
+      "plannedDistrict": "southside",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:garage",
+      "name": "Гараж-СТО",
+      "oldRC": [
+        13,
+        63
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "garage"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        134,
+        46
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:bar",
+      "name": "Бар «Чёрная вдова»",
+      "oldRC": [
+        43,
+        33
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "bar"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        118,
+        120
+      ],
+      "plannedDistrict": "central_district",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:club",
+      "name": "Подпольный клуб",
+      "oldRC": [
+        63,
+        53
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "club"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        114,
+        136
+      ],
+      "plannedDistrict": "southside",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:warehouse",
+      "name": "Склад",
+      "oldRC": [
+        73,
+        23
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "warehouse"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        138,
+        38
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:casino",
+      "name": "Казино",
+      "oldRC": [
+        13,
+        45
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "casino"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        130,
+        151
+      ],
+      "plannedDistrict": "gold_coast",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "business:port",
+      "name": "Доля в порту",
+      "oldRC": [
+        181,
+        31
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "port"
+      },
+      "sources": [
+        "world.html:42801",
+        "world.html:42844",
+        "mafiozi_bot.py:7087",
+        "mafiozi_bot.py:7096"
+      ],
+      "status": "runtime_definition",
+      "aliases": [],
+      "plannedRC": [
+        145,
+        43
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:market",
+      "name": "Рынок",
+      "oldRC": [
+        16,
+        16
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi",
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ],
+      "immutable": false,
+      "aliases": [
+        "major:market"
+      ],
+      "preserve": [
+        "server_major_id",
+        "assault_anchor",
+        "interior",
+        "entrance"
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "major_market"
+      },
+      "plannedRC": [
+        84,
+        38
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:port",
+      "name": "Порт",
+      "oldRC": [
+        165,
+        38
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi",
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ],
+      "immutable": false,
+      "aliases": [
+        "major:port"
+      ],
+      "preserve": [
+        "server_major_id",
+        "assault_anchor",
+        "interior",
+        "entrance",
+        "pier_ship_connectivity"
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "major_port"
+      },
+      "plannedRC": [
+        145,
+        43
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:casino",
+      "name": "Казино",
+      "oldRC": [
+        46,
+        16
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi",
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ],
+      "immutable": false,
+      "aliases": [
+        "major:casino"
+      ],
+      "preserve": [
+        "server_major_id",
+        "assault_anchor",
+        "interior",
+        "entrance",
+        "MAJOR_CASINO_WORLD_TILES"
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "major_casino"
+      },
+      "plannedRC": [
+        129,
+        151
+      ],
+      "plannedDistrict": "gold_coast",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:factory",
+      "name": "Промзона",
+      "oldRC": [
+        46,
+        56
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi",
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ],
+      "immutable": false,
+      "aliases": [
+        "major:factory"
+      ],
+      "preserve": [
+        "server_major_id",
+        "assault_anchor",
+        "interior",
+        "entrance"
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "major_factory"
+      },
+      "plannedRC": [
+        134,
+        55
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:mansion",
+      "name": "Резиденция",
+      "oldRC": [
+        136,
+        16
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi",
+        "world.html:6872",
+        "world.html:6925",
+        "world.html:42856",
+        "mafiozi_bot.py:16638"
+      ],
+      "immutable": false,
+      "aliases": [
+        "major:mansion"
+      ],
+      "preserve": [
+        "server_major_id",
+        "assault_anchor",
+        "interior",
+        "entrance"
+      ],
+      "interior": {
+        "type": "business",
+        "bizId": "major_mansion"
+      },
+      "plannedRC": [
+        18,
+        28
+      ],
+      "plannedDistrict": "north_hills",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:lair",
+      "name": "Логово",
+      "oldRC": [
+        120,
+        40
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        42,
+        24
+      ],
+      "plannedDistrict": "north_hills",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:blackmarket",
+      "name": "Чёрный рынок",
+      "oldRC": [
+        6,
+        26
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        98,
+        28
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:blackmarket_bellini",
+      "name": "Рынок Беллини",
+      "oldRC": [
+        36,
+        46
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        42,
+        70
+      ],
+      "plannedDistrict": "old_town",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:blackmarket_moretti",
+      "name": "Рынок Моретти",
+      "oldRC": [
+        136,
+        26
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        86,
+        152
+      ],
+      "plannedDistrict": "southside",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:arena",
+      "name": "PVP-арена",
+      "oldRC": [
+        36,
+        66
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        105,
+        146
+      ],
+      "plannedDistrict": "southside",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:hospital",
+      "name": "Больница",
+      "oldRC": [
+        26,
+        46
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [
+        "patient_hospital_id",
+        "ambulance_depot",
+        "respawn:central-hospital",
+        "interior",
+        "road_door"
+      ],
+      "plannedRC": [
+        66,
+        47
+      ],
+      "plannedDistrict": "chinatown",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:hospital_east",
+      "name": "Больница Ист-Сайда",
+      "oldRC": [
+        46,
+        126
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [
+        "patient_hospital_id",
+        "ambulance_depot",
+        "hospital_transfer:east",
+        "interior",
+        "road_door"
+      ],
+      "plannedRC": [
+        34,
+        143
+      ],
+      "plannedDistrict": "eastside",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:firestation",
+      "name": "Пожарная часть",
+      "oldRC": [
+        56,
+        26
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [
+        "fire_depot",
+        "road_door",
+        "fire_hose_reach"
+      ],
+      "plannedRC": [
+        122,
+        26
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:junkyard",
+      "name": "Городская свалка",
+      "oldRC": [
+        86,
+        66
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [
+        "tow_depot",
+        "unloading_space",
+        "crossing_roads",
+        "junkyard_workers"
+      ],
+      "plannedRC": [
+        138,
+        62
+      ],
+      "plannedDistrict": "iron_harbor",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:police",
+      "name": "Участок",
+      "oldRC": [
+        76,
+        76
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": true,
+      "aliases": [],
+      "preserve": [
+        "JAIL_X/Y",
+        "POLICE_STATION_R/C",
+        "witness_reporting",
+        "convoy",
+        "intake",
+        "police_complex"
+      ],
+      "plannedRC": [
+        76,
+        76
+      ],
+      "plannedDistrict": "central_district",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:job_office",
+      "name": "Биржа труда",
+      "oldRC": [
+        36,
+        16
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        68,
+        69
+      ],
+      "plannedDistrict": "central_district",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "poi:gym",
+      "name": "Спортзал",
+      "oldRC": [
+        26,
+        26
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "poi"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": [
+        96,
+        106
+      ],
+      "plannedDistrict": "central_district",
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "gas-station:0",
+      "name": "АЗС Север-Запад",
+      "oldRC": [
+        13,
+        13
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "gas"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "gas-station:1",
+      "name": "АЗС Север-Восток",
+      "oldRC": [
+        13,
+        63
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "gas"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "gas-station:2",
+      "name": "АЗС Центр",
+      "oldRC": [
+        63,
+        23
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "gas"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "gas-station:3",
+      "name": "АЗС Юг",
+      "oldRC": [
+        73,
+        63
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "gas"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "bus-stop:bus_stop_0",
+      "name": "bus-stop:bus_stop_0",
+      "oldRC": [
+        21.5,
+        21.5
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "bus"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "bus-stop:bus_stop_1",
+      "name": "bus-stop:bus_stop_1",
+      "oldRC": [
+        21.5,
+        51.5
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "bus"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "bus-stop:bus_stop_2",
+      "name": "bus-stop:bus_stop_2",
+      "oldRC": [
+        51.5,
+        51.5
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "bus"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "bus-stop:bus_stop_3",
+      "name": "bus-stop:bus_stop_3",
+      "oldRC": [
+        51.5,
+        21.5
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "bus"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-01",
+      "name": "rail-station:MAIN-RL-ST-01",
+      "oldRC": [
+        145,
+        35
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-02",
+      "name": "rail-station:MAIN-RL-ST-02",
+      "oldRC": [
+        145,
+        70
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-03",
+      "name": "rail-station:MAIN-RL-ST-03",
+      "oldRC": [
+        145,
+        105
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-04",
+      "name": "rail-station:MAIN-RL-ST-04",
+      "oldRC": [
+        145,
+        140
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-05",
+      "name": "rail-station:MAIN-RL-ST-05",
+      "oldRC": [
+        153,
+        140
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-06",
+      "name": "rail-station:MAIN-RL-ST-06",
+      "oldRC": [
+        153,
+        105
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-07",
+      "name": "rail-station:MAIN-RL-ST-07",
+      "oldRC": [
+        153,
+        70
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-station:MAIN-RL-ST-08",
+      "name": "rail-station:MAIN-RL-ST-08",
+      "oldRC": [
+        153,
+        35
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "rail"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-crossing:MAIN-RL-XING-01",
+      "name": "rail-crossing:MAIN-RL-XING-01",
+      "oldRC": [
+        139.6,
+        11.5
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "railCrossings"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "rail-crossing:MAIN-RL-XING-02",
+      "name": "rail-crossing:MAIN-RL-XING-02",
+      "oldRC": [
+        139.6,
+        161.5
+      ],
+      "status": "local_opt_in_runtime_candidate",
+      "sources": [
+        "railCrossings"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "jet-ski-home:hydro_red",
+      "name": "jet-ski-home:hydro_red",
+      "oldRC": [
+        166.35,
+        49.2
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "jetSki"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "jet-ski-home:hydro_blue",
+      "name": "jet-ski-home:hydro_blue",
+      "oldRC": [
+        166.35,
+        54.0
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        "jetSki"
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "special-building:mafia_hq",
+      "name": "Burj Mafia",
+      "oldRC": [
+        36,
+        36
+      ],
+      "status": "runtime_definition",
+      "sources": [
+        {
+          "file": "world.html",
+          "symbol": "BURJ_POS/_buildingInteriorTypeAt",
+          "line": 45412
+        }
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    },
+    {
+      "id": "building-asset:civic_hall_landmark@1",
+      "name": "building-asset:civic_hall_landmark@1",
+      "oldRC": [
+        68,
+        69
+      ],
+      "status": "local_opt_in_runtime_candidate_not_live_accepted_by_this_audit",
+      "sources": [
+        {
+          "file": "world.html",
+          "symbol": "CITY_V3_CIVIC_PREVIEW_CONTRACT",
+          "line": 23513
+        }
+      ],
+      "immutable": false,
+      "aliases": [],
+      "preserve": [],
+      "plannedRC": null,
+      "plannedDistrict": null,
+      "assetBinding": null,
+      "checks": {
+        "assetLoaded": false,
+        "placed": false,
+        "doorPassed": false,
+        "collisionPassed": false,
+        "pedestrianRoutePassed": false,
+        "vehicleRoutePassed": false,
+        "serverAnchorMatched": false
+      },
+      "placementStatus": "awaiting_binding_and_live_checks"
+    }
+  ],
+  "missingFromMasterplan": [
+    "gas-station:0",
+    "gas-station:1",
+    "gas-station:2",
+    "gas-station:3",
+    "bus-stop:bus_stop_0",
+    "bus-stop:bus_stop_1",
+    "bus-stop:bus_stop_2",
+    "bus-stop:bus_stop_3",
+    "rail-station:MAIN-RL-ST-01",
+    "rail-station:MAIN-RL-ST-02",
+    "rail-station:MAIN-RL-ST-03",
+    "rail-station:MAIN-RL-ST-04",
+    "rail-station:MAIN-RL-ST-05",
+    "rail-station:MAIN-RL-ST-06",
+    "rail-station:MAIN-RL-ST-07",
+    "rail-station:MAIN-RL-ST-08",
+    "rail-crossing:MAIN-RL-XING-01",
+    "rail-crossing:MAIN-RL-XING-02",
+    "jet-ski-home:hydro_red",
+    "jet-ski-home:hydro_blue",
+    "special-building:mafia_hq",
+    "building-asset:civic_hall_landmark@1"
+  ],
+  "planningConflicts": [],
+  "plannedOnlyFacilities": [
+    {
+      "stable_id": "facility:public_school_edge",
+      "namespace": "facility",
+      "source_id": "public_school_edge",
+      "name": "Public School",
+      "old_rc": null,
+      "planned_rc": [
+        74,
+        130
+      ],
+      "district": "southside",
+      "parcel_class": "school",
+      "relocation": {
+        "from_rc": null,
+        "to_rc": [
+          74,
+          130
+        ],
+        "changed": true
+      },
+      "access": {
+        "frontage": "collector_or_local",
+        "public_anchor": true,
+        "service_anchor": true,
+        "vehicle_anchor": true,
+        "pedestrian_anchor": true,
+        "emergency_clearance_world": 6
+      },
+      "landscape": {
+        "parcel_clipped": true,
+        "door_vehicle_service_clear": true
+      },
+      "preserve_contracts": {
+        "gameplay": true,
+        "interaction": true,
+        "interior": true,
+        "server_anchor": true,
+        "model": true,
+        "planned_only": true
+      }
+    }
+  ],
+  "immutableGeometry": [
+    {
+      "namespace": "police-envelope",
+      "id": "mainland-dry-compound",
+      "owner": "poi:police",
+      "immutable": true,
+      "status": "runtime_definition",
+      "shape": "aabb_grid_cells",
+      "bounds": {
+        "minR": 69,
+        "maxRExclusive": 83,
+        "minC": 69,
+        "maxCExclusive": 83
+      },
+      "source": {
+        "file": "world.html",
+        "symbol": "buildMap:jailDryHalf",
+        "line": 6325
+      },
+      "notes": "preserve road/bridge tiles and central police body"
+    },
+    {
+      "namespace": "police-envelope",
+      "id": "island-main",
+      "owner": "poi:police",
+      "immutable": true,
+      "status": "runtime_3d_definition",
+      "shape": "aabb",
+      "bounds": {
+        "minR": 61,
+        "maxR": 91,
+        "minC": 80.5,
+        "maxC": 98.5
+      },
+      "boundary": "inclusive",
+      "source": "policeComplex"
+    },
+    {
+      "namespace": "police-envelope",
+      "id": "intake",
+      "owner": "poi:police",
+      "immutable": true,
+      "status": "runtime_3d_definition",
+      "shape": "aabb",
+      "bounds": {
+        "minR": 91,
+        "maxR": 103,
+        "minC": 85,
+        "maxC": 94
+      },
+      "boundary": "inclusive",
+      "spawn": {
+        "r": 97,
+        "c": 89.5
+      },
+      "source": "policeComplex"
+    },
+    {
+      "namespace": "police-envelope",
+      "id": "west-causeway",
+      "owner": "poi:police",
+      "immutable": true,
+      "status": "runtime_3d_definition",
+      "shape": "aabb",
+      "bounds": {
+        "minR": 67.93,
+        "maxR": 71.17,
+        "minC": 75.85,
+        "maxC": 80.5
+      },
+      "source": "policeComplex",
+      "notes": "maxC meets island west; actual causeway test excludes maxC"
+    },
+    {
+      "namespace": "police-envelope",
+      "id": "north-causeway",
+      "owner": "poi:police",
+      "immutable": true,
+      "status": "runtime_3d_definition",
+      "shape": "aabb",
+      "bounds": {
+        "minR": 56,
+        "maxR": 61,
+        "minC": 88.57,
+        "maxC": 90.43
+      },
+      "source": "policeComplex",
+      "notes": "maxR meets island north; actual causeway test excludes maxR"
+    },
+    {
+      "namespace": "bridge-envelope",
+      "id": "original-red-bridge",
+      "immutable": true,
+      "status": "runtime_definition",
+      "shape": "aabb",
+      "bounds": {
+        "minR": 47,
+        "maxR": 56,
+        "minC": 80,
+        "maxC": 100
+      },
+      "source": "bridge",
+      "preserve": [
+        "crossing",
+        "approach_seams",
+        "vehicle_and_pedestrian_surface",
+        "existing_authored_geometry"
+      ]
+    },
+    {
+      "namespace": "bridge-envelope",
+      "id": "original-red-bridge-open-surface",
+      "immutable": true,
+      "status": "runtime_definition",
+      "shape": "aabb",
+      "bounds": {
+        "minR": 47.34,
+        "maxR": 55.66,
+        "minC": 78.25,
+        "maxC": 101.75
+      },
+      "source": {
+        "file": "world.html",
+        "symbol": "_openCityBridgeSurface",
+        "line": 23820
+      },
+      "notes": "pad=0 envelope; ped pad.04 and car pad.08 shrink it"
+    }
+  ],
+  "serviceAnchors": [
+    {
+      "namespace": "respawn",
+      "id": "central-hospital",
+      "owner": "poi:hospital",
+      "r": 23,
+      "c": 43,
+      "status": "runtime_definition",
+      "source": {
+        "file": "mafiozi_bot.py",
+        "symbol": "HOSPITAL_X/HOSPITAL_Y",
+        "line": 16350
+      },
+      "previewSource": {
+        "file": "_preview_ws_server.py",
+        "symbol": "PREVIEW_HOSPITAL_X/PREVIEW_HOSPITAL_Y",
+        "line": 104
+      }
+    },
+    {
+      "namespace": "hospital-transfer",
+      "id": "east",
+      "owner": "poi:hospital_east",
+      "r": 46,
+      "c": 126,
+      "status": "runtime_definition",
+      "source": {
+        "file": "mafiozi_bot.py",
+        "symbol": "hospital_id target_x,target_y",
+        "line": 19432
+      }
+    },
+    {
+      "namespace": "custody",
+      "id": "intake",
+      "owner": "poi:police",
+      "r": 97,
+      "c": 89.5,
+      "status": "runtime_definition",
+      "source": {
+        "file": "mafiozi_bot.py",
+        "symbol": "NPC_CUSTODY_JAIL_X/NPC_CUSTODY_JAIL_Y",
+        "line": 16435
+      }
+    },
+    {
+      "namespace": "police-component",
+      "id": "prison-police-admin",
+      "owner": "poi:police",
+      "r": 67.70731707317073,
+      "c": 89.5,
+      "rExpression": "76-34/4.1",
+      "entry": {
+        "r": 69.55,
+        "c": 89.5
+      },
+      "target": {
+        "r": 76,
+        "c": 76
+      },
+      "status": "runtime_3d_definition",
+      "source": "policeAdmin"
+    },
+    {
+      "namespace": "police-component",
+      "id": "vehicle-gate",
+      "owner": "poi:police",
+      "r": 69.55,
+      "c": 80.5,
+      "preferredVehicleStop": {
+        "r": 69.55,
+        "c": 78.15
+      },
+      "handoff": {
+        "r": 69.55,
+        "c": 79.92
+      },
+      "inside": {
+        "r": 69.55,
+        "c": 81.32
+      },
+      "status": "runtime_3d_definition",
+      "source": "policeGate"
+    }
+  ],
+  "districtAnchors": {
+    "source": "districts",
+    "status": "runtime_definition",
+    "coordinateOrder": [
+      "r",
+      "c"
+    ],
+    "hqRadius": 6,
+    "actionRadius": 2.8,
+    "items": [
+      {
+        "id": "northside",
+        "name": "Норт-Сайд",
+        "hq": [
+          20,
+          20
+        ],
+        "intel": [
+          11,
+          20
+        ],
+        "sabotage": [
+          [
+            14,
+            12
+          ],
+          [
+            20,
+            29
+          ],
+          [
+            29,
+            18
+          ]
+        ],
+        "escape": [
+          35,
+          20
+        ]
+      },
+      {
+        "id": "downtown",
+        "name": "Даунтаун",
+        "hq": [
+          20,
+          60
+        ],
+        "intel": [
+          11,
+          60
+        ],
+        "sabotage": [
+          [
+            15,
+            49
+          ],
+          [
+            19,
+            70
+          ],
+          [
+            30,
+            58
+          ]
+        ],
+        "escape": [
+          35,
+          60
+        ]
+      },
+      {
+        "id": "southside",
+        "name": "Саутсайд",
+        "hq": [
+          70,
+          20
+        ],
+        "intel": [
+          53,
+          20
+        ],
+        "sabotage": [
+          [
+            60,
+            10
+          ],
+          [
+            72,
+            30
+          ],
+          [
+            83,
+            18
+          ]
+        ],
+        "escape": [
+          95,
+          20
+        ]
+      },
+      {
+        "id": "industrial",
+        "name": "Промзона",
+        "hq": [
+          70,
+          60
+        ],
+        "intel": [
+          53,
+          60
+        ],
+        "sabotage": [
+          [
+            60,
+            49
+          ],
+          [
+            72,
+            70
+          ],
+          [
+            83,
+            58
+          ]
+        ],
+        "escape": [
+          95,
+          60
+        ]
+      },
+      {
+        "id": "eastside",
+        "name": "Ист-Сайд",
+        "hq": [
+          40,
+          140
+        ],
+        "intel": [
+          27,
+          140
+        ],
+        "sabotage": [
+          [
+            34,
+            112
+          ],
+          [
+            49,
+            131
+          ],
+          [
+            61,
+            164
+          ]
+        ],
+        "escape": [
+          70,
+          140
+        ]
+      },
+      {
+        "id": "docklands",
+        "name": "Доклендс",
+        "hq": [
+          120,
+          140
+        ],
+        "intel": [
+          107,
+          140
+        ],
+        "sabotage": [
+          [
+            94,
+            112
+          ],
+          [
+            119,
+            131
+          ],
+          [
+            136,
+            164
+          ]
+        ],
+        "escape": [
+          145,
+          140
+        ]
+      },
+      {
+        "id": "lair",
+        "name": "Логово",
+        "hq": null,
+        "intel": null,
+        "sabotage": [],
+        "escape": null,
+        "capturable": false
+      },
+      {
+        "id": "coast",
+        "name": "Побережье",
+        "hq": [
+          156,
+          40
+        ],
+        "intel": [
+          165,
+          40
+        ],
+        "sabotage": [
+          [
+            157,
+            14
+          ],
+          [
+            158,
+            65
+          ],
+          [
+            178,
+            40
+          ]
+        ],
+        "escape": [
+          196,
+          40
+        ]
+      }
+    ]
+  },
+  "genericPotentialProperties": {
+    "sourceRefs": [
+      "npc_empire.py:279",
+      "npc_empire.py:295",
+      "npc_empire.py:335"
+    ],
+    "classification": "candidate property keys, not a list of active businesses",
+    "items": [
+      {
+        "buildingKey": "0,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,4",
+        "area": 4,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,5",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 56
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "0,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 6,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "1,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 16,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,13",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "2,17",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 26,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,5",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 56
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,10",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 106
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,14",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 146
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "3,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 36,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "4,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 46,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "5,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 56,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,13",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "6,17",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 66,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,6",
+        "area": 12,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,10",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 106
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,14",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 146
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "7,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 76,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,3",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 36
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,5",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 56
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "8,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 86,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,2",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 26
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,4",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 46
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "9,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 96,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,13",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "10,17",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 106,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,1",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 16
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,10",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 106
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,14",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 146
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "11,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 116,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,6",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 66
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,11",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "12,15",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 126,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,0",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 6
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,7",
+        "area": 16,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 76
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,11",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 116
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,12",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 126
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,13",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 136
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,15",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 156
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,16",
+        "area": 20,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 166
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      },
+      {
+        "buildingKey": "13,17",
+        "area": 27,
+        "nominalPricingCoordinates": {
+          "r": 136,
+          "c": 176
+        },
+        "activePropertyKind": null,
+        "operationType": null,
+        "actualEntrance": null
+      }
+    ]
+  },
+  "visualReplacementsNotNewBusinesses": {
+    "classification": "visual replacement IDs, not newly created persistent businesses",
+    "items": [
+      {
+        "id": "pawnshop@1",
+        "r": 7,
+        "c": 67
+      },
+      {
+        "id": "print_shop@1",
+        "r": 97,
+        "c": 47
+      },
+      {
+        "id": "gun_shop@1",
+        "r": 87.375,
+        "c": 17.75
+      },
+      {
+        "id": "bookmaker@1",
+        "r": 47.75,
+        "c": 47.375
+      },
+      {
+        "id": "strip_club@1",
+        "r": 97.75,
+        "c": 150.75
+      },
+      {
+        "id": "glass_pavilion_small@1",
+        "r": 47,
+        "c": 67
+      }
+    ],
+    "sourceRefs": [
+      "assets/buildings/city_v3/accepted_v1/main_native_bindings.v1.json",
+      "assets/buildings/city_v3/next_batch_v1/bindings.candidate.v1.json",
+      "assets/buildings/city_v3/glass_v1/runtime.v1.js"
+    ]
+  },
+  "coverage": {
+    "staticDefinitions": "complete for cited catalogs",
+    "dynamicProperties": "unknown",
+    "allLivePersistentInstancesComplete": false,
+    "localDatabase": {
+      "path": "mafiozi.db",
+      "bytes": 0,
+      "readMode": "SQLite URI mode=ro",
+      "relevantTablesFound": 0
+    },
+    "deployedDatabase": "not inspected; DB_PATH uses optional DB_DIR environment value (mafiozi_bot.py:130)",
+    "demolitionSafe": false,
+    "requiredBeforeMigration": "Export authoritative apartments_owned and npc_empire_holdings identifiers, property kind, operation_type, area and anchor relations; preserve existing ownership/interior relationships; do not include personal identifiers in public inventory."
+  },
+  "applyGate": {
+    "allowed": false,
+    "reasons": [
+      "topology_and_road_crossings_require_native_validation",
+      "placement_receipts_and_full_footprint_checks_missing",
+      "dynamic_property_snapshot_and_id_crosswalk_missing",
+      "server_client_anchor_migration_not_applied"
+    ]
+  },
+  "inputFingerprints": [
+    {
+      "file": "businesses-banks.inventory.json",
+      "sha256": "fec78ff73fdf0ba6b568946a3fde3ee2f80ba664a7257df5b03dcf4459d0fe5d"
+    },
+    {
+      "file": "services-pois.inventory.json",
+      "sha256": "5ddc5c5864ad9cb28aada0c53ef737c551c07150b18b7ef3a95fc12653caf8e0"
+    },
+    {
+      "file": "city_masterplan_v3_rich_world.contract.json",
+      "sha256": "54e3d1bdade7038769cc6540cafa4f8d921dd25b20480f48091674ff1d01d7df"
+    }
+  ]
+}

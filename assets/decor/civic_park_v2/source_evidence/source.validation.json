@@ -1,0 +1,2001 @@
+{
+  "assetId": "CIVIC_PARK_DECOR_KIT_V2",
+  "validator": "Blender 3.4 reverse GLB import plus contract QA",
+  "status": "pass",
+  "globalChecks": {
+    "assetCount18": true,
+    "runtimeFiles57": true,
+    "worldCoordinatesAbsent": true,
+    "placementNotAuthorized": true,
+    "explicitAnchorPolicy": true,
+    "mainUnchanged": true,
+    "threeLodsEveryAsset": true,
+    "lodVertexReductionEveryAsset": true,
+    "threeFountains": true,
+    "waterSocketsEveryFountain": true,
+    "collisionWhereDeclared": true,
+    "proofsPass": true,
+    "blendPresent": true,
+    "noBlendBackup": true
+  },
+  "lodVertexReduction": {
+    "fountain_central": true,
+    "fountain_district": true,
+    "fountain_park": true,
+    "plaza_tile_4m": true,
+    "plaza_edge_straight_4m": true,
+    "plaza_edge_corner_4m": true,
+    "planter_round": true,
+    "planter_rect": true,
+    "bench_civic": true,
+    "bin_civic": true,
+    "bike_rack_5": true,
+    "kiosk_civic": true,
+    "shelter_transit": true,
+    "sign_ped_crossing": true,
+    "sign_no_parking": true,
+    "sign_wayfinding": true,
+    "ped_light_bollard": true,
+    "ped_light_double": true
+  },
+  "proofChecks": [
+    {
+      "file": "civic_park_decor_kit_v2_day.png",
+      "exists": true,
+      "bytes": 1659725,
+      "pass": true
+    },
+    {
+      "file": "civic_park_decor_kit_v2_night.png",
+      "exists": true,
+      "bytes": 1563610,
+      "pass": true
+    },
+    {
+      "file": "civic_park_decor_kit_v2_game_camera.png",
+      "exists": true,
+      "bytes": 1629004,
+      "pass": true
+    }
+  ],
+  "files": [
+    {
+      "file": "fountain_central_lod0_v2.glb",
+      "asset": "fountain_central",
+      "lod": 0,
+      "bytes": 129052,
+      "sha256": "A0206F44910E910EF90367F07E40A27B680AB0BAE2C57532BF9A718C7280343F",
+      "objects": 27,
+      "meshes": 15,
+      "lodMeshes": 14,
+      "vertices": 3858,
+      "triangles": 7596,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -5.52,
+          -5.52,
+          0.0
+        ],
+        "max": [
+          5.52,
+          5.52,
+          4.9
+        ],
+        "dimensions": [
+          11.04,
+          11.04,
+          4.9
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_central_lod1_v2.glb",
+      "asset": "fountain_central",
+      "lod": 1,
+      "bytes": 48656,
+      "sha256": "D1AEF72399F74966AD6E69A523D9F94FC851CD320F6E543E8BA796AAC7AC8681",
+      "objects": 19,
+      "meshes": 7,
+      "lodMeshes": 6,
+      "vertices": 1326,
+      "triangles": 2564,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -5.52,
+          -5.52,
+          0.0
+        ],
+        "max": [
+          5.52,
+          5.52,
+          4.9
+        ],
+        "dimensions": [
+          11.04,
+          11.04,
+          4.9
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_central_lod2_v2.glb",
+      "asset": "fountain_central",
+      "lod": 2,
+      "bytes": 19860,
+      "sha256": "4A85402EDAFDB292903B78E781D1D462A3A24891FE9A6B7B373497D7ED84410C",
+      "objects": 18,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 448,
+      "triangles": 812,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -5.52,
+          -5.52,
+          0.0
+        ],
+        "max": [
+          5.52,
+          5.52,
+          3.19
+        ],
+        "dimensions": [
+          11.04,
+          11.04,
+          3.19
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_district_lod0_v2.glb",
+      "asset": "fountain_district",
+      "lod": 0,
+      "bytes": 110632,
+      "sha256": "3738605A3393F004759546D5517FC6EF4F50A2F4FE766E44D9FAF4A8139D624E",
+      "objects": 18,
+      "meshes": 10,
+      "lodMeshes": 9,
+      "vertices": 3162,
+      "triangles": 6224,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -3.85,
+          -3.85,
+          0.0
+        ],
+        "max": [
+          3.85,
+          3.85,
+          2.74
+        ],
+        "dimensions": [
+          7.7,
+          7.7,
+          2.74
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_district_lod1_v2.glb",
+      "asset": "fountain_district",
+      "lod": 1,
+      "bytes": 43708,
+      "sha256": "EC544301E7D9AF769EAF7978D630F88DD882331851FAE9165DC3C3D54F00CBCF",
+      "objects": 14,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 1158,
+      "triangles": 2232,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -3.85,
+          -3.85,
+          0.0
+        ],
+        "max": [
+          3.85,
+          3.85,
+          2.74
+        ],
+        "dimensions": [
+          7.7,
+          7.7,
+          2.74
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_district_lod2_v2.glb",
+      "asset": "fountain_district",
+      "lod": 2,
+      "bytes": 22428,
+      "sha256": "27821BFF31D9045015EE499680F6186FCFF99B22B60FBBC9AD069F8EE378C401",
+      "objects": 14,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 498,
+      "triangles": 912,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -3.85,
+          -3.85,
+          0.0
+        ],
+        "max": [
+          3.85,
+          3.85,
+          2.74
+        ],
+        "dimensions": [
+          7.7,
+          7.7,
+          2.74
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_park_lod0_v2.glb",
+      "asset": "fountain_park",
+      "lod": 0,
+      "bytes": 159504,
+      "sha256": "DB15B5DE2B8D041F8AB3123E7760D140292ADAF6EF6BF0136E9D89F61C8EB037",
+      "objects": 16,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 4542,
+      "triangles": 7236,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -4.3,
+          -3.6,
+          -0.05
+        ],
+        "max": [
+          4.3,
+          3.6,
+          2.95
+        ],
+        "dimensions": [
+          8.6,
+          7.2,
+          3.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_park_lod1_v2.glb",
+      "asset": "fountain_park",
+      "lod": 1,
+      "bytes": 44960,
+      "sha256": "28487EE1D66BC48013F8A4166BF218427F56F8E961A078BC71C6396A751EF36E",
+      "objects": 15,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 1188,
+      "triangles": 1684,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -4.3,
+          -3.6,
+          0.0
+        ],
+        "max": [
+          4.3,
+          3.6,
+          2.7
+        ],
+        "dimensions": [
+          8.6,
+          7.2,
+          2.7
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "fountain_park_lod2_v2.glb",
+      "asset": "fountain_park",
+      "lod": 2,
+      "bytes": 15228,
+      "sha256": "7AE121E4FB58D8F2BAFF6799908BD05C7000CC48DD3B0CB8BD2FA101578AC896",
+      "objects": 14,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 330,
+      "triangles": 324,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -4.3,
+          -3.6,
+          0.0
+        ],
+        "max": [
+          4.3,
+          3.6,
+          2.7
+        ],
+        "dimensions": [
+          8.6,
+          7.2,
+          2.7
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_tile_4m_lod0_v2.glb",
+      "asset": "plaza_tile_4m",
+      "lod": 0,
+      "bytes": 51564,
+      "sha256": "65AC2649D499E0FE25503A272742AF2B70DA769BB767A2484708F08B8C89C561",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 3,
+      "vertices": 1800,
+      "triangles": 900,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.0,
+          -2.0,
+          0.0
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.14
+        ],
+        "dimensions": [
+          4.0,
+          4.0,
+          0.14
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_tile_4m_lod1_v2.glb",
+      "asset": "plaza_tile_4m",
+      "lod": 1,
+      "bytes": 7180,
+      "sha256": "5257D7D7CCA16C14BC078080D4E457BB6B35A16259D25D246BFE46BD06C823F0",
+      "objects": 3,
+      "meshes": 1,
+      "lodMeshes": 1,
+      "vertices": 216,
+      "triangles": 108,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.0,
+          -2.0,
+          0.0
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.12
+        ],
+        "dimensions": [
+          4.0,
+          4.0,
+          0.12
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_tile_4m_lod2_v2.glb",
+      "asset": "plaza_tile_4m",
+      "lod": 2,
+      "bytes": 3912,
+      "sha256": "2FB18054306DE83EE56B9B595E589398A3EAAA0B0A04FDC4F98CAB75A449F083",
+      "objects": 3,
+      "meshes": 1,
+      "lodMeshes": 1,
+      "vertices": 96,
+      "triangles": 44,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.0,
+          -2.0,
+          0.0
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.12
+        ],
+        "dimensions": [
+          4.0,
+          4.0,
+          0.12
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_edge_straight_4m_lod0_v2.glb",
+      "asset": "plaza_edge_straight_4m",
+      "lod": 0,
+      "bytes": 19160,
+      "sha256": "01522AD14F5439C411741F630177091B359B56B2CB0E0F76E1DDF465C699E70B",
+      "objects": 4,
+      "meshes": 2,
+      "lodMeshes": 1,
+      "vertices": 624,
+      "triangles": 312,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.0,
+          -0.225,
+          0.0
+        ],
+        "max": [
+          2.0,
+          0.225,
+          0.28
+        ],
+        "dimensions": [
+          4.0,
+          0.45,
+          0.28
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_edge_straight_4m_lod1_v2.glb",
+      "asset": "plaza_edge_straight_4m",
+      "lod": 1,
+      "bytes": 8792,
+      "sha256": "B860F63506D41839076DDF3ACAD0F25D5F3C98415757B91056C22D19E83EBDAB",
+      "objects": 4,
+      "meshes": 2,
+      "lodMeshes": 1,
+      "vertices": 240,
+      "triangles": 120,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.0,
+          -0.225,
+          0.0
+        ],
+        "max": [
+          2.0,
+          0.225,
+          0.28
+        ],
+        "dimensions": [
+          4.0,
+          0.45,
+          0.28
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_edge_straight_4m_lod2_v2.glb",
+      "asset": "plaza_edge_straight_4m",
+      "lod": 2,
+      "bytes": 5524,
+      "sha256": "B9E4C6FF3B222226A57E1994645A5B2F3B8EAE520E01E9181939C7A346012841",
+      "objects": 4,
+      "meshes": 2,
+      "lodMeshes": 1,
+      "vertices": 120,
+      "triangles": 56,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.0,
+          -0.225,
+          0.0
+        ],
+        "max": [
+          2.0,
+          0.225,
+          0.28
+        ],
+        "dimensions": [
+          4.0,
+          0.45,
+          0.28
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_edge_corner_4m_lod0_v2.glb",
+      "asset": "plaza_edge_corner_4m",
+      "lod": 0,
+      "bytes": 36040,
+      "sha256": "42BA0875E9819231AA3441D920D441E246314FC3B4E8B55766CD9798392EC780",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 1224,
+      "triangles": 612,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.005,
+          -2.005,
+          0.0
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.28
+        ],
+        "dimensions": [
+          4.005,
+          4.005,
+          0.28
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_edge_corner_4m_lod1_v2.glb",
+      "asset": "plaza_edge_corner_4m",
+      "lod": 1,
+      "bytes": 15300,
+      "sha256": "D752C8796970666E6307A0325096FF60399361B6F694ADE399CE14EB893008B5",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 456,
+      "triangles": 228,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.005,
+          -2.005,
+          0.0
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.28
+        ],
+        "dimensions": [
+          4.005,
+          4.005,
+          0.28
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "plaza_edge_corner_4m_lod2_v2.glb",
+      "asset": "plaza_edge_corner_4m",
+      "lod": 2,
+      "bytes": 8764,
+      "sha256": "11EB1DA458CF18CC601EC91D9F9E68F07CD1A06FF18DC258E6DD4E011779BF36",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 216,
+      "triangles": 100,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.005,
+          -2.005,
+          0.0
+        ],
+        "max": [
+          2.0,
+          2.0,
+          0.28
+        ],
+        "dimensions": [
+          4.005,
+          4.005,
+          0.28
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "planter_round_lod0_v2.glb",
+      "asset": "planter_round",
+      "lod": 0,
+      "bytes": 67788,
+      "sha256": "CF90D5772EB28218A64E0FCDC7866857B1F953BE39FB1CFD7B95042AB57C1CAD",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 1766,
+      "triangles": 3448,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.72,
+          -0.72,
+          0.0
+        ],
+        "max": [
+          0.72,
+          0.72,
+          2.0
+        ],
+        "dimensions": [
+          1.44,
+          1.44,
+          2.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "planter_round_lod1_v2.glb",
+      "asset": "planter_round",
+      "lod": 1,
+      "bytes": 23196,
+      "sha256": "24870A5BB4C9CA667C2BBA3E8955216229F6A4A95A4E5800398BB2551E8DC12E",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 548,
+      "triangles": 1016,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.72,
+          -0.72,
+          0.0
+        ],
+        "max": [
+          0.72,
+          0.72,
+          2.0
+        ],
+        "dimensions": [
+          1.44,
+          1.44,
+          2.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "planter_round_lod2_v2.glb",
+      "asset": "planter_round",
+      "lod": 2,
+      "bytes": 8976,
+      "sha256": "2D83FB996F718ABCDB44AC019EB0D3A102C00E499063F34FE410E50FEC62BBF9",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 174,
+      "triangles": 272,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.72,
+          -0.72,
+          0.0
+        ],
+        "max": [
+          0.72,
+          0.72,
+          2.0
+        ],
+        "dimensions": [
+          1.44,
+          1.44,
+          2.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "planter_rect_lod0_v2.glb",
+      "asset": "planter_rect",
+      "lod": 0,
+      "bytes": 73440,
+      "sha256": "A47E617BC0DFEA3865FDE03F9FEEAC8F4B0FA5889A59FDCBDA0CFA3B085B1BB7",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 2070,
+      "triangles": 3192,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.25,
+          -0.5,
+          0.0
+        ],
+        "max": [
+          1.25,
+          0.5,
+          1.77
+        ],
+        "dimensions": [
+          2.5,
+          1.0,
+          1.77
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "planter_rect_lod1_v2.glb",
+      "asset": "planter_rect",
+      "lod": 1,
+      "bytes": 23420,
+      "sha256": "E305D806574E8936E82260E0F56856A6D3EE59690962689BCEA2AFF04123C030",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 604,
+      "triangles": 840,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.25,
+          -0.5,
+          0.0
+        ],
+        "max": [
+          1.25,
+          0.5,
+          1.77
+        ],
+        "dimensions": [
+          2.5,
+          1.0,
+          1.77
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "planter_rect_lod2_v2.glb",
+      "asset": "planter_rect",
+      "lod": 2,
+      "bytes": 8564,
+      "sha256": "FF39A074DC18873DA4A24E8327AA535475005A21BFBE0A622FA273C7ACDF56F3",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 182,
+      "triangles": 176,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.25,
+          -0.5,
+          0.0
+        ],
+        "max": [
+          1.25,
+          0.5,
+          1.77
+        ],
+        "dimensions": [
+          2.5,
+          1.0,
+          1.77
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bench_civic_lod0_v2.glb",
+      "asset": "bench_civic",
+      "lod": 0,
+      "bytes": 68200,
+      "sha256": "52E0E6A7D32620C651D986A8563D2551E52CE7ED292D0D3BEE6A4C85CFB4A9D2",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 2424,
+      "triangles": 1212,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.2,
+          -0.45,
+          0.0
+        ],
+        "max": [
+          1.2,
+          0.45,
+          1.38
+        ],
+        "dimensions": [
+          2.4,
+          0.9,
+          1.38
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bench_civic_lod1_v2.glb",
+      "asset": "bench_civic",
+      "lod": 1,
+      "bytes": 27876,
+      "sha256": "83DE855700A952D824F24E617CD3F2F967B3A88C2399727F7B956D37C724E941",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 888,
+      "triangles": 444,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.2,
+          -0.45,
+          0.0
+        ],
+        "max": [
+          1.2,
+          0.45,
+          1.38
+        ],
+        "dimensions": [
+          2.4,
+          0.9,
+          1.38
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bench_civic_lod2_v2.glb",
+      "asset": "bench_civic",
+      "lod": 2,
+      "bytes": 8836,
+      "sha256": "A82811F5B9B3B243EF56E2CD25EE1AC4C7587F05AEEE01878EADCB6C9E930B1F",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 216,
+      "triangles": 100,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.2,
+          -0.45,
+          0.0
+        ],
+        "max": [
+          1.2,
+          0.45,
+          1.38
+        ],
+        "dimensions": [
+          2.4,
+          0.9,
+          1.38
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bin_civic_lod0_v2.glb",
+      "asset": "bin_civic",
+      "lod": 0,
+      "bytes": 37504,
+      "sha256": "327412E2446A34D5F0C02FB107FCD7532A28903CB1A94422614991EABD4B9FE8",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 1176,
+      "triangles": 1376,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.38,
+          -0.38,
+          0.0
+        ],
+        "max": [
+          0.38,
+          0.38,
+          1.0
+        ],
+        "dimensions": [
+          0.76,
+          0.76,
+          1.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bin_civic_lod1_v2.glb",
+      "asset": "bin_civic",
+      "lod": 1,
+      "bytes": 12204,
+      "sha256": "29806183182DFAB201800C69A1A0D29EE671E8B20030CE5AE83182F148C957F0",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 304,
+      "triangles": 532,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.38,
+          -0.38,
+          0.0
+        ],
+        "max": [
+          0.38,
+          0.38,
+          1.0
+        ],
+        "dimensions": [
+          0.76,
+          0.76,
+          1.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bin_civic_lod2_v2.glb",
+      "asset": "bin_civic",
+      "lod": 2,
+      "bytes": 8844,
+      "sha256": "E27019FCDA4A0E98842CDE4E8D4554302D6187FCAA669A1B24B4D2131826FB64",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 168,
+      "triangles": 260,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.38,
+          -0.38,
+          0.0
+        ],
+        "max": [
+          0.38,
+          0.38,
+          1.0
+        ],
+        "dimensions": [
+          0.76,
+          0.76,
+          1.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bike_rack_5_lod0_v2.glb",
+      "asset": "bike_rack_5",
+      "lod": 0,
+      "bytes": 30936,
+      "sha256": "F1FE9B7F7C45922FE885CD92265DEE9B9F96E5516DD8B2D9D32F599D5BC71BCD",
+      "objects": 8,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 984,
+      "triangles": 1932,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.79,
+          -0.6,
+          0.0
+        ],
+        "max": [
+          1.79,
+          0.6,
+          1.13
+        ],
+        "dimensions": [
+          3.58,
+          1.2,
+          1.13
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bike_rack_5_lod1_v2.glb",
+      "asset": "bike_rack_5",
+      "lod": 1,
+      "bytes": 14364,
+      "sha256": "F7D3DB8458DCA2444576945A2D966BCA89AE0E2FE50194356392EF60AC5F8BEB",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 384,
+      "triangles": 732,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.6,
+          -0.6,
+          0.0
+        ],
+        "max": [
+          1.6,
+          0.6,
+          1.13
+        ],
+        "dimensions": [
+          3.2,
+          1.2,
+          1.13
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "bike_rack_5_lod2_v2.glb",
+      "asset": "bike_rack_5",
+      "lod": 2,
+      "bytes": 7968,
+      "sha256": "67AE2710B3F95B54632CFD96074BE47383BC1724AEC85102C17CA52CCE042EB9",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 168,
+      "triangles": 300,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.6,
+          -0.6,
+          0.0
+        ],
+        "max": [
+          1.6,
+          0.6,
+          1.13
+        ],
+        "dimensions": [
+          3.2,
+          1.2,
+          1.13
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "kiosk_civic_lod0_v2.glb",
+      "asset": "kiosk_civic",
+      "lod": 0,
+      "bytes": 87364,
+      "sha256": "95A0925DB0D7973B6BCFCB92961F60DAE5759C4804E0D680BB732F10A40694F9",
+      "objects": 8,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 3024,
+      "triangles": 1512,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.175,
+          -2.305,
+          0.0
+        ],
+        "max": [
+          2.175,
+          1.575,
+          3.27
+        ],
+        "dimensions": [
+          4.35,
+          3.88,
+          3.27
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "kiosk_civic_lod1_v2.glb",
+      "asset": "kiosk_civic",
+      "lod": 1,
+      "bytes": 35516,
+      "sha256": "84E2FD91FF0ABC4643EADA411A06D80C0DB30A7AF0D539B171DEC1B213B58DFA",
+      "objects": 8,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 1104,
+      "triangles": 552,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.175,
+          -2.305,
+          0.0
+        ],
+        "max": [
+          2.175,
+          1.575,
+          3.27
+        ],
+        "dimensions": [
+          4.35,
+          3.88,
+          3.27
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "kiosk_civic_lod2_v2.glb",
+      "asset": "kiosk_civic",
+      "lod": 2,
+      "bytes": 15488,
+      "sha256": "AA1FFEFF2B10482BC9F1E394439BDD2C026F990CE7C9EFC459FEFE948F0AF4F0",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 408,
+      "triangles": 188,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -2.175,
+          -1.655,
+          0.0
+        ],
+        "max": [
+          2.175,
+          1.575,
+          3.27
+        ],
+        "dimensions": [
+          4.35,
+          3.23,
+          3.27
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "shelter_transit_lod0_v2.glb",
+      "asset": "shelter_transit",
+      "lod": 0,
+      "bytes": 102476,
+      "sha256": "A3B0534441826143D6253045B04FC63D9A1A0AD8FEDAB32A72072CE1443FF0AB",
+      "objects": 9,
+      "meshes": 7,
+      "lodMeshes": 6,
+      "vertices": 3624,
+      "triangles": 1812,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -3.1,
+          -1.2,
+          0.0
+        ],
+        "max": [
+          3.1,
+          1.2,
+          3.11
+        ],
+        "dimensions": [
+          6.2,
+          2.4,
+          3.11
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "shelter_transit_lod1_v2.glb",
+      "asset": "shelter_transit",
+      "lod": 1,
+      "bytes": 34900,
+      "sha256": "CBC5B4F2C00CC279C2DA88FB0CC000B9C87BD3F4741708DF20E27800F14BB016",
+      "objects": 8,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 1104,
+      "triangles": 552,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -3.1,
+          -1.2,
+          0.0
+        ],
+        "max": [
+          3.1,
+          1.2,
+          3.11
+        ],
+        "dimensions": [
+          6.2,
+          2.4,
+          3.11
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "shelter_transit_lod2_v2.glb",
+      "asset": "shelter_transit",
+      "lod": 2,
+      "bytes": 18948,
+      "sha256": "1BB8E05C4D434805097C651F26B96F6DF9E2EAF4FB7A3923EB488365B35957B4",
+      "objects": 8,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 504,
+      "triangles": 232,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -3.1,
+          -1.2,
+          0.0
+        ],
+        "max": [
+          3.1,
+          1.2,
+          3.11
+        ],
+        "dimensions": [
+          6.2,
+          2.4,
+          3.11
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_ped_crossing_lod0_v2.glb",
+      "asset": "sign_ped_crossing",
+      "lod": 0,
+      "bytes": 50756,
+      "sha256": "1A504C3190C9629481BAAC09695647F0A09D5A580F79DBB9A7465A875966BFF7",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 1582,
+      "triangles": 1288,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.3677,
+          -0.3677,
+          0.0
+        ],
+        "max": [
+          0.3677,
+          0.3677,
+          3.01
+        ],
+        "dimensions": [
+          0.7354,
+          0.7354,
+          3.01
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_ped_crossing_lod1_v2.glb",
+      "asset": "sign_ped_crossing",
+      "lod": 1,
+      "bytes": 15384,
+      "sha256": "0EFDB67445A020AC162DF6EA70934BF5EEB4AA7B519B615FECD35070B542A157",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 400,
+      "triangles": 404,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.3677,
+          -0.3677,
+          0.0
+        ],
+        "max": [
+          0.3677,
+          0.3677,
+          3.01
+        ],
+        "dimensions": [
+          0.7354,
+          0.7354,
+          3.01
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_ped_crossing_lod2_v2.glb",
+      "asset": "sign_ped_crossing",
+      "lod": 2,
+      "bytes": 9516,
+      "sha256": "72F4A78D63CD50BA5ABC82A1EF831D753F483F922A2F1A970DF4CA3F8797481E",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 208,
+      "triangles": 196,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.3677,
+          -0.3677,
+          0.0
+        ],
+        "max": [
+          0.3677,
+          0.3677,
+          3.01
+        ],
+        "dimensions": [
+          0.7354,
+          0.7354,
+          3.01
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_no_parking_lod0_v2.glb",
+      "asset": "sign_no_parking",
+      "lod": 0,
+      "bytes": 45300,
+      "sha256": "A3799A826D1002C3829537C893F35D97BF4EB9DDD77586B879CC5F245D0FE780",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 1368,
+      "triangles": 1760,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.5,
+          -0.196,
+          0.0
+        ],
+        "max": [
+          0.5,
+          0.14,
+          3.05
+        ],
+        "dimensions": [
+          1.0,
+          0.336,
+          3.05
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_no_parking_lod1_v2.glb",
+      "asset": "sign_no_parking",
+      "lod": 1,
+      "bytes": 24176,
+      "sha256": "0BB53AA235F0EC36BC9168ABD867C51E9C80D0FF5C1DF33A47387E1A4BBBD1E0",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 640,
+      "triangles": 880,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.5,
+          -0.196,
+          0.0
+        ],
+        "max": [
+          0.5,
+          0.14,
+          3.05
+        ],
+        "dimensions": [
+          1.0,
+          0.336,
+          3.05
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_no_parking_lod2_v2.glb",
+      "asset": "sign_no_parking",
+      "lod": 2,
+      "bytes": 13608,
+      "sha256": "A27088DF84865433D04C7E464C920C059FFD265A4D8A499B8BA7A94AB8704D75",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 272,
+      "triangles": 468,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.5,
+          -0.14,
+          0.0
+        ],
+        "max": [
+          0.5,
+          0.14,
+          3.05
+        ],
+        "dimensions": [
+          1.0,
+          0.28,
+          3.05
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_wayfinding_lod0_v2.glb",
+      "asset": "sign_wayfinding",
+      "lod": 0,
+      "bytes": 85456,
+      "sha256": "B8D77696FEBE680FD190967E77A06C9686008449B16E1B265A2874AAD2ED9137",
+      "objects": 8,
+      "meshes": 6,
+      "lodMeshes": 5,
+      "vertices": 3024,
+      "triangles": 1512,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.2338,
+          -0.1838,
+          0.0
+        ],
+        "max": [
+          1.3338,
+          0.1838,
+          3.0
+        ],
+        "dimensions": [
+          2.5677,
+          0.3677,
+          3.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_wayfinding_lod1_v2.glb",
+      "asset": "sign_wayfinding",
+      "lod": 1,
+      "bytes": 22288,
+      "sha256": "4EAAAF1775D69069A2FC952DE1FA0557697BAEC03623BC3B57BD0D9A288767D5",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 672,
+      "triangles": 336,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.12,
+          -0.11,
+          0.0
+        ],
+        "max": [
+          1.225,
+          0.11,
+          3.0
+        ],
+        "dimensions": [
+          2.345,
+          0.22,
+          3.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "sign_wayfinding_lod2_v2.glb",
+      "asset": "sign_wayfinding",
+      "lod": 2,
+      "bytes": 12092,
+      "sha256": "F1564D6050A1C414B8BD58BB99771045C87A90CC2DF617968D7C9DB787E40862",
+      "objects": 6,
+      "meshes": 4,
+      "lodMeshes": 3,
+      "vertices": 312,
+      "triangles": 144,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -1.12,
+          -0.11,
+          0.0
+        ],
+        "max": [
+          1.225,
+          0.11,
+          3.0
+        ],
+        "dimensions": [
+          2.345,
+          0.22,
+          3.0
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "ped_light_bollard_lod0_v2.glb",
+      "asset": "ped_light_bollard",
+      "lod": 0,
+      "bytes": 20588,
+      "sha256": "F01B1019A95539EF8E241F74BE7A25F22F4358ED29A772D1CBE2A1FB842A8179",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 576,
+      "triangles": 1076,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.2,
+          -0.2,
+          0.0
+        ],
+        "max": [
+          0.2,
+          0.2,
+          1.11
+        ],
+        "dimensions": [
+          0.4,
+          0.4,
+          1.11
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "ped_light_bollard_lod1_v2.glb",
+      "asset": "ped_light_bollard",
+      "lod": 1,
+      "bytes": 12424,
+      "sha256": "998A973A99049F69AF94637DEA1E221F35D6E9FA69896CAA34E3B8E3CE7A18B4",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 304,
+      "triangles": 532,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.2,
+          -0.2,
+          0.0
+        ],
+        "max": [
+          0.2,
+          0.2,
+          1.11
+        ],
+        "dimensions": [
+          0.4,
+          0.4,
+          1.11
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "ped_light_bollard_lod2_v2.glb",
+      "asset": "ped_light_bollard",
+      "lod": 2,
+      "bytes": 8096,
+      "sha256": "9DB78419ADFB9F62A39F08DA1D9548BB851D439C3F8ADB70934D7EFD439FB9CF",
+      "objects": 5,
+      "meshes": 3,
+      "lodMeshes": 2,
+      "vertices": 160,
+      "triangles": 244,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.2,
+          -0.2,
+          0.0
+        ],
+        "max": [
+          0.2,
+          0.2,
+          1.11
+        ],
+        "dimensions": [
+          0.4,
+          0.4,
+          1.11
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "ped_light_double_lod0_v2.glb",
+      "asset": "ped_light_double",
+      "lod": 0,
+      "bytes": 61660,
+      "sha256": "8FC891D9FAC83A8002DFC7E9426CF2E55189CFE3E05CCB46175F1E94AEF400E5",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 2080,
+      "triangles": 1420,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.78,
+          -0.175,
+          0.0
+        ],
+        "max": [
+          0.78,
+          0.175,
+          2.65
+        ],
+        "dimensions": [
+          1.56,
+          0.35,
+          2.65
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "ped_light_double_lod1_v2.glb",
+      "asset": "ped_light_double",
+      "lod": 1,
+      "bytes": 26808,
+      "sha256": "9930A956E1B17A4C87ADE9A30EBE4869C81B1B9F554866CAD0185ADD30E87448",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 792,
+      "triangles": 572,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.78,
+          -0.175,
+          0.0
+        ],
+        "max": [
+          0.78,
+          0.175,
+          2.65
+        ],
+        "dimensions": [
+          1.56,
+          0.35,
+          2.65
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "ped_light_double_lod2_v2.glb",
+      "asset": "ped_light_double",
+      "lod": 2,
+      "bytes": 14788,
+      "sha256": "DCCCDA935CE70E2423EDD0C169458990C45FD251BF4E4C9A1F520D83D3C3DEEA",
+      "objects": 7,
+      "meshes": 5,
+      "lodMeshes": 4,
+      "vertices": 360,
+      "triangles": 236,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -0.78,
+          -0.175,
+          0.0
+        ],
+        "max": [
+          0.78,
+          0.175,
+          2.65
+        ],
+        "dimensions": [
+          1.56,
+          0.35,
+          2.65
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "civic_park_decor_catalog_lod0_v2.glb",
+      "asset": "catalog",
+      "lod": 0,
+      "bytes": 1185884,
+      "sha256": "E3E71F325E2BE7F09269C14286E5EA5917EA8E557EF4B24A780C1D5E66B767B1",
+      "objects": 161,
+      "meshes": 101,
+      "lodMeshes": 84,
+      "vertices": 38908,
+      "triangles": 44420,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -26.0,
+          -13.3677,
+          -0.05
+        ],
+        "max": [
+          25.1,
+          13.52,
+          4.9
+        ],
+        "dimensions": [
+          51.1,
+          26.8877,
+          4.95
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "civic_park_decor_catalog_lod1_v2.glb",
+      "asset": "catalog",
+      "lod": 1,
+      "bytes": 408680,
+      "sha256": "4D1BADB5266FBE95E688349E61C9D96EF5486D0C99D7A4E7EEB9AD11D34094FE",
+      "objects": 136,
+      "meshes": 76,
+      "lodMeshes": 59,
+      "vertices": 12328,
+      "triangles": 14328,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -26.0,
+          -13.3677,
+          0.0
+        ],
+        "max": [
+          25.1,
+          13.52,
+          4.9
+        ],
+        "dimensions": [
+          51.1,
+          26.8877,
+          4.9
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    },
+    {
+      "file": "civic_park_decor_catalog_lod2_v2.glb",
+      "asset": "catalog",
+      "lod": 2,
+      "bytes": 184056,
+      "sha256": "40DEBB3C4F1CA54D1F240371FFDE6B59F4F2DA021C937A9EED4DE235CB6E3F3E",
+      "objects": 127,
+      "meshes": 67,
+      "lodMeshes": 50,
+      "vertices": 4840,
+      "triangles": 5064,
+      "boundsReverseImportedBlenderXYZ": {
+        "min": [
+          -26.0,
+          -13.3677,
+          0.0
+        ],
+        "max": [
+          25.1,
+          13.52,
+          3.27
+        ],
+        "dimensions": [
+          51.1,
+          26.8877,
+          3.27
+        ]
+      },
+      "missingRequiredNodes": [],
+      "textureImages": [],
+      "nonUnitMeshes": [],
+      "negativeScaleMeshes": [],
+      "pass": true
+    }
+  ]
+}

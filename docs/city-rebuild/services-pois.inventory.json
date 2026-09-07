@@ -1,0 +1,133 @@
+{
+  "schema": "mafiozi.city-rebuild.services-pois-inventory/v1",
+  "inventoryDate": "2026-09-07",
+  "baseHead": "5762a6a8f5fbef9172eefad770660abb7dc0520f",
+  "sourceState": "working_tree_includes_uncommitted_civic_and_rail_candidates",
+  "coordinateSystem": {"order": ["r", "c"], "serverMapping": {"x": "c", "y": "r"}, "mapRows": 200, "mapCols": 180},
+  "deduplication": {"primaryKey": ["namespace", "id"], "majorPolicy": "major POIs remain namespace poi; major crossReferences are aliases, never extra entities", "policePolicy": "police complex components are substructures of poi:police, not additional precinct POIs"},
+  "countBasis": "static definitions, not visible or active entity counts",
+  "counts": {"poi": 17, "hospitalPoi": 2, "firestationPoi": 1, "policePoi": 1, "junkyardPoi": 1, "gasStation": 4, "busStop": 4, "railStationCandidate": 8, "jetSkiHome": 2, "district": 8, "residentialRuntimeCount": null},
+  "sources": {
+    "poi": {"file": "world.html", "symbol": "POI", "line": 6872},
+    "majorPreview": {"file": "_preview_ws_server.py", "symbol": "PREVIEW_MAJOR", "line": 165},
+    "majorProduction": {"file": "mafiozi_bot.py", "symbol": "MAJOR_OBJECTS_DEF", "line": 16638},
+    "service": {"file": "world.html", "symbol": "HOSPITAL_R/HOSPITAL_EAST_R/FIRE_STATION_R/JUNKYARD_R", "line": 11055},
+    "gas": {"file": "world.html", "symbol": "GAS_STATIONS", "line": 6034},
+    "bus": {"file": "world.html", "symbol": "BUS_STOPS", "line": 7835},
+    "rail": {"file": "world.html", "symbol": "CITY_V3_RAIL_STATIONS", "line": 66736},
+    "railCrossings": {"file": "world.html", "symbol": "CITY_V3_RAIL_CROSSINGS", "line": 66746},
+    "jetSki": {"file": "world.html", "symbol": "JET_SKI_PARKING", "line": 4051},
+    "policeComplex": {"file": "world.html", "symbol": "JAIL_ISLAND_LAYOUT", "line": 5902},
+    "policeAdmin": {"file": "world.html", "symbol": "JAIL_POLICE_STATION_3D", "line": 5934},
+    "policeGate": {"file": "world.html", "symbol": "JAIL_VEHICLE_GATE_3D", "line": 5939},
+    "coast": {"file": "world.html", "symbol": "BEACH_R0/PIER_R0/SHIP_R0", "line": 3884},
+    "bridge": {"file": "world.html", "symbol": "CITY_CANAL_C0/CITY_BRIDGE_R0", "line": 6211},
+    "districts": {"file": "world.html", "symbol": "DISTRICTS", "line": 7274},
+    "ownership": {"file": "world.html", "symbol": "_aptTileKey/_legacyAptBlockKey", "line": 18887}
+  },
+  "entities": [
+    {"namespace":"poi","id":"market","name":"Рынок","r":16,"c":16,"status":"runtime_definition","source":"poi","crossReferences":["major:market"],"preserve":["server_major_id","assault_anchor","interior","entrance"]},
+    {"namespace":"poi","id":"port","name":"Порт","r":165,"c":38,"status":"runtime_definition","source":"poi","crossReferences":["major:port"],"preserve":["server_major_id","assault_anchor","interior","entrance","pier_ship_connectivity"]},
+    {"namespace":"poi","id":"casino","name":"Казино","r":46,"c":16,"status":"runtime_definition","source":"poi","crossReferences":["major:casino"],"preserve":["server_major_id","assault_anchor","interior","entrance","MAJOR_CASINO_WORLD_TILES"]},
+    {"namespace":"poi","id":"factory","name":"Промзона","r":46,"c":56,"status":"runtime_definition","source":"poi","crossReferences":["major:factory"],"preserve":["server_major_id","assault_anchor","interior","entrance"]},
+    {"namespace":"poi","id":"mansion","name":"Резиденция","r":136,"c":16,"status":"runtime_definition","source":"poi","crossReferences":["major:mansion"],"preserve":["server_major_id","assault_anchor","interior","entrance"]},
+    {"namespace":"poi","id":"lair","name":"Логово","r":120,"c":40,"status":"runtime_definition","source":"poi","aggro":true,"radiusGrid":20,"noCapture":true},
+    {"namespace":"poi","id":"blackmarket","name":"Чёрный рынок","r":6,"c":26,"status":"runtime_definition","source":"poi","special":"blackmarket","entrance":{"r":9.5,"c":26.5}},
+    {"namespace":"poi","id":"blackmarket_bellini","name":"Рынок Беллини","r":36,"c":46,"status":"runtime_definition","source":"poi","special":"blackmarket","family":"bellini"},
+    {"namespace":"poi","id":"blackmarket_moretti","name":"Рынок Моретти","r":136,"c":26,"status":"runtime_definition","source":"poi","special":"blackmarket","family":"moretti"},
+    {"namespace":"poi","id":"arena","name":"PVP-арена","r":36,"c":66,"status":"runtime_definition","source":"poi","special":"arena"},
+    {"namespace":"poi","id":"hospital","name":"Больница","r":26,"c":46,"status":"runtime_definition","source":"poi","special":"hospital","preserve":["patient_hospital_id","ambulance_depot","respawn:central-hospital","interior","road_door"]},
+    {"namespace":"poi","id":"hospital_east","name":"Больница Ист-Сайда","r":46,"c":126,"status":"runtime_definition","source":"poi","special":"hospital","preserve":["patient_hospital_id","ambulance_depot","hospital_transfer:east","interior","road_door"]},
+    {"namespace":"poi","id":"firestation","name":"Пожарная часть","r":56,"c":26,"status":"runtime_definition","source":"poi","special":"firestation","preserve":["fire_depot","road_door","fire_hose_reach"]},
+    {"namespace":"poi","id":"junkyard","name":"Городская свалка","r":86,"c":66,"status":"runtime_definition","source":"poi","special":"junkyard","preserve":["tow_depot","unloading_space","crossing_roads","junkyard_workers"]},
+    {"namespace":"poi","id":"police","name":"Участок","r":76,"c":76,"status":"runtime_definition","source":"poi","special":"jail","immutable":true,"preserve":["JAIL_X/Y","POLICE_STATION_R/C","witness_reporting","convoy","intake","police_complex"]},
+    {"namespace":"poi","id":"job_office","name":"Биржа труда","r":36,"c":16,"status":"runtime_definition","source":"poi","special":"job"},
+    {"namespace":"poi","id":"gym","name":"Спортзал","r":26,"c":26,"status":"runtime_definition","source":"poi","special":"gym"},
+    {"namespace":"gas-station","id":"0","nativeId":null,"identityKind":"array_index","name":"АЗС Север-Запад","r":13,"c":13,"status":"runtime_definition","source":"gas"},
+    {"namespace":"gas-station","id":"1","nativeId":null,"identityKind":"array_index","name":"АЗС Север-Восток","r":13,"c":63,"status":"runtime_definition","source":"gas"},
+    {"namespace":"gas-station","id":"2","nativeId":null,"identityKind":"array_index","name":"АЗС Центр","r":63,"c":23,"status":"runtime_definition","source":"gas"},
+    {"namespace":"gas-station","id":"3","nativeId":null,"identityKind":"array_index","name":"АЗС Юг","r":73,"c":63,"status":"runtime_definition","source":"gas"},
+    {"namespace":"bus-stop","id":"bus_stop_0","nativeId":null,"identityKind":"snapshot_index","name":null,"r":21.5,"c":21.5,"sign":{"r":24,"c":22},"status":"runtime_definition","source":"bus"},
+    {"namespace":"bus-stop","id":"bus_stop_1","nativeId":null,"identityKind":"snapshot_index","name":null,"r":21.5,"c":51.5,"sign":{"r":24,"c":52},"status":"runtime_definition","source":"bus"},
+    {"namespace":"bus-stop","id":"bus_stop_2","nativeId":null,"identityKind":"snapshot_index","name":null,"r":51.5,"c":51.5,"sign":{"r":50,"c":52},"status":"runtime_definition","source":"bus"},
+    {"namespace":"bus-stop","id":"bus_stop_3","nativeId":null,"identityKind":"snapshot_index","name":null,"r":51.5,"c":21.5,"sign":{"r":50,"c":22},"status":"runtime_definition","source":"bus"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-01","name":null,"r":145,"c":35,"platformSide":"L","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-02","name":null,"r":145,"c":70,"platformSide":"R","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-03","name":null,"r":145,"c":105,"platformSide":"L","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-04","name":null,"r":145,"c":140,"platformSide":"R","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-05","name":null,"r":153,"c":140,"platformSide":"L","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-06","name":null,"r":153,"c":105,"platformSide":"R","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-07","name":null,"r":153,"c":70,"platformSide":"L","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-station","id":"MAIN-RL-ST-08","name":null,"r":153,"c":35,"platformSide":"R","status":"local_opt_in_runtime_candidate","source":"rail"},
+    {"namespace":"rail-crossing","id":"MAIN-RL-XING-01","r":139.6,"c":11.5,"status":"local_opt_in_runtime_candidate","source":"railCrossings"},
+    {"namespace":"rail-crossing","id":"MAIN-RL-XING-02","r":139.6,"c":161.5,"status":"local_opt_in_runtime_candidate","source":"railCrossings"},
+    {"namespace":"jet-ski-home","id":"hydro_red","r":166.35,"c":49.2,"status":"runtime_definition","source":"jetSki"},
+    {"namespace":"jet-ski-home","id":"hydro_blue","r":166.35,"c":54.0,"status":"runtime_definition","source":"jetSki"},
+    {"namespace":"special-building","id":"mafia_hq","name":"Burj Mafia","r":36,"c":36,"status":"runtime_definition","source":{"file":"world.html","symbol":"BURJ_POS/_buildingInteriorTypeAt","line":45412}},
+    {"namespace":"building-asset","id":"civic_hall_landmark@1","instanceId":"landmark:civic_hall","parcelId":"C-HALL-01","r":68,"c":69,"entrance":{"r":69.62499997673965,"c":69},"status":"local_opt_in_runtime_candidate_not_live_accepted_by_this_audit","source":{"file":"world.html","symbol":"CITY_V3_CIVIC_PREVIEW_CONTRACT","line":23513}}
+  ],
+  "immutableGeometry": [
+    {"namespace":"police-envelope","id":"mainland-dry-compound","owner":"poi:police","immutable":true,"status":"runtime_definition","shape":"aabb_grid_cells","bounds":{"minR":69,"maxRExclusive":83,"minC":69,"maxCExclusive":83},"source":{"file":"world.html","symbol":"buildMap:jailDryHalf","line":6325},"notes":"preserve road/bridge tiles and central police body"},
+    {"namespace":"police-envelope","id":"island-main","owner":"poi:police","immutable":true,"status":"runtime_3d_definition","shape":"aabb","bounds":{"minR":61,"maxR":91,"minC":80.5,"maxC":98.5},"boundary":"inclusive","source":"policeComplex"},
+    {"namespace":"police-envelope","id":"intake","owner":"poi:police","immutable":true,"status":"runtime_3d_definition","shape":"aabb","bounds":{"minR":91,"maxR":103,"minC":85,"maxC":94},"boundary":"inclusive","spawn":{"r":97,"c":89.5},"source":"policeComplex"},
+    {"namespace":"police-envelope","id":"west-causeway","owner":"poi:police","immutable":true,"status":"runtime_3d_definition","shape":"aabb","bounds":{"minR":67.93,"maxR":71.17,"minC":75.85,"maxC":80.5},"source":"policeComplex","notes":"maxC meets island west; actual causeway test excludes maxC"},
+    {"namespace":"police-envelope","id":"north-causeway","owner":"poi:police","immutable":true,"status":"runtime_3d_definition","shape":"aabb","bounds":{"minR":56,"maxR":61,"minC":88.57,"maxC":90.43},"source":"policeComplex","notes":"maxR meets island north; actual causeway test excludes maxR"},
+    {"namespace":"bridge-envelope","id":"original-red-bridge","immutable":true,"status":"runtime_definition","shape":"aabb","bounds":{"minR":47,"maxR":56,"minC":80,"maxC":100},"source":"bridge","preserve":["crossing","approach_seams","vehicle_and_pedestrian_surface","existing_authored_geometry"]},
+    {"namespace":"bridge-envelope","id":"original-red-bridge-open-surface","immutable":true,"status":"runtime_definition","shape":"aabb","bounds":{"minR":47.34,"maxR":55.66,"minC":78.25,"maxC":101.75},"source":{"file":"world.html","symbol":"_openCityBridgeSurface","line":23820},"notes":"pad=0 envelope; ped pad.04 and car pad.08 shrink it"}
+  ],
+  "policeSolidRects": {
+    "owner":"poi:police","immutable":true,"status":"runtime_3d_definition","source":"policeComplex",
+    "items":[
+      {"id":"cell-wing-a","minR":72.42,"maxR":79.58,"minC":82.12,"maxC":86.62},
+      {"id":"cell-wing-b","minR":72.42,"maxR":79.58,"minC":92.38,"maxC":97.98},
+      {"id":"police-admin","minR":66.30,"maxR":69.15,"minC":87.20,"maxC":91.80},
+      {"id":"stairs-a","minR":71.36,"maxR":72.96,"minC":86.52,"maxC":87.38},
+      {"id":"stairs-b","minR":79.04,"maxR":80.64,"minC":91.62,"maxC":92.48},
+      {"id":"tower-nw","minR":60.86,"maxR":62.02,"minC":80.36,"maxC":81.52},
+      {"id":"tower-ne","minR":60.86,"maxR":62.02,"minC":97.48,"maxC":98.64},
+      {"id":"tower-sw","minR":89.98,"maxR":91.14,"minC":80.36,"maxC":81.52},
+      {"id":"tower-se","minR":89.98,"maxR":91.14,"minC":97.48,"maxC":98.64}
+    ]
+  },
+  "serviceAnchors": [
+    {"namespace":"respawn","id":"central-hospital","owner":"poi:hospital","r":23,"c":43,"status":"runtime_definition","source":{"file":"mafiozi_bot.py","symbol":"HOSPITAL_X/HOSPITAL_Y","line":16350},"previewSource":{"file":"_preview_ws_server.py","symbol":"PREVIEW_HOSPITAL_X/PREVIEW_HOSPITAL_Y","line":104}},
+    {"namespace":"hospital-transfer","id":"east","owner":"poi:hospital_east","r":46,"c":126,"status":"runtime_definition","source":{"file":"mafiozi_bot.py","symbol":"hospital_id target_x,target_y","line":19432}},
+    {"namespace":"custody","id":"intake","owner":"poi:police","r":97,"c":89.5,"status":"runtime_definition","source":{"file":"mafiozi_bot.py","symbol":"NPC_CUSTODY_JAIL_X/NPC_CUSTODY_JAIL_Y","line":16435}},
+    {"namespace":"police-component","id":"prison-police-admin","owner":"poi:police","r":67.70731707317073,"c":89.5,"rExpression":"76-34/4.1","entry":{"r":69.55,"c":89.5},"target":{"r":76,"c":76},"status":"runtime_3d_definition","source":"policeAdmin"},
+    {"namespace":"police-component","id":"vehicle-gate","owner":"poi:police","r":69.55,"c":80.5,"preferredVehicleStop":{"r":69.55,"c":78.15},"handoff":{"r":69.55,"c":79.92},"inside":{"r":69.55,"c":81.32},"status":"runtime_3d_definition","source":"policeGate"}
+  ],
+  "areas": [
+    {"namespace":"service-area","id":"junkyard-lots","owner":"poi:junkyard","bounds":{"minR":80,"maxRExclusive":110,"minC":60,"maxCExclusive":80},"status":"runtime_definition","source":{"file":"world.html","symbol":"buildMap junkyard clear loop","line":6415},"preserveRoads":true},
+    {"namespace":"coast-area","id":"beach","bounds":{"minR":150,"maxRExclusive":165,"minC":0,"maxCExclusive":180},"status":"runtime_definition","source":"coast"},
+    {"namespace":"coast-area","id":"pier","bounds":{"minR":165,"maxRExclusive":175,"minC":36,"maxCExclusive":44},"status":"runtime_definition","source":"coast"},
+    {"namespace":"coast-area","id":"ship","bounds":{"minR":175,"maxRExclusive":185,"minC":28,"maxCExclusive":56},"status":"runtime_definition","source":"coast"}
+  ],
+  "districtAnchors": {
+    "source":"districts","status":"runtime_definition","coordinateOrder":["r","c"],"hqRadius":6,"actionRadius":2.8,
+    "items":[
+      {"id":"northside","name":"Норт-Сайд","hq":[20,20],"intel":[11,20],"sabotage":[[14,12],[20,29],[29,18]],"escape":[35,20]},
+      {"id":"downtown","name":"Даунтаун","hq":[20,60],"intel":[11,60],"sabotage":[[15,49],[19,70],[30,58]],"escape":[35,60]},
+      {"id":"southside","name":"Саутсайд","hq":[70,20],"intel":[53,20],"sabotage":[[60,10],[72,30],[83,18]],"escape":[95,20]},
+      {"id":"industrial","name":"Промзона","hq":[70,60],"intel":[53,60],"sabotage":[[60,49],[72,70],[83,58]],"escape":[95,60]},
+      {"id":"eastside","name":"Ист-Сайд","hq":[40,140],"intel":[27,140],"sabotage":[[34,112],[49,131],[61,164]],"escape":[70,140]},
+      {"id":"docklands","name":"Доклендс","hq":[120,140],"intel":[107,140],"sabotage":[[94,112],[119,131],[136,164]],"escape":[145,140]},
+      {"id":"lair","name":"Логово","hq":null,"intel":null,"sabotage":[],"escape":null,"capturable":false},
+      {"id":"coast","name":"Побережье","hq":[156,40],"intel":[165,40],"sabotage":[[157,14],[158,65],[178,40]],"escape":[196,40]}
+    ]
+  },
+  "runtimeContracts": {
+    "fleetConfiguredTargets":{"ambulances":6,"ambulancesPerHospital":3,"firetrucks":3,"towTrucks":3,"policeResponseVehicles":3,"cityCopTarget":12,"notLiveCounts":true,"source":{"file":"world.html","symbol":"AMBULANCE_FLEET_SIZE/FIRETRUCK_FLEET_SIZE/TOW_FLEET_SIZE/POLICE_RESPONSE_FLEET_SIZE","line":11655}},
+    "parking":{"method":"road/full-body-safe computed bays; reset caches after relocation","fixedCoordinatesKnown":false,"duplicateDoorFallbackHazard":true},
+    "gas":{"interactionRadius":3.5,"blastRadius":6.5,"leakHits":10,"fuseMs":1800,"repairMs":120000,"pumpOffsetsRC":[[0.4,0.2],[1.1,1.3]],"clearLotOffsetsInclusive":[-2,3],"source":"gas"},
+    "rail":{"routeId":"MAIN-NATIVE-SOUTH-COAST-RL-01","status":"local_opt_in_runtime_candidate","dwellSeconds":4,"dwellProfileSeconds":{"open":0.4,"hold":3.2,"close":0.4},"stationClearLengthM":64,"centralInterchange":null,"depot":null,"districtCoverageVerified":false,"unitMismatchToAudit":{"railMetresPerTile":2.8,"visualWorldScale":4.1}},
+    "ownership":{"newKey":"tile:<floor(r)>,<floor(c)>","legacyKey":"<floor(r/10)>,<floor(c/10)>","dynamicServerDataRequired":["apartments_owned","building_key","apt_key","headquarters","apartment_hosts","map_overrides"],"migrationMappingRequired":true,"source":"ownership"}
+  },
+  "unresolved": [
+    {"id":"per-district-services","status":"requested_not_implemented_in_inventory","details":"User asks hospitals and police per district; definitions contain2 hospitals and1 police POI only"},
+    {"id":"marina","status":"no_authoritative_runtime_poi_found","details":"External planning/art packages do not count as runtime entities"},
+    {"id":"civic-shelter-route-binding","status":"decor_only","details":"DEC-SHELTER-DOWNTOWN37,8.9 and DEC-SHELTER-INDUSTRIAL35,6.5 are not BUS_STOPS"},
+    {"id":"owned-building-snapshot","status":"required_before_destructive_apply","details":"No full server property/editor snapshot taken by this static audit"},
+    {"id":"full-live-geometry","status":"not_audited_by_inventory","details":"POI anchors are not visible footprint/door/performance acceptance"},
+    {"id":"npc-art-approval","status":"revision_specific_approval_required","details":"Rejected Artist12 character package is not implicitly approved by the rebuild request"}
+  ]
+}

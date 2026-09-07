@@ -66,6 +66,7 @@
 <!-- 3D sync v190: ordinary buildings use stable glass, brick, limestone, concrete, art-deco and industrial architecture families without changing collisions. -->
 <html lang="ru">
 <head>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mafiozy-server-secret-log-contract" content="httpx-ptb-v1">
@@ -3119,6 +3120,15 @@ window.MafioziLoading.set(15, 'Читаем карту и районы…');
 // ════════════════════════════════════════════════════════════════
 
 const _UP = new URLSearchParams(location.search);
+// Readable during early hoisted collision calls, before map generation.
+let _cityV3GlassActive=null;
+const _cityV3NextActive=new Map();
+let _cityV3NextRollbackToken=null;
+// Map generation calls the hoisted collision helpers before the railway
+// definitions below. Inactive rail must be readable during that bootstrap.
+let _cityV3RailState=null;
+const _cityV3DecorBodies=new Map();
+const _cityV3DecorPreparedCells=new Set();
 // Explicit owner/testing link: enter the authored 3D city immediately with
 // the identity/look already present in the URL. Normal player links keep the
 // server-backed profile gate and character creator unchanged.
@@ -9114,6 +9124,9 @@ function npcPassable(r, c) {
   if (_inPrisonIslandRestrictedZone(r,c,.35)) return false;
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;   // обычные NPC не ходят в логово
+  // Accepted replacement aprons retain their original MAP=1 identity, but
+  // residents use the same newly opened ground/door surface as the player.
+  if(_cityV3NextSurfaceAt(r,c))return true;
   const t = MAP[ri][ci];
   // 8/9 — тротуар/газон (город). 14 — песок (пляж): пускаем NPC и туда,
   // чтобы пляжные жители были обычными NPC (ходят, стреляемы), а не
@@ -9135,6 +9148,7 @@ function npcPassableForSnitch(r, c) {
   if (_inPrisonIslandRestrictedZone(r,c,.35)) return false;
   if (inArena(ri, ci)) return false;
   if (inLair(ri, ci)) return false;
+  if(_cityV3NextSurfaceAt(r,c))return true;
   const t = MAP[ri][ci];
   if(t===14&&_inPitCorridor(ri+.5,ci+.5))return false;
   return (t === 0 || t === 9 || t === 8 || t === 14);
@@ -11817,8 +11831,13 @@ function _serviceVehicleFootprintClear(v, r, c, ang = null,
 
 function _serviceVehicleBodyPointBlocked(r,c,
     capabilities=_SERVICE_ROUTE_FOOTPRINT_CAPABILITIES){
+  if(_cityV3DecorBlocked(r,c))return true;
   const ri=Math.floor(r),ci=Math.floor(c);
   if(ri<0||ri>=MAP_ROWS||ci<0||ci>=MAP_COLS)return true;
+  // Rail gates and the authored consist are dynamic obstacles. Keep them out
+  // of the static road-capability graph, but enforce them for every live
+  // service-vehicle body sample (ambulance, police and other responders).
+  if(typeof _cityV3RailBlocksCar==='function'&&_cityV3RailBlocksCar(r,c))return true;
   if(_isPortContainerSolid(r,c)||_isThreeWholeBuildingBlocked(r,c))return true;
   const allowedCapabilities=Array.isArray(capabilities)&&capabilities.length
     ?capabilities:_SERVICE_ROUTE_FOOTPRINT_CAPABILITIES;
@@ -18198,6 +18217,9 @@ function _trafficCarFootprintClear(car, r = car.r, c = car.c) {
   return samples.every(([f, s]) => {
     const sampleR = r + dirR * f + sideR * s;
     const sampleC = c + dirC * f + sideC * s;
+    // Do not bake a moving train or closing gate into the cached road graph;
+    // test it here against the actual moving ambient-car footprint instead.
+    if(typeof _cityV3RailBlocksCar==='function'&&_cityV3RailBlocksCar(sampleR,sampleC))return false;
     if (_trafficHardTileAt(sampleR, sampleC)) return false;
     return car.parked || _vehicleSurfaceAllows(
       sampleR, sampleC, VEHICLE_SURFACE_CAPABILITY.AMBIENT_TRAFFIC);
@@ -19660,6 +19682,9 @@ function _nearbyBuildingInteractionFor3D() {
   const pr=Math.floor(player.r),pc=Math.floor(player.c);
   for(let r=Math.max(1,pr-5);r<=Math.min(MAP_ROWS-2,pr+5);r++)for(let c=Math.max(1,pc-5);c<=Math.min(MAP_COLS-2,pc+5);c++){
     if(MAP[r]?.[c]!==1)continue;
+    // Authored GALLERIA owns its doorway. Do not resurrect a generic prompt
+    // at one of the old box's sixteen remaining logical building tiles.
+    if(_cityV3GlassActive&&_cityV3RectContains(_cityV3GlassActive.contract.legacy,r,c))continue;
     const a=_genericBuildingEntranceAnchor(r,c);
     const d=Math.min(Math.hypot(player.r-r-.5,player.c-c-.5),Math.hypot(player.r-a.r,player.c-a.c));
     if(d>3.05||d>=bestD)continue;
@@ -23523,7 +23548,7 @@ const _cityV3ActiveArtistInstances=new Map();
 const _cityV3ActiveAcceptedBuildings=new Map();
 document.documentElement.dataset.cityV3BuildingDiagnostics='loadedBuildings:0,replacedPlaceholder:0,overlap:0';
 function _cityV3UpdateBuildingDiagnostics(overlap=0){
-  const count=(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size;
+  const count=(_cityV3ActiveCivicPreview?1:0)+_cityV3ActiveAcceptedBuildings.size+(_cityV3GlassActive?1:0)+(typeof _cityV3NextActive!=='undefined'?_cityV3NextActive.size:0);
   const value=`loadedBuildings:${count},replacedPlaceholder:${count},overlap:${overlap?1:0}`;
   document.documentElement.dataset.cityV3BuildingDiagnostics=value;return value;
 }
@@ -23629,6 +23654,8 @@ function _cityV3AcceptedCorridorAt(contract,r,c){
   return inside(contract.door.corridor)||inside(contract.service.corridor);
 }
 function _cityV3AcceptedSurfaceAt(r,c){
+  const next=_cityV3NextSurfaceAt(r,c);if(next)return next;
+  const glass=_cityV3GlassSurfaceAt(r,c);if(glass)return glass;
   for(const active of _cityV3ActiveAcceptedBuildings.values()){
     const contract=active.contract;
     if(!_cityV3RectContains(contract.legacy,r,c))continue;
@@ -23648,13 +23675,14 @@ function _cityV3AcceptedDoorApproachAt(contract,r,c,maxDistance=3.05){
 }
 function _cityV3AcceptedInteractionFor3D(maxDistance=3.05){
   let best=null,bestD=Math.max(0,+maxDistance||0);
-  for(const active of _cityV3ActiveAcceptedBuildings.values()){
+  for(const active of [..._cityV3ActiveAcceptedBuildings.values(),...(typeof _cityV3GlassActive!=='undefined'&&_cityV3GlassActive?[_cityV3GlassActive]:[]),...(typeof _cityV3NextActive!=='undefined'?[..._cityV3NextActive.values()]:[])]){
     const contract=active.contract,door=contract?.door;if(!door)continue;
     const distance=Math.hypot(player.r-door.anchorR,player.c-door.anchorC);
-    if(distance>bestD||!_cityV3AcceptedDoorApproachAt(contract,player.r,player.c,maxDistance))continue;
-    const label=contract.key==='pawnshop@1'?'Ломбард':contract.key==='print_shop@1'?'Типография':'Здание';
-    const r=Math.floor(contract.center.r),c=Math.floor(contract.center.c);
-    best={kind:'building',id:`city-v3:${contract.key}`,r,c,targetR:r,targetC:c,entryR:door.anchorR,entryC:door.anchorC,name:label,type:null,distance,cityV3AcceptedKey:contract.key,doorId:`city-v3:${contract.key}:public`};bestD=distance;
+    const approach=contract.key==='glass_pavilion_small@1'?_cityV3GlassDoorApproachAt(contract,player.r,player.c,maxDistance):_cityV3AcceptedDoorApproachAt(contract,player.r,player.c,maxDistance);
+    if(distance>bestD||!approach)continue;
+    const label=contract.key==='glass_pavilion_small@1'?'Стеклянный павильон':contract.key==='pawnshop@1'?'Ломбард':contract.key==='print_shop@1'?'Типография':({'gun_shop@1':'Оружейная лавка','bookmaker@1':'Букмекерская','strip_club@1':'Кабаре'}[contract.key]||'Здание');
+    const r=contract.legacyDoorId?contract.legacy.minR:Math.floor(contract.center.r),c=contract.legacyDoorId?contract.legacy.minC:Math.floor(contract.center.c);
+    best={kind:'building',id:contract.legacyDoorId?`${r},${c}`:`city-v3:${contract.key}`,r,c,targetR:r,targetC:c,entryR:door.anchorR,entryC:door.anchorC,name:label,type:null,distance,cityV3AcceptedKey:contract.key,doorId:contract.legacyDoorId||`city-v3:${contract.key}:public`};bestD=distance;
   }
   return best;
 }
@@ -23667,6 +23695,8 @@ function _cityV3CivicSurfaceAt(r,c){
 }
 function _cityV3SuppressLegacyPart(q){
   if(!q)return false;
+  if(typeof _cityV3NextActive!=='undefined')for(const active of _cityV3NextActive.values()){const e=active.contract.legacy;if(q.minR===e.minR&&q.maxR+1===e.maxR&&q.minC===e.minC&&q.maxC+1===e.maxC)return true;}
+  if(_cityV3GlassActive){const e=_cityV3GlassActive.contract.legacy;if(q.minR===e.minR&&q.maxR+1===e.maxR&&q.minC===e.minC&&q.maxC+1===e.maxC)return true;}
   if(_cityV3ActiveCivicPreview){
     const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT.legacy;
     if(q.minR===expected.minR&&q.maxR+1===expected.maxR&&q.minC===expected.minC&&q.maxC+1===expected.maxC)return true;
@@ -23679,7 +23709,10 @@ function _cityV3SuppressLegacyPart(q){
 }
 function _cityV3SuppressLegacyDoor(door){
   if(!door)return false;
+  if(typeof _cityV3NextActive!=='undefined')for(const a of _cityV3NextActive.values())if(door.id===a.contract.legacyDoorId)return true;
+  if(_cityV3GlassOwnsLegacyDoor(door))return true;
   const r=Math.floor(+door.wallR),c=Math.floor(+door.wallC);if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+  if(_cityV3DecorPreparedCells.has(`${r},${c}`))return true;
   if(_cityV3ActiveCivicPreview){const expected=CITY_V3_CIVIC_PREVIEW_CONTRACT.legacy;if(r>=expected.minR&&r<expected.maxR&&c>=expected.minC&&c<expected.maxC)return true;}
   for(const active of _cityV3ActiveAcceptedBuildings.values()){const expected=active.contract.legacy;if(r>=expected.minR&&r<expected.maxR&&c>=expected.minC&&c<expected.maxC)return true;}
   return false;
@@ -23715,6 +23748,194 @@ function _activateCityV3BuildingPreview(receipt){
   document.documentElement.dataset.cityV3BuildingReplacement=`${expected.legacyStructureId}->${expected.instanceId}:routing-preserved`;
   _cityV3UpdateBuildingDiagnostics(0);
   return {ok:true,active:expected.key,suppressedLegacyId:expected.legacyStructureId,routingPreserved:true,doorAnchorPassable:true,loadedBuildings:1,replacedPlaceholder:1,overlapCount:0};
+}
+function _cityV3NextContractRecords(){
+  // Pinned receipts derived from frozen accepted art and actual ground meshes.
+  return [{"key":"gun_shop@1","instanceId":"MAIN-NATIVE-V3-GUN_SHOP-01","assetSha256":"e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755","legacyStructureId":"legacy:procedural:80:10:85:15:89:19","legacyTileBounds":{"min_r":85,"max_r_exclusive":89,"min_c":15,"max_c_exclusive":19,"tile_count":16},"legacyTileIds":["runtime:building-tile:85:15","runtime:building-tile:85:16","runtime:building-tile:85:17","runtime:building-tile:85:18","runtime:building-tile:86:15","runtime:building-tile:86:16","runtime:building-tile:86:17","runtime:building-tile:86:18","runtime:building-tile:87:15","runtime:building-tile:87:16","runtime:building-tile:87:17","runtime:building-tile:87:18","runtime:building-tile:88:15","runtime:building-tile:88:16","runtime:building-tile:88:17","runtime:building-tile:88:18"],"legacyDoorId":"door_85_15_0","legacyDoor":{"id":"door_85_15_0","grid_rc":[84.5,18.5],"wall_grid_rc":[85,18.5],"facing_grid_rc":[-1,0]},"gameplayPoi":null,"centerGridRC":[87.375,17.75],"uniformAssetScale":0.68,"yawDeg":0,"footprint":{"minR":86.42921951219512,"maxR":88.06287804878049,"minC":16.36512195121951,"maxC":18.960731707317073},"clearanceFootprint":{"minR":86.425122,"maxR":88.324878,"minC":16.34439,"maxC":19.15561},"pad":{"minR":85.937317,"maxR":88.812683,"minC":15.856585,"maxC":19.643415},"groundCollisionNode":"Limestone armored plinth","groundCollisionBoundsLocal":{"min":[-7.825,0,-4.875],"max":[7.825,1.1,4.975]},"door":{"anchorR":88.12175609756098,"anchorC":17.273170731707317,"corridors":[{"minR":88.121756098,"maxR":90.25,"minC":16.907317073,"maxC":17.63902439}],"roadProbe":{"r":90.5,"c":17.273170732},"routeGridRC":[[88.121756098,17.273170732],[90.25,17.273170732],[90.5,17.273170732]],"anchorRole":"authored-door-threshold","visibleThresholdGridRC":[88.12175609756098,17.273170731707317]},"service":{"anchorR":87.13824390243903,"anchorC":18.986439024390243,"corridors":[{"minR":86.650439024,"maxR":87.62604878,"minC":18.986439024,"maxC":20.25}],"roadProbe":{"r":87.138243902,"c":20.5},"routeGridRC":[[87.138243902,18.986439024],[87.138243902,20.25],[87.138243902,20.5]]}},{"key":"bookmaker@1","instanceId":"MAIN-NATIVE-V3-BOOKMAKER-01","assetSha256":"cf7da54c2037182ca975bf5d08c291a8c7a41e7a1107c7f223b5522468ce8d70","legacyStructureId":"legacy:procedural:40:40:45:45:49:49","legacyTileBounds":{"min_r":45,"max_r_exclusive":49,"min_c":45,"max_c_exclusive":49,"tile_count":16},"legacyTileIds":["runtime:building-tile:45:45","runtime:building-tile:45:46","runtime:building-tile:45:47","runtime:building-tile:45:48","runtime:building-tile:46:45","runtime:building-tile:46:46","runtime:building-tile:46:47","runtime:building-tile:46:48","runtime:building-tile:47:45","runtime:building-tile:47:46","runtime:building-tile:47:47","runtime:building-tile:47:48","runtime:building-tile:48:45","runtime:building-tile:48:46","runtime:building-tile:48:47","runtime:building-tile:48:48"],"legacyDoorId":"door_45_45_0","legacyDoor":{"id":"door_45_45_0","grid_rc":[44.5,46.5],"wall_grid_rc":[45,46.5],"facing_grid_rc":[-1,0]},"gameplayPoi":null,"centerGridRC":[47.75,47.375],"uniformAssetScale":0.68,"yawDeg":90,"footprint":{"minR":46.48163414634146,"maxR":49.13529268292683,"minC":46.344219512195124,"maxC":47.96958536585366},"clearanceFootprint":{"minR":46.364756,"maxR":49.135244,"minC":46.344268,"maxC":48.405732},"pad":{"minR":45.876951,"maxR":49.623049,"minC":45.856463,"maxC":48.893537},"groundCollisionNode":"Stone plinth","groundCollisionBoundsLocal":{"min":[-8,0,-4.9],"max":[8,1.1,4.9]},"door":{"anchorR":48.33090243902439,"anchorC":48.039243902439026,"corridors":[{"minR":47.96504878,"maxR":48.696756098,"minC":48.039243902,"maxC":50.25}],"roadProbe":{"r":48.330902439,"c":50.5},"routeGridRC":[[48.330902439,48.039243902],[48.330902439,50.25],[48.330902439,50.5]],"anchorRole":"authored-door-threshold","visibleThresholdGridRC":[48.33090243902439,48.039243902439026]},"service":{"anchorR":46.465048780487805,"anchorC":46.94958536585366,"corridors":[{"minR":43.75,"maxR":46.46504878,"minC":46.461780488,"maxC":47.437390244}],"roadProbe":{"r":43.5,"c":46.949585366},"routeGridRC":[[46.46504878,46.949585366],[43.75,46.949585366],[43.5,46.949585366]]}},{"key":"strip_club@1","instanceId":"MAIN-NATIVE-V3-STRIP_CLUB-01","assetSha256":"a29f4603767b74b71baae3d42c4cbd44e7831b90634bc1bfa7dbfe23e3f4272c","legacyStructureId":"legacy:procedural:90:150:95:150:99:153","legacyTileBounds":{"min_r":95,"max_r_exclusive":99,"min_c":150,"max_c_exclusive":153,"tile_count":12},"legacyTileIds":["runtime:building-tile:95:150","runtime:building-tile:95:151","runtime:building-tile:95:152","runtime:building-tile:96:150","runtime:building-tile:96:151","runtime:building-tile:96:152","runtime:building-tile:97:150","runtime:building-tile:97:151","runtime:building-tile:97:152","runtime:building-tile:98:150","runtime:building-tile:98:151","runtime:building-tile:98:152"],"legacyDoorId":"door_95_150_0","legacyDoor":{"id":"door_95_150_0","grid_rc":[94.5,151.5],"wall_grid_rc":[95,151.5],"facing_grid_rc":[-1,0]},"gameplayPoi":null,"centerGridRC":[97.75,150.75],"uniformAssetScale":0.68,"yawDeg":0,"footprint":{"minR":96.74451219512196,"maxR":98.43621951219512,"minC":149.59524390243902,"maxC":151.78451219512195},"clearanceFootprint":{"minR":96.744512,"maxR":98.755488,"minC":149.595244,"maxC":151.904756},"pad":{"minR":96.256707,"maxR":99.243293,"minC":149.107439,"maxC":152.392561},"groundCollisionNode":"Club_Platform","groundCollisionBoundsLocal":{"min":[-6.6,0,-5.1],"max":[6.6,0.44,5.1]},"door":{"anchorR":98.53573170731707,"anchorC":150.68987804878049,"corridors":[{"minR":98.535731707,"maxR":100.25,"minC":150.32402439,"maxC":151.055731707}],"roadProbe":{"r":100.5,"c":150.689878049},"routeGridRC":[[98.535731707,150.689878049],[100.25,150.689878049],[100.5,150.689878049]],"anchorRole":"accepted-front-approach","visibleThresholdGridRC":[98.40802439024391,150.68987804878049]},"service":{"anchorR":97.08451219512195,"anchorC":151.71153658536585,"corridors":[{"minR":96.596707317,"maxR":97.572317073,"minC":151.711536585,"maxC":153.5},{"minR":97.084512195,"maxR":100.25,"minC":153.012195122,"maxC":153.987804878}],"roadProbe":{"r":100.5,"c":153.5},"routeGridRC":[[97.084512195,151.711536585],[97.084512195,153.5],[100.25,153.5],[100.5,153.5]]}}];
+}
+function _cityV3BuildingFocusTarget(key){
+  if(!_cityV3BuildingPreviewGateRequested())return null;
+  const id=String(key),next=_cityV3NextContractRecords().find(q=>q.key===id);
+  const accepted=next?_cityV3NextHostContract(next):id==='glass_pavilion_small@1'?_cityV3GlassContract():CITY_V3_ACCEPTED_PREVIEW_CONTRACTS[id];
+  const door=id===CITY_V3_CIVIC_PREVIEW_CONTRACT.key?CITY_V3_CIVIC_PREVIEW_CONTRACT.door:accepted?.door;
+  if(!door)return null;
+  return {key:id,r:accepted?door.roadProbe.r:70.5,c:accepted?door.roadProbe.c:door.anchorC,doorR:door.anchorR,doorC:door.anchorC};
+}
+function _cityV3NextHostContract(record){
+  const b=record.legacyTileBounds,id=record.legacyStructureId.split(':');
+  return {...record,center:{r:record.centerGridRC[0],c:record.centerGridRC[1]},
+    block:{r0:+id[2],c0:+id[3],r1:+id[2]+10,c1:+id[3]+10},
+    legacy:{minR:b.min_r,maxR:b.max_r_exclusive,minC:b.min_c,maxC:b.max_c_exclusive},
+    door:{...record.door,corridor:record.door.corridors[0]},service:{...record.service,corridor:record.service.corridors[0]}};
+}
+function _cityV3NextCorridorAt(contract,r,c){
+  return [...contract.door.corridors,...contract.service.corridors].some(q=>r>=q.minR-1e-6&&r<=q.maxR+1e-6&&c>=q.minC-1e-6&&c<=q.maxC+1e-6);
+}
+function _cityV3NextSurfaceAt(r,c){
+  for(const active of _cityV3NextActive.values()){
+    const q=active.contract;
+    if(!_cityV3RectContains(q.legacy,r,c)&&!_cityV3RectContains(q.footprint,r,c))continue;
+    return {blocked:_cityV3RectContains(q.footprint,r,c)&&!_cityV3NextCorridorAt(q,r,c),key:q.key,replacementId:q.legacyStructureId};
+  }
+  return null;
+}
+function _cityV3NextPreflight(contract){
+  const b=contract.block,e=contract.legacy;
+  const parts=_connectedBuildingParts(b.r0,b.c0,b.r1,b.c1).filter(q=>q.minR===e.minR&&q.maxR+1===e.maxR&&q.minC===e.minC&&q.maxC+1===e.maxC&&q.tiles.length===contract.legacyTileBounds.tile_count);
+  if(parts.length!==1||NPC_EMPIRE_HQ_BLOCK_KEYS.has(`${b.r0/BLOCK},${b.c0/BLOCK}`))return {ok:false,reason:'legacy-ownership'};
+  const part=parts[0],expectedTiles=new Set(contract.legacyTileIds);
+  for(const [r,c] of part.tiles){
+    const key=`${r},${c}`;
+    if(!expectedTiles.has(`runtime:building-tile:${r}:${c}`)||_bankTileSet.has(key)||POI_BY_RC.has(key)||BUSINESS_BY_RC.has(key)||MAJOR_CASINO_WORLD_TILES.has(key))return {ok:false,reason:'protected-legacy'};
+  }
+  const doors=_residentBuildingDoors().filter(d=>d.id===contract.legacyDoorId);
+  if(doors.length!==1)return {ok:false,reason:'legacy-door-missing'};
+  const d=doors[0],near=(a,b)=>Math.abs(a-b)<1e-5;
+  if(!near(d.r,contract.legacyDoor.grid_rc[0])||!near(d.c,contract.legacyDoor.grid_rc[1])||!near(d.wallR,contract.legacyDoor.wall_grid_rc[0])||!near(d.wallC,contract.legacyDoor.wall_grid_rc[1]))return {ok:false,reason:'legacy-door-drift'};
+  const base=_cityV3AcceptedPreflight(contract,part);if(!base.ok)return base;
+  const shapes=[contract.pad,...contract.door.corridors,...contract.service.corridors];
+  for(const shape of shapes){
+    const bounds=_cityV3RectCellBounds(shape);
+    for(let r=bounds.minR;r<=bounds.maxR;r++)for(let c=bounds.minC;c<=bounds.maxC;c++)if([2,3,4,5,6,7].includes(MAP[r]?.[c]))return {ok:false,reason:`street-object:${r}:${c}`};
+  }
+  // Apply existing exact tile/protected-route checks to every segment, not an
+  // enclosing rectangle across the strip club's two-leg service route.
+  for(const corridor of contract.service.corridors.slice(1)){
+    const extra=_cityV3AcceptedPreflight({...contract,service:{...contract.service,corridor}},part);if(!extra.ok)return extra;
+  }
+  for(const exterior of _businessExteriorCollisionCache.values()){
+    const p=exterior.center;if(!p)continue;
+    if(_cityV3RectsOverlap(contract.pad,{minR:p.r-exterior.halfDepth,maxR:p.r+exterior.halfDepth,minC:p.c-exterior.halfWidth,maxC:p.c+exterior.halfWidth}))return {ok:false,reason:'business-exterior-overlap'};
+  }
+  for(const bodies of _cityV3DecorBodies.values())for(const body of bodies)if(shapes.some(shape=>_cityV3RectsOverlap(shape,body)))return {ok:false,reason:'decor-overlap'};
+  // The rail authority is reserved even while the experimental train is off.
+  if(_cityV3RectsOverlap(contract.pad,{minR:139,maxR:154,minC:4,maxC:177}))return {ok:false,reason:'reserved-rail'};
+  for(const access of [contract.door,contract.service])if(isBlockedPed(access.roadProbe.r,access.roadProbe.c))return {ok:false,reason:'road-probe-blocked'};
+  return {ok:true,part,door:d};
+}
+function _activateCityV3NextBuilding(receipt){
+  const deny=reason=>{document.documentElement.dataset.cityV3NextActivation=`rejected:${reason}`;return {ok:false,reason};};
+  if(!_cityV3BuildingPreviewGateRequested())return deny('gate-closed');
+  if(_cityV3NextActive.size)return deny('already-active');
+  const expected=_cityV3NextContractRecords();
+  if(receipt?.schema!=='mafiozi.next-buildings-runtime-receipt/v1'||receipt.registrySha256!=='079d45b10c4e7df5715be95a2b9632dc3baaff0892015f6016e55c250686f85c'||receipt.buildings?.length!==3)return deny('receipt-identity');
+  const staged=[];
+  for(let i=0;i<expected.length;i++){
+    const q=expected[i],r=receipt.buildings[i];
+    for(const key of Object.keys(q))if(JSON.stringify(q[key])!==JSON.stringify(r?.[key]))return deny(`${q.key}:receipt-${key}`);
+    if(r.loaded!==true||r.registered!==true||r.eligible!==true||r.visibleMeshCount!==[194,166,130][i])return deny(`${q.key}:loader-readiness`);
+    if(JSON.stringify(r.doorAnchorGridRC)!==JSON.stringify([q.door.anchorR,q.door.anchorC])||JSON.stringify(r.serviceAnchorGridRC)!==JSON.stringify([q.service.anchorR,q.service.anchorC]))return deny(`${q.key}:socket-drift`);
+    const contract=_cityV3NextHostContract(q),preflight=_cityV3NextPreflight(contract);if(!preflight.ok)return deny(`${q.key}:${preflight.reason}`);
+    if(staged.some(a=>_cityV3RectsOverlap(a.parcel,contract.pad)))return deny('batch-overlap');
+    staged.push({key:q.key,instanceId:q.instanceId,legacyStructureId:q.legacyStructureId,contract,parcel:q.pad,legacyPart:preflight.part,residentDoor:preflight.door,residentDoorBefore:{...preflight.door},routingPreserved:false});
+  }
+  const token=Object.freeze({kind:'next-buildings-atomic',nonce:Object.freeze({})});
+  const restore=()=>{for(const a of staged){Object.assign(a.residentDoor,a.residentDoorBefore);_cityV3NextActive.delete(a.key);_cityV3ActiveArtistInstances.delete(a.key);}_cityV3NextRollbackToken=null;};
+  try{
+    for(const a of staged){
+      _cityV3NextActive.set(a.key,a);_cityV3ActiveArtistInstances.set(a.key,a);
+      const d=a.contract.door,dr=d.roadProbe.r-d.anchorR,dc=d.roadProbe.c-d.anchorC;
+      Object.assign(a.residentDoor,{r:d.anchorR,c:d.anchorC,wallR:d.visibleThresholdGridRC[0],wallC:d.visibleThresholdGridRC[1],facingR:Math.abs(dr)>=Math.abs(dc)?Math.sign(dr):0,facingC:Math.abs(dc)>Math.abs(dr)?Math.sign(dc):0});
+    }
+    for(const a of staged)for(const access of [a.contract.door,a.contract.service]){
+      const points=[[access.anchorR,access.anchorC],...access.routeGridRC,[access.roadProbe.r,access.roadProbe.c]];
+      for(let j=1;j<points.length;j++)for(let k=0;k<=20;k++){
+        const t=k/20,r=points[j-1][0]+(points[j][0]-points[j-1][0])*t,c=points[j-1][1]+(points[j][1]-points[j-1][1])*t;
+        if(isBlockedPed(r,c)){restore();return deny(`${a.key}:route-blocked`);}
+      }
+      a.routingPreserved=true;
+    }
+    _cityV3NextRollbackToken=token;_cityV3UpdateBuildingDiagnostics(0);
+    document.documentElement.dataset.cityV3NextActivation='active:3:ground-collision:exact-legacy';
+    return {ok:true,rollbackToken:token,active:staged.map(a=>a.key),routingPreserved:true};
+  }catch(error){restore();return deny(`transaction-error:${String(error?.message||error).slice(0,120)}`);}
+}
+function _rollbackCityV3NextBuilding(token){
+  if(!_cityV3NextRollbackToken||token!==_cityV3NextRollbackToken)return {ok:false,reason:'rollback-token'};
+  for(const [key,a] of _cityV3NextActive){Object.assign(a.residentDoor,a.residentDoorBefore);_cityV3ActiveArtistInstances.delete(key);}
+  _cityV3NextActive.clear();_cityV3NextRollbackToken=null;_cityV3UpdateBuildingDiagnostics(0);
+  document.documentElement.dataset.cityV3NextActivation='rolled-back';return {ok:true};
+}
+function _cityV3GlassContract(){
+  const r=47,c=67,rect=(x0,x1,z0,z1)=>({minR:r+(z0-.325)/4.1,maxR:r+(z1-.325)/4.1,minC:c+(x0-.25)/4.1,maxC:c+(x1-.25)/4.1});
+  const dr=r+(5.05-.325)/4.1,dc=c-.25/4.1,sr=r+(-4.55-.325)/4.1,sc=c+(4.35-.25)/4.1;
+  return {key:'glass_pavilion_small@1',instanceId:'MAIN-GLASS-GALLERIA-01',legacyStructureId:'legacy:procedural:40:60:45:65:48:68',
+    glbSha256:_UP.get('cityv3glassrevision')==='original'?'0dfd79a8d670568aa4aa572ea13fd2584abfaaaed2df1f574ca7b7fcd15ef33c':'ecae5f97bd53e9466bea3a520ec95a58ecacd7a232fbde902de0a1a7d4672873',center:{r,c},centerGridRC:[r,c],uniformAssetScale:1,yawDeg:0,
+    block:{r0:40,c0:60,r1:50,c1:70},legacy:{minR:45,maxR:49,minC:65,maxC:69},footprint:rect(-6.5,6.5,-5,5),pad:rect(-6.5,7,-5.295,5.945),
+    collisionSourceAxes:'blender_xyz_mislabeled_gltf',groundSizeXZ:[13,10],dimensionsM:[13.5,12.2,11.24],
+    door:{anchorR:dr,anchorC:dc,corridor:{minR:dr-.06,maxR:50.25,minC:dc-.4,maxC:dc+.4},roadProbe:{r:50.5,c:dc}},
+    service:{anchorR:sr,anchorC:sc,corridor:{minR:43.75,maxR:sr+.06,minC:sc-.35,maxC:sc+.35},roadProbe:{r:43.5,c:sc}}};
+}
+function _cityV3GlassDoorApproachAt(contract,r,c,maxDistance=3.05){
+  const d=contract.door;
+  return Number.isFinite(r)&&Number.isFinite(c)&&r>=d.anchorR-.08&&r<=d.roadProbe.r+.6&&
+    Math.hypot(r-d.anchorR,c-d.anchorC)<=maxDistance&&!isBlockedPed(r,c);
+}
+function _cityV3GlassOwnsLegacyDoor(door){
+  if(!_cityV3GlassActive||!door)return false;
+  // finishDoor places wallC=69 (or wallR=49) exactly on the old footprint's
+  // excluded upper edge. Identity belongs to buildingR/C, NOT that wall tile.
+  const e=_cityV3GlassActive.contract.legacy;
+  if(door.id==='door_45_65_0')return true;
+  if(door.authored||door.sourceKind||door.sourceId)return false;
+  return Number.isFinite(door.buildingR)&&Number.isFinite(door.buildingC)&&_cityV3RectContains(e,door.buildingR,door.buildingC);
+}
+function _cityV3GlassDoorDiagnostics(all,visible){
+  if(!_cityV3GlassActive)return;
+  const owned=all.filter(_cityV3GlassOwnsLegacyDoor),leaked=visible.filter(_cityV3GlassOwnsLegacyDoor);
+  document.documentElement.dataset.cityV3GlassDoors=JSON.stringify({
+    suppressed:owned.map(d=>({id:d.id,buildingR:d.buildingR,buildingC:d.buildingC,wallR:d.wallR,wallC:d.wallC})),
+    legacyVisibleIds:leaked.map(d=>d.id),legacyVisibleCount:leaked.length,
+    publicAnchor:[_cityV3GlassActive.contract.door.anchorR,_cityV3GlassActive.contract.door.anchorC],authoredPublicLeafCount:2,
+  });
+}
+function _cityV3GlassSurfaceAt(r,c){
+  if(!_cityV3GlassActive)return null;
+  const contract=_cityV3GlassActive.contract;
+  if(!_cityV3RectContains(contract.legacy,r,c))return null;
+  return {blocked:_cityV3RectContains(contract.footprint,r,c)&&!_cityV3AcceptedCorridorAt(contract,r,c),key:contract.key,replacementId:contract.legacyStructureId};
+}
+function _cityV3GlassPreflight(){
+  const contract=_cityV3GlassContract(),part=_cityV3AcceptedLegacyPart(contract);
+  if(!part)return {ok:false,reason:'legacy-ownership'};
+  const base=_cityV3AcceptedPreflight(contract,part);if(!base.ok)return base;
+  // A business exterior can extend beyond its one-tile identity marker.
+  for(const exterior of _businessExteriorCollisionCache.values()){
+    const center=exterior.center;if(!center)continue;
+    const body={minR:center.r-exterior.halfDepth,maxR:center.r+exterior.halfDepth,minC:center.c-exterior.halfWidth,maxC:center.c+exterior.halfWidth};
+    if(_cityV3RectsOverlap(contract.pad,body))return {ok:false,reason:'business-exterior-overlap'};
+  }
+  return {ok:true,part,contract};
+}
+function _activateCityV3GlassBuilding(receipt){
+  const deny=reason=>{document.documentElement.dataset.cityV3GlassActivation=`rejected:${reason}`;return {ok:false,reason};};
+  if(!_cityV3BuildingPreviewGateRequested())return deny('gate-closed');
+  if(_cityV3GlassActive)return deny('already-active');
+  const expected=_cityV3GlassContract();
+  for(const field of ['key','instanceId','legacyStructureId','glbSha256','centerGridRC','uniformAssetScale','yawDeg','footprint','pad','door','service','dimensionsM','groundSizeXZ','collisionSourceAxes']){
+    if(JSON.stringify(receipt?.[field])!==JSON.stringify(expected[field]))return deny(`receipt-${field}`);
+  }
+  if(receipt.loaded!==true||receipt.registered!==true||receipt.eligible!==true||receipt.visibleMeshCount!==(_UP.get('cityv3glassrevision')==='original'?150:149)||receipt.assetSha256!==expected.glbSha256)return deny('loader-readiness');
+  if(JSON.stringify(receipt.doorAnchorGridRC)!==JSON.stringify([expected.door.anchorR,expected.door.anchorC])||JSON.stringify(receipt.serviceAnchorGridRC)!==JSON.stringify([expected.service.anchorR,expected.service.anchorC]))return deny('socket-drift');
+  const preflight=_cityV3GlassPreflight();if(!preflight.ok)return deny(preflight.reason);
+  const rollbackToken=Object.freeze({key:expected.key,nonce:Object.freeze({})});
+  const active={key:expected.key,instanceId:expected.instanceId,legacyStructureId:expected.legacyStructureId,contract:expected,parcel:expected.pad,rollbackToken,routingPreserved:false};
+  _cityV3GlassActive=active;_cityV3ActiveArtistInstances.set(expected.key,active);
+  // Test real foot collisions along both door corridors, not only road probes.
+  for(const access of [expected.door,expected.service])for(let i=0;i<=20;i++){
+    const t=i/20,r=access.anchorR+(access.roadProbe.r-access.anchorR)*t,c=access.anchorC+(access.roadProbe.c-access.anchorC)*t;
+    if(isBlockedPed(r,c)){_cityV3GlassActive=null;_cityV3ActiveArtistInstances.delete(expected.key);return deny('door-route-blocked');}
+  }
+  active.routingPreserved=true;
+  document.documentElement.dataset.cityV3GlassActivation=`active:${expected.key}:legacy-suppressed:ground13x10`;
+  _cityV3UpdateBuildingDiagnostics(0);
+  document.documentElement.dataset.cityV3GlassPreflight=JSON.stringify({ok:true,tiles:preflight.part.tiles,footprint:expected.footprint,door:expected.door,service:expected.service});
+  return {ok:true,active:expected.key,rollbackToken,suppressedLegacyId:expected.legacyStructureId,routingPreserved:true};
+}
+function _rollbackCityV3GlassBuilding(token){
+  if(!_cityV3GlassActive||token!==_cityV3GlassActive.rollbackToken)return {ok:false,reason:'rollback-token'};
+  _cityV3ActiveArtistInstances.delete(_cityV3GlassActive.key);_cityV3GlassActive=null;
+  document.documentElement.dataset.cityV3GlassActivation='rolled-back';_cityV3UpdateBuildingDiagnostics(0);return {ok:true};
 }
 function _activateCityV3AcceptedBuildingPreview(receipt){
   const expected=CITY_V3_ACCEPTED_PREVIEW_CONTRACTS[String(receipt?.key||'')],deny=(reason,overlap=false)=>{
@@ -23788,6 +24009,7 @@ function _businessExteriorPedBlocked(r,c){
   return false;
 }
 function isBlocked(r, c) {
+  if(_cityV3DecorBlocked(r,c))return true;
   const ri = Math.floor(r), ci = Math.floor(c);
   if (ri < 0 || ri >= MAP_ROWS || ci < 0 || ci >= MAP_COLS) return true;
   const prisonSurface=_prisonIslandCollisionAt(r,c);
@@ -23820,6 +24042,8 @@ function _playerVehicleSurfaceCapability(vehicle) {
 // walkable, but only road/bridge surfaces accept an ordinary car. Dedicated
 // race cars additionally accept tile 18.
 function isBlockedCar(r, c, vehicle = null) {
+  if(_cityV3DecorBlocked(r,c))return true;
+  if(typeof _cityV3RailBlocksCar==='function'&&_cityV3RailBlocksCar(r,c))return true;
   const capability = _playerVehicleSurfaceCapability(vehicle);
   if (!_vehicleSurfaceAllows(r, c, capability)) return true;
   if(_openCityBridgeSurface(r,c,.08))return false;
@@ -23849,8 +24073,9 @@ function _isRaceWaterEdgeBlockedForPed(r, c) {
   return _nearestRaceTrackPoint(r, c).d > TRACK_HALF_W - 0.15;
 }
 function isBlockedPed(r, c) {
+  if(_cityV3DecorBlocked(r,c))return true;
   if(_openCityBridgeSurface(r,c,.04))return false;
-  return isBlocked(r, c) || _isRaceWaterEdgeBlockedForPed(r, c) || _businessExteriorPedBlocked(r,c);
+  return (typeof _cityV3RailBlocksPed==='function'&&_cityV3RailBlocksPed(r,c)) || isBlocked(r, c) || _isRaceWaterEdgeBlockedForPed(r, c) || _businessExteriorPedBlocked(r,c);
 }
 // Машина стоит на песке? (для замедления + анимации зарывания колёс)
 // Разгонная прямая с пляжа к старту гонки — асфальт, песком не считается.
@@ -37959,6 +38184,7 @@ function update(dt) {
   updateRaceLap();
   // Конвой и копы — плавно подтягиваем к целевым серверным позициям
   interpWorldNpcs(dt);
+  _cityV3RailTick(dt);
   sendInput();
 }
 
@@ -66499,6 +66725,237 @@ function _threePlayerAnimationTelemetry(now=performance.now()){
     impact:{stamp:+impact.at||0,age:Math.max(0,now-(+impact.at||0)),angle:+impact.angle||0,power:+impact.power||0,kind:impact.kind||'generic',bodyPart:impact.bodyPart||'torso'}
   };
 }
+
+// City V3 passenger rail is an explicit local Stage-A slice. It stays absent
+// from normal/production startup and becomes authoritative only after the
+// renderer has hash-verified the external GLB and its MAIN-native binding.
+const CITY_V3_RAIL_ROUTE=Object.freeze({
+  id:'MAIN-NATIVE-SOUTH-COAST-RL-01',lengthTiles:379.6,lengthM:1062.88,metresPerTile:2.8,
+  points:Object.freeze([[145,5],[139.6,5],[139.6,16],[145,16],[145,158],[139.6,158],[139.6,165],[145,165],[145,176],[145,176],[153,176],[153,5]].map(Object.freeze)),
+});
+const CITY_V3_RAIL_STATIONS=Object.freeze([
+  {id:'MAIN-RL-ST-01',r:145,c:35,progress:.10748156,platformSide:'L'},
+  {id:'MAIN-RL-ST-02',r:145,c:70,progress:.199683878,platformSide:'R'},
+  {id:'MAIN-RL-ST-03',r:145,c:105,progress:.291886196,platformSide:'L'},
+  {id:'MAIN-RL-ST-04',r:145,c:140,progress:.384088514,platformSide:'R'},
+  {id:'MAIN-RL-ST-05',r:153,c:140,progress:.623287671,platformSide:'L'},
+  {id:'MAIN-RL-ST-06',r:153,c:105,progress:.715489989,platformSide:'R'},
+  {id:'MAIN-RL-ST-07',r:153,c:70,progress:.807692308,platformSide:'L'},
+  {id:'MAIN-RL-ST-08',r:153,c:35,progress:.899894626,platformSide:'R'},
+].map(Object.freeze));
+const CITY_V3_RAIL_CROSSINGS=Object.freeze([
+  Object.freeze({id:'MAIN-RL-XING-01',r:139.6,c:11.5,progress:.031348788}),
+  Object.freeze({id:'MAIN-RL-XING-02',r:139.6,c:161.5,progress:.454952582}),
+]);
+const CITY_V3_RAIL_HASHES=Object.freeze({
+  asset:'fb63b5303a9c16ac94f7a52896ab30123ad6014aa675dc87bb7cca6df032c9cc',
+  binding:'6667e473509717d50aa848d14c8781c17345ee04efd27c10353f9ff3169258d2',
+  contract:'bdab0b2c8ffc9243a86b1ca01dde7abfb4a3ec11c30957eb13899a4fc6e9fee2',
+  timetable:'2ef53e0badb2d87921b976aa3dc6e5e3a51fe2f1c0f0f90caaae451c68e80cb4',
+});
+function _cityV3RailGateRequested(){return _LOCAL_PREVIEW&&_UP.get('preview')==='1'&&_UP.get('previewcityv3')==='stage-a'&&_UP.get('cityv3rail')==='1';}
+function _cityV3RailForwardDelta(from,to){return (to-from+1)%1;}
+function _cityV3RailCyclicDistance(from,to){return Math.min(_cityV3RailForwardDelta(from,to),_cityV3RailForwardDelta(to,from));}
+function _cityV3RailRoutePoint(progress,route=CITY_V3_RAIL_ROUTE){
+  const p=((+progress%1)+1)%1,target=p*route.lengthTiles;let walked=0;
+  for(let index=0;index<route.points.length;index++){
+    const a=route.points[index],b=route.points[(index+1)%route.points.length],dr=b[0]-a[0],dc=b[1]-a[1],length=Math.hypot(dr,dc);
+    if(target<=walked+length||index===route.points.length-1){const t=length?Math.max(0,Math.min(1,(target-walked)/length)):0;return {r:a[0]+dr*t,c:a[1]+dc*t,dr:length?dr/length:0,dc:length?dc/length:1,yaw:Math.atan2(-dr,dc)};}
+    walked+=length;
+  }
+  return {r:route.points[0][0],c:route.points[0][1],dr:0,dc:1,yaw:0};
+}
+function _cityV3RailMachineCreate(stations=CITY_V3_RAIL_STATIONS){
+  return {mode:'DWELL',progress:stations[0].progress,currentStation:0,nextStation:1,dwellElapsed:0,speed:0,obstruction:false,routeAuthorityGranted:true,aboard:false,stationCount:stations.length};
+}
+function _cityV3RailMachineDoor(state){
+  if(state.mode!=='DWELL')return {phase:'locked',amount:0};
+  if(state.obstruction)return {phase:'blocked',amount:1};
+  const t=state.dwellElapsed;
+  if(t<.4)return {phase:'opening',amount:Math.max(0,t/.4)};
+  if(t<3.6)return {phase:'hold',amount:1};
+  if(t<4)return {phase:'closing',amount:Math.max(0,1-(t-3.6)/.4)};
+  return {phase:'locked',amount:0};
+}
+function _cityV3RailMachineStep(state,dt,stations=CITY_V3_RAIL_STATIONS,routeLengthM=1062.88,movementAllowed=true){
+  let remaining=Number.isFinite(+dt)?Math.max(0,+dt):0;
+  while(remaining>1e-9){
+  let step=Math.min(.1,remaining);remaining-=step;
+  if(state.mode==='DWELL'){
+    state.speed=0;
+    if(state.obstruction){state.dwellElapsed=Math.min(state.dwellElapsed,3.2);return state;}
+    const dwellStep=Math.min(step,Math.max(0,4-state.dwellElapsed));
+    state.dwellElapsed=Math.min(4,state.dwellElapsed+dwellStep);
+    if(state.dwellElapsed>=4-1e-9)state.dwellElapsed=4;
+    if(state.dwellElapsed===4&&movementAllowed){state.mode='MOVING';remaining+=step-dwellStep;}
+    continue;
+  }
+  if(!movementAllowed){state.speed=0;return state;}
+  const target=stations[state.nextStation].progress,distanceM=_cityV3RailForwardDelta(state.progress,target)*routeLengthM;
+  const targetSpeed=distanceM<52?Math.max(2.2,Math.min(18,distanceM*.36)):18;
+  state.speed+=(targetSpeed-state.speed)*(1-Math.exp(-step*2.8));
+  if(distanceM<=Math.max(.24,state.speed*step)){
+    state.currentStation=state.nextStation;state.nextStation=(state.nextStation+1)%stations.length;state.progress=stations[state.currentStation].progress;state.dwellElapsed=0;state.speed=0;state.mode='DWELL';state.obstruction=false;
+  }else state.progress=(state.progress+state.speed*step/routeLengthM)%1;
+  }
+  return state;
+}
+function _cityV3RailPassengerAction(passenger,canInteract,stationId){
+  if(!canInteract)return {ok:false,aboard:!!passenger.aboard,stationId,reason:'spatial_gate_closed'};
+  passenger.aboard=!passenger.aboard;passenger.stationId=stationId;
+  return {ok:true,aboard:passenger.aboard,stationId,reason:passenger.aboard?'platform_side_exported_door_board':'platform_side_safe_exit'};
+}
+function _cityV3RailMachineSnapshot(state,stations=CITY_V3_RAIL_STATIONS){
+  const door=_cityV3RailMachineDoor(state),station=stations[state.mode==='DWELL'?state.currentStation:state.nextStation];
+  return {phase:state.mode==='DWELL'?'dwell':'depart',trainVisible:true,moving:state.mode==='MOVING'&&state.speed>0,speed:+state.speed.toFixed(4),stationId:station.id,dwellRemaining:state.mode==='DWELL'?+Math.max(0,4-state.dwellElapsed).toFixed(4):0,doorsClosed:door.amount===0,doorPhase:door.phase};
+}
+function _cityV3RailContractProbe(){
+  const stations=[
+    {id:'MAIN-RL-ST-01',progress:.10748156},{id:'MAIN-RL-ST-02',progress:.199683878},{id:'MAIN-RL-ST-03',progress:.291886196},{id:'MAIN-RL-ST-04',progress:.384088514},
+    {id:'MAIN-RL-ST-05',progress:.623287671},{id:'MAIN-RL-ST-06',progress:.715489989},{id:'MAIN-RL-ST-07',progress:.807692308},{id:'MAIN-RL-ST-08',progress:.899894626},
+  ];
+  const sim=_cityV3RailMachineCreate(stations),samples=[_cityV3RailMachineSnapshot(sim,stations)];
+  for(let i=0;i<40;i++){_cityV3RailMachineStep(sim,.1,stations,1062.88,true);if(i===3||i===35||i===39)samples.push(_cityV3RailMachineSnapshot(sim,stations));}
+  for(let i=0;i<10;i++)_cityV3RailMachineStep(sim,.1,stations,1062.88,true);
+  samples.push(_cityV3RailMachineSnapshot(sim,stations));
+  const passenger={aboard:false},board=_cityV3RailPassengerAction(passenger,true,stations[0].id),exit=_cityV3RailPassengerAction(passenger,true,stations[0].id);
+  return {stations:stations.map(station=>({id:station.id})),dwellProfile:{open:.4,hold:3.2,close:.4},samples,board,exit};
+}
+
+function _cityV3RailLiveGeometryAudit(){
+  const sampleCount=2048;let buildingHits=0,raceHits=0,redBridgeHits=0,policeHits=0;const protectedHits=new Set();
+  for(let index=0;index<sampleCount;index++){
+    const progress=index/sampleCount,point=_cityV3RailRoutePoint(progress),ri=Math.floor(point.r),ci=Math.floor(point.c),tile=MAP[ri]?.[ci];
+    if(tile===1)buildingHits++;if(typeof inRaceTrack==='function'&&inRaceTrack(ri,ci))raceHits++;
+    if(point.r>=47&&point.r<=56&&point.c>=80&&point.c<=100)redBridgeHits++;
+    if(Math.hypot(point.r-76,point.c-76)<=8)policeHits++;
+    if(tile===0||tile===18||tile===19)for(const crossing of CITY_V3_RAIL_CROSSINGS)if(_cityV3RailCyclicDistance(progress,crossing.progress)*CITY_V3_RAIL_ROUTE.lengthTiles<=6)protectedHits.add(crossing.id);
+  }
+  return {method:'live-main-map-sweep-v1',sampleCount,buildingHits,raceHits,redBridgeHits,policeHits,protectedCrossings:[...protectedHits],preserveVerified:buildingHits===0&&raceHits===0&&redBridgeHits===0&&policeHits===0};
+}
+function _cityV3RailReceiptValid(receipt){
+  const finiteVector=value=>Array.isArray(value)&&value.length===3&&value.every(Number.isFinite);
+  if(!_cityV3RailGateRequested()||!receipt||receipt.routeId!==CITY_V3_RAIL_ROUTE.id||receipt.stationCount!==8||receipt.crossingCount!==2||receipt.registered!==true||receipt.eligible!==true||receipt.visibleMeshCount<1)return 'identity';
+  for(const key of Object.keys(CITY_V3_RAIL_HASHES))if(String(receipt[`${key}Sha256`]||'').toLowerCase()!==CITY_V3_RAIL_HASHES[key])return `hash:${key}`;
+  if(receipt.doorPivots?.length!==24||new Set(receipt.doorPivots.map(p=>p.name)).size!==24||!receipt.doorPivots.every(p=>finiteVector(p.local)&&(p.side===1||p.side===-1)))return 'doors';
+  const expectedBodies=['COLLISION_TRAIN_BODY_CAR00','COLLISION_TRAIN_BODY_CAR01','COLLISION_TRAIN_BODY_CAR02'];
+  if(receipt.collisionBodies?.length!==3||!expectedBodies.every(name=>receipt.collisionBodies.some(body=>body.name===name&&finiteVector(body.center)&&finiteVector(body.size)&&body.size.every(value=>value>0))))return 'collision';
+  return '';
+}
+function _activateCityV3RailPreview(receipt){
+  if(_cityV3RailState)return {ok:false,reason:'already-active'};
+  const invalid=_cityV3RailReceiptValid(receipt);if(invalid){document.documentElement.dataset.cityV3RailActivation=`rejected:${invalid}`;return {ok:false,reason:invalid};}
+  const audit=_cityV3RailLiveGeometryAudit();
+  if(!audit.preserveVerified||audit.protectedCrossings.length!==2){document.documentElement.dataset.cityV3RailActivation='rejected:live-geometry-audit';return {ok:false,reason:'live-geometry-audit',audit};}
+  const rollbackToken=`rail:${performance.now().toString(36)}:${Math.random().toString(36).slice(2)}`;
+  _cityV3RailState={receipt:Object.freeze(receipt),rollbackToken,sim:_cityV3RailMachineCreate(),audit,crossings:CITY_V3_RAIL_CROSSINGS.map(crossing=>({...crossing,gateClosedAmount:0,roadOccupied:false,distanceM:Infinity,roadState:'open'})),lastInteraction:null};
+  document.documentElement.dataset.cityV3RailActivation=`active:${CITY_V3_RAIL_ROUTE.id}`;
+  return {ok:true,active:CITY_V3_RAIL_ROUTE.id,rollbackToken,audit};
+}
+function _rollbackCityV3RailPreview(token){
+  if(!_cityV3RailState||token!==_cityV3RailState.rollbackToken)return {ok:false,reason:'token'};
+  _cityV3RailState=null;document.documentElement.dataset.cityV3RailActivation='inactive:rolled-back';return {ok:true,rolledBack:CITY_V3_RAIL_ROUTE.id};
+}
+function _cityV3RailLocalToGrid(local,progress){
+  const point=_cityV3RailRoutePoint(progress),normal={r:point.dc,c:-point.dr},metres=CITY_V3_RAIL_ROUTE.metresPerTile;
+  return {r:point.r+point.dr*(local[0]/metres)+normal.r*(local[2]/metres),c:point.c+point.dc*(local[0]/metres)+normal.c*(local[2]/metres)};
+}
+function _cityV3RailCarPose(progress,offsetM,route=CITY_V3_RAIL_ROUTE){
+  // The visual body and collision use the same two-bogie tangent, not the
+  // direction of the middle carriage for the whole 55.2 metre consist.
+  const centerProgress=progress+offsetM/route.lengthM,point=_cityV3RailRoutePoint(centerProgress,route);
+  const front=_cityV3RailRoutePoint(centerProgress+5.15/route.lengthM,route),rear=_cityV3RailRoutePoint(centerProgress-5.15/route.lengthM,route);
+  const length=Math.hypot(front.r-rear.r,front.c-rear.c),dr=length?(front.r-rear.r)/length:point.dr,dc=length?(front.c-rear.c)/length:point.dc;
+  return {...point,dr,dc,yaw:Math.atan2(-dr,dc),offsetM};
+}
+function _cityV3RailCarLocalToGrid(local,progress,offsetM){
+  const point=_cityV3RailCarPose(progress,offsetM),x=(local[0]-offsetM)/CITY_V3_RAIL_ROUTE.metresPerTile,z=local[2]/CITY_V3_RAIL_ROUTE.metresPerTile;
+  return {r:point.r+point.dr*x+point.dc*z,c:point.c+point.dc*x-point.dr*z};
+}
+function _cityV3RailActiveDoors(){
+  const state=_cityV3RailState;if(!state)return [];
+  const station=CITY_V3_RAIL_STATIONS[state.sim.currentStation],side=station.platformSide==='L'?1:-1;
+  return state.receipt.doorPivots.filter(pivot=>pivot.side===side).map(pivot=>{const body=state.receipt.collisionBodies.find(item=>item.name.endsWith(`CAR${pivot.name.match(/Car(\d+)/)?.[1]}`));return {...pivot,..._cityV3RailCarLocalToGrid(pivot.local,state.sim.progress,body?.center[0]||0)};});
+}
+function _cityV3RailVehicleOverlapsCrossing(car,crossing,point){
+  if(!car||car._hidden||car.hidden||car._towed||car.state==='done'||car.state==='removed')return false;
+  const r=Number.isFinite(car.r)?car.r:car.y,c=Number.isFinite(car.c)?car.c:car.x;
+  if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+  // Parked/wrecked bodies actually ON the rails still obstruct the train;
+  // their flags alone are not grounds to drive through them.
+  const angle=Number.isFinite(car.ang)?car.ang:0,alongR=Math.sin(angle),alongC=Math.cos(angle),normalR=point.dc,normalC=-point.dr;
+  const length=Number.isFinite(car.lengthM)?Math.max(1,car.lengthM):6,width=Number.isFinite(car.widthM)?Math.max(.5,car.widthM):2.5;
+  const halfAlong=Math.abs(alongR*point.dr+alongC*point.dc)*length/2+Math.abs(alongC*point.dr-alongR*point.dc)*width/2;
+  const halfAcross=Math.abs(alongR*normalR+alongC*normalC)*length/2+Math.abs(alongC*normalR-alongR*normalC)*width/2;
+  const dr=(r-crossing.r)*2.8,dc=(c-crossing.c)*2.8;
+  return Math.abs(dr*point.dr+dc*point.dc)<3.1+halfAlong&&Math.abs(dr*normalR+dc*normalC)<1.7+halfAcross;
+}
+function _cityV3RailVehicleOccupied(crossing){
+  const occupied=[...(typeof CARS!=='undefined'?CARS:[]),...(typeof questCars!=='undefined'?questCars.values():[]),...(typeof serviceVehicles!=='undefined'?serviceVehicles:[])];
+  const point=_cityV3RailRoutePoint(crossing.progress);
+  return occupied.some(car=>_cityV3RailVehicleOverlapsCrossing(car,crossing,point));
+}
+function _cityV3RailCrossingStep(crossing,dt,occupied,distanceM){
+  const step=Math.max(0,Number.isFinite(+dt)?+dt:0);
+  crossing.distanceM=distanceM;crossing.roadOccupied=!!occupied;
+  crossing.clearElapsed=occupied?0:(crossing.clearElapsed||0)+step;
+  // Leave an escape path while occupied. Never lower two barriers around
+  // a car and then wait forever for that trapped car to clear the track.
+  const close=distanceM<72&&!occupied&&crossing.clearElapsed>=.6,rate=step/.6;
+  crossing.gateClosedAmount=close?Math.min(1,crossing.gateClosedAmount+rate):Math.max(0,crossing.gateClosedAmount-rate);
+  crossing.roadState=occupied?'clearing':crossing.gateClosedAmount>.1?'closed':'open';
+  return crossing;
+}
+function _cityV3RailDoorObstructed(){
+  const state=_cityV3RailState;if(!state||state.sim.aboard)return false;const doors=_cityV3RailActiveDoors();
+  const actors=[{r:player.r,c:player.c}];for(const npc of (typeof NPCS!=='undefined'?NPCS:[]))if(npc&&!npc.dead)actors.push({r:+npc.r||+npc.y||0,c:+npc.c||+npc.x||0});
+  return actors.some(actor=>doors.some(door=>Math.hypot(actor.r-door.r,actor.c-door.c)<.48));
+}
+function _cityV3RailAuthorityReady(){const state=_cityV3RailState;if(!state)return false;return state.sim.routeAuthorityGranted&&state.crossings.every(crossing=>crossing.distanceM>=48||(crossing.gateClosedAmount>=.9&&!crossing.roadOccupied));}
+function _cityV3RailTick(dt){
+  const state=_cityV3RailState;if(!state)return;
+  for(const crossing of state.crossings)_cityV3RailCrossingStep(crossing,dt,_cityV3RailVehicleOccupied(crossing),_cityV3RailCyclicDistance(state.sim.progress,crossing.progress)*CITY_V3_RAIL_ROUTE.lengthM);
+  const door=_cityV3RailMachineDoor(state.sim),obstructed=state.sim.mode==='DWELL'&&['closing','blocked'].includes(door.phase)&&_cityV3RailDoorObstructed();
+  if(obstructed){state.sim.obstruction=true;state.sim.dwellElapsed=Math.min(state.sim.dwellElapsed,3.2);}else if(state.sim.obstruction){state.sim.obstruction=false;state.sim.dwellElapsed=.4;}
+  _cityV3RailMachineStep(state.sim,Math.max(0,Math.min(1,+dt||0)),CITY_V3_RAIL_STATIONS,CITY_V3_RAIL_ROUTE.lengthM,!state.sim.obstruction&&_cityV3RailAuthorityReady());
+  _cityV3RailSyncPassenger();
+}
+function _cityV3RailSyncPassenger(){
+  const state=_cityV3RailState;if(!state)return;
+  if(state.sim.aboard){const doors=_cityV3RailActiveDoors(),anchor=doors[0]||_cityV3RailRoutePoint(state.sim.progress);player.r=anchor.r;player.c=anchor.c;player.vr=player.vc=0;}
+}
+function _cityV3RailBoardingProbe(){
+  const state=_cityV3RailState;if(!state)return {canInteract:false,reason:'inactive'};const doorState=_cityV3RailMachineDoor(state.sim),station=CITY_V3_RAIL_STATIONS[state.sim.currentStation],doors=_cityV3RailActiveDoors();
+  if(state.sim.aboard)return {canInteract:state.sim.mode==='DWELL'&&doorState.phase==='hold',stationId:station.id,activeDoor:doors[0]||null,reason:doorState.phase==='hold'?'ok':'door_not_held_open'};
+  const point=_cityV3RailRoutePoint(state.sim.progress),normal={r:point.dc,c:-point.dr},side=station.platformSide==='L'?1:-1,dr=player.r-point.r,dc=player.c-point.c,along=Math.abs((dr*point.dr+dc*point.dc)*2.8),sideM=(dr*normal.r+dc*normal.c)*2.8*side;
+  const nearest=doors.reduce((best,door)=>{const distance=Math.hypot(player.r-door.r,player.c-door.c)*2.8;return !best||distance<best.distanceM?{...door,distanceM:distance}:best;},null);
+  const canInteract=state.sim.mode==='DWELL'&&doorState.phase==='hold'&&sideM>.3&&sideM<=8&&along<=32&&(nearest?.distanceM??Infinity)<=3.5;
+  return {canInteract,stationId:station.id,activeDoor:nearest,alongM:along,platformSideMatch:sideM>.3&&sideM<=8,reason:canInteract?'ok':doorState.phase!=='hold'?'door_not_held_open':sideM<=.3||sideM>8?'wrong_platform_side':along>32?'outside_platform_clearance':'outside_door_proximity'};
+}
+function _cityV3RailToggleBoarding(){
+  const state=_cityV3RailState,probe=_cityV3RailBoardingProbe();if(!state)return probe;
+  const result=_cityV3RailPassengerAction(state.sim,probe.canInteract,probe.stationId);state.lastInteraction={...probe,...result};
+  if(result.ok&&!result.aboard){const door=probe.activeDoor||_cityV3RailActiveDoors()[0],point=_cityV3RailRoutePoint(state.sim.progress),normal={r:point.dc,c:-point.dr},side=CITY_V3_RAIL_STATIONS[state.sim.currentStation].platformSide==='L'?1:-1;let r=door.r+normal.r*side*.65,c=door.c+normal.c*side*.65;if(isBlockedPed(r,c)){r=door.r+normal.r*side*1.1;c=door.c+normal.c*side*1.1;}if(isBlockedPed(r,c)){state.sim.aboard=true;return state.lastInteraction={...probe,ok:false,aboard:true,reason:'safe_exit_blocked'};}player.r=r;player.c=c;player.vr=player.vc=0;}
+  return state.lastInteraction;
+}
+function _cityV3RailTrainBodyContains(r,c,padM=0){
+  const state=_cityV3RailState;if(!state)return false;
+  return state.receipt.collisionBodies.some(body=>{const point=_cityV3RailCarPose(state.sim.progress,body.center[0]),dr=r-point.r,dc=c-point.c,x=(dr*point.dr+dc*point.dc)*2.8,z=(dr*point.dc-dc*point.dr)*2.8;return Math.abs(x)<=body.size[0]/2+padM&&Math.abs(z-body.center[2])<=body.size[2]/2+padM;});
+}
+function _cityV3RailGateContains(r,c){
+  const state=_cityV3RailState;if(!state)return false;
+  return state.crossings.some(crossing=>{if(crossing.gateClosedAmount<.75)return false;const point=_cityV3RailRoutePoint(crossing.progress),normal={r:point.dc,c:-point.dr},dr=r-crossing.r,dc=c-crossing.c,along=(dr*point.dr+dc*point.dc)*2.8,across=(dr*normal.r+dc*normal.c)*2.8;return Math.abs(along+.2)<=3.35&&(Math.abs(across-5.1)<=.65||Math.abs(across+5.1)<=.65);});
+}
+function _cityV3RailBlocksCar(r,c){return _cityV3RailTrainBodyContains(r,c,.45)||_cityV3RailGateContains(r,c);}
+function _cityV3RailBlocksPed(r,c){return _cityV3RailTrainBodyContains(r,c,.16);}
+function _cityV3RailSnapshot(){
+  const state=_cityV3RailState;if(!state)return null;const basic=_cityV3RailMachineSnapshot(state.sim),position=_cityV3RailRoutePoint(state.sim.progress),station=CITY_V3_RAIL_STATIONS[state.sim.mode==='DWELL'?state.sim.currentStation:state.sim.nextStation],doors=_cityV3RailMachineDoor(state.sim),authority=_cityV3RailAuthorityReady();
+  position.cars=state.receipt.collisionBodies.map(body=>({name:body.name,..._cityV3RailCarPose(state.sim.progress,body.center[0])}));
+  return {routeId:CITY_V3_RAIL_ROUTE.id,classification:'stage-a-main-native-dev-candidates',stations:CITY_V3_RAIL_STATIONS.map(item=>({...item,clearLengthM:64,tailAlignmentM:-27.6,headAlignmentM:27.6})),trains:1,trainVisible:true,progress:state.sim.progress,position,stationId:station.id,platformSide:station.platformSide,phase:basic.phase,speed:basic.speed,dwellRemaining:basic.dwellRemaining,doors,aboard:!!state.sim.aboard,boarding:_cityV3RailBoardingProbe(),collision:{root:'TRAIN_COLLISION_ROOT',bodies:state.receipt.collisionBodies.length},obstruction:!!state.sim.obstruction,routeAuthority:{granted:!!state.sim.routeAuthorityGranted,ready:authority},crossings:state.crossings.map(crossing=>({...crossing})),signals:CITY_V3_RAIL_STATIONS.map(item=>({stationId:item.id,aspect:authority&&!(state.sim.mode==='DWELL'&&item.id===station.id)?'green':'red'})),assetSha256:state.receipt.assetSha256,bindingSha256:state.receipt.bindingSha256,audit:state.audit,centralInterchange:null,depot:null};
+}
+function _cityV3RailPreviewApproach(){
+  const state=_cityV3RailState;if(!state)return null;state.sim.mode='DWELL';state.sim.currentStation=0;state.sim.nextStation=1;state.sim.progress=CITY_V3_RAIL_STATIONS[0].progress;state.sim.dwellElapsed=.5;state.sim.speed=0;const station=CITY_V3_RAIL_STATIONS[0],point=_cityV3RailRoutePoint(state.sim.progress),normal={r:point.dc,c:-point.dr},side=station.platformSide==='L'?1:-1,door=_cityV3RailActiveDoors()[0];if(door){player.r=door.r+normal.r*side*.65;player.c=door.c+normal.c*side*.65;player.vr=player.vc=0;}return _cityV3RailSnapshot();
+}
 function _threeGangFamilyLabel(source) {
   const raw=String(source?.mafia_family||source?.mafiaFamily||source?.gangFamily||
     source?.gangName||source?.family||source?.faction||'').trim();
@@ -66507,8 +66964,96 @@ function _threeGangFamilyLabel(source) {
   if(key==='yellow'||key==='moretti'||key==='моретти')return 'Моретти';
   return raw;
 }
+// Approved civic decor: additive, owner-scoped bodies; never rewrites map tiles.
+function _cityV3DecorGate(){return _LOCAL_PREVIEW&&_UP.get('preview')==='1'&&_UP.get('previewcityv3')==='stage-a'&&_UP.get('cityv3decor')==='1';}
+function _cityV3DecorBlocked(r,c){
+  for(const bodies of _cityV3DecorBodies.values())for(const b of bodies)if(r>=b.minR&&r<=b.maxR&&c>=b.minC&&c<=b.maxC)return true;
+  return false;
+}
+function _cityV3DecorSurface(r,c){
+  if(!Number.isFinite(r)||!Number.isFinite(c)||r<1||c<1||r>=MAP_ROWS-1||c>=MAP_COLS-1)return 'unknown';
+  const tile=MAP[Math.floor(r)]?.[Math.floor(c)];
+  if(tile===16)return 'water';
+  if(tile===0||tile===18||tile===19||inRaceTrack(r,c))return 'road';
+  if(tile===1||_isThreeWholeBuildingBlocked(r,c)||_businessExteriorPedBlocked(r,c))return 'building';
+  if(Math.hypot(r-JAIL_CENTER_R,c-JAIL_CENTER_C)<JAIL_RADIUS_TILES+1||_prisonIslandCollisionAt(r,c)||_openCityBridgeSurface(r,c))return 'protected';
+  // Reserve the entire candidate rail corridor even while the train is disabled.
+  if(r>=139&&r<=154&&c>=4&&c<=177)return 'rail';
+  for(const active of _cityV3ActiveAcceptedBuildings.values())if(_cityV3AcceptedCorridorAt(active.contract,r,c))return 'door';
+  for(const p of [...POI,...BUSINESS_POIS])if(Math.hypot(r-p.r,c-p.c)<1.5)return 'protected';
+  if(_cityV3AcceptedGameplayAnchorConflict({minR:r,maxR:r,minC:c,maxC:c}))return 'protected';
+  if(_isPortContainerSolid(r,c))return 'protected';
+  for(const d of _beachDecor)if(Number.isFinite(d.r)&&Number.isFinite(d.c)&&Math.hypot(r-d.r,c-d.c)<.8*Math.max(1,+d.scale||1))return 'protected';
+  if(tile===7||tile===2||tile===3||tile===4||tile===6)return 'protected';
+  return tile===8?'grass':tile===9?'pavement':tile===14?'sand':'unknown';
+}
+function _registerCityV3DecorCollisions(owner,bodies){
+  if(!_cityV3DecorGate()||owner!=='CITY_V3_CIVIC_PARK_V2_ROOT'||_cityV3DecorBodies.has(owner))return {ok:false,reason:'gate-or-owner'};
+  if(!Array.isArray(bodies)||!bodies.length||bodies.length>256)return {ok:false,reason:'body-count'};
+  const ids=new Set(),copy=[];
+  for(const b of bodies){
+    if(!b||typeof b.id!=='string'||ids.has(b.id)||![b.minR,b.maxR,b.minC,b.maxC].every(Number.isFinite)||b.maxR<=b.minR||b.maxC<=b.minC||b.maxR-b.minR>5||b.maxC-b.minC>5)return {ok:false,reason:'invalid-body'};
+    for(let ri=0;ri<=8;ri++)for(let ci=0;ci<=8;ci++){
+      const r=b.minR+(b.maxR-b.minR)*ri/8,c=b.minC+(b.maxC-b.minC)*ci/8;
+      if(!['grass','pavement','sand'].includes(_cityV3DecorSurface(r,c)))return {ok:false,reason:'body-surface'};
+    }
+    if(player.r>=b.minR-.35&&player.r<=b.maxR+.35&&player.c>=b.minC-.35&&player.c<=b.maxC+.35)return {ok:false,reason:'player-occupied'};
+    ids.add(b.id);copy.push(Object.freeze({...b}));
+  }
+  _cityV3DecorBodies.set(owner,Object.freeze(copy));return {ok:true,bodies:copy.length};
+}
+function _previewApproachCityV3Decor(focus){
+  if(!_cityV3DecorGate()||!_cityV3DecorBodies.size||![focus?.r,focus?.c].every(Number.isFinite))return {ok:false,reason:'inactive'};
+  for(const distance of [2,2.5,3,3.5])for(const [dr,dc] of [[1,0],[0,1],[-1,0],[0,-1]]){
+    const r=focus.r+dr*distance,c=focus.c+dc*distance;
+    if([[0,0],[.35,.35],[.35,-.35],[-.35,.35],[-.35,-.35]].some(([rr,cc])=>isBlockedPed(r+rr,c+cc)))continue;
+    player.r=r;player.c=c;player.vr=player.vc=0;player.walking=false;window._studioTeleportUntil=Date.now()+10000;
+    return {ok:true,r,c};
+  }
+  return {ok:false,reason:'no-safe-approach'};
+}
+function _prepareCityV3DecorGardens(){
+  if(!_cityV3DecorGate())return;
+  // User-approved pocket-park redevelopment, separate from asset transaction.
+  // Exact lots only: a failed GLB leaves a usable clear garden, never a hole.
+  const lots=[[14,34],[24,64],[74,14],[34,4]];
+  const cells=new Map();
+  for(const [r0,c0] of lots)for(let r=r0;r<r0+6;r++)for(let c=c0;c<c0+6;c++)cells.set(`${r},${c}`,{r,c,tile:r===r0||r===r0+5||c===c0||c===c0+5?9:8});
+  for(const [r,c] of [[34,74],[84,44],[44,104],[94,44]])cells.set(`${r},${c}`,{r,c,tile:9});
+  const conflicts=[];
+  for(const {r,c} of cells.values()){
+    const key=`${r},${c}`,tile=MAP[r]?.[c];
+    if(![1,2,3,4,6,7,8,9].includes(tile)||_bankTileSet.has(key)||POI_BY_RC.has(key)||BUSINESS_BY_RC.has(key)||MAJOR_CASINO_WORLD_TILES.has(key)||_cityV3AcceptedGameplayAnchorConflict({minR:r,maxR:r+1,minC:c,maxC:c+1})){
+      conflicts.push(`${key}:${tile}`);
+    }
+  }
+  if(conflicts.length){document.documentElement.dataset.cityV3DecorGardenPreparation=JSON.stringify({status:'rejected',conflicts});return;}
+  const removed={buildingCells:0,obstacleCells:0,legacyProps:0};
+  for(const [key,{r,c,tile}] of cells){
+    if(MAP[r][c]===1)removed.buildingCells++;
+    else if([2,3,4,6,7].includes(MAP[r][c]))removed.obstacleCells++;
+    MAP[r][c]=tile;_cityV3DecorPreparedCells.add(key);
+    _threeBuildingBlockCache.delete(`${Math.floor(r/BLOCK)*BLOCK}:${Math.floor(c/BLOCK)*BLOCK}`);
+  }
+  _beachDecor=_beachDecor.filter(d=>{const covered=_cityV3DecorPreparedCells.has(`${Math.floor(d.r)},${Math.floor(d.c)}`);if(covered)removed.legacyProps++;return !covered;});
+  document.documentElement.dataset.cityV3DecorGardenPreparation=JSON.stringify({status:'ready',lots:lots.length,cells:cells.size,removed,scope:'local-preview-only;reload-without-flag-restores-original'});
+}
+_prepareCityV3DecorGardens();
 window.Mafiozi3DBridge = Object.freeze({
   version: 1,
+  getCityV3DecorHost(){
+    if(_cityV3DecorGate())document.documentElement.dataset.cityV3DecorPlacementAudit=JSON.stringify([[17,37],[27,67],[77,17]].map(([r,c])=>({r,c,tiles:MAP.slice(r-3,r+3).map(row=>row.slice(c-3,c+3)),props:_beachDecor.filter(d=>Math.abs(d.r-r)<5&&Math.abs(d.c-c)<5).map(d=>({kind:d.kind,r:d.r,c:d.c})),anchors:_cityV3AcceptedGameplayAnchorConflict({minR:r-3,maxR:r+3,minC:c-3,maxC:c+3})})));
+    return {mapRows:MAP_ROWS,mapCols:MAP_COLS,worldUnitsPerGridCellM:4.1,classifySurface:_cityV3DecorSurface};
+  },
+  registerCityV3DecorCollisions(owner,bodies){return _registerCityV3DecorCollisions(owner,bodies);},
+  unregisterCityV3DecorCollisions(owner){return {ok:true,removed:_cityV3DecorBodies.delete(owner)};},
+  previewApproachCityV3Decor(focus){return _previewApproachCityV3Decor(focus);},
+  getCityV3DecorGardenLots(){return _cityV3DecorPreparedCells.size?[[14,34],[24,64],[74,14],[34,4]].map(([r,c])=>({r,c,size:6})):[];},
+  activateCityV3RailPreview(receipt){return _activateCityV3RailPreview(receipt);},
+  rollbackCityV3RailPreview(token){return _rollbackCityV3RailPreview(token);},
+  getCityV3RailSnapshot(){return _cityV3RailSnapshot();},
+  toggleCityV3RailBoarding(){return _cityV3RailToggleBoarding();},
+  previewApproachCityV3Rail(){return _cityV3RailPreviewApproach();},
   getPlayerBusinessRaidAlert(){return _activePlayerBusinessRaidAlert?{..._activePlayerBusinessRaidAlert}:null;},
   updatePlayerBusinessRaidNavigation(r,c){_updatePlayerBusinessRaidNavigation(r,c);},
   getPlayerState() {
@@ -66972,16 +67517,22 @@ window.Mafiozi3DBridge = Object.freeze({
     return {r:best.br,c:best.bc};
   },
   previewApproachCityV3Building(key='civic_hall_landmark@1') {
-    if(!_cityV3BuildingPreviewGateRequested())return false;
-    const accepted=CITY_V3_ACCEPTED_PREVIEW_CONTRACTS[String(key)],door=String(key)===CITY_V3_CIVIC_PREVIEW_CONTRACT.key?CITY_V3_CIVIC_PREVIEW_CONTRACT.door:accepted?.door;
-    if(!door)return false;
-    player.r=accepted?door.roadProbe.r:70.5;player.c=accepted?door.roadProbe.c:door.anchorC;player.vr=0;player.vc=0;player.walking=false;
+    const target=_cityV3BuildingFocusTarget(key);if(!target||isBlockedPed(target.r,target.c))return false;
+    player.r=player.tr=target.r;player.c=player.tc=target.c;player.vr=0;player.vc=0;player.walking=false;
     window._studioTeleportUntil=Date.now()+10000;
-    return {key:String(key),r:player.r,c:player.c,doorR:door.anchorR,doorC:door.anchorC};
+    document.documentElement.dataset.cityV3FocusApplied=JSON.stringify({...target,appliedAt:Date.now(),holdUntil:window._studioTeleportUntil});
+    return target;
   },
+  getCityV3BuildingFocusTarget(key){return _cityV3BuildingFocusTarget(key);},
   activateCityV3BuildingPreview(receipt) {
     return _activateCityV3BuildingPreview(receipt);
   },
+  activateCityV3GlassBuilding(receipt){return _activateCityV3GlassBuilding(receipt);},
+  activateCityV3NextBuilding(receipt){return _activateCityV3NextBuilding(receipt);},
+  rollbackCityV3NextBuilding(token){return _rollbackCityV3NextBuilding(token);},
+  getCityV3NextBuildingStatus(){return {active:[..._cityV3NextActive.keys()],activation:document.documentElement.dataset.cityV3NextActivation||'inactive',contracts:_cityV3NextContractRecords()};},
+  rollbackCityV3GlassBuilding(token){return _rollbackCityV3GlassBuilding(token);},
+  getCityV3GlassStatus(){const p=_cityV3GlassActive?{ok:true}:_cityV3GlassPreflight();return {active:!!_cityV3GlassActive,key:'glass_pavilion_small@1',preflight:{ok:p.ok,reason:p.reason||''},contract:_cityV3GlassContract()};},
   activateCityV3AcceptedBuildingPreview(receipt) {
     return _activateCityV3AcceptedBuildingPreview(receipt);
   },
@@ -67008,7 +67559,9 @@ window.Mafiozi3DBridge = Object.freeze({
     return _previewResidentDoorCycle();
   },
   getBuildingDoors() {
-    return _residentBuildingDoors().filter(door=>!_cityV3SuppressLegacyDoor(door)).map(door=>({id:door.id,r:door.r,c:door.c,wallR:door.wallR,wallC:door.wallC,
+    const all=_residentBuildingDoors(),visible=all.filter(door=>!_cityV3SuppressLegacyDoor(door));
+    _cityV3GlassDoorDiagnostics(all,visible);
+    return visible.map(door=>({id:door.id,r:door.r,c:door.c,wallR:door.wallR,wallC:door.wallC,
       facingR:door.facingR,facingC:door.facingC,sourceId:door.sourceId||'',sourceKind:door.sourceKind||'building',authored:!!door.authored,residentEligible:door.residentEligible!==false}));
   },
   getBuildingDoorStates() {
@@ -67118,8 +67671,8 @@ window.Mafiozi3DBridge = Object.freeze({
       if(r0>=EAST_EXPANSION_R1||c0<minC)continue;
       neighborhoods.push({r0,c0,size:20,vertical:((Math.floor(r0/20)+Math.floor((c0-EAST_EXPANSION_C0)/20))&1)===1,styleId:districtStyleIdAt(r0+10,c0+10)});
     }
-    const streamableLandmarks=pois.filter(p=>p.id==='junkyard');
-    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,obstacles,pois,streamableLandmarks,coast,canal,neighborhoods,landmarks};
+    const streamableLandmarks=pois.filter(p=>p.id==='junkyard'),rail=_cityV3RailSnapshot();
+    return {center:{r:player.r,c:player.c},bounds:{minR,maxR,minC,maxC},blocks,obstacles,pois,streamableLandmarks,coast,canal,neighborhoods,landmarks,...(rail?{rail:rail}:{})};
   },
   getDynamicEntities(radius = 38, preferredVehicleId = '') {
     const streamRadius=Math.max(12,Math.min(65,+radius||38)),rad2=streamRadius**2,near=(r,c)=>(r-player.r)**2+(c-player.c)**2<=rad2;

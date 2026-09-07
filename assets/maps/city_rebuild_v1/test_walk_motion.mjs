@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {circleFits,movePedestrian} from './walk_motion.mjs';
+assert(circleFits(1,1,()=>true));
+assert(!circleFits(.1,1,(x,z)=>x>=0));
+const wall=(x,z)=>x<2;
+const hit=movePedestrian({x:1,z:1},{x:3,z:0},wall);
+assert(hit.x<1.65&&hit.x>1.4);
+const slide=movePedestrian({x:1.5,z:1},{x:1,z:1},wall);
+assert(slide.x<1.65&&slide.z>1.9);
+const water=(x,z)=>!(x>=2&&x<=2.1);
+assert(movePedestrian({x:1,z:1},{x:4,z:0},water).x<2);
+assert(!movePedestrian({x:1,z:1},{x:0,z:0},()=>true).moved);
+assert.throws(()=>movePedestrian({x:1,z:1},{x:NaN,z:0},()=>true));
+console.log('PASS: radius clearance, wall, slide, thin barrier, idle and finite inputs');

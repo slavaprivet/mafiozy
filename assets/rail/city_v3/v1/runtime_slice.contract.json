@@ -1,0 +1,87 @@
+{
+  "schema": "regional-rail-runtime-slice/1.0.0",
+  "packageId": "regional_train_and_track_tiles_v1_runtime_slice_v1",
+  "classification": "dev-only runtime integration proof; not a finished game",
+  "coordinateSpace": "main_map_row_column converted through binding worldScaleMPerTile",
+  "geographyBinding": {
+    "type": "read_only_current_main_native",
+    "routeId": "MAIN-NATIVE-SOUTH-COAST-RL-01",
+    "productionStatus": "pending_rebase_required_until_coordinator_commit_sha"
+  },
+  "mainBinding": {
+    "file": "runtime_slice.main_binding.json",
+    "sha256": "6667E473509717D50AA848D14C8781C17345EE04EFD27C10353F9FF3169258D2"
+  },
+  "sourceAsset": {
+    "file": "regional_train_and_track_tiles_v1.glb",
+    "sha256": "FB63B5303A9C16AC94F7A52896AB30123AD6014AA675DC87BB7CCA6DF032C9CC",
+    "requiredTrainRoot": "TRAIN_REGIONAL_CLAY_CONSIST_ROOT",
+    "requiredCollisionRoot": "TRAIN_COLLISION_ROOT"
+  },
+  "consist": {
+    "lengthM": 55.2,
+    "cars": 3,
+    "headAlignmentM": 27.6,
+    "tailAlignmentM": -27.6,
+    "lodRoots": ["TRAIN_LOD0_ROOT", "TRAIN_LOD1_ROOT", "TRAIN_LOD2_ROOT"],
+    "lodPolicy": "exactly_one_visible",
+    "defaultVisibleRoot": "TRAIN_LOD0_ROOT"
+  },
+  "dwell": {
+    "fullStopRequired": true,
+    "openingMs": 400,
+    "holdMs": 3200,
+    "closingMs": 400,
+    "nominalTotalMs": 4000,
+    "motionForbiddenWhenDoorOpenOrBlocked": true,
+    "platformSideOnlyUnlock": true
+  },
+  "collisionAndAuthority": {
+    "trainCollisionRoot": "TRAIN_COLLISION_ROOT",
+    "requiredBodyNodes": ["COLLISION_TRAIN_BODY_CAR00", "COLLISION_TRAIN_BODY_CAR01", "COLLISION_TRAIN_BODY_CAR02"],
+    "obstructionSensorSource": "exported DoorPivot node transforms",
+    "obstructionExtendsDwell": true,
+    "movementProhibitedWhenDoorOpenOrBlocked": true,
+    "routeAuthorityRequiredForDeparture": true,
+    "departureSignalRedWhenObstructedOrAuthorityDenied": true
+  },
+  "trackGraph": {
+    "type": "main_native_closed_polyline",
+    "bindingRouteId": "MAIN-NATIVE-SOUTH-COAST-RL-01",
+    "sampleCount": 512,
+    "railGaugeM": 1.435,
+    "protectedCrossings": [0.031348788, 0.454952582],
+    "crossingInterlock": {"nearTrainRoadState":"closed","farTrainRoadState":"open","triggerDistanceM":48}
+  },
+  "semanticIsolation": {
+    "railLayerRoot": "RAIL_SPLINE_GRAPH_ROOT",
+    "raceTile18Dependency": null,
+    "policy": "rail graph, station transforms, and train runtime remain independent from race tile 18"
+  },
+  "geometricAudit": {
+    "method": "independent_main_native_map_geometry_sweep_v2",
+    "railSampleCount": 4096,
+    "railClearanceHalfWidthTiles": 0.55,
+    "protectedCrossingHalfWindowTiles": 6.0,
+    "requiresPositiveProtectedRoadHits": true,
+    "requiresActualMainRoadBuildingRaceRedBridgePoliceSources": true
+  },
+  "stationPlatform": {
+    "clearLengthM": 64,
+    "requiredConsistClearanceM": 55.2,
+    "widthM": 5.4,
+    "buildingClearanceM": 12
+  },
+  "stations": [
+    {"id":"MAIN-RL-ST-01","progress":0.10748156,"mainRC":[145,35],"positionM":[-155.4,0,-2.8],"yawRad":0,"platformSide":"L"},
+    {"id":"MAIN-RL-ST-02","progress":0.199683878,"mainRC":[145,70],"positionM":[-57.4,0,-2.8],"yawRad":0,"platformSide":"R"},
+    {"id":"MAIN-RL-ST-03","progress":0.291886196,"mainRC":[145,105],"positionM":[40.6,0,-2.8],"yawRad":0,"platformSide":"L"},
+    {"id":"MAIN-RL-ST-04","progress":0.384088514,"mainRC":[145,140],"positionM":[138.6,0,-2.8],"yawRad":0,"platformSide":"R"},
+    {"id":"MAIN-RL-ST-05","progress":0.623287671,"mainRC":[153,140],"positionM":[138.6,0,19.6],"yawRad":3.141593,"platformSide":"L"},
+    {"id":"MAIN-RL-ST-06","progress":0.715489989,"mainRC":[153,105],"positionM":[40.6,0,19.6],"yawRad":3.141593,"platformSide":"R"},
+    {"id":"MAIN-RL-ST-07","progress":0.807692308,"mainRC":[153,70],"positionM":[-57.4,0,19.6],"yawRad":3.141593,"platformSide":"L"},
+    {"id":"MAIN-RL-ST-08","progress":0.899894626,"mainRC":[153,35],"positionM":[-155.4,0,19.6],"yawRad":3.141593,"platformSide":"R"}
+  ],
+  "telemetryRequired": ["trainVisible", "position", "stationId", "dwellRemaining", "activeLOD", "doorPhase"],
+  "interactions": ["pause_resume", "board_exit_during_hold", "jump_to_next_stop", "follow_map_camera", "manual_lod_select"]
+}

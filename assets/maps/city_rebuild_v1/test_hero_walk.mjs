@@ -1,0 +1,34 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {createHash} from 'node:crypto';
+import {registerHooks} from 'node:module';
+import {createHeroWalker,HERO_ASSET} from './hero_walk.mjs';
+const here=path.dirname(fileURLToPath(import.meta.url)),deps='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';
+registerHooks({resolve(specifier,context,nextResolve){return nextResolve(specifier==='three'?pathToFileURL(path.join(deps,'build/three.module.js')).href:specifier,context);}});
+const THREE=await import(pathToFileURL(path.join(deps,'build/three.module.js')));
+const {GLTFLoader}=await import(pathToFileURL(path.join(deps,'addons/loaders/GLTFLoader.js')));
+const receipt=JSON.parse(fs.readFileSync(path.join(here,'hero_walk.manifest.json'),'utf8'));
+const bytes=fs.readFileSync(path.join(here,'hero_models/player_male.8130dfb1f7eb.glb'));
+assert.equal(bytes.length,HERO_ASSET.bytes);assert.equal(createHash('sha256').update(bytes).digest('hex'),HERO_ASSET.sha256);
+assert.equal(receipt.sha256,HERO_ASSET.sha256);assert.equal(bytes.readUInt32LE(8),bytes.length);
+const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString());assert.ok(json.skins.length>0);
+const gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');
+const source=gltf.scene,bones={};source.traverse(o=>{if(o.isBone)bones[o.name]=o;});
+for(const side of ['l','r']){assert.ok(bones['shin_'+side].parent===bones['thigh_'+side]);assert.ok(bones['foot_'+side].parent===bones['shin_'+side]);}
+const walker=createHeroWalker({THREE,scene:source});assert.equal(walker.height,1.9);
+const before={};for(const[n,b]of Object.entries(bones))before[n]=b.matrix.toArray();
+const restHeight=new THREE.Box3().setFromObject(walker.object).getSize(new THREE.Vector3()).y;
+assert.ok(Math.abs(restHeight-1.9)<1e-5);
+walker.object.position.set(20,0,30);walker.object.rotation.y=.7;
+for(let i=0;i<25;i++)walker.update(1/60,true,false);
+assert.notDeepEqual(bones.thigh_l.matrix.toArray(),before.thigh_l);
+assert.notDeepEqual(bones.upperarm_r.matrix.toArray(),before.upperarm_r);
+assert.deepEqual(walker.object.position.toArray(),[20,0,30]);assert.equal(walker.object.rotation.y,.7);
+for(const[n,b]of Object.entries(bones)){const p=new THREE.Vector3(),q=new THREE.Quaternion(),s=new THREE.Vector3(),p0=new THREE.Vector3(),q0=new THREE.Quaternion(),s0=new THREE.Vector3();b.matrix.decompose(p,q,s);new THREE.Matrix4().fromArray(before[n]).decompose(p0,q0,s0);assert.ok(p.distanceTo(p0)<1e-6);assert.ok(s.distanceTo(s0)<1e-6);}
+for(let i=0;i<180;i++)walker.update(1/60,false,false);
+assert.equal(walker.diagnostics().gait,0);for(const[n,b]of Object.entries(bones))assert.deepEqual(b.matrix.toArray(),before[n]);
+walker.update(.04,true,true);assert.ok(walker.diagnostics().gait>0);walker.reset();assert.equal(walker.diagnostics().gait,0);
+walker.dispose();walker.dispose();assert.equal(walker.diagnostics().disposed,true);
+console.log(JSON.stringify({passed:true,checks:['source_release_hash','actual_glb_bytes','rest_hierarchy','actual_height_1.9m','moving_legs_and_arms','no_bone_scale_or_translation_change','idle_exact_recovery','controller_position_preserved','run_reset_dispose'],sourceHeight:walker.sourceHeight,uniformScale:walker.scale,metres:walker.height,bones:Object.keys(bones).length}));

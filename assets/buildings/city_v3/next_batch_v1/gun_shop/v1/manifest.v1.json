@@ -1,0 +1,53 @@
+{
+  "schema": "mafiozi.city-v3-next-building-asset/v1",
+  "key": "gun_shop@1",
+  "status": "asset_accepted_runtime_rebind_required",
+  "asset": {
+    "canonical_asset_id": "gun_shop",
+    "file": "gun_shop.e97d6fac4097.glb",
+    "bytes": 1568892,
+    "sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755",
+    "sidecar_file": "gun_shop.d8855a9a0ec6.asset.json",
+    "sidecar_bytes": 828,
+    "sidecar_sha256": "d8855a9a0ec60e57fcf3fdfa966eccff8117a665004063fa18d8bdc89ce91303"
+  },
+  "provenance": {
+    "origin": "project_generated",
+    "generator_path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-02\\mafiozy-artist14\\work\\build_gun_shop_asset.py",
+    "generator_sha256": "e5b2ceab7d71cd3153cdc4863f08f92de5e5ed1b5599d67e295c1020443fd022",
+    "external_sources": [],
+    "usage": "internal_project_asset",
+    "source_audit": "procedural Blender primitives only; no imports, libraries, network or downloads"
+  },
+  "review": {
+    "source_sidecar_review_status": "user_pass",
+    "source_sidecar_frozen": true,
+    "accepted_release_manifest_sha256": "687d2ff4927a43859100c6b8475138664e67839781bdd00789e206f3e4e2612d",
+    "accepted_visual_bible_sha256": "c2030c3758582c91f9a7b0bb05745496451a096846c520f5a06cafda0af00239"
+  },
+  "geometry": {
+    "front": "+Z",
+    "root_node": "SKIN_ROOT_gun_shop__front_negative_Y",
+    "raw_bounds_m": {
+      "min_xyz": [-7.95, 0.0, -4.9],
+      "max_xyz": [9.0, 13.0, 6.555]
+    },
+    "horizontal_center_xyz_m": [0.525, 0.0, 0.8275],
+    "public_anchor_authority": "accepted_release_manifest_entrance",
+    "public_anchor_local_xyz_m": [-2.35, 0.0, 5.33],
+    "public_door_node": "Armored public door",
+    "public_door_visual_nodes": ["Armored public door", "Door pull", "Door pull.001", "Door reinforcement", "Door reinforcement.001"],
+    "public_door_local_xyz_m": [-2.35, 1.95, 5.33],
+    "service_anchor_authority": "exact_glb_node_translation",
+    "service_anchor_local_xyz_m": [7.98, 2.0, -0.6],
+    "service_door_node": "Armored delivery shutter",
+    "service_door_local_xyz_m": [7.98, 2.0, -0.6]
+  },
+  "runtime_gate": {
+    "runtime_activation": false,
+    "legacy_suppression": false,
+    "current_head_rebind_required": true,
+    "exact_authored_service_anchor_required": true,
+    "failure_keeps_legacy": true
+  }
+}

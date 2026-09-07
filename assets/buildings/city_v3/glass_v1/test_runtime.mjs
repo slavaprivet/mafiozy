@@ -1,0 +1,91 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createRequire} from 'node:module';
+import {webcrypto,createHash} from 'node:crypto';
+import {prepareCityV3GlassBuilding,installCityV3GlassBuilding,glassRuntimeContract,GLASS_ASSET_BYTES,GLASS_VISUAL_PRESETS} from './runtime.v1.js';
+globalThis.crypto??=webcrypto;
+globalThis.self??=globalThis;
+const require=createRequire(import.meta.url);
+const {PNG}=require('C:/Users/Слава/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/pngjs');
+// CPU image adapter genuinely decodes the embedded PNG; it does not erase
+// occlusionTexture or synthesize a 1x1 image. GPU rendering is root's live gate.
+let decodedImages=0,closedImages=0;
+globalThis.createImageBitmap=async blob=>{const image=PNG.sync.read(Buffer.from(await blob.arrayBuffer()));decodedImages++;return {width:image.width,height:image.height,data:image.data,close(){closedImages++;}};};
+const dep=process.env.THREE_MODULE_ROOT||path.join(process.env.TEMP,'mafiozi-glass-three180/node_modules/three');
+const THREE=await import(pathToFileURL(path.join(dep,'build/three.module.js')));
+const {GLTFLoader}=await import(pathToFileURL(path.join(dep,'examples/jsm/loaders/GLTFLoader.js')));
+const bytes=fs.readFileSync(new URL('./glass_pavilion_small_ao.ecae5f97bd53.glb',import.meta.url));
+const originalBytes=fs.readFileSync(new URL('./glass_pavilion_small.0dfd79a8d670.glb',import.meta.url));
+const fetchImpl=async url=>{const b=String(url).includes('_ao.')?bytes:originalBytes;return {ok:true,arrayBuffer:async()=>b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength)};};
+const options={THREE,GLTFLoader,fetchImpl};
+const p=await prepareCityV3GlassBuilding(options);
+assert.equal(bytes.length,GLASS_ASSET_BYTES);
+assert.deepEqual(p.lods.map(o=>o.visible),[true,false,false]);
+assert.equal(p.aoEvidence.materialCount,8);assert.equal(p.aoEvidence.textureCount,1);assert.equal(p.aoEvidence.meshCount,122);assert.equal(p.aoEvidence.estimatedRgba8MipBytes,22369620);
+const aoTexture=p.materials.find(m=>m.aoMap).aoMap;assert.equal(aoTexture.image.data.length,2048*2048*4);assert.equal(aoTexture.channel,1);assert.equal(aoTexture.colorSpace,THREE.NoColorSpace);assert(decodedImages>0);
+const original=await prepareCityV3GlassBuilding({...options,revision:'original'});assert.equal(original.aoEvidence.textureCount,0);
+assert.equal(p.asset.getObjectByName('Small_Galleria_Sign').visible,false);
+assert.equal(original.asset.getObjectByName('Small_Galleria_Sign').visible,true,'explicit source rollback keeps authored lettering');
+const meshWidth=name=>new THREE.Box3().setFromObject(p.asset.getObjectByName(name)).getSize(new THREE.Vector3()).x;
+assert(Math.abs(meshWidth('Small_Public_Double_Door_GLASS_LEAF_L')-1.405)<.002);
+assert(Math.abs(meshWidth('Small_Service_Door_LEAF')-1.55)<.002);
+const posts=[];p.asset.traverse(o=>{if(o.name.startsWith('Small_Public_Double_Door_FRAME_POST'))posts.push(new THREE.Box3().setFromObject(o));});
+posts.sort((a,b)=>a.min.x-b.min.x);assert.equal(posts.length,3);
+assert(Math.abs(posts[1].min.x-posts[0].max.x-1.375)<.002);
+for(const preset of Object.values(GLASS_VISUAL_PRESETS)){
+ assert.equal(preset.placementReady,false);assert(preset.publicClearLaneWidthM>=.99-1e-6);assert(preset.serviceDoorHeightM>=2);
+ assert(Math.abs(preset.publicLeafWidthM-meshWidth('Small_Public_Double_Door_GLASS_LEAF_L')*preset.scale)<.002);
+}
+for(const m of p.materials){const src=original.materials.find(o=>o.name===m.name);assert(src,m.name);for(const field of ['opacity','roughness','metalness','emissiveIntensity'])assert(Math.abs(m[field]-src[field])<1e-6,`${m.name}:${field}`);assert(m.color.toArray().every((v,i)=>Math.abs(v-src.color.toArray()[i])<1e-6));}
+const triangleDigest=asset=>{
+ asset.updateMatrixWorld(true);const records=[],v=new THREE.Vector3();
+ asset.traverse(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position,index=o.geometry.index,n=index?index.count:p.count;for(let i=0;i<n;i+=3){const corners=[];for(let j=0;j<3;j++){v.fromBufferAttribute(p,index?index.getX(i+j):i+j).applyMatrix4(o.matrixWorld);corners.push(v.toArray().map(x=>Math.round(x*1e4)).join(','));}records.push(corners.sort().join('|'));}});
+ return {triangles:records.length,sha:createHash('sha256').update(records.sort().join('\n')).digest('hex')};
+};
+assert.deepEqual(triangleDigest(p.asset),triangleDigest(original.asset),'world triangles must match at validated 0.1mm quantization');
+assert.equal(triangleDigest(p.asset).triangles,31772);
+const glass=p.materials.find(m=>m.name==='Smoky teal architectural glass');
+assert.equal(glass.side,THREE.FrontSide);assert.equal(glass.forceSinglePass,true);assert.equal(glass.depthWrite,false);assert.equal(glass.envMapIntensity,.35);
+assert(Math.abs(glass.opacity-.42)<1e-6);assert(Math.abs(glass.roughness-.17)<1e-6);assert(Math.abs(glass.metalness-.08)<1e-6);
+assert(glass.color.toArray().every((v,i)=>Math.abs(v-[.025,.15,.17][i])<1e-6));
+let normalVertices=0;p.asset.traverse(o=>{if(!o.isMesh)return;const n=o.geometry.attributes.normal;assert(n,`${o.name}:missing authored normals`);for(let i=0;i<n.count;i++){const length=Math.hypot(n.getX(i),n.getY(i),n.getZ(i));assert(Math.abs(length-1)<.002);normalVertices++;}});assert(normalVertices>10000);
+const visibleBox=new THREE.Box3().setFromObject(p.lods[0]);
+assert(Math.abs((visibleBox.min.x+visibleBox.max.x)/2)<1e-5);
+assert(Math.abs((visibleBox.min.z+visibleBox.max.z)/2)<1e-5);
+const contract=glassRuntimeContract();
+assert(contract.pad.minR>=45&&contract.pad.maxR<=49&&contract.pad.minC>=65&&contract.pad.maxC<=69);
+assert(contract.footprint.maxR<contract.pad.maxR);
+assert.equal(contract.collisionSourceAxes,'blender_xyz_mislabeled_gltf');
+assert.equal(contract.uniformAssetScale,1);
+assert.equal(contract.centerGridRC[0],47);
+let receipt=null,rollbackCount=0;
+const token={},bridge={activateCityV3GlassBuilding(r){receipt=r;return {ok:true,rollbackToken:token};},rollbackCityV3GlassBuilding(t){assert.equal(t,token);rollbackCount++;return {ok:true};}};
+const scene=new THREE.Scene(),renderer={domElement:{dataset:{}}};
+const instance=await installCityV3GlassBuilding({...options,scene,bridge,renderer,originR:0,originC:0,worldScale:4.1});
+assert.equal(receipt.legacyStructureId,'legacy:procedural:40:60:45:65:48:68');
+assert.equal(receipt.visibleMeshCount,149);
+assert.equal(instance.root.parent,scene);
+assert(Math.abs(instance.root.position.x-67*4.1)<1e-6);
+assert(Math.abs(instance.root.position.z-47*4.1)<1e-6);
+assert.equal(instance.root.scale.x,1);
+instance.update({distanceM:100});assert.deepEqual([0,1,2].map(i=>instance.root.getObjectByName(`LOD${i}`).visible),[false,true,false]);
+instance.update({distanceM:200});assert.deepEqual([0,1,2].map(i=>instance.root.getObjectByName(`LOD${i}`).visible),[false,false,true]);
+instance.update({distanceM:20});assert.deepEqual([0,1,2].map(i=>instance.root.getObjectByName(`LOD${i}`).visible),[true,false,false]);
+for(const distanceM of [0,100,200,0]){
+ instance.update({distanceM});const visible=[];instance.root.traverseVisible(o=>{if(o.isMesh)visible.push(o.name);});
+ assert(!visible.some(name=>/Galleria_Sign/i.test(name)),`lettering leaked at distance ${distanceM}`);
+ assert.equal(visible.length,distanceM>170?1:distanceM>70?2:149);
+}
+assert.deepEqual(JSON.parse(renderer.domElement.dataset.cityV3GlassBranding).hiddenNodes,['Small_Galleria_Sign']);
+const aoImagesBeforeDispose=closedImages;instance.dispose();instance.dispose();assert.equal(rollbackCount,1);assert.equal(scene.children.length,0);assert(closedImages>aoImagesBeforeDispose,'decoded embedded image closed on disposal');
+const bad=Buffer.from(bytes);bad[bad.length-10]^=1;
+await assert.rejects(()=>prepareCityV3GlassBuilding({...options,fetchImpl:async()=>({ok:true,arrayBuffer:async()=>bad.buffer.slice(bad.byteOffset,bad.byteOffset+bad.byteLength)})}),/asset-hash/);
+const controller=new AbortController();controller.abort();
+await assert.rejects(()=>prepareCityV3GlassBuilding({...options,signal:controller.signal}),e=>e.name==='AbortError');
+const rejectScene=new THREE.Scene();
+await assert.rejects(()=>installCityV3GlassBuilding({...options,scene:rejectScene,bridge:{...bridge,activateCityV3GlassBuilding(){return {ok:false,reason:'protected-plot'};}},originR:0,originC:0,worldScale:4.1}),/protected-plot/);
+assert.equal(rejectScene.children.length,0);
+console.log('PASS: actual THREE0.180+decoded2048PNG;8AO materials/122meshes/uv1/one texture;source triangle parity0.1mm, palette,bounds,normals,ground,scale,LOD;SHA,cancel,reject,rollback and texture/image disposal.');
+console.log(JSON.stringify(contract,null,2));

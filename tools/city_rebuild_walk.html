@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Мафиози — 3D-прогон пересборки</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#c2d5db;color:#edf5f0;font:14px/1.5 system-ui,sans-serif;overflow:hidden}#viewport{position:absolute;inset:0}header,footer{position:absolute;left:16px;right:16px;background:#142b32ed;border:1px solid #4f7278;border-radius:10px;padding:12px 16px;pointer-events:auto}header{top:16px;max-width:640px}footer{bottom:16px;right:auto;max-width:calc(100% - 32px)}h1{margin:0;font-size:20px}p{margin:6px 0;color:#c1d3cc}a{color:#aee3ef}button,select{font:inherit;background:#29464e;color:#f0f7ed;border:1px solid #83a1a5;border-radius:5px;padding:6px 9px;max-width:100%}button{cursor:pointer}button[aria-pressed=true]{background:#8c6037}#controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}#status{color:#ffdfa4}#errors{color:#ffa998;max-height:80px;overflow:auto}small{color:#aec7c7}#cross{position:absolute;left:50%;top:50%;color:#183c44;pointer-events:none;display:none}@media(max-width:600px){header{left:8px;right:8px;top:8px;padding:10px}h1{font-size:17px}footer{left:8px;bottom:8px;font-size:12px}p{font-size:12px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
+<div id="viewport"></div><div id="cross">＋</div>
+<header><h1>Новый город · 3D-прогон</h1><p>Настоящие GLB художников на новой сетке. Отдельная проверочная сцена — не основная игра; экономика, транспорт и игровые входы ещё не подключены.</p><div id="status" role="status">Загрузка проверенных файлов…</div><div id="controls"><a href="/">Схема</a><button id="reload">Обновить расстановку</button><button id="walk" aria-pressed="false">Прогулка WASD</button><select id="district" aria-label="Перейти к группе зданий"><option value="">Выбрать квартал…</option></select></div><div id="errors" role="alert"></div></header>
+<footer><div>WASD — персонаж · Shift — бег · мышь — камера · колесо — приближение</div><small>Персонаж Художника 13: пока только прогулка, без боёвки и входа в интерьеры. Серые зоны полиции зарезервированы.</small><div id="stats"></div></footer>
+<script type="module" src="/assets/maps/city_rebuild_v1/walk_preview.mjs"></script>
+</html>

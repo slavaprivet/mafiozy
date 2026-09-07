@@ -1,0 +1,3 @@
+# Hash-pinned asset contracts must keep their exact authored bytes on all OSes.
+/assets/**/*.json -text
+*.glb -text

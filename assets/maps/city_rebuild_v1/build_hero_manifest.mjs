@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {createHash} from 'node:crypto';
+const here=path.dirname(fileURLToPath(import.meta.url)),release='D:/codex_release/artist13_hero_first_DEV_20260907',source=path.join(release,'demo/player_male.glb');
+const bytes=fs.readFileSync(source),sha256=createHash('sha256').update(bytes).digest('hex'),expected='8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00';
+if(sha256!==expected||bytes.length!==652732)throw Error('Source Artist13 bytes drift');
+const manifest=JSON.parse(fs.readFileSync(path.join(release,'MANIFEST.json'),'utf8')),receipt=manifest.files.find(x=>x.path==='demo/player_male.glb');
+if(!receipt||receipt.sha256!==sha256||receipt.bytes!==bytes.length)throw Error('Release manifest mismatch');
+const folder=path.join(here,'hero_models'),dest=path.join(folder,'player_male.8130dfb1f7eb.glb');fs.mkdirSync(folder,{recursive:true});
+if(fs.existsSync(dest)){if(createHash('sha256').update(fs.readFileSync(dest)).digest('hex')!==sha256)throw Error('Refuse overwrite different hero');}else fs.writeFileSync(dest,bytes,{flag:'wx'});
+fs.writeFileSync(path.join(here,'hero_walk.manifest.json'),JSON.stringify({schema:'mafiozi.artist13.hero-walk/v1',source,sourceReleaseStatus:manifest.status,sourceReceipt:receipt,sha256,bytes:bytes.length,url:'/assets/maps/city_rebuild_v1/hero_models/player_male.8130dfb1f7eb.glb',scope:'isolated_walk_preview',appearanceApproval:'User approved appearance combat-v6 per coordinator; release status preserved separately.',motion:'rest-relative locomotion adapted for walk preview; no combat or input handling',targetHeightM:1.9,scalePolicy:'1.9 / actual glTF rest-pose Box3 height; preserve proportions'},null,2)+'\n');
+console.log('Artist13 hero staged, release hash verified: '+sha256);

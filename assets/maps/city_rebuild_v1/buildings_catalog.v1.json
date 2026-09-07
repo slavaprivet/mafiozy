@@ -1,0 +1,5238 @@
+{
+  "schema": "mafiozi.city-rebuild.buildings-catalog/v1",
+  "scope": "isolated_rebuild_walk_preview_not_main",
+  "sourceManifest": {
+    "path": "C:/Users/Слава/Documents/Codex/2026-09-05/mafiozy-architect-hq-replacement/outputs/architect_hq_latest_ready_asset_manifest_v1.json",
+    "sha256": "245555f20227785baaaf50cbc65fb32d3056fe86baa14fab07a58a581ab8efbc"
+  },
+  "counts": {
+    "types": 21,
+    "glbs": 35
+  },
+  "entries": [
+    {
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "districts": [
+        "old_town"
+      ],
+      "packageId": "urban_townhouse_apartment_variation_kit_v1",
+      "sourceAcceptance": "NOT_RECORDED_AS_USER_APPROVED",
+      "door": {
+        "hinge_node": "DoorHinge",
+        "leaf_node": "DoorLeaf",
+        "anchor_node": "EntranceAnchor",
+        "facing": "+Z",
+        "clearance_whd": [
+          1.85,
+          1.85,
+          2.8
+        ]
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+          "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+          "bytes": 267216
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -1.850000023841858,
+          -0.08999991416931152,
+          -4.835000038146973
+        ],
+        "max": [
+          1.8849999904632568,
+          10.174999237060547,
+          4.914999961853027
+        ]
+      },
+      "recenterXYZ": [
+        -0.017499983310699463,
+        0.08999991416931152,
+        -0.039999961853027344
+      ],
+      "dimensionsXYZ": [
+        3.7350000143051147,
+        10.264999151229858,
+        9.75
+      ],
+      "publicDoorLocalXYZ": [
+        0.3199999928474426,
+        0,
+        4.010000228881836
+      ],
+      "publicDoorEvidence": "actual_glb_node:EntranceAnchor",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "measuredVisualVertices": 7248,
+      "measuredVisualTriangles": 3364,
+      "nodeCount": 13,
+      "doorCandidateNodes": [
+        {
+          "name": "DoorHinge",
+          "origin": [
+            -0.2549999952316284,
+            0,
+            3.890000104904175
+          ]
+        },
+        {
+          "name": "DoorLeaf",
+          "origin": [
+            0.3199999928474426,
+            1.1699999570846558,
+            3.890000104904175
+          ]
+        },
+        {
+          "name": "ServiceDoorHinge",
+          "origin": [
+            -0.9900000095367432,
+            0,
+            -3.859999895095825
+          ]
+        },
+        {
+          "name": "ServiceDoorLeaf",
+          "origin": [
+            -0.5600000023841858,
+            1.0399999618530273,
+            -3.859999895095825
+          ]
+        },
+        {
+          "name": "EntranceAnchor",
+          "origin": [
+            0.3199999928474426,
+            0,
+            4.010000228881836
+          ]
+        },
+        {
+          "name": "EntranceFacing",
+          "origin": [
+            0.3199999928474426,
+            0.75,
+            4.010000228881836
+          ]
+        },
+        {
+          "name": "DoorOpeningBounds",
+          "origin": [
+            0.3199999928474426,
+            1.2000000476837158,
+            3.8299999237060547
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            -0.5600000023841858,
+            0,
+            -4.010000228881836
+          ]
+        },
+        {
+          "name": "ServiceEntranceFacing",
+          "origin": [
+            -0.5600000023841858,
+            0.75,
+            -4.010000228881836
+          ]
+        },
+        {
+          "name": "ServiceDoorOpeningBounds",
+          "origin": [
+            -0.5600000023841858,
+            1.059999942779541,
+            -3.8299999237060547
+          ]
+        },
+        {
+          "name": "DoorFrame",
+          "origin": [
+            -0.32499998807907104,
+            1.2000000476837158,
+            3.8299999237060547
+          ]
+        },
+        {
+          "name": "ServiceDoorFrame",
+          "origin": [
+            -1.0399999618530273,
+            1.059999942779541,
+            -3.809999942779541
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "eastside_garden_walkup_v1",
+      "role": "residence",
+      "districts": [
+        "eastside"
+      ],
+      "packageId": "urban_townhouse_apartment_variation_kit_v1",
+      "sourceAcceptance": "NOT_RECORDED_AS_USER_APPROVED",
+      "door": {
+        "hinge_node": "DoorHinge",
+        "leaf_node": "DoorLeaf",
+        "anchor_node": "EntranceAnchor",
+        "facing": "+Z",
+        "clearance_whd": [
+          2.46,
+          4.3,
+          3.2
+        ]
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/eastside_garden_walkup_v1/eastside_garden_walkup_v1.glb",
+          "sha256": "627e644d51f0488d67bc476498a0ae5404e522fa0c7a240c1ecd9f4b0d287f10",
+          "bytes": 515900
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -2.4499998092651367,
+          -0.09000015258789062,
+          -8.489999771118164
+        ],
+        "max": [
+          2.3400001525878906,
+          13.929999828338623,
+          8.25
+        ]
+      },
+      "recenterXYZ": [
+        0.05499982833862305,
+        0.09000015258789062,
+        0.11999988555908203
+      ],
+      "dimensionsXYZ": [
+        4.789999961853027,
+        14.019999980926514,
+        16.739999771118164
+      ],
+      "publicDoorLocalXYZ": [
+        0.47999998927116394,
+        0,
+        7.71999979019165
+      ],
+      "publicDoorEvidence": "actual_glb_node:EntranceAnchor",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "measuredVisualVertices": 14388,
+      "measuredVisualTriangles": 6656,
+      "nodeCount": 13,
+      "doorCandidateNodes": [
+        {
+          "name": "DoorHinge",
+          "origin": [
+            -0.0949999988079071,
+            0,
+            7.599999904632568
+          ]
+        },
+        {
+          "name": "DoorLeaf",
+          "origin": [
+            0.47999998927116394,
+            1.2300000190734863,
+            7.599999904632568
+          ]
+        },
+        {
+          "name": "ServiceDoorHinge",
+          "origin": [
+            -0.8799999952316284,
+            0,
+            -7.570000171661377
+          ]
+        },
+        {
+          "name": "ServiceDoorLeaf",
+          "origin": [
+            -0.44999998807907104,
+            1.0800000429153442,
+            -7.570000171661377
+          ]
+        },
+        {
+          "name": "EntranceAnchor",
+          "origin": [
+            0.47999998927116394,
+            0,
+            7.71999979019165
+          ]
+        },
+        {
+          "name": "EntranceFacing",
+          "origin": [
+            0.47999998927116394,
+            0.75,
+            7.71999979019165
+          ]
+        },
+        {
+          "name": "DoorOpeningBounds",
+          "origin": [
+            0.47999998927116394,
+            1.2599999904632568,
+            7.539999961853027
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            -0.44999998807907104,
+            0,
+            -7.71999979019165
+          ]
+        },
+        {
+          "name": "ServiceEntranceFacing",
+          "origin": [
+            -0.44999998807907104,
+            0.75,
+            -7.71999979019165
+          ]
+        },
+        {
+          "name": "ServiceDoorOpeningBounds",
+          "origin": [
+            -0.44999998807907104,
+            1.100000023841858,
+            -7.539999961853027
+          ]
+        },
+        {
+          "name": "DoorFrame",
+          "origin": [
+            -0.16500000655651093,
+            1.2599999904632568,
+            7.539999961853027
+          ]
+        },
+        {
+          "name": "ServiceDoorFrame",
+          "origin": [
+            -0.9300000071525574,
+            1.100000023841858,
+            -7.519999980926514
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "eastside_stepped_apartment_v1",
+      "role": "residence",
+      "districts": [
+        "eastside"
+      ],
+      "packageId": "urban_townhouse_apartment_variation_kit_v1",
+      "sourceAcceptance": "NOT_RECORDED_AS_USER_APPROVED",
+      "door": {
+        "hinge_node": "DoorHinge",
+        "leaf_node": "DoorLeaf",
+        "anchor_node": "EntranceAnchor",
+        "facing": "+Z",
+        "clearance_whd": [
+          2.46,
+          4.61,
+          3.2
+        ]
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/eastside_stepped_apartment_v1/eastside_stepped_apartment_v1.glb",
+          "sha256": "5af57644b8896f3062b69a26c10aa393b2a6364899b5ef71ab28aac6156ebbba",
+          "bytes": 500444
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -2.3600001335144043,
+          -0.09000015258789062,
+          -8.3100004196167
+        ],
+        "max": [
+          2.3400001525878906,
+          14.125,
+          8.65999984741211
+        ]
+      },
+      "recenterXYZ": [
+        0.009999990463256836,
+        0.09000015258789062,
+        -0.17499971389770508
+      ],
+      "dimensionsXYZ": [
+        4.700000286102295,
+        14.21500015258789,
+        16.97000026702881
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0,
+        7.409999847412109
+      ],
+      "publicDoorEvidence": "actual_glb_node:EntranceAnchor",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "measuredVisualVertices": 13946,
+      "measuredVisualTriangles": 6464,
+      "nodeCount": 13,
+      "doorCandidateNodes": [
+        {
+          "name": "DoorHinge",
+          "origin": [
+            -0.574999988079071,
+            0,
+            7.289999961853027
+          ]
+        },
+        {
+          "name": "DoorLeaf",
+          "origin": [
+            0,
+            1.2100000381469727,
+            7.289999961853027
+          ]
+        },
+        {
+          "name": "ServiceDoorHinge",
+          "origin": [
+            0.05000000074505806,
+            0,
+            -7.260000228881836
+          ]
+        },
+        {
+          "name": "ServiceDoorLeaf",
+          "origin": [
+            0.47999997809529305,
+            1.0700000524520874,
+            -7.260000228881836
+          ]
+        },
+        {
+          "name": "EntranceAnchor",
+          "origin": [
+            0,
+            0,
+            7.409999847412109
+          ]
+        },
+        {
+          "name": "EntranceFacing",
+          "origin": [
+            0,
+            0.75,
+            7.409999847412109
+          ]
+        },
+        {
+          "name": "DoorOpeningBounds",
+          "origin": [
+            0,
+            1.2400000095367432,
+            7.230000019073486
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            0.47999998927116394,
+            0,
+            -7.409999847412109
+          ]
+        },
+        {
+          "name": "ServiceEntranceFacing",
+          "origin": [
+            0.47999998927116394,
+            0.75,
+            -7.409999847412109
+          ]
+        },
+        {
+          "name": "ServiceDoorOpeningBounds",
+          "origin": [
+            0.47999998927116394,
+            1.090000033378601,
+            -7.230000019073486
+          ]
+        },
+        {
+          "name": "DoorFrame",
+          "origin": [
+            -0.6449999809265137,
+            1.2400000095367432,
+            7.230000019073486
+          ]
+        },
+        {
+          "name": "ServiceDoorFrame",
+          "origin": [
+            0,
+            1.090000033378601,
+            -7.210000038146973
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "coastal_orchard_house_v1",
+      "role": "residence",
+      "districts": [
+        "gold_coast"
+      ],
+      "packageId": "smooth_clay_rural_suburban_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "PublicDoorSocket",
+        "position_gltf": [
+          -1.467,
+          0,
+          5.85
+        ],
+        "facing": "+Z"
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/coastal_orchard_house_v1/coastal_orchard_house_v1.lod0.glb",
+          "sha256": "ac9b33396f0773823d74a517ec8764438bd8b2bd253110a0cf3806310f5b9f20",
+          "bytes": 197936
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/coastal_orchard_house_v1/coastal_orchard_house_v1.lod1.glb",
+          "sha256": "993da119450669656424f4643dd052ac33a7932bc74e2d58e7d47bd3f6106028",
+          "bytes": 57940
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/coastal_orchard_house_v1/coastal_orchard_house_v1.lod2.glb",
+          "sha256": "bcefc04cbb06abbc34d2dbe14509a1c358bfabbd1af0d0005059e088608613f4",
+          "bytes": 19028
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -4.434999942779541,
+          0,
+          -8.650000095367432
+        ],
+        "max": [
+          4.434999942779541,
+          6.200000047683716,
+          9.84000015258789
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        -0.5950000286102295
+      ],
+      "dimensionsXYZ": [
+        8.869999885559082,
+        6.200000047683716,
+        18.490000247955322
+      ],
+      "publicDoorLocalXYZ": [
+        -1.4670000076293945,
+        0,
+        5.849999904632568
+      ],
+      "publicDoorEvidence": "actual_glb_node:PublicDoorSocket",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "PublicDoorSocket",
+        "ServiceDoorSocket",
+        "DrivewayRoadSocket",
+        "DrivewayHouseSocket",
+        "YardSocket"
+      ],
+      "measuredVisualVertices": 4491,
+      "measuredVisualTriangles": 5908,
+      "nodeCount": 68,
+      "doorCandidateNodes": [
+        {
+          "name": "PublicDoor",
+          "origin": [
+            -1.4670000076293945,
+            1.2200000286102295,
+            5.010000228881836
+          ]
+        },
+        {
+          "name": "ServiceDoor",
+          "origin": [
+            2.689500093460083,
+            1.149999976158142,
+            -5.010000228881836
+          ]
+        },
+        {
+          "name": "DoorHeader",
+          "origin": [
+            -1.4670000076293945,
+            2.5299999713897705,
+            5.059999942779541
+          ]
+        },
+        {
+          "name": "DoorCanopy",
+          "origin": [
+            -1.4670000076293945,
+            2.7300000190734863,
+            5.480000019073486
+          ]
+        },
+        {
+          "name": "PublicDoorKnob",
+          "origin": [
+            -1.1269999742507935,
+            1.2000000476837158,
+            5.135000228881836
+          ]
+        },
+        {
+          "name": "PublicDoorSocket",
+          "origin": [
+            -1.4670000076293945,
+            0,
+            5.849999904632568
+          ]
+        },
+        {
+          "name": "ServiceDoorSocket",
+          "origin": [
+            2.690000057220459,
+            0,
+            -5.050000190734863
+          ]
+        },
+        {
+          "name": "DrivewayRoadSocket",
+          "origin": [
+            3.200000047683716,
+            0,
+            9.84000015258789
+          ]
+        },
+        {
+          "name": "DrivewayHouseSocket",
+          "origin": [
+            3.200000047683716,
+            0,
+            6.300000190734863
+          ]
+        },
+        {
+          "name": "YardSocket",
+          "origin": [
+            0,
+            0,
+            -5.510000228881836
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "garden_lane_house_v1",
+      "role": "residence",
+      "districts": [
+        "eastside"
+      ],
+      "packageId": "smooth_clay_rural_suburban_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "PublicDoorSocket",
+        "position_gltf": [
+          0.848,
+          0,
+          6.65
+        ],
+        "facing": "+Z"
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/garden_lane_house_v1/garden_lane_house_v1.lod0.glb",
+          "sha256": "c15b6c3f8360a504a76f35e4b96510c18fb30a321db75651a8260bd965540c37",
+          "bytes": 198784
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/garden_lane_house_v1/garden_lane_house_v1.lod1.glb",
+          "sha256": "8e8b14f0f3c9e41fb3bde6272f2b1ac33d30154604e104591d439dc860392a39",
+          "bytes": 57168
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/garden_lane_house_v1/garden_lane_house_v1.lod2.glb",
+          "sha256": "10dfd6fe2b13332f510c31fb999e9eabdcaa051f2224733598997dcf34c5c09a",
+          "bytes": 19044
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -3.009999990463257,
+          0,
+          -9.449999809265137
+        ],
+        "max": [
+          3.0250000953674316,
+          7.849999785423279,
+          11.889999866485596
+        ]
+      },
+      "recenterXYZ": [
+        -0.007500052452087402,
+        0,
+        -1.2200000286102295
+      ],
+      "dimensionsXYZ": [
+        6.0350000858306885,
+        7.849999785423279,
+        21.339999675750732
+      ],
+      "publicDoorLocalXYZ": [
+        0.8479999899864197,
+        0,
+        6.650000095367432
+      ],
+      "publicDoorEvidence": "actual_glb_node:PublicDoorSocket",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "PublicDoorSocket",
+        "ServiceDoorSocket",
+        "DrivewayRoadSocket",
+        "DrivewayHouseSocket",
+        "YardSocket"
+      ],
+      "measuredVisualVertices": 4491,
+      "measuredVisualTriangles": 5908,
+      "nodeCount": 68,
+      "doorCandidateNodes": [
+        {
+          "name": "PublicDoor",
+          "origin": [
+            0.8479999899864197,
+            1.2200000286102295,
+            5.809999942779541
+          ]
+        },
+        {
+          "name": "ServiceDoor",
+          "origin": [
+            1.7489999532699585,
+            1.149999976158142,
+            -5.809999942779541
+          ]
+        },
+        {
+          "name": "DoorHeader",
+          "origin": [
+            0.8479999899864197,
+            2.5299999713897705,
+            5.860000133514404
+          ]
+        },
+        {
+          "name": "DoorCanopy",
+          "origin": [
+            0.8479999899864197,
+            2.7300000190734863,
+            6.28000020980835
+          ]
+        },
+        {
+          "name": "PublicDoorKnob",
+          "origin": [
+            1.187999963760376,
+            1.2000000476837158,
+            5.934999942779541
+          ]
+        },
+        {
+          "name": "PublicDoorSocket",
+          "origin": [
+            0.8479999899864197,
+            0,
+            6.650000095367432
+          ]
+        },
+        {
+          "name": "ServiceDoorSocket",
+          "origin": [
+            1.7489999532699585,
+            0,
+            -5.849999904632568
+          ]
+        },
+        {
+          "name": "DrivewayRoadSocket",
+          "origin": [
+            2.1500000953674316,
+            0,
+            11.890000343322754
+          ]
+        },
+        {
+          "name": "DrivewayHouseSocket",
+          "origin": [
+            2.1500000953674316,
+            0,
+            7.099999904632568
+          ]
+        },
+        {
+          "name": "YardSocket",
+          "origin": [
+            0,
+            0,
+            -6.6579999923706055
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "hillstep_chalet_v1",
+      "role": "residence",
+      "districts": [
+        "north_hills"
+      ],
+      "packageId": "smooth_clay_rural_suburban_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "PublicDoorSocket",
+        "position_gltf": [
+          -1.143,
+          0,
+          6.35
+        ],
+        "facing": "+Z"
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/hillstep_chalet_v1/hillstep_chalet_v1.lod0.glb",
+          "sha256": "26f0868537c6e95136cdf69f9d3a7a554b61b29e974fc1949cdd94f8819c8714",
+          "bytes": 210060
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/hillstep_chalet_v1/hillstep_chalet_v1.lod1.glb",
+          "sha256": "caac981084d7b9ee8f8c2bf25e01ed3069086c5a83baac708ed1fca66dd2a253",
+          "bytes": 67604
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/hillstep_chalet_v1/hillstep_chalet_v1.lod2.glb",
+          "sha256": "151dffffc443041ec3d2adccde51f7f92442d8b9755a3d24606dfcafaaaeb576",
+          "bytes": 24332
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -3.549999952316284,
+          0,
+          -9.150000095367432
+        ],
+        "max": [
+          3.549999952316284,
+          6.8500001430511475,
+          13.93999981880188
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        -2.394999861717224
+      ],
+      "dimensionsXYZ": [
+        7.099999904632568,
+        6.8500001430511475,
+        23.08999991416931
+      ],
+      "publicDoorLocalXYZ": [
+        -1.1430000066757202,
+        0,
+        6.349999904632568
+      ],
+      "publicDoorEvidence": "actual_glb_node:PublicDoorSocket",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "PublicDoorSocket",
+        "ServiceDoorSocket",
+        "DrivewayRoadSocket",
+        "DrivewayHouseSocket",
+        "YardSocket"
+      ],
+      "measuredVisualVertices": 4746,
+      "measuredVisualTriangles": 6144,
+      "nodeCount": 71,
+      "doorCandidateNodes": [
+        {
+          "name": "PublicDoor",
+          "origin": [
+            -1.1430000066757202,
+            1.2200000286102295,
+            5.510000228881836
+          ]
+        },
+        {
+          "name": "ServiceDoor",
+          "origin": [
+            2.0954999923706055,
+            1.149999976158142,
+            -5.510000228881836
+          ]
+        },
+        {
+          "name": "DoorHeader",
+          "origin": [
+            -1.1430000066757202,
+            2.5299999713897705,
+            5.559999942779541
+          ]
+        },
+        {
+          "name": "DoorCanopy",
+          "origin": [
+            -1.1430000066757202,
+            2.7300000190734863,
+            5.980000019073486
+          ]
+        },
+        {
+          "name": "PublicDoorKnob",
+          "origin": [
+            -0.8029999732971191,
+            1.2000000476837158,
+            5.635000228881836
+          ]
+        },
+        {
+          "name": "PublicDoorSocket",
+          "origin": [
+            -1.1430000066757202,
+            0,
+            6.349999904632568
+          ]
+        },
+        {
+          "name": "ServiceDoorSocket",
+          "origin": [
+            2.0950000286102295,
+            0,
+            -5.550000190734863
+          ]
+        },
+        {
+          "name": "DrivewayRoadSocket",
+          "origin": [
+            -2.1500000953674316,
+            0,
+            13.9399995803833
+          ]
+        },
+        {
+          "name": "DrivewayHouseSocket",
+          "origin": [
+            -2.1500000953674316,
+            0,
+            6.800000190734863
+          ]
+        },
+        {
+          "name": "YardSocket",
+          "origin": [
+            0,
+            0,
+            -7.806000232696533
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "pine_ridge_cottage_v1",
+      "role": "residence",
+      "districts": [
+        "north_hills"
+      ],
+      "packageId": "smooth_clay_rural_suburban_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "PublicDoorSocket",
+        "position_gltf": [
+          -1.125,
+          0,
+          6.75
+        ],
+        "facing": "+Z"
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/pine_ridge_cottage_v1/pine_ridge_cottage_v1.lod0.glb",
+          "sha256": "0ee0526b4389a356006396310d796c69080ddcd976ecac24d7dd7c424e2a0da3",
+          "bytes": 194236
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/pine_ridge_cottage_v1/pine_ridge_cottage_v1.lod1.glb",
+          "sha256": "1fefc222315c173fa47dd8fb82dcb754c2421994d019bc8e8e93ae462281012b",
+          "bytes": 51852
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/pine_ridge_cottage_v1/pine_ridge_cottage_v1.lod2.glb",
+          "sha256": "45864e536628a7faf9b37891c91a645fdb4102600d22d60c1e3ad28a72afa72d",
+          "bytes": 15864
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -3.5,
+          0,
+          -9.550000190734863
+        ],
+        "max": [
+          3.5,
+          6.3500001430511475,
+          13.9399995803833
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        -2.1949996948242188
+      ],
+      "dimensionsXYZ": [
+        7,
+        6.3500001430511475,
+        23.489999771118164
+      ],
+      "publicDoorLocalXYZ": [
+        -1.125,
+        0,
+        6.75
+      ],
+      "publicDoorEvidence": "actual_glb_node:PublicDoorSocket",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "PublicDoorSocket",
+        "ServiceDoorSocket",
+        "DrivewayRoadSocket",
+        "DrivewayHouseSocket",
+        "YardSocket"
+      ],
+      "measuredVisualVertices": 4392,
+      "measuredVisualTriangles": 5748,
+      "nodeCount": 66,
+      "doorCandidateNodes": [
+        {
+          "name": "PublicDoor",
+          "origin": [
+            -1.125,
+            1.2200000286102295,
+            5.909999847412109
+          ]
+        },
+        {
+          "name": "ServiceDoor",
+          "origin": [
+            2.0625,
+            1.149999976158142,
+            -5.909999847412109
+          ]
+        },
+        {
+          "name": "DoorHeader",
+          "origin": [
+            -1.125,
+            2.5299999713897705,
+            5.960000038146973
+          ]
+        },
+        {
+          "name": "DoorCanopy",
+          "origin": [
+            -1.125,
+            2.7300000190734863,
+            6.380000114440918
+          ]
+        },
+        {
+          "name": "PublicDoorKnob",
+          "origin": [
+            -0.7850000262260437,
+            1.2000000476837158,
+            6.034999847412109
+          ]
+        },
+        {
+          "name": "PublicDoorSocket",
+          "origin": [
+            -1.125,
+            0,
+            6.75
+          ]
+        },
+        {
+          "name": "ServiceDoorSocket",
+          "origin": [
+            2.062000036239624,
+            0,
+            -5.949999809265137
+          ]
+        },
+        {
+          "name": "DrivewayRoadSocket",
+          "origin": [
+            2.1500000953674316,
+            0,
+            13.9399995803833
+          ]
+        },
+        {
+          "name": "DrivewayHouseSocket",
+          "origin": [
+            2.1500000953674316,
+            0,
+            7.199999809265137
+          ]
+        },
+        {
+          "name": "YardSocket",
+          "origin": [
+            0,
+            0,
+            -7.806000232696533
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "veranda_bungalow_v1",
+      "role": "residence",
+      "districts": [
+        "gold_coast"
+      ],
+      "packageId": "smooth_clay_rural_suburban_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "PublicDoorSocket",
+        "position_gltf": [
+          1.32,
+          0,
+          5.55
+        ],
+        "facing": "+Z"
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/veranda_bungalow_v1/veranda_bungalow_v1.lod0.glb",
+          "sha256": "8adf5797cf739c73bf5b3a7d0586406dade6f1a3b566c18cda2c0a510ba5aa5b",
+          "bytes": 196632
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/veranda_bungalow_v1/veranda_bungalow_v1.lod1.glb",
+          "sha256": "6a9f76255e09d57cf44fddcd166b7c38f8b39f1c2919bf17511256fd731dbfe0",
+          "bytes": 64292
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/veranda_bungalow_v1/veranda_bungalow_v1.lod2.glb",
+          "sha256": "e42478db6dbe61f81f1be55b161838ed75b377cd3ad57d14d0698fc462426729",
+          "bytes": 22520
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -4.485000133514404,
+          0,
+          -8.349999904632568
+        ],
+        "max": [
+          4.485000133514404,
+          5.450000047683716,
+          9.84000015258789
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        -0.7450001239776611
+      ],
+      "dimensionsXYZ": [
+        8.970000267028809,
+        5.450000047683716,
+        18.19000005722046
+      ],
+      "publicDoorLocalXYZ": [
+        1.3200000524520874,
+        0,
+        5.550000190734863
+      ],
+      "publicDoorEvidence": "actual_glb_node:PublicDoorSocket",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "PublicDoorSocket",
+        "ServiceDoorSocket",
+        "DrivewayRoadSocket",
+        "DrivewayHouseSocket",
+        "YardSocket"
+      ],
+      "measuredVisualVertices": 4443,
+      "measuredVisualTriangles": 5800,
+      "nodeCount": 67,
+      "doorCandidateNodes": [
+        {
+          "name": "PublicDoor",
+          "origin": [
+            1.3200000524520874,
+            1.2200000286102295,
+            4.710000038146973
+          ]
+        },
+        {
+          "name": "ServiceDoor",
+          "origin": [
+            2.7225000858306885,
+            1.149999976158142,
+            -4.710000038146973
+          ]
+        },
+        {
+          "name": "DoorHeader",
+          "origin": [
+            1.3200000524520874,
+            2.5299999713897705,
+            4.760000228881836
+          ]
+        },
+        {
+          "name": "PublicDoorKnob",
+          "origin": [
+            1.659999966621399,
+            1.2000000476837158,
+            4.835000038146973
+          ]
+        },
+        {
+          "name": "PublicDoorSocket",
+          "origin": [
+            1.3200000524520874,
+            0,
+            5.550000190734863
+          ]
+        },
+        {
+          "name": "ServiceDoorSocket",
+          "origin": [
+            2.7230000495910645,
+            0,
+            -4.75
+          ]
+        },
+        {
+          "name": "DrivewayRoadSocket",
+          "origin": [
+            -3.1500000953674316,
+            0,
+            9.84000015258789
+          ]
+        },
+        {
+          "name": "DrivewayHouseSocket",
+          "origin": [
+            -3.1500000953674316,
+            0,
+            6
+          ]
+        },
+        {
+          "name": "YardSocket",
+          "origin": [
+            0,
+            0,
+            -5.510000228881836
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "woodland_crosswing_house_v1",
+      "role": "residence",
+      "districts": [
+        "north_hills"
+      ],
+      "packageId": "smooth_clay_rural_suburban_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "PublicDoorSocket",
+        "position_gltf": [
+          -1.116,
+          0,
+          7.05
+        ],
+        "facing": "+Z"
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/woodland_crosswing_house_v1/woodland_crosswing_house_v1.lod0.glb",
+          "sha256": "060efe1399086eba29b8ba0871787792aa4bfd8187a54203837e5f7ddf44814b",
+          "bytes": 199000
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/woodland_crosswing_house_v1/woodland_crosswing_house_v1.lod1.glb",
+          "sha256": "d40a83795788fce1fcccb1e3c063f550e82360f576929a9ff07e071d7a7e8313",
+          "bytes": 57216
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/woodland_crosswing_house_v1/woodland_crosswing_house_v1.lod2.glb",
+          "sha256": "42c652f1bc5a1b8859ab6a896a3db6a9cd086ab9b44cd4b42492343d54c69621",
+          "bytes": 18684
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -3.4749999046325684,
+          0,
+          -9.850000381469727
+        ],
+        "max": [
+          3.4749999046325684,
+          6.499999761581421,
+          13.940000295639038
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        -2.0449999570846558
+      ],
+      "dimensionsXYZ": [
+        6.949999809265137,
+        6.499999761581421,
+        23.790000677108765
+      ],
+      "publicDoorLocalXYZ": [
+        -1.1160000562667847,
+        0,
+        7.050000190734863
+      ],
+      "publicDoorEvidence": "actual_glb_node:PublicDoorSocket",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "PublicDoorSocket",
+        "ServiceDoorSocket",
+        "DrivewayRoadSocket",
+        "DrivewayHouseSocket",
+        "YardSocket"
+      ],
+      "measuredVisualVertices": 4488,
+      "measuredVisualTriangles": 5864,
+      "nodeCount": 68,
+      "doorCandidateNodes": [
+        {
+          "name": "PublicDoor",
+          "origin": [
+            -1.1160000562667847,
+            1.2200000286102295,
+            6.210000038146973
+          ]
+        },
+        {
+          "name": "ServiceDoor",
+          "origin": [
+            2.0460000038146973,
+            1.149999976158142,
+            -6.210000038146973
+          ]
+        },
+        {
+          "name": "DoorHeader",
+          "origin": [
+            -1.1160000562667847,
+            2.5299999713897705,
+            6.260000228881836
+          ]
+        },
+        {
+          "name": "DoorCanopy",
+          "origin": [
+            -1.1160000562667847,
+            2.7300000190734863,
+            6.679999828338623
+          ]
+        },
+        {
+          "name": "PublicDoorKnob",
+          "origin": [
+            -0.7760000228881836,
+            1.2000000476837158,
+            6.335000038146973
+          ]
+        },
+        {
+          "name": "PublicDoorSocket",
+          "origin": [
+            -1.1160000562667847,
+            0,
+            7.050000190734863
+          ]
+        },
+        {
+          "name": "ServiceDoorSocket",
+          "origin": [
+            2.0460000038146973,
+            0,
+            -6.25
+          ]
+        },
+        {
+          "name": "DrivewayRoadSocket",
+          "origin": [
+            2.0999999046325684,
+            0,
+            13.9399995803833
+          ]
+        },
+        {
+          "name": "DrivewayHouseSocket",
+          "origin": [
+            2.0999999046325684,
+            0,
+            7.5
+          ]
+        },
+        {
+          "name": "YardSocket",
+          "origin": [
+            0,
+            0,
+            -7.806000232696533
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "compact_podium_glass_tower_v1",
+      "role": "glass_tower",
+      "districts": [
+        "megapolis_skyline_candidate"
+      ],
+      "packageId": "smooth_clay_glass_skyline_kit_v1",
+      "sourceAcceptance": "not_recorded",
+      "door": {
+        "node": "EntranceAnchor",
+        "position_gltf": [
+          -3,
+          0,
+          7.36
+        ],
+        "facing": "+Z",
+        "clearance_whd_m": [
+          3,
+          3,
+          3.4
+        ]
+      },
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/compact_podium_glass_tower_v1/compact_podium_glass_tower_v1_lod0.glb",
+          "sha256": "caa4b79ab28993e3a8c84054f5366de2df94a4d70ff76f7073d01dd73caea531",
+          "bytes": 562260
+        },
+        {
+          "lod": 1,
+          "url": "/assets/maps/city_rebuild_v1/building_models/compact_podium_glass_tower_v1/compact_podium_glass_tower_v1_lod1.glb",
+          "sha256": "3fd9969af1eda5a3ae13a7e8f175d9bbf69d96cab0b4c6e8f153e2a3f122c2db",
+          "bytes": 259144
+        },
+        {
+          "lod": 2,
+          "url": "/assets/maps/city_rebuild_v1/building_models/compact_podium_glass_tower_v1/compact_podium_glass_tower_v1_lod2.glb",
+          "sha256": "955762377ffb5d0284fd4aae771016d3433cc0b7080d1bec25d1c36a4ba1a16b",
+          "bytes": 202048
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -8.600000381469727,
+          -0.04999999701976776,
+          -7.429999828338623
+        ],
+        "max": [
+          8.600000381469727,
+          28.92000015079975,
+          8.005000233650208
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0.04999999701976776,
+        -0.28750020265579224
+      ],
+      "dimensionsXYZ": [
+        17.200000762939453,
+        28.97000014781952,
+        15.43500006198883
+      ],
+      "publicDoorLocalXYZ": [
+        -3,
+        0.07999999821186066,
+        14.59000015258789
+      ],
+      "publicDoorEvidence": "actual_glb_node:EntranceAnchor",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "DrivewaySocket",
+        "EntranceAnchor",
+        "RoadSocket",
+        "ServiceEntranceAnchor"
+      ],
+      "measuredVisualVertices": 14183,
+      "measuredVisualTriangles": 16212,
+      "nodeCount": 5,
+      "doorCandidateNodes": [
+        {
+          "name": "DrivewaySocket",
+          "origin": [
+            6.300000190734863,
+            0.07999999821186066,
+            15.180000305175781
+          ]
+        },
+        {
+          "name": "EntranceAnchor",
+          "origin": [
+            -3,
+            0.07999999821186066,
+            14.59000015258789
+          ]
+        },
+        {
+          "name": "RoadSocket",
+          "origin": [
+            0,
+            0.07999999821186066,
+            15.229999542236328
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            4.900000095367432,
+            0.07999999821186066,
+            -0.039999961853027344
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "pawnshop",
+      "role": "business_facade",
+      "districts": [
+        "old_town",
+        "chinatown",
+        "southside",
+        "central"
+      ],
+      "packageId": "accepted_v1",
+      "sourceAcceptance": "main_native_preview_binding",
+      "door": {
+        "node": "Double oak door"
+      },
+      "publicSocket": [
+        0,
+        1.92,
+        5.25
+      ],
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/pawnshop/pawnshop.1a95f97569d9.glb",
+          "sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f",
+          "bytes": 1453452
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -6.349999904632568,
+          0,
+          -4.8049998097121716
+        ],
+        "max": [
+          7.550000011920929,
+          11.475000187754631,
+          6.190000116825104
+        ]
+      },
+      "recenterXYZ": [
+        -0.6000000536441803,
+        0,
+        -0.6925001535564661
+      ],
+      "dimensionsXYZ": [
+        13.899999916553497,
+        11.475000187754631,
+        10.994999926537275
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        1.9199999570846558,
+        5.25
+      ],
+      "publicDoorEvidence": "actual_glb_node:Double oak door",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [],
+      "measuredVisualVertices": 39516,
+      "measuredVisualTriangles": 19812,
+      "nodeCount": 169,
+      "doorCandidateNodes": [
+        {
+          "name": "Door brass split",
+          "origin": [
+            0,
+            1.9199999570846558,
+            5.380000114440918
+          ]
+        },
+        {
+          "name": "Door handle.001",
+          "origin": [
+            -0.6800000071525574,
+            1.9199999570846558,
+            5.5
+          ]
+        },
+        {
+          "name": "Double oak door",
+          "origin": [
+            0,
+            1.9199999570846558,
+            5.25
+          ]
+        },
+        {
+          "name": "Entrance canopy",
+          "origin": [
+            0,
+            4.019999980926514,
+            5.349999904632568
+          ]
+        },
+        {
+          "name": "Service door recess",
+          "origin": [
+            6.079999923706055,
+            1.649999976158142,
+            -2.549999952316284
+          ]
+        },
+        {
+          "name": "Service steel door",
+          "origin": [
+            6.349999904632568,
+            1.6200000047683716,
+            -2.549999952316284
+          ]
+        },
+        {
+          "name": "Door handle",
+          "origin": [
+            0.6800000071525574,
+            1.9199999570846558,
+            5.5
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "print_shop",
+      "role": "business_facade",
+      "districts": [
+        "old_town",
+        "chinatown",
+        "southside",
+        "central"
+      ],
+      "packageId": "accepted_v1",
+      "sourceAcceptance": "main_native_preview_binding",
+      "door": {
+        "node": "Burgundy entry door"
+      },
+      "publicSocket": [
+        -5.4,
+        2.05,
+        5.16
+      ],
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/print_shop/print_shop.ad7b8ef7e7e4.glb",
+          "sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+          "bytes": 966720
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -10,
+          0,
+          -8
+        ],
+        "max": [
+          10.277346397892254,
+          12.239999622106552,
+          8
+        ]
+      },
+      "recenterXYZ": [
+        -0.13867319894612695,
+        0,
+        0
+      ],
+      "dimensionsXYZ": [
+        20.277346397892252,
+        12.239999622106552,
+        16
+      ],
+      "publicDoorLocalXYZ": [
+        -5.400000095367432,
+        2.049999952316284,
+        5.159999847412109
+      ],
+      "publicDoorEvidence": "actual_glb_node:Burgundy entry door",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [],
+      "measuredVisualVertices": 25640,
+      "measuredVisualTriangles": 16948,
+      "nodeCount": 117,
+      "doorCandidateNodes": [
+        {
+          "name": "Burgundy entry door",
+          "origin": [
+            -5.400000095367432,
+            2.049999952316284,
+            5.159999847412109
+          ]
+        },
+        {
+          "name": "Side stock door opening",
+          "origin": [
+            7.71999979019165,
+            2.549999952316284,
+            -1.2000000476837158
+          ]
+        },
+        {
+          "name": "Side stock door steel shutter",
+          "origin": [
+            7.71999979019165,
+            2.549999952316284,
+            -0.9200000166893005
+          ]
+        },
+        {
+          "name": "Side stock door slat 0",
+          "origin": [
+            7.71999979019165,
+            0.9160000085830688,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 1",
+          "origin": [
+            7.71999979019165,
+            1.3910000324249268,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 2",
+          "origin": [
+            7.71999979019165,
+            1.8660000562667847,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 3",
+          "origin": [
+            7.71999979019165,
+            2.3410000801086426,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 4",
+          "origin": [
+            7.71999979019165,
+            2.815999984741211,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 5",
+          "origin": [
+            7.71999979019165,
+            3.2909998893737793,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 6",
+          "origin": [
+            7.71999979019165,
+            3.7660000324249268,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door slat 7",
+          "origin": [
+            7.71999979019165,
+            4.241000175476074,
+            -0.8399999737739563
+          ]
+        },
+        {
+          "name": "Side stock door limestone jamb",
+          "origin": [
+            5.940000057220459,
+            2.549999952316284,
+            -0.8600000143051147
+          ]
+        },
+        {
+          "name": "Side stock door limestone jamb.001",
+          "origin": [
+            9.5,
+            2.549999952316284,
+            -0.8600000143051147
+          ]
+        },
+        {
+          "name": "Side stock door limestone lintel",
+          "origin": [
+            7.71999979019165,
+            4.639999866485596,
+            -0.8600000143051147
+          ]
+        },
+        {
+          "name": "Side service door",
+          "origin": [
+            7.71999979019165,
+            1.7200000286102295,
+            2.950000047683716
+          ]
+        },
+        {
+          "name": "Rear ink service door",
+          "origin": [
+            3.0999999046325684,
+            1.850000023841858,
+            -5.920000076293945
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "gun_shop",
+      "role": "business_facade",
+      "districts": [
+        "old_town",
+        "chinatown",
+        "southside",
+        "central"
+      ],
+      "packageId": "next_batch_v1",
+      "sourceAcceptance": "asset_accepted_runtime_rebind_required",
+      "door": {
+        "node": "Armored public door"
+      },
+      "publicSocket": [
+        -2.35,
+        0,
+        5.33
+      ],
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/gun_shop/gun_shop.e97d6fac4097.glb",
+          "sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755",
+          "bytes": 1568892
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -7.949999809265137,
+          0,
+          -4.900000095367432
+        ],
+        "max": [
+          9,
+          13,
+          6.555000126361847
+        ]
+      },
+      "recenterXYZ": [
+        -0.5250000953674316,
+        0,
+        -0.8275000154972076
+      ],
+      "dimensionsXYZ": [
+        16.949999809265137,
+        13,
+        11.455000221729279
+      ],
+      "publicDoorLocalXYZ": [
+        -2.3499999046325684,
+        1.9500000476837158,
+        5.329999923706055
+      ],
+      "publicDoorEvidence": "actual_glb_node:Armored public door",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [],
+      "measuredVisualVertices": 42480,
+      "measuredVisualTriangles": 21360,
+      "nodeCount": 195,
+      "doorCandidateNodes": [
+        {
+          "name": "Armored public door",
+          "origin": [
+            -2.3499999046325684,
+            1.9500000476837158,
+            5.329999923706055
+          ]
+        },
+        {
+          "name": "Door pull.001",
+          "origin": [
+            -3.0299999713897705,
+            1.9500000476837158,
+            5.53000020980835
+          ]
+        },
+        {
+          "name": "Door reinforcement.001",
+          "origin": [
+            -3.0299999713897705,
+            1.9500000476837158,
+            5.460000038146973
+          ]
+        },
+        {
+          "name": "Entrance tower",
+          "origin": [
+            -2.3499999046325684,
+            5.050000190734863,
+            0.18000000715255737
+          ]
+        },
+        {
+          "name": "Door reinforcement",
+          "origin": [
+            -1.6699999570846558,
+            1.9500000476837158,
+            5.460000038146973
+          ]
+        },
+        {
+          "name": "Door pull",
+          "origin": [
+            -1.6699999570846558,
+            1.9500000476837158,
+            5.53000020980835
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "bookmaker",
+      "role": "business_facade",
+      "districts": [
+        "old_town",
+        "chinatown",
+        "southside",
+        "central"
+      ],
+      "packageId": "next_batch_v1",
+      "sourceAcceptance": "asset_accepted_runtime_rebind_required",
+      "door": {
+        "node": "Glazed burgundy door"
+      },
+      "publicSocket": [
+        -3.15,
+        0,
+        5.32
+      ],
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/bookmaker/bookmaker.cf7da54c2037.glb",
+          "sha256": "cf7da54c2037182ca975bf5d08c291a8c7a41e7a1107c7f223b5522468ce8d70",
+          "bytes": 1218304
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -8,
+          0,
+          -4.900000095367432
+        ],
+        "max": [
+          8.705000281333923,
+          13.599999904632568,
+          7.529999807476997
+        ]
+      },
+      "recenterXYZ": [
+        -0.35250014066696167,
+        0,
+        -1.3149998560547829
+      ],
+      "dimensionsXYZ": [
+        16.705000281333923,
+        13.599999904632568,
+        12.429999902844429
+      ],
+      "publicDoorLocalXYZ": [
+        -3.1500000953674316,
+        1.899999976158142,
+        5.320000171661377
+      ],
+      "publicDoorEvidence": "actual_glb_node:Glazed burgundy door",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [],
+      "measuredVisualVertices": 32568,
+      "measuredVisualTriangles": 16572,
+      "nodeCount": 167,
+      "doorCandidateNodes": [
+        {
+          "name": "Door brass split",
+          "origin": [
+            -3.1500000953674316,
+            1.899999976158142,
+            5.449999809265137
+          ]
+        },
+        {
+          "name": "Door pull.001",
+          "origin": [
+            -3.7100000381469727,
+            1.899999976158142,
+            5.519999980926514
+          ]
+        },
+        {
+          "name": "Employee door",
+          "origin": [
+            8.100000381469727,
+            1.75,
+            -1.25
+          ]
+        },
+        {
+          "name": "Glazed burgundy door",
+          "origin": [
+            -3.1500000953674316,
+            1.899999976158142,
+            5.320000171661377
+          ]
+        },
+        {
+          "name": "Door pull",
+          "origin": [
+            -2.5899999141693115,
+            1.899999976158142,
+            5.519999980926514
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "strip_club",
+      "role": "business_facade",
+      "districts": [
+        "old_town",
+        "chinatown",
+        "southside",
+        "central"
+      ],
+      "packageId": "next_batch_v1",
+      "sourceAcceptance": "asset_accepted_runtime_rebind_required",
+      "door": {
+        "node": "Entrance_Door"
+      },
+      "publicSocket": [
+        0,
+        0,
+        5.7
+      ],
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/strip_club/strip_club.a29f4603767b.glb",
+          "sha256": "a29f4603767b74b71baae3d42c4cbd44e7831b90634bc1bfa7dbfe23e3f4272c",
+          "bytes": 978332
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -6.599999904632568,
+          0,
+          -5.099999904632568
+        ],
+        "max": [
+          7.325000107288361,
+          10.160000190138817,
+          7.024999141693115
+        ]
+      },
+      "recenterXYZ": [
+        -0.3625001013278961,
+        0,
+        -0.9624996185302734
+      ],
+      "dimensionsXYZ": [
+        13.925000011920929,
+        10.160000190138817,
+        12.124999046325684
+      ],
+      "publicDoorLocalXYZ": [
+        0.7200000286102295,
+        1.7999999523162842,
+        4.929999828338623
+      ],
+      "publicDoorEvidence": "actual_glb_node:Entrance_Door",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [],
+      "measuredVisualVertices": 25891,
+      "measuredVisualTriangles": 13144,
+      "nodeCount": 130,
+      "doorCandidateNodes": [
+        {
+          "name": "Entrance_Deep_Recess",
+          "origin": [
+            0,
+            2.1500000953674316,
+            4.670000076293945
+          ]
+        },
+        {
+          "name": "Entrance_Left_Jamb",
+          "origin": [
+            -1.75,
+            2.200000047683716,
+            4.920000076293945
+          ]
+        },
+        {
+          "name": "Entrance_Right_Jamb",
+          "origin": [
+            1.75,
+            2.200000047683716,
+            4.920000076293945
+          ]
+        },
+        {
+          "name": "Entrance_Header",
+          "origin": [
+            0,
+            4.019999980926514,
+            4.920000076293945
+          ]
+        },
+        {
+          "name": "Entrance_Door.001",
+          "origin": [
+            -0.7200000286102295,
+            1.7999999523162842,
+            4.929999828338623
+          ]
+        },
+        {
+          "name": "Entrance_Door_Glass.001",
+          "origin": [
+            -0.7200000286102295,
+            2.25,
+            5.059999942779541
+          ]
+        },
+        {
+          "name": "Entrance_Door_Pushbar.001",
+          "origin": [
+            -0.7200000286102295,
+            1.5499999523162842,
+            5.119999885559082
+          ]
+        },
+        {
+          "name": "Entrance_Door",
+          "origin": [
+            0.7200000286102295,
+            1.7999999523162842,
+            4.929999828338623
+          ]
+        },
+        {
+          "name": "Entrance_Door_Glass",
+          "origin": [
+            0.7200000286102295,
+            2.25,
+            5.059999942779541
+          ]
+        },
+        {
+          "name": "Entrance_Door_Pushbar",
+          "origin": [
+            0.7200000286102295,
+            1.5499999523162842,
+            5.119999885559082
+          ]
+        },
+        {
+          "name": "Service_Door_Recess",
+          "origin": [
+            6.034999847412109,
+            1.75,
+            -3.049999952316284
+          ]
+        },
+        {
+          "name": "Service_Door",
+          "origin": [
+            6.159999847412109,
+            1.649999976158142,
+            -3.049999952316284
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "glass_pavilion_small_v1",
+      "role": "glass_retail",
+      "districts": [
+        "central",
+        "eastside"
+      ],
+      "packageId": "glass_v1",
+      "sourceAcceptance": "approved_glass_reference",
+      "publicSocket": [
+        0,
+        0,
+        5.05
+      ],
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/glass_pavilion_small_v1/glass_pavilion_small_ao.ecae5f97bd53.glb",
+          "sha256": "ecae5f97bd53e9466bea3a520ec95a58ecacd7a232fbde902de0a1a7d4672873",
+          "bytes": 3773048
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -6.5,
+          -0.20000004768371582,
+          -5.294999957084656
+        ],
+        "max": [
+          6.999999910593033,
+          11.999999642372131,
+          5.944999992847443
+        ]
+      },
+      "recenterXYZ": [
+        -0.24999995529651642,
+        0.20000004768371582,
+        -0.32500001788139343
+      ],
+      "dimensionsXYZ": [
+        13.499999910593033,
+        12.199999690055847,
+        11.239999949932098
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0,
+        5.05
+      ],
+      "publicDoorEvidence": "authored_manifest",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "COLLISION_BODY",
+        "LOD1",
+        "LOD1_Small_Glass_Hall",
+        "LOD1_Small_Roof_Lantern",
+        "LOD2",
+        "LOD2_Small_Massing",
+        "SOCKET_PUBLIC_DOOR",
+        "SOCKET_SERVICE"
+      ],
+      "measuredVisualVertices": 75311,
+      "measuredVisualTriangles": 31208,
+      "nodeCount": 165,
+      "doorCandidateNodes": [
+        {
+          "name": "Small_Public_Double_Door_BRASS_PULL_L",
+          "origin": [
+            -0.48750001192092896,
+            1.722499966621399,
+            4.639999866485596
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_BRASS_PULL_R",
+          "origin": [
+            0.48750001192092896,
+            1.722499966621399,
+            4.639999866485596
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_BURGUNDY_RAIL_L",
+          "origin": [
+            -0.737500011920929,
+            0.3499999940395355,
+            4.53000020980835
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_BURGUNDY_RAIL_R",
+          "origin": [
+            0.737500011920929,
+            0.3499999940395355,
+            4.53000020980835
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_DEEP_LOBBY_BACKDROP",
+          "origin": [
+            0,
+            1.625,
+            4.039999961853027
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_FRAME_HEADER",
+          "origin": [
+            0,
+            3.3499999046325684,
+            4.420000076293945
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_FRAME_POST",
+          "origin": [
+            -1.534999966621399,
+            1.625,
+            4.420000076293945
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_FRAME_POST.001",
+          "origin": [
+            0,
+            1.625,
+            4.420000076293945
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_FRAME_POST.002",
+          "origin": [
+            1.534999966621399,
+            1.625,
+            4.420000076293945
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_GLASS_LEAF_L",
+          "origin": [
+            -0.737500011920929,
+            1.625,
+            4.440000057220459
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_GLASS_LEAF_R",
+          "origin": [
+            0.737500011920929,
+            1.625,
+            4.440000057220459
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_LOBBY_CEILING_LIGHT",
+          "origin": [
+            0,
+            2.930000066757202,
+            4.139999866485596
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_LOBBY_RECEPTION_SILHOUETTE",
+          "origin": [
+            0,
+            0.7799999713897705,
+            4.179999828338623
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_LOBBY_SCONCE_L",
+          "origin": [
+            -1.121000051498413,
+            1.8200000524520874,
+            4.150000095367432
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_LOBBY_SCONCE_R",
+          "origin": [
+            1.121000051498413,
+            1.8200000524520874,
+            4.150000095367432
+          ]
+        },
+        {
+          "name": "Small_Public_Double_Door_THRESHOLD",
+          "origin": [
+            0,
+            0.10000000149011612,
+            4.599999904632568
+          ]
+        },
+        {
+          "name": "Small_Service_Door_CANOPY",
+          "origin": [
+            4.349999904632568,
+            3.1500000953674316,
+            -4.769999980926514
+          ]
+        },
+        {
+          "name": "Small_Service_Door_HANDLE",
+          "origin": [
+            4.815000057220459,
+            1.4559999704360962,
+            -4.449999809265137
+          ]
+        },
+        {
+          "name": "Small_Service_Door_LEAF",
+          "origin": [
+            4.349999904632568,
+            1.399999976158142,
+            -4.320000171661377
+          ]
+        },
+        {
+          "name": "Small_Service_Door_RECESS",
+          "origin": [
+            4.349999904632568,
+            1.399999976158142,
+            -4.440000057220459
+          ]
+        },
+        {
+          "name": "Small_Service_Door_STEP",
+          "origin": [
+            4.349999904632568,
+            0.11999999731779099,
+            -4.670000076293945
+          ]
+        },
+        {
+          "name": "PUBLIC_DOOR_APPROACH",
+          "origin": [
+            0,
+            0,
+            6.849999904632568
+          ]
+        },
+        {
+          "name": "PUBLIC_DOOR_OPENING_BOUNDS",
+          "origin": [
+            0,
+            1.75,
+            5.050000190734863
+          ]
+        },
+        {
+          "name": "SERVICE_DOOR_APPROACH",
+          "origin": [
+            4.349999904632568,
+            0,
+            -5.75
+          ]
+        },
+        {
+          "name": "SOCKET_PUBLIC_DOOR",
+          "origin": [
+            0,
+            0,
+            5.050000190734863
+          ]
+        },
+        {
+          "name": "SOCKET_SERVICE",
+          "origin": [
+            4.349999904632568,
+            0,
+            -4.550000190734863
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "civic_hall",
+      "role": "civic_building",
+      "districts": [
+        "central",
+        "eastside",
+        "southside"
+      ],
+      "packageId": "CIVIC_BUILDINGS_CANON_UPGRADE_V1",
+      "sourceAcceptance": {
+        "source": {
+          "status": "pending_user_visual_acceptance",
+          "evidence": "User approved GALLERIA as the quality/material reference and requested these upgrades; no explicit acceptance of the resulting five-asset canon-upgrade package has been recorded yet.",
+          "integrationGate": "hold final art sign-off; technical inspection is PASS"
+        },
+        "status": "needs_visual_review",
+        "evidence": "User authorized technically checked assets in isolated rebuild preview, not final art acceptance."
+      },
+      "door": {},
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/civic_hall/civic_hall_canon_v2.glb",
+          "sha256": "81a289dc228032ae4bd0a7f610a06527f9eac36ca3ee8efdc1be312053e4ad3c",
+          "bytes": 1337932
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -15,
+          -0.6200000047683716,
+          -15
+        ],
+        "max": [
+          15,
+          13.280000269412994,
+          15
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0.6200000047683716,
+        0
+      ],
+      "dimensionsXYZ": [
+        30,
+        13.900000274181366,
+        30
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0.7799999713897705,
+        -2.0199999809265137
+      ],
+      "publicDoorEvidence": "actual_glb_node:CivicHall_DoorThreshold",
+      "frontSign": -1,
+      "collisionBodies": [],
+      "hideNodeNames": [],
+      "measuredVisualVertices": 47250,
+      "measuredVisualTriangles": 35012,
+      "nodeCount": 104,
+      "doorCandidateNodes": [
+        {
+          "name": "CivicHall_DoorCentreSeam",
+          "origin": [
+            0,
+            2.6500000953674316,
+            -1.8450000286102295
+          ]
+        },
+        {
+          "name": "CivicHall_DoorGlass_L",
+          "origin": [
+            -0.6200000047683716,
+            3.049999952316284,
+            -1.8350000381469727
+          ]
+        },
+        {
+          "name": "CivicHall_DoorGlass_R",
+          "origin": [
+            0.6200000047683716,
+            3.049999952316284,
+            -1.8350000381469727
+          ]
+        },
+        {
+          "name": "CivicHall_DoorHandle_L",
+          "origin": [
+            -0.17000000178813934,
+            2.619999885559082,
+            -1.8799999952316284
+          ]
+        },
+        {
+          "name": "CivicHall_DoorHandle_R",
+          "origin": [
+            0.17000000178813934,
+            2.619999885559082,
+            -1.8799999952316284
+          ]
+        },
+        {
+          "name": "CivicHall_DoorLeaf_Main_L",
+          "origin": [
+            -0.6200000047683716,
+            2.6500000953674316,
+            -1.7000000476837158
+          ]
+        },
+        {
+          "name": "CivicHall_DoorLeaf_Main_R",
+          "origin": [
+            0.6200000047683716,
+            2.6500000953674316,
+            -1.7000000476837158
+          ]
+        },
+        {
+          "name": "CivicHall_DoorPortal_Left",
+          "origin": [
+            -1.4800000190734863,
+            3.049999952316284,
+            -1.659999966621399
+          ]
+        },
+        {
+          "name": "CivicHall_DoorPortal_Right",
+          "origin": [
+            1.4800000190734863,
+            3.049999952316284,
+            -1.659999966621399
+          ]
+        },
+        {
+          "name": "CivicHall_DoorPortal_Top",
+          "origin": [
+            0,
+            5.380000114440918,
+            -1.659999966621399
+          ]
+        },
+        {
+          "name": "CivicHall_DoorThreshold",
+          "origin": [
+            0,
+            0.7799999713897705,
+            -2.0199999809265137
+          ]
+        },
+        {
+          "name": "CivicHall_DoorTransom",
+          "origin": [
+            0,
+            5.03000020980835,
+            -1.7999999523162842
+          ]
+        },
+        {
+          "name": "CivicHall_RearDoor",
+          "origin": [
+            0,
+            2.1500000953674316,
+            9.960000038146973
+          ]
+        },
+        {
+          "name": "CANON_DOOR_021_CivicHall_DoorGlass_L_FRAME_HEADER",
+          "origin": [
+            -0.6200000047683716,
+            3.869999885559082,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_021_CivicHall_DoorGlass_L_FRAME_SILL",
+          "origin": [
+            -0.6200000047683716,
+            2.2300000190734863,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_021_CivicHall_DoorGlass_L_FRAME_JAMB.001",
+          "origin": [
+            -0.9699999690055847,
+            3.049999952316284,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_021_CivicHall_DoorGlass_L_FRAME_JAMB",
+          "origin": [
+            -0.27000001072883606,
+            3.049999952316284,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_021_CivicHall_DoorGlass_L_DEEP_INTERIOR",
+          "origin": [
+            -0.6200000047683716,
+            3.049999952316284,
+            -1.6150000095367432
+          ]
+        },
+        {
+          "name": "CANON_DOOR_021_CivicHall_DoorGlass_L_WARM_SCONCE",
+          "origin": [
+            -0.6200000047683716,
+            3.414799928665161,
+            -1.715000033378601
+          ]
+        },
+        {
+          "name": "CANON_DOOR_022_CivicHall_DoorGlass_R_FRAME_HEADER",
+          "origin": [
+            0.6200000047683716,
+            3.869999885559082,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_022_CivicHall_DoorGlass_R_FRAME_SILL",
+          "origin": [
+            0.6200000047683716,
+            2.2300000190734863,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_022_CivicHall_DoorGlass_R_FRAME_JAMB.001",
+          "origin": [
+            0.27000001072883606,
+            3.049999952316284,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_022_CivicHall_DoorGlass_R_FRAME_JAMB",
+          "origin": [
+            0.9699999690055847,
+            3.049999952316284,
+            -1.915000081062317
+          ]
+        },
+        {
+          "name": "CANON_DOOR_022_CivicHall_DoorGlass_R_DEEP_INTERIOR",
+          "origin": [
+            0.6200000047683716,
+            3.049999952316284,
+            -1.6150000095367432
+          ]
+        },
+        {
+          "name": "CANON_DOOR_022_CivicHall_DoorGlass_R_WARM_SCONCE",
+          "origin": [
+            0.6200000047683716,
+            3.414799928665161,
+            -1.715000033378601
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "police_station",
+      "role": "civic_building",
+      "districts": [
+        "central",
+        "eastside",
+        "southside"
+      ],
+      "packageId": "CIVIC_BUILDINGS_CANON_UPGRADE_V1",
+      "sourceAcceptance": {
+        "source": {
+          "status": "pending_user_visual_acceptance",
+          "evidence": "User approved GALLERIA as the quality/material reference and requested these upgrades; no explicit acceptance of the resulting five-asset canon-upgrade package has been recorded yet.",
+          "integrationGate": "hold final art sign-off; technical inspection is PASS"
+        },
+        "status": "needs_visual_review",
+        "evidence": "User authorized technically checked assets in isolated rebuild preview, not final art acceptance."
+      },
+      "door": {},
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/police_station/police_station_canon_v2.glb",
+          "sha256": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+          "bytes": 1652188
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -19,
+          0,
+          -17
+        ],
+        "max": [
+          19,
+          13.240000382065773,
+          17
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        0
+      ],
+      "dimensionsXYZ": [
+        38,
+        13.240000382065773,
+        34
+      ],
+      "publicDoorLocalXYZ": [
+        -4.199999809265137,
+        0,
+        8.399999618530273
+      ],
+      "publicDoorEvidence": "actual_glb_node:PUBLIC_ENTRY_SOCKET",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "INPLACE_POI_SOCKET_POLICE",
+        "INPLACE_ADMIN_SOCKET",
+        "PUBLIC_ENTRY_SOCKET",
+        "SERVICE_ENTRY_SOCKET",
+        "SERVICE_EMERGENCY_TIEIN_SOCKET",
+        "EntranceAnchor",
+        "ServiceEntranceAnchor",
+        "CLEARANCE_PUBLIC_ENTRY",
+        "CLEARANCE_PUBLIC_ROUTE",
+        "CLEARANCE_SERVICE_ENTRY",
+        "CLEARANCE_EMERGENCY_ROUTE",
+        "CLEARANCE_VEHICLE_EGRESS",
+        "CLEARANCE_ASSET_OBB"
+      ],
+      "measuredVisualVertices": 56270,
+      "measuredVisualTriangles": 48852,
+      "nodeCount": 207,
+      "doorCandidateNodes": [
+        {
+          "name": "Public_Door_L",
+          "origin": [
+            -5.099999904632568,
+            1.75,
+            8.039999961853027
+          ]
+        },
+        {
+          "name": "Public_Door_Glass_L",
+          "origin": [
+            -5.099999904632568,
+            2.049999952316284,
+            8.15999984741211
+          ]
+        },
+        {
+          "name": "Public_Door_R",
+          "origin": [
+            -3.299999952316284,
+            1.75,
+            8.039999961853027
+          ]
+        },
+        {
+          "name": "Public_Door_Glass_R",
+          "origin": [
+            -3.299999952316284,
+            2.049999952316284,
+            8.15999984741211
+          ]
+        },
+        {
+          "name": "Public_Single_Door",
+          "origin": [
+            5.5,
+            1.7000000476837158,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Service_Door_Frame",
+          "origin": [
+            14.149999618530273,
+            1.649999976158142,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "Service_Door",
+          "origin": [
+            14.359999656677246,
+            1.649999976158142,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "Service_Door_Glass",
+          "origin": [
+            14.479999542236328,
+            2.049999952316284,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "Garage_Door",
+          "origin": [
+            14.359999656677246,
+            1.649999976158142,
+            0.20000000298023224
+          ]
+        },
+        {
+          "name": "Garage_Door.001",
+          "origin": [
+            14.359999656677246,
+            1.649999976158142,
+            -2.700000047683716
+          ]
+        },
+        {
+          "name": "INPLACE_POI_SOCKET_POLICE",
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "INPLACE_ADMIN_SOCKET",
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "PUBLIC_ENTRY_SOCKET",
+          "origin": [
+            -4.199999809265137,
+            0,
+            8.399999618530273
+          ]
+        },
+        {
+          "name": "SERVICE_ENTRY_SOCKET",
+          "origin": [
+            14.600000381469727,
+            0,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "SERVICE_EMERGENCY_TIEIN_SOCKET",
+          "origin": [
+            15.5,
+            0,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "EntranceAnchor",
+          "origin": [
+            -4.199999809265137,
+            0,
+            8.399999618530273
+          ]
+        },
+        {
+          "name": "EntranceFacing",
+          "origin": [
+            -4.199999809265137,
+            0.20000000298023224,
+            9.399999618530273
+          ]
+        },
+        {
+          "name": "EntranceAction",
+          "origin": [
+            -4.199999809265137,
+            0,
+            10.100000381469727
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            14.600000381469727,
+            0,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "ServiceEntranceFacing",
+          "origin": [
+            15.600000381469727,
+            0.20000000298023224,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "ServiceEntranceAction",
+          "origin": [
+            16.299999237060547,
+            0,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_FRAME_HEADER",
+          "origin": [
+            -5.099999904632568,
+            3.0349998474121094,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_FRAME_SILL",
+          "origin": [
+            -5.099999904632568,
+            1.0649999380111694,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_FRAME_JAMB.001",
+          "origin": [
+            -5.730000019073486,
+            2.049999952316284,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_FRAME_JAMB",
+          "origin": [
+            -4.46999979019165,
+            2.049999952316284,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_DEEP_INTERIOR",
+          "origin": [
+            -5.099999904632568,
+            2.049999952316284,
+            7.940000057220459
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_FURNITURE_SILHOUETTE",
+          "origin": [
+            -5.099999904632568,
+            1.494999885559082,
+            8.019999504089355
+          ]
+        },
+        {
+          "name": "CANON_DOOR_034_Public_Door_Glass_L_WARM_SCONCE",
+          "origin": [
+            -5.384999752044678,
+            2.49399995803833,
+            8.039999961853027
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_FRAME_HEADER",
+          "origin": [
+            -3.299999952316284,
+            3.0349998474121094,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_FRAME_SILL",
+          "origin": [
+            -3.299999952316284,
+            1.0649999380111694,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_FRAME_JAMB.001",
+          "origin": [
+            -3.929999828338623,
+            2.049999952316284,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_FRAME_JAMB",
+          "origin": [
+            -2.6700000762939453,
+            2.049999952316284,
+            8.234999656677246
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_DEEP_INTERIOR",
+          "origin": [
+            -3.299999952316284,
+            2.049999952316284,
+            7.940000057220459
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_FURNITURE_SILHOUETTE",
+          "origin": [
+            -3.299999952316284,
+            1.494999885559082,
+            8.019999504089355
+          ]
+        },
+        {
+          "name": "CANON_DOOR_037_Public_Door_Glass_R_WARM_SCONCE",
+          "origin": [
+            -3.5850000381469727,
+            2.49399995803833,
+            8.039999961853027
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_FRAME_HEADER",
+          "origin": [
+            14.554999351501465,
+            2.884999990463257,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_FRAME_SILL",
+          "origin": [
+            14.554999351501465,
+            1.215000033378601,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_FRAME_JAMB.001",
+          "origin": [
+            14.554999351501465,
+            2.049999952316284,
+            -4.614999771118164
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_FRAME_JAMB",
+          "origin": [
+            14.554999351501465,
+            2.049999952316284,
+            -5.784999847412109
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_DEEP_INTERIOR",
+          "origin": [
+            14.25999927520752,
+            2.049999952316284,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_FURNITURE_SILHOUETTE",
+          "origin": [
+            14.339999198913574,
+            1.584999918937683,
+            -5.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_046_Service_Door_Glass_WARM_SCONCE",
+          "origin": [
+            14.359999656677246,
+            2.421999931335449,
+            -4.9375
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "hospital",
+      "role": "civic_building",
+      "districts": [
+        "central",
+        "eastside",
+        "southside"
+      ],
+      "packageId": "CIVIC_BUILDINGS_CANON_UPGRADE_V1",
+      "sourceAcceptance": {
+        "source": {
+          "status": "pending_user_visual_acceptance",
+          "evidence": "User approved GALLERIA as the quality/material reference and requested these upgrades; no explicit acceptance of the resulting five-asset canon-upgrade package has been recorded yet.",
+          "integrationGate": "hold final art sign-off; technical inspection is PASS"
+        },
+        "status": "needs_visual_review",
+        "evidence": "User authorized technically checked assets in isolated rebuild preview, not final art acceptance."
+      },
+      "door": {},
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/hospital/hospital_exterior_canon_v2.glb",
+          "sha256": "542b901c3bd0abebf4ac8a3590cbf30047eb748abb7ab3216fa18ec6ecd780a8",
+          "bytes": 2196456
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -15,
+          -0.5399999916553497,
+          -15
+        ],
+        "max": [
+          15,
+          15.550000190734863,
+          15
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0.5399999916553497,
+        0
+      ],
+      "dimensionsXYZ": [
+        30,
+        16.090000182390213,
+        30
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0.11999999731779099,
+        -3.299999952316284
+      ],
+      "publicDoorEvidence": "actual_glb_node:EntranceAnchor_HOSPITAL_PUBLIC_MAIN",
+      "frontSign": -1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "EntranceAnchor_HOSPITAL_PUBLIC_MAIN",
+        "CLEARANCE_HOSPITAL_PUBLIC_DOOR",
+        "EntranceAnchor_HOSPITAL_SERVICE_AMBULANCE",
+        "SERVICE_SOCKET_HOSPITAL_AMBULANCE",
+        "CLEARANCE_HOSPITAL_SERVICE_DOOR",
+        "SERVICE_EMERGENCY_TIEIN_SOCKET",
+        "DROPOFF_ANCHOR_HOSPITAL_PUBLIC",
+        "CLEARANCE_HOSPITAL_PUBLIC_ROUTE",
+        "CLEARANCE_HOSPITAL_ACCESSIBLE_ROUTE",
+        "CLEARANCE_HOSPITAL_EMERGENCY_ROUTE",
+        "CLEARANCE_HOSPITAL_SERVICE_ROUTE"
+      ],
+      "measuredVisualVertices": 79230,
+      "measuredVisualTriangles": 48036,
+      "nodeCount": 189,
+      "doorCandidateNodes": [
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_FrameTop",
+          "origin": [
+            0,
+            3.859999895095825,
+            -3
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_FrameV",
+          "origin": [
+            -1.8200000524520874,
+            2.0399999618530273,
+            -3
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_FrameV.001",
+          "origin": [
+            0,
+            2.0399999618530273,
+            -3
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_FrameV.002",
+          "origin": [
+            1.8200000524520874,
+            2.0399999618530273,
+            -3
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf",
+          "origin": [
+            -0.9100000262260437,
+            2.0299999713897705,
+            -2.8399999141693115
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf.001",
+          "origin": [
+            0.9100000262260437,
+            2.0299999713897705,
+            -2.8399999141693115
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_Handle",
+          "origin": [
+            -1.25,
+            2.0999999046325684,
+            -3.009999990463257
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_Handle.001",
+          "origin": [
+            1.25,
+            2.0999999046325684,
+            -3.009999990463257
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_KickPlate",
+          "origin": [
+            -0.9100000262260437,
+            0.7200000286102295,
+            -2.940000057220459
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_KickPlate.001",
+          "origin": [
+            0.9100000262260437,
+            0.7200000286102295,
+            -2.940000057220459
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_PUBLIC_MAIN_Recess",
+          "origin": [
+            0,
+            2.049999952316284,
+            -2.6600000858306885
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_FrameTop",
+          "origin": [
+            8.079999923706055,
+            3.7300000190734863,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_FrameV",
+          "origin": [
+            8.079999923706055,
+            2,
+            7.119999885559082
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_FrameV.001",
+          "origin": [
+            8.079999923706055,
+            2,
+            4.28000020980835
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass",
+          "origin": [
+            8.050000190734863,
+            2.240000009536743,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_Handle",
+          "origin": [
+            8.119999885559082,
+            2,
+            5.050000190734863
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_Leaf",
+          "origin": [
+            7.96999979019165,
+            2,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "DOOR_HOSPITAL_SERVICE_AMBULANCE_Recess",
+          "origin": [
+            7.840000152587891,
+            2,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "EntranceAnchor_HOSPITAL_PUBLIC_MAIN",
+          "origin": [
+            0,
+            0.11999999731779099,
+            -3.299999952316284
+          ]
+        },
+        {
+          "name": "CLEARANCE_HOSPITAL_PUBLIC_DOOR",
+          "origin": [
+            0,
+            1.25,
+            -4.550000190734863
+          ]
+        },
+        {
+          "name": "EntranceAnchor_HOSPITAL_SERVICE_AMBULANCE",
+          "origin": [
+            8.149999618530273,
+            0.15000000596046448,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "SERVICE_SOCKET_HOSPITAL_AMBULANCE",
+          "origin": [
+            9,
+            0.15000000596046448,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "CLEARANCE_HOSPITAL_SERVICE_DOOR",
+          "origin": [
+            8.850000381469727,
+            1.25,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "SERVICE_EMERGENCY_TIEIN_SOCKET",
+          "origin": [
+            9.300000190734863,
+            0.15000000596046448,
+            6.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_FRAME_HEADER",
+          "origin": [
+            -0.9100000262260437,
+            3.815000057220459,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_FRAME_SILL",
+          "origin": [
+            -0.9100000262260437,
+            0.2449999451637268,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_FRAME_JA",
+          "origin": [
+            -1.809999942779541,
+            2.0299999713897705,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_FRAME_JAMB",
+          "origin": [
+            -0.010000052861869335,
+            2.0299999713897705,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_MULLION",
+          "origin": [
+            -0.9100000262260437,
+            2.0299999713897705,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_TRANSOM",
+          "origin": [
+            -0.9100000262260437,
+            2.6510000228881836,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_DEEP_INTERIO",
+          "origin": [
+            -0.9100000262260437,
+            2.0299999713897705,
+            -2.619999885559082
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_FURNITURE_SI",
+          "origin": [
+            -0.9100000262260437,
+            0.9949999451637268,
+            -2.6999998092651367
+          ]
+        },
+        {
+          "name": "CANON_DOOR_017_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_WARM_SCONCE",
+          "origin": [
+            -1.3300000429153442,
+            2.8580000400543213,
+            -2.7200000286102295
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_FRAME_HE",
+          "origin": [
+            0.9100000262260437,
+            3.815000057220459,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_FRAME_SI",
+          "origin": [
+            0.9100000262260437,
+            0.2449999451637268,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_FRAM",
+          "origin": [
+            0.010000052861869335,
+            2.0299999713897705,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_FRAME_JA",
+          "origin": [
+            1.809999942779541,
+            2.0299999713897705,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_MULLION",
+          "origin": [
+            0.9100000262260437,
+            2.0299999713897705,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_TRANSOM",
+          "origin": [
+            0.9100000262260437,
+            2.6510000228881836,
+            -2.9749999046325684
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_DEEP_INT",
+          "origin": [
+            0.9100000262260437,
+            2.0299999713897705,
+            -2.619999885559082
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_FURNITUR",
+          "origin": [
+            0.9100000262260437,
+            0.9949999451637268,
+            -2.6999998092651367
+          ]
+        },
+        {
+          "name": "CANON_DOOR_018_DOOR_HOSPITAL_PUBLIC_MAIN_GlassLeaf_001_WARM_SCO",
+          "origin": [
+            0.49000003933906555,
+            2.8580000400543213,
+            -2.7200000286102295
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_FRAME_HEAD",
+          "origin": [
+            8.135000228881836,
+            3.424999952316284,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_FRAME_SILL",
+          "origin": [
+            8.135000228881836,
+            1.0550000667572021,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_FRAME_",
+          "origin": [
+            8.135000228881836,
+            2.240000009536743,
+            6.819999694824219
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_FRAME_JAMB",
+          "origin": [
+            8.135000228881836,
+            2.240000009536743,
+            4.579999923706055
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_MULLION",
+          "origin": [
+            8.135000228881836,
+            2.240000009536743,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_DEEP_INTER",
+          "origin": [
+            7.830000400543213,
+            2.240000009536743,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_FURNITURE_",
+          "origin": [
+            7.910000324249268,
+            1.565000057220459,
+            5.699999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_027_DOOR_HOSPITAL_SERVICE_AMBULANCE_Glass_WARM_SCONC",
+          "origin": [
+            7.930000305175781,
+            2.7799999713897705,
+            6.229999542236328
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "fire_station",
+      "role": "civic_building",
+      "districts": [
+        "central",
+        "eastside",
+        "southside",
+        "iron_harbor",
+        "north_hills"
+      ],
+      "packageId": "CIVIC_BUILDINGS_CANON_UPGRADE_V1",
+      "sourceAcceptance": {
+        "source": {
+          "status": "pending_user_visual_acceptance",
+          "evidence": "User approved GALLERIA as the quality/material reference and requested these upgrades; no explicit acceptance of the resulting five-asset canon-upgrade package has been recorded yet.",
+          "integrationGate": "hold final art sign-off; technical inspection is PASS"
+        },
+        "status": "needs_visual_review",
+        "evidence": "User authorized technically checked assets in isolated rebuild preview, not final art acceptance."
+      },
+      "door": {},
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/fire_station/fire_station_exterior_canon_v2.glb",
+          "sha256": "484c1ac39d64c0d90bc29164d3295b95e7f4163ad0e9eef535fd6ab56e5759a8",
+          "bytes": 2559604
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -23,
+          0,
+          -19
+        ],
+        "max": [
+          23,
+          18.17000000178814,
+          19
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        0
+      ],
+      "dimensionsXYZ": [
+        46,
+        18.17000000178814,
+        38
+      ],
+      "publicDoorLocalXYZ": [
+        15,
+        0,
+        8.100000381469727
+      ],
+      "publicDoorEvidence": "actual_glb_node:PUBLIC_ENTRY_SOCKET",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "INPLACE_POI_SOCKET_FIRE",
+        "INPLACE_STATION_SOCKET",
+        "INPLACE_FLEET_SOCKET",
+        "INPLACE_DISPATCH_SOCKET",
+        "PUBLIC_ENTRY_SOCKET",
+        "SERVICE_ENTRY_SOCKET",
+        "PublicEntranceAnchor",
+        "ServiceEntranceAnchor",
+        "CLEARANCE_BAY_01",
+        "CLEARANCE_BAY_02",
+        "CLEARANCE_BAY_03",
+        "CLEARANCE_EMERGENCY_APRON",
+        "CLEARANCE_VEHICLE_EGRESS",
+        "CLEARANCE_PUBLIC_ENTRY",
+        "CLEARANCE_PUBLIC_ROUTE",
+        "CLEARANCE_SERVICE_ACCESS",
+        "CLEARANCE_ASSET_OBB",
+        "CLEARANCE_TERRAIN_CONTACT"
+      ],
+      "measuredVisualVertices": 86123,
+      "measuredVisualTriangles": 75148,
+      "nodeCount": 299,
+      "doorCandidateNodes": [
+        {
+          "name": "Apparatus_Bay_Door_01",
+          "origin": [
+            -10,
+            3.450000047683716,
+            7.619999885559082
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_01.001",
+          "origin": [
+            -10,
+            1.100000023841858,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_01.002",
+          "origin": [
+            -10,
+            2.299999952316284,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_01.003",
+          "origin": [
+            -10,
+            3.5,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_01.004",
+          "origin": [
+            -10,
+            4.699999809265137,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_01",
+          "origin": [
+            -10,
+            5.900000095367432,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_01.001",
+          "origin": [
+            -11.800000190734863,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_01.002",
+          "origin": [
+            -10,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_01",
+          "origin": [
+            -8.199999809265137,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Apparatus_Bay_Door_02",
+          "origin": [
+            -2,
+            3.450000047683716,
+            7.619999885559082
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_02.001",
+          "origin": [
+            -2,
+            1.100000023841858,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_02.002",
+          "origin": [
+            -2,
+            2.299999952316284,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_02.003",
+          "origin": [
+            -2,
+            3.5,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_02.004",
+          "origin": [
+            -2,
+            4.699999809265137,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_02",
+          "origin": [
+            -2,
+            5.900000095367432,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_02.001",
+          "origin": [
+            -3.799999952316284,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_02.002",
+          "origin": [
+            -2,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_02",
+          "origin": [
+            -0.20000000298023224,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Apparatus_Bay_Door_03",
+          "origin": [
+            6,
+            3.450000047683716,
+            7.619999885559082
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_03.001",
+          "origin": [
+            6,
+            1.100000023841858,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_03.002",
+          "origin": [
+            6,
+            2.299999952316284,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_03.003",
+          "origin": [
+            6,
+            3.5,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_03.004",
+          "origin": [
+            6,
+            4.699999809265137,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Panel_03",
+          "origin": [
+            6,
+            5.900000095367432,
+            7.789999961853027
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_03.001",
+          "origin": [
+            4.199999809265137,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_03.002",
+          "origin": [
+            6,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Bay_Door_Window_03",
+          "origin": [
+            7.800000190734863,
+            4.78000020980835,
+            7.860000133514404
+          ]
+        },
+        {
+          "name": "Public_Door_Recess",
+          "origin": [
+            15,
+            1.850000023841858,
+            7.179999828338623
+          ]
+        },
+        {
+          "name": "Public_Door_Frame_Top",
+          "origin": [
+            15,
+            3.619999885559082,
+            7.570000171661377
+          ]
+        },
+        {
+          "name": "Public_Door_Frame_Side",
+          "origin": [
+            13.550000190734863,
+            1.850000023841858,
+            7.570000171661377
+          ]
+        },
+        {
+          "name": "Public_Door_Frame_Side.001",
+          "origin": [
+            16.450000762939453,
+            1.850000023841858,
+            7.570000171661377
+          ]
+        },
+        {
+          "name": "Public_Door",
+          "origin": [
+            15,
+            1.8200000524520874,
+            7.670000076293945
+          ]
+        },
+        {
+          "name": "Public_Door_Glass",
+          "origin": [
+            15,
+            2.1500000953674316,
+            7.829999923706055
+          ]
+        },
+        {
+          "name": "Public_Door_Handle",
+          "origin": [
+            15.800000190734863,
+            1.649999976158142,
+            7.960000038146973
+          ]
+        },
+        {
+          "name": "Public_Door_Threshold",
+          "origin": [
+            15,
+            0.1599999964237213,
+            8.050000190734863
+          ]
+        },
+        {
+          "name": "Service_Door_Frame",
+          "origin": [
+            19.15999984741211,
+            1.75,
+            -5
+          ]
+        },
+        {
+          "name": "Service_Door",
+          "origin": [
+            19.399999618530273,
+            1.75,
+            -5
+          ]
+        },
+        {
+          "name": "Service_Door_Glass",
+          "origin": [
+            19.530000686645508,
+            2.0999999046325684,
+            -5
+          ]
+        },
+        {
+          "name": "Service_Door_Handle",
+          "origin": [
+            19.65999984741211,
+            1.6200000047683716,
+            -4.349999904632568
+          ]
+        },
+        {
+          "name": "INPLACE_POI_SOCKET_FIRE",
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "INPLACE_STATION_SOCKET",
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "INPLACE_FLEET_SOCKET",
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "INPLACE_DISPATCH_SOCKET",
+          "origin": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "PUBLIC_ENTRY_SOCKET",
+          "origin": [
+            15,
+            0,
+            8.100000381469727
+          ]
+        },
+        {
+          "name": "SERVICE_ENTRY_SOCKET",
+          "origin": [
+            19.700000762939453,
+            0,
+            -5
+          ]
+        },
+        {
+          "name": "PublicEntranceAnchor",
+          "origin": [
+            15,
+            0,
+            8.100000381469727
+          ]
+        },
+        {
+          "name": "PublicEntranceFacing",
+          "origin": [
+            15,
+            0.20000000298023224,
+            9.100000381469727
+          ]
+        },
+        {
+          "name": "PublicEntranceAction",
+          "origin": [
+            15,
+            0,
+            9.800000190734863
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            19.700000762939453,
+            0,
+            -5
+          ]
+        },
+        {
+          "name": "ServiceEntranceFacing",
+          "origin": [
+            20.700000762939453,
+            0.20000000298023224,
+            -5
+          ]
+        },
+        {
+          "name": "ServiceEntranceAction",
+          "origin": [
+            21.399999618530273,
+            0,
+            -5
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_FRAME_HEADER",
+          "origin": [
+            -11.800000190734863,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_FRAME_SILL",
+          "origin": [
+            -11.800000190734863,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_FRAME_JAMB.001",
+          "origin": [
+            -12.460000038146973,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_FRAME_JAMB",
+          "origin": [
+            -11.140000343322754,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_MULLION",
+          "origin": [
+            -11.800000190734863,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_DEEP_INTERIOR",
+          "origin": [
+            -11.800000190734863,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_FURNITURE_SILHOUETTE",
+          "origin": [
+            -11.800000190734863,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_017_Bay_Door_Window_01_001_WARM_SCONCE",
+          "origin": [
+            -12.100000381469727,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_FRAME_HEADER",
+          "origin": [
+            -10,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_FRAME_SILL",
+          "origin": [
+            -10,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_FRAME_JAMB.001",
+          "origin": [
+            -10.65999984741211,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_FRAME_JAMB",
+          "origin": [
+            -9.34000015258789,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_MULLION",
+          "origin": [
+            -10,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_DEEP_INTERIOR",
+          "origin": [
+            -10,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_FURNITURE_SILHOUETTE",
+          "origin": [
+            -10,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_018_Bay_Door_Window_01_002_WARM_SCONCE",
+          "origin": [
+            -10.300000190734863,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_FRAME_HEADER",
+          "origin": [
+            -8.199999809265137,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_FRAME_SILL",
+          "origin": [
+            -8.199999809265137,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_FRAME_JAMB.001",
+          "origin": [
+            -8.859999656677246,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_FRAME_JAMB",
+          "origin": [
+            -7.539999961853027,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_MULLION",
+          "origin": [
+            -8.199999809265137,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_DEEP_INTERIOR",
+          "origin": [
+            -8.199999809265137,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_FURNITURE_SILHOUETTE",
+          "origin": [
+            -8.199999809265137,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_019_Bay_Door_Window_01_WARM_SCONCE",
+          "origin": [
+            -8.5,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_FRAME_HEADER",
+          "origin": [
+            -3.799999952316284,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_FRAME_SILL",
+          "origin": [
+            -3.799999952316284,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_FRAME_JAMB.001",
+          "origin": [
+            -4.460000038146973,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_FRAME_JAMB",
+          "origin": [
+            -3.1399998664855957,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_MULLION",
+          "origin": [
+            -3.799999952316284,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_DEEP_INTERIOR",
+          "origin": [
+            -3.799999952316284,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_FURNITURE_SILHOUETTE",
+          "origin": [
+            -3.799999952316284,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_032_Bay_Door_Window_02_001_WARM_SCONCE",
+          "origin": [
+            -4.099999904632568,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_FRAME_HEADER",
+          "origin": [
+            -2,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_FRAME_SILL",
+          "origin": [
+            -2,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_FRAME_JAMB.001",
+          "origin": [
+            -2.6600000858306885,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_FRAME_JAMB",
+          "origin": [
+            -1.340000033378601,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_MULLION",
+          "origin": [
+            -2,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_DEEP_INTERIOR",
+          "origin": [
+            -2,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_FURNITURE_SILHOUETTE",
+          "origin": [
+            -2,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_033_Bay_Door_Window_02_002_WARM_SCONCE",
+          "origin": [
+            -2.299999952316284,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_FRAME_HEADER",
+          "origin": [
+            -0.20000000298023224,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_FRAME_SILL",
+          "origin": [
+            -0.20000000298023224,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_FRAME_JAMB.001",
+          "origin": [
+            -0.8600000143051147,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_FRAME_JAMB",
+          "origin": [
+            0.46000000834465027,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_MULLION",
+          "origin": [
+            -0.20000000298023224,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_DEEP_INTERIOR",
+          "origin": [
+            -0.20000000298023224,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_FURNITURE_SILHOUETTE",
+          "origin": [
+            -0.20000000298023224,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_034_Bay_Door_Window_02_WARM_SCONCE",
+          "origin": [
+            -0.5,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_FRAME_HEADER",
+          "origin": [
+            4.199999809265137,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_FRAME_SILL",
+          "origin": [
+            4.199999809265137,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_FRAME_JAMB.001",
+          "origin": [
+            3.5399997234344482,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_FRAME_JAMB",
+          "origin": [
+            4.859999656677246,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_MULLION",
+          "origin": [
+            4.199999809265137,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_DEEP_INTERIOR",
+          "origin": [
+            4.199999809265137,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_FURNITURE_SILHOUETTE",
+          "origin": [
+            4.199999809265137,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_047_Bay_Door_Window_03_001_WARM_SCONCE",
+          "origin": [
+            3.8999998569488525,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_FRAME_HEADER",
+          "origin": [
+            6,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_FRAME_SILL",
+          "origin": [
+            6,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_FRAME_JAMB.001",
+          "origin": [
+            5.340000152587891,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_FRAME_JAMB",
+          "origin": [
+            6.659999847412109,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_MULLION",
+          "origin": [
+            6,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_DEEP_INTERIOR",
+          "origin": [
+            6,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_FURNITURE_SILHOUETTE",
+          "origin": [
+            6,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_048_Bay_Door_Window_03_002_WARM_SCONCE",
+          "origin": [
+            5.699999809265137,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_FRAME_HEADER",
+          "origin": [
+            7.800000190734863,
+            5.25,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_FRAME_SILL",
+          "origin": [
+            7.800000190734863,
+            4.310000419616699,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_FRAME_JAMB.001",
+          "origin": [
+            7.140000343322754,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_FRAME_JAMB",
+          "origin": [
+            8.460000038146973,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_MULLION",
+          "origin": [
+            7.800000190734863,
+            4.78000020980835,
+            7.934999942779541
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_DEEP_INTERIOR",
+          "origin": [
+            7.800000190734863,
+            4.78000020980835,
+            7.680000305175781
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_FURNITURE_SILHOUETTE",
+          "origin": [
+            7.800000190734863,
+            4.534000396728516,
+            7.760000228881836
+          ]
+        },
+        {
+          "name": "CANON_WINDOW_049_Bay_Door_Window_03_WARM_SCONCE",
+          "origin": [
+            7.5,
+            4.976800441741943,
+            7.78000020980835
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_FRAME_HEADER",
+          "origin": [
+            15,
+            3.1600000858306885,
+            7.904999732971191
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_FRAME_SILL",
+          "origin": [
+            15,
+            1.1400001049041748,
+            7.904999732971191
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_FRAME_JAMB.001",
+          "origin": [
+            14.0649995803833,
+            2.1500000953674316,
+            7.904999732971191
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_FRAME_JAMB",
+          "origin": [
+            15.9350004196167,
+            2.1500000953674316,
+            7.904999732971191
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_MULLION",
+          "origin": [
+            15,
+            2.1500000953674316,
+            7.904999732971191
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_DEEP_INTERIOR",
+          "origin": [
+            15,
+            2.1500000953674316,
+            7.610000133514404
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_FURNITURE_SILHOUETTE",
+          "origin": [
+            15,
+            1.5800001621246338,
+            7.690000057220459
+          ]
+        },
+        {
+          "name": "CANON_DOOR_061_Public_Door_Glass_WARM_SCONCE",
+          "origin": [
+            14.5625,
+            2.6060001850128174,
+            7.710000038146973
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_FRAME_HEADER",
+          "origin": [
+            19.60500144958496,
+            2.984999895095825,
+            -5
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_FRAME_SILL",
+          "origin": [
+            19.60500144958496,
+            1.2149999141693115,
+            -5
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_FRAME_JAMB.001",
+          "origin": [
+            19.60500144958496,
+            2.0999999046325684,
+            -4.289999961853027
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_FRAME_JAMB",
+          "origin": [
+            19.60500144958496,
+            2.0999999046325684,
+            -5.710000038146973
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_MULLION",
+          "origin": [
+            19.60500144958496,
+            2.0999999046325684,
+            -5
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_DEEP_INTERIOR",
+          "origin": [
+            19.310001373291016,
+            2.0999999046325684,
+            -5
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_FURNITURE_SILHOUETTE",
+          "origin": [
+            19.39000129699707,
+            1.6049998998641968,
+            -5
+          ]
+        },
+        {
+          "name": "CANON_DOOR_067_Service_Door_Glass_WARM_SCONCE",
+          "origin": [
+            19.40999984741211,
+            2.495999813079834,
+            -4.675000190734863
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    },
+    {
+      "assetId": "nightclub",
+      "role": "civic_building",
+      "districts": [
+        "central",
+        "eastside",
+        "southside"
+      ],
+      "packageId": "CIVIC_BUILDINGS_CANON_UPGRADE_V1",
+      "sourceAcceptance": {
+        "source": {
+          "status": "pending_user_visual_acceptance",
+          "evidence": "User approved GALLERIA as the quality/material reference and requested these upgrades; no explicit acceptance of the resulting five-asset canon-upgrade package has been recorded yet.",
+          "integrationGate": "hold final art sign-off; technical inspection is PASS"
+        },
+        "status": "needs_visual_review",
+        "evidence": "User authorized technically checked assets in isolated rebuild preview, not final art acceptance."
+      },
+      "door": {},
+      "lods": [
+        {
+          "lod": 0,
+          "url": "/assets/maps/city_rebuild_v1/building_models/nightclub/nightclub_southside_canon_v3.glb",
+          "sha256": "624967d9ad8e11bd105e314794af8371c67e8d0bd3a2d00855243b56371a9415",
+          "bytes": 730632
+        }
+      ],
+      "visualBounds": {
+        "min": [
+          -8,
+          0,
+          -7
+        ],
+        "max": [
+          8,
+          8.694999873638153,
+          7
+        ]
+      },
+      "recenterXYZ": [
+        0,
+        0,
+        0
+      ],
+      "dimensionsXYZ": [
+        16,
+        8.694999873638153,
+        14
+      ],
+      "publicDoorLocalXYZ": [
+        -3.049999952316284,
+        0,
+        4.199999809265137
+      ],
+      "publicDoorEvidence": "actual_glb_node:EntranceAnchor",
+      "frontSign": 1,
+      "collisionBodies": [],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "DoorActionAnchor",
+        "DoorApproachClearance",
+        "ServiceEntranceAnchor",
+        "ServiceDoorActionAnchor",
+        "ServiceDoorApproachClearance"
+      ],
+      "measuredVisualVertices": 24941,
+      "measuredVisualTriangles": 14248,
+      "nodeCount": 155,
+      "doorCandidateNodes": [
+        {
+          "name": "DoorHinge_Main",
+          "origin": [
+            -3.9100000858306885,
+            0.23999999463558197,
+            4.130000114440918
+          ]
+        },
+        {
+          "name": "DoorLeaf_Main",
+          "origin": [
+            -3.049999952316284,
+            1.6199999898672104,
+            4.119999885559082
+          ]
+        },
+        {
+          "name": "DoorGlowPanel",
+          "origin": [
+            -3.049999952316284,
+            1.6299999952316284,
+            4.179999828338623
+          ]
+        },
+        {
+          "name": "ServiceDoorHinge_Main",
+          "origin": [
+            6.28000020980835,
+            0.2199999988079071,
+            -0.47999998927116394
+          ]
+        },
+        {
+          "name": "ServiceDoorLeaf_Main",
+          "origin": [
+            6.309999942779541,
+            1.4299999177455902,
+            -1.1599999368190765
+          ]
+        },
+        {
+          "name": "EntranceAnchor",
+          "origin": [
+            -3.049999952316284,
+            0,
+            4.199999809265137
+          ]
+        },
+        {
+          "name": "EntranceFacing",
+          "origin": [
+            -3.049999952316284,
+            0.20000000298023224,
+            4.849999904632568
+          ]
+        },
+        {
+          "name": "DoorOpeningBounds",
+          "origin": [
+            -3.049999952316284,
+            1.6200000047683716,
+            4.03000020980835
+          ]
+        },
+        {
+          "name": "DoorActionAnchor",
+          "origin": [
+            -3.049999952316284,
+            0,
+            5.599999904632568
+          ]
+        },
+        {
+          "name": "DoorApproachClearance",
+          "origin": [
+            -3.049999952316284,
+            1.7999999523162842,
+            5.5
+          ]
+        },
+        {
+          "name": "ServiceEntranceAnchor",
+          "origin": [
+            6.340000152587891,
+            0,
+            -1.159999966621399
+          ]
+        },
+        {
+          "name": "ServiceEntranceFacing",
+          "origin": [
+            7,
+            0.20000000298023224,
+            -1.159999966621399
+          ]
+        },
+        {
+          "name": "ServiceDoorOpeningBounds",
+          "origin": [
+            5.980000019073486,
+            1.4299999475479126,
+            -1.159999966621399
+          ]
+        },
+        {
+          "name": "ServiceDoorActionAnchor",
+          "origin": [
+            7.25,
+            0,
+            -1.159999966621399
+          ]
+        },
+        {
+          "name": "ServiceDoorApproachClearance",
+          "origin": [
+            6.800000190734863,
+            1.5,
+            -1.159999966621399
+          ]
+        },
+        {
+          "name": "ENTRANCE_nightclub_southside_corner_medium_v2_MAIN",
+          "origin": [
+            -3.049999952316284,
+            0,
+            4.199999809265137
+          ]
+        },
+        {
+          "name": "CANON_DOOR_020_DoorGlowPanel_FRAME_HEADER",
+          "origin": [
+            -3.049999952316284,
+            2.4649999141693115,
+            4.247499942779541
+          ]
+        },
+        {
+          "name": "CANON_DOOR_020_DoorGlowPanel_FRAME_SILL",
+          "origin": [
+            -3.049999952316284,
+            0.7950000166893005,
+            4.247499942779541
+          ]
+        },
+        {
+          "name": "CANON_DOOR_020_DoorGlowPanel_FRAME_JAMB.001",
+          "origin": [
+            -3.4700000286102295,
+            1.6299999952316284,
+            4.247499942779541
+          ]
+        },
+        {
+          "name": "CANON_DOOR_020_DoorGlowPanel_FRAME_JAMB",
+          "origin": [
+            -2.629999876022339,
+            1.6299999952316284,
+            4.247499942779541
+          ]
+        },
+        {
+          "name": "CANON_DOOR_020_DoorGlowPanel_DEEP_INTERIOR",
+          "origin": [
+            -3.049999952316284,
+            1.6299999952316284,
+            3.9599997997283936
+          ]
+        },
+        {
+          "name": "CANON_DOOR_020_DoorGlowPanel_WARM_SCONCE",
+          "origin": [
+            -3.049999952316284,
+            2.002000093460083,
+            4.059999942779541
+          ]
+        }
+      ],
+      "artAcceptance": "needs_visual_review",
+      "allowedScope": "isolated_rebuild_walk_preview",
+      "scale": 1,
+      "metresPerCell": 4.1,
+      "sourceHashVerified": true
+    }
+  ]
+}

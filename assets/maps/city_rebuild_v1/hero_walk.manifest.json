@@ -1,0 +1,18 @@
+{
+  "schema": "mafiozi.artist13.hero-walk/v1",
+  "source": "D:\\codex_release\\artist13_hero_first_DEV_20260907\\demo\\player_male.glb",
+  "sourceReleaseStatus": "LOCAL_THREE_SMOKE_PASS_USER_MOTION_REVIEW_PENDING_NOT_RELEASED",
+  "sourceReceipt": {
+    "path": "demo/player_male.glb",
+    "bytes": 652732,
+    "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00"
+  },
+  "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+  "bytes": 652732,
+  "url": "/assets/maps/city_rebuild_v1/hero_models/player_male.8130dfb1f7eb.glb",
+  "scope": "isolated_walk_preview",
+  "appearanceApproval": "User approved appearance combat-v6 per coordinator; release status preserved separately.",
+  "motion": "rest-relative locomotion adapted for walk preview; no combat or input handling",
+  "targetHeightM": 1.9,
+  "scalePolicy": "1.9 / actual glTF rest-pose Box3 height; preserve proportions"
+}

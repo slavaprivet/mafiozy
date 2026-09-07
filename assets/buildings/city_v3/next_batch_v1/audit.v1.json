@@ -1,0 +1,183 @@
+{
+  "schema": "mafiozi.city-v3-next-building-audit/v1",
+  "status": "ASSET_BATCH_READY_CORRECTED_STATIC_BINDINGS_PASS_RUNTIME_INACTIVE",
+  "registry_sha256": "079d45b10c4e7df5715be95a2b9632dc3baaff0892015f6016e55c250686f85c",
+  "bindings_candidate": {
+    "file": "bindings.candidate.v1.json",
+    "bytes": 13008,
+    "sha256": "7c1c3326d003743a95df83d44e978907e22716ab7dbd284bcc97b49c97a9a8e8",
+    "status": "CORRECTED_STATIC_SAT_PASS_RUNTIME_INACTIVE_LIVE_PROBE_REQUIRED",
+    "atomic_slice": ["gun_shop@1", "bookmaker@1", "strip_club@1"]
+  },
+  "scope": {
+    "head_commit": "5762a6a8f5fbef9172eefad770660abb7dc0520f",
+    "browser_opened": false,
+    "world_html_modified": false,
+    "three_preview_js_modified": false,
+    "legacy_suppressed": false
+  },
+  "topology_semantic_recheck": {
+    "status": "PASS",
+    "method": "Exact source comparison between the runtime-probe copy and current HEAD for every map/anchor/door primitive used by the independent SAT audit.",
+    "matching_sha256": {
+      "inRaceTrack": "32705006dec2ffd36a175fabcc6c7a4cf6aa9501019d1bc60ddb4e7d65d9ce55",
+      "eastNeighborhoodTile": "257ffa588f522b7b082ea9767032ba161328dbdb85778bb74fb1128937a79b0e",
+      "isParkBlock": "d81cb3eb507ac0c39c17962a596c17097970272ca20521c4deb3225af4ea98c7",
+      "buildMap": "8bbee98888c2f8f65088c0fde1a40e47106b4185659f0bd0b4be8f6b437aa693",
+      "residentBuildingDoors": "b402ee0d692b88f69ea9b322ba600ccec8286ff20da43704ba65ca5b2d5fb7cb",
+      "connectedBuildingParts": "f018134209f0ae246149bba5b3071aa84f87212098f51cbfd266510fbdf4d21d",
+      "npcEmpireHqBlocks": "9dfa7795b88bf55f358fa546f108a6b7926c8e5b3f2c9bc461483b5b09bc7f7b",
+      "banks": "f9518e72b203bca1fd2515c2c93b30c6faf4649efe46a249701ab0b3a8a25bd6",
+      "pois": "3b66f67b621574220723981267377b4a2b2b1844bab2e39aea777b609b255fdb",
+      "casinoTiles": "75ef175f6c9bcdf4f76c636463ba841f72eb72978bbbe6796dd2ce575ac88ab3",
+      "districts": "3281cf194c25b0ead059f1219fe0f3e44247fd60c4f12b8ce76ac2dba1c52939",
+      "businessPois": "37fc869907f8afd9ae7e52566ea6c965397fe23f0bb0c64e23dd01a89b3a80e3"
+    },
+    "snapshot_sat": {
+      "placements": 10,
+      "components": 40,
+      "tile_tests": 425,
+      "gameplay_anchor_tests": 2760,
+      "pair_shape_tests": 720,
+      "findings": 0
+    },
+    "meaning": "Road/water/rail/building/POI/police/red-bridge overlap conclusions remain semantically valid on current HEAD; this does not satisfy the separate exact whole-file apply hash gate."
+  },
+  "whole_file_apply_gate": {
+    "status": "BLOCKED",
+    "expected_world_sha256": "fd696f7a0ce54df6ea32554b632be3a8663b09e565854c0a798b3464986104a6",
+    "actual_world_sha256": "f0a9983364793143b169a290cec4972f1b7d4ec643c83482a1c99cdb3bd3d0e6",
+    "expected_three_preview_sha256": "f7f960312cb1ef2b85a990d411ea1a3051ec60f167a9c3cca8e97304aa4f02d6",
+    "actual_three_preview_sha256": "3f2cdf01defa5a5bf895f542ff9d759cb75b2fb4240fca996549a1bb17168fe6",
+    "reason": "The addendum explicitly requires exact hashes; semantic equivalence cannot waive that fail-closed rule."
+  },
+  "fresh_wrapper_package_review": {
+    "package_manifest_sha256": "a7a3065369aa44a6d8c8444a0ad73943fe178cc935db2b30f42838666fdf6141",
+    "package_audit_sha256": "9b1ab1b2b72cb9154e4a30726ee31246089f456557ef076a7dd2b6eb4f501416",
+    "art_and_rights_status": "PASS_FIVE_PROJECT_AUTHORED_WRAPPERS",
+    "current_accepted_loader_status": "BLOCKED",
+    "loader_key_gate": {
+      "accepted_keys": ["pawnshop@1", "print_shop@1"],
+      "other_keys_hard_fail": true,
+      "wrapper_schema_directly_accepted": false
+    },
+    "public_socket_recenter_error_cells": {
+      "gun_shop": 0.162535,
+      "bookmaker": 0.225797,
+      "strip_club": 0.17058,
+      "poker_club": 0.065218,
+      "chop_shop": 0.096829
+    },
+    "synthetic_service_socket_to_visible_door_error_cells": {
+      "gun_shop": 1.390942,
+      "bookmaker": 1.387257,
+      "strip_club": 0.995954,
+      "poker_club": 0.949564,
+      "chop_shop": 0.426637
+    },
+    "loader_derived_visible_service_anchor_rc": {
+      "gun_shop": [87.138243896, 18.986439012],
+      "bookmaker": [46.465048741, 46.94958539],
+      "strip_club": [97.084512266, 151.711536543],
+      "poker_club": [117.180292707, 171.665512155],
+      "chop_shop": [137.382634146, 109.704292711]
+    },
+    "reasons": [
+      "The wrapper package itself records snapshot_match_at_audit=false and requires a future hash gate.",
+      "SOCKET_PUBLIC_DOOR extras.anchor_rc copied the addendum's origin-based anchor, while the current accepted loader horizontally recenters the GLB.",
+      "SOCKET_SERVICE is a generated rear-center point rather than the actual visible service entrance in the accepted source art.",
+      "The wrapper collision nodes also preserve the superseded addendum door corridors, so they cannot replace the corrected candidate bindings."
+    ],
+    "decision": "Keep the exact frozen accepted GLBs for the corrected three-building slice. Treat all five fresh wrappers as negative-control art packages until their sockets/collisions are regenerated for the active loader contract."
+  },
+  "asset_ready": [
+    {
+      "key": "gun_shop@1",
+      "evidence": ["exact GLB bytes/SHA", "user_pass", "frozen", "accepted release set", "project generator without external imports"],
+      "placement_overlap": "PASS_CURRENT_HEAD_SEMANTIC",
+      "runtime": "CORRECTED_STATIC_BINDING_PASS_LIVE_RUNTIME_PROBE_REQUIRED"
+    },
+    {
+      "key": "bookmaker@1",
+      "evidence": ["exact GLB bytes/SHA", "user_pass", "frozen", "accepted release set", "project generator without external imports"],
+      "placement_overlap": "PASS_CURRENT_HEAD_SEMANTIC",
+      "runtime": "CORRECTED_STATIC_BINDING_PASS_LIVE_RUNTIME_PROBE_REQUIRED"
+    },
+    {
+      "key": "strip_club@1",
+      "evidence": ["exact GLB bytes/SHA", "user_pass", "accepted frozen release set", "project generator without external imports"],
+      "placement_overlap": "PASS_CURRENT_HEAD_SEMANTIC",
+      "runtime": "CORRECTED_STATIC_BINDING_PASS_LIVE_RUNTIME_PROBE_REQUIRED"
+    }
+  ],
+  "superseded_addendum_binding_defects": [
+    {
+      "key": "gun_shop@1",
+      "addendum_center_rc": [87.375, 17.75],
+      "addendum_yaw_deg": 0,
+      "exact_public_anchor_rc": [88.121756, 17.273171],
+      "declared_public_anchor_rc": [88.259, 17.360244],
+      "public_anchor_error_cells": 0.162535,
+      "exact_service_anchor_rc": [87.138244, 18.986439],
+      "declared_service_anchor_rc": [86.501112, 17.75],
+      "service_anchor_error_cells": 1.390942
+    },
+    {
+      "key": "bookmaker@1",
+      "addendum_center_rc": [47.75, 47.375],
+      "addendum_yaw_deg": 90,
+      "exact_public_anchor_rc": [48.330902, 48.039244],
+      "declared_public_anchor_rc": [48.272439, 48.257341],
+      "public_anchor_error_cells": 0.225797,
+      "exact_service_anchor_rc": [46.465049, 46.949585],
+      "declared_service_anchor_rc": [47.75, 46.426727],
+      "service_anchor_error_cells": 1.387256
+    },
+    {
+      "key": "strip_club@1",
+      "addendum_center_rc": [97.75, 150.75],
+      "addendum_yaw_deg": 0,
+      "exact_public_anchor_rc": [98.535732, 150.689878],
+      "declared_public_anchor_rc": [98.695366, 150.75],
+      "public_anchor_error_cells": 0.170581,
+      "exact_service_anchor_rc": [97.084512, 151.711537],
+      "declared_service_anchor_rc": [96.824951, 150.75],
+      "service_anchor_error_cells": 0.995954
+    }
+  ],
+  "corrected_candidate_validation": {
+    "status": "PASS_STATIC_ONLY",
+    "tests": 11,
+    "districts": ["southside", "industrial", "docklands"],
+    "legacy_structures": [
+      "legacy:procedural:80:10:85:15:89:19",
+      "legacy:procedural:40:40:45:45:49:49",
+      "legacy:procedural:90:150:95:150:99:153"
+    ],
+    "public_road_probes": ["runtime:road-tile:90:17", "runtime:road-tile:48:50", "runtime:road-tile:100:150"],
+    "service_road_probes": ["runtime:road-tile:87:20", "runtime:road-tile:43:46", "runtime:road-tile:100:153"],
+    "strip_club_service_route": "Authored side service door exits east to the c153 sidewalk, then turns south to road row100; it does not cross the neighboring c155-c158 building.",
+    "checks": [
+      "exact accepted GLB/sidecar bytes and SHA-256",
+      "project-generated provenance with no external sources",
+      "accepted release membership and public entrance authority",
+      "exact GLB service-door nodes",
+      "recentered public and service anchor transform",
+      "exact legacy structure, tile, door, and before-road identities",
+      "road/water/rail/streetlight/unaddressed-building/gameplay-anchor SAT",
+      "police and premium red bridge preservation",
+      "pairwise separation and no overlap with accepted pawnshop/print-shop slice",
+      "runtime inactive and no legacy suppression"
+    ]
+  },
+  "not_in_next_batch": [
+    {"key": "pawnshop@1", "status": "ALREADY_IN_EXPLICIT_PREVIEW_SLICE", "reason": "Current MAIN binding is authoritative; the all-10 addendum proposes a different duplicate placement."},
+    {"key": "print_shop@1", "status": "ALREADY_IN_EXPLICIT_PREVIEW_SLICE", "reason": "Current MAIN binding is authoritative; the all-10 addendum proposes a different duplicate placement."},
+    {"key": "civic_hall_landmark@1", "status": "BLOCKED", "reason": "Project-generated/hash-valid, but style gate is review_pending_candidate and the new placement lacks a current-HEAD runtime rebind/live review."},
+    {"key": "public_school@1", "status": "BLOCKED", "reason": "Source sidecar says art_review_pending and integration not_authorized."},
+    {"key": "hq@1", "status": "BLOCKED", "reason": "Frozen release GLB exists, but no exact-hash artist sidecar/generator provenance or exact public/service-door contract was found."},
+    {"key": "chop_shop@1", "status": "ART_WRAPPER_PASS_RUNTIME_BLOCKED", "reason": "Fresh project-authored wrapper is hashed and audited, but its copied origin-based socket/collision contract is incompatible with the current recentering loader; exact visible service-door route is not yet independently bound."},
+    {"key": "poker_club@1", "status": "ART_WRAPPER_PASS_RUNTIME_BLOCKED", "reason": "Fresh project-authored wrapper is hashed and audited, but its copied origin-based socket/collision contract is incompatible with the current recentering loader; exact visible service-door route is not yet independently bound."}
+  ],
+  "required_next_step": "After the rail handoff settles, capture a fresh current-runtime snapshot, re-run the corrected candidate SAT and one-tab focus probes, then integrate all three through one transactional loader. Suppress no legacy structure or door unless every GLB is visible and every preflight passes."
+}

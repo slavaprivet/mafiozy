@@ -1,0 +1,874 @@
+{
+  "schema": "mafiozi.civic-park-decor-registry/v1",
+  "revision": 1,
+  "status": "READY_STATIC_RUNTIME_WIRE_REQUIRED",
+  "activationPolicy": "explicit_local_preview_only_fail_closed",
+  "runtimeActivation": false,
+  "catalogGlbsShipped": false,
+  "catalogLayoutPlacementForbidden": true,
+  "hostThreePolicy": {
+    "secondThreeInstanceForbidden": true,
+    "threeInjectedByHost": true,
+    "gltfLoaderInjectedByHost": true,
+    "registryImportsThree": false
+  },
+  "rightsScope": {
+    "allowed": "internal_project_staging_only",
+    "publicRedistributionCleared": false,
+    "failClosedOutsideAllowedScope": true
+  },
+  "lodPolicy": {
+    "lod0": {
+      "recommendedMaxDistanceM": 22,
+      "role": "hero and close gameplay"
+    },
+    "lod1": {
+      "recommendedDistanceM": [
+        22,
+        55
+      ],
+      "role": "street-scale gameplay"
+    },
+    "lod2": {
+      "recommendedMinDistanceM": 55,
+      "role": "district silhouette"
+    },
+    "selectionOwnedByRuntime": true
+  },
+  "sourceEvidence": {
+    "source.asset.json": {
+      "url": "./source_evidence/source.asset.json",
+      "bytes": 27251,
+      "sha256": "95adcf92468cb789795a3573facc05aa7f282ab7152e37c92e9fd8d76de040d6"
+    },
+    "source.validation.json": {
+      "url": "./source_evidence/source.validation.json",
+      "bytes": 46072,
+      "sha256": "851ea5b08ad56a4563d1c132ebd4b9a01e91c578cde9645190bf294ae3d89d4f"
+    },
+    "source.sha256.json": {
+      "url": "./source_evidence/source.sha256.json",
+      "bytes": 8890,
+      "sha256": "49df626050b79d913da6d6a317f87abb3d096c891a9cb4b0625e4adf83108173"
+    },
+    "SOURCE_HANDOFF.md": {
+      "url": "./source_evidence/SOURCE_HANDOFF.md",
+      "bytes": 1648,
+      "sha256": "8004f4a65561b62a6ae729c3df313ccf4061d44b0d8066bf7af0233c03b2e404"
+    }
+  },
+  "sourceAudit": {
+    "url": "./SOURCE_AUDIT.v1.json",
+    "bytes": 16601,
+    "sha256": "2bcca592ab044b7d27123a121ef1c7e625ab575936a9a9b5b4f707c7bcd1b3b3"
+  },
+  "placementCandidate": {
+    "url": "./placement.candidate.v1.json",
+    "bytes": 29466,
+    "sha256": "cb8bb5f19991dd5e2e6222aaf3218f39d5466c675ead387309ff0ceca6995639"
+  },
+  "entries": [
+    {
+      "key": "fountain_central@2",
+      "assetId": "fountain_central",
+      "category": "fountain",
+      "footprintM": [
+        12.4,
+        12.4
+      ],
+      "clearanceM": [
+        13.2,
+        13.2,
+        2.6
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_FOUNTAIN_CENTRAL",
+        "CLEARANCE_FOUNTAIN_CENTRAL",
+        "COLLISION_FOUNTAIN_CENTRAL",
+        "WATER_SOCKET_FOUNTAIN_CENTRAL"
+      ],
+      "requiresAnimatedWaterSurface": true,
+      "requiresWaterJetSockets": true,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/fountain_central_lod0_v2.glb",
+          "bytes": 129052,
+          "sha256": "a0206f44910e910ef90367f07e40a27b680ab0bae2c57532bf9a718c7280343f",
+          "triangles": 7596
+        },
+        {
+          "lod": 1,
+          "url": "./models/fountain_central_lod1_v2.glb",
+          "bytes": 48656,
+          "sha256": "d1aef72399f74966ad6e69a523d9f94fc851cd320f6e543e8ba796aac7ac8681",
+          "triangles": 2564
+        },
+        {
+          "lod": 2,
+          "url": "./models/fountain_central_lod2_v2.glb",
+          "bytes": 19860,
+          "sha256": "4a85402edafdb292903b78e781d1d462a3a24891fe9a6b7b373497d7ed84410c",
+          "triangles": 812
+        }
+      ]
+    },
+    {
+      "key": "fountain_district@2",
+      "assetId": "fountain_district",
+      "category": "fountain",
+      "footprintM": [
+        8.4,
+        8.4
+      ],
+      "clearanceM": [
+        9.2,
+        9.2,
+        2.6
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_FOUNTAIN_DISTRICT",
+        "CLEARANCE_FOUNTAIN_DISTRICT",
+        "COLLISION_FOUNTAIN_DISTRICT",
+        "WATER_SOCKET_FOUNTAIN_DISTRICT"
+      ],
+      "requiresAnimatedWaterSurface": true,
+      "requiresWaterJetSockets": true,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/fountain_district_lod0_v2.glb",
+          "bytes": 110632,
+          "sha256": "3738605a3393f004759546d5517fc6ef4f50a2f4fe766e44d9faf4a8139d624e",
+          "triangles": 6224
+        },
+        {
+          "lod": 1,
+          "url": "./models/fountain_district_lod1_v2.glb",
+          "bytes": 43708,
+          "sha256": "ec544301e7d9af769eaf7978d630f88dd882331851fae9165dc3c3d54f00cbcf",
+          "triangles": 2232
+        },
+        {
+          "lod": 2,
+          "url": "./models/fountain_district_lod2_v2.glb",
+          "bytes": 22428,
+          "sha256": "27821bff31d9045015ee499680f6186fcff99b22b60fbbc9ad069f8ee378c401",
+          "triangles": 912
+        }
+      ]
+    },
+    {
+      "key": "fountain_park@2",
+      "assetId": "fountain_park",
+      "category": "fountain",
+      "footprintM": [
+        10.2,
+        8.6
+      ],
+      "clearanceM": [
+        11.0,
+        9.4,
+        2.6
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_FOUNTAIN_PARK",
+        "CLEARANCE_FOUNTAIN_PARK",
+        "COLLISION_FOUNTAIN_PARK",
+        "WATER_SOCKET_FOUNTAIN_PARK"
+      ],
+      "requiresAnimatedWaterSurface": true,
+      "requiresWaterJetSockets": true,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/fountain_park_lod0_v2.glb",
+          "bytes": 159504,
+          "sha256": "db15b5de2b8d041f8ab3123e7760d140292adaf6ef6bf0136e9d89f61c8eb037",
+          "triangles": 7236
+        },
+        {
+          "lod": 1,
+          "url": "./models/fountain_park_lod1_v2.glb",
+          "bytes": 44960,
+          "sha256": "28487ee1d66bc48013f8a4166bf218427f56f8e961a078bc71c6396a751ef36e",
+          "triangles": 1684
+        },
+        {
+          "lod": 2,
+          "url": "./models/fountain_park_lod2_v2.glb",
+          "bytes": 15228,
+          "sha256": "7ae121e4fb58d8f2baff6799908bd05c7000cc48dd3b0cb8bd2fa101578ac896",
+          "triangles": 324
+        }
+      ]
+    },
+    {
+      "key": "plaza_tile_4m@2",
+      "assetId": "plaza_tile_4m",
+      "category": "plaza_module",
+      "footprintM": [
+        4.0,
+        4.0
+      ],
+      "clearanceM": [
+        4.0,
+        4.0,
+        0.3
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PLAZA_TILE_4M",
+        "CLEARANCE_PLAZA_TILE_4M"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/plaza_tile_4m_lod0_v2.glb",
+          "bytes": 51564,
+          "sha256": "65ac2649d499e0fe25503a272742af2b70da769bb767a2484708f08b8c89c561",
+          "triangles": 900
+        },
+        {
+          "lod": 1,
+          "url": "./models/plaza_tile_4m_lod1_v2.glb",
+          "bytes": 7180,
+          "sha256": "5257d7d7cca16c14bc078080d4e457bb6b35a16259d25d246bfe46bd06c823f0",
+          "triangles": 108
+        },
+        {
+          "lod": 2,
+          "url": "./models/plaza_tile_4m_lod2_v2.glb",
+          "bytes": 3912,
+          "sha256": "2fb18054306de83ee56b9b595e589398a3eaaa0b0a04fdc4f98cab75a449f083",
+          "triangles": 44
+        }
+      ]
+    },
+    {
+      "key": "plaza_edge_straight_4m@2",
+      "assetId": "plaza_edge_straight_4m",
+      "category": "curb_module",
+      "footprintM": [
+        4.0,
+        0.45
+      ],
+      "clearanceM": [
+        4.2,
+        0.8,
+        0.5
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PLAZA_EDGE_STRAIGHT_4M",
+        "CLEARANCE_PLAZA_EDGE_STRAIGHT_4M",
+        "COLLISION_PLAZA_EDGE_STRAIGHT_4M"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/plaza_edge_straight_4m_lod0_v2.glb",
+          "bytes": 19160,
+          "sha256": "01522ad14f5439c411741f630177091b359b56b2cb0e0f76e1ddf465c699e70b",
+          "triangles": 312
+        },
+        {
+          "lod": 1,
+          "url": "./models/plaza_edge_straight_4m_lod1_v2.glb",
+          "bytes": 8792,
+          "sha256": "b860f63506d41839076ddf3acad0f25d5f3c98415757b91056c22d19e83ebdab",
+          "triangles": 120
+        },
+        {
+          "lod": 2,
+          "url": "./models/plaza_edge_straight_4m_lod2_v2.glb",
+          "bytes": 5524,
+          "sha256": "b9e4c6ff3b222226a57e1994645a5b2f3b8eae520e01e9181939c7a346012841",
+          "triangles": 56
+        }
+      ]
+    },
+    {
+      "key": "plaza_edge_corner_4m@2",
+      "assetId": "plaza_edge_corner_4m",
+      "category": "curb_module",
+      "footprintM": [
+        4.0,
+        4.0
+      ],
+      "clearanceM": [
+        4.2,
+        4.2,
+        0.5
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PLAZA_EDGE_CORNER_4M",
+        "CLEARANCE_PLAZA_EDGE_CORNER_4M",
+        "COLLISION_PLAZA_EDGE_CORNER_4M"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/plaza_edge_corner_4m_lod0_v2.glb",
+          "bytes": 36040,
+          "sha256": "42ba0875e9819231aa3441d920d441e246314fc3b4e8b55766cd9798392ec780",
+          "triangles": 612
+        },
+        {
+          "lod": 1,
+          "url": "./models/plaza_edge_corner_4m_lod1_v2.glb",
+          "bytes": 15300,
+          "sha256": "d752c8796970666e6307a0325096ff60399361b6f694ade399ce14eb893008b5",
+          "triangles": 228
+        },
+        {
+          "lod": 2,
+          "url": "./models/plaza_edge_corner_4m_lod2_v2.glb",
+          "bytes": 8764,
+          "sha256": "11eb1da458cf18cc601ec91d9f9e68f07cd1a06ff18dc258e6dd4e011779bf36",
+          "triangles": 100
+        }
+      ]
+    },
+    {
+      "key": "planter_round@2",
+      "assetId": "planter_round",
+      "category": "planting",
+      "footprintM": [
+        1.5,
+        1.5
+      ],
+      "clearanceM": [
+        2.1,
+        2.1,
+        2.3
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PLANTER_ROUND",
+        "CLEARANCE_PLANTER_ROUND",
+        "COLLISION_PLANTER_ROUND"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/planter_round_lod0_v2.glb",
+          "bytes": 67788,
+          "sha256": "cf90d5772eb28218a64e0fcdc7866857b1f953be39fb1cfd7b95042ab57c1cad",
+          "triangles": 3448
+        },
+        {
+          "lod": 1,
+          "url": "./models/planter_round_lod1_v2.glb",
+          "bytes": 23196,
+          "sha256": "24870a5bb4c9ca667c2bba3e8955216229f6a4a95a4e5800398bb2551e8dc12e",
+          "triangles": 1016
+        },
+        {
+          "lod": 2,
+          "url": "./models/planter_round_lod2_v2.glb",
+          "bytes": 8976,
+          "sha256": "2d83fb996f718abcdb44ac019eb0d3a102c00e499063f34fe410e50fec62bbf9",
+          "triangles": 272
+        }
+      ]
+    },
+    {
+      "key": "planter_rect@2",
+      "assetId": "planter_rect",
+      "category": "planting",
+      "footprintM": [
+        2.5,
+        1.0
+      ],
+      "clearanceM": [
+        3.0,
+        1.6,
+        2.1
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PLANTER_RECT",
+        "CLEARANCE_PLANTER_RECT",
+        "COLLISION_PLANTER_RECT"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/planter_rect_lod0_v2.glb",
+          "bytes": 73440,
+          "sha256": "a47e617bc0dfea3865fde03f9feeac8f4b0fa5889a59fdcbda0cfa3b085b1bb7",
+          "triangles": 3192
+        },
+        {
+          "lod": 1,
+          "url": "./models/planter_rect_lod1_v2.glb",
+          "bytes": 23420,
+          "sha256": "e305d806574e8936e82260e0f56856a6d3ee59690962689bcea2aff04123c030",
+          "triangles": 840
+        },
+        {
+          "lod": 2,
+          "url": "./models/planter_rect_lod2_v2.glb",
+          "bytes": 8564,
+          "sha256": "ff39a074dc18873da4a24e8327aa535475005a21bfbe0a622fa273c7acdf56f3",
+          "triangles": 176
+        }
+      ]
+    },
+    {
+      "key": "bench_civic@2",
+      "assetId": "bench_civic",
+      "category": "seating",
+      "footprintM": [
+        2.4,
+        0.9
+      ],
+      "clearanceM": [
+        3.2,
+        2.1,
+        2.2
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_BENCH_CIVIC",
+        "CLEARANCE_BENCH_CIVIC",
+        "COLLISION_BENCH_CIVIC"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/bench_civic_lod0_v2.glb",
+          "bytes": 68200,
+          "sha256": "52e0e6a7d32620c651d986a8563d2551e52ce7ed292d0d3bee6a4c85cfb4a9d2",
+          "triangles": 1212
+        },
+        {
+          "lod": 1,
+          "url": "./models/bench_civic_lod1_v2.glb",
+          "bytes": 27876,
+          "sha256": "83de855700a952d824f24e617cd3f2f967b3a88c2399727f7b956d37c724e941",
+          "triangles": 444
+        },
+        {
+          "lod": 2,
+          "url": "./models/bench_civic_lod2_v2.glb",
+          "bytes": 8836,
+          "sha256": "a82811f5b9b3b243ef56e2cd25ee1ac4c7587f05aeee01878eadcb6c9e930b1f",
+          "triangles": 100
+        }
+      ]
+    },
+    {
+      "key": "bin_civic@2",
+      "assetId": "bin_civic",
+      "category": "waste",
+      "footprintM": [
+        0.7,
+        0.7
+      ],
+      "clearanceM": [
+        1.4,
+        1.4,
+        1.7
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_BIN_CIVIC",
+        "CLEARANCE_BIN_CIVIC",
+        "COLLISION_BIN_CIVIC"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/bin_civic_lod0_v2.glb",
+          "bytes": 37504,
+          "sha256": "327412e2446a34d5f0c02fb107fcd7532a28903cb1a94422614991eabd4b9fe8",
+          "triangles": 1376
+        },
+        {
+          "lod": 1,
+          "url": "./models/bin_civic_lod1_v2.glb",
+          "bytes": 12204,
+          "sha256": "29806183182dfab201800c69a1a0d29ee671e8b20030ce5ae83182f148c957f0",
+          "triangles": 532
+        },
+        {
+          "lod": 2,
+          "url": "./models/bin_civic_lod2_v2.glb",
+          "bytes": 8844,
+          "sha256": "e27019fcda4a0e98842cde4e8d4554302d6187fcaa669a1b24b4d2131826fb64",
+          "triangles": 260
+        }
+      ]
+    },
+    {
+      "key": "bike_rack_5@2",
+      "assetId": "bike_rack_5",
+      "category": "cycling",
+      "footprintM": [
+        3.2,
+        1.2
+      ],
+      "clearanceM": [
+        4.6,
+        3.0,
+        2.0
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_BIKE_RACK_5",
+        "CLEARANCE_BIKE_RACK_5",
+        "COLLISION_BIKE_RACK_5"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/bike_rack_5_lod0_v2.glb",
+          "bytes": 30936,
+          "sha256": "f1fe9b7f7c45922fe885cd92265dee9b9f96e5516dd8b2d9d32f599d5bc71bcd",
+          "triangles": 1932
+        },
+        {
+          "lod": 1,
+          "url": "./models/bike_rack_5_lod1_v2.glb",
+          "bytes": 14364,
+          "sha256": "f7d3db8458dca2444576945a2d966bca89ae0e2fe50194356392ef60ac5f8beb",
+          "triangles": 732
+        },
+        {
+          "lod": 2,
+          "url": "./models/bike_rack_5_lod2_v2.glb",
+          "bytes": 7968,
+          "sha256": "67ae2710b3f95b54632cfd96074be47383bc1724aec85102c17ca52cce042eb9",
+          "triangles": 300
+        }
+      ]
+    },
+    {
+      "key": "kiosk_civic@2",
+      "assetId": "kiosk_civic",
+      "category": "kiosk",
+      "footprintM": [
+        4.2,
+        3.0
+      ],
+      "clearanceM": [
+        5.4,
+        5.0,
+        3.6
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_KIOSK_CIVIC",
+        "CLEARANCE_KIOSK_CIVIC",
+        "COLLISION_KIOSK_CIVIC"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/kiosk_civic_lod0_v2.glb",
+          "bytes": 87364,
+          "sha256": "95a0925db0d7973b6bcfcb92961f60dae5759c4804e0d680bb732f10a40694f9",
+          "triangles": 1512
+        },
+        {
+          "lod": 1,
+          "url": "./models/kiosk_civic_lod1_v2.glb",
+          "bytes": 35516,
+          "sha256": "84e2fd91ff0abc4643eada411a06d80c0db30a7af0d539b171dec1b213b58dfa",
+          "triangles": 552
+        },
+        {
+          "lod": 2,
+          "url": "./models/kiosk_civic_lod2_v2.glb",
+          "bytes": 15488,
+          "sha256": "aa1ffeff2b10482bc9f1e394439bdd2c026f990ce7c9efc459fefe948f0af4f0",
+          "triangles": 188
+        }
+      ]
+    },
+    {
+      "key": "shelter_transit@2",
+      "assetId": "shelter_transit",
+      "category": "shelter",
+      "footprintM": [
+        6.2,
+        2.4
+      ],
+      "clearanceM": [
+        7.0,
+        4.2,
+        3.4
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_SHELTER_TRANSIT",
+        "CLEARANCE_SHELTER_TRANSIT",
+        "COLLISION_SHELTER_TRANSIT"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/shelter_transit_lod0_v2.glb",
+          "bytes": 102476,
+          "sha256": "a3b0534441826143d6253045b04fc63d9a1a0ad8fedab32a72072ce1443ff0ab",
+          "triangles": 1812
+        },
+        {
+          "lod": 1,
+          "url": "./models/shelter_transit_lod1_v2.glb",
+          "bytes": 34900,
+          "sha256": "cbc5b4f2c00cc279c2da88fb0cc000b9c87bd3f4741708df20e27800f14bb016",
+          "triangles": 552
+        },
+        {
+          "lod": 2,
+          "url": "./models/shelter_transit_lod2_v2.glb",
+          "bytes": 18948,
+          "sha256": "1bb8e05c4d434805097c651f26b96f6df9e2eaf4fb7a3923eb488365b35957b4",
+          "triangles": 232
+        }
+      ]
+    },
+    {
+      "key": "sign_ped_crossing@2",
+      "assetId": "sign_ped_crossing",
+      "category": "road_sign",
+      "footprintM": [
+        0.6,
+        0.6
+      ],
+      "clearanceM": [
+        1.4,
+        1.4,
+        3.4
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_SIGN_PED_CROSSING",
+        "CLEARANCE_SIGN_PED_CROSSING",
+        "COLLISION_SIGN_PED_CROSSING"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/sign_ped_crossing_lod0_v2.glb",
+          "bytes": 50756,
+          "sha256": "1a504c3190c9629481baac09695647f0a09d5a580f79dbb9a7465a875966bff7",
+          "triangles": 1288
+        },
+        {
+          "lod": 1,
+          "url": "./models/sign_ped_crossing_lod1_v2.glb",
+          "bytes": 15384,
+          "sha256": "0efdb67445a020ac162df6ea70934bf5eeb4aa7b519b615fecd35070b542a157",
+          "triangles": 404
+        },
+        {
+          "lod": 2,
+          "url": "./models/sign_ped_crossing_lod2_v2.glb",
+          "bytes": 9516,
+          "sha256": "72f4a78d63cd50ba5abc82a1ef831d753f483f922a2f1a970df4ca3f8797481e",
+          "triangles": 196
+        }
+      ]
+    },
+    {
+      "key": "sign_no_parking@2",
+      "assetId": "sign_no_parking",
+      "category": "road_sign",
+      "footprintM": [
+        0.6,
+        0.6
+      ],
+      "clearanceM": [
+        1.4,
+        1.4,
+        3.4
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_SIGN_NO_PARKING",
+        "CLEARANCE_SIGN_NO_PARKING",
+        "COLLISION_SIGN_NO_PARKING"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/sign_no_parking_lod0_v2.glb",
+          "bytes": 45300,
+          "sha256": "a3799a826d1002c3829537c893f35d97bf4eb9ddd77586b879cc5f245d0fe780",
+          "triangles": 1760
+        },
+        {
+          "lod": 1,
+          "url": "./models/sign_no_parking_lod1_v2.glb",
+          "bytes": 24176,
+          "sha256": "0bb53aa235f0ec36bc9168abd867c51e9c80d0ff5c1df33a47387e1a4bbbd1e0",
+          "triangles": 880
+        },
+        {
+          "lod": 2,
+          "url": "./models/sign_no_parking_lod2_v2.glb",
+          "bytes": 13608,
+          "sha256": "a27088df84865433d04c7e464c920c059ffd265a4d8a499b8ba7a94ab8704d75",
+          "triangles": 468
+        }
+      ]
+    },
+    {
+      "key": "sign_wayfinding@2",
+      "assetId": "sign_wayfinding",
+      "category": "road_sign",
+      "footprintM": [
+        1.8,
+        0.6
+      ],
+      "clearanceM": [
+        2.5,
+        1.4,
+        3.4
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_SIGN_WAYFINDING",
+        "CLEARANCE_SIGN_WAYFINDING",
+        "COLLISION_SIGN_WAYFINDING"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/sign_wayfinding_lod0_v2.glb",
+          "bytes": 85456,
+          "sha256": "b8d77696febe680fd190967e77a06c9686008449b16e1b265a2874aad2ed9137",
+          "triangles": 1512
+        },
+        {
+          "lod": 1,
+          "url": "./models/sign_wayfinding_lod1_v2.glb",
+          "bytes": 22288,
+          "sha256": "4eaaaf1775d69069a2fc952de1fa0557697baec03623bc3b57bd0d9a288767d5",
+          "triangles": 336
+        },
+        {
+          "lod": 2,
+          "url": "./models/sign_wayfinding_lod2_v2.glb",
+          "bytes": 12092,
+          "sha256": "f1564d6050a1c414b8bd58bb99771045c87a90cc2df617968d7c9db787e40862",
+          "triangles": 144
+        }
+      ]
+    },
+    {
+      "key": "ped_light_bollard@2",
+      "assetId": "ped_light_bollard",
+      "category": "pedestrian_light",
+      "footprintM": [
+        0.45,
+        0.45
+      ],
+      "clearanceM": [
+        1.2,
+        1.2,
+        1.8
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PED_LIGHT_BOLLARD",
+        "CLEARANCE_PED_LIGHT_BOLLARD",
+        "COLLISION_PED_LIGHT_BOLLARD"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/ped_light_bollard_lod0_v2.glb",
+          "bytes": 20588,
+          "sha256": "f01b1019a95539ef8e241f74be7a25f22f4358ed29a772d1cbe2a1fb842a8179",
+          "triangles": 1076
+        },
+        {
+          "lod": 1,
+          "url": "./models/ped_light_bollard_lod1_v2.glb",
+          "bytes": 12424,
+          "sha256": "998a973a99049f69af94637dea1e221f35d6e9fa69896caa34e3b8e3ce7a18b4",
+          "triangles": 532
+        },
+        {
+          "lod": 2,
+          "url": "./models/ped_light_bollard_lod2_v2.glb",
+          "bytes": 8096,
+          "sha256": "9db78419adfb9f62a39f08da1d9548bb851d439c3f8adb70934d7efd439fb9cf",
+          "triangles": 244
+        }
+      ]
+    },
+    {
+      "key": "ped_light_double@2",
+      "assetId": "ped_light_double",
+      "category": "pedestrian_light",
+      "footprintM": [
+        1.6,
+        0.5
+      ],
+      "clearanceM": [
+        2.4,
+        1.4,
+        3.1
+      ],
+      "requiredNodes": [
+        "PLACEMENT_SOCKET_PED_LIGHT_DOUBLE",
+        "CLEARANCE_PED_LIGHT_DOUBLE",
+        "COLLISION_PED_LIGHT_DOUBLE"
+      ],
+      "requiresAnimatedWaterSurface": false,
+      "requiresWaterJetSockets": false,
+      "lods": [
+        {
+          "lod": 0,
+          "url": "./models/ped_light_double_lod0_v2.glb",
+          "bytes": 61660,
+          "sha256": "8fc891d9fac83a8002dfc7e9426cf2e55189cfe3e05ccb46175f1e94aef400e5",
+          "triangles": 1420
+        },
+        {
+          "lod": 1,
+          "url": "./models/ped_light_double_lod1_v2.glb",
+          "bytes": 26808,
+          "sha256": "9930a956e1b17a4c87ade9a30ebe4869c81b1b9f554866cad0185add30e87448",
+          "triangles": 572
+        },
+        {
+          "lod": 2,
+          "url": "./models/ped_light_double_lod2_v2.glb",
+          "bytes": 14788,
+          "sha256": "dcccda935ce70e2423edd0c169458990c45fd251bf4e4c9a1f520d83d3c3deea",
+          "triangles": 236
+        }
+      ]
+    }
+  ],
+  "runtimeGate": {
+    "directVersionedKeyOnly": true,
+    "requiredRightsScope": "internal_project_staging_only",
+    "allFilesHashValidatedBeforeAtomicAttach": true,
+    "liveMaskPreflightRequired": true,
+    "liveWalkQaRequired": true,
+    "failureLeavesSceneAndGameplayUnchanged": true
+  }
+}

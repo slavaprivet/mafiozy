@@ -1,0 +1,22 @@
+{
+  "asset_id": "business_skin.artist14.gun_shop.v1",
+  "operation_type": "gun_shop",
+  "display_name": "Owner-neutral fortified gun shop",
+  "front_axis": "-Y",
+  "unit_scale_m": 1.0,
+  "owner_branding": "dynamic_not_baked",
+  "art_direction": "mid-century American crime city, Art-Deco/noir",
+  "authored_features": [
+    "long low fortified retail silhouette",
+    "offset stepped Art-Deco entrance tower",
+    "controlled smoked display bays with weapon racks",
+    "neutral crossed-rifle and target motifs",
+    "armored delivery shutter, loading ramp and security cage",
+    "roof clerestories, heavy exhausts, HVAC and radio mast"
+  ],
+  "integration_status": "art_only_not_integrated",
+  "review_status": "user_pass",
+  "frozen": true,
+  "source": "gun_shop_artist14_v1.blend",
+  "runtime": "gun_shop_artist14_v1.glb"
+}

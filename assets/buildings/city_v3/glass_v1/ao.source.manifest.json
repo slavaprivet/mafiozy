@@ -1,0 +1,64 @@
+{
+  "schema": "mafiozi.galleria-runtime-fidelity-candidate/v1",
+  "status": "PASS_RUNTIME_FIDELITY_CANDIDATE_NOT_APPLIED",
+  "purpose": "Restore approved GALLERIA contact depth in Three.js without runtime SSAO by embedding low-cost static AO in standard glTF 2.0.",
+  "source": {
+    "path": "C:\\Users\\Слава\\Documents\\Codex\\2026-09-05\\mafiozy-architect-shops-replacement\\outputs\\glass_buildings_smooth_clay_v1\\glass_pavilion_small_v1\\glass_pavilion_small_v1.glb",
+    "bytes": 2108880,
+    "sha256": "0dfd79a8d670568aa4aa572ea13fd2584abfaaaed2df1f574ca7b7fcd15ef33c"
+  },
+  "deliverable": {
+    "path": "glass_pavilion_small_v1_runtime_ao_v1.glb",
+    "bytes": 3773048,
+    "sha256": "ecae5f97bd53e9466bea3a520ec95a58ecacd7a232fbde902de0a1a7d4672873"
+  },
+  "ao_texture": {
+    "path": "textures\\galleria_runtime_ao_v1.png",
+    "bytes": 577360,
+    "sha256": "db5173358ae98b7fe2b3dc0122e0960e881c9e8469bb587592fb4338d3c17859"
+  },
+  "editable_source": {
+    "path": "source\\galleria_runtime_ao_v1.blend",
+    "bytes": 1356274,
+    "sha256": "6c8a923024667c8c100d25794289050015ecebb7900fa8f319de1f8b1ead74b4"
+  },
+  "build_record": {
+    "path": "galleria_runtime_ao_v1.build.json",
+    "bytes": 4440,
+    "sha256": "2ff18bab84f3b95ffe1b8d43f3ab07c62265f2dbf48796660e7f97c3f5e8bd81"
+  },
+  "validation": {
+    "path": "galleria_runtime_ao_v1.validation.json",
+    "bytes": 4121,
+    "sha256": "9bb42f758605d1607aa30e260c7f3d0e986418b3f2ef2d649c3af9d743f78923"
+  },
+  "three_gltfloader_probe": {
+    "path": "three_gltfloader_0.180_probe.json",
+    "bytes": 3342,
+    "sha256": "f1ceef6ed170550750ce5e441fdcb49f2111d1e448898919df67b01054b7d318"
+  },
+  "proofs_without_runtime_ssao": [
+    {
+      "path": "proofs\\galleria_runtime_ao_day_no_ssao.png",
+      "bytes": 775443,
+      "sha256": "453a0cb99eb63b019f95e2097936283fd52a461dd8aa45c4a5502ded0ef83c1a"
+    },
+    {
+      "path": "proofs\\galleria_runtime_ao_game_camera_no_ssao.png",
+      "bytes": 781733,
+      "sha256": "3c30605ae1e42c283dbeb28aa927a2a672a7a7bb0e4663f010a6a60fc3b7ca54"
+    }
+  ],
+  "loader_contract": {
+    "target": "Three.js 0.180 GLTFLoader",
+    "feature": "core material.occlusionTexture",
+    "runtime_shader_or_renderer_change_required": false,
+    "extra_draw_calls": 0,
+    "extra_texture_images": 1,
+    "texture_resolution": [
+      2048,
+      2048
+    ]
+  },
+  "not_applied": true
+}
