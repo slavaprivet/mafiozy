@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createStableEntryLights} from './stable_entry_lights.mjs';
+const THREE=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
+const scene=new THREE.Scene(),building=new THREE.Group(),room=new THREE.Group();scene.add(building);building.add(room);building.position.set(5,2,-10);building.rotation.y=.9;
+const source=new THREE.PointLight('#ffd2a0',6,7,2);source.position.set(1,2,3);room.add(source);
+scene.updateMatrixWorld(true);const point=source.getWorldPosition(new THREE.Vector3()),mask=source.layers.mask;
+const pool=createStableEntryLights(THREE,[{object:room}],scene),slot=scene.getObjectByName('Stable_Entry_Light_Slots').children[0];
+assert(slot.position.distanceTo(point)<1e-10);assert.equal(slot.intensity,6);assert.equal(slot.distance,7);assert.equal(slot.decay,2);assert.equal(slot.color.getHex(),source.color.getHex());assert.equal(source.layers.mask,0);assert.equal(source.parent,room);
+building.visible=false;pool.update();assert.equal(slot.intensity,0);assert(slot.visible);assert.equal(source.intensity,6);
+building.visible=true;source.intensity=9;source.color.set('red');pool.update();assert.equal(slot.intensity,9);assert.equal(slot.color.getHex(),source.color.getHex());
+source.visible=false;pool.update();assert.equal(slot.intensity,0);pool.dispose();assert.equal(source.layers.mask,mask);assert.equal(source.parent,room);assert(!scene.getObjectByName('Stable_Entry_Light_Slots'));
+console.log('PASS stable slots preserve exact source light, ancestor culling, edits, ownership and disposal');

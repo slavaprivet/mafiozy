@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createBlastScorch} from './blast_scorch.mjs';
+const T=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
+const scene=new T.Scene(),parent=new T.Group();parent.position.set(4,2,-7);parent.rotation.set(.2,.6,.3);parent.scale.set(2,.7,1.3);scene.add(parent);
+const panel=new T.Mesh(new T.PlaneGeometry(1,1),new T.MeshStandardMaterial({side:T.DoubleSide}));panel.position.set(1,0,0);parent.add(panel);scene.updateMatrixWorld(true);
+const original=panel.geometry.attributes.position.array.slice(),point=panel.localToWorld(new T.Vector3()),normal=new T.Vector3(0,0,1).applyMatrix3(new T.Matrix3().getNormalMatrix(panel.matrixWorld)).normalize(),fx=createBlastScorch(T,scene),payload={hit:{object:panel,face:{materialIndex:0}},point,normal,damage:140,falloff:.8};
+assert(fx.hit(payload));const mark=panel.children[0];scene.updateMatrixWorld(true);const center=mark.getWorldPosition(new T.Vector3());assert(center.distanceTo(point.clone().addScaledVector(normal,.003))<1e-7,'world point preserved under scaled rotated parent');
+const p=mark.geometry.attributes.position,local=new T.Vector3(),inverse=panel.matrixWorld.clone().invert();for(let i=0;i<p.count;i++){local.fromBufferAttribute(p,i).applyMatrix4(mark.matrixWorld).applyMatrix4(inverse);assert(Math.abs(local.x)<=.5001&&Math.abs(local.y)<=.5001,'patch stays within panel edge');assert(Math.abs(local.z)<.01)}
+for(let i=0;i<100;i++)assert(fx.hit(payload));assert.equal(fx.stats().active,32);assert.equal(panel.children.length,32);assert.equal(fx.stats().total,101);assert.deepEqual(panel.geometry.attributes.position.array,original);
+const transparent=new T.Mesh(new T.PlaneGeometry(),new T.MeshStandardMaterial({transparent:true}));scene.add(transparent);assert.equal(fx.hit({...payload,hit:{object:transparent}}),false);
+let freed=0,materials=0;for(const entry of panel.children)entry.geometry.addEventListener('dispose',()=>freed++);mark.material.addEventListener('dispose',()=>materials++);fx.reset();assert.equal(fx.stats().active,0);assert.equal(panel.children.length,0);assert(fx.hit(payload));fx.dispose();fx.dispose();assert.equal(freed,32);assert.equal(materials,1);assert.equal(fx.stats().active,0);assert.equal(fx.hit(payload),false);console.log('PASS scorch transformed parent, conformed/clipped patch, 32-slot reuse, transparent rejection, source unchanged, reset/dispose');

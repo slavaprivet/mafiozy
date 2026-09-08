@@ -1,0 +1,964 @@
+{
+  "schema": "mafiozi.city-rebuild.bank-shells/v1",
+  "status": "BASIC_EMPTY_PREVIEW_SHELLS_REQUIRES_LIVE_QA",
+  "scope": "walk_same_scene_rooms_not_gameplay_activation",
+  "units": "metres",
+  "upAxis": "Y",
+  "frontAxis": "+Z",
+  "entries": [
+    {
+      "assetId": "bank_small_shell_v1",
+      "canonicalGameplayId": "bank:small",
+      "gameplayActive": false,
+      "artAcceptance": "basic_empty_shell_needs_visual_review",
+      "role": "bank",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/bank_shells/bank_small_shell_v1.glb",
+        "sha256": "ba3580e4549cf1cce5ceea826aad62158118271a2dbacf23723da7bc33664aab",
+        "bytes": 7740
+      },
+      "visualBounds": {
+        "min": [
+          -9.5,
+          -0.1,
+          -7.5
+        ],
+        "max": [
+          9.5,
+          4.98,
+          7.52
+        ]
+      },
+      "dimensionsXYZ": [
+        19,
+        5.08,
+        15.02
+      ],
+      "recenterXYZ": [
+        0,
+        0,
+        0
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0.1,
+        7.15
+      ],
+      "publicDoorEvidence": "authored Bank_Door_L/R bottom midpoint",
+      "frontSign": 1,
+      "hideNodeNames": [],
+      "roomProfile": {
+        "source": "Authored empty bank shell; clear ground-floor hall",
+        "bounds": [
+          -9.3,
+          -7.3,
+          9.3,
+          7.3
+        ],
+        "inset": 0.3
+      },
+      "doorProfile": {
+        "leaves": [
+          "Bank_Door_L",
+          "Bank_Door_R"
+        ],
+        "detailNames": [
+          "Bank_Handle_L",
+          "Bank_Handle_R"
+        ],
+        "outward": 1,
+        "floor": 0.1,
+        "roomHalfWidth": 9,
+        "roomDepth": 14,
+        "roomHeight": 4.5
+      },
+      "clearRoom": {
+        "width": 18,
+        "depth": 14,
+        "height": 4.5,
+        "floorY": 0.1
+      },
+      "doorBounds": {
+        "min": [
+          -1.41,
+          0.1,
+          7.085
+        ],
+        "max": [
+          1.41,
+          3.1,
+          7.215000000000001
+        ]
+      },
+      "layout": {
+        "source": "world.html _BINT/_isBlockedBankInterior and three_preview.js bank renderer",
+        "sourceConfig": {
+          "W": 28,
+          "H": 24,
+          "counterRow": 15
+        },
+        "sourceVault": {
+          "width": 7,
+          "depth": 13
+        },
+        "mapping": "Lobby grid linearly mapped into authored hall. Rear divisions at .38/.62 width and counterRow-4; separate source vault scene nested in rear central strip, its depth compressed to .60*archRow. Continuous open 2.10m doorway; no teleport or gameplay activation.",
+        "wallCoordinateSpace": "original GLB visual local metres",
+        "wallRects": [
+          {
+            "name": "Bank_Partition_Arch_0",
+            "rect": [
+              -9,
+              -0.7033333333333339,
+              -7.4268,
+              -0.46333333333333393
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_1",
+            "rect": [
+              -5.883942857142857,
+              -0.7033333333333339,
+              -1.9285714285714288,
+              -0.46333333333333393
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_2",
+            "rect": [
+              1.928571428571427,
+              -0.7033333333333339,
+              2.449285714285713,
+              -0.46333333333333393
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_End",
+            "rect": [
+              3.992142857142859,
+              -0.7033333333333339,
+              9,
+              -0.46333333333333393
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Security",
+            "rect": [
+              -2.2800000000000002,
+              -7,
+              -2.04,
+              -0.5833333333333339
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Security_Lounge",
+            "rect": [
+              2.04,
+              -7,
+              2.2800000000000002,
+              -0.5833333333333339
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Rear_L",
+            "rect": [
+              -9,
+              -4.203333333333333,
+              -6.0860571428571415,
+              -3.963333333333333
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Rear_R",
+            "rect": [
+              -4.800342857142857,
+              -4.203333333333333,
+              -2.16,
+              -3.963333333333333
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Lounge_Rear_L",
+            "rect": [
+              2.16,
+              -3.62,
+              4.937142857142856,
+              -3.38
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Lounge_Rear_R",
+            "rect": [
+              6.222857142857144,
+              -3.62,
+              9,
+              -3.38
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Vault_Front_L",
+            "rect": [
+              -2.16,
+              -3.2700000000000005,
+              -1.049999999999999,
+              -3.0300000000000002
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Vault_Front_R",
+            "rect": [
+              1.0500000000000007,
+              -3.2700000000000005,
+              2.16,
+              -3.0300000000000002
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          }
+        ],
+        "roomLabels": [
+          {
+            "id": "public_lobby",
+            "label": "Операционный зал",
+            "center": [
+              0,
+              0.1,
+              3.208333333333332
+            ]
+          },
+          {
+            "id": "staff_office",
+            "label": "Персонал",
+            "center": [
+              -5.58,
+              0.1,
+              -2.333333333333334
+            ]
+          },
+          {
+            "id": "archive_manager",
+            "label": "Кабинет / архив",
+            "center": [
+              -5.58,
+              0.1,
+              -5.541666666666666
+            ]
+          },
+          {
+            "id": "security_approach",
+            "label": "Доступ к хранилищу",
+            "center": [
+              0,
+              0.1,
+              -1.8666666666666663
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Хранилище",
+            "center": [
+              0,
+              0.1,
+              -5.075
+            ]
+          },
+          {
+            "id": "staff_lounge",
+            "label": "Комната отдыха",
+            "center": [
+              5.579999999999998,
+              0.1,
+              -2.041666666666666
+            ]
+          },
+          {
+            "id": "meeting_room",
+            "label": "Переговорная",
+            "center": [
+              5.579999999999998,
+              0.1,
+              -5.25
+            ]
+          }
+        ],
+        "vault": {
+          "rect": [
+            -2.04,
+            -7,
+            2.04,
+            -3.2700000000000005
+          ],
+          "doorway": {
+            "center": [
+              0,
+              0.1,
+              -3.1500000000000004
+            ],
+            "width": 2.1,
+            "height": 3
+          }
+        },
+        "archRowM": -0.5833333333333339,
+        "furnitureDeferred": true
+      }
+    },
+    {
+      "assetId": "bank_medium_shell_v1",
+      "canonicalGameplayId": "bank:medium",
+      "gameplayActive": false,
+      "artAcceptance": "basic_empty_shell_needs_visual_review",
+      "role": "bank",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/bank_shells/bank_medium_shell_v1.glb",
+        "sha256": "97d92c7b3aee62d353e74566d262dce887d44f0c692c7b8efd696087df5965fc",
+        "bytes": 7640
+      },
+      "visualBounds": {
+        "min": [
+          -13.5,
+          -0.1,
+          -10.5
+        ],
+        "max": [
+          13.5,
+          4.98,
+          10.520000000000001
+        ]
+      },
+      "dimensionsXYZ": [
+        27,
+        5.08,
+        21.020000000000003
+      ],
+      "recenterXYZ": [
+        0,
+        0,
+        0
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0.1,
+        10.15
+      ],
+      "publicDoorEvidence": "authored Bank_Door_L/R bottom midpoint",
+      "frontSign": 1,
+      "hideNodeNames": [],
+      "roomProfile": {
+        "source": "Authored empty bank shell; clear ground-floor hall",
+        "bounds": [
+          -13.3,
+          -10.3,
+          13.3,
+          10.3
+        ],
+        "inset": 0.3
+      },
+      "doorProfile": {
+        "leaves": [
+          "Bank_Door_L",
+          "Bank_Door_R"
+        ],
+        "detailNames": [
+          "Bank_Handle_L",
+          "Bank_Handle_R"
+        ],
+        "outward": 1,
+        "floor": 0.1,
+        "roomHalfWidth": 13,
+        "roomDepth": 20,
+        "roomHeight": 4.5
+      },
+      "clearRoom": {
+        "width": 26,
+        "depth": 20,
+        "height": 4.5,
+        "floorY": 0.1
+      },
+      "doorBounds": {
+        "min": [
+          -1.41,
+          0.1,
+          10.085
+        ],
+        "max": [
+          1.41,
+          3.1,
+          10.215
+        ]
+      },
+      "layout": {
+        "source": "world.html _BINT/_isBlockedBankInterior and three_preview.js bank renderer",
+        "sourceConfig": {
+          "W": 36,
+          "H": 30,
+          "counterRow": 19
+        },
+        "sourceVault": {
+          "width": 9,
+          "depth": 16
+        },
+        "mapping": "Lobby grid linearly mapped into authored hall. Rear divisions at .38/.62 width and counterRow-4; separate source vault scene nested in rear central strip, its depth compressed to .60*archRow. Continuous open 2.10m doorway; no teleport or gameplay activation.",
+        "wallCoordinateSpace": "original GLB visual local metres",
+        "wallRects": [
+          {
+            "name": "Bank_Partition_Arch_0",
+            "rect": [
+              -13,
+              -0.12,
+              -10.7276,
+              0.12
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_1",
+            "rect": [
+              -8.994266666666666,
+              -0.12,
+              -2.166666666666666,
+              0.12
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_2",
+            "rect": [
+              2.166666666666668,
+              -0.12,
+              3.4450000000000003,
+              0.12
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_End",
+            "rect": [
+              5.178333333333335,
+              -0.12,
+              13,
+              0.12
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Security",
+            "rect": [
+              -3.2399999999999993,
+              -10,
+              -2.999999999999999,
+              0
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Security_Lounge",
+            "rect": [
+              3.000000000000001,
+              -10,
+              3.240000000000001,
+              0
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Rear_L",
+            "rect": [
+              -13,
+              -4.786666666666667,
+              -8.584622222222222,
+              -4.546666666666667
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Rear_R",
+            "rect": [
+              -7.140177777777778,
+              -4.786666666666667,
+              -3.119999999999999,
+              -4.546666666666667
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Lounge_Rear_L",
+            "rect": [
+              3.120000000000001,
+              -4.786666666666667,
+              7.337777777777777,
+              -4.546666666666667
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Lounge_Rear_R",
+            "rect": [
+              8.78222222222222,
+              -4.786666666666667,
+              13,
+              -4.546666666666667
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Vault_Front_L",
+            "rect": [
+              -3.119999999999999,
+              -4.12,
+              -1.0500000000000007,
+              -3.88
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Vault_Front_R",
+            "rect": [
+              1.049999999999999,
+              -4.12,
+              3.120000000000001,
+              -3.88
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          }
+        ],
+        "roomLabels": [
+          {
+            "id": "public_lobby",
+            "label": "Операционный зал",
+            "center": [
+              0,
+              0.1,
+              5
+            ]
+          },
+          {
+            "id": "staff_office",
+            "label": "Персонал",
+            "center": [
+              -8.059999999999999,
+              0.1,
+              -2.333333333333333
+            ]
+          },
+          {
+            "id": "archive_manager",
+            "label": "Кабинет / архив",
+            "center": [
+              -8.059999999999999,
+              0.1,
+              -7.333333333333334
+            ]
+          },
+          {
+            "id": "security_approach",
+            "label": "Доступ к хранилищу",
+            "center": [
+              0,
+              0.1,
+              -2
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Хранилище",
+            "center": [
+              0,
+              0.1,
+              -7
+            ]
+          },
+          {
+            "id": "staff_lounge",
+            "label": "Комната отдыха",
+            "center": [
+              8.060000000000002,
+              0.1,
+              -2.333333333333333
+            ]
+          },
+          {
+            "id": "meeting_room",
+            "label": "Переговорная",
+            "center": [
+              8.060000000000002,
+              0.1,
+              -7.333333333333334
+            ]
+          }
+        ],
+        "vault": {
+          "rect": [
+            -2.999999999999999,
+            -10,
+            3.000000000000001,
+            -4.12
+          ],
+          "doorway": {
+            "center": [
+              0,
+              0.1,
+              -4
+            ],
+            "width": 2.1,
+            "height": 3
+          }
+        },
+        "archRowM": 0,
+        "furnitureDeferred": true
+      }
+    },
+    {
+      "assetId": "bank_large_shell_v1",
+      "canonicalGameplayId": "bank:large",
+      "gameplayActive": false,
+      "artAcceptance": "basic_empty_shell_needs_visual_review",
+      "role": "bank",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/bank_shells/bank_large_shell_v1.glb",
+        "sha256": "8902684ddc01ff119cb18221ae3853cc78301ae65256c5e69e383549709c1789",
+        "bytes": 7848
+      },
+      "visualBounds": {
+        "min": [
+          -17.5,
+          -0.1,
+          -13.5
+        ],
+        "max": [
+          17.5,
+          4.98,
+          13.520000000000001
+        ]
+      },
+      "dimensionsXYZ": [
+        35,
+        5.08,
+        27.020000000000003
+      ],
+      "recenterXYZ": [
+        0,
+        0,
+        0
+      ],
+      "publicDoorLocalXYZ": [
+        0,
+        0.1,
+        13.15
+      ],
+      "publicDoorEvidence": "authored Bank_Door_L/R bottom midpoint",
+      "frontSign": 1,
+      "hideNodeNames": [],
+      "roomProfile": {
+        "source": "Authored empty bank shell; clear ground-floor hall",
+        "bounds": [
+          -17.3,
+          -13.3,
+          17.3,
+          13.3
+        ],
+        "inset": 0.3
+      },
+      "doorProfile": {
+        "leaves": [
+          "Bank_Door_L",
+          "Bank_Door_R"
+        ],
+        "detailNames": [
+          "Bank_Handle_L",
+          "Bank_Handle_R"
+        ],
+        "outward": 1,
+        "floor": 0.1,
+        "roomHalfWidth": 17,
+        "roomDepth": 26,
+        "roomHeight": 4.5
+      },
+      "clearRoom": {
+        "width": 34,
+        "depth": 26,
+        "height": 4.5,
+        "floorY": 0.1
+      },
+      "doorBounds": {
+        "min": [
+          -1.41,
+          0.1,
+          13.085
+        ],
+        "max": [
+          1.41,
+          3.1,
+          13.215
+        ]
+      },
+      "layout": {
+        "source": "world.html _BINT/_isBlockedBankInterior and three_preview.js bank renderer",
+        "sourceConfig": {
+          "W": 44,
+          "H": 36,
+          "counterRow": 23
+        },
+        "sourceVault": {
+          "width": 11,
+          "depth": 19
+        },
+        "mapping": "Lobby grid linearly mapped into authored hall. Rear divisions at .38/.62 width and counterRow-4; separate source vault scene nested in rear central strip, its depth compressed to .60*archRow. Continuous open 2.10m doorway; no teleport or gameplay activation.",
+        "wallCoordinateSpace": "original GLB visual local metres",
+        "wallRects": [
+          {
+            "name": "Bank_Partition_Arch_0",
+            "rect": [
+              -17,
+              0.6022222222222232,
+              -14.028400000000001,
+              0.8422222222222232
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_1",
+            "rect": [
+              -12.173854545454546,
+              0.6022222222222232,
+              -2.3181818181818183,
+              0.8422222222222232
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_2",
+            "rect": [
+              2.31818181818182,
+              0.6022222222222232,
+              4.4277272727272745,
+              0.8422222222222232
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Arch_End",
+            "rect": [
+              6.28227272727273,
+              0.6022222222222232,
+              17,
+              0.8422222222222232
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Security",
+            "rect": [
+              -4.200000000000002,
+              -13,
+              -3.9600000000000017,
+              0.7222222222222232
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Security_Lounge",
+            "rect": [
+              3.959999999999998,
+              -13,
+              4.199999999999998,
+              0.7222222222222232
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Rear_L",
+            "rect": [
+              -17,
+              -5.897777777777778,
+              -11.054327272727274,
+              -5.657777777777778
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Staff_Rear_R",
+            "rect": [
+              -9.508872727272728,
+              -5.897777777777778,
+              -4.080000000000002,
+              -5.657777777777778
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Lounge_Rear_L",
+            "rect": [
+              4.079999999999998,
+              -5.1755555555555555,
+              9.767272727272726,
+              -4.935555555555555
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Partition_Lounge_Rear_R",
+            "rect": [
+              11.312727272727273,
+              -5.1755555555555555,
+              17,
+              -4.935555555555555
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Vault_Front_L",
+            "rect": [
+              -4.080000000000002,
+              -4.886666666666668,
+              -1.0500000000000007,
+              -4.646666666666667
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          },
+          {
+            "name": "Bank_Vault_Front_R",
+            "rect": [
+              1.0500000000000007,
+              -4.886666666666668,
+              4.079999999999998,
+              -4.646666666666667
+            ],
+            "minY": 0.1,
+            "maxY": 4.6
+          }
+        ],
+        "roomLabels": [
+          {
+            "id": "public_lobby",
+            "label": "Операционный зал",
+            "center": [
+              0,
+              0.1,
+              6.861111111111111
+            ]
+          },
+          {
+            "id": "staff_office",
+            "label": "Персонал",
+            "center": [
+              -10.540000000000001,
+              0.1,
+              -2.527777777777777
+            ]
+          },
+          {
+            "id": "archive_manager",
+            "label": "Кабинет / архив",
+            "center": [
+              -10.540000000000001,
+              0.1,
+              -9.38888888888889
+            ]
+          },
+          {
+            "id": "security_approach",
+            "label": "Доступ к хранилищу",
+            "center": [
+              0,
+              0.1,
+              -2.022222222222222
+            ]
+          },
+          {
+            "id": "vault",
+            "label": "Хранилище",
+            "center": [
+              0,
+              0.1,
+              -8.883333333333333
+            ]
+          },
+          {
+            "id": "staff_lounge",
+            "label": "Комната отдыха",
+            "center": [
+              10.540000000000003,
+              0.1,
+              -2.166666666666666
+            ]
+          },
+          {
+            "id": "meeting_room",
+            "label": "Переговорная",
+            "center": [
+              10.540000000000003,
+              0.1,
+              -9.027777777777779
+            ]
+          }
+        ],
+        "vault": {
+          "rect": [
+            -3.9600000000000017,
+            -13,
+            3.959999999999998,
+            -4.886666666666668
+          ],
+          "doorway": {
+            "center": [
+              0,
+              0.1,
+              -4.7666666666666675
+            ],
+            "width": 2.1,
+            "height": 3
+          }
+        },
+        "archRowM": 0.7222222222222232,
+        "furnitureDeferred": true
+      }
+    }
+  ]
+}

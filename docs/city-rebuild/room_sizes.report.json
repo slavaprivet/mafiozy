@@ -1,0 +1,1300 @@
+[
+  {
+    "id": "REBUILD-VISUAL-hospital-001",
+    "assetId": "hospital",
+    "label": "Больница, основной этаж",
+    "scale": [
+      1.3636362636363635,
+      1.3636362636363635
+    ],
+    "targetScale": [
+      1.9,
+      1.9
+    ],
+    "areaMultiplier": 1.8595038595041418,
+    "movedMetres": 0,
+    "preserveOriginalYard": true,
+    "roomWidthM": 17.86,
+    "roomDepthM": 16.23,
+    "roomAreaM2": 289.88
+  },
+  {
+    "id": "REBUILD-VISUAL-civic_hall-001",
+    "assetId": "civic_hall",
+    "label": "Общественный зал",
+    "scale": [
+      1.345291368314171,
+      1.345291368314171
+    ],
+    "targetScale": [
+      1.7,
+      1.7
+    ],
+    "areaMultiplier": 1.8098088656606144,
+    "movedMetres": 0,
+    "preserveOriginalYard": true,
+    "roomWidthM": 13.32,
+    "roomDepthM": 11.97,
+    "roomAreaM2": 159.46
+  },
+  {
+    "id": "REBUILD-VISUAL-nightclub-001",
+    "assetId": "nightclub",
+    "label": "Большой клубный зал",
+    "scale": [
+      1.3599999999999999,
+      1.3599999999999999
+    ],
+    "targetScale": [
+      1.9,
+      1.9
+    ],
+    "areaMultiplier": 1.8495999999999997,
+    "movedMetres": 0,
+    "roomWidthM": 15.37,
+    "roomDepthM": 10.06,
+    "roomAreaM2": 154.66
+  },
+  {
+    "id": "REBUILD-VISUAL-print_shop-001",
+    "assetId": "print_shop",
+    "label": "Производственный зал",
+    "scale": [
+      1.02,
+      1.02
+    ],
+    "targetScale": [
+      1.4,
+      1.4
+    ],
+    "areaMultiplier": 1.0404,
+    "movedMetres": 0,
+    "roomWidthM": 15.4,
+    "roomDepthM": 9.69,
+    "roomAreaM2": 149.25
+  },
+  {
+    "id": "REBUILD-VISUAL-print_shop-004",
+    "assetId": "print_shop",
+    "label": "Производственный зал",
+    "scale": [
+      1.02,
+      1.02
+    ],
+    "targetScale": [
+      1.4,
+      1.4
+    ],
+    "areaMultiplier": 1.0404,
+    "movedMetres": 0,
+    "roomWidthM": 15.4,
+    "roomDepthM": 9.69,
+    "roomAreaM2": 149.25
+  },
+  {
+    "id": "REBUILD-VISUAL-print_shop-002",
+    "assetId": "print_shop",
+    "label": "Производственный зал",
+    "scale": [
+      1.4,
+      1.4
+    ],
+    "targetScale": [
+      1.4,
+      1.4
+    ],
+    "areaMultiplier": 1.9599999999999997,
+    "movedMetres": 206.83677139232273,
+    "roomWidthM": 21.14,
+    "roomDepthM": 13.3,
+    "roomAreaM2": 281.16
+  },
+  {
+    "id": "REBUILD-VISUAL-print_shop-003",
+    "assetId": "print_shop",
+    "label": "Производственный зал",
+    "scale": [
+      1.2799999999999998,
+      1.2799999999999998
+    ],
+    "targetScale": [
+      1.4,
+      1.4
+    ],
+    "areaMultiplier": 1.6383999999999994,
+    "movedMetres": 4.100000000000023,
+    "roomWidthM": 19.33,
+    "roomDepthM": 12.16,
+    "roomAreaM2": 235.03
+  },
+  {
+    "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+    "assetId": "compact_podium_glass_tower_v1",
+    "label": "Просторный первый этаж башни",
+    "scale": [
+      1.2799999999999998,
+      1.2799999999999998
+    ],
+    "targetScale": [
+      1.4,
+      1.4
+    ],
+    "areaMultiplier": 1.6383999999999994,
+    "movedMetres": 0,
+    "roomWidthM": 18.82,
+    "roomDepthM": 16,
+    "roomAreaM2": 301.06
+  },
+  {
+    "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-002",
+    "assetId": "compact_podium_glass_tower_v1",
+    "label": "Просторный первый этаж башни",
+    "scale": [
+      1.4,
+      1.4
+    ],
+    "targetScale": [
+      1.4,
+      1.4
+    ],
+    "areaMultiplier": 1.9599999999999997,
+    "movedMetres": 6.150000000000006,
+    "roomWidthM": 20.58,
+    "roomDepthM": 17.5,
+    "roomAreaM2": 360.15
+  },
+  {
+    "id": "REBUILD-VISUAL-strip_club-001",
+    "assetId": "strip_club",
+    "label": "Клубный зал",
+    "scale": [
+      1.385,
+      1.385
+    ],
+    "targetScale": [
+      1.7,
+      1.7
+    ],
+    "areaMultiplier": 1.918225,
+    "movedMetres": 4.583939353874582,
+    "roomWidthM": 16.07,
+    "roomDepthM": 11.91,
+    "roomAreaM2": 191.36
+  },
+  {
+    "id": "REBUILD-VISUAL-strip_club-002",
+    "assetId": "strip_club",
+    "label": "Клубный зал",
+    "scale": [
+      1.28,
+      1.28
+    ],
+    "targetScale": [
+      1.7,
+      1.7
+    ],
+    "areaMultiplier": 1.6384,
+    "movedMetres": 74.53660174706114,
+    "roomWidthM": 14.85,
+    "roomDepthM": 11.01,
+    "roomAreaM2": 163.45
+  },
+  {
+    "id": "REBUILD-VISUAL-strip_club-004",
+    "assetId": "strip_club",
+    "label": "Клубный зал",
+    "scale": [
+      1.595,
+      1.595
+    ],
+    "targetScale": [
+      1.7,
+      1.7
+    ],
+    "areaMultiplier": 2.544025,
+    "movedMetres": 119.34099253818862,
+    "roomWidthM": 18.5,
+    "roomDepthM": 13.72,
+    "roomAreaM2": 253.79
+  },
+  {
+    "id": "REBUILD-VISUAL-strip_club-003",
+    "assetId": "strip_club",
+    "label": "Клубный зал",
+    "scale": [
+      1.595,
+      1.595
+    ],
+    "targetScale": [
+      1.7,
+      1.7
+    ],
+    "areaMultiplier": 2.544025,
+    "movedMetres": 211.0604178902335,
+    "roomWidthM": 18.5,
+    "roomDepthM": 13.72,
+    "roomAreaM2": 253.79
+  },
+  {
+    "id": "REBUILD-VISUAL-gun_shop-004",
+    "assetId": "gun_shop",
+    "label": "Оружейный магазин",
+    "scale": [
+      1.175,
+      1.175
+    ],
+    "targetScale": [
+      1.25,
+      1.25
+    ],
+    "areaMultiplier": 1.3806250000000002,
+    "movedMetres": 212.90412161346234,
+    "roomWidthM": 17.04,
+    "roomDepthM": 10.34,
+    "roomAreaM2": 176.17
+  },
+  {
+    "id": "REBUILD-VISUAL-gun_shop-001",
+    "assetId": "gun_shop",
+    "label": "Оружейный магазин",
+    "scale": [
+      1.175,
+      1.175
+    ],
+    "targetScale": [
+      1.25,
+      1.25
+    ],
+    "areaMultiplier": 1.3806250000000002,
+    "movedMetres": 0,
+    "roomWidthM": 17.04,
+    "roomDepthM": 10.34,
+    "roomAreaM2": 176.17
+  },
+  {
+    "id": "REBUILD-VISUAL-gun_shop-002",
+    "assetId": "gun_shop",
+    "label": "Оружейный магазин",
+    "scale": [
+      1.175,
+      1.175
+    ],
+    "targetScale": [
+      1.25,
+      1.25
+    ],
+    "areaMultiplier": 1.3806250000000002,
+    "movedMetres": 2.049999999999983,
+    "roomWidthM": 17.04,
+    "roomDepthM": 10.34,
+    "roomAreaM2": 176.17
+  },
+  {
+    "id": "REBUILD-VISUAL-gun_shop-003",
+    "assetId": "gun_shop",
+    "label": "Оружейный магазин",
+    "scale": [
+      1.175,
+      1.175
+    ],
+    "targetScale": [
+      1.25,
+      1.25
+    ],
+    "areaMultiplier": 1.3806250000000002,
+    "movedMetres": 107.89311840891429,
+    "roomWidthM": 17.04,
+    "roomDepthM": 10.34,
+    "roomAreaM2": 176.17
+  },
+  {
+    "id": "REBUILD-VISUAL-bookmaker-004",
+    "assetId": "bookmaker",
+    "label": "Букмекерская",
+    "scale": [
+      1.2,
+      1.2
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.44,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 17.76,
+    "roomDepthM": 10.44,
+    "roomAreaM2": 185.41
+  },
+  {
+    "id": "REBUILD-VISUAL-bookmaker-001",
+    "assetId": "bookmaker",
+    "label": "Букмекерская",
+    "scale": [
+      1.2,
+      1.2
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.44,
+    "movedMetres": 0,
+    "roomWidthM": 17.76,
+    "roomDepthM": 10.44,
+    "roomAreaM2": 185.41
+  },
+  {
+    "id": "REBUILD-VISUAL-bookmaker-002",
+    "assetId": "bookmaker",
+    "label": "Букмекерская",
+    "scale": [
+      1.2,
+      1.2
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.44,
+    "movedMetres": 0,
+    "roomWidthM": 17.76,
+    "roomDepthM": 10.44,
+    "roomAreaM2": 185.41
+  },
+  {
+    "id": "REBUILD-VISUAL-bookmaker-003",
+    "assetId": "bookmaker",
+    "label": "Букмекерская",
+    "scale": [
+      1.2,
+      1.2
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.44,
+    "movedMetres": 0,
+    "roomWidthM": 17.76,
+    "roomDepthM": 10.44,
+    "roomAreaM2": 185.41
+  },
+  {
+    "id": "REBUILD-VISUAL-glass_pavilion_small_v1-001",
+    "assetId": "glass_pavilion_small_v1",
+    "label": "Небольшой торговый павильон",
+    "scale": [
+      1.2,
+      1.2
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.44,
+    "movedMetres": 2.0499999999999545,
+    "roomWidthM": 12.12,
+    "roomDepthM": 8.88,
+    "roomAreaM2": 107.63
+  },
+  {
+    "id": "REBUILD-VISUAL-glass_pavilion_small_v1-004",
+    "assetId": "glass_pavilion_small_v1",
+    "label": "Небольшой торговый павильон",
+    "scale": [
+      1.08,
+      1.08
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.1664,
+    "movedMetres": 0,
+    "roomWidthM": 10.91,
+    "roomDepthM": 7.99,
+    "roomAreaM2": 87.18
+  },
+  {
+    "id": "REBUILD-VISUAL-glass_pavilion_small_v1-002",
+    "assetId": "glass_pavilion_small_v1",
+    "label": "Небольшой торговый павильон",
+    "scale": [
+      1.08,
+      1.08
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.1664,
+    "movedMetres": 0,
+    "roomWidthM": 10.91,
+    "roomDepthM": 7.99,
+    "roomAreaM2": 87.18
+  },
+  {
+    "id": "REBUILD-VISUAL-glass_pavilion_small_v1-003",
+    "assetId": "glass_pavilion_small_v1",
+    "label": "Небольшой торговый павильон",
+    "scale": [
+      1.08,
+      1.08
+    ],
+    "targetScale": [
+      1.2,
+      1.2
+    ],
+    "areaMultiplier": 1.1664,
+    "movedMetres": 0,
+    "roomWidthM": 10.91,
+    "roomDepthM": 7.99,
+    "roomAreaM2": 87.18
+  },
+  {
+    "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+    "assetId": "woodland_crosswing_house_v1",
+    "label": "Частный дом",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 0,
+    "roomWidthM": 6.58,
+    "roomDepthM": 12.89,
+    "roomAreaM2": 84.8
+  },
+  {
+    "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+    "assetId": "woodland_crosswing_house_v1",
+    "label": "Частный дом",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 0,
+    "roomWidthM": 6.58,
+    "roomDepthM": 12.89,
+    "roomAreaM2": 84.8
+  },
+  {
+    "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+    "assetId": "pine_ridge_cottage_v1",
+    "label": "Коттедж",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 2.049999999999997,
+    "roomWidthM": 6.64,
+    "roomDepthM": 12.23,
+    "roomAreaM2": 81.17
+  },
+  {
+    "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+    "assetId": "pine_ridge_cottage_v1",
+    "label": "Коттедж",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 0,
+    "roomWidthM": 6.64,
+    "roomDepthM": 12.23,
+    "roomAreaM2": 81.17
+  },
+  {
+    "id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+    "assetId": "hillstep_chalet_v1",
+    "label": "Шале",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 2.0500000000000043,
+    "roomWidthM": 6.75,
+    "roomDepthM": 11.35,
+    "roomAreaM2": 76.63
+  },
+  {
+    "id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+    "assetId": "hillstep_chalet_v1",
+    "label": "Шале",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 2.049999999999997,
+    "roomWidthM": 6.75,
+    "roomDepthM": 11.35,
+    "roomAreaM2": 76.63
+  },
+  {
+    "id": "REBUILD-VISUAL-hillstep_chalet_v1-003",
+    "assetId": "hillstep_chalet_v1",
+    "label": "Шале",
+    "scale": [
+      1.15,
+      1.1
+    ],
+    "targetScale": [
+      1.15,
+      1.1
+    ],
+    "areaMultiplier": 1.265,
+    "movedMetres": 0,
+    "roomWidthM": 6.75,
+    "roomDepthM": 11.35,
+    "roomAreaM2": 76.63
+  },
+  {
+    "id": "REBUILD-VISUAL-pawnshop-002",
+    "assetId": "pawnshop",
+    "label": "Небольшой магазин / ломбард",
+    "scale": [
+      1.15,
+      1.15
+    ],
+    "targetScale": [
+      1.15,
+      1.15
+    ],
+    "areaMultiplier": 1.3224999999999998,
+    "movedMetres": 0,
+    "roomWidthM": 12.99,
+    "roomDepthM": 9.77,
+    "roomAreaM2": 127.03
+  },
+  {
+    "id": "REBUILD-VISUAL-pawnshop-003",
+    "assetId": "pawnshop",
+    "label": "Небольшой магазин / ломбард",
+    "scale": [
+      1.15,
+      1.15
+    ],
+    "targetScale": [
+      1.15,
+      1.15
+    ],
+    "areaMultiplier": 1.3224999999999998,
+    "movedMetres": 2.049999999999983,
+    "roomWidthM": 12.99,
+    "roomDepthM": 9.77,
+    "roomAreaM2": 127.03
+  },
+  {
+    "id": "REBUILD-VISUAL-pawnshop-004",
+    "assetId": "pawnshop",
+    "label": "Небольшой магазин / ломбард",
+    "scale": [
+      1.15,
+      1.15
+    ],
+    "targetScale": [
+      1.15,
+      1.15
+    ],
+    "areaMultiplier": 1.3224999999999998,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 12.99,
+    "roomDepthM": 9.77,
+    "roomAreaM2": 127.03
+  },
+  {
+    "id": "REBUILD-VISUAL-pawnshop-001",
+    "assetId": "pawnshop",
+    "label": "Небольшой магазин / ломбард",
+    "scale": [
+      1.105,
+      1.105
+    ],
+    "targetScale": [
+      1.15,
+      1.15
+    ],
+    "areaMultiplier": 1.221025,
+    "movedMetres": 0,
+    "roomWidthM": 12.49,
+    "roomDepthM": 9.39,
+    "roomAreaM2": 117.28
+  },
+  {
+    "id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+    "assetId": "coastal_orchard_house_v1",
+    "label": "Частный дом",
+    "scale": [
+      1.1,
+      1.1
+    ],
+    "targetScale": [
+      1.1,
+      1.1
+    ],
+    "areaMultiplier": 1.2100000000000002,
+    "movedMetres": 0,
+    "roomWidthM": 8.44,
+    "roomDepthM": 10.25,
+    "roomAreaM2": 86.5
+  },
+  {
+    "id": "REBUILD-VISUAL-coastal_orchard_house_v1-002",
+    "assetId": "coastal_orchard_house_v1",
+    "label": "Частный дом",
+    "scale": [
+      1.1,
+      1.1
+    ],
+    "targetScale": [
+      1.1,
+      1.1
+    ],
+    "areaMultiplier": 1.2100000000000002,
+    "movedMetres": 0,
+    "roomWidthM": 8.44,
+    "roomDepthM": 10.25,
+    "roomAreaM2": 86.5
+  },
+  {
+    "id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+    "assetId": "veranda_bungalow_v1",
+    "label": "Бунгало",
+    "scale": [
+      1.1,
+      1.1
+    ],
+    "targetScale": [
+      1.1,
+      1.1
+    ],
+    "areaMultiplier": 1.2100000000000002,
+    "movedMetres": 0,
+    "roomWidthM": 8.55,
+    "roomDepthM": 9.59,
+    "roomAreaM2": 81.98
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-004",
+    "assetId": "eastside_garden_walkup_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 0,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.82,
+    "roomAreaM2": 79.72
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-003",
+    "assetId": "eastside_garden_walkup_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 0,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.82,
+    "roomAreaM2": 79.72
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-002",
+    "assetId": "eastside_garden_walkup_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 8.452366532516209,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.82,
+    "roomAreaM2": 79.72
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+    "assetId": "eastside_garden_walkup_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 0,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.82,
+    "roomAreaM2": 79.72
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+    "assetId": "eastside_stepped_apartment_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 16.52762838401206,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.08,
+    "roomAreaM2": 76.01
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-002",
+    "assetId": "eastside_stepped_apartment_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 50.42333289262023,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.08,
+    "roomAreaM2": 76.01
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-003",
+    "assetId": "eastside_stepped_apartment_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 0,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.08,
+    "roomAreaM2": 76.01
+  },
+  {
+    "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-004",
+    "assetId": "eastside_stepped_apartment_v1",
+    "label": "Многоквартирный дом",
+    "scale": [
+      2,
+      1.1
+    ],
+    "targetScale": [
+      2,
+      1.1
+    ],
+    "areaMultiplier": 2.2,
+    "movedMetres": 2.049999999999983,
+    "roomWidthM": 5.04,
+    "roomDepthM": 15.08,
+    "roomAreaM2": 76.01
+  },
+  {
+    "id": "REBUILD-VISUAL-garden_lane_house_v1-003",
+    "assetId": "garden_lane_house_v1",
+    "label": "Небольшой частный дом",
+    "scale": [
+      1.2,
+      1.1
+    ],
+    "targetScale": [
+      1.2,
+      1.1
+    ],
+    "areaMultiplier": 1.32,
+    "movedMetres": 0,
+    "roomWidthM": 5.78,
+    "roomDepthM": 12.01,
+    "roomAreaM2": 69.48
+  },
+  {
+    "id": "REBUILD-VISUAL-garden_lane_house_v1-001",
+    "assetId": "garden_lane_house_v1",
+    "label": "Небольшой частный дом",
+    "scale": [
+      1.2,
+      1.1
+    ],
+    "targetScale": [
+      1.2,
+      1.1
+    ],
+    "areaMultiplier": 1.32,
+    "movedMetres": 0,
+    "roomWidthM": 5.78,
+    "roomDepthM": 12.01,
+    "roomAreaM2": 69.48
+  },
+  {
+    "id": "REBUILD-VISUAL-garden_lane_house_v1-002",
+    "assetId": "garden_lane_house_v1",
+    "label": "Небольшой частный дом",
+    "scale": [
+      1.2,
+      1.1
+    ],
+    "targetScale": [
+      1.2,
+      1.1
+    ],
+    "areaMultiplier": 1.32,
+    "movedMetres": 0,
+    "roomWidthM": 5.78,
+    "roomDepthM": 12.01,
+    "roomAreaM2": 69.48
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 275.0745580747154,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-008",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.049999999999997,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.56,
+      1.105
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 1.7238,
+    "movedMetres": 12.3,
+    "roomWidthM": 4.96,
+    "roomDepthM": 7.69,
+    "roomAreaM2": 38.15
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.12,
+      1.0225
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 1.1452,
+    "movedMetres": 18.5635395331817,
+    "roomWidthM": 3.56,
+    "roomDepthM": 7.12,
+    "roomAreaM2": 25.35
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 4.583939353874565,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.049999999999997,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-014",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.049999999999997,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-015",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-016",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 191.7489830481507,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 14.349999999999994,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-017",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 2.0500000000000114,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-018",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  },
+  {
+    "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+    "assetId": "old_town_narrow_townhouse_v1",
+    "label": "Небольшой городской дом",
+    "scale": [
+      1.8,
+      1.15
+    ],
+    "targetScale": [
+      1.8,
+      1.15
+    ],
+    "areaMultiplier": 2.07,
+    "movedMetres": 0,
+    "roomWidthM": 5.72,
+    "roomDepthM": 8,
+    "roomAreaM2": 45.81
+  }
+]
