@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {walkEntrySelection,bootWalkEntry} from './walk_entry.mjs';
+const selection=walkEntrySelection('http://127.0.0.1:18538/walk?uid=original&npcgallery=1&x=a%20b#keep');
+assert.equal(selection.mode,'world');
+const url=new URL(selection.url,'http://localhost');
+assert.equal(url.pathname,'/world.html');assert.equal(url.searchParams.get('uid'),'original');assert.equal(url.searchParams.get('npcgallery'),'1');assert.equal(url.searchParams.get('x'),'a b');assert.equal(url.hash,'#keep');assert.equal(url.searchParams.get('render'),'3d');assert.equal(url.searchParams.get('renderer'),'walk');
+assert(!walkEntrySelection('/walk').url.includes('uid'));
+const anonymous=new URL(walkEntrySelection('http://127.0.0.1:18538/walk').url,'http://localhost');assert.equal(anonymous.searchParams.get('direct'),'1');assert.equal(anonymous.searchParams.get('previewcity'),'1');assert(!anonymous.searchParams.has('uid'));assert(!anonymous.searchParams.has('combatdemo'));
+for(const href of ['https://game.example/walk','http://127.0.0.1:8081/walk','http://127.0.0.1:18538/walk?character_uid=7','http://127.0.0.1:18538/walk?initData=abc','http://127.0.0.1:18538/walk?api=http://localhost:8081'])assert(!new URL(walkEntrySelection(href).url,'http://localhost').searchParams.has('direct'));
+assert(!new URL(walkEntrySelection('http://127.0.0.1:18538/walk',{hasSession:true}).url,'http://localhost').searchParams.has('direct'));
+assert.equal(new URL(walkEntrySelection('http://127.0.0.1:18538/walk?direct=0').url,'http://localhost').searchParams.get('direct'),'0');
+assert.equal(walkEntrySelection('/walk?standalone=1').mode,'standalone');
+assert.equal(walkEntrySelection('/tools/city_rebuild_walk.html?standalone=1').mode,'standalone');
+assert.equal(walkEntrySelection('/walk?renderer=legacy&render=2d').mode,'world');
+let imports=0,redirect=null;
+await bootWalkEntry({location:{href:'/walk',replace:value=>redirect=value},importPreview:async()=>imports++});assert.equal(imports,0);assert.equal(redirect,'/world.html?render=3d&renderer=walk');
+await bootWalkEntry({location:{href:'/walk?standalone=1',replace(){throw Error('Unexpected redirect')}},importPreview:async()=>imports++});assert.equal(imports,1);
+const shell=fs.readFileSync(new URL('../../../tools/city_rebuild_walk.html',import.meta.url),'utf8');assert(shell.includes('/walk_entry.mjs'));assert(!shell.includes('src="/assets/maps/city_rebuild_v1/walk_preview.mjs"'));
+console.log('PASS: real-world default; exact standalone opt-in; preserved query/hash; no identity injection; no duplicate renderer import');
+

@@ -1,0 +1,195 @@
+{
+  "status": "PASS_PLACEMENT_WITH_SOURCE_ACCESS_LIMITATIONS",
+  "scope": "shared_worker_decor_and_parking",
+  "authoredRoads": 207,
+  "landFragments": 245,
+  "placements": 239,
+  "buildings": 75,
+  "publicDoorCorridors": 75,
+  "explicitVehicleEntryMetadata": 0,
+  "junctionNodes": 490,
+  "intersectionComplexes": 285,
+  "approaches": 1828,
+  "activeApproaches": 1538,
+  "externalActiveApproaches": 1267,
+  "internalApproaches": 317,
+  "lanes": 4273,
+  "turns": 3264,
+  "connections": 1606,
+  "signals": 53,
+  "signalGroups": 15,
+  "crosswalks": 34,
+  "signs": 310,
+  "markings": 5899,
+  "mandatoryYieldApproaches": 405,
+  "paintedYieldFallbacks": 139,
+  "accessSuppressedPaint": 128,
+  "sharedParking": {
+    "lots": 39,
+    "bays": 61,
+    "hospitalLots": 1,
+    "residentialLots": 38,
+    "skipped": 7,
+    "servedBuildings": 46,
+    "uncoveredBuildings": 0,
+    "pointLights": 0
+  },
+  "forwardLinkSamples": 13019,
+  "turnSamples": 99141,
+  "phasePairChecks": 12144,
+  "entryPoleChecks": 27225,
+  "accessContractTested": true,
+  "geometryFailures": 0,
+  "unresolvedPlacement": [],
+  "alleySamples": 1647,
+  "alleyFragments": 76,
+  "alleyFragmentsWithSourceObstructions": [
+    {
+      "roadId": "AL-003",
+      "fragment": 0,
+      "samples": 34,
+      "blockedSamples": 5
+    },
+    {
+      "roadId": "AL-012",
+      "fragment": 0,
+      "samples": 30,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-013",
+      "fragment": 0,
+      "samples": 30,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-016",
+      "fragment": 0,
+      "samples": 30,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-018",
+      "fragment": 0,
+      "samples": 30,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-020",
+      "fragment": 0,
+      "samples": 30,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-021",
+      "fragment": 0,
+      "samples": 30,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-022",
+      "fragment": 0,
+      "samples": 17,
+      "blockedSamples": 2
+    },
+    {
+      "roadId": "AL-023",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-024",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-025",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 2
+    },
+    {
+      "roadId": "AL-029",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-031",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-032",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 18
+    },
+    {
+      "roadId": "AL-037",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-038",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 2
+    },
+    {
+      "roadId": "AL-039",
+      "fragment": 0,
+      "samples": 18,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-045",
+      "fragment": 0,
+      "samples": 13,
+      "blockedSamples": 2
+    },
+    {
+      "roadId": "AL-049",
+      "fragment": 0,
+      "samples": 16,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-069",
+      "fragment": 0,
+      "samples": 25,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-070",
+      "fragment": 0,
+      "samples": 34,
+      "blockedSamples": 25
+    },
+    {
+      "roadId": "AL-073",
+      "fragment": 0,
+      "samples": 33,
+      "blockedSamples": 1
+    },
+    {
+      "roadId": "AL-075",
+      "fragment": 0,
+      "samples": 21,
+      "blockedSamples": 16
+    },
+    {
+      "roadId": "AL-078",
+      "fragment": 0,
+      "samples": 24,
+      "blockedSamples": 1
+    }
+  ],
+  "aiIntegration": "not_connected",
+  "liveVerification": "coordinator_pending",
+  "activeApproachesWithoutIncomingGraphLink": 388
+}

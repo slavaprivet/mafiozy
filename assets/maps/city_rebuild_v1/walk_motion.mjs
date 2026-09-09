@@ -1,7 +1,10 @@
 // Footprint-sampled pedestrian movement. No runtime or network dependencies.
+const CIRCLE_SAMPLE_DIRECTIONS=Float64Array.from({length:24},(_,index)=>{
+ const angle=Math.floor(index/2)*Math.PI/6;return index%2?Math.sin(angle):Math.cos(angle);
+});
 export function circleFits(x,z,isPointWalkable,radius=.36){
  if(!Number.isFinite(x)||!Number.isFinite(z)||!isPointWalkable(x,z))return false;
- for(let i=0;i<12;i++){const angle=i*Math.PI/6;if(!isPointWalkable(x+Math.cos(angle)*radius,z+Math.sin(angle)*radius))return false}
+ for(let i=0;i<24;i+=2)if(!isPointWalkable(x+CIRCLE_SAMPLE_DIRECTIONS[i]*radius,z+CIRCLE_SAMPLE_DIRECTIONS[i+1]*radius))return false;
  return true;
 }
 export function movePedestrian(position,delta,isPointWalkable,radius=.36){

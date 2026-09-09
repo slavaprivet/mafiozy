@@ -1,0 +1,689 @@
+{
+  "info": {
+    "entries": 75,
+    "floors": 174,
+    "ladders": 6,
+    "errors": "",
+    "calls": 3082
+  },
+  "routes": {},
+  "roofs": {},
+  "errors": [],
+  "design": [
+    {
+      "id": "REBUILD-VISUAL-civic_hall-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 8,
+      "doors": 2,
+      "parts": 134,
+      "draws": 1
+    },
+    {
+      "id": "REBUILD-VISUAL-hospital-001",
+      "rooms": 10,
+      "furnishedRooms": 10,
+      "furniture": 37,
+      "doors": 10,
+      "parts": 700,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-nightclub-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 4,
+      "doors": 4,
+      "parts": 136,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 199,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 239,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 10,
+      "doors": 4,
+      "parts": 196,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 4,
+      "doors": 2,
+      "parts": 82,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 118,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 8,
+      "doors": 3,
+      "parts": 134,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 209,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 9,
+      "doors": 3,
+      "parts": 146,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+      "rooms": 13,
+      "furnishedRooms": 13,
+      "furniture": 41,
+      "doors": 12,
+      "parts": 665,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 200,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 237,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 452,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 352,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 8,
+      "doors": 2,
+      "parts": 232,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 317,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 184,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-002",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 239,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-coastal_orchard_house_v1-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 10,
+      "doors": 4,
+      "parts": 191,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 4,
+      "doors": 2,
+      "parts": 96,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 129,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 8,
+      "doors": 3,
+      "parts": 134,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 9,
+      "doors": 3,
+      "parts": 146,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-002",
+      "rooms": 13,
+      "furnishedRooms": 13,
+      "furniture": 40,
+      "doors": 13,
+      "parts": 712,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 200,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-002",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 18,
+      "doors": 6,
+      "parts": 378,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 452,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 352,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 206,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 181,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 206,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-003",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 225,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-003",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 4,
+      "doors": 2,
+      "parts": 82,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-003",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 129,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-003",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 200,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-003",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 16,
+      "doors": 6,
+      "parts": 328,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 452,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 352,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 20,
+      "doors": 4,
+      "parts": 464,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-003",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 181,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 8,
+      "doors": 3,
+      "parts": 144,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 192,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-004",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 239,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-004",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 200,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 237,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 452,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 352,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 20,
+      "doors": 4,
+      "parts": 464,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-004",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 181,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 128,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-008",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 201,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-014",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-015",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-016",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-017",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-018",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 199,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-bank:large",
+      "rooms": 7,
+      "furnishedRooms": 7,
+      "furniture": 17,
+      "doors": 0,
+      "parts": 240,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-bank:medium",
+      "rooms": 7,
+      "furnishedRooms": 7,
+      "furniture": 17,
+      "doors": 0,
+      "parts": 240,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-bank:small",
+      "rooms": 7,
+      "furnishedRooms": 7,
+      "furniture": 17,
+      "doors": 0,
+      "parts": 240,
+      "draws": 2
+    }
+  ]
+}

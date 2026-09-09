@@ -85,7 +85,11 @@ def _prison_routes_clear() -> None:
 
 
 def _run_60_second_js() -> dict:
-    functions = "\n".join(_function(name) for name in (
+    pace = re.search(r"const NPC_HERO_PACE=Object\.freeze\([^\n]+", HTML).group(0)
+    functions = pace + "\n" + "\n".join(_function(name) for name in (
+        "_npcPacedSpeed",
+        "_npcReserveRouteWork",
+        "_npcRouteWorkExpired",
         "_clearPoliceFootRoute",
         "_reservePoliceFootRoute",
         "_policeCrewSegmentPassable",
@@ -123,7 +127,10 @@ for(let frame=0;frame<1800;frame++){{
 }}
 // Force route admission contention and prove a deferred plan preserves target state.
 simNow=61000;_policeFootRouteFrame=Math.floor(simNow/16.667);_policeFootRoutesThisFrame=1;
-const deferred={{y:68.75,x:158.75,ty:71.5,tx:154.5,speed:1.35,_wayUntil:7777}};
+// Stand just outside the expanded facade so even the slower peaceful step
+// actually meets it. A free direct step correctly needs no route admission.
+const deferred={{y:68.758,x:158.742,ty:71.5,tx:154.5,speed:1.35,_wayUntil:7777}};
+if(!_policeCrewBodyPassable(deferred.y,deferred.x))throw new Error('contention fixture starts inside wall');
 _movePoliceFootCop(deferred,deferred.ty,deferred.tx,1/30,1);
 if(!deferred._policeFootMoveDeferred)throw new Error('route was not marked deferred');
 if(deferred._policeFootMoveDeferred){{ /* production guard keeps _wayUntil */ }} else deferred._wayUntil=0;

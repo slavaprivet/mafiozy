@@ -49,6 +49,28 @@ def run() -> None:
         assert world._weapon_damage("pistol", pistol["range"]) == round(
             pistol["dmg"] * pistol["min_mul"])
 
+        # Prone is an authored firearm pose, not incapacitation. The old
+        # blanket prone guard failed this for every owned firearm.
+        shooter["_stance"] = "prone"
+        shooter["_weapon_classes"] = set(game.WorldSim.WEAPON_PROFILE)
+        for weapon in EXPECTED:
+            clock[0] += 2.0
+            shooter["_weapon_shot_t"] = 0.0
+            assert world._authorize_weapon_shot(shooter, weapon) is not None, weapon
+        for flag, value in [("dead", True), ("_police_cuffed_by", "cop"),
+                            ("_police_downed_by", "cop"),
+                            ("_melee_stunned_until", clock[0] + 100)]:
+            previous = shooter.get(flag)
+            shooter[flag] = value
+            shooter["_weapon_shot_t"] = 0.0
+            assert world._authorize_weapon_shot(shooter, "pistol") is None, flag
+            shooter[flag] = previous
+        shooter["_weapon_classes"] = {"pistol"}
+        shooter["_weapon_shot_t"] = 0.0
+        assert world._authorize_weapon_shot(shooter, "rifle") is None
+        assert world._authorize_weapon_shot(shooter, "grenade") is None
+        assert world._authorize_weapon_shot(shooter, "molotov_fire") is None
+
     assert world._weapon_key("tt_pistol") == "pistol"
     assert world._weapon_key("deagle") == "pistol_heavy"
     assert world._weapon_key("sawn_off") == "shotgun"

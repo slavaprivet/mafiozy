@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict';import {pathToFileURL} from 'node:url';
+import {ARSENAL,createWeaponModel} from './hero_arsenal.mjs';
+import {createNpcWeaponBatch} from './npc_weapon_batches.mjs';
+const THREE=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
+const key=values=>values.map(v=>Math.round(v*1e4)||0).join(',');
+function triangles(root){root.updateMatrixWorld(true);const rows=[];root.traverse(mesh=>{if(!mesh.isMesh)return;const g=mesh.geometry,normalMatrix=new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld),p=g.attributes.position,n=g.attributes.normal,uv=g.attributes.uv,idx=g.index;for(let i=0;i<(idx?.count??p.count);i+=3){const values=[];for(let j=0;j<3;j++){const k=idx?idx.getX(i+j):i+j;values.push(...new THREE.Vector3().fromBufferAttribute(p,k).applyMatrix4(mesh.matrixWorld).toArray());if(n)values.push(...new THREE.Vector3().fromBufferAttribute(n,k).applyNormalMatrix(normalMatrix).toArray());if(uv)values.push(uv.getX(k),uv.getY(k));}rows.push({key:key(values),values,material:mesh.material.name+'|'+mesh.material.color?.getHexString()+'|'+mesh.material.roughness+'|'+mesh.material.metalness})}});return rows.sort((a,b)=>a.key.localeCompare(b.key)||a.material.localeCompare(b.material))}
+const results=[];
+for(const spec of ARSENAL){
+ const source=createWeaponModel({THREE,id:spec.id});source.position.set(.8,.2,-.3);source.rotation.set(.08,.5,-.09);source.updateMatrixWorld(true);
+ const before=triangles(source),names=[];source.traverse(node=>{if(node!==source)names.push({name:node.name,position:node.getWorldPosition(new THREE.Vector3())})});
+ const originalGeo=new Set(),originalMat=new Set();let sourceDisposals=0;source.traverse(node=>{if(node.geometry)originalGeo.add(node.geometry);if(node.material)originalMat.add(node.material)});for(const item of [...originalGeo,...originalMat])item.addEventListener('dispose',()=>sourceDisposals++);
+ const result=createNpcWeaponBatch({THREE,template:source}),after=triangles(result.object);assert.equal(after.length,before.length,spec.id+' triangles');
+ for(let i=0;i<before.length;i++){assert.equal(after[i].material,before[i].material);for(let j=0;j<before[i].values.length;j++)assert(Math.abs(after[i].values[j]-before[i].values[j])<2e-5,spec.id+' vertex/normal/UV '+i)}
+ assert.deepEqual(result.object.userData,source.userData);assert.equal(result.object.weaponId,source.weaponId);assert.equal(result.object.twoHanded,source.twoHanded);
+ for(const {name}of names){const a=source.getObjectByName(name),b=result.object.getObjectByName(name);assert(b,name+' retained');assert(a.getWorldPosition(new THREE.Vector3()).distanceTo(b.getWorldPosition(new THREE.Vector3()))<1e-6);if(/slide|pump|bolt|magazine|cylinder|hammer|trigger$|hinge|batched_surface_detail/.test(name)){assert(b.isMesh,name+' stays mesh');assert.deepEqual([...b.geometry.attributes.position.array],[...a.geometry.attributes.position.array]);}}
+ const a=new THREE.Box3().setFromObject(source,true),b=new THREE.Box3().setFromObject(result.object,true);assert(a.isEmpty()&&b.isEmpty()||a.min.distanceTo(b.min)<1e-6&&a.max.distanceTo(b.max)<1e-6,spec.id+" bounds");
+ const owned=new Set();result.object.traverse(node=>{if(node.geometry){assert(!originalGeo.has(node.geometry));owned.add(node.geometry)}if(node.material){assert(!originalMat.has(node.material));owned.add(node.material)}});let disposed=0;for(const resource of owned)resource.addEventListener('dispose',()=>disposed++);result.dispose();result.dispose();assert.equal(disposed,owned.size);assert.equal(sourceDisposals,0);results.push({id:spec.id,...result.stats});
+}
+console.log(JSON.stringify({passed:true,checks:['all14-world-triangles-normal-UV-material-parity','world-bounds','all-named-anchors','dynamic-meshes-unchanged','source-immutable','private-tree-resources-idempotent-disposal'],results},null,2));

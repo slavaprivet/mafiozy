@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createTyreState,punctureTyre,stepTyres,tyreDriveEffects,createTyreDamage} from './tyre_damage.mjs';
+import {createDemoCar,stepCar} from './car_drive.mjs';
+const intact=createTyreState();assert.deepEqual(tyreDriveEffects(intact),{speedFactor:1,frontGrip:1,rearGrip:1,pull:0});
+let state=punctureTyre(intact,'front_left');state=stepTyres(state,3,0);assert.equal(state[0].pressure,0);assert(!state[0].detached);
+state=stepTyres(state,10000,0);assert(!state[0].detached,'idle time never wears a stationary flat tyre off');
+let effects=tyreDriveEffects(state);assert(effects.speedFactor<1&&effects.frontGrip<effects.rearGrip&&effects.pull>0,'front-left puncture reduces front grip and pulls left');
+state=stepTyres(state,.1,59);assert(!state[0].detached);state=stepTyres(state,.1,-1);assert(state[0].detached,'reverse distance also wears tyre');
+assert(tyreDriveEffects(state).speedFactor<effects.speedFactor);
+const simulate=fx=>{let car={x:0,z:0,yaw:0,speed:0,tyreEffects:fx};for(let i=0;i<480;i++)car=stepCar(car,{forward:true},1/60,()=>true);return car};
+const good=simulate(tyreDriveEffects(intact)),bad=simulate(tyreDriveEffects(state));assert(bad.speed<good.speed&&bad.x>1,'puncture changes real speed and straight-line control');
+const T=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
+class Box extends T.BoxGeometry{constructor(w,h,d){super(w,h,d)}}
+const car=createDemoCar(T,Box),scene=new T.Scene();scene.add(car.object);let detached=0;const tyres=createTyreDamage(T,car,{onDetach:()=>detached++}),wheel=car.wheels.find(w=>w.id==='front_left');
+assert(!tyres.hit({object:car.shell[0]}),'body hit never punctures a wheel');assert(tyres.hit({object:wheel.tire}));assert(!tyres.hit({object:wheel.hub}),'already-punctured wheel is idempotent');
+const foreign=createDemoCar(T,Box);assert(!tyres.hit({object:foreign.wheels[0].tire}),'foreign car wheel does not damage this car');
+tyres.update({speed:0,distance:0,yaw:0},2);assert(wheel.tire.scale.x<1&&wheel.pivot.position.y<.43);assert.equal(tyres.stats().sparks,0);
+const flatIdleBefore=tyres.stats().idleUpdates;for(let i=0;i<120;i++)tyres.update({speed:0,distance:0,yaw:0},1/60);assert.equal(tyres.stats().idleUpdates-flatIdleBefore,120,'a stationary fully flat tyre keeps its authored flat pose without per-frame work');
+tyres.update({speed:8,distance:61,yaw:0},.1);assert(!wheel.tire.visible&&wheel.hub.visible);assert.equal(detached,1);assert.equal(wheel.rollingRadius,wheel.nominalRimRadius);assert(tyres.stats().sparks>0&&tyres.stats().sparks<=64);
+tyres.update({speed:8,distance:1,yaw:0},.1);assert.equal(detached,1,'one detach animation per tyre');
+for(let i=0;i<60;i++)tyres.update({speed:0,distance:0,yaw:0},.1);assert.equal(tyres.stats().sparks,0);assert.equal(tyres.stats().looseTyres,0);
+tyres.reset();assert(wheel.tire.visible&&wheel.tire.scale.x===1&&wheel.pivot.position.y===wheel.restPosition.y);assert.equal(wheel.rollingRadius,wheel.nominalRollingRadius);assert.equal(tyres.effects.speedFactor,1);tyres.dispose();assert.equal(tyres.object.parent,null);
+console.log('PASS exact per-car wheel hits, deflation, distance-only tyre loss, axle grip/pull/speed, bare rim, bounded sparks and detached tyre reset');

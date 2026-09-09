@@ -1,0 +1,5046 @@
+{
+  "schema": "mafiozi.interior-floor-audit-proposals/v1",
+  "counts": {
+    "instances": 75,
+    "placedAssetTypes": 22,
+    "catalogOnlyTypes": 2
+  },
+  "limitations": [
+    "Geometry-only GLTF parse ignores textures; no raster art approval or live traversal implied.",
+    "Visual asset bounds include pads/roof props, never use them as usable floor footprint.",
+    "No automatic resizing is required for safe proposals; optional loft/window/room expansion is a separate runtime authoring operation.",
+    "Only canonical current placement75 was inventoried; legacy/protected main game sites are not represented by these instance IDs."
+  ],
+  "profiles": [
+    {
+      "assetId": "civic_hall",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.94,
+          "ceilingY": 5.25,
+          "clearHeight": 4.31,
+          "sourceRect": [
+            -5.3,
+            0.3,
+            5.3,
+            9.9
+          ],
+          "usableRect": [
+            -4.95,
+            0.6499999999999999,
+            4.95,
+            9.55
+          ],
+          "inset": 0.35
+        },
+        {
+          "level": 1,
+          "floorY": 5.45,
+          "ceilingY": 8.35,
+          "clearHeight": 2.9,
+          "sourceRect": [
+            -5.3,
+            0.3,
+            5.3,
+            9.9
+          ],
+          "usableRect": [
+            -4.95,
+            0.6499999999999999,
+            4.95,
+            9.55
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "One tall facade window row reaches5.175. Proposed second floor5.45 avoids cutting it. Dome and portico are not storeys; wings shorter than main body.",
+      "evidence": [
+        {
+          "name": "CivicHall_MainBody",
+          "material": [
+            "Civic_Clay_Limestone"
+          ],
+          "min": [
+            -5.3,
+            0.8,
+            0.3
+          ],
+          "max": [
+            5.3,
+            8.5,
+            9.9
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-civic_hall-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              610.9,
+              0,
+              32.8
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0.6200000047683716,
+              0
+            ],
+            "horizontalScale": [
+              1.345291368314171,
+              1.345291368314171
+            ],
+            "preserveSiteBounds": true
+          },
+          "worldUsableFloorSizes": [
+            [
+              13.318,
+              11.973,
+              4.31
+            ],
+            [
+              13.318,
+              11.973,
+              2.9
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "hospital",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 3,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.96,
+          "ceilingY": 4.35,
+          "clearHeight": 3.39,
+          "sourceRect": [
+            -9.1,
+            -2.3,
+            4.7,
+            10.3
+          ],
+          "usableRect": [
+            -8.75,
+            -1.9499999999999997,
+            4.3500000000000005,
+            9.950000000000001
+          ],
+          "inset": 0.35
+        },
+        {
+          "level": 1,
+          "floorY": 4.55,
+          "ceilingY": 7.45,
+          "clearHeight": 2.9,
+          "sourceRect": [
+            -9.1,
+            -2.3,
+            4.7,
+            10.3
+          ],
+          "usableRect": [
+            -8.75,
+            -1.9499999999999997,
+            4.3500000000000005,
+            9.950000000000001
+          ],
+          "inset": 0.35
+        },
+        {
+          "level": 2,
+          "floorY": 7.65,
+          "ceilingY": 10.25,
+          "clearHeight": 2.6,
+          "sourceRect": [
+            -6.9,
+            1.2,
+            2.9,
+            9.2
+          ],
+          "usableRect": [
+            -6.550000000000001,
+            1.5499999999999998,
+            2.55,
+            8.85
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Three observed window rows across two main levels and setback UpperWard. Short service wing separate.",
+      "evidence": [
+        {
+          "name": "Hospital_MainWing",
+          "material": [
+            "Hospital_Clay_WarmWhite"
+          ],
+          "min": [
+            -9.1,
+            0.8,
+            -2.3
+          ],
+          "max": [
+            4.7,
+            8.6,
+            10.3
+          ]
+        },
+        {
+          "name": "Hospital_UpperWard",
+          "material": [
+            "Hospital_Clay_Ivory"
+          ],
+          "min": [
+            -6.9,
+            7.6,
+            1.2
+          ],
+          "max": [
+            2.9,
+            10.4,
+            9.2
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-hospital-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              672.4,
+              0,
+              45.099999999999994
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0.5399999916553497,
+              0
+            ],
+            "horizontalScale": [
+              1.3636362636363635,
+              1.3636362636363635
+            ],
+            "preserveSiteBounds": true
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.864,
+              16.227,
+              3.39
+            ],
+            [
+              17.864,
+              16.227,
+              2.9
+            ],
+            [
+              12.409,
+              9.955,
+              2.6
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "nightclub",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.255,
+          "ceilingY": 4.1,
+          "clearHeight": 3.845,
+          "sourceRect": [
+            -6,
+            -4.4,
+            6,
+            3.7
+          ],
+          "usableRect": [
+            -5.65,
+            -4.050000000000001,
+            5.65,
+            3.35
+          ],
+          "inset": 0.35
+        },
+        {
+          "level": 1,
+          "floorY": 4.3,
+          "ceilingY": 7.05,
+          "clearHeight": 2.75,
+          "sourceRect": [
+            -5.7,
+            -4.1,
+            3.7,
+            3
+          ],
+          "usableRect": [
+            -5.3500000000000005,
+            -3.7499999999999996,
+            3.35,
+            2.65
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "RoofSlab",
+            "min": [
+              -5.75,
+              7.15,
+              -4.325
+            ],
+            "max": [
+              4.45,
+              7.49,
+              3.225
+            ]
+          },
+          {
+            "name": "RearRoofSlab",
+            "min": [
+              0.225,
+              7.34,
+              -4.075
+            ],
+            "max": [
+              5.575,
+              7.66,
+              -0.925
+            ]
+          }
+        ]
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [
+        {
+          "name": "MainHall",
+          "material": [
+            "Clay_Terracotta"
+          ],
+          "min": [
+            -6,
+            0.1,
+            -4.4
+          ],
+          "max": [
+            6,
+            5.9,
+            3.7
+          ]
+        },
+        {
+          "name": "UpperLounge",
+          "material": [
+            "Clay_Terracotta"
+          ],
+          "min": [
+            -5.7,
+            4.9,
+            -4.1
+          ],
+          "max": [
+            3.7,
+            7.2,
+            3
+          ]
+        },
+        {
+          "name": "RoofSlab",
+          "material": [
+            "Roof_Charcoal"
+          ],
+          "min": [
+            -5.75,
+            7.15,
+            -4.325
+          ],
+          "max": [
+            4.45,
+            7.49,
+            3.225
+          ]
+        },
+        {
+          "name": "RearRoofSlab",
+          "material": [
+            "Roof_Charcoal"
+          ],
+          "min": [
+            0.225,
+            7.34,
+            -4.075
+          ],
+          "max": [
+            5.575,
+            7.66,
+            -0.925
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-nightclub-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              503.13149999999996,
+              0,
+              116.85
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              0
+            ],
+            "horizontalScale": [
+              1.3599999999999999,
+              1.3599999999999999
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              15.368,
+              10.064,
+              3.845
+            ],
+            [
+              11.832,
+              8.704,
+              2.75
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "old_town_narrow_townhouse_v1",
+      "placed": true,
+      "instanceCount": 22,
+      "proposedFloorCount": 3,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 2.8,
+          "clearHeight": 2.785,
+          "sourceRect": [
+            -1.76,
+            -3.65,
+            1.76,
+            3.65
+          ],
+          "usableRect": [
+            -1.59,
+            -3.48,
+            1.59,
+            3.48
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 1,
+          "floorY": 3,
+          "ceilingY": 5.7,
+          "clearHeight": 2.7,
+          "sourceRect": [
+            -1.7,
+            -3.63,
+            1.7,
+            3.39
+          ],
+          "usableRect": [
+            -1.53,
+            -3.46,
+            1.53,
+            3.22
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 2,
+          "floorY": 5.9,
+          "ceilingY": 8.25,
+          "clearHeight": 2.35,
+          "sourceRect": [
+            -1.61,
+            -3.62,
+            1.61,
+            3.06
+          ],
+          "usableRect": [
+            -1.4400000000000002,
+            -3.45,
+            1.4400000000000002,
+            2.89
+          ],
+          "inset": 0.17
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Three real facade window rows. Top solid shell is only1.45m tall; proposed floor5.9 deliberately starts in underlying middle shell. Decorative belts are not floor authority. Top clear2.35m. Narrowest instances need compact switchback and no corridor beside stair.",
+      "evidence": [
+        {
+          "name": "old_town_narrow_townhouse_v1ShellGeometry",
+          "material": [
+            "OldTownTerracotta"
+          ],
+          "min": [
+            -1.76,
+            0,
+            -3.65
+          ],
+          "max": [
+            1.76,
+            10.175,
+            3.65
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -1.76,
+                0,
+                -3.65
+              ],
+              "max": [
+                1.76,
+                3.5,
+                3.65
+              ]
+            },
+            {
+              "min": [
+                -1.61,
+                6.895,
+                -3.62
+              ],
+              "max": [
+                1.61,
+                8.345,
+                3.06
+              ]
+            }
+          ]
+        },
+        {
+          "name": "old_town_narrow_townhouse_v1ShellGeometry_1",
+          "material": [
+            "OldTownFadedOchre"
+          ],
+          "min": [
+            -1.7,
+            3.5,
+            -3.63
+          ],
+          "max": [
+            1.7,
+            6.9,
+            3.39
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -1.7,
+                3.5,
+                -3.63
+              ],
+              "max": [
+                1.7,
+                6.9,
+                3.39
+              ]
+            }
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              332.09999999999997,
+              0,
+              20.5
+            ],
+            "yawDegrees": 270,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              297.25,
+              0,
+              28.699999999999996
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              254.2,
+              0,
+              194.74999999999997
+            ],
+            "yawDegrees": 180,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              414.09999999999997,
+              0,
+              14.349999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.56,
+              1.105
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              4.961,
+              7.691,
+              2.785
+            ],
+            [
+              4.774,
+              7.381,
+              2.7
+            ],
+            [
+              4.493,
+              7.006,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              412.04999999999995,
+              0,
+              26.65
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.12,
+              1.0225
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              3.562,
+              7.117,
+              2.785
+            ],
+            [
+              3.427,
+              6.83,
+              2.7
+            ],
+            [
+              3.226,
+              6.483,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              252.14999999999998,
+              0,
+              61.49999999999999
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              401.79999999999995,
+              0,
+              110.69999999999999
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-008",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              334.15,
+              0,
+              131.2
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              241.89999999999998,
+              0,
+              168.1
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              241.89999999999998,
+              0,
+              190.64999999999998
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              248.04999999999998,
+              0,
+              32.8
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              332.09999999999997,
+              0,
+              32.8
+            ],
+            "yawDegrees": 270,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              414.09999999999997,
+              0,
+              43.05
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-014",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              297.25,
+              0,
+              65.6
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-015",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              248.04999999999998,
+              0,
+              94.3
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-016",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              328,
+              0,
+              106.6
+            ],
+            "yawDegrees": 270,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-017",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              295.2,
+              0,
+              125.04999999999998
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-018",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              315.7,
+              0,
+              125.04999999999998
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              414.09999999999997,
+              0,
+              131.2
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              414.09999999999997,
+              0,
+              186.54999999999998
+            ],
+            "yawDegrees": 180,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              297.25,
+              0,
+              196.79999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              256.25,
+              0,
+              12.299999999999999
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.017499983310699463,
+              0.08999991416931152,
+              -0.039999961853027344
+            ],
+            "horizontalScale": [
+              1.8,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.724,
+              8.004,
+              2.785
+            ],
+            [
+              5.508,
+              7.682,
+              2.7
+            ],
+            [
+              5.184,
+              7.291,
+              2.35
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "eastside_garden_walkup_v1",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 4,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 3,
+          "clearHeight": 2.985,
+          "sourceRect": [
+            -1.43,
+            -7.36,
+            1.43,
+            7.36
+          ],
+          "usableRect": [
+            -1.26,
+            -7.19,
+            1.26,
+            7.19
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 1,
+          "floorY": 3.2,
+          "ceilingY": 6.1,
+          "clearHeight": 2.9,
+          "sourceRect": [
+            -1.27,
+            -7.36,
+            1.43,
+            6.56
+          ],
+          "usableRect": [
+            -1.1,
+            -7.19,
+            1.26,
+            6.39
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 2,
+          "floorY": 6.3,
+          "ceilingY": 9.25,
+          "clearHeight": 2.95,
+          "sourceRect": [
+            -1.27,
+            -7.36,
+            1.43,
+            6.56
+          ],
+          "usableRect": [
+            -1.1,
+            -7.19,
+            1.26,
+            6.39
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 3,
+          "floorY": 9.45,
+          "ceilingY": 12.55,
+          "clearHeight": 3.1,
+          "sourceRect": [
+            -1.37,
+            -7.36,
+            1.01,
+            5.26
+          ],
+          "usableRect": [
+            -1.2000000000000002,
+            -7.19,
+            0.84,
+            5.09
+          ],
+          "inset": 0.17
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Four facade window rows; upper setbacks require level-specific rectangles. Long thin original shell, already horizontalScaleX2.",
+      "evidence": [
+        {
+          "name": "eastside_garden_walkup_v1ShellGeometry",
+          "material": [
+            "EastsideSandStucco"
+          ],
+          "min": [
+            -1.43,
+            0,
+            -7.36
+          ],
+          "max": [
+            1.43,
+            12.7,
+            7.36
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -1.43,
+                0,
+                -7.36
+              ],
+              "max": [
+                1.43,
+                4.3,
+                7.36
+              ]
+            },
+            {
+              "min": [
+                -1.37,
+                9.7,
+                -7.36
+              ],
+              "max": [
+                1.01,
+                12.7,
+                5.26
+              ]
+            }
+          ]
+        },
+        {
+          "name": "eastside_garden_walkup_v1ShellGeometry_1",
+          "material": [
+            "EastsideSageStucco"
+          ],
+          "min": [
+            -1.31,
+            0,
+            -7.36
+          ],
+          "max": [
+            1.43,
+            12.6,
+            7.79
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -1.27,
+                4.3,
+                -7.36
+              ],
+              "max": [
+                1.43,
+                9.7,
+                6.56
+              ]
+            }
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              552.3315,
+              0,
+              116.85
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.05499982833862305,
+              0.09000015258789062,
+              0.11999988555908203
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.818,
+              2.985
+            ],
+            [
+              4.72,
+              14.938,
+              2.9
+            ],
+            [
+              4.72,
+              14.938,
+              2.95
+            ],
+            [
+              4.08,
+              13.508,
+              3.1
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              477.65,
+              0,
+              47.15
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.05499982833862305,
+              0.09000015258789062,
+              0.11999988555908203
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.818,
+              2.985
+            ],
+            [
+              4.72,
+              14.938,
+              2.9
+            ],
+            [
+              4.72,
+              14.938,
+              2.95
+            ],
+            [
+              4.08,
+              13.508,
+              3.1
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              715.4499999999999,
+              0,
+              118.89999999999999
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.05499982833862305,
+              0.09000015258789062,
+              0.11999988555908203
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.818,
+              2.985
+            ],
+            [
+              4.72,
+              14.938,
+              2.9
+            ],
+            [
+              4.72,
+              14.938,
+              2.95
+            ],
+            [
+              4.08,
+              13.508,
+              3.1
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              715.4499999999999,
+              0,
+              161.95
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.05499982833862305,
+              0.09000015258789062,
+              0.11999988555908203
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.818,
+              2.985
+            ],
+            [
+              4.72,
+              14.938,
+              2.9
+            ],
+            [
+              4.72,
+              14.938,
+              2.95
+            ],
+            [
+              4.08,
+              13.508,
+              3.1
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "eastside_stepped_apartment_v1",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 4,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 3,
+          "clearHeight": 2.985,
+          "sourceRect": [
+            -1.43,
+            -7,
+            1.43,
+            7.05
+          ],
+          "usableRect": [
+            -1.26,
+            -6.83,
+            1.26,
+            6.88
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 1,
+          "floorY": 3.2,
+          "ceilingY": 6.15,
+          "clearHeight": 2.95,
+          "sourceRect": [
+            -1.43,
+            -7,
+            1.43,
+            7.05
+          ],
+          "usableRect": [
+            -1.26,
+            -6.83,
+            1.26,
+            6.88
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 2,
+          "floorY": 6.35,
+          "ceilingY": 9.4,
+          "clearHeight": 3.05,
+          "sourceRect": [
+            -1.27,
+            -2.35,
+            1.43,
+            7.05
+          ],
+          "usableRect": [
+            -1.1,
+            -2.18,
+            1.26,
+            6.88
+          ],
+          "inset": 0.17
+        },
+        {
+          "level": 3,
+          "floorY": 9.6,
+          "ceilingY": 12.35,
+          "clearHeight": 2.75,
+          "sourceRect": [
+            -1.43,
+            1.95,
+            1.43,
+            7.05
+          ],
+          "usableRect": [
+            -1.26,
+            2.12,
+            1.26,
+            6.88
+          ],
+          "inset": 0.17
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Four front window rows. Rear wing roof7.29, middle roof10.13, front roof12.79; restrict levels2/3 to taller portions. Need bridge across authored0.15m seam z[-2.5,-2.35] on lower floors.",
+      "evidence": [
+        {
+          "name": "eastside_stepped_apartment_v1ShellGeometry",
+          "material": [
+            "EastsideRoseSand"
+          ],
+          "min": [
+            -1.43,
+            0,
+            -7
+          ],
+          "max": [
+            1.43,
+            12.5,
+            7.05
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -1.43,
+                0,
+                1.95
+              ],
+              "max": [
+                1.43,
+                12.5,
+                7.05
+              ]
+            },
+            {
+              "min": [
+                -1.4,
+                0,
+                -7
+              ],
+              "max": [
+                1.2,
+                7.1,
+                -2.5
+              ]
+            }
+          ]
+        },
+        {
+          "name": "eastside_stepped_apartment_v1ShellGeometry_1",
+          "material": [
+            "EastsidePaleSage"
+          ],
+          "min": [
+            -1.27,
+            0,
+            -2.35
+          ],
+          "max": [
+            1.43,
+            9.9,
+            1.95
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -1.27,
+                0,
+                -2.35
+              ],
+              "max": [
+                1.43,
+                9.9,
+                1.95
+              ]
+            }
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              522.75,
+              0,
+              30.749999999999996
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.009999990463256836,
+              0.09000015258789062,
+              -0.17499971389770508
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.081,
+              2.985
+            ],
+            [
+              5.04,
+              15.081,
+              2.95
+            ],
+            [
+              4.72,
+              9.966,
+              3.05
+            ],
+            [
+              5.04,
+              5.236,
+              2.75
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              551.4499999999999,
+              0,
+              67.64999999999999
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.009999990463256836,
+              0.09000015258789062,
+              -0.17499971389770508
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.081,
+              2.985
+            ],
+            [
+              5.04,
+              15.081,
+              2.95
+            ],
+            [
+              4.72,
+              9.966,
+              3.05
+            ],
+            [
+              5.04,
+              5.236,
+              2.75
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              629.3499999999999,
+              0,
+              125.04999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.009999990463256836,
+              0.09000015258789062,
+              -0.17499971389770508
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.081,
+              2.985
+            ],
+            [
+              5.04,
+              15.081,
+              2.95
+            ],
+            [
+              4.72,
+              9.966,
+              3.05
+            ],
+            [
+              5.04,
+              5.236,
+              2.75
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              617.05,
+              0,
+              170.14999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0.009999990463256836,
+              0.09000015258789062,
+              -0.17499971389770508
+            ],
+            "horizontalScale": [
+              2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.04,
+              15.081,
+              2.985
+            ],
+            [
+              5.04,
+              15.081,
+              2.95
+            ],
+            [
+              4.72,
+              9.966,
+              3.05
+            ],
+            [
+              5.04,
+              5.236,
+              2.75
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "coastal_orchard_house_v1",
+      "placed": true,
+      "instanceCount": 2,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 3.85,
+          "clearHeight": 3.835,
+          "sourceRect": [
+            -4.075,
+            -4.9,
+            4.075,
+            4.9
+          ],
+          "usableRect": [
+            -3.835,
+            -4.66,
+            3.835,
+            4.66
+          ],
+          "inset": 0.24
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [
+        {
+          "name": "MainBody",
+          "material": [
+            "ClayWall"
+          ],
+          "min": [
+            -4.075,
+            0,
+            -4.9
+          ],
+          "max": [
+            4.075,
+            4,
+            4.9
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              432.54999999999995,
+              0,
+              512.5
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -0.5950000286102295
+            ],
+            "horizontalScale": [
+              1.1,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              8.437,
+              10.252,
+              3.835
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-coastal_orchard_house_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              672.4,
+              0,
+              617.05
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -0.5950000286102295
+            ],
+            "horizontalScale": [
+              1.1,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              8.437,
+              10.252,
+              3.835
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "garden_lane_house_v1",
+      "placed": true,
+      "instanceCount": 3,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 2.65,
+          "clearHeight": 2.635,
+          "sourceRect": [
+            -2.65,
+            -5.7,
+            2.65,
+            5.7
+          ],
+          "usableRect": [
+            -2.41,
+            -5.46,
+            2.41,
+            5.46
+          ],
+          "inset": 0.24
+        },
+        {
+          "level": 1,
+          "floorY": 2.85,
+          "ceilingY": 5.25,
+          "clearHeight": 2.4,
+          "sourceRect": [
+            -2.65,
+            -5.7,
+            2.65,
+            5.7
+          ],
+          "usableRect": [
+            -2.41,
+            -5.46,
+            2.41,
+            5.46
+          ],
+          "inset": 0.24
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Only one visible window row, but5.4m wall supports optional second floor. Two-floor recommendation is design inference; add upper windows if implemented.",
+      "evidence": [
+        {
+          "name": "MainBody",
+          "material": [
+            "ClayWall"
+          ],
+          "min": [
+            -2.65,
+            0,
+            -5.7
+          ],
+          "max": [
+            2.65,
+            5.4,
+            5.7
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-garden_lane_house_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              555.55,
+              0,
+              32.8
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.007500052452087402,
+              0,
+              -1.2200000286102295
+            ],
+            "horizontalScale": [
+              1.2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.784,
+              12.012,
+              2.635
+            ],
+            [
+              5.784,
+              12.012,
+              2.4
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-garden_lane_house_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              512.5,
+              0,
+              69.69999999999999
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.007500052452087402,
+              0,
+              -1.2200000286102295
+            ],
+            "horizontalScale": [
+              1.2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.784,
+              12.012,
+              2.635
+            ],
+            [
+              5.784,
+              12.012,
+              2.4
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-garden_lane_house_v1-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              500.19999999999993,
+              0,
+              161.95
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.007500052452087402,
+              0,
+              -1.2200000286102295
+            ],
+            "horizontalScale": [
+              1.2,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              5.784,
+              12.012,
+              2.635
+            ],
+            [
+              5.784,
+              12.012,
+              2.4
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "hillstep_chalet_v1",
+      "placed": true,
+      "instanceCount": 3,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 4.2,
+          "clearHeight": 4.185,
+          "sourceRect": [
+            -3.175,
+            -5.4,
+            3.175,
+            5.4
+          ],
+          "usableRect": [
+            -2.9349999999999996,
+            -5.16,
+            2.9349999999999996,
+            5.16
+          ],
+          "inset": 0.24
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "One full storey plus named UpperLoft with authored1.2m height. Do not call current loft habitable. Optional second storey needs roof lift or exact sloped-roof head-clearance sampling and a reduced plan.",
+      "evidence": [
+        {
+          "name": "MainBody",
+          "material": [
+            "ClayWall"
+          ],
+          "min": [
+            -3.175,
+            0,
+            -5.4
+          ],
+          "max": [
+            3.175,
+            4.65,
+            5.4
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              34.849999999999994,
+              0,
+              32.8
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.394999861717224
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.75,
+              11.352,
+              4.185
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              47.15,
+              0,
+              125.04999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.394999861717224
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.75,
+              11.352,
+              4.185
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-hillstep_chalet_v1-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              38.949999999999996,
+              0,
+              180.39999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.394999861717224
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.75,
+              11.352,
+              4.185
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "pine_ridge_cottage_v1",
+      "placed": true,
+      "instanceCount": 2,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 4,
+          "clearHeight": 3.985,
+          "sourceRect": [
+            -3.125,
+            -5.8,
+            3.125,
+            5.8
+          ],
+          "usableRect": [
+            -2.885,
+            -5.56,
+            2.885,
+            5.56
+          ],
+          "inset": 0.24
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [
+        {
+          "name": "MainBody",
+          "material": [
+            "ClayWall"
+          ],
+          "min": [
+            -3.125,
+            0,
+            -5.8
+          ],
+          "max": [
+            3.125,
+            4.15,
+            5.8
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              204.99999999999997,
+              0,
+              82
+            ],
+            "yawDegrees": 180,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.1949996948242188
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.635,
+              12.232,
+              3.985
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              108.64999999999999,
+              0,
+              131.2
+            ],
+            "yawDegrees": 270,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.1949996948242188
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.635,
+              12.232,
+              3.985
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "veranda_bungalow_v1",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 3.1,
+          "clearHeight": 3.085,
+          "sourceRect": [
+            -4.125,
+            -4.6,
+            4.125,
+            4.6
+          ],
+          "usableRect": [
+            -3.885,
+            -4.359999999999999,
+            3.885,
+            4.359999999999999
+          ],
+          "inset": 0.24
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [
+        {
+          "name": "MainBody",
+          "material": [
+            "ClayWall"
+          ],
+          "min": [
+            -4.125,
+            0,
+            -4.6
+          ],
+          "max": [
+            4.125,
+            3.25,
+            4.6
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              481.74999999999994,
+              0,
+              580.15
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -0.7450001239776611
+            ],
+            "horizontalScale": [
+              1.1,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              8.547,
+              9.592,
+              3.085
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "woodland_crosswing_house_v1",
+      "placed": true,
+      "instanceCount": 2,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.015,
+          "ceilingY": 4.1,
+          "clearHeight": 4.085,
+          "sourceRect": [
+            -3.1,
+            -6.1,
+            3.1,
+            6.1
+          ],
+          "usableRect": [
+            -2.8600000000000003,
+            -5.859999999999999,
+            2.8600000000000003,
+            5.859999999999999
+          ],
+          "inset": 0.24
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "MainBody audited; connected CrossWing can be additional ground-floor rooms, not blanket full rectangle.",
+      "evidence": [
+        {
+          "name": "MainBody",
+          "material": [
+            "ClayWall"
+          ],
+          "min": [
+            -3.1,
+            0,
+            -6.1
+          ],
+          "max": [
+            3.1,
+            4.3,
+            6.1
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              204.99999999999997,
+              0,
+              112.74999999999999
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.0449999570846558
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.578,
+              12.892,
+              4.085
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              155.79999999999998,
+              0,
+              137.35
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              -2.0449999570846558
+            ],
+            "horizontalScale": [
+              1.15,
+              1.1
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              6.578,
+              12.892,
+              4.085
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "compact_podium_glass_tower_v1",
+      "placed": true,
+      "instanceCount": 2,
+      "proposedFloorCount": 7,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.21,
+          "ceilingY": 4.2,
+          "clearHeight": 3.99,
+          "sourceRect": [
+            -8.6,
+            -6.7,
+            7,
+            6.7
+          ],
+          "usableRect": [
+            -8.15,
+            -6.25,
+            6.55,
+            6.25
+          ],
+          "inset": 0.45
+        },
+        {
+          "level": 1,
+          "floorY": 4.4,
+          "ceilingY": 7.9,
+          "clearHeight": 3.5,
+          "sourceRect": [
+            -7.4,
+            -5.25,
+            3.4,
+            4.15
+          ],
+          "usableRect": [
+            -6.95,
+            -4.8,
+            2.9499999999999997,
+            3.7
+          ],
+          "inset": 0.45
+        },
+        {
+          "level": 2,
+          "floorY": 8.1,
+          "ceilingY": 11.6,
+          "clearHeight": 3.5,
+          "sourceRect": [
+            -7.4,
+            -5.25,
+            3.4,
+            4.15
+          ],
+          "usableRect": [
+            -6.95,
+            -4.8,
+            2.9499999999999997,
+            3.7
+          ],
+          "inset": 0.45
+        },
+        {
+          "level": 3,
+          "floorY": 11.8,
+          "ceilingY": 15.4,
+          "clearHeight": 3.6,
+          "sourceRect": [
+            -7.4,
+            -5.25,
+            3.4,
+            4.15
+          ],
+          "usableRect": [
+            -6.95,
+            -4.8,
+            2.9499999999999997,
+            3.7
+          ],
+          "inset": 0.45
+        },
+        {
+          "level": 4,
+          "floorY": 15.6,
+          "ceilingY": 19,
+          "clearHeight": 3.4,
+          "sourceRect": [
+            -4.65,
+            -4.2,
+            4.15,
+            3.9
+          ],
+          "usableRect": [
+            -4.2,
+            -3.75,
+            3.7,
+            3.4499999999999997
+          ],
+          "inset": 0.45
+        },
+        {
+          "level": 5,
+          "floorY": 19.2,
+          "ceilingY": 22.6,
+          "clearHeight": 3.4,
+          "sourceRect": [
+            -4.65,
+            -4.2,
+            4.15,
+            3.9
+          ],
+          "usableRect": [
+            -4.2,
+            -3.75,
+            3.7,
+            3.4499999999999997
+          ],
+          "inset": 0.45
+        },
+        {
+          "level": 6,
+          "floorY": 22.8,
+          "ceilingY": 27.3,
+          "clearHeight": 4.5,
+          "sourceRect": [
+            -4.75,
+            -4,
+            1.55,
+            2.5
+          ],
+          "usableRect": [
+            -4.3,
+            -3.55,
+            1.1,
+            2.05
+          ],
+          "inset": 0.45
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Merged solid structural components show podium0..4.4, lower tower4.4..15.6, middle15.4..22.8, crown22.8..27.5. Seven proposed occupied floors are dimensional design inference, not seven authored slabs; stair must stay in overlap of consecutive footprint rectangles.",
+      "evidence": [
+        {
+          "name": "compact_podium_glass_tower_v1_LOD0Geometry_1",
+          "material": [
+            "LightLimestone"
+          ],
+          "min": [
+            -8.6,
+            0,
+            -6.7
+          ],
+          "max": [
+            7,
+            27.5,
+            6.7
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -8.6,
+                0,
+                -6.7
+              ],
+              "max": [
+                7,
+                4.4,
+                6.7
+              ]
+            },
+            {
+              "min": [
+                -7.4,
+                4.4,
+                -5.25
+              ],
+              "max": [
+                3.4,
+                15.6,
+                4.15
+              ]
+            },
+            {
+              "min": [
+                -4.75,
+                22.8,
+                -4
+              ],
+              "max": [
+                1.55,
+                27.5,
+                2.5
+              ]
+            }
+          ]
+        },
+        {
+          "name": "compact_podium_glass_tower_v1_LOD0Geometry_2",
+          "material": [
+            "PaleLimestone"
+          ],
+          "min": [
+            -6.99,
+            0,
+            -7.41
+          ],
+          "max": [
+            8,
+            22.8,
+            8.005
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                3.6,
+                0,
+                -3.6
+              ],
+              "max": [
+                8,
+                5.3,
+                5.9
+              ]
+            },
+            {
+              "min": [
+                -5.625,
+                3.1,
+                6.555
+              ],
+              "max": [
+                -0.375,
+                3.34,
+                8.005
+              ]
+            },
+            {
+              "min": [
+                -4.65,
+                15.4,
+                -4.2
+              ],
+              "max": [
+                4.15,
+                22.8,
+                3.9
+              ]
+            }
+          ]
+        },
+        {
+          "name": "compact_podium_glass_tower_v1_LOD0Geometry_7",
+          "material": [
+            "TerracottaAccent"
+          ],
+          "min": [
+            -4.95,
+            0.44,
+            -4.2
+          ],
+          "max": [
+            1.75,
+            27.76,
+            6.62
+          ],
+          "structuralComponents": [
+            {
+              "min": [
+                -4.95,
+                27.48,
+                -4.2
+              ],
+              "max": [
+                1.75,
+                27.76,
+                2.7
+              ]
+            }
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              672.4,
+              0,
+              125.04999999999998
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0.04999999701976776,
+              -0.28750020265579224
+            ],
+            "horizontalScale": [
+              1.2799999999999998,
+              1.2799999999999998
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              18.816,
+              16,
+              3.99
+            ],
+            [
+              12.672,
+              10.88,
+              3.5
+            ],
+            [
+              12.672,
+              10.88,
+              3.5
+            ],
+            [
+              12.672,
+              10.88,
+              3.6
+            ],
+            [
+              10.112,
+              9.216,
+              3.4
+            ],
+            [
+              10.112,
+              9.216,
+              3.4
+            ],
+            [
+              6.912,
+              7.168,
+              4.5
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              666.2499999999999,
+              0,
+              168.1
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0.04999999701976776,
+              -0.28750020265579224
+            ],
+            "horizontalScale": [
+              1.4,
+              1.4
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              20.58,
+              17.5,
+              3.99
+            ],
+            [
+              13.86,
+              11.9,
+              3.5
+            ],
+            [
+              13.86,
+              11.9,
+              3.5
+            ],
+            [
+              13.86,
+              11.9,
+              3.6
+            ],
+            [
+              11.06,
+              10.08,
+              3.4
+            ],
+            [
+              11.06,
+              10.08,
+              3.4
+            ],
+            [
+              7.56,
+              7.84,
+              4.5
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "pawnshop",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.385,
+          "ceilingY": 3.85,
+          "clearHeight": 3.465,
+          "sourceRect": [
+            -6,
+            -4.6,
+            6,
+            4.6
+          ],
+          "usableRect": [
+            -5.65,
+            -4.25,
+            5.65,
+            4.25
+          ],
+          "inset": 0.35
+        },
+        {
+          "level": 1,
+          "floorY": 4.05,
+          "ceilingY": 7.6,
+          "clearHeight": 3.55,
+          "sourceRect": [
+            -6,
+            -4.6,
+            6,
+            4.6
+          ],
+          "usableRect": [
+            -5.65,
+            -4.25,
+            5.65,
+            4.25
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Roof_slab",
+            "min": [
+              -6.175,
+              7.64,
+              -4.75
+            ],
+            "max": [
+              6.175,
+              8.06,
+              4.75
+            ]
+          }
+        ]
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [
+        {
+          "name": "Main_brick_volume",
+          "material": [
+            "Warm weathered brick"
+          ],
+          "min": [
+            -6,
+            0,
+            -4.6
+          ],
+          "max": [
+            6,
+            7.8,
+            4.6
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-pawnshop-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              395.65,
+              0,
+              20.5
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.6000000536441803,
+              0,
+              -0.6925001535564661
+            ],
+            "horizontalScale": [
+              1.105,
+              1.105
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              12.487,
+              9.393,
+              3.465
+            ],
+            [
+              12.487,
+              9.393,
+              3.55
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-pawnshop-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              487.9,
+              0,
+              235.74999999999997
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.6000000536441803,
+              0,
+              -0.6925001535564661
+            ],
+            "horizontalScale": [
+              1.15,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              12.995,
+              9.775,
+              3.465
+            ],
+            [
+              12.995,
+              9.775,
+              3.55
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-pawnshop-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              172.2,
+              0,
+              254.2
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.6000000536441803,
+              0,
+              -0.6925001535564661
+            ],
+            "horizontalScale": [
+              1.15,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              12.995,
+              9.775,
+              3.465
+            ],
+            [
+              12.995,
+              9.775,
+              3.55
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-pawnshop-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              647.8,
+              0,
+              262.4
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.6000000536441803,
+              0,
+              -0.6925001535564661
+            ],
+            "horizontalScale": [
+              1.15,
+              1.15
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              12.995,
+              9.775,
+              3.465
+            ],
+            [
+              12.995,
+              9.775,
+              3.55
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "print_shop",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.39,
+          "ceilingY": 6.35,
+          "clearHeight": 5.96,
+          "sourceRect": [
+            -8.3,
+            -5.9,
+            7.5,
+            4.3
+          ],
+          "usableRect": [
+            -7.950000000000001,
+            -5.550000000000001,
+            7.15,
+            3.9499999999999997
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Tall industrial printing hall and roof clerestory; no evidence of separate second storey. Keep tall production room; optional service mezzanine only.",
+      "evidence": [
+        {
+          "name": "Main_print_hall",
+          "material": [
+            "Saturated terracotta brick"
+          ],
+          "min": [
+            -8.3,
+            0.15,
+            -5.9
+          ],
+          "max": [
+            7.5,
+            6.55,
+            4.3
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-print_shop-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              395.65,
+              0,
+              45.099999999999994
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.13867319894612695,
+              0,
+              0
+            ],
+            "horizontalScale": [
+              1.02,
+              1.02
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              15.402,
+              9.69,
+              5.96
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-print_shop-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              653.9499999999999,
+              0,
+              455.09999999999997
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.13867319894612695,
+              0,
+              0
+            ],
+            "horizontalScale": [
+              1.4,
+              1.4
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              21.14,
+              13.3,
+              5.96
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-print_shop-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              522.75,
+              0,
+              321.84999999999997
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.13867319894612695,
+              0,
+              0
+            ],
+            "horizontalScale": [
+              1.2799999999999998,
+              1.2799999999999998
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              19.328,
+              12.16,
+              5.96
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-print_shop-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              106.6,
+              0,
+              377.2
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.13867319894612695,
+              0,
+              0
+            ],
+            "horizontalScale": [
+              1.02,
+              1.02
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              15.402,
+              9.69,
+              5.96
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "gun_shop",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.34,
+          "ceilingY": 6.25,
+          "clearHeight": 5.91,
+          "sourceRect": [
+            -7.6,
+            -4.75,
+            7.6,
+            4.75
+          ],
+          "usableRect": [
+            -7.25,
+            -4.4,
+            7.25,
+            4.4
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Heavy_roof_slab",
+            "min": [
+              -7.775,
+              6.4,
+              -4.9
+            ],
+            "max": [
+              7.775,
+              6.9,
+              4.9
+            ]
+          }
+        ]
+      },
+      "notes": "One display-window row, tall shell. Keep tall showroom; no evidence for mandatory second floor.",
+      "evidence": [
+        {
+          "name": "Long_armory_shell",
+          "material": [
+            "Saturated terracotta brick"
+          ],
+          "min": [
+            -7.6,
+            0,
+            -4.75
+          ],
+          "max": [
+            7.6,
+            6.5,
+            4.75
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-gun_shop-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              395.65,
+              0,
+              69.69999999999999
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.5250000953674316,
+              0,
+              -0.8275000154972076
+            ],
+            "horizontalScale": [
+              1.175,
+              1.175
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.038,
+              10.34,
+              5.91
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-gun_shop-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              112.74999999999999,
+              0,
+              250.09999999999997
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.5250000953674316,
+              0,
+              -0.8275000154972076
+            ],
+            "horizontalScale": [
+              1.175,
+              1.175
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.038,
+              10.34,
+              5.91
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-gun_shop-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              100.44999999999999,
+              0,
+              344.4
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.5250000953674316,
+              0,
+              -0.8275000154972076
+            ],
+            "horizontalScale": [
+              1.175,
+              1.175
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.038,
+              10.34,
+              5.91
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-gun_shop-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              533,
+              0,
+              432.54999999999995
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.5250000953674316,
+              0,
+              -0.8275000154972076
+            ],
+            "horizontalScale": [
+              1.175,
+              1.175
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.038,
+              10.34,
+              5.91
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "bookmaker",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.365,
+          "ceilingY": 5.8,
+          "clearHeight": 5.435,
+          "sourceRect": [
+            -7.75,
+            -4.7,
+            7.75,
+            4.7
+          ],
+          "usableRect": [
+            -7.4,
+            -4.3500000000000005,
+            7.4,
+            4.3500000000000005
+          ],
+          "inset": 0.35
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Roof_slab",
+            "min": [
+              -7.925,
+              5.97,
+              -4.875
+            ],
+            "max": [
+              7.925,
+              6.39,
+              4.875
+            ]
+          }
+        ]
+      },
+      "notes": "One display-window row; clerestory not second floor. Keep tall hall.",
+      "evidence": [
+        {
+          "name": "Betting_hall_shell",
+          "material": [
+            "Saturated terracotta"
+          ],
+          "min": [
+            -7.75,
+            0,
+            -4.7
+          ],
+          "max": [
+            7.75,
+            6,
+            4.7
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-bookmaker-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              254.2,
+              0,
+              125.04999999999998
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.35250014066696167,
+              0,
+              -1.3149998560547829
+            ],
+            "horizontalScale": [
+              1.2,
+              1.2
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.76,
+              10.44,
+              5.435
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-bookmaker-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              137.35,
+              0,
+              315.7
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.35250014066696167,
+              0,
+              -1.3149998560547829
+            ],
+            "horizontalScale": [
+              1.2,
+              1.2
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.76,
+              10.44,
+              5.435
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-bookmaker-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              524.8,
+              0,
+              358.74999999999994
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.35250014066696167,
+              0,
+              -1.3149998560547829
+            ],
+            "horizontalScale": [
+              1.2,
+              1.2
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.76,
+              10.44,
+              5.435
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-bookmaker-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              500.19999999999993,
+              0,
+              430.49999999999994
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.35250014066696167,
+              0,
+              -1.3149998560547829
+            ],
+            "horizontalScale": [
+              1.2,
+              1.2
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.76,
+              10.44,
+              5.435
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "strip_club",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.45,
+          "ceilingY": 4.1,
+          "clearHeight": 3.65,
+          "sourceRect": [
+            -6,
+            -4.5,
+            6,
+            4.5
+          ],
+          "usableRect": [
+            -5.8,
+            -4.3,
+            5.8,
+            4.3
+          ],
+          "inset": 0.2
+        },
+        {
+          "level": 1,
+          "floorY": 4.3,
+          "ceilingY": 7.05,
+          "clearHeight": 2.75,
+          "sourceRect": [
+            -5.8,
+            -4.5,
+            5.8,
+            4
+          ],
+          "usableRect": [
+            -5.6,
+            -4.3,
+            5.6,
+            3.8
+          ],
+          "inset": 0.2
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Club_Roof_Slab",
+            "min": [
+              -6.075,
+              7.2,
+              -4.775
+            ],
+            "max": [
+              6.075,
+              7.56,
+              4.275
+            ]
+          }
+        ]
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [
+        {
+          "name": "Club_First_Floor",
+          "material": [
+            "M_Warm_Red_Brick"
+          ],
+          "min": [
+            -6,
+            0.2,
+            -4.5
+          ],
+          "max": [
+            6,
+            4.3,
+            4.5
+          ]
+        },
+        {
+          "name": "Club_Second_Floor",
+          "material": [
+            "M_Warm_Red_Brick"
+          ],
+          "min": [
+            -5.8,
+            4.3,
+            -4.5
+          ],
+          "max": [
+            5.8,
+            7.2,
+            4
+          ]
+        },
+        {
+          "name": "Club_Roof_Slab",
+          "material": [
+            "M_Warm_Limestone"
+          ],
+          "min": [
+            -6.075,
+            7.2,
+            -4.775
+          ],
+          "max": [
+            6.075,
+            7.56,
+            4.275
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-strip_club-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              325.95,
+              0,
+              170.14999999999998
+            ],
+            "yawDegrees": 270,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.3625001013278961,
+              0,
+              -0.9624996185302734
+            ],
+            "horizontalScale": [
+              1.385,
+              1.385
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              16.066,
+              11.911,
+              3.65
+            ],
+            [
+              15.512,
+              11.218,
+              2.75
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-strip_club-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              104.55,
+              0,
+              311.59999999999997
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.3625001013278961,
+              0,
+              -0.9624996185302734
+            ],
+            "horizontalScale": [
+              1.28,
+              1.28
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              14.848,
+              11.008,
+              3.65
+            ],
+            [
+              14.336,
+              10.368,
+              2.75
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-strip_club-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              610.9,
+              0,
+              453.04999999999995
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.3625001013278961,
+              0,
+              -0.9624996185302734
+            ],
+            "horizontalScale": [
+              1.595,
+              1.595
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              18.502,
+              13.717,
+              3.65
+            ],
+            [
+              17.864,
+              12.92,
+              2.75
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-strip_club-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              606.8,
+              0,
+              256.25
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.3625001013278961,
+              0,
+              -0.9624996185302734
+            ],
+            "horizontalScale": [
+              1.595,
+              1.595
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              18.502,
+              13.717,
+              3.65
+            ],
+            [
+              17.864,
+              12.92,
+              2.75
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "glass_pavilion_small_v1",
+      "placed": true,
+      "instanceCount": 4,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.45,
+          "ceilingY": 4.25,
+          "clearHeight": 3.8,
+          "sourceRect": [
+            -5.8,
+            -4.4,
+            5.8,
+            4.5
+          ],
+          "usableRect": [
+            -5.05,
+            -3.6500000000000004,
+            5.05,
+            3.75
+          ],
+          "inset": 0.75
+        },
+        {
+          "level": 1,
+          "floorY": 4.45,
+          "ceilingY": 8.15,
+          "clearHeight": 3.7,
+          "sourceRect": [
+            -5.8,
+            -4.4,
+            5.8,
+            1
+          ],
+          "usableRect": [
+            -5.05,
+            -3.6500000000000004,
+            5.05,
+            0.25
+          ],
+          "inset": 0.75
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Small_Roof_Slab",
+            "min": [
+              -6.2,
+              8.32,
+              -5
+            ],
+            "max": [
+              7,
+              8.78,
+              4.7
+            ]
+          }
+        ]
+      },
+      "notes": "Continuous7.35m curtain glass; two-storey recommendation is rear mezzanine, retaining double-height glazed front hall. Roof lantern is not third storey.",
+      "evidence": [
+        {
+          "name": "Small_Roof_Slab",
+          "material": [
+            "Warm limestone clay"
+          ],
+          "min": [
+            -6.2,
+            8.32,
+            -5
+          ],
+          "max": [
+            7,
+            8.78,
+            4.7
+          ]
+        }
+      ],
+      "instances": [
+        {
+          "id": "REBUILD-VISUAL-glass_pavilion_small_v1-001",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              717.4999999999999,
+              0,
+              38.949999999999996
+            ],
+            "yawDegrees": 270,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.24999995529651642,
+              0.20000004768371582,
+              -0.32500001788139343
+            ],
+            "horizontalScale": [
+              1.2,
+              1.2
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              12.12,
+              8.88,
+              3.8
+            ],
+            [
+              12.12,
+              4.68,
+              3.7
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-glass_pavilion_small_v1-002",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              610.9,
+              0,
+              100.44999999999999
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.24999995529651642,
+              0.20000004768371582,
+              -0.32500001788139343
+            ],
+            "horizontalScale": [
+              1.08,
+              1.08
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              10.908,
+              7.992,
+              3.8
+            ],
+            [
+              10.908,
+              4.212,
+              3.7
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-glass_pavilion_small_v1-003",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              635.5,
+              0,
+              100.44999999999999
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.24999995529651642,
+              0.20000004768371582,
+              -0.32500001788139343
+            ],
+            "horizontalScale": [
+              1.08,
+              1.08
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              10.908,
+              7.992,
+              3.8
+            ],
+            [
+              10.908,
+              4.212,
+              3.7
+            ]
+          ]
+        },
+        {
+          "id": "REBUILD-VISUAL-glass_pavilion_small_v1-004",
+          "gameplayId": null,
+          "transform": {
+            "positionM": [
+              500.19999999999993,
+              0,
+              180.39999999999998
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              -0.24999995529651642,
+              0.20000004768371582,
+              -0.32500001788139343
+            ],
+            "horizontalScale": [
+              1.08,
+              1.08
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              10.908,
+              7.992,
+              3.8
+            ],
+            [
+              10.908,
+              4.212,
+              3.7
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "bank_large_shell_v1",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.1,
+          "ceilingY": 4.6,
+          "clearHeight": 4.5,
+          "sourceRect": [
+            -17,
+            -13,
+            17,
+            13
+          ],
+          "usableRect": [
+            -16.75,
+            -12.75,
+            16.75,
+            12.75
+          ],
+          "inset": 0.25
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Bank_Roof",
+            "min": [
+              -17.48,
+              4.6,
+              -13.48
+            ],
+            "max": [
+              17.48,
+              4.98,
+              13.48
+            ]
+          }
+        ]
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [],
+      "instances": [
+        {
+          "id": "REBUILD-bank:large",
+          "gameplayId": "bank:large",
+          "transform": {
+            "positionM": [
+              211.14999999999998,
+              0,
+              641.65
+            ],
+            "yawDegrees": 0,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              0
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              33.5,
+              25.5,
+              4.5
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "bank_medium_shell_v1",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.1,
+          "ceilingY": 4.6,
+          "clearHeight": 4.5,
+          "sourceRect": [
+            -13,
+            -10,
+            13,
+            10
+          ],
+          "usableRect": [
+            -12.75,
+            -9.75,
+            12.75,
+            9.75
+          ],
+          "inset": 0.25
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Bank_Roof",
+            "min": [
+              -13.48,
+              4.6,
+              -10.48
+            ],
+            "max": [
+              13.48,
+              4.98,
+              10.48
+            ]
+          }
+        ]
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [],
+      "instances": [
+        {
+          "id": "REBUILD-bank:medium",
+          "gameplayId": "bank:medium",
+          "transform": {
+            "positionM": [
+              164,
+              0,
+              641.65
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              0
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              25.5,
+              19.5,
+              4.5
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "bank_small_shell_v1",
+      "placed": true,
+      "instanceCount": 1,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.1,
+          "ceilingY": 4.6,
+          "clearHeight": 4.5,
+          "sourceRect": [
+            -9,
+            -7,
+            9,
+            7
+          ],
+          "usableRect": [
+            -8.75,
+            -6.75,
+            8.75,
+            6.75
+          ],
+          "inset": 0.25
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": true,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Bank_Roof",
+            "min": [
+              -9.48,
+              4.6,
+              -7.48
+            ],
+            "max": [
+              9.48,
+              4.98,
+              7.48
+            ]
+          }
+        ]
+      },
+      "notes": "Floor count follows named shells and/or facade window rows; proposed slab positions require live traversal.",
+      "evidence": [],
+      "instances": [
+        {
+          "id": "REBUILD-bank:small",
+          "gameplayId": "bank:small",
+          "transform": {
+            "positionM": [
+              217.29999999999998,
+              0,
+              131.2
+            ],
+            "yawDegrees": 90,
+            "uniformScale": 1,
+            "modelLocalOffsetM": [
+              0,
+              0,
+              0
+            ]
+          },
+          "worldUsableFloorSizes": [
+            [
+              17.5,
+              13.5,
+              4.5
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "assetId": "police_station",
+      "placed": false,
+      "instanceCount": 0,
+      "proposedFloorCount": 2,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.1,
+          "ceilingY": 5.75,
+          "clearHeight": 5.65,
+          "sourceRect": [
+            -14.5,
+            -9,
+            10.5,
+            7
+          ],
+          "usableRect": [
+            -14.25,
+            -8.75,
+            10.25,
+            6.75
+          ],
+          "inset": 0.25
+        },
+        {
+          "level": 1,
+          "floorY": 5.95,
+          "ceilingY": 8.5,
+          "clearHeight": 2.55,
+          "sourceRect": [
+            -11.5,
+            -8.5,
+            3.5,
+            4.5
+          ],
+          "usableRect": [
+            -11.25,
+            -8.25,
+            3.25,
+            4.25
+          ],
+          "inset": 0.25
+        }
+      ],
+      "stairs": {
+        "kind": "switchback or quarter-turn",
+        "minWorldFlightWidth": 1.2,
+        "minWorldLandingDepth": 1.3,
+        "targetRiser": 0.18,
+        "targetTread": 0.28,
+        "minHeadClearance": 2.15,
+        "requireConsecutiveFloorRectIntersection": true
+      },
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": [
+          {
+            "name": "Roof_Slab",
+            "min": [
+              -11.5,
+              8.645,
+              -8.7
+            ],
+            "max": [
+              5.5,
+              8.995,
+              5.3
+            ]
+          }
+        ]
+      },
+      "notes": "Catalog asset absent from75-instance placement. Protected legacy police site exists independently: do not add/replace/move it from this audit alone.",
+      "evidence": [
+        {
+          "name": "Roof_Slab",
+          "material": [
+            "Matte_Charcoal"
+          ],
+          "min": [
+            -11.5,
+            8.645,
+            -8.7
+          ],
+          "max": [
+            5.5,
+            8.995,
+            5.3
+          ]
+        }
+      ],
+      "instances": []
+    },
+    {
+      "assetId": "fire_station",
+      "placed": false,
+      "instanceCount": 0,
+      "proposedFloorCount": 1,
+      "status": "AUDIT_PROPOSAL_NOT_RUNTIME_OR_USER_VISUAL_ACCEPTANCE",
+      "coordinateSpace": "original GLB local metres; apply instance horizontalScale/uniformScale/offset/yaw",
+      "floors": [
+        {
+          "level": 0,
+          "floorY": 0.1,
+          "ceilingY": 8.85,
+          "clearHeight": 8.75,
+          "sourceRect": [
+            -20,
+            -11,
+            14,
+            7
+          ],
+          "usableRect": [
+            -19.75,
+            -10.75,
+            13.75,
+            6.75
+          ],
+          "inset": 0.25
+        }
+      ],
+      "stairs": null,
+      "roofAccess": {
+        "candidate": false,
+        "status": "requires per-instance collision and arrival-headroom audit",
+        "preferred": "side/rear E ladder with solid roof support, dismount landing and reversible descent",
+        "surfaces": []
+      },
+      "notes": "Catalog asset absent from75-instance placement. Apparatus hall is double/triple height; admin wing/tower need independent profiles, not slicing whole hall by height.",
+      "evidence": [],
+      "instances": []
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "url": "http://127.0.0.1:18538/walk?standalone=1&carqa=1",
+  "method": "CUA clicks on visible QA controls, real input callbacks; read-only DOM diagnostics",
+  "fleet": 14,
+  "straightPass": {
+    "vehicle": "red_sedan",
+    "obstacle": "fire_engine",
+    "lateralHullGapM": 0.12,
+    "start": {"x": 649.4045225685462, "z": 329.45091676802355},
+    "finish": {"x": 649.4045225685462, "z": 354.3301974869068},
+    "fire": {"x": 652.1189226215943, "z": 340.45091676802355},
+    "peakSpeedMps": 14.25774999980621,
+    "contacts": 0,
+    "finalSpeed": 0,
+    "redHp": 240,
+    "fireHp": 1200,
+    "complete": true
+  },
+  "smoothTurn": {
+    "vehicle": "red_sedan",
+    "elapsedSimulationSeconds": 6.559799999982122,
+    "peakSpeedMps": 21.986070105134367,
+    "peakLateralSpeedMps": 1.6382386571560108,
+    "peakSlipRadians": 0.07951190875780412,
+    "yawRadians": 0.6732672318432271,
+    "contacts": 0,
+    "finalSpeed": 0,
+    "complete": true
+  },
+  "driftAndCountersteer": {
+    "vehicle": "sport_coupe",
+    "start": {"x": 206.4915811115037, "z": 311.7848113067856},
+    "finish": {"x": 214.61028203702864, "z": 346.69203989548186},
+    "elapsedSimulationSeconds": 4.678099999994041,
+    "peakSpeedMps": 18.185999999940364,
+    "peakLateralSpeedMps": 3.2181564693249434,
+    "peakSlipRadians": 0.45133278791075065,
+    "yawRadians": 0.7875742722982157,
+    "contacts": 0,
+    "finalSpeed": 0,
+    "finalSlip": 0,
+    "complete": true
+  },
+  "finalBrowserErrors": [],
+  "finalQaTab": "4; marked deliverable, left seated in Ravelli GT at rest",
+  "existingGameTab": "3; kept open"
+}

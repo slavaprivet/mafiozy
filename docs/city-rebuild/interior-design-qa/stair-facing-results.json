@@ -1,0 +1,2184 @@
+{
+  "status": "PASS",
+  "moduleFile": "C:/Users/Слава/Desktop/Мафиози/assets/maps/city_rebuild_v1/building_storeys.mjs",
+  "startedAt": "2026-09-09T19:44:05.999Z",
+  "scope": "actual GLB75 CPU scene traversal; no browser/GPU or art acceptance",
+  "instances": [
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            332.1459999561309,
+            0.10499991416931152,
+            20.468500030040744
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            332.28399995613097,
+            3.0899999141693115,
+            20.468500030040737
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            330.6452499561309,
+            5.989999914169312,
+            20.468500030040737
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            329.495673033054,
+            0.10499991416931152,
+            20.468500030040744
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            329.645173033054,
+            3.0899999141693115,
+            20.468500030040737
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            329.834923033054,
+            5.989999914169312,
+            20.468500030040737
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-001",
+      "assetId": "pawnshop",
+      "status": "PASS",
+      "checks": 1875,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            394.88478733032014,
+            0.3850000047683716,
+            21.16300005927682
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            394.8847873303201,
+            4.050000004768371,
+            21.16300005927682
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 163,
+          "down": 163
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            397.7794027149355,
+            0.3850000047683716,
+            21.16300005927682
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            397.7794027149355,
+            4.050000004768371,
+            21.16300005927682
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            297.2040000438691,
+            0.10499991416931152,
+            28.731499969959255
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            297.06600004386905,
+            3.0899999141693115,
+            28.731499969959255
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            298.70475004386907,
+            5.989999914169312,
+            28.731499969959255
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            299.85432696694596,
+            0.10499991416931152,
+            28.73149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            299.704826966946,
+            3.0899999141693115,
+            28.731499969959255
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            299.51507696694597,
+            5.989999914169312,
+            28.731499969959255
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-002",
+      "assetId": "pawnshop",
+      "status": "PASS",
+      "checks": 1872,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            487.2099999383091,
+            0.3850000047683716,
+            234.95362482341002
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            487.2099999383092,
+            4.050000004768371,
+            234.95362482341002
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 163,
+          "down": 163
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            487.2099999383091,
+            0.3850000047683716,
+            237.84824020802543
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            487.2099999383092,
+            4.050000004768371,
+            237.8482402080254
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            254.23149996995926,
+            0.10499991416931152,
+            194.79599995613094
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            254.23149996995926,
+            3.0899999141693115,
+            194.93399995613095
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            254.23149996995923,
+            5.989999914169312,
+            193.29524995613093
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            254.23149996995926,
+            0.10499991416931152,
+            192.145673033054
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            254.23149996995926,
+            3.0899999141693115,
+            192.29517303305403
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            254.23149996995923,
+            5.989999914169312,
+            192.48492303305403
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-003",
+      "assetId": "pawnshop",
+      "status": "PASS",
+      "checks": 1872,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            171.40362482341007,
+            0.3850000047683716,
+            254.89000006169078
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            171.40362482341004,
+            4.050000004768371,
+            254.89000006169076
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 163,
+          "down": 163
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            174.29824020802548,
+            0.3850000047683716,
+            254.89000006169078
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            174.29824020802545,
+            4.050000004768371,
+            254.89000006169076
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            414.0558000421524,
+            0.10499991416931152,
+            14.377299973964691
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            415.7685500421524,
+            3.0899999141693115,
+            14.37729997396469
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            415.4978250421524,
+            5.989999914169312,
+            14.37729997396469
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            416.7054519652293,
+            0.10499991416931152,
+            14.377299973964691
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            416.56180196522934,
+            3.0899999141693115,
+            14.37729997396469
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            416.3794769652293,
+            5.989999914169312,
+            14.37729997396469
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-004",
+      "assetId": "pawnshop",
+      "status": "PASS",
+      "checks": 1872,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            647.1099999383092,
+            0.3850000047683716,
+            261.60362482341003
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            647.1099999383091,
+            4.050000004768371,
+            261.60362482341003
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 163,
+          "down": 163
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            647.1099999383092,
+            0.3850000047683716,
+            264.49824020802544
+          ],
+          "surfaceY": 0.3850000047683716,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 3.9100000047683716
+        },
+        {
+          "level": 1,
+          "point": [
+            647.1099999383091,
+            4.050000004768371,
+            264.49824020802544
+          ],
+          "surfaceY": 4.050000004768371,
+          "mesh": "Storey_Floors",
+          "ceiling": 7.600000004768371
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3047,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            412.0091000390053,
+            0.10499991416931152,
+            26.669599981307986
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 8.339999914169312
+        },
+        {
+          "level": 1,
+          "point": [
+            413.5939750390053,
+            3.0899999141693115,
+            26.669599981307982
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            413.34346253900526,
+            5.989999914169312,
+            26.669599981307982
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            414.6575144620822,
+            0.10499991416931152,
+            26.669599981307986
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            414.5245894620822,
+            3.0899999141693115,
+            26.669599981307982
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            252.104000043869,
+            0.10499991416931152,
+            61.531499969959256
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            251.96600004386903,
+            3.0899999141693115,
+            61.53149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            253.60475004386902,
+            5.989999914169312,
+            61.53149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            254.75432696694594,
+            0.10499991416931152,
+            61.531499969959256
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            254.60482696694595,
+            3.0899999141693115,
+            61.53149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            254.41507696694595,
+            5.989999914169312,
+            61.53149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            401.7540000438689,
+            0.10499991416931152,
+            110.73149996995924
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            401.616000043869,
+            3.0899999141693115,
+            110.73149996995924
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            403.254750043869,
+            5.989999914169312,
+            110.73149996995924
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            404.4043269669459,
+            0.10499991416931152,
+            110.73149996995924
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            404.2548269669459,
+            3.0899999141693115,
+            110.73149996995924
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            404.0650769669459,
+            5.989999914169312,
+            110.73149996995924
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-008",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            334.104000043869,
+            0.10499991416931152,
+            131.23149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            333.96600004386903,
+            3.0899999141693115,
+            131.23149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            335.60475004386905,
+            5.989999914169312,
+            131.23149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            336.75432696694594,
+            0.10499991416931152,
+            131.23149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            336.60482696694595,
+            3.0899999141693115,
+            131.23149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            336.41507696694595,
+            5.989999914169312,
+            131.23149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            241.854000043869,
+            0.10499991416931152,
+            168.13149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            241.716000043869,
+            3.0899999141693115,
+            168.13149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            243.354750043869,
+            5.989999914169312,
+            168.13149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            244.50432696694594,
+            0.10499991416931152,
+            168.13149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            244.35482696694592,
+            3.0899999141693115,
+            168.13149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            244.16507696694592,
+            5.989999914169312,
+            168.13149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            241.8685000300407,
+            0.10499991416931152,
+            190.604000043869
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            241.8685000300407,
+            3.0899999141693115,
+            190.466000043869
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            241.8685000300407,
+            5.989999914169312,
+            192.104750043869
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            241.8685000300407,
+            0.10499991416931152,
+            193.25432696694594
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            241.8685000300407,
+            3.0899999141693115,
+            193.10482696694592
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            241.8685000300407,
+            5.989999914169312,
+            192.91507696694592
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            248.004000043869,
+            0.10499991416931152,
+            32.83149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            247.866000043869,
+            3.0899999141693115,
+            32.83149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            249.50475004386902,
+            5.989999914169312,
+            32.83149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            250.65432696694594,
+            0.10499991416931152,
+            32.83149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            250.50482696694593,
+            3.0899999141693115,
+            32.83149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            250.31507696694592,
+            5.989999914169312,
+            32.83149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            332.1459999561309,
+            0.10499991416931152,
+            32.76850003004075
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            332.28399995613097,
+            3.0899999141693115,
+            32.76850003004074
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            330.6452499561309,
+            5.989999914169312,
+            32.76850003004074
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            329.495673033054,
+            0.10499991416931152,
+            32.76850003004075
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            329.645173033054,
+            3.0899999141693115,
+            32.76850003004074
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            329.834923033054,
+            5.989999914169312,
+            32.76850003004074
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            414.06850003004075,
+            0.10499991416931152,
+            43.00400004386901
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            414.0685000300407,
+            3.0899999141693115,
+            42.866000043869015
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            414.0685000300407,
+            5.989999914169312,
+            44.50475004386902
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            414.06850003004075,
+            0.10499991416931152,
+            45.65432696694594
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            414.0685000300407,
+            3.0899999141693115,
+            45.504826966945934
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            414.0685000300407,
+            5.989999914169312,
+            45.31507696694594
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-014",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            297.2040000438691,
+            0.10499991416931152,
+            65.63149996995924
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            297.06600004386905,
+            3.0899999141693115,
+            65.63149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            298.70475004386907,
+            5.989999914169312,
+            65.63149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            299.85432696694596,
+            0.10499991416931152,
+            65.63149996995924
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            299.704826966946,
+            3.0899999141693115,
+            65.63149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            299.51507696694597,
+            5.989999914169312,
+            65.63149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-015",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            248.004000043869,
+            0.10499991416931152,
+            94.33149996995927
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            247.866000043869,
+            3.0899999141693115,
+            94.33149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            249.50475004386902,
+            5.989999914169312,
+            94.33149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            250.65432696694594,
+            0.10499991416931152,
+            94.33149996995927
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            250.50482696694593,
+            3.0899999141693115,
+            94.33149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            250.31507696694592,
+            5.989999914169312,
+            94.33149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-016",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            328.04599995613097,
+            0.10499991416931152,
+            106.56850003004074
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            328.18399995613095,
+            3.0899999141693115,
+            106.56850003004074
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            326.54524995613093,
+            5.989999914169312,
+            106.56850003004074
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            325.39567303305404,
+            0.10499991416931152,
+            106.56850003004074
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            325.545173033054,
+            3.0899999141693115,
+            106.56850003004074
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            325.73492303305403,
+            5.989999914169312,
+            106.56850003004074
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-017",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            295.1685000300407,
+            0.10499991416931152,
+            125.00400004386898
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            295.1685000300407,
+            3.0899999141693115,
+            124.866000043869
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            295.1685000300407,
+            5.989999914169312,
+            126.50475004386901
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            295.1685000300407,
+            0.10499991416931152,
+            127.65432696694592
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            295.1685000300407,
+            3.0899999141693115,
+            127.50482696694591
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            295.1685000300407,
+            5.989999914169312,
+            127.31507696694592
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-018",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            315.6685000300408,
+            0.10499991416931152,
+            125.00400004386898
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            315.6685000300407,
+            3.0899999141693115,
+            124.866000043869
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            315.6685000300407,
+            5.989999914169312,
+            126.50475004386901
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            315.6685000300408,
+            0.10499991416931152,
+            127.65432696694592
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            315.6685000300407,
+            3.0899999141693115,
+            127.50482696694591
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            315.6685000300407,
+            5.989999914169312,
+            127.31507696694592
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            414.05400004386905,
+            0.10499991416931152,
+            131.23149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            413.91600004386896,
+            3.0899999141693115,
+            131.23149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            415.55475004386903,
+            5.989999914169312,
+            131.23149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            416.7043269669459,
+            0.10499991416931152,
+            131.23149996995926
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            416.55482696694594,
+            3.0899999141693115,
+            131.23149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            416.36507696694594,
+            5.989999914169312,
+            131.23149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            414.1314999699593,
+            0.10499991416931152,
+            186.59599995613098
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            414.13149996995924,
+            3.0899999141693115,
+            186.73399995613096
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            414.13149996995924,
+            5.989999914169312,
+            185.09524995613094
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            414.1314999699593,
+            0.10499991416931152,
+            183.94567303305402
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            414.13149996995924,
+            3.0899999141693115,
+            184.09517303305404
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            414.13149996995924,
+            5.989999914169312,
+            184.28492303305404
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            297.20400004386903,
+            0.10499991416931152,
+            196.83149996995925
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            297.06600004386905,
+            3.0899999141693115,
+            196.83149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            298.70475004386907,
+            5.989999914169312,
+            196.83149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            299.85432696694596,
+            0.10499991416931152,
+            196.83149996995925
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            299.704826966946,
+            3.0899999141693115,
+            196.83149996995925
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            299.51507696694597,
+            5.989999914169312,
+            196.83149996995925
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "status": "PASS",
+      "checks": 3053,
+      "floors": [
+        {
+          "level": 0,
+          "point": [
+            256.20400004386903,
+            0.10499991416931152,
+            12.331499969959257
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            256.066000043869,
+            3.0899999141693115,
+            12.331499969959259
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            257.70475004386907,
+            5.989999914169312,
+            12.33149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ],
+      "stairs": [
+        {
+          "index": 0,
+          "up": 147,
+          "down": 147
+        },
+        {
+          "index": 1,
+          "up": 145,
+          "down": 145
+        }
+      ],
+      "rooms": [
+        {
+          "level": 0,
+          "point": [
+            258.85432696694596,
+            0.10499991416931152,
+            12.331499969959259
+          ],
+          "surfaceY": 0.10499991416931152,
+          "mesh": "Entry_Interior_Floor",
+          "ceiling": 2.9499999141693114
+        },
+        {
+          "level": 1,
+          "point": [
+            258.7048269669459,
+            3.0899999141693115,
+            12.33149996995926
+          ],
+          "surfaceY": 3.0899999141693115,
+          "mesh": "Storey_Floors",
+          "ceiling": 5.849999914169312
+        },
+        {
+          "level": 2,
+          "point": [
+            258.51507696694597,
+            5.989999914169312,
+            12.33149996995926
+          ],
+          "surfaceY": 5.989999914169312,
+          "mesh": "Storey_Floors",
+          "ceiling": 8.339999914169312
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "completedAt": "2026-09-09T19:44:25.285Z",
+  "counts": {
+    "instances": 26,
+    "passed": 26,
+    "failed": 0
+  }
+}

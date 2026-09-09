@@ -52,15 +52,23 @@ def asset_path(route):
     """No directory browsing, external paths or traversal, including symlinks."""
     from urllib.parse import unquote
     roots = {"/assets/maps/city_rebuild_v1/": WORK,
+             "/assets/rail/city_v3/": ROOT / "assets/rail/city_v3",
              "/assets/decor/civic_park_v2/": ROOT / "assets/decor/civic_park_v2",
              "/assets/buildings/city_v3/": ROOT / "assets/buildings/city_v3"}
     route = unquote(route)
+    # Explicit public presentation entry points; never expose saves, server code or DB.
+    pages = {"/world.html": "world.html", "/world_walk_host.mjs": "world_walk_host.mjs",
+             "/three_preview.js": "three_preview.js", "/character_3d_preview.js": "character_3d_preview.js",
+             "/tools/city_rebuild_walk.html": "tools/city_rebuild_walk.html"}
+    if route in pages:
+        candidate = ROOT / pages[route]
+        return candidate if candidate.is_file() else None
     for prefix, directory in roots.items():
         if route.startswith(prefix):
             relative = route[len(prefix):]
             candidate = (directory / relative).resolve()
             if (candidate.is_relative_to(directory.resolve()) and candidate.is_file()
-                    and candidate.suffix.lower() in {".mjs", ".js", ".json", ".glb", ".png", ".jpg", ".webp"}):
+                    and candidate.suffix.lower() in {".mjs", ".js", ".css", ".json", ".glb", ".png", ".jpg", ".webp"}):
                 return candidate
     return None
 
@@ -88,7 +96,7 @@ def main():
                     self.send_error(404)
                     return
                 payload = path.read_bytes()
-                mime = {".mjs": "text/javascript", ".js": "text/javascript",
+                mime = {".html": "text/html; charset=utf-8", ".mjs": "text/javascript", ".js": "text/javascript", ".css": "text/css; charset=utf-8",
                         ".json": "application/json", ".glb": "model/gltf-binary",
                         ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp"}[path.suffix.lower()]
             self.send_response(200)

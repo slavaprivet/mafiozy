@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createVehicleDamage} from './vehicle_damage.mjs';
+import {crashCrushLimits} from './vehicle_crash_mechanics.mjs';
+const T=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
+const scene=new T.Scene(),object=new T.Group();scene.add(object);
+const material=new T.MeshStandardMaterial({color:'red'}),left=new T.Mesh(new T.BoxGeometry(.12,1.2,3),material),right=left.clone();left.position.set(-1,.75,0);right.position.set(1,.75,0);object.add(left,right);
+const car={object,shell:[left,right],doors:new Map(),wheels:[]},damage=createVehicleDamage(T,car,{profile:{maxHp:2000}}),original=right.geometry;
+const hit=(speed=4,extra={})=>({point:{x:1.06,y:.75,z:0},normal:{x:1,y:0,z:0},impactSpeed:speed,slideSpeed:0,...extra});
+function maxShift(mesh,axis='x'){const p=mesh.geometry.attributes.position;let min=Infinity,max=-Infinity;for(let i=0;i<p.count;i++){const v=p['get'+axis.toUpperCase()](i);min=Math.min(min,v);max=Math.max(max,v)}return {min,max}}
+assert(damage.collision({speed:10},{bumped:true,speed:10,contact:hit(4)}),'contact speed instead of speed loss');const weak=maxShift(right).min;assert(weak<-.06);assert(Math.abs(maxShift(left).min+.06)<.002&&Math.abs(maxShift(left).max-.06)<.002,'weak side contact leaves far panel within 2mm');const weakHp=damage.state.hp;
+damage.reset();assert.equal(right.geometry,original);assert(damage.contactImpact(hit(10)));const strong=maxShift(right).min;assert(strong<weak-.05,'stronger impact makes deeper dent');assert(damage.state.hp<weakHp);damage.update(.3);damage.contactImpact(hit(10));assert(maxShift(right).min<strong,'same location accumulates');for(let i=0;i<8;i++){damage.update(.3);damage.contactImpact(hit(10))}
+// Structural crush and the separate local panel dent each retain their own
+// bound. Do not compare their sum with the old panel-only 0.40m limit.
+const structure=damage.crash.state,limits=crashCrushLimits(structure.profile);
+for(const node of structure.nodes){assert(Math.hypot((node.plastic.x-node.rest.x)/limits.x,(node.plastic.y-node.rest.y)/limits.y,(node.plastic.z-node.rest.z)/limits.z)<=1.0000001,'permanent cage crush stays inside its directional envelope');for(const axis of ['x','y','z'])assert(Math.abs(node.position[axis]-node.plastic[axis])<=.150001,'elastic cage travel is bounded')}
+const cageMinX=Math.min(...structure.nodes.map(n=>n.position.x-n.rest.x));assert(maxShift(right).min>=-.06+cageMinX-.400001,'remaining panel dent beyond actual cage displacement is at most 0.40m');
+let freed=0;right.geometry.addEventListener('dispose',()=>freed++);damage.reset();assert.equal(freed,1);assert.equal(right.geometry,original);
+assert(damage.contactImpact(hit(0,{slideSpeed:10,slideDirection:{x:0,y:0,z:1}})));assert.equal(damage.state.hp,2000,'tangential scrape alone does not cost HP');assert.equal(right.geometry,original,'no normal impact no dent');const scratch=right.children.find(n=>n.visible);assert(scratch);assert.equal(scratch.geometry.type,'PlaneGeometry');assert(scratch.scale.x>1);const tangent=new T.Vector3(1,0,0).applyQuaternion(scratch.quaternion);assert(Math.abs(tangent.z)>.99,'scratches follow tangent');
+damage.reset();assert(damage.contactImpact(hit(8,{point:{x:-1.06,y:.75,z:0},normal:{x:-1,y:0,z:0}})));assert(maxShift(left).max>.06);assert(Math.abs(maxShift(right).min+.06)<.006&&Math.abs(maxShift(right).max-.06)<.006,'mirrored moderate contact shields far panel');
+damage.update(.3);assert.equal(damage.contactImpact(hit(Infinity)),false);damage.reset();assert.equal(damage.stats().marks,0);damage.dispose();assert(!damage.object.parent);assert.equal(left.geometry,original);assert.equal(right.geometry,original);assert.equal(damage.contactImpact(hit()),false);console.log('PASS contact localization, growing and cumulative capped dents, tangential scratches, opposite side, invalid input, reset/dispose');

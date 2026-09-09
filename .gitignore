@@ -56,3 +56,15 @@ desktop.ini
 # === Логи ===
 *.log
 logs/
+
+# Local conversation exports and bulky, reproducible QA captures
+docs/ai/*TRANSCRIPT*
+docs/ai/*DIALOGUE*
+docs/ai/*INHERITED_MESSAGES.json
+docs/ai/*INHERITED_DELEGATIONS.json
+docs/city-rebuild/artist15-cast-qa/meshes.json
+outputs/vehicle_fleet_continuation/runtime_open.json
+outputs/vehicle_fleet_continuation/runtime_closed.json
+outputs/vehicle_fleet_continuation/fleet_*.png
+outputs/rooms-continuation/walk-before.mjs
+outputs/rooms-slide-qa/

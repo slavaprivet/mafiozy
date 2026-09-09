@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {registerHooks} from 'node:module';
+import {applyNpcAppearance,describeNpcAppearance} from './npc_appearance.mjs';
+const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor',threeURL=pathToFileURL(vendor+'/build/three.module.js').href;
+registerHooks({resolve(specifier,context,next){return next(specifier==='three'?threeURL:specifier,context);}});
+const THREE=await import(threeURL),{GLTFLoader}=await import(pathToFileURL(vendor+'/addons/loaders/GLTFLoader.js'));
+const bytes=fs.readFileSync('D:/codex_release/artist13_posture_DEV_20260908/demo/player_male.glb'),scene=(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
+let mesh;scene.traverse(node=>{if(!mesh&&node.isMesh)mesh=node});assert(mesh);
+const sourceMaterial=mesh.material.clone(),sourceTexture=new THREE.DataTexture(new Uint8Array([255,192,128,255]),1,1);sourceTexture.needsUpdate=true;sourceMaterial.map=sourceTexture;mesh.material=sourceMaterial;
+let sourceDisposals=0,copyDisposals=0;sourceTexture.addEventListener('dispose',()=>sourceDisposals++);
+const result=applyNpcAppearance({THREE,scene,descriptor:describeNpcAppearance('texture-owned',{sex:'male'}),cloneTextures:true}),copyTexture=mesh.material.map;
+assert.notEqual(copyTexture,sourceTexture,'appearance keeps a private texture object when actor resources are shared');copyTexture.addEventListener('dispose',()=>copyDisposals++);
+result.dispose();assert.equal(sourceDisposals,0,'disposing an appearance never disposes the template texture');assert.equal(copyDisposals,1,'the private appearance texture is released exactly once');
+sourceMaterial.dispose();sourceTexture.dispose();
+console.log('PASS NPC appearance owns final textures without touching its template');

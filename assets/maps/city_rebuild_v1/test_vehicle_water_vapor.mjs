@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createVehicleWaterVapor,VEHICLE_WATER_VAPOR_LIMITS} from './vehicle_water_vapor.mjs';
+import {sampleVehicleEngineHighPoint} from './vehicle_water_state.mjs';
+const THREE=await import(pathToFileURL((process.env.MAFIOZI_THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor')+'/build/three.module.js'));
+function record(id,flooded=false){const object=new THREE.Group(),engine=new THREE.Mesh(new THREE.BoxGeometry(.8,.5,1),new THREE.MeshBasicMaterial());engine.name='Engine_core';engine.position.set(.2,1,1.5);object.add(engine);object.position.set(12,-2,8);object.rotation.y=.8;return {id,car:{object,hoodSpec:{core:engine}},state:{waterState:{flooded,engineDisabled:flooded,waterLevel:0}}};}
+const focus={x:12,z:8},fx=createVehicleWaterVapor({THREE}),r=record('live'),saved=record('saved',true);
+fx.update(1/60,[r,saved],focus);assert.equal(fx.stats().triggers,0);assert.equal(fx.stats().active,0);
+r.state.waterState.flooded=r.state.waterState.engineDisabled=true;
+for(let i=0;i<30;i++)fx.update(1/60,[r,saved],focus);
+assert.equal(fx.stats().triggers,1);assert.ok(fx.stats().active>0);const engine=sampleVehicleEngineHighPoint({THREE,car:r.car});assert.equal(fx.stats().lastOrigin.x,engine.x);assert.equal(fx.stats().lastOrigin.z,engine.z);assert.equal(fx.stats().lastOrigin.y,.06,'underwater engine vents at water surface');
+r.car.object.position.x+=2;r.car.object.position.y-=1;fx.update(.1,[r],focus);assert.ok(fx.stats().lastOrigin.x>engine.x+1.9,'emission tracks moving actual engine');
+for(let i=0;i<420;i++)fx.update(1/60,[r],focus);
+assert.equal(fx.stats().emitters,0);assert.equal(fx.stats().active,0);assert.equal(fx.object.count,0);assert.equal(fx.stats().triggers,1,'latched broken engine never emits permanently');
+r.state.waterState={flooded:false,engineDisabled:false};fx.update(.1,[r],focus);r.state.waterState={flooded:true,engineDisabled:true,waterLevel:0};fx.update(.1,[r],focus);assert.equal(fx.stats().triggers,2,'repair/reset then flood allows a new generation');
+const distant=record('far');distant.car.object.position.x=1000;fx.update(.1,[distant],focus);distant.state.waterState.flooded=true;fx.update(.1,[distant],focus);assert.equal(fx.stats().emitters,0,'distance culls new emitter');
+const many=Array.from({length:120},(_,i)=>record('car'+i));fx.update(.1,many,focus);for(const item of many)item.state.waterState.flooded=true;
+for(let i=0;i<100;i++)fx.update(1/60,many,focus);assert.ok(fx.stats().active<=96);assert.ok(fx.stats().emitters<=24);assert.ok(fx.stats().peak<=96);assert.equal(fx.object.geometry.getAttribute('puffData').count,96);assert.equal(fx.object.material.depthWrite,false);
+fx.update(10,many,focus);assert.equal(fx.stats().active,0);assert.equal(fx.stats().emitters,0,'suspended frame cannot preserve smoke forever');
+let geometryDisposed=0,materialDisposed=0;fx.object.geometry.addEventListener('dispose',()=>geometryDisposed++);fx.object.material.addEventListener('dispose',()=>materialDisposed++);fx.dispose();fx.dispose();assert.equal(geometryDisposed,1);assert.equal(materialDisposed,1);assert.equal(fx.stats().disposed,true);assert.equal(fx.stats().active,0);
+console.log('PASS water failure vapour: observed flood edge, actual engine/surface anchor, finite fade, reset/re-flood, 96-particle/24-emitter bounds, culling and idempotent disposal',VEHICLE_WATER_VAPOR_LIMITS);

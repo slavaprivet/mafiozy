@@ -1,0 +1,156 @@
+{
+  "info": {
+    "entries": 75,
+    "floors": 174,
+    "ladders": 6,
+    "errors": "",
+    "calls": 2927
+  },
+  "routes": {
+    "old_town_narrow_townhouse_v1": [
+      {
+        "direction": "up",
+        "y": 3.0899999141693115
+      },
+      {
+        "direction": "down",
+        "y": 0.10499991416931152
+      },
+      {
+        "direction": "up",
+        "y": 5.989999914169312
+      },
+      {
+        "direction": "down",
+        "y": 3.0899999141693115
+      }
+    ],
+    "eastside_stepped_apartment_v1": [
+      {
+        "direction": "up",
+        "y": 3.290000152587891
+      },
+      {
+        "direction": "down",
+        "y": 0.10500015258789062
+      },
+      {
+        "direction": "up",
+        "y": 6.44000015258789
+      },
+      {
+        "direction": "down",
+        "y": 3.290000152587891
+      },
+      {
+        "direction": "up",
+        "y": 9.69000015258789
+      },
+      {
+        "direction": "down",
+        "y": 6.44000015258789
+      }
+    ],
+    "compact_podium_glass_tower_v1": [
+      {
+        "direction": "up",
+        "y": 4.449999997019768
+      },
+      {
+        "direction": "down",
+        "y": 0.2599999970197677
+      },
+      {
+        "direction": "up",
+        "y": 8.149999997019767
+      },
+      {
+        "direction": "down",
+        "y": 4.449999997019768
+      },
+      {
+        "direction": "up",
+        "y": 11.849999997019768
+      },
+      {
+        "direction": "down",
+        "y": 8.149999997019767
+      },
+      {
+        "direction": "up",
+        "y": 15.649999997019766
+      },
+      {
+        "direction": "down",
+        "y": 11.849999997019768
+      },
+      {
+        "direction": "up",
+        "y": 19.249999997019767
+      },
+      {
+        "direction": "down",
+        "y": 15.649999997019766
+      },
+      {
+        "direction": "up",
+        "y": 22.84999999701977
+      },
+      {
+        "direction": "down",
+        "y": 19.249999997019767
+      }
+    ]
+  },
+  "roofs": {
+    "bank_small_shell_v1": {
+      "up": {
+        "active": false,
+        "position": [
+          223.72999999999996,
+          4.995,
+          123.31999999999998
+        ],
+        "notice": "",
+        "nearest": "ladder",
+        "errors": ""
+      },
+      "down": {
+        "active": false,
+        "position": [
+          225.62999999999997,
+          0,
+          123.31999999999998
+        ],
+        "notice": "",
+        "nearest": "ladder",
+        "errors": ""
+      }
+    },
+    "gun_shop": {
+      "up": {
+        "active": false,
+        "position": [
+          402.5687498879432,
+          6.915,
+          64.02018748179077
+        ],
+        "notice": "",
+        "nearest": "ladder",
+        "errors": ""
+      },
+      "down": {
+        "active": false,
+        "position": [
+          402.5687498879432,
+          0,
+          62.120187481790765
+        ],
+        "notice": "",
+        "nearest": "ladder",
+        "errors": ""
+      }
+    }
+  },
+  "errors": []
+}

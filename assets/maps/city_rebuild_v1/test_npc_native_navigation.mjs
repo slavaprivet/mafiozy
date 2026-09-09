@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {createNpcNativeNavigation} from './npc_native_navigation.mjs';
+let floor=0,dynamic=false;
+const walls=[{minYM:0,maxYM:3,polygonCR:[[2,2],[4,2],[4,4],[2,4]]}];
+const containsBody=(body,r,c)=>c>=body.polygonCR[0][0]&&c<=body.polygonCR[2][0]&&r>=body.polygonCR[0][1]&&r<=body.polygonCR[2][1];
+const nav=createNpcNativeNavigation({groundHeight:()=>floor,waterAt:(x,z)=>x>41&&z>41?{level:1,depth:1}:null,bodiesAt:()=>walls,containsBody,blocksDynamic:(x,z,{y,height})=>{assert.equal(height,1.9);return dynamic&&y<2&&x>20&&x<24;}});
+assert.equal(nav.query({r:3,c:3}).blocked,true,'authored building footprint');
+assert.equal(nav.query({r:1,c:1}).blocked,false,'open pavement');
+assert.equal(nav.query({r:11,c:11}).depth,1,'source cell converted once to metres');
+nav.beginFrame();floor=1.15;assert.equal(nav.query({r:11,c:11}).depth,0,'dry bridge above water');
+nav.beginFrame();floor=3;assert.equal(nav.query({r:3,c:3}).blocked,false,'walkable support on top');
+nav.beginFrame();floor=0;dynamic=true;assert.equal(nav.query({r:1,c:5.3}).blocked,true,'live vehicle stops pedestrian');
+nav.beginFrame();dynamic=false;assert.equal(nav.query({r:1,c:5.3}).blocked,false,'vehicle moves away without stale obstacle cache');
+nav.beginFrame();walls[0].minYM=2;assert.equal(nav.query({r:3,c:3}).blocked,false,'walk under overhead structure');
+assert.equal(nav.query({r:NaN,c:0}).blocked,true);
+nav.query({r:1,c:1});nav.query({r:1,c:1});assert(nav.diagnostics().cacheHits>0,'same-frame route samples reused');
+console.log('NPC native navigation: solids, vehicles, water, bridge and vertical clearance PASS');

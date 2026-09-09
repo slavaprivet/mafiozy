@@ -1,5 +1,12 @@
 import assert from 'node:assert/strict';
 import {circleFits,movePedestrian} from './walk_motion.mjs';
+function legacyCircleProbe(x,z,radius){
+ const points=[];circleFits(x,z,(a,b)=>{points.push([a,b]);return true},radius);return points;
+}
+function directCircleProbe(x,z,radius){
+ const points=[[x,z]];for(let i=0;i<12;i++){const angle=i*Math.PI/6;points.push([x+Math.cos(angle)*radius,z+Math.sin(angle)*radius])}return points;
+}
+for(const [x,z,radius] of [[0,0,.36],[12.5,-3.75,.05],[-7.2,18.4,2.1]])assert.deepEqual(legacyCircleProbe(x,z,radius),directCircleProbe(x,z,radius),'cached footprint directions retain every legacy sample coordinate');
 assert(circleFits(1,1,()=>true));
 assert(!circleFits(.1,1,(x,z)=>x>=0));
 const wall=(x,z)=>x<2;

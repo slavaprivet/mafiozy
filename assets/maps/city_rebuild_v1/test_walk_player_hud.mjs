@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import {createWalkPlayerHud,playerHudHealth,playerHudMoney,playerHudMemberKey,safeHudPortraitUrl,WALK_PLAYER_HUD_CSS} from './walk_player_hud.mjs';
+
+class Element {
+ constructor(tag,doc){this.tagName=tag.toUpperCase();this.doc=doc;this.children=[];this.dataset={};this.style={};this.attributes={};this.listeners={};this.classList={add(){},remove(){}};this.hidden=false;this.disabled=false;this.textContent='';}
+ append(...nodes){for(const node of nodes){node.remove();node.parentNode=this;this.children.push(node);}}
+ insertBefore(node,reference){node.remove();const index=this.children.indexOf(reference);node.parentNode=this;this.children.splice(index<0?this.children.length:index,0,node);}
+ replaceChildren(...nodes){for(const child of this.children)child.parentNode=null;this.children=[];this.append(...nodes);}
+ setAttribute(name,value){this.attributes[name]=String(value);}
+ getAttribute(name){return this.attributes[name];}
+ removeAttribute(name){delete this.attributes[name];}
+ addEventListener(name,callback){this.listeners[name]=callback;}
+ remove(){if(this.parentNode){this.parentNode.children=this.parentNode.children.filter(child=>child!==this);this.parentNode=null;}}
+ click(){this.listeners.click?.({target:this});}
+}
+const doc={createElement(tag){return new Element(tag,this);},createElementNS(ns,tag){return this.createElement(tag);}};
+doc.head=doc.createElement('head');const host=doc.createElement('div'),actions=[];
+const hud=createWalkPlayerHud({document:doc,host,onAction:(action,payload)=>actions.push({action,payload})});
+const nodes=(node=host)=>[node,...node.children.flatMap(child=>nodes(child))];
+const find=cls=>nodes().find(node=>node.className===cls),action=id=>nodes().find(node=>node.dataset.action===id);
+assert.equal(host.dataset.walkUi,'player-hud');assert.equal(host.dataset.available,'false');assert.equal(find('mfz-dossier-name').textContent,'—');assert.equal(find('mfz-dossier-wallet').children[1].textContent,'—');
+assert.equal(find('mfz-dossier-health').getAttribute('aria-valuenow'),undefined);action('inventory').click();assert.equal(actions.length,0);
+assert.deepEqual(playerHudHealth(undefined,100),{label:'— / 100',known:false,percent:0});assert.equal(playerHudHealth(25,100).percent,25);assert.equal(playerHudHealth(150,100).percent,100);assert.equal(playerHudHealth(-10,100).percent,0);assert.equal(playerHudHealth(0,0).known,false);
+const state={available:true,player:{name:'<img onerror=alert(1)>',level:7,hp:73,maxHp:120,money:15405,timeLabel:'12:40',mode:'PvE'},gang:{name:'Багровые',role:'Босс',countLabel:'2/3',members:[{id:11,name:'Анна',role:'Снайпер',hp:80,maxHp:100}]},status:{label:'Босс',detail:'Влияние района'},empires:{count:19,bosses:[{id:11,name:'Лука'},{id:12,name:'Марта'}]},actions:Object.fromEntries(['menu','newspaper','profile','inventory','missions','mode','empires','gang','status','boss'].map(id=>[id,true]))};
+hud.setState(state);assert.equal(find('mfz-dossier-name').textContent,state.player.name);assert.equal(find('mfz-dossier-name').children.length,0,'source strings must stay literal text');assert.equal(find('mfz-dossier-health-fill').style.width,(73/120*100)+'%');assert.equal(find('mfz-dossier-health').getAttribute('aria-valuenow'),'73');assert.equal(find('mfz-dossier-mode-label').textContent,'PvE');assert.equal(find('mfz-dossier-time').textContent,'12:40');
+for(const id of Object.keys(state.actions))action(id).click();assert.deepEqual(actions.map(item=>item.action),Object.keys(state.actions));assert.deepEqual(actions.at(-1),{action:'boss',payload:{id:11}});
+hud.setPortrait('data:image/png;base64,cGVyc29u');assert.equal(action('profile').children[0].tagName,'IMG');assert.match(action('profile').children[0].alt,/текущий внешний вид/);
+hud.setPortrait('data:image/png;base64,bmV3');assert.equal(action('profile').children[0].src,'data:image/png;base64,bmV3','appearance updates replace image');
+hud.setRosterPortrait('boss:11','blob:boss');hud.setRosterPortrait('member:11','blob:member');const cards=nodes().filter(node=>node.className==='mfz-dossier-person');assert.equal(cards.find(node=>node.dataset.action==='boss').children[0].children[0].src,'blob:boss');assert.equal(cards.find(node=>node.dataset.action==='gang').children[0].children[0].src,'blob:member');
+const oldCard=cards[0];hud.setState(state);assert(nodes().includes(oldCard),'reuse portrait DOM on snapshots');
+hud.setState({available:false});
+hud.setState({...state,empires:{...state.empires,bosses:state.empires.bosses.map(row=>({...row,portrait:'/legacy-boss.png'}))}});
+assert.equal(nodes().find(node=>node.dataset.action==='boss').children[0].children[0].src,'blob:boss','reconnect keeps ready GLB portrait instead of reverting to legacy source');
+// Confirmed source updates, not optimistic local joins/kicks or guessed balances.
+for(const [statusState,expected,badge]of [[{label:'Гражданский',kind:'civilian'},'Гражданский',''],[{label:'Полиция',role:'officer',kind:'police',badge:'Сержант'},'Полиция','Сержант'],[{label:'Мафия',role:'member',kind:'mafia',badge:'♠'},'Мафия','♠']]){
+ hud.setState({...state,status:statusState});assert(action('status').getAttribute('aria-label').includes(expected));assert.equal(action('status').children.at(-1).textContent,badge);assert.equal(action('status').children.at(-1).hidden,!badge);assert(!action('status').getAttribute('aria-label').includes('—'));
+}
+for(const [amount,label]of [[0,'0 $'],[999999999999999,'999 999 999 999 999 $'],['123456789012345678901234567890','123 456 789 012 345 678 901 234 567 890 $'],[null,'—'],[undefined,'—'],[NaN,'—'],['','—'],[false,'—']]){
+ assert.equal(playerHudMoney(amount),label);hud.setState({...state,player:{...state.player,money:amount}});assert.equal(find('mfz-dossier-money').textContent,label);assert.match(find('mfz-dossier-money').getAttribute('aria-label'),/Деньги \(доллары\)/);assert.equal(find('mfz-dossier-money').children.length,0);
+}
+const members=[{id:7,kind:'player',name:'Выбранный игрок',role:'leader',isSelf:true,online:true,canKick:false},{id:7,kind:'npc',name:'<img src=x onerror=alert(1)>',role:'gang_fighter',online:false,canKick:true}];
+const created={...state,gang:{name:'Своя <банда>',kind:'custom',role:'member',isLeader:true,canManage:true,countLabel:'1/3 ИГРОКА · 1/4 NPC',members},status:{label:'Лидер своей банды',kind:'custom_gang',role:'leader',badge:'Лидер'}};
+hud.setState(created);assert.match(find('mfz-dossier-member-role').textContent,/Лидер · Управление/);assert.match(action('gang').getAttribute('aria-label'),/Своя <банда> · Лидер/);assert.equal(find('mfz-dossier-panel mfz-dossier-panel--gang').dataset.leader,'true');
+const memberCards=nodes().filter(node=>node.className==='mfz-dossier-person'&&node.dataset.action==='gang');assert.equal(memberCards.length,2,'same raw player/NPC id stays distinct');assert.equal(playerHudMemberKey(members[0]),'member:player:7');assert.equal(playerHudMemberKey(members[1]),'member:npc:7');assert.match(memberCards[0].title,/Вы · Лидер · Игрок · В сети/);assert.match(memberCards[1].title,/Не в сети/);assert.match(memberCards[1].title,/Можно исключить/);assert.equal(memberCards[1].children[1].children.length,0,'roster names remain literal text');
+hud.setRosterPortrait('member:player:7','blob:player7');hud.setRosterPortrait('member:npc:7','blob:npc7');assert.equal(memberCards[0].children[0].children[0].src,'blob:player7');assert.equal(memberCards[1].children[0].children[0].src,'blob:npc7');
+hud.setState({...created,gang:{...created.gang,role:'officer',isLeader:false,canManage:false,members:[{...members[0],role:'officer'},members[1]]}});assert.equal(find('mfz-dossier-member-role').textContent,'Офицер');assert(!action('gang').getAttribute('aria-label').includes('Лидер'));assert.match(memberCards[0].title,/Офицер/,'confirmed member role refreshes the cached card title');
+assert.equal(nodes().filter(node=>node.className==='mfz-dossier-person'&&node.dataset.action==='gang').length,2,'UI never kicks optimistically');
+hud.setState({...created,gang:{...created.gang,members:[members[0]],countLabel:'1/3 ИГРОКА · 0/4 NPC'}});assert(!nodes().includes(memberCards[1]),'confirmed roster removal deletes only departed NPC');assert(nodes().includes(memberCards[0]));
+hud.setState({...created,gang:{kind:'none',members:[],isLeader:false},status:{label:'Гражданский',kind:'civilian'}});assert(find('mfz-dossier-member-role').hidden);assert.equal(find('mfz-dossier-empty').textContent,'Не состоите в банде');assert(!action('gang').getAttribute('aria-label').includes('Своя'));
+hud.setState({...state,empires:{count:1,bosses:[{id:12,name:'Марта'}]},gang:{name:null,members:[]},actions:{inventory:true}});assert.equal(nodes().filter(node=>node.className==='mfz-dossier-person').length,1);action('mode').click();assert.equal(actions.length,10,'source capability guards scripted disabled activation');assert.equal(find('mfz-dossier-empty').textContent,'Не состоите в банде');
+const toggle=find('mfz-dossier-toggle');toggle.click();assert(find('mfz-dossier-body').hidden);assert.equal(toggle.getAttribute('aria-expanded'),'false');toggle.click();assert(!find('mfz-dossier-body').hidden);
+hud.setState({available:false});assert.equal(find('mfz-dossier-health').getAttribute('aria-valuenow'),undefined);assert.equal(find('mfz-dossier-wallet').children[1].textContent,'—');assert.equal(find('mfz-dossier-source').hidden,false);
+for(const value of ['javascript:alert(1)','data:text/html,x','data:image/svg+xml,<svg/>','//evil.example/image.png','bad\nurl','C:/private.png'])assert.equal(safeHudPortraitUrl(value),null);
+for(const value of ['blob:example','/portrait.png','./portrait.png','../portrait.png','https://example.test/image.webp','data:image/webp;base64,eA=='])assert.equal(safeHudPortraitUrl(value),value);
+const styleCount=doc.head.children.length,staleButton=action('inventory');hud.dispose();assert.equal(host.children.length,0);assert.equal(doc.head.children.length,styleCount-1);staleButton.click();hud.setState(state);hud.setPortrait('blob:x');assert.equal(host.children.length,0);assert.equal(actions.length,10);hud.dispose();
+assert(WALK_PLAYER_HUD_CSS.includes('[hidden]{display:none!important}'));assert(WALK_PLAYER_HUD_CSS.includes('left:18px'));assert(WALK_PLAYER_HUD_CSS.includes('max-height:calc(100dvh - 172px)'));
+console.log(JSON.stringify({passed:true,checks:['source_unknown','exact_player_data','exact_dollar_zero_large_unknown','health_clamp_aria','literal_source_text','all_action_callbacks','capability_guards','appearance_update','separate_boss_member_portraits','player_npc_namespaced_identity','self_offline_role_tooltips','civilian_police_mafia_status_aria_badge','gang_create_join_leave_confirmed_roster_updates','roster_reuse_removal','collapse','url_safety','dispose','left_hud_weapon_clearance']}));

@@ -1,0 +1,282 @@
+{
+  "diagnostic": {
+    "rear": false,
+    "ignoreSourceBodies": false,
+    "ignoreParapet": false,
+    "offset": null
+  },
+  "bindings": 75,
+  "selected": 6,
+  "results": [
+    {
+      "id": "REBUILD-VISUAL-pawnshop-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1827,
+      "lower": {
+        "x": 388.78603733032,
+        "y": 0,
+        "z": 15.939625059276818
+      },
+      "upper": {
+        "x": 390.68603733032006,
+        "y": 8.075000000000001,
+        "z": 15.939625059276818
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        380.78603733032,
+        2,
+        15.939625059276816
+      ],
+      "lookAt": [
+        390.09528692149553,
+        4.586155998653958,
+        16.289625083059065
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          389.0660368710663,
+          -9.909272180586015e-9,
+          15.459625122100107
+        ],
+        [
+          391.1245369719248,
+          9.172312007217188,
+          17.119625044018022
+        ]
+      ],
+      "roofFloor": 8.075000000000001,
+      "roofMesh": "Roof_slab"
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1635,
+      "lower": {
+        "x": 402.5687498879432,
+        "y": 0,
+        "z": 62.120187481790765
+      },
+      "upper": {
+        "x": 402.5687498879432,
+        "y": 6.915,
+        "z": 64.02018748179077
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        402.5687498879432,
+        2,
+        54.120187481790765
+      ],
+      "lookAt": [
+        402.21874965578314,
+        4.0061561345525485,
+        63.42943780729546
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          401.3887496948242,
+          -9.909272125074864e-9,
+          62.4001877568662
+        ],
+        [
+          403.0487496167421,
+          8.012312279014369,
+          64.45868785772471
+        ]
+      ],
+      "roofFloor": 6.915,
+      "roofMesh": "Heavy_roof_slab"
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1549,
+      "lower": {
+        "x": 245.92200017273424,
+        "y": 0,
+        "z": 117.56300016880033
+      },
+      "upper": {
+        "x": 247.82200017273425,
+        "y": 6.404999999999999,
+        "z": 117.56300016880033
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        237.92200017273424,
+        2,
+        117.56300016880033
+      ],
+      "lookAt": [
+        247.23124995464457,
+        3.751156198925564,
+        117.91300009340043
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          246.2019999042153,
+          -9.909272125074864e-9,
+          117.08300013244147
+        ],
+        [
+          248.26050000507382,
+          7.5023124077604,
+          118.74300005435938
+        ]
+      ],
+      "roofFloor": 6.404999999999999,
+      "roofMesh": "Roof_slab"
+    },
+    {
+      "id": "REBUILD-bank:large",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1313,
+      "lower": {
+        "x": 227.02999999999997,
+        "y": 0,
+        "z": 655.98
+      },
+      "upper": {
+        "x": 227.02999999999997,
+        "y": 4.995,
+        "z": 654.08
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        227.02999999999997,
+        2,
+        663.98
+      ],
+      "lookAt": [
+        227.3799995049834,
+        3.0461561998196336,
+        654.6707499927841
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          226.54999954402444,
+          -3.3527612630646075e-9,
+          653.6414999721571
+        ],
+        [
+          228.20999946594236,
+          6.092312402992029,
+          655.700000013411
+        ]
+      ],
+      "roofFloor": 4.995,
+      "roofMesh": "Bank_Roof"
+    },
+    {
+      "id": "REBUILD-bank:medium",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1313,
+      "lower": {
+        "x": 175.33,
+        "y": 0,
+        "z": 629.77
+      },
+      "upper": {
+        "x": 173.43,
+        "y": 4.995,
+        "z": 629.77
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        183.33,
+        2,
+        629.77
+      ],
+      "lookAt": [
+        174.02074999278412,
+        3.0461561998196336,
+        629.4200000181794
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          172.9914999721572,
+          -3.3527612630646075e-9,
+          628.5899995803833
+        ],
+        [
+          175.05000001341105,
+          6.092312402992029,
+          630.2500004559755
+        ]
+      ],
+      "roofFloor": 4.995,
+      "roofMesh": "Bank_Roof"
+    },
+    {
+      "id": "REBUILD-bank:small",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1313,
+      "lower": {
+        "x": 225.62999999999997,
+        "y": 0,
+        "z": 123.31999999999998
+      },
+      "upper": {
+        "x": 223.72999999999996,
+        "y": 4.995,
+        "z": 123.31999999999998
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        233.62999999999997,
+        2,
+        123.31999999999998
+      ],
+      "lookAt": [
+        224.3207499927841,
+        3.0461561998196336,
+        122.96999977976083
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          223.29149997215717,
+          -3.3527612630646075e-9,
+          122.13999958038329
+        ],
+        [
+          225.35000001341103,
+          6.092312402992029,
+          123.79999997913836
+        ]
+      ],
+      "roofFloor": 4.995,
+      "roofMesh": "Bank_Roof"
+    }
+  ]
+}

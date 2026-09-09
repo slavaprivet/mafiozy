@@ -1,0 +1,295 @@
+{
+  "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+  "bytes": 652732,
+  "meshes": [
+    {
+      "name": "player_male_DEMO_core_FABRIC",
+      "type": "SkinnedMesh",
+      "material": [
+        "FABRIC"
+      ],
+      "vertices": 2229,
+      "weightedVertexInfluencesByBone": {
+        "forearm_l": 410,
+        "upperarm_l": 815,
+        "clavicle_l": 941,
+        "spine_01": 774,
+        "chest": 1522,
+        "forearm_r": 297,
+        "clavicle_r": 1087,
+        "upperarm_r": 968,
+        "pelvis": 48,
+        "thigh_l": 48,
+        "shin_l": 48,
+        "thigh_r": 48,
+        "shin_r": 48
+      },
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "player_male_DEMO_core_HAIR",
+      "type": "SkinnedMesh",
+      "material": [
+        "HAIR"
+      ],
+      "vertices": 1162,
+      "weightedVertexInfluencesByBone": {
+        "foot_l": 367,
+        "foot_r": 367,
+        "head": 428
+      },
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "player_male_DEMO_core_SKIN",
+      "type": "SkinnedMesh",
+      "material": [
+        "SKIN"
+      ],
+      "vertices": 3055,
+      "weightedVertexInfluencesByBone": {
+        "neck": 185,
+        "hand_l": 331,
+        "hand_r": 331,
+        "head": 2208
+      },
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "player_male_DEMO_core_TRIM",
+      "type": "SkinnedMesh",
+      "material": [
+        "TRIM"
+      ],
+      "vertices": 294,
+      "weightedVertexInfluencesByBone": {
+        "forearm_l": 61,
+        "forearm_r": 61,
+        "chest": 172,
+        "spine_01": 172,
+        "upperarm_r": 172,
+        "clavicle_r": 86
+      },
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "player_male_DEMO_hair_HAIR",
+      "type": "SkinnedMesh",
+      "material": [
+        "HAIR"
+      ],
+      "vertices": 1195,
+      "weightedVertexInfluencesByBone": {
+        "head": 1195
+      },
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "player_male_DEMO_headwear_FABRIC",
+      "type": "SkinnedMesh",
+      "material": [
+        "FABRIC"
+      ],
+      "vertices": 48,
+      "weightedVertexInfluencesByBone": {
+        "head": 48
+      },
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "player_male_DEMO_headwear_HAIR",
+      "type": "SkinnedMesh",
+      "material": [
+        "HAIR"
+      ],
+      "vertices": 355,
+      "weightedVertexInfluencesByBone": {
+        "head": 355
+      },
+      "parent": "player_male_rig"
+    }
+  ],
+  "bones": [
+    {
+      "name": "root",
+      "parent": "player_male_rig"
+    },
+    {
+      "name": "pelvis",
+      "parent": "root"
+    },
+    {
+      "name": "spine_01",
+      "parent": "pelvis"
+    },
+    {
+      "name": "chest",
+      "parent": "spine_01"
+    },
+    {
+      "name": "neck",
+      "parent": "chest"
+    },
+    {
+      "name": "head",
+      "parent": "neck"
+    },
+    {
+      "name": "socket_head",
+      "parent": "head"
+    },
+    {
+      "name": "clavicle_l",
+      "parent": "chest"
+    },
+    {
+      "name": "upperarm_l",
+      "parent": "clavicle_l"
+    },
+    {
+      "name": "forearm_l",
+      "parent": "upperarm_l"
+    },
+    {
+      "name": "hand_l",
+      "parent": "forearm_l"
+    },
+    {
+      "name": "socket_hand_l",
+      "parent": "hand_l"
+    },
+    {
+      "name": "clavicle_r",
+      "parent": "chest"
+    },
+    {
+      "name": "upperarm_r",
+      "parent": "clavicle_r"
+    },
+    {
+      "name": "forearm_r",
+      "parent": "upperarm_r"
+    },
+    {
+      "name": "hand_r",
+      "parent": "forearm_r"
+    },
+    {
+      "name": "socket_hand_r",
+      "parent": "hand_r"
+    },
+    {
+      "name": "socket_weapon",
+      "parent": "hand_r"
+    },
+    {
+      "name": "socket_back",
+      "parent": "chest"
+    },
+    {
+      "name": "socket_steering_l",
+      "parent": "chest"
+    },
+    {
+      "name": "socket_steering_r",
+      "parent": "chest"
+    },
+    {
+      "name": "thigh_l",
+      "parent": "pelvis"
+    },
+    {
+      "name": "shin_l",
+      "parent": "thigh_l"
+    },
+    {
+      "name": "foot_l",
+      "parent": "shin_l"
+    },
+    {
+      "name": "thigh_r",
+      "parent": "pelvis"
+    },
+    {
+      "name": "shin_r",
+      "parent": "thigh_r"
+    },
+    {
+      "name": "foot_r",
+      "parent": "shin_r"
+    },
+    {
+      "name": "socket_seat",
+      "parent": "pelvis"
+    }
+  ],
+  "filtered": [
+    {
+      "name": "player_male_DEMO_core_FABRIC",
+      "originalTriangles": 3660,
+      "retainedTriangles": 1378,
+      "pureHandTriangles": 0,
+      "pureForearmTriangles": 248,
+      "visible": true
+    },
+    {
+      "name": "player_male_DEMO_core_HAIR",
+      "originalTriangles": 1288,
+      "retainedTriangles": 664,
+      "pureHandTriangles": 0,
+      "pureForearmTriangles": 0,
+      "visible": false
+    },
+    {
+      "name": "player_male_DEMO_core_SKIN",
+      "originalTriangles": 4684,
+      "retainedTriangles": 552,
+      "pureHandTriangles": 552,
+      "pureForearmTriangles": 0,
+      "visible": true
+    },
+    {
+      "name": "player_male_DEMO_core_TRIM",
+      "originalTriangles": 400,
+      "retainedTriangles": 160,
+      "pureHandTriangles": 0,
+      "pureForearmTriangles": 160,
+      "visible": true
+    },
+    {
+      "name": "player_male_DEMO_hair_HAIR",
+      "originalTriangles": 2330,
+      "retainedTriangles": 0,
+      "visible": false
+    },
+    {
+      "name": "player_male_DEMO_headwear_FABRIC",
+      "originalTriangles": 92,
+      "retainedTriangles": 0,
+      "visible": false
+    },
+    {
+      "name": "player_male_DEMO_headwear_HAIR",
+      "originalTriangles": 580,
+      "retainedTriangles": 0,
+      "visible": false
+    }
+  ],
+  "result": "PASS",
+  "maskSummary": {
+    "supported": true,
+    "hidden": true,
+    "bodyMeshes": 7,
+    "maskedMeshes": 4,
+    "hiddenMeshes": 3,
+    "triangles": 2754,
+    "armTriangles": 1794,
+    "armsVisible": true,
+    "weaponPreserved": true,
+    "mode": "audited-skinned-limb-index-mask",
+    "retainedHands": 552,
+    "retainedForearms": 408,
+    "originalDisposals": 0
+  },
+  "maskPolicy": "Each triangle corner requires limb sum >=.55; any head/neck sum >1e-5 rejects triangle. Shared original vertex attributes/skeleton; owned filtered index and geometry wrapper only. Head-only meshes temporarily hidden. Arms/hands/legs/feet and weapon preserved."
+}

@@ -1,0 +1,69 @@
+import {createExplorationRailwayPlan,createRailwayMotion} from './exploration_railway_plan.mjs';
+import {CAR,carCorners} from './car_drive.mjs';
+import {polygonVehicleContact} from './vehicle_contact.mjs';
+export const EXPLORATION_TRAIN_URL='/assets/rail/city_v3/v1/regional_train_and_track_tiles_v1.glb';
+
+export function withRailwayVehicleWorld(base,getRailway){
+ const railContact=(x,z,yaw,shape=CAR)=>{const railway=getRailway();if(!railway)return null;const polygon=carCorners(x,z,yaw,shape);let best=null;for(const car of railway.snapshot().cars){if(Math.hypot(x-car.x,z-car.z)>car.length/2+shape.halfLength+shape.halfWidth+2)continue;const corners=[[-1,-1],[1,-1],[1,1],[-1,1]].map(([along,side])=>[car.x+car.tx*car.length/2*along-car.tz*car.width/2*side,car.z+car.tz*car.length/2*along+car.tx*car.width/2*side]),contact=polygonVehicleContact(polygon,corners);if(contact&&(!best||contact.depth>best.depth))best={...contact,railway:true}}return best};
+ const allowed=(x,z)=>base(x,z)&&!getRailway()?.blocks(x,z,0);Object.assign(allowed,base);
+ allowed.poseAllowed=(x,z,yaw,shape=CAR)=>(base.poseAllowed?base.poseAllowed(x,z,yaw,shape):carCorners(x,z,yaw,shape).every(p=>base(...p)))&&!railContact(x,z,yaw,shape);
+ allowed.contactAt=(x,z,yaw,shape=CAR)=>{const original=base.contactAt?.(x,z,yaw,shape),rail=railContact(x,z,yaw,shape);return !rail?original:!original||rail.depth>original.depth?rail:original};
+ return allowed;
+}
+
+/** Reuses the authored clay train, with independent car poses on this scene's new rail alignment. */
+export async function createExplorationRailway({THREE,loader,landscape,plan=createExplorationRailwayPlan({landscape})}={}){
+ const object=new THREE.Group();object.name='Западная лесная железная дорога';object.userData.explorationRailway=true;
+ const geometries=new Set(),materials=new Set(),textures=new Set(),matrix=new THREE.Matrix4(),dummy=new THREE.Object3D(),mergedPosition=new THREE.Vector3(),mergedNormal=new THREE.Vector3(),mergedNormalMatrix=new THREE.Matrix3();
+ const material=(color,extra={})=>{const m=new THREE.MeshStandardMaterial({color,roughness:.75,...extra});materials.add(m);return m};
+ const limestone=material('#bdb69e'),brass=material('#99865b',{metalness:.6,roughness:.4}),burgundy=material('#673c3b'),wood=material('#5d5446'),roadMaterial=material('#626963'),railMetal=material('#747879',{metalness:.8,roughness:.3}),ballastMat=material('#929487'),glass=material('#41676b',{metalness:.15,roughness:.22,transparent:true,opacity:.75});
+ const boxGeometry=new THREE.BoxGeometry(1,1,1);geometries.add(boxGeometry);
+ function meshBox(parent,mat,x,y,z,w,h,d){const mesh=new THREE.Mesh(boxGeometry,mat);mesh.position.set(x,y,z);mesh.scale.set(w,h,d);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh}
+ const batch=(name,mat,count)=>{const m=new THREE.InstancedMesh(boxGeometry,mat,count);m.name=name;m.receiveShadow=true;object.add(m);return m};
+ const railCount=Math.ceil(plan.length/1.45),rails=batch('Стальные рельсы',railMetal,railCount*2),sleepersCount=Math.ceil(plan.length/.85),sleepers=batch('Деревянные шпалы',wood,sleepersCount);
+ function place(instance,index,p,width,height,length,side=0,dy=0){const nx=-p.tz,nz=p.tx;dummy.position.set(p.x+nx*side,p.y+dy,p.z+nz*side);dummy.rotation.set(0,Math.atan2(p.tx,p.tz),0);dummy.scale.set(width,height,length);dummy.updateMatrix();instance.setMatrixAt(index,dummy.matrix)}
+ for(let i=0;i<railCount;i++){const p=plan.sample((i+.5)*plan.length/railCount);place(rails,i*2,p,.08,.12,plan.length/railCount+.05,-plan.gauge/2,-.06);place(rails,i*2+1,p,.08,.12,plan.length/railCount+.05,plan.gauge/2,-.06)}
+ let visibleSleepers=0;for(let i=0;i<sleepersCount;i++){const p=plan.sample(i*plan.length/sleepersCount);if(!plan.pavedAt(p.x,p.z))place(sleepers,visibleSleepers++,p,2.7,.10,.22,0,-.15)}sleepers.count=visibleSleepers;
+ rails.instanceMatrix.needsUpdate=true;sleepers.instanceMatrix.needsUpdate=true;rails.computeBoundingSphere();sleepers.computeBoundingSphere();
+ const bedPositions=[],bedNormals=[],bedUvs=[],widths=[-10,-6,-2,0,2,6,10],rows=[];
+ for(let i=0;i<=railCount;i++){const p=plan.sample(i*plan.length/railCount),band=plan.bankWidthAt(p.x,p.z),crossSection=[-band,-Math.max(2.01,band*.6),-2,0,2,Math.max(2.01,band*.6),band];rows.push(crossSection.map(side=>{const x=p.x-p.tz*side,z=p.z+p.tx*side,y=plan.floorHeight(x,z)??plan.landscape.groundHeight(x,z);return [x,y-.015,z]}));if(i>0)for(let j=0;j<widths.length-1;j++)for(const v of [rows[i-1][j],rows[i-1][j+1],rows[i][j+1],rows[i-1][j],rows[i][j+1],rows[i][j]])bedPositions.push(...v)}
+ const bedGeometry=new THREE.BufferGeometry();bedGeometry.setAttribute('position',new THREE.Float32BufferAttribute(bedPositions,3));bedGeometry.computeVertexNormals();bedGeometry.computeBoundingSphere();geometries.add(bedGeometry);const bed=new THREE.Mesh(bedGeometry,ballastMat);bed.name='Балласт и плавная железнодорожная насыпь';bed.receiveShadow=true;object.add(bed);
+ for(const s of plan.stations){
+  const station=new THREE.Group();station.name=s.name;station.position.set(s.x,s.y,s.z);station.rotation.y=Math.atan2(-s.tx,-s.tz);object.add(station);
+  const base=plan.landscape.groundHeight(s.x,s.z);meshBox(station,limestone,0,-Math.max(.35,s.y-base)/2,0,s.width,Math.max(.35,s.y-base),s.length);
+  meshBox(station,brass,-s.width/2+.2,.025,0,.18,.05,s.length-1);
+  const canopy=Math.min(51,s.length-1.5),postEnd=canopy/2-1,benchOffset=Math.min(17,s.length/2-4);
+  for(const z of [-postEnd,-postEnd/2,0,postEnd/2,postEnd]){meshBox(station,brass,1.6,1.7,z,.14,3.4,.14);meshBox(station,brass,0,3.35,z,4.7,.16,.14)}
+  meshBox(station,burgundy,0,3.52,0,5.5,.30,canopy);meshBox(station,limestone,0,3.7,0,5.7,.1,canopy+.2);
+  for(const z of [-benchOffset,0,benchOffset]){meshBox(station,wood,.7,.5,z,1.4,.12,3.8);meshBox(station,wood,1.3,.92,z,.12,.75,3.8);for(const dz of [-1.4,1.4])meshBox(station,brass,.7,.23,z+dz,.85,.46,.10)}
+  meshBox(station,glass,1.85,1.9,0,.1,2.65,13);for(const z of [-6.6,0,6.6])meshBox(station,brass,1.85,1.9,z,.14,2.8,.12);
+  for(const z of [-s.length/2+2,s.length/2-2]){meshBox(station,brass,1,1.6,z,.10,3.2,.10);meshBox(station,burgundy,1,2.85,z,1.7,.75,.14);meshBox(station,limestone,1,2.85,z+.085,1.35,.12,.025)}
+  if(typeof document!=='undefined'){const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=192;const ctx=canvas.getContext('2d');ctx.fillStyle='#533737';ctx.fillRect(0,0,1024,192);ctx.strokeStyle='#bea773';ctx.lineWidth=10;ctx.strokeRect(9,9,1006,174);ctx.fillStyle='#eee6ce';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='600 66px Arial';ctx.fillText(s.name,512,96,950);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;textures.add(texture);const signMaterial=new THREE.MeshStandardMaterial({map:texture,roughness:.8,side:THREE.DoubleSide});materials.add(signMaterial);const signGeometry=new THREE.PlaneGeometry(6.6,1.24);geometries.add(signGeometry);for(const side of [-1,1]){const sign=new THREE.Mesh(signGeometry,signMaterial);sign.position.set(side*2.4,4.35,0);sign.rotation.y=side*Math.PI/2;station.add(sign)}}
+  // A broad ramp reaches the existing soil without forcing a step onto the platform.
+  const rampPositions=[];for(let i=0;i<s.rampLength;i++){const a=s.width/2+i,b=a+1;for(const [along,across] of [[-3,a],[3,b],[3,a],[-3,a],[-3,b],[3,b]]){const x=s.x+s.tx*along+s.nx*across,z=s.z+s.tz*along+s.nz*across;rampPositions.push(x,(plan.floorHeight(x,z)??plan.landscape.groundHeight(x,z))+.015,z)}}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(rampPositions,3));g.computeVertexNormals();g.computeBoundingSphere();geometries.add(g);const ramp=new THREE.Mesh(g,limestone);ramp.material.side=THREE.DoubleSide;ramp.receiveShadow=true;object.add(ramp);
+ }
+ const signalLights=[];
+ for(const c of plan.crossings){const crossing=new THREE.Group();crossing.name=c.name;crossing.position.set(c.x,c.y,c.z);crossing.rotation.y=Math.atan2(c.tx,c.tz);object.add(crossing);meshBox(crossing,c.city?roadMaterial:wood,0,-.16,0,c.city?4.2:4.5,.10,c.length?c.length+2:c.drive?10:5);for(const side of [-1,1]){const signal=new THREE.Group(),p=c.signals?.[side<0?0:1];if(p){signal.position.set(p.x,p.y,p.z);object.add(signal)}else{signal.position.set(side*3.2,0,side*5);crossing.add(signal)}meshBox(signal,limestone,0,1.1,0,.12,2.2,.12);const a=meshBox(signal,limestone,0,2.2,0,1.35,.15,.15);a.rotation.z=.65;const b=meshBox(signal,limestone,0,2.2,0,1.35,.15,.15);b.rotation.z=-.65;const lampMaterial=material('#65402d',{emissive:'#af542d',emissiveIntensity:.1});const lamp=meshBox(signal,lampMaterial,0,1.6,0,.28,.28,.20);signalLights.push({lamp,progress:c.progress})}}
+ // Batch the many static platform/crossing parts; moving signal lamps stay independent.
+ object.updateMatrixWorld(true);const movingLamps=new Set(signalLights.map(s=>s.lamp)),staticParts=new Map();object.traverse(mesh=>{if(mesh.isMesh&&!mesh.isInstancedMesh&&mesh.geometry===boxGeometry&&!mesh.material.transparent&&!movingLamps.has(mesh)){if(!staticParts.has(mesh.material))staticParts.set(mesh.material,[]);staticParts.get(mesh.material).push(mesh)}});for(const [mat,parts] of staticParts){const instanced=new THREE.InstancedMesh(boxGeometry,mat,parts.length);instanced.name='Платформы и переезды · статические детали';instanced.castShadow=true;instanced.receiveShadow=true;parts.forEach((part,i)=>{instanced.setMatrixAt(i,part.matrixWorld);part.removeFromParent()});instanced.instanceMatrix.needsUpdate=true;instanced.computeBoundingSphere();object.add(instanced)}
+ const loaded=await loader.loadAsync(EXPLORATION_TRAIN_URL),source=loaded.scene;source.updateMatrixWorld(true);
+ const cars=[];let trainMeshCount=0;
+ for(let i=0;i<3;i++){
+  const root=source.getObjectByName('TRAIN_LOD0_CAR0'+i+'_ROOT');if(!root)throw new Error('Rail asset missing LOD0 car '+i);
+  const car=new THREE.Group();car.name='Лесной экспресс · вагон '+(i+1);object.add(car);cars.push(car);
+  // Merge static parts by their original material per car; retain the authored detailed exterior.
+  const inverse=root.matrixWorld.clone().invert(),byMaterial=new Map();
+  root.traverse(node=>{if(!node.isMesh)return;const mats=Array.isArray(node.material)?node.material:[node.material],source=node.geometry,p=source.attributes.position,n=source.attributes.normal,uv=source.attributes.uv,index=source.index;matrix.multiplyMatrices(inverse,node.matrixWorld);if(n)mergedNormalMatrix.getNormalMatrix(matrix);const ranges=source.groups.length?source.groups:[{start:0,count:index?index.count:p.count,materialIndex:0}];for(const range of ranges){const mat=mats[range.materialIndex||0],data=byMaterial.get(mat)||{position:[],normal:[],uv:[]};byMaterial.set(mat,data);const end=Math.min(range.start+range.count,index?index.count:p.count);for(let j=range.start;j<end;j++){const vertex=index?index.getX(j):j;mergedPosition.fromBufferAttribute(p,vertex).applyMatrix4(matrix);data.position.push(mergedPosition.x,mergedPosition.y,mergedPosition.z);if(n){mergedNormal.fromBufferAttribute(n,vertex).applyMatrix3(mergedNormalMatrix).normalize();data.normal.push(mergedNormal.x,mergedNormal.y,mergedNormal.z)}else data.normal.push(0,1,0);data.uv.push(uv?.getX(vertex)??0,uv?.getY(vertex)??0)}}});
+  for(const [mat,data] of byMaterial){materials.add(mat);const g=new THREE.BufferGeometry();for(const [key,size] of [['position',3],['normal',3],['uv',2]])g.setAttribute(key,new THREE.Float32BufferAttribute(data[key],size));g.computeBoundingSphere();geometries.add(g);const mesh=new THREE.Mesh(g,mat);mesh.castShadow=true;mesh.receiveShadow=true;car.add(mesh);trainMeshCount++}
+ }
+ // The GLB source hierarchy is never attached to the scene: each car above
+ // owns merged copies of its detailed geometry. Retaining the source vertex
+ // buffers until map disposal needlessly doubles the train's CPU-side memory.
+ // Materials remain shared by the merged meshes and therefore stay owned here.
+ const sourceGeometries=new Set();source.traverse(n=>{if(n.geometry)sourceGeometries.add(n.geometry);for(const m of Array.isArray(n.material)?n.material:n.material?[n.material]:[])materials.add(m)});for(const geometry of sourceGeometries)geometry.dispose();
+ const motion=createRailwayMotion(plan),forward=new THREE.Vector3(),up=new THREE.Vector3(),right=new THREE.Vector3(),worldUp=new THREE.Vector3(0,1,0),basis=new THREE.Matrix4();let state=motion.snapshot(),disposed=false;
+ function update(dt,context){if(disposed)return state;state=motion.update(dt,context);state.cars.forEach((p,i)=>{forward.set(p.tx,p.grade,p.tz).normalize();right.crossVectors(forward,worldUp).normalize();up.crossVectors(right,forward).normalize();basis.makeBasis(forward,up,right);cars[i].quaternion.setFromRotationMatrix(basis);cars[i].position.set(p.x,p.y,p.z)});for(const {lamp,progress} of signalLights){const near=state.cars.some(c=>Math.abs(((c.distance-progress+plan.length/2)%plan.length+plan.length)%plan.length-plan.length/2)<55);lamp.material.emissiveIntensity=near?1.4:.08}return state}
+ const actors=()=>{const p=state.cars[0];return [{id:state.id,kind:'train',type:'train',name:'Лесной экспресс',x:p.x,y:p.y,z:p.z,yaw:Math.atan2(p.tx,p.tz),speed:state.speed}]};
+ update(0);object.userData.report={trainMeshCount,carCount:cars.length,trackLength:plan.length,sleeperCount:sleepersCount,stationCount:plan.stations.length};
+ return {object,plan,mapFeatures:plan.mapFeatures,report:object.userData.report,update,actors,blocks:motion.blocks,floorHeight:plan.floorHeight,snapshot:()=>state,dispose(){disposed=true;object.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials)m.dispose();for(const t of textures)t.dispose()}};
+}

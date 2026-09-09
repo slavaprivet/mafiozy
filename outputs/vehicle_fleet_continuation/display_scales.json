@@ -1,0 +1,18 @@
+{
+  "note": "Blender presentation only; runtime export remains native metres. Same scale in closed/open.",
+  "scales": {
+    "city_hatchback": 1.08,
+    "compact_sedan": 1.08,
+    "family_wagon": 1.08,
+    "executive_sedan": 1.08,
+    "sport_coupe": 1.08,
+    "city_suv": 1.08,
+    "delivery_van": 1.08,
+    "utility_pickup": 1.0616897630755475,
+    "city_bus": 0.5280124353042341,
+    "police_interceptor": 1.08,
+    "city_ambulance": 0.8851701115261541,
+    "fire_engine": 0.7905795977592034,
+    "red_demo": 1.08
+  }
+}

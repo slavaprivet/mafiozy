@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createVehicleDamage} from './vehicle_damage.mjs';
+import {createGlassBreakage} from './glass_breakage.mjs';
+const T=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
+const {createDemoCar}=await import('./car_drive.mjs');
+class Box extends T.BoxGeometry{constructor(w,h,d){super(w,h,d)}}
+const scene=new T.Scene(),car=createDemoCar(T,Box);scene.add(car.object);const damage=createVehicleDamage(T,car),glass=createGlassBreakage(T,scene);glass.prepare(car.object);scene.updateMatrixWorld(true);
+let pane;car.object.traverse(n=>{if(!pane&&n.material?.name==='Automotive_Glass')pane=n});
+const center=pane.getWorldPosition(new T.Vector3());const hit=new T.Raycaster(center.clone().add(new T.Vector3(0,0,3)),new T.Vector3(0,0,-1)).intersectObject(pane)[0];assert(hit);
+assert.equal(damage.impact({hit,damage:72,shotId:'glass'}),false);assert.equal(damage.state.hp,240);assert(glass.hit(hit,{direction:new T.Vector3(0,0,-1),impulse:72}).broken);assert(glass.stats().activeShards>0);
+const hood=car.shell.find(n=>n.name==='Hood_lid');assert(damage.impact({object:hood,damage:24,shotId:'glass'}));assert.equal(damage.state.hp,216,'glass did not consume shot id for a later body hit');
+const mixed=new T.Mesh(new T.BoxGeometry(),[new T.MeshStandardMaterial(),pane.material]);car.object.add(mixed);
+assert.equal(damage.impact({hit:{object:mixed,face:{materialIndex:1}},damage:24}),false);
+assert(damage.impact({hit:{object:mixed,face:{materialIndex:0}},damage:24}));
+damage.impact({object:hood,damage:999});damage.update(2);damage.update(2);
+const parts=damage.debrisObject.children.filter(n=>['Hood_lid','Trunk_lid'].includes(n.name));assert.equal(parts.length,2);assert.equal(damage.debrisObject.parent,scene);const matrices=parts.map(n=>n.matrix.clone());
+scene.updateMatrixWorld(true);const poses=parts.map(n=>n.position.toArray().concat(n.quaternion.toArray()));
+for(let i=0;i<60;i++)damage.update(1);assert.equal(damage.stats().debris,10);assert.equal(damage.stats().flames,0);
+assert.deepEqual(parts.map(n=>n.position.toArray().concat(n.quaternion.toArray())),poses,'settled parts no longer simulate');
+let freed=0;for(const n of parts)n.geometry.addEventListener('dispose',()=>freed++);
+damage.reset();assert.equal(freed,2);assert.equal(damage.stats().debris,0);assert(hood.visible);
+damage.impact({object:pane,point:center,damage:160,explosive:true,shotId:'rpg'});damage.update(0);assert(damage.state.wrecked,'blast damage still affects car');
+damage.update(2);assert.notDeepEqual(damage.debrisObject.children.filter(n=>['Hood_lid','Trunk_lid'].includes(n.name)).map(n=>n.position.toArray().concat(n.quaternion.toArray())),poses,'each explosion gets new scatter');
+assert.equal(damage.clearDebris(),10);assert.equal(damage.clearDebris(),0);assert(damage.state.wrecked);assert(!hood.visible,'pickup does not restore vehicle');
+glass.dispose();damage.dispose();console.log('PASS glass fracture without HP; body/mixed-material HP; blast retained; 10 persistent sleeping assemblies; reset/disposal');

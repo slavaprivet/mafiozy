@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {createWalkHudShell,walkInventoryArtId,profileWeaponActionId,WALK_HUD_SHELL_CSS} from './walk_hud_shell.mjs';
+class Element{
+ constructor(tag,doc){this.tagName=tag.toUpperCase();this.doc=doc;this.children=[];this.attrs={};this.dataset={};this.listeners={};this.className='';this.classList={contains:name=>this.className.split(' ').includes(name),add:name=>{if(!this.classList.contains(name))this.className+=' '+name;},remove:name=>{this.className=this.className.split(' ').filter(v=>v!==name).join(' ');}};}
+ get isConnected(){return this===this.doc.documentElement||!!this.parentNode?.isConnected;}
+ get nextSibling(){return this.parentNode?.children[this.parentNode.children.indexOf(this)+1]||null;}
+ setAttribute(name,value){this.attrs[name]=String(value);if(name==='id')this.id=String(value);}
+ getAttribute(name){return this.attrs[name]??null;}hasAttribute(name){return name in this.attrs;}removeAttribute(name){delete this.attrs[name];}
+ append(...nodes){for(const node of nodes){node.remove();this.children.push(node);node.parentNode=this;}}
+ insertBefore(node,next){node.remove();let i=this.children.indexOf(next);if(i<0)i=this.children.length;this.children.splice(i,0,node);node.parentNode=this;}
+ remove(){if(this.parentNode){this.parentNode.children=this.parentNode.children.filter(c=>c!==this);this.parentNode=null;}}
+ addEventListener(name,fn){this.listeners[name]=fn;}removeEventListener(name,fn){if(this.listeners[name]===fn)delete this.listeners[name];}
+ matches(selector){if(selector[0]==='.')return this.classList.contains(selector.slice(1));const match=selector.match(/^(\w+)?(?:\[([\w-]+)\])?$/);return !!match&&(!match[1]||this.tagName===match[1].toUpperCase())&&(!match[2]||this.hasAttribute(match[2]));}
+ querySelectorAll(selector){return this.children.flatMap(child=>[...(selector.split(',').some(s=>child.matches(s.trim()))?[child]:[]),...child.querySelectorAll(selector)]);}
+ querySelector(selector){return this.querySelectorAll(selector)[0]||null;}
+ click(){this.listeners.click?.({target:this,stopPropagation(){}});}focus(){this.doc.activeElement=this;}
+}
+const observers=[],tasks=[];class Observer{constructor(fn){this.fn=fn;this.targets=[];observers.push(this);}observe(node,options){this.targets.push({node,options});}disconnect(){this.targets=[];}}
+const doc={listeners:{},createElement(tag){return new Element(tag,this);},getElementById(id){const all=node=>[node,...node.children.flatMap(all)];return all(this.documentElement).find(n=>n.id===id)||null;},addEventListener(name,fn){this.listeners[name]=fn;},removeEventListener(name,fn){if(this.listeners[name]===fn)delete this.listeners[name];},defaultView:{MutationObserver:Observer,queueMicrotask(fn){tasks.push(fn);}}};
+doc.documentElement=doc.createElement('html');doc.head=doc.createElement('head');doc.body=doc.createElement('body');doc.documentElement.append(doc.head,doc.body);
+const el=(tag,id,cls)=>{const node=doc.createElement(tag);if(id)node.setAttribute('id',id);if(cls)node.className=cls;return node;};
+const legacy=el('aside','leftCommandHud'),before=el('div'),roster=el('section','gangRosterHud'),after=el('div'),head=el('div',null,'gr-head'),dismiss=el('button',null,'gr-dismiss');let sourceClicks=0,expansions=0;dismiss.addEventListener('click',()=>sourceClicks++);roster.append(head,dismiss);legacy.append(before,roster,after);doc.body.append(legacy);
+const profile=el('div','profileModal'),content=el('div','profileContent'),card=el('div',null,'inventory-card'),visual=el('div',null,'inventory-visual'),canvas=el('canvas'),select=el('button');canvas.setAttribute('data-inventory-weapon','rifle');select.setAttribute('onclick',"_selectProfileWeapon('m16',false)");visual.append(canvas);card.append(visual,select);content.append(card);profile.append(content);doc.body.append(profile);
+const mainMenu=el('div','gameMainMenu','hidden'),settings=el('input','gmmVolume');settings.value='65';let settingsCalls=0;settings.addEventListener('input',()=>settingsCalls++);mainMenu.append(settings);doc.body.append(mainMenu);
+const rendered=[],closed=[];const shell=createWalkHudShell({document:doc,getWeaponThumbnail:id=>{rendered.push(id);return 'blob:'+id;},ensureGangExpanded:()=>expansions++,onClose:()=>closed.push(1)});
+assert.equal(doc.documentElement.getAttribute('data-walk-player-hud'),'true');assert.equal(profile.getAttribute('role'),'dialog');assert.equal(profile.getAttribute('data-walk-ui'),'source-dialog');assert.deepEqual(rendered,['m16'],'exact source action ID wins over collapsed rifle preview alias');assert.equal(canvas.getAttribute('data-walk-thumbnail-ready'),'true');assert.equal(visual.children[1].src,'blob:m16');assert.equal(card.children[1],select,'source action preserved');
+assert.equal(mainMenu.getAttribute('role'),'dialog');assert.equal(mainMenu.className,'hidden');assert.equal(mainMenu.children[0],settings);assert.equal(settings.value,'65');settings.listeners.input();assert.equal(settingsCalls,1,'source setting handler preserved');
+shell.refresh();assert.deepEqual(rendered,['m16'],'refresh reuses thumbnails');assert(observers[0].targets.some(t=>t.node===doc.body&&!t.options.subtree),'do not observe animated world subtree');
+assert(shell.openGang());assert(shell.isGangOpen());assert.notEqual(roster.parentNode,legacy);assert.equal(expansions,1);dismiss.click();assert.equal(sourceClicks,1,'source listeners survive reparenting');assert(shell.openGang());assert.equal(expansions,1);shell.closeGang();assert.deepEqual(legacy.children,[before,roster,after]);assert.equal(closed.length,1);
+shell.openGang();doc.listeners.keydown({key:'Escape',preventDefault(){},stopPropagation(){}});assert.equal(shell.isGangOpen(),false);assert.deepEqual(legacy.children,[before,roster,after]);
+for(const [source,expected]of Object.entries({m16:'m16',pistol:'tt_pistol',pistol_heavy:'deagle',smg:'uzi',rifle:'ak74',nagan:'nagan',sawn_off:'sawn_off',golden_uzi:'golden_uzi',fists:'none'}))assert.equal(walkInventoryArtId(source),expected);assert.equal(walkInventoryArtId('invented'),null);
+assert.equal(profileWeaponActionId("_selectProfileWeapon('',false)"),'none');assert.equal(profileWeaponActionId("_selectProfileWeapon('m16',false); evil()"),null);assert.equal(profileWeaponActionId("_selectProfileWeapon('m16',getFlag())"),null);
+shell.openGang();shell.dispose();assert.deepEqual(legacy.children,[before,roster,after]);assert.equal(doc.documentElement.getAttribute('data-walk-player-hud'),null);assert.equal(profile.getAttribute('role'),null);assert.equal(canvas.getAttribute('data-walk-thumbnail-ready'),null);assert.deepEqual(visual.children,[canvas]);assert.equal(doc.head.children.length,0);assert.equal(shell.openGang(),false);shell.dispose();
+assert.equal(mainMenu.getAttribute('role'),null);assert.equal(mainMenu.className,'hidden');assert.equal(mainMenu.children[0],settings);
+assert(WALK_HUD_SHELL_CSS.includes("html[data-walk-player-hud='true'] #leftCommandHud{display:none!important}"));assert(!WALK_HUD_SHELL_CSS.includes('#chat'));
+console.log(JSON.stringify({passed:true,checks:['conditional_legacy_hide','existing_source_dialogs','exact_weapon_id','preview_cache','bounded_observer','source_action_preserved','gang_reparent','exact_sibling_restore','Escape','aliases','handler_metadata_no_eval','dispose']}));

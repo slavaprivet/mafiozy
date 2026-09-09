@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {sampleMeleePresentation,sampleReloadPresentation,selectOrdinaryMeleeType,HERO_ACTION_DURATIONS} from './hero_motion_presentation.mjs';
+assert.deepEqual(HERO_ACTION_DURATIONS,{punch:.34,heavy:.5,kick:.62});
+const punch=sampleMeleePresentation({type:'punch',progress:.28,side:-1});assert(punch.active&&punch.pulse>.8&&punch.side===-1);
+const heavyWind=sampleMeleePresentation({type:'heavy',progress:0,side:1});assert.equal(heavyWind.wind,1);assert.equal(heavyWind.guard,1);
+const kick=sampleMeleePresentation({type:'kick',progress:.5});assert(Math.abs(kick.pulse-1)<1e-12&&kick.kick);
+const block=sampleMeleePresentation({blocking:true});assert.equal(block.guard,1);assert.equal(block.active,false);
+const early=sampleReloadPresentation(.1),middle=sampleReloadPresentation(.5),late=sampleReloadPresentation(.86),done=sampleReloadPresentation(1);
+assert(early.lower>0&&middle.grab>0&&middle.pull>.9);assert(late.bolt>0);assert.equal(done.active,false);assert.equal(done.lower,0);assert.equal(done.grab,0);assert.equal(done.pull,0);
+assert.throws(()=>sampleMeleePresentation({type:'shoot'}),/Unknown melee/);
+for(const [roll,type] of [[0,'kick'],[.199999,'kick'],[.2,'punch'],[.5,'punch'],[.999999,'punch']])assert.equal(selectOrdinaryMeleeType(roll),type);assert.throws(()=>selectOrdinaryMeleeType(1),/\[0,1\)/);
+console.log(JSON.stringify({passed:true,checks:['artist14_v3_punch_envelope','heavy_wind_guard','kick_extension','block_guard','ordinary_click_kick_20_percent_boundary','reload_lower_grab_pull_bolt','host_progress_only']}));

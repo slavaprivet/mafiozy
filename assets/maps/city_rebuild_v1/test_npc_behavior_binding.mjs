@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+import {applyNpcAppearance,describeNpcAppearance} from './npc_appearance.mjs';
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';
+import {createNpcActor,NPC_ASSETS} from './npc_actor.mjs';
+import {normalizeNpcSnapshot} from './npc_population.mjs';
+import {createWeaponModel} from './hero_arsenal.mjs';
+const deps='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';registerHooks({resolve(specifier,context,next){return next(specifier==='three'?pathToFileURL(deps+'/build/three.module.js').href:specifier,context);}});
+const THREE=await import(pathToFileURL(deps+'/build/three.module.js'));const {GLTFLoader}=await import(pathToFileURL(deps+'/addons/loaders/GLTFLoader.js'));
+const skeleton=await(await fetch('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/utils/SkeletonUtils.js')).text();const {clone}=await import('data:text/javascript;base64,'+Buffer.from(skeleton.replace("from 'three'","from '"+pathToFileURL(deps+'/build/three.module.js').href+"'")).toString('base64'));
+for(const sex of ['male','female']){
+ const bytes=fs.readFileSync(new URL(NPC_ASSETS[sex].url)),source=(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene,world=new THREE.Scene();
+ let liveVehicle=null;const a=createNpcActor({THREE,scene:world,source,cloneSkeleton:clone,id:sex,sex,getVehicle:id=>id==='existing-car'?liveVehicle:null}),c=a.walker.artistContext();let time=0;
+ const life={civilianTripRiding:true,civilianTripCarId:'existing-car',phoneCalling:true};const tick=(extra={})=>a.update(.05,{time:time+=.05,position:{x:8,y:0,z:5},yaw:.2,moving:true,motionSpeed:4.6,life,...extra});
+ tick();assert(a.object.visible);assert(c.visualPivot.position.length()<.01,'missing vehicle never invents seat or hides actor');
+ const car=new THREE.Mesh(new THREE.BoxGeometry(2,1,4),new THREE.MeshBasicMaterial());world.add(car);liveVehicle={object:car,yaw:1.2,driverSeatWorld:{x:8.4,y:.92,z:5.2}};
+ tick();let hips=c.worldPosition('thigh_l').add(c.worldPosition('thigh_r')).multiplyScalar(.5);assert(hips.distanceTo(new THREE.Vector3(8.4,.92,5.2))<1e-6,'hips meet actual vehicle anchor');assert.deepEqual(a.object.position.toArray(),[8,0,5],'source root untouched');assert(!c.bones.hand_r.getObjectByName('NPC_Phone').visible,'driving suppresses phone');
+ liveVehicle.driverSeatWorld={x:10.4,y:1.02,z:7.2};tick();hips=c.worldPosition('thigh_l').add(c.worldPosition('thigh_r')).multiplyScalar(.5);assert(hips.distanceTo(new THREE.Vector3(10.4,1.02,7.2))<1e-6,'moving vehicle seat follows');
+ liveVehicle.steeringWheel={left:c.worldPosition('socket_hand_l'),right:c.worldPosition('socket_hand_r')};tick();assert(c.bones.hand_r.matrix.elements.every(Number.isFinite),'steering grip world targets finite');
+ car.visible=false;tick();assert(a.object.visible&&c.visualPivot.position.length()<.01,'missing visible car clears seat without hiding actor');car.visible=true;
+ tick({stun:{active:true,age:1}});assert(a.diagnostics().sourceDown);assert(c.worldPosition('head').y<.7,'stun outranks vehicle');
+ for(let i=0;i<30;i++)tick({life:{surrendering:true},stun:{active:false}});assert.equal(a.diagnostics().lifeGesture,'surrender');assert(c.worldPosition('hand_r').y>1.1,'surrender visible');
+ tick({life:{lifeState:'panic',panic:true,phoneCalling:true}});assert.notEqual(a.diagnostics().lifeGesture,'phone');assert(!c.bones.hand_r.getObjectByName('NPC_Phone').visible,'actual panic flags interrupt phone');tick({life:{lifeState:'social',social:true}});assert.equal(a.diagnostics().lifeGesture,'talk','actual source social state binds talk');
+ for(let i=0;i<12;i++)tick({inWater:true,waterLevel:2.2,chestWorldY:1.13});assert(a.diagnostics().surface.swim.active,'actual water state activates swim');assert(!c.bones.hand_r.getObjectByName('NPC_Phone').visible);for(let i=0;i<18;i++)tick({life:{}});
+ const gun=createWeaponModel({THREE,id:'tt_pistol'});a.mountWeapon(gun);tick({life:{state:'pursuit',phoneCalling:true},aim:{aimYaw:1.1,aimPitch:.1}});assert.equal(a.diagnostics().lifeGesture,null,'armed police preserves aim grip');assert(!c.bones.hand_r.getObjectByName('NPC_Phone').visible);
+ a.mountWeapon(null);a.receive({id:'confirmed-death',confirmed:true,dead:true});for(let i=0;i<20;i++)tick();assert.equal(a.surface.state.kind,'dead');assert(c.worldPosition('head').y<.7,'death outranks vehicle');
+ a.dispose();car.geometry.dispose();car.material.dispose();
+}
+console.log('PASS both GLB: source vehicle gated by real visible actor, exact moving seat, unchanged source root, phone/armed aim/surrender/stun/death priorities');

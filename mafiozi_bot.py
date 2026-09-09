@@ -19,6 +19,7 @@ import hashlib
 import hmac
 import npc_empire
 import weapon_balance
+import weapon_transfers
 from functools import lru_cache
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -1569,6 +1570,7 @@ async def init_db():
                 version INTEGER NOT NULL DEFAULT 0
             )
         """)
+        await weapon_transfers.ensure_schema(db)
         await db.execute("""
             CREATE TABLE IF NOT EXISTS weapon_shots (
                 shooter_uid INTEGER NOT NULL,
@@ -3517,7 +3519,34 @@ async def get_authoritative_ammo_state(telegram_id: int) -> dict:
     async with aiosqlite.connect(DB_PATH) as db:
         state = await _get_authoritative_ammo_state_on_db(db, int(telegram_id))
         await db.commit()
-        return state
+    return state
+
+
+def weapon_transfer_service(world=None):
+    """HTTP/preview adapter; accepted WorldSim positions are the only geometry."""
+    active_world = _WORLD if world is None else world
+    return weapon_transfers.WeaponTransfers(
+        db_path=DB_PATH, items=ITEMS, item_classes=WEAPON_ITEM_CLASSES,
+        mag_sizes=WEAPON_MAG_SIZE, ammo_types=weapon_balance.WEAPON_AMMO,
+        ammo_limits=AMMO_LIMITS, ammo_snapshot=_get_authoritative_ammo_state_on_db,
+        bump_ammo_version=_bump_ammo_version_on_db,
+        actor_provider=lambda uid, now: weapon_transfers.live_exterior_actor(active_world, uid, now),
+        line_of_sight=lambda actor, drop: _world_los(actor['c'], actor['r'], drop['c'], drop['r']))
+
+
+def mirror_weapon_transfer(world, uid, result):
+    """Refresh existing shot authorization cache, never create a second owner."""
+    if not result.get('ok') or world is None:
+        return
+    live = world.players.get(str(uid))
+    if live is not None:
+        version = int((result.get('ammo_state') or {}).get('ammo_version') or 0)
+        if version < int(live.get('_weapon_transfer_mirror_version') or 0):
+            return
+        live['_weapon_transfer_mirror_version'] = version
+        live['_weapon_classes'] = set(result.get('weapon_classes') or [])
+        if result.get('action') == 'drop' and not result.get('replayed'):
+            live['_weapon'] = ''
 
 
 async def get_weapon_shot_receipt(shooter_uid: int, shot_id: str) -> dict | None:
@@ -3976,6 +4005,11 @@ async def ensure_owner_entry_loadout(telegram_id: int) -> bool:
             (OWNER_LOADOUT_CASH, telegram_id),
         )
         for item_id, quantity in OWNER_LOADOUT_ITEMS.items():
+            suppressed = await (await db.execute(
+                'SELECT 1 FROM weapon_transfer_loadout_suppressed WHERE uid=? AND item_id=?',
+                (telegram_id, item_id))).fetchone()
+            if suppressed:
+                continue
             await db.execute("""
                 INSERT INTO inventory (telegram_id,item_id,quantity) VALUES (?,?,?)
                 ON CONFLICT(telegram_id,item_id) DO UPDATE SET
@@ -15516,11 +15550,12 @@ async def kick_custom_gang_member_db(leader_uid:int,target_uid:int)->dict:
         if not gang:await db.rollback();return {'ok':False,'error':'leader only'}
         target=await (await db.execute("SELECT role FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",(gang['id'],target_uid))).fetchone()
         if not target or str(target['role'])=='leader':await db.rollback();return {'ok':False,'error':'member not found'}
+        affected=await (await db.execute("SELECT telegram_id FROM custom_gang_members WHERE gang_id=?",(gang['id'],))).fetchall()
         await db.execute("DELETE FROM custom_gang_npcs WHERE gang_id=? AND owner_uid=?",(gang['id'],target_uid))
         await db.execute("DELETE FROM custom_gang_members WHERE gang_id=? AND telegram_id=?",(gang['id'],target_uid))
         await _custom_gang_audit(db,int(gang['id']),leader_uid,'kick',{'target_uid':str(target_uid)})
         await db.commit()
-    return {'ok':True,'gang_id':int(gang['id']),'member_uids':[str(leader_uid),str(target_uid)]}
+    return {'ok':True,'gang_id':int(gang['id']),'member_uids':[str(member['telegram_id']) for member in affected]}
 
 
 async def transfer_custom_gang_leadership_db(leader_uid:int,target_uid:int)->dict:
@@ -15784,7 +15819,10 @@ def apply_custom_gang_to_player(player:dict|None,gang:dict|None)->None:
         for key in ('_custom_gang_id','_custom_gang_name','_custom_gang_role','_custom_gang_flag','_custom_gang_hq','_custom_gang_hq_r','_custom_gang_hq_c','_custom_gang_members','_custom_gang_max_members','_custom_gang_npcs','_custom_gang_treasury'):player.pop(key,None)
         if str(player.get('_crew_id') or '').startswith('cg:'):player.pop('_crew_id',None)
         return
-    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':gang['role'],'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_custom_gang_hq_r':gang.get('hq_r',0),'_custom_gang_hq_c':gang.get('hq_c',0),'_custom_gang_members':list(gang.get('members') or []),'_custom_gang_max_members':int(gang.get('max_members') or CUSTOM_GANG_MAX_MEMBERS),'_custom_gang_npcs':list(gang.get('npcs') or []),'_custom_gang_treasury':int(gang.get('treasury') or 0),'_crew_id':f"cg:{gang['id']}"})
+    # A shared roster may have been fetched for the joining member, not this recipient.
+    recipient_uid=str(player.get('uid') or '')
+    role=next((str(member.get('role') or 'member') for member in gang.get('members',[]) if str(member.get('telegram_id'))==recipient_uid),'member')
+    player.update({'_custom_gang_id':gang['id'],'_custom_gang_name':gang['name'],'_custom_gang_role':role,'_custom_gang_flag':gang['flag'],'_custom_gang_hq':gang['hq_apt_key'],'_custom_gang_hq_r':gang.get('hq_r',0),'_custom_gang_hq_c':gang.get('hq_c',0),'_custom_gang_members':list(gang.get('members') or []),'_custom_gang_max_members':int(gang.get('max_members') or CUSTOM_GANG_MAX_MEMBERS),'_custom_gang_npcs':list(gang.get('npcs') or []),'_custom_gang_treasury':int(gang.get('treasury') or 0),'_crew_id':f"cg:{gang['id']}"})
 
 
 def custom_gang_player_payload(player:dict|None)->dict|None:
@@ -16080,6 +16118,31 @@ def _dist_to_segment(px: float, py: float,
     dx = px - cx; dy = py - cy
     return (dx*dx + dy*dy) ** 0.5
 
+def _attach_world_hit_shot_id(packet, raw_shot_id, claim, uid, target_key, target_id):
+    """Annotate an already accepted damage event; never authorize damage here."""
+    if not isinstance(packet, dict) or not isinstance(claim, dict):
+        return packet
+    if not claim.get('ok') or claim.get('replayed') or packet.get('ok') is False:
+        return packet
+    if not isinstance(raw_shot_id, str) or not (1 <= len(raw_shot_id) <= 96):
+        return packet
+    shot_id = raw_shot_id.strip()
+    if not shot_id or shot_id != claim.get('shot_id'):
+        return packet
+    if str(packet.get('shooter_uid', '')) != str(uid):
+        return packet
+    if str(packet.get(target_key, '')) != str(target_id):
+        return packet
+    if packet.get('kind') not in ('cop_hit', 'aggro_hit', 'mg_hit', 'major_guard_hit', 'player_shot'):
+        return packet
+    if packet.get('kind') == 'player_shot' and not packet.get('confirmed_hit'):
+        return packet
+    if not isinstance(packet.get('dmg'), (int, float)) or packet['dmg'] <= 0:
+        return packet
+    packet['shot_id'] = shot_id
+    return packet
+
+
 class WorldSim:
     """Глобальная симуляция открытого мира — один экземпляр на сервер.
     Хранит позиции всех онлайн-игроков, рассылает снапшоты 15 Гц.
@@ -16103,7 +16166,7 @@ class WorldSim:
     __slots__ = (
         'tick_no', 'last_tick_at', 'players', 'connections',
         '_combat_boot_id', '_combat_event_seq',
-        '_player_shot_locks',
+        '_player_shot_locks', '_npc_melee_receipts',
         'gang_player_invites', 'custom_gang_player_invites',
         'alive', 'started_at',
         'event', '_event_next_at',
@@ -16687,6 +16750,7 @@ class WorldSim:
         self._combat_boot_id = secrets.token_hex(8)
         self._combat_event_seq = 0
         self._player_shot_locks = weakref.WeakValueDictionary()
+        self._npc_melee_receipts = {}
         self.players         = {}   # uid (str) -> {x,y,ang,name,look,hp,last_seen}
         self.connections     = {}   # uid (str) -> aiohttp WebSocketResponse
         self.gang_player_invites = {}  # target_uid -> {from_uid, expires_at}
@@ -17880,6 +17944,7 @@ class WorldSim:
         return {
             'kind':'major_guard_hit','ok':True,'object_id':object_id,
             'guard_id':guard_id,'hp':guard['hp'],'alive':guard['alive'],
+            'shooter_uid':str(uid),'dmg':damage,
             'phase':raid['phase'],'spawned':raid['spawned'],
             'new_guard':new_guard,
             'alive_count':sum(1 for row in raid['guards'] if row.get('alive')),
@@ -19571,10 +19636,14 @@ class WorldSim:
         """
         if (not shooter or shooter.get('dead') or shooter.get('_police_cuffed_by') or
                 shooter.get('_police_downed_by') or
-                float(shooter.get('_melee_stunned_until') or 0) > time.time() or
-                str(shooter.get('_stance') or 'stand') == 'prone'):
+                float(shooter.get('_melee_stunned_until') or 0) > time.time()):
             return None
         key = cls._weapon_key(weapon)
+        # A prone firearm is supported by the authored weapon pose. Lying
+        # down does not bypass incapacitation, ownership or shared cadence.
+        if (str(shooter.get('_stance') or 'stand') == 'prone' and
+                key in ('grenade', 'molotov_fire')):
+            return None
         owned = shooter.get('_weapon_classes')
         mafia_reward = key == 'golden_tommy' and int(shooter.get('_mafia_xp') or 0) >= 4000 and shooter.get('_mafia') and not shooter.get('_police')
         family_pistol = key == 'pistol' and bool(shooter.get('_mafia_family')) and shooter.get('_mafia') and not shooter.get('_police')
@@ -19681,7 +19750,8 @@ class WorldSim:
 
     def apply_event_shoot(self, uid: str, target_id: str = 'b',
                           weapon: str = '', shot_profile: dict | None = None,
-                          gang_member: int | None = None) -> dict | None:
+                          gang_member: int | None = None,
+                          hit_receipt: dict | None = None) -> dict | None:
         """Игрок стреляет в одну из целей конвоя ('b' / 'g0' / 'g1' / 'g2').
         Возвращает kill-пакет если ИНКАССАТОР добит (награда), иначе None.
         Проверки: дистанция INKASS_FIRE_R, прямая видимость (LOS, нет стен)."""
@@ -19719,6 +19789,8 @@ class WorldSim:
         dmg = (round(random.randint(10,18)*(1+(int(origin.get('level') or 1)-1)*.03))
                if origin else max(1,min(220,self._weapon_damage(weapon,d_sq**.5,profile))))
         target['hp'] -= dmg
+        if hit_receipt is not None:
+            hit_receipt.update(confirmed_hit=True, dmg=int(dmg), killed=target['hp'] <= 0, event_id=str(e.get('id') or 'event'))
         # Threat memory: NPC запоминает кто его ранил, реагирует следующие 12с
         target['_threat_uid']   = str(uid)
         target['_threat_until'] = time.time() + 12.0
@@ -19751,6 +19823,125 @@ class WorldSim:
             float(player.get('_melee_stunned_until') or 0) > time.time() or
             str(player.get('_stance') or 'stand') == 'prone' or
             weapon not in ('', 'none', 'fists', 'unarmed'))
+
+    def _npc_melee_target(self, kind: str, target_id: str):
+        """Whitelist actual runtime NPC collections; never synthesize a target."""
+        if kind == 'cop':
+            return next((n for n in self.cops if str(n.get('id')) == target_id), None), 'cop'
+        if kind == 'mg':
+            return next((n for n in self.michael_guards if str(n.get('id')) == target_id), None), 'mg'
+        if kind == 'event':
+            if not self.event or self.event.get('finished'):
+                return None, kind
+            pool = [self.event.get('boss'), *(self.event.get('guards') or [])]
+            return next((n for n in pool if n and str(n.get('id')) == target_id), None), kind
+        if kind == 'aggro':
+            for state in self.aggro.values():
+                for npc in state.get('bots') or []:
+                    if str(npc.get('id')) == target_id:
+                        return npc, 'aggro'
+            for collection, route in [(self.city_gangs, 'city_gang'), (self.gang_nests, 'nest')]:
+                for state in collection:
+                    for npc in state.get('bots') or []:
+                        if str(npc.get('id')) == target_id:
+                            return npc, route
+        return None, kind
+
+    def apply_npc_melee(self, uid, target_kind, target_id, attack_id='', heavy=False):
+        """Runtime-owned NPC damage, sharing PvP unarmed/charge/cadence rules.
+
+        NPC HP resets with this WorldSim. Its replay ledger follows that same
+        lifetime, bounded to 4096 receipts / 5 minutes. No client damage,
+        position, crit, airborne flag or firearm/ammo authorization is used.
+        This method has no await: validation, shared cadence and damage are
+        one indivisible event-loop operation even with different attack IDs.
+        """
+        denied = lambda reason: {'ok': False, 'kind': 'melee_reply',
+                                 'error': reason, 'attack_id': attack_id if isinstance(attack_id, str) else ''}
+        if (not isinstance(attack_id, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,96}', attack_id)
+                or not isinstance(target_id, str) or not re.fullmatch(r'[A-Za-z0-9_.:-]{1,64}', target_id)
+                or not isinstance(heavy, bool)):
+            return denied('bad_attack')
+        uid = str(uid)
+        kind = 'event' if target_kind == 'convoy' else target_kind
+        if kind not in ('event', 'cop', 'aggro', 'mg') or not uid.isdigit():
+            return denied('bad_target')
+        now = time.time()
+        for key, entry in list(self._npc_melee_receipts.items()):
+            if now - entry['at'] > 300:
+                del self._npc_melee_receipts[key]
+        key, binding = (uid, attack_id), (kind, target_id, heavy)
+        prior = self._npc_melee_receipts.get(key)
+        if prior:
+            if prior['binding'] != binding:
+                return denied('attack_conflict')
+            result = json.loads(prior['result'])
+            result['replayed'] = True
+            result['packet']['replayed'] = True
+            return result
+        shooter = self.players.get(uid)
+        if self._melee_state_locked(shooter):
+            return denied('unarmed_or_incapacitated')
+        if (shooter.get('_mode') == 'pve' or float(shooter.get('_jail_until') or 0) > now
+                or shooter.get('_in_interior') or shooter.get('_business_interior') or shooter.get('_major_interior')):
+            return denied('actor_location')
+        target, route = self._npc_melee_target(kind, target_id)
+        if (not target or target.get('dead') or not target.get('alive') or float(target.get('hp') or 0) <= 0
+                or target.get('_custody_id') or target.get('_police_cuffed_by')):
+            return denied('target_unavailable')
+        try:
+            sx, sy, tx, ty = (float(shooter['x']), float(shooter['y']), float(target['x']), float(target['y']))
+        except (KeyError, TypeError, ValueError):
+            return denied('position')
+        if not all(math.isfinite(v) for v in (sx, sy, tx, ty)):
+            return denied('position')
+        contact_range = 1.75 if heavy else 1.38
+        if math.hypot(tx-sx, ty-sy) > contact_range or not _world_los(sx, sy, tx, ty):
+            return denied('range_or_wall')
+        if now - float(shooter.get('_melee_attack_t') or 0) < .30:
+            return denied('cooldown')
+        if heavy:
+            charge = float(shooter.get('_melee_charge_t') or 0)
+            if not charge or not 1.17 <= now-charge <= 4.0:
+                return denied('charge')
+        incoming = math.atan2(sy-ty, sx-tx)
+        back_attack = math.cos(incoming-float(target.get('ang') or 0)) < 0
+        blocked = bool(target.get('_melee_block')) and not back_attack
+        critical = not heavy and random.random() < .20
+        melee_type = 'heavy' if heavy else 'kick' if critical else 'punch'
+        raw_damage = 18 if heavy else 21 if critical else 12
+        damage = max(1, math.floor(raw_damage*.10+.5)) if blocked else raw_damage
+        profile = {'dmg': damage, 'range': contact_range, 'falloff_start': 1, 'min_mul': 1, '_crit': False}
+        kill_packet = None
+        if route == 'cop':
+            packet = self.apply_cop_shoot(uid, target_id, 'fists', profile)
+        elif route == 'mg':
+            packet = self.apply_mg_shoot(uid, target_id, 'fists', profile)
+        elif route == 'aggro':
+            packet = self.aggro_shoot_bot(uid, target_id, 'fists', shot_profile=profile)
+        elif route == 'city_gang':
+            packet = self.city_gang_shoot_bot(uid, target_id, 'fists', shot_profile=profile)
+        elif route == 'nest':
+            packet = self.gang_nest_shoot_bot(uid, target_id, 'fists', shot_profile=profile)
+        else:
+            hit = {}
+            kill_packet = self.apply_event_shoot(uid, target_id, 'fists', profile, None, hit)
+            packet = {'kind': 'player_shot', 'shooter_uid': uid, 'target': target_id,
+                      'sx': round(sx, 2), 'sy': round(sy, 2), 'tx': round(tx, 2), 'ty': round(ty, 2), **hit} if hit else None
+        if not packet or not isinstance(packet.get('dmg'), (int, float)) or packet['dmg'] <= 0:
+            return denied('source_rejected')
+        shooter['_melee_attack_t'] = now
+        shooter['_melee_charge_t'] = 0
+        shooter['_combat_until'] = now + 10.0
+        packet.update(ok=True, melee=True, attack_id=attack_id, weapon='fists', melee_type=melee_type,
+                      heavy=heavy, critical=bool(critical), raw_dmg=raw_damage, blocked=blocked,
+                      back_attack=back_attack, stunned=False, stun_seconds=0.0)
+        result = {'ok': True, 'target_kind': kind, 'target_id': target_id,
+                  'packet': packet, 'kill_packet': kill_packet}
+        self._npc_melee_receipts[key] = {'at': now, 'binding': binding, 'result': json.dumps(result, ensure_ascii=False)}
+        while len(self._npc_melee_receipts) > 4096:
+            del self._npc_melee_receipts[next(iter(self._npc_melee_receipts))]
+        return result
 
     async def apply_player_melee(self, uid: str, target_uid: str,
                                  attack_id: str = '', heavy: bool = False) -> dict | None:
@@ -21175,6 +21366,8 @@ class WorldSim:
             'tx': tx, 'ty': ty,
             'dmg': dmg, 'weapon': weapon,
             'bot_id': bot_id, 'tid': tid,
+            'target_blast_eligible': not (target.get('_mode') == 'pve' or
+                target.get('_in_interior') or target.get('_police_cuffed_by')),
             'event_id': self._next_world_damage_event(
                 'npc-shot', f'{tid}:{bot_id}', target.get('uid')),
             'pre_armor_multiplier': (
@@ -21197,6 +21390,45 @@ class WorldSim:
             'tx': round(tx, 2), 'ty': round(ty, 2),
         }
 
+    async def _apply_server_npc_rpg_arrival(self, shot: dict) -> list:
+        """Resolve only a server-owned queued rocket; never accept client AoE claims."""
+        radius = 2.7  # Existing world RPG blast radius, in source world tiles.
+        sx, sy, tx, ty = (float(shot[key]) for key in ('sx', 'sy', 'tx', 'ty'))
+        if (not all(math.isfinite(v) for v in (sx, sy, tx, ty)) or
+                math.hypot(tx-sx, ty-sy) > self.AGGRO_WEAPON_STATS['rpg']['range'] or
+                not _world_los(sx, sy, tx, ty)):
+            return []
+        bound_uid = str(shot['target_uid'])
+        candidates = list(self.players.items())
+        if bound_uid not in self.players and shot.get('target_blast_eligible'):
+            # Preserve the existing bound-projectile disconnect guarantee.
+            candidates.append((bound_uid, {'x': tx, 'y': ty}))
+        packets = []
+        for uid, victim in candidates:
+            uid = str(uid)
+            if (victim.get('dead') or victim.get('_mode') == 'pve' or
+                    victim.get('_in_interior') or victim.get('_police_cuffed_by')):
+                continue
+            x, y = float(victim.get('x', 0)), float(victim.get('y', 0))
+            distance = math.hypot(x-tx, y-ty)
+            if (not math.isfinite(distance) or distance >= radius or
+                    not _world_los(tx, ty, x, y)):
+                continue
+            damage = max(1, math.floor(int(shot['dmg']) * (1-distance/radius) + .5))
+            # Target-qualified durable receipts dedupe every victim independently.
+            event_id = f"{shot['event_id']}:blast:{uid}"
+            result = await self.apply_authoritative_damage_bound_projectile(
+                uid, event_id, 'explosion', damage,
+                float(shot.get('pre_armor_multiplier') or 1.0) if uid == bound_uid else 1.0)
+            if not result or result.get('replayed'):
+                continue
+            packets.append({'kind': 'aggro_apply', 'tid': shot['tid'],
+                'bot_id': shot['bot_id'], 'target_uid': uid, 'weapon': 'rpg',
+                'sx': sx, 'sy': sy, 'tx': tx, 'ty': ty, 'miss': False,
+                'dmg': damage, 'killed': bool(result.get('body', {}).get('dead')),
+                'damage_kind': 'explosion', 'event_id': event_id})
+        return packets
+
     async def _tick_pending_bot_shots_async(self) -> list:
         """Применяет накопленные выстрелы ботов когда пуля «долетела».
         Игрок может УВЕРНУТЬСЯ, если к этому моменту отошёл дальше
@@ -21207,6 +21439,9 @@ class WorldSim:
         for s in self._pending_bot_shots:
             if now < s['apply_at']:
                 survivors.append(s)
+                continue
+            if s['weapon'] == 'rpg':
+                pkts.extend(await self._apply_server_npc_rpg_arrival(s))
                 continue
             target = self.players.get(s['target_uid'])
             if target and target.get('dead'):
@@ -23475,7 +23710,8 @@ class WorldSim:
 
     def city_gang_shoot_bot(self, uid: str, bot_id: str,
                             weapon: str = '', gang_member: int | None = None,
-                            fire_x=None, fire_y=None) -> dict | None:
+                            fire_x=None, fire_y=None,
+                            shot_profile: dict | None = None) -> dict | None:
         """Игрок стреляет в бойца городской банды. Любое попадание делает
         банду hostile. Wanted у игрока растёт (стрельба в открытом мире)."""
         shooter = self.players.get(uid)
@@ -23501,7 +23737,7 @@ class WorldSim:
             shot_x, shot_y = float(origin['x']), float(origin['y'])
             shot_range = 10.0
         else:
-            profile = self._authorize_weapon_shot(shooter, weapon)
+            profile = shot_profile or self._authorize_weapon_shot(shooter, weapon)
             if not profile:
                 return None
             shot_x, shot_y = float(shooter['x']), float(shooter['y'])
@@ -29625,8 +29861,8 @@ async def _coop_http_app():
         result=await kick_custom_gang_member_db(uid,target_uid)
         if not result.get('ok'):return await _cors(web.json_response(result,status=409))
         if _WORLD:
-            apply_custom_gang_to_player(_WORLD.players.get(str(target_uid)),None)
-            apply_custom_gang_to_player(_WORLD.players.get(str(uid)),await get_custom_gang_for_user(uid))
+            for member_uid in result['member_uids']:
+                apply_custom_gang_to_player(_WORLD.players.get(str(member_uid)),await get_custom_gang_for_user(int(member_uid)))
         await notify_custom_gang_state(result['member_uids'])
         return await _cors(web.json_response({'ok':True,'gang':await get_custom_gang_for_user(uid),'headquarters':await get_custom_gang_headquarters()}))
 
@@ -30418,6 +30654,33 @@ async def _coop_http_app():
             'ammo_state':      ammo_state,
         }))
 
+    async def h_inv_weapon_ground(req):
+        uid = int(req.match_info['uid'])  # Existing /inv actor-binding middleware.
+        result = await weapon_transfer_service().ground(uid)
+        return await _cors(web.json_response(result, status=200 if result.get('ok') else 409))
+
+    async def _h_inv_weapon_transfer(req, action):
+        uid = int(req.match_info['uid'])
+        try:
+            body = await req.json()
+        except Exception:
+            body = None
+        if not isinstance(body, dict):
+            return await _cors(web.json_response({'ok': False, 'error': 'bad_body'}, status=400))
+        service = weapon_transfer_service()
+        if action == 'drop':
+            result = await service.drop(uid, body.get('request_id'), body.get('item_id'))
+        else:
+            result = await service.pickup(uid, body.get('request_id'), body.get('drop_id'))
+        mirror_weapon_transfer(_WORLD, uid, result)
+        return await _cors(web.json_response(result, status=200 if result.get('ok') else 409))
+
+    async def h_inv_weapon_drop(req):
+        return await _h_inv_weapon_transfer(req, 'drop')
+
+    async def h_inv_weapon_pickup(req):
+        return await _h_inv_weapon_transfer(req, 'pickup')
+
     async def h_inv_break_armor(req):
         """Compatibility-only reconciliation; clients never destroy armor."""
         try:
@@ -30962,6 +31225,18 @@ async def _coop_http_app():
                         world.connections[uid] = ws
                     if world.connections.get(uid) is not ws:
                         continue
+                    npc_melee_result = None
+                    if t == 'melee_hit':
+                        npc_melee_result = world.apply_npc_melee(
+                            uid, d.get('kind'), d.get('id'), d.get('attack_id', ''), d.get('heavy', False))
+                        if not npc_melee_result.get('ok'):
+                            await _deliver_world_melee_packet(world, ws, {**npc_melee_result, 'replayed': True})
+                            continue
+                        if npc_melee_result.get('replayed'):
+                            await _deliver_world_melee_packet(world, ws, npc_melee_result['packet'])
+                            continue
+                        t = {'event':'event_shoot', 'cop':'cop_shoot', 'aggro':'aggro_shoot', 'mg':'mg_shoot'}[npc_melee_result['target_kind']]
+                        d = {'target': npc_melee_result['target_id'], 'weapon': 'fists'}
                     if t == 'melee_block':
                         block_player = world.players.get(uid)
                         if block_player:
@@ -31021,7 +31296,7 @@ async def _coop_http_app():
                         try: gang_member=int(d['member']) if 'member' in d else None
                         except (TypeError,ValueError): gang_member=None
                         claim = None
-                        if gang_member is None:
+                        if npc_melee_result is None and gang_member is None:
                             claim = await world.claim_player_weapon_fire(
                                 uid, shot_id, weapon, 'event', target_id)
                             try:
@@ -31033,22 +31308,23 @@ async def _coop_http_app():
                         shooter = world.players.get(uid)
                         if shooter:
                             shooter['_last_shot_crit'] = False
-                        kill_pkt = world.apply_event_shoot(
-                            uid, target_id, weapon,
-                            claim.get('shot_profile') if claim else None, gang_member)
+                        if npc_melee_result is not None:
+                            hit_receipt = npc_melee_result['packet']
+                            kill_pkt = npc_melee_result.get('kill_packet')
+                        else:
+                            hit_receipt = {}
+                            kill_pkt = world.apply_event_shoot(
+                                uid, target_id, weapon,
+                                claim.get('shot_profile') if claim else None, gang_member, hit_receipt)
                         if shooter:
-                            trace_pkt = json.dumps({
-                                't': 'event',
-                                'd': {
-                                    'kind': 'player_shot',
-                                    'shooter_uid': uid,
-                                    'sx': round(shooter['x'], 2),
-                                    'sy': round(shooter['y'], 2),
-                                    'target': target_id,
-                                    'weapon': weapon,
-                                    'crit': bool(shooter.get('_last_shot_crit')),
-                                },
-                            }, ensure_ascii=False)
+                            trace_data = {
+                                'kind': 'player_shot', 'shooter_uid': uid,
+                                'sx': round(shooter['x'], 2), 'sy': round(shooter['y'], 2),
+                                'target': target_id, 'weapon': weapon,
+                                'crit': bool(shooter.get('_last_shot_crit')), **hit_receipt,
+                            }
+                            _attach_world_hit_shot_id(trace_data, d.get('shot_id'), claim, uid, 'target', target_id)
+                            trace_pkt = json.dumps({'t': 'event', 'd': trace_data}, ensure_ascii=False)
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(trace_pkt)
                                 except Exception: pass
@@ -31478,21 +31754,26 @@ async def _coop_http_app():
                         cop_id = str(d.get('target') or '')[:16]
                         weapon = str(d.get('weapon') or '')[:24]
                         if cop_id:
-                            try: gang_member=int(d['member']) if 'member' in d else None
-                            except (TypeError,ValueError): gang_member=None
-                            claim=None
-                            if gang_member is None:
-                                claim = await world.claim_player_weapon_fire(
-                                    uid, str(d.get('shot_id') or '')[:96],
-                                    weapon, 'cop', cop_id)
-                                try: await ws.send_str(json.dumps({'t':'event','d':{
-                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
-                                except Exception: pass
-                                if not claim.get('ok') or claim.get('replayed'): continue
-                            hit_pkt = world.apply_cop_shoot(
-                                uid, cop_id, weapon,
-                                claim.get('shot_profile') if claim else None, gang_member)
+                            if npc_melee_result is not None:
+                                claim = None
+                                hit_pkt = npc_melee_result['packet']
+                            else:
+                                try: gang_member=int(d['member']) if 'member' in d else None
+                                except (TypeError,ValueError): gang_member=None
+                                claim=None
+                                if gang_member is None:
+                                    claim = await world.claim_player_weapon_fire(
+                                        uid, str(d.get('shot_id') or '')[:96],
+                                        weapon, 'cop', cop_id)
+                                    try: await ws.send_str(json.dumps({'t':'event','d':{
+                                        'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                                    except Exception: pass
+                                    if not claim.get('ok') or claim.get('replayed'): continue
+                                hit_pkt = world.apply_cop_shoot(
+                                    uid, cop_id, weapon,
+                                    claim.get('shot_profile') if claim else None, gang_member)
                             if hit_pkt:
+                                _attach_world_hit_shot_id(hit_pkt, d.get('shot_id'), claim, uid, 'cop_id', cop_id)
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
@@ -31502,21 +31783,26 @@ async def _coop_http_app():
                         guard_id = str(d.get('target') or '')[:16]
                         weapon   = str(d.get('weapon') or '')[:24]
                         if guard_id:
-                            try: gang_member=int(d['member']) if 'member' in d else None
-                            except (TypeError,ValueError): gang_member=None
-                            claim=None
-                            if gang_member is None:
-                                claim = await world.claim_player_weapon_fire(
-                                    uid, str(d.get('shot_id') or '')[:96],
-                                    weapon, 'michael_guard', guard_id)
-                                try: await ws.send_str(json.dumps({'t':'event','d':{
-                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
-                                except Exception: pass
-                                if not claim.get('ok') or claim.get('replayed'): continue
-                            hit_pkt = world.apply_mg_shoot(
-                                uid, guard_id, weapon,
-                                claim.get('shot_profile') if claim else None, gang_member)
+                            if npc_melee_result is not None:
+                                claim = None
+                                hit_pkt = npc_melee_result['packet']
+                            else:
+                                try: gang_member=int(d['member']) if 'member' in d else None
+                                except (TypeError,ValueError): gang_member=None
+                                claim=None
+                                if gang_member is None:
+                                    claim = await world.claim_player_weapon_fire(
+                                        uid, str(d.get('shot_id') or '')[:96],
+                                        weapon, 'michael_guard', guard_id)
+                                    try: await ws.send_str(json.dumps({'t':'event','d':{
+                                        'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                                    except Exception: pass
+                                    if not claim.get('ok') or claim.get('replayed'): continue
+                                hit_pkt = world.apply_mg_shoot(
+                                    uid, guard_id, weapon,
+                                    claim.get('shot_profile') if claim else None, gang_member)
                             if hit_pkt:
+                                _attach_world_hit_shot_id(hit_pkt, d.get('shot_id'), claim, uid, 'guard_id', guard_id)
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
@@ -31615,6 +31901,7 @@ async def _coop_http_app():
                     elif t in ('gang_player_leave','gang_player_kick'):
                         actor=world.players.get(uid) or {}; crew_id=str(actor.get('_crew_id') or ''); target_uid=str(d.get('target_uid') or uid) if t=='gang_player_kick' else str(uid); target=world.players.get(target_uid)
                         if (crew_id and not crew_id.startswith('cg:') and target
+                                and (t=='gang_player_leave' or (str(uid)==crew_id and target_uid!=str(uid)))
                                 and str(target.get('_crew_id') or '')==crew_id):
                             target.pop('_crew_id',None); left=[q for q in world.players.values() if str(q.get('_crew_id') or '')==crew_id]
                             if len(left)<2:
@@ -31655,6 +31942,7 @@ async def _coop_http_app():
                             continue
                         reply = world.major_guard_hit(
                             uid, object_id, guard_id, weapon)
+                        _attach_world_hit_shot_id(reply, d.get('shot_id'), claim, uid, 'guard_id', guard_id)
                         blob = json.dumps(
                             {'t':'event','d':reply}, ensure_ascii=False)
                         for _uid2, _ws2 in list(world.connections.items()):
@@ -31751,26 +32039,31 @@ async def _coop_http_app():
                         except (TypeError, ValueError):
                             gang_member = None
                         if bot_id:
-                            claim = None
-                            throwable = world._weapon_key(weapon) in ('grenade', 'molotov_fire')
-                            if gang_member is None and not throwable:
-                                claim = await world.claim_player_weapon_fire(
-                                    uid, str(d.get('shot_id') or '')[:96],
-                                    weapon, 'aggro', bot_id)
-                                try: await ws.send_str(json.dumps({'t':'event','d':{
-                                    'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
-                                except Exception: pass
-                                if not claim.get('ok') or claim.get('replayed'):
-                                    continue
-                            hit_pkt = (world.city_gang_shoot_bot(
-                                uid, bot_id, weapon, gang_member=gang_member,
-                                fire_x=d.get('fire_x'), fire_y=d.get('fire_y'))
-                                if gang_member is not None
-                                else world.aggro_shoot_bot(
-                                    uid, bot_id, weapon,
-                                    fire_x=d.get('fire_x'), fire_y=d.get('fire_y'),
-                                    shot_profile=(claim.get('shot_profile') if claim else None)))
+                            if npc_melee_result is not None:
+                                claim = None
+                                hit_pkt = npc_melee_result['packet']
+                            else:
+                                claim = None
+                                throwable = world._weapon_key(weapon) in ('grenade', 'molotov_fire')
+                                if gang_member is None and not throwable:
+                                    claim = await world.claim_player_weapon_fire(
+                                        uid, str(d.get('shot_id') or '')[:96],
+                                        weapon, 'aggro', bot_id)
+                                    try: await ws.send_str(json.dumps({'t':'event','d':{
+                                        'kind':'weapon_shot_reply', **claim}}, ensure_ascii=False))
+                                    except Exception: pass
+                                    if not claim.get('ok') or claim.get('replayed'):
+                                        continue
+                                hit_pkt = (world.city_gang_shoot_bot(
+                                    uid, bot_id, weapon, gang_member=gang_member,
+                                    fire_x=d.get('fire_x'), fire_y=d.get('fire_y'))
+                                    if gang_member is not None
+                                    else world.aggro_shoot_bot(
+                                        uid, bot_id, weapon,
+                                        fire_x=d.get('fire_x'), fire_y=d.get('fire_y'),
+                                        shot_profile=(claim.get('shot_profile') if claim else None)))
                             if hit_pkt:
+                                _attach_world_hit_shot_id(hit_pkt, d.get('shot_id'), claim, uid, 'bot_id', bot_id)
                                 hit_blob = json.dumps({'t': 'event', 'd': hit_pkt}, ensure_ascii=False)
                                 for u2, ws2 in list(world.connections.items()):
                                     try: await ws2.send_str(hit_blob)
@@ -34800,6 +35093,9 @@ async def _coop_http_app():
     aio_app.router.add_post('/shop/{uid}/buy',     h_shop_buy)
     aio_app.router.add_get ('/inv/{uid}/list',     h_inv_list)
     aio_app.router.add_post('/inv/{uid}/equip',    h_inv_equip)
+    aio_app.router.add_get('/inv/{uid}/weapon-ground', h_inv_weapon_ground)
+    aio_app.router.add_post('/inv/{uid}/weapon-drop', h_inv_weapon_drop)
+    aio_app.router.add_post('/inv/{uid}/weapon-pickup', h_inv_weapon_pickup)
     aio_app.router.add_post('/inv/{uid}/break-armor', h_inv_break_armor)
     aio_app.router.add_post('/inv/{uid}/consume',  h_inv_consume)
     aio_app.router.add_post('/inv/{uid}/found',    h_inv_found)

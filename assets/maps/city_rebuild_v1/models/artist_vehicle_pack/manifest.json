@@ -1,0 +1,83 @@
+{
+  "schema": "mafiozi.artist-vehicle-pack/v1",
+  "sourcePack": "artist12_smooth_clay_packs_RELEASED_20260907",
+  "sourceDate": "2026-09-07",
+  "units": "meters",
+  "originalForward": "-Z",
+  "runtimeForward": "+Z",
+  "adaptedBy": "../../vehicle_fleet_models.mjs",
+  "assets": [
+    {
+      "id": "city_hatchback",
+      "file": "city_hatchback.glb",
+      "sha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e",
+      "bytes": 196376
+    },
+    {
+      "id": "compact_sedan",
+      "file": "compact_sedan.glb",
+      "sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+      "bytes": 196708
+    },
+    {
+      "id": "family_wagon",
+      "file": "family_wagon.glb",
+      "sha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce",
+      "bytes": 197044
+    },
+    {
+      "id": "executive_sedan",
+      "file": "executive_sedan.glb",
+      "sha256": "08f8c863152eda4edfdd2262d93857a6f0e3476d7046fb4d105f2f7ead42b3d7",
+      "bytes": 217376
+    },
+    {
+      "id": "sport_coupe",
+      "file": "sport_coupe.glb",
+      "sha256": "764576c6919bdd03f79e6b2f9738e9c9862b59b03f23d88893d8f35b0dbff158",
+      "bytes": 197392
+    },
+    {
+      "id": "city_suv",
+      "file": "city_suv.glb",
+      "sha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3",
+      "bytes": 204476
+    },
+    {
+      "id": "delivery_van",
+      "file": "delivery_van.glb",
+      "sha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438",
+      "bytes": 214840
+    },
+    {
+      "id": "utility_pickup",
+      "file": "utility_pickup.glb",
+      "sha256": "bad6a8f7d857f85edda09131ade16af1695e60fff5516d046f6e9f9ddb41f92e",
+      "bytes": 221440
+    },
+    {
+      "id": "city_bus",
+      "file": "city_bus.glb",
+      "sha256": "9735522832f8b314a93cbef116d51916eca633861178a5d6a5c1d94b2402a01f",
+      "bytes": 243788
+    },
+    {
+      "id": "police_interceptor",
+      "file": "police_interceptor.glb",
+      "sha256": "07374fcdaa792fb2b8933a420b71be9567c5df130f63bb353791a79edfca8c6e",
+      "bytes": 222752
+    },
+    {
+      "id": "city_ambulance",
+      "file": "city_ambulance.glb",
+      "sha256": "49306bfb80af503a36bf2c3f88ca7561d2433b587d638aa12136c05842a26933",
+      "bytes": 252296
+    },
+    {
+      "id": "fire_engine",
+      "file": "fire_engine.glb",
+      "sha256": "967118f3763671e68c34b33fc0a7a8da2adf9f8eae564662af63f9a41f8ef55f",
+      "bytes": 283716
+    }
+  ]
+}

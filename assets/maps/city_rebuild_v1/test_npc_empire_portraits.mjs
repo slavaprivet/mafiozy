@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {createNpcEmpirePortraits} from './npc_empire_portraits.mjs';
+import {NPC_NAMED_BOSSES} from './npc_role_catalogue.mjs';
+import {npcAppearanceFromWorld} from './npc_population.mjs';
+let loads=0,renders=0,freed=0,active=0,peak=0,disposed=false;
+const rows=NPC_NAMED_BOSSES.map(x=>({renderId:x.bridgeId,look:x.look,renderRole:x.role}));
+const seen=[];
+const service=createNpcEmpirePortraits({isDisposed:()=>disposed,portraits:{renderNpc(o){renders++;return 'data:image/png;base64,'+o.id}},appearanceLoader:async args=>{
+ loads++;active++;peak=Math.max(peak,active);seen.push(args);await Promise.resolve();active--;
+ return {hero:{object:{id:args.id},artistContext:()=>({rest:{}})},dispose(){freed++}};
+}});
+assert.equal(rows.length,19);
+const result=await Promise.all([...rows,...rows].map(x=>service.get(x)));
+assert.equal(loads,19);assert.equal(renders,19);assert.equal(freed,19);assert.equal(peak,1);assert.equal(new Set(result).size,19);
+for(const [i,args] of seen.entries())assert.deepEqual(args.appearance,npcAppearanceFromWorld({id:rows[i].renderId,look:rows[i].look,role:rows[i].renderRole,empireBoss:true}));
+await service.get(rows[0]);assert.equal(loads,19);
+await service.get({...rows[0],color:'#123456'});assert.equal(loads,19,'family badge color must not overwrite an authored boss costume');
+await service.get({renderId:'npc_guest',look:rows[0].look,color:'#123456'});assert.equal(loads,20);assert.equal(seen.at(-1).appearance.outfit,'#123456','un-authored source palette stays supported');
+assert.equal(await service.get({look:{}}),null);
+disposed=true;assert.equal(await service.get(rows[1]),null);service.dispose();assert.equal(service.size,0);
+console.log(JSON.stringify({passed:true,bosses:19,checks:['source-ids-and-appearance','one-serial-renderer','dedup-cache','palette-invalidates','resource-disposal','disposed-guard']}));

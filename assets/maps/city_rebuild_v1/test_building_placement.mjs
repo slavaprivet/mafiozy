@@ -6,7 +6,9 @@ import {createHash} from 'node:crypto';
 import {planBuildings,cellsForRect,rectanglesOverlap} from './building_placement.mjs';
 const here=path.dirname(fileURLToPath(import.meta.url)),root=path.resolve(here,'../../..');
 const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
-const catalog=read(path.join(here,'buildings_catalog.v1.json')),plan=read(path.join(here,'buildings_placement.v1.json'));
+// Original planner regression; enlarged placement and bank shells are covered
+// by test_room_size_integration.mjs against the current production preview JSON.
+const catalog=read(path.join(here,'buildings_catalog.v1.json')),plan=read(path.join(here,'buildings_placement.before_room_sizes.v1.json'));
 const topology=read(path.join(here,'topology_for_placement.json')),source=read(plan.inputs[1].path),ledger=read(path.join(root,'docs/city-rebuild/rebuild-ledger.generated.json'));
 let count=0;const test=(n,fn)=>{fn();console.log('PASS '+n);count++;};
 test('catalog includes all latest ten homes plus eleven repo business/civic assets',()=>{

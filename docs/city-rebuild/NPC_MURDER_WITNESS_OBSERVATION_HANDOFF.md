@@ -1,0 +1,13 @@
+# Murder witness observations — 2026-09-09
+
+Scope: source `world.html` murder observation and interview selection only. No walk/HUD, server, wanted, gang or capture changes. Existing murder dispatch and investigation authority remain intact.
+
+`_registerMurderIncident` now captures event-time observations through `_captureMurderWitnesses`. Candidates must be living, capable civilians within 8.5 world tiles and have existing world-map LOS to the victim. At most eight nearest records are retained per incident. The records hold the exact actor identity and observation position/time. Replacements with reused IDs and late arrivals cannot inherit knowledge. Old corpse discoveries more than 250 ms after recorded death and interior-coordinate incidents do not fabricate observation history. Existing immediate hit/death registration is the event-time path; dispatch still works when no observation is available.
+
+Seeing the victim is distinct from seeing the attacker. A known source NPC reference or an explicitly identified player source also requires LOS and distance at most 14 to be recognized. Unknown/hidden attackers produce an honest statement: the witness saw the victim fall but did not recognize the attacker. Dialogue no longer invents gunfire, a firearm, or escape direction for every murder, including melee kills.
+
+`_murderSceneWitnesses` selects surviving saved observers still near the scene. Active phone calls and panic take priority over interviews. Incapacitation, death, a new call or panic interrupts an interview; cleanup clears only the interview-owned social/talk state. Cop/witness dialogue additionally requires current LOS. The robbery branch preserves the direct victim's knowledge of their own assault, without promoting unrelated later bystanders to eyewitnesses.
+
+Validation: `node test_murder_witness_observation.mjs` passes real extracted functions for wall occlusion, later arrivals, later opening of LOS, exact actor identity, delayed corpse discovery, hidden suspect uncertainty, phone/panic priority and robbery victim knowledge. The saved baseline fails the through-wall witness assertion. `test_npc_witness_reactions.mjs`, `test_npc_life_system.py`, `test_police_murder_custody_transport.py` and `test_police_murder_custody_stress.py` also pass. Live visual verification belongs to the parent task.
+
+Limits: LOS uses the existing authoritative world tile blocker helper, not a new rendering-only ray. Observation certainty is not inferred for missing source metadata. Phone protocol still uses the existing server witness/report boundary described in `NPC_WITNESS_PHONE_HANDOFF.md`. Investigation dispatch remains independent of phone completion, as before.

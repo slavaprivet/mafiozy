@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {reachedExplorationWaypoint} from './exploration_waypoint_visual.mjs';
+const goal={x:10,y:4,z:20};
+assert.ok(reachedExplorationWaypoint({x:10.6,y:4,z:20.6},goal));
+assert.ok(!reachedExplorationWaypoint({x:12,y:4,z:20},goal));
+assert.ok(!reachedExplorationWaypoint({x:10,y:0,z:20},goal),'another floor does not complete a destination');
+assert.ok(!reachedExplorationWaypoint({x:10,y:5.2,z:20},goal),'jumping above the marker does not count as stepping on it');
+assert.ok(reachedExplorationWaypoint({x:10,y:4.05,z:20},goal));
+assert.ok(!reachedExplorationWaypoint(null,goal));
+assert.ok(!reachedExplorationWaypoint({x:NaN,y:4,z:20},goal));
+console.log('PASS waypoint arrival, distance, floor and invalid coordinates');

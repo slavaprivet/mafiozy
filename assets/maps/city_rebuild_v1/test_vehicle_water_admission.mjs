@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {waterVehicleSurfaceAt,waterVehicleAccessPoint,WATER_VEHICLE_ACCESS} from './water_vehicle_access.mjs';
+import {createLandscapePlan} from './landscape_plan.mjs';
+import {createExplorationVehicleWorld} from './exploration_vehicle_support.mjs';
+import {carFits,CAR} from './car_drive.mjs';
+const terrain=createLandscapePlan(),topology={grid:[[16,0],[0,0]],policeMask:[[0,0],[0,1]]};
+const config={terrain,topology,waterAt:(x,z)=>terrain.waterAt(x,z)};
+const heights=terrain.grid.heights.slice();
+let deep=0;
+for(let d=30;d<105;d+=.5){const p=waterVehicleAccessPoint(d),w=terrain.waterAt(p.x,p.z);if(w?.depth>1){assert.equal(waterVehicleSurfaceAt(config,p.x,p.z),true);deep++;}}
+assert(deep>20,'continuous admission reaches deep lake, not just old shallow corridor');
+assert.equal(waterVehicleSurfaceAt(config,NaN,2),false);
+const native={topology,waterAt:()=>({level:0,floor:-4,depth:4})};
+assert.equal(waterVehicleSurfaceAt(native,1,1),true);
+assert.equal(waterVehicleSurfaceAt(native,5,5),false,'police still protected');
+assert.equal(waterVehicleSurfaceAt({topology:{protectedMask:[[1]]},waterAt:native.waterAt},1,1),false);
+assert.equal(waterVehicleSurfaceAt({topology,waterAt:()=>null},1,1),undefined,'dry native admission unchanged');
+const lakeSurface={...terrain,canDrive:(x,z)=>waterVehicleSurfaceAt(config,x,z)};
+const p=waterVehicleAccessPoint(80),box={polygonCR:[[p.x-1,p.z-1],[p.x+1,p.z-1],[p.x+1,p.z+1],[p.x-1,p.z+1]].map(([x,z])=>[x/4.1,z/4.1]),minYM:-10,maxYM:10};
+assert(terrain.waterAt(p.x,p.z).depth>1);
+const free=createExplorationVehicleWorld({terrain:lakeSurface,topology,bodies:[]});
+const blocked=createExplorationVehicleWorld({terrain:lakeSurface,topology,bodies:[box]});
+assert(carFits(p.x,p.z,WATER_VEHICLE_ACCESS.yaw,free,CAR));
+assert.equal(carFits(p.x,p.z,WATER_VEHICLE_ACCESS.yaw,blocked,CAR),false,'water permission does not bypass real obstacles');
+assert.deepEqual(terrain.grid.heights,heights);
+console.log('PASS water entry: deep lake/native water allowed, police/protected/solid obstacles preserved, unchanged terrain');

@@ -1,0 +1,202 @@
+{
+  "status": "PASS",
+  "models": 14,
+  "report": [
+    {
+      "id": "red_demo",
+      "palette": {
+        "id": "red_demo",
+        "label": "Бордовый",
+        "seat": "#632d3b",
+        "insert": "#7f3b49"
+      },
+      "meshes": 77,
+      "ownedMaterials": 9,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "city_hatchback",
+      "palette": {
+        "id": "city_hatchback",
+        "label": "Серый",
+        "seat": "#657078",
+        "insert": "#7c868a"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "compact_sedan",
+      "palette": {
+        "id": "compact_sedan",
+        "label": "Графитовый",
+        "seat": "#353b40",
+        "insert": "#515a60"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "family_wagon",
+      "palette": {
+        "id": "family_wagon",
+        "label": "Серый тканевый",
+        "seat": "#586268",
+        "insert": "#758086"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "executive_sedan",
+      "palette": {
+        "id": "executive_sedan",
+        "label": "Тёмно-бордовый",
+        "seat": "#502c37",
+        "insert": "#743842"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "sport_coupe",
+      "palette": {
+        "id": "sport_coupe",
+        "label": "Красный",
+        "seat": "#8b303a",
+        "insert": "#ac4045"
+      },
+      "meshes": 30,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "city_suv",
+      "palette": {
+        "id": "city_suv",
+        "label": "Чёрный",
+        "seat": "#252c2c",
+        "insert": "#3b4645"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "delivery_van",
+      "palette": {
+        "id": "delivery_van",
+        "label": "Серый служебный",
+        "seat": "#626a6d",
+        "insert": "#7e8585"
+      },
+      "meshes": 30,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "utility_pickup",
+      "palette": {
+        "id": "utility_pickup",
+        "label": "Тёмно-серый",
+        "seat": "#3e4444",
+        "insert": "#626a65"
+      },
+      "meshes": 30,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "city_bus",
+      "palette": {
+        "id": "city_bus",
+        "label": "Серо-синий",
+        "seat": "#3c515d",
+        "insert": "#587381"
+      },
+      "meshes": 30,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "police_interceptor",
+      "palette": {
+        "id": "police_interceptor",
+        "label": "Чёрный служебный",
+        "seat": "#23292e",
+        "insert": "#363e47"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "city_ambulance",
+      "palette": {
+        "id": "city_ambulance",
+        "label": "Светло-серый",
+        "seat": "#747f82",
+        "insert": "#a2abad"
+      },
+      "meshes": 30,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "fire_engine",
+      "palette": {
+        "id": "fire_engine",
+        "label": "Бордово-серый",
+        "seat": "#65353a",
+        "insert": "#8f4348"
+      },
+      "meshes": 30,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    },
+    {
+      "id": "city_taxi",
+      "palette": {
+        "id": "city_taxi",
+        "label": "Чёрный износостойкий",
+        "seat": "#262b2e",
+        "insert": "#3a4044"
+      },
+      "meshes": 52,
+      "ownedMaterials": 10,
+      "geometryAndAnchorsUnchanged": true,
+      "exteriorUnchanged": true,
+      "repeatReusesMaterials": true
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {createWeaponQuickKey} from './weapon_quick_key.mjs';
+let time=0,task=null,taps=0,holds=0,enabled=true;
+const q=createWeaponQuickKey({onTap:()=>taps++,onHold:()=>holds++,enabled:()=>enabled,now:()=>time,schedule:fn=>(task=fn,1),cancel:()=>{task=null}});
+q.down();time=199;q.up();assert.equal(taps,1);assert.equal(holds,0);
+q.down();time=399;task();assert.equal(holds,1);q.up();assert.equal(taps,1);
+q.down();assert.equal(q.down(true),false);time=650;q.up();assert.equal(holds,2,'delayed timer must still recognize a hold');
+q.down();q.cancel();q.up();assert.equal(taps,1,'blur cancellation cannot equip a weapon');
+q.down();enabled=false;task();q.up();assert.equal(holds,2);assert.equal(q.down(),false);
+console.log('PASS Q tap, exact 200ms hold, repeat, late timer, blur and disabled state');

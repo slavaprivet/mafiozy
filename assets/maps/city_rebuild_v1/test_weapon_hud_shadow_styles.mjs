@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {acquireWeaponHudStyles,WEAPON_HUD_CSS} from './weapon_hud.mjs';
+import {WALK_HUD_SHELL_CSS} from './walk_hud_shell.mjs';
+const container=()=>({children:[],append(node){node.parent=this;this.children.push(node);},getElementById(id){return this.children.find(node=>node.id===id);}});
+const doc={head:container(),createElement(){return {remove(){if(this.parent)this.parent.children=this.parent.children.filter(child=>child!==this);}};},getElementById(id){return this.head.getElementById(id);}};
+const shadow={...container(),host:{}},host={getRootNode:()=>shadow};
+const releaseA=acquireWeaponHudStyles(doc,host),releaseB=acquireWeaponHudStyles(doc,host);
+assert.equal(doc.head.children.length,1,'one document style for fullscreen scope');assert.equal(shadow.children.length,1,'one owning ShadowRoot stylesheet');assert.equal(shadow.children[0].textContent,WEAPON_HUD_CSS);
+releaseA();assert.equal(doc.head.children.length,1);assert.equal(shadow.children.length,1,'disposing one HUD must not break a second HUD');releaseA();assert.equal(shadow.children.length,1,'release is idempotent');releaseB();assert.equal(doc.head.children.length,0);assert.equal(shadow.children.length,0);
+const external={id:'mfz-weapon-hud-style'};doc.head.append(external);const releaseExternal=acquireWeaponHudStyles(doc,{getRootNode:()=>doc});assert.equal(doc.head.children.length,1);releaseExternal();assert.equal(doc.head.children[0],external,'external source styles not removed');
+assert.match(WEAPON_HUD_CSS,/#weapon-hud\.mfz-weapon-hud\{[^}]*width:min\(430px/);assert.match(WEAPON_HUD_CSS,/\.mfz-current-icon\{height:62px/);assert.match(WEAPON_HUD_CSS,/\.mfz-weapon-launcher\{[^}]*min-height:78px/);
+assert.match(WALK_HUD_SHELL_CSS,/@media\(pointer:fine\)\{html\[data-walk-player-hud='true'\] :is\(#joyL,#joyR,#weaponBar,#fireBtn\)\{display:none!important\}\}/);
+console.log(JSON.stringify({passed:true,checks:['shadow_owning_root','fullscreen_document_root','single_shared_style','refcount_dispose','idempotent_release','external_style_preserved','legacy_id_specificity','bounded_thumbnail','desktop_only_legacy_controls']}));

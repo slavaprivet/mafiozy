@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createWalkHudController,walkHudViewState,walkHudGatewayUrl,walkAppearanceKey} from './walk_hud_controller.mjs';
+
+const url=walkHudGatewayUrl('http://localhost:18538/walk?uid=42&cash=700&district=dock');assert.equal(url,'/world.html?uid=42&cash=700&district=dock&render=3d&renderer=walk');
+assert.equal(walkHudViewState({available:false,player:{cash:999}}).player.money,null);
+assert.equal(walkAppearanceKey({hair:2,skin:1}),walkAppearanceKey({skin:1,hair:2}));
+const raw={available:true,player:{id:'42',name:'Игрок',cash:700,hp:82,maxHp:100,level:6,look:{gender:0,hair:2,skin:1}},clock:{label:'12:40'},gang:{name:'Своя банда',playerCount:1,playerMax:3,npcCount:2,npcMax:4,players:[],npcs:[]},bosses:[{id:'leila',renderId:'npc_unique_leila',renderRole:'unique_npc',name:'Лейла',look:{gender:1,hair:5,skin:1}}],actions:{inventory:true,boss:true},ui:{blocked:false}};
+const adapted=walkHudViewState(raw);assert.equal(adapted.player.money,700);assert.equal(adapted.player.timeLabel,'12:40');assert.equal(adapted.empires.count,1);assert.equal(adapted.empires.bosses[0].renderId,'npc_unique_leila');assert.equal(adapted.gang.countLabel,'1/3 ИГРОКА · 2/4 NPC');
+class Element{constructor(){this.dataset={};this.children=[];this.style={};this.hidden=false}append(...items){for(const item of items){this.children.push(item);item.parent=this}}remove(){if(this.parent)this.parent.children=this.parent.children.filter(n=>n!==this)}}
+const doc={createElement(){return new Element()},getElementById(){return null},querySelectorAll(){return []},body:new Element()},win={location:{href:'http://localhost/walk?uid=42'}};
+let snapshot=raw,locks=0,swapAllowed=false,hero={object:{name:'live'},artistContext:()=>({rest:{}})},hudState,portraitUrl,actionCallback,disposed=0,loadCalls=[],swapCalls=0;
+const rosterPhotos=new Map(),requestedActions=[],records=[];
+const hudFactory=({onAction})=>{actionCallback=onAction;return {setState:s=>hudState=s,setPortrait:url=>portraitUrl=url,setRosterPortrait:(id,url)=>rosterPhotos.set(id,url),dispose:()=>disposed++}};
+const shellFactory=()=>({refresh(){},isGangOpen:()=>false,openGang:()=>true,closeGang:()=>true,dispose:()=>disposed++});
+let statusOpen=false,statusState,statusPhoto;
+const statusFactory=()=>({open(s){statusState=s;statusOpen=true;return true},close(){statusOpen=false},isOpen:()=>statusOpen,setState:s=>statusState=s,setPortrait:url=>statusPhoto=url,dispose:()=>disposed++});
+const portraitFactory=()=>({renderHero:object=>'data:image/png;base64,'+object.name,renderNpc:object=>'data:image/png;base64,'+object.name,invalidate(){},renders:1,dispose:()=>disposed++});
+const appearanceLoader=async opts=>{loadCalls.push(opts);const record={hero:{object:{name:opts.id+'-'+opts.look.hair},artistContext:()=>({rest:{}})},appearance:opts.appearance,disposed:false,dispose(){this.disposed=true}};records.push(record);return record};
+const controller=createWalkHudController({document:doc,window:win,getBridge:()=>({getWalkHudState:()=>snapshot,performWalkHudAction:async(action,payload)=>{requestedActions.push([action,payload]);snapshot={...snapshot,ui:{blocked:true}};return {accepted:true}}}),getHero:()=>hero,canSwapHero:()=>swapAllowed,swapHero:record=>{hero=record.hero;swapCalls++;return true},onInputLock:()=>locks++,hudFactory,shellFactory,statusFactory,portraitFactory,appearanceLoader,weaponThumbnailFactory:()=>({render(){},dispose:()=>disposed++})});
+assert.equal(hudState.player.money,700);assert.equal(portraitUrl,'data:image/png;base64,live');assert.equal(loadCalls.filter(c=>c.id==='npc_unique_leila').length,1);
+assert.equal(loadCalls.find(c=>c.id==='npc_unique_leila').appearance.id,'npc_unique_leila');assert.equal(loadCalls.find(c=>c.id==='npc_unique_leila').appearance.role,'boss');
+await new Promise(resolve=>setImmediate(resolve));controller.update(100000);assert.equal(swapCalls,0,'busy hero defers cosmetic swap');assert(rosterPhotos.has('boss:leila'));assert(records.find(r=>r.hero.object.name.startsWith('npc_')).disposed,'temporary roster rig is disposed');
+swapAllowed=true;controller.update(100500);assert.equal(swapCalls,1);assert.equal(portraitUrl,'data:image/png;base64,42-2');controller.update(101000);assert.equal(swapCalls,1);assert.equal(loadCalls.filter(c=>c.id==='42').length,1,'unchanged look does not reload GLB');
+await actionCallback('inventory');assert.equal(requestedActions[0][0],'inventory');controller.update(102000);assert(controller.isBlocked());assert(locks>0);
+snapshot={...raw,player:{...raw.player,look:{gender:0,hair:3,skin:1}}};controller.update(102500);await new Promise(resolve=>setImmediate(resolve));controller.update(103000);assert.equal(swapCalls,2);assert.equal(portraitUrl,'data:image/png;base64,42-3');assert(!controller.isBlocked());
+assert(win.MafioziWalkHud.openStatus());assert(controller.isBlocked());assert.equal(statusState.player.cash,700);assert.equal(statusPhoto,portraitUrl);
+snapshot={...raw,player:{...raw.player,cash:0},status:{kind:'gang',label:'Новая банда',role:'Лидер'},gang:{...raw.gang,name:'Новая банда',isLeader:true}};controller.update(104000);assert.equal(statusState.player.cash,0);assert.equal(statusState.gang.isLeader,true);
+win.MafioziWalkHud.openGang();assert.equal(statusOpen,false);
+snapshot={available:false};controller.update(104500);assert.equal(hudState.player.money,null);assert.equal(hudState.empires.count,null);assert.equal(controller.host.children.at(-1).hidden,false,'standalone connection link shown');assert.equal(win.MafioziWalkHud.openStatus(),false);
+controller.dispose();controller.dispose();assert.equal(disposed,5);assert.equal(win.MafioziWalkHud,undefined);assert.equal(doc.body.children.length,0);
+// A source refresh can change a boss while its previous appearance is still loading.
+rosterPhotos.clear();snapshot=raw;
+const deferred=[];
+const racing=createWalkHudController({document:doc,window:win,getBridge:()=>({getWalkHudState:()=>snapshot}),hudFactory,shellFactory,statusFactory,portraitFactory,
+ appearanceLoader:opts=>new Promise(resolve=>deferred.push({opts,resolve})),weaponThumbnailFactory:()=>({render(){},dispose(){}})});
+assert.equal(deferred.length,1);
+assert.equal(deferred[0].opts.targetHeight,deferred[0].opts.appearance.height,'authored roster clone uses the same height as dossier and city');
+snapshot={...raw,bosses:[{...raw.bosses[0],look:{...raw.bosses[0].look,hair:4}}]};racing.update(200000);
+const stale={hero:{object:{name:'stale'},artistContext:()=>({rest:{}})},disposed:false,dispose(){this.disposed=true}};
+deferred[0].resolve(stale);await new Promise(resolve=>setImmediate(resolve));
+assert(stale.disposed);assert(!rosterPhotos.has('boss:leila'),'old asynchronous load cannot install after source appearance changed');
+racing.update(200500);assert.equal(deferred.length,2);
+const current={hero:{object:{name:'current'},artistContext:()=>({rest:{}})},disposed:false,dispose(){this.disposed=true}};
+deferred[1].resolve(current);await new Promise(resolve=>setImmediate(resolve));
+assert(current.disposed);assert.equal(rosterPhotos.get('boss:leila'),'data:image/png;base64,current');
+snapshot={...raw,bosses:[{...raw.bosses[0],renderId:'npc_unique_inga'}]};racing.update(201000);assert.equal(deferred.length,3);
+snapshot={available:false};racing.update(201500);
+const removed={hero:{object:{name:'removed'},artistContext:()=>({rest:{}})},disposed:false,dispose(){this.disposed=true}};
+deferred[2].resolve(removed);await new Promise(resolve=>setImmediate(resolve));
+assert(removed.disposed);assert.equal(rosterPhotos.get('boss:leila'),'data:image/png;base64,current','unavailable snapshot invalidates in-flight roster load');racing.dispose();
+const walk=fs.readFileSync(new URL('./walk_preview.mjs',import.meta.url),'utf8');
+assert(walk.includes("import {createWalkHudController} from './walk_hud_controller.mjs'"));assert(walk.includes('initPlayerDossier();start();frame()'));assert(walk.includes('walkPlayerHud?.update(performance.now())'));
+assert(walk.includes('record.hero.object.position.copy(previous.object.position)'));assert(walk.includes('record.hero.object.quaternion.copy(previous.object.quaternion)'));assert(walk.includes('if(weaponModel)hero.mountWeapon(weaponModel)'));assert(walk.includes('saved.wounds?.marks?.length'));
+console.log(JSON.stringify({passed:true,checks:['source_schema_adapter','no_fake_preview_stats','query_preserving_gateway','actual_npc_identity','single_queued_roster_clone_disposed','deferred_safe_hero_swap','changed_look_reload_once','source_action_routing','input_lock','dispose','narrow_live_hooks']}));

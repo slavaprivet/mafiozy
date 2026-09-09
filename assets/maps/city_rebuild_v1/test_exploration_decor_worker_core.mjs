@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createLandscapePlan} from './landscape_plan.mjs';
+import {createExplorationRailwayPlan} from './exploration_railway_plan.mjs';
+import {planExplorationDecor} from './exploration_decor_plan.mjs';
+import {buildExplorationDecorPlan} from './exploration_decor_worker_core.mjs';
+import {explorationKeepouts} from './exploration_scene_support.mjs';
+const topology=JSON.parse(fs.readFileSync(new URL('./topology_for_placement.json',import.meta.url),'utf8')),buildings=JSON.parse(fs.readFileSync(new URL('./buildings_placement.v1.json',import.meta.url),'utf8')).instances,decor=JSON.parse(fs.readFileSync(new URL('./decor_placement.v1.json',import.meta.url),'utf8')).instances,keepouts=explorationKeepouts([...buildings,...decor],4.1),terrain=createLandscapePlan(),railPlan=createExplorationRailwayPlan({landscape:terrain,topology}),main=planExplorationDecor({terrain,topology,metresPerCell:4.1,keepouts,railPlan}),worker=buildExplorationDecorPlan({topology,keepouts,metresPerCell:4.1});
+assert.deepEqual(worker,main,'worker plan must preserve every deterministic placement, collider and map feature');
+console.log(JSON.stringify({status:'PASS',objects:worker.objects.length,trees:worker.stats.trees,colliders:worker.colliders.length,railwayExcluded:true}));

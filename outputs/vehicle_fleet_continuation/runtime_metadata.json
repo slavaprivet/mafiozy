@@ -1,0 +1,696 @@
+{
+  "schema": "runtime-vehicle-offline-render/v1",
+  "createdAt": "2026-09-09T21:08:05.273Z",
+  "threeRevision": "180",
+  "units": "native metres",
+  "axisMapping": "Three x,y,z -> Blender x,z,y; triangle winding reversed",
+  "geometry": "Actual runtime factories + real Three 0.180 RoundedBoxGeometry + attached hood/trunk controllers",
+  "limitations": "Offline Blender presentation of runtime geometry, not a browser/live gameplay test. Mesh positions/normals/material colors exported; Three shader, lighting and transparency are approximated by Blender. Display normalization exists only in Blender.",
+  "roundedBoxSource": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/geometries/RoundedBoxGeometry.js",
+  "roundedBoxSha256": "c1b7c9bd2cddff2e3f3a0723f618a3d364a47450e3d25771d21faed88410bec8",
+  "modules": {
+    "vehicle_fleet_models.mjs": "ce2214be47416555512b6958a4af425b2415e82a419ebc98a1dd8d47f56e3375",
+    "vehicle_fleet_body.mjs": "38b0f4dcb2abbfb70bfad1b6242e95604fa382edec801e20e9730801c576d976",
+    "car_drive.mjs": "267646eee9230cda299a816b3d39ed1ad05afdce74972632df5a929a1444e8c0",
+    "vehicle_hood.mjs": "0ce6b9a969b2aceddee750222a113b3e29bb844082c9f79d04ca8a9bf8745e37",
+    "vehicle_trunk.mjs": "16882b74a8f1d2e834b4837ee32d285cb8576717ab824f15119669c2625729e7"
+  },
+  "vehicles": [
+    {
+      "id": "city_hatchback",
+      "label": "Brooklyn SX",
+      "sourceGlbSha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e",
+      "closedMeshCount": 187,
+      "openMeshCount": 236,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.5829000000000001,
+            0.3104,
+            -1.767959999780655
+          ],
+          "max": [
+            0.5829000000000001,
+            0.844272,
+            -1.3605000000745058
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 79354,
+      "openTriangleCount": 91354,
+      "textureMaps": []
+    },
+    {
+      "id": "compact_sedan",
+      "label": "Easton S",
+      "sourceGlbSha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+      "closedMeshCount": 184,
+      "openMeshCount": 233,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.3962634015954636,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6094999999254942,
+            0.4571579998509883,
+            -2.0522999903202055
+          ],
+          "max": [
+            0.6094999999254942,
+            0.8919730000000001,
+            -1.4405000000745056
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 79505,
+      "openTriangleCount": 91505,
+      "textureMaps": []
+    },
+    {
+      "id": "family_wagon",
+      "label": "Brooklyn LX",
+      "sourceGlbSha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce",
+      "closedMeshCount": 184,
+      "openMeshCount": 233,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6231000000000001,
+            0.32480000000000003,
+            -2.188599995660782
+          ],
+          "max": [
+            0.6231000000000001,
+            0.8871380000000001,
+            -1.3605000000745058
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 78376,
+      "openTriangleCount": 90376,
+      "textureMaps": []
+    },
+    {
+      "id": "executive_sedan",
+      "label": "Bellhaven V8",
+      "sourceGlbSha256": "08f8c863152eda4edfdd2262d93857a6f0e3476d7046fb4d105f2f7ead42b3d7",
+      "closedMeshCount": 189,
+      "openMeshCount": 238,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.3962634015954636,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6619999999254942,
+            0.48878599985098836,
+            -2.345250007390976
+          ],
+          "max": [
+            0.6619999999254942,
+            0.929891,
+            -1.4405000000745056
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 80879,
+      "openTriangleCount": 92879,
+      "textureMaps": []
+    },
+    {
+      "id": "sport_coupe",
+      "label": "Ravelli GT",
+      "sourceGlbSha256": "764576c6919bdd03f79e6b2f9738e9c9862b59b03f23d88893d8f35b0dbff158",
+      "closedMeshCount": 138,
+      "openMeshCount": 187,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.3962634015954636,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6479999999254942,
+            0.4730999998509883,
+            -2.1127500138282773
+          ],
+          "max": [
+            0.6479999999254942,
+            0.8536000000000001,
+            -1.0215000000745056
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 63941,
+      "openTriangleCount": 75941,
+      "textureMaps": []
+    },
+    {
+      "id": "city_suv",
+      "label": "Blackridge",
+      "sourceGlbSha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3",
+      "closedMeshCount": 190,
+      "openMeshCount": 239,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6633,
+            0.368,
+            -2.179040001173019
+          ],
+          "max": [
+            0.6633,
+            1.042413,
+            -1.3605000000745058
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 81396,
+      "openTriangleCount": 93396,
+      "textureMaps": []
+    },
+    {
+      "id": "delivery_van",
+      "label": "Union Van",
+      "sourceGlbSha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438",
+      "closedMeshCount": 144,
+      "openMeshCount": 193,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6945000004470347,
+            0.54,
+            -2.1836499726295466
+          ],
+          "max": [
+            0.6945000004470347,
+            2.1999999999999997,
+            -0.331000000372529
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 65411,
+      "openTriangleCount": 77411,
+      "textureMaps": []
+    },
+    {
+      "id": "utility_pickup",
+      "label": "Ironvale",
+      "sourceGlbSha256": "bad6a8f7d857f85edda09131ade16af1695e60fff5516d046f6e9f9ddb41f92e",
+      "closedMeshCount": 138,
+      "openMeshCount": 187,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.45,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.7064999999254942,
+            1.040472014427185,
+            -2.2870000076293944
+          ],
+          "max": [
+            0.7064999999254942,
+            1.3724720000000001,
+            -0.8755000000745057
+          ]
+        },
+        "cargoColliderCount": 6,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 62945,
+      "openTriangleCount": 74945,
+      "textureMaps": []
+    },
+    {
+      "id": "city_bus",
+      "label": "Metroline 90",
+      "sourceGlbSha256": "9735522832f8b314a93cbef116d51916eca633861178a5d6a5c1d94b2402a01f",
+      "closedMeshCount": 150,
+      "openMeshCount": 199,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.8695000004470347,
+            1.38,
+            -4.67339997215271
+          ],
+          "max": [
+            0.8695000004470347,
+            2.96,
+            -0.676000000372529
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.4,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": false
+      },
+      "closedTriangleCount": 72927,
+      "openTriangleCount": 84927,
+      "textureMaps": []
+    },
+    {
+      "id": "police_interceptor",
+      "label": "Patrol LX",
+      "sourceGlbSha256": "07374fcdaa792fb2b8933a420b71be9567c5df130f63bb353791a79edfca8c6e",
+      "closedMeshCount": 189,
+      "openMeshCount": 238,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.3962634015954636,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.6654999999254941,
+            0.4920419998509883,
+            -2.284799998664856
+          ],
+          "max": [
+            0.6654999999254941,
+            0.945727,
+            -1.4405000000745056
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 81797,
+      "openTriangleCount": 93797,
+      "textureMaps": []
+    },
+    {
+      "id": "city_ambulance",
+      "label": "Union Medic",
+      "sourceGlbSha256": "49306bfb80af503a36bf2c3f88ca7561d2433b587d638aa12136c05842a26933",
+      "closedMeshCount": 151,
+      "openMeshCount": 200,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.7400000004470348,
+            0.58,
+            -2.560359961776733
+          ],
+          "max": [
+            0.7400000004470348,
+            2.5,
+            -0.383200000372529
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 67982,
+      "openTriangleCount": 79982,
+      "textureMaps": []
+    },
+    {
+      "id": "fire_engine",
+      "label": "Ironvale F",
+      "sourceGlbSha256": "967118f3763671e68c34b33fc0a7a8da2adf9f8eae564662af63f9a41f8ef55f",
+      "closedMeshCount": 167,
+      "openMeshCount": 216,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.8450000004470348,
+            0.64,
+            -3.071299966239929
+          ],
+          "max": [
+            0.8450000004470348,
+            2.2758000000000003,
+            -0.454000000372529
+          ]
+        },
+        "cargoColliderCount": 4,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 70750,
+      "openTriangleCount": 82750,
+      "textureMaps": []
+    },
+    {
+      "id": "red_demo",
+      "label": "Kingswell",
+      "sourceGlbSha256": null,
+      "closedMeshCount": 249,
+      "openMeshCount": 298,
+      "trunk": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": 1.4835298641951802,
+        "detached": false,
+        "externalDebris": false,
+        "latchIntegrity": 1,
+        "hingeIntegrity": 1,
+        "debris": 0,
+        "settledDebris": 0,
+        "idleUpdates": 0,
+        "cargoBounds": {
+          "min": [
+            -0.5290000126957893,
+            0.4550000047683716,
+            -2.0919999904632567
+          ],
+          "max": [
+            0.5290000126957893,
+            0.9840000014156103,
+            -1.6860000095367431
+          ]
+        },
+        "cargoColliderCount": 5,
+        "reason": null,
+        "revision": 1
+      },
+      "hood": {
+        "enabled": true,
+        "open": true,
+        "amount": 1,
+        "angle": -1.3962634015954636,
+        "detached": false,
+        "repairs": 0,
+        "smoke": 0,
+        "smokeParticles": 0,
+        "idleUpdates": 1,
+        "engineParts": 49,
+        "visibleEngineParts": 49,
+        "front": true
+      },
+      "closedTriangleCount": 121492,
+      "openTriangleCount": 133492,
+      "textureMaps": []
+    }
+  ]
+}

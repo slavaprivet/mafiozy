@@ -8,13 +8,20 @@ class MonitorRoutes(unittest.TestCase):
                          ROOT / 'assets/maps/city_rebuild_v1/walk_preview.mjs')
 
     def test_does_not_serve_source_or_arbitrary_files(self):
-        for path in ['/world.html', '/mafiozi.db', '/tools/city_rebuild_monitor.py',
+        for path in ['/mafiozi.db', '/tools/city_rebuild_monitor.py',
                      '/assets/maps/city_rebuild_v1/../../../world.html',
                      '/assets/maps/city_rebuild_v1/%2e%2e/%2e%2e/%2e%2e/world.html',
                      '/assets/maps/city_rebuild_v1/../../../../.bot-token',
                      '/assets/maps/city_rebuild_v1/not-existing.glb']:
             with self.subTest(path=path):
                 self.assertIsNone(asset_path(path))
+
+    def test_world_gateway_and_walk_entry_are_public_only(self):
+        for path in ['/world.html', '/world_walk_host.mjs',
+                     '/tools/city_rebuild_walk.html',
+                     '/assets/maps/city_rebuild_v1/walk_entry.mjs']:
+            with self.subTest(path=path):
+                self.assertEqual(asset_path(path), ROOT / path.lstrip('/'))
 
 
 if __name__ == '__main__':

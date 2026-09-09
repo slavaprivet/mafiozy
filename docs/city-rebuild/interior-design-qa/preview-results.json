@@ -1,0 +1,1149 @@
+{
+  "info": {
+    "entries": 75,
+    "floors": 174,
+    "ladders": 6,
+    "errors": "",
+    "calls": 3080
+  },
+  "routes": {
+    "old_town_narrow_townhouse_v1": {
+      "f": {
+        "level": 1,
+        "y": 2.985,
+        "ceiling": 5.6850000000000005,
+        "rect": [
+          -3.3299999871254045,
+          -8.464000036843174,
+          2.178000012874598,
+          -0.7820000368432147
+        ]
+      },
+      "rooms": [
+        {
+          "level": 0,
+          "name": "Комната",
+          "rect": [
+            -3.4379999871253997,
+            -3.186346190689317,
+            2.2860000128746063,
+            -0.48300003684316545
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.5759999871253967,
+            "y": 0,
+            "z": -3.186346190689317
+          }
+        },
+        {
+          "level": 1,
+          "name": "Комната",
+          "rect": [
+            -3.3299999871254045,
+            -3.186346190689317,
+            2.178000012874598,
+            -0.7820000368432147
+          ],
+          "y": 2.985,
+          "door": {
+            "x": -0.5759999871254031,
+            "y": 2.985,
+            "z": -3.186346190689317
+          }
+        },
+        {
+          "level": 2,
+          "name": "Комната",
+          "rect": [
+            -3.1679999871254054,
+            -3.2517308060739323,
+            2.016000012874599,
+            -1.1615000368431652
+          ],
+          "y": 5.885000000000001,
+          "door": {
+            "x": -0.5759999871254031,
+            "y": 5.885000000000001,
+            "z": -3.2517308060739323
+          }
+        }
+      ]
+    },
+    "hospital": {
+      "f": {
+        "level": 1,
+        "y": 3.59,
+        "ceiling": 6.49,
+        "rect": [
+          -5.931817746818183,
+          -17.440907694867263,
+          11.931817306818175,
+          -1.2136361575945287
+        ]
+      },
+      "rooms": [
+        {
+          "level": 0,
+          "name": "Комната 1",
+          "rect": [
+            -5.931817746818136,
+            -17.36090769486726,
+            -0.75,
+            -12.111817182443014
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.75,
+            "y": 0,
+            "z": -14.736362438655139
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 2",
+          "rect": [
+            -5.931817746818136,
+            -11.951817182443014,
+            -0.75,
+            -6.7027266700187695
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.75,
+            "y": 0,
+            "z": -9.327271926230893
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 3",
+          "rect": [
+            -5.931817746818136,
+            -6.542726670018769,
+            -0.75,
+            -1.7136361575945254
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.75,
+            "y": 0,
+            "z": -4.128181413806647
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 4",
+          "rect": [
+            0.75,
+            -6.542726670018769,
+            11.931817306818182,
+            -1.7136361575945254
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -4.128181413806647
+          }
+        },
+        {
+          "level": 1,
+          "name": "Комната 5",
+          "rect": [
+            -5.931817746818183,
+            -17.360907694867265,
+            -0.75,
+            -12.111817182443017
+          ],
+          "y": 3.59,
+          "door": {
+            "x": -0.75,
+            "y": 3.59,
+            "z": -14.736362438655142
+          }
+        },
+        {
+          "level": 1,
+          "name": "Комната 6",
+          "rect": [
+            -5.931817746818183,
+            -11.951817182443017,
+            -0.75,
+            -6.702726670018773
+          ],
+          "y": 3.59,
+          "door": {
+            "x": -0.75,
+            "y": 3.59,
+            "z": -9.327271926230896
+          }
+        },
+        {
+          "level": 1,
+          "name": "Комната 7",
+          "rect": [
+            -5.931817746818183,
+            -6.542726670018773,
+            -0.75,
+            -1.7136361575945287
+          ],
+          "y": 3.59,
+          "door": {
+            "x": -0.75,
+            "y": 3.59,
+            "z": -4.128181413806651
+          }
+        },
+        {
+          "level": 1,
+          "name": "Комната 8",
+          "rect": [
+            0.75,
+            -6.542726670018773,
+            11.931817306818175,
+            -1.7136361575945287
+          ],
+          "y": 3.59,
+          "door": {
+            "x": 0.75,
+            "y": 3.59,
+            "z": -4.128181413806651
+          }
+        },
+        {
+          "level": 2,
+          "name": "Комната 9",
+          "rect": [
+            -3.477272472272716,
+            -15.860907804867258,
+            -0.75,
+            -11.04363544259453
+          ],
+          "y": 6.69,
+          "door": {
+            "x": -0.75,
+            "y": 6.69,
+            "z": -13.452271623730894
+          }
+        },
+        {
+          "level": 2,
+          "name": "Комната 10",
+          "rect": [
+            -3.477272472272716,
+            -10.88363544259453,
+            -0.75,
+            -6.4863630803218015
+          ],
+          "y": 6.69,
+          "door": {
+            "x": -0.75,
+            "y": 6.69,
+            "z": -8.684999261458167
+          }
+        }
+      ]
+    },
+    "glass_pavilion_small_v1": {
+      "f": {
+        "level": 1,
+        "y": 4,
+        "ceiling": 7.7,
+        "rect": [
+          -6.060000000000002,
+          -9.70800006866466,
+          6.060000000000009,
+          -5.02800006866471
+        ]
+      },
+      "rooms": [
+        {
+          "level": 0,
+          "name": "Комната 1",
+          "rect": [
+            -6.059999999999993,
+            -5.188000068664538,
+            -0.75,
+            -1.3280000686645508
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.75,
+            "y": 0,
+            "z": -3.2580000686645443
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 2",
+          "rect": [
+            0.75,
+            -9.628000068664525,
+            6.060000000000015,
+            -5.348000068664538
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -7.488000068664531
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 3",
+          "rect": [
+            0.75,
+            -5.188000068664538,
+            6.060000000000015,
+            -1.3280000686645508
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -3.2580000686645443
+          }
+        },
+        {
+          "level": 1,
+          "name": "Комната 4",
+          "rect": [
+            0.75,
+            -9.62800006866466,
+            6.060000000000009,
+            -5.52800006866471
+          ],
+          "y": 4,
+          "door": {
+            "x": 0.75,
+            "y": 4,
+            "z": -7.578000068664685
+          }
+        }
+      ]
+    },
+    "pine_ridge_cottage_v1": {
+      "f": {
+        "level": 0,
+        "y": 0,
+        "ceiling": 3.985,
+        "rect": [
+          -2.0240000000000222,
+          -12.61699983215334,
+          4.611499999999957,
+          -0.3849998321533335
+        ]
+      },
+      "rooms": [
+        {
+          "level": 0,
+          "name": "Комната 1",
+          "rect": [
+            0.75,
+            -12.53699983215334,
+            4.611499999999957,
+            -8.619666498820004
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -10.578333165486672
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 2",
+          "rect": [
+            0.75,
+            -8.459666498820004,
+            4.611499999999957,
+            -4.542333165486669
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -6.500999832153337
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 3",
+          "rect": [
+            0.75,
+            -4.382333165486669,
+            4.611499999999957,
+            -0.8849998321533334
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -2.633666498820001
+          }
+        }
+      ]
+    },
+    "print_shop": {
+      "f": {
+        "level": 0,
+        "y": 0,
+        "ceiling": 5.96,
+        "rect": [
+          -2.600999902725223,
+          -10.924199844360421,
+          12.801000097274779,
+          -1.2341998443604212
+        ]
+      },
+      "rooms": [
+        {
+          "level": 0,
+          "name": "Комната 1",
+          "rect": [
+            -2.600999902725223,
+            -10.844199844360421,
+            -0.75,
+            -6.159199844360422
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.75,
+            "y": 0,
+            "z": -8.501699844360422
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 2",
+          "rect": [
+            -2.600999902725223,
+            -5.9991998443604215,
+            -0.75,
+            -1.7341998443604212
+          ],
+          "y": 0,
+          "door": {
+            "x": -0.75,
+            "y": 0,
+            "z": -3.8666998443604212
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 3",
+          "rect": [
+            0.75,
+            -10.844199844360421,
+            12.801000097274779,
+            -6.159199844360422
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -8.501699844360422
+          }
+        },
+        {
+          "level": 0,
+          "name": "Комната 4",
+          "rect": [
+            0.75,
+            -5.9991998443604215,
+            12.801000097274779,
+            -1.7341998443604212
+          ],
+          "y": 0,
+          "door": {
+            "x": 0.75,
+            "y": 0,
+            "z": -3.8666998443604212
+          }
+        }
+      ]
+    }
+  },
+  "roofs": {},
+  "errors": [],
+  "design": [
+    {
+      "id": "REBUILD-VISUAL-civic_hall-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 8,
+      "doors": 2,
+      "parts": 98,
+      "draws": 1
+    },
+    {
+      "id": "REBUILD-VISUAL-hospital-001",
+      "rooms": 10,
+      "furnishedRooms": 10,
+      "furniture": 37,
+      "doors": 10,
+      "parts": 520,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-nightclub-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 4,
+      "doors": 4,
+      "parts": 64,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 127,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 151,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 10,
+      "doors": 4,
+      "parts": 124,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 4,
+      "doors": 2,
+      "parts": 46,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 82,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 8,
+      "doors": 3,
+      "parts": 80,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 137,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 9,
+      "doors": 3,
+      "parts": 92,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+      "rooms": 13,
+      "furnishedRooms": 13,
+      "furniture": 41,
+      "doors": 12,
+      "parts": 441,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 164,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 165,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 380,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 280,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-001",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 8,
+      "doors": 2,
+      "parts": 196,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-001",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 245,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 112,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-002",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 151,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-coastal_orchard_house_v1-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 10,
+      "doors": 4,
+      "parts": 119,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 4,
+      "doors": 2,
+      "parts": 60,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 93,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 8,
+      "doors": 3,
+      "parts": 80,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 9,
+      "doors": 3,
+      "parts": 92,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-002",
+      "rooms": 13,
+      "furnishedRooms": 13,
+      "furniture": 40,
+      "doors": 13,
+      "parts": 478,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 164,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-002",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 18,
+      "doors": 6,
+      "parts": 270,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 380,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-002",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 280,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-002",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 170,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-002",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 137,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 134,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-003",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 137,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-003",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 4,
+      "doors": 2,
+      "parts": 46,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-003",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 93,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-003",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 164,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-003",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 16,
+      "doors": 6,
+      "parts": 220,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 380,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 280,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-003",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 20,
+      "doors": 4,
+      "parts": 392,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-003",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 137,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 9,
+      "doors": 3,
+      "parts": 113,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 9,
+      "doors": 4,
+      "parts": 120,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-004",
+      "rooms": 6,
+      "furnishedRooms": 6,
+      "furniture": 14,
+      "doors": 4,
+      "parts": 151,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-004",
+      "rooms": 2,
+      "furnishedRooms": 2,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 164,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 12,
+      "doors": 4,
+      "parts": 165,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 380,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-bookmaker-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 16,
+      "doors": 4,
+      "parts": 280,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-004",
+      "rooms": 4,
+      "furnishedRooms": 4,
+      "furniture": 20,
+      "doors": 4,
+      "parts": 392,
+      "draws": 3
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-004",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 7,
+      "doors": 2,
+      "parts": 137,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 6,
+      "doors": 2,
+      "parts": 84,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-008",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 147,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-014",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-015",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-016",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-017",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-018",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+      "rooms": 3,
+      "furnishedRooms": 3,
+      "furniture": 11,
+      "doors": 3,
+      "parts": 145,
+      "draws": 4
+    },
+    {
+      "id": "REBUILD-bank:large",
+      "rooms": 7,
+      "furnishedRooms": 7,
+      "furniture": 17,
+      "doors": 0,
+      "parts": 184,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-bank:medium",
+      "rooms": 7,
+      "furnishedRooms": 7,
+      "furniture": 17,
+      "doors": 0,
+      "parts": 184,
+      "draws": 2
+    },
+    {
+      "id": "REBUILD-bank:small",
+      "rooms": 7,
+      "furnishedRooms": 7,
+      "furniture": 17,
+      "doors": 0,
+      "parts": 184,
+      "draws": 2
+    }
+  ]
+}
