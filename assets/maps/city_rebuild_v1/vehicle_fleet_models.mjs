@@ -2,8 +2,68 @@ import {decorateCityTaxi} from './vehicle_taxi.mjs';
 // Authored vehicle adapter for the shared game runtime (native metres).
 // The source pack is immutable. Every vehicle owns its editable geometry and materials.
 import {assembleArtistBody} from './vehicle_fleet_body.mjs';
-import {createDetailedVehicleWheel,createWheelArch,wheelArchEnvelope,updateVehicleWheelVisuals} from './vehicle_wheels.mjs';
+import {createDetailedVehicleWheel,createWheelArch,wheelArchEnvelope,updateVehicleWheelVisuals,createVehicleWheelMaterialPalette} from './vehicle_wheels.mjs';
 import {applyVehicleInteriorColors} from './vehicle_interior_colors.mjs';
+
+// The player's fleet and source-world traffic use the same GLBs.  Keeping the
+// parsed *source* scene next to its GLTFLoader avoids parsing/download work a
+// second time during startup.  createArtistVehicle below still clones every
+// editable geometry and material, so neither consumer can mutate this source.
+// The cache belongs to the loader, rather than to an individual presentation:
+// it is explicitly released when the world presentation is disposed and is
+// otherwise collectable with the page's loader.
+const artistVehicleSourceCaches=new WeakMap();
+
+function sourceUrlKey(url){
+ try{return new URL(String(url),import.meta.url).href}catch{return String(url)}
+}
+
+function disposeArtistVehicleSource(root){
+ const resources=new Set();
+ root?.traverse?.(node=>{
+  if(node.geometry)resources.add(node.geometry);
+  for(const material of Array.isArray(node.material)?node.material:node.material?[node.material]:[])resources.add(material);
+ });
+ for(const resource of resources)resource.dispose?.();
+ root?.removeFromParent?.();
+}
+
+/**
+ * Return an immutable parsed GLB scene shared by fleet and source traffic.
+ * It deliberately has no per-actor release: actors receive private cloned
+ * geometries/materials, while the loader-owned source remains reusable until
+ * releaseArtistVehicleSourceCache(loader) is called.
+ */
+export function loadArtistVehicleSource({loader,url}={}){
+ if(!loader?.loadAsync)throw Error('Vehicle GLTF loader required');
+ const key=sourceUrlKey(url);let cache=artistVehicleSourceCaches.get(loader);
+ if(!cache){cache=new Map();artistVehicleSourceCaches.set(loader,cache);}
+ let entry=cache.get(key);
+ if(!entry){
+  entry={root:null,released:false,disposed:false};cache.set(key,entry);
+  entry.promise=Promise.resolve().then(()=>loader.loadAsync(key)).then(gltf=>{
+   const root=gltf?.scene||gltf;if(!root)throw Error('Vehicle GLTF has no scene');
+   entry.root=root;
+   if(entry.released&&!entry.disposed){entry.disposed=true;disposeArtistVehicleSource(root);}
+   return root;
+  },error=>{if(cache.get(key)===entry)cache.delete(key);throw error;});
+ }
+ return entry.promise;
+}
+
+// Do not dispose textures here. Artist vehicle materials are cloned per car
+// but retain the same immutable texture maps; a live fleet can outlast a
+// source-world traffic presentation. The renderer/browser owns those maps at
+// page teardown, while geometry and source materials are released exactly once.
+export function releaseArtistVehicleSourceCache(loader){
+ const cache=artistVehicleSourceCaches.get(loader);if(!cache)return;
+ artistVehicleSourceCaches.delete(loader);
+ for(const entry of cache.values()){
+  if(entry.released)continue;entry.released=true;
+  if(entry.root&&!entry.disposed){entry.disposed=true;disposeArtistVehicleSource(entry.root);}
+ }
+ cache.clear();
+}
 const specs=[
  ['city_hatchback','Brooklyn SX','hatch',1.74,3.82,1.52,.32,1.48,1.86,.73,1150,28,7.2,4,'2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e'],
  ['compact_sedan','Easton S','sedan',1.80,4.42,1.47,.33,1.52,1.86,.68,1320,31,7,4,'08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5'],
@@ -56,7 +116,7 @@ function splitGeometryPlanes(T,geometry,planes){
  return {outside:build(remainP,remainN),inside:build(cutP,cutN)};
 }
 
-export function createArtistVehicle(T,RoundedBox,source,profileOrId){
+export function createArtistVehicle(T,RoundedBox,source,profileOrId,{wheelRenderOptimization=false}={}){
  const definition=typeof profileOrId==='string'?ARTIST_VEHICLE_PROFILE_BY_ID[profileOrId]:profileOrId;
  if(!definition)throw Error('Unknown authored vehicle '+profileOrId);
  const profile={...definition},p=profile,id=p.id;
@@ -75,14 +135,20 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId){
  if(!lod0)throw Error('Missing authored LOD0_'+id);
  input.updateMatrixWorld(true);
  const object=new T.Group();object.name='Vehicle_'+id;object.userData.vehicleModelId=id;object.userData.massKg=p.massKg;object.userData.vehicleProfile=profile;
+ // Opt-in only, before damage adapters capture canonical material ownership.
+ const wheelMaterialPalette=wheelRenderOptimization?createVehicleWheelMaterialPalette(T,{owner:object,family:p.family,designId:p.wheelDesignId||p.family}):null;
  const materials=new Map(),sourceMeshes=[],shell=[],wheels=[],doors=new Map(),openings=[];
  const materialOwn=mat=>{if(!materials.has(mat)){const owned=mat.clone();owned.userData={...mat.userData};if(/SmokedGlass/i.test(mat.name)){owned.name='Automotive_Glass';owned.transparent=true;owned.opacity=.26;owned.depthWrite=false;owned.roughness=.22;owned.userData.breakableGlass=true}materials.set(mat,owned)}return materials.get(mat)};
  const rotation=new T.Matrix4().makeRotationY(Math.PI),inverseInput=input.matrixWorld.clone().invert();
+ // Every authored mesh shares this source-to-game basis.  Reusing the working
+ // matrix avoids allocating one Matrix4 per mesh during initial vehicle build;
+ // applyMatrix4 consumes it immediately, before the next mesh overwrites it.
+ const sourceToGame=rotation.clone().multiply(inverseInput),sourceToGameWork=new T.Matrix4();
  // Leave a real service nose in front of the cab, with no seat or pedal overlap.
  const movedCab=['van','ambulance','fire'].includes(p.family)?p.length*(p.family==='fire'?.31:.28)-.30:0;
  lod0.traverse(node=>{
   if(!node.isMesh)return;
-  const geometry=node.geometry.clone();geometry.applyMatrix4(rotation.clone().multiply(inverseInput).multiply(node.matrixWorld));
+  const geometry=node.geometry.clone();geometry.applyMatrix4(sourceToGameWork.copy(sourceToGame).multiply(node.matrixWorld));
   if(p.family!=='bus'&&/_(Cab|Cabin|Windshield|RearGlass|SideGlass_[LR]|DoorHandle_[LR]_\d|RoofExtension|RoofRail_[LR]|RoofSpoiler)$/.test(node.name)){
    const a=geometry.attributes.position;for(let i=0;i<a.count;i++){
     const sourceY=a.getY(i),z=a.getZ(i)*p.cabinLength/sourceCabin.length;
@@ -165,7 +231,7 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId){
   const gameId=(axle==='F'?'front_':'rear_')+(side==='L'?'left':'right');
   mesh.geometry.computeBoundingBox();const bounds=mesh.geometry.boundingBox,center=bounds.getCenter(new T.Vector3()),width=bounds.max.x-bounds.min.x;
   mesh.removeFromParent();mesh.geometry.dispose();
-  const detail=createDetailedVehicleWheel(T,{id:gameId,radius:p.wheelRadius,width,side:Math.sign(center.x),family:p.family,designId:p.wheelDesignId||p.family});
+  const detail=createDetailedVehicleWheel(T,{id:gameId,radius:p.wheelRadius,width,side:Math.sign(center.x),family:p.family,designId:p.wheelDesignId||p.family,materialPalette:wheelMaterialPalette});
   const pivot=new T.Group();pivot.name='Wheel_attachment_'+gameId;pivot.userData.vehicleWheelId=gameId;pivot.position.copy(center);pivot.add(detail.wheel);object.add(pivot);
   wheels.push({id:gameId,pivot,...detail,front:axle==='F',rollingRadius:p.wheelRadius,restPosition:center.clone()});
  }
@@ -329,7 +395,7 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId){
  applyVehicleInteriorColors(object,p.interiorPaletteId||(p.wheelDesignId==='city_taxi'?'city_taxi':p.id));
  return {object,profile,seats,wheels,doors,shell,anchors,trunkSpec,hoodSpec,getSteeringGrips,poseOccupant,update,interior:{object:interior,profile:{family:p.family,floorTop,cushionTop,roofBottom},anchors,parts,wheel,steeringWheel:wheel,getSteeringGrips,update:state=>{wheel.rotation.z=-(state.steer||0)*2.1}},setDoorById,setDoor:(amount,side=1)=>setDoorById(amount,typeof side==='string'?side:side>0?'front_left':'front_right'),setRearDoor:(amount,side=1)=>{const key='rear_'+(side>0?'left':'right');if(doors.has(key))setDoorById(amount,key)},setHighlightedDoor(){},diagnostics:()=>diagnostics};
 }
-export async function loadArtistFleetModels({THREE,loader,RoundedBox,baseUrl='./models/artist_vehicle_pack/',onProgress,includeTaxi=false}={}){
+export async function loadArtistFleetModels({THREE,loader,RoundedBox,baseUrl='./models/artist_vehicle_pack/',onProgress,includeTaxi=false,vehicleFactory=createArtistVehicle}={}){
  if(!THREE||!loader||!RoundedBox)throw Error('THREE, loader and RoundedBox are required');
  const vehicles=[],errors=[];
  // Pipeline a small fixed window of transfers/parses while assembling the
@@ -337,13 +403,13 @@ export async function loadArtistFleetModels({THREE,loader,RoundedBox,baseUrl='./
  // once; three keeps the established bounded-memory property while avoiding
  // network idle gaps between the 12 independent source files.
  const requests=new Map(),maxInFlight=3,base=baseUrl.replace(/\/?$/,'/');let next=0;
- const start=index=>{const profile=ARTIST_VEHICLE_PROFILES[index],url=base+profile.modelFile;requests.set(index,Promise.resolve().then(()=>loader.loadAsync(url)).then(gltf=>({profile,gltf}),error=>({profile,error})));};
+ const start=index=>{const profile=ARTIST_VEHICLE_PROFILES[index],url=base+profile.modelFile;requests.set(index,Promise.resolve().then(()=>loadArtistVehicleSource({loader,url})).then(source=>({profile,source}),error=>({profile,error})));};
  while(next<Math.min(maxInFlight,ARTIST_VEHICLE_PROFILES.length))start(next++);
  for(let index=0;index<ARTIST_VEHICLE_PROFILES.length;index++){
   const result=await requests.get(index);requests.delete(index);if(next<ARTIST_VEHICLE_PROFILES.length)start(next++);
-  const {profile,gltf,error}=result;
+  const {profile,source,error}=result;
   if(error){errors.push({id:profile.id,message:String(error?.message||error)});continue}
-  try{vehicles.push(createArtistVehicle(THREE,RoundedBox,gltf.scene,profile));if(includeTaxi&&profile.id==='compact_sedan')vehicles.push(decorateCityTaxi(THREE,RoundedBox,createArtistVehicle(THREE,RoundedBox,gltf.scene,{...profile,wheelDesignId:'city_taxi'})));onProgress?.({id:profile.id,loaded:vehicles.length,total:ARTIST_VEHICLE_PROFILES.length+(includeTaxi?1:0)})}
+  try{vehicles.push(vehicleFactory(THREE,RoundedBox,source,profile));if(includeTaxi&&profile.id==='compact_sedan')vehicles.push(decorateCityTaxi(THREE,RoundedBox,vehicleFactory(THREE,RoundedBox,source,{...profile,wheelDesignId:'city_taxi'})));onProgress?.({id:profile.id,loaded:vehicles.length,total:ARTIST_VEHICLE_PROFILES.length+(includeTaxi?1:0)})}
   catch(error){errors.push({id:profile.id,message:String(error?.message||error)})}
  }
  if(errors.length){const error=new Error('Authored fleet failed to load: '+errors.map(e=>e.id+': '+e.message).join('; '));error.failures=errors;error.vehicles=vehicles;throw error}

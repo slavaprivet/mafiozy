@@ -51,3 +51,36 @@ test('actual unchanged hero GLB: all 40 original/authored seats preserve palms, 
  }
  assert.equal(seats,40);assert.equal(applied,attempts,'all original and authored seats respond safely in every tested direction');const mean=a=>a.reduce((s,v)=>s+v,0)/a.length;console.log(JSON.stringify({seats,attempts,applied,byCar,legacy,timing:{probeMeanMs:mean(probeMs),probeMaxMs:Math.max(...probeMs),cachedMeanMs:mean(cachedMs),cachedMaxMs:Math.max(...cachedMs)}}));assert(mean(cachedMs)<2,'cached per-frame pose below 2ms');
 });
+
+test('actual 13-car passengers keep the same certified impact pose through left, centre and right steering without another skin scan',async()=>{
+ const {readFile}=await import('node:fs/promises'),{pathToFileURL}=await import('node:url'),{registerHooks}=await import('node:module');
+ const vendor=process.env.MAFIOZY_THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
+ registerHooks({resolve(s,c,next){return next(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});
+ const T=await import(pathToFileURL(vendor+'build/three.module.js')),{GLTFLoader}=await import(pathToFileURL(vendor+'addons/loaders/GLTFLoader.js'));
+ const {RoundedBoxGeometry}=await import('../../../tools/vehicle_fleet_qa/RoundedBoxGeometry.mjs'),{createArtistVehicle,ARTIST_VEHICLE_PROFILES}=await import('./vehicle_fleet_models.mjs'),{createDemoCar}=await import('./car_drive.mjs'),{VEHICLE_SEATS}=await import('./vehicle_seats.mjs'),{createHeroWalker}=await import('./hero_walk.mjs');
+ const parse=async url=>{const b=await readFile(url);return(await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene};
+ const hero=createHeroWalker({THREE:T,scene:await parse(new URL('./hero_models/player_male.8130dfb1f7eb.glb',import.meta.url))}),ctx=hero.artistContext(),adapter=createVehicleOccupantImpactPose(T),originalScales=new Map(),originalLengths=new Map();
+ hero.object.traverse(node=>{originalScales.set(node,node.scale.clone());if(node.isBone&&node.parent.isBone)originalLengths.set(node,node.getWorldPosition(new T.Vector3()).distanceTo(node.parent.getWorldPosition(new T.Vector3())))});
+ const fixtures=[{id:'red_demo',create:()=>createDemoCar(T,RoundedBoxGeometry)},...ARTIST_VEHICLE_PROFILES.map(profile=>({id:profile.id,create:async()=>createArtistVehicle(T,RoundedBoxGeometry,await parse(new URL('./models/artist_vehicle_pack/'+profile.modelFile,import.meta.url)),profile)}))];
+ const originalApplyBoneTransform=T.SkinnedMesh.prototype.applyBoneTransform;let skinnedVertexTransforms=0;
+ T.SkinnedMesh.prototype.applyBoneTransform=function(...args){skinnedVertexTransforms++;return originalApplyBoneTransform.apply(this,args)};
+ const sampleFor=normal=>{const reaction=createVehicleImpactReaction();reaction.impact({normal,impactSpeed:18});return reaction.update(.075)};
+ const poseAt=(car,seat,steer)=>{car.interior?.update?.({steer});hero.reset();hero.object.position.set(seat.anchor.side,seat.anchor.y,seat.anchor.front);hero.object.quaternion.copy(car.object.quaternion);car.object.updateMatrixWorld(true);if(car.poseOccupant)car.poseOccupant(hero,seat.id,{steer,dt:0});else hero.vehiclePose(1,0,{driver:seat.canDrive,steeringGrips:car.getSteeringGrips(),steer,dt:0});};
+ const snapshot=()=>{hero.object.updateMatrixWorld(true);hero.object.traverse(node=>{if(node.isSkinnedMesh)node.skeleton.update()});return {bounds:new T.Box3().setFromObject(hero.object,true),hands:['l','r'].map(side=>ctx.bones['socket_hand_'+side].getWorldPosition(new T.Vector3())),bones:Object.fromEntries(Object.entries(ctx.bones).map(([name,bone])=>[name,bone.matrix.elements.slice()]))};};
+ const close=(a,b,message)=>assert(Math.abs(a-b)<1e-7,message);
+ const compareSnapshots=(fresh,cached,label)=>{for(const axis of ['x','y','z']){close(fresh.bounds.min[axis],cached.bounds.min[axis],label+' bound min '+axis);close(fresh.bounds.max[axis],cached.bounds.max[axis],label+' bound max '+axis)}for(let i=0;i<2;i++)assert(fresh.hands[i].distanceTo(cached.hands[i])<1e-7,label+' palm '+i);for(const [name,values]of Object.entries(fresh.bones))assert.deepEqual(cached.bones[name],values,label+' bone '+name);};
+ const assertCabin=(car,neutral,label)=>{const limits=car.diagnostics?.().interiorVoid||{min:[-.775,.4,-1.62],max:[.775,car.anchors.roofBottom,.78]},actual=snapshot();for(const [axis,index]of [['x',0],['y',1],['z',2]]){assert(actual.bounds.min[axis]>=Math.min(limits.min[index],neutral.bounds.min[axis])-1e-6,label+' cabin lower '+axis);assert(actual.bounds.max[axis]<=Math.max(limits.max[index],neutral.bounds.max[axis])+1e-6,label+' cabin upper '+axis)}return actual;};
+ let passengers=0,cachedRecertifications=0,coldVertexTransforms=0;
+ try{
+  for(const fixture of fixtures){const car=await fixture.create();for(const seat of car.seats||VEHICLE_SEATS){if(seat.canDrive)continue;passengers++;
+   for(const normal of [{x:0,z:1},{x:0,z:-1},{x:1,z:0},{x:-1,z:0}]){const reaction=sampleFor(normal);
+    poseAt(car,seat,-.56);const seedBefore=skinnedVertexTransforms,seed=adapter.apply(hero,car,seat.id,reaction),seedTransforms=skinnedVertexTransforms-seedBefore;coldVertexTransforms+=seedTransforms;assert(seed.applied&&!seed.cached,fixture.id+' '+seat.id+' left lock cold certificate');
+    for(const steer of [0,.56]){poseAt(car,seat,steer);const neutral=snapshot(),freshAdapter=createVehicleOccupantImpactPose(T),fresh=freshAdapter.apply(hero,car,seat.id,reaction);assert(fresh.applied&&!fresh.cached,fixture.id+' '+seat.id+' fresh reference');const freshPose=assertCabin(car,neutral,fixture.id+' '+seat.id+' fresh '+steer);
+     poseAt(car,seat,steer);const cachedBefore=skinnedVertexTransforms,cached=adapter.apply(hero,car,seat.id,reaction),cachedTransforms=skinnedVertexTransforms-cachedBefore;assert(cached.applied&&cached.cached,fixture.id+' '+seat.id+' reused passenger certificate at '+steer);assert.equal(cachedTransforms,0,fixture.id+' '+seat.id+' reused pose has no skinned-vertex certification');assert.equal(cached.gain,fresh.gain,fixture.id+' '+seat.id+' exact gain');assert.equal(cached.headOnly,fresh.headOnly,fixture.id+' '+seat.id+' exact torso/head mode');const cachedPose=assertCabin(car,neutral,fixture.id+' '+seat.id+' cached '+steer);compareSnapshots(freshPose,cachedPose,fixture.id+' '+seat.id+' '+steer);cachedRecertifications++;
+    }
+    for(const [node,scale]of originalScales)assert(node.scale.distanceTo(scale)<1e-8,'no scale modification');for(const [bone,length]of originalLengths)assert(Math.abs(bone.getWorldPosition(new T.Vector3()).distanceTo(bone.parent.getWorldPosition(new T.Vector3()))-length)<1e-5,'bone length');
+   }
+  }}
+ }finally{T.SkinnedMesh.prototype.applyBoneTransform=originalApplyBoneTransform}
+ assert.equal(passengers,27);assert.equal(cachedRecertifications,27*4*2);assert(coldVertexTransforms>0);console.log(JSON.stringify({passengers,cachedRecertifications,coldVertexTransforms,certificate:'passenger steering does not add a skinned-vertex certification'}));
+});

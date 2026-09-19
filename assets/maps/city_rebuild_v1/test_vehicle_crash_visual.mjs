@@ -7,6 +7,7 @@ const asset=name=>new URL(name,import.meta.url);
 const THREE=await import(pathToFileURL(process.env.MAFIOZY_THREE||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
 const {createDemoCar}=await import(asset('car_drive.mjs'));
 const {createVehicleCrash,subdivideVehicleGeometry}=await import(asset('vehicle_crash.mjs'));
+const {sampleCrashDeformation}=await import(asset('vehicle_crash_mechanics.mjs'));
 const {createVehicleDamage}=await import(asset('vehicle_damage.mjs'));
 const {createTyreDamage}=await import(asset('tyre_damage.mjs'));
 const {createVehicleTrunk}=await import('./vehicle_trunk.mjs');
@@ -68,6 +69,27 @@ test('real red car crushes visibly, preserves material handles and resets author
     for(const [mesh,original]of f.geometry)assert(mesh.geometry===original,'repair restores exact authored BufferGeometry: '+mesh.name);
     assert.equal(f.crash.stats().impacts,0);assert.equal(f.crash.stats().debris,0);
   }finally{f.dispose()}
+});
+
+test('cached structural cells retain the exact trilinear panel deformation after repeated impacts',()=>{
+ const f=fixture();try{
+  const hood=f.car.object.getObjectByName('Hood_lid'),source=f.geometry.get(hood).clone();
+  assert(f.crash.contactImpact(front(14)));
+  assert(f.crash.contactImpact({point:{x:.48,y:.78,z:2.08},normal:{x:.24,y:0,z:.97},impactSpeed:11,slideSpeed:0}));
+  const support=subdivideVehicleGeometry(THREE,source,.15,9000),actual=hood.geometry.attributes.position,base=support.attributes.position;
+  assert.equal(actual.count,base.count,'cached binding keeps every authored support vertex');
+  f.car.object.updateWorldMatrix(true,true);
+  const toCar=new THREE.Matrix4().copy(f.car.object.matrixWorld).invert().multiply(hood.matrixWorld),toMesh=new THREE.Matrix3().setFromMatrix4(toCar).invert(),point=new THREE.Vector3(),offset=new THREE.Vector3();
+  for(const index of [0,Math.floor(actual.count/3),actual.count-1]){
+   point.fromBufferAttribute(base,index).applyMatrix4(toCar);
+   const d=sampleCrashDeformation(f.crash.state,point);
+   offset.set(d.x,d.y,d.z).applyMatrix3(toMesh);
+   close(actual.getX(index),base.getX(index)+offset.x,2e-6);
+   close(actual.getY(index),base.getY(index)+offset.y,2e-6);
+   close(actual.getZ(index),base.getZ(index)+offset.z,2e-6);
+  }
+  support.dispose();
+ }finally{f.dispose()}
 });
 
 test('pristine crash adapters skip the structural solver without changing state',()=>{

@@ -1,5 +1,42 @@
 import assert from 'node:assert/strict';
 import {planBlastKnockback as plan,stepBlastKnockback as step} from './vehicle_blast_motion.mjs';
+import {movePedestrian} from './walk_motion.mjs';
+const REFERENCE_STEP=1/120,REFERENCE_RADIUS=.58,REFERENCE_GRAVITY=18;
+// Pre-allocation reference for the former implementation.  This checks the
+// public state after every fixed step, not just the landing result.
+function referenceStep(body,dt,allowed=()=>true,{groundHeight,ceilingHeight}={}){
+ if(!body)return null;
+ if(body.done||!Number.isFinite(dt)||dt<=0)return {...body};
+ let s={...body},remaining=(s.remainder??0)+Math.min(.25,dt);
+ const floorAt=(x,z,fallback)=>{const value=groundHeight?.(x,z);return Number.isFinite(value)?value:fallback};
+ while(remaining+1e-10>=REFERENCE_STEP&&!s.done){
+  remaining-=REFERENCE_STEP;
+  const currentFloor=floorAt(s.x,s.z,s.baseY),grounded=s.y<=currentFloor+1e-8&&s.vy<=0;
+  const speed=Math.hypot(s.vx,s.vz),nextSpeed=Math.max(0,speed-(grounded?8:.4)*REFERENCE_STEP),ratio=speed?nextSpeed/speed:0;
+  let vx=s.vx*ratio,vz=s.vz*ratio;
+  const delta={x:(s.vx+vx)*.5*REFERENCE_STEP,z:(s.vz+vz)*.5*REFERENCE_STEP};
+  let moved=movePedestrian(s,delta,allowed,REFERENCE_RADIUS);
+  let bx=Math.abs(moved.x-s.x-delta.x)>1e-6,bz=Math.abs(moved.z-s.z-delta.z)>1e-6;
+  if(bx)vx=0;if(bz)vz=0;
+  let vy=s.vy-REFERENCE_GRAVITY*REFERENCE_STEP,y=s.y+(s.vy+vy)*.5*REFERENCE_STEP;
+  let baseY=floorAt(moved.x,moved.z,s.baseY);
+  if(groundHeight&&baseY>Math.max(y,currentFloor)){
+   const rise=baseY-Math.max(y,currentFloor),v2=vx*vx+vz*vz,cost=2*REFERENCE_GRAVITY*rise;
+   if(cost>v2){moved={x:s.x,z:s.z};baseY=currentFloor;vx=0;vz=0;bx=true;bz=true}
+   else {const uphillRatio=v2?Math.sqrt(Math.max(0,v2-cost)/v2):0;vx*=uphillRatio;vz*=uphillRatio}
+  }
+  if(y<=baseY){y=baseY;vy=0}
+  const ceiling=ceilingHeight?.(moved.x,moved.z);
+  let ceilingBlocked=false,cramped=false;
+  if(Number.isFinite(ceiling)){
+   const maxY=Math.max(baseY,ceiling-.65);cramped=ceiling-baseY<.65;
+   if(y>maxY){y=maxY;vy=Math.min(0,vy);ceilingBlocked=true}
+  }
+  const elapsed=Math.min(s.duration,s.elapsed+REFERENCE_STEP),progress=elapsed/s.duration,done=progress>=1-1e-9&&y<=baseY+1e-8&&vy<=0;
+  s={...s,x:moved.x,z:moved.z,y,baseY,vx:done?0:vx,vy:done?0:vy,vz:done?0:vz,elapsed,progress:done?1:Math.min(.999,progress),done,blocked:s.blocked||bx||bz,ceilingBlocked:(s.ceilingBlocked??false)||ceilingBlocked,cramped};
+ }
+ s.remainder=s.done?0:Math.max(0,remaining);return s;
+}
 const blast={point:{x:0,y:0,z:0},power:1,radius:10};
 const point={x:2,y:0,z:0};
 const normal=plan(point,blast),strong=plan(point,{...blast,power:4}),far=plan({x:8,y:0,z:0},blast);
@@ -81,3 +118,16 @@ for(let i=0;i<500;i++){
  assert.deepEqual(outside,without);
 }
 console.log('PASS: powerful indoor blast ceiling clearance .65, low rooms floor-safe, no energy gain, outside null unchanged');
+const parityCases=[
+ {dt:1/30,allowed:()=>true,options:{}},
+ {dt:1/60,allowed:(x,z)=>x<4||z<-.25,options:{groundHeight:x=>.12*(x-2)}},
+ {dt:1/120,allowed:()=>true,options:{groundHeight:x=>x>3?20:0,ceilingHeight:()=>.8}},
+];
+for(const {dt,allowed,options} of parityCases){
+ let actual=plan({x:2,y:0,z:0},{...blast,power:4}),reference=plan({x:2,y:0,z:0},{...blast,power:4});
+ for(let frame=0;frame<360;frame++){
+  actual=step(actual,dt,allowed,options);reference=referenceStep(reference,dt,allowed,options);
+  assert.deepEqual(actual,reference,`mutable fixed-step result differs at frame ${frame}, dt ${dt}`);
+ }
+}
+console.log('PASS: exact state parity with pre-allocation fixed-step reference: flat, wall/slope and cramped ceiling');

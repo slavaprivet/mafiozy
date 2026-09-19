@@ -1,0 +1,33 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import * as module from './mercenary_core.mjs';
+const world=fs.readFileSync(new URL('../../../world.html',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+const extract=name=>{const a=world.indexOf('function '+name+'(');assert(a>=0,name);return world.slice(a,world.indexOf('\n}',a)+2);};
+const script=fs.readFileSync(new URL('./mercenary_world.js',import.meta.url),'utf8').replace("import(new URL('./mercenary_core.mjs',scriptUrl).href)",'Promise.resolve(module)'),fixtureText=fs.readFileSync(new URL('./test_mercenary_rally_actions.mjs',import.meta.url),'utf8');
+const sourceFixture=Function('vm','module','script','assert',fixtureText.slice(fixtureText.indexOf('async function fixture('),fixtureText.indexOf('\nfor(const [profession'))+';return fixture;')(vm,module,script,assert);
+async function fixture(){const f=await sourceFixture({qa:true}),reports=[],dispatches=[];Object.assign(f.ctx,{Math:Object.assign(Object.create(Math),{random:()=>0}),_characterSkills:{stealth:0},_districtWitnessChance:x=>x,_lastDistrictCrimeRepAt:0,_districtRepAdd(){},_recoverNpcFromCollision(){},_npcLifeEligible:()=>true,_npcCanSeePoint:()=>true,_npcCancelHelping(){},_npcCancelSocial(){},_npcSpeechSlots:()=>2,_npcPanicStyle:()=> 'cower',_npcStableUnit:()=>0,NPC_LIFE_EVENT_PRIORITY:{bullet:60,fight:20},NPC_LIFE_STATES:{PANIC:'panic',COWER:'cower'},_npcRememberEvent(){},_npcSetLifeState(){},_clearNpcRoute(){},_lastSnitchReportAt:0,ws:{readyState:1,send:s=>reports.push(JSON.parse(s))},showToast(){},_npcDispatchSuspicion:(...args)=>dispatches.push(args)});
+ vm.runInContext('let _npcSuspicionSerial=0;const _npcPendingSuspicion=new Map();',f.ctx);
+ for(const name of ['_npcWitnessAble','_npcCanWitnessEvent','_npcIsIntimidated','_npcFleeIntimidatedWitness','_npcApplyIntimidation','_npcBeginPanic','markNpcSnitch','_npcQueueWitnessCall','_npcAdvanceWitnessRetreat','triggerWitnessChain','_npcCancelInterruptedWitness','_npcFinishWitnessCall','_snitchReport','_npcReportSuspicion','_npcReceiveSuspicionReport','_npcActionCrime'])vm.runInContext(extract(name),f.ctx);
+ const n=f.ctx.NPCS[0];n._arc={panicMult:2};return {...f,n,reports,dispatches,now:()=>f.ctx.performance.now()};}
+
+test('actual bruiser action cancels an unsent pending police call; further nearby crime causes flee instead',async()=>{
+ const f=await fixture(),m=f.recruit('bruiser'),n=f.n;n.r=m.r;n.c=m.c;f.api.bindTargets({canMove:()=>true});f.ctx.markNpcSnitch(n,'Звоню!');n._witnessCallUntil=f.now()+6000;assert(n.snitching);
+ const target=f.api.getTarget(n.id);assert(f.api.command('intimidate',target).ok);for(let i=0;i<90;i++)f.tick(.05);assert(n._intimidatedUntil>f.now()+55000);assert.equal(!!n.snitching,false);assert.equal(n._witnessCallUntil,0);assert.equal(n._witnessStage,'intimidated');assert.equal(n._panicStyle,'flee');
+ f.ctx._npcFinishWitnessCall(n,f.now()+7000);f.ctx.NPCS=[n];f.ctx.triggerWitnessChain(n.r,n.c,10,{snitchChance:1});assert.equal(!!n.snitching,false);assert.equal(n._panicStyle,'flee');assert.equal(n._panicCowerUntil,0);assert.equal(n._panicCallUntil,0);assert.equal(f.reports.length,0);assert(n.panicUntil>f.now());const visible=f.api.getTarget(n.id);assert.equal(visible.fearActive,true);assert(visible.fearExpiresAt>f.ctx.Date.now()+55000);n.hp=0;assert.equal(f.api.getTarget(n.id).fearActive,false);
+});
+
+test('fear expires at 60 seconds despite ongoing danger; only another successful intimidation restarts it',async()=>{
+ const f=await fixture(),n=f.n,normal={...n,id:'resident_normal'};f.ctx._npcApplyIntimidation(n,1,2,f.now());const first=n._intimidatedUntil;assert.equal(first,f.now()+60000);
+ const visible=f.api.getTarget(n.id),expiry=visible.fearExpiresAt;
+ for(const elapsed of [1000,30000,59000]){const at=f.now()+elapsed;assert(f.ctx._npcIsIntimidated(n,at));f.ctx._npcBeginPanic(n,at,at+5000,1,2,'bullet');assert.equal(f.ctx._npcQueueWitnessCall(n,at,1,2,'crime'),false);assert.equal(n._intimidatedUntil,first,'neither gunfire nor a new crime can extend fear');assert.equal(n._panicStyle,'flee');}
+ assert.equal(f.api.getTarget(n.id).fearExpiresAt,expiry,'published marker keeps the same deadline');assert.equal(f.ctx._npcIsIntimidated(n,first),false);assert.equal(f.ctx._npcQueueWitnessCall(n,first,1,2),true,'normal witness behavior resumes exactly at expiry');
+ assert(f.ctx._npcApplyIntimidation(n,1,2,first+1000));assert.equal(n._intimidatedUntil,first+61000,'a second successful action may restart the minute');
+ f.ctx.NPCS=[normal];f.ctx.markNpcSnitch(normal);normal._witnessCallUntil=f.now();f.ctx._npcFinishWitnessCall(normal,f.now());assert.equal(f.reports.length,1);assert.equal(normal._witnessStage,'reported');
+});
+
+test('completed and already submitted police reports survive intimidation, without additional sends',async()=>{
+ const f=await fixture(),n=f.n;f.ctx.markNpcSnitch(n);n._witnessCallUntil=f.now();assert(f.ctx._npcFinishWitnessCall(n,f.now()));assert.equal(f.reports.length,1);f.ctx._npcApplyIntimidation(n,1,2,f.now());assert.equal(n._witnessStage,'reported');assert.equal(f.reports.length,1);assert.equal(f.ctx._snitchReport(n),false);assert.equal(f.reports.length,1);
+ const asyncNpc={id:'resident_async',r:2,c:2,hp:80,_arc:{panicMult:2}};f.ctx.NPCS.push(asyncNpc);f.ctx.markNpcSnitch(asyncNpc);asyncNpc._witnessReportKind='weapon_display';asyncNpc._witnessSourceR=2;asyncNpc._witnessSourceC=3;f.ctx._npcReportSuspicion(asyncNpc);const packet=f.reports.at(-1);assert.equal(packet.t,'civilian_report');f.ctx._npcApplyIntimidation(asyncNpc,1,2,f.now());assert.equal(asyncNpc.snitching,false);assert.equal(asyncNpc._witnessStage,'report_pending');const sent=f.reports.length;f.ctx._npcReportSuspicion(asyncNpc);assert.equal(f.reports.length,sent);f.ctx._npcReceiveSuspicionReport({nonce:packet.d.nonce,ok:true});assert.equal(asyncNpc._witnessReportReceipt,'server-accepted-observation');assert.equal(f.dispatches.length,1);
+});
+
+test('alternate witness entry points suppress calling and forced panic chooses flight',async()=>{
+ const f=await fixture(),n=f.n;f.ctx._npcApplyIntimidation(n,1,2,f.now());f.ctx.markNpcSnitch(n);assert.equal(!!n.snitching,false);assert.equal(f.ctx._npcActionCrime(n),false);assert.equal(f.ctx._npcQueueWitnessCall(n,f.now(),1,2,'heard_gunfire'),false);n.snitching=true;n._witnessStage='escaping';f.ctx._npcAdvanceWitnessRetreat(n,f.now());assert.equal(!!n.snitching,false);assert.equal(n._witnessStage,'intimidated');f.ctx._npcBeginPanic(n,f.now(),f.now()+5000,1,2,'bullet');assert.equal(n._panicStyle,'flee');assert.equal(f.reports.length,0);
+});

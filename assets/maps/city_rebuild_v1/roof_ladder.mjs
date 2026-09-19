@@ -13,6 +13,7 @@ export function roofLadderDescriptor({id,lower,upper,outward,width=.8,rungSpacin
 }
 export function createRoofLadder(THREE,options){
   const descriptor=roofLadderDescriptor(options),{lower,upper,normal,right,width,rungSpacing}=descriptor;
+  const wallTieDepth=Math.max(.48,Number(options?.wallTieDepth)||.48);
   const object=new THREE.Group();object.name='RoofLadder_'+descriptor.id;object.userData.roofLadderId=descriptor.id;
   const material=new THREE.MeshStandardMaterial({color:0x596462,roughness:.7,metalness:.45});
   const railGeometry=new THREE.CylinderGeometry(.038,.038,1,8),rungGeometry=new THREE.CylinderGeometry(.028,.028,1,8);
@@ -26,7 +27,7 @@ export function createRoofLadder(THREE,options){
     bar({x,y:lower.y+.05,z},{x,y:upper.y+1.05,z},railGeometry);
     bar({x,y:upper.y+1.05,z},{x:upper.x+right.x*width*.5*sign,y:upper.y+1.05,z:upper.z+right.z*width*.5*sign},railGeometry);
     // Short wall ties, below the roof handrails; ladder route is unchanged.
-    for(let y=lower.y+.5;y<upper.y-.15;y+=2.2)bar({x,y,z},{x:x-normal.x*.48,y,z:z-normal.z*.48},railGeometry);
+    for(let y=lower.y+.5;y<upper.y-.15;y+=2.2)bar({x,y,z},{x:x-normal.x*wallTieDepth,y,z:z-normal.z*wallTieDepth},railGeometry);
   }
   for(let y=lower.y+.18;y<=upper.y+.05;y+=rungSpacing)bar({x:center.x-right.x*width*.5,y,z:center.z-right.z*width*.5},{x:center.x+right.x*width*.5,y,z:center.z+right.z*width*.5},rungGeometry);
 
@@ -37,6 +38,8 @@ export function createRoofLadder(THREE,options){
   for(const sign of[-1,1])marker({x:center.x+right.x*width*.5*sign,y:lower.y+.025,z:center.z+right.z*width*.5*sign},[.16,.05,.2],0x887b60);
   for(const [end,direction]of[[lower,1],[upper,-1]]){
     const fn={x:normal.x*direction,z:normal.z*direction},fr={x:fn.z,z:-fn.x},origin={x:end.x+right.x*.93-normal.x*.38,y:end.y+(direction===1?1.35:.72),z:end.z+right.z*.93-normal.z*.38};
+    const signDepth=Number(options?.wallSignDepths?.[direction===1?'lower':'upper'])||.38;
+    origin.x=end.x+right.x*.93-normal.x*direction*signDepth;origin.z=end.z+right.z*.93-normal.z*direction*signDepth;
     const point=(x,y,front=.046)=>({x:origin.x+fr.x*x+fn.x*front,y:origin.y+y,z:origin.z+fr.z*x+fn.z*front});
     marker(origin,[.5,.65,.055],0x345e59,0,fn);
     // Roof silhouette above a vertical arrow (up at base, down at roof).
@@ -47,8 +50,8 @@ export function createRoofLadder(THREE,options){
     // Sign fastener reaches the neighbouring ladder rail at each endpoint.
     bar({x:origin.x,y:origin.y,z:origin.z},{x:end.x+right.x*width*.5-normal.x*(direction===1?.38:0),y:direction===1?origin.y:end.y+1.05,z:end.z+right.z*width*.5-normal.z*(direction===1?.38:0)},railGeometry);
   }
-  for(const [geometry,matrices] of batches){const mesh=new THREE.InstancedMesh(geometry,material,matrices.length);matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.ladderDecor=true;object.add(mesh);}
-  const markerMesh=new THREE.InstancedMesh(markerGeometry,markerMaterial,markers.length);markers.forEach((m,i)=>{markerMesh.setMatrixAt(i,m.matrix);markerMesh.setColorAt(i,new THREE.Color(m.color))});markerMesh.instanceMatrix.needsUpdate=true;markerMesh.instanceColor.needsUpdate=true;markerMesh.computeBoundingBox();markerMesh.computeBoundingSphere();markerMesh.castShadow=markerMesh.receiveShadow=true;markerMesh.name='RoofAccessSigns';markerMesh.userData.ladderDecor=true;object.add(markerMesh);
+  for(const [geometry,matrices] of batches){const mesh=new THREE.InstancedMesh(geometry,material,matrices.length);matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();mesh.castShadow=true;mesh.receiveShadow=true;mesh.userData.ladderDecor=true;mesh.userData.worldBlastStaticBounds=true;object.add(mesh);}
+  const markerMesh=new THREE.InstancedMesh(markerGeometry,markerMaterial,markers.length);markers.forEach((m,i)=>{markerMesh.setMatrixAt(i,m.matrix);markerMesh.setColorAt(i,new THREE.Color(m.color))});markerMesh.instanceMatrix.needsUpdate=true;markerMesh.instanceColor.needsUpdate=true;markerMesh.computeBoundingBox();markerMesh.computeBoundingSphere();markerMesh.castShadow=markerMesh.receiveShadow=true;markerMesh.name='RoofAccessSigns';markerMesh.userData.ladderDecor=true;markerMesh.userData.worldBlastStaticBounds=true;markerMesh.userData.staticRenderMaterialImmutable=true;object.add(markerMesh);
   object.updateMatrixWorld(true);
   let disposed=false;return {object,descriptor,dispose(){if(disposed)return;disposed=true;object.removeFromParent();for(const mesh of object.children)mesh.dispose();railGeometry.dispose();rungGeometry.dispose();markerGeometry.dispose();markerMaterial.dispose();material.dispose();}};
 }
@@ -68,7 +71,15 @@ export function createLadderClimbController({validatePosition,validateSegment,sp
   const context=(s,mode='climb')=>({ladder:s.ladder,mode,bodyHeight:1.9,radius:.33});
   const roofPoint=ladder=>({x:ladder.upper.x-ladder.normal.x*stepOff,y:ladder.upper.y,z:ladder.upper.z-ladder.normal.z*stepOff});
   function clear(a,b,ctx){if(!validateSegment(a,b,ctx))return false;const steps=Math.max(1,Math.ceil(distance(a,b)/.18));for(let i=0;i<=steps;i++)if(!validatePosition(lerp(a,b,i/steps),ctx))return false;return true;}
-  function prompt(point,ladders){if(state||!finite(point))return null;let best=null;for(const ladder of ladders)for(const end of ['lower','upper']){const d=distance(point,ladder[end]);if(d<=reach&&(!best||d<best.distance))best={ladder,end,distance:d,text:end==='lower'?'E — подняться на крышу':'Ctrl — быстро спуститься'};}return best;}
+  function prompt(point,ladders){if(state||!finite(point))return null;let best=null;for(const ladder of ladders)for(const end of ['lower','upper']){const d=distance(point,ladder[end]);
+    // The roof endpoint is vertically gated: a player standing on the ground
+    // under a tall ladder must never receive a misleading Ctrl prompt.  Ctrl
+    // becomes available only in the roof approach band, where mounting the
+    // ladder is physically possible; the lower endpoint keeps the normal E
+    // interaction distance.
+    const upperApproach=end==='upper'&&point.y>=ladder.upper.y-1.15&&d<=Math.min(reach,.95);
+    if((end==='lower'?d<=reach:upperApproach)&&(!best||d<best.distance))best={ladder,end,distance:d,text:end==='lower'?'E — подняться на крышу':'Ctrl — быстро спуститься'};}
+  return best;}
   function pose(s){const progress=s.direction>0&&!s.cancelling?Math.max(0,Math.min(1,(s.travelled-s.exitStart)/Math.max(.01,s.total-s.exitStart))):0;return sampleLadderPose(s.ladder,s.position,s.travelled,s.direction,{sliding:s.sliding,dismount:progress});}
   function begin(point,ladder,end,{sliding=false}={}){if(state||!finite(point))return false;end??=distance(point,ladder.lower)<=distance(point,ladder.upper)?'lower':'upper';if(!['lower','upper'].includes(end)||distance(point,ladder[end])>reach)return false;
     const route=ladder.path.map(clone);if(stepOff>0)route.push(roofPoint(ladder));

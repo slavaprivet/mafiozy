@@ -1,12 +1,13 @@
 import {captureNpcContactAnchor} from './npc_contact_anchor.mjs';
 // Presentation contact only. The source world decides whether damage is accepted.
 export function createNpcContactRay({THREE,getActors,obstacles=()=>[]}){
- const ray=new THREE.Raycaster(),a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),rayDirection=new THREE.Vector3(),actorCenter=new THREE.Vector3(),barycentric=new THREE.Vector3(),headPoint=new THREE.Vector3(),surfaces=[],owners=new Map();
+ const ray=new THREE.Raycaster(),a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),rayDirection=new THREE.Vector3(),actorCenter=new THREE.Vector3(),barycentric=new THREE.Vector3(),headPoint=new THREE.Vector3(),surfaces=[],owners=new Map(),headAnchors=new WeakMap();
+ const headFor=object=>{let head=headAnchors.get(object);if(!head){head=object.getObjectByName('head');if(head)headAnchors.set(object,head);}return head;};
  const visible=node=>{for(let n=node;n;n=n.parent)if(!n.visible)return false;return true;};
  const headInfluence=(bones,indices,weights,vertex,blend)=>{
   let total=0;if(bones[indices.getX(vertex)]?.name==='head')total+=weights.getX(vertex)*blend;if(bones[indices.getY(vertex)]?.name==='head')total+=weights.getY(vertex)*blend;if(bones[indices.getZ(vertex)]?.name==='head')total+=weights.getZ(vertex)*blend;if(bones[indices.getW(vertex)]?.name==='head')total+=weights.getW(vertex)*blend;return total;
  };
- return function contact({origin,direction,range=100}){
+ return function contact({origin,direction,range=100,aimOnly=false}){
   if(!origin||!direction||![origin.x,origin.y,origin.z,direction.x,direction.y,direction.z,range].every(Number.isFinite)||range<=0||direction.lengthSq()<1e-12)return null;
   ray.set(origin,rayDirection.copy(direction).normalize());ray.near=0;ray.far=range;
   // A contact query is synchronous. Reuse its short-lived collector across
@@ -15,7 +16,12 @@ export function createNpcContactRay({THREE,getActors,obstacles=()=>[]}){
   for(const record of getActors()){
    if(!record.object||!visible(record.object))continue;
    // A generous broad phase avoids skinning distant crowds for every shot.
-   record.object.getWorldPosition(actorCenter);actorCenter.y+=1;const distance=ray.ray.distanceSqToPoint(actorCenter);
+   // Seat binding preserves the authority root but moves visualPivot/skin to
+   // the real vehicle. Cache the bone identity, never its changing world pose.
+   const broadHead=headFor(record.object);
+   if(broadHead){broadHead.getWorldPosition(actorCenter);actorCenter.y-=.6;}
+   else {record.object.getWorldPosition(actorCenter);actorCenter.y+=1;}
+   const distance=ray.ray.distanceSqToPoint(actorCenter);
    if(distance>9)continue;
    record.object.updateWorldMatrix(true,false);
    // SkinnedMesh.updateMatrixWorld refreshes bindMatrixInverse; updateWorldMatrix
@@ -26,16 +32,17 @@ export function createNpcContactRay({THREE,getActors,obstacles=()=>[]}){
     surfaces.push(mesh);owners.set(mesh,record);
    });
   }
-  const hit=ray.intersectObjects(surfaces,false)[0];if(!hit)return null;
-  const blockers=obstacles();for(const obstacle of blockers)obstacle.updateWorldMatrix(true,true);
+  const hit=ray.intersectObjects(surfaces,false)[0];if(!hit&&!aimOnly)return null;
+  const blockers=obstacles(origin,rayDirection,hit?.distance??range);for(const obstacle of blockers)obstacle.updateWorldMatrix(true,true);
   const wall=ray.intersectObjects(blockers,true).find(h=>visible(h.object));
+  if(aimOnly){const nearest=wall&&(!hit||wall.distance<=hit.distance)?wall:hit;return nearest?{point:nearest.point,distance:nearest.distance}:null;}
   if(wall&&wall.distance<=hit.distance)return null;
   const mesh=hit.object,face=hit.face;
   mesh.getVertexPosition(face.a,a);mesh.getVertexPosition(face.b,b);mesh.getVertexPosition(face.c,c);
   a.applyMatrix4(mesh.matrixWorld);b.applyMatrix4(mesh.matrixWorld);c.applyMatrix4(mesh.matrixWorld);
   THREE.Triangle.getBarycoord(hit.point,a,b,c,barycentric);
   const normal=b.sub(a).cross(c.sub(a)).normalize();if(normal.dot(ray.ray.direction)>0)normal.negate();
-  const owner=owners.get(mesh),head=owner.object.getObjectByName('head');
+  const owner=owners.get(mesh),head=headFor(owner.object);
   const hasHead=!!head;if(hasHead)head.getWorldPosition(headPoint);
   // The head joint sits below the face. A fixed radius mislabels the forehead
   // as torso; use the actual hit triangle's interpolated skin weights instead.

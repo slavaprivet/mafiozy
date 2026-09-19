@@ -1,5 +1,7 @@
 # Художник 16 — преемник Художника 14
 
+13 сентября 2026: по прямому поручению пользователя работа передана в «Художник 17» `01a097a1-5e6a-7890-8964-7f1a060b32ca` (same-directory fork). Актуальное состояние незавершённой работы и LIVE findings: `docs/ai/ARTIST17_MEMORY.md`. Старую задачу16 не продолжать параллельно. Субагенты16 завершили и освободили файлы.
+
 Создан 10 сентября 2026 по прямому запросу пользователя: «продолжи новый чат в художник 16. чтобы ты перешел туда со своими знаниями».
 
 - Новая задача: `01a08865-ebd3-7d12-a0d5-5312c76163fd`, название **Художник 16**.
@@ -48,6 +50,12 @@ NPC вводятся в основную игру **как есть**: «вво�
 
 ## Проверки и честные границы
 
+### Обязательная производительность каждой доработки
+
+10 сентября пользователь потребовал сразу оптимизировать изменения каждому автору; актуальный раздел закреплён в `AGENTS.md`. Для наших следующих изменений NPC/анимаций/оружия измерять до/после в сопоставимой загруженной общей сцене: камера, население, настройки и прогрев одинаковые; frame p50/p95, calls/triangles и стоимость соответствующего update. Свои регрессии устранять в своей области, сохраняя механику, коллизии и согласованный внешний вид. Handoff содержит сценарий, цифры и пределы проверки; без LIVE прямо писать «производительность общей сцены не проверена». Тяжёлые прогоны по очереди через координатора. Это правило не требует повторно запускать завершённые задачи или менять чужие файлы.
+
+Координатор15 сообщил, что checkpoint `3442bf0` с текущей NPC-интеграцией отправлен в `origin/main`; самостоятельная проверка удалённой ветки Художником16 ещё не выполнялась. Координатор продолжает единственный GPU-прогон; вторую сцену не открывать до согласования.
+
 PASS:21test_npc_population, all14test_npc_weapon_batches (world triangles/normals/UV/materials/bounds/anchors/dynamic/ownership), test_npc_lod, initial placement, native water/scene, fair route queue, route budget, source frame pace, purposeful plans, police foot/backup/custody/stress, witnesses, bus identity/foot.
 
 Живьём в нашей сцене подтверждён шаг полицейского citycop_6 около1,22–1,53м/с, также citycop_10. Гражданские53/90/66 ранее стояли seek_shop, двое у/в воде. После этого применены продолжаемое размещение и fairness/resume; tests прошли, координатор подтвердил отсутствие pending/unresolved. **Полный последующий визуальный цикл каждого гражданского не проверен:** пользователь распорядился вводить как есть.
@@ -59,3 +67,30 @@ PASS:21test_npc_population, all14test_npc_weapon_batches (world triangles/normal
 Собственная старая QA вкладка browser1/tab5 сначала переведена в about:blank, затем закрыта, чтобы не мешать профилю координатора. Переносимых CUA bindings нет. Не открывать вторую тяжёлую сцену во время его GPU/CPU замеров. При нужде сначала согласовать окно проверки; работающий экземпляр игры должен быть один. Подробности новой вкладки узнавать через текущие инструменты, не считать старыеID валидными.
 
 Прочитать эту память, основной отчёт, актуальный арт-канон и память координатора; сообщить ему о смене14→16 и сверить живой статус. Продолжать утверждённую область в общей игре; не вводить новые механики от себя и не запускать новую публикацию без проверки текущей общей сборки. Пользователь получает новый чат с полной завершённой историей, а эта память — краткая карта состояния.
+
+
+## Продолжение 12 сентября — NPC, живой урон и восприятие
+
+Актуальный общий отчёт: `docs/city-rebuild/NPC_WALK_INTEGRATION_20260912_HANDOFF.md`. Прочитать его и четыре scoped отчёта перед продолжением. Координатор16 `01a08cd6-baa1-7340-bca4-9be416c9e580` ведёт mercenary_*; наши правки сохраняют его hooks и latest pose clock/vehicle batches. Subagents npc_mobility/npc_perception/npc_damage завершили scoped навигацию/посадку/воду, FOV/звонки/полицию и реальные контакты/раны. Ruflo отсутствовал, файловая память.
+
+NPC в shared world/walk, native land/road authority убирает старые невидимые стены. Native LOS учитывает height/stance, static index/cars/terrain; полиция distinguishes seen/heard/last seen. Local special NPC выходят из воды физически. Door/seat interpolation, own-car-only exclusion, vehicle native obstacle guard. Серверный civilian_suspicion observe-only + police helper FOV/legacyLOS проверены CPU, backend не запускался. Server resident registry/native geometry отсутствуют; server worldCops shore routing не подменять клиентским AI.
+
+В живой общей сцене239/239: контролируемые одиночные выстрелы60→36→12→1HP, каждый24урона и1патрон; фактическая рана/кровь10particles/hitreaction. Ранее наблюдали0HP+лежачуюсмерть, прибытие полиции и арест героя (custodyOwned безdeath). ФинальныйmedicalDowned стоял из-за двойного prone+fall наклона; CPUred→green поправил npc_actor neutralbaseдляlocked, HP1жив. Последняяposeстрока ещё не перепроверенаLIVE. Четвёртый выстрел второго цикла не имелconfirmedreceipt, последующее0HP/снятиеactor не выдавать за доказанное добивание.
+
+Source fire теперь физическийcontact не отбрасываетсястарым2Dcone/feetwall; camera reticle converges actualmuzzle. resolveAim ленивый после sourceadmission, rejectedauto attempts0skinqueries. SourceTraffic включёнnativeblockers. Shared файлы не коммитил/pushне делал.
+
+Один GPUслот получил/освободил через16. Игровая CUA browser1/tab2 markDeliverable, URL18538/world.html?direct=1&previewcity=1&render=3d&renderer=walk&weapon=pistol&cash=5000&npccombatqa=1&perfqa=1; tab1 былошибкойconnectionrefused, анеGPU. Monitor18538 PID14816 запущен (проверятьактуальность); этоstaticpreview. Не закрывать игру, не открывать вторуюпрофилируемуюсценудоочереди координатора. Последнийпрофильcurrent:interval111.6/126.4ms,NPC7.4/9,render85.3/94.8,2333calls2.568Mtri; camera/населениеотличаютсяотbaseline, процентулучшенияне установлен. Общие лаги остаются. Очередь16→interior→optimizer, нашGPUосвобождён.
+
+Открыто: повторныйLIVEfinaldownedpose; целыйride/board/drive/exit/interiorcycle; serverauthoritativeNPC/native shore иwitnessgeometry; сложныеобъездыновыхзданийsource roadplanner; общийFPS. Сохранитьбоссов/ID/HP/ownership; невыдаватьCPUзаобщуюигровуюприёмку.
+
+Финальный contact-ray performance audit завершён без production-правок: docs/city-rebuild/NPC_CONTACT_RAY_PERF_AUDIT_20260912.md. Кэш текущих skinned-контактов пока не имеет доказанного exact parity; accepted-only lazy fix сохранён. Все три субагента завершены, GPU повторно не занимали.
+
+## Новый этап 12 сентября — водители, скорая, конвой и спасение
+
+Пользователь увидел пустые машины world, движение по воде/зданиям и застрявшую доставку задержанного. Поручил только настоящих NPC за рулём, исправить скорую и арест, несколько районных тюрем, спасение друга из остановленного конвоя после убийства водителя. Последующее «продолжаем» сохраняет всю задачу.
+
+Текущий checkpoint: docs/city-rebuild/NPC_TRANSPORT_RESCUE_20260912_HANDOFF.md. Все три субагента возобновлены: mobility — ordinary/BUS/fire/tow и native route audit; damage — ambulance, seated contact и actual hospital QA; perception — живые police crew, staged server custody/rescue и source lifecycle. Один transient API403 у всех преодолён followup; частичные файлы сохранены. Не объявлять checkpoint конечной готовностью.
+
+Root добавил npc_vehicle_navigation, npc_service_destinations, npc_detention_access, registerWalkTrafficNavigationResolver и режимы route/road-targets/driver/hospital/detention-access; actual seatId и medical source snapshot, E rescue input/HUD. Seated ray broadphase теперь по actual bone вместо authority root, без кэша позиции. Новые source/body/GLB тесты проходят; финальный LIVE транспорта ещё впереди. Архитектор поставил 3 native районных изолятора и registry; финал 112 draw/copy, старые38 отменены. Другой дорожный этап архитектора — lane-route/road-rules, текущие roadMask маршруты не выдавать за готовые native светофоры/полосы.
+
+CUA теперь ownbrowser1 tabs=[]; oldtab2 not found. Игру пользователя из ambient не закрывать. Очередь GPU — укрытия →16 V/X → наш транспорт; скрытые IAB могут продолжать рендер. Backend18538 статический, authenticated rescue не проверять фиктивным ACK. Confirmed lethal server death не превращать в HP0 alive/раннюю тюрьму. Root других владельцев и файлы не откатывал, commit/push не делал.

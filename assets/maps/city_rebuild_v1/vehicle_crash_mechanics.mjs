@@ -13,9 +13,27 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const finite = (v, fallback = 0) => Number.isFinite(v) ? v : fallback;
 const vec = (x = 0, y = 0, z = 0) => ({x, y, z});
 const length = v => Math.hypot(v.x, v.y, v.z);
-const validVector = v => v && [v.x, v.y, v.z].every(Number.isFinite);
+const validVector = v => !!v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z);
 const distance = (a, b) => Math.hypot(a.x-b.x, a.y-b.y, a.z-b.z);
 const healthLoss = (value, amount) => clamp(value-Math.max(0, amount), 0, 1);
+
+// All detached parts receive the same frame timestep.  Cache the exact
+// exponential coefficients by fixed substep so a twelve-part explosion does
+// not evaluate identical transcendental functions twelve times.  The cache
+// contains only immutable scalar math; no fragment state is shared.
+let debrisDragStep=NaN,debrisDrag=1;
+let debrisContactStep=NaN,debrisContactFriction=1,debrisContactAngularFriction=1;
+function debrisDragForStep(h) {
+  if(h!==debrisDragStep) {debrisDragStep=h;debrisDrag=Math.exp(-.10*h);}
+  return debrisDrag;
+}
+function debrisContactForStep(h) {
+  if(h!==debrisContactStep) {
+    debrisContactStep=h;
+    debrisContactFriction=Math.exp(-4.6*h);
+    debrisContactAngularFriction=Math.exp(-3.8*h);
+  }
+}
 
 // Longitudinal crumple zones have more travel than the passenger cell width.
 // Every accumulated plastic displacement stays inside this finite ellipsoid.
@@ -241,22 +259,30 @@ export function stepCrashMechanics(state,dt,{speed=0,throttle=0}={}) {
   return changed;
 }
 
-function interval(values,value) {
+// Encodes the segment index and interpolation fraction into one number.  The
+// deformation sampler runs once per rendered support vertex after a crash;
+// returning `[index,t]` three times there used to create a large transient
+// array stream on the impact frame.
+function intervalValue(values,value) {
   const v=clamp(value,values[0],values.at(-1));
-  for(let i=0;i<values.length-1;i++)if(v<=values[i+1])return [i,(v-values[i])/(values[i+1]-values[i])];
-  return [values.length-2,1];
+  for(let i=0;i<values.length-1;i++)if(v<=values[i+1])return i+(v-values[i])/(values[i+1]-values[i]);
+  return values.length-1;
 }
 
-export function sampleCrashDeformation(state,point) {
-  if(!validVector(point))return vec();
-  const [xi,xt]=interval(state.grid.x,point.x),[yi,yt]=interval(state.grid.y,point.y),[zi,zt]=interval(state.grid.z,point.z),out=vec();
+export function sampleCrashDeformation(state,point,out=null) {
+  // `out` is optional to preserve the public value-returning API.  Dense
+  // render deformation supplies its existing Vector3 and therefore avoids one
+  // short-lived object per authored vertex on every structural revision.
+  if(!validVector(point)){if(out){out.x=0;out.y=0;out.z=0;return out}return vec()}
+  const xv=intervalValue(state.grid.x,point.x),yv=intervalValue(state.grid.y,point.y),zv=intervalValue(state.grid.z,point.z),xi=Math.min(state.grid.x.length-2,Math.floor(xv)),yi=Math.min(state.grid.y.length-2,Math.floor(yv)),zi=Math.min(state.grid.z.length-2,Math.floor(zv)),xt=xv-xi,yt=yv-yi,zt=zv-zi,result=out||vec();
+  result.x=0;result.y=0;result.z=0;
   for(let z=0;z<2;z++)for(let y=0;y<2;y++)for(let x=0;x<2;x++) {
     const weight=(x?xt:1-xt)*(y?yt:1-yt)*(z?zt:1-zt),node=state.nodes[((zi+z)*3+yi+y)*3+xi+x];
-    out.x+=(node.position.x-node.rest.x)*weight;
-    out.y+=(node.position.y-node.rest.y)*weight;
-    out.z+=(node.position.z-node.rest.z)*weight;
+    result.x+=(node.position.x-node.rest.x)*weight;
+    result.y+=(node.position.y-node.rest.y)*weight;
+    result.z+=(node.position.z-node.rest.z)*weight;
   }
-  return out;
+  return result;
 }
 
 export function crashDriveEffects(state) {
@@ -300,20 +326,35 @@ export function stepCrashDebris(state,dt,groundHeight=()=>0) {
   if(!Number.isFinite(dt)||dt<0)throw Error('Invalid debris timestep');
   if(state.settled||dt===0)return state;
   const elapsed=Math.min(dt,.1),n=Math.max(1,Math.ceil(elapsed*120)),h=elapsed/n;
+  // `h` is fixed for every bounded substep in this call.  Keep the exact
+  // exponential coefficients, but do not recompute the same drag value for
+  // each flying part/substep.  Contact damping remains lazy: an airborne
+  // fragment still performs exactly the one exponential it needed before.
+  const drag=debrisDragForStep(h);
+  let friction,angularFriction;
+  // Debris state is stable throughout an integration call.  Holding these
+  // object references removes repeated dynamic property walks in the tight
+  // multi-part loop; the ground sampler still receives the same post-motion
+  // coordinates in the same order and can observe all in-place updates.
+  const position=state.position,velocity=state.velocity,angularVelocity=state.angularVelocity,quaternion=state.quaternion,radius=state.radius;
   for(let i=0;i<n;i++) {
-    state.age+=h;state.velocity.y-=9.81*h;
-    const drag=Math.exp(-.10*h);
-    state.velocity.x*=drag;state.velocity.z*=drag;
-    state.position.x+=state.velocity.x*h;state.position.y+=state.velocity.y*h;state.position.z+=state.velocity.z*h;
-    const ground=finite(groundHeight(state.position.x,state.position.z),0)+state.radius;
-    if(state.position.y<=ground) {
-      state.position.y=ground;
-      if(state.velocity.y<0)state.velocity.y=Math.abs(state.velocity.y)>.6?-state.velocity.y*.24:0;
-      const friction=Math.exp(-4.6*h);state.velocity.x*=friction;state.velocity.z*=friction;
-      state.angularVelocity.x*=Math.exp(-3.8*h);state.angularVelocity.y*=Math.exp(-3.8*h);state.angularVelocity.z*=Math.exp(-3.8*h);
-      if(length(state.velocity)<.08&&length(state.angularVelocity)<.10)state.restTime+=h;else state.restTime=0;
+    state.age+=h;velocity.y-=9.81*h;
+    velocity.x*=drag;velocity.z*=drag;
+    position.x+=velocity.x*h;position.y+=velocity.y*h;position.z+=velocity.z*h;
+    const ground=finite(groundHeight(position.x,position.z),0)+radius;
+    if(position.y<=ground) {
+      position.y=ground;
+      if(velocity.y<0)velocity.y=Math.abs(velocity.y)>.6?-velocity.y*.24:0;
+      if(friction===undefined) {
+        debrisContactForStep(h);
+        friction=debrisContactFriction;
+        angularFriction=debrisContactAngularFriction;
+      }
+      velocity.x*=friction;velocity.z*=friction;
+      angularVelocity.x*=angularFriction;angularVelocity.y*=angularFriction;angularVelocity.z*=angularFriction;
+      if(length(velocity)<.08&&length(angularVelocity)<.10)state.restTime+=h;else state.restTime=0;
     } else state.restTime=0;
-    const q=state.quaternion,w=state.angularVelocity,x=q.x,y=q.y,z=q.z,qw=q.w;
+    const q=quaternion,w=angularVelocity,x=q.x,y=q.y,z=q.z,qw=q.w;
     // World angular velocity premultiplies orientation.
     q.x+=.5*(w.x*qw+w.y*z-w.z*y)*h;
     q.y+=.5*(-w.x*z+w.y*qw+w.z*x)*h;

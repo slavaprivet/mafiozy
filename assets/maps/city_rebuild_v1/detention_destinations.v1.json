@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "destinations": [
+    {
+      "id": "detention:southside",
+      "name": "Районный изолятор — Южная сторона",
+      "instanceId": "REBUILD-DETENTION-southside",
+      "stop": {
+        "r": 105.36585366,
+        "c": 156.00487805,
+        "angle": 3.14159265
+      },
+      "handoff": {
+        "r": 104.7804878,
+        "c": 156.00487805
+      },
+      "intake": {
+        "r": 102.68292683,
+        "c": 156.00487805
+      },
+      "release": {
+        "r": 103.91219512,
+        "c": 155.59512195
+      },
+      "bookingRadius": 2.5,
+      "nativeReady": true
+    },
+    {
+      "id": "detention:chinatown",
+      "name": "Районный изолятор — Чайный квартал",
+      "instanceId": "REBUILD-DETENTION-chinatown",
+      "stop": {
+        "r": 88.00487805,
+        "c": 4.62195122,
+        "angle": -1.57079633
+      },
+      "handoff": {
+        "r": 88.00487805,
+        "c": 5.2195122
+      },
+      "intake": {
+        "r": 88.00487805,
+        "c": 7.31707317
+      },
+      "release": {
+        "r": 87.59512195,
+        "c": 6.08780488
+      },
+      "bookingRadius": 2.5,
+      "nativeReady": true
+    },
+    {
+      "id": "detention:iron_harbor",
+      "name": "Районный изолятор — Стальная гавань",
+      "instanceId": "REBUILD-DETENTION-iron_harbor",
+      "stop": {
+        "r": 152.59756098,
+        "c": 65.99512195,
+        "angle": 0
+      },
+      "handoff": {
+        "r": 153.2195122,
+        "c": 65.99512195
+      },
+      "intake": {
+        "r": 155.31707317,
+        "c": 65.99512195
+      },
+      "release": {
+        "r": 154.08780488,
+        "c": 66.40487805
+      },
+      "bookingRadius": 2.5,
+      "nativeReady": true
+    }
+  ]
+}

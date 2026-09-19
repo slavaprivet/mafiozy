@@ -48,6 +48,39 @@ export function createNpcActivityPose({THREE,walker}){
    c.object.updateMatrixWorld(true);return true;
   }
   if(!sitting)lastSeat=null;
+  const outdoor=life.activity;
+  if(outdoor&&!phone.visible&&['stretch','squat','lookaround'].includes(outdoor.kind)&&outdoor.phase==='active'&&time*1000<outdoor.until){
+   const age=Math.max(0,time-outdoor.since/1000),remaining=Math.max(0,(outdoor.until-time*1000)/1000),unit=walker.height/1.9;
+   const envelope=THREE.MathUtils.smoothstep(age,0,.7)*THREE.MathUtils.smoothstep(remaining,0,.7)*clamp(blend);
+   if(outdoor.kind==='lookaround'){
+    c.rotateAdd('head',-.035*envelope,Math.sin(age*1.4)*.52*envelope);c.rotateAdd('chest',0,Math.sin(age*1.4)*.12*envelope);c.object.updateMatrixWorld(true);return true;
+   }
+   const squat=outdoor.kind==='squat',depth=squat?(1-Math.cos(age*Math.PI*2/3.4))*.5*envelope:0;
+   if(squat){
+    for(const [side]of feet){c.bones['foot_'+side].getWorldPosition(footTargets[side]);c.bones['foot_'+side].getWorldQuaternion(footQs[side]);}
+    c.visualPivot.position.y-=depth*.24*unit;c.rotateAdd('chest',depth*.16);c.object.updateMatrixWorld(true);
+    for(const [side]of feet)c.reachFoot?.(side,footTargets[side],footQs[side]);
+   }else{c.rotateAdd('chest',0,Math.sin(age*.8)*.06*envelope);c.rotateAdd('head',-.10*envelope,Math.sin(age*.8)*.05*envelope);}
+   c.object.updateMatrixWorld(true);c.offset.getWorldQuaternion(rootQ);c.bones.chest.getWorldPosition(center);
+   for(const [side,sign]of feet){
+    localDelta.set(sign*(squat ? .19 : .24),squat ? -.08 : .40+Math.sin(age*1.8+sign)*.08,squat ? .34 : .08).multiplyScalar(unit).applyQuaternion(rootQ);
+    seatTarget.copy(center).add(localDelta);c.bones['socket_hand_'+side].getWorldPosition(localDelta);localDelta.lerp(seatTarget,envelope);
+    c.reachPalm(side,localDelta,c.bones['hand_'+side].getWorldQuaternion(handQs[side]));
+   }
+   c.object.updateMatrixWorld(true);return true;
+  }
+  const shop=life.activity?.kind==='shop'?life.activity:null;
+  if(shop&&!phone.visible&&['browse','pay'].includes(shop.phase)&&time*1000<shop.until){
+   const age=Math.max(0,time-shop.since/1000),remaining=Math.max(0,(shop.until-time*1000)/1000);
+   const envelope=THREE.MathUtils.smoothstep(age,0,.22)*(1-THREE.MathUtils.smoothstep(.24-remaining,0,.24))*clamp(blend);
+   const paying=shop.phase==='pay',payAge=Math.max(0,time-(shop.payAt??shop.since)/1000),reach=paying?Math.sin(Math.min(1,payAge/1.3)*Math.PI):0;
+   c.rotateAdd('head',(.10+Math.sin(time*.7)*.025)*envelope,Math.sin(time*.9)*.13*envelope);
+   c.rotateAdd('chest',.035*envelope,0);c.object.updateMatrixWorld(true);
+   c.offset.getWorldQuaternion(rootQ);center.copy(c.worldPosition('chest'));
+   localDelta.set(.17,-.14,.25+reach*.12).multiplyScalar(walker.height/1.9).applyQuaternion(rootQ);seatTarget.copy(center).add(localDelta);
+   const palm=c.worldPosition('socket_hand_r');c.reachPalm('r',palm.lerp(seatTarget,envelope),c.bones.hand_r.getWorldQuaternion(handQs.r));
+   c.object.updateMatrixWorld(true);return true;
+  }
   if(['browsing','look_around','inspect','waiting'].includes(activity)){
    c.rotateAdd('head',Math.sin(time*.7)*.05*blend,Math.sin(time*.5)*.35*blend);
    c.rotateAdd('chest',0,Math.sin(time*.5)*.07*blend);c.object.updateMatrixWorld(true);return true;

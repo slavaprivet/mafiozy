@@ -57,7 +57,7 @@ function segmentBox(from,to,box){
   }
   return true;
 }
-function prepare(T,c,weapon,quaternion,padding){
+function prepare(T,c,weapon,quaternion,padding,checkMuzzle=true){
   c.object.updateMatrixWorld(true);
   const bodies=rigBounds(T,c).map(local=>{
     const bone=c.bones[local.name],q=bone.getWorldQuaternion(new T.Quaternion()),scale=bone.getWorldScale(new T.Vector3());
@@ -71,7 +71,7 @@ function prepare(T,c,weapon,quaternion,padding){
     const muzzle=origin.clone().add(muzzleOffset),end=muzzle.clone().add(forward);
     const result={clear:true,headClear:true,neckClear:true,muzzleClear:true};
     for(const body of bodies){
-      if(segmentBox(muzzle,end,body)){result.muzzleClear=false;result.clear=false;}
+      if(checkMuzzle&&segmentBox(muzzle,end,body)){result.muzzleClear=false;result.clear=false;}
       if(body.name==='chest')continue;
       if(segmentBox(origin,muzzle,body)||gun.some(part=>overlaps(body,{...part,center:part.center.clone().add(origin)}))){result[body.name+'Clear']=false;result.clear=false;}
     }
@@ -79,24 +79,29 @@ function prepare(T,c,weapon,quaternion,padding){
   };
 }
 
-export function weaponHeadClearance(THREE,context,weapon,{origin,quaternion,padding=.018}={}){
+// checkMuzzle=false is for non-firing carry/stow only; physical weapon/head
+// and barrel/neck intersections are still rejected. Firing defaults to true.
+export function weaponHeadClearance(THREE,context,weapon,{origin,quaternion,padding=.018,checkMuzzle=true}={}){
   if(!THREE||!context?.bones?.head||!weapon||!finite(origin)||!quaternion)return {clear:false,headClear:false,neckClear:false,muzzleClear:false};
-  return prepare(THREE,context,weapon,quaternion,padding)(origin);
+  return prepare(THREE,context,weapon,quaternion,padding,checkMuzzle)(origin);
 }
 
-/** Reach spheres use mount-origin centres, exactly as the two-hand IK solver.
+/** Reach shells use mount-origin centres, exactly as the two-hand IK solver.
  * Candidate search preserves the requested direction and authored arm lengths.
  * A false result must suppress fire or select a different presentation; do not
  * report the originally requested unsafe mount as successfully reachable.
  */
-export function findClearWeaponMount(THREE,context,weapon,{origin,quaternion,constraints=[],preferredSide=1,previousOrigin=null,padding=.018}={}){
+export function findClearWeaponMount(THREE,context,weapon,{origin,quaternion,constraints=[],preferredSide=1,previousOrigin=null,padding=.018,checkMuzzle=true}={}){
   if(!finite(origin)||!quaternion||!context?.bones?.head||!weapon)return {origin:origin?.clone?.()||origin,clear:false,correction:Infinity};
-  const check=prepare(THREE,context,weapon,quaternion,padding),requested=origin.clone();
+  const check=prepare(THREE,context,weapon,quaternion,padding,checkMuzzle),requested=origin.clone();
   function project(point){
-    for(let i=0;i<32;i++)for(const {center,radius}of constraints){const delta=point.clone().sub(center);if(delta.length()>radius)point.copy(center).add(delta.setLength(Math.max(0,radius)));}
+    for(let i=0;i<32;i++)for(const {center,radius,minRadius=0}of constraints){
+      const delta=point.clone().sub(center),distance=delta.length(),target=Math.min(Math.max(0,radius),Math.max(0,minRadius,distance));
+      if(target!==distance){if(distance<1e-10)delta.set(0,0,1).applyQuaternion(quaternion);point.copy(center).add(delta.setLength(target));}
+    }
     return point;
   }
-  const reachable=p=>constraints.every(({center,radius})=>p.distanceTo(center)<=radius+.001);
+  const reachable=p=>constraints.every(({center,radius,minRadius=0})=>{const distance=p.distanceTo(center);return distance<=radius+.001&&distance>=Math.max(0,minRadius)-.001;});
   const initial=project(origin.clone());if(reachable(initial)&&check(initial).clear)return {origin:initial,clear:true,correction:initial.distanceTo(requested),candidates:1};
   const forward=new THREE.Vector3(0,0,1).applyQuaternion(quaternion),right=new THREE.Vector3(1,0,0).applyQuaternion(quaternion),up=new THREE.Vector3(0,1,0),unit=context.targetHeight/1.9;
   let best=null,score=Infinity,candidates=1;const side=preferredSide===-1?-1:1;

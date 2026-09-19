@@ -3,6 +3,33 @@ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const point=p=>Array.isArray(p)?{x:p[0],z:p[1]}:{x:p?.x,z:p?.z};
 const valid=p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z);
 const polygon=p=>(p||[]).map(point).filter(valid);
+// Only the source roster can mark a crew actor as hired. Candidate badges,
+// professions and generic gang roles are not evidence of squad membership.
+export function explorationNpcMapMarkers(actors=[],host){
+  const markers=[];
+  for(const actor of actors){
+    const memberId=String(actor.id||'').match(/^(?:npc:)?(?:npc_)?crew_(.+)$/)?.[1];
+    const ownSquad=!!(memberId&&host?.isMercenary?.(memberId)===true);
+    const member=ownSquad?host.getMember?.(memberId):null;
+    if(!actor.object?.position||(!ownSquad&&actor.object.visible===false))continue;
+    markers.push({id:actor.id,name:actor.source?.name||actor.name,kind:actor.source?.police?'police':actor.source?.empireBoss?'boss':actor.role||'civilian',
+      profession:ownSquad?actor.source?.mercenary?.profession:undefined,
+      status:ownSquad?(member?.downed?'downed':host.isDefending?.(memberId)?'defending':actor.source?.mercenaryAction?.phase||actor.source?.mercenary?.status||'active'):undefined,
+      position:ownSquad&&member?.position?member.position:actor.object.position,ownSquad,
+      active:!actor.source?.carried&&!actor.source?.evacuated&&(!ownSquad||!!member&&member.available!==false)});
+  }
+  return markers;
+}
+export function npcMapMarkerStyle(actor){return actor.ownSquad===true?{color:'#32ed69',radius:5.4}:actor.kind==='police'?{color:'#7ec0ee',radius:2.6}:actor.kind==='boss'?{color:'#cf746c',radius:4}:{color:'#dfdab5',radius:2.6};}
+export function squadMapHover(pointer,actors,projection,expanded){
+  if(!expanded)return null;
+  let nearest=null,distance=10;
+  for(const actor of actors){const p=actor.position||actor;if(!actor.ownSquad||actor.active===false||actor.hidden||!valid(p))continue;const q=projection.toScreen(p),d=Math.hypot(pointer.x-q.x,pointer.y-q.y);if(d<=distance){nearest=actor;distance=d;}}
+  if(!nearest)return null;
+  const profession={medic:'Медик',bruiser:'Громила',safecracker:'Медвежатник',engineer:'Электрик-резчик',demolitions:'Подрывник'}[nearest.profession]||'Наёмник';
+  const status={active:'Готов',downed:'Нужна помощь',hospital:'В больнице',returning:'Возвращается',defending:'Защищает отряд',approach:'Идёт к цели',working:'Выполняет приказ',awaiting:'Ожидает подтверждения',retreat:'Отходит',countdown:'Ожидает взрыва'}[nearest.status]||'Готов';
+  return {id:nearest.id,text:`${nearest.name||'Боец'}\nВаш отряд\n${profession}\n${status}`};
+}
 export function mapProjection({center,width,height,metresPerPixel}){
   if(!valid(center)||!(width>0&&height>0&&metresPerPixel>0))throw new Error('Invalid map projection');
   return {toScreen:p=>({x:(p.x-center.x)/metresPerPixel+width/2,y:(p.z-center.z)/metresPerPixel+height/2}),toWorld:p=>({x:(p.x-width/2)*metresPerPixel+center.x,z:(p.y-height/2)*metresPerPixel+center.z})};
@@ -33,6 +60,57 @@ export function waypointMarkerHit(pointer,waypoint,projection,width,height,radiu
 }
 export function waypointDistanceText(position,waypoint){
   const info=waypointInfo(position,waypoint);return info?`До метки: ${Math.round(info.distance)} м${waypoint.name?` · ${waypoint.name}`:''}`:'Нажмите на карту — поставить метку';
+}
+export function normalizeMapWaypoint(value,bounds){
+ const bounded=boundedWaypoint(value,bounds);if(!bounded)return null;
+ const waypoint={...bounded,name:typeof value.name==='string'?value.name:''};
+ for(const key of ['id','kind','buildingId','lotId'])if(typeof value[key]==='string'||Number.isFinite(value[key])||value[key]===null)waypoint[key]=value[key];
+ return waypoint;
+}
+export const MAP_ROUTE_POINT_LIMIT=4096;
+const noRoutePoints=Object.freeze([]);
+export function mapRouteDistance(points){
+ if(!Array.isArray(points)||!points.length||points.length>MAP_ROUTE_POINT_LIMIT)return null;
+ let distance=0,previous=null;
+ for(const value of points){if(!valid(value))return null;if(previous)distance+=Math.hypot(value.x-previous.x,value.z-previous.z);previous=value}
+ return Number.isFinite(distance)?distance:null;
+}
+// A route is a host-computed road polyline. Invalid/missing segments must never
+// be filtered out into an invented direct connection across a building.
+export function normalizeMapRoute(data,previous=null){
+ if(data==null)return null;
+ let status=data.status==='pending'?'pending':data.status==='ready'?'ready':'blocked';
+ const measured=status==='ready'?mapRouteDistance(data.points):null;
+ if(status==='ready'&&measured===null)status='blocked';
+ if(status!=='ready')return previous?.status===status?previous:Object.freeze({status,points:noRoutePoints,distance:null});
+ const distance=Number.isFinite(data.distance)&&data.distance>=0?data.distance:measured;
+ const reuse=previous?.status==='ready'&&previous.points.length===data.points.length&&data.points.every((p,i)=>p.x===previous.points[i].x&&p.z===previous.points[i].z);
+ const points=reuse?previous.points:Object.freeze(data.points.map(p=>Object.freeze({x:p.x,z:p.z})));
+ return reuse&&previous.distance===distance?previous:Object.freeze({status:'ready',points,distance});
+}
+export function mapRouteStatusText(position,waypoint,route){
+ if(!waypoint||!route)return waypointDistanceText(position,waypoint);
+ if(route.status==='pending')return 'Строю маршрут…';
+ if(route.status!=='ready')return 'Нет доступного автомобильного пути';
+ return `По дороге: ${Math.round(route.distance)} м${waypoint.name?` · ${waypoint.name}`:''}`;
+}
+// Cache only one bounded world-coordinate path. Panning/zooming changes the
+// Canvas transform, not the route geometry; no routing or distance scan occurs
+// in draw(). The fallback remains bounded for Canvas implementations without Path2D.
+export function createMapRouteRenderer({Path2D:Path=globalThis.Path2D}={}){
+ let points=null,cached=null,pathBuilds=0,draws=0;
+ function clear(){points=null;cached=null}
+ function draw(context,route,projection,metresPerPixel){
+  if(route?.status!=='ready'||route.points.length<2)return false;
+  if(points!==route.points){points=route.points;cached=typeof Path==='function'?new Path():null;pathBuilds++;if(cached){cached.moveTo(points[0].x,points[0].z);for(let i=1;i<points.length;i++)cached.lineTo(points[i].x,points[i].z)}}
+  const origin=projection.toScreen({x:0,z:0});context.save();context.translate(origin.x,origin.y);context.scale(1/metresPerPixel,1/metresPerPixel);
+  context.setLineDash([]);context.lineCap='round';context.lineJoin='round';
+  if(!cached){context.beginPath();context.moveTo(points[0].x,points[0].z);for(let i=1;i<points.length;i++)context.lineTo(points[i].x,points[i].z)}
+  context.strokeStyle='#493b24';context.lineWidth=5*metresPerPixel;if(cached)context.stroke(cached);else context.stroke();
+  context.strokeStyle='#f0c771';context.lineWidth=3*metresPerPixel;if(cached)context.stroke(cached);else context.stroke();
+  context.restore();draws++;return true;
+ }
+ return{draw,clear,stats:()=>({pathBuilds,draws,points:points?.length||0})};
 }
 export function mapObjectAt(pointer,objects,projection){
   const worldPoint=projection.toWorld(pointer);let nearest=null,distance=Infinity;
@@ -125,8 +203,8 @@ export function createExplorationMinimap({container=document.body,onExpandedChan
   root.innerHTML='<header><strong>Окрестности</strong><button type="button" class="em-toggle" aria-label="Развернуть карту" aria-expanded="false">M ↗</button></header><div class="em-main"><div class="em-stage"><canvas tabindex="0" aria-label="Карта: нажмите для метки. В большой карте стрелки двигают обзор, Enter ставит метку, плюс и минус меняют масштаб."></canvas><span class="em-north">↑ СЕВЕР</span><span class="em-scale"></span><div class="em-tools"><button type="button" data-action="plus" aria-label="Приблизить карту">+</button><button type="button" data-action="minus" aria-label="Отдалить карту">−</button><button type="button" data-action="hero" aria-label="Показать персонажа">Я</button><button type="button" data-action="fit">Весь мир</button></div></div><aside class="em-index"><h3>Места на карте</h3><div class="em-pois"></div><div class="em-legend"></div><div class="em-count"></div></aside></div><p class="em-help">Нажмите на место, чтобы поставить метку · ПКМ по метке — убрать · Колесо — масштаб · Перетащите карту · M / Esc — закрыть</p><div class="em-status"><span aria-live="polite">Нажмите на карту — поставить метку</span><button type="button" class="em-clear" aria-label="Убрать метку" hidden>×</button></div>';
   container.append(root);
   const canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d'),stage=root.querySelector('.em-stage'),status=root.querySelector('.em-status span'),clear=root.querySelector('.em-clear'),toggle=root.querySelector('.em-toggle'),heading=root.querySelector('header strong');
-  const atlas=doc.createElement('canvas'),actx=atlas.getContext('2d');let viewCache=null;
-  const tooltip=doc.createElement('div');tooltip.className='em-tooltip';tooltip.style.cssText='position:absolute;z-index:5;max-width:210px;padding:5px 8px;background:#102d30ee;border:1px solid #c5b17b;border-radius:5px;color:#f5e9cb;font:12px/1.3 system-ui;pointer-events:none;white-space:normal;box-shadow:0 3px 12px #0006';tooltip.hidden=true;stage.append(tooltip);
+  const atlas=doc.createElement('canvas'),actx=atlas.getContext('2d'),routeRenderer=createMapRouteRenderer({Path2D:win.Path2D});let viewCache=null,route=null;
+  const tooltip=doc.createElement('div');tooltip.className='em-tooltip';tooltip.style.cssText='position:absolute;z-index:5;max-width:210px;padding:5px 8px;background:#102d30ee;border:1px solid #c5b17b;border-radius:5px;color:#f5e9cb;font:12px/1.3 system-ui;pointer-events:none;white-space:pre-line;box-shadow:0 3px 12px #0006';tooltip.hidden=true;stage.append(tooltip);
   let world={bounds:{minX:0,maxX:738,minZ:0,maxZ:820},buildings:[],objects:[],regions:[],water:[],trails:[],roads:[],railways:[],districts:[]},objects=[],objectIndex=null,pois=[],districtLabels=[],expanded=false,zoom=1,center={x:369,z:410},position={x:369,z:410},yaw=0,vehicles=[],actors=[],trains=[],waypoint=null,lastDraw=-Infinity,lastStatus='',dirty=true,drag=null,width=230,height=194,dpr=1,atlasScale=1,priorFocus=null,disposed=false;
   const listen=(node,event,fn,options)=>{node.addEventListener(event,fn,options);cleanups.push(()=>node.removeEventListener(event,fn,options))},cleanups=[];
   function projection(){return mapProjection({center:expanded?center:position,width,height,metresPerPixel:expanded?Math.max((world.bounds.maxX-world.bounds.minX)/width,(world.bounds.maxZ-world.bounds.minZ)/height)*1.08/zoom:180/width})}
@@ -164,18 +242,19 @@ export function createExplorationMinimap({container=document.body,onExpandedChan
     if(disposed||root.hidden)return;const now=performance.now();if(!force&&now-lastDraw<80)return;lastDraw=now;dirty=false;
     const region=currentMapRegion(position,world),regionName=region?.name||'Окрестности';heading.textContent=expanded?'Карта города':regionName;heading.title=regionName;root.dataset.currentRegion=region?.id||'';
     const pr=projection(),b=world.bounds,tl=pr.toScreen({x:b.minX,z:b.minZ}),br=pr.toScreen({x:b.maxX,z:b.maxZ});ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#1c3639';ctx.fillRect(0,0,width,height);
-    const mpp=(b.maxX-b.minX)/(br.x-tl.x);drawBase(pr,mpp);
-    for(const actor of actors){const location=actor.position||actor;if(!valid(location)||actor.hidden||actor.active===false||actor.kind==='train')continue;const q=pr.toScreen(location);if(q.x<3||q.y<3||q.x>width-3||q.y>height-3)continue;marker(q,actor.kind==='police'?'#7ec0ee':actor.kind==='boss'?'#cf746c':'#dfdab5',actor.kind==='boss'?4:2.6)}
+    const mpp=(b.maxX-b.minX)/(br.x-tl.x);drawBase(pr,mpp);if(waypoint)routeRenderer.draw(ctx,route,pr,mpp);
+    for(const ownSquad of [false,true])for(const actor of actors){if((actor.ownSquad===true)!==ownSquad)continue;const location=actor.position||actor;if(!valid(location)||actor.hidden||actor.active===false||actor.kind==='train')continue;const q=pr.toScreen(location);if(q.x<3||q.y<3||q.x>width-3||q.y>height-3)continue;const style=npcMapMarkerStyle(actor);marker(q,style.color,style.radius)}
     for(const car of vehicles){const location=car.position||car;if(!valid(location))continue;const q=pr.toScreen(location);ctx.save();ctx.translate(q.x,q.y);ctx.rotate(-(car.yaw||0));ctx.fillStyle=vehicleMapColor(car);ctx.fillRect(-3,-5,6,10);ctx.strokeStyle='#263b3e';ctx.strokeRect(-3,-5,6,10);ctx.fillStyle='#bfe4df';ctx.fillRect(-2,1,4,2);ctx.restore()}
     const trainIds=new Set();for(const train of [...trains,...actors.filter(a=>a.kind==='train')]){const location=train.position||train;if(!valid(location)||train.hidden||train.active===false||(train.id&&trainIds.has(train.id)))continue;if(train.id)trainIds.add(train.id);const q=pr.toScreen(location);if(q.x<-10||q.y<-10||q.x>width+10||q.y>height+10)continue;ctx.save();ctx.translate(q.x,q.y);ctx.rotate(-(train.yaw||0));ctx.fillStyle='#c8885c';ctx.strokeStyle='#263b3e';ctx.lineWidth=2;ctx.fillRect(-4,-8,8,16);ctx.strokeRect(-4,-8,8,16);ctx.fillStyle='#fff0c3';ctx.fillRect(-2,3,4,3);ctx.fillStyle='#4a5553';ctx.fillRect(-2,-6,4,5);ctx.restore()}
-    if(waypoint){const a=pr.toScreen(position),q=pr.toScreen(waypoint);ctx.strokeStyle='#f0c771';ctx.lineWidth=1.5;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([]);const edge=waypointScreenPosition(waypoint,pr,width,height);marker(edge,'#f3ca73',7);ctx.fillStyle='#213739';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText('◆',edge.x,edge.y+4)}
+    if(waypoint){if(!route){const a=pr.toScreen(position),q=pr.toScreen(waypoint);ctx.strokeStyle='#f0c771';ctx.lineWidth=1.5;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([])}const edge=waypointScreenPosition(waypoint,pr,width,height);marker(edge,'#f3ca73',7);ctx.fillStyle='#213739';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText('◆',edge.x,edge.y+4)}
     const p=pr.toScreen(position);ctx.save();ctx.translate(clamp(p.x,9,width-9),clamp(p.y,9,height-9));ctx.rotate(-yaw);ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(-6,-6);ctx.lineTo(0,-3);ctx.lineTo(6,-6);ctx.closePath();ctx.fillStyle='#e8fcf3';ctx.strokeStyle='#133c3b';ctx.lineWidth=2;ctx.fill();ctx.stroke();ctx.restore();
     const scaleM=mpp>3?200:mpp>1?100:50;const scale=root.querySelector('.em-scale');scale.style.width=`${Math.min(width*.4,scaleM/mpp)}px`;scale.textContent=`${Math.round(Math.min(width*.4*mpp,scaleM))} м`;
-    const message=waypointDistanceText(position,waypoint);if(message!==lastStatus){status.textContent=message;lastStatus=message}clear.hidden=!waypoint;
+    const message=mapRouteStatusText(position,waypoint,route);if(message!==lastStatus){status.textContent=message;lastStatus=message}clear.hidden=!waypoint;
   }
-  function setWaypoint(p){const bounded=boundedWaypoint(p,world.bounds);waypoint=bounded?{...bounded,name:p.name||''}:null;root.dataset.waypoint=waypoint?JSON.stringify(waypoint):'';onWaypointChange(waypoint?{...waypoint}:null);dirty=true;draw(true);return waypoint}
+  function setRoute(data){const next=waypoint?normalizeMapRoute(data,route):null;if(next===route)return route;route=next;if(!route||route.status!=='ready')routeRenderer.clear();root.dataset.route=route?JSON.stringify({status:route.status,distance:route.distance,points:route.points.length}):'';dirty=true;draw(true);return route}
+  function setWaypoint(p){waypoint=normalizeMapWaypoint(p,world.bounds);route=null;routeRenderer.clear();root.dataset.route='';root.dataset.waypoint=waypoint?JSON.stringify(waypoint):'';onWaypointChange(waypoint?{...waypoint}:null);dirty=true;draw(true);return waypoint}
   function fit(){zoom=1;center={x:(world.bounds.minX+world.bounds.maxX)/2,z:(world.bounds.minZ+world.bounds.maxZ)/2};dirty=true;draw(true)}
-  function setExpanded(value){if(expanded===!!value)return;expanded=!!value;root.dataset.expanded=String(expanded);toggle.setAttribute('aria-expanded',String(expanded));toggle.setAttribute('aria-label',expanded?'Свернуть карту':'Развернуть карту');toggle.textContent=expanded?'Закрыть ×':'M ↗';if(expanded){priorFocus=doc.activeElement;fit();if(doc.pointerLockElement)doc.exitPointerLock?.();canvas.focus({preventScroll:true})}else{canvas.blur();if(priorFocus&&priorFocus!==doc.body&&!root.contains(priorFocus))priorFocus.focus?.({preventScroll:true})}onExpandedChange(expanded);resize()}
+  function setExpanded(value){if(expanded===!!value)return;expanded=!!value;tooltip.hidden=true;root.dataset.expanded=String(expanded);toggle.setAttribute('aria-expanded',String(expanded));toggle.setAttribute('aria-label',expanded?'Свернуть карту':'Развернуть карту');toggle.textContent=expanded?'Закрыть ×':'M ↗';if(expanded){priorFocus=doc.activeElement;fit();if(doc.pointerLockElement)doc.exitPointerLock?.();canvas.focus({preventScroll:true})}else{canvas.blur();if(priorFocus&&priorFocus!==doc.body&&!root.contains(priorFocus))priorFocus.focus?.({preventScroll:true})}onExpandedChange(expanded);resize()}
   function zoomBy(factor,anchor){tooltip.hidden=true;const old=projection();const before=anchor?old.toWorld(anchor):null;zoom=clamp(zoom*factor,.6,12);if(before){const after=projection().toWorld(anchor);center.x+=before.x-after.x;center.z+=before.z-after.z}dirty=true;draw(true)}
   function setWorld(data){
     world={...world,...data};world.bounds={...world.bounds,...data.bounds};for(const field of ['buildings','objects','regions','water','trails','roads','railways','districts'])world[field]=world[field]||[];
@@ -189,7 +268,7 @@ export function createExplorationMinimap({container=document.body,onExpandedChan
   listen(canvas,'contextmenu',e=>{e.preventDefault();e.stopPropagation();if(waypointMarkerHit(local(e),waypoint,projection(),width,height))setWaypoint(null)});
   listen(root,'wheel',e=>{e.preventDefault();e.stopPropagation()},{passive:false});
   listen(canvas,'pointerdown',e=>{if(e.button!==0)return;e.preventDefault();canvas.focus({preventScroll:true});const p=local(e);drag={start:p,last:p,moved:false,id:e.pointerId};canvas.setPointerCapture?.(e.pointerId)});
-  listen(canvas,'pointermove',e=>{const p=local(e);if(!drag){const obj=mapObjectAt(p,objects,projection());tooltip.hidden=!obj;if(obj){tooltip.textContent=obj.name;tooltip.style.left=clamp(p.x+12,5,Math.max(5,width-tooltip.offsetWidth-5))+'px';tooltip.style.top=clamp(p.y+12,5,Math.max(5,height-tooltip.offsetHeight-5))+'px'}return}tooltip.hidden=true;const dx=p.x-drag.last.x,dy=p.y-drag.last.y;drag.moved||=Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>5;if(expanded&&drag.moved){const a=projection().toWorld({x:0,y:0}),b=projection().toWorld({x:dx,y:dy});center.x-=b.x-a.x;center.z-=b.z-a.z;dirty=true;draw(true)}drag.last=p});
+  listen(canvas,'pointermove',e=>{const p=local(e);if(!drag){const hover=squadMapHover(p,actors,projection(),expanded),obj=hover?null:mapObjectAt(p,objects,projection());tooltip.hidden=!(hover||obj);if(hover||obj){tooltip.textContent=hover?.text||obj.name;tooltip.style.left=clamp(p.x+12,5,Math.max(5,width-tooltip.offsetWidth-5))+'px';tooltip.style.top=clamp(p.y+12,5,Math.max(5,height-tooltip.offsetHeight-5))+'px'}return}tooltip.hidden=true;const dx=p.x-drag.last.x,dy=p.y-drag.last.y;drag.moved||=Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>5;if(expanded&&drag.moved){const a=projection().toWorld({x:0,y:0}),b=projection().toWorld({x:dx,y:dy});center.x-=b.x-a.x;center.z-=b.z-a.z;dirty=true;draw(true)}drag.last=p});
   listen(canvas,'pointerleave',()=>{tooltip.hidden=true});
   listen(canvas,'pointerup',e=>{if(!drag||drag.id!==e.pointerId)return;if(!drag.moved)setWaypoint(projection().toWorld(local(e)));canvas.releasePointerCapture?.(e.pointerId);drag=null;if(!expanded)canvas.blur()});listen(canvas,'pointercancel',()=>{drag=null});
   listen(canvas,'wheel',e=>{e.preventDefault();if(expanded)zoomBy(e.deltaY<0?1.2:1/1.2,local(e))},{passive:false});
@@ -200,7 +279,7 @@ export function createExplorationMinimap({container=document.body,onExpandedChan
   listen(win,'keyup',e=>{if(expanded&&!typing(e)&&e.code!=='Tab')e.stopImmediatePropagation()},true);listen(win,'resize',resize);
   const observer=typeof win.ResizeObserver==='function'?new win.ResizeObserver(resize):null;observer?.observe(stage);
   setWorld({});resize();
-  return {element:root,setWorld,setWaypoint,get waypoint(){return waypoint?{...waypoint}:null},get expanded(){return expanded},setExpanded,update(state={}){
+  return {element:root,setWorld,setWaypoint,setRoute,get route(){return route},get waypoint(){return waypoint?{...waypoint}:null},get expanded(){return expanded},setExpanded,update(state={}){
     // The game calls this every animation frame.  Redrawing unchanged map state
     // only burns main-thread time: draw() is already capped at 12.5 FPS.
     let changed=false;
@@ -210,5 +289,5 @@ export function createExplorationMinimap({container=document.body,onExpandedChan
     if(state.actors&&actors!==state.actors){actors=state.actors;changed=true}
     if(state.trains&&trains!==state.trains){trains=state.trains;changed=true}
     if(changed){dirty=true;draw()}
-  },setVisible(value){if(root.hidden===!value)return;root.hidden=!value;if(value)resize()},dispose(){disposed=true;observer?.disconnect();cleanups.forEach(fn=>fn());root.remove();style.remove()}};
+  },setVisible(value){if(root.hidden===!value)return;root.hidden=!value;if(value)resize()},dispose(){disposed=true;routeRenderer.clear();route=null;observer?.disconnect();cleanups.forEach(fn=>fn());root.remove();style.remove()}};
 }

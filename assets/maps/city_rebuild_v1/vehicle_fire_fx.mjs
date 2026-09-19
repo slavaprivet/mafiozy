@@ -81,8 +81,13 @@ export function createVehicleFireFx(T,car,{scene=car.object.parent,groundHeight=
   // every later idle frame; activation below still restores every visibility.
   if(!active){if(object.visible){object.visible=false;light.visible=false;light.intensity=0;for(const m of meshes)m.visible=false}flames=0;started=null;return}
   if(started===null)started=time;updates++;object.visible=true;
-  car.object.updateWorldMatrix(true,false);center.set(0,.65,0);car.object.localToWorld(center);
-  const bay=car.hood?.bay;if(bay){bay.updateWorldMatrix(true,false);engine.copy(localEngine);bay.localToWorld(engine)}else{engine.copy(localEngine);car.object.localToWorld(engine)}
+  car.object.updateWorldMatrix(true,false);center.set(0,.65,0).applyMatrix4(car.object.matrixWorld);
+  const bay=car.hood?.bay;if(bay){
+   // The car root was refreshed just above. For the normal direct engine-bay
+   // child this avoids walking back into that same parent a second time; keep
+   // the full ancestor refresh for custom/nested bay hierarchies.
+   bay.updateWorldMatrix(bay.parent!==car.object,false);engine.copy(localEngine).applyMatrix4(bay.matrixWorld)
+  }else{engine.copy(localEngine).applyMatrix4(car.object.matrixWorld)}
   const surface=groundHeight(center.x,center.z);ground.set(center.x,(Number.isFinite(surface)?surface:center.y-.65)+.06,center.z);
   uniforms.uTime.value=time;uniforms.uSince.value=Math.max(0,time-started);uniforms.uAge.value=state.wrecked?state.wreckAge:-1;
   uniforms.uFade.value=state.wrecked?Math.min(1,Math.max(0,5-state.wreckAge)):1;

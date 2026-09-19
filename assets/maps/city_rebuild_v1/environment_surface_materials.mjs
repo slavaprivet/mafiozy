@@ -1,9 +1,9 @@
 // World-space clay surfaces. No UVs, texture fetches, geometry animation or extra render passes.
 const PRESETS=Object.freeze({
- grass:{color:'#748d68',roughness:.94,mode:0,bump:.006},
- ground:{color:'#819076',roughness:.94,mode:0,bump:.006},
+ grass:{color:'#748d68',roughness:.95,mode:0,bump:.010},
+ ground:{color:'#819076',roughness:.95,mode:0,bump:.010},
  trail:{color:'#b8aa8c',roughness:.96,mode:1,bump:.008},
- asphalt:{color:'#525b59',roughness:.88,mode:2,bump:.002},
+ asphalt:{color:'#525b59',roughness:.9,mode:2,bump:.005},
  paving:{color:'#c0bda7',roughness:.89,mode:3,bump:.006},
  sand:{color:'#cfbd96',roughness:.97,mode:4,bump:.021},
  water:{color:'#ffffff',roughness:.23,mode:5,bump:0}
@@ -158,15 +158,22 @@ export function patchEnvironmentSurfaceShader(shader,{kind,uniforms}){
    vec2 environmentXZ=vEnvironmentWorld.xz;
    float environmentFootprint=max(length(dFdx(environmentXZ)),length(dFdy(environmentXZ)));
    float environmentBroad=environmentNoise(environmentXZ*.055);
-   float environmentMottling=environmentNoise(environmentXZ*${preset.mode===0?'.24':preset.mode===2?'.19':'.53'}+vec2(17.3,9.1));
-   float environmentRelief=(environmentMottling-.5)*.20;
+    float environmentMottling=environmentNoise(environmentXZ*${preset.mode===0?'.55':preset.mode===2?'.19':'.53'}+vec2(17.3,9.1));
+    float environmentRelief=(environmentMottling-.5)*.20;
+    float environmentSurfaceRoughness=0.0;
    float environmentShade=1.0;
    ${preset.mode===0?`
-    // Quiet soil under real grass blades: metres-wide tonal areas, no tiny bump carpet.
-    environmentShade=.96+.095*(environmentBroad-.5)+.035*(environmentMottling-.5);
-    #if !defined(USE_COLOR) && !defined(USE_COLOR_ALPHA)
-     diffuseColor.rgb*=mix(vec3(.97,1.0,.96),vec3(1.025,1.0,.97),environmentBroad);
-    #endif
+     // Broad sod clumps and sparse exposed earth remain stable at third-person
+     // distance. Vertex-painted biomes keep their authored colour underneath.
+     float environmentLawnField=environmentBroad*.62+environmentMottling*.38;
+     float environmentLawnClump=smoothstep(.27,.76,environmentLawnField);
+     float environmentLawnSoil=smoothstep(.73,.91,environmentBroad)*smoothstep(.59,.78,1.0-environmentMottling);
+     vec3 environmentLawnTint=mix(vec3(.86,.94,.82),vec3(1.09,1.01,.79),environmentLawnClump);
+     environmentShade=.94+.15*(environmentBroad-.5)+.10*(environmentMottling-.5);
+     diffuseColor.rgb*=environmentLawnTint;
+     diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.255,.205,.125),environmentLawnSoil*.34);
+     environmentRelief=(environmentMottling-.5)*.55+(environmentBroad-.5)*.18-environmentLawnSoil*.16;
+     environmentSurfaceRoughness=.018*(environmentMottling-.5)+environmentLawnSoil*.045;
    `:preset.mode===1?`
     vec2 environmentGrainCoord=environmentXZ*9.0;
     float environmentGrainFootprint=max(fwidth(environmentGrainCoord.x),fwidth(environmentGrainCoord.y));
@@ -179,10 +186,23 @@ export function patchEnvironmentSurfaceShader(shader,{kind,uniforms}){
     vec2 environmentGrainCoord=environmentXZ*55.0;
     float environmentGrainFootprint=max(fwidth(environmentGrainCoord.x),fwidth(environmentGrainCoord.y));
     float environmentFineFade=1.0-smoothstep(.10,.40,environmentGrainFootprint);
-    float environmentGrain=environmentNoise(environmentGrainCoord);
-    float environmentWear=smoothstep(.57,.83,environmentMottling)*smoothstep(.30,.68,environmentBroad);
-    environmentShade=.985+.035*(environmentBroad-.5)+.035*environmentWear+.035*(environmentGrain-.5)*environmentFineFade;
-    environmentRelief=(environmentGrain-.5)*.10*environmentFineFade;
+     float environmentGrain=environmentNoise(environmentGrainCoord);
+     float environmentWear=smoothstep(.57,.83,environmentMottling)*smoothstep(.30,.68,environmentBroad);
+     float environmentCrackField=abs(fract(environmentMottling*2.73+environmentBroad*1.41)-.5);
+     float environmentCrackAA=max(fwidth(environmentCrackField),.003);
+     float environmentCrack=(1.0-smoothstep(.014,.030+environmentCrackAA,environmentCrackField))*smoothstep(.42,.76,environmentBroad)*environmentFineFade;
+     vec2 environmentPatchCoordinate=mat2(.940,-.342,.342,.940)*environmentXZ/8.4;
+     vec2 environmentPatchCell=floor(environmentPatchCoordinate),environmentPatchLocal=fract(environmentPatchCoordinate)-.5;
+     float environmentPatchSeed=environmentHash(environmentPatchCell+vec2(71.3,19.7));
+     vec2 environmentPatchSize=vec2(.17+.11*environmentPatchSeed,.12+.07*environmentHash(environmentPatchCell+vec2(9.2,83.6)));
+     vec2 environmentPatchDelta=abs(environmentPatchLocal)-environmentPatchSize;
+     float environmentPatchDistance=length(max(environmentPatchDelta,0.0))+min(max(environmentPatchDelta.x,environmentPatchDelta.y),0.0);
+     float environmentPatchAA=max(fwidth(environmentPatchDistance),.002);
+     float environmentPatch=(1.0-smoothstep(-.006,.018+environmentPatchAA,environmentPatchDistance))*step(.84,environmentPatchSeed);
+     float environmentPatchEdge=(1.0-smoothstep(.0,.020+environmentPatchAA,abs(environmentPatchDistance)))*step(.84,environmentPatchSeed);
+     environmentShade=.985+.045*(environmentBroad-.5)+.042*environmentWear+.055*(environmentGrain-.5)*environmentFineFade-environmentCrack*.13-environmentPatch*.065-environmentPatchEdge*.055;
+     environmentRelief=(environmentGrain-.5)*.13*environmentFineFade-environmentCrack*.18-environmentPatchEdge*.12;
+     environmentSurfaceRoughness=environmentCrack*.045+environmentPatch*.075-environmentWear*.018;
    `:preset.mode===3?`
     // Staggered limestone slabs: variation belongs to each stone, not a noise overlay.
     vec2 environmentTile=environmentXZ/vec2(1.45,.90);
@@ -207,7 +227,7 @@ export function patchEnvironmentSurfaceShader(shader,{kind,uniforms}){
    diffuseColor.rgb*=environmentShade;
   `);
   shader.fragmentShader=inject(shader.fragmentShader,'#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-   roughnessFactor=clamp(roughnessFactor+(environmentMottling-.5)*.055,.75,1.0);
+    roughnessFactor=clamp(roughnessFactor+(environmentMottling-.5)*.055+environmentSurfaceRoughness,.75,1.0);
   `);
   shader.fragmentShader=inject(shader.fragmentShader,'#include <normal_fragment_maps>',`#include <normal_fragment_maps>
    vec3 environmentDx=dFdx(-vViewPosition),environmentDy=dFdy(-vViewPosition);
@@ -229,8 +249,8 @@ export function createEnvironmentSurfaceMaterials({THREE}={}){
   if(disposed)throw new Error('Environment surfaces already disposed');const preset=PRESETS[kind];if(!preset)throw new Error('Unknown environment surface '+kind);
   const vertexColors=!!options.vertexColors,color=options.color??(vertexColors?'#ffffff':preset.color),side=options.side??(kind==='trail'?THREE.DoubleSide:THREE.FrontSide),key=JSON.stringify([kind,vertexColors,color,side]);if(cache.has(key))return cache.get(key);
   const water=kind==='water',material=new THREE.MeshStandardMaterial({color,roughness:preset.roughness,metalness:water?.02:0,vertexColors,side,transparent:water,opacity:water?.92:1,depthWrite:!water,polygonOffset:kind==='trail',polygonOffsetFactor:kind==='trail'?-1:0,polygonOffsetUnits:kind==='trail'?-1:0});
-  material.name='Environment surface · '+kind;material.userData.environmentSurface=true;material.userData.surfaceKind=kind;material.userData.environmentRevision=water?6:3;material.envMapIntensity=water?.7:1;material.defaultAttributeValues={surfaceDepth:[2.5]};
-  material.onBeforeCompile=shader=>patchEnvironmentSurfaceShader(shader,{kind,uniforms:sharedUniforms});material.customProgramCacheKey=()=>`environment-surface-v${water?6:3}:${kind}:${vertexColors?1:0}`;cache.set(key,material);return material;
+   material.name='Environment surface · '+kind;material.userData.environmentSurface=true;material.userData.surfaceKind=kind;material.userData.environmentRevision=water?6:4;material.envMapIntensity=water?.7:1;material.defaultAttributeValues={surfaceDepth:[2.5]};
+   material.onBeforeCompile=shader=>patchEnvironmentSurfaceShader(shader,{kind,uniforms:sharedUniforms});material.customProgramCacheKey=()=>`environment-surface-v${water?6:4}:${kind}:${vertexColors?1:0}`;cache.set(key,material);return material;
  }
  function prepareMesh(mesh,{kind,depthAt,vertexColors=!!mesh?.geometry?.getAttribute('color'),...options}={}){
   if(!mesh?.geometry?.getAttribute('position'))throw new Error('Environment surface requires mesh position geometry');

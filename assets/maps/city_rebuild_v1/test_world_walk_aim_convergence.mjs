@@ -1,0 +1,37 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';
+import {createHeroWalker} from './hero_walk.mjs';
+import {NPC_ASSETS} from './npc_actor.mjs';
+import {createWorldWalkCombat} from './world_walk_combat.mjs';
+import {createWeaponFireState} from './hero_weapon_fire.mjs';
+const deps='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';
+registerHooks({resolve(s,c,next){return next(s==='three'?pathToFileURL(deps+'/build/three.module.js').href:s,c);}});
+const THREE=await import(pathToFileURL(deps+'/build/three.module.js'));
+const {GLTFLoader}=await import(pathToFileURL(deps+'/addons/loaders/GLTFLoader.js'));
+for(const sex of ['male','female']){
+ const data=fs.readFileSync(new URL(NPC_ASSETS[sex].url));
+ const scene=(await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),'')).scene;
+ const walker=createHeroWalker({THREE,scene,targetHeight:1.9});walker.update(.1);walker.object.updateMatrixWorld(true);
+ const y=walker.artistContext().bones.chest.getWorldPosition(new THREE.Vector3()).y;
+ let contact,serial=0,admitted=true,skinQueries=0;const walls=[],record={id:'npc_aim_'+sex,object:walker.object};
+ const bridge={getPlayerState:()=>({magazine:8,reserve:24}),fireWalkShot(request){if(!admitted)return {accepted:false,reason:'cooldown',state:this.getPlayerState()};const aim=request.resolveAim({range:8});contact=request.resolveContact({angle:aim.angle,range:8,weapon:'pistol'});return {accepted:true,shotId:String(++serial),contactAccepted:!!contact,state:this.getPlayerState()};}};
+ const combat=createWorldWalkCombat({THREE,bridge,getActors:()=>{skinQueries++;return [record];},obstacles:()=>walls});
+ const geometry={origin:new THREE.Vector3(.85,y,2.5),forward:new THREE.Vector3(0,0,-1)};
+ const shoot=()=>combat.step(createWeaponFireState('tt_pistol'),{triggerPressed:true},.016,geometry);
+ shoot();assert.equal(contact,null,sex+': old parallel shoulder ray misses reticle target');
+ geometry.aimOrigin=new THREE.Vector3(0,y,6);
+ admitted=false;const beforeQueries=skinQueries;for(let i=0;i<30;i++)shoot();assert.equal(skinQueries,beforeQueries,'rejected source attempts do not perform either skin ray');admitted=true;
+ const result=shoot();assert.equal(contact?.npcId,record.id,sex+': physical muzzle ray converges on reticle skin');
+ assert(result.shots[0].worldTarget.distanceTo(new THREE.Vector3(...Object.values(contact.point)))<1e-6);
+ const cover=new THREE.Mesh(new THREE.BoxGeometry(.22,2,.2),new THREE.MeshBasicMaterial());
+ cover.position.set(.48,y,1.5);walls.push(cover);
+ shoot();assert.equal(contact,null,sex+': nearby muzzle cover still blocks despite clear camera');
+ cover.visible=false;shoot();assert.equal(contact?.npcId,record.id,'hidden cover no longer blocks');
+ geometry.origin.y=geometry.aimOrigin.y=1.7;
+ walker.update(.1,false,false,null,{}, {posture:{target:'prone',value:2}});
+ shoot();assert.equal(contact,null,'aim does not magnetize to a prone NPC below the reticle');
+ combat.dispose();walker.dispose();cover.geometry.dispose();cover.material.dispose();
+}
+console.log('Real male/female reticle convergence, muzzle cover, prone miss PASS');

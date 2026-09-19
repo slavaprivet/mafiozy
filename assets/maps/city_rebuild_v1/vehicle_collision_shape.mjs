@@ -2,6 +2,19 @@
 // Render/seat/water dimensions remain separate; mirrors are compliant appendages.
 const EPS=1e-9;
 const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+// This runs while a vehicle is admitted to the world.  Keep the arithmetic in
+// the same order as Vector3.applyMatrix4, but avoid three method calls and a
+// mutable Vector3 for every source vertex.
+function appendHullPoints(attribute,matrix,points){
+ const e=matrix.elements,interleaved=attribute.isInterleavedBufferAttribute,
+  data=interleaved?attribute.data:attribute,array=data?.array,
+  stride=interleaved?data.stride:attribute.itemSize,offset=interleaved?attribute.offset:0;
+ for(let i=0;i<attribute.count;i++){
+  const base=i*stride+offset,x=array?array[base]:attribute.getX(i),y=array?array[base+1]:attribute.getY(i),z=array?array[base+2]:attribute.getZ(i),
+   w=1/(e[3]*x+e[7]*y+e[11]*z+e[15]);
+  points.push([(e[0]*x+e[4]*y+e[8]*z+e[12])*w,(e[2]*x+e[6]*y+e[10]*z+e[14])*w]);
+ }
+}
 export function convexVehicleHull(points){
  const ordered=points.filter(p=>p.every(Number.isFinite)).sort((a,b)=>a[0]-b[0]||a[1]-b[1]),unique=[];
  for(const point of ordered){const last=unique.at(-1);if(!last||Math.abs(point[0]-last[0])>EPS||Math.abs(point[1]-last[1])>EPS)unique.push(point)}
@@ -15,7 +28,7 @@ export function convexVehicleHull(points){
 export function buildVehicleCollisionShape(T,car){
  if(!car?.object)throw Error('A vehicle object is required');
  const root=car.object,doors=new Set(car.doors?.values?.()||[]),wheels=new Map((car.wheels||[]).map(w=>[w.pivot,w])),spins=new Set((car.wheels||[]).map(w=>w.wheel)),tyres=new Set((car.wheels||[]).map(w=>w.tire));
- const points=[],meshNames=[],excluded=[],v=new T.Vector3(),identity=new T.Matrix4(),unit=new T.Vector3(1,1,1),zeroQ=new T.Quaternion();
+ const points=[],meshNames=[],excluded=[],identity=new T.Matrix4(),unit=new T.Vector3(1,1,1),zeroQ=new T.Quaternion();
  const decorative=/Mirror|DoorHandle|Door_handle|Lightbar|Ladder|RoofRail|Roof_rail|Roofrail|RoofSpoiler|Spoiler|Taxi_(roof_sign|sign_mount|letters)|damage_effect|Engine_smoke|Hood_support_strut/i;
  function visit(node,parentMatrix,inWheel=false,inTyre=false){
   if(node!==root&&!node.visible)return;
@@ -28,7 +41,7 @@ export function buildVehicleCollisionShape(T,car){
   }
   // Rims and bolts lie inside the tyre's envelope and need no duplicate scan.
   if(node.isMesh&&(!inWheel||inTyre)&&!node.material?.transparent){
-   const a=node.geometry?.attributes?.position;if(a){meshNames.push(node.name);for(let i=0;i<a.count;i++){v.fromBufferAttribute(a,i).applyMatrix4(matrix);points.push([v.x,v.z])}}
+   const a=node.geometry?.attributes?.position;if(a){meshNames.push(node.name);appendHullPoints(a,matrix,points)}
   }
   for(const child of node.children)visit(child,matrix,inWheel,inTyre);
  }
@@ -54,8 +67,11 @@ function paddedPolygon(poly,padding){
  return poly.map((p,i)=>{const a=edges[(i+edges.length-1)%edges.length],b=edges[i],det=a.nx*b.nz-a.nz*b.nx;return Math.abs(det)<EPS?[p[0]+b.nx*padding,p[1]+b.nz*padding]:[(a.d*b.nz-a.nz*b.d)/det,(a.nx*b.d-a.d*b.nx)/det]});
 }
 export function collisionPolygon(x,z,yaw,shape={}){
- const padding=Number.isFinite(shape.collisionPadding)?Math.max(0,shape.collisionPadding):0,poly=paddedPolygon(localPolygon(shape),padding),sin=Math.sin(yaw),cos=Math.cos(yaw);
- return poly.map(([side,front])=>[x+side*cos+front*sin,z-side*sin+front*cos]);
+ const padding=Number.isFinite(shape.collisionPadding)?Math.max(0,shape.collisionPadding):0,local=localPolygon(shape),poly=padding>0?paddedPolygon(local,padding):local,sin=Math.sin(yaw),cos=Math.cos(yaw),result=new Array(poly.length);
+ // This runs for every driving/contact query.  Keep the exact point formula,
+ // but avoid a callback and destructuring allocation for each hull vertex.
+ for(let i=0;i<poly.length;i++){const point=poly[i],side=point[0],front=point[1];result[i]=[x+side*cos+front*sin,z-side*sin+front*cos]}
+ return result;
 }
 export function collisionCircleOverlap(car,x,z,radius=.36,shape=car.vehicleProfile||car.profile||{}){
  if(![car.x,car.z,car.yaw,x,z,radius].every(Number.isFinite)||radius<0)return false;

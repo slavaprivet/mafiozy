@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+const source=readFileSync(new URL('./mercenary_walk.mjs',import.meta.url),'utf8');
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+function setup(){let collections=0,conversations=0,result={ok:true,gained:325},focus={x:0,y:0,z:0};const state={opened:true,collected:false,opening:false};const loot={id:'safe:loot',state:()=>state,object:{position:{x:1,y:0,z:1}},collect(context){assert.equal(context.kind,'player_collect');collections++;return result;}};const notices=[];
+ const scope={getFocus:()=>focus,MafioziInteriorSafeTargets:{getLootTargets:()=>[loot]},lootPosition:{},lootPending:false,nearLoot:null,lootPrompt:{hidden:false},disposed:false,Promise,ui:{isOpen:false,showNotice:text=>notices.push(text)},dialogue:{isOpen:false,open(){conversations++;return true;}},isBlocked:()=>false,host:{nearestCandidate:()=> 'medic',beginConversation:()=>true},talkId:null,conversationId:null};vm.createContext(scope);
+ vm.runInContext(source.slice(source.indexOf(' function findNearbyLoot(){'),source.indexOf(' function updateAimSelection(){'))+'\n'+source.slice(source.indexOf(' function keydown(e){'),source.indexOf(" document.addEventListener('keydown',keydown,true);")),scope);
+ function press(){const e={code:'KeyE',target:{},preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;}};scope.keydown(e);return e;}
+ return{scope,state,loot,notices,press,setFocus:value=>focus=value,setResult:value=>result=value,get collections(){return collections;},get conversations(){return conversations;}};
+}
+test('E prioritizes nearby safe loot and prevents duplicate collection while receipt pending',async()=>{const f=setup();let resolve;f.setResult(new Promise(r=>resolve=r));assert(f.press().defaultPrevented);f.press();await flush();assert.equal(f.collections,1);assert.equal(f.conversations,0);resolve({ok:true,gained:325});await flush();assert(f.notices[0].includes('$325'));assert.equal(f.scope.lootPrompt.hidden,true);});
+test('unopened, opening, collected, distant and different-floor bags do not intercept E conversation',()=>{for(const variant of ['unopened','opening','collected','distant','floor']){const f=setup();if(variant==='unopened')f.state.opened=false;if(variant==='opening')f.state.opening=true;if(variant==='collected')f.state.collected=true;if(variant==='distant')f.setFocus({x:9,y:0,z:0});if(variant==='floor')f.setFocus({x:0,y:4,z:0});f.press();assert.equal(f.collections,0,variant);assert.equal(f.conversations,1,variant);}});
+test('loot rechecks live distance at E rather than trusting previous prompt and preserves rejection reason',async()=>{const f=setup();f.scope.nearLoot=f.loot;f.setFocus({x:20,y:0,z:0});f.press();assert.equal(f.conversations,1);f.setFocus({x:0,y:0,z:0});f.setResult({ok:false,reason:'За стеной'});f.press();await flush();assert.deepEqual(f.notices,['За стеной']);assert.equal(f.state.collected,false);});

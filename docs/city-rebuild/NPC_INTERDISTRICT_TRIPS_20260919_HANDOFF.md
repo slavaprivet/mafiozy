@@ -1,0 +1,35 @@
+# Personal interdistrict driving — 19 September 2026
+
+Owner: Artist17 / traffic_finish. Requested by the user after observing long waits for tasks and asking for occasional errands in a distant part of the map. This extends the actual source NPC/car trips; it creates neither replacement residents nor decorative traffic.
+
+## Behaviour
+
+The previous candidate list only admitted destinations closer than 65 source tiles (266.5m). A stable hash of original NPC ID and journey sequence now assigns approximately 80% local and 20% distant intentions. Distant candidates are over 80 tiles (328m) away and have a different actual native building district ID. At most three of the sixteen civilian trips can be interdistrict at once. A trip considers at most three distant candidates and twelve candidates total; the local first choice varies among its four nearest destinations. Candidate work happens once per new journey, not each pending frame.
+
+Origin district comes from the building owning the actual parked bay, otherwise the nearest actual resident entry. Destination district is exported from `entry.instance.districtId` in `npc_resident_building_access.mjs`. The old world `districtAt` rectangles are intentionally not used because their district identities differ from the rebuilt city. No district boundaries are replaced.
+
+The destination remains pinned while a route waits, while the NPC approaches/boards and while the original car drives. Replanning keeps the same destination. An actually blocked distant candidate may be replaced; fifteen seconds of pending distant routing falls back to local work and imposes a 120-second distant-attempt cooldown. Distant routing only uses the verified native lane graph and parking access; it does not launch a large grid fallback. Worker queue/init unavailability has a bounded thirty-second wait; worker failure stops planning instead of silently running the synchronous city route. Existing speed, physical boarding, collision sweeps, signal rules, identity, ownership and exit/visit behaviour remain intact.
+
+## Background route contract
+
+The road owner's `city_lane_route_jobs.mjs` / real `city_lane_route_worker.mjs` now receive a stable `requestId`, immutable origin and target, actual native `instanceId` as `buildingId`, and `maxSnapDistance:12`. Pending polls retain that exact request. There is at most one new distant lane request per source frame, still inside the shared two-job/four-ms admission budget. Source files do not own or duplicate the road router.
+
+READY jobs remain alive because their canonical traffic controls refer to the worker result. A five-second `lane-route-touch` heartbeat renews the job during approach, boarding, driving and jams. If the lease is missing, movement stops and the same destination is replanned; boarding finishes physically before a missing route is replanned. Cancellation occurs on failed candidate, timeout, ownership/death release, completed trip and replan. The walk bridge dispatches both touch and cancel. Main-thread live vehicle and pedestrian sweeps still decide every actual movement, regardless of worker result.
+
+Long routes also use a sorted cursor through controls, instead of scanning the entire control list on every tick. The cursor resets when the plan or progress resets. A parity regression compares every permission against the prior scan, including a reset.
+
+## Evidence
+
+- `test_npc_interdistrict_policy.mjs`: 97 distant / 403 local intentions over 500 stable original IDs (19.4%); three-active cap, at most twelve candidates, fixed pending request/goal, blocked and timed-out distant fallback, cooldown, lease loss replanning the same destination, and worker failure without synchronous fallback. Candidate selection CPU p95 0.086ms in this controlled 33-entry fixture. For 2,000 controls, identical permission checks improve from p50/p95 0.00199/0.00212ms to 0.000534/0.000604ms per tick; this is a small isolated CPU cost, not scene FPS.
+- `test_native_parking_lifecycle.mjs --long --async`: actual compact sedan, actual native road graph and city static bodies, actual hospital GLB/doors, native water, and the real browser worker module running in a Node worker thread. Initial vehicle presentation is absent before scheduling. Original resident physically boards (12 frames), drives **895.97m from north_hills to eastside**, waits behind an actual source sedan for **122 frames / over six seconds**, resumes without changing NPC or destination, exits (12 frames), walks 48.89m, enters/browses/leaves the hospital. All driven edges are swept against actual geometry/dynamic source vehicles. PASS 6,926 frames with no teleport, speed increase or driver substitution.
+- Comparable synchronous geometry adapter on the same long scenario: lane query **76.49ms**, whole measured lifecycle-update p50/p95/max **0.0754/0.1421/79.52ms**. Real worker scenario after heartbeat integration: lane polls p50/p95/max **0.0545/0.0779/0.3841ms**, lifecycle-update **0.0689/0.1646/5.279ms**. Results are `outputs/npc_interdistrict_lifecycle_20260919.json` and `outputs/npc_interdistrict_async_lifecycle_20260919.json`. Worker initialization and initial parking admission are outside these lifecycle-update timings; the actual parking admission still measured **23.27ms cold**, then 1.17ms. Do not call all startup costs resolved.
+- The default actual fixture retains an explicit synchronous geometry adapter so prior CPU-only tests can complete deterministic accelerated simulation without needing a browser worker. `--async` injects the real worker and yields while pending; it is not a success stub. `test_lane_worker_adapter.mjs` only adapts Node transport to the unchanged real worker module.
+- Local physical lifecycle, native trip contracts, sixteen-trip planning fairness, original-NPC hijack, ambient bus/fire/tow contracts, world inline syntax/melee and `walk_preview.mjs` syntax pass after these changes.
+
+## Scope and remaining acceptance
+
+Production edits: civilian helper and its exact world marker; native entry district metadata; only lane-route touch/cancel dispatch in walk. Road-owner files and worker initialization are owned separately. Source changes are stable, with no extra browser/GPU tab, server restart, commit or deployment by this agent. Coordinator must combine the source requests with the road owner's host worker initialization; loading request IDs against a host with no routeJobs correctly fails closed.
+
+The CPU proof includes one real destination building and a nearly 900m drive, not visual skinning of every NPC or every possible destination. Full scene frame-time/GPU/animation acceptance remains for the single coordinated LIVE run. Road-owner initialization serialization and initial parking cold costs are separate remaining performance limits.
+
+Final revalidation after road owner HOST READY: policy/expired-lease/worker-failure tests and the real async 895.97m lifecycle still PASS (6,926 frames; blocker 122 frames). Latest lifecycle CPU p50/p95/max 0.0653/0.1411/4.9619ms. No production changes after the stable handoff.

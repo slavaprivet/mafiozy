@@ -1,0 +1,28 @@
+# Civilian lifecycle checkpoint for Artist 17
+
+Scope: user reports residents standing, no driving or visits. Artist 16 requested a bounded actual `walk → car → drive → visit → exit` CPU reproduction. Work stopped on explicit transition to Artist 17. **This audit stage made no production changes and has not completed that reproduction.** No GPU session or overall-scene performance measurement was run.
+
+## Confirmed source facts / next work
+
+- `assets/maps/city_rebuild_v1/civilian_parking_trip_source.js` is mirrored in `world.html`. `_civilianTripPlan` still plans with legacy `PARKING_LOTS`, `_getTrafficRoadGraph`, `_trafficLanePoint`, and legacy driveway surfaces. Native road geometry may disagree with these prerequisite surfaces; the authored door corridor is already native-authoritative. Next implementation should use existing root native traffic route/road-targets contracts, without inventing a second traffic simulation.
+- `_civilianTripSchedule` (helper line 116; world around 9766) attempts two nearby parked cars every 12 seconds. Requires `_onParking`, excludes cars reserved by `_parkingNpcs`, and abandons the attempt when `_civilianRouteTo` returns false for a pending pedestrian route. Preserve/resume a stable pending candidate rather than reporting every false as a permanent obstruction. Need actual trace before production fix.
+- `_civilianTripVehicleAvailable` excludes police/emergency/gang/convoy/owned/player/wreck/towed cars. This is deliberate role/ownership policy; do not broaden to fake drivers.
+- `_ambientTrafficDrivers` physically binds existing source residents to cars, but its ordinary driving lifecycle currently has no planned visit/exit. Newly spawned native ambient cars need not have `_onParking`; therefore the separate parked-car trip is not automatically their continuation.
+- `_civilianTripTickNpc` implements authored physical approach, boarding, seated follow and exit. After exit it releases the trip then requests the building-entry route; if that request is pending, the specific trip destination is not retained as a guaranteed resumed visit. Generic seek-shop can take over.
+- `_civilianTripTickCar` uses the legacy trip pose/surface sweep. A blocked planned segment can stay blocked without a native route replan. This needs an actual native-world trace, not a forced-success fixture.
+- `world.html` `_maybePlanResidentBuildingVisit` (around 9950) filters doors to 2–11 source tiles and native body-passable doorway. It stores a stable door ID while pending and has failed-door TTL. **Disproved suspicion:** `_clearNpcRoute` around 9379 clears route and route-goal fields, but does NOT clear `_routeSearchPending`; do not claim this function resets the pending search.
+- Building visit is presently source scheduling: after arriving within 0.10 source tiles and a 420 ms real-door opening, resident is marked indoors, then exits after routine-specific residence time. This is not visible physical indoor browsing and must not be presented as such.
+- `_spawnParkingNpc` / `_tickParkingNpcs` around world 18597 / 18663 create a separate decorative `_parkingNpcs` collection, not actual `NPCS` actors with persistent combat HP. They spawn at the car, choose legacy sidewalk/grass targets, move in direct lines, return and disappear after a 400 ms `getting_in` state. They reserve the same parked cars against the real trip scheduler, at most eight for up to 60 seconds. This is a legacy presentation path, not actual boarding or a real driver. Its native relevance and rendering path need tracing before replacement/removal; do not hide population to improve metrics.
+
+## Existing tests and acceptance gap
+
+- `test_civilian_parking_trip.mjs` checks legacy synthetic MAP planning, continuous physical door movement and the trip state machine. Its full-chain section stubs `_civilianRouteTo` to success and `_npcAdvanceRoute` to arrived. **It does not prove an actual native civilian lifecycle.**
+- `test_ambient_traffic_drivers.mjs` covers source identity/alive driver/ready binding, physical boarding and native contract rejection, but uses synthetic navigation responses.
+- `test_npc_vehicle_actual_routes.mjs` loads real GLBs and current physical geometry; useful native planner fixture for a proper lifecycle harness. Root owns current nav helper, do not edit in parallel.
+- `test_native_service_initial.mjs` covers actual initial BUS footprint and missing-depot deferral. Earlier undefined `kind` police-fleet regression was fixed and smoke-tested. New LIVE report during this checkpoint: `_ensurePoliceResponseFleet` empty-bay TypeError repeatedly aborts update; **npc_perception owns its new fix**. Until that is resolved, global stalled NPC behavior cannot be attributed solely to civilian planning.
+
+## Next bounded acceptance
+
+First confirm the global update runs without the police exception. Record actual eligibility counts and pending/block reasons at each civilian phase. Build a CPU harness using source scheduler, actual pedestrian/native traffic resolvers, actual building-entry anchors and collision geometry; advance frames with bounded planner budgets instead of forced-success route stubs. Prove one unchanged source NPC identity completes approach/board/drive/exit/door visit/exit, with no water/building/car crossing, no teleport and real driver-ready/HP guards. Measure subsystem update p50/p95 before/after; reserve overall LIVE/FPS acceptance for parent/coordinator.
+
+Earlier completed mobility/driver/depot/weapon policy details remain in the separate dated handoffs; this document records unfinished work only. No background work will continue from the old agent after this handoff.

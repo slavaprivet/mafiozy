@@ -15,32 +15,58 @@ export function createBulletWounds(THREE,{worldScale=1}={}) {
     states.set(model,{root,surfaces,group,marks:[],receipts:new Set()});return group;
   }
   function vertex(mesh,index){return mesh.getVertexPosition(index,new THREE.Vector3()).applyMatrix4(mesh.matrixWorld);}
+  function contactQuery(state){
+    const owners=new Map(),temporary=[],posed=new THREE.Vector3();
+    const surfaces=state.surfaces.map(mesh=>{
+      if(!mesh.isSkinnedMesh)return mesh;
+      const source=mesh.geometry,values=new Float64Array(source.attributes.position.count*3);
+      for(let i=0;i<source.attributes.position.count;i++)mesh.getVertexPosition(i,posed).toArray(values,i*3);
+      const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(values,3));geometry.setIndex(source.index);
+      for(const group of source.groups)geometry.addGroup(group.start,group.count,group.materialIndex);
+      geometry.setDrawRange(source.drawRange.start,source.drawRange.count);
+      const proxy=new THREE.Mesh(geometry,mesh.material);proxy.matrixWorld.copy(mesh.matrixWorld);owners.set(proxy,mesh);temporary.push(geometry);return proxy;
+    });
+    return {surfaces,owners,dispose(){for(const geometry of temporary)geometry.dispose();}};
+  }
   function anchorAt(state,point,normal){
     const ray=new THREE.Raycaster(point.clone().addScaledVector(normal,.35*unit),normal.clone().negate(),0,.70*unit);
     const hits=ray.intersectObjects(state.surfaces,false);
     const hit=hits.find(h=>h.face&&Math.abs(h.distance-.35*unit)<.20*unit);
     if(!hit)return null;
-    const {a,b,c}=hit.face,A=vertex(hit.object,a),B=vertex(hit.object,b),C=vertex(hit.object,c);
+    const mesh=state.owners?.get(hit.object)||hit.object;
+    const {a,b,c}=hit.face,A=vertex(mesh,a),B=vertex(mesh,b),C=vertex(mesh,c);
     const weights=THREE.Triangle.getBarycoord(hit.point,A,B,C,new THREE.Vector3());
     if(!weights)return null;
     const outward=new THREE.Vector3().subVectors(B,A).cross(new THREE.Vector3().subVectors(C,A)).normalize();
-    return {mesh:hit.object,a,b,c,weights,sign:outward.dot(normal)<0?-1:1};
+    return {mesh,materialIndex:hit.face.materialIndex??0,a,b,c,weights,sign:outward.dot(normal)<0?-1:1};
   }
   function add(model,event={}){
     if(event.confirmed!==true||event.id===undefined||event.id===null||!finite(event.point)||!finite(event.normal)||event.normal.lengthSq()<1e-10)return false;
     attach(model);const state=states.get(model),id=String(event.id);
     if(state.receipts.has(id))return false;
     state.root.updateWorldMatrix(true,true);for(const mesh of state.surfaces)if(mesh.isSkinnedMesh){mesh.skeleton.update();mesh.computeBoundingSphere();if(mesh.boundingBox)mesh.computeBoundingBox();}
-    const n=event.normal.clone().normalize(),center=anchorAt(state,event.point,n);if(!center)return false;
-    // Prefer an explicit hit-zone classification from integration. This fallback is only visual.
-    const clothing=event.clothing??!(/head|neck|hand/i.test(event.boneName||''));
+    // Freeze the current skinned vertices once for all rays in this receipt.
+    // The temporary CPU meshes never enter the scene or own source materials.
+    const query=contactQuery(state);
+    try{
+    const n=event.normal.clone().normalize(),center=anchorAt(query,event.point,n);if(!center)return false;
+    // Source receipts need not carry cosmetic material names. Classify the
+    // actual contacted material so exposed face/hands never become torn cloth.
+    // This is evaluated once per accepted wound, not during crowd animation.
+    const contactMaterial=Array.isArray(center.mesh.material)?center.mesh.material[center.materialIndex]:center.mesh.material;
+    const clothing=event.clothing??!(/SKIN/i.test(contactMaterial?.name||'')||/head|neck|hand/i.test(event.boneName||'')||event.zone==='head');
     const u=new THREE.Vector3().crossVectors(Math.abs(n.y)<.9?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0),n).normalize(),v=new THREE.Vector3().crossVectors(n,u);
     let seed=2166136261;for(const char of id)seed=Math.imul(seed^char.charCodeAt(0),16777619)>>>0;
     const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
     const count=11,radius=(clothing?.105:.075)*unit,edge=Array.from({length:count},(_,i)=>{const a=i/count*Math.PI*2;return [Math.cos(a)*radius*(.65+random()*.55),Math.sin(a)*radius*(.65+random()*.55)];});
+    // The fan reuses its centre and rim in many triangles. Skin raycasts are
+    // expensive; reuse each exact probe within this synchronous receipt only.
+    // No cached world coordinate survives a pose change or the next impact.
+    const contactAnchors=new Map([['0,0',center]]);
+    function probe(x,y){const key=x+','+y;if(contactAnchors.has(key))return contactAnchors.get(key);const anchor=anchorAt(query,event.point.clone().addScaledVector(u,x).addScaledVector(v,y),n);contactAnchors.set(key,anchor);return anchor;}
     const anchors=[],positions=[],groups=[];
     function triangle(points,material,offset){
-      const bound=points.map(([x,y])=>anchorAt(state,event.point.clone().addScaledVector(u,x).addScaledVector(v,y),n));
+      const bound=points.map(([x,y])=>probe(x,y));
       if(bound.some(x=>!x))return;
       groups.push({start:anchors.length,count:3,material});for(const anchor of bound){anchors.push({...anchor,offset:offset*unit});positions.push(0,0,0);}
     }
@@ -58,6 +84,7 @@ export function createBulletWounds(THREE,{worldScale=1}={}) {
     while(state.receipts.size>MAX_RECEIPTS)state.receipts.delete(state.receipts.values().next().value);
     while(state.marks.length>MAX_MARKS){const old=state.marks.shift();old.mesh.removeFromParent();old.mesh.geometry.dispose();}
     update(model);return true;
+    }finally{query.dispose();}
   }
   function update(model){
     const state=states.get(model);if(!state||!state.marks.length)return;

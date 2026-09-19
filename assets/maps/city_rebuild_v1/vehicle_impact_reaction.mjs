@@ -77,7 +77,11 @@ export function createVehicleOccupantImpactPose(T){
   let safe=c.gains.get(car);if(!safe){safe=new Map();c.gains.set(car,safe)}
   // Probe the full signed angular envelope once per seat/steering region. Later
   // frames use the smaller analytic sample; no repeated full skin traversal.
-  const key=seatId+':'+Math.sign(pitch)+':'+Math.sign(roll)+':'+Math.round((car.interior?.steeringWheel?.rotation.z||0)*10);
+  // Only the driver reaches back to the rotating rim. Passenger pose, skin
+  // bounds and palm rule are independent of wheel angle, so steering must not
+  // make that exact certificate cold again while the car is turning.
+  const steeringRegion=seat.canDrive?Math.round((car.interior?.steeringWheel?.rotation.z||0)*10):'passenger';
+  const key=seatId+':'+Math.sign(pitch)+':'+Math.sign(roll)+':'+steeringRegion;
   const known=safe.get(key);
   if(known){if(!known.gain)return{applied:false,gain:0,cached:true};pose(known.gain,known.headOnly);if(palmsSafe())return{applied:true,...known,cached:true};restore();return{applied:false,gain:0,cached:true}}
   c.baseline.copy(skinBounds(c,hero,car));

@@ -36,6 +36,7 @@ assert(damage.stats().flames===24,'strong bounded fire plume is active');
 let geometryDisposed=false,materialDisposed=false;flyingHood.geometry.addEventListener('dispose',()=>geometryDisposed=true);flyingHood.material.addEventListener('dispose',()=>materialDisposed=true);
 const chassis=car.shell.find(m=>m.name==='Central_underbody'),burnedColor=chassis.material.color.clone();assert(Math.max(burnedColor.r,burnedColor.g,burnedColor.b)<.04,'persistent frame is visibly charred');
 damage.impact({object:hood,point,normal,damage:999,shotId:'again'});damage.update(2);assert.equal(explosions,1);
+const groundedHoodMin=new T.Box3().setFromObject(flyingHood).min.y;assert(Math.abs(groundedHoodMin-.02)<1e-6,'settled copied assembly still rests on its exact lowest authored vertex');
 damage.update(3);assert.equal(damage.stats().debris,10);assert.equal(damage.stats().flames,0);assert.equal(flyingHood.parent,damage.debrisObject);assert.equal(damage.debrisObject.parent,scene);assert(!geometryDisposed&&!materialDisposed,'large settled parts persist beside wreck');
 const settledWorld=flyingHood.getWorldPosition(new T.Vector3());car.object.position.set(35,0,40);damage.update(1);assert(flyingHood.getWorldPosition(new T.Vector3()).distanceTo(settledWorld)<1e-8,'moving the chassis never drags settled debris');car.object.position.set(0,0,0);
 damage.update(60);assert(chassis.visible&&chassis.material.color.equals(burnedColor)&&!hood.visible,'only the charred frame persists without respawning detached parts');

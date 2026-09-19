@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {createWalkLifeInterrupt} from './walk_life_interrupt.mjs';
+const calls=[],interrupt=createWalkLifeInterrupt({cancelScriptedActions:r=>calls.push(['cancel',r.reason]),closeDialogs:r=>calls.push(['close',r.reason]),releaseInput:r=>calls.push(['release',r.reason])});
+let continued=0;const pending=interrupt.guard(()=>continued++);pending();assert.equal(continued,1);
+for(const state of [{available:true,hp:0,dead:false},{available:true,downed:true,custodyOwned:true,dead:false},{available:true,stunned:true,inputsBlocked:true},{available:false,dead:true}])assert.equal(interrupt.apply(state),false,'no inferred death/arrest/stun interrupt');
+assert(interrupt.apply({snapshot:{available:true,dead:true}}));assert.deepEqual(calls,[['cancel','death'],['close','death'],['release','death']]);pending();assert.equal(continued,1,'predeath async callbacks invalidated');
+assert.equal(interrupt.apply({available:true,dead:true}),false,'no repeated close/reset every frame');
+const whileDead=interrupt.guard(()=>continued++);interrupt.apply({available:true,dead:false});pending();whileDead();assert.equal(continued,1,'revival cannot resurrect old cutscene callbacks');interrupt.guard(()=>continued++)();assert.equal(continued,2);
+assert(interrupt.apply({available:true,deathConfirmed:true}));assert.equal(interrupt.stats().episodes,2);
+let released=0,errors=0;const broken=createWalkLifeInterrupt({cancelScriptedActions(){throw Error('cancel failed');},closeDialogs(){throw Error('close failed');},releaseInput(){released++;},onError(){errors++;}});broken.apply({dead:true});assert.equal(released,1);assert.equal(errors,2,'one failure cannot block remaining owners');
+interrupt.dispose();interrupt.apply({dead:true});assert.equal(interrupt.stats().episodes,2);broken.dispose();
+console.log('PASS lifecycle interrupt: confirmed death edge only, owner callbacks before death animation, no arrest/stun/HP inference, async invalidation across revival, independent cleanup, disposal');

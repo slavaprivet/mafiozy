@@ -36,7 +36,8 @@ export function createNpcRuntimeInspection({document:doc=globalThis.document,par
   const key=JSON.stringify(rows.map(row=>[row.id,row.name,row.role]));if(key!==signature){signature=key;select.replaceChildren();const empty=doc.createElement('option');empty.value='';empty.textContent='Выбрать NPC ('+rows.length+')';select.append(empty);for(const row of rows){const option=doc.createElement('option');option.value=row.id;option.textContent=(row.name||row.id)+' · '+(row.role||'civilian');select.append(option)}}select.value=selected||'';
   nextCivilian.disabled=!rows.some(civilian);nextPolice.disabled=!rows.some(police);
   const row=selection(),src=row?.source,sample=row&&samples.get(row.id),behavior=src?.routinePlan?.phase||src?.parkingState||src?.lifeState||src?.state||(src?.walking?'идёт':'ожидает');
-  status.textContent=row?`ID: ${row.id}\nРоль: ${row.role||'civilian'}\nСкорость: ${Number.isFinite(sample?.speed)?sample.speed.toFixed(2)+' м/с':'—'}\nПоведение: ${behavior}`:'Выберите существующего NPC. Кнопки меняют только камеру.';
+  const detail=src?.inspectionActivity,agendaNames={walk:'прогулка',shop:'посещение здания',bench:'отдых на лавочке',drive:'поездка'};
+  status.textContent=row?`ID: ${row.id}\nРоль: ${row.role||'civilian'}\nСкорость: ${Number.isFinite(sample?.speed)?sample.speed.toFixed(2)+' м/с':'—'}\nПоведение: ${behavior}`+(detail?`\nЗанятие: ${agendaNames[detail.agenda]||detail.agenda||'—'}\nМаршрут: ${detail.pending?'ожидает '+(detail.waitMs/1000).toFixed(1)+' с':detail.routeRemaining?'готов, точек '+detail.routeRemaining:'нет'}${src.civilianTripPhase?'\nПоездка: '+src.civilianTripPhase:''}`:''):'Выберите существующего NPC. Кнопки меняют только камеру.';
  }
  update();return {enabled:true,panel,update,getSelection:selection,isFollowing:()=>following,dispose(){if(disposed)return;disposed=true;rows=[];samples.clear();panel.remove()}};
 }

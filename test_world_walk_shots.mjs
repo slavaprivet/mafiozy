@@ -11,7 +11,7 @@ function setup(){
  const emitted=[];let shots=0,reloads=0,equips=0;
  const c={NPCS:[victim,other],_buildingInt:null,_bankInt:null,cityCops:[],worldCops:[],michaelGuards:new Map(),beachgoers:new Map(),aggroZones:{},worldEvent:null,_busRiders:[],_busWaiters:[],_parkingNpcs:[],CARS:[],player:{r:0,c:0},currentWeapon:'pistol',WEAPON_ALIASES:{tt:'pistol'},performance:{now:()=>1000},
   _threeNpcActionRefs:new Map([['npc_civilian',{ref:victim}],['npc_other',{ref:other}]]),_threeNpcEntityId:n=>'npc_'+n.id,
-  QP:{uid:'7'},_walkRendererActive:()=>true,_isArmed:()=>!!c.currentWeapon,weaponsForPick:()=>[{id:null},{id:'pistol'}],_weaponPickEl:{children:[]},
+  QP:{uid:'7'},_serverAuthoritativeAmmo:false,_walkRendererActive:()=>true,_isArmed:()=>!!c.currentWeapon,weaponsForPick:()=>[{id:null},{id:'pistol'}],_weaponPickEl:{children:[]},
   renderWeaponPick(){c._weaponPickEl.children=c.weaponsForPick().map(w=>({click(){equips++;c.currentWeapon=w.id;}}));},
   reloadCurrentWeapon(){reloads++;return true;},window:{dispatchEvent:e=>emitted.push(e.detail)},CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}}
  };vm.createContext(c);

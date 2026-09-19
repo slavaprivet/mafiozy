@@ -21,7 +21,23 @@ for(const sex of ['male','female']){
  a.update(.05,{time:1,position:{x:11,y:0,z:8},yaw:.4,life:{civilianTripRiding:true,civilianTripCarId:'actual-car'}});
  const anchor=binding.getDriverRootWorld();reference.update(.05,{time:1,position:anchor,yaw:1.1});vehicle.poseOccupant(reference.walker,'front_left',{fold:1,reach:0,dt:.05});reference.object.updateMatrixWorld(true);
  const ac=a.walker.artistContext(),rc=reference.walker.artistContext();for(const name of Object.keys(ac.bones)){const actual=ac.bones[name].getWorldPosition(new THREE.Vector3()),expected=rc.bones[name].getWorldPosition(new THREE.Vector3());assert(actual.distanceTo(expected)<1e-5,sex+' exact native vehicle pose '+name);}
- assert.deepEqual(a.object.position.toArray(),[11,0,8],'NPC authority root restored');assert(Math.abs(a.object.rotation.y-.4)<1e-9);a.dispose();reference.dispose();
+ assert.deepEqual(a.object.position.toArray(),[11,0,8],'NPC authority root restored');assert(Math.abs(a.object.rotation.y-.4)<1e-9);
+ for(const seat of vehicle.seats.filter(s=>s.id!=='front_left')){
+  const root=binding.getSeatRootWorld(seat.id).clone();
+  a.update(.05,{time:1.4,position:{x:11,y:0,z:8},yaw:.4,life:{civilianTripRiding:true,civilianTripCarId:'actual-car',vehicleSeatId:seat.id}});
+  reference.update(.05,{time:1.4,position:root,yaw:1.1});vehicle.poseOccupant(reference.walker,seat.id,{fold:1,reach:0,dt:.05});reference.object.updateMatrixWorld(true);
+  for(const name of Object.keys(ac.bones))assert(ac.bones[name].getWorldPosition(new THREE.Vector3()).distanceTo(rc.bones[name].getWorldPosition(new THREE.Vector3()))<1e-5,sex+' actual passenger seat '+seat.id+' '+name);
+  assert.deepEqual(a.object.position.toArray(),[11,0,8],'passenger preserves authority root');
+ }
+ binding.getDriverRootWorld(); // restore the shared scratch anchor for driver transition checks
+ for(const phase of ['board','exit'])for(const progress of [0,.25,.5,.75,1]){
+  const fold=phase==='board'?progress:1-progress,root={x:11+fold*(anchor.x-11),y:0,z:8+fold*(anchor.z-8)};
+  a.update(.05,{time:2+progress,position:root,yaw:.4,life:{civilianTripRiding:false,civilianTripCarId:'actual-car',civilianTripPhase:phase,civilianTripProgress:progress}});
+  reference.update(.05,{time:2+progress,position:{x:root.x,y:anchor.y*fold,z:root.z},yaw:1.1});vehicle.poseOccupant(reference.walker,'front_left',{fold,reach:Math.sin(progress*Math.PI)*.65,dt:.05});reference.object.updateMatrixWorld(true);
+  for(const name of Object.keys(ac.bones))assert(ac.bones[name].getWorldPosition(new THREE.Vector3()).distanceTo(rc.bones[name].getWorldPosition(new THREE.Vector3()))<1e-5,sex+' animated '+phase+' '+progress+' '+name);
+  assert.deepEqual(a.object.position.toArray(),[root.x,0,root.z],'transition retains source root, no visual seat snap');
+ }
+ a.dispose();reference.dispose();
 }
 console.log('PASS actual compact_sedan + both hero GLBs: native poseOccupant world bones match exactly; seat root semantics and source root preserved');
 let bridgeVectorAllocations=0;class CountedVector3 extends THREE.Vector3{constructor(...args){super(...args);bridgeVectorAllocations++;}}

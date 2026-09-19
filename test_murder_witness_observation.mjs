@@ -1,14 +1,14 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 const source=fs.readFileSync(process.argv[2]||new URL('./world.html',import.meta.url),'utf8').replace(/\r\n/g,'\n');
 function fn(name){const a=source.indexOf(`function ${name}(`);return a<0?'':source.slice(a,source.indexOf('\n}',a)+2);}
-let now=10000;const npc=(id,r=1,c=1)=>({id,r,c});
+let now=10000;const npc=(id,r=1,c=1)=>({id,r,c,ang:-Math.PI/2});
 const visible=npc('resident_a'),wall=npc('resident_b',2),late=npc('resident_c',50),victim=npc('victim',0,0);
 let walls=new Set([wall.r]);
 const env={performance:{now:()=>now},NPCS:[visible,wall,late,victim],player:{r:0,c:2},_buildingInt:null,_bankInt:null,
   _policeWorldLineClear:(r,c,tr,tc)=>!walls.has(r),Math,Number,String,
   _npcWitnessAble:n=>!!n&&!n.dead&&!n._medicalDowned&&!n._policeCuffed&&!(n._meleeStunnedUntil>now)&&!n._fightingMelee};
 vm.createContext(env);
-for(const n of ['_murderWitnessAvailable','_captureMurderWitnesses','_murderWitnessCanInterview','_murderSceneWitnesses','_murderWitnessStatement'])if(fn(n))vm.runInContext(fn(n),env);
+for(const n of ['_npcPerceptionHeight','_npcPerceptionTargetHeight','_npcCanSeePoint','_murderWitnessAvailable','_captureMurderWitnesses','_murderWitnessCanInterview','_murderSceneWitnesses','_murderWitnessStatement'])if(fn(n))vm.runInContext(fn(n),env);
 const incident={r:0,c:0,victim,source:{kind:'player'},occurredAt:now};
 // Baseline has no event capture; its real selector still demonstrates the bug.
 env._captureMurderWitnesses?.(incident,now);

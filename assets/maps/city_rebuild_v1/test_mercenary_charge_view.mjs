@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createMercenaryChargeView} from './mercenary_charge_view.mjs';
+import {createMercenarySquad} from './mercenary_core.mjs';
+const THREE=await import(pathToFileURL((process.env.THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor')+'/build/three.module.js'));
+const scene=new THREE.Scene(),car=new THREE.Group();scene.add(car);car.userData.halfWidth=1.1;
+let rows=[],reads=0,target={object:car,kind:'vehicle',valid:true,position:{x:1.85,y:0,z:0}},time=0;
+const view=createMercenaryChargeView({THREE,scene,getTarget:()=>target,getCharges:()=>{reads++;return rows;},nowSeconds:()=>time});
+view.update();assert.equal(view.stats().active,0);
+rows=[{actionId:'a',targetId:'car',phase:'working',detonateAt:10}];time=.11;view.update();assert.equal(view.stats().active,0,'not before armed work completes');
+rows[0].phase='retreat';time=.22;view.update();const mesh=car.getObjectByName('Mercenary_Armed_Charge');assert(mesh);assert.equal(view.stats().active,1);assert.equal(mesh.position.x,1.125,'side attachment');
+view.update(.23);assert.equal(reads,3,'charge polling limited to 10Hz');
+const position=mesh.getWorldPosition(new THREE.Vector3());car.position.set(10,0,12);car.rotation.y=Math.PI/2;scene.updateMatrixWorld(true);const moved=mesh.getWorldPosition(new THREE.Vector3());assert(moved.distanceTo(position)>10,'attached charge follows moving car without polling');
+for(let i=0;i<30;i++)view.update(.4+i*.11);assert.equal(car.children.filter(o=>o.name===mesh.name).length,1);assert.equal(car.getObjectByName(mesh.name),mesh,'stable action id reuses mesh');
+rows.push({actionId:'b',targetId:'car',detonateAt:10});view.update(4);assert.equal(view.stats().active,2);const meshes=car.children.filter(o=>o.name===mesh.name);assert.equal(meshes[0].geometry,meshes[1].geometry);assert.equal(meshes[0].material,meshes[1].material);
+rows=rows.filter(r=>r.actionId==='b');view.update(4.2);assert.equal(view.stats().active,1,'source removal clears only its charge');
+target.valid=false;view.update(4.4);assert.equal(view.stats().active,0,'removed target clears prop');target.valid=true;view.update(4.6);assert.equal(view.stats().active,1);
+view.update(10);assert.equal(view.stats().active,0,'expired charge hidden');view.dispose();view.dispose();assert.equal(view.stats().geometries,0);assert.equal(view.stats().materials,0);
+console.log('PASS charge view: armed-only, 10Hz polling, moving target attachment, stable IDs/shared resources, source/target removal, expiration, disposal');
+// Integration contract: use the core's real numeric action sequence and armed snapshot.
+let coreTime=100;const member={id:'demo',hp:100,valid:true,position:{x:0,y:0,z:0}},vehicle={id:'car',kind:'vehicle',valid:true,position:{x:0,y:0,z:0}};
+const squad=createMercenarySquad({now:()=>coreTime,getMember:()=>member,getTarget:()=>vehicle});assert(squad.recruit({id:'demo',profession:'demolitions'}).ok);assert(squad.command('demo','plant_bomb','car').ok);
+const actual=createMercenaryChargeView({THREE,scene,getTarget:()=>target,getCharges:()=>squad.snapshot().charges,nowSeconds:()=>coreTime});squad.update();actual.update();assert.equal(actual.stats().active,0,'core working snapshot has no charge');
+coreTime+=4;squad.update();const armed=squad.snapshot().charges;assert.equal(armed.length,1);assert(Number.isSafeInteger(armed[0].actionId)&&armed[0].actionId>0);actual.update();assert.equal(actual.stats().active,1,'actual core numeric ID creates charge');
+const numericMesh=car.getObjectByName('Mercenary_Armed_Charge');assert.equal(numericMesh.userData.mercenaryChargeId,String(armed[0].actionId));squad.dismiss('demo');coreTime+=.2;actual.update();assert.equal(actual.stats().active,1,'dismissed operator retains actual armed charge');actual.dispose();
+let invalidRows=[0,-1,1.5,NaN,Infinity,Number.MAX_SAFE_INTEGER+1,'',null].map(actionId=>({actionId,targetId:'car',detonateAt:200}));
+const invalid=createMercenaryChargeView({THREE,scene,getTarget:()=>target,getCharges:()=>invalidRows});invalid.update(100);assert.equal(invalid.stats().active,0,'invalid numeric IDs rejected');invalidRows=[{...armed[0],actionId:String(armed[0].actionId)},armed[0]];invalid.update(100.2);assert.equal(invalid.stats().active,1,'number and equivalent string use one stable key');invalid.dispose();
+console.log('PASS actual core armed snapshot numeric ID, operator dismissal, invalid IDs, normalized key dedup');
+// Same source vehicle can be rematerialized by streaming; charge attaches only to the live actor.
+const replacementCar=new THREE.Group();scene.add(replacementCar);target={object:car,kind:'vehicle',valid:true,position:{x:1.85,y:0,z:0}};
+const swapped=createMercenaryChargeView({THREE,scene,getTarget:()=>target,getCharges:()=>[{actionId:999,targetId:'traffic:car',detonateAt:300}]});swapped.update(100);assert(car.getObjectByName('Mercenary_Armed_Charge'));target={...target,object:replacementCar};swapped.update(101);assert.equal(car.getObjectByName('Mercenary_Armed_Charge'),undefined);assert(replacementCar.getObjectByName('Mercenary_Armed_Charge'));target=null;swapped.update(102);assert.equal(swapped.stats().active,0);swapped.dispose();
+console.log('PASS charge actor replacement detaches obsolete parent; missing target clears prop');

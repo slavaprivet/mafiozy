@@ -22,6 +22,25 @@ function stub(id,x=0,z=0,profile={}){
 }
 const make=options=>createVehicleFleet(T,{scene:new T.Scene(),RoundedBox,world:()=>()=>true,...options});
 
+test('fleet batches cabin and moving door after adapters, syncs mutations, owns disposal',()=>{
+ const supplied=stub('batch_integration'),interior=new T.Group(),door=new T.Group(),material=new T.MeshStandardMaterial();
+ interior.name='Interior_Test';door.name='Door_front_left';door.userData.vehicleDoorId='front_left';supplied.car.object.add(interior,door);
+ const cabin=Array.from({length:3},()=>new T.Mesh(new T.BoxGeometry(),material)),panels=Array.from({length:3},()=>new T.Mesh(new T.BoxGeometry(),material));interior.add(...cabin);door.add(...panels);
+ supplied.car.update=()=>{door.rotation.y=.8;cabin[0].position.x=.25;};
+ const fleet=make(),record=fleet.addCar(supplied);fleet.activate(fleet.addCar(stub('active_other',20)));assert.equal(record.renderBatches.stats.includeDoors,true);assert.equal(record.renderBatches.stats.members,6);assert.equal(record.renderBatches.stats.doorMembers,3);
+ fleet.update(1/60);const batch=interior.children.find(n=>n.isBatchedMesh),doorBatch=door.children.find(n=>n.isBatchedMesh),matrix=new T.Matrix4();batch.getMatrixAt(0,matrix);approx(matrix.elements[12],.25);assert.equal(doorBatch.parent,door);approx(door.rotation.y,.8);
+ supplied.damage.update=()=>{panels[0].userData.detached=true};fleet.update(1/60);assert.equal(record.renderBatches.stats.fallbackMembers,1);assert.equal(panels[0].material,material);
+ let batchDisposals=0,sourceDisposals=0;batch.geometry.addEventListener('dispose',()=>batchDisposals++);cabin[0].geometry.addEventListener('dispose',()=>sourceDisposals++);
+ fleet.dispose();assert.equal(batchDisposals,1);assert.equal(sourceDisposals,1);assert.equal(cabin[0].material,material);assert.equal(batch.parent,null);assert.equal(doorBatch.parent,null);
+});
+
+test('unsupported multi-draw gate preserves legacy batches but creates no new detail groups',()=>{
+ const supplied=stub('no_multi_draw'),interior=new T.Group(),material=new T.MeshStandardMaterial(),pairMaterial=new T.MeshStandardMaterial();interior.name='Interior_Test';supplied.car.object.add(interior);
+ interior.add(...Array.from({length:3},()=>new T.Mesh(new T.BoxGeometry(),material)),...Array.from({length:2},()=>new T.Mesh(new T.BoxGeometry(),pairMaterial)));
+ const fleet=make({detailOptimization:false}),record=fleet.addCar(supplied);
+ assert.equal(record.renderBatches.stats.members,3);assert.equal(record.renderBatches.stats.detailBatches,0);assert.equal(record.renderBatches.stats.detailOptimizationEnabled,false);fleet.dispose();
+});
+
 test('switching adopts existing adapters and preserves damage, doors and motion',()=>{
  const fleet=make(),a=stub('red'),b=stub('taxi',12);const first=fleet.addCar(a),second=fleet.addCar(b);
  assert.equal(first.damage,a.damage);assert.equal(second.trunk,b.trunk);assert.equal(fleet.activeId,'red');
@@ -136,4 +155,22 @@ test('parked dry pose is reused while water physics remains frame-accurate',()=>
  posed.length=0;fleet.update(1/60);
  assert.deepEqual(posed,[18],'only the wet car continues terrain/water sampling');
  fleet.dispose();
+});
+
+test('a pristine parked car reuses drive effects but still refreshes on controls or damage',()=>{
+ let effectReads=0,damageUpdates=0,tyreUpdates=0,trunkUpdates=0,hoodUpdates=0;
+ const fleet=make(),active=fleet.addCar(stub('active')),
+  parkedCar={object:new T.Group(),profile:{...CAR,id:'idle',massKg:1500},wheels:[],shell:[],doors:new Map(),seats:[],update(){}},
+  damageState={maxHp:240,hp:240,smoking:false,burning:false,destroying:false,wrecked:false},tyreState=[];
+ const parked=fleet.addCar({id:'idle',car:parkedCar,state:{x:12,z:0,yaw:0,speed:0,travelYaw:0,yawRate:0},
+  damage:{state:damageState,get crashEffects(){effectReads++;return{speedFactor:1}},update(){damageUpdates++},crash:{applyWheels(){}}},
+  tyres:{state:tyreState,get effects(){effectReads++;return{speedFactor:1}},update(){tyreUpdates++}},
+  roll:{angle:0,unstable:false,update(){}},trunk:{state:{open:false},update(){trunkUpdates++}},hood:{state:{open:false},update(){hoodUpdates++}}});
+ fleet.update(1/60);const firstEffects=parked.state.crashEffects,firstReads=effectReads;
+ fleet.update(1/60);
+ assert.equal(effectReads,firstReads,'stable drive effects are not rebuilt');assert.equal(parked.state.crashEffects,firstEffects);
+ assert.equal(damageUpdates,2);assert.equal(tyreUpdates,2);assert.equal(trunkUpdates,2);assert.equal(hoodUpdates,2,'presentation remains live');
+ parked.state.braking=true;fleet.update(1/60);assert.equal(parked.state.braking,false);assert.equal(effectReads,firstReads+2,'a parked former driver is normalized once');
+ damageState.hp=230;fleet.update(1/60);assert.equal(effectReads,firstReads+4,'damage invalidates the pristine cache');
+ assert.equal(active.state.x,0);fleet.dispose();
 });

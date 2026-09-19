@@ -1,7 +1,7 @@
 // Pure world-space traversal planning. y is the character's feet/root height.
 export const TRAVERSAL = Object.freeze({
   standingHeight: 1.9, carryHeight: 1.1, reach: .9, shoreReach: 2.2,
-  maxRise: 1.65, shoreMaxRise: 1.9, maxWidth: 2, clearance: .14,
+  maxRise: 1.65, vehicleMaxRise: 2.05, shoreMaxRise: 1.9, maxWidth: 2, clearance: .14,
   probeStep: .06, sweepStep: .04, supportRadius: .22, dryDepth: 0,
 });
 const clamp = value => Math.max(0, Math.min(1, value));
@@ -44,7 +44,8 @@ export function planTraversal({ position, direction, swimming = false, sample, c
     if (!s) break;
     const rise = s.surface - position.y;
     // A roof or tall wall may never be skipped in search of a far-side landing.
-    if (rise > maxRise + 1e-6) break;
+    const allowedRise = !swimming && s.supportKind === 'vehicle' ? TRAVERSAL.vehicleMaxRise : maxRise;
+    if (rise > allowedRise + 1e-6) break;
     highest = Math.max(highest, s.surface);
     if (!edge && (rise > .24 || swimming && s.waterDepth <= TRAVERSAL.dryDepth)) edge = { x, y: s.surface, z };
     if (firstObstacle === null) {
@@ -67,7 +68,9 @@ export function planTraversal({ position, direction, swimming = false, sample, c
       duration: Math.max(.85, Math.min(1.25, .76 + Math.max(0, rise) * .15 + distance * .07)),
     };
     if (!safeInterval(plan, 0, 1, canOccupy).safe) continue;
-    if (kind === 'mantle') { mantle ??= plan; continue; }
+    // A cabin roof is a destination: do not automatically throw the player
+    // over it when a supported pull-up is available. Low bonnets still vault.
+    if (kind === 'mantle') { if (s.supportKind === 'vehicle' && rise > 1.1) return plan; mantle ??= plan; continue; }
     return plan;
   }
   return mantle;

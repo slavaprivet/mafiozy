@@ -22,6 +22,11 @@ for(const sex of ['male','female']){
  assert(!a.diagnostics().sourceDown&&!a.diagnostics().sourceRecovering);assert(ctx.bones.head.getWorldPosition(new THREE.Vector3()).y>1.2,sex+' recovered stands');const after=a.saveSurfaceState().surface;assert.deepEqual(after.bruises,injuries.bruises);assert.deepEqual(after.wounds.marks,injuries.wounds.marks,'getting up never heals wounds');
  for(let i=0;i<8;i++)tick({life:{cuffed:true}});assert.equal(a.diagnostics().lifeGesture,'cuffed');for(const side of ['l','r'])assert(ctx.offset.worldToLocal(ctx.worldPosition('socket_hand_'+side)).z<-.15,'cuffed palms behind torso');
  const gun=createWeaponModel({THREE,id:'tt_pistol'});a.mountWeapon(gun);tick({life:{cuffed:true}});const armed=ctx.bones.hand_r.matrix.toArray();tick();assert(armed.every((v,i)=>Math.abs(v-ctx.bones.hand_r.matrix.elements[i])<1e-8),'armed cuffs do not overwrite weapon IK');assert.equal(a.diagnostics().lifeGesture,null);a.mountWeapon(null);
+ // Actual medical source snapshot carries both downed and forcedCrawl.
+ // Its base prone tilt must not cancel the authored nonfatal fall rotation.
+ for(let i=0;i<10;i++)tick(normalizeNpcSnapshot({id:a.id,r:0,c:0,hp:1,dead:false,deathConfirmed:false,downed:true,downedAt:1000,downedUntil:0,forcedCrawl:true,panic:true,walking:true},{time:time+.1,sourceNowMs:5000+i*100}));
+ assert(a.diagnostics().sourceDown);assert.notEqual(a.surface.state.kind,'dead','medical HP1 remains alive');
+ assert(ctx.bones.head.getWorldPosition(new THREE.Vector3()).y<.65,sex+' medical downed cannot stand from double prone/fall rotation');
  for(let i=0;i<8;i++)tick({stun:{active:true,age:1}});a.receive({id:'real-death',confirmed:true,dead:true});for(let i=0;i<10;i++)tick({stun:{active:true,age:2}});assert.equal(a.surface.state.kind,'dead');assert(ctx.visualPivot.quaternion.angleTo(new THREE.Quaternion())<1.8,'death not composed with second source fall');
  a.dispose();gun.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});assert.equal(world.children.length,0);
 }

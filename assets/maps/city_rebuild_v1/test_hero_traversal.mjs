@@ -50,3 +50,16 @@ assert(wall.canOccupy(interrupted, interrupted.height));
 assert.throws(() => stepTraversal({ ...vault, elapsed: 0 }, -1, wall.canOccupy));
 assert.equal(sampleTraversal(vault, 1).height, TRAVERSAL.standingHeight);
 console.log('PASS traversal: thin/tall wall, ceiling, unsupported destination, mantle, high/lake shore, swept dynamic blocker');
+
+function vehicleScene(top) {
+ const world=scene({boxes:[{min:.55,max:2.15,top}]});
+ const sample=world.sample;
+ return {...world,sample:(x,z,y)=>({...sample(x,z,y),supportKind:x>=.55&&x<=2.15?'vehicle':undefined})};
+}
+const roof=planTraversal(vehicleScene(1.8));
+assert.equal(roof?.kind,'mantle','reachable vehicle roof accepts pull-up instead of an automatic far-side vault');
+assert.equal(roof.destination.y,1.8);
+assert.equal(planTraversal(vehicleScene(2.2)),null,'tall vehicle still exceeds hand reach');
+assert.equal(planTraversal(vehicleScene(.85))?.kind,'vault','low bonnet still permits crossing');
+assert.equal(planTraversal(scene({boxes:[{min:.55,max:2.15,top:1.8}]})),null,'vehicle reach does not silently change wall limits');
+console.log('PASS vehicle traversal: roof pull-up, low bonnet vault, tall roof rejected, static limits preserved');

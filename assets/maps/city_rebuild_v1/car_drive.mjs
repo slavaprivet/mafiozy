@@ -13,25 +13,39 @@ export function carOverlapsCircle(car,x,z,radius=.36){return collisionCircleOver
 export function carCorners(x,z,yaw,shape=CAR){return collisionPolygon(x,z,yaw,shape)}
 export function pointInPolygon(x,z,polygon){let inside=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j];if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside}return inside}
 function polygonsOverlap(a,b){
- if(a.some(p=>pointInPolygon(...p,b))||b.some(p=>pointInPolygon(...p,a)))return true;
+ // Static-body overlap runs inside every driving query.  Preserve the
+ // previous vertex order and early exits without allocating callbacks.
+ for(let i=0;i<a.length;i++){const point=a[i];if(pointInPolygon(point[0],point[1],b))return true}
+ for(let i=0;i<b.length;i++){const point=b[i];if(pointInPolygon(point[0],point[1],a))return true}
  const cross=(p,q,r)=>(q[0]-p[0])*(r[1]-p[1])-(q[1]-p[1])*(r[0]-p[0]);
  for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++){const p=a[i],q=a[(i+1)%a.length],r=b[j],s=b[(j+1)%b.length];if(Math.max(p[0],q[0])<Math.min(r[0],s[0])||Math.max(r[0],s[0])<Math.min(p[0],q[0])||Math.max(p[1],q[1])<Math.min(r[1],s[1])||Math.max(r[1],s[1])<Math.min(p[1],q[1]))continue;if(cross(p,q,r)*cross(p,q,s)<=0&&cross(r,s,p)*cross(r,s,q)<=0)return true}return false;
 }
 export function createCarWorld(topology,bodies,meters=4.1,{surfaceAt}={}){
  // Flat grass, paving and low curbs are traversable; water and solid obstacles are not.
  const surface=(x,z)=>{const override=surfaceAt?.(x,z);if(override!==undefined&&override!==null)return !!override;const r=Math.floor(z/meters),c=Math.floor(x/meters);return [0,8,9,19].includes(topology.grid?.[r]?.[c])&&!topology.policeMask?.[r]?.[c]};
- const buckets=new Map();for(const body of bodies){if(body.maxYM<=.22||body.minYM>1.95||!body.polygonCR?.length)continue;const polygon=body.polygonCR.map(p=>[p[0]*meters,p[1]*meters]),xs=body.polygonCR.map(p=>p[0]),zs=body.polygonCR.map(p=>p[1]);for(let r=Math.floor(Math.min(...zs));r<=Math.floor(Math.max(...zs));r++)for(let c=Math.floor(Math.min(...xs));c<=Math.floor(Math.max(...xs));c++){const key=r+','+c;if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(polygon)}}
- const allowed=(x,z)=>surface(x,z)&&!(buckets.get(Math.floor(z/meters)+','+Math.floor(x/meters))||[]).some(p=>pointInPolygon(x,z,p));
- allowed.poseAllowed=(x,z,yaw,shape=CAR)=>{const box=carCorners(x,z,yaw,shape),xs=box.map(p=>p[0]),zs=box.map(p=>p[1]),checked=new Set();for(let r=Math.floor(Math.min(...zs)/meters);r<=Math.floor(Math.max(...zs)/meters);r++)for(let c=Math.floor(Math.min(...xs)/meters);c<=Math.floor(Math.max(...xs)/meters);c++){
+ const buckets=new Map(),polygonIds=new Map(),visitedEpoch=[];let queryEpoch=0;
+ const bucketAt=(r,c)=>buckets.get(r)?.get(c);
+ for(const body of bodies){if(body.maxYM<=.22||body.minYM>1.95||!body.polygonCR?.length)continue;const polygon=body.polygonCR.map(p=>[p[0]*meters,p[1]*meters]),polygonId=polygonIds.size;polygonIds.set(polygon,polygonId);let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const point of body.polygonCR){minX=Math.min(minX,point[0]);maxX=Math.max(maxX,point[0]);minZ=Math.min(minZ,point[1]);maxZ=Math.max(maxZ,point[1])}for(let r=Math.floor(minZ);r<=Math.floor(maxZ);r++)for(let c=Math.floor(minX);c<=Math.floor(maxX);c++){let row=buckets.get(r);if(!row){row=new Map();buckets.set(r,row)}let bucket=row.get(c);if(!bucket){bucket=[];row.set(c,bucket)}bucket.push(polygon)}}
+ const nextQueryEpoch=()=>{if(queryEpoch===Number.MAX_SAFE_INTEGER){visitedEpoch.fill(0);queryEpoch=0}return ++queryEpoch};
+ const allowed=(x,z)=>{
+  if(!surface(x,z))return false;
+  const bucket=bucketAt(Math.floor(z/meters),Math.floor(x/meters));
+  if(!bucket)return true;
+  // Keep the authored bucket order, but avoid an Array#some callback for
+  // every sampled wheel/foot point.
+  for(let i=0;i<bucket.length;i++)if(pointInPolygon(x,z,bucket[i]))return false;
+  return true;
+ };
+ allowed.poseAllowed=(x,z,yaw,shape=CAR)=>{const box=carCorners(x,z,yaw,shape);let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const point of box){minX=Math.min(minX,point[0]);maxX=Math.max(maxX,point[0]);minZ=Math.min(minZ,point[1]);maxZ=Math.max(maxZ,point[1])}const epoch=nextQueryEpoch();for(let r=Math.floor(minZ/meters);r<=Math.floor(maxZ/meters);r++)for(let c=Math.floor(minX/meters);c<=Math.floor(maxX/meters);c++){
   if(!surface((c+.5)*meters,(r+.5)*meters)&&polygonsOverlap(box,[[c*meters,r*meters],[(c+1)*meters,r*meters],[(c+1)*meters,(r+1)*meters],[c*meters,(r+1)*meters]]))return false;
-  for(const polygon of buckets.get(r+','+c)||[]){if(checked.has(polygon))continue;checked.add(polygon);if(polygonsOverlap(box,polygon))return false}
+  for(const polygon of bucketAt(r,c)||[]){const id=polygonIds.get(polygon);if(visitedEpoch[id]===epoch)continue;visitedEpoch[id]=epoch;if(polygonsOverlap(box,polygon))return false}
  }return true};
  allowed.contactAt=(x,z,yaw,shape=CAR)=>{
-  const box=carCorners(x,z,yaw,shape),xs=box.map(p=>p[0]),zs=box.map(p=>p[1]),checked=new Set();let best=null;
+  const box=carCorners(x,z,yaw,shape);let minX=Infinity,maxX=-Infinity,minZ=Infinity,maxZ=-Infinity;for(const point of box){minX=Math.min(minX,point[0]);maxX=Math.max(maxX,point[0]);minZ=Math.min(minZ,point[1]);maxZ=Math.max(maxZ,point[1])}const epoch=nextQueryEpoch();let best=null;
   const consider=polygon=>{const contact=polygonVehicleContact(box,polygon);if(contact&&(!best||contact.depth>best.depth))best=contact};
-  for(let r=Math.floor(Math.min(...zs)/meters);r<=Math.floor(Math.max(...zs)/meters);r++)for(let c=Math.floor(Math.min(...xs)/meters);c<=Math.floor(Math.max(...xs)/meters);c++){
+  for(let r=Math.floor(minZ/meters);r<=Math.floor(maxZ/meters);r++)for(let c=Math.floor(minX/meters);c<=Math.floor(maxX/meters);c++){
    if(!surface((c+.5)*meters,(r+.5)*meters))consider([[c*meters,r*meters],[(c+1)*meters,r*meters],[(c+1)*meters,(r+1)*meters],[c*meters,(r+1)*meters]]);
-   for(const polygon of buckets.get(r+','+c)||[]){if(checked.has(polygon))continue;checked.add(polygon);consider(polygon)}
+   for(const polygon of bucketAt(r,c)||[]){const id=polygonIds.get(polygon);if(visitedEpoch[id]===epoch)continue;visitedEpoch[id]=epoch;consider(polygon)}
   }return best;
  };return allowed;
 }

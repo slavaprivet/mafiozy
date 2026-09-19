@@ -21,7 +21,11 @@ export function planBlastKnockback(heroPoint,blast,cover){
 export function stepBlastKnockback(body,dt,allowed=()=>true,{groundHeight,ceilingHeight}={}){
  if(!body)return null;
  if(body.done||!Number.isFinite(dt)||dt<=0)return {...body};
+ // Callers may retain the launch object, so take one snapshot.  A render frame
+ // can contain up to thirty fixed steps; mutating this private snapshot avoids
+ // cloning the complete body state for every one of them.
  let s={...body},remaining=(s.remainder??0)+Math.min(.25,dt);
+ const delta={x:0,z:0};
  const floorAt=(x,z,fallback)=>{const value=groundHeight?.(x,z);return Number.isFinite(value)?value:fallback};
  // Fixed steps preserve the same collision and landing trajectory at 30/60/120Hz.
  while(remaining+1e-10>=STEP&&!s.done){
@@ -30,7 +34,7 @@ export function stepBlastKnockback(body,dt,allowed=()=>true,{groundHeight,ceilin
   const grounded=s.y<=currentFloor+1e-8&&s.vy<=0;
   const speed=Math.hypot(s.vx,s.vz),nextSpeed=Math.max(0,speed-(grounded?8:.4)*STEP),ratio=speed?nextSpeed/speed:0;
   let vx=s.vx*ratio,vz=s.vz*ratio;
-  const delta={x:(s.vx+vx)*.5*STEP,z:(s.vz+vz)*.5*STEP};
+  delta.x=(s.vx+vx)*.5*STEP;delta.z=(s.vz+vz)*.5*STEP;
   let moved=movePedestrian(s,delta,allowed,RADIUS);
   let bx=Math.abs(moved.x-s.x-delta.x)>1e-6,bz=Math.abs(moved.z-s.z-delta.z)>1e-6;
   if(bx)vx=0;if(bz)vz=0;
@@ -54,7 +58,11 @@ export function stepBlastKnockback(body,dt,allowed=()=>true,{groundHeight,ceilin
    if(y>maxY){y=maxY;vy=Math.min(0,vy);ceilingBlocked=true}
   }
   const elapsed=Math.min(s.duration,s.elapsed+STEP),progress=elapsed/s.duration,done=progress>=1-1e-9&&y<=baseY+1e-8&&vy<=0;
-  s={...s,x:moved.x,z:moved.z,y,baseY,vx:done?0:vx,vy:done?0:vy,vz:done?0:vz,elapsed,progress:done?1:Math.min(.999,progress),done,blocked:s.blocked||bx||bz,ceilingBlocked:(s.ceilingBlocked??false)||ceilingBlocked,cramped};
+  const blocked=s.blocked||bx||bz,hadCeilingBlock=s.ceilingBlocked??false;
+  s.x=moved.x;s.z=moved.z;s.y=y;s.baseY=baseY;
+  s.vx=done?0:vx;s.vy=done?0:vy;s.vz=done?0:vz;
+  s.elapsed=elapsed;s.progress=done?1:Math.min(.999,progress);s.done=done;
+  s.blocked=blocked;s.ceilingBlocked=hadCeilingBlock||ceilingBlocked;s.cramped=cramped;
  }
  s.remainder=s.done?0:Math.max(0,remaining);
  return s;

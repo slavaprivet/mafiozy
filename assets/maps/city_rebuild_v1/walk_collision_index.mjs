@@ -21,5 +21,19 @@ export function createWalkCollisionIndex(collections, cellSize = 4) {
     }
   }
   const empty = Object.freeze([]);
-  return (c, r) => rows.get(Math.floor(r / cellSize))?.get(Math.floor(c / cellSize)) || empty;
+  const query = (c, r) => rows.get(Math.floor(r / cellSize))?.get(Math.floor(c / cellSize)) || empty;
+  // Stable row-major bucket order, preserving source order and duplicates in
+  // each bucket. Narrowphases may deduplicate body identity without a full scan.
+  query.queryBounds = (minC,minR,maxC,maxR) => {
+    if (![minC,minR,maxC,maxR].every(Number.isFinite)||minC>maxC||minR>maxR) return empty;
+    const result=[];
+    for(let r=Math.floor(minR/cellSize);r<=Math.floor(maxR/cellSize);r++){
+      const row=rows.get(r);if(!row)continue;
+      for(let c=Math.floor(minC/cellSize);c<=Math.floor(maxC/cellSize);c++){
+        const bucket=row.get(c);if(bucket)for(const body of bucket)result.push(body);
+      }
+    }
+    return result;
+  };
+  return query;
 }

@@ -14,7 +14,13 @@ export function createBlastScorch(T,scene,{capacity=32}={}){
  }
  const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(position,3));geometry.setAttribute('color',new T.Float32BufferAttribute(color,3));geometry.computeVertexNormals();
  const pool=Array.from({length:capacity},()=>{const mesh=new T.Mesh(geometry.clone(),material);mesh.name='Blast_surface_scorch';mesh.visible=false;mesh.userData.breakableGlass=false;mesh.userData.blastEffect=true;mesh.raycast=()=>{};scene.add(mesh);return mesh});
- const forward=new T.Vector3(0,0,1),normal=new T.Vector3(),point=new T.Vector3(),scale=new T.Vector3(),quaternion=new T.Quaternion(),matrix=new T.Matrix4(),inverse=new T.Matrix4(),decalInverse=new T.Matrix4(),vertex=new T.Vector3(),ray=new T.Raycaster();
+ // The fan repeats its centre and perimeter vertices.  Resolve the 21 unique
+ // source coordinates once: a hit still casts the same 21 conforming rays,
+ // but no longer allocates strings, temporary vectors and an intersection
+ // array for all 60 duplicated fan vertices during an explosion.
+ const base=geometry.attributes.position,projectionIndex=new Uint8Array(base.count),projectionLookup=new Map(),projectionPoints=[];
+ for(let i=0;i<base.count;i++){const key=base.getX(i)+','+base.getY(i);let index=projectionLookup.get(key);if(index===undefined){index=projectionPoints.length;projectionLookup.set(key,index);projectionPoints.push(new T.Vector3(base.getX(i),base.getY(i),base.getZ(i)))}projectionIndex[i]=index}
+ const forward=new T.Vector3(0,0,1),normal=new T.Vector3(),point=new T.Vector3(),scale=new T.Vector3(),quaternion=new T.Quaternion(),spin=new T.Quaternion(),matrix=new T.Matrix4(),inverse=new T.Matrix4(),decalInverse=new T.Matrix4(),vertex=new T.Vector3(),rayOrigin=new T.Vector3(),rayDirection=new T.Vector3(),ray=new T.Raycaster(),rayHits=[],projected=projectionPoints.map(()=>new T.Vector3());
  function hit(payload){
   if(disposed)return false;const target=payload?.hit?.object||payload?.object,p=payload?.point||payload?.hit?.point,n=payload?.normal;
   if(!target?.isMesh||!p||!n||![p.x,p.y,p.z,n.x,n.y,n.z,payload.damage,payload.falloff].every(Number.isFinite)||payload.damage<=0||payload.falloff<=0||target.userData.blastEffect)return false;
@@ -26,18 +32,18 @@ export function createBlastScorch(T,scene,{capacity=32}={}){
   // Reuse the exact surface point and a millimetre offset; no bounds-centre
   // approximation that would leave a patch hovering over a dented panel.
   const entry=pool[cursor++%capacity],size=Math.min(.8,.10+Math.sqrt(payload.damage)*.052)*Math.min(1,.4+payload.falloff);
-  quaternion.setFromUnitVectors(forward,normal).multiply(new T.Quaternion().setFromAxisAngle(forward,total*2.399963229728653));scale.setScalar(size);
-  matrix.compose(point.clone().addScaledVector(normal,.003),quaternion,scale);decalInverse.copy(matrix).invert();
-  const base=geometry.attributes.position,positions=entry.geometry.attributes.position,projected=new Map();
-  for(let i=0;i<base.count;i++){
-   const key=base.getX(i)+','+base.getY(i);let local=projected.get(key);
-   if(!local){
-    vertex.fromBufferAttribute(base,i).applyMatrix4(matrix);ray.set(vertex.clone().addScaledVector(normal,.5),normal.clone().negate());ray.near=0;ray.far=1;
-    const intersection=ray.intersectObject(target,false).find(h=>payload.hit?.instanceId===undefined||h.instanceId===payload.hit.instanceId);
-    local=(intersection?.point.clone()||point.clone()).addScaledVector(normal,.003).applyMatrix4(decalInverse);projected.set(key,local);
-   }
-   positions.setXYZ(i,local.x,local.y,local.z);
+  quaternion.setFromUnitVectors(forward,normal);spin.setFromAxisAngle(forward,total*2.399963229728653);quaternion.multiply(spin);scale.setScalar(size);
+  vertex.copy(point).addScaledVector(normal,.003);matrix.compose(vertex,quaternion,scale);decalInverse.copy(matrix).invert();
+  const positions=entry.geometry.attributes.position;
+  // Raycaster accepts a caller-owned result list.  It preserves the same
+  // distance ordering as intersectObject(...).find(...), while eliminating a
+  // short-lived result array for every projected fan point.
+  for(let i=0;i<projectionPoints.length;i++){
+   rayOrigin.copy(projectionPoints[i]).applyMatrix4(matrix).addScaledVector(normal,.5);rayDirection.copy(normal).negate();ray.set(rayOrigin,rayDirection);ray.near=0;ray.far=1;rayHits.length=0;ray.intersectObject(target,false,rayHits);
+   let intersection=null;for(const candidate of rayHits)if(payload.hit?.instanceId===undefined||candidate.instanceId===payload.hit.instanceId){intersection=candidate;break}
+   projected[i].copy(intersection?.point||point).addScaledVector(normal,.003).applyMatrix4(decalInverse);
   }
+  for(let i=0;i<base.count;i++){const local=projected[projectionIndex[i]];positions.setXYZ(i,local.x,local.y,local.z)}
   positions.needsUpdate=true;entry.geometry.computeBoundingSphere();
   inverse.copy(target.matrixWorld).invert();matrix.premultiply(inverse);
   target.add(entry);entry.matrixAutoUpdate=false;entry.matrix.copy(matrix);entry.matrixWorldNeedsUpdate=true;entry.visible=true;total++;return true;

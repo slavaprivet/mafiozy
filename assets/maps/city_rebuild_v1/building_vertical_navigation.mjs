@@ -2,8 +2,10 @@ import {createLadderClimbController} from './roof_ladder.mjs';
 import {applyRoofLadderPose} from './roof_ladder_pose.mjs';
 
 export function createBuildingVerticalNavigation({THREE:T,getHero,getEntries,getWeapon,camera,controls,canOccupy,onBegin=()=>{},onEnd=()=>{}}){
- const clear=(p,ctx)=>canOccupy(p,ctx.radius,ctx.bodyHeight);
- const controller=createLadderClimbController({validatePosition:clear,validateSegment(a,b,ctx){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/.12));for(let i=0;i<=n;i++){const t=i/n;if(!clear({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t},ctx))return false}return true;}});
+ const clear=(p,ctx)=>canOccupy(p,ctx.radius,ctx.bodyHeight,ctx);
+ // Production /walk ladder motion is deliberately brisk; the unit controller
+ // keeps its conservative defaults for deterministic physics tests.
+ const controller=createLadderClimbController({speed:3.1,slideSpeed:7.2,validatePosition:clear,validateSegment(a,b,ctx){const n=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y,b.z-a.z)/.12));for(let i=0;i<=n;i++){const t=i/n;if(!clear({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t},ctx))return false}return true;}});
  let sample=null,weaponVisibility=null;
  function nearest(){const hero=getHero();return hero?controller.prompt(hero.object.position,getEntries().map(e=>e.storeys?.ladder?.worldDescriptor).filter(Boolean)):null}
  function begin(candidate,options){const hero=getHero();if(!hero||!candidate||!controller.begin(hero.object.position,candidate.ladder,candidate.end,options))return false;onBegin();const weapon=getWeapon();weaponVisibility=weapon?{weapon,visible:weapon.visible}:null;if(weapon)weapon.visible=false;return true}

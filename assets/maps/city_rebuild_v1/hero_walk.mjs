@@ -49,7 +49,9 @@ export function createHeroWalker({THREE,scene,targetHeight=1.9}){
 
     const motionSpeed=Number.isFinite(presentation.motionSpeed)?Math.max(0,presentation.motionSpeed):posture.maxSpeed;
     const gaitDistance=Number.isFinite(presentation.gaitDistance)?Math.max(0,presentation.gaitDistance):null;
-    phase+=moving&&gaitDistance!==null?gaitDistance*(posture.prone>.5?3.8/posture.maxSpeed:2.3):dt*(moving?(posture.prone>.5?3.8*motionSpeed/posture.maxSpeed:motionSpeed*2.3):3);restore();
+    const radiansPerMetre=Number.isFinite(presentation.gaitRadiansPerMetre)?Math.max(.5,Math.min(14,presentation.gaitRadiansPerMetre)):2.3;
+    phase+=moving&&gaitDistance!==null?gaitDistance*(posture.prone>.5?3.8/posture.maxSpeed:radiansPerMetre):dt*(moving?(posture.prone>.5?3.8*motionSpeed/posture.maxSpeed:motionSpeed*radiansPerMetre):3);restore();
+    if(presentation.gaitOutput){presentation.gaitOutput.phase=phase;presentation.gaitOutput.gait=gait;}
 
     if(Number.isFinite(aim.aimYaw))visualPivot.rotation.y=aim.aimYaw-object.rotation.y;
 
@@ -74,9 +76,11 @@ export function createHeroWalker({THREE,scene,targetHeight=1.9}){
 
   function posturePose(posture,moving){
 
-    const c=posture.crouch,p=posture.prone,crawl=p*gait,cycle=Math.sin(phase),bob=Math.cos(phase*2);
+    const c=posture.crouch,p=posture.prone,crawl=p*gait;
 
     if(c<1e-5&&p<1e-5)return;
+
+    const cycle=Math.sin(phase),bob=Math.cos(phase*2);
 
     object.updateMatrixWorld(true);const feet={};for(const side of ['l','r'])feet[side]={p:worldPosition('foot_'+side),q:bones['foot_'+side].getWorldQuaternion(new THREE.Quaternion())};
 

@@ -1,0 +1,26 @@
+import assert from 'node:assert/strict';
+import {getVehicleRenderSourceMaterial,registerVehicleRenderSourceMaterial,unregisterVehicleRenderSourceMaterial} from './vehicle_render_batches.mjs';
+
+const original={name:'authored'},hidden={visible:false},replacement={name:'user replacement'};
+const mesh={material:original};
+assert.equal(getVehicleRenderSourceMaterial(mesh),original);
+registerVehicleRenderSourceMaterial(mesh,hidden,original);
+assert.equal(getVehicleRenderSourceMaterial(mesh),original);
+mesh.material=hidden;
+assert.equal(getVehicleRenderSourceMaterial(mesh),original);
+assert.throws(()=>registerVehicleRenderSourceMaterial(mesh,{},replacement),/already has a batch owner/);
+unregisterVehicleRenderSourceMaterial(mesh,{});
+assert.equal(getVehicleRenderSourceMaterial(mesh),original,'foreign teardown cannot erase current owner');
+mesh.material=replacement;
+assert.equal(getVehicleRenderSourceMaterial(mesh),replacement,'explicit replacement remains authoritative');
+unregisterVehicleRenderSourceMaterial(mesh,hidden);
+mesh.material=hidden;
+assert.equal(getVehicleRenderSourceMaterial(mesh),hidden,'removed ownership no longer rewrites reads');
+const newerHidden={visible:false};
+registerVehicleRenderSourceMaterial(mesh,newerHidden,replacement);
+unregisterVehicleRenderSourceMaterial(mesh,hidden);
+mesh.material=newerHidden;
+assert.equal(getVehicleRenderSourceMaterial(mesh),replacement,'stale owner cannot erase newer registration');
+unregisterVehicleRenderSourceMaterial(mesh,newerHidden);
+unregisterVehicleRenderSourceMaterial(mesh,newerHidden);
+console.log('PASS canonical material ownership, replacement, duplicate registration and stale teardown');

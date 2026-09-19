@@ -21,6 +21,27 @@ for(const model of ['player_male.8130dfb1f7eb.glb','player_female.298d50e6244a.g
       const quaternion=new T.Quaternion().setFromEuler(new T.Euler(-pitch,.71,0,'YXZ'));
       const origin=c.worldPosition('head').add(new T.Vector3(0,.08,0));
       const root=hero.object.position.clone(),boneMatrices=Object.values(c.bones).map(b=>b.matrix.clone()),weaponPosition=weapon.position.clone();
+      if(item.id==='uzi'&&pitch===0){
+        const carryQ=new T.Quaternion(),carryMuzzle=origin.clone().add(new T.Vector3(0,0,-.9));
+        const carryOrigin=carryMuzzle.clone().sub(new T.Vector3(...weapon.userData.muzzle).multiply(weapon.getWorldScale(new T.Vector3())));
+        const carry=weaponHeadClearance(T,c,weapon,{origin:carryOrigin,quaternion:carryQ,checkMuzzle:false});
+        assert.ok(carry.clear&&carry.headClear&&carry.neckClear,'a physically clear carried weapon needs no future firing corridor');
+        const firing=weaponHeadClearance(T,c,weapon,{origin:carryOrigin,quaternion:carryQ});
+        assert.ok(!firing.clear&&!firing.muzzleClear,'the same weapon may not fire toward its own body');
+        const carried=findClearWeaponMount(T,c,weapon,{origin:carryOrigin,quaternion:carryQ,checkMuzzle:false});
+        assert.ok(carried.clear&&carried.origin.distanceTo(carryOrigin)<1e-8,'carry solver must not relocate a physically safe stowed weapon for an unused future shot');
+        const center=origin.clone().add(new T.Vector3(4,0,0)),constraints=[{center,radius:.6,minRadius:.22}];
+        for(const offset of [0,.03,.21]){
+          const requested=center.clone().add(new T.Vector3(offset,0,0));
+          const annular=findClearWeaponMount(T,c,weapon,{origin:requested,quaternion,constraints});
+          assert.ok(annular.clear,'a bent arm can resolve a clear position outside its inner unreachable radius');
+          assert.ok(annular.origin.distanceTo(center)>=.219&&annular.origin.distanceTo(center)<=.601,'mount must stay within both reach limits');
+          assert.ok(weaponHeadClearance(T,c,weapon,{origin:annular.origin,quaternion}).clear,'annular correction keeps own head clear');
+        }
+        const impossible=findClearWeaponMount(T,c,weapon,{origin:center,quaternion,constraints:[{center,radius:.1,minRadius:.3}]});
+        assert.equal(impossible.clear,false,'an empty reach shell cannot authorize firing');
+      }
+      assert.equal(weaponHeadClearance(T,c,weapon,{origin,quaternion,checkMuzzle:false}).clear,false,'carry mode still rejects physical weapon/head penetration');
       const unsafe=weaponHeadClearance(T,c,weapon,{origin,quaternion});assert.equal(unsafe.clear,false,`${model} ${item.id}: own-head mount must be rejected`);
       assert.equal(weaponHeadClearance(T,c,weapon,{origin:origin.clone().add(new T.Vector3(4,0,0)),quaternion}).clear,true,'a distant clear gun must remain clear');
       const scale=hero.scale,grips=[['r',[0,-.13,-.02]],...(item.twoHanded?[['l',weapon.userData.supportGrip]]:[])];

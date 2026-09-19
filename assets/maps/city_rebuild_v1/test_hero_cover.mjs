@@ -32,10 +32,10 @@ test('cars and low objects choose crouch while curb/overhead bodies do not attac
   assert.equal(acquire(rectangle(3, { minY: 2 }), { position: { x: 3, y: 2, z: -1 } }).posture, 'crouch');
 });
 
-test('invalid, inside, distant and facing-away requests do not teleport into cover', () => {
+test('invalid, inside and distant requests are rejected; camera heading is a preference', () => {
   assert.equal(findCover(), null);
-  assert.equal(acquire(rectangle(), { direction: { x: 0, z: 0 } }), null);
-  assert.equal(acquire(rectangle(), { direction: { x: 0, z: -1 } }), null);
+  assert.ok(acquire(rectangle(), { direction: { x: 0, z: 0 } }));
+  assert.ok(acquire(rectangle(), { direction: { x: 0, z: -1 } }));
   assert.equal(acquire(rectangle(), { position: { x: 3, y: 0, z: 1 } }), null);
   assert.equal(acquire(rectangle(), { position: { x: 3, y: 0, z: -3 } }), null);
   assert.equal(acquire(rectangle(), { canOccupy: undefined }), null);

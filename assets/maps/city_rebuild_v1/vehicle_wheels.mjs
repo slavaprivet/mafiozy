@@ -17,17 +17,35 @@ export const VEHICLE_WHEEL_DESIGNS=Object.freeze({
  city_taxi:{type:'taxi-stamped-small-cap',holes:9,holeRing:.74,holeW:.10,holeH:.12,dish:.40,cap:.27,rim:.61,finish:'#535a5c',polishedCap:true},
 });
 
+const renderBindings=new WeakMap();
+// A palette is owned by one newly built car, never by a model/template cache.
+// Individual loose tyres and crash/explosion debris retain their own clones.
+export function createVehicleWheelMaterialPalette(T,{owner,family='sedan',designId=family}={}){
+ if(!owner?.isObject3D)throw Error('Wheel palette requires its owning vehicle');
+ const design=VEHICLE_WHEEL_DESIGNS[designId]||VEHICLE_WHEEL_DESIGNS[family]||VEHICLE_WHEEL_DESIGNS.sedan;
+ return Object.freeze({owner,family,designId,materials:Object.freeze({
+  rubber:new T.MeshStandardMaterial({color:'#23282a',roughness:.96}),
+  treadRubber:new T.MeshStandardMaterial({color:'#303638',roughness:.98}),
+  alloy:new T.MeshStandardMaterial({color:design.finish,metalness:.72,roughness:.31}),
+  inset:new T.MeshStandardMaterial({color:'#444d51',metalness:.52,roughness:.58}),
+  polished:new T.MeshStandardMaterial({color:'#d3d9d8',metalness:.85,roughness:.21}),
+ })});
+}
+export function getVehicleWheelRenderBinding(mesh){return renderBindings.get(mesh)||null;}
+
 function merged(T,items){
  const positions=[],normals=[];
  for(const {geometry,matrix} of items){const g=geometry.index?geometry.toNonIndexed():geometry.clone();if(matrix)g.applyMatrix4(matrix);positions.push(...g.attributes.position.array);normals.push(...g.attributes.normal.array);g.dispose();geometry.dispose()}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(positions,3));g.setAttribute('normal',new T.Float32BufferAttribute(normals,3));g.computeBoundingBox();g.computeBoundingSphere();return g;
 }
 
-export function createDetailedVehicleWheel(T,{id,radius=.4,width=.24,side=1,family='sedan',designId=family}={}){
+export function createDetailedVehicleWheel(T,{id,radius=.4,width=.24,side=1,family='sedan',designId=family,materialPalette=null}={}){
  const design=VEHICLE_WHEEL_DESIGNS[designId]||VEHICLE_WHEEL_DESIGNS[family]||VEHICLE_WHEEL_DESIGNS.sedan,heavy=['bus','fire','van','ambulance','pickup'].includes(family);
  const rimRadius=radius*design.rim,half=width*.5;
  const rolling=new T.Group();rolling.name='Wheel_spin_'+id;rolling.userData={vehicleWheelId:id,wheelDesign:designId,wheelType:design.type,apertureRatio:design.holeRing||.81};
- const rubber=new T.MeshStandardMaterial({color:'#23282a',roughness:.96}),treadRubber=new T.MeshStandardMaterial({color:'#303638',roughness:.98}),alloy=new T.MeshStandardMaterial({color:design.finish,metalness:.72,roughness:.31}),inset=new T.MeshStandardMaterial({color:'#444d51',metalness:.52,roughness:.58}),polished=new T.MeshStandardMaterial({color:'#d3d9d8',metalness:.85,roughness:.21});
+ if(materialPalette&&(materialPalette.family!==family||materialPalette.designId!==designId))throw Error('Wheel palette design mismatch');
+ const {rubber,treadRubber,alloy,inset,polished}=materialPalette?.materials||{
+  rubber:new T.MeshStandardMaterial({color:'#23282a',roughness:.96}),treadRubber:new T.MeshStandardMaterial({color:'#303638',roughness:.98}),alloy:new T.MeshStandardMaterial({color:design.finish,metalness:.72,roughness:.31}),inset:new T.MeshStandardMaterial({color:'#444d51',metalness:.52,roughness:.58}),polished:new T.MeshStandardMaterial({color:'#d3d9d8',metalness:.85,roughness:.21})};
  function mesh(name,geometry,material,parent=rolling){const m=new T.Mesh(geometry,material);m.name=name+'_'+id;m.userData.vehicleWheelId=id;m.castShadow=m.receiveShadow=true;parent.add(m);return m}
  function mergeInto(target,parts){
   const names=parts.map(n=>n.name),items=parts.map(n=>{n.updateMatrix();return {geometry:n.geometry,matrix:n.matrix.clone()}});
@@ -98,6 +116,7 @@ export function createDetailedVehicleWheel(T,{id,radius=.4,width=.24,side=1,fami
  // A smaller rotor behind the spokes gives real depth without closing the rim.
  const rotorRadius=rimRadius*(design.holes?.46:.72),rotor=mesh('Brake_rotor',new T.CylinderGeometry(rotorRadius,rotorRadius,width*.065,32),inset);rotor.rotation.z=Math.PI/2;rotor.position.x=-side*width*.20;
  rolling.userData.nominalRadius=radius;rolling.userData.nominalWidth=width;
+ if(materialPalette)for(const [role,part]of [['rubber',tire],['treadRubber',treadMesh],['alloy',hub],['inset',rotor],['polished',lipMesh]])renderBindings.set(part,Object.freeze({palette:materialPalette,role,id,wheel:rolling}));
  return {wheel:rolling,tire,hub,spokes:hub,nominalRollingRadius:radius,nominalRimRadius:rimRadius,nominalWidth:width};
 }
 

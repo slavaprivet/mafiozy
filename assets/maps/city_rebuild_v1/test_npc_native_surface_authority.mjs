@@ -1,0 +1,18 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+import {createNpcNativeNavigation} from './npc_native_navigation.mjs';
+const world=fs.readFileSync(new URL('../../../world.html',import.meta.url),'utf8'),water=fs.readFileSync(new URL('./npc_native_water_source.js',import.meta.url),'utf8');
+const names=['npcPassable','npcPassableForSnitch','npcWaypointOk','_npcBodyPassable','_npcPathPassable','_uniqueNpcCityPassable','_empireBossPassable','_policeCrewPassable'];
+const funcs=names.map(name=>world.match(new RegExp('^function '+name+'\\([^]*?^}','m'))[0]);
+const MAP=Array.from({length:30},()=>Array(30).fill(1));let restricted=false,arena=false,lair=false,solid=false,depth=0,surface='land',allows=true;
+const nav=createNpcNativeNavigation({groundHeight:()=>0,waterAt:()=>depth?{level:depth}:null,containsBody:()=>false,terrainAllows:()=>allows,blocksDynamic:()=>solid,surfaceAt:()=>surface});
+const box={MAP,MAP_ROWS:30,MAP_COLS:30,BEACH_R0:25,isBlockedPed:()=>true,_inPrisonIslandRestrictedZone:()=>restricted,inArena:()=>arena,inLair:()=>lair,_inEmpireRecruitmentYard:()=>false,_cityV3NextSurfaceAt:()=>null,_inPitCorridor:()=>false};vm.createContext(box);
+vm.runInContext(water+'\n'+funcs.join('\n')+'\nglobalThis.set=fn=>_walkNpcNavigationResolver=fn;globalThis.a={ordinary:npcPassable,crossing:npcPassableForSnitch,target:npcWaypointOk,unique:_uniqueNpcCityPassable,boss:_empireBossPassable,cop:_policeCrewPassable,path:_npcPathPassable};',box);box.set(nav.query);const a=box.a;
+const check=(expected,message)=>{nav.beginFrame();for(const [role,pass]of Object.entries(a)){if(role==='path')continue;assert.equal(role==='target'?pass({},10,10):pass(10,10),expected,message+' '+role);}};
+check(true,'real native land replaces obsolete MAP1/old collider');
+solid=true;check(false,'actual native wall/car still blocks');solid=false;depth=1.3;check(false,'actual water still blocks');depth=0;
+for(const kind of ['restricted','arena','lair']){restricted=kind==='restricted';arena=kind==='arena';lair=kind==='lair';check(false,kind+' retains policy');}restricted=arena=lair=false;
+surface='road';nav.beginFrame();assert(!a.ordinary(10,10));assert(!a.target({},10,10));assert(!a.unique(10,10));assert(a.crossing(10,10));assert.equal(a.cop(10,10),true);assert(a.boss(10,10),'ordered boss retains existing road permission');
+surface='land';allows=false;check(false,'outside actual walk surface stays blocked');allows=true;
+box.set(()=>({blocked:false,depth:0}));assert(!a.ordinary(10,10),'veto-only custom resolver cannot erase source colliders');box.set(null);assert(!a.ordinary(10,10),'legacy mode unchanged');
+box.set(nav.query);nav.beginFrame();solid=true;assert(!a.path(10,9,10,11,a.crossing),'swept path respects actual collider under native authority');
+console.log('PASS actual source native-authority surface: old building/collider opens only on real land, current wall/water/bounds/restricted zones stay blocked, ordinary road policy and legacy fallback retained');

@@ -2,6 +2,8 @@ import {BUILDING_STOREY_PROFILES} from './building_storey_profiles.mjs';
 import {createFittedStaircase} from './oriented_staircase.mjs';
 import {createRoofLadder} from './roof_ladder.mjs';
 import {subtractBoxFromGeometry} from './building_entry.mjs';
+import {planSpaciousFloor} from './interior_spacious_layout.mjs';
+import {resolveBuildingPurpose} from './building_interior_purpose.mjs';
 
 const inRect=(x,z,r,p=0)=>x>=r[0]-p&&x<=r[2]+p&&z>=r[1]-p&&z<=r[3]+p;
 const intersect=(a,b)=>[Math.max(a[0],b[0]),Math.max(a[1],b[1]),Math.min(a[2],b[2]),Math.min(a[3],b[3])];
@@ -39,7 +41,7 @@ function subtractRect(polygon,rect){let inside=polygon;const result=[];for(const
 
 // Add storeys to the existing physical entrance; no replacement of IDs or doors.
 // Geometry is in world metres under an inverse-scaled child, including stairs.
-export function createBuildingStoreys({THREE:T,entry,visual,instance,metresPerCell=4.1}){
+export function createBuildingStoreys({THREE:T,entry,visual,instance,metresPerCell=4.1,windows=null}){
  if(!entry||entry.storeys)return entry?.storeys??null;
  const profile=BUILDING_STOREY_PROFILES[instance.assetId];if(!profile)return null;
  const root=new T.Group();root.name='Runtime_Building_Storeys';entry.object.add(root);
@@ -51,18 +53,19 @@ export function createBuildingStoreys({THREE:T,entry,visual,instance,metresPerCe
  const floors=profile.floors.map((f,level)=>({level,y:(f.y-profile.floors[0].y)*scale.y,ceiling:(f.ceiling-profile.floors[0].y)*scale.y,rect:metricRect(f.rect)}));
  // Keep the accepted ground room and entry alignment, including the legacy club.
  const r=entry.report.room;floors[0].rect=[r.minX*scale.x,r.minZ*scale.z,r.maxX*scale.x,r.maxZ*scale.z];
- const stairCore=floors.map(f=>f.rect).reduce(intersect),stairs=[];for(let i=0;i<floors.length-1;i++){const a=floors[i],b=floors[i+1];const stair=createFittedStaircase(T,{rect:stairCore,floorHeight:b.y-a.y,baseY:a.y,flightWidth:1.3});stair.lowerLevel=i;stair.upperLevel=i+1;stairs.push(stair)}
- if(['old_town_narrow_townhouse_v1','pawnshop'].includes(instance.assetId)&&stairs.length&&stairs.every(s=>!s.rotated)){
+ const stairCore=floors.map(f=>f.rect).reduce(intersect),stairs=[];for(let i=0;i<floors.length-1;i++){const a=floors[i],b=floors[i+1];const stair=createFittedStaircase(T,{rect:stairCore,floorHeight:b.y-a.y,baseY:a.y,flightWidth:1.3,side:'left',orientation:instance.assetId==='eastside_stepped_apartment_v1'?'unrotated':'auto'});stair.lowerLevel=i;stair.upperLevel=i+1;stairs.push(stair)}
+ if(['old_town_narrow_townhouse_v1','pawnshop','eastside_stepped_apartment_v1'].includes(instance.assetId)&&stairs.length&&stairs.every(s=>!s.rotated)){
   // Storey heights may differ. A common pivot preserves the identical
   // full-floor landing line between levels instead of shifting it per flight.
   const core=stairs.map(s=>s.footprint).reduce((a,b)=>[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[2],b[2]),Math.max(a[3],b[3])]);
   for(let i=0;i<stairs.length;i++)stairs[i]=faceStairTowardFront(T,stairs[i],core);
  }
  for(const stair of stairs)root.add(stair.group);
- const hidden=[],restores=[],records=[],geometry=[],bodies=[],rooms=[],boxes=[],movedNodes=[],storeyResources=acquireStoreyResources(T);
+ const hidden=[],restores=[],records=[],geometry=[],bodies=[],rooms=[],floorPlans=[],boxes=[],movedNodes=[],ownedInstances=[],storeyResources=acquireStoreyResources(T);
  const {wall,floor:floorMat,trim}=storeyResources.materials;
- const worldBody=(rect,minY,maxY,kind)=>{const pts=[[rect[0],rect[1]],[rect[2],rect[1]],[rect[2],rect[3]],[rect[0],rect[3]]].map(([x,z])=>root.localToWorld(new T.Vector3(x,0,z)));return{polygonCR:pts.map(p=>[p.x/metresPerCell,p.z/metresPerCell]),minYM:baseY+minY,maxYM:baseY+maxY,buildingEntryId:instance.id,storeyPart:kind}};
+ const worldBody=(rect,minY,maxY,kind)=>{const pts=[[rect[0],rect[1]],[rect[2],rect[1]],[rect[2],rect[3]],[rect[0],rect[3]]].map(([x,z])=>root.localToWorld(new T.Vector3(x,0,z)));return{polygonCR:pts.map(p=>[p.x/metresPerCell,p.z/metresPerCell]),minYM:baseY+minY,maxYM:baseY+maxY,buildingEntryId:instance.id,storeyPart:kind,cover:kind.startsWith('Roof_Cover_')}};
  function box(name,rect,bottom,top,material=wall,collision=false){if(rect[2]-rect[0]<.001||rect[3]-rect[1]<.001||top-bottom<.001)return;if(collision)bodies.push(worldBody(rect,bottom,top,name));if(!name.startsWith('Entry_Interior_')){boxes.push({name,rect,bottom,top,material});return}const g=new T.BoxGeometry(rect[2]-rect[0],top-bottom,rect[3]-rect[1]);geometry.push(g);const n=new T.Mesh(g,material);n.name=name;n.position.set((rect[0]+rect[2])/2,(bottom+top)/2,(rect[1]+rect[3])/2);n.castShadow=n.receiveShadow=true;root.add(n);return n}
+ const collisionBox=(name,rect,bottom,top)=>{if(rect[2]-rect[0]<.001||rect[3]-rect[1]<.001||top-bottom<.001)return;bodies.push(worldBody(rect,bottom,top,name))};
  function clipped(node,cuts){const matrix=new T.Matrix4().multiplyMatrices(inverse,node.matrixWorld),key=matrix.elements.map(v=>v.toFixed(5)).join(',')+'|'+cuts.map(b=>b.min.toArray().concat(b.max.toArray()).map(v=>v.toFixed(5)).join(',')).join('|');const rec=acquire(node.geometry,key,()=>{let g=node.geometry;for(const cut of cuts){const next=subtractBoxFromGeometry(T,g,matrix,cut);if(g!==node.geometry)g.dispose();g=next}return g});restores.push([node,node.geometry]);records.push(rec);node.geometry=rec.geometry}
  visual.updateWorldMatrix(true,true);
  if(floors.length>1){
@@ -86,32 +89,57 @@ export function createBuildingStoreys({THREE:T,entry,visual,instance,metresPerCe
   if(f.level>0){const[a,b,c,d]=f.rect;box('Entry_Interior_Left',[a-.10,b,a,d],f.y,f.ceiling,wall,true);box('Entry_Interior_Right',[c,b,c+.10,d],f.y,f.ceiling,wall,true);box('Entry_Interior_Rear',[a,b-.10,c,b],f.y,f.ceiling,wall,true);box('Entry_Interior_Front',[a,d,c,d+.10],f.y,f.ceiling,wall,true)}
   if(f.level>0){const p=safeLamp(f),light=new T.PointLight('#ffd2a0',8,Math.max(7,Math.min(18,f.rect[2]-f.rect[0])),2);light.position.set(p.x,Math.min(f.ceiling,above?.y-.14||Infinity)-.22,p.z);root.add(light);box('Storey_Lamp',[p.x-.17,p.z-.17,p.x+.17,p.z+.17],light.position.y+.07,light.position.y+.16,trim)}
   if(instance.role==='bank_shell'){rooms.push({level:f.level,name:'Сохранённая планировка банка',rect:f.rect.slice(),y:f.y});continue}
-  // Reserve the whole stair strip and a continuous central circulation route.
-  const reserved=stairs.filter(s=>s.lowerLevel===f.level||s.upperLevel===f.level).map(s=>s.footprint);
-  const width=f.rect[2]-f.rect[0],depth=f.rect[3]-f.rect[1],midX=Math.min(f.rect[2]-1.4,Math.max(f.rect[0]+1.4,0));
-  const hall=[midX-.75,f.rect[1],midX+.75,f.rect[3]],front=f.rect[3]-.5;
-  for(const side of[-1,1]){const x0=side<0?f.rect[0]:hall[2],x1=side<0?hall[0]:f.rect[2];if(x1-x0<1.45)continue;const segments=depth>12?3:depth>6?2:1;
-   for(let j=0;j<segments;j++){const z0=f.rect[1]+depth*j/segments+.08,z1=Math.min(front,f.rect[1]+depth*(j+1)/segments-.08),rr=[x0,z0,x1,z1];if(z1-z0<1.8||reserved.some(s=>{const a=intersect(rr,s);return a[2]>a[0]-.5&&a[3]>a[1]-.5}))continue;
-    const x=side<0?x1:x0,door=(z0+z1)/2,doorHalf=.65;
-    for(const[zA,zB]of[[z0,door-doorHalf],[door+doorHalf,z1]])box('Room_Partition',[x-.06,zA,x+.06,zB],f.y,f.ceiling,wall,true);
-    box('Room_Door_Header',[x-.06,door-doorHalf,x+.06,door+doorHalf],f.y+2.15,f.ceiling,wall,true);
-    for(const zz of[door-doorHalf,door+doorHalf])box('Room_Door_Frame',[x-.085,zz-.045,x+.085,zz+.045],f.y,f.y+2.18,trim);
-    if(j>0)box('Room_Partition',[x0,z0-.06,x1,z0+.06],f.y,f.ceiling,wall,true);
-    rooms.push({level:f.level,name:`Комната ${rooms.length+1}`,rect:rr,y:f.y,door:{x,y:f.y,z:door}});
-   }
-  }
-  if(!rooms.some(r=>r.level===f.level)){
-   const end=reserved.length?Math.max(...reserved.map(s=>s[3]))+.25:f.rect[1]+depth*.4;
-   if(f.rect[3]-end>1.5){const mid=(f.rect[0]+f.rect[2])/2;for(const[a,b]of[[f.rect[0],mid-.65],[mid+.65,f.rect[2]]])box('Room_Partition',[a,end-.06,b,end+.06],f.y,f.ceiling,wall,true);box('Room_Door_Header',[mid-.65,end-.06,mid+.65,end+.06],f.y+2.15,f.ceiling,wall,true);rooms.push({level:f.level,name:'Комната',rect:[f.rect[0],end,f.rect[2],f.rect[3]],y:f.y,door:{x:mid,y:f.y,z:end}})}
-   else rooms.push({level:f.level,name:'Зал и лестничная площадка',rect:f.rect.slice(),y:f.y});
-  }
+  const plan=planSpaciousFloor({assetId:instance.assetId,instanceId:instance.id,purpose:resolveBuildingPurpose(instance),role:instance.role,level:f.level,rect:f.rect,y:f.y,ceiling:f.ceiling,stairs});
+  for(const room of plan.rooms)if(room.door&&['bedroom','guest_bedroom','study','manager_office','cash_office','security_office'].includes(room.role))room.door={...room.door,open:false};
+  floorPlans.push({...plan,level:f.level});
+  for(const part of plan.partitions)box(part.name,part.rect,part.bottom,part.top,part.material==='trim'?trim:wall,part.collision);
+  rooms.push(...plan.rooms);
  }
  for(const s of stairs)for(const o of s.obstacles)bodies.push(worldBody(o.rect,o.minY,o.maxY,o.kind));
- let ladder=null,roof=null;
- const roofSelected=instance.role==='bank_shell'||(['pawnshop','gun_shop','bookmaker'].includes(instance.assetId)&&/001$/.test(instance.id));
- if(roofSelected&&profile.roof?.length){const surface=profile.roof[0],rr=metricRect([surface.min[0],surface.min[2],surface.max[0],surface.max[2]]),roofY=toMetric(0,surface.max[1],0).y;
-  const sign=instance.role==='bank_shell'?1:-1,x=rr[2]-1.6,z=sign===1?rr[3]:rr[1],lower={x,y:-baseY,z:z+sign*.85},upper={x,y:roofY+.015,z:z-sign*1.05};
-  ladder=createRoofLadder(T,{id:instance.id,lower,upper,outward:{x:0,z:sign}});root.add(ladder.object);roof={rect:rr,y:upper.y};
+ let ladder=null,roof=null;const ladderApproachFloors=[];
+ // Nearly every authored building gets a rear roof route.  A few profiles have
+ // an explicit roof slab; the rest use the top storey envelope as a conservative
+ // roof surface so houses, shops and apartments all share the same traversal
+ // affordance instead of silently stopping at the six originally audited shells.
+ // The public entrance is normally on +Z, therefore the ladder stays on the
+ // opposite/rear (-Z) edge and never consumes the doorway approach.
+ const roofSelected=instance.role!=='roadside_lamp'&&instance.role!=='decor'&&profile.floors?.length>0;
+ if(roofSelected){const topFloor=profile.floors.at(-1),surface=profile.roof?.[0]??{name:'DerivedRoof',min:[topFloor.rect[0],topFloor.ceiling,topFloor.rect[1]],max:[topFloor.rect[2],topFloor.ceiling+.22,topFloor.rect[3]]},rr=metricRect([surface.min[0],surface.min[2],surface.max[0],surface.max[2]]),roofY=toMetric(0,surface.max[1],0).y;
+  // Stand the lower rung clear of the authored ground apron.  The extra
+  // outward reach matters on porches, civic plinths and house foundations;
+  // the upper endpoint still lands one metre inside the roof edge.
+  const sign=-1,z=rr[1],verticalEdgeZ=Math.min(rr[1],...floors.map(f=>f.rect[1]));
+  // Residential window extraction already knows the exact authored pane
+  // bounds. Reuse those bounds in root-local metres so the ladder can choose a
+  // blank rear-wall bay instead of masking a window with its rails.
+  const openingBoxes=[];
+  if(windows?.panes?.length)for(const pane of windows.panes){const q=pane.cut,points=[];for(const xx of [q.min.x,q.max.x])for(const yy of [q.min.y,q.max.y])for(const zz of [q.min.z,q.max.z])points.push(toMetric(xx,yy,zz));const bounds=new T.Box3().setFromPoints(points);openingBoxes.push(bounds)}
+  const doorPoint=instance.publicDoorLocalXYZ&&Array.isArray(instance.publicDoorLocalXYZ)?toMetric(instance.publicDoorLocalXYZ[0],instance.publicDoorLocalXYZ[1]??1,instance.publicDoorLocalXYZ[2]):null;
+  const ladderBayClear=x=>!openingBoxes.some(box=>box.max.y>.4&&box.min.y<roofY+.7&&x>box.min.x-.62&&x<box.max.x+.62&&z>box.min.z-.7&&z<box.max.z+.7)&&(!doorPoint||Math.hypot(x-doorPoint.x,z-doorPoint.z)>1.5);
+  const pointInside=(px,pz,poly)=>{let hit=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const aa=poly[i],bb=poly[j];if((aa[1]>pz)!==(bb[1]>pz)&&px<(bb[0]-aa[0])*(pz-aa[1])/(bb[1]-aa[1])+aa[0])hit=!hit}return hit};
+  // Collision polygons are world cells. Convert once to the same metre frame
+  // as the ladder, including building yaw and the entrance-root translation.
+  const groundBodies=entry.getCollisionBodies().map(body=>({...body,localPolygon:body.polygonCR.map(([c,r])=>{const p=new T.Vector3(c*metresPerCell,0,r*metresPerCell).applyMatrix4(inverse);return[p.x,p.z]})})),xCandidates=[rr[2]-1.6,rr[0]+1.6,(rr[0]+rr[2])/2,rr[0]+(rr[2]-rr[0])*.32,rr[0]+(rr[2]-rr[0])*.68].map(v=>Math.max(rr[0]+.65,Math.min(rr[2]-.65,v)));
+  const isLowSite=body=>body.authoredSitePart&&(body.maxYM??Infinity)<=1.2&&(body.minYM??0)<.1;
+  const lowerOffsetFor=cx=>{const clearLower=oz=>!groundBodies.some(body=>{if(isLowSite(body)||(body.minYM??0)>1.9||(body.maxYM??0)<.08)return false;for(let s=0;s<=2.001;s+=.2)for(let a=0;a<12;a++){const dx=Math.cos(a*Math.PI/6)*.4,dz=Math.sin(a*Math.PI/6)*.4;if(pointInside(cx+dx,verticalEdgeZ+sign*(oz+s)+dz,body.localPolygon))return true}return false});for(let oz=.85;oz<=12;oz+=.25)if(clearLower(oz))return oz;return Infinity};
+  const bays=xCandidates.map(cx=>({x:cx,offset:ladderBayClear(cx)?lowerOffsetFor(cx):Infinity})).sort((a,b)=>a.offset-b.offset),bay=bays[0],x=bay.x,lowerOffset=(Number.isFinite(bay.offset)?bay.offset:5.25)+.15,lower={x,y:-baseY,z:verticalEdgeZ+sign*lowerOffset},upper={x,y:roofY+.015,z:z-sign*1.05};
+  // A civic plinth is a floor, but its .5–.6 m edge exceeds the walking step
+  // limit. Add a narrow, visible service stair and landing outside that edge.
+  const pads=groundBodies.filter(body=>isLowSite(body)&&Math.min(...body.localPolygon.map(p=>p[0]))<=x+.9&&Math.max(...body.localPolygon.map(p=>p[0]))>=x-.9);
+  let approachLocal=[{x,y:-baseY,z:lower.z-2},lower];
+  if(pads.length){const top=Math.max(...pads.map(p=>p.maxYM)),edge=Math.min(lower.z,...pads.flatMap(p=>p.localPolygon.map(v=>v[1])))-.55,count=Math.ceil(top/.15),tread=.5;
+   lower.y=top-baseY;
+   const landing=[x-.9,edge,x+.9,lower.z+.25];box('Ladder_Approach_Landing',landing,top-baseY-.12,top-baseY,wall);ladderApproachFloors.push({rect:landing,y:top-baseY});
+   for(let i=1;i<=count;i++){const rect=[x-.9,edge-(count-i+1)*tread,x+.9,edge-(count-i)*tread],y=top*i/count-baseY;box('Ladder_Approach_Step',rect,-baseY,y,wall);ladderApproachFloors.push({rect,y})}
+   approachLocal=[{x,y:-baseY,z:edge-count*tread-1},lower];
+  }
+  ladder=createRoofLadder(T,{id:instance.id,lower,upper,outward:{x:0,z:sign},wallTieDepth:Math.max(.48,lowerOffset-.38),wallSignDepths:{lower:lowerOffset,upper:1.05}});root.add(ladder.object);roof={rect:rr,y:upper.y};
+  ladder.approachWorld=approachLocal.map(p=>root.localToWorld(new T.Vector3(p.x,p.y,p.z)));
+  // Thin rail colliders keep the player from jumping through the ladder sides
+  // and getting wedged under the rungs, while the .33 m traversal probes still
+  // fit cleanly between the .8 m rail span.
+  const railZ=lower.z-sign*.38,railHalf=.4;
+  for(const side of[-1,1]){const railX=x+sign*railHalf*side;collisionBox(`Roof_Ladder_Rail_Collision_${side<0?'Left':'Right'}`,[railX-.045,railZ-.045,railX+.045,railZ+.045],lower.y+.05,upper.y+1.05)}
   // Open only the small parapet exit; the roof slab stays intact.
   const aperture=new T.Box3(new T.Vector3(x-.72,roofY+.01,z-1.2),new T.Vector3(x+.72,roofY+2.5,z+1.2));
   visual.updateWorldMatrix(true,true);visual.traverse(n=>{if(!n.isMesh||n.isInstancedMesh||!n.geometry?.attributes.position)return;for(let p=n;p&&p!==visual;p=p.parent)if(!p.visible||p===entry.object)return;const b=new T.Box3().setFromBufferAttribute(n.geometry.attributes.position).applyMatrix4(new T.Matrix4().multiplyMatrices(inverse,n.matrixWorld));if(b.intersectsBox(aperture))clipped(n,[aperture])});
@@ -119,21 +147,35 @@ export function createBuildingStoreys({THREE:T,entry,visual,instance,metresPerCe
   ladder.worldDescriptor={...descriptor,lower:worldPoint(descriptor.lower),upper:worldPoint(descriptor.upper),path:descriptor.path.map(worldPoint),normal:{x:normal.x,z:normal.z},right:{x:right.x,z:right.z},yaw:Math.atan2(-normal.x,-normal.z)};
   const[a,b,c,d]=rr;for(const edge of[[a,b,a+.08,d],[c-.08,b,c,d]])box('Roof_Edge_Rail',edge,roof.y,roof.y+.9,trim,true);
   for(const zz of[b,d]){const intervals=zz===z?[[a,x-.72],[x+.72,c]]:[[a,c]];for(const[l,h]of intervals)box('Roof_Edge_Rail',[l,zz-.04,h,zz+.04],roof.y,roof.y+.9,trim,true)}
+  // Roof cover is real 3D geometry and collision, intentionally low enough for
+  // a crouched hero.  Layout is normalized to each roof footprint so narrow
+  // townhouses still get cover while broad roofs get two pieces of cover.
+  // Keep a generous exclusion corridor around the ladder and auto step-off.
+  const coverIds=[],width=c-a,depth=d-b,ladderKeepOut=[x-.95,z-.35,x+.95,z+2.25],overlap=(u,v)=>u[0]<v[2]&&u[2]>v[0]&&u[1]<v[3]&&u[3]>v[1];
+  const addRoofCover=(id,rect,height,material=wall)=>{const clipped=[Math.max(a+.35,rect[0]),Math.max(b+.35,rect[1]),Math.min(c-.35,rect[2]),Math.min(d-.35,rect[3])];if(clipped[2]-clipped[0]<.7||clipped[3]-clipped[1]<.55||overlap(clipped,ladderKeepOut))return false;box(id,clipped,roof.y+.02,roof.y+.02+height,material,true);coverIds.push(id);return true};
+  const candidates=[
+   ['Roof_Cover_Utility_Left',[a+width*.08,b+depth*.25,a+width*.34,b+depth*.55],1.25,wall],
+   ['Roof_Cover_Utility_Front',[a+width*.54,b+depth*.62,a+width*.80,b+depth*.90],1.38,wall],
+   ['Roof_Cover_Parapet_Rear',[a+width*.10,b+depth*.07,a+width*.48,b+depth*.16],1.08,trim],
+   ['Roof_Cover_Utility_Right',[a+width*.64,b+depth*.20,a+width*.90,b+depth*.48],1.2,trim]
+  ];
+  const targetCount=width>=3.4&&depth>=2.4?2:1;for(const candidate of candidates){if(coverIds.length>=targetCount)break;addRoofCover(...candidate)}
+  roof.coverIds=coverIds;roof.coverCount=coverIds.length;
  }
  const {boxGeometry}=storeyResources;
- for(const material of Object.values(storeyResources.materials)){const items=boxes.filter(b=>b.material===material);if(!items.length)continue;const mesh=new T.InstancedMesh(boxGeometry,material,items.length);mesh.name=material===floorMat?'Storey_Floors':material===trim?'Room_Door_Frames':'Storey_Walls_And_Ceilings';const m=new T.Matrix4(),q=new T.Quaternion();items.forEach((b,i)=>mesh.setMatrixAt(i,m.compose(new T.Vector3((b.rect[0]+b.rect[2])/2,(b.bottom+b.top)/2,(b.rect[1]+b.rect[3])/2),q,new T.Vector3(b.rect[2]-b.rect[0],b.top-b.bottom,b.rect[3]-b.rect[1]))));mesh.castShadow=mesh.receiveShadow=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();root.add(mesh)}
+ for(const material of Object.values(storeyResources.materials)){const items=boxes.filter(b=>b.material===material);if(!items.length)continue;const mesh=new T.InstancedMesh(boxGeometry,material,items.length);mesh.name=material===floorMat?'Storey_Floors':material===trim?'Room_Door_Frames':'Storey_Walls_And_Ceilings';const m=new T.Matrix4(),q=new T.Quaternion();items.forEach((b,i)=>mesh.setMatrixAt(i,m.compose(new T.Vector3((b.rect[0]+b.rect[2])/2,(b.bottom+b.top)/2,(b.rect[1]+b.rect[3])/2),q,new T.Vector3(b.rect[2]-b.rect[0],b.top-b.bottom,b.rect[3]-b.rect[1]))));mesh.castShadow=mesh.receiveShadow=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();mesh.userData.worldBlastStaticBounds=true;mesh.userData.staticRenderMaterialImmutable=true;root.add(mesh);ownedInstances.push(mesh)}
  root.updateWorldMatrix(true,true);
  const original={floor:entry.floorHeight.bind(entry),ceiling:entry.ceilingHeight.bind(entry),bodies:entry.getCollisionBodies.bind(entry),contains:entry.containsInterior.bind(entry),dispose:entry.dispose.bind(entry)};
  const local=(x,z,y=baseY)=>new T.Vector3(x,y,z).applyMatrix4(inverse);
  const bounds=new T.Box3().setFromObject(root);if(entry.sampleBounds)bounds.union(entry.sampleBounds);entry.sampleBounds=bounds;
- function samples(x,z,ref){const out=[];for(const f of floors){if(!inRect(x,z,f.rect))continue;const hole=stairs.find(s=>s.upperLevel===f.level)?.holeRect;if(!hole||!inRect(x,z,hole))out.push(f.y)}for(const s of stairs){const y=s.sampleFloor(x,z,ref);if(y!==null)out.push(y)}if(roof&&inRect(x,z,roof.rect,.001))out.push(roof.y);return out}
+ function samples(x,z,ref){const out=[];for(const f of floors){if(!inRect(x,z,f.rect))continue;const hole=stairs.find(s=>s.upperLevel===f.level)?.holeRect;if(!hole||!inRect(x,z,hole))out.push(f.y)}for(const s of stairs){const y=s.sampleFloor(x,z,ref);if(y!==null)out.push(y)}for(const f of ladderApproachFloors)if(inRect(x,z,f.rect))out.push(f.y);if(roof&&inRect(x,z,roof.rect,.001))out.push(roof.y);return out}
  entry.floorHeight=(x,z,referenceY=0)=>{if(x<bounds.min.x||x>bounds.max.x||z<bounds.min.z||z>bounds.max.z)return null;const p=local(x,z,referenceY),values=samples(p.x,p.z,p.y).filter(y=>y<=p.y+.28+1e-6);if(values.length)return baseY+Math.max(...values);return original.floor(x,z)};
  entry.ceilingHeight=point=>{const p=local(point.x,point.z,point.y??baseY);if(roof&&p.y>=roof.y-.2&&inRect(p.x,p.z,roof.rect))return null;const values=[];for(const f of floors)if(inRect(p.x,p.z,f.rect)){const next=floors[f.level+1],hole=stairs.find(s=>s.lowerLevel===f.level)?.holeRect;if(f.ceiling>p.y+.3&&(!next||!inRect(p.x,p.z,next.rect)))values.push(f.ceiling);if(next&&inRect(p.x,p.z,next.rect)&&(!hole||!inRect(p.x,p.z,hole))&&next.y-.14>p.y+.3)values.push(next.y-.14)}for(const s of stairs){const c=s.sampleCeiling(p.x,p.z,p.y);if(c!==null)values.push(c)}return values.length?baseY+Math.min(...values):original.contains(point)?null:original.ceiling(point)};
  entry.containsInterior=point=>{const p=local(point.x,point.z,point.y??baseY);return floors.some(f=>inRect(p.x,p.z,f.rect)&&p.y>=f.y-.3&&p.y<f.ceiling+.1)||original.contains(point)&&p.y<0.3};
  const localPolygon=body=>body.polygonCR.map(([c,r])=>{const p=local(c*metresPerCell,r*metresPerCell);return[p.x,p.z]});
  const worldPolygon=p=>p.map(([x,z])=>{const q=root.localToWorld(new T.Vector3(x,0,z));return[q.x/metresPerCell,q.z/metresPerCell]});
  let oldBodies=null,combined=null;entry.getCollisionBodies=()=>{const current=original.bodies();if(current!==oldBodies){oldBodies=current;let preserved=current;if(instance.assetId==='strip_club')preserved=current.flatMap(body=>{if(body.movingDoor)return[body];let polygons=[localPolygon(body)];for(const s of stairs)polygons=polygons.flatMap(p=>subtractRect(p,s.footprint));return polygons.map(p=>({...body,polygonCR:worldPolygon(p)}))});if(roof)preserved=preserved.flatMap(body=>{const roofWorld=baseY+roof.y-.025;if(body.movingDoor||(body.maxYM??0)<=roofWorld)return[body];return[{...body,maxYM:roofWorld},...subtractRect(localPolygon(body),[roof.rect[0]-.15,roof.rect[1]-.15,roof.rect[2]+.15,roof.rect[3]+.15]).map(p=>({...body,minYM:Math.max(body.minYM??0,roofWorld),polygonCR:worldPolygon(p)}))]});combined=preserved.concat(bodies)}return combined};
- let disposed=false;entry.dispose=()=>{if(disposed)return;disposed=true;for(const[n,v]of hidden)n.visible=v;for(const[n,p]of movedNodes)n.position.copy(p);for(const[n,g]of restores.slice().reverse())n.geometry=g;for(const rec of records)release(rec);for(const s of stairs)s.dispose();ladder?.dispose();root.removeFromParent();for(const g of geometry)g.dispose();storeyResources.dispose();original.dispose()};
+ let disposed=false;entry.dispose=()=>{if(disposed)return;disposed=true;for(const[n,v]of hidden)n.visible=v;for(const[n,p]of movedNodes)n.position.copy(p);for(const[n,g]of restores.slice().reverse())n.geometry=g;for(const rec of records)release(rec);for(const s of stairs)s.dispose();ladder?.dispose();root.removeFromParent();for(const mesh of ownedInstances)mesh.dispose();ownedInstances.length=0;for(const g of geometry)g.dispose();storeyResources.dispose();original.dispose()};
  const report={floors:floors.length,rooms:rooms.length,stairs:stairs.length,roofAccess:!!ladder};entry.report.storeys=report;
- entry.storeys={root,floors,stairs,rooms,ladder,roof,report,worldPoint:p=>root.localToWorld(new T.Vector3(p.x,p.y,p.z))};return entry.storeys;
+ entry.storeys={root,floors,stairs,rooms,floorPlans,ladder,roof,report,worldPoint:p=>root.localToWorld(new T.Vector3(p.x,p.y,p.z))};return entry.storeys;
 }

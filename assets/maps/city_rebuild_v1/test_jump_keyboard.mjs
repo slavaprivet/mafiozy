@@ -9,7 +9,7 @@ const postureBinding=source.slice(source.indexOf('let landingEyeTransition='),so
 const updateBinding=source.slice(source.indexOf('function updateJump(dt)'),source.indexOf('const releaseControls='));
 assert.ok(binding.includes('beginJump(e.timeStamp)'));
 function session(){
- const events={};const c={worldHealthFrame:null,heroCover:{leave(){}},toggleHeroCover(){},nearestInteraction:()=>null,LANDING_POSTURE_SECONDS,JUMP,jumpDirection,launchJump,tryDiveJump,stepJump,resolveJumpSurface,requestHeroPosture,resetHeroPosture,posturePresentation,performance:{now:()=>9000},
+ const events={};const c={sourceVehicleActive:()=>false,worldHealthFrame:null,heroCover:{leave(){}},toggleHeroCover(){},nearestInteraction:()=>null,LANDING_POSTURE_SECONDS,JUMP,jumpDirection,launchJump,tryDiveJump,stepJump,resolveJumpSurface,requestHeroPosture,resetHeroPosture,posturePresentation,performance:{now:()=>9000},
   addEventListener:(name,fn)=>(events[name]??=[]).push(fn),hudInputBlocked:()=>false,arsenalOpen:()=>false,artistSwimming:()=>false,artistBusy:()=>false,artistAction:{action:{type:'none'}},
   tryBeginTraversal:()=>false,updateTraversal:()=>null,traversalWorld:{pointFits:(x,z,y,height)=>c.pedestrianAllowed(x,z)&&c.groundHeight(x,z)<=y+.28&&c.ceilingHeight(x,z)>=y+height-.03,supportHeight:(...args)=>c.groundHeight(...args)},
   hero:{object:{position:{x:0,y:0,z:0,set(x,y,z){this.x=x;this.y=y;this.z=z}},rotation:{y:0}},reset(){},blendIntoPosture(seconds){c.poseBlendCalls.push(seconds)}},heroPosture:createHeroPosture(),surfaceMotion:{state:{grounded:true},reset(position,state){this.state={...state}}},walking:true,occupiedSeat:null,transition:null,jump:null,heroBlast:null,busy:false,jumpCount:0,
@@ -97,3 +97,36 @@ for(const code of ['ControlLeft','ControlRight']){
  c.verticalNavigation.active=false;c.nearestInteraction=()=>({kind:'ladder',ladder:{end:'lower'}});event('keydown',code,1200);assert.equal(covers,1,'ground Ctrl toggles contextual cover');assert.equal(c.heroPosture.target,'stand','Ctrl cannot also crouch');
 }
 console.log('PASS both Ctrl keys start roof slide or reverse active climb, repeats ignored, ground cover action preserved');
+
+// Exercise the actual keyboard and updateJump snippets with the real render
+// frame's accepted timestep. In a slow scene the frame cap stretches time; it
+// must never multiply metres or allow held/repeated Space to add an impulse.
+const frameDtExpression=source.match(/const dt=([^;]+);const coverDt=/)?.[1];
+assert.ok(frameDtExpression,'read current frame timestep, do not assume a duplicate cap');
+const diveDistanceRows=[];
+for(const fps of [5,10,30,60])for(const diagonal of [false,true])for(const secondPress of [0,200,500]){
+ const {c,event}=session();c.rawDt=1/fps;c.exitQaMode=false;c.vehicleVisualQa=null;
+ const dt=vm.runInContext(frameDtExpression,c);event('keydown','KeyW',999);if(diagonal)event('keydown','KeyD',999);event('keydown','Space',1000);
+ let frames=0,upgraded=false,normalSeconds=0;
+ while(c.jump&&frames<1000){
+  const age=frames*1000/fps;
+  if(!upgraded&&age+1e-7>=secondPress){
+   normalSeconds=c.jump.elapsed;event('keyup','Space',1000+secondPress);event('keydown','Space',1000+secondPress);upgraded=true;
+   assert.equal(c.jump.mode,'dive');
+   // A third real press during flight and OS key repeat both leave it intact.
+   const before={...c.jump};event('keyup','Space',1001+secondPress);event('keydown','Space',1002+secondPress);event('keydown','Space',1003+secondPress,true);
+   assert.equal(c.jump.elapsed,before.elapsed);assert.equal(c.jumpCount,1);
+  }
+  event('keydown','Space',1000+age,true);vm.runInContext(`updateJump(${dt})`,c);frames++;
+ }
+ assert.equal(c.jump,null,'each trajectory reaches landing');assert.equal(c.jumpCount,1);
+ const distance=Math.hypot(c.hero.object.position.x,c.hero.object.position.z),expected=3.5*normalSeconds+JUMP.speed*(JUMP.flight-normalSeconds);
+ assert.ok(Math.abs(distance-expected)<1e-8,'one trajectory, world metres, no extra WASD/diagonal impulse');
+ assert.ok(distance<=4.8+1e-8,'cinematic dive stays within a compact 4.8m flight');
+ event('keydown','Space',9000,true);assert.equal(c.jump,null,'held Space cannot auto-launch after landing');
+ if(!diagonal)diveDistanceRows.push({fps,secondPressMs:secondPress,metres:+distance.toFixed(3),wallSeconds:+(frames/fps).toFixed(3)});
+}
+{
+ const {c,event}=session();c.surfaceMotion.state.grounded=false;event('keydown','Space',1000);assert.equal(c.jump,null,'airborne fall cannot start a new dive');
+}
+console.log(JSON.stringify({passed:true,checks:['actual_keyboard_updateJump_and_frame_timestep','compact_dive_range','5_10_30_60fps','third_tap_repeat_held_and_airborne','diagonal_has_no_boost'],diveDistanceRows}));

@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {registerHooks} from 'node:module';
+import {pathToFileURL} from 'node:url';
+import {createHeroWalker} from './hero_walk.mjs';
+import {createHeroCover} from './hero_cover_host.mjs';
+import {createWeaponModel} from './hero_arsenal.mjs';
+import {weaponHeadClearance} from './hero_weapon_clearance.mjs';
+const vendor=process.env.MAFIOZI_THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';registerHooks({resolve(s,c,n){return n(s==='three'?pathToFileURL(vendor+'/build/three.module.js').href:s,c)}});
+const THREE=await import(pathToFileURL(vendor+'/build/three.module.js'));const{GLTFLoader}=await import(pathToFileURL(vendor+'/addons/loaders/GLTFLoader.js'));
+const document={body:{dataset:{},append(){}},createElement:()=>({style:{},setAttribute(){}})};let frames=0,maxGripError=0,maxRenderStep=0,worstStep=null,maxLocalStep=0,maxBodyStep=0;
+for(const name of ['player_male.8130dfb1f7eb.glb','player_female.298d50e6244a.glb']){
+ const b=fs.readFileSync(new URL('./hero_models/'+name,import.meta.url)),scene=(await new GLTFLoader().parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene,hero=createHeroWalker({THREE,scene}),c=hero.artistContext();
+ for(const id of ['tt_pistol','uzi','shotgun'])for(const side of [-1,1])for(const fps of [10,15,60,144]){
+  const weapon=createWeaponModel(THREE,id);hero.mountWeapon(weapon);hero.reset();hero.object.position.set(side<0?.2:5.8,0,-.6);const posture={target:'stand',value:0},body={id:`wall:${side}`,minY:0,maxY:2.5,valid:true,polygon:[{x:0,z:0},{x:6,z:0},{x:6,z:2},{x:0,z:2}]};
+  const cover=createHeroCover({THREE,document,getHero:()=>hero,getWeapon:()=>weapon,getBodies:()=>[body],canOccupy:()=>true,allowed:()=>true,requestPosture:t=>posture.target=t,getPosture:()=>posture,onMove(){},onEnter(){},obstacles:()=>[],groundHeight:()=>0});assert.equal(cover.toggle({x:0,z:1}),true);const cs=cover.state,rawSide=cs.along<cs.length/2?-1:1,physicalSide=Math.sign((cs.tangent.x*cs.normal.z-cs.tangent.z*cs.normal.x)*rawSide);let previous=null,previousAnchor=null,previousYaw=0;
+  for(const mode of ['hidden','aimed','blind','hidden'])for(let i=0;i<Math.ceil(fps*.75);i++){
+   const dt=1/fps;cover.update(dt,{direction:{x:0,z:1},aiming:mode==='aimed',firing:mode==='blind'});posture.value+=Math.max(-2.1*dt,Math.min(2.1*dt,(posture.target==='crouch'?1:0)-posture.value));
+   const base=()=>hero.update(0,false,false,weapon,{aimYaw:hero.object.rotation.y,aimPitch:0},{posture});base();const footAnchor=c.visualPivot.getWorldPosition(new THREE.Vector3()),feet=['foot_l','foot_r'].map(n=>c.worldPosition(n).sub(footAnchor));const out=cover.pose({aimYaw:0,aimPitch:0}),origin=weapon.getWorldPosition(new THREE.Vector3());for(const [j,n]of ['foot_l','foot_r'].entries())assert.ok(Math.abs(c.worldPosition(n).sub(c.visualPivot.getWorldPosition(new THREE.Vector3())).y-feet[j].y)<1e-5,'turn preserves planted boot height');
+   assert.equal(out.shootingHand,id==='tt_pistol'&&physicalSide<0?'l':'r','pistol uses edge-side hand; long guns keep authored two-hand rig');
+   const grips=[[out.shootingHand,[0,-.13,-.02]],...(weapon.userData.twoHanded?[['l',weapon.userData.supportGrip]]:[])];for(const [hand,p]of grips){const error=c.worldPosition('socket_hand_'+hand).distanceTo(weapon.localToWorld(new THREE.Vector3(...p)));maxGripError=Math.max(maxGripError,error);assert.ok(error<.003,`${name} ${id} ${side} ${fps} ${mode} ${i} ${hand} both grips ${error} ${JSON.stringify(out)}`);}
+   if((i+1)/fps>=.60-1e-9){if(mode==='aimed'){const facing=hero.object.rotation.y+c.visualPivot.rotation.y;assert.ok(Math.abs(Math.atan2(Math.sin(facing),Math.cos(facing)))<.01,'aimed chest and hips face the target together');}assert.equal(out.transitionReady,true,`${name} ${id} ${side} ${fps} ${mode} ${i}: pose settles ${JSON.stringify({...out,yaw:c.visualPivot.rotation.y,q:weapon.getWorldQuaternion(new THREE.Quaternion()).toArray()})}`);if(['aimed','blind'].includes(mode))assert.equal(cover.canFire,true,`${name} ${id} ${side} ${fps} ${mode} ${i}: actual host permits fire ${JSON.stringify(out)}`);}
+   if(out.selfClear)assert.ok(weaponHeadClearance(THREE,c,weapon,{origin,quaternion:weapon.getWorldQuaternion(new THREE.Quaternion()),checkMuzzle:['aimed','blind'].includes(mode)}).clear,`${name} ${id} ${side} ${fps} ${mode} ${i} cached safe pose rechecked against current skeleton`);
+   const anchor=c.visualPivot.getWorldPosition(new THREE.Vector3());if(previous){assert.ok(Math.abs(Math.atan2(Math.sin(c.visualPivot.rotation.y-previousYaw),Math.cos(c.visualPivot.rotation.y-previousYaw)))<=15/fps+.001,'stance cannot instantly reverse at low FPS');const bodyDelta=anchor.clone().sub(previousAnchor),localDelta=origin.distanceTo(previous.clone().add(bodyDelta).sub(anchor).applyAxisAngle(new THREE.Vector3(0,1,0),(mode==='blind'?0:c.visualPivot.rotation.y-previousYaw)).add(anchor));maxLocalStep=Math.max(maxLocalStep,localDelta);maxBodyStep=Math.max(maxBodyStep,bodyDelta.length());assert.ok(localDelta<=6/fps+.00001,`${name} ${id} ${side} ${fps} ${mode} ${i} local mount respects 6 m/s: ${localDelta}`);const delta=origin.distanceTo(previous);if(delta>maxRenderStep){maxRenderStep=delta;worstStep={name,id,side,fps,mode,i};}assert.ok(delta<16/fps+.001,`${name} ${id} ${side} ${mode}: bounded prop step ${delta}`);}previous=origin;previousAnchor=anchor;previousYaw=c.visualPivot.rotation.y;
+   base();cover.pose({aimYaw:0,aimPitch:0});assert.ok(weapon.getWorldPosition(new THREE.Vector3()).distanceTo(origin)<1e-6,'post-combat dt0 pose repeats exactly');frames++;
+  }
+  cover.leave();
+ }
+}
+console.log(JSON.stringify({passed:true,frames,maxGripError,maxRenderStep,maxLocalStep,maxBodyStep,worstStep,checks:['actual_host_tall_wall_left_right_edges','male_female_GLB','left_hand_pistol_right_hand_pistol','two_hand_uzi_and_shotgun','10_15_60_144fps_modes','aimed_chest_hips_face_target','stance_angular_speed_bound','canFire_by_600ms','safe_cache_validation','pose_convergence','no_zero_dt_drift']}));

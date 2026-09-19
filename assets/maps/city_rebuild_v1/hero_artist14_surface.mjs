@@ -37,8 +37,9 @@ export function createArtist14Surface({THREE,context,scene,applyReaction,applySw
   receipts.add(String(event.id));while(receipts.size>512)receipts.delete(receipts.values().next().value);
   const blocked=event.blocked===true,dead=event.fatal===true||event.dead===true;
   const alreadyDown=reaction.kind==='fall'&&time-reaction.at<2.7;
-  if(reaction.kind!=='dead')reaction={kind:dead?'dead':alreadyDown?'fall':blocked?'block':event.knockdown===true||event.heavy===true||event.kind==='dropkick'?'fall':'hit',at:alreadyDown&&!dead?reaction.at:time,side:event.side===-1?-1:1,zone:event.zone||null};
-  if(!blocked&&event.zone==='head'){const eye=event.side===-1?0:1;bruiseStrength[eye]=Math.min(1,bruiseStrength[eye]+.45);if(ensureBruise(eye)){bruises[eye].visible=true;bruises[eye].material.opacity=bruiseStrength[eye]*.82;}}
+  const knockdown=event.knockdown===true||(event.knockdown!==false&&(event.heavy===true||event.kind==='dropkick'));
+  if(reaction.kind!=='dead')reaction={kind:dead?'dead':alreadyDown?'fall':blocked?'block':knockdown?'fall':'hit',at:alreadyDown&&!dead?reaction.at:time,side:event.side===-1?-1:1,zone:event.zone||null};
+  if(!blocked&&finite(event.point)&&event.zone==='head'){const eye=event.side===-1?0:1;bruiseStrength[eye]=Math.min(1,bruiseStrength[eye]+.45);if(ensureBruise(eye)){bruises[eye].visible=true;bruises[eye].material.opacity=bruiseStrength[eye]*.82;}}
   if(!blocked&&finite(event.point)){
    const point=new THREE.Vector3(event.point.x,event.point.y,event.point.z),normal=finite(event.normal)?new THREE.Vector3(event.normal.x,event.normal.y,event.normal.z).normalize():null;
    emit(point,false,event.heavy?18:10,normal);

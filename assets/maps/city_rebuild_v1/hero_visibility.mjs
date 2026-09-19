@@ -6,7 +6,17 @@ export const INDOOR_HERO_BODY_MESH_NAMES=Object.freeze([
  'player_male_DEMO_hair_HAIR','player_male_DEMO_headwear_FABRIC',
  'player_male_DEMO_headwear_HAIR',
 ]);
-const known=new Set(INDOOR_HERO_BODY_MESH_NAMES),limb=/^(upperarm|forearm|hand|thigh|shin|foot)_[lr]$/,arm=/^(upperarm|forearm|hand)_[lr]$/,head=/^(head|neck|socket_head)$/;
+// Both canonical sexes share the same bone contract. Appearance customization
+// replaces the hair/hat with ordinary meshes attached to head/chest bones.
+// Do not rely on the seven original male demo mesh names at runtime.
+const limb=/^(forearm|hand|thigh|shin|foot)_[lr]$/,arm=/^(forearm|hand)_[lr]$/,head=/^(head|neck|socket_head)$/;
+const hiddenAttachmentBone=/^(head|neck|socket_head|chest|spine_01|pelvis)$/;
+const canonicalBody=mesh=>mesh.isSkinnedMesh&&mesh.skeleton?.bones.some(b=>b.name==='head')&&mesh.skeleton.bones.some(b=>b.name==='chest');
+function maskedAccessory(node){
+ if(!node.isMesh||!node.userData.npcAppearance)return false;
+ for(let p=node.parent;p;p=p.parent)if(p.isBone)return hiddenAttachmentBone.test(p.name);
+ return false;
+}
 const objectOf=value=>value?.isObject3D?value:value?.object?.isObject3D?value.object:null;
 const ancestorOf=(ancestor,node)=>{for(let p=node;p;p=p.parent)if(p===ancestor)return true;return false};
 const component=(a,i,j)=>j===0?a.getX(i):j===1?a.getY(i):j===2?a.getZ(i):a.getW(i);
@@ -18,7 +28,8 @@ function makeMask(T,mesh,source){
  for(let i=0;i<joints.count;i++){
   let limbWeight=0,armWeight=0,headWeight=0,total=0;
   for(let j=0;j<Math.min(4,weights.itemSize);j++){const w=component(weights,i,j),name=bones[component(joints,i,j)]?.name??'';if(!Number.isFinite(w)||w<=0)continue;total+=w;if(limb.test(name))limbWeight+=w;if(arm.test(name))armWeight+=w;if(head.test(name))headWeight+=w}
-  // Reject a triangle if any corner has meaningful head/neck influence.
+  // Keep hands/forearms/legs, but not the upper-arm sleeves that surrounded
+  // the camera under stairs. Reject meaningful head/neck influence as well.
   allowed[i]=total>0&&limbWeight/total>=.55&&headWeight/total<=1e-5?1:0;
   arms[i]=allowed[i]&&armWeight/total>=.55?1:0;
  }
@@ -34,22 +45,28 @@ function makeMask(T,mesh,source){
 
 export function createIndoorHeroVisibility({THREE:T,getHero,getWeapon=()=>null}={}){
  if(!T?.BufferGeometry||typeof getHero!=='function'||typeof getWeapon!=='function')throw Error('Indoor hero visibility requires THREE and getters');
- const snapshots=new Map(),records=new Map();let lastRoot=null,meshes=[],disposed=false;
+ const snapshots=new Map(),records=new Map();let lastRoot=null,meshes=[],accessories=[],disposed=false;
  function restore(){for(const[node,state]of snapshots){node.visible=state.visible;node.geometry=state.geometry}snapshots.clear()}
  function releaseMasks(){for(const r of records.values())r.masked?.dispose();records.clear()}
  function update(hidden){
   if(disposed)return{supported:false,hidden:false,reason:'disposed'};
-  const root=objectOf(getHero());if(root!==lastRoot){restore();releaseMasks();lastRoot=root;meshes=[];root?.traverse(node=>{if(node.isMesh&&known.has(node.name))meshes.push(node)})}
-  if(!hidden||!root){restore();return{supported:meshes.length===INDOOR_HERO_BODY_MESH_NAMES.length,hidden:false,bodyMeshes:meshes.length}}
-  const weapon=objectOf(getWeapon());let maskedMeshes=0,hiddenMeshes=0,triangles=0,armTriangles=0,supported=meshes.length===INDOOR_HERO_BODY_MESH_NAMES.length;
+  const root=objectOf(getHero());if(root!==lastRoot){restore();releaseMasks();lastRoot=root;meshes=[];accessories=[];root?.traverse(node=>{if(canonicalBody(node))meshes.push(node);else if(maskedAccessory(node))accessories.push(node)})}
+  if(!hidden||!root){restore();return{supported:meshes.length>0,hidden:false,bodyMeshes:meshes.length}}
+  const weapon=objectOf(getWeapon());let maskedMeshes=0,hiddenMeshes=0,triangles=0,armTriangles=0,supported=meshes.length>0;
   for(const mesh of meshes){
    if(weapon&&(ancestorOf(mesh,weapon)||ancestorOf(weapon,mesh)))continue;
    let saved=snapshots.get(mesh);if(!saved){saved={geometry:mesh.geometry,visible:mesh.visible};snapshots.set(mesh,saved)}
    let record=records.get(mesh);if(!record||record.source!==saved.geometry){record?.masked?.dispose();record=makeMask(T,mesh,saved.geometry);records.set(mesh,record)}
    supported=supported&&record.supported;if(record.masked){mesh.geometry=record.masked;mesh.visible=saved.visible;maskedMeshes++;triangles+=record.triangles;armTriangles+=record.armTriangles}else{mesh.visible=false;hiddenMeshes++}
   }
-  return{supported,hidden:maskedMeshes+hiddenMeshes>0,bodyMeshes:meshes.length,maskedMeshes,hiddenMeshes,triangles,armTriangles,armsVisible:armTriangles>0,weaponPreserved:true,mode:'audited-skinned-limb-index-mask'};
+  let hiddenAccessories=0;
+  for(const mesh of accessories){
+   if(weapon&&(ancestorOf(mesh,weapon)||ancestorOf(weapon,mesh)))continue;
+   if(!snapshots.has(mesh))snapshots.set(mesh,{geometry:mesh.geometry,visible:mesh.visible});
+   mesh.visible=false;hiddenAccessories++;
+  }
+  return{supported,hidden:maskedMeshes+hiddenMeshes>0,bodyMeshes:meshes.length,maskedMeshes,hiddenMeshes,hiddenAccessories,triangles,armTriangles,armsVisible:armTriangles>0,weaponPreserved:true,mode:'audited-skinned-limb-index-mask'};
  }
- function dispose(){if(disposed)return;restore();releaseMasks();disposed=true;lastRoot=null;meshes=[]}
+ function dispose(){if(disposed)return;restore();releaseMasks();disposed=true;lastRoot=null;meshes=[];accessories=[]}
  return{update,restore,dispose,get active(){return snapshots.size>0}};
 }

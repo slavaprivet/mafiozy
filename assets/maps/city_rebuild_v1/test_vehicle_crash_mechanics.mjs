@@ -11,6 +11,31 @@ const offset=(speed=28,side=1)=>front(speed,{point:{x:side*.98,y:.55,z:1.93},nor
 const approx=(a,b,tol=1e-7)=>assert.ok(Math.abs(a-b)<=tol,`${a} != ${b} (tolerance ${tol})`);
 const settle=(state,fps=60,seconds=3)=>{for(let i=0;i<fps*seconds;i++)stepCrashMechanics(state,1/fps);return state;};
 
+// Kept deliberately independent from the optimized implementation.  This is
+// the pre-cache equation/order used to lock debris flight, bouncing and ground
+// callback observations to bit-identical output at the supported frame rates.
+const referenceCrashDebrisStep=(state,dt,groundHeight=()=>0)=>{
+  if(state.settled||dt===0)return state;
+  const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback,vec=(x=0,y=0,z=0)=>({x,y,z}),elapsed=Math.min(dt,.1),n=Math.max(1,Math.ceil(elapsed*120)),h=elapsed/n;
+  for(let i=0;i<n;i++) {
+    state.age+=h;state.velocity.y-=9.81*h;
+    const drag=Math.exp(-.10*h);state.velocity.x*=drag;state.velocity.z*=drag;
+    state.position.x+=state.velocity.x*h;state.position.y+=state.velocity.y*h;state.position.z+=state.velocity.z*h;
+    const ground=finite(groundHeight(state.position.x,state.position.z),0)+state.radius;
+    if(state.position.y<=ground) {
+      state.position.y=ground;if(state.velocity.y<0)state.velocity.y=Math.abs(state.velocity.y)>.6?-state.velocity.y*.24:0;
+      const friction=Math.exp(-4.6*h);state.velocity.x*=friction;state.velocity.z*=friction;
+      state.angularVelocity.x*=Math.exp(-3.8*h);state.angularVelocity.y*=Math.exp(-3.8*h);state.angularVelocity.z*=Math.exp(-3.8*h);
+      if(Math.hypot(state.velocity.x,state.velocity.y,state.velocity.z)<.08&&Math.hypot(state.angularVelocity.x,state.angularVelocity.y,state.angularVelocity.z)<.10)state.restTime+=h;else state.restTime=0;
+    } else state.restTime=0;
+    const q=state.quaternion,w=state.angularVelocity,x=q.x,y=q.y,z=q.z,qw=q.w;
+    q.x+=.5*(w.x*qw+w.y*z-w.z*y)*h;q.y+=.5*(-w.x*z+w.y*qw+w.z*x)*h;q.z+=.5*(w.x*y-w.y*x+w.z*qw)*h;q.w+=.5*(-w.x*x-w.y*y-w.z*z)*h;
+    const norm=Math.hypot(q.x,q.y,q.z,q.w)||1;q.x/=norm;q.y/=norm;q.z/=norm;q.w/=norm;
+    if(state.restTime>.45){state.settled=true;state.velocity=vec();state.angularVelocity=vec();break;}
+  }
+  return state;
+};
+
 test('pristine and low parking bumps preserve cage, mounts and drivetrain',()=>{
   const state=createCrashMechanicsState(),snapshot=JSON.stringify(state);
   for(const speed of [0,.2,1,2.49])assert.equal(applyCrashMechanicsImpact(state,front(speed)).applied,false);
@@ -20,6 +45,15 @@ test('pristine and low parking bumps preserve cage, mounts and drivetrain',()=>{
   assert.deepEqual(sampleCrashDeformation(state,{x:0,y:1,z:1}),{x:0,y:0,z:0});
   for(const id of ['speedFactor','powerFactor','frontGrip','rearGrip','steerFactor','brakeFactor'])assert.equal(e[id],1);
   assert.equal(e.rollingDrag,0);assert.equal(e.pull,0);assert.equal(e.engineDisabled,false);
+});
+
+test('deformation sampling may reuse a caller scratch without changing the value API',()=>{
+  const state=createCrashMechanicsState();applyCrashMechanicsImpact(state,front(22));
+  const point={x:.37,y:.82,z:1.74},scratch={x:Infinity,y:Infinity,z:Infinity};
+  const returned=sampleCrashDeformation(state,point,scratch);
+  assert.equal(returned,scratch,'dense render callers retain their supplied scratch');
+  assert.deepEqual(scratch,sampleCrashDeformation(state,point),'scratch and legacy value result remain identical');
+  assert.deepEqual(sampleCrashDeformation(state,{x:NaN,y:0,z:0},scratch),{x:0,y:0,z:0});
 });
 
 test('frontal crush is permanent, localized, energy-bounded and hurts engine',()=>{
@@ -192,6 +226,20 @@ test('real debris moves and settles in world space, persisting until explicit cl
   assert.equal(debris.settled,true);assert.ok(debris.position.x>102);assert.ok(debris.position.z>200);
   approx(debris.position.y,2.15);approx(Math.hypot(...Object.values(debris.quaternion)),1);
   const stored=JSON.stringify(debris);stepCrashDebris(debris,100,()=>0);assert.equal(JSON.stringify(debris),stored);
+});
+
+test('cached debris coefficients preserve exact multi-part flight, bounce and sampler order at 30/60/120 Hz',()=>{
+  for(const fps of [30,60,120]) {
+    const options={position:{x:1.2,y:.42,z:-.75},velocity:{x:7.8,y:3.7,z:-2.9},angularVelocity:{x:6.1,y:-2.3,z:4.4},quaternion:{x:.12,y:-.28,z:.09,w:.94},radius:.19};
+    const actual=createCrashDebrisState(options),reference=createCrashDebrisState(options),actualCalls=[],referenceCalls=[];
+    const ground=calls=>(x,z)=>{calls.push([x,z]);return .14+Math.sin(x*.31)*.07+Math.cos(z*.19)*.04;};
+    for(let frame=0;frame<fps*3;frame++) {
+      stepCrashDebris(actual,1/fps,ground(actualCalls));
+      referenceCrashDebrisStep(reference,1/fps,ground(referenceCalls));
+    }
+    assert.deepEqual(actual,reference,`${fps} Hz keeps every physics scalar identical`);
+    assert.deepEqual(actualCalls,referenceCalls,`${fps} Hz preserves ground-height call order and coordinates`);
+  }
 });
 
 test('renderer quaternion getters and invalid quaternion inputs stay finite',()=>{

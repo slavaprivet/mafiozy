@@ -56,7 +56,7 @@ def run() -> None:
     assert loop_guard < watchdog
     returning = service[service.index("} else if (v.state === 'returning')") :]
     invariant = returning.index("policeArrestTransportInvariant='return-blocked-unboarded'")
-    movement = returning.index("if (_vehicleStep(v, dt))")
+    movement = re.search(r"_vehicleStep\(v,\s*dt\)",returning).start()
     assert invariant < movement
     assert "_murderPoliceArrest.playerBoarded" in returning
     assert "player.r=v.y;player.c=v.x" in returning
@@ -77,7 +77,9 @@ def run() -> None:
     # dead/prone; cuffs, escort, hidden transit and booking cannot fight it.
     bridge = HTML[HTML.index("getPlayerState() {") : HTML.index("setAim(angle)")]
     assert "const custodyPoseOwned=!!arrest,stance=custodyPoseOwned?'stand'" in bridge
-    assert "dead:arrest?['awaiting_pickup','downed'].includes(arrestPhase)" in bridge
+    # Health-death priority and living reconnect are exercised by the actual
+    # bridge method in test_police_custody_player_state.mjs.
+    assert "healthDead:!!myDead" in bridge
     assert "arrestHidden:arrestPhase==='transport'" in bridge
     assert re.search(r"cuffed:servingSentence\|\|\[[^]]*'transport'", bridge)
 

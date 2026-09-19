@@ -7,6 +7,7 @@ import {createDemoCar,CAR} from './car_drive.mjs';
 import {createArtistVehicle,ARTIST_VEHICLE_PROFILES} from './vehicle_fleet_models.mjs';
 import {vehicleCoverContact} from './hero_cover_contact.mjs';
 import {findCover,moveCover} from './hero_cover.mjs';
+const baselineContact=process.env.COVER_CONTACT_BASELINE?(await import(pathToFileURL(process.env.COVER_CONTACT_BASELINE))).vehicleCoverContact:null;
 const vendor=process.env.MAFIOZI_THREE_VENDOR??'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';
 registerHooks({resolve(s,c,n){return n(s==='three'?pathToFileURL(vendor+'/build/three.module.js').href:s,c);}});
 const T=await import(pathToFileURL(vendor+'/build/three.module.js'));
@@ -30,6 +31,7 @@ for(const {id,car,profile} of cars){
     hero.update(0,false,false,null,{},{posture:{target:'crouch',value:1}});
     const root=hero.object.position.clone();
     const contact=vehicleCoverContact(T,c,car.object,normal);
+    if(baselineContact){const original=baselineContact(T,c,car.object,normal);assert.ok(Math.abs(contact.distance-original.distance)<1e-8,`${id} broadphase cannot change final body clearance`);assert.equal(contact.rays,original.rays);assert.ok(contact.gap===original.gap||Math.abs(contact.gap-original.gap)<1e-8,`${id} exact ray distance parity`);}
     assert.ok(Number.isFinite(contact.distance)&&contact.distance>=0&&contact.distance<=.48);
     assert.ok(contact.distance<=Math.max(0,contact.gap-.065)+1e-8);
     if(id==='kingswell'&&along===0&&yaw===0){

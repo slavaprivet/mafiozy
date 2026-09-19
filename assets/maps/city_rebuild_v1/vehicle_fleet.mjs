@@ -11,17 +11,33 @@ import {createTyreDamage} from './tyre_damage.mjs';
 import {createVehicleTrunk} from './vehicle_trunk.mjs';
 import {createVehicleHood} from './vehicle_hood.mjs';
 import {mergeWaterDriveEffects,resetVehicleWater} from './vehicle_water_state.mjs';
+import {createVehicleRenderBatches} from './vehicle_render_batches.mjs';
+import {createVehicleWheelRenderBatches} from './vehicle_wheel_render_batches.mjs';
 
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
 const approach=(value,amount)=>Math.sign(value)*Math.max(0,Math.abs(value)-amount);
 const velocity=state=>({vx:Math.sin(state.travelYaw??state.yaw)*state.speed,vz:Math.cos(state.travelYaw??state.yaw)*state.speed});
 const profileOf=car=>({...CAR,massKg:finite(car.object?.userData?.massKg,1500),...car.profile});
 
-export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,groundHeight=()=>0,pose=null,getHero=()=>null,onExplosion=()=>{}}={}){
+export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,groundHeight=()=>0,pose=null,getHero=()=>null,onExplosion=()=>{},detailOptimization=true,wheelRenderOptimization=false}={}){
  if(!scene||!RoundedBox)throw Error('Fleet requires scene and RoundedBox');
  const records=[],byId=new Map(),wrappers=new WeakMap(),pairDamageTimes=new Map();
  let activeRecord=null,time=0,disposed=false,sequence=0,contacts=0,lastImpulse=null,parkedCache=[],parkedCacheActive=null,parkedCacheCount=-1;
  const parkedRecords=()=>{if(parkedCacheActive!==activeRecord||parkedCacheCount!==records.length){parkedCache=records.filter(record=>record!==activeRecord);parkedCacheActive=activeRecord;parkedCacheCount=records.length;}return parkedCache;};
+ // A pristine parked car has stable zero drive effects.  Keep the first
+ // authored snapshot, instead of rebuilding equivalent effect objects and
+ // re-entering every 120 Hz physics substep until either damage, tyres or
+ // control state actually changes.  Presentation still runs below: open
+ // panels, occupants, water and all damage effects retain their own updates.
+ const pristineParked=record=>{
+  const s=record.state,d=record.damage?.state,tyres=record.tyres?.state;
+  return !!d&&d.hp===d.maxHp&&!d.smoking&&!d.burning&&!d.destroying&&!d.wrecked&&Array.isArray(tyres)&&tyres.every(tyre=>!tyre.punctured&&!tyre.detached)&&!s.waterState?.inWater&&!record.roll?.unstable;
+ };
+ const restingState=state=>state.speed===0&&state.vx===0&&state.vz===0&&state.yawRate===0&&state.travelYaw===state.yaw;
+ const idleDriveReady=record=>{
+  const s=record.state,cache=record.idleDrive;
+  return pristineParked(record)&&cache?.damage===record.damage?.state&&cache.tyres===record.tyres?.state&&s.distance===0&&s.contact===null&&s.bumped===false&&s.throttle===0&&s.handbrake===false&&s.braking===false&&restingState(s);
+ };
  const idOf=value=>typeof value==='string'?value:value?.id;
  const shape=record=>record.state.vehicleProfile||record.car.profile||CAR;
  const mass=record=>Math.max(400,Math.min(40000,finite(shape(record).massKg,finite(record.car.object.userData.massKg,1500))));
@@ -53,6 +69,8 @@ export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,ground
    record.staticPose={x:state.x,z:state.z,yaw:state.yaw,angle,wet:!!state.waterState?.inWater};
   }
   if(animate){record.impactReaction?.update(dt);car.update?.(state,state.braking);tyres?.update?.(state,dt);damage?.update?.(dt);damage?.crash?.applyWheels?.({tyres:tyres?.state});trunk?.update?.(dt,{vehicleState:state,damageState:damage?.state});hood?.update?.(dt,{vehicleState:state,damageState:damage?.state,crashState:damage?.crash?.state})}
+  record.renderBatches?.update();
+  record.wheelRenderBatches?.update();
  }
  function addCar(carOrRecord,spawn={}){
   if(disposed)throw Error('Fleet is disposed');
@@ -74,6 +92,10 @@ export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,ground
   record.damage=supplied?.damage||createVehicleDamage(T,car,{scene,groundHeight,allowed:(x,z)=>world()(x,z),getState:()=>record.state,trunk:record.trunk,profile:{maxHp:Math.max(240,Math.min(1200,Math.round(mass(record)*.16)))},onExplosion:event=>onExplosion({...event,record})});
   record.roll=supplied?.roll||createVehicleRollover(T,car);
   record.tyres=supplied?.tyres||createTyreDamage(T,car,{groundHeight});
+  // Capture canonical materials after damage adapters have established their
+  // ownership. Source meshes remain available for hits, doors and detachment.
+  record.renderBatches=createVehicleRenderBatches({THREE:T,root:car.object,includeDoors:true,includeBody:true,detailOptimization});
+  if(wheelRenderOptimization&&detailOptimization&&T.BatchedMesh)record.wheelRenderBatches=createVehicleWheelRenderBatches({THREE:T,car,multiDraw:true});
   car.object.userData.vehicleFleetId=id;car.object.userData.receiveCollision=contact=>notifyContact(record,contact);records.push(record);byId.set(id,record);
   if(!activeRecord)activeRecord=record;
   render(record,0,false);return record;
@@ -137,9 +159,14 @@ export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,ground
  function update(dt){
   if(disposed)return;if(!Number.isFinite(dt)||dt<0)throw Error('Invalid fleet timestep');
   const elapsed=Math.min(dt,.1);time+=elapsed;
-  const parked=parkedRecords(),steps=Math.max(1,Math.ceil(elapsed*120)),h=elapsed/steps;
-  for(const r of parked){r.state.distance=0;r.state.contact=null;r.state.bumped=false;r.state.throttle=0;r.state.handbrake=false;r.state.braking=false;r.state.crashEffects=r.damage?.crashEffects;r.state.tyreEffects=r.tyres?.effects;}
-  for(let i=0;i<steps;i++)for(const record of parked){
+  const parked=parkedRecords(),moving=[],steps=Math.max(1,Math.ceil(elapsed*120)),h=elapsed/steps;
+  for(const r of parked){
+   if(idleDriveReady(r))continue;
+   const s=r.state;s.distance=0;s.contact=null;s.bumped=false;s.throttle=0;s.handbrake=false;s.braking=false;s.crashEffects=r.damage?.crashEffects;s.tyreEffects=r.tyres?.effects;
+   if(restingState(s)&&pristineParked(r))r.idleDrive={damage:r.damage?.state,tyres:r.tyres?.state};
+   else{r.idleDrive=null;moving.push(r)}
+  }
+  for(let i=0;i<steps;i++)for(const record of moving){
    const s=record.state;
    if(Math.hypot(s.vx||0,s.vz||0)<.025&&Math.abs(s.yawRate||0)<.001){fromVelocity(s,0,0,0);continue}
    const x=s.x+s.vx*h,z=s.z+s.vz*h,yaw=s.yaw+(s.yawRate||0)*h,vehicleShape=shape(record),hit=contactAt(x,z,yaw,vehicleShape,record.id);
@@ -188,12 +215,12 @@ export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,ground
  }
  function dispose(){
   if(disposed)return;disposed=true;
-  for(const record of records){record.damage?.dispose?.();record.tyres?.dispose?.();record.trunk?.dispose?.();record.hood?.dispose?.();record.roll?.dispose?.();
+  for(const record of records){record.wheelRenderBatches?.dispose();record.renderBatches?.dispose();record.damage?.dispose?.();record.tyres?.dispose?.();record.trunk?.dispose?.();record.hood?.dispose?.();record.roll?.dispose?.();
    delete record.car.object.userData.receiveCollision;
    const geometries=new Set(),materials=new Set();record.car.object.traverse(n=>{if(n.geometry)geometries.add(n.geometry);for(const m of Array.isArray(n.material)?n.material:n.material?[n.material]:[])materials.add(m)});
    record.car.object.removeFromParent();for(const g of geometries)g.dispose();for(const m of materials)m.dispose();
   }
   records.length=0;parkedCache=[];parkedCacheActive=null;parkedCacheCount=0;byId.clear();pairDamageTimes.clear();activeRecord=null;
  }
- return {records,addCar,activate,syncActive,blockingWorld,resolve,update,overlaps,nearby,findSpawn,reset,dispose,get active(){return activeRecord},get activeId(){return activeRecord?.id??null},stats:()=>({activeId:activeRecord?.id??null,count:records.length,contacts,lastImpulse,vehicles:records.map(record=>({id:record.id,massKg:mass(record),mapColor:record.mapColor,state:{...record.state},damage:record.damage?.stats?.(),trunk:record.trunk?.stats?.(),hood:record.hood?.stats?.(),impactReaction:record.impactReaction?.sample(),roll:record.roll?.stats?.()}))})};
+ return {records,addCar,activate,syncActive,blockingWorld,resolve,update,overlaps,nearby,findSpawn,reset,dispose,get active(){return activeRecord},get activeId(){return activeRecord?.id??null},stats:()=>({activeId:activeRecord?.id??null,count:records.length,contacts,lastImpulse,wheelRenderBatches:records.reduce((total,r)=>{for(const key of ['batches','members','activeBatches','activeMembers','fallbackMembers'])total[key]+=(r.wheelRenderBatches?.stats[key]||0);return total},{batches:0,members:0,activeBatches:0,activeMembers:0,fallbackMembers:0}),vehicles:records.map(record=>({id:record.id,massKg:mass(record),mapColor:record.mapColor,state:{...record.state},damage:record.damage?.stats?.(),trunk:record.trunk?.stats?.(),hood:record.hood?.stats?.(),impactReaction:record.impactReaction?.sample(),roll:record.roll?.stats?.()}))})};
 }

@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {performance} from 'node:perf_hooks';
+import {pathToFileURL} from 'node:url';
+import {createCityRoadDressing as before} from '../../outputs/roads_logical_20260912/city_road_dressing.before.mjs';
+import {createCityRoadDressing as after} from '../../assets/maps/city_rebuild_v1/city_road_dressing.mjs';
+
+const THREE=await import(pathToFileURL((process.env.MAFIOZI_THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor')+'/build/three.module.js'));
+const snapshot=JSON.parse(fs.readFileSync('outputs/roads_logical_20260912/shared_plan_snapshot.json')),plan=snapshot.roadPlan;
+const hash=data=>createHash('sha256').update(data).digest('hex');
+function visibleGeometry(road){return road.object.children.map(mesh=>({name:mesh.name,geometry:Object.fromEntries(Object.entries(mesh.geometry.attributes).map(([k,v])=>[k,hash(Buffer.from(v.array.buffer,v.array.byteOffset,v.array.byteLength))])),index:mesh.geometry.index&&hash(Buffer.from(mesh.geometry.index.array.buffer)),instances:mesh.instanceMatrix&&hash(Buffer.from(mesh.instanceMatrix.array.buffer)),colors:mesh.instanceColor&&hash(Buffer.from(mesh.instanceColor.array.buffer)),batchTextures:Object.fromEntries(Object.entries(mesh).filter(([,v])=>v?.isTexture&&v.image?.data).map(([k,v])=>[k,hash(Buffer.from(v.image.data.buffer))])),material:{color:mesh.material.color.getHex(),roughness:mesh.material.roughness,metalness:mesh.material.metalness,emissive:mesh.material.emissive.getHex(),emissiveIntensity:mesh.material.emissiveIntensity},visible:mesh.visible}));}
+function cleanup(road,legacy){const batches=road.object.children.filter(n=>n.isBatchedMesh);road.dispose();if(legacy)for(const batch of batches)batch.dispose();}
+const old=before({THREE,plan}),current=after({THREE,plan});assert.deepEqual(visibleGeometry(current),visibleGeometry(old),'every source attribute/index, transform, part colour and near lens is identical');const oldStats={...old.stats},currentStats={...current.stats};assert.deepEqual(currentStats,oldStats);
+const oldFar=old.update(0,{time:22,focus:{x:10000,z:10000}}),currentFar=current.update(0,{time:22,focus:{x:10000,z:10000}});assert.deepEqual(oldFar.phases,currentFar.phases);
+const range={beforeFarDraws:old.stats.visibleDraws,afterFarDraws:current.stats.visibleDraws};cleanup(old,true);cleanup(current,false);
+const quantiles=values=>{const sorted=[...values].sort((a,b)=>a-b);return {p50:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.min(sorted.length-1,Math.floor(sorted.length*.95))],samples:sorted.length};};
+const measure=(build,legacy)=>{const construction=[];for(let i=0;i<12;i++){const start=performance.now(),road=build({THREE,plan});if(i>=3)construction.push(performance.now()-start);cleanup(road,legacy);}
+ const road=build({THREE,plan}),scenarios={};for(const [name,options]of Object.entries({idle:i=>({time:10,focus:{x:340,z:340}}),moving:i=>({time:i/60,focus:{x:100+(i%1000)*.55,z:340+Math.sin(i/500)*150}}),hiddenPhase:i=>({time:i/6,focus:{x:10000,z:10000}})})){const times=[];for(let run=0;run<12;run++){const start=performance.now();for(let i=0;i<2000;i++)road.update(1/60,options(i));if(run>=3)times.push((performance.now()-start)/2000);}scenarios[name]=quantiles(times);}cleanup(road,legacy);return {constructionMs:quantiles(construction),updateMs:scenarios};};
+const report={status:'CPU_GEOMETRY_AND_LIFECYCLE_PASS',scenario:'Same immutable current78 worker plan, 309 signs and 53 traffic heads, CPU Three r180 only. Twelve runs, first three warmups; 2000 updates per sample.',sourceSnapshotCreatedAt:snapshot.createdAt,geometryEquivalent:true,beforeStats:oldStats,afterStats:currentStats,range,before:measure(before,true),after:measure(after,false),limits:['No WebGL renderer was created. Draw counts are structural and are not measured GPU submissions.','Performance of the loaded gameplay scene has not been tested; coordinator owns the LIVE GPU queue.','Legacy batch allocations are explicitly cleaned after each timed constructor to avoid benchmark leakage.']};
+fs.writeFileSync('outputs/roads_logical_20260912/renderer_cpu_comparison.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

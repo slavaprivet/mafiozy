@@ -6,10 +6,11 @@ export function vehicleStateFromVelocity(state,vx,vz,yawRate=state.yawRate){
  const magnitude=Math.hypot(vx,vz),forward=vx*Math.sin(state.yaw)+vz*Math.cos(state.yaw);
  const sign=Math.abs(forward)>.01?Math.sign(forward):Math.sign(state.speed)||1;
  const stopped=magnitude<.015;
+ const travelYaw=stopped?state.yaw:Math.atan2(vx*sign,vz*sign);
  return {...state,vx:stopped?0:vx,vz:stopped?0:vz,speed:stopped?0:sign*magnitude,
-  travelYaw:stopped?state.yaw:Math.atan2(vx*sign,vz*sign),yawRate:finite(yawRate),
+  travelYaw,yawRate:finite(yawRate),
   longitudinalVelocity:stopped?0:forward,lateralVelocity:stopped?0:vx*Math.cos(state.yaw)-vz*Math.sin(state.yaw),
-  slipAngle:stopped?0:delta(state.yaw,Math.atan2(vx*sign,vz*sign))};
+  slipAngle:stopped?0:delta(state.yaw,travelYaw)};
 }
 
 export function moveVehicleWithContacts(start,next,dt,{fits,contactAt,shape}){

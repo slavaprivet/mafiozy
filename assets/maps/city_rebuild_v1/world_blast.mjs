@@ -10,10 +10,10 @@ function panelsFor(T,mesh){
 // Presentation blast only. Source geometry/IDs/ownership stay under their
 // existing adapters; glass.hit owns its instance-local fracture resources.
 export function applyWorldBlast(T,{point,radius,power=120,roots=[],glass,onSurfaceHit,maxMeshes=96,maxPanels=96,maxSurfaceHits=24,spatialPrune=true}={}){
- const stats={broken:0,surfaceHits:0,candidates:0,panelsTested:0,prunedChunks:0,prunedInstancedMeshes:0,instancesTested:0,truncated:false};
+ const stats={broken:0,surfaceHits:0,candidates:0,panelsTested:0,prunedChunks:0,prunedInstancedMeshes:0,prunedInstanceRanges:0,prunedInstances:0,sphereRejectedInstances:0,instancesTested:0,truncated:false};
  if(!point||![point.x,point.y,point.z,radius,power].every(Number.isFinite)||radius<=0||power<=0)return stats;
  maxMeshes=Math.max(0,Math.min(256,Math.floor(maxMeshes)||0));maxPanels=Math.max(0,Math.min(256,Math.floor(maxPanels)||0));maxSurfaceHits=Math.max(0,Math.min(64,Math.floor(maxSurfaceHits)||0));
- const origin=new T.Vector3(point.x,point.y,point.z),selected=[],seen=new Set(),matrix=new T.Matrix4(),local=new T.Matrix4(),bounds=new T.Box3();let candidateCount=0;
+ const origin=new T.Vector3(point.x,point.y,point.z),selected=[],seen=new Set(),matrix=new T.Matrix4(),local=new T.Matrix4(),bounds=new T.Box3(),sphere=new T.Sphere();let candidateCount=0;
  // Keep precisely the prefix that a stable distance sort followed by slice(0,
  // maxMeshes) would select. Most dense-world candidates are never rendered or
  // hit-tested after a blast, so avoid cloning their matrix/bounds and sorting
@@ -30,18 +30,30 @@ export function applyWorldBlast(T,{point,radius,power=120,roots=[],glass,onSurfa
  const visit=(node,fn)=>{if(!node)return;if(outsideChunk(node)){stats.prunedChunks++;return}fn(node);for(const child of node.children||[])visit(child,fn)};
  for(const root of Array.isArray(roots)?roots:[roots]){
   root?.updateWorldMatrix?.(true,true);visit(root,mesh=>{
-   if(seen.has(mesh)||!mesh.isMesh||!mesh.geometry?.attributes?.position||!visible(mesh)||mesh.userData.glassEffect)return;seen.add(mesh);
+   if(seen.has(mesh)||!mesh.isMesh||!mesh.geometry?.attributes?.position||!visible(mesh)||mesh.userData.glassEffect||mesh.userData.worldBlastIgnore)return;seen.add(mesh);
    const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material],breakable=materials.some(m=>isBreakableGlass(mesh,m));
    if(!breakable&&!materials.some(m=>m&&m.visible!==false&&!m.transparent))return;
    const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();if(!g.boundingBox||g.boundingBox.isEmpty())return;
-   // Forest chunks are static InstancedMeshes. Their aggregate local box lets
-   // a nearby blast skip every individual tree in a distant batch.
-   if(spatialPrune&&mesh.isInstancedMesh&&mesh.userData.explorationDecor){if(!mesh.boundingBox)mesh.computeBoundingBox();if(mesh.boundingBox){bounds.copy(mesh.boundingBox).applyMatrix4(mesh.matrixWorld);if(bounds.distanceToPoint(origin)>radius){stats.prunedInstancedMeshes++;return}}}
-   for(let id=0;id<(mesh.isInstancedMesh?mesh.count:1);id++){
+   // Explicitly opted-in static batches have conservative aggregate boxes.
+   // Skip the whole batch before touching individual instance matrices. Never
+   // infer this from draw usage: several dynamic systems keep stale boxes.
+   if(spatialPrune&&mesh.isInstancedMesh&&(mesh.userData.explorationDecor||mesh.userData.worldBlastStaticBounds)){if(!mesh.boundingBox)mesh.computeBoundingBox();if(mesh.boundingBox){bounds.copy(mesh.boundingBox).applyMatrix4(mesh.matrixWorld);if(bounds.distanceToPoint(origin)>radius){stats.prunedInstancedMeshes++;return}}}
+   const instanceCount=mesh.isInstancedMesh?mesh.count:1,candidateRanges=spatialPrune&&mesh.isInstancedMesh&&mesh.userData.worldBlastRangeCount===mesh.count?mesh.userData.worldBlastInstanceRanges:null;let instanceRanges=Array.isArray(candidateRanges)&&candidateRanges.length?candidateRanges:null;
+   if(instanceRanges){let covered=0;for(const range of instanceRanges){if(range.start!==covered||!Number.isInteger(range.count)||range.count<=0||!range.bounds?.isBox3){instanceRanges=null;break}covered+=range.count}if(covered!==mesh.count)instanceRanges=null}
+   for(let rangeIndex=0;rangeIndex<(instanceRanges?.length||1);rangeIndex++){
+    const range=instanceRanges?.[rangeIndex],start=range?.start||0,end=range?start+range.count:instanceCount;
+    if(range){bounds.copy(range.bounds).applyMatrix4(mesh.matrixWorld);if(bounds.distanceToPoint(origin)>radius){stats.prunedInstanceRanges++;stats.prunedInstances+=range.count;continue}}
+    for(let id=start;id<end;id++){
     stats.instancesTested++;
     matrix.copy(mesh.matrixWorld);if(mesh.isInstancedMesh){mesh.getMatrixAt(id,local);if(Math.abs(local.determinant())<1e-12)continue;matrix.multiply(local)}
+    // A transformed bounding sphere is conservative for every rotation and
+    // non-uniform scale.  Most nearby forest-chunk instances are still well
+    // outside a small blast; reject those before Box3.applyMatrix4 expands all
+    // eight corners.  The exact AABB distance test remains the final gate.
+    if(mesh.isInstancedMesh){if(!g.boundingSphere)g.computeBoundingSphere();if(g.boundingSphere){sphere.copy(g.boundingSphere).applyMatrix4(matrix);if(sphere.distanceToPoint(origin)>radius){stats.sphereRejectedInstances++;continue}}}
     bounds.copy(g.boundingBox).applyMatrix4(matrix);const distance=bounds.distanceToPoint(origin);if(distance>radius)continue;
     retainCandidate(mesh,mesh.isInstancedMesh?id:undefined,distance,breakable);
+   }
    }
   });
  }

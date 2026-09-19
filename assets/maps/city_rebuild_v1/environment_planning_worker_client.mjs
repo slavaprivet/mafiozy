@@ -2,12 +2,23 @@ export const ENVIRONMENT_PLANNING_TIMEOUT_MS=20000;
 let nextRequestId=0;
 const namedError=(name,message)=>Object.assign(new Error(message),{name});
 // Keep the identity, purpose and entrance needed by parking plus occupancy
-// bounds used by roads. Never send visual bindings or a Three scene graph.
+// bounds used by roads. Never send model URLs or a Three scene graph.
 // Authored polygon clearances must also survive: parking walking routes
 // distinguish these reservations from newly added solid decor keepouts.
 const roadPlannerRecord=item=>{
   const source=item?.userData?.instance||item||{},record={};
   for(const key of['id','assetId','role','entry','clearance','footprint','entryCorridor','clearancePolygonCR'])if(source[key])record[key]=source[key];
+  // These two towers have an obsolete placement EntranceAnchor. The worker
+  // needs the audited asset fingerprint and transform to locate their actual
+  // existing door/ramp; stripping them would send pedestrians into the road.
+  if(source.assetId==='compact_podium_glass_tower_v1'){
+    record.binding={sha256:source.binding?.sha256,lod:source.binding?.lod};
+    record.transform=source.transform;
+  }
+  if(source.role==='district_detention'){
+    record.stopFootprint=source.stopFootprint;
+    record.transform={yawDegrees:source.transform?.yawDegrees};
+  }
   if(source.collision?.worldBodies?.length)record.collision={worldBodies:source.collision.worldBodies};
   return record;
 };

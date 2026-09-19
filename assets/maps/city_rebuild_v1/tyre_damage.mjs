@@ -32,13 +32,16 @@ export function createTyreDamage(T,car,{groundHeight=()=>0,onDetach=()=>{}}={}){
   // A fully deflated parked wheel remains visibly flat. Once its one-shot
   // loose-tyre and rim effects finish, its local transforms cannot evolve.
   if(!changed&&stationary&&!activeParticleIndices.length&&!looseActive){idleUpdates++;return}
-  car.object.updateWorldMatrix(true,true);object.updateWorldMatrix(true,false);inverse.copy(object.matrixWorld).invert();
+  // Damage needs the car transform and, below, only the affected wheel pivots.
+  // Updating every authored child here is wasted work while a rim is moving.
+  car.object.updateWorldMatrix(true,false);object.updateWorldMatrix(true,false);inverse.copy(object.matrixWorld).invert();
   state.forEach((t,i)=>{
    const wheel=car.wheels.find(w=>w.id===t.id),rest=wheelRest.get(t.id);wheel.pivot.position.y=rest.y-(t.detached?rest.radius-rest.rimRadius:(1-t.pressure)*rest.radius*.25);wheel.rollingRadius=t.detached?rest.rimRadius:rest.radius*(.75+.25*t.pressure);wheel.tire.scale.x=rest.scale.x*(.65+.35*t.pressure);wheel.tire.visible=rest.visible&&!t.detached;
-   if(t.detached&&!before[i].detached&&!emitted.has(t.id)){emitted.add(t.id);const item=loose.get(t.id),side=t.id.endsWith('left')?1:-1;item.age=0;item.mesh.visible=true;item.origin.copy(wheel.pivot.getWorldPosition(worldContact));item.velocity.set(side*1.4,2.2,-1).transformDirection(car.object.matrixWorld).multiplyScalar(2.4);item.velocity.y=2.2;onDetach({wheelId:t.id,point:item.origin.clone()})}
+   const needsWorldPivot=t.detached&&(!before[i].detached||Math.abs(carState?.distance||0)>.002);if(needsWorldPivot)wheel.pivot.updateWorldMatrix(true,false);
+   if(t.detached&&!before[i].detached&&!emitted.has(t.id)){emitted.add(t.id);const item=loose.get(t.id),side=t.id.endsWith('left')?1:-1;item.age=0;item.mesh.visible=true;item.origin.copy(worldContact.setFromMatrixPosition(wheel.pivot.matrixWorld));item.velocity.set(side*1.4,2.2,-1).transformDirection(car.object.matrixWorld).multiplyScalar(2.4);item.velocity.y=2.2;onDetach({wheelId:t.id,point:item.origin.clone()})}
    if(t.detached&&Math.abs(carState?.distance||0)>.002){
     const count=Math.min(6,Math.max(1,Math.ceil(Math.abs(carState.distance)/.16)));
-    for(let n=0;n<count;n++){const index=sparkCursor++%64,particle=particles[index],contact=wheel.pivot.getWorldPosition(worldContact);if(!particle.active){particle.active=true;activeParticleIndices.push(index)}particle.life=.18+(sparkCursor%4)*.05;particle.p.copy(contact);particle.p.y=groundHeight(contact.x,contact.z)+.035;particle.v.set(Math.sin(sparkCursor*2.4)*1.5,.6+(sparkCursor%3)*.2,Math.cos(sparkCursor*2.4)*1.5);particle.v.x-=Math.sin(carState.yaw)*Math.sign(carState.speed)*2;particle.v.z-=Math.cos(carState.yaw)*Math.sign(carState.speed)*2}
+    for(let n=0;n<count;n++){const index=sparkCursor++%64,particle=particles[index],contact=worldContact.setFromMatrixPosition(wheel.pivot.matrixWorld);if(!particle.active){particle.active=true;activeParticleIndices.push(index)}particle.life=.18+(sparkCursor%4)*.05;particle.p.copy(contact);particle.p.y=groundHeight(contact.x,contact.z)+.035;particle.v.set(Math.sin(sparkCursor*2.4)*1.5,.6+(sparkCursor%3)*.2,Math.cos(sparkCursor*2.4)*1.5);particle.v.x-=Math.sin(carState.yaw)*Math.sign(carState.speed)*2;particle.v.z-=Math.cos(carState.yaw)*Math.sign(carState.speed)*2}
    }
   });
   for(const item of loose.values()){if(!item.mesh.visible)continue;item.age+=dt;const age=item.age,p=loosePosition.copy(item.origin).addScaledVector(item.velocity,Math.min(age,2));p.y=Math.max(groundHeight(p.x,p.z)+item.radius*.85,item.origin.y+2.2*age-4.9*age*age);item.mesh.position.copy(p.applyMatrix4(inverse));item.mesh.rotation.set(age*3,age*2,age*4);item.mesh.material.opacity=Math.min(1,5-age);if(age>=5)item.mesh.visible=false}

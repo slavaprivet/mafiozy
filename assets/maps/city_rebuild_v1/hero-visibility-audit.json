@@ -227,7 +227,7 @@
     {
       "name": "player_male_DEMO_core_FABRIC",
       "originalTriangles": 3660,
-      "retainedTriangles": 1378,
+      "retainedTriangles": 677,
       "pureHandTriangles": 0,
       "pureForearmTriangles": 248,
       "visible": true
@@ -282,8 +282,9 @@
     "bodyMeshes": 7,
     "maskedMeshes": 4,
     "hiddenMeshes": 3,
-    "triangles": 2754,
-    "armTriangles": 1794,
+    "hiddenAccessories": 0,
+    "triangles": 2053,
+    "armTriangles": 1093,
     "armsVisible": true,
     "weaponPreserved": true,
     "mode": "audited-skinned-limb-index-mask",
@@ -291,5 +292,5 @@
     "retainedForearms": 408,
     "originalDisposals": 0
   },
-  "maskPolicy": "Each triangle corner requires limb sum >=.55; any head/neck sum >1e-5 rejects triangle. Shared original vertex attributes/skeleton; owned filtered index and geometry wrapper only. Head-only meshes temporarily hidden. Arms/hands/legs/feet and weapon preserved."
+  "maskPolicy": "Each triangle corner requires forearm/hand/thigh/shin/foot sum >=.55; any head/neck sum >1e-5 rejects triangle. Upper-arm sleeves and torso excluded. Shared original vertex attributes/skeleton; owned filtered index and geometry wrapper only. Head-only meshes temporarily hidden. Forearms/hands/legs/feet and weapon preserved."
 }

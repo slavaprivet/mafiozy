@@ -1,0 +1,692 @@
+{
+  "version": 1,
+  "instances": [
+    {
+      "compactSite": true,
+      "transform": {
+        "positionM": [
+          643.6999999999999,
+          0,
+          418.2
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 0.8,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "footprint": {
+        "minC": 154.0731707317073,
+        "maxC": 159.9268292682927,
+        "minR": 100.14634146341463,
+        "maxR": 104.10731707317073
+      },
+      "entryCorridor": {
+        "minC": 155.71219512195123,
+        "maxC": 156.29756097560974,
+        "minR": 104.08780487804879,
+        "maxR": 105.00000000000001
+      },
+      "stopFootprint": {
+        "minC": 155.22439024390243,
+        "maxC": 156.78536585365853,
+        "minR": 105.03658536585367,
+        "maxR": 105.59756097560977
+      },
+      "stopLane": {
+        "minC": 154.05365853658535,
+        "maxC": 157.9560975609756,
+        "minR": 105.06097560975611,
+        "maxR": 105.57317073170732
+      },
+      "stopLocalZ": 17,
+      "districtId": "southside",
+      "districtName": "Южная сторона · Ember Row",
+      "score": 5.475127113166862,
+      "id": "REBUILD-DETENTION-southside",
+      "detentionId": "detention:southside",
+      "name": "Районный изолятор — Южная сторона",
+      "assetId": "police_station",
+      "role": "district_detention",
+      "gameplayId": null,
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/building_models/police_station/police_station_canon_v2.glb",
+        "sha256": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+        "bytes": 1652188
+      },
+      "bounds": {
+        "min": [
+          -15,
+          0,
+          -9.5
+        ],
+        "max": [
+          15,
+          13.240000382065773,
+          10.8
+        ]
+      },
+      "renderContract": "Parent positionM/yaw/uniformScale. Call createDetentionNativeEntry for compact apron, hollowing, physical doors, floors and collision bodies.",
+      "collision": {
+        "method": "authored_police_mass_for_vehicles_only",
+        "worldBodies": [
+          {
+            "node": "Main_Hall",
+            "polygonCR": [
+              [
+                154.17073170731706,
+                100.2439024390244
+              ],
+              [
+                159.04878048780486,
+                100.2439024390244
+              ],
+              [
+                159.04878048780486,
+                103.3658536585366
+              ],
+              [
+                154.17073170731706,
+                103.3658536585366
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 154.17073170731706,
+              "maxC": 159.04878048780486,
+              "minR": 100.2439024390244,
+              "maxR": 103.3658536585366
+            },
+            "minYM": 0.08000000000000002,
+            "maxYM": 5.6000000000000005,
+            "buildingEntryId": "REBUILD-DETENTION-southside",
+            "carOnly": true
+          },
+          {
+            "node": "Service_Wing",
+            "polygonCR": [
+              [
+                158.17073170731706,
+                100.34146341463415
+              ],
+              [
+                159.7317073170732,
+                100.34146341463415
+              ],
+              [
+                159.7317073170732,
+                102.48780487804879
+              ],
+              [
+                158.17073170731706,
+                102.48780487804879
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 158.17073170731706,
+              "maxC": 159.7317073170732,
+              "minR": 100.34146341463415,
+              "maxR": 102.48780487804879
+            },
+            "minYM": 0.08000000000000002,
+            "maxYM": 3.9200000000000004,
+            "buildingEntryId": "REBUILD-DETENTION-southside",
+            "carOnly": true
+          },
+          {
+            "node": "Portico_Column",
+            "polygonCR": [
+              [
+                155.6478048780488,
+                103.54536585365855
+              ],
+              [
+                155.7570731707317,
+                103.54536585365855
+              ],
+              [
+                155.7570731707317,
+                103.65463414634146
+              ],
+              [
+                155.6478048780488,
+                103.65463414634146
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 155.6478048780488,
+              "maxC": 155.7570731707317,
+              "minR": 103.54536585365855,
+              "maxR": 103.65463414634146
+            },
+            "minYM": 0,
+            "maxYM": 3.7600000000000002,
+            "buildingEntryId": "REBUILD-DETENTION-southside",
+            "carOnly": true
+          },
+          {
+            "node": "Portico_Column001",
+            "polygonCR": [
+              [
+                156.60390243902438,
+                103.54536585365855
+              ],
+              [
+                156.7131707317073,
+                103.54536585365855
+              ],
+              [
+                156.7131707317073,
+                103.65463414634146
+              ],
+              [
+                156.60390243902438,
+                103.65463414634146
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 156.60390243902438,
+              "maxC": 156.7131707317073,
+              "minR": 103.54536585365855,
+              "maxR": 103.65463414634146
+            },
+            "minYM": 0,
+            "maxYM": 3.7600000000000002,
+            "buildingEntryId": "REBUILD-DETENTION-southside",
+            "carOnly": true
+          },
+          {
+            "node": "Public_Door_Frame",
+            "polygonCR": [
+              [
+                155.8058536585366,
+                103.42926829268293
+              ],
+              [
+                156.55512195121952,
+                103.42926829268293
+              ],
+              [
+                156.55512195121952,
+                103.59804878048782
+              ],
+              [
+                155.8058536585366,
+                103.59804878048782
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 155.8058536585366,
+              "maxC": 156.55512195121952,
+              "minR": 103.42926829268293,
+              "maxR": 103.59804878048782
+            },
+            "minYM": 0,
+            "maxYM": 2.872,
+            "buildingEntryId": "REBUILD-DETENTION-southside",
+            "carOnly": true
+          }
+        ]
+      }
+    },
+    {
+      "compactSite": true,
+      "transform": {
+        "positionM": [
+          32.8,
+          0,
+          364.9
+        ],
+        "yawDegrees": 270,
+        "uniformScale": 0.8,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "footprint": {
+        "minC": 5.892682926829267,
+        "maxC": 9.853658536585366,
+        "minR": 86.07317073170732,
+        "maxR": 91.92682926829268
+      },
+      "entryCorridor": {
+        "minC": 5,
+        "maxC": 5.912195121951219,
+        "minR": 87.71219512195121,
+        "maxR": 88.29756097560976
+      },
+      "stopFootprint": {
+        "minC": 4.402439024390244,
+        "maxC": 4.963414634146341,
+        "minR": 87.22439024390243,
+        "maxR": 88.78536585365853
+      },
+      "stopLane": {
+        "minC": 4.426829268292683,
+        "maxC": 4.939024390243903,
+        "minR": 86.05365853658537,
+        "maxR": 89.95609756097562
+      },
+      "stopLocalZ": 17,
+      "districtId": "chinatown",
+      "districtName": "Чайный квартал · Lantern Ward",
+      "score": 6.196724834839357,
+      "id": "REBUILD-DETENTION-chinatown",
+      "detentionId": "detention:chinatown",
+      "name": "Районный изолятор — Чайный квартал",
+      "assetId": "police_station",
+      "role": "district_detention",
+      "gameplayId": null,
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/building_models/police_station/police_station_canon_v2.glb",
+        "sha256": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+        "bytes": 1652188
+      },
+      "bounds": {
+        "min": [
+          -15,
+          0,
+          -9.5
+        ],
+        "max": [
+          15,
+          13.240000382065773,
+          10.8
+        ]
+      },
+      "renderContract": "Parent positionM/yaw/uniformScale. Call createDetentionNativeEntry for compact apron, hollowing, physical doors, floors and collision bodies.",
+      "collision": {
+        "method": "authored_police_mass_for_vehicles_only",
+        "worldBodies": [
+          {
+            "node": "Main_Hall",
+            "polygonCR": [
+              [
+                9.756097560975611,
+                86.17073170731707
+              ],
+              [
+                9.756097560975611,
+                91.04878048780488
+              ],
+              [
+                6.634146341463414,
+                91.04878048780488
+              ],
+              [
+                6.634146341463415,
+                86.17073170731707
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 6.634146341463414,
+              "maxC": 9.756097560975611,
+              "minR": 86.17073170731707,
+              "maxR": 91.04878048780488
+            },
+            "minYM": 0.08000000000000002,
+            "maxYM": 5.6000000000000005,
+            "buildingEntryId": "REBUILD-DETENTION-chinatown",
+            "carOnly": true
+          },
+          {
+            "node": "Service_Wing",
+            "polygonCR": [
+              [
+                9.658536585365853,
+                90.17073170731707
+              ],
+              [
+                9.658536585365853,
+                91.73170731707317
+              ],
+              [
+                7.512195121951218,
+                91.73170731707317
+              ],
+              [
+                7.512195121951219,
+                90.17073170731707
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 7.512195121951218,
+              "maxC": 9.658536585365853,
+              "minR": 90.17073170731707,
+              "maxR": 91.73170731707317
+            },
+            "minYM": 0.08000000000000002,
+            "maxYM": 3.9200000000000004,
+            "buildingEntryId": "REBUILD-DETENTION-chinatown",
+            "carOnly": true
+          },
+          {
+            "node": "Portico_Column",
+            "polygonCR": [
+              [
+                6.454634146341464,
+                87.64780487804879
+              ],
+              [
+                6.454634146341464,
+                87.75707317073172
+              ],
+              [
+                6.345365853658537,
+                87.75707317073172
+              ],
+              [
+                6.345365853658537,
+                87.64780487804879
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 6.345365853658537,
+              "maxC": 6.454634146341464,
+              "minR": 87.64780487804879,
+              "maxR": 87.75707317073172
+            },
+            "minYM": 0,
+            "maxYM": 3.7600000000000002,
+            "buildingEntryId": "REBUILD-DETENTION-chinatown",
+            "carOnly": true
+          },
+          {
+            "node": "Portico_Column001",
+            "polygonCR": [
+              [
+                6.454634146341464,
+                88.60390243902438
+              ],
+              [
+                6.454634146341464,
+                88.71317073170732
+              ],
+              [
+                6.345365853658537,
+                88.71317073170732
+              ],
+              [
+                6.345365853658537,
+                88.60390243902438
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 6.345365853658537,
+              "maxC": 6.454634146341464,
+              "minR": 88.60390243902438,
+              "maxR": 88.71317073170732
+            },
+            "minYM": 0,
+            "maxYM": 3.7600000000000002,
+            "buildingEntryId": "REBUILD-DETENTION-chinatown",
+            "carOnly": true
+          },
+          {
+            "node": "Public_Door_Frame",
+            "polygonCR": [
+              [
+                6.570731707317073,
+                87.80585365853658
+              ],
+              [
+                6.570731707317073,
+                88.5551219512195
+              ],
+              [
+                6.4019512195121955,
+                88.5551219512195
+              ],
+              [
+                6.4019512195121955,
+                87.80585365853658
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 6.4019512195121955,
+              "maxC": 6.570731707317073,
+              "minR": 87.80585365853658,
+              "maxR": 88.5551219512195
+            },
+            "minYM": 0,
+            "maxYM": 2.872,
+            "buildingEntryId": "REBUILD-DETENTION-chinatown",
+            "carOnly": true
+          }
+        ]
+      }
+    },
+    {
+      "compactSite": true,
+      "transform": {
+        "positionM": [
+          266.5,
+          0,
+          639.5999999999999
+        ],
+        "yawDegrees": 180,
+        "uniformScale": 0.8,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ]
+      },
+      "footprint": {
+        "minC": 62.07317073170732,
+        "maxC": 67.92682926829269,
+        "minR": 153.89268292682925,
+        "maxR": 157.85365853658536
+      },
+      "entryCorridor": {
+        "minC": 65.70243902439024,
+        "maxC": 66.28780487804877,
+        "minR": 153,
+        "maxR": 153.9121951219512
+      },
+      "stopFootprint": {
+        "minC": 65.21463414634147,
+        "maxC": 66.77560975609757,
+        "minR": 152.40243902439025,
+        "maxR": 152.96341463414632
+      },
+      "stopLane": {
+        "minC": 64.0439024390244,
+        "maxC": 67.94634146341464,
+        "minR": 152.4268292682927,
+        "maxR": 152.9390243902439
+      },
+      "stopLocalZ": 17,
+      "districtId": "iron_harbor",
+      "districtName": "Стальная гавань · Foundry Reach",
+      "score": 5.776288264893961,
+      "id": "REBUILD-DETENTION-iron_harbor",
+      "detentionId": "detention:iron_harbor",
+      "name": "Районный изолятор — Стальная гавань",
+      "assetId": "police_station",
+      "role": "district_detention",
+      "gameplayId": null,
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/building_models/police_station/police_station_canon_v2.glb",
+        "sha256": "fff0639b3800df3f212c548c9fc45d755b5627c0d3098f10cbc55e9567232d4f",
+        "bytes": 1652188
+      },
+      "bounds": {
+        "min": [
+          -15,
+          0,
+          -9.5
+        ],
+        "max": [
+          15,
+          13.240000382065773,
+          10.8
+        ]
+      },
+      "renderContract": "Parent positionM/yaw/uniformScale. Call createDetentionNativeEntry for compact apron, hollowing, physical doors, floors and collision bodies.",
+      "collision": {
+        "method": "authored_police_mass_for_vehicles_only",
+        "worldBodies": [
+          {
+            "node": "Main_Hall",
+            "polygonCR": [
+              [
+                67.82926829268294,
+                157.7560975609756
+              ],
+              [
+                62.95121951219513,
+                157.7560975609756
+              ],
+              [
+                62.95121951219513,
+                154.6341463414634
+              ],
+              [
+                67.82926829268294,
+                154.6341463414634
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 62.95121951219513,
+              "maxC": 67.82926829268294,
+              "minR": 154.6341463414634,
+              "maxR": 157.7560975609756
+            },
+            "minYM": 0.08000000000000002,
+            "maxYM": 5.6000000000000005,
+            "buildingEntryId": "REBUILD-DETENTION-iron_harbor",
+            "carOnly": true
+          },
+          {
+            "node": "Service_Wing",
+            "polygonCR": [
+              [
+                63.82926829268293,
+                157.65853658536582
+              ],
+              [
+                62.268292682926834,
+                157.65853658536582
+              ],
+              [
+                62.268292682926834,
+                155.5121951219512
+              ],
+              [
+                63.82926829268293,
+                155.5121951219512
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 62.268292682926834,
+              "maxC": 63.82926829268293,
+              "minR": 155.5121951219512,
+              "maxR": 157.65853658536582
+            },
+            "minYM": 0.08000000000000002,
+            "maxYM": 3.9200000000000004,
+            "buildingEntryId": "REBUILD-DETENTION-iron_harbor",
+            "carOnly": true
+          },
+          {
+            "node": "Portico_Column",
+            "polygonCR": [
+              [
+                66.35219512195123,
+                154.45463414634145
+              ],
+              [
+                66.2429268292683,
+                154.45463414634145
+              ],
+              [
+                66.2429268292683,
+                154.34536585365854
+              ],
+              [
+                66.35219512195123,
+                154.34536585365854
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 66.2429268292683,
+              "maxC": 66.35219512195123,
+              "minR": 154.34536585365854,
+              "maxR": 154.45463414634145
+            },
+            "minYM": 0,
+            "maxYM": 3.7600000000000002,
+            "buildingEntryId": "REBUILD-DETENTION-iron_harbor",
+            "carOnly": true
+          },
+          {
+            "node": "Portico_Column001",
+            "polygonCR": [
+              [
+                65.39609756097562,
+                154.45463414634145
+              ],
+              [
+                65.28682926829269,
+                154.45463414634145
+              ],
+              [
+                65.28682926829269,
+                154.34536585365854
+              ],
+              [
+                65.39609756097562,
+                154.34536585365854
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 65.28682926829269,
+              "maxC": 65.39609756097562,
+              "minR": 154.34536585365854,
+              "maxR": 154.45463414634145
+            },
+            "minYM": 0,
+            "maxYM": 3.7600000000000002,
+            "buildingEntryId": "REBUILD-DETENTION-iron_harbor",
+            "carOnly": true
+          },
+          {
+            "node": "Public_Door_Frame",
+            "polygonCR": [
+              [
+                66.19414634146342,
+                154.57073170731707
+              ],
+              [
+                65.4448780487805,
+                154.57073170731707
+              ],
+              [
+                65.4448780487805,
+                154.40195121951217
+              ],
+              [
+                66.19414634146342,
+                154.40195121951217
+              ]
+            ],
+            "rectangleRC": {
+              "minC": 65.4448780487805,
+              "maxC": 66.19414634146342,
+              "minR": 154.40195121951217,
+              "maxR": 154.57073170731707
+            },
+            "minYM": 0,
+            "maxYM": 2.872,
+            "buildingEntryId": "REBUILD-DETENTION-iron_harbor",
+            "carOnly": true
+          }
+        ]
+      }
+    }
+  ]
+}

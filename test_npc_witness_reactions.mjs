@@ -14,7 +14,7 @@ const sandbox={performance:{now:()=>now},Math:Object.assign(Object.create(Math),
   _lastSnitchReportAt:0,ws:{readyState:1,send:s=>reports.push(JSON.parse(s))},
   player:{r:1,c:2},currentWeapon:'fists',showToast:s=>toasts.push(s)};
 vm.createContext(sandbox);
-const names=['markNpcSnitch','triggerWitnessChain','_snitchReport','_npcWitnessAble','_npcCancelInterruptedWitness','_npcFinishWitnessCall','_npcCanWitnessEvent','_npcBeginPanic'];
+const names=['_npcPerceptionHeight','_npcPerceptionTargetHeight','_npcCanSeePoint','_npcQueueWitnessCall','_npcAdvanceWitnessRetreat','markNpcSnitch','triggerWitnessChain','_snitchReport','_npcWitnessAble','_npcCancelInterruptedWitness','_npcFinishWitnessCall','_npcCanWitnessEvent','_npcBeginPanic'];
 for(const name of names)if(source.includes(`function ${name}(`))vm.runInContext(fn(name),sandbox);
 const npc=()=>({id:'resident_1',r:1,c:1,_arc:{panicMult:2}});
 let n=npc();sandbox.NPCS=[n];clear=false;
@@ -25,6 +25,7 @@ clear=true;n.r=50;sandbox.triggerWitnessChain(1,2,10,{snitchChance:1});assert.eq
 n.r=1;sandbox.NPCS=[{...npc(),dead:true,snitching:true,snitchUntil:99999},{...npc(),_medicalDowned:true,snitching:true,snitchUntil:99999},n];
 sandbox.triggerWitnessChain(1,2,10,{snitchChance:1});assert.equal(n.snitching,true,'Incapacitated callers must not consume slots');
 assert.equal(reports.length,0,'Beginning a call cannot report');
+assert.equal(n._witnessStage,'escaping');n.c-=1;now=n._witnessRetreatUntil;sandbox._npcAdvanceWitnessRetreat(n,now);assert.equal(n._witnessStage,'calling');
 now=n._witnessCallUntil-1;sandbox._npcFinishWitnessCall(n,now);assert.equal(reports.length,0);
 now++;sandbox._npcFinishWitnessCall(n,now);assert.equal(reports.length,1);assert.equal(n._witnessStage,'reported');
 sandbox._npcFinishWitnessCall(n,now);assert.equal(reports.length,1,'Completed call reports once');

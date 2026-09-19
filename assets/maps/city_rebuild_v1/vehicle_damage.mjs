@@ -2,6 +2,7 @@
 import {createVehicleFireFx} from './vehicle_fire_fx.mjs';
 import {isBreakableGlass} from './glass_breakage.mjs';
 import {createVehicleCrash,subdivideVehicleGeometry} from './vehicle_crash.mjs';
+import {getVehicleRenderSourceMaterial} from './vehicle_render_batches.mjs';
 export const VEHICLE_DAMAGE_RULES=Object.freeze({sedanHp:240,suvHp:360,vanHp:420,armor:1.65,smokeRatio:.55,fireRatio:.24,destructionSeconds:1.55,crashCooldown:.25,crashMax:80,metersPerTile:4.1,rpgCarRadius:1.55*4.1});
 export function createVehicleDamageState({maxHp=240,armor=1}={}){
  if(!Number.isFinite(maxHp)||maxHp<120||!Number.isFinite(armor)||armor<1)throw Error('Invalid vehicle damage profile');
@@ -24,6 +25,31 @@ export function stepVehicleDamage(state,dt){
  if(!state.destroying)return state;
  const remaining=Math.max(0,state.destroyRemaining-dt);
  return remaining?{...state,destroyRemaining:remaining}:{...state,destroyRemaining:0,destroying:false,wrecked:true,wreckAge:Math.max(0,dt-state.destroyRemaining),smoking:true,burning:true,explosions:state.explosions+1};
+}
+
+// Exact local bounds for one released real assembly.  This deliberately keeps
+// the authored vertex support test (thin doors must not float), but composes
+// the two affine transforms once per child instead of twice per vertex.  The
+// optional scratch is permanent in the live wreck path; tests may omit it.
+export function measureVehicleDetachedBounds(T,mesh,scratch={bounds:new T.Box3(),inverse:new T.Matrix4(),nodeMatrix:new T.Matrix4(),vertex:new T.Vector3()}){
+ const {bounds,inverse,nodeMatrix,vertex}=scratch;
+ mesh.updateWorldMatrix(true,true);inverse.copy(mesh.matrixWorld).invert();bounds.makeEmpty();
+ mesh.traverse(node=>{
+  const positions=node.geometry?.attributes?.position;if(!positions)return;
+  nodeMatrix.multiplyMatrices(inverse,node.matrixWorld);
+  if(!positions.isInterleavedBufferAttribute&&positions.array){
+   const values=positions.array,e=nodeMatrix.elements,stride=positions.itemSize;
+   for(let i=0;i<values.length;i+=stride){
+    const x=values[i],y=values[i+1],z=values[i+2],px=e[0]*x+e[4]*y+e[8]*z+e[12],py=e[1]*x+e[5]*y+e[9]*z+e[13],pz=e[2]*x+e[6]*y+e[10]*z+e[14];
+    if(px<bounds.min.x)bounds.min.x=px;if(py<bounds.min.y)bounds.min.y=py;if(pz<bounds.min.z)bounds.min.z=pz;
+    if(px>bounds.max.x)bounds.max.x=px;if(py>bounds.max.y)bounds.max.y=py;if(pz>bounds.max.z)bounds.max.z=pz;
+   }
+   return;
+  }
+  // Preserve exact support for uncommon interleaved attributes too.
+  for(let i=0;i<positions.count;i++)bounds.expandByPoint(vertex.fromBufferAttribute(positions,i).applyMatrix4(nodeMatrix));
+ });
+ return bounds;
 }
 
 export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=car.object.parent,groundHeight=()=>0,allowed=()=>true,getState=()=>({}),trunk=car.trunk||null}={}){
@@ -57,31 +83,76 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
  // Detached assemblies are the only short-lived per-frame wreck workload.
  // Reuse these scratch objects so an explosion never creates two math objects
  // per live part per animation frame (up to ten real assemblies at once).
- const debrisEuler=new T.Euler(),debrisRotation=new T.Quaternion(),debrisInverse=new T.Matrix4(),debrisVertex=new T.Vector3(),debrisWorld=new T.Vector3();
+ const debrisEuler=new T.Euler(),debrisRotation=new T.Quaternion(),debrisInverse=new T.Matrix4(),debrisNodeMatrix=new T.Matrix4(),debrisVertex=new T.Vector3(),debrisWorld=new T.Vector3();
+ const detachBoundsScratch={bounds:new T.Box3(),inverse:new T.Matrix4(),nodeMatrix:new T.Matrix4(),vertex:new T.Vector3()};
+ // An explosion releases every real assembly in the same wreck coordinate
+ // space.  Reuse its conversion and temporary launch math, while each part
+ // still receives its own persistent start, velocity, spin and landing pose.
+ const detachInverse=new T.Matrix4(),detachMatrix=new T.Matrix4(),detachOrigin=new T.Vector3(),detachOutward=new T.Vector3(),detachVelocity=new T.Vector3(),detachSize=new T.Vector3(),detachThin=new T.Vector3(),detachUp=new T.Vector3(0,1,0),detachLanding=new T.Quaternion(),detachLandingAlign=new T.Quaternion();
+ // Repeated contacts can deform a subdivided panel containing thousands of
+ // vertices.  Keep the contact/dent math in a small fixed scratch set: the
+ // old loop allocated an origin and shift Vector3 for every changed vertex,
+ // turning a scrape into a burst of garbage collection.  These never escape
+ // the adapter and retain the exact same local-space deformation formula.
+ const dentLocal=new T.Vector3(),dentInverse=new T.Matrix4(),dentNormal=new T.Vector3();
+ const markLocal=new T.Vector3(),markInverse=new T.Matrix4(),markNormal=new T.Vector3(),markForward=new T.Vector3(0,0,1);
+ const contactNormal=new T.Vector3(),contactCenter=new T.Vector3(),contactPoint=new T.Vector3(),contactOutward=new T.Vector3(),contactRayDirection=new T.Vector3(),contactSurfaceNormal=new T.Vector3(),contactTangent=new T.Vector3(),contactLocalTangent=new T.Vector3(),contactZ=new T.Vector3(),contactY=new T.Vector3(),contactInverse=new T.Matrix4(),contactNormalMatrix=new T.Matrix3(),contactBasis=new T.Matrix4();
+ const contactRay=new T.Raycaster(),contactCandidates=[],contactHits=[],contactMarkedHits=[];
  function releasePart(part){part.mesh.removeFromParent();part.mesh.traverse(node=>{node.geometry?.dispose();if(Array.isArray(node.material))node.material.forEach(m=>m.dispose());else node.material?.dispose()})}
  function copyPart(source){
-  if(!source.visible||source===object||marks.includes(source)||source.isLine||source.material?.transparent)return null;
-  const node=source.isMesh?new T.Mesh(source.geometry.clone(),Array.isArray(source.material)?source.material.map(m=>m.clone()):source.material.clone()):new T.Group();
+  if(!source.visible||source===object||marks.includes(source)||source.isLine||source.material?.transparent||source.userData.vehicleRenderBatch)return null;
+  const material=getVehicleRenderSourceMaterial(source);
+  const node=source.isMesh?new T.Mesh(source.geometry.clone(),Array.isArray(material)?material.map(m=>m.clone()):material.clone()):new T.Group();
   node.name=source.name;node.position.copy(source.position);node.quaternion.copy(source.quaternion);node.scale.copy(source.scale);node.castShadow=true;node.raycast=()=>{};
   for(const child of source.children){const copy=copyPart(child);if(copy)node.add(copy)}return node;
  }
  function detachParts(){
   car.object.updateWorldMatrix(true,true);debrisObject.updateWorldMatrix(true,false);
+  detachInverse.copy(debrisObject.matrixWorld).invert();
+  debrisObject.worldToLocal(car.object.getWorldPosition(detachOrigin));
   const sources=[...car.doors.values(),...(car.shell||[]).filter(m=>['Hood_lid','Trunk_lid'].includes(m.name)),...car.wheels.map(w=>w.pivot)];
   for(const [i,source]of sources.slice(0,10).entries()){
    const mesh=copyPart(source);if(!mesh)continue;
-   const matrix=new T.Matrix4().copy(debrisObject.matrixWorld).invert().multiply(source.matrixWorld);matrix.decompose(mesh.position,mesh.quaternion,mesh.scale);
+   detachMatrix.multiplyMatrices(detachInverse,source.matrixWorld).decompose(mesh.position,mesh.quaternion,mesh.scale);
    debrisObject.add(mesh);visibilityRest.set(source,source.visible);source.visible=false;
-   const start=mesh.position.clone(),origin=debrisObject.worldToLocal(car.object.getWorldPosition(new T.Vector3())),outward=start.clone().sub(origin);outward.y=0;if(outward.lengthSq()<.01)outward.set(Math.cos(i*2.399),0,Math.sin(i*2.399));outward.normalize();
+   const start=mesh.position.clone(),outward=detachOutward.copy(start).sub(detachOrigin);outward.y=0;if(outward.lengthSq()<.01)outward.set(Math.cos(i*2.399),0,Math.sin(i*2.399));outward.normalize();
    const angle=(Math.random()-.5)*1.2,strength=.65+Math.random()*.7;
-   const velocity=outward.applyAxisAngle(new T.Vector3(0,1,0),angle).multiplyScalar((3.5+i%3*.65)*strength),motion=getState()||{},speed=Math.max(-35,Math.min(35,Number(motion.speed)||0)),heading=motion.travelYaw??motion.yaw??car.object.rotation.y;velocity.x+=Math.sin(heading)*speed;velocity.z+=Math.cos(heading)*speed;
+   const velocity=detachVelocity.copy(outward).applyAxisAngle(detachUp,angle).multiplyScalar((3.5+i%3*.65)*strength),motion=getState()||{},speed=Math.max(-35,Math.min(35,Number(motion.speed)||0)),heading=motion.travelYaw??motion.yaw??car.object.rotation.y;velocity.x+=Math.sin(heading)*speed;velocity.z+=Math.cos(heading)*speed;
    velocity.y=2.8+Math.random()*2.4;
-   mesh.updateWorldMatrix(true,true);const localInverse=mesh.matrixWorld.clone().invert(),bounds=new T.Box3(),v=new T.Vector3();
-   mesh.traverse(node=>{const p=node.geometry?.attributes?.position;if(p)for(let j=0;j<p.count;j++)bounds.expandByPoint(v.fromBufferAttribute(p,j).applyMatrix4(node.matrixWorld).applyMatrix4(localInverse))});
-   const size=bounds.getSize(new T.Vector3()),thin=size.x<=size.y&&size.x<=size.z?new T.Vector3(1,0,0):size.y<=size.z?new T.Vector3(0,1,0):new T.Vector3(0,0,1);
-   const landing=new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),Math.random()*Math.PI*2).multiply(new T.Quaternion().setFromUnitVectors(thin,new T.Vector3(0,1,0)));
-   debris.push({mesh,start,quaternion:mesh.quaternion.clone(),landing,born:time,velocity,spin:new T.Vector3((Math.random()-.5)*6,(Math.random()-.5)*6,(Math.random()-.5)*6)});
+   const bounds=measureVehicleDetachedBounds(T,mesh,detachBoundsScratch);
+   const size=bounds.getSize(detachSize),thin=size.x<=size.y&&size.x<=size.z?detachThin.set(1,0,0):size.y<=size.z?detachThin.set(0,1,0):detachThin.set(0,0,1);
+   const landing=detachLanding.setFromAxisAngle(detachUp,Math.random()*Math.PI*2).multiply(detachLandingAlign.setFromUnitVectors(thin,detachUp));
+   debris.push({mesh,start,quaternion:mesh.quaternion.clone(),landing:landing.clone(),born:time,velocity:velocity.clone(),spin:new T.Vector3((Math.random()-.5)*6,(Math.random()-.5)*6,(Math.random()-.5)*6)});
   }
+ }
+ // The explosion releases several real assemblies at the same instant.  Their
+ // landing still has to use every authored vertex (a box approximation makes
+ // thin doors visibly float), but composing the parent inverse for every
+ // vertex made that one landing frame unnecessarily expensive.  The matrices
+ // are affine, so one composed matrix per mesh gives the identical local Y
+ // coordinate while retaining the exact vertex support test.
+ function lowestDebrisLocalY(mesh){
+  let lowest=Infinity;
+  mesh.traverse(node=>{
+   const positions=node.geometry?.attributes?.position;if(!positions)return;
+   debrisNodeMatrix.multiplyMatrices(debrisInverse,node.matrixWorld);
+   const e=debrisNodeMatrix.elements;
+   if(!positions.isInterleavedBufferAttribute&&positions.array){
+    const values=positions.array;
+    for(let i=0;i<values.length;i+=positions.itemSize){
+     const y=e[1]*values[i]+e[5]*values[i+1]+e[9]*values[i+2]+e[13];
+     if(y<lowest)lowest=y;
+    }
+    return;
+   }
+   // Keep uncommon interleaved artist attributes exact too.  Normal vehicle
+   // GLBs use BufferAttribute and therefore take the allocation-free loop.
+   for(let i=0;i<positions.count;i++){
+    const y=debrisVertex.fromBufferAttribute(positions,i).applyMatrix4(node.matrixWorld).applyMatrix4(debrisInverse).y;
+    if(y<lowest)lowest=y;
+   }
+  });
+  return lowest;
  }
  function owns(mesh){for(let node=mesh;node;node=node.parent)if(node===car.object)return true;return false}
  // Explicit pickup hook for future waste collection. Cleanup never respawns the
@@ -105,15 +176,15 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
   // Keep only the bullet offset here; cage movement is the changing baseline.
   if(rest.geometry!==mesh.geometry){rest.geometry=mesh.geometry;rest.base=mesh.geometry.attributes.position.array.slice();rest.offset=new Float32Array(rest.base.length)}
   const currentPositions=mesh.geometry.attributes.position;for(let i=0;i<rest.base.length;i++)rest.base[i]=currentPositions.array[i]-rest.offset[i];
-  mesh.updateWorldMatrix(true,false);const local=mesh.worldToLocal(point.clone()),inverse=new T.Matrix4().copy(mesh.matrixWorld).invert(),n=normal.clone().transformDirection(inverse);
-  const radius=collision?Math.min(1.1,.3+collision.impactSpeed*.035):.10+Math.min(.20,Math.sqrt(damage)*.014),depth=collision?Math.min(.30,.012+collision.impactSpeed**2*.0028):Math.min(.10,.008+damage*.00055),positions=mesh.geometry.attributes.position,base=geometryRest.get(mesh).base,v=new T.Vector3();
-  for(let i=0;i<positions.count;i++){v.set(base[i*3],base[i*3+1],base[i*3+2]);const d=v.distanceTo(local);if(d>=radius)continue;const falloff=(1-d/radius)**2;v.fromBufferAttribute(positions,i).addScaledVector(n,-depth*falloff);const origin=new T.Vector3(base[i*3],base[i*3+1],base[i*3+2]),shift=v.clone().sub(origin);const maxDepth=rest.maxDepth;if(shift.length()>maxDepth)v.copy(origin).addScaledVector(shift.normalize(),maxDepth);positions.setXYZ(i,v.x,v.y,v.z);rest.offset.set([v.x-origin.x,v.y-origin.y,v.z-origin.z],i*3)}
+  mesh.updateWorldMatrix(true,false);dentLocal.copy(point);mesh.worldToLocal(dentLocal);dentInverse.copy(mesh.matrixWorld).invert();dentNormal.copy(normal).transformDirection(dentInverse);
+  const radius=collision?Math.min(1.1,.3+collision.impactSpeed*.035):.10+Math.min(.20,Math.sqrt(damage)*.014),depth=collision?Math.min(.30,.012+collision.impactSpeed**2*.0028):Math.min(.10,.008+damage*.00055),positions=mesh.geometry.attributes.position,base=geometryRest.get(mesh).base,array=positions.array,offset=rest.offset,maxDepth=rest.maxDepth,radiusInverse=1/radius,lx=dentLocal.x,ly=dentLocal.y,lz=dentLocal.z,nx=dentNormal.x,ny=dentNormal.y,nz=dentNormal.z;
+  for(let i=0,j=0;i<positions.count;i++,j+=3){const ox=base[j],oy=base[j+1],oz=base[j+2],dx=ox-lx,dy=oy-ly,dz=oz-lz,d=Math.sqrt(dx*dx+dy*dy+dz*dz);if(d>=radius)continue;const falloff=(1-d*radiusInverse)**2,amount=depth*falloff;let x=array[j]-nx*amount,y=array[j+1]-ny*amount,z=array[j+2]-nz*amount,sx=x-ox,sy=y-oy,sz=z-oz,shift=Math.sqrt(sx*sx+sy*sy+sz*sz);if(shift>maxDepth){const scale=maxDepth/shift;x=ox+sx*scale;y=oy+sy*scale;z=oz+sz*scale}positions.setXYZ(i,x,y,z);offset[j]=x-ox;offset[j+1]=y-oy;offset[j+2]=z-oz}
   positions.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingBox();mesh.geometry.computeBoundingSphere();
  }
  function mark(mesh,point,normal,collision=false,damage=24){
   if(!collision)while((markCursor%marks.length)%3===0)markCursor++;
   const entry=marks[markCursor++%marks.length];mesh.updateWorldMatrix(true,false);mesh.add(entry);entry.visible=true;
-  entry.position.copy(mesh.worldToLocal(point.clone()));const n=normal.clone().transformDirection(new T.Matrix4().copy(mesh.matrixWorld).invert());entry.position.addScaledVector(n,.007);entry.quaternion.setFromUnitVectors(new T.Vector3(0,0,1),n);entry.scale.setScalar(collision?2.2:Math.min(3.2,.75+Math.sqrt(Math.max(0,damage))*.16));entry.rotateZ(markCursor*2.399);
+  markLocal.copy(point);entry.position.copy(mesh.worldToLocal(markLocal));markInverse.copy(mesh.matrixWorld).invert();markNormal.copy(normal).transformDirection(markInverse);entry.position.addScaledVector(markNormal,.007);entry.quaternion.setFromUnitVectors(markForward,markNormal);entry.scale.setScalar(collision?2.2:Math.min(3.2,.75+Math.sqrt(Math.max(0,damage))*.16));entry.rotateZ(markCursor*2.399);
  }
  function impact(payload){
   const mesh=payload.object||payload.hit?.object,point=payload.point||payload.hit?.point,center=car.object.getWorldPosition(new T.Vector3()),explosive=!!payload.explosive&&point&&Math.hypot(point.x-center.x,point.z-center.z)<=VEHICLE_DAMAGE_RULES.rpgCarRadius;
@@ -136,13 +207,13 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
   if(disposed||time-lastCrash<.25||state.destroying||state.wrecked)return false;
   const point=contact?.point,normal=contact?.normal,impactSpeed=Math.max(0,Number(contact?.impactSpeed)||0),slideSpeed=Math.max(0,Number(contact?.slideSpeed)||0);
   if(!point||!normal||![point.x,point.y,point.z,normal.x,normal.y,normal.z,impactSpeed,slideSpeed].every(Number.isFinite))return false;
-  const n=new T.Vector3(normal.x,normal.y,normal.z);if(n.lengthSq()<1e-8)return false;n.normalize();
+  const n=contactNormal.set(normal.x,normal.y,normal.z);if(n.lengthSq()<1e-8)return false;n.normalize();
   const damage=vehicleCrashDamage(impactSpeed);if(!damage&&slideSpeed<1.5)return false;
   car.object.updateWorldMatrix(true,true);
-  const center=car.object.localToWorld(new T.Vector3(0,.75,0)),p=new T.Vector3(point.x,point.y,point.z);
-  if(n.dot(p.clone().sub(center))<0)n.negate();
-  const candidates=[];car.object.traverse(mesh=>{if(!mesh.isMesh||!mesh.geometry||mesh.material?.transparent||marks.includes(mesh))return;for(let node=mesh;node;node=node.parent){if(!node.visible||node===object||node.userData?.vehicleWheelId)return}candidates.push(mesh)});
-  const ray=new T.Raycaster(p.clone().addScaledVector(n,.8),n.clone().negate(),0,1.65),hit=ray.intersectObjects(candidates,false)[0];
+  const center=car.object.localToWorld(contactCenter.set(0,.75,0)),p=contactPoint.set(point.x,point.y,point.z);
+  if(n.dot(contactOutward.copy(p).sub(center))<0)n.negate();
+  contactCandidates.length=0;car.object.traverse(mesh=>{if(!mesh.isMesh||!mesh.geometry||mesh.material?.transparent||marks.includes(mesh))return;for(let node=mesh;node;node=node.parent){if(!node.visible||node===object||node.userData?.vehicleWheelId)return}contactCandidates.push(mesh)});
+  contactRay.set(contactOutward.copy(p).addScaledVector(n,.8),contactRayDirection.copy(n).negate());contactRay.near=0;contactRay.far=1.65;contactHits.length=0;const hit=contactRay.intersectObjects(contactCandidates,false,contactHits)[0];
   // A contact on a wheel or a gap can transfer impulse to the chassis, but must
   // not create a dent at an unrelated panel on the opposite side of the car.
   lastCrash=time;
@@ -151,12 +222,12 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
   if(damage){const burning=state.burning;state=applyVehicleDamage(state,{damage,kind:'collision'});state={...state,hp:Math.max(1,state.hp),destroying:false,destroyRemaining:0,burning}}
   crash.contactImpact({...contact,normal:n});trunk?.contactImpact?.({...contact,normal:n},getState());
   if(hit){
-   const surfaceNormal=hit.face?.normal.clone().applyMatrix3(new T.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize()||n;
+   const surfaceNormal=hit.face?contactSurfaceNormal.copy(hit.face.normal).applyMatrix3(contactNormalMatrix.getNormalMatrix(hit.object.matrixWorld)).normalize():contactSurfaceNormal.copy(n);
    if(damage)dent(hit.object,hit.point,surfaceNormal,damage,{impactSpeed});
    // Re-project onto the deformed surface so paint damage stays on the panel.
-   const marked=ray.intersectObject(hit.object,false)[0]||hit;
+   contactMarkedHits.length=0;const marked=contactRay.intersectObject(hit.object,false,contactMarkedHits)[0]||hit;
    if(slideSpeed>=1.5){
-    const direction=contact.slideDirection, tangent=direction?new T.Vector3(direction.x,direction.y,direction.z):new T.Vector3(0,1,0).cross(surfaceNormal);
+    const direction=contact.slideDirection,tangent=direction?contactTangent.set(direction.x,direction.y,direction.z):contactTangent.set(0,1,0).cross(surfaceNormal);
     tangent.addScaledVector(surfaceNormal,-tangent.dot(surfaceNormal));
     if(!Number.isFinite(tangent.lengthSq())||tangent.lengthSq()<1e-8)tangent.set(1,0,0).addScaledVector(surfaceNormal,-surfaceNormal.x);
     if(tangent.lengthSq()<1e-8)tangent.set(0,0,1);tangent.normalize();
@@ -165,9 +236,9 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
     // marks wraps at 32: find the next physical scratch slot as well.
     while((markCursor%marks.length)%3)markCursor++;
     const scratch=marks[markCursor%marks.length];mark(hit.object,marked.point,surfaceNormal,true);
-    const inverse=new T.Matrix4().copy(hit.object.matrixWorld).invert(),localTangent=tangent.transformDirection(inverse);
-    const z=new T.Vector3(0,0,1).applyQuaternion(scratch.quaternion),y=new T.Vector3().crossVectors(z,localTangent).normalize();
-    scratch.quaternion.setFromRotationMatrix(new T.Matrix4().makeBasis(localTangent,y,z));
+    const localTangent=contactLocalTangent.copy(tangent).transformDirection(contactInverse.copy(hit.object.matrixWorld).invert());
+    const z=contactZ.set(0,0,1).applyQuaternion(scratch.quaternion),y=contactY.crossVectors(z,localTangent).normalize();
+    scratch.quaternion.setFromRotationMatrix(contactBasis.makeBasis(localTangent,y,z));
     scratch.scale.set(Math.min(5,1+slideSpeed*.16),1+Math.min(2,impactSpeed*.12),1);
    }else if(damage)mark(hit.object,marked.point,surfaceNormal,true);
   }
@@ -205,6 +276,7 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
   if(state.explosions>prior){for(const material of materialRest.keys())if(material.color&&!material.transparent){material.color.lerp(new T.Color('#100f0e'),.94);material.roughness=.99}onExplosion({vehicle:car,state,point:car.object.getWorldPosition(new T.Vector3())});for(const pane of glass)pane.visible=false;detachParts()}
   // Pooled shader flames, smoke, embers and the one vehicle blast.
   fireFx.update(dt,state,time);
+  let debrisInverseReady=false;
   for(const part of debris){
    if(part.settled)continue;
    const age=time-part.born,t=Math.min(age,1.8),travel=(1-Math.exp(-t*.65))/.65;
@@ -216,9 +288,9 @@ export function createVehicleDamage(T,car,{profile={},onExplosion=()=>{},scene=c
    // lowest vertex on the ground, rather than sinking a door/wheel around its
    // pivot, then stop all per-frame work for this settled assembly.
    if(age>=1.8){
-    const inverse=debrisInverse.copy(debrisObject.matrixWorld).invert(),vertex=debrisVertex;let lowest=Infinity;
+    if(!debrisInverseReady){debrisObject.updateWorldMatrix(true,false);debrisInverse.copy(debrisObject.matrixWorld).invert();debrisInverseReady=true;}
     part.mesh.updateWorldMatrix(true,true);
-    part.mesh.traverse(node=>{const p=node.geometry?.attributes?.position;if(!p)return;for(let i=0;i<p.count;i++){vertex.fromBufferAttribute(p,i).applyMatrix4(node.matrixWorld).applyMatrix4(inverse);lowest=Math.min(lowest,vertex.y)}});
+    const lowest=lowestDebrisLocalY(part.mesh);
     const world=part.mesh.getWorldPosition(debrisWorld);if(Number.isFinite(lowest))part.mesh.position.y+=groundHeight(world.x,world.z)+.02-lowest;
     part.settled=true;
    }

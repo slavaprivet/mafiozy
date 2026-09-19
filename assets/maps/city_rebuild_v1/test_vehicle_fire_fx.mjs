@@ -47,6 +47,31 @@ test('world engine anchors follow deformed bay while billboards remain upright u
  }finally{f.fx.dispose()}}
 });
 
+test('direct engine bay uses one root refresh while retaining legacy anchors, ground and light exactly',()=>{
+ const height=(x,z)=>1.7+x*.013-z*.021,actual=fixture({groundHeight:height}),reference=fixture({groundHeight:height});try{
+  let actualRootRefreshes=0,referenceRootRefreshes=0;
+  const actualRefresh=actual.car.object.updateWorldMatrix.bind(actual.car.object),referenceRefresh=reference.car.object.updateWorldMatrix.bind(reference.car.object);
+  actual.car.object.updateWorldMatrix=(...args)=>{actualRootRefreshes++;return actualRefresh(...args)};
+  reference.car.object.updateWorldMatrix=(...args)=>{referenceRootRefreshes++;return referenceRefresh(...args)};
+  const legacyAnchors=()=>{
+   const {object}=reference.car,center=new T.Vector3(0,.65,0),engine=new T.Vector3(0,.7,1.3),ground=new T.Vector3();
+   object.updateWorldMatrix(true,false);object.localToWorld(center);reference.car.hood.bay.updateWorldMatrix(true,false);reference.car.hood.bay.localToWorld(engine);
+   ground.set(center.x,height(center.x,center.z)+.06,center.z);return{engine,center,ground};
+  };
+  for(const [time,state,position,rotation,bayPosition] of [
+   [2,burn,[4,1,-7],[.14,.72,-.35],[.12,-.07,-.44]],
+   [2.6,{...burn,destroying:true},[-3,2,5],[.31,-1.18,.62],[-.08,.19,.38]],
+   [3.4,wreck(.32),[8,-.5,-2],[-.22,2.41,-.73],[.21,.04,-.17]],
+  ]){
+   for(const f of [actual,reference]){f.car.object.position.fromArray(position);f.car.object.rotation.fromArray(rotation);f.car.hood.bay.position.fromArray(bayPosition)}
+   actualRootRefreshes=0;referenceRootRefreshes=0;const expected=legacyAnchors();actual.fx.update(1/60,state,time);
+   assert.equal(referenceRootRefreshes,4,'legacy direct-bay path refreshes the root four times');assert.equal(actualRootRefreshes,1,'optimized direct-bay path refreshes the root once');
+   close(actual.uniforms.uEngine.value,expected.engine,'optimized engine anchor');close(actual.uniforms.uCenter.value,expected.center,'optimized centre anchor');close(actual.uniforms.uGround.value,expected.ground,'optimized ground anchor');
+   close(actual.light.getWorldPosition(new T.Vector3()),expected.engine,'optimized light anchor');finiteUniforms(actual);
+  }
+ }finally{actual.fx.dispose();reference.fx.dispose()}
+});
+
 test('invalid ground samples cannot put nonfinite coordinates into GPU uniforms',()=>{
  for(const bad of [NaN,Infinity,undefined]){const f=fixture({groundHeight:()=>bad});try{f.fx.update(.1,burn,1);finiteUniforms(f)}finally{f.fx.dispose()}}
 });

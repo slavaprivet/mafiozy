@@ -16,6 +16,11 @@ export function createCityRoadDressing({THREE,plan,chunkSize=128}={}){
     if(kind==='speed'){
       part('cylinder',[0,y,0],[.46*size,.07,.46*size],C.white,[Math.PI/2,0,0]);part('ring',[0,y,.048],[.418*size,.418*size,.45],C.red);
       const s=size;for(const [a,b]of[[[-.20,.20],[-.20,-.01]],[[-.20,-.01],[.015,-.01]],[[-.035,.20],[-.035,-.22]],[[.11,.2],[.26,.2]],[[.11,.2],[.11,-.22]],[[.26,.2],[.26,-.22]],[[.11,-.22],[.26,-.22]]])stroke([a[0]*s,y+a[1]*s],[b[0]*s,y+b[1]*s],.044*s,C.black,front);
+    }else if(kind==='one_way'){
+      part('box',[0,y,0],[.82*size,.82*size,.065],C.white);part('box',[0,y,.045],[.71*size,.71*size,.025],C.blue);
+      stroke([0,y-.24*size],[0,y+.25*size],.075*size,C.white,front);for(const side of[-1,1])stroke([side*.17*size,y+.08*size],[0,y+.25*size],.075*size,C.white,front);
+    }else if(kind==='no_entry'){
+      part('cylinder',[0,y,0],[.47*size,.07,.47*size],C.white,[Math.PI/2,0,0]);part('cylinder',[0,y,.045],[.435*size,.025,.435*size],C.red,[Math.PI/2,0,0]);part('box',[0,y,front],[.62*size,.155*size,.025],C.white);
     }else if(kind==='yield'){
       part('triangle',[0,y,0],[.58*size,.08,.58*size],C.red,[Math.PI/2,0,0]);part('triangle',[0,y+.035*size,.06],[.435*size,.023,.435*size],C.white,[Math.PI/2,0,0]);
     }else if(kind==='priority'){
@@ -66,7 +71,9 @@ export function createCityRoadDressing({THREE,plan,chunkSize=128}={}){
   }
   const glowGeometry=new THREE.SphereGeometry(1,12,8);ownedGeometry.push(glowGeometry);const glowMeshes={};
   for(const [phase,tint]of Object.entries({red:0xed433d,amber:0xffbd43,green:0x69d986})){const material=new THREE.MeshStandardMaterial({color:tint,emissive:tint,emissiveIntensity:1.6,roughness:.32});ownedMaterials.push(material);const mesh=new THREE.InstancedMesh(glowGeometry,material,plan.signals.length);mesh.name='TrafficBulbs:'+phase;mesh.frustumCulled=false;glowMeshes[phase]=mesh;object.add(mesh);meshes.push(mesh)}
-  let time=0,previous=[],lastFocusX=NaN,lastFocusZ=NaN,lastHadFocus=null;const up=new THREE.Vector3(0,1,0);
+  const signalGroups=plan.signals.map(signal=>equipmentGroups.find(group=>group.key===`${Math.floor(signal.x/chunkSize)},${Math.floor(signal.z/chunkSize)}:box`));
+  const glowEntries=Object.entries(glowMeshes);
+  let time=0,previous=[],previousVisible=[],lastFocusX=NaN,lastFocusZ=NaN,lastHadFocus=null,disposed=false;const up=new THREE.Vector3(0,1,0);
   function updateBatchedEquipment(focus,hasFocus){
    if(!batchedEquipment.size)return;
    const changed=new Set();
@@ -76,7 +83,7 @@ export function createCityRoadDressing({THREE,plan,chunkSize=128}={}){
    }
    for(const batch of changed)batch.mesh.visible=batch.visibleInstances>0;
   }
-  function update(dt=0,{focus=null,time:absoluteTime}={}){time=Number.isFinite(absoluteTime)?absoluteTime:time+Math.max(0,Number.isFinite(dt)?dt:0);
+  function update(dt=0,{focus=null,time:absoluteTime}={}){if(disposed)return {time,phases:previous};time=Number.isFinite(absoluteTime)?absoluteTime:time+Math.max(0,Number.isFinite(dt)?dt:0);
    // Road placement is immutable after construction.  The old loop repeated
    // the same distance comparison for every static road mesh at idle; cache
    // only an identical focus point.  A moving player still takes the exact
@@ -87,9 +94,12 @@ export function createCityRoadDressing({THREE,plan,chunkSize=128}={}){
     updateBatchedEquipment(focus,hasFocus);
     lastHadFocus=hasFocus;lastFocusX=hasFocus?focus.x:NaN;lastFocusZ=hasFocus?focus.z:NaN;
    }
-   let changed=false;for(let i=0;i<plan.signals.length;i++){const signal=plan.signals[i],phase=roadSignalPhase(time,signal.axis,signal.offset);if(previous[i]===phase)continue;previous[i]=phase;changed=true;for(const [name,mesh]of Object.entries(glowMeshes)){const y=name==='red'?3.47:name==='amber'?3.15:2.83;position.set(signal.x+Math.sin(signal.yaw)*.285,signal.y+y,signal.z+Math.cos(signal.yaw)*.285);rotation.setFromAxisAngle(up,signal.yaw);scale.set(.103,.103,.044).multiplyScalar(name===phase?1:0);matrix.compose(position,rotation,scale);mesh.setMatrixAt(i,matrix)}}if(changed)for(const mesh of Object.values(glowMeshes))mesh.instanceMatrix.needsUpdate=true;return {time,phases:previous}}
+   // Lenses follow the exact spatial bucket containing their signal housing,
+   // including the old-renderer InstancedMesh fallback. Signal phases still
+   // advance out of range; returning to the street shows the current phase.
+   let changed=false,visibleSignals=0;for(let i=0;i<plan.signals.length;i++){const signal=plan.signals[i],phase=roadSignalPhase(time,signal.axis,signal.offset),group=signalGroups[i],show=group?(group.mesh?group.mesh.visible:group.visible!==false):true;if(show)visibleSignals++;if(previous[i]===phase&&previousVisible[i]===show)continue;previous[i]=phase;previousVisible[i]=show;changed=true;for(const [name,mesh]of glowEntries){const y=name==='red'?3.47:name==='amber'?3.15:2.83;position.set(signal.x+Math.sin(signal.yaw)*.285,signal.y+y,signal.z+Math.cos(signal.yaw)*.285);rotation.setFromAxisAngle(up,signal.yaw);scale.set(.103,.103,.044).multiplyScalar(show&&name===phase?1:0);matrix.compose(position,rotation,scale);mesh.setMatrixAt(i,matrix)}}for(const [,mesh]of glowEntries){mesh.visible=visibleSignals>0;if(changed)mesh.instanceMatrix.needsUpdate=true;}return {time,phases:previous}}
   update(0);object.updateMatrixWorld(true);
   let triangles=0,instances=0;for(const mesh of meshes){const count=mesh.userData.roadEquipmentInstances??(mesh.isInstancedMesh?mesh.count:1);instances+=mesh.isBatchedMesh||mesh.isInstancedMesh?count:0;triangles+=(mesh.geometry.index?mesh.geometry.index.count:mesh.geometry.attributes.position.count)/3*count}
   const stats={...plan.stats,paintDraws:paintBuckets.size,equipmentDraws:batchedEquipment.size||buckets.size,equipmentSourceChunks:buckets.size,signalDraws:3,totalDraws:meshes.length,triangles,instances,pointLights:0,get visibleDraws(){return meshes.filter(mesh=>mesh.visible).length}};
-  return {object,update,colliders:plan.colliders,mapFeatures:plan.mapFeatures,stats,dispose(){for(const mesh of meshes)if(mesh.isInstancedMesh)mesh.dispose();for(const g of ownedGeometry)g.dispose();for(const m of ownedMaterials)m.dispose();object.clear()}};
+  return {object,update,colliders:plan.colliders,mapFeatures:plan.mapFeatures,stats,dispose(){if(disposed)return;disposed=true;for(const mesh of meshes)if(mesh.isInstancedMesh||mesh.isBatchedMesh)mesh.dispose();for(const g of ownedGeometry)g.dispose();for(const m of ownedMaterials)m.dispose();object.clear();object.removeFromParent()}};
 }

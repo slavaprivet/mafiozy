@@ -1,9 +1,39 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {mapProjection,waypointInfo,boundedWaypoint,mapKind,normalizeNativeInstances,selectMapPOIs,layoutMapLabels,pointInMapPolygon,currentMapRegion,waypointScreenPosition,waypointMarkerHit,waypointDistanceText,BUILDING_MAP_KINDS,vehicleMapColor,mapObjectAt} from './exploration_minimap.mjs';
+import {explorationNpcMapMarkers,npcMapMarkerStyle,squadMapHover} from './exploration_minimap.mjs';
 const minimapSource=await readFile(new URL('./exploration_minimap.mjs',import.meta.url),'utf8');
 assert.match(minimapSource,/if\(!force&&now-lastDraw<80\)return;/,'fresh actor snapshots must not bypass the 80 ms non-interactive draw cap');
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} ≠ ${b}`);
+{
+ const projection=mapProjection({center:{x:170,z:172},width:500,height:400,metresPerPixel:1});
+ const live={position:{x:170,z:172},available:true,hp:100};let defending=false;
+ const actor={id:'npc_crew_merc_resident_43',source:{name:'Лука',mercenary:{profession:'medic',status:'active'}},object:{position:{x:0,z:0},visible:true}};
+ const host={isMercenary:id=>id==='merc_resident_43',getMember:()=>live,isDefending:()=>defending};
+ let markers=explorationNpcMapMarkers([actor],host);const pointer=projection.toScreen(live.position);
+ assert.equal(squadMapHover(pointer,markers,projection,false),null,'Small map never adds squad labels');
+ assert.equal(squadMapHover(pointer,markers,projection,true).text,'Лука\nВаш отряд\nМедик\nГотов');
+ assert.equal(squadMapHover({x:pointer.x+11,y:pointer.y},markers,projection,true),null,'Hover requires the actual marker');
+ defending=true;markers=explorationNpcMapMarkers([actor],host);assert.match(squadMapHover(pointer,markers,projection,true).text,/Защищает отряд/);
+ live.downed=true;markers=explorationNpcMapMarkers([actor],host);assert.match(squadMapHover(pointer,markers,projection,true).text,/Нужна помощь/);
+ live.available=false;markers=explorationNpcMapMarkers([actor],host);assert.equal(squadMapHover(pointer,markers,projection,true),null);
+ assert.equal(squadMapHover(pointer,[{...markers[0],active:true,ownSquad:false}],projection,true),null,'Candidates and other gangs never get squad tooltip');
+}
+{
+ const position={x:164,z:164},live={id:'merc_resident_43',position:{x:170,z:172},available:true,hp:100};let hired=true;
+ const host={isMercenary:id=>hired&&id===live.id,getMember:id=>id===live.id?live:null};
+ const actor=(id,source={},visible=true)=>({id,source,object:{position,visible}});
+ for(const id of ['crew_merc_resident_43','npc_crew_merc_resident_43','npc:npc_crew_merc_resident_43']){
+  const [marker]=explorationNpcMapMarkers([actor(id)],host);assert.equal(marker.ownSquad,true);assert.equal(marker.position,live.position);assert.deepEqual(npcMapMarkerStyle(marker),{color:'#32ed69',radius:5.4});
+ }
+ const ordinary=explorationNpcMapMarkers([actor('npc_resident_44',{mercenaryCandidate:true,mercenary:{profession:'medic'}}),actor('npc_crew_enemy',{gang:true}),actor('police',{police:true}),actor('boss',{empireBoss:true}),actor('hidden',{},false)],host);
+ assert.equal(ordinary.length,4);assert(ordinary.every(m=>!m.ownSquad));assert.deepEqual(ordinary.map(m=>npcMapMarkerStyle(m).color),['#dfdab5','#dfdab5','#7ec0ee','#cf746c']);
+ assert.equal(explorationNpcMapMarkers([actor('npc_crew_merc_resident_43',{},false)],host)[0].active,true,'Own roster stays locatable when render actor is culled');
+ live.hp=0;assert.equal(explorationNpcMapMarkers([actor('npc_crew_merc_resident_43')],host)[0].active,true,'Downed member still belongs to squad');
+ live.available=false;assert.equal(explorationNpcMapMarkers([actor('npc_crew_merc_resident_43')],host)[0].active,false,'Hospitalized member has no street marker');
+ hired=false;assert.equal(explorationNpcMapMarkers([actor('npc_crew_merc_resident_43')],host)[0].ownSquad,false,'Dismissal immediately removes green style on next mapped snapshot');
+ assert.equal(explorationNpcMapMarkers([actor('npc_crew_merc_resident_43')])[0].ownSquad,false,'Missing host never assumes ownership');
+}
 // Projection has no grid/world ambiguity, including expanded negative coordinates.
 let checked=0;
 for(const center of [{x:0,z:0},{x:610.9,z:32.8},{x:-183,z:-304}])for(const metresPerPixel of [.13,.8,2,12])for(const [width,height] of [[230,194],[1000,620]]){

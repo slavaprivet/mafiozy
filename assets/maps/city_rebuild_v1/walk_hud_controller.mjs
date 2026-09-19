@@ -18,9 +18,18 @@ function walkHudViewStateFromNormalized(state){
 // deep roster/appearance normalization in its 200 ms refresh path.
 export function walkHudViewState(raw){return walkHudViewStateFromNormalized(normalizeWalkHudState(raw))}
 export const walkAppearanceKey=look=>JSON.stringify(look,Object.keys(look||{}).sort());
+// Preserve the exact portrait queue while avoiding three mapped arrays and up
+// to 48 short-lived cloned rows on each 200 ms HUD refresh.
+export function walkHudRosterRows(state,visit){
+ if(typeof visit!=='function')return;let count=0;
+ const group=(rows,prefix,portraitNpc,portraitBoss)=>{for(const row of Array.isArray(rows)?rows:[]){if(count>=48)return false;count++;if(visit(row,prefix+row.id,portraitNpc,portraitBoss)===false)return false;}return true;};
+ if(!group(state?.bosses,'boss:',true,true))return;
+ if(!group(state?.gang?.players,'member:player:'))return;
+ group(state?.gang?.npcs,'member:npc:',true);
+}
 
 export function createWalkHudController({THREE,loader,cloneSkeleton,document:doc=globalThis.document,window:win=globalThis.window,getBridge=()=>null,getHero=()=>null,getNpcActor=()=>null,
- canSwapHero=()=>false,swapHero=()=>false,onInputLock=()=>{},onActionError=()=>{},hudFactory=createWalkPlayerHud,shellFactory=createWalkHudShell,statusFactory=createWalkStatusDialog,portraitFactory=createWalkPortraitRenderer,appearanceLoader=loadAppearanceHero,weaponThumbnailFactory=createWeaponThumbnailRenderer}={}){
+ canSwapHero=()=>false,swapHero=()=>false,openMercenaryMember=()=>false,onInputLock=()=>{},onActionError=()=>{},hudFactory=createWalkPlayerHud,shellFactory=createWalkHudShell,statusFactory=createWalkStatusDialog,portraitFactory=createWalkPortraitRenderer,appearanceLoader=loadAppearanceHero,weaponThumbnailFactory=createWeaponThumbnailRenderer}={}){
  let disposed=false,lastUpdate=-Infinity,lastPortrait=-Infinity,blocked=false,state=normalizeWalkHudState(),loadingLook=null,appliedLook=null,wantedLook=null,pendingHero=null,failedLook=null,rosterBusy=false,lastRosterAt=-Infinity;
  const rosterCache=new Map(),rosterSent=new Map(),rosterFailed=new Set(),rosterWanted=new Map(),abort=new AbortController(),host=doc.createElement('aside');host.id='walk-player-hud';doc.body.append(host);
  const portraits=portraitFactory({THREE,document:doc,cloneSkeleton}),weaponPhotos=weaponThumbnailFactory({THREE,document:doc});
@@ -29,13 +38,15 @@ export function createWalkHudController({THREE,loader,cloneSkeleton,document:doc
  const connection=doc.createElement('a');connection.className='mfz-dossier-button';connection.textContent='Подключить данные основного мира';connection.href=walkHudGatewayUrl(win?.location?.href||'/walk');connection.style.cssText='margin-top:6px;font-size:11px;text-decoration:none';
  function lock(value){if(value===blocked)return;blocked=value;if(blocked)onInputLock();doc.body.dataset.walkHudBlocked=String(blocked)}
  const performAction=async(action,payload)=>{
+  doc.body.dataset.walkHudLastAction=JSON.stringify({action,payload});
+  if(action==='gang'&&payload?.id!=null){if(openMercenaryMember(payload.id)===true){onInputLock();return;}const memberId=String(payload.id).replace(/^npc:/,'').replace(/^(npc_crew_|crew_)/,'');if(win?.MafioziMercenaries?.isMercenary?.(memberId)){onActionError('mercenary-member-unavailable');return;}}
   onInputLock();lock(true);
   try{const result=await getBridge()?.performWalkHudAction?.(action,payload);if(!result?.accepted)onActionError(result?.reason||'source-unavailable')}
   catch(error){onActionError(error.message)}
   finally{lastUpdate=-Infinity;update(performance.now())}
  };
  const statusDialog=statusFactory({document:doc,onAction:performAction,onClose:()=>{lastUpdate=-Infinity;update(performance.now())}});
- const hud=hudFactory({document:doc,host,onAction:performAction});host.append(connection);
+ const hud=hudFactory({document:doc,host,onAction:performAction,onOpenChange:open=>{if(open){onInputLock();lastUpdate=lastPortrait=lastRosterAt=-Infinity;update(performance.now());}}});host.append(connection);
  const previous=win?.MafioziWalkHud,facade={openStatus:()=>{onInputLock();lastUpdate=-Infinity;update(performance.now());if(!state.available)return false;const result=statusDialog.open(state);lock(true);return result!==false},openGang:()=>{onInputLock();statusDialog.close();const result=shell.openGang();if(result)lock(true);return result},closeGang:()=>shell.closeGang(),refresh:()=>{lastUpdate=-Infinity;update(performance.now())},getState:()=>state,getPortrait:()=>({renders:portraits.renders,error:portraits.error}),getNpcPortrait:row=>empirePortraits.get(row),isBlocked:()=>blocked};if(win)win.MafioziWalkHud=facade;
  function refreshHero(now){
   const current=getHero(),look=state.available&&state.player.look,id=state.player.id||'player';
@@ -51,27 +62,26 @@ export function createWalkHudController({THREE,loader,cloneSkeleton,document:doc
     if(disposed||key!==wantedLook){record.dispose();return}pendingHero={key,record};
    }).catch(error=>{if(!disposed){failedLook=key;doc.body.dataset.walkHudAppearanceError=error.message;onActionError('appearance: '+error.message)}}).finally(()=>{if(loadingLook===key)loadingLook=null});
   }
-  const hero=getHero();if(hero&&now-lastPortrait>=750){lastPortrait=now;const url=portraits.renderHero(hero.object,{key:appliedLook||'current-hero',rest:hero.artistContext?.().rest});if(url){hud.setPortrait(url);statusDialog.setPortrait?.(url);}if(portraits.error)doc.body.dataset.walkHudPortraitError=portraits.error}
+  const hero=getHero();if(hero&&(host.dataset.collapsed!=='true'||statusDialog.isOpen())&&now-lastPortrait>=750){lastPortrait=now;const url=portraits.renderHero(hero.object,{key:appliedLook||'current-hero',rest:hero.artistContext?.().rest});if(url){hud.setPortrait(url);statusDialog.setPortrait?.(url);}if(portraits.error)doc.body.dataset.walkHudPortraitError=portraits.error}
  }
  function refreshRoster(now){
-  const rows=[...state.bosses.map(row=>({...row,portraitNpc:true,portraitBoss:true,portraitKey:'boss:'+row.id})),...state.gang.players.map(row=>({...row,portraitKey:'member:player:'+row.id})),...state.gang.npcs.map(row=>({...row,portraitNpc:true,portraitKey:'member:npc:'+row.id}))].slice(0,48);
-  const rowKey=row=>row.portraitKey+'|'+(row.renderId||'')+'|'+walkAppearanceKey(row.look||{});
+  const rowKey=(row,portraitKey)=>portraitKey+'|'+(row.renderId||'')+'|'+walkAppearanceKey(row.look||{});
   // Update intent even while a GLB is loading: its result may belong to an old snapshot.
-  rosterWanted.clear();if(state.available)for(const row of rows)rosterWanted.set(row.portraitKey,rowKey(row));
-  if(rosterBusy||now-lastRosterAt<100||!state.available)return;
-  for(const row of rows){
-   if(!row.id)continue;const key=rowKey(row);
-   if(rosterCache.has(key)){setRosterPhoto(row.portraitKey,rosterCache.get(key));continue}
-   if(rosterFailed.has(key))continue;
+  rosterWanted.clear();if(state.available)walkHudRosterRows(state,(row,portraitKey)=>rosterWanted.set(portraitKey,rowKey(row,portraitKey)));
+  if(host.dataset.collapsed==='true'||rosterBusy||now-lastRosterAt<100||!state.available)return;
+  walkHudRosterRows(state,(row,portraitKey,portraitNpc,portraitBoss)=>{
+   if(!row.id)return;const key=rowKey(row,portraitKey);
+   if(rosterCache.has(key)){setRosterPhoto(portraitKey,rosterCache.get(key));return}
+   if(rosterFailed.has(key))return;
    const actual=getNpcActor(row.renderId||row.id);
-   if(actual?.object){const url=portraits.renderNpc(actual.object,{key,rest:actual.walker?.artistContext?.().rest});if(url){rosterCache.set(key,url);setRosterPhoto(row.portraitKey,url)}else rosterFailed.add(key);lastRosterAt=now;return}
-   if(!row.look)continue;
+   if(actual?.object){const url=portraits.renderNpc(actual.object,{key,rest:actual.walker?.artistContext?.().rest});if(url){rosterCache.set(key,url);setRosterPhoto(portraitKey,url)}else rosterFailed.add(key);lastRosterAt=now;return false}
+   if(!row.look)return;
    rosterBusy=true;lastRosterAt=now;
-   const appearance=row.portraitNpc?npcAppearanceFromWorld({id:row.renderId||row.id,look:row.look,role:row.renderRole||'civilian',empireBoss:row.portraitBoss}):undefined;
+   const appearance=portraitNpc?npcAppearanceFromWorld({id:row.renderId||row.id,look:row.look,role:row.renderRole||'civilian',empireBoss:portraitBoss}):undefined;
    appearanceLoader({THREE,loader,cloneSkeleton,look:row.look,id:row.renderId||row.id,appearance,targetHeight:appearance?.height,signal:abort.signal}).then(record=>{
-    try{if(disposed||rosterWanted.get(row.portraitKey)!==key)return;const url=portraits.renderNpc(record.hero.object,{key,rest:record.hero.artistContext().rest});if(url){rosterCache.set(key,url);setRosterPhoto(row.portraitKey,url)}else rosterFailed.add(key)}finally{record.dispose()}
-   }).catch(()=>rosterFailed.add(key)).finally(()=>{rosterBusy=false;while(rosterCache.size>48)rosterCache.delete(rosterCache.keys().next().value)});return;
-  }
+    try{if(disposed||host.dataset.collapsed==='true'||rosterWanted.get(portraitKey)!==key)return;const url=portraits.renderNpc(record.hero.object,{key,rest:record.hero.artistContext().rest});if(url){rosterCache.set(key,url);setRosterPhoto(portraitKey,url)}else rosterFailed.add(key)}finally{record.dispose()}
+   }).catch(()=>rosterFailed.add(key)).finally(()=>{rosterBusy=false;while(rosterCache.size>48)rosterCache.delete(rosterCache.keys().next().value)});return false;
+  });
  }
  function setRosterPhoto(id,url){if(rosterSent.get(id)===url)return;rosterSent.set(id,url);hud.setRosterPortrait(id,url);while(rosterSent.size>48)rosterSent.delete(rosterSent.keys().next().value)}
  function update(now=performance.now()){
@@ -84,5 +94,5 @@ export function createWalkHudController({THREE,loader,cloneSkeleton,document:doc
  }
  update();
  if(win?.dispatchEvent&&win?.CustomEvent)win.dispatchEvent(new win.CustomEvent("mafiozi:walkportraitsready"));
- return {update,isBlocked:()=>blocked,host,getState:()=>state,dispose(){if(disposed)return;disposed=true;abort.abort();pendingHero?.record.dispose();pendingHero=null;statusDialog.dispose();hud.dispose();shell.dispose();empirePortraits.dispose();portraits.dispose();weaponPhotos.dispose();rosterCache.clear();rosterSent.clear();rosterFailed.clear();host.remove();delete doc.body.dataset.walkHudBlocked;delete doc.body.dataset.walkPlayerHud;if(win?.MafioziWalkHud===facade){if(previous)win.MafioziWalkHud=previous;else delete win.MafioziWalkHud}}};
+ return {update,closeDialogs(){statusDialog.close();shell.closeGang();lastUpdate=-Infinity;update(performance.now());},isBlocked:()=>blocked,host,getState:()=>state,dispose(){if(disposed)return;disposed=true;abort.abort();pendingHero?.record.dispose();pendingHero=null;statusDialog.dispose();hud.dispose();shell.dispose();empirePortraits.dispose();portraits.dispose();weaponPhotos.dispose();rosterCache.clear();rosterSent.clear();rosterFailed.clear();host.remove();delete doc.body.dataset.walkHudBlocked;delete doc.body.dataset.walkPlayerHud;if(win?.MafioziWalkHud===facade){if(previous)win.MafioziWalkHud=previous;else delete win.MafioziWalkHud}}};
 }

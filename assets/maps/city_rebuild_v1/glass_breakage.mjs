@@ -46,11 +46,15 @@ function generator(seed){let state=seed>>>0;return()=>{state=(1664525*state+1013
 export function createGlassBreakage(THREE,scene,options={}){
  const T=THREE;if(!T?.Mesh||!scene?.add)throw Error('THREE and scene required');
  const limits={shards:Math.max(8,Math.min(512,options.maxShards??192)),panels:Math.max(1,Math.min(256,options.maxDecoratedPanels??80)),perHit:Math.max(6,Math.min(64,options.shardsPerHit??28))};
- const registry=new Map(),decorations=[],pendingFractures=new Set(),shards=[],activeShardSlots=new Set(),group=new T.Group();group.name='World_Glass_Shards';group.userData.breakableGlass=false;scene.add(group);
+ const registry=new Map(),decorations=[],pendingFractures=new Set(),activeShardSlots=new Set(),group=new T.Group();group.name='World_Glass_Shards';group.userData.breakableGlass=false;scene.add(group);
  const shardGeometry=new T.BufferGeometry();shardGeometry.setAttribute('position',new T.Float32BufferAttribute([-.5,-.35,0,.5,-.32,0,-.12,.58,0,-.5,-.35,.028,-.12,.58,.028,.5,-.32,.028,-.5,-.35,0,-.5,-.35,.028,.5,-.32,0,.5,-.32,0,-.5,-.35,.028,.5,-.32,.028,.5,-.32,0,.5,-.32,.028,-.12,.58,0,-.12,.58,0,.5,-.32,.028,-.12,.58,.028,-.12,.58,0,-.12,.58,.028,-.5,-.35,0,-.5,-.35,0,-.12,.58,.028,-.5,-.35,.028],3));shardGeometry.computeVertexNormals();
  const shardMaterial=new T.MeshPhysicalMaterial({color:0xb4dfdc,metalness:.23,roughness:.12,transparent:true,opacity:.73,depthWrite:false,side:T.DoubleSide,clearcoat:1});
  const particles=new T.InstancedMesh(shardGeometry,shardMaterial,limits.shards);particles.name='Flying_Glass_Shards';particles.userData.breakableGlass=false;particles.frustumCulled=false;particles.raycast=()=>{};group.add(particles);
- const zero=new T.Matrix4().makeScale(0,0,0),matrix=new T.Matrix4(),q=new T.Quaternion(),scale=new T.Vector3(),sceneInverse=new T.Matrix4();for(let i=0;i<limits.shards;i++)particles.setMatrixAt(i,zero);
+ const zero=new T.Matrix4().makeScale(0,0,0),matrix=new T.Matrix4(),q=new T.Quaternion(),scale=new T.Vector3(),sceneInverse=new T.Matrix4();
+ // Shards are a fixed-size GPU pool.  Keep their simulation records equally
+ // fixed-size, so a vehicle blast that emits a full pane does not allocate 28
+ // vectors, Euler objects and wrapper objects at the exact impact frame.
+ const shards=Array.from({length:limits.shards},()=>({source:null,position:new T.Vector3(),velocity:new T.Vector3(),rotation:new T.Euler(),spin:new T.Vector3(),size:0,life:0})),shardNormal=new T.Vector3(),shardSide=new T.Vector3(),shardUp=new T.Vector3(),shardDirection=new T.Vector3(),shardUv=new T.Vector2(),shardPosition=new T.Vector3(),shardColor=new T.Color();for(let i=0;i<limits.shards;i++)particles.setMatrixAt(i,zero);
  const crackMaterial=new T.LineBasicMaterial({color:0xd8f2e9,transparent:true,opacity:.89,depthWrite:false,toneMapped:true}),rimMaterial=new T.MeshPhysicalMaterial({color:0x82b5b1,transparent:true,opacity:.68,roughness:.2,metalness:.18,side:T.DoubleSide,depthWrite:false});
  let cursor=0,totalBroken=0,disposed=false;
  function prepare(root){if(disposed)return 0;let count=0;root?.traverse?.(mesh=>{if(!mesh.isMesh||mesh.isSkinnedMesh||mesh.userData.glassEffect||registry.has(mesh)||!materials(mesh).some(m=>isBreakableGlass(mesh,m)))return;registry.set(mesh,{mesh,geometry:mesh.geometry,instanceMatrix:null,replacements:new Map(),ownedGeometry:null,analysis:null,broken:new Set()});count++});return count}
@@ -65,8 +69,11 @@ export function createGlassBreakage(THREE,scene,options={}){
  function surface(record,panel,localPoint,normal){
   const geometry=record.geometry,p=geometry.attributes.position,ix=geometry.index,triangles=[],vertices=[];normal.normalize();const u=new T.Vector3().crossVectors(Math.abs(normal.y)<.9?new T.Vector3(0,1,0):new T.Vector3(1,0,0),normal).normalize(),v=new T.Vector3().crossVectors(normal,u).normalize();
   for(const f of panel.faces){const tri=[];for(let j=0;j<3;j++){const pos=new T.Vector3().fromBufferAttribute(p,ix?ix.getX(f*3+j):f*3+j);tri.push(pos);vertices.push(new T.Vector2(pos.clone().sub(localPoint).dot(u),pos.clone().sub(localPoint).dot(v)))}triangles.push(tri)}
-  const hull=convexHull(vertices),bounds=new T.Box3().setFromPoints(triangles.flat()),depth=Math.max(.1,bounds.getSize(new T.Vector3()).length()),ray=new T.Ray(),scratch=new T.Vector3();
-  function point(uv){const plane=localPoint.clone().addScaledVector(u,uv.x).addScaledVector(v,uv.y),origin=plane.clone().addScaledVector(normal,depth);ray.set(origin,normal.clone().negate());let distance=Infinity,best=plane;for(const tri of triangles){if(ray.intersectTriangle(...tri,false,scratch)){const d=scratch.distanceToSquared(origin);if(d<distance){distance=d;best=scratch.clone()}}}return best.addScaledVector(normal,.002)}
+  const hull=convexHull(vertices),bounds=new T.Box3().setFromPoints(triangles.flat()),depth=Math.max(.1,bounds.getSize(new T.Vector3()).length()),ray=new T.Ray(),scratch=new T.Vector3(),plane=new T.Vector3(),origin=new T.Vector3(),rayDirection=normal.clone().negate(),pointScratch=new T.Vector3();
+  // decorate() projects many rim and crack endpoints on the very same pane.
+  // They are consumed immediately into typed arrays, so its plane/origin/result
+  // vectors can be reused without changing any projected coordinate.
+  function point(uv,out=pointScratch){plane.copy(localPoint).addScaledVector(u,uv.x).addScaledVector(v,uv.y);origin.copy(plane).addScaledVector(normal,depth);ray.set(origin,rayDirection);let distance=Infinity,best=false;for(const tri of triangles){if(ray.intersectTriangle(...tri,false,scratch)){const d=scratch.distanceToSquared(origin);if(d<distance){distance=d;out.copy(scratch);best=true}}}return (best?out:out.copy(plane)).addScaledVector(normal,.002)}
   return {hull,point,normal,u,v,triangles};
  }
  function decorate(record,target,panel,localPoint,normal,key,random){
@@ -93,10 +100,10 @@ export function createGlassBreakage(THREE,scene,options={}){
  function removeDecoration(d){d.root.removeFromParent();for(const g of d.geometries)g.dispose()}
  function fracture(d){if(d.fractured)return;d.fractured=true;const index=d.target.geometry.index;for(const f of d.panel.faces){const first=index.getX(f*3);index.setX(f*3+1,first);index.setX(f*3+2,first)}index.needsUpdate=true;d.edges.visible=true;d.cracks.visible=false}
  function spawnShards(d,point,direction,impulse,random,velocity){
-  d.target.updateWorldMatrix(true,false);const world=d.target.matrixWorld,normal=d.surface.normal.clone().transformDirection(world),side=d.surface.u.clone().transformDirection(world),up=d.surface.v.clone().transformDirection(world),dir=direction?.isVector3?direction.clone().normalize():normal.clone().negate(),power=Math.max(.5,Math.min(4,Math.sqrt(Math.max(1,Number(impulse)||20))/3));
+  d.target.updateWorldMatrix(true,false);const world=d.target.matrixWorld,normal=shardNormal.copy(d.surface.normal).transformDirection(world),side=shardSide.copy(d.surface.u).transformDirection(world),up=shardUp.copy(d.surface.v).transformDirection(world),dir=direction?.isVector3?shardDirection.copy(direction).normalize():shardDirection.copy(normal).negate(),power=Math.max(.5,Math.min(4,Math.sqrt(Math.max(1,Number(impulse)||20))/3));
   const hull=d.surface.hull,count=limits.perHit;for(let j=0;j<count;j++){
-   const a=hull[j%hull.length],b=hull[(j+1)%hull.length],uv=a.clone().lerp(b,random()).multiplyScalar(Math.sqrt(random())),position=d.surface.point(uv).applyMatrix4(world),size=.028+random()*.11;
-   const slot=cursor++%limits.shards,particle={source:d.record.mesh,position,velocity:dir.clone().multiplyScalar(power*(.6+random())).addScaledVector(side,(random()-.5)*power*2).addScaledVector(up,(random()-.4)*power*1.8),rotation:new T.Euler(random()*6,random()*6,random()*6),spin:new T.Vector3((random()-.5)*18,(random()-.5)*18,(random()-.5)*18),size,life:2.2+random()*1.2};if(velocity?.isVector3)particle.velocity.add(velocity);shards[slot]=particle;activeShardSlots.add(slot);particles.setColorAt(slot,new T.Color().setHSL(.47+random()*.04,.16+random()*.12,.58+random()*.27));
+   const a=hull[j%hull.length],b=hull[(j+1)%hull.length],uv=shardUv.copy(a).lerp(b,random()).multiplyScalar(Math.sqrt(random())),position=d.surface.point(uv,shardPosition).applyMatrix4(world),size=.028+random()*.11;
+   const slot=cursor++%limits.shards,particle=shards[slot];particle.source=d.record.mesh;particle.position.copy(position);particle.velocity.copy(dir).multiplyScalar(power*(.6+random())).addScaledVector(side,(random()-.5)*power*2).addScaledVector(up,(random()-.4)*power*1.8);particle.rotation.set(random()*6,random()*6,random()*6);particle.spin.set((random()-.5)*18,(random()-.5)*18,(random()-.5)*18);particle.size=size;particle.life=2.2+random()*1.2;if(velocity?.isVector3)particle.velocity.add(velocity);activeShardSlots.add(slot);particles.setColorAt(slot,shardColor.setHSL(.47+random()*.04,.16+random()*.12,.58+random()*.27));
   }if(particles.instanceColor)particles.instanceColor.needsUpdate=true;return count;
  }
  function resolve(hit){
@@ -132,7 +139,7 @@ export function createGlassBreakage(THREE,scene,options={}){
   if(!activeShardSlots.size)return;
   const gravity=9.81*dt,velocityDrag=Math.exp(-dt*8),spinDrag=Math.exp(-dt*9),groundSampler=typeof options.groundHeight==='function'?options.groundHeight:null,defaultGround=options.groundY??.035;
   group.updateWorldMatrix(true,false);sceneInverse.copy(group.matrixWorld).invert();for(const i of activeShardSlots){
-   const s=shards[i];if(!s||s.life<=0){shards[i]=null;activeShardSlots.delete(i);particles.setMatrixAt(i,zero);continue}s.life-=dt;if(s.life<=0){shards[i]=null;activeShardSlots.delete(i);particles.setMatrixAt(i,zero);continue}s.velocity.y-=gravity;s.position.addScaledVector(s.velocity,dt);const floor=groundSampler?groundSampler(s.position.x,s.position.z):defaultGround;
+   const s=shards[i];if(s.life<=0){s.source=null;activeShardSlots.delete(i);particles.setMatrixAt(i,zero);continue}s.life-=dt;if(s.life<=0){s.source=null;activeShardSlots.delete(i);particles.setMatrixAt(i,zero);continue}s.velocity.y-=gravity;s.position.addScaledVector(s.velocity,dt);const floor=groundSampler?groundSampler(s.position.x,s.position.z):defaultGround;
    if(s.position.y<floor+s.size*.1){s.position.y=floor+s.size*.1;if(Math.abs(s.velocity.y)>.4)s.velocity.y=-s.velocity.y*.24;else s.velocity.y=0;s.velocity.x*=velocityDrag;s.velocity.z*=velocityDrag;s.spin.multiplyScalar(spinDrag)}
    s.rotation.x+=s.spin.x*dt;s.rotation.y+=s.spin.y*dt;s.rotation.z+=s.spin.z*dt;q.setFromEuler(s.rotation);scale.setScalar(s.size*Math.min(1,Math.max(0,s.life)/.3));matrix.compose(s.position,q,scale).premultiply(sceneInverse);particles.setMatrixAt(i,matrix);
   }particles.instanceMatrix.needsUpdate=true;
@@ -141,7 +148,7 @@ export function createGlassBreakage(THREE,scene,options={}){
   const selected=new Set();if(root)root.traverse(n=>selected.add(n));else for(const mesh of registry.keys())selected.add(mesh);
   for(let i=decorations.length-1;i>=0;i--)if(selected.has(decorations[i].record.mesh)){pendingFractures.delete(decorations[i]);removeDecoration(decorations[i]);decorations.splice(i,1)}
   for(const r of registry.values())if(selected.has(r.mesh)){if(r.ownedGeometry){if(r.mesh.geometry===r.ownedGeometry)r.mesh.geometry=r.geometry;r.ownedGeometry.dispose();r.ownedGeometry=null}for(const replacement of r.replacements.values()){replacement.removeFromParent();replacement.geometry.dispose()}r.replacements.clear();if(r.instanceMatrix){r.mesh.dispose();r.mesh.instanceMatrix=r.instanceMatrix;r.mesh.instanceMatrix.needsUpdate=true;r.instanceMatrix=null}r.broken.clear()}
-  for(let i=0;i<limits.shards;i++)if(shards[i]&&selected.has(shards[i].source)){shards[i]=null;activeShardSlots.delete(i);particles.setMatrixAt(i,zero)}particles.instanceMatrix.needsUpdate=true;totalBroken=[...registry.values()].reduce((sum,r)=>sum+r.broken.size,0);
+  for(let i=0;i<limits.shards;i++)if(shards[i].source&&selected.has(shards[i].source)){shards[i].source=null;shards[i].life=0;activeShardSlots.delete(i);particles.setMatrixAt(i,zero)}particles.instanceMatrix.needsUpdate=true;totalBroken=[...registry.values()].reduce((sum,r)=>sum+r.broken.size,0);
  }
  function dispose(){if(disposed)return;reset();disposed=true;registry.clear();group.removeFromParent();particles.dispose();shardGeometry.dispose();shardMaterial.dispose();crackMaterial.dispose();rimMaterial.dispose()}
  function stats(){return {registeredMeshes:registry.size,brokenPanels:totalBroken,decoratedPanels:decorations.length,activeShards:activeShardSlots.size,limits:{...limits}}}

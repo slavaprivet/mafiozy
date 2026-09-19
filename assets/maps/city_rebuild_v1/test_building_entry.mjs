@@ -24,7 +24,10 @@ function fixture(item = items[1]) {
   visual.position.fromArray(t.modelLocalOffsetM); group.position.fromArray(t.positionM);
   group.rotation.y = t.yawDegrees * Math.PI / 180; group.scale.setScalar(t.uniformScale);
   group.add(visual); group.updateMatrixWorld(true);
-  return {group, visual, entry: createBuildingEntry({THREE, visual, instance: item}),
+  const entry = createBuildingEntry({THREE, visual, instance: item});
+  const [sx, sz] = t.horizontalScale ?? [1, 1], base = t.uniformScale ?? 1;
+  assert.deepEqual(group.scale.toArray(), [base * sx, base, base * sz], item.id + ' authored building scale');
+  return {group, visual, entry,
     world: (x, y, z) => visual.localToWorld(new THREE.Vector3(x, y, z))};
 }
 const visible = node => { for (let n = node; n; n = n.parent) if (!n.visible) return false; return true; };
@@ -46,8 +49,8 @@ const open = f => { assert(f.entry.interact(f.world(0, 0, 7.2)).accepted); for (
 
 test('actual double-door asset is pinned and unknown revisions fail closed', () => {
   assert.equal(items.length, 4);
-  const visual = source.clone(true);
-  assert.equal(createBuildingEntry({THREE, visual, instance: {...items[0], binding: {...items[0].binding, sha256: 'changed'}}}), null);
+  const item = {...items[0], binding: {...items[0].binding, sha256: 'changed'}};
+  assert.equal(fixture(item).entry, null);
 });
 
 test('closed leaves are physical; opening carves shell/recess instead of crossing a wall', () => {

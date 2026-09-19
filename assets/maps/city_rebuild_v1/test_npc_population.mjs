@@ -53,10 +53,25 @@ await check('actual GLB legs animate at1.5m/s despite false walking and600ms sna
 await check('distance-driven gait phase equal at60FPS15FPS600ms and stationary feet stop',()=>{
  const actor=population.getActor('npc_gait_slowframe'),phases=[];
  for(const frames of [180,45,5]){actor.walker.reset();for(let frame=0;frame<frames;frame++)actor.update(Math.min(.04,3/frames),{time:210+frame*3/frames,position:{x:4.5*(frame+1)/frames,y:0,z:0},moving:true,motionSpeed:1.5,gaitDistance:4.5/frames,life:{},posture:{target:'stand',value:0}});phases.push(actor.walker.diagnostics().phase)}
- for(const phase of phases)assert(Math.abs(phase-4.5*2.3)<1e-8);
+ assert(phases[0]>0);for(const phase of phases)assert(Math.abs(phase-phases[0])<1e-8,'equal travelled metres retain equal gait phase at every presentation cadence');
  actor.walker.reset();actor.update(.04,{time:214,position:{x:4.5,y:0,z:0},moving:true,motionSpeed:1.5,gaitDistance:0,life:{}});assert.equal(actor.walker.diagnostics().phase,0,'zero actual distance cannot advance a retained moving-speed phase');
 });
-await check('GPU hard cap under rapid roster churn',()=>{for(let wave=0;wave<3;wave++){const rows=Array.from({length:4},(_,i)=>({...base,id:'npc_churn_'+wave+'_'+i}));population.sync(rows,215+wave*.1);assert(population.diagnostics().cached<=population.diagnostics().maxCachedActors);}assert(population.diagnostics().serialized>=4);});
+await check('physical walking and explicit jogging use rendered speed rather than hero thresholds',()=>{
+ for(const [index,speed,running]of [[0,1.6,false],[1,2.6,true]]){
+  const startTime=215+index*3,start={...base,id:'npc_motion_mode_'+index,r:0,c:0,walking:true,running};population.sync([start],startTime);population.update(.05,startTime);
+  const actor=population.getActor(start.id),update=actor.update,samples=[];
+  actor.update=(dt,snapshot)=>{samples.push({speed:snapshot.motionSpeed,moving:snapshot.moving,running:snapshot.running,slow:snapshot.slowWalking});return update(dt,snapshot)};
+  // Source advances every250ms, while the presentation samples every100ms.
+  // Repeated source coordinates must not turn a visually moving jog into idle.
+  for(let i=1;i<=40;i++){const elapsed=i*.05,time=startTime+elapsed;if(i%2===0)population.sync([{...start,c:Math.floor((elapsed+1e-7)/.25)*.25*speed/4.1}],time);population.update(.05,time);}
+  actor.update=update;
+  const moving=samples.slice(20).filter(s=>s.moving);assert(moving.length>4);
+  if(running)assert(moving.every(s=>s.running),'explicit jogging intent survives unchanged source samples');
+  else {assert(moving.every(s=>!s.running),'ordinary1.6m/s walking never becomes running on a burst sample');assert(moving.some(s=>!s.slow),'ordinary walking is not always the hero slow-walk mode');}
+  assert(moving.every(s=>Number.isFinite(s.speed)&&s.speed>0),'gait speed follows visible movement');
+ }
+});
+await check('GPU hard cap under rapid roster churn',()=>{for(let wave=0;wave<3;wave++){const rows=Array.from({length:4},(_,i)=>({...base,id:'npc_churn_'+wave+'_'+i}));population.sync(rows,222+wave*.1);assert(population.diagnostics().cached<=population.diagnostics().maxCachedActors);}assert(population.diagnostics().serialized>=4);});
 await check('death survives serialized eviction and only explicit respawn clears it',()=>{
  const dead={...row,dead:true,deadAt:300000};population.sync([dead],300);population.update(.1,300.1);population.sync([],301);population.update(.1,310);assert(!population.getActor(row.id));population.sync([dead],311);assert.equal(population.getActor(row.id).surface.state.kind,'dead');
  population.sync([{...row}],312);assert.equal(population.getActor(row.id).surface.state.kind,'dead','omitted lifecycle is not respawn');population.sync([{...row,dead:true,meleeStunned:true}],313);assert.equal(population.getActor(row.id).surface.state.kind,'dead','stun cannot heal saved death');

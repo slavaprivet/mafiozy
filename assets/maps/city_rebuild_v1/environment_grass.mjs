@@ -1,6 +1,6 @@
 import {GRASS_LIMITS} from './environment_grass_plan.mjs';
 export const GRASS_WIND=Object.freeze({amplitude:.11,secondary:.45,speed:1.8,secondarySpeed:3.1,directionZ:.54});
-export const GRASS_CONTACT=Object.freeze({samples:8,recovery:3.8,strength:.55,radius:1.05,sampleDistance:.42,soleCore:.72,compression:1});
+export const GRASS_CONTACT=Object.freeze({samples:8,recovery:3.8,strength:.55,radius:1.05,sampleDistance:.42,soleCore:.72,compression:.42});
 const smooth=(a,b,v)=>{const t=Math.max(0,Math.min(1,(v-a)/(b-a)));return t*t*(3-2*t)};
 export const grassPressedHeight=t=>.025*smooth(.22,.55,t)+.005*smooth(.55,1,t);
 export function grassContactOffset({x,z,time,height=1,weight=1,progress=weight,trail=[],flex=1}={}){
@@ -8,7 +8,7 @@ export function grassContactOffset({x,z,time,height=1,weight=1,progress=weight,t
   for(const p of trail){const age=Math.max(0,time-p.time),distance=Math.hypot(x-p.x,z-p.z),radius=p.radius||GRASS_CONTACT.radius,t=Math.max(0,Math.min(1,(1-distance/radius)/(1-GRASS_CONTACT.soleCore))),decay=Math.max(0,1-age/GRASS_CONTACT.recovery),force=t*t*(3-2*t)*decay*decay;
     if(force>best){best=force;dx=distance>.001?(x-p.x)/distance:1;dz=distance>.001?(z-p.z)/distance:0;}}
   const bend=GRASS_CONTACT.strength*height*weight*weight*best*flex;
-  return{x:dx*bend,z:dz*bend,y:(-height*weight+grassPressedHeight(progress))*best*flex,pressure:best*flex};
+  return{x:dx*bend,z:dz*bend,y:(-height*weight*GRASS_CONTACT.compression+grassPressedHeight(progress))*best*flex,pressure:best*flex};
 }
 /** CPU reference of the actual world-space vertex deformation (also used by GLB QA). */
 export function grassDeformVertex({vertex,base,root,time,height,weight,progress=weight,trail=[],flex=1,slopeX=0,slopeZ=0,feet=[]}){
@@ -47,38 +47,31 @@ export const sortNearestGrassCandidates=items=>items.sort(grassCandidateOrder);
 
 /** Tapered closed triangular blades, with actual thickness rather than alpha cards. */
 export function createGrassTuftGeometry(THREE,style='grass'){
-  const vertices=[],indices=[],colors=[],progress=[],bases=[],blades=style==='reed'?9:7;
+  const vertices=[],indices=[],colors=[],progress=[],bases=[],flex=[],blades=style==='reed'?11:9;
+  const vertex=(x,y,z,t,baseX,baseZ,tint,bend=1)=>{vertices.push(x,y,z);progress.push(t);bases.push(baseX,baseZ);colors.push(...tint);flex.push(bend);return vertices.length/3-1};
   if(style==='shrub'){
     for(let leaf=0;leaf<3;leaf++){
       const a=leaf*Math.PI*2/3,cx=Math.cos(a)*.22,cz=Math.sin(a)*.22,base=vertices.length/3;
       for(let r=0;r<=4;r++)for(let s=0;s<=7;s++){
-        const phi=r*Math.PI/4,theta=s*Math.PI*2/7;
-        vertices.push(cx+Math.sin(phi)*Math.cos(theta)*.38,.08+(1+Math.cos(phi))*(leaf===0?.46:.36),cz+Math.sin(phi)*Math.sin(theta)*.32);progress.push(vertices.at(-2));bases.push(cx,cz);
-        const tone=.72+(4-r)*.065;colors.push(tone,tone,tone);
+        const phi=r*Math.PI/4,theta=s*Math.PI*2/7,tone=.72+(4-r)*.065;
+        vertex(cx+Math.sin(phi)*Math.cos(theta)*.38,.08+(1+Math.cos(phi))*(leaf===0?.46:.36),cz+Math.sin(phi)*Math.sin(theta)*.32,.08+(1+Math.cos(phi))*(leaf===0?.46:.36),cx,cz,[tone,tone,tone],.22);
       }
       for(let r=0;r<4;r++)for(let s=0;s<7;s++){const k=base+r*8+s;indices.push(k,k+8,k+1,k+1,k+8,k+9);}
     }
   }else
   for(let b=0;b<blades;b++){
-    const angle=b*Math.PI*2/blades+(style==='reed'?.2:.1),height=b===0?1:.62+(b*.17)% .36,lean=.14+(b%3)*.05,originX=Math.cos(angle)*.13,originZ=Math.sin(angle)*.13,base=vertices.length/3;
-    for(let ring=0;ring<4;ring++){
-      const t=[0,.22,.55,1][ring],y=t*height,w=t===0?0:(style==='reed'?.047:.063)*(1-t)*(1-.28*t),cx=originX+Math.cos(angle)*lean*t*t,cz=originZ+Math.sin(angle)*lean*t*t;
-      for(let side=0;side<3;side++){
-        const a=side*Math.PI*2/3,localX=Math.cos(a)*w,localZ=Math.sin(a)*w*.32;
-        vertices.push(cx+Math.cos(angle)*localX-Math.sin(angle)*localZ,y,cz+Math.sin(angle)*localX+Math.cos(angle)*localZ);
-        progress.push(t);bases.push(originX,originZ);
-        const tone=.76+t*.26;colors.push(tone,tone,tone);
-      }
-    }
-    // Pointed root and tip close the solid without degenerate cap triangles.
-    for(let ring=0;ring<3;ring++)for(let side=0;side<3;side++){const a=base+ring*3+side,b=base+ring*3+(side+1)%3,c=a+3,d=b+3;if(ring>0)indices.push(a,b,c);if(ring<2)indices.push(b,d,c);}
+    const angle=b*Math.PI*2/blades+(style==='reed'?.2:.1),height=b===0?1:.62+(b*.17)% .36,lean=.15+(b%3)*.055,originX=Math.cos(angle)*(.12+(b%2)*.025),originZ=Math.sin(angle)*(.12+(b%2)*.025),width=(style==='reed'?.052:.072)*(b%4===0?1.12:1),root=vertex(originX,0,originZ,0,originX,originZ,[.68,.72,.60]),middle=[];
+    const t=.48,cx=originX+Math.cos(angle)*lean*t*t,cz=originZ+Math.sin(angle)*lean*t*t;
+    for(let side=0;side<3;side++){const a=side*Math.PI*2/3,localX=Math.cos(a)*width,localZ=Math.sin(a)*width*.38,tone=.82+side*.035;middle.push(vertex(cx+Math.cos(angle)*localX-Math.sin(angle)*localZ,t*height,cz+Math.sin(angle)*localX+Math.cos(angle)*localZ,t,originX,originZ,[tone,tone*.99,tone*.91]));}
+    const tip=vertex(originX+Math.cos(angle)*lean,height,originZ+Math.sin(angle)*lean,1,originX,originZ,[1.04,1.02,.91]);
+    for(let side=0;side<3;side++){const next=(side+1)%3;indices.push(root,middle[next],middle[side],tip,middle[side],middle[next]);}
   }
-  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setAttribute('grassProgress',new THREE.Float32BufferAttribute(progress,1));geometry.setAttribute('grassBase',new THREE.Float32BufferAttribute(bases,2));geometry.setAttribute('grassFlex',new THREE.Float32BufferAttribute(Array(vertices.length/3).fill(style==='shrub'?.22:1),1));geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();geometry.userData={grassStyle:style,blades:style==='shrub'?0:blades,solidGeometry:true};return geometry;
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.setAttribute('grassProgress',new THREE.Float32BufferAttribute(progress,1));geometry.setAttribute('grassBase',new THREE.Float32BufferAttribute(bases,2));geometry.setAttribute('grassFlex',new THREE.Float32BufferAttribute(flex,1));geometry.setIndex(indices);geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();geometry.userData={grassStyle:style,blades:style==='shrub'?0:blades,groundPieces:0,solidGeometry:true};return geometry;
 }
 
 export function createGrassWindMaterial(THREE,uniforms){
   const material=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.94,metalness:0});
-  material.customProgramCacheKey=()=> 'mafiozi-solid-grass-contact-v4-visible-sole';
+  material.customProgramCacheKey=()=> 'mafiozi-solid-grass-contact-v5-bent-not-buried';
   material.onBeforeCompile=shader=>{
     Object.assign(shader.uniforms,uniforms);
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
@@ -104,7 +97,7 @@ vec4 environmentGrassContact(vec2 root) {
     float force = t*t*(3.0-2.0*t)*decay*decay;
     if(force>best) { best=force; direction=d>.001?delta/d:vec2(1.0,0.0); }
   }
-  return vec4(direction.x*.55,-1.0,direction.y*.55,1.0)*best*grassFlex;
+  return vec4(direction.x*.55,-${GRASS_CONTACT.compression.toFixed(2)},direction.y*.55,1.0)*best*grassFlex;
 }
 float environmentGrassPressedHeight(float t) { return .025*smoothstep(.22,.55,t)+.005*smoothstep(.55,1.0,t); }
 vec2 environmentGrassWind(vec2 root) {
@@ -157,6 +150,14 @@ transformed.xz *= grassFade;
   return material;
 }
 
+function markGrassPrefixForUpload(attribute,count){
+  // Prefix unions remain bounded even if this chunk is not rendered for many
+  // selections. Preserve any other pending ranges for Three's normal upload.
+  const pending=attribute.updateRanges.find(range=>range.start===0);
+  if(pending)pending.count=Math.max(pending.count,count);else attribute.addUpdateRange(0,count);
+  attribute.needsUpdate=true;
+}
+
 export function createEnvironmentGrass({THREE,plan,limits={}}={}){
   if(!THREE||!plan?.tufts)throw Error('Grass renderer requires THREE and placement plan');
   const budget={...GRASS_LIMITS,...limits},object=new THREE.Group();object.name='EnvironmentGrass';
@@ -180,7 +181,7 @@ export function createEnvironmentGrass({THREE,plan,limits={}}={}){
     const tufts=c.byStyle[style];if(!tufts.length)continue;const sourceGeometry=geometries[style],geometry=new THREE.BufferGeometry();geometry.setIndex(sourceGeometry.index);for(const [key,attribute]of Object.entries(sourceGeometry.attributes))geometry.setAttribute(key,attribute);geometry.boundingBox=sourceGeometry.boundingBox;geometry.boundingSphere=sourceGeometry.boundingSphere;geometry.userData=sourceGeometry.userData;geometry.setAttribute('grassSlope',new THREE.InstancedBufferAttribute(new Float32Array(tufts.length*2),2).setUsage(THREE.DynamicDrawUsage));const mesh=new THREE.InstancedMesh(geometry,material,tufts.length);mesh.name='Grass_'+style;mesh.castShadow=false;mesh.receiveShadow=true;
     for(let i=0;i<tufts.length;i++){matrix.fromArray(tufts[i].matrix);mesh.setMatrixAt(i,matrix);color.fromArray(tufts[i].colorArray);mesh.setColorAt(i,color);}
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
-    mesh.boundingBox=c.bounds.clone();mesh.boundingSphere=new THREE.Sphere();c.bounds.getBoundingSphere(mesh.boundingSphere);mesh.userData.tuftIds=[];mesh.count=0;mesh.visible=false;c.meshes[style]=mesh;c.group.add(mesh);totalBatches++;totalTriangles+=geometry.index.count/3*tufts.length;
+    mesh.boundingBox=c.bounds.clone();mesh.boundingSphere=new THREE.Sphere();c.bounds.getBoundingSphere(mesh.boundingSphere);mesh.userData.tuftIds=[];mesh.userData.worldBlastStaticBounds=true;mesh.count=0;mesh.visible=false;c.meshes[style]=mesh;c.group.add(mesh);totalBatches++;totalTriangles+=geometry.index.count/3*tufts.length;
   }
   const stats={...plan.stats,totalBatches,totalTriangles,chunks:chunks.size,visibleTufts:0,visibleBatches:0,visibleTriangles:0,fadeFar:budget.viewDistance,dynamicLights:0,shadowCasters:0,solidBlades:true};object.userData.environmentGrass=stats;
   const frustum=new THREE.Frustum(),projection=new THREE.Matrix4(),candidates=[],selectionChunks=[];const activeChunks=new Set(),maxCandidates=Math.max(1,Math.floor(budget.maxVisibleTufts)+1);let lastSelection=-Infinity,lastFocus=null,lastCameraQuaternion=null;
@@ -227,7 +228,13 @@ export function createEnvironmentGrass({THREE,plan,limits={}}={}){
     // therefore replaces invisible roots instead of abruptly popping whole patches.
     uniforms.uGrassFadeFar.value=budgetReached?Math.max(4,cutoff-.4):budget.viewDistance;
     uniforms.uGrassFadeNear.value=Math.min(budget.fadeStart,uniforms.uGrassFadeFar.value*.68);stats.fadeFar=uniforms.uGrassFadeFar.value;
-    for(const c of activeChunks)for(const style of['grass','reed','shrub']){const mesh=c.meshes[style];if(mesh?.visible){mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;mesh.geometry.attributes.grassSlope.needsUpdate=true;}}
+    for(const c of activeChunks)for(const style of['grass','reed','shrub']){const mesh=c.meshes[style];if(mesh?.visible){
+      // Only selected prefixes changed. Keep pending ranges from earlier
+      // selections; Three merges their union when this mesh next renders.
+      markGrassPrefixForUpload(mesh.instanceMatrix,mesh.count*16);
+      markGrassPrefixForUpload(mesh.instanceColor,mesh.count*3);
+      markGrassPrefixForUpload(mesh.geometry.attributes.grassSlope,mesh.count*2);
+    }}
   }
   return {object,stats,update,uniforms,limits:budget,dispose(){for(const c of chunks.values())for(const mesh of Object.values(c.meshes)){mesh.geometry.dispose();mesh.dispose()}for(const g of Object.values(geometries))g.dispose();material.dispose();object.clear();}};
 }

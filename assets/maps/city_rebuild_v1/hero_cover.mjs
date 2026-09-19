@@ -28,14 +28,17 @@ function swept(from, to, height, canOccupy) {
   return true;
 }
 
-/** bodies: [{id,polygon:[{x,z}],minY,maxY,vehicle?,valid?}]. Polygon winding
+/** bodies: [{id,polygon:[{x,z}],minY,maxY,vehicle?,valid?,heightAt?}]. maxY is
+ * the broad-phase top; heightAt(anchor,normal), if provided, returns the actual
+ * solid top in world Y at that candidate. A non-finite result means no surface
+ * (Infinity is allowed for an unbounded wall). Polygon winding
  * may be either direction. canOccupy(point,height) must check the full capsule,
  * solid geometry, ground support, water and other actors. */
 export function findCover({ position, direction, bodies, canOccupy, maxDistance = COVER.distance } = {}) {
   if (!finitePoint(position) || !Number.isFinite(position.y) || !finitePoint(direction) || !Array.isArray(bodies) || !Number.isFinite(maxDistance) || maxDistance <= 0) return null;
   const headingLength = Math.hypot(direction.x, direction.z);
-  if (headingLength < .001) return null;
-  const heading = { x: direction.x / headingLength, z: direction.z / headingLength };
+  // Looking almost vertically leaves no useful horizontal preference.
+  const heading = headingLength < .001 ? null : { x: direction.x / headingLength, z: direction.z / headingLength };
   let best = null, bestScore = Infinity;
   for (const body of bodies) {
     const polygon = body?.polygon;
@@ -43,10 +46,7 @@ export function findCover({ position, direction, bodies, canOccupy, maxDistance 
     if (!Number.isFinite(body.minY) || !(Number.isFinite(body.maxY) || body.maxY === Infinity) || body.minY > position.y + .45 || body.maxY - position.y < COVER.minHeight || inside(position, polygon)) continue;
     const area = polygon.reduce((sum, a, i) => { const b = polygon[(i + 1) % polygon.length]; return sum + a.x * b.z - b.x * a.z; }, 0);
     if (Math.abs(area) < .001) continue;
-    const height = body.maxY - position.y;
     const standOff = Number.isFinite(body.standOff) ? clamp(body.standOff, .37, COVER.standOff) : COVER.standOff;
-    const posture = body.vehicle || height <= COVER.lowHeight ? 'crouch' : 'stand';
-    const capsuleHeight = posture === 'crouch' ? COVER.crouchingHeight : COVER.standingHeight;
     for (let i = 0; i < polygon.length; i++) {
       const a = polygon[i], b = polygon[(i + 1) % polygon.length];
       const length = Math.hypot(b.x - a.x, b.z - a.z);
@@ -56,17 +56,39 @@ export function findCover({ position, direction, bodies, canOccupy, maxDistance 
       const normal = { x: tangent.z * winding, z: -tangent.x * winding };
       const outwardDistance = (position.x - a.x) * normal.x + (position.z - a.z) * normal.z;
       if (outwardDistance < .02 || outwardDistance > maxDistance + standOff) continue;
-      const facing = heading.x * normal.x + heading.z * normal.z;
-      if (facing > .65) continue;
+      const facing = heading ? heading.x * normal.x + heading.z * normal.z : 0;
       const rawAlong = (position.x - a.x) * tangent.x + (position.z - a.z) * tangent.z;
-      const along = clamp(rawAlong, COVER.edgeMargin, length - COVER.edgeMargin);
-      const anchor = { x: a.x + tangent.x * along + normal.x * standOff, y: position.y, z: a.z + tangent.z * along + normal.z * standOff };
-      const distance = Math.hypot(anchor.x - position.x, anchor.z - position.z);
-      if (distance > maxDistance || inside(anchor, polygon) || !swept(position, anchor, capsuleHeight, canOccupy)) continue;
-      const score = distance + (facing + 1) * .18;
-      if (score < bestScore) {
+      // Ctrl chooses nearby physical cover even when the camera looks away.
+      // Camera direction only ranks candidates; range and swept collision admit them.
+      const nearestAlong = clamp(rawAlong, COVER.edgeMargin, length - COVER.edgeMargin);
+      const preference = heading ? (facing + 1) * .18 : 0;
+      const distanceAt = along => Math.hypot(along-rawAlong, outwardDistance-standOff);
+      const nearestDistance = distanceAt(nearestAlong);
+      if (nearestDistance > maxDistance || nearestDistance+preference >= bestScore) continue;
+      // Only nearby competitive edges reach the expensive surface/capsule
+      // queries. The first valid candidate is this edge's cheapest result.
+      const candidates = [nearestAlong];
+      for (const offset of [-.25, .25, -.5, .5]) {
+        const along = clamp(nearestAlong+offset, COVER.edgeMargin, length-COVER.edgeMargin);
+        if (!candidates.includes(along)) candidates.push(along);
+      }
+      candidates.sort((left, right) => distanceAt(left)-distanceAt(right));
+      for (const along of candidates) {
+        const distance = distanceAt(along), score = distance+preference;
+        if (distance > maxDistance || score >= bestScore) break;
+        const anchor = { x: a.x+tangent.x*along+normal.x*standOff, y: position.y, z: a.z+tangent.z*along+normal.z*standOff };
+        if (inside(anchor, polygon)) continue;
+        const top = typeof body.heightAt === 'function' ? body.heightAt(anchor, normal) : body.maxY;
+        if (!(Number.isFinite(top) || top === Infinity)) continue;
+        const height = top-position.y;
+        if (height < COVER.minHeight) continue;
+        const posture = body.vehicle || height <= COVER.lowHeight ? 'crouch' : 'stand';
+        const capsuleHeight = posture === 'crouch' ? COVER.crouchingHeight : COVER.standingHeight;
+        if (typeof canOccupy !== 'function' || !canOccupy(anchor, capsuleHeight) || !swept(position, anchor, capsuleHeight, canOccupy)) continue;
         bestScore = score;
-        best = { id: body.id, body, a: { ...a }, b: { ...b }, normal, tangent, anchor, feetY: position.y, height, posture, length, along, standOff };
+        best = { id: body.id, body, a: { ...a }, b: { ...b }, normal, tangent, anchor, feetY: position.y, height, posture, length, along, standOff, edgeIndex: i, winding };
+        if (bestScore < 1e-9) return best;
+        break;
       }
     }
   }
@@ -77,6 +99,7 @@ export function findCover({ position, direction, bodies, canOccupy, maxDistance 
  * doorway edge or another vehicle blocks motion during this frame. */
 export function moveCover(cover, amount, canOccupy) {
   if (!cover || !Number.isFinite(amount) || typeof canOccupy !== 'function') return cover;
+  if (cover.cornerTravel) return cover;
   const along = clamp(cover.along + amount, COVER.edgeMargin, cover.length - COVER.edgeMargin);
   const distance = along - cover.along;
   const steps = Math.max(1, Math.ceil(Math.abs(distance) / COVER.sweepStep));
@@ -91,6 +114,98 @@ export function moveCover(cover, amount, canOccupy) {
   return result;
 }
 
+const samePoint = (a, b) => finitePoint(a) && finitePoint(b) && Math.hypot(a.x-b.x, a.z-b.z) < 1e-7;
+function currentEdge(body, edge) {
+  const p = body?.polygon;
+  return body?.valid !== false && Array.isArray(p) && p.length >= 3 &&
+    samePoint(p[edge.edgeIndex], edge.a) && samePoint(p[(edge.edgeIndex+1)%p.length], edge.b);
+}
+
+function beginCorner(cover, side) {
+  const polygon = cover.body?.polygon;
+  if (!Array.isArray(polygon) || !polygon.every(finitePoint)) return null;
+  const edgeIndex = Number.isInteger(cover.edgeIndex) ? cover.edgeIndex :
+    polygon.findIndex((a, i) => samePoint(a, cover.a) && samePoint(polygon[(i+1)%polygon.length], cover.b));
+  if (edgeIndex < 0) return null;
+  const from = { ...cover, edgeIndex };
+  if (!currentEdge(cover.body, from)) return null;
+  const margin = side > 0 ? cover.length-cover.along : cover.along;
+  // Reaching the end remains a usable peek pose until the host deliberately
+  // starts a corner transfer. Never pull a character here from mid-edge.
+  if (Math.abs(margin-COVER.edgeMargin) > .002) return null;
+  const nextIndex = (edgeIndex+side+polygon.length)%polygon.length;
+  const a = polygon[nextIndex], b = polygon[(nextIndex+1)%polygon.length];
+  const length = Math.hypot(b.x-a.x, b.z-a.z);
+  if (length < .6) return null;
+  const tangent = { x: (b.x-a.x)/length, z: (b.z-a.z)/length };
+  const winding = cover.winding || Math.sign(cover.tangent.z*cover.normal.x-cover.tangent.x*cover.normal.z);
+  const normal = { x: tangent.z*winding, z: -tangent.x*winding };
+  const angle = Math.atan2(cover.normal.x*normal.z-cover.normal.z*normal.x,
+    cover.normal.x*normal.x+cover.normal.z*normal.z);
+  // Concave inset corners require another path and must never be cut across.
+  if (angle*side*winding <= 1e-5 || Math.abs(angle) >= Math.PI-1e-5) return null;
+  const radius = cover.standOff ?? COVER.standOff;
+  const vertex = { ...(side > 0 ? cover.b : cover.a) };
+  const along = side > 0 ? COVER.edgeMargin : length-COVER.edgeMargin;
+  const to = { ...from, edgeIndex: nextIndex, a: { ...a }, b: { ...b }, tangent, normal, length, along,
+    anchor: { x: a.x+tangent.x*along+normal.x*radius, y: cover.feetY, z: a.z+tangent.z*along+normal.z*radius } };
+  return { side, distance: 0, progress: 0, length: margin+radius*Math.abs(angle)+COVER.edgeMargin,
+    from, to, vertex, angle, radius, approach: margin, arcLength: radius*Math.abs(angle) };
+}
+
+function cornerSample(travel, distance) {
+  const { from, to, vertex, radius, angle, side, approach, arcLength } = travel;
+  let anchor, normal, tangent;
+  if (distance <= approach) {
+    normal = from.normal; tangent = from.tangent;
+    anchor = { x: from.anchor.x+tangent.x*side*distance, y: from.feetY, z: from.anchor.z+tangent.z*side*distance };
+  } else if (distance < approach+arcLength) {
+    const theta = angle*(distance-approach)/arcLength, c = Math.cos(theta), s = Math.sin(theta);
+    normal = { x: from.normal.x*c-from.normal.z*s, z: from.normal.x*s+from.normal.z*c };
+    tangent = { x: from.tangent.x*c-from.tangent.z*s, z: from.tangent.x*s+from.tangent.z*c };
+    anchor = { x: vertex.x+normal.x*radius, y: from.feetY, z: vertex.z+normal.z*radius };
+  } else {
+    normal = to.normal; tangent = to.tangent;
+    const exit = distance-approach-arcLength;
+    anchor = { x: vertex.x+normal.x*radius+tangent.x*side*exit, y: from.feetY,
+      z: vertex.z+normal.z*radius+tangent.z*side*exit };
+  }
+  return { anchor, normal, tangent };
+}
+
+/** Deliberately round ONE convex corner of the same polygon. side selects the
+ * edge end (-1=a, +1=b); distance is travel in metres, negative to retreat along
+ * an active transfer. Call only after the player's corner-hold gesture. Each
+ * frame returns the last safe feet position, or the adjacent ordinary edge on
+ * completion. cornerTravel.progress is 0..1; shooting is blocked in transit.
+ * The host's canOccupy must test the capsule and support, as with moveCover. */
+export function advanceCoverCorner(cover, side, distance, canOccupy) {
+  if (!cover || (side !== -1 && side !== 1) || !Number.isFinite(distance) || distance === 0 || typeof canOccupy !== 'function') return cover;
+  const travel = cover.cornerTravel || (distance > 0 && beginCorner(cover, side));
+  if (!travel || travel.side !== side || !currentEdge(cover.body, travel.from) || !currentEdge(cover.body, travel.to)) return cover;
+  const target = clamp(travel.distance+distance, 0, travel.length);
+  const delta = target-travel.distance;
+  if (Math.abs(delta) < 1e-9) return cover;
+  const height = cover.posture === 'crouch' ? COVER.crouchingHeight : COVER.standingHeight;
+  if (!canOccupy(cover.anchor, height)) return cover;
+  // Bounded by one corner's length, regardless of caller distance. Chords are
+  // at most 2 cm; test their midpoint too, including other bodies and ledges.
+  const steps = Math.ceil(Math.abs(delta)/.02);
+  let result = cover, previous = cover.anchor;
+  for (let i = 1; i <= steps; i++) {
+    const nextDistance = travel.distance+delta*i/steps;
+    const sample = cornerSample(travel, nextDistance);
+    const midpoint = { x: (previous.x+sample.anchor.x)/2, y: cover.feetY, z: (previous.z+sample.anchor.z)/2 };
+    if (!canOccupy(midpoint, height) || !canOccupy(sample.anchor, height)) break;
+    if (nextDistance <= 1e-9) result = travel.from;
+    else if (nextDistance >= travel.length-1e-9) result = travel.to;
+    else result = { ...travel.from, ...sample,
+      cornerTravel: { ...travel, distance: nextDistance, progress: nextDistance/travel.length } };
+    previous = sample.anchor;
+  }
+  return result;
+}
+
 /** Direction is the intended shot heading. Aimed mode exposes the body;
  * blind mode leaves the body at its anchor and reaches only the weapon out.
  * muzzle is a world point, gunOffset is relative to the hidden shoulder.
@@ -98,6 +213,7 @@ export function moveCover(cover, amount, canOccupy) {
 export function coverExposure(cover, { aiming = false, firing = false, direction } = {}) {
   if (!cover) return null;
   const base = { mode: 'hidden', offset: zero(), gunOffset: zero(), side: 0, posture: cover.posture, muzzle: null, bodyExposed: false };
+  if (cover.cornerTravel) return { ...base, mode: 'blocked' };
   if (!aiming && !firing) return base;
   if (!finitePoint(direction) || Math.hypot(direction.x, direction.z) < .001) return { ...base, mode: 'blocked' };
   const magnitude = Math.hypot(direction.x, direction.z);

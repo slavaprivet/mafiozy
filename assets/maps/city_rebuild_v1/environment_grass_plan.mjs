@@ -53,11 +53,11 @@ export function planEnvironmentGrass({topology,landscape,railPlan=null,keepouts=
     if(tufts.length===start)return false;
     const patch={id,x,z,radius,aspect,yaw,zone,tufts:tufts.length-start};patches.push(patch);const k=patchKey(x,z);if(!patchBuckets.has(k))patchBuckets.set(k,[]);patchBuckets.get(k).push(patch);return true;
   }
-  // Every eligible native lawn cell gets a jittered understory. Island selection alone
-  // left whole visible lawns bare when the nearest randomly selected patch was far away.
+  // Every eligible native lawn cell gets a dense, mostly short understory. Keep the
+  // taller accent tufts rare so the lawn reads as continuous turf instead of islands.
   for(let r=1;r<grid.length-1;r++)for(let c=1;c<grid[r].length-1;c++)if(grid[r][c]===8){
-    const density=3+Math.floor((.5+.5*Math.sin(c*.61+r*.27))*4);
-    for(let i=0;i<density;i++)addTuft((c+.12+rng()*.76)*m,(r+.12+rng()*.76)*m,'lawn','lawn-understory-'+r+'-'+c,{low:i%3===0});
+    const density=7+Math.floor((.5+.5*Math.sin(c*.61+r*.27))*4);
+    for(let i=0;i<density;i++)addTuft((c+.08+rng()*.84)*m,(r+.08+rng()*.84)*m,'lawn','lawn-understory-'+r+'-'+c,{low:i%5!==0});
   }
   // Continuous but ragged shoreline belts, plus taller dense islands below.
   for(const l of landscape.lakes||[])for(let i=0;i<500;i++){
@@ -79,7 +79,7 @@ export function planEnvironmentGrass({topology,landscape,railPlan=null,keepouts=
   for(const path of landscape.paths||[])for(let i=2;i<path.points.length-2;i+=5){const p=path.points[i],q=path.points[i+1],a=Math.atan2(q.z-p.z,q.x-p.x)+Math.PI/2;for(const side of[-1,1]){const offset=path.width/2+2.5+rng()*3.2;candidates.trail.push({x:p.x+Math.cos(a)*offset*side,z:p.z+Math.sin(a)*offset*side,zone:'trail',score:rng()});}}
   for(const f of landscape.forestZones||[])for(let i=0;i<110;i++){const a=rng()*TAU,r=Math.sqrt(rng());candidates.woodland.push({x:f.x+Math.cos(a)*f.rx*r,z:f.z+Math.sin(a)*f.rz*r,zone:'woodland',score:rng()});}
   for(const l of landscape.lakes||[])for(let i=0;i<110;i++){const a=rng()*TAU,r=1.08+rng()*.2;candidates.shore.push({x:l.x+Math.cos(a)*l.rx*r,z:l.z+Math.sin(a)*l.rz*r,zone:'shore',score:rng()});}
-  const caps={lawn:400,trail:300,woodland:110,shore:52};
+  const caps={lawn:160,trail:300,woodland:110,shore:52};
   for(const zone of['lawn','trail','shore','woodland']){candidates[zone].sort((a,b)=>a.score-b.score);let accepted=0;for(const p of candidates[zone]){if(accepted>=caps[zone]||tufts.length>=maxTufts)break;if(addPatch(p))accepted++;}}
   for(const f of landscape.forestZones||[])for(let i=0;i<100;i++){const a=rng()*TAU,d=Math.sqrt(rng());addTuft(f.x+Math.cos(a)*f.rx*d,f.z+Math.sin(a)*f.rz*d,'woodland','shrub-'+f.id,{shrub:true});}
   return {version:2,tufts,patches,stats:{tufts:tufts.length,patches:patches.length,counts,shrubs:tufts.filter(t=>t.style==='shrub').length,seed,maxTufts},limits:{...GRASS_LIMITS},policy:{collision:false,mapMarkerPerBlade:false,rootsFixed:true,sourceWorldUnchanged:true}};

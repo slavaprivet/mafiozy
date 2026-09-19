@@ -45,15 +45,31 @@ function _npcWaterSearchStep(n,depth,now){
 }
 
 function _npcWaterEscape(n,dt,now){
- if(!n||n.dead||n._civilianTrip||n._uniqueNpc||n._said||n._empireBoss||n._empireCrew||n._gang||n._guard||n._policeCuffed||n._medicalDowned||n._knockedUntil>now||n._meleeStunnedUntil>now)return false;
- const depth=_npcRouteWaterDepth(n.r,n.c);if(depth<=.025){n._waterEscapeTarget=null;n._waterEscapeSearch=null;return false;}
+ if(!n||n.dead||n.alive===false||n._civilianTrip||n._civilianTripRiding||n._residentIndoors||n._interiorId||n.interior_id||n._insideBuilding||n._inVehicle||n._inCar||n.vehicleId||n.vehicle_id||n._policeCuffed||n._medicalDowned||n._carriedByAmbulance||n._evacuated||n._knockedUntil>now||n._meleeStunnedUntil>now||n._empireDownUntil>now||n._empireHospitalUntil>Date.now())return false;
+ const special=n._uniqueNpc||n._said||n._empireBoss||n._empireCrew||n._gang||n._guard;
+ if(special&&typeof _walkNpcNavigationResolver!=='function')return false;
+ const depth=_npcRouteWaterDepth(n.r,n.c);if(depth<=.025){if(n._waterEscaping)_clearNpcRoute(n);n._waterEscaping=false;n._waterEscapeTarget=null;n._waterEscapeSearch=null;return false;}
+ n._waterEscaping=true;
+ // Pause locomotion recovery, not the boss's identity, orders or mission.
+ // Otherwise time spent swimming can be mistaken for a stuck land route.
+ if(special&&typeof _pauseEmpireMovementWatch==='function')_pauseEmpireMovementWatch(n,now);
  // An existing wet resident walks/swims back physically; collision recovery must not snap it.
  if(!n._waterEscapeTarget&&(n._waterEscapeSearch||now>=(n._waterEscapeRetryAt||0)))_npcWaterSearchStep(n,depth,now);
  const target=n._waterEscapeTarget;if(!target){n.walking=false;return true;}
  const distance=Math.hypot(target.r-n.r,target.c-n.c);if(distance<.03){n._waterEscapeTarget=null;n._waterEscapeRetryAt=0;return true;}
  const step=Math.min(distance,Math.min(.1,Math.max(0,dt))*Math.min(_npcEffectiveSpeed(n),depth>.7?.8:1)),r=n.r+(target.r-n.r)/distance*step,c=n.c+(target.c-n.c)/distance*step;
- if(_npcWaterEgressPath(n,r,c)){_npcNavigationStats.egressSteps++;n.ang=Math.atan2(r-n.r,c-n.c);n.r=r;n.c=c;n.tr=target.r;n.tc=target.c;n.walking=step>0;n.walkPhase+=dt*7;}
+ if(_npcWaterEgressPath(n,r,c)){_npcNavigationStats.egressSteps++;n.ang=Math.atan2(r-n.r,c-n.c);n.r=r;n.c=c;n.tr=target.r;n.tc=target.c;n.walking=step>0;n.walkPhase=(Number(n.walkPhase)||0)+Math.min(.1,Math.max(0,dt))*7;}
  else{n._waterEscapeTarget=null;n._waterEscapeRetryAt=now+1000;n.walking=false;}
  return true;
+}
+// Local police use y/x. Reuse the same actor and search queue; temporary r/c
+// aliases do not leak into their snapshots or overwrite their patrol targets.
+function _npcPoliceWaterEscape(cop,dt,now){
+ if(!cop||!cop.alive||typeof _walkNpcNavigationResolver!=='function'||!Number.isFinite(cop.y)||!Number.isFinite(cop.x)||/^(arrest_|boarding|return|disembark)/.test(String(cop._casePhase||'')))return false;
+ if(_npcRouteWaterDepth(cop.y,cop.x)<=.025){if(cop._waterEscaping&&typeof _clearPoliceFootRoute==='function')_clearPoliceFootRoute(cop);cop._waterEscaping=false;cop._waterEscapeTarget=null;cop._waterEscapeSearch=null;return false;}
+ const oldR=cop.r,oldC=cop.c,hasR=Object.prototype.hasOwnProperty.call(cop,'r'),hasC=Object.prototype.hasOwnProperty.call(cop,'c'),oldTR=cop.tr,oldTC=cop.tc;
+ cop.r=cop.y;cop.c=cop.x;
+ try{const escaped=_npcWaterEscape(cop,dt,now);if(escaped){cop.y=cop.r;cop.x=cop.c;}return escaped;}
+ finally{if(hasR)cop.r=oldR;else delete cop.r;if(hasC)cop.c=oldC;else delete cop.c;if(oldTR===undefined)delete cop.tr;else cop.tr=oldTR;if(oldTC===undefined)delete cop.tc;else cop.tc=oldTC;}
 }
 // NPC_NATIVE_WATER_ROUTING_END

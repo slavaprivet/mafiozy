@@ -1,5 +1,5 @@
 // Opt-in controls use the actual shared scene, colliders and input controller.
-export function installTraversalQa({document,enabled,available,getBodies,groundHeight,waterAt,canOccupy,plan,move,begin,walk,finish}){
+export function installTraversalQa({document,enabled,available,getBodies,getVehicles=()=>[],groundHeight,waterAt,canOccupy,plan,move,begin,walk,finish}){
  if(!enabled)return;
  const panel=document.createElement('div');panel.id='traversal-qa';panel.style.cssText='position:fixed;left:320px;top:55px;z-index:40;display:flex;gap:6px;flex-wrap:wrap;max-width:700px;background:#172025;padding:8px';
  const status=document.createElement('span');status.id='traversal-qa-status';status.textContent='Проверка перемещения';status.style.color='#fff';
@@ -21,6 +21,24 @@ export function installTraversalQa({document,enabled,available,getBodies,groundH
  button('QA: центральный проход',()=>{move({x:86.5*4.1,y:0,z:91.5*4.1},{x:0,z:1});status.textContent='Центральная площадь: пройти по плитке к югу';});
  button('QA: перед скамьёй',()=>{const x=168.65,z=681.85;move({x,y:groundHeight(x,z),z},{x:1,z:0});status.textContent='Пройти вдоль лицевой стороны скамьи';});
  button('QA: забраться наверх',()=>obstacle('mantle'));
+ function vehicle(kind){
+  for(const record of getVehicles()){
+   const actor=record.car||record.actor||record,object=actor.object,profile=actor.profile||object?.userData?.vehicleProfile;
+   if(!object||!profile||object.visible===false)continue;
+   const sx=object.scale.x,sz=object.scale.z,yaw=object.rotation.y,c=Math.cos(yaw),s=Math.sin(yaw);
+   const hw=profile.halfWidth*Math.abs(sx),hl=profile.halfLength*Math.abs(sz);
+   for(const front of kind==='vault'?[hl*.65,-hl*.65]:[0,hl*.2,-hl*.2])for(const side of [-1,1]){
+    const localX=side*(hw+.48),x=object.position.x+c*localX+s*front,z=object.position.z-s*localX+c*front;
+    const position={x,y:groundHeight(x,z),z},direction={x:-side*c,z:side*s};
+    if(!canOccupy(position))continue;const p=plan(position,direction,false);
+    if(p?.kind!==kind||kind==='mantle'&&p.destination.y-position.y<1.1)continue;
+    move(position,direction);status.textContent=`Машина ${record.id||profile.id||''}: ${kind} · Пробел`;return;
+   }
+  }
+  status.textContent='Безопасный подход к машине пока не найден';
+ }
+ button('QA: через капот',()=>vehicle('vault'));
+ button('QA: на крышу машины',()=>vehicle('mantle'));
  function lakeShore(lake,depth){
   let lo=lake.x,hi=lake.x+lake.radius;
   for(let i=0;i<36;i++){const x=(lo+hi)/2;if((waterAt(x,lake.z)?.depth??0)>depth)lo=x;else hi=x;}

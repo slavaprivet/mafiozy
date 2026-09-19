@@ -12,6 +12,7 @@ import aiosqlite
 from aiohttp import web
 import npc_empire
 import weapon_balance
+from civilian_hijack_pose import validate_civilian_hijack_pose
 
 
 players = {}
@@ -692,10 +693,19 @@ def race_car_payload():
 def preview_civilian_carjack(uid, data):
     global next_civ_car_id
     p = players.setdefault(uid, {})
+    pose, pose_error = validate_civilian_hijack_pose(
+        data.get("carPose"),
+        {"x": p.get("x", PREVIEW_START_X), "y": p.get("y", PREVIEW_START_Y)},
+        quest_cars, 180, 200)
+    if pose_error:
+        return {"ok": False, "reason": pose_error}
     car_id = f"civ_preview_{next_civ_car_id}"
     next_civ_car_id += 1
     x = float(data.get("x", p.get("x", PREVIEW_START_X)))
     y = float(data.get("y", p.get("y", PREVIEW_START_Y)))
+    ang = float(p.get("ang", 0.0))
+    if pose is not None:
+        x, y, ang = pose["x"], pose["y"], pose["ang"]
     allowed_models = {
         "sedan", "taxi", "sport", "pickup", "van", "coupe", "hatch_blue",
         "supercar", "lambo", "ferrari", "porsche", "truck", "minivan",
@@ -724,7 +734,7 @@ def preview_civilian_carjack(uid, data):
         "passenger_uids": [],
         "x": x,
         "y": y,
-        "ang": float(p.get("ang", 0.0)),
+        "ang": ang,
         "vx": 0.0,
         "vy": 0.0,
         "hp": 220,
@@ -745,6 +755,7 @@ def preview_civilian_carjack(uid, data):
         "model": model,
         "x": x,
         "y": y,
+        "ang": ang,
         "civilian": True,
         "paint": paint,
     }

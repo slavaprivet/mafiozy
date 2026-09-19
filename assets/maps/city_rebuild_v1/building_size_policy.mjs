@@ -27,7 +27,9 @@ export const BUILDING_SIZE_POLICY=Object.freeze({
 export function applyBuildingSizeTransform(visual,instance,THREE){
  const scale=instance?.transform?.horizontalScale;
  if(!scale)return;
- if(!visual.parent||scale.length!==2||scale.some(s=>!Number.isFinite(s)||s<1||s>3))throw Error('Invalid building horizontal scale');
+ // Reviewed spacious-house plans can exceed the previous 3x limit on their
+ // narrow authored axis. Vertical scale and the common world metre stay fixed.
+ if(!visual.parent||scale.length!==2||scale.some(s=>!Number.isFinite(s)||s<1||s>4))throw Error('Invalid building horizontal scale');
  const base=instance.transform.uniformScale??1;
  visual.parent.scale.set(base*scale[0],base,base*scale[1]);
  visual.updateWorldMatrix(true,true);

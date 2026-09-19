@@ -84,4 +84,24 @@ for(const mode of ['hatch','tailgate']){
   const openedTip=lidGroup.localToWorld(tip.clone());assert(openedTip.z<-3.2,'authored rear gate opens outward');if(mode==='hatch')assert(openedTip.y>1,'hatch rises');else assert(openedTip.y<.70,'tailgate lowers through at least 80 degrees');
   assert(adapter.detach({contact:{normal:{x:0,y:0,z:-1},impactSpeed:20},vehicleState:vehicle}));assert.equal(adapter.stats().debris,1);adapter.reset();adapter.dispose();object.removeFromParent();panel.geometry.dispose();panel.material.dispose();
 }
+// The detached lid deliberately runs at a fixed 120 Hz even when rendering is
+// 30/60/120 Hz. Compare its world transform and every terrain callback to make
+// sure the allocation-free scratch path did not alter contact ordering.
+function detachedLidTrace(hz){
+ const trace=[],testScene=new THREE.Scene(),testCar=createDemoCar(THREE,TestBox);testScene.add(testCar.object);
+ const adapter=createVehicleTrunk(THREE,TestBox,testCar,{scene:testScene,groundHeight(x,z){trace.push([x,z]);return .04+Math.sin(x*.37)*.018+Math.cos(z*.23)*.012}});
+ const contact={normal:{x:.2,y:0,z:-.98},impactSpeed:18};
+ assert(adapter.detach({contact,vehicleState:{x:0,y:0,z:0,yaw:.31,travelYaw:.31,speed:7}}));
+ for(let frame=0;frame<hz/2;frame++)adapter.update(1/hz,{vehicleState:{x:0,y:0,z:0,yaw:.31,travelYaw:.31,speed:7}});
+ const fragment=testScene.getObjectByName('Trunk_detached_lid');assert(fragment);fragment.updateWorldMatrix(true,false);
+ const result={trace,position:fragment.getWorldPosition(new THREE.Vector3()).toArray(),quaternion:fragment.getWorldQuaternion(new THREE.Quaternion()).toArray(),settled:adapter.stats().settledDebris};
+ adapter.dispose();testCar.object.removeFromParent();return result;
+}
+const detachedTraces=[30,60,120].map(hz=>({hz,...detachedLidTrace(hz)})),referenceTrace=detachedTraces[0];
+assert.equal(referenceTrace.trace.length,480,'60 fixed physics steps keep all eight terrain samples');assert.equal(referenceTrace.settled,0,'comparison finishes during active flight');
+for(const candidate of detachedTraces.slice(1)){
+ assert.equal(candidate.trace.length,referenceTrace.trace.length);
+ for(let i=0;i<referenceTrace.trace.length;i++)for(let axis=0;axis<2;axis++)assert(Math.abs(candidate.trace[i][axis]-referenceTrace.trace[i][axis])<1e-11,`ground sample ${i} axis ${axis} keeps fixed-step order`);
+ for(const key of ['position','quaternion'])for(let axis=0;axis<referenceTrace[key].length;axis++)assert(Math.abs(candidate[key][axis]-referenceTrace[key][axis])<1e-11,`${key} ${axis} matches at ${candidate.hz}Hz`);
+}
 console.log('PASS trunk rear-only E, distance/movement/occupied/destroyed gates, independent hinge, hollow cargo, four unchanged doors, directional breakage, persistent world debris, reset, disposal and artist Group hatch/tailgate contracts');

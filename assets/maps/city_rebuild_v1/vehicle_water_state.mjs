@@ -29,8 +29,13 @@ function engineMeshes(car){
  */
 export function sampleVehicleEngineHighPoint({THREE,car}={}){
   if(!THREE?.Vector3||!car?.object)return null;
-  car.object.updateWorldMatrix(true,true);const cache=engineMeshes(car);let best=null;
+  const cache=engineMeshes(car);let best=null;
   for(const mesh of cache.meshes){
+    // Only the engine and its ancestors are consumed here. Updating every door,
+    // wheel, interior and body mesh once per sample duplicated the renderer's
+    // normal traversal (four full traversals in a sinking step). Ancestor updates
+    // also cover moved mounts/reparenting; no cached world transform is trusted.
+    mesh.updateWorldMatrix(true,false);
     const attr=mesh.geometry.attributes.position,e=mesh.matrixWorld.elements;let support=cache.support.get(mesh);
     if(!support||support.attr!==attr||support.version!==attr.version||support.a!==e[1]||support.b!==e[5]||support.c!==e[9]){
       let max=-Infinity,index=0;for(let i=0;i<attr.count;i++){const y=attr.getX(i)*e[1]+attr.getY(i)*e[5]+attr.getZ(i)*e[9];if(y>max){max=y;index=i;}}
@@ -67,8 +72,8 @@ export function stepVehicleWater({THREE,car,state,waterAt,terrain,dt=0,rollAngle
   if(!THREE?.Vector3||!car?.object||!state||typeof waterAt!=='function')throw new TypeError('THREE, car, state and waterAt are required');
   // Ground/bridge/roll support is the pose the caller just resolved. Never replace it
   // with water.floor or terrain.groundHeight: that would sink vehicles through bridges.
-  car.object.updateWorldMatrix(true,true);
-  const origin=new THREE.Vector3();car.object.getWorldPosition(origin);const supportY=origin.y;
+  car.object.updateWorldMatrix(true,false);
+  const origin=new THREE.Vector3().setFromMatrixPosition(car.object.matrixWorld),supportY=origin.y;
   if(!Number.isFinite(supportY))return state.waterState||null;
   const record=recordFor(car,state,supportY),w=record.water,previousY=w.y;
   const seconds=clamp(finite(dt),0,VEHICLE_WATER_RULES.maxDt);
@@ -90,7 +95,7 @@ export function stepVehicleWater({THREE,car,state,waterAt,terrain,dt=0,rollAngle
     // Change the vertical world position only. Usual walk vehicle parents are identity;
     // the conversion also preserves world X/Z under a transformed scene parent.
     const local=new THREE.Vector3(origin.x,y,origin.z);if(car.object.parent)car.object.parent.worldToLocal(local);
-    car.object.position.copy(local);car.object.updateWorldMatrix(true,true);
+    car.object.position.copy(local);car.object.updateWorldMatrix(true,false);
     atEngine=sampleVehicleEngineHighPoint({THREE,car});
   }
   // Rising support (bank/solid obstacle) wins immediately; dry scenes are exact NOOPs.

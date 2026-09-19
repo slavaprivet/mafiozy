@@ -48,6 +48,10 @@ export function createVehicleTrunk(T,RoundedBox,car,{scene=null,groundHeight=()=
   const core=providedCore||spec.core||car.object.getObjectByName('Trunk_core'),coreVisible=core?.visible,createCavity=spec.createCavity!==false;
   const original={parent:lid.parent,position:lid.position.clone(),quaternion:lid.quaternion.clone(),scale:lid.scale.clone(),visible:lid.visible,geometry:lid.geometry};
   const ownMeshes=[],ownMaterials=new Set(),shellAdditions=[],struts=[],debris=[];
+  // Detached-lid motion runs after a crash, often when the renderer is already
+  // busy with other debris. Keep its exact fixed-step physics, but do not make
+  // short-lived math objects at every 120 Hz substep.
+  const debrisPoint=new T.Vector3(),debrisAxis=new T.Vector3(),debrisRotation=new T.Quaternion(),debrisMatrix=new T.Matrix4(),debrisInverse=new T.Matrix4();
   let state=createTrunkState(),disposed=false,time=0,lastContact=-Infinity,lastAngle=-1,idleUpdates=0;
   car.object.updateWorldMatrix(true,true);
   const localBounds=node=>{
@@ -187,7 +191,7 @@ export function createVehicleTrunk(T,RoundedBox,car,{scene=null,groundHeight=()=
   function releaseDebris(part){part.mesh.removeFromParent();const geometries=new Set(),materials=new Set();part.mesh.traverse(node=>{if(node.geometry)geometries.add(node.geometry);for(const m of Array.isArray(node.material)?node.material:[node.material])if(m)materials.add(m)});for(const g of geometries)g.dispose();for(const m of materials)m.dispose()}
   function clearDebris(){const count=debris.length;for(const part of debris)releaseDebris(part);debris.length=0;return count}
   function worldPose(part){
-    part.host.updateWorldMatrix(true,false);const matrix=new T.Matrix4().compose(part.position,part.quaternion,part.scale).premultiply(part.host.matrixWorld.clone().invert());matrix.decompose(part.mesh.position,part.mesh.quaternion,part.mesh.scale);
+    part.host.updateWorldMatrix(true,false);debrisMatrix.compose(part.position,part.quaternion,part.scale).premultiply(debrisInverse.copy(part.host.matrixWorld).invert());debrisMatrix.decompose(part.mesh.position,part.mesh.quaternion,part.mesh.scale);
   }
   function detach({contact=null,vehicleState=null,reason='crash'}={}){
     if(disposed||state.detached)return false;
@@ -218,12 +222,17 @@ export function createVehicleTrunk(T,RoundedBox,car,{scene=null,groundHeight=()=
     if(latchIntegrity<.3){state={...state,target:1,open:true,reason:'broken-latch',revision:state.revision+1};return true}return wear>0;
   }
   function stepDebris(part,dt){
-    if(part.settled)return;const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps,point=new T.Vector3();
+    if(part.settled)return;const steps=Math.max(1,Math.ceil(dt/(1/120))),h=dt/steps,min=part.bounds.min,max=part.bounds.max;
     for(let step=0;step<steps;step++){
       part.age+=h;part.velocity.y-=9.81*h;part.velocity.multiplyScalar(Math.exp(-.10*h));part.position.addScaledVector(part.velocity,h);
-      const angle=part.spin.length()*h;if(angle)part.quaternion.premultiply(new T.Quaternion().setFromAxisAngle(part.spin.clone().normalize(),angle));
+      const angle=part.spin.length()*h;if(angle)part.quaternion.premultiply(debrisRotation.setFromAxisAngle(debrisAxis.copy(part.spin).normalize(),angle));
       let penetration=-Infinity;
-      for(const x of [part.bounds.min.x,part.bounds.max.x])for(const y of [part.bounds.min.y,part.bounds.max.y])for(const z of [part.bounds.min.z,part.bounds.max.z]){point.set(x,y,z).multiply(part.scale).applyQuaternion(part.quaternion).add(part.position);const height=groundHeight(point.x,point.z);penetration=Math.max(penetration,(Number.isFinite(height)?height:0)+.018-point.y)}
+      // Preserve the previous min/max x,y,z nesting and all eight terrain
+      // samples exactly; indexed endpoints avoid allocating three arrays per
+      // fixed substep while a lid is in flight.
+      for(let xi=0;xi<2;xi++)for(let yi=0;yi<2;yi++)for(let zi=0;zi<2;zi++){
+       debrisPoint.set(xi?max.x:min.x,yi?max.y:min.y,zi?max.z:min.z).multiply(part.scale).applyQuaternion(part.quaternion).add(part.position);const height=groundHeight(debrisPoint.x,debrisPoint.z);penetration=Math.max(penetration,(Number.isFinite(height)?height:0)+.018-debrisPoint.y)
+      }
       if(penetration>=0){part.position.y+=penetration;part.groundTime+=h;if(part.velocity.y<0)part.velocity.y=-part.velocity.y*.16;const friction=Math.exp(-8*h);part.velocity.x*=friction;part.velocity.z*=friction;part.spin.multiplyScalar(Math.exp(-10*h));if(part.groundTime>.35&&part.velocity.lengthSq()<.08&&part.spin.lengthSq()<.08){part.settled=true;part.velocity.set(0,0,0);part.spin.set(0,0,0)}}
     }
     worldPose(part);

@@ -1,0 +1,28 @@
+# Crew follow routes — Coordinator 18, 19 September 2026
+
+Owner `/root/crew_follow_routes18`. READY for coordinator integration. Production changed only `assets/maps/city_rebuild_v1/mercenary_world.js`; new regression file `test_mercenary_follow18.mjs`. Core/planner, normal NPCs, hero, safe geometry and visual modules were not edited.
+
+## Confirmed defects and fixes
+
+1. Fixed formation offsets could land inside a wall or behind an entire building even when the leader and crew were on its near side. Actual-source fixture, 5 FPS, five crew and a 22 m wall: after 25 seconds two members had never moved, their searches had expanded 993/1000 nodes toward solid wall; the others were taking an unnecessary long detour. Follow slots now validate the real source/native swept footprint from the player to the proposed place, reserve separate crew slots, and choose nearby alternative angles if necessary. The previous valid alternative is retained for stability. Checks are cached for 0.4 s; alternative selection is capped at 14 rotations over two radii. If no free slot exists, the member holds a physically valid current location and retries; there is no teleport or softened collision.
+2. A walking leader moved the follow destination more than 0.8 m before an incremental route could complete, repeatedly discarding the whole search. At 5 FPS with five crew behind a cage and the leader moving 1 m/s, two members stayed at their starting positions for 12 seconds and another advanced only 2.55 m. Follow now finishes the bounded search and follows its physically checked prefix while trying a direct reconnection to the new destination at most twice per second. Order/target changes still clear the route immediately; a stale search is bounded to six seconds or 12 m of destination drift. Specialist action goals preserve their original stricter invalidation.
+3. Floating-point residuals at exactly 0.6 m follow / 0.35 m rally made `route_moving` and walking animation persist at zero real displacement. Steps below 0.000001 m now report `arrived` and stop animation. This is numerical tolerance, not additional interaction range.
+
+## Verification
+
+- New four actual-source scenarios PASS: all five settle at free slots next to a wall at 5/10/30 FPS; all five make progress around a cage while the leader moves and later catch the stopped leader; follow/rally boundary remains still; a car inserted ahead causes physical replanning without crossing its hull.
+- Existing elapsed/route/rally suites: 46 checks PASS. Remaining world/focus/actions/lifecycle suites plus new four: 77 checks PASS. Total 123 distinct checks across the two regression runs. Source syntax PASS. Existing car approach -> four-second planting -> >=8 m safe retreat -> one explosion still passes at 5/10/30/60 FPS.
+- CPU-only five-member wall fixture (latest isolated run): 5 FPS p50/p95 0.2624/1.3191 ms per source update; 10 FPS 0.2438/0.6281; 30 FPS 0.1513/0.3829. This includes the collision fixture and route work, not graphics. No matched whole-scene before/after benchmark was performed; **performance of the shared scene is not checked**. Root owns the single game tab and LIVE validation.
+- At 5 FPS in the moving-leader cage fixture, one crew member takes the longer side of the already planned detour and trails temporarily; all five physically catch up after the leader stops. This patch prevents starvation and impossible formation goals, not a claim that every possible crowded environment has instant pathfinding.
+
+## LIVE acceptance for root
+
+Load once together with pending packages. V near a wall, cage, parked car; walk while the squad searches, then stop. Check no `search_pending` endlessly restarts at low expanded counts and no infinite `route_moving` at exactly the arrival radius. Recheck X specialist approaches and follow cancellation. The pre-patch root LIVE observation had all five already arriving, with safecracker falsely reporting route_moving at exactly .6 m; that is a real corroboration only of the numeric arrival defect. Other source fixture fixes still need the actual scene.
+
+## Follow-up READY: post-unlock safe clearance
+
+By Coordinator18 request, `mercenary_world.js` now schedules a one-off physical 1.2 m departure along the completed safe's work normal, before returning to the previous follow/rally. Up to three bounded endpoint candidates are checked with the existing source/native footprint; the ordinary bounded planner and swept movement still own every step. After arrival it waits one second to let the guarded .85-second leaf animation complete, preventing an immediate return into its sweep. Twelve-second upper bound; unavailable/downed members stop; V, X rally, focused attack and a new accepted specialist command override this transient movement.
+
+Only successful `unlock_safe` completion schedules this. The existing source receipt, money/XP authority and pending effect are untouched. Missing contact metadata preserves the old behavior. If every candidate is physically blocked, no forced clearance is attempted and the door guard safely waits.
+
+`test_mercenary_safe_exit18.mjs`: 6/6 PASS, including actual safe module + source adapter receiving a successful async unlock, physical departure, full leaf opening and loot visibility. Pending rejection has no departure; pending receipt holds still; V and ground X replace departure; blocked space is respected. Initial source/world/rally run 88/88 PASS; sixth integration test added afterward PASS. No additional browser or reload. Root must supply `getOperatorPosition` to the safe callback as described in `SAFE_OPERATOR_CLEARANCE_20260919.md`.

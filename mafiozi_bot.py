@@ -1,4 +1,7 @@
 import asyncio
+from civilian_suspicion import validate_civilian_report
+from civilian_hijack_pose import validate_civilian_hijack_pose
+import police_convoy
 import logging
 import math
 import random
@@ -20,6 +23,7 @@ import hmac
 import npc_empire
 import weapon_balance
 import weapon_transfers
+from native_interior_safes import NativeInteriorSafeService
 from functools import lru_cache
 from typing import Optional
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -16102,6 +16106,39 @@ def _world_los(sx: float, sy: float, tx: float, ty: float) -> bool:
             return False
     return True
 
+def _world_observer_sees(observer: dict, target: dict, sight_range: float = 14.0,
+                         now: float | None = None) -> bool:
+    """Server pose + 140-degree FOV + legacy map LOS; not native mesh visibility.
+
+    Used only to discover an incident. It never clears pursuit/wanted or resolves
+    a hit, and takes no client witness boolean or client-supplied observer pose.
+    """
+    if not isinstance(observer, dict) or not isinstance(target, dict):
+        return False
+    now = time.time() if now is None else now
+    if (observer.get('alive') is False or observer.get('dead') or
+            (observer.get('_jail_until') or 0) > now or observer.get('_police_cuffed_by')):
+        return False
+    for actor in (observer, target):
+        if actor.get('_in_interior') and now < float(actor.get('_in_interior_until') or 0):
+            return False
+    try:
+        ox, oy, angle = float(observer['x']), float(observer['y']), float(observer['ang'])
+        tx, ty = float(target['x']), float(target['y'])
+        if not all(math.isfinite(v) for v in (ox, oy, angle, tx, ty, sight_range)):
+            return False
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return False
+    dx, dy = tx-ox, ty-oy
+    distance2 = dx*dx+dy*dy
+    if distance2 > sight_range*sight_range:
+        return False
+    if distance2 > .16 and math.cos(angle)*dx+math.sin(angle)*dy < math.sqrt(distance2)*.342:
+        return False
+    return _world_los(ox, oy, tx, ty)
+
+
+
 def _dist_to_segment(px: float, py: float,
                       ax: float, ay: float, bx: float, by: float) -> float:
     """Расстояние от точки (px,py) до отрезка A-B. Нужно для проверки
@@ -16164,7 +16201,7 @@ class WorldSim:
     POLICE_SPIKES_CD = 25.0
     POLICE_BACKUP_CD = 90.0
     __slots__ = (
-        'tick_no', 'last_tick_at', 'players', 'connections',
+        'tick_no', 'last_tick_at', 'players', 'connections', '_police_convoys',
         '_combat_boot_id', '_combat_event_seq',
         '_player_shot_locks', '_npc_melee_receipts',
         'gang_player_invites', 'custom_gang_player_invites',
@@ -16909,6 +16946,7 @@ class WorldSim:
         # Когда игрок jumps в неё — driver_uid=uid, и его клиент шлёт gta_drive
         # с новыми x/y; мы только клампим и пере-broadcast'им.
         self.quest_cars = {}
+        self._police_convoys = {}
         self._quest_car_next_id = 1
         # Гоночный паддок у старта трека «Прибой»: 3 бокса под спорткары
         # разных цветов. Координаты боксов = RACE_PIT_SLOTS_C в world.html
@@ -17033,6 +17071,8 @@ class WorldSim:
             sx, sy = random.choice(self.JAIL_SPAWNS)
             self.players[uid]['x'] = sx + random.uniform(-0.2, 0.2)
             self.players[uid]['y'] = sy + random.uniform(-0.2, 0.2)
+            detention = police_convoy.detention(self, uid)
+            if detention:self.players[uid].update(x=float(detention['intake']['c']),y=float(detention['intake']['r']))
 
     def remove(self, uid: str) -> None:
         # Онлайн-задержание никогда не превращается в плен после выхода копа:
@@ -18206,7 +18246,7 @@ class WorldSim:
             p['_input_t'] = time.time()
             p['_melee_block'] = False
             return
-        if p.get('_police_cuffed_by'):
+        if p.get('_police_cuffed_by') or police_convoy.active(self, uid):
             # Позицию задержанного задаёт серверный конвой. Клиентские x/y
             # игнорируются, но соединение считаем живым.
             p['last_seen'] = time.time()
@@ -18440,12 +18480,14 @@ class WorldSim:
         # В тюрьме — нельзя выходить за её радиус (JAIL_R).
         # Клиент может слать координаты «снаружи», мы тянем обратно.
         if (p.get('_jail_until') or 0) > time.time():
-            dx = nx - self.JAIL_X; dy = ny - self.JAIL_Y
+            detention = police_convoy.detention(self,uid)
+            jail_x,jail_y,jail_radius = (float(detention['intake']['c']),float(detention['intake']['r']),.8) if detention else (self.JAIL_X,self.JAIL_Y,self.JAIL_R)
+            dx = nx - jail_x; dy = ny - jail_y
             d_cell = (dx*dx + dy*dy) ** 0.5
-            if d_cell > self.JAIL_R:
-                k = self.JAIL_R / d_cell if d_cell > 0.001 else 0
-                nx = self.JAIL_X + dx * k
-                ny = self.JAIL_Y + dy * k
+            if d_cell > jail_radius:
+                k = jail_radius / d_cell if d_cell > 0.001 else 0
+                nx = jail_x + dx * k
+                ny = jail_y + dy * k
         # Phase 1: лимит скорости — не больше 8 тайлов/сек.
         # Считаем по dt с прошлого инпута. Если прыжок больше — режем.
         last_t = p.get('_input_t', 0.0)
@@ -18605,7 +18647,7 @@ class WorldSim:
                               'roadster','classic','classic2','corvette_c3','mustang_67','cadillac_eldo',
                               'delorean','jaguar_e','harley_chopper','ducati_750')
     def civilian_hijack_start(self, uid: str, requested_model=None,
-                              requested_paint=None) -> dict:
+                              requested_paint=None, requested_pose=None) -> dict:
         p = self.players.get(uid)
         if not p:
             return {'ok': False, 'reason': 'no_player'}
@@ -18613,11 +18655,18 @@ class WorldSim:
         for _cid, _qc in self.quest_cars.items():
             if str(_qc.get('driver_uid') or '') == str(uid):
                 return {'ok': False, 'reason': 'busy'}
+        pose, pose_error = validate_civilian_hijack_pose(
+            requested_pose, p, self.quest_cars, WORLD_MAP_COLS, WORLD_MAP_ROWS)
+        if pose_error:
+            return {'ok': False, 'reason': pose_error}
         requested_model = str(requested_model or '')
         model = requested_model if requested_model in self.CIVILIAN_HIJACK_MODELS else random.choice(self.CIVILIAN_HIJACK_MODELS)
         paint = _normalize_vehicle_paint(requested_paint)
         mdef  = self.QUEST_CAR_MODELS.get(model) or {}
         sx, sy = float(p['x']), float(p['y'])
+        spawn_ang = float(p.get('ang', 0.0))
+        if pose is not None:
+            sx, sy, spawn_ang = pose['x'], pose['y'], pose['ang']
         cid = f'civ{self._quest_car_next_id}'
         self._quest_car_next_id += 1
         qc = {
@@ -18631,7 +18680,7 @@ class WorldSim:
             'passenger_uids': [],
             'x':          sx,
             'y':          sy,
-            'ang':        float(p.get('ang', 0.0)),
+            'ang':        spawn_ang,
             'vx':         0.0,
             'vy':         0.0,
             'hp':         self.QUEST_CAR_HP,
@@ -18647,13 +18696,15 @@ class WorldSim:
         self.quest_cars[cid] = qc
         # НЕ ставим _gta_active_car_id — civilian не считается квестом Майкла
         return {'ok': True, 'car_id': cid, 'model': model,
-                'x': sx, 'y': sy, 'civilian': True, 'paint': paint}
+                'x': sx, 'y': sy, 'ang': spawn_ang, 'civilian': True, 'paint': paint}
 
     def gta_enter(self, uid: str, car_id: str, police_lockpicked: bool = False) -> dict:
         p = self.players.get(uid)
         qc = self.quest_cars.get(car_id)
         if not p or not qc:
             return {'ok': False, 'reason': 'gone'}
+        if qc.get('custody_owner_uid') or p.get('_npc_convoy_id'):
+            return {'ok': False, 'reason': 'police_custody'}
         if qc.get('wrecked'):
             return {'ok': False, 'reason': 'wrecked'}
         # Близость к машине нужна и водителю, и пассажиру
@@ -18989,6 +19040,8 @@ class WorldSim:
         now = time.time()
         to_drop = []
         for cid, qc in self.quest_cars.items():
+            if qc.get('custody_owner_uid') and police_convoy.active(self, qc['custody_owner_uid']):
+                continue
             age = now - qc.get('_spawn_t', now)
             if qc.get('called_patrol') and now >= float(qc.get('expires_at') or 0):
                 to_drop.append(cid); continue
@@ -19591,6 +19644,10 @@ class WorldSim:
                 continue  # ещё сидит
             if p.get('_jail_released'):
                 continue  # уже вывели
+            if police_convoy.detention(self,p.get('uid')):
+                # Native detention opens its physical gate; no teleport to legacy island.
+                p['_jail_released']=True;p['_jail_until']=0
+                continue
             # Только если игрок физически ВНУТРИ зоны тюрьмы (свежевыпущенный
             # и не успевший уйти сам). Иначе телепортируем впустую.
             dx = (p.get('x') or 0) - self.JAIL_X
@@ -19634,7 +19691,7 @@ class WorldSim:
         отдельные таймеры обработчиков не защищают скорострельность. Один ключ
         закрывает этот обход и не позволяет заявить некупленный РПГ/снайперку.
         """
-        if (not shooter or shooter.get('dead') or shooter.get('_police_cuffed_by') or
+        if (not shooter or shooter.get('dead') or shooter.get('_police_cuffed_by') or shooter.get('_npc_convoy_id') or
                 shooter.get('_police_downed_by') or
                 float(shooter.get('_melee_stunned_until') or 0) > time.time()):
             return None
@@ -19818,7 +19875,7 @@ class WorldSim:
             return True
         weapon = str(player.get('_weapon') or 'fists').lower()
         return bool(
-            player.get('dead') or player.get('_police_cuffed_by') or
+            player.get('dead') or player.get('_police_cuffed_by') or player.get('_npc_convoy_id') or
             player.get('_police_downed_by') or
             float(player.get('_melee_stunned_until') or 0) > time.time() or
             str(player.get('_stance') or 'stand') == 'prone' or
@@ -20580,7 +20637,7 @@ class WorldSim:
                 continue
             if (p.get('_jail_until') or 0) > now:
                 continue
-            if p.get('_police_cuffed_by'):
+            if p.get('_police_cuffed_by') or p.get('_npc_convoy_id'):
                 continue
             if self._in_lair_zone(p.get('x', 0), p.get('y', 0)):
                 continue   # копы не лезут в Логово
@@ -20598,6 +20655,9 @@ class WorldSim:
         #    с тех пор не стрелял (lawful опять).
         survivors = []
         for cop in self.cops:
+            if cop.get('_convoy_owner_uid') and police_convoy.active(self, cop['_convoy_owner_uid']):
+                survivors.append(cop)
+                continue
             if not cop['alive']:
                 continue
             # Gang-response units have no player target by design.  Keep them
@@ -20627,7 +20687,7 @@ class WorldSim:
                         continue
             # Если target пропал или ушёл в тюрьму — переназначаем на
             # ближайший wanted с уровнем >= уровня этого копа.
-            if not t or t.get('dead') or t.get('_police_cuffed_by') or (t.get('_jail_until') or 0) > now or now < float(t.get('_police_bribe_cover_until') or 0) or cur_lvl < 1:
+            if not t or t.get('dead') or t.get('_police_cuffed_by') or t.get('_npc_convoy_id') or (t.get('_jail_until') or 0) > now or now < float(t.get('_police_bribe_cover_until') or 0) or cur_lvl < 1:
                 matching = [(p, lv) for (p, lv) in wanted_targets
                             if cop.get('kind') == 'patrol' or lv >= 2]
                 if matching:
@@ -20711,11 +20771,13 @@ class WorldSim:
         # СПЕЦКЕЙС: cop['target_gang_id'] — атакуем бойца городской банды,
         # а не игрока (см. _dispatch_cops_on_gang).
         for cop in list(self.cops):
+            if cop.get('_convoy_owner_uid') and police_convoy.active(self, cop['_convoy_owner_uid']):
+                continue
             if cop.get('target_gang_id'):
                 pkts.extend(self._tick_cop_vs_gang(cop, dt))
                 continue
             target = self.players.get(cop['target_uid'])
-            if not target or target.get('dead'):
+            if not target or target.get('dead') or target.get('_npc_convoy_id'):
                 continue
             # Цель уже в тюрьме — копы НЕ стреляют в сидящего (тюрьма = безопасная
             # зона). Просто пропускаем: при аресте _wanted=0, и копы убираются
@@ -20812,13 +20874,9 @@ class WorldSim:
                     jailed = False
                     if target['hp'] <= 0:
                         killed = True
-                        # ЛЮБАЯ смерть от копа = автозак → участок.
-                        # Звёзды обнуляются после освобождения через 60с.
-                        target['_jail_until']    = int(now + self.JAIL_DURATION_S)
-                        target['_jail_released'] = False   # новый срок → release заново
-                        target['_wanted']        = 0.0
-                        target['_cop_kills']     = 0
-                        jailed = True
+                        # Durable combat already confirmed death. Do not invent a
+                        # jail sentence before physical capture/booking. Living
+                        # arrests use police_convoy; true death keeps respawn ownership.
                     pkts.append({
                         'kind':       'cop_shot',
                         'cop_id':     cop['id'],
@@ -21058,6 +21116,7 @@ class WorldSim:
             killed = True
         return {
             'kind':        'cop_hit',
+            'hp':          max(0, int(cop['hp'])),
             'cop_id':      cop_id,
             'shooter_uid': str(uid),
             'sx':          round(shooter['x'], 2),
@@ -25826,6 +25885,9 @@ class WorldSim:
                 'ang':        round(cop['ang'], 2),
                 'hp':         max(0, int(cop['hp'])),
                 'max_hp':     int(cop['max_hp']),
+                'transport_vehicle_id': cop.get('_convoy_vehicle_id') or '',
+                'transport_seat_id': cop.get('_convoy_seat_id') or '',
+                'custody_owner_uid': cop.get('_convoy_owner_uid') or '',
                 'target_uid': cop.get('target_uid') or '',
                 'kind':       cop.get('kind') or 'patrol',
                 'weapon':     cop.get('weapon') or 'pistol',
@@ -26127,6 +26189,9 @@ class WorldSim:
                 'owner_uid':  qc.get('owner_uid'),
                 'driver_uid': qc.get('driver_uid'),
                 'passenger_uids': list(qc.get('passenger_uids') or []),
+                'custody_id': qc.get('custody_id') or '',
+                'custody_owner_uid': qc.get('custody_owner_uid') or '',
+                'custody_driver_id': qc.get('custody_driver_id') or '',
                 'state':      qc.get('state', 'idle'),
                 'reward':     int(qc.get('reward', 0)),
                 'hp':         int(qc.get('hp', self.QUEST_CAR_HP)),
@@ -26250,6 +26315,8 @@ class WorldSim:
                         self.POLICE_BACKUP_CD -
                         (now_t - float(me.get('_police_backup_at') or 0)), 1)),
                     'police_stunned_in': max(0.0, float(me.get('_police_stunned_until') or 0) - now_t),
+                    'npc_convoy': police_convoy.snapshot(self,uid),
+                    'detention': police_convoy.detention(self,uid),
                     'police_arrest': my_police_arrest,
                     'police_downed': my_police_downed,
                     'police_evidence_bag': ({
@@ -27545,6 +27612,7 @@ async def _world_run_loop_cycle(world: 'WorldSim') -> None:
                 # урон ПОСЛЕ того как пуля «долетит» до точки удара.
                 ev_pkts.extend(await world.tick_pending_bot_shots() or [])
                 # GTA-машины Майкла — чистим брошенные/устаревшие.
+                ev_pkts.extend(police_convoy.tick(world, time.time()))
                 world.tick_quest_cars(WORLD_TICK_DT)
                 # Пляжники — мирные NPC в купальниках. AI без боевки.
                 world.tick_beachgoers(WORLD_TICK_DT)
@@ -27997,7 +28065,7 @@ def _requires_actor_binding(path):
     path = str(path or '')
     return (path.startswith('/profiles/') or path.startswith('/shop/') or
             path.startswith('/inv/') or path.startswith('/event/') or
-            path.startswith('/world/loot/') or path.startswith('/custom-gang/') or
+            path.startswith('/world/loot/') or path.startswith('/world/interior-safes/') or path.startswith('/custom-gang/') or
             path.endswith('/assault/hit') or path.endswith('/building/action'))
 
 
@@ -30916,6 +30984,28 @@ async def _coop_http_app():
     SAFE_RESPAWN_S = 3600
 
     # === HTTP: server-authoritative find/claim в интерьере ===
+    native_interior_safe_service = None
+
+    async def h_native_interior_safes(req):
+        # The actor-binding middleware verifies the claimed character before
+        # this handler. Native safe IDs and rewards come only from our manifest.
+        nonlocal native_interior_safe_service
+        try:
+            payload = await req.json()
+        except (ValueError, TypeError):
+            return await _cors(web.json_response({'ok': False, 'reason': 'invalid_request'}, status=400))
+        if not req.get('identity'):
+            return await _cors(web.json_response({'ok': False, 'reason': 'unauthorized'}, status=401))
+        if native_interior_safe_service is None:
+            try:
+                # Authenticated mercenary authority must be supplied by the
+                # server roster integration. Until then unlock fails closed.
+                native_interior_safe_service = NativeInteriorSafeService(DB_PATH)
+            except (OSError, ValueError, TypeError):
+                return await _cors(web.json_response({'ok': False, 'reason': 'source_unavailable'}, status=503))
+        receipt = await native_interior_safe_service.handle(str(req.match_info['uid']), payload)
+        return await _cors(web.json_response(receipt))
+
     async def h_world_loot(req):
         try:
             uid = int(req.match_info['uid'])
@@ -32239,6 +32329,14 @@ async def _coop_http_app():
                             for u2, ws2 in list(world.connections.items()):
                                 try: await ws2.send_str(blob)
                                 except Exception: pass
+                    elif t == 'civilian_report':
+                        # Authenticated connection's own context; observation only.
+                        # No wanted, damage, player target or murder incident is created.
+                        reply = validate_civilian_report(world.players.get(uid), d, time.time())
+                        try:
+                            await ws.send_str(json.dumps({'t': 'event', 'd': reply}, ensure_ascii=False))
+                        except Exception:
+                            pass
                     elif t == 'open_fire':
                         # Игрок стреляет в городе вне PvP-зоны.
                         # d = {x, y, weapon, civilian: bool, witness: bool}
@@ -32259,17 +32357,16 @@ async def _coop_http_app():
                                 first_shot = (int(p.get('_wanted') or 0) < 1)
                                 civilian = bool(d.get('civilian') if isinstance(d, dict) else False)
                                 witness_npc = bool(d.get('witness') if isinstance(d, dict) else False)
-                                # Свидетели на стороне сервера: копы и другие игроки
-                                SIGHT_R2 = 14.0 * 14.0
+                                # Свидетели на стороне сервера: accepted poses, FOV, legacy map LOS.
+                                # Native mesh/height occlusion is not available in this backend.
+                                witness_now = time.time()
                                 cop_sees = any(
-                                    c.get('alive') and ((c['x'] - px) ** 2 + (c['y'] - py) ** 2) <= SIGHT_R2
+                                    c.get('alive') and _world_observer_sees(c, p, 14.0, witness_now)
                                     for c in world.cops
                                 )
                                 player_sees = any(
-                                    (str(uid2) != str(uid)
-                                     and not pp.get('dead')
-                                     and (pp.get('_jail_until') or 0) <= time.time()
-                                     and ((pp.get('x', 0) - px) ** 2 + (pp.get('y', 0) - py) ** 2) <= SIGHT_R2)
+                                    str(uid2) != str(uid) and
+                                    _world_observer_sees(pp, p, 14.0, witness_now)
                                     for uid2, pp in world.players.items()
                                 )
                                 has_witness = (near_station or civilian
@@ -32376,7 +32473,7 @@ async def _coop_http_app():
                         if p and not p.get('dead') and p.get('_mode') != 'pve':
                             px = p.get('x', 0); py = p.get('y', 0)
                             reply = world.civilian_hijack_start(
-                                uid, d.get('model'), d.get('paint'))
+                                uid, d.get('model'), d.get('paint'), d.get('carPose'))
                             # Персональный ответ — клиент по нему сетит myDrivingCarId
                             try:
                                 await ws.send_str(json.dumps(
@@ -32396,6 +32493,7 @@ async def _coop_http_app():
                                     'civilian': True,
                                     'by_uid':   uid,
                                     'x':        reply['x'], 'y': reply['y'],
+                                    'ang':      reply['ang'],
                                 }}, ensure_ascii=False)
                                 for _u2, _ws2 in list(world.connections.items()):
                                     try: await _ws2.send_str(spawn_pkt)
@@ -33648,6 +33746,29 @@ async def _coop_http_app():
                         try:
                             await ws.send_str(json.dumps({'t': 'event', 'd': dict(reply, kind='npc_robbery_resolve_reply')}, ensure_ascii=False))
                         except Exception: pass
+                    elif t == 'police_convoy':
+                        body = d if isinstance(d, dict) else {}
+                        reply = police_convoy.action(world, uid, body, time.time(), _world_los, _world_is_wall)
+                        if reply.get('ok') and reply.get('phase') == 'booked':
+                            record = world._police_convoys.get(str(uid))
+                            jail_until = int(record.setdefault('jail_until', int(record['ended_at']) + 60))
+                            if not record.get('booking_persisted'):
+                                prisoner = world.players.get(uid)
+                                prisoner.update(_jail_until=jail_until, _jail_released=False, _wanted=0., _cop_kills=0)
+                                await update_character(int(uid), wanted_stars=0, jail_until=jail_until)
+                                healed = await world._persist_body_or_harness(uid, int(prisoner.get('max_hp') or 100))
+                                if healed:world._mirror_combat_state(prisoner, healed)
+                                record['booking_persisted']=True
+                            reply['jail_s']=max(0,jail_until-int(time.time()))
+                        if not reply.get('ok') or reply.get('stopped'):
+                            record = police_convoy.active(world, uid)
+                            if record: reply.update(x=record.get('prisoner_x',record['x']) if body.get('action')=='escort' else record['x'], y=record.get('prisoner_y',record['y']) if body.get('action')=='escort' else record['y'], ang=record['ang'])
+                        packet = {'t':'event','d':dict(reply,kind='police_convoy_reply',action=str(body.get('action') or ''))}
+                        await ws.send_str(json.dumps(packet,ensure_ascii=False))
+                        if reply.get('ok') and reply.get('phase') == 'rescued' and not reply.get('replayed'):
+                            target_ws = world.connections.get(str(reply.get('target_uid')))
+                            if target_ws and target_ws is not ws:
+                                await target_ws.send_str(json.dumps(packet,ensure_ascii=False))
                     elif t == 'citycop_arrest':
                         # NPC-патрульный (cityCop, чисто клиентский фоновый коп)
                         # схватил игрока. Серверу шлётся факт ареста, сервер
@@ -33669,6 +33790,8 @@ async def _coop_http_app():
                         reply = {'ok': False, 'reason': 'unknown'}
                         if not p or p.get('dead'):
                             reply = {'ok': False, 'reason': 'dead'}
+                        elif police_convoy.active(world,uid) and (booking or (not arrest_body.get('response_vehicle') and not arrest_body.get('capture'))):
+                            reply = {'ok':False,'reason':'requires_convoy_booking'}
                         elif (p.get('_jail_until') or 0) > time.time() and not booking:
                             reply = {'ok': False, 'reason': 'already_jailed'}
                         elif booking and (p.get('_jail_until') or 0) <= time.time():
@@ -33695,6 +33818,14 @@ async def _coop_http_app():
                                         ensure_ascii=False))
                                 except Exception:
                                     pass
+                                continue
+                            if arrest_body.get('capture') and not booking:
+                                reply = police_convoy.capture(world, uid, arrest_body, contact, time.time())
+                                await ws.send_str(json.dumps({'t':'event','d':dict(reply,kind='citycop_arrest_reply',staged=True)},ensure_ascii=False))
+                                continue
+                            if arrest_body.get('response_vehicle') and not booking:
+                                reply = police_convoy.begin(world, uid, arrest_body, contact, time.time(), _world_los, _world_is_wall)
+                                await ws.send_str(json.dumps({'t':'event','d':dict(reply,kind='citycop_arrest_reply',staged=True)},ensure_ascii=False))
                                 continue
                             now_ts = int(time.time())
                             p['_jail_until']    = now_ts + CITYCOP_JAIL_S
@@ -35105,6 +35236,7 @@ async def _coop_http_app():
     aio_app.router.add_post('/skill/{uid}/upgrade', h_skill_upgrade)
     aio_app.router.add_post('/safe/{uid}/loot',     h_safe_loot)
     aio_app.router.add_post('/auth/world/{uid}',    h_world_auth)
+    aio_app.router.add_post('/world/interior-safes/{uid}', h_native_interior_safes)
     aio_app.router.add_post('/world/loot/{uid}',    h_world_loot)
     aio_app.router.add_get ('/world/sim',           h_world_ws)  # общий мир
     aio_app.router.add_get ('/world/online',        h_world_online)  # для баннера в Кооперативе

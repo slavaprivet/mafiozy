@@ -5,20 +5,32 @@ export function createBlastResponse(T,scene,{getHero,getVehicles,getRoots,getGla
  const queue=[],scorch=createBlastScorch(T,scene);let sequence=0,total=0,last=null;
  // Cover rays run once for the hero and for every candidate vehicle in a
  // blast. They are synchronous, so these scratch values cannot escape a cast.
- const coverFrom=new T.Vector3(),coverTo=new T.Vector3(),coverRay=new T.Raycaster();
+ const coverFrom=new T.Vector3(),coverTo=new T.Vector3(),coverRay=new T.Raycaster(),coverHits=[];
  function enqueue(event){if(!event?.point||!Number.isFinite(event.power??1))return;queue.push({...event,point:new T.Vector3(event.point.x,event.point.y??0,event.point.z),power:Math.max(.05,Math.min(4,event.power??1)),radius:Math.max(1,Math.min(24,event.radius??10)),id:++sequence});if(queue.length>16)queue.shift()}
  function transmission(from,to,roots){
   coverFrom.set(from.x,from.y??0,from.z);coverTo.set(to.x,to.y??0,to.z);const length=coverFrom.distanceTo(coverTo);if(length<.1)return 1;
   coverRay.set(coverFrom,coverTo.sub(coverFrom).normalize());coverRay.near=.08;coverRay.far=Math.max(.08,length-.2);
-  const hit=coverRay.intersectObjects(roots,true).find(h=>{for(let n=h.object;n;n=n.parent)if(!n.visible)return false;const mats=Array.isArray(h.object.material)?h.object.material:[h.object.material];return mats.some(m=>m&&!m.transparent&&!(m.transmission>0))});return hit?.object?0:1;
+  // Raycaster sorts this caller-owned list exactly as its allocated return
+  // value.  A full vehicle blast can cast many cover rays, so retain that
+  // ordering while avoiding one short-lived array per hero/car admission.
+  coverHits.length=0;coverRay.intersectObjects(roots,true,coverHits);
+  for(const h of coverHits){let isVisible=true;for(let n=h.object;n;n=n.parent)if(!n.visible){isVisible=false;break}if(!isVisible)continue;const mats=Array.isArray(h.object.material)?h.object.material:[h.object.material];if(mats.some(m=>m&&!m.transparent&&!(m.transmission>0)))return 0}return 1;
  }
  function update(){
   // Called every render frame. When no explosion is queued, scene traversal,
   // scorch state and gameplay callbacks are all intentionally dormant.
   if(!queue.length)return;
   for(let count=0;queue.length&&count<4;count++){
-   const event=queue.shift(),vehicles=getVehicles().filter(v=>v?.car),roots=getRoots();scene.updateMatrixWorld(true);
-   const hero=getHero(),coverRoots=[...roots,...vehicles.filter(v=>v.car!==event.source).map(v=>v.car.object)];
+   const event=queue.shift(),vehicles=getVehicles().filter(v=>v?.car),roots=getRoots();
+   // Blast rays and surface effects only touch static blast roots and live
+   // vehicles.  Walking the entire scene here also visited NPCs, HUD and
+   // unrelated effects once per queued blast, which is especially expensive
+   // during multi-car destruction.  Keep every queried matrix current without
+   // changing the exact raycast set.
+   const hero=getHero(),matrixRoots=new Set([...roots,...vehicles.map(v=>v.car.object)]);
+   for(const root of matrixRoots)root?.updateWorldMatrix?.(true,true);
+   hero?.object?.updateWorldMatrix?.(true,true);
+   const coverRoots=[...roots,...vehicles.filter(v=>v.car!==event.source).map(v=>v.car.object)];
    if(hero){const p=hero.object.position,body={x:p.x,y:p.y,z:p.z,groundY:groundHeight(p.x,p.z)};
     const exposure=transmission(event.point,{x:p.x,y:p.y+.9,z:p.z},coverRoots);
     onHeroExposure(event,{distance:p.distanceTo(event.point),transmission:exposure});

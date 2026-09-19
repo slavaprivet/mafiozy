@@ -1,6 +1,7 @@
 // Presentation only. Source world remains the owner of money, health and membership.
 export const WALK_PLAYER_HUD_CSS = `
 .mfz-player-hud{position:absolute;top:16px;left:18px;z-index:42;width:min(294px,calc(100vw - 36px));color:#e9e4d8;font:12px/1.25 system-ui,sans-serif;pointer-events:auto;filter:drop-shadow(0 10px 20px #0008)}
+.mfz-player-hud[data-collapsed=true]{width:auto}.mfz-dossier-launcher{padding:6px 9px;border:1px solid #807359;border-radius:5px;background:#202629e8;color:#e9e4d8}
 .mfz-player-hud *{box-sizing:border-box}.mfz-player-hud [hidden]{display:none!important}.mfz-player-hud button{font:inherit;color:inherit;cursor:pointer}.mfz-player-hud button:disabled{cursor:default;opacity:.58}.mfz-player-hud button:focus-visible{outline:2px solid #f0cf83;outline-offset:2px}.mfz-player-hud button:hover:not(:disabled){border-color:#d5b678;filter:brightness(1.13)}
 .mfz-dossier{border:1px solid #8d7953;border-radius:9px;overflow:hidden;background:linear-gradient(120deg,#303336f7,#15191cf7 75%);box-shadow:inset 0 1px #ede4cd20,inset 0 -3px #080b0d}
 .mfz-dossier-header{display:flex;justify-content:space-between;align-items:center;padding:9px 11px 7px;border-bottom:1px solid #b3945f30;background:linear-gradient(90deg,#413a2e88,#151b1e88)}.mfz-dossier-brand{font-size:9px;font-weight:800;letter-spacing:.16em;color:#ccb98e}.mfz-dossier-toggle{width:24px;height:21px;border:1px solid #807359;border-radius:4px;background:#282d30;font-size:16px!important;line-height:15px!important}
@@ -10,6 +11,10 @@ export const WALK_PLAYER_HUD_CSS = `
 @media(max-width:760px){.mfz-player-hud{top:8px;left:8px;width:260px}.mfz-dossier-body{max-height:calc(100dvh - 241px)}.mfz-dossier-identity{grid-template-columns:62px minmax(0,1fr);gap:8px}.mfz-dossier-portrait{width:62px;height:84px}.mfz-dossier-name{font-size:15px}}
 @media(prefers-reduced-motion:reduce){.mfz-dossier-health-fill{transition:none}}
 .mfz-dossier-wallet{flex-wrap:wrap}.mfz-dossier-money{min-width:0;max-width:calc(100% - 22px);overflow-wrap:anywhere;white-space:normal;font-size:11px}.mfz-dossier-member-role{padding:0 9px 7px;font-size:10px;color:#b4ceb9;overflow-wrap:anywhere}.mfz-dossier-count{max-width:110px;overflow-wrap:anywhere}.mfz-dossier-section-title{white-space:normal;overflow-wrap:anywhere}
+.mfz-dossier-person{flex-basis:96px;align-self:stretch;display:grid;grid-template-rows:60px auto;align-content:start}
+.mfz-dossier-person-portrait{grid-row:1;position:relative;inset:auto;height:60px;min-height:0;min-width:0;overflow:hidden}
+.mfz-dossier-person-portrait img,.mfz-dossier-person-portrait canvas{display:block;position:static;inset:auto;min-width:0;min-height:0;width:100%;height:60px;max-height:60px;object-fit:contain}
+.mfz-dossier-person-name{grid-row:2;position:relative;inset:auto;max-width:none;min-height:2.7em;padding:6px 5px;overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:anywhere;font-size:12px;line-height:1.35;font-weight:650;color:#f0e8d7;background:#192024}
 `;
 
 const ICONS = {
@@ -47,18 +52,33 @@ export function safeHudPortraitUrl(value) {
  if (typeof value !== 'string' || /[\u0000-\u001f]/.test(value)) return null;
  return /^(?:data:image\/(?:png|webp|jpeg);base64,|blob:|\/(?!\/)|\.\.?\/|https?:\/\/)/i.test(value) ? value : null;
 }
-export function createWalkPlayerHud({document: doc = globalThis.document, host, onAction = () => {}} = {}) {
+export function createWalkPlayerHud({document: doc = globalThis.document, host, onAction = () => {}, onOpenChange = () => {}, isBlocked = () => false} = {}) {
  if (!doc?.createElement || !host) throw new Error('Player HUD requires document and host');
- let disposed = false, snapshot = {available: false}, collapsed = false, portraitUrl = null;
+ let disposed = false, snapshot = {available: false}, collapsed = true, portraitUrl = null;
+ host.dataset.hudRevision='mercenary-click-20260913';
+ for(const eventName of ['pointerdown','pointerup','click'])host.addEventListener(eventName,event=>{host.dataset.lastPointer=JSON.stringify({type:eventName,target:event.target?.tagName,action:event.target?.closest?.('[data-action]')?.dataset.action});},true);
  const rosterUrls = new Map(), cards = new Map(), buttons = [];
+ // Source snapshots still refresh at the same cadence, including while hidden.
+ // Avoid touching DOM for equal values: textContent replaces text nodes even
+ // when its text is unchanged, and reflected properties can emit mutations.
+ const setValue=(node,key,value)=>{if(node[key]!==value)node[key]=value;};
+ const setAttribute=(node,key,value)=>{if(node.getAttribute(key)!==value)node.setAttribute(key,value);};
+ const removeAttribute=(node,key)=>{if(node.getAttribute(key)!=null)node.removeAttribute(key);};
  const el = (tag, cls, value) => {const node = doc.createElement(tag); if (cls) node.className = cls; if (value !== undefined) node.textContent = value; return node;};
  const icon = name => {const svg = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');svg.setAttribute('viewBox','0 0 32 32');svg.setAttribute('class','mfz-dossier-icon');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');for (const [i,d] of (ICONS[name] || ICONS.portrait).entries()) {const path = doc.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);path.setAttribute('fill',i ? 'none' : '#a98b53');path.setAttribute('stroke',i ? '#ebd5a5' : '#e0c18a');path.setAttribute('stroke-width',i ? '1.3' : '.8');path.setAttribute('stroke-linejoin','round');svg.append(path);}return svg;};
  const permitted = action => snapshot.available === true && snapshot.actions?.[action] === true;
- const button = (action,label,cls='mfz-dossier-button',payload) => {const node=el('button',cls);node.type='button';node.dataset.action=action;node.setAttribute('aria-label',label);node.addEventListener('click',()=>{if(!disposed&&permitted(action))onAction(action,payload);});buttons.push({node,action});return node;};
+ const button = (action,label,cls='mfz-dossier-button',payload) => {const node=el('button',cls);node.type='button';node.dataset.action=action;node.setAttribute('aria-label',label);node.addEventListener('click',()=>{node.dataset.lastAction=String(!disposed&&permitted(action));if(!disposed&&permitted(action))onAction(action,payload);});buttons.push({node,action});return node;};
  const style=el('style');style.textContent=WALK_PLAYER_HUD_CSS;doc.head.append(style);
  host.classList.add('mfz-player-hud');host.dataset.walkUi='player-hud';host.setAttribute('aria-label','Личное дело игрока');
  const shell=el('section','mfz-dossier'),header=el('div','mfz-dossier-header'),brand=el('span','mfz-dossier-brand','MAFIOZI / ЛИЧНОЕ ДЕЛО'),toggle=el('button','mfz-dossier-toggle','−'),body=el('div','mfz-dossier-body');
- toggle.type='button';toggle.setAttribute('aria-label','Свернуть личное дело');toggle.setAttribute('aria-expanded','true');toggle.addEventListener('click',()=>{if(disposed)return;collapsed=!collapsed;body.hidden=collapsed;toggle.textContent=collapsed?'+':'−';toggle.setAttribute('aria-expanded',String(!collapsed));toggle.setAttribute('aria-label',collapsed?'Развернуть личное дело':'Свернуть личное дело');});header.append(brand,toggle);shell.append(header,body);host.replaceChildren(shell);
+ const launcher=el('button','mfz-dossier-launcher','Личное дело · TAB');launcher.type='button';launcher.setAttribute('aria-label','Открыть личное дело — TAB');
+ function setCollapsed(value){if(disposed)return;const changed=collapsed!==value;collapsed=value;shell.hidden=collapsed;body.hidden=collapsed;launcher.hidden=!collapsed;host.dataset.collapsed=String(collapsed);toggle.setAttribute('aria-expanded',String(!collapsed));launcher.setAttribute('aria-expanded',String(!collapsed));toggle.setAttribute('aria-label','Закрыть личное дело — TAB');if(changed){onOpenChange(!collapsed);(collapsed?launcher:toggle).focus?.();}}
+ toggle.type='button';toggle.addEventListener('click',()=>setCollapsed(true));launcher.addEventListener('click',()=>setCollapsed(false));header.append(brand,toggle);shell.append(header,body);host.replaceChildren(launcher,shell);setCollapsed(true);
+ const editable=node=>node?.isContentEditable||/^(INPUT|SELECT|TEXTAREA)$/.test(node?.tagName||'')||node?.getAttribute?.('contenteditable')==='true'||node?.getAttribute?.('contenteditable')==='';
+ function modalOpen(){for(const root of new Set([doc,host.getRootNode?.()]))for(const node of root?.querySelectorAll?.('[aria-modal="true"],dialog[open]')||[]){let hidden=false;for(let n=node;n;n=n.parentElement||n.getRootNode?.()?.host){const css=doc.defaultView?.getComputedStyle?.(n);if(n.hidden||n.getAttribute?.('aria-hidden')==='true'||n.style?.display==='none'||n.style?.visibility==='hidden'||css?.display==='none'||css?.visibility==='hidden'||css?.visibility==='collapse'){hidden=true;break;}}if(!hidden&&(!node.getClientRects||node.getClientRects().length))return true;}return false;}
+ function onTab(event){if(disposed||event.defaultPrevented||(event.key!=='Tab'&&event.code!=='Tab')||event.repeat||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||isBlocked())return;const path=event.composedPath?.()||[event.target];if(path.some(editable)||editable(doc.activeElement)||modalOpen())return;event.preventDefault();event.stopPropagation();setCollapsed(!collapsed);}
+ // Handle the game shortcut before focused HUD controls consume bubbling keys.
+ doc.addEventListener?.('keydown',onTab,true);
  const nav=el('nav','mfz-dossier-nav');nav.setAttribute('aria-label','Игровое меню');for(const [action,label] of [['menu','Меню'],['newspaper','Газета']]){const node=button(action,label,'mfz-dossier-button'+(action==='newspaper'?' mfz-dossier-button--gold':''));node.append(icon(action),el('span','',label));nav.append(node);}body.append(nav);
  const identity=el('div','mfz-dossier-identity'),portrait=button('profile','Открыть профиль игрока','mfz-dossier-portrait'),info=el('div'),name=el('b','mfz-dossier-name'),rank=el('span','mfz-dossier-rank'),healthHeading=el('div','mfz-dossier-health-heading'),hpLabel=el('b'),bar=el('div','mfz-dossier-health'),fill=el('div','mfz-dossier-health-fill'),wallet=el('div','mfz-dossier-wallet'),money=el('span','mfz-dossier-money'),clock=el('span','mfz-dossier-time');
  portrait.append(icon('portrait'));healthHeading.append(el('span','','ЗДОРОВЬЕ'),hpLabel);bar.setAttribute('role','progressbar');bar.setAttribute('aria-label','Здоровье');bar.append(fill);wallet.append(icon('coin'),money,clock);info.append(name,rank,healthHeading,bar,wallet);identity.append(portrait,info);body.append(identity);
@@ -93,27 +113,27 @@ export function createWalkPlayerHud({document: doc = globalThis.document, host, 
   // Keep the bounded ready-portrait cache through transient unavailable/empty snapshots.
   // The controller does not resend an unchanged image when the card reappears.
   for(const [key,card] of cards)if(card.kind===kind&&!seen.has(key)){card.node.remove();cards.delete(key);const index=buttons.findIndex(entry=>entry.node===card.node);if(index>=0)buttons.splice(index,1)}
-  container.hidden=!seen.size;return seen.size;
+  setValue(container,'hidden',!seen.size);return seen.size;
  };
  const setState=next=>{
   if(disposed)return;snapshot=next?.available===true?next:{available:false};
   const player=snapshot.player||{},group=snapshot.gang||{},currentStatus=snapshot.status||{},health=playerHudHealth(player.hp,player.maxHp);
-  host.dataset.available=String(snapshot.available===true);name.textContent=text(player.name);rank.textContent='УРОВЕНЬ '+text(player.level);portrait.setAttribute('aria-label','Открыть профиль: '+text(player.name));
-  hpLabel.textContent=health.label;fill.style.width=health.percent+'%';bar.dataset.unknown=String(!health.known);bar.setAttribute('aria-valuetext',health.known?health.label:'Нет данных');
-  if(health.known){bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',String(player.maxHp));bar.setAttribute('aria-valuenow',String(Math.max(0,Math.min(Number(player.maxHp),Number(player.hp)))))}else{bar.removeAttribute('aria-valuemin');bar.removeAttribute('aria-valuemax');bar.removeAttribute('aria-valuenow')}
-  money.textContent=playerHudMoney(player.money);money.title=money.textContent==='—'?'Деньги (доллары): нет данных':'Деньги (доллары): '+money.textContent;money.setAttribute('aria-label',money.title);money.setAttribute('aria-live','polite');money.setAttribute('aria-atomic','true');
-  clock.textContent=text(player.timeLabel);clock.title='Игровое время';modeLabel.textContent=text(player.mode);
-  empires.badge.textContent=text(snapshot.empires?.count);empires.trigger.setAttribute('aria-label','Империи города: '+text(snapshot.empires?.count));
-  const role=playerHudRole(group.role,group.isLeader),gangName=group.name||'Моя банда';gang.heading.textContent=gangName;gang.badge.textContent=text(group.countLabel);gang.badge.title=[gangName,role].filter(Boolean).join(' · ');
-  gangRole.textContent=[role,group.canManage===true?'Управление бандой':null].filter(Boolean).join(' · ');gangRole.hidden=!gangRole.textContent;
-  gang.section.dataset.kind=String(group.kind||'none');gang.section.dataset.leader=String(group.isLeader===true);gang.trigger.setAttribute('aria-label',[gangName,role,group.countLabel].filter(Boolean).join(' · '));memberStrip.setAttribute('aria-label','Состав банды: '+gangName);
-  const members=updateCards(memberStrip,group.members,'member');gangEmpty.hidden=members>0;gangEmpty.textContent=snapshot.available===true?(group.name?'Бойцов пока нет':'Не состоите в банде'):'Состав банды: нет данных';updateCards(bossStrip,snapshot.empires?.bosses,'boss');
-  status.heading.textContent=text(currentStatus.label||currentStatus.title);status.badge.textContent=currentStatus.badge==null?'':String(currentStatus.badge);status.badge.hidden=status.badge.textContent==='';status.badge.title=status.badge.textContent;
-  const statusRole=playerHudRole(currentStatus.role);detail.textContent=[statusRole&&statusRole!==status.heading.textContent?statusRole:null,currentStatus.detail||'Роли, вступление и бонусы'].filter(Boolean).join(' · ');status.section.dataset.kind=String(currentStatus.kind||'unknown');status.trigger.setAttribute('aria-label',['Статус: '+status.heading.textContent,statusRole,status.badge.textContent].filter(Boolean).join(' · '));
-  source.hidden=snapshot.available===true;source.textContent='Данные игрока доступны после подключения к основному миру.';
-  for(const entry of buttons){entry.node.disabled=!permitted(entry.action);entry.node.title=entry.node.disabled?'Недоступно: требуется подключение игровой системы':entry.node.getAttribute('aria-label')||''}
+  setValue(host.dataset,'available',String(snapshot.available===true));setValue(name,'textContent',text(player.name));setValue(rank,'textContent','УРОВЕНЬ '+text(player.level));setAttribute(portrait,'aria-label','Открыть профиль: '+text(player.name));
+  setValue(hpLabel,'textContent',health.label);setValue(fill.style,'width',health.percent+'%');setValue(bar.dataset,'unknown',String(!health.known));setAttribute(bar,'aria-valuetext',health.known?health.label:'Нет данных');
+  if(health.known){setAttribute(bar,'aria-valuemin','0');setAttribute(bar,'aria-valuemax',String(player.maxHp));setAttribute(bar,'aria-valuenow',String(Math.max(0,Math.min(Number(player.maxHp),Number(player.hp)))))}else{removeAttribute(bar,'aria-valuemin');removeAttribute(bar,'aria-valuemax');removeAttribute(bar,'aria-valuenow')}
+  setValue(money,'textContent',playerHudMoney(player.money));setValue(money,'title',money.textContent==='—'?'Деньги (доллары): нет данных':'Деньги (доллары): '+money.textContent);setAttribute(money,'aria-label',money.title);setAttribute(money,'aria-live','polite');setAttribute(money,'aria-atomic','true');
+  setValue(clock,'textContent',text(player.timeLabel));setValue(clock,'title','Игровое время');setValue(modeLabel,'textContent',text(player.mode));
+  setValue(empires.badge,'textContent',text(snapshot.empires?.count));setAttribute(empires.trigger,'aria-label','Империи города: '+text(snapshot.empires?.count));
+  const role=playerHudRole(group.role,group.isLeader),gangName=group.name||'Моя банда';setValue(gang.heading,'textContent',gangName);setValue(gang.badge,'textContent',text(group.countLabel));setValue(gang.badge,'title',[gangName,role].filter(Boolean).join(' · '));
+  setValue(gangRole,'textContent',[role,group.canManage===true?'Управление бандой':null].filter(Boolean).join(' · '));setValue(gangRole,'hidden',!gangRole.textContent);
+  setValue(gang.section.dataset,'kind',String(group.kind||'none'));setValue(gang.section.dataset,'leader',String(group.isLeader===true));setAttribute(gang.trigger,'aria-label',[gangName,role,group.countLabel].filter(Boolean).join(' · '));setAttribute(memberStrip,'aria-label','Состав банды: '+gangName);
+  const members=updateCards(memberStrip,group.members,'member');setValue(gangEmpty,'hidden',members>0);setValue(gangEmpty,'textContent',snapshot.available===true?(group.name?'Бойцов пока нет':'Не состоите в банде'):'Состав банды: нет данных');updateCards(bossStrip,snapshot.empires?.bosses,'boss');
+  setValue(status.heading,'textContent',text(currentStatus.label||currentStatus.title));setValue(status.badge,'textContent',currentStatus.badge==null?'':String(currentStatus.badge));setValue(status.badge,'hidden',status.badge.textContent==='');setValue(status.badge,'title',status.badge.textContent);
+  const statusRole=playerHudRole(currentStatus.role);setValue(detail,'textContent',[statusRole&&statusRole!==status.heading.textContent?statusRole:null,currentStatus.detail||'Роли, вступление и бонусы'].filter(Boolean).join(' · '));setValue(status.section.dataset,'kind',String(currentStatus.kind||'unknown'));setAttribute(status.trigger,'aria-label',['Статус: '+status.heading.textContent,statusRole,status.badge.textContent].filter(Boolean).join(' · '));
+  setValue(source,'hidden',snapshot.available===true);setValue(source,'textContent','Данные игрока доступны после подключения к основному миру.');
+  for(const entry of buttons){setValue(entry.node,'disabled',!permitted(entry.action));setValue(entry.node,'title',entry.node.disabled?'Недоступно: требуется подключение игровой системы':entry.node.getAttribute('aria-label')||'')}
  };
  const setPortrait=url=>{if(disposed)return;const next=safeHudPortraitUrl(url);if(next===portraitUrl&&portrait.children.length)return;portraitUrl=next;showPortrait(portrait,next,'Ваш персонаж — текущий внешний вид');};
  const setRosterPortrait=(id,url)=>{if(disposed)return;const key=String(id),safe=safeHudPortraitUrl(url);if(safe)rosterUrls.set(key,safe);else rosterUrls.delete(key);for(const [cardKey,card] of cards){const matches=cardKey===key||key===card.kind+':'+card.id||!key.includes(':')&&card.id===key;if(matches&&card.url!==safe){card.url=safe;showPortrait(card.image,safe,card.label.textContent)}}while(rosterUrls.size>144)rosterUrls.delete(rosterUrls.keys().next().value)};
- setState({available:false});return {host,setState,setPortrait,setRosterPortrait,dispose(){if(disposed)return;disposed=true;cards.clear();rosterUrls.clear();buttons.length=0;host.replaceChildren();host.classList.remove('mfz-player-hud');delete host.dataset.walkUi;delete host.dataset.available;host.removeAttribute('aria-label');style.remove();}};
+ setState({available:false});return {host,setState,setPortrait,setRosterPortrait,dispose(){if(disposed)return;disposed=true;doc.removeEventListener?.('keydown',onTab,true);cards.clear();rosterUrls.clear();buttons.length=0;host.replaceChildren();host.classList.remove('mfz-player-hud');delete host.dataset.walkUi;delete host.dataset.available;delete host.dataset.collapsed;host.removeAttribute('aria-label');style.remove();}};
 }

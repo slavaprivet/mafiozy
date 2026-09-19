@@ -6,8 +6,9 @@ vm.createContext(c);vm.runInContext(s.slice(s.indexOf('let _npcRouteWorkFrame=')
 const actors=Array.from({length:12},(_,i)=>({id:(i%3===0?'police_':'resident_')+i,r:2.5,c:2.5,grants:0}));
 for(let frame=0;frame<100;frame++){
  now=1000+frame*33;c.prevT=now;const start=now;let grants=0;
- for(const n of actors){const granted=n.id.startsWith('police')?c._reservePoliceFootRoute(now,n):c._npcReserveRouteWork(now,n);if(granted){n.grants++;grants++;now+=2;}}
- assert.ok(grants<=2&&now-start<=4,'fairness cannot increase frame quota');
+ for(const n of actors){const granted=n.id.startsWith('police')?c._reservePoliceFootRoute(now,n):c._npcReserveRouteWork(now,n);if(granted){n.grants++;grants++;now+=2;c._npcFinishRouteWork();}}
+ assert.ok(grants<=8&&now-start<=4,'eight admissions remain inside the same 4 ms work quota');
+ assert.ok(grants<=2,'2 ms jobs exhaust CPU quota after two admissions even with eight slots');
 }
 assert.ok(actors.every(n=>n.grants>=8),JSON.stringify(actors.map(n=>({id:n.id,grants:n.grants}))));
 // Actual directed searches resume over many slices; never publish a partial destination.
@@ -21,9 +22,18 @@ assert.ok(s.includes("npc._buildingVisitCooldownUntil=now+(npc._routeSearchPendi
 // An abandoned FIFO head may block one transition frame, never all later frames.
 vm.runInContext('_npcRouteWorkQueue.clear();',c);now=100000;c.prevT=now;
 const abandoned={id:'gone'},active={id:'still_here'};
-c._npcReserveRouteWork(now,{id:'consume1'});c._npcReserveRouteWork(now,{id:'consume2'});
+assert(c._npcReserveRouteWork(now,{id:'consume-budget'}));now+=4;c._npcFinishRouteWork();
+assert.equal(vm.runInContext('_npcRouteWorkUsedMs',c),4,'exhaust actual CPU quota, not two zero-cost calls');
 assert.equal(c._npcReserveRouteWork(now,abandoned),false);assert.equal(c._npcReserveRouteWork(now,active),false);
 let resumed=false;for(let frame=1;frame<=3;frame++){now=100000+frame*33;c.prevT=now;if(c._npcReserveRouteWork(now,active))resumed=true;}
 assert.ok(resumed,'abandoned actor cannot hold head for seconds');
+// A head killed after this frame's cleanup cannot block a later actor in the
+// same frame. Full stale-queue cleanup need not run for every caller.
+vm.runInContext('_npcRouteWorkQueue.clear();',c);now+=100;c.prevT=now;
+c._npcReserveRouteWork(now,{id:'first-slot'});
+const deadHead={id:'killed-between-turns',dead:true},survivor={id:'live-next'};
+c.deadHead=deadHead;c.survivor=survivor;
+vm.runInContext('_npcRouteWorkQueue.set(deadHead,_npcRouteWorkEpoch);_npcRouteWorkQueue.set(survivor,_npcRouteWorkEpoch);',c);
+assert.equal(c._npcReserveRouteWork(now,survivor),true,'same-frame dead head must release the second slot');
 assert.ok(s.includes("npc.idleUntil=0;return false;} // Keep the same door search"));
-console.log('PASS FIFO 12 mixed police/residents all served under same4ms/2slots;8 exact door searches resume to completion');
+console.log('PASS oldest-cohort fairness: 12 mixed police/residents served under same 4 ms / max 8 slots; CPU-heavy jobs stay at 2 admissions; 8 exact door searches resume to completion');

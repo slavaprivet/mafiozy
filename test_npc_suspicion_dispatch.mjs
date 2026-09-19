@@ -1,0 +1,22 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+const text=fs.readFileSync('world.html','utf8').replace(/\r\n/g,'\n');function fn(n){const a=text.indexOf(`function ${n}(`);return text.slice(a,text.indexOf('\n}',a)+2);}
+let now=10000;const sent=[],moves=[];const e={performance:{now:()=>now},Math,Number,String,Map,_LOCAL_PREVIEW:false,NPCS:[],cityCops:[],myWanted:0,_murderPoliceArrest:null,_copChats:new Map(),document:{documentElement:{dataset:{}}},_npcWitnessAble:n=>!n.dead,ws:{readyState:1,send:s=>sent.push(JSON.parse(s))},_moveMurderResponseCop:(...a)=>moves.push(a)};
+vm.createContext(e);vm.runInContext('let _npcSuspicionSerial=0;const _npcPendingSuspicion=new Map();',e);
+for(const n of ['_npcDispatchSuspicion','_npcUpdateSuspicionCop','_npcReportSuspicion','_npcReceiveSuspicionReport'])vm.runInContext(fn(n),e);
+const caller=()=>({id:'resident_3',r:2,c:2,snitching:true,_witnessStage:'calling',_witnessReportKind:'weapon_display',_witnessSourceR:3,_witnessSourceC:3});
+const n=caller();e.NPCS=[n];e.cityCops=[{id:'busy',alive:true,kind:'patrol',_pursuing:true,x:3,y:3},{id:'murder',alive:true,kind:'murder_response',x:3,y:3},{id:'available',alive:true,kind:'patrol',x:6,y:6}];
+assert.equal(e._npcReportSuspicion(n),false);assert.equal(sent.length,1);assert.equal(sent[0].t,'civilian_report');assert.equal(sent[0].d.report_kind,'weapon_display');
+assert.equal(e._npcReportSuspicion(n),false);assert.equal(sent.length,1,'ACK wait bounded retry');
+e._npcReceiveSuspicionReport({nonce:'not-ours',ok:true});assert.equal(e.cityCops[2]._civilianSuspicion,undefined);
+e._npcReceiveSuspicionReport({nonce:n._witnessReportNonce,ok:true,x:999,y:999});assert.equal(e._npcReportSuspicion(n),true);
+const cop=e.cityCops[2];assert.equal(cop._civilianSuspicion.r,3);assert.equal(cop._civilianSuspicion.c,3,'Exact remembered report coordinates, not packet arbitrary coords');assert.equal(cop._pursuing,undefined);
+assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),true);assert.equal(moves.length,1);assert.equal(moves[0][4],1);
+cop.x=cop.y=3;e._npcUpdateSuspicionCop(cop,.1,now);assert.equal(cop.walking,false);
+now+=5600;assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),false);assert.equal(cop._civilianSuspicion,undefined,'Back to patrol after observation');
+e._npcDispatchSuspicion(3,3,'heard_gunfire',now);e.myWanted=1;assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),false,'Actual crime preempts suspicion');e.myWanted=0;
+const interrupted=caller();e.NPCS=[interrupted];e._npcReportSuspicion(interrupted);interrupted.dead=true;e._npcReceiveSuspicionReport({nonce:interrupted._witnessReportNonce,ok:true});assert.equal(interrupted._witnessReportReceipt,undefined,'Interrupted caller cannot complete retrospectively');
+const replacementCall=caller();e.NPCS=[replacementCall];e._npcReportSuspicion(replacementCall);const previousNonce=replacementCall._witnessReportNonce;replacementCall._witnessReportNonce='newer_call_nonce';e._npcReceiveSuspicionReport({nonce:previousNonce,ok:true});assert.equal(replacementCall._witnessReportReceipt,undefined,'Previous call receipt cannot complete new call on same actor');
+e._LOCAL_PREVIEW=true;e.ws.readyState=3;const local=caller();e.NPCS=[local];assert.equal(e._npcReportSuspicion(local),true);assert.equal(local._witnessReportReceipt,'local-preview');assert.equal(sent.length,3,'Offline preview does not fabricate successful WS');
+assert.ok(text.includes("if(d?.kind==='civilian_report_reply'){_npcReceiveSuspicionReport(d);return;}"));
+const update=text.slice(text.indexOf('function updateCityCops('),text.indexOf('function updateCityCops(')+22000);assert.ok(update.indexOf('_npcUpdateSuspicionCop(cop,dt,now)')>update.indexOf("cop.kind==='murder_response'"));
+console.log('PASS typed suspicion ACK binding, local preview label, interrupted/offline/rate-limited calls, one free patrol, collision mover hook, observation then recovery, real crime preemption');

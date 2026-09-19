@@ -143,5 +143,5 @@ export function createWalkHudShell({document:doc=globalThis.document,onClose=()=
   if(ensureGangExpanded)ensureGangExpanded();else if(!roster.querySelector('.gr-dismiss')&&!roster.querySelector('.armor-equip'))roster.querySelector('.gr-head')?.click();
   doc.addEventListener('keydown',onKeydown,true);close.focus();return true;
  };
- refresh();return {openGang,closeGang,refresh,isGangOpen:()=>!!drawer,dispose(){if(disposed)return;observer?.disconnect();closeGang(false);disposed=true;for(const record of thumbnails.values())restoreThumbnail(record);thumbnails.clear();for(const[node,attrs]of attributes)for(const[name,value]of attrs)restoreAttribute(node,name,value);attributes.clear();restoreAttribute(root,'data-walk-player-hud',previousFlag);style.remove();}};
+ refresh();return {openGang,closeGang,refresh,isGangOpen:()=>!!drawer,dispose(){if(disposed)return;disposed=true;observer?.disconnect();closeGang(false);for(const record of thumbnails.values())restoreThumbnail(record);thumbnails.clear();for(const[node,attrs]of attributes)for(const[name,value]of attrs)restoreAttribute(node,name,value);attributes.clear();restoreAttribute(root,'data-walk-player-hud',previousFlag);style.remove();}};
 }

@@ -1,26 +1,22 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {Worker as NodeWorker} from 'node:worker_threads';
-import {createLandscapePlan} from './landscape_plan.mjs';
-import {createExplorationRailwayPlan} from './exploration_railway_plan.mjs';
 import {buildExplorationDecorPlan} from './exploration_decor_worker_core.mjs';
 import {explorationKeepouts} from './exploration_scene_support.mjs';
-import {planEnvironmentGrass} from './environment_grass_plan.mjs';
-import {createCityRoadDressingPlan} from './city_road_dressing_plan.mjs';
-import {createCityParkingPlan,replanCityParkingWalks} from './city_parking_plan.mjs';
 import {buildEnvironmentVisualPlans} from './environment_planning_worker_core.mjs';
 import {planEnvironmentVisualsAsync,ENVIRONMENT_PLANNING_TIMEOUT_MS} from './environment_planning_worker_client.mjs';
+import {planTowerPublicApproach} from './tower_public_approach.mjs';
 
 let tests=0;async function test(name,fn){await fn();tests++;console.log('PASS',name);}
 const read=n=>JSON.parse(fs.readFileSync(new URL(n,import.meta.url),'utf8'));
-const topology=read('./topology_for_placement.json'),instances=[...read('./buildings_placement.v1.json').instances,...read('./decor_placement.v1.json').instances],keepouts=explorationKeepouts(instances),landscape=createLandscapePlan(),railPlan=createExplorationRailwayPlan({landscape,topology}),decorPlan=buildExplorationDecorPlan({topology,instances,keepouts}),input={topology,instances,keepouts,decorPlan},before=JSON.stringify(input);
-const roadKeepouts=[...keepouts,...explorationKeepouts([{collision:{worldBodies:decorPlan.colliders||[]}}])];
-let parkingPlan=createCityParkingPlan({topology,instances,keepouts:roadKeepouts,railPlan});
-const {isRoad,paintSafe,safeSign,...roadPlan}=createCityRoadDressingPlan({topology,landscape,railPlan,keepouts:[...roadKeepouts,...parkingPlan.keepouts],accessKeepouts:parkingPlan.accessKeepouts,instances});
-parkingPlan=replanCityParkingWalks(parkingPlan,{topology,instances,keepouts:roadKeepouts,railPlan,extraBodies:[...roadPlan.colliders,...decorPlan.colliders]});
-const grassPlan=planEnvironmentGrass({topology,landscape,railPlan,keepouts:[...keepouts,...parkingPlan.keepouts],decorPlan}),expected={grassPlan,roadPlan,parkingPlan};
+const topology=read('./topology_for_placement.json'),instances=[...read('./buildings_placement.v1.json').instances,...read('./detention_native_sites.v1.json').instances,...read('./decor_placement.v1.json').instances],keepouts=explorationKeepouts(instances),decorPlan=buildExplorationDecorPlan({topology,instances,keepouts}),input={topology,instances,keepouts,decorPlan},before=JSON.stringify(input);
+const expected=buildEnvironmentVisualPlans(input),{grassPlan,roadPlan,parkingPlan}=expected;
+// CPU durations depend on the worker's scheduling; every geometry, path,
+// control, collision and coverage field must still match the main fallback.
+const semantic=value=>JSON.parse(JSON.stringify(value,(key,v)=>/Ms$/.test(key)?undefined:v));
 await test('pure worker core equals the current main-thread plans and does not mutate source',()=>{
-  const actual=buildEnvironmentVisualPlans(input);assert.deepEqual(actual,expected);assert.equal(JSON.stringify(input),before);assert.deepEqual(structuredClone(actual),actual);assert.ok(!('isRoad' in actual.roadPlan));assert.ok(!('paintSafe' in actual.roadPlan));assert.ok(!('safeSign' in actual.roadPlan));
+  assert.equal(roadPlan.serviceAccess.routes.length,3);assert.deepEqual(roadPlan.serviceAccess.issues,[]);
+  assert.equal(JSON.stringify(input),before);assert.deepEqual(structuredClone(expected),expected);assert.ok(!('isRoad' in roadPlan));assert.ok(!('paintSafe' in roadPlan));assert.ok(!('safeSign' in roadPlan));assert.ok(parkingPlan.walkingRoutes.some(r=>r.entryApproach?.kind==='tower_public_approach'),'the fixture must exercise the actual tower ramp contract');
 });
 
 const originalWorker=globalThis.Worker;let lastWorker;
@@ -38,7 +34,8 @@ let realResult;
 try{
   globalThis.Worker=BrowserNodeWorker;
   await test('real worker-thread executes the actual browser worker entry and clone-safe response',async()=>{
-    realResult=await planEnvironmentVisualsAsync(input);assert.deepEqual({grassPlan:realResult.grassPlan,roadPlan:realResult.roadPlan,parkingPlan:realResult.parkingPlan},expected);assert.equal(realResult.mode,'worker');assert.ok(realResult.workerMs>0);assert.equal(lastWorker.terminated,1);assert.equal(lastWorker.options.type,'module');assert.ok(String(lastWorker.url).endsWith('/environment_planning_worker.mjs'));
+    realResult=await planEnvironmentVisualsAsync(input);assert.deepEqual(semantic({grassPlan:realResult.grassPlan,roadPlan:realResult.roadPlan,parkingPlan:realResult.parkingPlan}),semantic(expected));assert.equal(realResult.mode,'worker');assert.ok(realResult.workerMs>0);assert.equal(lastWorker.terminated,1);assert.equal(lastWorker.options.type,'module');assert.ok(String(lastWorker.url).endsWith('/environment_planning_worker.mjs'));
+    if(process.env.MAFIOZI_WRITE_ROAD_SNAPSHOT==='1')fs.writeFileSync(new URL('../../../outputs/roads_logical_20260912/integration_candidate_snapshot.json',import.meta.url),JSON.stringify({createdAt:new Date().toISOString(),stage:'Actual browser worker client payload, semantic parity with main fallback',buildings:[...read('./buildings_placement.v1.json').instances,...read('./detention_native_sites.v1.json').instances],authoredDecor:read('./decor_placement.v1.json').instances,decorPlan,roadPlan:realResult.roadPlan,parkingPlan:realResult.parkingPlan}));
   });
   await test('real worker errors reject and terminate instead of doing hidden main-thread work',async()=>{
     await assert.rejects(planEnvironmentVisualsAsync({topology:null}),/roadMask|topology|grid/i);assert.equal(lastWorker.terminated,1);
@@ -59,6 +56,11 @@ try{
   await test('only plain instance records and relevant decor colliders are cloned to worker',async()=>{
     behavior=(w,d)=>queueMicrotask(()=>success(w,d.id));const raw={id:'building',assetId:'hospital',role:'public',entry:{anchorRC:{r:1,c:2}},label:'unused display metadata',clearance:{minC:1,maxC:2,minR:1,maxR:2},clearancePolygonCR:[[1,1],[2,1],[2,2]],collision:{worldBodies:[{polygonCR:[[1,1],[2,1],[2,2]]}]}};const renderObject={userData:{instance:raw},render(){throw Error('must never clone renderer')}};
     await planEnvironmentVisualsAsync({instances:[renderObject],decorPlan:{colliders:[],unusedFunction(){}}});assert.deepEqual(lastWorker.posted[0].input.instances,[{id:raw.id,assetId:raw.assetId,role:raw.role,entry:raw.entry,clearance:raw.clearance,clearancePolygonCR:raw.clearancePolygonCR,collision:raw.collision}]);assert.deepEqual(explorationKeepouts(lastWorker.posted[0].input.instances),explorationKeepouts([raw]),'minimization preserves authored clearance polygon identity, so walking routes do not misclassify it as a new solid obstacle');assert.deepEqual(lastWorker.posted[0].input.decorPlan,{colliders:[]});
+  });
+  await test('worker payload preserves both real tower ramps without model URLs or renderer objects',async()=>{
+    behavior=(w,d)=>queueMicrotask(()=>success(w,d.id));const towers=instances.filter(i=>i.assetId==='compact_podium_glass_tower_v1');assert.equal(towers.length,2);
+    await planEnvironmentVisualsAsync({instances:towers});const packed=lastWorker.posted[0].input.instances;
+    assert.deepEqual(packed.map(planTowerPublicApproach),towers.map(planTowerPublicApproach));assert.ok(packed.every(i=>!i.binding.url&&Object.keys(i.binding).length===2));
   });
   await test('worker error, response decoding error and malformed result reject with cleanup',async()=>{
     for(const kind of['error','messageerror','bad-data','reported-error']){

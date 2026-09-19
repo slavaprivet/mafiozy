@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('./mercenary_vehicle_locks.js',import.meta.url),'utf8');
+const car={id:7,parked:true,r:2,c:3,owner_uid:'original',hp:100},action={id:1,targetId:'traffic:vehicle_7',kind:'unlock_door',phase:'working',progress:1},member={hp:100,position:{x:12.3,y:0,z:8.2}},row={id:'m',profession:'safecracker'};
+const context={window:{MafioziMercenaries:{getAction:()=>action,getMember:()=>member,getRoster:()=>({members:[row]})}},_LOCAL_PREVIEW:true,CARS:[car],_threeVehicleEntityId:c=>'vehicle_'+c.id};vm.runInNewContext(source,context);const api=context.window.MafioziMercenaryVehicleLocks,target={id:action.targetId,sourceId:'vehicle_7'},effect={memberId:'m',actionId:1,targetId:action.targetId};
+assert(api.get('vehicle_7').locked);action.progress=.5;assert.equal(api.unlock(target,effect).ok,false);assert.equal(car._lockpicked,undefined);action.progress=1;
+row.profession='medic';assert.equal(api.unlock(target,effect).ok,false);row.profession='safecracker';member.position.x=100;assert.equal(api.unlock(target,effect).reason,'specialist_out_of_range');member.position.x=12.3;
+assert.equal(api.unlock(target,effect).ok,true);assert.equal(car._lockpicked,true);assert.equal(car.owner_uid,'original');assert.equal(car.parked,true,'unlock alone does not hijack');assert.equal(api.get('vehicle_7').locked,false);assert.equal(api.unlock(target,effect).duplicate,true);
+car.parked=false;assert.equal(api.get('vehicle_7').lockpickable,false);car.parked=true;car.wrecked=true;action.id=2;assert.equal(api.unlock(target,{...effect,actionId:2}).ok,false);car.wrecked=false;
+context._LOCAL_PREVIEW=false;assert.equal(api.get('vehicle_7').available,false);assert.equal(api.unlock(target,effect).reason,'server_unlock_not_connected');
+const world=fs.readFileSync(new URL('../../../world.html',import.meta.url),'utf8');assert(world.includes('if(car._lockpicked===true){_completeHijack(car);return;}'));assert(world.includes('mercenary_vehicle_locks.js'));
+console.log('PASS source car locks: specialist/action/proximity validation, actual source flag, no ownership/entry mutation, idempotence, wreck/moving/server rejection, source entry hook');

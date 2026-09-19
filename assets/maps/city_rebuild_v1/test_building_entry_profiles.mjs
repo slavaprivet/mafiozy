@@ -5,6 +5,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {registerHooks} from 'node:module';
 import {createHash} from 'node:crypto';
 import {createBuildingEntry} from './building_entry.mjs';
+import {applyBuildingSizeTransform} from './building_size_policy.mjs';
 import {ADDITIONAL_ENTRY_PROFILES} from './building_entry_profiles.mjs';
 import {circleFits,movePedestrian} from './walk_motion.mjs';
 const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
@@ -28,9 +29,12 @@ for(const[assetId,profile]of Object.entries(ADDITIONAL_ENTRY_PROFILES)){
   source.traverse(n=>{if(/^(COLLISION|SOCKET|CLEARANCE|NAV_|COL_)/i.test(n.name)||(items[0].hideNodeNames??[]).some(name=>name.replace(/\./g,'')===n.name))n.visible=false});
   const geometryBefore=new Map();source.traverse(n=>{if(n.isMesh)geometryBefore.set(n.geometry,Array.from(n.geometry.attributes.position.array))});
   for(const item of items){
-    const group=new THREE.Group(),visual=source.clone(true),t=item.transform;visual.position.fromArray(t.modelLocalOffsetM);group.position.fromArray(t.positionM);group.rotation.y=t.yawDegrees*Math.PI/180;group.add(visual);group.updateMatrixWorld(true);
-    const transforms=new Map();visual.traverse(n=>transforms.set(n,{parent:n.parent,position:n.position.toArray(),quaternion:n.quaternion.toArray(),scale:n.scale.toArray(),geometry:n.geometry}));
-    const entry=createBuildingEntry({THREE,visual,instance:item});assert(entry,item.id);
+    const group=new THREE.Group(),visual=source.clone(true),t=item.transform;visual.position.fromArray(t.modelLocalOffsetM);group.position.fromArray(t.positionM);group.rotation.y=t.yawDegrees*Math.PI/180;group.scale.setScalar(t.uniformScale??1);group.add(visual);group.updateMatrixWorld(true);
+    applyBuildingSizeTransform(visual,item,THREE);
+    const [sx,sz]=t.horizontalScale??[1,1],base=t.uniformScale??1;
+    assert.deepEqual(group.scale.toArray(),[base*sx,base,base*sz],item.id+' authored building scale');
+    const transforms=new Map();group.traverse(n=>transforms.set(n,{parent:n.parent,position:n.position.toArray(),quaternion:n.quaternion.toArray(),scale:n.scale.toArray(),geometry:n.geometry}));
+    const entry=createBuildingEntry({THREE,visual,instance:item,sizeApplied:true});assert(entry,item.id);
     const approach=entry.approachPoint(),target=entry.roomPoint();approach.y=entry.floorHeight(approach.x,approach.z)??0;
     const other=[...placement.instances,...decor.instances].filter(i=>i.id!==item.id).flatMap(i=>i.collision?.worldBodies??[]);
     const allowed=(x,z)=>{if(!topology.walkableMask[Math.floor(z/4.1)]?.[Math.floor(x/4.1)])return false;const floor=entry.floorHeight(x,z)??0;return ![...other,...entry.getCollisionBodies()].some(b=>(b.maxYM??100)>=floor+.05&&(b.minYM??0)<=floor+1.9&&inside(x/4.1,z/4.1,b.polygonCR))};

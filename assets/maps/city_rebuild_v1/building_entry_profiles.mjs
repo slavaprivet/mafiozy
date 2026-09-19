@@ -1,5 +1,6 @@
 import {subtractBoxFromGeometry} from './building_entry.mjs';
 import {resolveRoomRect,createBuildingContentRoot} from './building_room_profiles.mjs';
+import {createBuildingSiteBodies} from './building_site_collision.mjs';
 
 const HOME_HASHES = {
   old_town_narrow_townhouse_v1:'fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067',
@@ -178,7 +179,7 @@ export function createAdditionalBuildingEntry({THREE,visual,instance,metresPerCe
   const brass=new THREE.MeshStandardMaterial({color:'#b18a50',metalness:.56,roughness:.34});
   const lampMat=new THREE.MeshStandardMaterial({color:'#ffe2a6',emissive:'#ffb75c',emissiveIntensity:.7,roughness:.4});
   ownedMaterial.push(innerWall,floorMat,brass,lampMat);
-  function box(name,x,y,z,w,h,d,material,parent=space){const geometry=new THREE.BoxGeometry(w,h,d);ownedGeometry.push(geometry);const n=new THREE.Mesh(geometry,material);n.name=name;n.position.set(x,y,z);n.castShadow=true;n.receiveShadow=true;parent.add(n);return n}
+  function box(name,x,y,z,w,h,d,material,parent=space){const geometry=new THREE.BoxGeometry(w,h,d);ownedGeometry.push(geometry);const n=new THREE.Mesh(geometry,material);n.name=name;n.position.set(x,y,z);n.castShadow=true;n.receiveShadow=true;n.userData.staticRenderMaterialImmutable=true;parent.add(n);return n}
   box('Entry_Interior_Floor',roomCenterX,-.04,roomCenterZ,roomWidth,.08,roomDepth,floorMat);
   box('Entry_Interior_Left',roomMinX-.045,height/2,roomCenterZ,.09,height,roomDepth,innerWall);
   box('Entry_Interior_Right',roomMaxX+.045,height/2,roomCenterZ,.09,height,roomDepth,innerWall);
@@ -201,7 +202,7 @@ export function createAdditionalBuildingEntry({THREE,visual,instance,metresPerCe
   const rampGeometry=new THREE.BufferGeometry();rampGeometry.setAttribute('position',new THREE.Float32BufferAttribute([
     -halfWidth,0,0,halfWidth,-baseWorldY,rampLength,halfWidth,0,0,
     -halfWidth,0,0,-halfWidth,-baseWorldY,rampLength,halfWidth,-baseWorldY,rampLength,
-  ],3));rampGeometry.computeVertexNormals();ownedGeometry.push(rampGeometry);const ramp=new THREE.Mesh(rampGeometry,floorMat);ramp.name='Entry_Continuous_Ramp';ramp.receiveShadow=true;space.add(ramp);
+  ],3));rampGeometry.computeVertexNormals();ownedGeometry.push(rampGeometry);const ramp=new THREE.Mesh(rampGeometry,floorMat);ramp.name='Entry_Continuous_Ramp';ramp.receiveShadow=true;ramp.userData.staticRenderMaterialImmutable=true;space.add(ramp);
   const recordTransform=node=>{originalTransforms.push([node,{parent:node.parent,position:node.position.clone(),quaternion:node.quaternion.clone(),scale:node.scale.clone()}])};
   const hinges=[],panels=[];
   const split=!!profile.split||orderedLeaves.length>1;
@@ -237,10 +238,11 @@ export function createAdditionalBuildingEntry({THREE,visual,instance,metresPerCe
     const [x0,z0,x1,z1]=wall.rect,points=[[x0,z0],[x1,z0],[x1,z1],[x0,z1]].map(([x,z])=>visual.localToWorld(new THREE.Vector3(x,0,z)));
     staticBodies.push({polygonCR:points.map(p=>[p.x/metresPerCell,p.z/metresPerCell]),minYM:visual.localToWorld(new THREE.Vector3(0,wall.minY,0)).y,maxYM:visual.localToWorld(new THREE.Vector3(0,wall.maxY,0)).y,buildingEntryId:instance.id,bankPartition:wall.name});
   }
-  for(const source of instance.collision?.worldBodies??[]){
+  const siteBodies=createBuildingSiteBodies({THREE,visual,instance,metresPerCell,nodes,exclude:doorNodes});
+  for(const source of siteBodies??instance.collision?.worldBodies??[]){
     let polygons=[source.polygonCR.map(([c,r])=>{const p=space.worldToLocal(new THREE.Vector3(c*metresPerCell,0,r*metresPerCell));return[p.x,p.z]})];
     for(const rect of [roomRect,corridorRect])polygons=polygons.flatMap(p=>subtractRectangle(p,rect));
-    staticBodies.push(...polygons.map(p=>polygonBody(p,source.minYM,source.maxYM)));
+    staticBodies.push(...polygons.map(p=>({...polygonBody(p,source.minYM,source.maxYM),...(siteBodies?{node:source.node,authoredSitePart:true}:{})})));
   }
   // Solid boundaries of the new room; source envelopes preserve the rest.
   const roomWallRects=[[roomMinX-.1,roomMinZ-.1,roomMinX,roomMaxZ],[roomMaxX,roomMinZ-.1,roomMaxX+.1,roomMaxZ],[roomMinX,roomMinZ-.1,roomMaxX,roomMinZ],
