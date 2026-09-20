@@ -83,6 +83,9 @@
     panel.dataset.surfaceReaction=actor?.surface?.state?.kind||'';
     panel.dataset.sourceDown=String(actor?.diagnostics?.().sourceDown===true);
     panel.dataset.bloodParticles=String(actor?.surface?.particles?.count||0);
+    const bleeding=actor?.surface?.bleedingStats?.();
+    panel.dataset.bleedingWounds=String(bleeding?.activeWounds||0);
+    panel.dataset.bloodDrops=String(bleeding?.emittedDrops||0);
     panel.dataset.woundGroups=String(actor?.object?.getObjectByName('PersistentBulletWounds')?.children?.length||0);
     respawn.disabled=!ready();
   }

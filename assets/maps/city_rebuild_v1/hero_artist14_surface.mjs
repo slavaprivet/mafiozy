@@ -3,12 +3,14 @@ import {validateSurfaceReceipts} from './npc_surface_state.mjs';
 import {createWetClothing} from './artist14/wet_clothing.mjs';
 import {createBulletWounds} from './artist14/bullet_wounds.mjs';
 import {createSwimMotion} from './artist14/swim_motion.mjs';
+import {createWoundBleeding} from './artist14/wound_bleeding.mjs';
 
 // Presentation only. No damage, health, collision, locomotion or receipt creation.
 export function createArtist14Surface({THREE,context,scene,applyReaction,applySwim}={}){
  if(!THREE||!context?.scene||!context?.object||!scene)throw Error('Artist14 context and world scene required');
  const model={root:context.scene,bones:context.bones},unit=context.targetHeight/context.sourceHeight;
  if(!(unit>0&&Number.isFinite(unit)))throw Error('Invalid author-to-world scale');
+ const bleed=createWoundBleeding(THREE,{root:context.object,bones:context.bones,unit,height:context.targetHeight});
  const wet=createWetClothing(THREE),wounds=createBulletWounds(THREE,{worldScale:unit}),swim=createSwimMotion(THREE),receipts=new Set();
  // Attach wetness before wounds to avoid treating cosmetic geometry as clothes.
  wet.attach(model);
@@ -28,7 +30,7 @@ export function createArtist14Surface({THREE,context,scene,applyReaction,applySw
  mesh.name='Artist14ContactParticles';mesh.frustumCulled=false;mesh.count=0;mesh.raycast=()=>{};scene.add(mesh);
  const transform=new THREE.Object3D(),color=new THREE.Color(),origin=new THREE.Vector3();
  let cursor=0,time=0,disposed=false,wasIn=false,exitAt=-Infinity,waterBudget=0,deepest=0,reaction={kind:'idle',at:0,side:1,zone:null};
- function emit(point,water,count,normal){for(let i=0;i<count;i++){const p=particles[cursor++%particles.length],a=cursor*2.399963;p.water=water;p.life=p.maxLife=water?.3+(i%3)*.05:.35+(i%5)*.07;p.p.copy(point);p.v.set(Math.sin(a)*(water?.7:1.5),water?.85:1.1+(i%4)*.4,Math.cos(a)*(water?.7:1.3)).multiplyScalar(unit);if(normal)p.v.addScaledVector(normal,.6*unit);}}
+ function emit(point,water,count,normal,drip=false){for(let i=0;i<count;i++){const p=particles[cursor++%particles.length],a=cursor*2.399963;p.water=water;p.life=p.maxLife=drip?.7:water?.3+(i%3)*.05:.35+(i%5)*.07;p.p.copy(point);p.v.set(Math.sin(a)*(drip?.08:water?.7:1.5),drip?-.12:water?.85:1.1+(i%4)*.4,Math.cos(a)*(drip?.06:water?.7:1.3)).multiplyScalar(unit);if(normal)p.v.addScaledVector(normal,.6*unit);}}
  const finite=v=>v&&Number.isFinite(v.x)&&Number.isFinite(v.y)&&Number.isFinite(v.z);
  function receive(event){
   if(disposed||event?.confirmed!==true||event.id===undefined||event.id===null||receipts.has(String(event.id)))return false;
@@ -42,7 +44,8 @@ export function createArtist14Surface({THREE,context,scene,applyReaction,applySw
   if(!blocked&&finite(event.point)&&event.zone==='head'){const eye=event.side===-1?0:1;bruiseStrength[eye]=Math.min(1,bruiseStrength[eye]+.45);if(ensureBruise(eye)){bruises[eye].visible=true;bruises[eye].material.opacity=bruiseStrength[eye]*.82;}}
   if(!blocked&&finite(event.point)){
    const point=new THREE.Vector3(event.point.x,event.point.y,event.point.z),normal=finite(event.normal)?new THREE.Vector3(event.normal.x,event.normal.y,event.normal.z).normalize():null;
-   emit(point,false,event.heavy?18:10,normal);
+   emit(point,false,event.heavy?32:20,normal);
+   bleed.add({...event,point},time);
    if(normal&&(event.kind==='bullet'||event.projectile===true))wounds.add(model,{...event,point,normal});
   }
   return true;
@@ -58,6 +61,8 @@ export function createArtist14Surface({THREE,context,scene,applyReaction,applySw
   if(applySwim)applySwim({...sw,liftWorld:sw.lift*unit,speedWorld:sw.speed*unit},context);
   if(applyReaction&&reaction.kind!=='idle')applyReaction({...reaction,age:Math.max(0,time-reaction.at),unit},context);
   context.object.updateWorldMatrix(true,true);wet.setWaterLevel(water);wet.update(model,time,dt);wounds.update(model);
+  const bleeding=bleed.update(time,point=>emit(point,false,1,null,true));
+  if(bleeding.teleported)for(const p of particles)p.life=0;
   if(water!==null)deepest=wasIn?Math.max(deepest,water-ground):water-ground;
   if(wasIn&&water===null){exitAt=time;waterBudget=0;}wasIn=water!==null;
   const shedding=water===null&&time-exitAt>=0&&time-exitAt<5;
@@ -66,21 +71,22 @@ export function createArtist14Surface({THREE,context,scene,applyReaction,applySw
   mesh.count=count;mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
   return {swim:{...sw,liftWorld:sw.lift*unit,speedWorld:sw.speed*unit},reaction:{...reaction,age:Math.max(0,time-reaction.at)},shedding,secondsLeft:shedding?5-(time-exitAt):0};
  }
- function reset(){wet.reset(model);wounds.reset(model);swim.reset();receipts.clear();reaction={kind:'idle',at:time,side:1,zone:null};bruiseStrength.fill(0);for(const mark of bruises){mark.visible=false;mark.material.opacity=0;}for(const p of particles)p.life=0;mesh.count=0;wasIn=false;exitAt=-Infinity;waterBudget=0;deepest=0;}
+ function reset(){wet.reset(model);wounds.reset(model);swim.reset();bleed.reset();receipts.clear();reaction={kind:'idle',at:time,side:1,zone:null};bruiseStrength.fill(0);for(const mark of bruises){mark.visible=false;mark.material.opacity=0;}for(const p of particles)p.life=0;mesh.count=0;wasIn=false;exitAt=-Infinity;waterBudget=0;deepest=0;}
  function dispose(){if(disposed)return;reset();disposed=true;mesh.removeFromParent();mesh.geometry.dispose();mesh.material.dispose();for(const mark of bruises){mark.removeFromParent();mark.geometry.dispose();mark.material.dispose();}}
- function snapshot(){if(disposed)throw Error('Surface disposed');return {version:1,time,reaction:{kind:reaction.kind,age:Math.max(0,time-reaction.at),side:reaction.side,zone:reaction.zone},bruises:[...bruiseStrength],receipts:[...receipts],wet:wet.snapshot(model),wounds:wounds.snapshot(model)};}
+ function snapshot(){if(disposed)throw Error('Surface disposed');return {version:1,time,reaction:{kind:reaction.kind,age:Math.max(0,time-reaction.at),side:reaction.side,zone:reaction.zone},bruises:[...bruiseStrength],receipts:[...receipts],wet:wet.snapshot(model),wounds:wounds.snapshot(model),bleed:bleed.snapshot(time)};}
  function restore(data,{time:now,elapsedSeconds=0}={}){
   if(disposed)throw Error('Surface disposed');
   if(data?.version!==1||!Number.isFinite(data.time)||!Number.isFinite(elapsedSeconds)||elapsedSeconds<0||now!==undefined&&!Number.isFinite(now))throw Error('Invalid surface state time/version');
   const r=data.reaction;if(!r||!['idle','hit','block','fall','dead'].includes(r.kind)||!Number.isFinite(r.age)||r.age<0||![-1,1].includes(r.side)||r.zone!==null&&(typeof r.zone!=='string'||r.zone.length>128)||!Array.isArray(data.bruises)||data.bruises.length!==2||data.bruises.some(v=>!Number.isFinite(v)||v<0||v>1))throw Error('Invalid surface reaction/bruises');
   if(!Number.isFinite(now??data.time+elapsedSeconds)||!Number.isFinite(r.age+elapsedSeconds))throw Error('Surface time overflow');
-  validateSurfaceReceipts(data.receipts);wet.validateSnapshot(model,data.wet);wounds.validateSnapshot(model,data.wounds);
+  validateSurfaceReceipts(data.receipts);wet.validateSnapshot(model,data.wet);wounds.validateSnapshot(model,data.wounds);bleed.validateSnapshot(data.bleed,data.receipts);
   // Validate the complete payload before mutating anything. Never replay a hit in world space.
   reset();time=now??data.time+elapsedSeconds;wet.restore(model,data.wet,{elapsedSeconds});wounds.restore(model,data.wounds);
+  bleed.restore(data.bleed,{now:time,elapsedSeconds,receipts:data.receipts});
   for(const id of data.receipts)receipts.add(id);
   for(let i=0;i<2;i++){bruiseStrength[i]=data.bruises[i];if(bruiseStrength[i]>0)ensureBruise(i);if(bruises[i]){bruises[i].visible=bruiseStrength[i]>0;bruises[i].material.opacity=bruiseStrength[i]*.82;}}
   const age=r.age+elapsedSeconds,duration={hit:.48,block:.30,fall:2.7}[r.kind];reaction={kind:duration&&age>=duration?'idle':r.kind,at:time-age,side:r.side,zone:r.zone};
   return true;
  }
- return {receive,update,reset,dispose,snapshot,restore,model,particles:mesh,get state(){return {...reaction};},get scale(){return unit;}};
+ return {receive,update,reset,dispose,snapshot,restore,bleedingStats:()=>({activeWounds:bleed.count,emittedDrops:bleed.emittedDrops}),model,particles:mesh,get state(){return {...reaction};},get scale(){return unit;}};
 }
