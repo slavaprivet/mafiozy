@@ -9,14 +9,14 @@ const access=createNpcVehicleAccessResolver({traffic:{getActor:id=>id==='car1'?a
 assert.equal(access({carId:'missing'}),null,'unloaded native car defers instead of guessed door');
 const exact=access({carId:'car1'});assert(Math.abs(exact.outside.r-(41-1.57)/4.1)<1e-12);assert(Math.abs(exact.outside.c-(41+.6)/4.1)<1e-12);
 assert.equal(access({carId:'car1'}),exact,'access coordinates reuse owned record');
-access({carId:'car1',phase:'board',progress:.5});assert.deepEqual(calls.at(-1),['car1','board',.5]);
+access({carId:'car1',phase:'board',progress:.5});assert.deepEqual(calls.at(-1),['car1','board',.5,'front_left']);
 
 let other=false;const nav=createNpcNativeNavigation({containsBody:()=>false,blocksDynamic:(x,z,{ignoreId})=>other||ignoreId!=='car1'});
 assert(nav.query({r:1,c:1}).blocked);assert(!nav.query({r:1,c:1,ignoreVehicleId:'car1'}).blocked);assert(nav.query({r:1,c:1,ignoreVehicleId:'other'}).blocked,'separate cache key cannot leak one-car exception');
 other=true;nav.beginFrame();assert(nav.query({r:1,c:1,ignoreVehicleId:'car1'}).blocked,'other vehicles remain solid');
 
 const car={r:10,c:10,ang:0,parked:true,model:{L:1.8,W:.88}},npc={id:'source-resident',r:9.6,c:10},MAP=Array.from({length:30},()=>Array(30).fill(9));let now=0,blocked=false,water=false,probes=0;
-const outside={r:9.6,c:10},seat={r:9.9,c:10},box={MAP,CARS:[car],NPCS:[npc],PARKING_LOTS:[],player:{r:29,c:29},myDrivingCarId:null,performance:{now:()=>now},document:{documentElement:{dataset:{}}},_threeVehicleEntityId:()=> 'car1',_trafficRoadTile:()=>false,_trafficHardTileAt:()=>false,_civilianPlanInterrupted:()=>false,_clearNpcRoute:()=>{},npcWaypointOk:()=>true,_npcPathPassable:()=>false,_civilianRouteTo:()=>false,_npcEffectiveSpeed:()=>.4,_npcAdvanceRoute:()=> 'arrived',_walkNpcNavigationResolver:({ignoreVehicleId})=>{probes++;return {blocked:blocked||ignoreVehicleId!=='car1',depth:water?1:0}}};
+const outside={r:9.6,c:10},seat={r:9.9,c:10},box={MAP,CARS:[car],NPCS:[npc],PARKING_LOTS:[],player:{r:29,c:29},myDrivingCarId:null,performance:{now:()=>now},document:{documentElement:{dataset:{}}},_threeVehicleEntityId:()=> 'car1',_threeNpcEntityId:n=>String(n.id),_trafficRoadTile:()=>false,_trafficHardTileAt:()=>false,_civilianPlanInterrupted:()=>false,_clearNpcRoute:()=>{},npcWaypointOk:()=>true,_npcPathPassable:()=>false,_civilianRouteTo:()=>false,_npcEffectiveSpeed:()=>.4,_npcAdvanceRoute:()=> 'arrived',_walkNpcNavigationResolver:({ignoreVehicleId})=>{probes++;return {blocked:blocked||ignoreVehicleId!=='car1',depth:water?1:0}}};
 vm.createContext(box);vm.runInContext(source+`;globalThis.api={access(fn){_walkNpcVehicleAccessResolver=fn},set(t){_civilianTrip=t;t.npc._civilianTrip=true},tick:_civilianTripTickNpc,exit:_civilianTripExit,path:_civilianTripDoorPath,clear:_civilianTripPoseClear,trip(){return _civilianTrip}}`,box);
 const api=box.api;api.access(()=>({outside,seat}));const trip={car,npc,carId:'car1',phase:'approach',door:outside,index:0,plan:{goal:{door:{r:9,c:10}},lots:[]}};api.set(trip);api.tick(npc,.05,now);assert.equal(trip.phase,'board');
 blocked=true;for(let i=0;i<10;i++){now+=50;api.tick(npc,.05,now);}assert.equal(npc.r,outside.r,'new obstruction stops transition');

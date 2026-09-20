@@ -6,7 +6,7 @@ const finite=p=>p&&[p.r,p.c,p.angle].every(Number.isFinite), delta=(a,b)=>Math.a
 const directions=Array.from({length:8},(_,i)=>({r:Math.round(Math.sin(i*Math.PI/4)),c:Math.round(Math.cos(i*Math.PI/4)),angle:i*Math.PI/4}));
 export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAllowed,isRoad=()=>false,waterAt=()=>null,groundHeight=()=>0,getVehicle=()=>null,getVehicles=()=>[],clock=()=>performance.now(),frameBudgetMs=3,maxExpanded=18000,inspectRoutes=false}={}){
  if(typeof poseAllowed!=='function')throw new TypeError('Native vehicle poseAllowed is required');
- const jobs=new Map(),targetJobs=new Map();let spent=0,vehicleRecords=null,frameEpoch=0,eligible=null;const counts={sweeps:0,poses:0,blocked:0,routeExpanded:0,completed:0,failed:0};
+ const jobs=new Map(),targetJobs=new Map();let spent=0,vehicleRecords=null,frameEpoch=0,eligible=null,lastVehicleBlocker=null;const counts={sweeps:0,poses:0,blocked:0,routeExpanded:0,completed:0,failed:0};
  function shapeFor(request){
   const actor=getVehicle(request.carId),object=actor?.object,profile=actor?.profile||object?.userData?.vehicleProfile;
   const sx=Math.abs(object?.scale?.x??1),sz=Math.abs(object?.scale?.z??1);
@@ -27,16 +27,16 @@ export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAl
    const width=(profile.collisionHalfWidth??profile.halfWidth)*Math.abs(object.scale?.x??1),length=(profile.collisionHalfLength??profile.halfLength)*Math.abs(object.scale?.z??1);
    if(!Number.isFinite(width+length)||Math.hypot(object.position.x-x,object.position.z-z)>Math.hypot(shape.halfWidth,shape.halfLength)+Math.hypot(width,length)+.1)continue;
    if(Math.abs(object.position.y-floor)>Math.max(2,profile.height||2))continue;
-   if(polygonVehicleContact(poly,collisionPolygon(object.position.x,object.position.z,object.rotation.y,{halfWidth:width,halfLength:length})))return 'vehicle';
+   if(polygonVehicleContact(poly,collisionPolygon(object.position.x,object.position.z,object.rotation.y,{halfWidth:width,halfLength:length}))){lastVehicleBlocker=String(id??'unknown-vehicle');return 'vehicle';}
   }
   return null;
  }
  function sweep(from,to,request,shape,dynamic=true){
-  counts.sweeps++;const turn=delta(from.angle,to.angle),distance=Math.hypot(to.r-from.r,to.c-from.c)*worldScale;
+  counts.sweeps++;lastVehicleBlocker=null;const turn=delta(from.angle,to.angle),distance=Math.hypot(to.r-from.r,to.c-from.c)*worldScale;
   // Limit each corner's movement to 15 cm, including rotation. No near/far LOD bypass.
   const steps=Math.max(1,Math.ceil((distance+Math.abs(turn)*Math.hypot(shape.halfLength,shape.halfWidth))/.15));
   if(steps>1500)return {clear:false,reason:'segment-too-long'};
-  for(let i=0;i<=steps;i++){const t=i/steps,reason=pose({r:from.r+(to.r-from.r)*t,c:from.c+(to.c-from.c)*t,angle:from.angle+turn*t},request,shape,dynamic);if(reason){counts.blocked++;return {clear:false,reason};}}
+  for(let i=0;i<=steps;i++){const t=i/steps,reason=pose({r:from.r+(to.r-from.r)*t,c:from.c+(to.c-from.c)*t,angle:from.angle+turn*t},request,shape,dynamic);if(reason){counts.blocked++;return {clear:false,reason,...(reason==='vehicle'&&lastVehicleBlocker?{blockerId:lastVehicleBlocker}:{})};}}
   return {clear:true,reason:'clear'};
  }
  function push(heap,node){let i=heap.length;heap.push(node);while(i){const p=(i-1)>>1;if(heap[p].f<=node.f)break;heap[i]=heap[p];i=p;}heap[i]=node;}

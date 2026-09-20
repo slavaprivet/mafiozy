@@ -1,5 +1,16 @@
 // Native resident destinations. Caller owns the shared 4 ms route budget.
 function _npcPlanNativeVisitRoute(npc,goalR,goalC,passFn,goalRadius,maxVisited,kind){
+ // BEGIN invocation body cache
+ // Adjacent edges revisit endpoint/body probes within this synchronous slice.
+ // Never attach these results to search: cars and doors may move before resume.
+ const passRows=new Map();let passPoints=0;
+ const slicePass=(r,c)=>{
+  let samples=passRows.get(r);if(samples?.has(c))return samples.get(c);
+  const value=passFn(r,c); // Preserve thrown errors; only successful calls cache.
+  if(passPoints<8192){if(!samples)passRows.set(r,samples=new Map());samples.set(c,value);passPoints++;}
+  return value;
+ };
+ // END invocation body cache
  const sr=Math.floor(npc.r),sc=Math.floor(npc.c),startKey=sr*MAP_COLS+sc;
  const key=[npc.r,npc.c,goalR,goalC,goalRadius,maxVisited,kind].join('|');
  const resolver=_walkNpcNavigationResolver;
@@ -11,7 +22,7 @@ function _npcPlanNativeVisitRoute(npc,goalR,goalC,passFn,goalRadius,maxVisited,k
  const pop=()=>{const heap=search.heap,result=heap[0],last=heap.pop();if(heap.length){let i=0;while(i*2+1<heap.length){let child=i*2+1;if(child+1<heap.length&&less(heap[child+1],heap[child]))child++;if(!less(heap[child],last))break;heap[i]=heap[child];i=child;}heap[i]=last;}return result;};
  const edgeClear=(fr,fc,r,c)=>{
   const segments=Math.max(1,Math.ceil(Math.hypot(r-fr,c-fc)/.14));
-  for(let s=1;s<=segments;s++)if(!passFn(fr+(r-fr)*s/segments,fc+(c-fc)*s/segments))return false;
+  for(let s=1;s<=segments;s++)if(!slicePass(fr+(r-fr)*s/segments,fc+(c-fc)*s/segments))return false;
   const swept=resolver({mode:'sweep',from:{r:fr,c:fc},to:{r,c},radius:.18});
   return !(swept?.swept===true&&swept.blocked);
  };
@@ -33,7 +44,7 @@ function _npcPlanNativeVisitRoute(npc,goalR,goalC,passFn,goalRadius,maxVisited,k
   }
   while(search.direct&&direct.swept&&direct.sample<direct.count&&!_npcRouteWorkExpired()){
    const t=(direct.sample+1)/direct.count;
-   if(!passFn(npc.r+(goalR-npc.r)*t,npc.c+(goalC-npc.c)*t)){search.direct=null;break;}
+   if(!slicePass(npc.r+(goalR-npc.r)*t,npc.c+(goalC-npc.c)*t)){search.direct=null;break;}
    direct.sample++;
   }
   if(search.direct){
@@ -67,7 +78,7 @@ function _npcPlanNativeVisitRoute(npc,goalR,goalC,passFn,goalRadius,maxVisited,k
    const a=discovery.candidates[discovery.index];
    if(a.d>goalRadius&&discovery.anchors.size&&discovery.candidates[discovery.index-1]?.d<=goalRadius)break;
    discovery.index++;
-   if(passFn(a.r,a.c)&&edgeClear(a.r,a.c,goalR,goalC))discovery.anchors.set(a.key,a);
+   if(slicePass(a.r,a.c)&&edgeClear(a.r,a.c,goalR,goalC))discovery.anchors.set(a.key,a);
   }
   const nearDone=discovery.index<discovery.candidates.length&&discovery.candidates[discovery.index].d>goalRadius&&discovery.anchors.size&&discovery.candidates[discovery.index-1]?.d<=goalRadius;
   if(discovery.index<discovery.candidates.length&&!nearDone){npc._npcDirectedSearch=search;npc._routeSearchPending=true;return false;}
@@ -80,7 +91,7 @@ function _npcPlanNativeVisitRoute(npc,goalR,goalC,passFn,goalRadius,maxVisited,k
   const probe=search.goalStartProbe??={index:0,free:false},steps=[[1,0],[-1,0],[0,1],[0,-1]];
   while(probe.index<steps.length&&!_npcRouteWorkExpired()){
    const [dr,dc]=steps[probe.index++],r=sr+dr+.5,c=sc+dc+.5;
-   if(passFn(r,c)&&edgeClear(npc.r,npc.c,r,c)){probe.free=true;break;}
+   if(slicePass(r,c)&&edgeClear(npc.r,npc.c,r,c)){probe.free=true;break;}
   }
   if(probe.free){npc._routeSearchExpanded=0;npc._routeSearchVisited=1;npc._npcDirectedSearch=null;return false;}
   if(probe.index<steps.length){npc._npcDirectedSearch=search;npc._routeSearchPending=true;return false;}
@@ -101,14 +112,14 @@ function _npcPlanNativeVisitRoute(npc,goalR,goalC,passFn,goalRadius,maxVisited,k
     const fr=cur.key===search.startKey?npc.r:cr,fc=cur.key===search.startKey?npc.c:cc;
     // Door leaves or cars may have moved during the queued search. Recheck
     // the full current connector, including its body/water/dynamic callback.
-    if(passFn(fr,fc)&&edgeClear(fr,fc,goalR,goalC)){goal=cur;break;}
+    if(slicePass(fr,fc)&&edgeClear(fr,fc,goalR,goalC)){goal=cur;break;}
     if(!search.fine){search.goalAnchors.delete(cur.key);if(!search.goalAnchors.size){npc._routeSearchExpanded=search.qi;npc._routeSearchVisited=nodes.size;npc._npcDirectedSearch=null;return false;}}
    }
    const fr=cur.key===search.startKey?npc.r:cr,fc=cur.key===search.startKey?npc.c:cc;
    for(const [dr,dc]of dirs){
     const r=cur.r+dr,c=cur.c+dc,key=search.fine?r+','+c:r*MAP_COLS+c,existing=nodes.get(key);if(existing?.closed)continue;
     const rr=row(r),rc=column(c),length=Math.hypot(rr-fr,rc-fc),g=cur.g+length;
-    if(existing&&g>=existing.g||!passFn(rr,rc)||!edgeClear(fr,fc,rr,rc))continue;
+    if(existing&&g>=existing.g||!slicePass(rr,rc)||!edgeClear(fr,fc,rr,rc))continue;
     const node=existing||{r,c,key,closed:false};node.g=g;node.parent=cur.key;if(!existing)nodes.set(key,node);
     const h=heuristic(r,c);push({node,g,h,f:g+h});
    }

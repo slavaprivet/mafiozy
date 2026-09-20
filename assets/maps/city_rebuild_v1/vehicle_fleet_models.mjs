@@ -346,17 +346,28 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId,{wheelRender
   const fold=clamp(options.fold??1),reach=clamp(options.reach??0),recline=(options.recline??profile.seatRecline??.55)*clamp(options.reclineBlend??fold);
   let cache=occupantCaches.get(hero);
   if(!cache){
-   const bones={};hero.object.traverse(n=>{if(n.isBone&&['thigh_l','thigh_r','head','upperarm_l','upperarm_r'].includes(n.name))bones[n.name]=n});
+   const bones={};hero.object.traverse(n=>{if(n.isBone&&['thigh_l','thigh_r','head','upperarm_l','upperarm_r','socket_hand_l','socket_hand_r'].includes(n.name))bones[n.name]=n});
    hero.vehiclePose(1,0,{driver:seat.canDrive});hero.object.updateMatrixWorld(true);
    if(!bones.thigh_l||!bones.thigh_r){hero.vehiclePose(fold,reach,{...options.pose,...options,driver:seat.canDrive});return}
    const hip=hero.object.worldToLocal(bones.thigh_l.getWorldPosition(new T.Vector3()).add(bones.thigh_r.getWorldPosition(new T.Vector3())).multiplyScalar(.5));
-   cache={bones,hip,pivot:hero.object.children[0],inverseTilt:new T.Quaternion(),tilt:new T.Quaternion(),axis:new T.Vector3(1,0,0),point:new T.Vector3(),pos:new T.Vector3(),scale:new T.Vector3(),q:new T.Quaternion(),left:new T.Quaternion(),right:new T.Quaternion(),head:new T.Quaternion(),grips:{left:new T.Vector3(),right:new T.Vector3()}};occupantCaches.set(hero,cache);
+   cache={bones,hip,pivot:hero.object.children[0],inverseTilt:new T.Quaternion(),tilt:new T.Quaternion(),axis:new T.Vector3(1,0,0),point:new T.Vector3(),pos:new T.Vector3(),scale:new T.Vector3(),q:new T.Quaternion(),left:new T.Quaternion(),right:new T.Quaternion(),head:new T.Quaternion(),grips:{left:new T.Vector3(),right:new T.Vector3()},fallbackGrips:{left:new T.Vector3(),right:new T.Vector3()},mappedGrips:{left:new T.Vector3(),right:new T.Vector3()},blendedGrips:{left:new T.Vector3(),right:new T.Vector3()},gripAssignment:null};occupantCaches.set(hero,cache);
   }
   const {bones,hip,pivot,inverseTilt,tilt}=cache;
   inverseTilt.setFromAxisAngle(cache.axis,recline);tilt.copy(inverseTilt).invert();hero.object.updateWorldMatrix(true,false);
-  const actualGrips=seat.canDrive&&fold>.88?getSteeringGrips():null;
+  const requestedGripBlend=Number.isFinite(options.gripBlend)?clamp(options.gripBlend):null,actualGrips=seat.canDrive&&(requestedGripBlend===null?fold>.88:requestedGripBlend>0)?getSteeringGrips():null;
   if(actualGrips)for(const side of ['left','right'])hero.object.localToWorld(hero.object.worldToLocal(cache.grips[side].copy(actualGrips[side])).sub(hip).applyQuaternion(inverseTilt).add(hip));
-  hero.vehiclePose(fold,reach,{...options.pose,...options,driver:seat.canDrive,steeringGrips:actualGrips?cache.grips:undefined});hero.object.updateMatrixWorld(true);
+  let steeringGrips=actualGrips?cache.grips:undefined;
+  if(actualGrips&&requestedGripBlend!==null&&bones.socket_hand_l&&bones.socket_hand_r){
+   hero.vehiclePose(fold,reach,{...options.pose,...options,driver:seat.canDrive,steeringGrips:undefined});hero.object.updateMatrixWorld(true);
+   bones.socket_hand_l.getWorldPosition(cache.fallbackGrips.left);bones.socket_hand_r.getWorldPosition(cache.fallbackGrips.right);
+   if(!cache.gripAssignment){const direct=cache.fallbackGrips.left.distanceTo(cache.grips.left)+cache.fallbackGrips.right.distanceTo(cache.grips.right),crossed=cache.fallbackGrips.left.distanceTo(cache.grips.right)+cache.fallbackGrips.right.distanceTo(cache.grips.left);cache.gripAssignment=direct<=crossed?'direct':'crossed';}
+   cache.mappedGrips.left.copy(cache.grips[cache.gripAssignment==='direct'?'left':'right']);cache.mappedGrips.right.copy(cache.grips[cache.gripAssignment==='direct'?'right':'left']);
+   for(const side of ['left','right'])cache.blendedGrips[side].copy(cache.fallbackGrips[side]).lerp(cache.mappedGrips[side],requestedGripBlend);
+   steeringGrips=requestedGripBlend<1?cache.blendedGrips:cache.mappedGrips;
+  }else if(actualGrips&&cache.gripAssignment){
+   cache.mappedGrips.left.copy(cache.grips[cache.gripAssignment==='direct'?'left':'right']);cache.mappedGrips.right.copy(cache.grips[cache.gripAssignment==='direct'?'right':'left']);steeringGrips=cache.mappedGrips;
+  }
+  hero.vehiclePose(fold,reach,{...options.pose,...options,driver:seat.canDrive,steeringGrips,steeringGripAssignment:cache.gripAssignment?'direct':options.steeringGripAssignment});hero.object.updateMatrixWorld(true);
   if(!seat.canDrive&&fold>.7){
    const rootQ=hero.object.getWorldQuaternion(cache.head),axis=cache.point.set(0,0,1).applyQuaternion(rootQ);
    for(const [name,sign]of [['upperarm_l',1],['upperarm_r',-1]]){

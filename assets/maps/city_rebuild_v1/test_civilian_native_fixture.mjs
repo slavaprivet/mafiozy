@@ -27,9 +27,9 @@ export function sourceFunction(source,name){
  // are wholly on their declaration line. Preserve their actual implementation.
  return line.trimEnd().endsWith('}')?line:source.slice(start,source.indexOf('\n}',start)+2);
 }
-export async function createCivilianNativeFixture({assetId='hospital',tripLimit=null,laneJobs=null}={}){
+export async function createCivilianNativeFixture({assetId='hospital',tripLimit=null,laneJobs=null,snapshot:providedSnapshot=null}={}){
  const M=4.1,top=read('topology_for_placement.json');
- const snapshot=read('../../../outputs/roads_logical_20260912/integration_candidate_snapshot.json');
+ const snapshot=providedSnapshot||read('../../../outputs/roads_logical_20260912/integration_candidate_snapshot.json');
  const buildings=snapshot.buildings,item=buildings.find(b=>b.assetId===assetId);assert(item);
  const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
  registerHooks({resolve(s,c,next){return next(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {allowNpcSkinPickingQa,createNpcSkinPickingQa} from './npc_skin_picking_qa.mjs';
+const url='http://127.0.0.1:18538/walk?perfqa=1&npcskinpick=1';
+assert(allowNpcSkinPickingQa(url));for(const bad of [url.replace('127.0.0.1','example.com'),url+'&uid=x',url+'&mercenarypickqa=1',url.replace('npcskinpick=1','npcskinpick=0')])assert(!allowNpcSkinPickingQa(bad));
+let time=0,creates=0,disposes=0,enabled=null,queries=0;const listeners=new Map(),button={style:{},setAttribute(){},addEventListener(k,f){listeners.set(k,f);},removeEventListener(k){listeners.delete(k);},remove(){this.removed=true;}};
+const doc={body:{append(x){assert.equal(x,button);}},defaultView:{location:{href:url}},createElement:()=>button,documentElement:{dataset:{}}};
+const createMemo=()=>{creates++;return {setEnabled(v){enabled=v;return v;},stats(){return {enabled};},dispose(){disposes++;},intersect(){queries++;}};};
+assert.equal(createNpcSkinPickingQa({document:{...doc,defaultView:{location:{href:'http://127.0.0.1/walk'}}},createMemo}),null);assert.equal(creates,0);
+const qa=createNpcSkinPickingQa({document:doc,createMemo,now:()=>time});assert.equal(enabled,false);assert.equal(creates,1);
+let token=qa.begin();time=1000;qa.finish(token,{started:0,ended:12,targetId:'npc:x'});let result=JSON.parse(doc.documentElement.dataset.npcSkinPicking);assert.equal(result.p50Ms,12);assert.equal(result.lastTargetId,'npc:x');
+let stopped=0;listeners.get('click')({preventDefault(){},stopPropagation(){stopped++;}});assert.equal(enabled,true);assert.equal(stopped,1);assert.equal(JSON.parse(doc.documentElement.dataset.npcSkinPicking).samples,0);
+qa.finish(token,{started:0,ended:99});assert.equal(JSON.parse(doc.documentElement.dataset.npcSkinPicking).samples,0,'mixed-mode sample discarded');
+token=qa.begin();time=2000;qa.finish(token,{started:0,ended:0,blocked:true});result=JSON.parse(doc.documentElement.dataset.npcSkinPicking);assert.equal(result.samples,0);assert.equal(result.blockedSamples,1);
+for(let i=0;i<125;i++){time+=1000;qa.finish(qa.begin(),{started:0,ended:i,targetId:'npc:x'});}result=JSON.parse(doc.documentElement.dataset.npcSkinPicking);assert.equal(result.samples,125);assert.equal(result.windowSamples,120);assert.equal(result.p50Ms,64);
+time+=1000;qa.finish(qa.begin(),{failed:true});assert.equal(JSON.parse(doc.documentElement.dataset.npcSkinPicking).failedSamples,1);assert.equal(queries,0,'QA never triggers a query');
+qa.dispose();qa.dispose();assert.equal(disposes,1);assert.equal(qa.begin(),null);assert(button.removed);assert.equal(listeners.size,0);assert.equal(doc.documentElement.dataset.npcSkinPicking,undefined);
+console.log('PASS NPC skin QA: explicit local gate, default OFF, no synthetic queries, rolling120, mode invalidation, blocked/failed separation, cleanup');

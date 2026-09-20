@@ -4089,10 +4089,25 @@ async def world_ws(req):
                     amount = random.randint(1, 10)
                     interrogation_arrest = random.random() < 0.8
                     until = now_t + 3600; cooldowns[npc_id] = until
-                    robbery_state.setdefault("outstanding", {})[robbery_id] = amount
+                    robbery_state.setdefault("unreported", {})[robbery_id] = amount
                     robbery_state.setdefault("meta", {})[robbery_id] = {"npc_id":npc_id,"robbery_id":robbery_id,"amount":amount,"cooldown_until":int(until),"created_at":int(now_t),"interrogation_arrest":interrogation_arrest}
-                    account["cash"] += amount; account["wanted"] = max(1, int(account.get("wanted") or 0)); p["wanted"] = account["wanted"]
+                    account["cash"] += amount
                     reply = {"kind":"npc_robbery_reply","ok":True,"robbery_id":robbery_id,"amount":amount,"cash":account["cash"],"cooldown_until":int(until),"interrogation_arrest":interrogation_arrest}
+                await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
+            elif t == "npc_robbery_report":
+                account = preview_account(uid); p = players.setdefault(uid, {})
+                robbery_id = str(d.get("robbery_id") or "")[:160]
+                robbery_state = preview_npc_robberies.setdefault(str(uid), {})
+                unreported = robbery_state.setdefault("unreported", {})
+                outstanding = robbery_state.setdefault("outstanding", {})
+                meta = robbery_state.setdefault("meta", {}).get(robbery_id)
+                amount = unreported.pop(robbery_id, None)
+                if amount is None and robbery_id in outstanding: amount = outstanding[robbery_id]
+                if amount is None or not meta:
+                    reply = {"kind":"npc_robbery_report_reply","ok":False,"reason":"missing","robbery_id":robbery_id}
+                else:
+                    outstanding[robbery_id] = amount; account["wanted"] = max(1, int(account.get("wanted") or 0)); p["wanted"] = account["wanted"]
+                    reply = {"kind":"npc_robbery_report_reply","ok":True,**meta,"wanted":account["wanted"]}
                 await ws.send_str(json.dumps({"t":"event","d":reply}, ensure_ascii=False))
             elif t == "npc_robbery_confiscate":
                 account = preview_account(uid); robbery_id = str(d.get("robbery_id") or "")[:160]

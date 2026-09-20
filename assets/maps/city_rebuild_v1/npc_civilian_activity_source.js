@@ -111,7 +111,17 @@ function _npcOutdoorRoutineTick(n,a,dt,now){
 }
 function _npcPurposefulSocialTick(now){
  if(now<_npcCivilianActivityNextAt)return;_npcCivilianActivityNextAt=now+1400;
- for(const record of _npcCivilianActivities)if(record.members.some(n=>!NPCS.includes(n)||_npcCivilianActivityThreat(n,now)))_npcReleaseCivilianActivity(record,'interrupted',now);
+ // Cleanup shares the existing social cadence. Membership sets avoid scanning
+ // every resident for every activity/seat. A queued or walking seat owner is
+ // still present: lack of a finished path is never grounds to release a claim.
+ if(_npcCivilianActivities.size){
+  const present=new Set(NPCS);
+  for(const record of _npcCivilianActivities)if(record.members.some(n=>!present.has(n)||n._civilianActivity?.record!==record||_npcCivilianActivityThreat(n,now)))_npcReleaseCivilianActivity(record,'interrupted',now);
+ }
+ if(typeof _civilianBenchReservations!=='undefined'&&_civilianBenchReservations.size){
+  const presentIds=new Set();for(const n of NPCS)if(n)presentIds.add(n.id);
+  for(const [id,claim]of _civilianBenchReservations)if(!presentIds.has(claim.id))_civilianBenchReservations.delete(id);
+ }
  let pairs=0,smokers=0;for(const r of _npcCivilianActivities){if(r.kind==='talk')pairs++;if(r.kind==='smoke')smokers++;}
  if(pairs<Math.min(8,Math.max(3,Math.ceil(NPCS.length/48)))&&_npcCivilianActivities.size<20){const pair=_findNpcSocialPair(now,true);if(pair)_npcStartCivilianConversation(pair[0],pair[1],now);}
  if(smokers<Math.min(4,Math.max(2,Math.ceil(NPCS.length/72)))&&_npcCivilianActivities.size<20){for(let i=0;i<Math.min(24,NPCS.length);i++){const n=NPCS[(_npcCivilianActivityCursor+i)%NPCS.length];if(n?.walking&&_npcStableUnit(n,'smoker')<.3&&_npcStartStandingSmoke(n,now))break;}_npcCivilianActivityCursor=NPCS.length?(_npcCivilianActivityCursor+24)%NPCS.length:0;}

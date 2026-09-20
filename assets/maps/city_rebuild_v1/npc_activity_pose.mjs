@@ -1,10 +1,12 @@
 // Source-owned activities only: offsets affect presentation, never AI coordinates.
-export function createNpcActivityPose({THREE,walker}){
+export function createNpcActivityPose({THREE,walker,renderPhone=true}){
  const c=walker.artistContext(),phone=new THREE.Group(),clamp=x=>Math.max(0,Math.min(1,x));
  phone.name='NPC_Phone';phone.visible=false;
- const shell=new THREE.Mesh(new THREE.BoxGeometry(.15,.29,.025),new THREE.MeshStandardMaterial({color:0x24282a,roughness:.35,metalness:.35}));
- const screen=new THREE.Mesh(new THREE.BoxGeometry(.116,.225,.006),new THREE.MeshStandardMaterial({color:0x607e83,roughness:.3,emissive:0x152326,emissiveIntensity:.18}));
- screen.position.z=.016;phone.add(shell,screen);phone.position.set(0,.06,.045);phone.rotation.set(.1,0,Math.PI/2);c.bones.hand_r.add(phone);
+ if(renderPhone){
+  const shell=new THREE.Mesh(new THREE.BoxGeometry(.105,.215,.021),new THREE.MeshStandardMaterial({color:0x24282a,roughness:.35,metalness:.35}));
+  const screen=new THREE.Mesh(new THREE.BoxGeometry(.083,.174,.005),new THREE.MeshStandardMaterial({color:0x607e83,roughness:.3,emissive:0x152326,emissiveIntensity:.18}));
+  screen.position.z=.016;phone.add(shell,screen);phone.position.set(0,.06,.045);phone.rotation.set(.1,0,Math.PI/2);c.bones.hand_r.add(phone);
+ }
  // Capture shoe bounds once in each foot's frame; target the sole, not ankle height.
  const footBounds={};c.object.updateMatrixWorld(true);
  for(const side of ['l','r']){
@@ -18,14 +20,16 @@ export function createNpcActivityPose({THREE,walker}){
  let lastSeat=null,weight=0,lastTime=null;
  function apply({life={},time=0,blend=1,blocked=false,armed=false,groundY=0}={}){
   const threat=life.cowering||life.surrendering||life.cuffed||life.arrested||life.fleeing||/panic|flee|cower|surrender/.test(String(life.state||''));
-  phone.visible=!blocked&&!armed&&!threat&&!!life.phoneCalling;
+  phone.visible=renderPhone&&!blocked&&!armed&&!threat&&!!life.phoneCalling;
   const dt=lastTime===null?0:Math.max(0,Math.min(.25,time-lastTime));lastTime=time;
   if(blocked||armed||threat){weight=0;lastSeat=null;return false;}
   const seat=life.seat,activity=life.routinePlan?.phase||life.activity||'',height=seat?.seatWorldY??seat?.height;
   const sitting=seat&&['sit','sitting','rest','sit_down'].includes(seat.phase||activity)&&Number.isFinite(height);
   if(sitting){
-   if(!lastSeat){const age=Number.isFinite(seat.since)?Math.max(0,time-seat.since/1000):0;weight=clamp(age/.5);}
-   if(!lastSeat)lastSeat={};lastSeat.id=seat.id;lastSeat.c=seat.c;lastSeat.r=seat.r;lastSeat.yaw=seat.yaw;lastSeat.seatWorldY=height;weight=Math.min(1,weight+dt/.5);
+   // First observation already accounts for elapsed seat age; the preceding
+   // standing frame must not advance this newly started transition again.
+   if(!lastSeat){const age=Number.isFinite(seat.since)?Math.max(0,time-seat.since/1000):0;weight=clamp(age/.5);}else weight=Math.min(1,weight+dt/.5);
+   if(!lastSeat)lastSeat={};lastSeat.id=seat.id;lastSeat.c=seat.c;lastSeat.r=seat.r;lastSeat.yaw=seat.yaw;lastSeat.seatWorldY=height;
   }else weight=Math.max(0,weight-dt/.5);
   if(lastSeat&&weight>0){
    const seated=THREE.MathUtils.smoothstep(weight,0,1)*clamp(blend),s=lastSeat;

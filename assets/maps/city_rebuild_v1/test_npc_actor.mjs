@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {registerHooks} from 'node:module';
 import {pathToFileURL} from 'node:url';
-import {createNpcActor,NPC_ASSETS} from './npc_actor.mjs';
+import {createNpcActor,NPC_ASSETS,sampleNpcSurrenderGesture} from './npc_actor.mjs';
 import {describeNpcAppearance,applyNpcAppearance} from './npc_appearance.mjs';
 const deps='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';
 registerHooks({resolve(specifier,context,nextResolve){return nextResolve(specifier==='three'?pathToFileURL(deps+'/build/three.module.js').href:specifier,context);}});
@@ -13,6 +13,17 @@ const skeletonSource=await (await fetch('https://cdn.jsdelivr.net/npm/three@0.18
 const {clone}=await import('data:text/javascript;base64,'+Buffer.from(skeletonSource.replace("from 'three'","from '"+pathToFileURL(deps+'/build/three.module.js').href+"'")).toString('base64'));
 const sources={};for(const [sex,asset] of Object.entries(NPC_ASSETS)){const data=fs.readFileSync(new URL(asset.url));assert.equal(data.length,asset.bytes);assert.equal(createHash('sha256').update(data).digest('hex'),asset.sha256);sources[sex]=(await new GLTFLoader().parseAsync(data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength),'')).scene;}
 const world=new THREE.Scene(),create=(id,sex='male',height=1.9)=>createNpcActor({THREE,scene:world,source:sources[sex],cloneSkeleton:clone,id,sex,height});
+const surrenderSamples=[0,.37,1.2,2.8].map(sampleNpcSurrenderGesture);
+for(const pose of surrenderSamples){
+ assert.equal(pose.hands.length,2);assert(pose.chest.concat(pose.head,...pose.hands).every(Number.isFinite));
+ const [left,right]=pose.hands,gap=right[0]-left[0];
+ assert(left[0]<=-.76&&right[0]>=.75,'surrender hands clear the head and hats on their natural sides');
+ assert(gap>=1.52&&gap<=1.58,'hands stay well outside the face while remaining below the old high Y');
+ assert(left[1]>=4.03&&left[1]<=4.09&&right[1]>=4.10&&right[1]<=4.15,'raised hands retain relaxed asymmetry');
+ assert(left[2]>=.49&&left[2]<=.51&&right[2]>=.48&&right[2]<=.50,'hands remain slightly forward with bent elbows');
+}
+assert.notDeepEqual(surrenderSamples[0],surrenderSamples[1],'surrender pose breathes instead of freezing');
+for(let i=1;i<surrenderSamples.length;i++)for(let hand=0;hand<2;hand++)assert(new THREE.Vector3(...surrenderSamples[i-1].hands[hand]).distanceTo(new THREE.Vector3(...surrenderSamples[i].hands[hand]))<.05,'surrender motion stays subtle');
 const a=create('citizen:42'),b=create('citizen:43'),f=create('citizen:44','female',1.65),tall=create('citizen:45','male',2.05);
 assert.equal(f.height,1.65);assert.equal(tall.height,2.05);
 const ac=a.walker.artistContext(),bc=b.walker.artistContext();assert.notEqual(ac.bones.head,bc.bones.head);

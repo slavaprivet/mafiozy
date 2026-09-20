@@ -45,4 +45,28 @@ const update=source.slice(source.indexOf('function updateNpcs('));
 const cancelAt=update.indexOf('_npcCancelInterruptedWitness(n,now);'),deadAt=update.indexOf('    if (n.dead)');
 assert.ok(cancelAt>=0&&deadAt>cancelAt,'Cancel before dead/downed update early exits');
 assert.ok(source.includes('if(_npcFinishWitnessCall(n,now))continue;'),'Actual world update must finish phone calls');
-console.log('PASS: visibility/range, finite phone completion, interruption, throttle/offline retry, repeated gunfire phase, world hooks');
+
+// Production panic sampling: a gunshot makes 90% of ordinary civilians flee,
+// while preserving a small stable non-flight minority and all protected-role
+// exclusions. Non-shot fights keep their existing archetype diversity.
+const styleSandbox={performance:{now:()=>10000},_npcStableUnit:n=>n.u};vm.createContext(styleSandbox);vm.runInContext(fn('_npcPanicStyle'),styleSandbox);
+for(const arc of ['worker','student','businessman','housewife','homeless','drunk','pensioner']){
+  const samples=Array.from({length:100},(_,i)=>styleSandbox._npcPanicStyle({_arcKey:arc,u:(i+.5)/100},'bullet'));
+  assert.equal(samples.filter(style=>style==='flee').length,90,arc+' gunshot flight rate');
+  assert(samples.slice(90).every(style=>style==='freeze'||style==='cower'||style==='call'),arc+' keeps a bounded non-flight minority');
+}
+assert.notEqual(styleSandbox._npcPanicStyle({_arcKey:'drunk',u:.3},'fight'),'flee','ordinary fights retain archetype behaviour');
+assert.equal(styleSandbox._npcPanicStyle({_arcKey:'drunk',u:.3},'fire'),'freeze','non-shot fire keeps archetype behaviour');
+for(const protectedNpc of [{police:true},{isPolice:true},{_empireBoss:true},{_empireCrew:true},{role:'guard'},{role:'gang'},{role:'boss'}])assert.equal(sandbox._npcCanWitnessEvent({...npc(),...protectedNpc},now),false,'protected combat role never enters civilian gunshot panic');
+
+// A physical hit may happen outside the ambient sound radius. Execute the
+// production hit function with the production civilian-role policy and prove
+// that only a living ordinary victim gets direct bullet panic.
+const hitSandbox={performance:{now:()=>20000},Math:Object.assign(Object.create(Math),{random:()=>.5}),QP:{uid:'qa'},player:{r:0,c:0},_LOCAL_PREVIEW:false,_UP:new Map(),
+  _walkConfirmDamage(){},_markCombatBleeding(){},_npcPathPassable:()=>true,_npcRememberAggression(){},_npcSpreadRumor(){},_npcTrySurrenderAfterHit:()=>false,_npcTriggerFight(){},
+  _npcBeginPanic(n,at,until,r,c,kind){n.directPanic={at,until,r,c,kind};return true;},spawnFloatText(){},_registerMurderIncident(){},_respawnResidentImmediately(){},_capArr(){},bloodSplats:[],impacts:[],_MAX_BLOOD:20,_MAX_IMPACTS:20};
+vm.createContext(hitSandbox);vm.runInContext(fn('npcCivilianUnarmed')+'\n'+fn('hitNpc'),hitSandbox);
+const hitVictim=role=>({id:'resident_hit',r:0,c:12,hp:100,max_hp:100,role,_arc:{panicMult:1}});
+const ordinary=hitVictim('civilian');hitSandbox.hitNpc(ordinary,0,1,'pistol',5,{kind:'player'});assert.equal(ordinary.directPanic?.kind,'bullet','a distant direct-hit civilian flees without relying on radius panic');
+for(const role of ['police','guard','gang','boss']){const protectedVictim=hitVictim(role);hitSandbox.hitNpc(protectedVictim,0,1,'pistol',5,{kind:'player'});assert.equal(protectedVictim.directPanic,undefined,role+' keeps protected combat behaviour');}
+console.log('PASS: visibility/range, finite phone completion, interruption, throttle/offline retry, 90% civilian gunshot flight, direct-hit flight, protected roles, world hooks');

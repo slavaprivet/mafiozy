@@ -188,9 +188,9 @@ export function createHeroWalker({THREE,scene,targetHeight=1.9}){
 
     if(driver&&steeringGrips?.left?.isVector3&&steeringGrips?.right?.isVector3){
 
-      const palms={l:worldPosition('socket_hand_l'),r:worldPosition('socket_hand_r')},direct=palms.l.distanceTo(steeringGrips.left)+palms.r.distanceTo(steeringGrips.right),crossed=palms.l.distanceTo(steeringGrips.right)+palms.r.distanceTo(steeringGrips.left),targets=direct<=crossed?{l:steeringGrips.left,r:steeringGrips.right}:{l:steeringGrips.right,r:steeringGrips.left};
+      const palms={l:worldPosition('socket_hand_l'),r:worldPosition('socket_hand_r')},direct=palms.l.distanceTo(steeringGrips.left)+palms.r.distanceTo(steeringGrips.right),crossed=palms.l.distanceTo(steeringGrips.right)+palms.r.distanceTo(steeringGrips.left),forcedGrip=entryData?.steeringGripAssignment,useDirect=forcedGrip==='direct'||forcedGrip!=='crossed'&&direct<=crossed,targets=useDirect?{l:steeringGrips.left,r:steeringGrips.right}:{l:steeringGrips.right,r:steeringGrips.left};
 
-      vehicleGripAssignment=direct<=crossed?'direct':'nearest-cross-map';
+      vehicleGripAssignment=useDirect?'direct':'nearest-cross-map';
 
       const rootQ=object.getWorldQuaternion(new THREE.Quaternion());
 

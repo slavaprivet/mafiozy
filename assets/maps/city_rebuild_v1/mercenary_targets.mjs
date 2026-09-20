@@ -1,6 +1,6 @@
 // Read-only picking/target resolution; destructive gameplay effects are host-owned.
 const EFFECTS={plant_bomb:'blast',explode:'blast',explosion:'blast',vehicle_blast:'blast',breach_door:'breach',unlock_safe:'unlock',unlock_door:'unlock',unlock:'unlock',cut_fence:'cut',cut:'cut',disable_power:'disablePower',intimidate:'intimidate'};
-export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoots=null,getFleet=()=>[],getTraffic=()=>[],getBuildings=()=>[],getNpcs=()=>[],getVehicleLock=()=>null,pickingProbe=null,onVehicleBlast,onDoorBlast,onDoorBreach,onUnlock,onFenceCut,onDisablePower,onIntimidate}){
+export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoots=null,getFleet=()=>[],getTraffic=()=>[],getBuildings=()=>[],getNpcs=()=>[],getVehicleLock=()=>null,pickingProbe=null,skinPickingMemo=null,onVehicleBlast,onDoorBlast,onDoorBreach,onUnlock,onFenceCut,onDisablePower,onIntimidate}){
  const ray=new THREE.Raycaster(),screen=new THREE.Vector2(),center=new THREE.Vector3(),side=new THREE.Vector3(),cameraDelta=new THREE.Vector3(),contact=new THREE.Vector3(),normal=new THREE.Vector3(),q=new THREE.Quaternion(),vehicleSides=new WeakMap(),byId=new Map(),byObject=new Map(),done=new Set(),pending=new Map(),requests=new Map();let disposed=false;ray.far=80;
  const array=v=>Array.isArray(v)?v:v instanceof Map?[...v.values()]:[];
  const objectOf=r=>r?.object||r?.car?.object||r?.actor?.object||r?.visual||(r?.isObject3D?r:null);
@@ -9,7 +9,8 @@ export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoot
   byId.clear();byObject.clear();
   const fleet=getFleet(),traffic=getTraffic();for(const r of array(fleet?.records||fleet))register(r,'vehicle','fleet:');
   for(const r of array(traffic?.getActors?.()||traffic))register(r,'vehicle','traffic:');
-  for(const r of array(getNpcs()))register(r,r.kind==='player'?'player':'npc','npc:');
+  const npcs=array(getNpcs());skinPickingMemo?.syncNpcRoots(npcs.map(objectOf).filter(Boolean));
+  for(const r of npcs)register(r,r.kind==='player'?'player':'npc','npc:');
   for(const r of array(getBuildings())){const o=objectOf(r);if(o?.userData?.mercenaryTarget)register(r,o.userData.mercenaryTarget.kind,'object:');}
  }
  function visible(o){for(let n=o;n;n=n.parent)if(n.visible===false)return false;return true;}
@@ -45,10 +46,12 @@ export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoot
   const d=object.userData,vehicleState=r.damage?.state,vehicleDone=r.kind==='vehicle'&&(vehicleState?.wrecked===true||vehicleState?.destroying===true||Number.isFinite(vehicleState?.hp)&&vehicleState.hp<=0||d.wrecked===true||d.destroyed===true),vehicleLock=r.kind==='vehicle'?getVehicleLock(r.sourceId):null;return {...meta,workPoint,workNormal,supportPoint,workRange:r.kind==='vehicle'?.08:meta.workRange,id:r.id,kind:r.kind,sourceId:r.sourceId,object,position:{x:side.x,y:side.y,z:side.z},lootPosition,center:{x:center.x,y:center.y,z:center.z},valid:visible(object)&&d.destroyed!==true&&!vehicleDone,destroyed:d.destroyed===true||vehicleDone,wrecked:vehicleState?.wrecked===true,lockpickable:vehicleLock?.lockpickable??meta.lockpickable,breachable:r.kind==='door'?meta.breachable===true&&typeof meta.breakOpen==='function':meta.breachable,bombable:r.kind==='door'?meta.bombable===true&&typeof meta.blast==='function':meta.bombable,locked:vehicleLock?vehicleLock.locked===true:d.locked===true||(meta.locked===true&&d.locked!==false),lockable:d.lockable===true||d.locked===true||meta.lockable===true,label:meta.label||d.label||object.name||r.kind,opened:d.mercenaryOpened===true,cut:d.mercenaryCut===true};
  }
  function roots(){return array(getRoots()).map(objectOf).filter(Boolean);}
+ const intersect=(raycaster,candidates)=>skinPickingMemo?skinPickingMemo.intersect(raycaster,candidates):raycaster.intersectObjects(candidates,true);
  const assistBox=new THREE.Box3(),assistInverse=new THREE.Matrix4(),assistRay=new THREE.Ray(),assistPoint=new THREE.Vector3(),assistCenter=new THREE.Vector3(),sight=new THREE.Raycaster();
  function assistedPick(blocker){
-  let best=null,bestDistance=Infinity;
+  let best=null,bestDistance=Infinity;const measuring=pickingProbe?.active===true;
   for(const r of byId.values()){
+   if(measuring)pickingProbe.count('assistScanned');
    if(!['safe','power_panel','door','npc','player'].includes(r.kind)||!visible(r.object))continue;
    const bounds=r.meta.highlightBounds||(['npc','player'].includes(r.kind)?{min:[-.4,0,-.4],max:[.4,1.9,.4]}:null);if(!bounds?.min||!bounds?.max)continue;
    r.object.updateWorldMatrix(true,false);assistInverse.copy(r.object.matrixWorld).invert();assistRay.copy(ray.ray).applyMatrix4(assistInverse);
@@ -57,9 +60,11 @@ export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoot
    const padding=Math.min(1.2,Math.max(r.kind==='npc'||r.kind==='player'?.25:.6,assistCenter.distanceTo(ray.ray.origin)*.018));
    assistBox.expandByScalar(padding);if(!assistRay.intersectBox(assistBox,assistPoint))continue;assistPoint.applyMatrix4(r.object.matrixWorld);
    const distance=assistPoint.distanceTo(ray.ray.origin);if(distance>ray.far||distance>=bestDistance||blocker&&blocker.distance+.05<distance)continue;
+   if(measuring)pickingProbe.count('assistLosQueries');
    sight.ray.origin.copy(ray.ray.origin);sight.ray.direction.copy(assistCenter).sub(sight.ray.origin).normalize();sight.far=sight.ray.origin.distanceTo(assistCenter)+.01;
    const candidates=typeof getPickRoots==='function'?getPickRoots(sight.ray.origin,sight.ray.direction,sight.far):roots();
-   const first=sight.intersectObjects(candidates,true).find(hit=>visible(hit.object)&&hit.object.userData?.mercenaryPickIgnore!==true);
+   const losHits=measuring?pickingProbe.measure('assistLosMs',()=>intersect(sight,candidates)):intersect(sight,candidates);
+   const first=losHits.find(hit=>visible(hit.object)&&hit.object.userData?.mercenaryPickIgnore!==true);
    if(!first||recognize(first.object)?.id!==r.id)continue;
    best={...describe(r),distance,hitPoint:{x:assistPoint.x,y:assistPoint.y,z:assistPoint.z},assisted:true};bestDistance=distance;
   }return best;
@@ -67,7 +72,7 @@ export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoot
  function pick(){
   if(disposed)return null;refresh();pickingProbe?.mark('registryMs');ray.setFromCamera(screen,camera);pickingProbe?.mark('raySetupMs');
   const candidates=typeof getPickRoots==='function'?getPickRoots(ray.ray.origin,ray.ray.direction,ray.far):roots();pickingProbe?.mark('candidateQueryMs');
-  const hits=pickingProbe?.active?pickingProbe.intersect(ray,candidates,object=>byObject.get(object)?.kind):ray.intersectObjects(candidates,true);
+  const hits=pickingProbe?.active?pickingProbe.intersect(ray,candidates,object=>byObject.get(object)?.kind):intersect(ray,candidates);
   const hit=hits.find(hit=>visible(hit.object)&&hit.object.userData?.mercenaryPickIgnore!==true),r=hit&&recognize(hit.object);
   // A small switchbox just in front of a fence must win over that fence behind it.
   const assisted=r&&['npc','player','vehicle','safe','power_panel','door'].includes(r.kind)?null:assistedPick(hit);
@@ -76,7 +81,7 @@ export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoot
  }
  function pickGround(){
   if(disposed)return null;refresh();ray.setFromCamera(screen,camera);
-  for(const hit of ray.intersectObjects(typeof getPickRoots==='function'?getPickRoots(ray.ray.origin,ray.ray.direction,ray.far):roots(),true)){
+  for(const hit of intersect(ray,typeof getPickRoots==='function'?getPickRoots(ray.ray.origin,ray.ray.direction,ray.far):roots())){
    if(!visible(hit.object)||hit.object.userData?.mercenaryPickIgnore===true)continue;
    if(hit.distance>80||recognize(hit.object)||hit.object.userData?.nativeTerrainKind==='water')return null;
    const normal=hit.face?.normal?.clone().transformDirection(hit.object.matrixWorld);
@@ -88,7 +93,7 @@ export function createMercenaryTargets({THREE,camera,getRoots=()=>[],getPickRoot
   if(!from||!to)return false;refresh();sight.ray.origin.set(from.x,from.y+1.15,from.z);assistCenter.set(to.x,to.y+1.05,to.z);sight.ray.direction.copy(assistCenter).sub(sight.ray.origin);sight.far=sight.ray.direction.length();if(sight.far<.01)return true;sight.ray.direction.normalize();
   const candidates=typeof getPickRoots==='function'?getPickRoots(sight.ray.origin,sight.ray.direction,sight.far):roots();
   const key=v=>String(v??'').replace(/^npc:/,'').replace(/^(?:npc_|crew_)/,'');
-  for(const hit of sight.intersectObjects(candidates,true)){if(!visible(hit.object)||hit.object.userData?.mercenaryPickIgnore===true)continue;const r=recognize(hit.object);if(r&&(key(r.id)===key(targetId)||key(r.sourceId)===key(targetId)))return true;return false;}return true;
+  for(const hit of intersect(sight,candidates)){if(!visible(hit.object)||hit.object.userData?.mercenaryPickIgnore===true)continue;const r=recognize(hit.object);if(r&&(key(r.id)===key(targetId)||key(r.sourceId)===key(targetId)))return true;return false;}return true;
  }
  // Only immediate adapter resolution after pick reuses its registry; commands
  // and effects use the default fresh registry and every call describes live pose.

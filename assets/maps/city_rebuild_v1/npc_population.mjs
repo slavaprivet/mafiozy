@@ -37,7 +37,7 @@ export function normalizeNpcSnapshot(src,{time,sourceNowMs,worldScale=4.1,origin
   action:unarmed&&hasMelee?{type:activeMelee?(ARTIST14_MELEE_DURATIONS[type]?type:'punch'):'none',progress:Math.max(0,Math.min(1,shotAge/duration)),side:src.meleeKickSide<0?-1:1,blocking:!!src.meleeBlock,charge:Number(src.meleeChargeProgress)||0}:null,
   aim:{aimYaw:Math.PI/2-(Number(src.ang)||0),aimPitch:Number(src.aimPitch)||0,recoil:shotAge>=0&&shotAge<.16?1-shotAge/.16:0},
   reloadProgress:Number(src.reloadProgress)||0,waterLevel:water?.level,inWater:!!water&&water.depth!==0,chestWorldY:y+1.13,time,
-  stun,lifecycle:normalizeNpcLifecycle(src,{time,sourceNowMs:nowMs}),life:{...src},visible:!src.carried&&!src.evacuated};
+  stun,lifecycle:normalizeNpcLifecycle(src,{time,sourceNowMs:nowMs}),life:{...src},sourceNowMs:nowMs,visible:!src.carried&&!src.evacuated};
 }
 
 // Snapshot displacement is metres; src.speed is a source tiles/second setting.

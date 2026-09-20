@@ -23,7 +23,10 @@ function _npcPlanRoadExit(n,now=performance.now()){
   state=n._npcRoadExit={r:n.r,c:n.c,resolver,index:0,goal:null,attempts:0,retryAt:0};
  }
  if(now<state.retryAt){n.idleUntil=state.retryAt;return false;}
- if(state.retryAt){state.index=0;state.attempts=0;state.retryAt=0;}
+ // Four unreachable near-side landings must not win every retry. Continue
+ // the finite scan after each bounded batch; a full sweep may restart later
+ // so moved vehicles or changed doors can make an earlier landing reachable.
+ if(state.retryAt){if(state.index>=_npcRoadExitOffsets.length)state.index=0;state.attempts=0;state.retryAt=0;}
  n.tr=n.r;n.tc=n.c;n.idleUntil=0;n.walking=false;n._routeSearchKind='civilian_road_exit';
  const pending=()=>{n._routeSearchPending=true;n._roadExitStatus='route-pending';return false;};
  const failed=()=>{_cancelNpcDirectedSearch(n);_clearNpcRoute(n);state.goal=null;state.retryAt=now+1000;n.idleUntil=state.retryAt;n._roadExitStatus='no-clear-land';return false;};

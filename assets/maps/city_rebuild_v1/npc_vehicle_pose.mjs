@@ -24,12 +24,16 @@ export function resolveNpcVehicleBinding(source,getVehicle){
 export function applyNpcVehicleBinding({THREE,walker,binding,dt}){
  const c=walker.artistContext();
  if(binding.rootSeat&&typeof binding.vehicle.poseOccupant==='function'){
-  const position=c.object.position.clone(),quaternion=c.object.quaternion.clone();
+ const position=c.object.position.clone(),quaternion=c.object.quaternion.clone();
   const fold=binding.transition?(binding.phase==='board'?binding.progress:1-binding.progress):1;
+  const sourceYaw=c.object.rotation.y,seatYaw=sourceYaw+Math.atan2(Math.sin(binding.yaw-sourceYaw),Math.cos(binding.yaw-sourceYaw))*fold;
   // During the door crossing the source root advances continuously. Snapping
   // to the seat here used to erase that motion and hide the entire entry.
-  c.object.position.set(binding.transition?position.x:binding.seat.x,position.y+(binding.seat.y-position.y)*fold,binding.transition?position.z:binding.seat.z);c.object.rotation.set(0,binding.yaw,0);c.object.updateMatrixWorld(true);
-  binding.vehicle.poseOccupant(walker,binding.seatId||'front_left',{fold,reach:binding.transition?Math.sin(binding.progress*Math.PI)*.65:0,dt,steer:binding.vehicle.steer||0});c.object.updateMatrixWorld(true);
+  // Blend the facing as well: a side-on approach must not rotate every limb
+  // to the car axis in the zero-progress boarding frame.
+  c.object.position.set(binding.transition?position.x:binding.seat.x,position.y+(binding.seat.y-position.y)*fold,binding.transition?position.z:binding.seat.z);c.object.rotation.set(0,seatYaw,0);c.object.updateMatrixWorld(true);
+  const gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit);
+  binding.vehicle.poseOccupant(walker,binding.seatId||'front_left',{fold,...(binding.transition?{gripBlend}:{}),reach:binding.transition?Math.sin(binding.progress*Math.PI)*.65:0,dt,steer:binding.vehicle.steer||0});c.object.updateMatrixWorld(true);
   const visualWorld=c.visualPivot.matrixWorld.clone();c.object.position.copy(position);c.object.quaternion.copy(quaternion);c.object.updateMatrixWorld(true);
   visualWorld.premultiply(c.object.matrixWorld.clone().invert());visualWorld.decompose(c.visualPivot.position,c.visualPivot.quaternion,c.visualPivot.scale);c.object.updateMatrixWorld(true);return;
  }

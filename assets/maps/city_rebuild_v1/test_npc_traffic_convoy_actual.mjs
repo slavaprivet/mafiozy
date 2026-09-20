@@ -85,8 +85,10 @@ for(let frame=0;frame<220;frame++){
 }
 const queued=rows.filter(row=>row.car._civilianBlockReason==='vehicle');
 assert(queued.length>=2,'the stopped leader forms a real multi-car queue: '+JSON.stringify(rows.map(row=>({c:row.car.c,phase:row.trip.phase,reason:row.car._civilianBlockReason,travelledM:row.trip.travelledM}))));
+assert(queued.every(row=>row.car._civilianBlockerId),'every vehicle block identifies the exact blocking car');
+assert.equal(front.car._civilianBlockerId,'convoy_blocker','the queue leader identifies the external blocker');
 assert(rows.every(row=>box.byCar(row.car)===row.trip&&row.trip.phase==='drive'),'short congestion retains every original trip and driver');
-const stopped=rows.map(row=>({id:row.id,c:row.car.c,travelledM:row.trip.travelledM||0,reason:row.car._civilianBlockReason||null}));
+const stopped=rows.map(row=>({id:row.id,c:row.car.c,travelledM:row.trip.travelledM||0,reason:row.car._civilianBlockReason||null,blockerId:row.car._civilianBlockerId||null}));
 actors.delete('convoy_blocker');
 for(let frame=0;frame<600&&rows.some(row=>row.trip.phase==='drive');frame++){
  f.nextFrame(.05);nav.beginFrame();const started=performance.now();

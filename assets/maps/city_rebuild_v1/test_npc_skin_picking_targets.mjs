@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {createNpcSkinPickMemo} from './npc_skin_pick_memo.mjs';
+import {createMercenaryTargets} from './mercenary_targets.mjs';
+const T=await import(pathToFileURL((process.env.THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor')+'/build/three.module.js'));
+const scene=new T.Scene(),camera=new T.PerspectiveCamera(50,1,.1,200);camera.position.set(0,1,5);camera.lookAt(0,1,0);camera.updateMatrixWorld(true);
+const g=new T.BoxGeometry(.7,1.8,.5),n=g.attributes.position.count,weights=new Float32Array(n*4);for(let i=0;i<n;i++)weights[i*4]=1;
+g.setAttribute('skinIndex',new T.Uint16BufferAttribute(new Uint16Array(n*4),4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(weights,4));
+const mesh=new T.SkinnedMesh(g,new T.MeshBasicMaterial()),bone=new T.Bone();mesh.add(bone);mesh.bind(new T.Skeleton([bone]));mesh.position.y=1;scene.add(mesh);scene.updateMatrixWorld(true);mesh.skeleton.update();
+const memo=createNpcSkinPickMemo({THREE:T}),props={THREE:T,camera,getRoots:()=>[scene],getNpcs:()=>[{id:'test',object:mesh}]};
+const native=createMercenaryTargets(props),optimized=createMercenaryTargets({...props,skinPickingMemo:memo});memo.setEnabled(true);
+function check(){assert.deepEqual(optimized.pick(),native.pick());for(const id of ['test','npc:test','wrong'])assert.equal(optimized.hasLineOfSight({x:0,y:0,z:5},{x:0,y:0,z:0},id),native.hasLineOfSight({x:0,y:0,z:5},{x:0,y:0,z:0},id));}
+check();assert(memo.stats().cacheHits>0);assert.equal(optimized.pick().id,'npc:test');
+const wall=new T.Mesh(new T.BoxGeometry(3,3,.15),new T.MeshBasicMaterial({transparent:true,opacity:.2}));wall.position.set(0,1,2);scene.add(wall);scene.updateMatrixWorld(true);check();assert.equal(optimized.pick(),null);assert.equal(optimized.hasLineOfSight({x:0,y:0,z:5},{x:0,y:0,z:0},'test'),false);
+wall.material.visible=false;check();assert.equal(optimized.pick(),null,'hidden material glass still occludes exactly as before');
+wall.visible=false;check();assert.equal(optimized.pick().id,'npc:test','ancestor/object visibility postfilter stays native');
+mesh.visible=false;check();assert.equal(optimized.pick(),null);mesh.visible=true;
+bone.rotation.z=.25;scene.updateMatrixWorld(true);mesh.skeleton.update();mesh.computeBoundingSphere();check();
+memo.setEnabled(false);check();memo.dispose();assert.equal(Object.hasOwn(mesh,'getVertexPosition'),false);assert.equal(Object.hasOwn(mesh,'_computeIntersections'),false);
+native.dispose();optimized.dispose();g.dispose();mesh.material.dispose();wall.geometry.dispose();wall.material.dispose();
+console.log('PASS memo target integration: full target parity, animated pose, wall/glass blocking, material visibility vs object visibility, LOS identity, disposal');
