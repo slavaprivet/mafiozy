@@ -46,7 +46,7 @@ for(const sex of ['male','female']){
   }
   for(const fleeing of [{panic:true},{fleeing:true},{state:'panic'},{lifeState:'fleeing'},{state:'PANIC'}]){
    tick(7.2,{talking:true,...fleeing});assert.equal(actor.diagnostics().lifeGesture,null,'escaping does not leak legacy talking arms');
-   tick(7.3,{phoneCalling:true,...fleeing});assert.equal(actor.object.getObjectByName('NPC_Phone').visible,false,'escaping hides phone across source state aliases');
+   tick(7.3,{phoneCalling:true,...fleeing});assert.equal(actor.diagnostics().phone.visible,false,'escaping hides pooled phone across source state aliases');
    assert.equal(actor.diagnostics().lifeGesture,null,'escaping suppresses phone gesture across source state aliases');
   }
   tick(8,{activity:{kind:'read',phase:'finish',since:8000,until:8600}});assert(book.visible);tick(8.7,{activity:{kind:'read',phase:'finish',since:8000,until:8600}});assert(!book.visible);tick(9,{});assert(!book.visible&&!cigarette.visible);

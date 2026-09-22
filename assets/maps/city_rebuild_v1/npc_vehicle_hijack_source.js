@@ -9,6 +9,7 @@ function _npcRememberVehicleOccupant(car,npc){
 function _npcVehicleOccupant(car){
  const known=_npcVehicleOccupants.get(car);if(known&&NPCS.includes(known.npc))return known;
  const ambient=_ambientTrafficDrivers.get(car),trip=typeof _civilianTripForCar==='function'?_civilianTripForCar(car):_civilianTrip?.car===car?_civilianTrip:null;
+ const boarding=ambient?.phase==='board'?ambient:trip?.phase==='board'?trip:null;if(boarding?.npc)return {npc:boarding.npc,carId:_threeVehicleEntityId(car),seatId:'front_left',transition:true};
  const n=ambient?.phase==='drive'?ambient.npc:trip?.npc?._civilianTripRiding?trip.npc:null;if(n){_npcRememberVehicleOccupant(car,n);return _npcVehicleOccupants.get(car);}return null;
 }
 function _nativeVehicleRecord(id){
@@ -91,6 +92,8 @@ function _beginNativeVehicleEntry(car,kind,done){
  const record={car,kind,sourceId:kind==='quest'?String(car.id):_threeVehicleEntityId(car),presentationId:_threeVehicleEntryId(car,kind)},seatId=_walkVehicleSeatId||'front_left',access=_nativeVehicleAccess(record,'query',0,seatId);
  if(!access||Math.hypot(player.r-access.outside.r,player.c-access.outside.c)>1.1||!_civilianTripDoorPath({npc:player,carId:record.presentationId},player.r,player.c,access.outside.r,access.outside.c)){showToast('Подойди к выбранной двери со свободной стороны','🚪',1800);return true;}
  const occupant=kind==='traffic'&&seatId==='front_left'?_npcVehicleOccupant(car):null,npc=occupant?.npc,now=performance.now(),token=`hijack_${Date.now()}_${record.sourceId}`;
+ const ambient=_ambientTrafficDrivers.get(car),trip=typeof _civilianTripForCar==='function'?_civilianTripForCar(car):_civilianTrip?.car===car?_civilianTrip:null;
+ if(npc&&(ambient?.phase==='board'||trip?.phase==='board')){showToast('Водительское место занято','🚫',1800);return true;}
  const seatedBinding=npc?{ambient:_ambientTrafficDrivers.get(car),trip:typeof _civilianTripForCar==='function'?_civilianTripForCar(car):_civilianTrip?.car===car?_civilianTrip:null,nativePlan:car._civilianNativePlan,plan:npc._civilianPlan}:null;
  let drop=access.outside;if(npc){for(const sign of [1,-1]){const p={r:access.outside.r+Math.sin(+car.ang||0)*.45*sign,c:access.outside.c+Math.cos(+car.ang||0)*.45*sign};if(_civilianTripDoorPath({npc,carId:record.presentationId},npc.r,npc.c,p.r,p.c)){drop=p;break;}}}
  const seq={token,eventId:token,native:true,sourceCarId:record.sourceId,vehicleId:record.presentationId,carId:record.presentationId,seatId,victimId:npc?_threeNpcEntityId(npc):null,phase:'approach',progress:0,startedAt:now,duration:1,kind,r:kind==='quest'?car.y:car.r,c:kind==='quest'?car.x:car.c,ang:+car.ang||0};

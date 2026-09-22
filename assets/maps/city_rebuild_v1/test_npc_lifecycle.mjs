@@ -22,12 +22,13 @@ for(const sex of ['male','female']){
  assert(!a.diagnostics().sourceDown&&!a.diagnostics().sourceRecovering);assert(ctx.bones.head.getWorldPosition(new THREE.Vector3()).y>1.2,sex+' recovered stands');const after=a.saveSurfaceState().surface;assert.deepEqual(after.bruises,injuries.bruises);assert.deepEqual(after.wounds.marks,injuries.wounds.marks,'getting up never heals wounds');
  for(let i=0;i<8;i++)tick({life:{cuffed:true}});assert.equal(a.diagnostics().lifeGesture,'cuffed');for(const side of ['l','r'])assert(ctx.offset.worldToLocal(ctx.worldPosition('socket_hand_'+side)).z<-.15,'cuffed palms behind torso');
  const gun=createWeaponModel({THREE,id:'tt_pistol'});a.mountWeapon(gun);tick({life:{cuffed:true}});const armed=ctx.bones.hand_r.matrix.toArray();tick();assert(armed.every((v,i)=>Math.abs(v-ctx.bones.hand_r.matrix.elements[i])<1e-8),'armed cuffs do not overwrite weapon IK');assert.equal(a.diagnostics().lifeGesture,null);a.mountWeapon(null);
- // Actual medical source snapshot carries both downed and forcedCrawl.
- // Its base prone tilt must not cancel the authored nonfatal fall rotation.
- for(let i=0;i<10;i++)tick(normalizeNpcSnapshot({id:a.id,r:0,c:0,hp:1,dead:false,deathConfirmed:false,downed:true,downedAt:1000,downedUntil:0,forcedCrawl:true,panic:true,walking:true},{time:time+.1,sourceNowMs:5000+i*100}));
- assert(a.diagnostics().sourceDown);assert.notEqual(a.surface.state.kind,'dead','medical HP1 remains alive');
- assert(ctx.bones.head.getWorldPosition(new THREE.Vector3()).y<.65,sex+' medical downed cannot stand from double prone/fall rotation');
- for(let i=0;i<8;i++)tick({stun:{active:true,age:1}});a.receive({id:'real-death',confirmed:true,dead:true});for(let i=0;i<10;i++)tick({stun:{active:true,age:2}});assert.equal(a.surface.state.kind,'dead');assert(ctx.visualPivot.quaternion.angleTo(new THREE.Quaternion())<1.8,'death not composed with second source fall');
+ // A medical HP1 victim crawls with the existing prone gait instead of
+ // sliding in a permanently locked stun fall.
+ const crawlPhases=[],crawlHeads=[];for(let i=0;i<12;i++){const snap=normalizeNpcSnapshot({id:a.id,r:i*.025,c:0,hp:1,dead:false,deathConfirmed:false,downed:true,downedAt:1000,downedUntil:0,forcedCrawl:true,panic:true,walking:true},{time:time+.1,sourceNowMs:5000+i*100});snap.gaitDistance=.1025;tick(snap);crawlPhases.push(a.walker.diagnostics().phase);crawlHeads.push(ctx.bones.head.getWorldPosition(new THREE.Vector3()).y);}
+ assert(!a.diagnostics().sourceDown);assert.notEqual(a.surface.state.kind,'dead','medical HP1 remains alive');assert(crawlPhases.at(-1)>crawlPhases[0],sex+' crawler animates limbs from travelled distance');assert(crawlHeads.slice(5).every(y=>y<.8),sex+' crawler remains close to the ground');
+ // A finishing shot starts from the already settled ground pose. Sampling
+ // every frame catches the old one-frame stand-up before the death fall.
+ const deathHeads=[];for(let i=0;i<8;i++){const dead=normalizeNpcSnapshot({id:a.id,r:.3,c:0,hp:0,dead:true,deathConfirmed:true,deadAt:6200,deathFromDowned:true},{time:time+.1,sourceNowMs:6200+i*100});tick(dead);deathHeads.push(ctx.bones.head.getWorldPosition(new THREE.Vector3()).y);}assert.equal(a.surface.state.kind,'dead');assert(Math.max(...deathHeads)<.8,sex+' finishing hit never lifts a prone victim');
  a.dispose();gun.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});assert.equal(world.children.length,0);
 }
 console.log('PASS both GLB source stun->recover preserves wounds/bruises, cuffed hands behind, armed IK, explicit source timing, serialized down state, death priority');

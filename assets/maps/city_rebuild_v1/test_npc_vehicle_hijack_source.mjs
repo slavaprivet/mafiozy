@@ -19,6 +19,13 @@ for(const dead of [false,true]){
 const blocked=fixture(true);blocked.start();while(blocked.ctx._threeVehicleEntrySequence.phase!=='pull_driver')blocked.step();blocked.block();const anchor={r:blocked.npc.r,c:blocked.npc.c};for(let i=0;i<35;i++)blocked.step();assert.equal(blocked.done,0);assert.equal(blocked.released,0);assert.equal(blocked.npc.r,anchor.r);assert.equal(blocked.npc.c,anchor.c);blocked.unblock();for(let i=0;i<150&&blocked.ctx._threeVehicleEntrySequence;i++)blocked.step();assert.equal(blocked.done,1);
 const retry=fixture();retry.api.remember(retry.car,retry.npc);retry.player.r=30;assert(retry.api.begin(retry.car,'traffic',()=>{}));assert.equal(retry.ctx._threeVehicleEntrySequence,null,'far-side rejection never teleports hero');assert.equal(retry.player.r,30);
 assert.equal(retry.api.action({action:'drive',pose:{r:1,c:1}}).accepted,false,'host pose cannot replace source driving physics');assert.equal(retry.api.input({forward:true}).accepted,false);
+{
+ const f=fixture(),{ctx,api,car,npc}=f;ctx._civilianTrip={car,npc,carId:'traffic_sedan',phase:'board',progress:.45};npc._civilianTrip=true;
+ assert.equal(api.occupant(car)?.npc,npc,'boarding resident reserves the driver seat before seated');
+ assert.equal(api.access({carId:'traffic_sedan'}).occupiedSeatId,'front_left');
+ assert(api.begin(car,'traffic',()=>{}));assert.equal(ctx._threeVehicleEntrySequence,null,'player cannot overlap a resident during the door transition');
+ assert.equal(npc._vehicleHijack,undefined,'occupied transition is rejected without snapping resident to seated extraction');
+}
 for(const online of [false,true]){
  const f=fixture();f.start();while(f.ctx._threeVehicleEntrySequence)f.step();const event={eventId:f.npc._vehicleHijack.eventId,carId:'traffic_sedan'};
  const qc={id:'claim',owner_uid:'me',driver_uid:'me',x:10,y:10,ang:0,vx:0,vy:0};f.ctx.questCars.set('claim',qc);f.ctx.myDrivingCarId='claim';f.api.claim(f.car,'claim');f.ctx.ws=online?{readyState:1}:null;f.player.r=10;f.player.c=10;

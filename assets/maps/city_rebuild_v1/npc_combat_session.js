@@ -81,7 +81,10 @@
     panel.dataset.npcId=target?.id||''; panel.dataset.hp=String(target?.hp??'');
     panel.dataset.state=state; panel.dataset.actorVisible=String(!!actor?.object?.visible);
     panel.dataset.surfaceReaction=actor?.surface?.state?.kind||'';
-    panel.dataset.sourceDown=String(actor?.diagnostics?.().sourceDown===true);
+    const diagnostic=actor?.diagnostics?.();
+    panel.dataset.sourceDown=String(diagnostic?.sourceDown===true);
+    panel.dataset.deathCause=diagnostic?.deathProfile?.cause||'';
+    panel.dataset.deathCauseKnown=String(diagnostic?.deathProfile?.known===true);
     panel.dataset.bloodParticles=String(actor?.surface?.particles?.count||0);
     const bleeding=actor?.surface?.bleedingStats?.();
     panel.dataset.bleedingWounds=String(bleeding?.activeWounds||0);

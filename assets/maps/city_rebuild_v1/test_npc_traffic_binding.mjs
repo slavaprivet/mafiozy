@@ -33,8 +33,8 @@ for(const sex of ['male','female']){
  for(const phase of ['board','exit'])for(const progress of [0,.25,.5,.75,1]){
  const fold=phase==='board'?progress:1-progress,root={x:11+fold*(anchor.x-11),y:0,z:8+fold*(anchor.z-8)};
   a.update(.05,{time:2+progress,position:root,yaw:.4,life:{civilianTripRiding:false,civilianTripCarId:'actual-car',civilianTripPhase:phase,civilianTripProgress:progress}});
-  const yaw=.4+Math.atan2(Math.sin(1.1-.4),Math.cos(1.1-.4))*fold,gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit);
-  reference.update(.05,{time:2+progress,position:{x:root.x,y:anchor.y*fold,z:root.z},yaw});vehicle.poseOccupant(reference.walker,'front_left',{fold,gripBlend,reach:Math.sin(progress*Math.PI)*.65,dt:.05});reference.object.updateMatrixWorld(true);
+  const yaw=.4+Math.atan2(Math.sin(1.1-.4),Math.cos(1.1-.4))*fold,gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit),doorUnit=Math.max(0,Math.min(1,progress/.55)),doorRelease=Math.max(0,Math.min(1,(progress-.45)/.55)),doorGripBlend=.55*doorUnit*doorUnit*(3-2*doorUnit)*(1-doorRelease*doorRelease*(3-2*doorRelease));
+  reference.update(.05,{time:2+progress,position:{x:root.x,y:anchor.y*fold,z:root.z},yaw});vehicle.poseOccupant(reference.walker,'front_left',{fold,gripBlend,doorGrip:vehicle.getDoorHandleWorld('front_left'),doorGripBlend,side:1,driver:true,reach:Math.sin(progress*Math.PI)*.65,dt:.05});reference.object.updateMatrixWorld(true);
   for(const name of Object.keys(ac.bones))assert(ac.bones[name].getWorldPosition(new THREE.Vector3()).distanceTo(rc.bones[name].getWorldPosition(new THREE.Vector3()))<1e-5,sex+' animated '+phase+' '+progress+' '+name);
   assert.deepEqual(a.object.position.toArray(),[root.x,0,root.z],'transition retains source root, no visual seat snap');
  }

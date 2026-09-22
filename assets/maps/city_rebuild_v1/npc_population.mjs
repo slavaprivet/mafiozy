@@ -1,4 +1,5 @@
 import {npcVisibleWeapon} from './npc_civilian_weapon_policy.mjs';
+import {summarizeNpcSurfaces} from './npc_surface_diagnostics.mjs';
 import {sourceLookAppearance} from './npc_role_catalogue.mjs';
 import {bossArtDirectionForId} from './npc_boss_art_direction.mjs';
 import {createNpcActor,loadNpcSources} from './npc_actor.mjs';
@@ -27,8 +28,8 @@ export function npcAppearanceFromWorld(src){
 export function normalizeNpcSnapshot(src,{time,sourceNowMs,worldScale=4.1,originR=0,originC=0,groundHeight=()=>0,waterAt=()=>null}={}){
  if(!src||typeof src.id!=='string'||!src.id||!Number.isFinite(src.r)||!Number.isFinite(src.c))throw Error('NPC snapshot requires existing id and finite r/c');
  const x=(src.c-originC)*worldScale,z=(src.r-originR)*worldScale,y=groundHeight(x,z)+(Number.isFinite(src.elevation)?src.elevation:0),water=waterAt(x,z);
- const posture=src.forcedCrawl||src.prone?'prone':src.crouching||src.cowering?'crouch':'stand';
- const nowMs=Number.isFinite(sourceNowMs)?sourceNowMs:time*1000,downed=src.downed===true||src.lifeState==='downed',stunFlag=src.meleeStunned===true||downed,stunUntil=Number(downed?src.downedUntil:src.meleeStunnedUntil)||0,stunAt=Number(downed?src.downedAt:src.meleeStunnedAt)||Number(src.deadAt)||0;
+ const forcedCrawl=src.forcedCrawl===true||src.prone===true,posture=forcedCrawl?'prone':src.crouching||src.cowering?'crouch':'stand';
+ const nowMs=Number.isFinite(sourceNowMs)?sourceNowMs:time*1000,downed=src.downed===true||src.lifeState==='downed',stunFlag=src.meleeStunned===true||(downed&&!forcedCrawl),stunUntil=Number(downed?src.downedUntil:src.meleeStunnedUntil)||0,stunAt=Number(downed?src.downedAt:src.meleeStunnedAt)||Number(src.deadAt)||0;
  const stun={active:stunFlag&&(!stunUntil||nowMs<stunUntil),age:stunAt>0?Math.max(0,(nowMs-stunAt)/1000):undefined,remaining:stunUntil>0?Math.max(0,(stunUntil-nowMs)/1000):undefined,endedAge:stunUntil>0?Math.max(0,(nowMs-stunUntil)/1000):0};
  const shotAge=(Number.isFinite(sourceNowMs)?sourceNowMs/1000:time)-(Number(src._shotAt)||0)/1000,type=src.meleeType==='backfist'?'heavy':src.meleeType||'punch',duration=ARTIST14_MELEE_DURATIONS[type]||.34;
  const weapon=npcWeaponId(npcVisibleWeapon(src)),unarmed=weapon==='none',activeMelee=shotAge>=0&&shotAge<duration&&Number(src._shotAt)>0;
@@ -217,7 +218,7 @@ export async function createNpcPopulation({THREE,scene,loader,cloneSkeleton,brid
    maxMetresPerSecond=Math.max(maxMetresPerSecond,speed);if(speed>.04){moving++;if(row.running||row.panic||speed>2.3)running++;else walking++;}
    const roundedSpeed=Math.round(speed*1000)/1000;if(samples.length<5||roundedSpeed>samples[4].speed)recordSample({id:row.id,speed:roundedSpeed,role:row.role||row.visualRole||(row.police?'police':'civilian'),dt:record.motionMeasurement?.dt??null,distance:record.motionMeasurement?.distance??null,sourceNowMs:record.motionMeasurement?.sourceNowMs??null,sourceDt:record.motionMeasurement?.sourceDt??null,sampleAge:Math.max(0,lastTime-record.motionSample.time)});
   }
-  return {moving,walking,running,riding,maxMetresPerSecond:Math.round(maxMetresPerSecond*1000)/1000,samples:samples.map(sample=>{const record=actors.get(sample.id),pose=record.actor.walker.diagnostics();return {...sample,presentationSpeed:record.lastPresentationSpeed,gaitMode:record.lastGaitMode,gaitDistance:record.lastGaitDistance,gait:pose.gait,phase:pose.phase,reaction:record.actor.surface.state.kind}}),invalidSamples};
+  return {moving,walking,running,riding,maxMetresPerSecond:Math.round(maxMetresPerSecond*1000)/1000,samples:samples.map(sample=>{const record=actors.get(sample.id),pose=record.actor.walker.diagnostics();return {...sample,presentationSpeed:record.lastPresentationSpeed,gaitMode:record.lastGaitMode,gaitDistance:record.lastGaitDistance,gait:pose.gait,phase:pose.phase,reaction:record.actor.surface.state.kind}}),invalidSamples,...(profile?{surfaceState:summarizeNpcSurfaces(actors.values())}:{})};
  }
  // Host visibility/explicit render-only QA may stop update() altogether. Mark
  // that real interruption without inferring it from a long ordinary frame.

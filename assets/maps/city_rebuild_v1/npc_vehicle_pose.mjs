@@ -3,23 +3,23 @@
 // so every NPC pose can reuse it without exposing a shared gameplay position.
 export function createNpcTrafficVehicleBinding({THREE,actor}={}){
  if(!THREE?.Vector3||!actor?.object?.isObject3D)return null;
- const anchor=actor.seats?.find(seat=>seat.id==='front_left')?.anchor,driverRoot=new THREE.Vector3();
- return {object:actor.object,get yaw(){return actor.object.rotation.y;},getDriverRootWorld(){
+ const anchor=actor.seats?.find(seat=>seat.id==='front_left')?.anchor,driverRoot=new THREE.Vector3(),doorHandle=new THREE.Vector3();
+ return {object:actor.object,get yaw(){return actor.object.rotation.y;},getSeat(seatId='front_left'){return actor.seats?.find(seat=>seat.id===seatId)||null;},getDriverRootWorld(){
   if(!anchor)return null;actor.object.updateWorldMatrix(true,false);return actor.object.localToWorld(driverRoot.set(anchor.side,anchor.y,anchor.front));
  },getSeatRootWorld(seatId='front_left'){
   const target=actor.seats?.find(seat=>seat.id===seatId)?.anchor;if(!target)return null;actor.object.updateWorldMatrix(true,false);return actor.object.localToWorld(driverRoot.set(target.side,target.y,target.front));
- },poseOccupant(walker,seatId,options){return actor.poseOccupant(walker,seatId,options);}};
+ },getDoorHandleWorld(seatId='front_left'){return actor.getDoorHandleWorld?.(seatId,doorHandle)||null;},poseOccupant(walker,seatId,options){return actor.poseOccupant(walker,seatId,options);}};
 }
 export function resolveNpcVehicleBinding(source,getVehicle){
  const phase=source?.civilianTripPhase,transition=phase==='board'||phase==='exit';
  if((!source?.civilianTripRiding&&!transition)||!source.civilianTripCarId||typeof getVehicle!=='function')return null;
  const vehicle=getVehicle(String(source.civilianTripCarId));if(!vehicle?.object?.isObject3D||!vehicle.object.parent)return null;
  for(let node=vehicle.object;node;node=node.parent)if(!node.visible)return null;
- const seatId=source.vehicleSeatId||'front_left';
+ const seatId=source.vehicleSeatId||'front_left',seatMeta=typeof vehicle.getSeat==='function'?vehicle.getSeat(seatId):null;
  const rootSeat=typeof vehicle.getSeatRootWorld==='function'?vehicle.getSeatRootWorld(seatId):seatId==='front_left'?(typeof vehicle.getDriverRootWorld==='function'?vehicle.getDriverRootWorld():vehicle.driverRootWorld):null;
  const seat=rootSeat||(seatId==='front_left'?(typeof vehicle.getDriverSeatWorld==='function'?vehicle.getDriverSeatWorld():vehicle.driverSeatWorld):null);
  if(!seat||![seat.x,seat.y,seat.z,vehicle.yaw].every(Number.isFinite))return null;
- return {vehicle,seat,seatId,yaw:vehicle.yaw,rootSeat:!!rootSeat,phase,progress:Math.max(0,Math.min(1,Number(source.civilianTripProgress)||0)),transition};
+ return {vehicle,seat,seatId,side:seatMeta?.side,canDrive:seatMeta?.canDrive,yaw:vehicle.yaw,rootSeat:!!rootSeat,phase,progress:Math.max(0,Math.min(1,Number(source.civilianTripProgress)||0)),transition};
 }
 export function applyNpcVehicleBinding({THREE,walker,binding,dt}){
  const c=walker.artistContext();
@@ -32,8 +32,8 @@ export function applyNpcVehicleBinding({THREE,walker,binding,dt}){
   // Blend the facing as well: a side-on approach must not rotate every limb
   // to the car axis in the zero-progress boarding frame.
   c.object.position.set(binding.transition?position.x:binding.seat.x,position.y+(binding.seat.y-position.y)*fold,binding.transition?position.z:binding.seat.z);c.object.rotation.set(0,seatYaw,0);c.object.updateMatrixWorld(true);
-  const gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit);
-  binding.vehicle.poseOccupant(walker,binding.seatId||'front_left',{fold,...(binding.transition?{gripBlend}:{}),reach:binding.transition?Math.sin(binding.progress*Math.PI)*.65:0,dt,steer:binding.vehicle.steer||0});c.object.updateMatrixWorld(true);
+  const gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit),doorUnit=Math.max(0,Math.min(1,binding.progress/.55)),doorRelease=Math.max(0,Math.min(1,(binding.progress-.45)/.55)),doorGripBlend=.55*doorUnit*doorUnit*(3-2*doorUnit)*(1-doorRelease*doorRelease*(3-2*doorRelease)),doorGrip=binding.transition&&doorGripBlend>0?binding.vehicle.getDoorHandleWorld?.(binding.seatId):null;
+  binding.vehicle.poseOccupant(walker,binding.seatId||'front_left',{fold,...(binding.transition?{side:binding.side,driver:binding.canDrive,gripBlend,doorGrip,doorGripBlend}:{}),reach:binding.transition?Math.sin(binding.progress*Math.PI)*.65:0,dt,steer:binding.vehicle.steer||0});c.object.updateMatrixWorld(true);
   const visualWorld=c.visualPivot.matrixWorld.clone();c.object.position.copy(position);c.object.quaternion.copy(quaternion);c.object.updateMatrixWorld(true);
   visualWorld.premultiply(c.object.matrixWorld.clone().invert());visualWorld.decompose(c.visualPivot.position,c.visualPivot.quaternion,c.visualPivot.scale);c.object.updateMatrixWorld(true);return;
  }

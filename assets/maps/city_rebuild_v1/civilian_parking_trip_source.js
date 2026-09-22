@@ -322,7 +322,11 @@ function _civilianTripRelease(trip,reason){
 function _civilianTripExit(trip){
  const {npc,car}=trip,access=_civilianTripAccess(car);if(!access)return false;
  const {r,c}=access.outside;if(!_civilianTripDoorPath(trip,npc.r,npc.c,r,c))return false;
- trip.access=access;trip.exit={r,c};trip.phase='exit';trip.progress=0;trip.doorLength=Math.hypot(r-npc.r,c-npc.c);npc._civilianTripRiding=false;return true;
+ // Reversing a half-finished entry must start from that exact folded pose.
+ // Exit progress normally runs 0..1, so offset it by the unused part of the
+ // boarding fold and preserve the first cancellation frame.
+ const fold=trip.phase==='board'?Math.max(0,Math.min(1,+trip.progress||0)):1;
+ trip.access=access;trip.exit={r,c};trip.phase='exit';trip.exitProgressStart=1-fold;trip.progress=trip.exitProgressStart;trip.doorLength=Math.hypot(r-npc.r,c-npc.c);npc._civilianTripRiding=false;return true;
 }
 // Replanning is not physical progress. A permanently blocked car must not
 // reserve a driving slot forever, or repeatedly choose the same failed errand.
@@ -380,7 +384,7 @@ function _civilianTripTickNpc(n,dt,now){
   if(arrived&&now-t.since>500){n._civilianTripRiding=true;t.phase='drive';t.progress=1;car.parked=false;if(car._nativeParkingAnchor&&_nativeParkingAdmission.reservations.get(car._nativeParkingAnchor.id)===car)_nativeParkingAdmission.reservations.delete(car._nativeParkingAnchor.id);delete car._nativeParkingAnchor;_civilianTripAccess(car,'drive',1);if(typeof _npcRememberVehicleOccupant==='function')_npcRememberVehicleOccupant(car,n);}
  }else if(t.phase==='drive'||t.phase==='parked'){const access=_civilianTripAccess(car);n.r=access?.seat.r??car.r;n.c=access?.seat.c??car.c;n.ang=car.ang;n.walking=false;if(t.phase==='parked')_civilianTripExit(t);
  }else if(t.phase==='exit'){
-  const arrived=_civilianTripDoorStep(t,t.exit,dt);t.progress=1-Math.min(1,Math.hypot(n.r-t.exit.r,n.c-t.exit.c)/(t.doorLength||.85));_civilianTripAccess(car,'exit',t.progress);
+  const arrived=_civilianTripDoorStep(t,t.exit,dt),physical=1-Math.min(1,Math.hypot(n.r-t.exit.r,n.c-t.exit.c)/(t.doorLength||.85)),start=Math.max(0,Math.min(1,+t.exitProgressStart||0));t.progress=start+(1-start)*physical;_civilianTripAccess(car,'exit',t.progress);
   if(arrived){if(typeof _npcVehicleOccupants!=='undefined'&&_npcVehicleOccupants.get(car)?.npc===n)_npcVehicleOccupants.delete(car);const goal=t.plan?.goal?.door,interrupted=t.interrupted;_civilianTripRelease(t,interrupted?'interrupted-exited':'arrived');n.idleUntil=0;if(!interrupted&&goal){n._residentDoor=goal;n._civilianPlan={phase:'walk_to_shop',cycle:(n._civilianPlan?.cycle||0)+1,doorId:goal.id,tripDestination:true,since:now,retryAt:0};const routed=_civilianRouteTo(n,goal.r,goal.c,'building_entry');if(!routed&&!n._routeSearchPending)n._civilianPlan.retryAt=now+250;}else if(!interrupted&&typeof pickNpcWaypoint==='function'){n._civilianPlan=null;pickNpcWaypoint(n);}}
  }
  return true;

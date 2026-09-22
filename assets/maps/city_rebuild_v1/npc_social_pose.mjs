@@ -39,13 +39,19 @@ export function createNpcSocialPose({THREE,walker}){
   if(blocked||!activity||!KINDS.has(activity.kind)||!PHASES.has(activity.phase))return false;
   const age=Number.isFinite(activity.since)?Math.max(0,time-activity.since/1000):1;
   if(Number.isFinite(activity.until)&&time*1000>=activity.until)return false;
-  const blend=activity.phase==='finish'?1-clamp(age/.6):clamp(age/.25);if(blend<=0)return false;
+  let blend=activity.phase==='finish'?1-clamp(age/.6):clamp(age/.25);
+  // Reading ends directly at until in the source, without a finish phase.
+  if(activity.kind==='read'&&activity.phase==='active'&&Number.isFinite(activity.until))blend*=THREE.MathUtils.smoothstep((activity.until-time*1000)/1000,0,.6);
+  if(blend<=0)return false;
   const kind=activity.kind,t=time+phaseOffset,wave=Math.sin(t*3.1);c.offset.getWorldQuaternion(basis);forward.set(0,0,1).applyQuaternion(basis);right.set(1,0,0).applyQuaternion(basis);
   if(kind==='read'){
    ensureBook();rotate('head',.18*blend,Math.sin(t*.8)*.035*blend);rotate('neck',.06*blend);c.object.updateMatrixWorld(true);
    c.bones.chest.getWorldPosition(center);center.addScaledVector(forward,.27*unit);center.y-=.11*unit;
    local.copy(center);c.offset.worldToLocal(local);book.position.copy(local);book.rotation.set(.34,0,0);book.visible=true;
    for(const arm of sides){local.copy(center).addScaledVector(right,arm.sign*.15*unit);local.y-=.015*unit;reach(arm,local,blend);}
+   // During raising/lowering the existing book follows the actual supporting
+   // palms. Full-weight reading keeps its authored transform unchanged.
+   if(blend<1){c.bones.socket_hand_l.getWorldPosition(from);c.bones.socket_hand_r.getWorldPosition(to);from.add(to).multiplyScalar(.5);from.y+=.015*unit;c.offset.worldToLocal(from);book.position.copy(from);}
   }else if(kind==='smoke'){
    ensureCigarette();const cycle=(t%5)/5,puff=THREE.MathUtils.smoothstep(cycle,.10,.28)*(1-THREE.MathUtils.smoothstep(cycle,.52,.72));
    rotate('head',-.035*puff*blend,Math.sin(t*.7)*.04*blend);c.object.updateMatrixWorld(true);

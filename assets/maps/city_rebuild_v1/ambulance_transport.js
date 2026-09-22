@@ -190,6 +190,15 @@ function _ambulanceCrewMove(v,r,c,dt,now) {
   _setAmbulanceCrewPose(v,actor.r,actor.c,actor.ang,actor.walking,scene.phase==='returning',dt);
   return Math.hypot(r-actor.r,c-actor.c)<=.32;
 }
+function _ambulancePatientMovementLocked(patient) {
+  return !!patient&&(patient._ambulanceLoading===true||patient._carriedByAmbulance===true||patient._ambulanceInTransit===true);
+}
+function _ambulanceSetStretcherBodyOwnership(scene,patient,owned) {
+  const stretcherOwnsBody=!!owned;
+  if(scene)scene.bodyVisible=stretcherOwnsBody;
+  if(patient)patient._carriedByAmbulance=stretcherOwnsBody;
+  return stretcherOwnsBody;
+}
 function _ambulanceStartBodyCrew(v,now) {
   if(!_ambulanceNeedsBodyCrew(v))return false;
   _ensureAmbulanceCrew(v);
@@ -213,7 +222,7 @@ function _ambulanceStartBodyCrew(v,now) {
   // Entry/exit are bounded door transitions; travel begins at the real rear door.
   for(const n of v._medicalCrew){n._inVehicle=false;n.visible=true;n.action='deploying';}
   _setAmbulanceCrewPose(v,rearR,rearC,approachAng,false,false,0);
-  const patient=v.payload.npc;patient._ambulanceLoading=true;patient._carriedByAmbulance=false;
+  const patient=v.payload.npc;patient._ambulanceLoading=true;_ambulanceSetStretcherBodyOwnership(v._medicalScene,patient,false);
   v.speed=0;v.path=[];v.pathIdx=0;v.finalTarget=null;v._ambulanceRoutePending=false;
   v.state='medical_response';v.workUntil=Infinity;return true;
 }
@@ -224,7 +233,7 @@ function _ambulanceMedicalAbort(v,reason) {
     if('x'in patient)patient.x=scene.centerC;if('y'in patient)patient.y=scene.centerR;
     if(patient.dead){patient._deathR=scene.centerR;patient._deathC=scene.centerC;}
   }
-  if(patient){patient._carriedByAmbulance=false;patient._ambulanceLoading=false;
+  if(patient){_ambulanceSetStretcherBodyOwnership(scene,patient,false);patient._ambulanceLoading=false;
     if(!patient._ambulanceInTransit){patient._evacuated=false;patient._ambulanceDispatched=false;}}
   if(scene){scene.active=false;scene.bodyVisible=false;scene.stretcherVisible=false;}
   for(const n of v._medicalCrew||[]){n.walking=false;n._medicalCrewWalking=false;n.carrying=false;n.action='interrupted';n._medicalBoardPhase='';}
@@ -259,11 +268,11 @@ function _ambulanceUpdateBodyCrew(v,dt,now) {
     if(!target||Math.hypot(scene.centerR-target.r,scene.centerC-target.c)>.5)advance('approaching');
     else if(age>=scene.assessMs)advance('lifting');
   }else if(scene.phase==='lifting'){
-    scene.liftProgress=Math.min(1,age/scene.liftMs);scene.bodyVisible=true;
-    if(scene.liftProgress>.42)patient._carriedByAmbulance=true;
+    scene.liftProgress=Math.min(1,age/scene.liftMs);
+    _ambulanceSetStretcherBodyOwnership(scene,patient,scene.liftProgress>.42);
     if(age>=scene.liftMs)advance('returning');
   }else if(scene.phase==='returning'){
-    scene.bodyVisible=true;patient._carriedByAmbulance=true;
+    _ambulanceSetStretcherBodyOwnership(scene,patient,true);
     if(_ambulanceCrewMove(v,scene.rearR,scene.rearC,dt,now))advance('loading');
   }else if(scene.phase==='loading'){
     // Loading starts only with the actual bearers back at the vehicle door.

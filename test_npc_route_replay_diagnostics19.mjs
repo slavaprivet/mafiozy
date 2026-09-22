@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const source=fs.readFileSync('world.html','utf8'),start=source.indexOf('function _residentVisitDiagnostics('),end=source.indexOf('\n}',start)+2;
+const fn=source.slice(start,end),actors=Array.from({length:520},(_,i)=>({id:'resident_'+i,r:i/10,c:10,hp:100,_routeStartR:1,_routeStartC:2,_npcWanderSearch:{since:0,nodes:new Map([[1,{}]]),qi:0}}));
+const dataset={},box={NPCS:actors,document:{documentElement:{dataset}},_UP:new Set(['npcqa']),_residentVisitDiagnosticAt:0,_civilianPlanEligible:()=>true,_civilianPlanInterrupted:()=>false,_npcRouteWorkQueue:new Map(),_npcRouteWorkBatch:new Set(),_npcRouteWorkStats:{},_npcRouteWorkUsedMs:0,_npcRouteWorkEpoch:0,_civilianBenchReservations:new Map()};
+Object.assign(actors[0],{_routeWorkCpuMs:2.125,_routeWorkLastCpuMs:.125,_routeWorkQuanta:3,_routeWorkLastWaitMs:200.5});
+vm.createContext(box);vm.runInContext(fn,box);box._residentVisitDiagnostics(1000);const replay=JSON.parse(dataset.npcRouteReplay);
+assert.equal(replay.actors[0].workCpuMs,2.125);assert.equal(replay.actors[0].lastWorkCpuMs,.125);assert.equal(replay.actors[0].workQuanta,3);assert.equal(replay.actors[0].lastQueueWaitMs,200.5);
+assert.equal(replay.version,'route-inputs19-v1');assert.equal(replay.actors.length,512);assert.equal(replay.actors[0].startR,1);assert.equal(replay.actors[0].pending,true);assert.equal(replay.actors[0].visited,1);assert(!dataset.npcRouteReplay.includes('nodes'));assert(!dataset.npcRouteReplay.includes('mesh'));
+const before=dataset.npcRouteReplay;box.NPCS[0].r=99;box._residentVisitDiagnostics(1200);assert.equal(dataset.npcRouteReplay,before,'existing1Hzgate');box._residentVisitDiagnostics(2000);assert.equal(JSON.parse(dataset.npcRouteReplay).actors[0].r,99);box._UP.clear();box.NPCS[0].r=77;box._residentVisitDiagnostics(4000);assert.equal(JSON.parse(dataset.npcRouteReplay).actors[0].r,99,'QAonly');console.log('PASS bounded512 scalar route replay;1Hz/QA gating; actual diagnostic source');

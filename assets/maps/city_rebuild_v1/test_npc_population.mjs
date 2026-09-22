@@ -13,6 +13,7 @@ await check('world weapons map to canonical meshes',()=>{for(const [source,targe
 await check('idle melee does not block life gesture',()=>{const s=normalizeNpcSnapshot({...base,_shotAt:0,talking:true},{time:40});assert(!s.action||s.action.type==='none');});
 await check('independent iframe shot clock',()=>{const s=normalizeNpcSnapshot({...base,_shotAt:120000,meleeType:'kick'},{time:4,sourceNowMs:120200});assert.equal(s.action?.type,'kick');assert(Math.abs(s.action.progress-.2/.62)<1e-8);});
 await check('missing id/invalid coordinates rejected',()=>{assert.throws(()=>normalizeNpcSnapshot({...base,id:''},{time:1}));assert.throws(()=>normalizeNpcSnapshot({...base,r:NaN},{time:1}));});
+await check('medical crawler uses prone locomotion rather than static stun fall',()=>{const s=normalizeNpcSnapshot({...base,downed:true,downedAt:1000,forcedCrawl:true,walking:true},{time:2,sourceNowMs:2000});assert.equal(s.posture.target,'prone');assert.equal(s.moving,true);assert.equal(s.stun.active,false);});
 const deps='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';
 registerHooks({resolve(specifier,context,nextResolve){return nextResolve(specifier==='three'?pathToFileURL(deps+'/build/three.module.js').href:specifier,context);}});
 const THREE=await import(pathToFileURL(deps+'/build/three.module.js'));

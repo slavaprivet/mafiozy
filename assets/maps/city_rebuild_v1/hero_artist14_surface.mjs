@@ -88,5 +88,5 @@ export function createArtist14Surface({THREE,context,scene,applyReaction,applySw
   const age=r.age+elapsedSeconds,duration={hit:.48,block:.30,fall:2.7}[r.kind];reaction={kind:duration&&age>=duration?'idle':r.kind,at:time-age,side:r.side,zone:r.zone};
   return true;
  }
- return {receive,update,reset,dispose,snapshot,restore,bleedingStats:()=>({activeWounds:bleed.count,emittedDrops:bleed.emittedDrops}),model,particles:mesh,get state(){return {...reaction};},get scale(){return unit;}};
+ return {receive,update,reset,dispose,snapshot,restore,performanceState:()=>({reaction:reaction.kind,...wet.diagnostics(model),activeBleedingWounds:bleed.count,particles:mesh.count}),bleedingStats:()=>({activeWounds:bleed.count,emittedDrops:bleed.emittedDrops}),model,particles:mesh,get state(){return {...reaction};},get scale(){return unit;}};
 }

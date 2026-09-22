@@ -36,13 +36,13 @@ export function isNpcPhoneCalling(value={}){
   ||state==='phonecalling'||state==='callingpolice';
 }
 
-export function createNpcPhoneVisualPool({THREE,color=0x18242b}={}){
+export function createNpcPhoneVisualPool({THREE,color=0x6f9fa6}={}){
  if(!THREE?.BoxGeometry||!THREE?.MeshBasicMaterial||!THREE?.Mesh)throw Error('NPC phone THREE dependency required');
  let geometry=null,material=null,disposed=false,created=0;
  const idle=[],active=new Set();
  function ensure(){
   if(disposed)throw Error('NPC phone pool disposed');
-  geometry??=new THREE.BoxGeometry(.064,.138,.013);
+  geometry??=new THREE.BoxGeometry(.105,.215,.021);
   material??=new THREE.MeshBasicMaterial({color,toneMapped:false});
  }
  function acquire(){

@@ -1,5 +1,17 @@
 # Живой город — единая работа NPC, 20 сентября 2026
 
+## Актуальные владельцы с 23 сентября
+
+Пользователь остановил зависшие старые задачи и запросил продолжения.
+NPClead теперь **Художник 20** `01a0cb0a-a267-73e1-9b01-319d5d3d4b72`;
+транспорт — **Автомобили — продолжение 2** `01a0cb0a-d013-79b1-a979-1612fdaa27bc`.
+Они занимают прежние pinned2/pinned3. Старых19/автомобили не будить.
+Координатор20 готовит проверенный shared main checkpoint по прямому поручению
+пользователя; до сообщения SHA новые владельцы проводят read-only review,
+изолированные кандидаты разрешены. Единственный LIVE сейчас у координатора20,
+игра18538; дополнительные GPU-вкладки не создавать. Исторические данные ниже
+не означают свежую приёмку. По последнему поручению ВСЯ оптимизация и восемь Астра — у Проверщика2; root не дублирует их интеграцию. Root ведёт gameplay: вода/следование, moving intimidation, robbery/backend. Художник20 первым улучшает чёрный телефон с антенной/звонок, транспорт2 — полный цикл поездок NPC.
+
 Прямое поручение пользователя: Художник19 руководит NPC, совместно работают
 три автора и Проверщик ЧАТОВ2 с пятью Астра. Цель — реальные занятия жителей,
 движение и транспорт, реакции на преступления и полиция, с видимыми анимациями
@@ -102,3 +114,55 @@ production scheduler180residents+19bosses: раньше0/19 завершили �
 - мирные visit/jog/social approach elapsed — в работе, lowFPS замедлял
   эти занятия несмотря на исправленную обычную ходьбу;
 - picking profiler сохраняет индекс terrain/buildings, готов к attribution.
+
+## 20 сентября — checkpoint ce5272b и кровь/смерть
+
+main ce5272b8bbbe85513b4174f53991978355b40fc4 опубликован и SHA origin подтверждён.
+64 scoped файла: route admission/elapsed/orphans/body recovery/native empire,
+seat/vehicle continuity, phone/cash robbery, picking QA default OFF.
+Это checkpoint исходников; задача живого города ещё не принята.
+Последнее наблюдение существующей сцены: 289 alive,118 moving,149 pending,
+6 driving,8 visiting,83 purchases. Многие боссы после местного work target
+снова стоят; локальный EMPTY fallback готов на диске, ещё не загружен LIVE.
+
+Новое поручение пользователя: разные смерти по причине, исправить melee,
+больше крови при контакте, капли от раны, расчленение любого типа NPC от взрыва.
+- Координатор20: death continuity/cause и blast parts, authoritative final death.
+- root + idle_diagnosis: contact burst20/32, pooled bounded wound drips,
+  skin/bone-local anchors, optional atomic surface snapshot.
+- wander_cost: bounded real-pose samples внутри пересечённого melee window.
+  Actual GLB при5FPS на0.7м все4удары промахиваются,8/15/60FPS попадают.
+- navigation_hotpath: Walk ground bloodFx consumer (раньше только three_preview).
+  Source impactFx не подключать: иначе дублирует exact contact emitter.
+- blood LIVE: существующий npc_combat_session получает дешёвые
+  bleedingWounds/bloodDrops DOM diagnostics; reload после готовности пакета.
+
+Новые corpse/blast/bleed/melee изменения НЕ входят в ce5272b.
+
+## Следующий опубликованный checkpoint 527e9c0
+
+Кровь/капли/ground blood опубликованы в main 527e9c0. LIVE обычный TT:
+HP60→36, одна точная рана, drops1→11→16, затем expiry без дополнительного
+HP drain. LIVE sniper resident_318: confirmed damage132, HP0, dead reaction,
+видимый лежащий corpse, wound1/drops16. Новые death poses20 уже загружены;
+различие всех шести причин в браузере пока не принято. Blast host/parts20
+интегрируются следующим отдельным пакетом, не объявлять готовыми.
+
+На вопрос пользователя «есть результат живого города?» снят свежий LIVE:
+на 10–12-й минуте 288–289 alive,67–82 moving,3–8 driving,8 visiting,
+13–20 social,198–211 pending. Завершён реальный путь resident_200/car17:
+259.82 м, парковка, выход и приход к native oldtown house021.
+78 purchases /1155 spent за этот прогон. Большая очередь НЕ решена:
+144 wander pending, cohort19-v1 queue206, admitted12098/deferred796844,
+expired4361, отдельные wander jobs ждут23–25сек всего7–12expanded.
+FPS7,2382drawcalls/2.057M triangles; source update p50 29.5/p95 42.5ms.
+Это один текущий сценарий, не контролируемый before/after FPS.
+
+Распределение следующей короткой доработки:
+- root/idle_diagnosis: fairness/throughput городской очереди, без combat edits;
+- автомобили: car9 blocked car22, car34 pedestrian319, service route backlog;
+- архитектор магазинов: exact dry wet_clothing fast path, actual actor CPU;
+- Координатор20: blast runtime и затем local city police/empire death coverage;
+- root/wander_cost: изолированный incoming melee contact host, ещё не подключён;
+- navigation_hotpath: frozen palette GPU feasibility готов изолированно,
+  ground bounds/material contract/GPU compile пока не проверены.

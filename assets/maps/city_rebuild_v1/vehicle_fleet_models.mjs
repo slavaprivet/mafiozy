@@ -350,7 +350,7 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId,{wheelRender
    hero.vehiclePose(1,0,{driver:seat.canDrive});hero.object.updateMatrixWorld(true);
    if(!bones.thigh_l||!bones.thigh_r){hero.vehiclePose(fold,reach,{...options.pose,...options,driver:seat.canDrive});return}
    const hip=hero.object.worldToLocal(bones.thigh_l.getWorldPosition(new T.Vector3()).add(bones.thigh_r.getWorldPosition(new T.Vector3())).multiplyScalar(.5));
-   cache={bones,hip,pivot:hero.object.children[0],inverseTilt:new T.Quaternion(),tilt:new T.Quaternion(),axis:new T.Vector3(1,0,0),point:new T.Vector3(),pos:new T.Vector3(),scale:new T.Vector3(),q:new T.Quaternion(),left:new T.Quaternion(),right:new T.Quaternion(),head:new T.Quaternion(),grips:{left:new T.Vector3(),right:new T.Vector3()},fallbackGrips:{left:new T.Vector3(),right:new T.Vector3()},mappedGrips:{left:new T.Vector3(),right:new T.Vector3()},blendedGrips:{left:new T.Vector3(),right:new T.Vector3()},gripAssignment:null};occupantCaches.set(hero,cache);
+   cache={bones,hip,pivot:hero.object.children[0],artist:hero.artistContext(),inverseTilt:new T.Quaternion(),tilt:new T.Quaternion(),axis:new T.Vector3(1,0,0),point:new T.Vector3(),pos:new T.Vector3(),scale:new T.Vector3(),q:new T.Quaternion(),left:new T.Quaternion(),right:new T.Quaternion(),head:new T.Quaternion(),doorTarget:new T.Vector3(),doorHand:new T.Vector3(),grips:{left:new T.Vector3(),right:new T.Vector3()},fallbackGrips:{left:new T.Vector3(),right:new T.Vector3()},mappedGrips:{left:new T.Vector3(),right:new T.Vector3()},blendedGrips:{left:new T.Vector3(),right:new T.Vector3()},gripAssignment:null};occupantCaches.set(hero,cache);
   }
   const {bones,hip,pivot,inverseTilt,tilt}=cache;
   inverseTilt.setFromAxisAngle(cache.axis,recline);tilt.copy(inverseTilt).invert();hero.object.updateWorldMatrix(true,false);
@@ -369,12 +369,21 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId,{wheelRender
   }
   hero.vehiclePose(fold,reach,{...options.pose,...options,driver:seat.canDrive,steeringGrips,steeringGripAssignment:cache.gripAssignment?'direct':options.steeringGripAssignment});hero.object.updateMatrixWorld(true);
   if(!seat.canDrive&&fold>.7){
+   const passengerArmBlend=clamp((fold-.7)/.3),passengerArmAngle=.34*passengerArmBlend;
    const rootQ=hero.object.getWorldQuaternion(cache.head),axis=cache.point.set(0,0,1).applyQuaternion(rootQ);
    for(const [name,sign]of [['upperarm_l',1],['upperarm_r',-1]]){
     const arm=bones[name];if(!arm)continue;
-    arm.getWorldQuaternion(cache.left);cache.right.setFromAxisAngle(axis,sign*.34*fold).multiply(cache.left);
+    arm.getWorldQuaternion(cache.left);cache.right.setFromAxisAngle(axis,sign*passengerArmAngle).multiply(cache.left);
     arm.matrix.decompose(cache.pos,cache.q,cache.scale);arm.parent.getWorldQuaternion(cache.q).invert().multiply(cache.right);arm.matrix.compose(cache.pos,cache.q,cache.scale);arm.matrixWorldNeedsUpdate=true;
    }hero.object.updateMatrixWorld(true);
+  }
+  const doorGripBlend=clamp(options.doorGripBlend??0),doorGrip=options.doorGrip;
+  if(doorGripBlend>0&&doorGrip?.isVector3){
+   const side=seat.side>0?'l':'r',hand=bones['socket_hand_'+side];
+   if(hand){
+    cache.doorTarget.copy(doorGrip);hero.object.worldToLocal(cache.doorTarget).sub(hip).applyQuaternion(inverseTilt).add(hip);hero.object.localToWorld(cache.doorTarget);
+    hand.getWorldPosition(cache.doorHand).lerp(cache.doorTarget,doorGripBlend);hand.getWorldQuaternion(cache.q);cache.artist.reachPalm(side,cache.doorHand,cache.q);hero.object.updateMatrixWorld(true);
+   }
   }
   bones.thigh_l.getWorldQuaternion(cache.left);bones.thigh_r.getWorldQuaternion(cache.right);bones.head?.getWorldQuaternion(cache.head);
   pivot.quaternion.copy(tilt);pivot.position.copy(hip).sub(cache.point.copy(hip).applyQuaternion(tilt));hero.object.updateMatrixWorld(true);
@@ -383,6 +392,7 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId,{wheelRender
   if(bones.head)preserveWorldRotation(bones.head,cache.head);
   hero.object.updateMatrixWorld(true);
  }
+ const getDoorHandleWorld=(seatId='front_left',target=new T.Vector3())=>{const spec=doorSpecs.find(door=>door.id===seatId),door=doors.get(seatId);if(!spec||!door)return null;door.updateWorldMatrix(true,false);return door.localToWorld(target.set(spec.handle.side-door.position.x,spec.handle.y-door.position.y,spec.handle.front-door.position.z));};
  const setDoorById=(amount,doorId)=>{const key=typeof doorId==='number'?(doorId>0?'front_left':'front_right'):doorId,door=doors.get(key);if(!door)throw Error('Unknown door '+key+' on '+id);if(!door.userData.detached)door.rotation.y=-(key.endsWith('left')?1:-1)*clamp(amount)*1.18};
  const brakeLights=sourceMeshes.filter(m=>/Taillamp/.test(m.name)).map(m=>m.material);
  function update(state,braking=false){
@@ -404,7 +414,7 @@ export function createArtistVehicle(T,RoundedBox,source,profileOrId,{wheelRender
  const diagnostics={sourceId:id,sourceSha256:p.sha256,sourceMeshCount:sourceMeshes.length,seatCount:seats.length,openings,interiorVoid,sourceCabForwardCorrection:movedCab,cabinRaise,cabinSource:sourceCabin,cabinAdapted:{width:p.cabinWidth,length:p.cabinLength,height:p.cabinHeight},bodyAssembly:{version:2,roof:bodyAssembly.roof,belt:bodyAssembly.belt,created:bodyAssembly.created.length,retired:bodyAssembly.retired.length},geometryOwnership:'per-vehicle clones',sourceUnits:'meters',sourceFront:'-Z',gameFront:'+Z'};
  object.userData.vehicleProfile=profile;
  applyVehicleInteriorColors(object,p.interiorPaletteId||(p.wheelDesignId==='city_taxi'?'city_taxi':p.id));
- return {object,profile,seats,wheels,doors,shell,anchors,trunkSpec,hoodSpec,getSteeringGrips,poseOccupant,update,interior:{object:interior,profile:{family:p.family,floorTop,cushionTop,roofBottom},anchors,parts,wheel,steeringWheel:wheel,getSteeringGrips,update:state=>{wheel.rotation.z=-(state.steer||0)*2.1}},setDoorById,setDoor:(amount,side=1)=>setDoorById(amount,typeof side==='string'?side:side>0?'front_left':'front_right'),setRearDoor:(amount,side=1)=>{const key='rear_'+(side>0?'left':'right');if(doors.has(key))setDoorById(amount,key)},setHighlightedDoor(){},diagnostics:()=>diagnostics};
+ return {object,profile,seats,wheels,doors,shell,anchors,trunkSpec,hoodSpec,getSteeringGrips,getDoorHandleWorld,poseOccupant,update,interior:{object:interior,profile:{family:p.family,floorTop,cushionTop,roofBottom},anchors,parts,wheel,steeringWheel:wheel,getSteeringGrips,update:state=>{wheel.rotation.z=-(state.steer||0)*2.1}},setDoorById,setDoor:(amount,side=1)=>setDoorById(amount,typeof side==='string'?side:side>0?'front_left':'front_right'),setRearDoor:(amount,side=1)=>{const key='rear_'+(side>0?'left':'right');if(doors.has(key))setDoorById(amount,key)},setHighlightedDoor(){},diagnostics:()=>diagnostics};
 }
 export async function loadArtistFleetModels({THREE,loader,RoundedBox,baseUrl='./models/artist_vehicle_pack/',onProgress,includeTaxi=false,vehicleFactory=createArtistVehicle}={}){
  if(!THREE||!loader||!RoundedBox)throw Error('THREE, loader and RoundedBox are required');

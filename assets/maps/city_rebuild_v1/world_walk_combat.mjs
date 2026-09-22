@@ -27,7 +27,8 @@ export function createWorldWalkCombat({THREE,bridge,getActors,obstacles,now=()=>
    const accuracy=sampleWeaponAccuracy(idle.state,input);
    const coverYaw=accuracy.coverYaw||0,coverPitch=accuracy.coverPitch||0;
    let pitch=Math.max(-Math.PI/2,Math.min(Math.PI/2,Math.asin(Math.max(-1,Math.min(1,shotForward.y)))+coverPitch));
-   const receipt=bridge.fireWalkShot({angle:Math.atan2(shotForward.z,shotForward.x)+coverYaw,pitch,muzzleR:origin.z/4.1,muzzleC:origin.x/4.1,
+   const nativeRpg=previous.weaponId==='rpg'&&typeof bridge.impactWalkRpg==='function';
+   const receipt=bridge.fireWalkShot({angle:Math.atan2(shotForward.z,shotForward.x)+coverYaw,pitch,muzzleR:origin.z/4.1,muzzleC:origin.x/4.1,muzzleY:origin.y,nativeRpgImpact:nativeRpg,
     // Source calls this only after ammo/cooldown/stance admission and before
     // its one weapon-spread sample. Rejected automatic-fire frames must not
     // skin the nearby crowd merely to compute a camera aim point.
@@ -61,9 +62,13 @@ export function createWorldWalkCombat({THREE,bridge,getActors,obstacles,now=()=>
     result=stepWeaponFire({...idle.state,magazine:1,cooldown:0,reloadRemaining:0},{...input,triggerPressed:true,triggerHeld:false,reload:false},0);
     // The returned shot outlives this synchronous source resolver. Keep its
     // target private while avoiding throw-away target vectors on rejected fire.
-    const target=contactTarget.clone();
+    const target=contactTarget.clone(),nativeFlight=nativeRpg&&receipt.nativeRpgImpact===true;
+    // Keep the accepted muzzle/ray, even if the mounted weapon animates before
+    // effects are emitted. The rocket will sweep actual moving surfaces.
+    if(nativeFlight){const angle=receipt.angle,flightPitch=receipt.pitch??pitch;target.copy(origin).addScaledVector(contactDirection.set(Math.cos(angle)*Math.cos(flightPitch),Math.sin(flightPitch),Math.sin(angle)*Math.cos(flightPitch)),receipt.range*4.1);}
     result.shots=result.shots.map(shot=>({...shot,shotId:receipt.shotId,worldTarget:target,
-     projectiles:shot.projectiles.map(p=>({...p,yawOffset:0,pitchOffset:0}))}));
+     ...(nativeFlight?{nativeRpgImpact:true,worldOrigin:origin.clone()}:{}),
+     projectiles:shot.projectiles.map(p=>({...p,...(nativeFlight?{range:receipt.range}:{}),yawOffset:0,pitchOffset:0}))}));
    }
   }
   result.state={...result.state,magazine:source.magazine||0,reserveAmmo:source.reserve||0,
@@ -83,5 +88,5 @@ export function createWorldWalkCombat({THREE,bridge,getActors,obstacles,now=()=>
  }
  // Source-local hits may dispatch during fireWalkShot. The host must defer
  // its receipt listener with queueMicrotask until step has stored shotId.
- return {step,resolveConfirmedReceipt,dispose(){pendingAnchors.clear();nextPendingExpiry=Infinity;}};
+ return {step,aim:input=>contactRay({...input,aimOnly:false,targetOnly:true}),projectileContact:input=>contactRay({...input,projectileOnly:true}),resolveConfirmedReceipt,dispose(){pendingAnchors.clear();nextPendingExpiry=Infinity;}};
 }

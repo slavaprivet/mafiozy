@@ -107,23 +107,48 @@ export function createWeaponEffects(THREE,scene,options={}){
   for(let n=0;n<entry.embers.length;n++){const angle=n*2.17+entry.seed;entry.emberCos[n]=Math.cos(angle);entry.emberSin[n]=Math.sin(angle)}
   entry.root.visible=true;entry.root.position.copy(point);entry.root.scale.setScalar(1);entry.core.scale.setScalar(1);entry.core.material.opacity=.96;entry.shock.scale.setScalar(.3);entry.shock.material.opacity=.8;totalExplosions++};
  const eject=(origin,direction,casing,weaponId)=>{const entry=take(casingPool,'casing'),shell=['shotgun','sawn_off'].includes(weaponId),rifle=['ak74','m16','sniper'].includes(weaponId);entry.life=4.2;entry.kind=shell?'shotgun-shell':rifle?'rifle-brass':'pistol-brass';entry.settled=false;entry.bounces=0;entry.mesh.visible=true;entry.mesh.position.copy(origin);entry.mesh.rotation.set(.4,totalCases*1.7,.2);right.crossVectors(up,direction);if(right.lengthSq()<1e-8)right.set(1,0,0);else right.normalize();const velocity=casing?.velocity||{};entry.velocity.copy(right).multiplyScalar(Number.isFinite(velocity.right)?velocity.right:1.65+(totalCases%3)*.15).addScaledVector(up,Number.isFinite(velocity.up)?velocity.up:2.2).addScaledVector(direction,Number.isFinite(velocity.forward)?velocity.forward:-.4);entry.spin.set(13+(totalCases%4)*1.2,5+(totalCases%3)*2.1,9+(totalCases%5));entry.mesh.scale.set(shell?1.2:1,rifle?1.35:1,shell?1.2:1).multiplyScalar(casing?.scale||1);entry.body.material.color.set(shell?0x9e2c21:0xc89b48);entry.body.material.metalness=shell?.12:.82;entry.body.material.roughness=shell?.58:.25;entry.neck.visible=rifle;entry.mouth.position.y=rifle?.049:.037;entry.mouth.scale.setScalar(rifle?.65:1);totalCases++};
- const spawnProjectile=(projectile,shot,origin,direction,obstacles)=>{
+ const spawnProjectile=(projectile,shot,origin,direction,obstacles,shotOptions)=>{
   const entry=take(projectilePool,'projectile'),visual=projectile.visual||{},kind=visual.kind||'round',caliber=Math.max(.004,+visual.caliber||.007),length=Math.max(.03,+visual.length||.065),trailLength=Math.max(.03,+visual.trail||.08),color=visual.color||projectile.color||'#caa36a';
   entry.root.visible=true;entry.root.position.copy(origin).addScaledVector(direction,.045);entry.root.quaternion.setFromUnitVectors(forwardAxis,direction);entry.direction.copy(direction);entry.speed=Math.max(.1,+projectile.speed||20)*worldScale;entry.remaining=Math.max(.2,+projectile.range||8)*worldScale;entry.obstacles=typeof obstacles==='function'?obstacles:Array.isArray(obstacles)?obstacles:[];entry.explosive=!!projectile.explosive;entry.visual=visual;entry.visualId=String(projectile.visualId||kind);entry.weaponId=String(shot?.weaponId||projectile.visualId||'');entry.shotId=String(shot?.shotId||`${entry.weaponId}:${shot?.sequence??''}`);entry.damage=Number.isFinite(shot?.damage)?shot.damage:null;entry.core.scale.set(caliber*2,length,caliber*2);entry.core.position.z=0;entry.nose.visible=kind!=='pellet';entry.nose.scale.set(caliber*(kind==='rocket'?2.1:1.35),length*(kind==='rocket'?.45:.22),caliber*(kind==='rocket'?2.1:1.35));entry.nose.position.z=length*.58;entry.trail.scale.set(Math.max(.003,caliber*.24),trailLength,Math.max(.003,caliber*.24));entry.trail.position.z=-trailLength*.52-length*.42;entry.trail.visible=trailLength>0;entry.trail.material.opacity=kind==='rocket'?.48:kind==='pellet'?.28:.52;colorize(entry.core.material,color);colorize(entry.nose.material,color);colorize(entry.trail.material,kind==='rocket'?0xcf9752:0xe8cc91);
   entry.jacket.visible=kind!=='pellet';entry.jacket.scale.set(caliber*2.07,length*.08,caliber*2.07);entry.jacket.position.z=-length*.33;
+  entry.nativeRpgImpact=shot.nativeRpgImpact===true&&entry.explosive;
+  entry.resolveContact=entry.nativeRpgImpact&&typeof shotOptions.resolveContact==='function'?shotOptions.resolveContact:null;
+  // Native flight validation and range are measured from this exact muzzle.
+  if(entry.nativeRpgImpact)entry.root.position.copy(origin);
   for(const fin of entry.fins){fin.visible=kind==='rocket';fin.scale.set(caliber*4.5,caliber*1.5,length*.3);fin.position.z=-length*.35}totalProjectiles++;
  };
  function shoot(shot,origin,aimPoint,obstacles=[],shotOptions={}){
-  if(disposed||!shot?.projectiles?.length)return false;const muzzle=origin?.isVector3?origin:origin?.origin,ejectionOrigin=shotOptions.ejectionOrigin||origin?.ejectionOrigin||muzzle;
+  if(disposed||!shot?.projectiles?.length)return false;const muzzle=shot.nativeRpgImpact&&shot.worldOrigin?.isVector3?shot.worldOrigin:origin?.isVector3?origin:origin?.origin,ejectionOrigin=shotOptions.ejectionOrigin||origin?.ejectionOrigin||muzzle;
   if(!muzzle?.isVector3||!aimPoint?.isVector3)throw Error('Shot origin and aim point must be THREE.Vector3');const direction=aimPoint.clone().sub(muzzle);if(direction.lengthSq()<1e-8)return false;direction.normalize();totalShots++;flash(muzzle,direction,shot.projectiles[0]?.visual?.kind);
   if(shot.casing){pending.push({delay:Math.max(0,+shot.casing.delay||0),origin:ejectionOrigin.clone(),direction:direction.clone(),casing:shot.casing,weaponId:shot.weaponId});if(pending.length>limits.pendingCasings)pending.shift()}
-  for(const projectile of shot.projectiles){const dir=shotDirection.copy(direction).applyAxisAngle(up,projectile.yawOffset||0);right.crossVectors(dir,up);if(right.lengthSq()>1e-8)dir.applyAxisAngle(right.normalize(),projectile.pitchOffset||0);dir.normalize();spawnProjectile(projectile,shot,muzzle,dir,obstacles)}return true;
+  for(const projectile of shot.projectiles){const dir=shotDirection.copy(direction).applyAxisAngle(up,projectile.yawOffset||0);right.crossVectors(dir,up);if(right.lengthSq()>1e-8)dir.applyAxisAngle(right.normalize(),projectile.pitchOffset||0);dir.normalize();spawnProjectile(projectile,shot,muzzle,dir,obstacles,shotOptions)}return true;
  }
  function update(dt){
   if(disposed)return;if(!Number.isFinite(dt)||dt<0)throw Error('Effect dt must be finite and non-negative');const elapsedDt=dt;dt=Math.min(.1,dt);elapsed+=elapsedDt;
   if(activeEffects===0&&pending.length===0)return;
   for(let i=pending.length-1;i>=0;i--){pending[i].delay-=dt;if(pending[i].delay<=0){eject(pending[i].origin,pending[i].direction,pending[i].casing,pending[i].weaponId);pending.splice(i,1)}}
-  for(const entry of projectilePool){if(!entry.active)continue;const distance=Math.min(entry.remaining,entry.speed*dt);ray.set(entry.root.position,entry.direction);ray.near=.001;ray.far=distance;const obstacles=typeof entry.obstacles==='function'?entry.obstacles(entry.root.position,entry.direction,distance):entry.obstacles,hit=ray.intersectObjects(Array.isArray(obstacles)?obstacles:[],true).find(result=>result.object.visible!==false&&result.distance>.001);if(hit){entry.root.position.copy(hit.point);if(entry.explosive)spawnExplosion(hit.point);else spawnImpact(hit,entry.direction);markImpact(hit,{visual:entry.visual,explosive:entry.explosive,direction:entry.direction});const normal=impactNormal(hit,entry.direction,new THREE.Vector3()),direction=entry.direction.clone(),projectile={weaponId:entry.weaponId,shotId:entry.shotId,damage:entry.damage,visualId:entry.visualId,explosive:entry.explosive};if(typeof options.onImpact==='function')options.onImpact({weaponId:entry.weaponId,shotId:entry.shotId,damage:entry.damage,impulse:entry.damage,explosive:entry.explosive,projectile,hit,point:hit.point.clone(),normal,direction,object:hit.object});hide(entry);continue}entry.root.position.addScaledVector(entry.direction,distance);entry.remaining-=distance;if(entry.remaining<=1e-5)hide(entry)}
+  for(const entry of projectilePool){
+   if(!entry.active)continue;
+   // Sweep the whole native flight step at low FPS; its collision is continuous,
+   // while the older cosmetic effects retain their existing integration clamp.
+   const distance=Math.min(entry.remaining,entry.speed*(entry.nativeRpgImpact?elapsedDt:dt));
+   if(distance<=0)continue;
+   let hit;
+   if(entry.resolveContact)hit=entry.resolveContact({origin:entry.root.position,direction:entry.direction,range:distance});
+   else {ray.set(entry.root.position,entry.direction);ray.near=.001;ray.far=distance;const obstacles=typeof entry.obstacles==='function'?entry.obstacles(entry.root.position,entry.direction,distance):entry.obstacles;hit=ray.intersectObjects(Array.isArray(obstacles)?obstacles:[],true).find(result=>result.object.visible!==false&&result.distance>.001);}
+   if(!hit){entry.root.position.addScaledVector(entry.direction,distance);entry.remaining-=distance;}
+   const rangeEnd=!hit&&entry.remaining<=1e-5;
+   if(hit||(rangeEnd&&entry.nativeRpgImpact)){
+    if(hit)entry.root.position.copy(hit.point);
+    const point=entry.root.position.clone();
+    if(entry.explosive)spawnExplosion(point);else spawnImpact(hit,entry.direction);
+    if(hit&&!(entry.nativeRpgImpact&&hit.object?.isSkinnedMesh))markImpact(hit,{visual:entry.visual,explosive:entry.explosive,direction:entry.direction});
+    const normal=impactNormal(hit,entry.direction,new THREE.Vector3()),direction=entry.direction.clone(),projectile={weaponId:entry.weaponId,shotId:entry.shotId,damage:entry.damage,visualId:entry.visualId,explosive:entry.explosive};
+    // Retire before the callback: re-entry or a thrown listener cannot replay it.
+    hide(entry);
+    if(typeof options.onImpact==='function')options.onImpact({weaponId:entry.weaponId,shotId:entry.shotId,damage:entry.damage,impulse:entry.damage,explosive:entry.explosive,nativeRpgImpact:entry.nativeRpgImpact,rangeEnd,projectile,hit:hit||null,point,normal,direction,object:hit?.object||null});
+   }else if(rangeEnd)hide(entry);
+  }
   for(const entry of casingPool){if(!entry.active)continue;entry.life-=elapsedDt;if(entry.life<=0){hide(entry);continue}if(entry.settled)continue;
    entry.velocity.y-=9.8*dt;entry.mesh.position.addScaledVector(entry.velocity,dt);entry.mesh.rotation.x+=entry.spin.x*dt;entry.mesh.rotation.y+=entry.spin.y*dt;entry.mesh.rotation.z+=entry.spin.z*dt;
    const sampled=typeof options.groundHeight==='function'?options.groundHeight(entry.mesh.position.x,entry.mesh.position.z,entry.mesh.position.y):null;

@@ -28,6 +28,7 @@ test('shares one geometry/material, follows the right-hand socket and has no pic
  const first=createNpcPhoneVisual({THREE,walker:a.walker,pool}),second=createNpcPhoneVisual({THREE,walker:b.walker,pool});
  assert.equal(first.object,null);assert.equal(first.update({life:{phoneCalling:true}}),true);assert.equal(second.update({life:{state:'calling_police'}}),true);
  const one=first.object,two=second.object;assert.equal(one.geometry,two.geometry);assert.equal(one.material,two.material);assert.equal(pool.stats().created,2);assert.equal(pool.stats().active,2);
+ assert.equal(one.geometry.parameters.width,.105);assert.equal(one.geometry.parameters.height,.215);assert.equal(one.geometry.parameters.depth,.021);assert.equal(one.material.color.getHex(),0x6f9fa6);assert.equal(one.material.toneMapped,false);assert.equal(one.material.transparent,false);
  assert.equal(one.castShadow,false);assert.equal(one.receiveShadow,false);assert.equal(one.userData.npcPickIgnore,true);assert.equal(one.userData.visualOnly,true);assert.deepEqual(one.raycast(),undefined);
  assert.equal(first.anchorKind,'rightHand');const handWorld=a.bones.socket_hand_r.getWorldPosition(new THREE.Vector3()),phoneWorld=one.getWorldPosition(new THREE.Vector3());assert(phoneWorld.distanceTo(handWorld)<.06,'phone remains in the raised right hand');
  assert.equal(first.update({life:{state:'talking'}}),false);assert.equal(first.object,null);assert.equal(one.visible,false);assert.equal(one.parent,null);assert.equal(pool.stats().idle,1);
@@ -54,6 +55,7 @@ test('plays draw, raise, two-hand hold and smooth stow phases through the actor 
  const source=rig(),pool=createNpcPhoneVisualPool({THREE}),visual=createNpcPhoneVisual({THREE,walker:source.walker,pool}),right=[];
  for(let i=0;i<10;i++){visual.update(.1,{time:i*.1,life:{phoneCalling:true}});right.push(source.bones.socket_hand_r.getWorldPosition(new THREE.Vector3()));}
  assert.equal(visual.phase,'hold');assert(source.reaches.some(entry=>entry.side==='l'),'off hand shields or gestures during hold');assert(source.rotations.some(entry=>entry.name==='head'&&Math.abs(entry.y)>.01));assert(source.rotations.some(entry=>entry.name==='chest'&&Math.abs(entry.y)>.01));
+ const heldObject=visual.object;for(let i=0;i<20;i++){visual.update(.1,{time:1+i*.1,life:{phoneCalling:true}});assert.equal(visual.phase,'hold');assert.equal(visual.object,heldObject,'continuous call never redraws the phone');}
  for(let i=1;i<right.length;i++)assert(right[i].distanceTo(right[i-1])<1.2,'bounded right-hand movement between sampled frames');
  const held=right.at(-1),firstStowStart=source.reaches.length;assert.equal(visual.update(.1,{time:1.1,life:{state:'idle'}}),true);assert.equal(visual.phase,'stow');const stowPoint=source.reaches.slice(firstStowStart).find(entry=>entry.side==='r').point;assert(stowPoint.distanceTo(held)<.35,'stow begins continuously from the ear');
  for(let i=0;i<6;i++)visual.update(.1,{time:1.2+i*.1,life:{state:'idle'}});assert.equal(visual.phase,'idle');assert.equal(visual.object,null);assert(visual.diagnostics().poseApplications>=10);

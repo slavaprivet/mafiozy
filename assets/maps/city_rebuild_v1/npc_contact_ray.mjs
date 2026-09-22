@@ -7,7 +7,7 @@ export function createNpcContactRay({THREE,getActors,obstacles=()=>[]}){
  const headInfluence=(bones,indices,weights,vertex,blend)=>{
   let total=0;if(bones[indices.getX(vertex)]?.name==='head')total+=weights.getX(vertex)*blend;if(bones[indices.getY(vertex)]?.name==='head')total+=weights.getY(vertex)*blend;if(bones[indices.getZ(vertex)]?.name==='head')total+=weights.getZ(vertex)*blend;if(bones[indices.getW(vertex)]?.name==='head')total+=weights.getW(vertex)*blend;return total;
  };
- return function contact({origin,direction,range=100,aimOnly=false}){
+ return function contact({origin,direction,range=100,aimOnly=false,targetOnly=false,projectileOnly=false}){
   if(!origin||!direction||![origin.x,origin.y,origin.z,direction.x,direction.y,direction.z,range].every(Number.isFinite)||range<=0||direction.lengthSq()<1e-12)return null;
   ray.set(origin,rayDirection.copy(direction).normalize());ray.near=0;ray.far=range;
   // A contact query is synchronous. Reuse its short-lived collector across
@@ -23,6 +23,7 @@ export function createNpcContactRay({THREE,getActors,obstacles=()=>[]}){
    else {record.object.getWorldPosition(actorCenter);actorCenter.y+=1;}
    const distance=ray.ray.distanceSqToPoint(actorCenter);
    if(distance>9)continue;
+   if(projectileOnly){const along=(actorCenter.x-origin.x)*rayDirection.x+(actorCenter.y-origin.y)*rayDirection.y+(actorCenter.z-origin.z)*rayDirection.z;if(along < -3||along > range+3)continue;}
    record.object.updateWorldMatrix(true,false);
    // SkinnedMesh.updateMatrixWorld refreshes bindMatrixInverse; updateWorldMatrix
    // alone skips that override and can double-transform a moved actor's skin.
@@ -32,11 +33,18 @@ export function createNpcContactRay({THREE,getActors,obstacles=()=>[]}){
     surfaces.push(mesh);owners.set(mesh,record);
    });
   }
-  const hit=ray.intersectObjects(surfaces,false)[0];if(!hit&&!aimOnly)return null;
+  const hit=ray.intersectObjects(surfaces,false)[0];if(!hit&&!aimOnly&&!projectileOnly)return null;
   const blockers=obstacles(origin,rayDirection,hit?.distance??range);for(const obstacle of blockers)obstacle.updateWorldMatrix(true,true);
   const wall=ray.intersectObjects(blockers,true).find(h=>visible(h.object));
+  // A travelling rocket needs the first physical surface each swept step,
+  // including walls/floors when there is no NPC on the ray. Do not manufacture
+  // a wound anchor here: splash damage is resolved by the source at impact.
+  if(projectileOnly)return wall&&(!hit||wall.distance<=hit.distance)?wall:hit||null;
   if(aimOnly){const nearest=wall&&(!hit||wall.distance<=hit.distance)?wall:hit;return nearest?{point:nearest.point,distance:nearest.distance}:null;}
   if(wall&&wall.distance<=hit.distance)return null;
+  // Intimidation needs an unobstructed identity, not a damage receipt or wound
+  // anchor. Keep the same posed skin/obstacle test as physical shooting.
+  if(targetOnly)return {npcId:owners.get(hit.object).id,point:{x:hit.point.x,y:hit.point.y,z:hit.point.z},distance:hit.distance};
   const mesh=hit.object,face=hit.face;
   mesh.getVertexPosition(face.a,a);mesh.getVertexPosition(face.b,b);mesh.getVertexPosition(face.c,c);
   a.applyMatrix4(mesh.matrixWorld);b.applyMatrix4(mesh.matrixWorld);c.applyMatrix4(mesh.matrixWorld);

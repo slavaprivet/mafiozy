@@ -11,7 +11,7 @@ e._npcReceiveSuspicionReport({nonce:'not-ours',ok:true});assert.equal(e.cityCops
 e._npcReceiveSuspicionReport({nonce:n._witnessReportNonce,ok:true,x:999,y:999});assert.equal(e._npcReportSuspicion(n),true);
 const cop=e.cityCops[2];assert.equal(cop._civilianSuspicion.r,3);assert.equal(cop._civilianSuspicion.c,3,'Exact remembered report coordinates, not packet arbitrary coords');assert.equal(cop._pursuing,undefined);
 assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),true);assert.equal(moves.length,1);assert.equal(moves[0][4],1);
-cop.x=cop.y=3;e._npcUpdateSuspicionCop(cop,.1,now);assert.equal(cop.walking,false);
+cop.x=cop.y=3;e._npcUpdateSuspicionCop(cop,.1,now);assert.equal(cop.walking,false);const inspectionYaw=cop.ang;now+=1100;assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),true);assert.equal(cop.ang,inspectionYaw,'inspection keeps the body facing stable while the head scans');
 now+=5600;assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),false);assert.equal(cop._civilianSuspicion,undefined,'Back to patrol after observation');
 e._npcDispatchSuspicion(3,3,'heard_gunfire',now);e.myWanted=1;assert.equal(e._npcUpdateSuspicionCop(cop,.1,now),false,'Actual crime preempts suspicion');e.myWanted=0;
 const interrupted=caller();e.NPCS=[interrupted];e._npcReportSuspicion(interrupted);interrupted.dead=true;e._npcReceiveSuspicionReport({nonce:interrupted._witnessReportNonce,ok:true});assert.equal(interrupted._witnessReportReceipt,undefined,'Interrupted caller cannot complete retrospectively');

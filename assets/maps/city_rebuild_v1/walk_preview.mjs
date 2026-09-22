@@ -46,6 +46,8 @@ import {createWalkHudController} from './walk_hud_controller.mjs';
 import {createNpcPopulation,npcWeaponId} from './npc_population.mjs';
 import {createWorldBloodMarks} from './world_blood_marks.mjs';
 import {createNpcShotEffects} from './npc_shot_effects.mjs';
+import {createNpcBlastPartsPrototype20} from './npc_blast_parts_prototype20.mjs';
+import {createNpcBlastPresentation20} from './npc_blast_presentation20.mjs';
 import {createNpcTrafficVehicleBinding} from './npc_vehicle_pose.mjs';
 import {createWorldWalkCombat} from './world_walk_combat.mjs';
 import {createWorldWalkHealth,worldWalkHealthSurfaceReceipt,synchronizeWorldWalkHealthSurface} from './world_walk_health.mjs';
@@ -489,7 +491,7 @@ function artistMeleeContext(){return {time:performance.now()/1000,allowed:artist
 
 
 const NPC_RENDER_DISTANCE_M=100,NPC_LOGICAL_HANDOFF_MARGIN_M=5;
-let npcBloodMarks=null,npcShotEffects=null,npcLogicalVehicles=null,npcInspection=null,worldTrafficPresentation=null,npcPopulation=null,npcBridge=window.Mafiozi3DBridge||null,worldWalkCombat=null,npcGallery=null,worldWalkMelee=null,npcDiagnosticsAt=-Infinity;
+let npcBlastParts=null,npcBlastPresentation=null,npcBloodMarks=null,npcShotEffects=null,npcLogicalVehicles=null,npcInspection=null,worldTrafficPresentation=null,npcPopulation=null,npcBridge=window.Mafiozi3DBridge||null,worldWalkCombat=null,npcGallery=null,worldWalkMelee=null,npcDiagnosticsAt=-Infinity;
 let npcSupportCache=null,npcNativeNavigation=null,npcNativePerception=null,npcVehicleNavigation=null,npcServiceDestinations=null,transportDiagnosticAt=0;
 async function initNpcPopulation(){
  worldTrafficPresentation=createWorldTrafficPresentation({THREE,RoundedBox:RoundedBoxGeometry,loader,scene,groundHeight:(x,z)=>groundHeight(x,z),worldScale:M,wheelRenderOptimization,detailOptimization:renderer.extensions.has('WEBGL_multi_draw')});
@@ -519,7 +521,9 @@ async function initNpcPopulation(){
  npcShotEffects=createNpcShotEffects({THREE,scene,getActor:id=>npcPopulation?.getActor(id),groundHeight,worldScale:M});
  npcBloodMarks=createWorldBloodMarks({THREE,scene,groundHeight,worldScale:M,allowGround:(x,z)=>!waterAt(x,z)&&!sampledBuildingEntries(x,z).some(entry=>entry.floorHeight(x,z,0)!==null)});
  addEventListener('pagehide',()=>npcShotEffects?.dispose(),{once:true});
- npcPopulation=await createNpcPopulation({THREE,scene,loader,cloneSkeleton:cloneNpcSkeleton,bridge:npcBridge,groundHeight:(x,z)=>groundHeight(x,z),waterAt:(x,z)=>waterAt(x,z),worldScale:M,getFocus:()=>hero?.object.position,renderDistance:NPC_RENDER_DISTANCE_M,creationBudget:1,profile:new URLSearchParams(location.search).get('perfqa')==='1',getInspectId:()=>npcInspection?.getSelection()?.id,getVehicle:getSourceVehicle,onSnapshot:(snapshot,{time})=>{npcBloodMarks.sync(snapshot?.bloodFx||[],{time:performance.now()/1000,exterior:!npcBridge?.getPlayerState?.().interior&&!insideBuilding()});worldTrafficPresentation.sync(snapshot?.cars||[]);npcShotEffects.sync(snapshot?.npcs||[],time*1000,performance.now()/1000);},onBeforePose:({dt})=>worldTrafficPresentation.update(dt)});
+ npcBlastParts=createNpcBlastPartsPrototype20(THREE,scene,{groundHeight});
+ npcBlastPresentation=createNpcBlastPresentation20({parts:npcBlastParts,getActor:id=>npcPopulation?.getActor(id),groundHeight,worldScale:M});
+ npcPopulation=await createNpcPopulation({THREE,scene,loader,cloneSkeleton:cloneNpcSkeleton,bridge:npcBridge,groundHeight:(x,z)=>groundHeight(x,z),waterAt:(x,z)=>waterAt(x,z),worldScale:M,getFocus:()=>hero?.object.position,renderDistance:NPC_RENDER_DISTANCE_M,creationBudget:1,profile:new URLSearchParams(location.search).get('perfqa')==='1',getInspectId:()=>npcInspection?.getSelection()?.id,getVehicle:getSourceVehicle,onSnapshot:(snapshot,{time})=>{npcBlastPresentation.sync(snapshot?.npcs||[],{now:time,sourceNowMs:time*1000});npcBloodMarks.sync(snapshot?.bloodFx||[],{time:performance.now()/1000,exterior:!npcBridge?.getPlayerState?.().interior&&!insideBuilding()});worldTrafficPresentation.sync(snapshot?.cars||[]);npcShotEffects.sync(snapshot?.npcs||[],time*1000,performance.now()/1000);},onBeforePose:({dt})=>worldTrafficPresentation.update(dt)});
  npcInspection=createNpcRuntimeInspection({document,parent:document.body,getActors:()=>npcPopulation?.getActors()||[],getFocus:()=>hero?.object.position,focusActor:row=>{if(!row.object?.visible)return;const p=row.object.position;followCarCamera=false;controls.target.set(p.x,p.y+1.1,p.z);camera.position.set(p.x+3.5,p.y+2.6,p.z+4.5);camera.lookAt(controls.target);}});
  window.MafioziWalkNpcs={getActors:()=>npcPopulation?.getActors()||[],getActor:id=>npcPopulation?.getActor(id),receive:(id,event)=>npcPopulation?.receive(id,event),attach:bridge=>{npcBridge=bridge;npcPopulation.attach(bridge);}};
  if(npcBridge){const state=npcBridge.getPlayerState();hero.object.position.set(state.c*M,groundHeight(state.c*M,state.r*M),state.r*M);hero.object.rotation.y=Math.PI/2-state.ang;controls.target.copy(hero.object.position).y+=1.1;camera.position.copy(hero.object.position).add(new THREE.Vector3(3,2.2,4));}
@@ -553,13 +557,13 @@ function updateNpcPopulation(dt){
    resetFootSupport();const shift=hero.object.position.clone().sub(before);controls.target.add(shift);camera.position.add(shift);
   }
  }
- const sourceClock=npcBridge?.getWorldClock?.(),now=(Number.isFinite(sourceClock)?sourceClock:sourceClock?.now??performance.now())/1000;npcPopulation.update(dt,now);npcInspection?.update(performance.now()/1000);
+ const sourceClock=npcBridge?.getWorldClock?.(),now=(Number.isFinite(sourceClock)?sourceClock:sourceClock?.now??performance.now())/1000;npcPopulation.update(dt,now);npcBlastPresentation?.update(now);npcInspection?.update(performance.now()/1000);
  npcShotEffects?.update(performance.now()/1000);
  npcBloodMarks?.update(performance.now()/1000);
  // diagnostics() walks and sorts the complete roster. It feeds an inspection
  // data attribute only, so a 250 ms cadence preserves its observability while
  // leaving actor simulation and every visible NPC update fully per-frame.
- const diagnosticNow=performance.now();if(diagnosticNow-npcDiagnosticsAt>=250){npcDiagnosticsAt=diagnosticNow;document.body.dataset.npcWorld=JSON.stringify({...npcPopulation.diagnostics(),traffic:worldTrafficPresentation?.diagnostics(),perception:npcNativePerception?.diagnostics(),navigation:{...npcNativeNavigation?.diagnostics(),support:npcSupportCache?.diagnostics(),source:npcBridge?.getWalkNpcNavigationDiagnostics?.()}});}
+ const diagnosticNow=performance.now();if(diagnosticNow-npcDiagnosticsAt>=250){npcDiagnosticsAt=diagnosticNow;document.body.dataset.npcWorld=JSON.stringify({...npcPopulation.diagnostics(),blast:{...npcBlastPresentation?.diagnostics(),...npcBlastParts?.stats()},traffic:worldTrafficPresentation?.diagnostics(),perception:npcNativePerception?.diagnostics(),navigation:{...npcNativeNavigation?.diagnostics(),support:npcSupportCache?.diagnostics(),source:npcBridge?.getWalkNpcNavigationDiagnostics?.()}});}
 }
 let exitSwimHandoff=null,artistSurfaceFrameDt=0;
 function heroSwimHeight(x,z,sample){const target=groundHeight(x,z)+sample.liftWorld;if(!waterAt(x,z))exitSwimHandoff=null;if(!exitSwimHandoff)return target;const y=exitSwimHandoff.update(target,artistSurfaceFrameDt);if(exitSwimHandoff.done)exitSwimHandoff=null;return y;}
@@ -605,16 +609,39 @@ const npcHoldUpPrompt=document.createElement('div');npcHoldUpPrompt.id='npc-hold
 const npcHoldUpDirection=new THREE.Vector3();let npcHoldUp={id:null,canTake:false,cashAvailable:false,nextAt:0};
 const tireTracks=createTireTracks(THREE,{surfaceAt:(x,z)=>[0,9,19].includes(topology?.grid?.[Math.floor(z/M)]?.[Math.floor(x/M)])});scene.add(tireTracks.object);
 let glass=createGlassBreakage(THREE,scene,{groundHeight});
-const fireStates=new Map(),effects=createWeaponEffects(THREE,scene,{groundHeight,onImpact(payload){for(const record of fleet?.records||[]){record.damage?.impact(payload);record.tyres?.hit(payload)}if(payload.explosive)blastResponse?.enqueue({point:payload.point,power:1.4,radius:11});glass.hit(payload.hit,{direction:payload.direction,impulse:payload.damage,weaponId:payload.weaponId})}}),aimRay=new THREE.Raycaster();
+const fireStates=new Map(),effects=createWeaponEffects(THREE,scene,{groundHeight,onImpact(payload){
+ if(payload.nativeRpgImpact)npcBridge?.impactWalkRpg?.({shotId:payload.shotId,point:{x:payload.point.x,y:payload.point.y,z:payload.point.z}});
+ for(const record of fleet?.records||[]){record.damage?.impact(payload);record.tyres?.hit(payload)}
+ if(payload.explosive)blastResponse?.enqueue({point:payload.point,power:1.4,radius:11});
+ if(payload.hit)glass.hit(payload.hit,{direction:payload.direction,impulse:payload.damage,weaponId:payload.weaponId});
+}}),aimRay=new THREE.Raycaster();
 const vehicleWindowPrompt=document.createElement('div');vehicleWindowPrompt.id='vehicle-window-prompt';vehicleWindowPrompt.hidden=true;vehicleWindowPrompt.setAttribute('role','status');vehicleWindowPrompt.style.cssText='position:fixed;left:50%;bottom:154px;transform:translateX(-50%);z-index:44;max-width:80vw;padding:10px 18px;border:1px solid #9d8a5b;border-radius:6px;background:#152324ed;color:#f3e9d1;font:600 13px system-ui;pointer-events:none;text-align:center';document.body.append(vehicleWindowPrompt);
 const vehicleWindowFire={car:null,seatId:null,frame:null,damage:null,plan:null,blend:0,result:null,pending:0,diagnosticsAt:-Infinity};
 let pendingCoverShotUntil=0,triggerHeld=false,triggerPressed=false,reloadPressed=false,aiming=false,aimBlend=0,savedCameraOffset=null;
 const walkBlastSession=crypto.randomUUID();
-blastResponse=createBlastResponse(THREE,scene,{getHero:()=>hero,getVehicles:()=>fleet?.records||[],getRoots:()=>[content],getGlass:()=>glass,groundHeight:heroGroundHeight,onHeroExposure(event,exposure){
- // Source RPG/grenade damage is already resolved by world; only the separate
- // walk fleet needs admission. The bridge refuses local HP writes online.
- if(event.source&&npcBridge?.applyWalkVehicleBlast){const receipt=npcBridge.applyWalkVehicleBlast({eventId:`walk-fleet:${walkBlastSession}:${event.id}`,r:event.point.z/M,c:event.point.x/M,...exposure});document.body.dataset.walkBlastDamage=JSON.stringify(receipt);}
+blastResponse=createBlastResponse(THREE,scene,{getHero:()=>hero,getVehicles:()=>fleet?.records||[],getOcclusionVehicles:()=>[...(fleet?.records||[]),...sourceVehicleDriveControllerSet,...(worldTrafficPresentation?.getActors?.()||[])],getRoots:()=>[content],getGlass:()=>glass,groundHeight:heroGroundHeight,onBlast(event,heroExposure){
+ // One physical vehicle explosion owns one source event. NPC damage is not
+ // gated by hero proximity or by the renderer's current NPC culling window.
+ const sourceVehicleId=String(event.source?.object?.userData?.sourceVehicleId??event.source?.object?.userData?.vehicleFleetId??'');
+ if(!sourceVehicleId||!npcBridge?.applyWalkVehicleBlast)return;
+ const receipt=npcBridge.applyWalkVehicleBlast({eventId:`walk-fleet:${walkBlastSession}:${event.id}`,kind:'vehicle_explosion',r:event.point.z/M,c:event.point.x/M,y:event.point.y,sourceVehicleId,...(heroExposure||{})});
+ document.body.dataset.walkBlastDamage=JSON.stringify(receipt);
 },onHeroLaunch(body,event){verticalNavigation.reset();if(heroBlast&&body.strength<heroBlast.strength*.65)return;heroBlastSource=occupiedSeat?car:event.source;occupiedSeat=null;transition=null;jump=null;heroBlast=body;releaseControls();releaseWeapon();keys.clear();hero.object.rotation.z=0;hero.reset();setWalking(true);for(const id of ['district','walk','reload'])$(id).disabled=false;}});
+if(npcBridge?.registerWalkBlastExposureResolver){
+ npcBridge.registerWalkBlastExposureResolver(request=>{
+ const r=Number(request?.r),c=Number(request?.c),y=Number(request?.y),targets=Array.isArray(request?.targets)?request.targets:[];
+  if(!Number.isFinite(r)||!Number.isFinite(c))return {exposures:[]};
+  const x=c*M,z=r*M,point={x,y:Number.isFinite(y)?y:groundHeight(x,z)+.8,z};
+  const physicalTargets=[];
+  for(let i=0;i<targets.length&&i<512;i++){
+   const target=targets[i],tr=Number(target?.r),tc=Number(target?.c),height=Number(target?.height),id=String(target?.id??'');
+   if(!id||!Number.isFinite(tr)||!Number.isFinite(tc))continue;
+   const tx=tc*M,tz=tr*M;physicalTargets.push({id,point:{x:tx,y:groundHeight(tx,tz)+(Number.isFinite(height)?height:1.1),z:tz}});
+  }
+  return blastResponse.resolveExposures({point,sourceVehicleId:request.sourceVehicleId,targets:physicalTargets});
+ });
+ addEventListener('pagehide',()=>npcBridge?.registerWalkBlastExposureResolver?.(null),{once:true});
+}
 function combatAllowed(){return !sourceVehicleActive()&&jump?.mode!=='traversal'&&!hudInputBlocked()&&!artistSwimming()&&!artistBusy()&&!!hero&&walking&&(!occupiedSeat||!carDamage?.disabled&&!carRollover?.unstable)&&!transition&&!heroBlast&&!verticalNavigation.active&&!busy&&!arsenalOpen()&&$('scene-menu').hidden&&currentWeapon.id!=='none'}
 function clearNpcHoldUp(){npcHoldUp.id=null;npcHoldUp.canTake=false;npcHoldUp.cashAvailable=false;if(!npcHoldUpPrompt.hidden)npcHoldUpPrompt.hidden=true;}
 function updateNpcHoldUp(now=performance.now()){
@@ -719,7 +746,7 @@ function emitCombatShots(combat){
  const obstacles=shotObstacles(camera.position,combat.forward,100);for(const obstacle of obstacles)obstacle.updateWorldMatrix?.(true,true);
  const hit=aimRay.intersectObjects(obstacles,true).find(hit=>{for(let node=hit.object;node;node=node.parent)if(!node.visible)return false;return true}),target=hit?hit.point:aimRay.ray.at(100,new THREE.Vector3()),transforms=resolveWeaponShotTransforms(THREE,weaponModel);
  const coverTarget=heroCover.active||occupiedSeat?transforms.origin.clone().addScaledVector(combat.forward,100):target;
- for(const shot of combat.result.shots)effects.shoot(shot,transforms,shot.worldTarget||coverTarget,shotObstacles);
+ for(const shot of combat.result.shots)effects.shoot(shot,transforms,shot.worldTarget||coverTarget,shotObstacles,shot.nativeRpgImpact?{resolveContact:worldWalkCombat?.projectileContact}:{});
 }
 function updateAimCamera(dt){
 
@@ -901,8 +928,11 @@ function updateMovingExit(dt){
 
 function setCarInteractionText(id,text){const node=$(id);if(node.textContent!==text)node.textContent=text;}
 function updateCarInteraction(dt){
+ // Consume terminal entry/exit receipts while on foot too. Otherwise the
+ // adapter remains pending after source.active becomes false and hides doors.
+ sourceVehicleAccess?.poll();
  if(sourceVehicleActive()){
-  sourceVehicleAccess?.poll();const pressed=keys.has('KeyE')&&!buildingKeyConsumed;if(!pressed)entryArmed=true;
+  const pressed=keys.has('KeyE')&&!buildingKeyConsumed;if(!pressed)entryArmed=true;
   const hold=advanceEntryHold(entryHeld,pressed&&entryArmed,sourceVehicleState.phase==='driving',dt,EXIT_HOLD_SECONDS);entryHeld=hold.elapsed;
   setCarInteractionText('drive-status',sourceVehicleState.phase==='driving'?'E · удержать 0,3 с — выйти':sourceVehicleState.phase==='pull_driver'?'Вытаскиваем водителя…':sourceVehicleState.phase==='exit'?'Выходим…':'Садимся…');
   if(hold.ready)requestSourceVehicle('exit');return;
@@ -2046,6 +2076,6 @@ addEventListener('pagehide',()=>{walkPlayerHud?.dispose();hudAppearanceHero?.dis
 addEventListener('pagehide',()=>indoorHeroVisibility.dispose(),{once:true});
 addEventListener('pagehide',()=>mercenaryWalk?.dispose(),{once:true});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-addEventListener('pagehide',()=>{npcBloodMarks?.dispose();worldWalkHealth?.dispose();waterInspection?.dispose();npcBridge?.registerWalkNpcNavigationResolver?.(null);npcBridge?.registerWalkNpcPerceptionResolver?.(null);npcBridge?.registerWalkNpcVehicleAccessResolver?.(null);npcInspection?.dispose();npcPopulation?.dispose();for(const controller of sourceVehicleDriveControllerSet)controller.dispose();sourceVehicleDriveControllerSet.clear();worldTrafficPresentation?.dispose();npcGallery?.dispose();worldWalkCombat?.dispose();worldWalkMelee?.dispose();groundWeapons?.dispose();weaponPickupPrompt.remove();weaponCrosshair.dispose();weaponHud?.dispose();explorationMap?.dispose();if(waypointVisual){const materials=new Set();waypointVisual.traverse(n=>{n.geometry?.dispose();if(n.material)materials.add(n.material)});materials.forEach(m=>m.dispose());waypointVisual.removeFromParent()}waypointDistance?.remove();vehicleVisualQa?.dispose();carQa?.dispose();clearContent({recreate:false});fleet?.dispose();artistSurface?.dispose();effects.dispose();blastResponse?.dispose();tireTracks.dispose()},{once:true});
+addEventListener('pagehide',()=>{npcBlastPresentation?.dispose();npcBloodMarks?.dispose();worldWalkHealth?.dispose();waterInspection?.dispose();npcBridge?.registerWalkNpcNavigationResolver?.(null);npcBridge?.registerWalkNpcPerceptionResolver?.(null);npcBridge?.registerWalkNpcVehicleAccessResolver?.(null);npcInspection?.dispose();npcPopulation?.dispose();for(const controller of sourceVehicleDriveControllerSet)controller.dispose();sourceVehicleDriveControllerSet.clear();worldTrafficPresentation?.dispose();npcGallery?.dispose();worldWalkCombat?.dispose();worldWalkMelee?.dispose();groundWeapons?.dispose();weaponPickupPrompt.remove();weaponCrosshair.dispose();weaponHud?.dispose();explorationMap?.dispose();if(waypointVisual){const materials=new Set();waypointVisual.traverse(n=>{n.geometry?.dispose();if(n.material)materials.add(n.material)});materials.forEach(m=>m.dispose());waypointVisual.removeFromParent()}waypointDistance?.remove();vehicleVisualQa?.dispose();carQa?.dispose();clearContent({recreate:false});fleet?.dispose();artistSurface?.dispose();effects.dispose();blastResponse?.dispose();tireTracks.dispose()},{once:true});
 async function start(){await refresh();if(!topology)return;try{hero=await loadHeroWalker({THREE,loader,targetHeight:1.9});scene.add(hero.object);artistSurface=createArtist14Surface({THREE,context:hero.artistContext(),scene,applySwim:(sample,ctx)=>{if(worldHealthFrame?.snapshot.dead)return;if(transition?.waterExit&&transition.phase==='body'){artistPose.swim(sample,ctx);return;}if(sourceVehicleActive()||occupiedSeat||transition||jump||heroBlast)return;if(sample.blend>0||exitSwimHandoff)ctx.object.position.y=heroSwimHeight(ctx.object.position.x,ctx.object.position.z,sample);artistPose.swim(sample,ctx);},applyReaction:(sample,ctx)=>{if(!occupiedSeat&&!transition&&!heroBlast&&!verticalNavigation.active)artistPose.reaction(sample,ctx);}});focus(instances[0]?.userData.instance);setWalking(true);$('walk').textContent='Управлять персонажем';initCar();equipWeapon(currentWeapon.id);initBuildingQa();initWaterInspection();installTraversalQa({document,enabled:new URLSearchParams(location.search).get('traversalqa')==='1',available:()=>!!hero&&!busy&&!jump&&!occupiedSeat&&!transition&&!heroBlast&&!verticalNavigation.active,getBodies:()=>bodies,groundHeight,waterAt,canOccupy:traversalWorld.canOccupy,plan:(position,direction,swimming)=>planTraversal({position,direction,swimming,sample:traversalWorld.sample,canOccupy:traversalWorld.canOccupy}),move(position,direction){releaseControls();artistSurface.reset();hero.reset();resetHeroPosture(heroPosture);hero.object.position.set(position.x,position.y,position.z);hero.object.rotation.y=Math.atan2(direction.x,direction.z);surfaceMotion.reset(hero.object.position);controls.target.copy(hero.object.position).y+=1.2;camera.position.copy(controls.target).add(new THREE.Vector3(-direction.x*5,2.2,-direction.z*5));setWalking(true);setFreeMouse(false);$('scene-menu').hidden=true;},begin:()=>beginJump(),finish:releaseControls,walk(duration=20000){animationQaMoveDirection=new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0),hero.object.rotation.y);animationQaMoveUntil=performance.now()+(typeof duration==='number'?duration:20000);}});initCoverQa();await initNpcPopulation();}catch(e){fail('Персонаж не загружен: '+e.message)}}
 initPlayerDossier();start();frame();setInterval(()=>{if(!document.hidden&&!arsenalOpen()&&!busy&&!heroCover.active&&!occupiedSeat&&!sourceVehicleActive()&&!transition&&!jump&&!heroBlast&&!verticalNavigation.active&&!aiming&&!triggerHeld&&!savedCameraOffset&&Math.abs(carState?.speed||0)<.01)refresh()},15000);

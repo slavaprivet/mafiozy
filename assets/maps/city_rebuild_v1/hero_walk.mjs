@@ -1,6 +1,7 @@
 // Artist13 appearance and presentation only. Host owns controls/server/combat.
 
 import {createArtist14Melee} from './hero_artist14_melee.mjs';
+import {createContactGroundBound} from './hero_contact_ground_bound.mjs';
 import {createHeroPoseTransition} from './hero_pose_transition.mjs';
 import {posturePresentation} from './hero_posture.mjs';
 
@@ -521,11 +522,40 @@ export function createHeroWalker({THREE,scene,targetHeight=1.9}){
 
   }
 
-  const artistMelee=createArtist14Melee({THREE,bones,rest,offset,visualPivot,object,targetHeight,sourceHeight,rotateAdd,groundPose});
+  let samplingContact=false,contactGroundBound=null;
+  const contactAwareGroundPose=()=>{if(samplingContact){contactGroundBound??=createContactGroundBound({THREE,meshes:poseMeshes,root:object});if(contactGroundBound())return;}groundPose();};
+  const artistMelee=createArtist14Melee({THREE,bones,rest,offset,visualPivot,object,targetHeight,sourceHeight,rotateAdd,groundPose:contactAwareGroundPose});
+
+  // Contact-only sampling uses the authored pose, without advancing animation
+  // clocks or leaving a sampled pose on the visible hero. Allocate backups only
+  // for the attacking hero, not for every NPC sharing this walker implementation.
+  let contactPoseBackup=null;
+  function sampleMeleeContactPose(action,rootPosition,rootQuaternion,samples){
+    if(disposed||!action||action.armed||action.weaponId&&action.weaponId!=='none')return false;
+    if(!contactPoseBackup)contactPoseBackup={bones:Object.values(bones).map(bone=>({bone,matrix:new THREE.Matrix4()})),nodes:[object,visualPivot,scaled].map(node=>({node,position:new THREE.Vector3(),quaternion:new THREE.Quaternion(),scale:new THREE.Vector3()}))};
+    const backup=contactPoseBackup;
+    for(const item of backup.bones)item.matrix.copy(item.bone.matrix);
+    for(const item of backup.nodes){item.position.copy(item.node.position);item.quaternion.copy(item.node.quaternion);item.scale.copy(item.node.scale);}
+    try{
+      samplingContact=true;
+      if(rootPosition)object.position.copy(rootPosition);if(rootQuaternion)object.quaternion.copy(rootQuaternion);
+      restore();
+      if(gait){rotate('chest',0,0,Math.sin(phase)*gait*.018);for(const [side,sign]of [['l',1],['r',-1]]){const step=Math.sin(phase)*sign*gait;rotate('thigh_'+side,step*.56);rotate('shin_'+side,Math.max(0,-step)*.52);rotate('foot_'+side,-step*.22);rotate('upperarm_'+side,-step*.38);rotate('forearm_'+side,-Math.max(0,step)*.12);}}
+      scaled.position.y=Math.abs(Math.sin(phase))*gait*.026;object.updateMatrixWorld(true);
+      artistMelee.apply(action,{crouch:0,prone:0},phase,gait);
+      for(const sample of samples)bones[sample.name].getWorldPosition(sample.current);
+      return true;
+    }finally{
+      samplingContact=false;
+      for(const item of backup.bones){item.bone.matrix.copy(item.matrix);item.bone.matrixWorldNeedsUpdate=true;}
+      for(const item of backup.nodes){item.node.position.copy(item.position);item.node.quaternion.copy(item.quaternion);item.node.scale.copy(item.scale);}
+      object.updateMatrixWorld(true);for(const mesh of poseMeshes)if(mesh.isSkinnedMesh)mesh.skeleton.update();
+    }
+  }
 
   const artistContext=()=>({object,visualPivot,scaled,offset,scene,bones,rest,targetHeight,sourceHeight,rotate,rotateAdd,reachPalm,reachFoot,groundPose,worldPosition,worldRotation});
 
-  reset();return{artistContext,meleePresentation:()=>meleeResult,blendIntoPosture:seconds=>landingPoseTransition.begin(seconds),object,height:targetHeight,sourceHeight,scale:targetHeight/sourceHeight,frontAxis:'+Z',update,vehiclePose,tumblePose,jumpPose,mountWeapon,reset,dispose,
+  reset();return{artistContext,sampleMeleeContactPose,meleePresentation:()=>meleeResult,blendIntoPosture:seconds=>landingPoseTransition.begin(seconds),object,height:targetHeight,sourceHeight,scale:targetHeight/sourceHeight,frontAxis:'+Z',update,vehiclePose,tumblePose,jumpPose,mountWeapon,reset,dispose,
 
     diagnostics:()=>({gait,phase,vehicleHeadYaw,vehicleGripAssignment,disposed,boneCount:Object.keys(bones).length,sourceBounds:{min:box.min.toArray(),max:box.max.toArray()},requiredNodes:[...required]})};
 

@@ -2,6 +2,7 @@ import asyncio
 from civilian_suspicion import validate_civilian_report
 from civilian_hijack_pose import validate_civilian_hijack_pose
 import police_convoy
+import npc_robbery_receipts
 import logging
 import math
 import random
@@ -2220,6 +2221,7 @@ async def init_db():
         npc_robbery_cols = {row[1] for row in await (await db.execute("PRAGMA table_info(npc_robberies)")).fetchall()}
         if 'interrogation_arrest' not in npc_robbery_cols:
             await db.execute("ALTER TABLE npc_robberies ADD COLUMN interrogation_arrest INTEGER NOT NULL DEFAULT 1")
+        await npc_robbery_receipts.ensure_schema(db)
         # Бригадир — хит-контракты. Лимит BRIGADIR_DAILY_LIMIT за сутки на игрока.
         # Каждый append — отдельная запись (kill_t = когда сдан, или 0 если выдан).
         await db.execute("""
@@ -33509,15 +33511,8 @@ async def _coop_http_app():
                                             reply.update(reason='cash', cash=int((cash_row or [0])[0] or 0))
                                         else:
                                             new_wanted = max(0.0, wanted - 1.0)
-                                            robbery_row = await (await db.execute(
-                                                "SELECT robbery_id FROM npc_robberies WHERE uid=? AND status='active' "
-                                                "ORDER BY created_at DESC LIMIT 1", (int(uid),))).fetchone()
-                                            robbery_id = str((robbery_row or [''])[0] or '')
-                                            if robbery_id:
-                                                await db.execute(
-                                                    "UPDATE npc_robberies SET status='bribed', resolved_at=? "
-                                                    "WHERE uid=? AND robbery_id=? AND status='active'",
-                                                    (int(now_t), int(uid), robbery_id))
+                                            robbery_id = await npc_robbery_receipts.bribe_latest(
+                                                db, uid=int(uid), resolved_at=int(now_t))
                                             await db.execute(
                                                 "UPDATE characters SET wanted_stars=? WHERE telegram_id=?",
                                                 (int(new_wanted), int(uid)))
@@ -33625,13 +33620,7 @@ async def _coop_http_app():
                         active = []
                         try:
                             async with aiosqlite.connect(DB_PATH) as db:
-                                rows = await (await db.execute(
-                                    "SELECT npc_id, robbery_id, amount, cooldown_until, created_at, interrogation_arrest "
-                                    "FROM npc_robberies WHERE uid = ? AND status = 'active' "
-                                    "ORDER BY created_at DESC LIMIT 5", (int(uid),))).fetchall()
-                            active = [{'npc_id': str(row[0]), 'robbery_id': str(row[1]), 'amount': int(row[2]),
-                                       'cooldown_until': int(row[3]), 'created_at': int(row[4]),
-                                       'interrogation_arrest': bool(row[5])} for row in rows]
+                                active = await npc_robbery_receipts.active(db, int(uid), 5)
                         except Exception:
                             active = []
                         if p and active:
@@ -33656,33 +33645,25 @@ async def _coop_http_app():
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
                                     await db.execute('BEGIN IMMEDIATE')
-                                    row = await (await db.execute(
-                                        "SELECT cooldown_until FROM npc_robberies WHERE uid = ? AND npc_id = ?",
-                                        (int(uid), npc_id))).fetchone()
-                                    cooldown_until = int((row or [0])[0] or 0)
-                                    if cooldown_until > now_t:
+                                    amount = random.randint(1, 10)
+                                    interrogation_arrest = 1 if random.random() < 0.8 else 0
+                                    cooldown_until = int(now_t) + 3600
+                                    result = await npc_robbery_receipts.begin(
+                                        db, uid=int(uid), npc_id=npc_id, robbery_id=robbery_id,
+                                        amount=amount, cooldown_until=cooldown_until,
+                                        interrogation_arrest=interrogation_arrest,
+                                        created_at=int(now_t), crime_r=p.get('y'), crime_c=p.get('x'))
+                                    if not result.get('ok'):
                                         await db.rollback()
-                                        reply.update(reason='cooldown', cooldown_until=cooldown_until)
+                                        reply.update(result)
+                                    elif result.get('replayed'):
+                                        await db.rollback()
+                                        reply = result
                                     else:
-                                        amount = random.randint(1, 10)
-                                        interrogation_arrest = 1 if random.random() < 0.8 else 0
-                                        cooldown_until = int(now_t) + 3600
-                                        await db.execute(
-                                            "INSERT INTO npc_robberies(uid,npc_id,robbery_id,amount,cooldown_until,interrogation_arrest,status,created_at,resolved_at) "
-                                            "VALUES(?,?,?,?,?,?,'unreported',?,0) "
-                                            "ON CONFLICT(uid,npc_id) DO UPDATE SET robbery_id=excluded.robbery_id,amount=excluded.amount,"
-                                            "cooldown_until=excluded.cooldown_until,interrogation_arrest=excluded.interrogation_arrest,"
-                                            "status='unreported',created_at=excluded.created_at,resolved_at=0",
-                                            (int(uid), npc_id, robbery_id, amount, cooldown_until, interrogation_arrest, int(now_t)))
-                                        await db.execute("UPDATE characters SET cash = cash + ? WHERE telegram_id = ?", (amount, int(uid)))
-                                        cash_row = await (await db.execute(
-                                            "SELECT cash FROM characters WHERE telegram_id = ?", (int(uid),))).fetchone()
                                         await db.commit()
-                                        cash = int((cash_row or [int(p.get('_cash') or 0) + amount])[0] or 0)
-                                        p['_cash'] = cash
-                                        reply = {'ok': True, 'robbery_id': robbery_id, 'amount': amount,
-                                                  'cash': cash, 'cooldown_until': cooldown_until,
-                                                  'interrogation_arrest': bool(interrogation_arrest)}
+                                        reply = result
+                                    if result.get('ok'):
+                                        p['_cash'] = int(result.get('cash') or p.get('_cash') or 0)
                             except Exception:
                                 reply = {'ok': False, 'reason': 'db_error', 'robbery_id': robbery_id}
                         try:
@@ -33698,19 +33679,18 @@ async def _coop_http_app():
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
                                     await db.execute('BEGIN IMMEDIATE')
-                                    row = await (await db.execute(
-                                        "SELECT npc_id, amount, interrogation_arrest, status FROM npc_robberies WHERE uid=? AND robbery_id=?",
-                                        (int(uid), robbery_id))).fetchone()
-                                    if not row or str(row[3]) not in ('unreported', 'active'):
+                                    receipt = await npc_robbery_receipts.report(
+                                        db, uid=int(uid), robbery_id=robbery_id)
+                                    if not receipt:
                                         await db.rollback()
                                     else:
-                                        await db.execute("UPDATE npc_robberies SET status='active' WHERE uid=? AND robbery_id=? AND status='unreported'", (int(uid), robbery_id))
-                                        wanted = max(1.0, float(p.get('_wanted') or 0))
-                                        await db.execute("UPDATE characters SET wanted_stars=MAX(1,COALESCE(wanted_stars,0)) WHERE telegram_id=?", (int(uid),))
                                         await db.commit()
-                                        p['_wanted'] = wanted;p['_last_shot_t'] = time.time()
-                                        reply = {'ok': True, 'robbery_id': robbery_id, 'npc_id': str(row[0]), 'amount': int(row[1]),
-                                                 'interrogation_arrest': bool(row[2]), 'wanted': wanted}
+                                        if receipt.get('case_active'):
+                                            wanted = max(1.0, float(p.get('_wanted') or 0))
+                                            p['_wanted'] = wanted;p['_last_shot_t'] = time.time()
+                                        else:
+                                            wanted = float(p.get('_wanted') or 0)
+                                        reply = {**receipt, 'ok': True, 'wanted': wanted}
                             except Exception:
                                 reply = {'ok': False, 'reason': 'db_error', 'robbery_id': robbery_id, 'npc_id': npc_id}
                         try:
@@ -33725,21 +33705,14 @@ async def _coop_http_app():
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
                                     await db.execute('BEGIN IMMEDIATE')
-                                    row = await (await db.execute(
-                                        "SELECT amount FROM npc_robberies WHERE uid = ? AND robbery_id = ? AND status = 'active'",
-                                        (int(uid), robbery_id))).fetchone()
-                                    if not row:
+                                    result = await npc_robbery_receipts.confiscate(
+                                        db, uid=int(uid), robbery_id=robbery_id,
+                                        resolved_at=int(time.time()))
+                                    if not result:
                                         await db.rollback()
                                         raise LookupError('missing')
-                                    amount = max(0, min(10, int(row[0] or 0)))
-                                    await db.execute("UPDATE characters SET cash = MAX(0, cash - ?) WHERE telegram_id = ?", (amount, int(uid)))
-                                    await db.execute(
-                                        "UPDATE npc_robberies SET status='confiscated', resolved_at=? WHERE uid=? AND robbery_id=? AND status='active'",
-                                        (int(time.time()), int(uid), robbery_id))
-                                    cash_row = await (await db.execute(
-                                        "SELECT cash FROM characters WHERE telegram_id = ?", (int(uid),))).fetchone()
                                     await db.commit()
-                                cash = int((cash_row or [max(0, int(p.get('_cash') or 0) - amount)])[0] or 0)
+                                amount=int(result['amount']);cash=int(result['cash'])
                                 p['_cash'] = cash
                                 reply = {'ok': True, 'robbery_id': robbery_id, 'amount': amount, 'cash': cash}
                             except LookupError:
@@ -33757,12 +33730,10 @@ async def _coop_http_app():
                         if p and str(body.get('outcome') or '') == 'released':
                             try:
                                 async with aiosqlite.connect(DB_PATH) as db:
-                                    cur = await db.execute(
-                                        "UPDATE npc_robberies SET status='released', resolved_at=? "
-                                        "WHERE uid=? AND robbery_id=? AND status='active' AND interrogation_arrest=0",
-                                        (int(time.time()), int(uid), robbery_id))
+                                    released = await npc_robbery_receipts.resolve_released(
+                                        db, uid=int(uid), robbery_id=robbery_id,
+                                        resolved_at=int(time.time()))
                                     await db.commit()
-                                    released = cur.rowcount > 0
                             except Exception:
                                 pass
                             if released:

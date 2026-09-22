@@ -12,6 +12,10 @@ import {createNpcPoliceObservationPose} from './npc_police_observation_pose.mjs'
 import {createNpcLocomotionPose} from './npc_locomotion_pose.mjs';
 import {loadVerifiedGlbBytes} from './verified_glb_bytes.mjs';
 import {normalizeNpcLifecycle} from './npc_source_lifecycle.mjs';
+import {createNpcDeathPose20} from './npc_death_pose20.mjs';
+import {createNpcDeathEntry20} from './npc_death_entry20.mjs';
+import {createNpcDeathPresentation20} from './npc_death_presentation20.mjs';
+import {createNpcGroundCorrectionMemo} from './npc_ground_correction_memo.mjs';
 import {shareNpcCloneSkeletons} from './npc_skeleton_sharing.mjs';
 
 export const NPC_ASSETS=Object.freeze({male:HERO_ASSET,female:Object.freeze({url:new URL('./hero_models/player_female.298d50e6244a.glb',import.meta.url).href,bytes:641836,sha256:'298d50e6244a7f17cf9cb66530fc34645fec0f19b575fe99d1df514709e90c40'})});
@@ -147,7 +151,8 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
  // Share only identical palettes within this new actor, before GPU allocation.
  shareNpcCloneSkeletons({THREE,root:clone});
  creationTimings.clone=performance.now()-creationMark;creationMark=performance.now();
- let walker,surface,activityPose,phoneVisual,cashVisual,weapon=null,disposed=false,time=0,lastPosition={x:0,y:0,z:0},lastYaw=0,lastSurface=null,appearance,gesture=null,gestureBlend=0,outgoingGesture=null,outgoingAt=0,outgoingBlend=0,outgoingPoseTime=0,lastGesturePoseTime=0,lifeGestureApplied=false,sourceDown={active:false,at:0,releaseAt:null},sourceFall=null,sourceDeathKey=null,sourceDeathAt=null;
+ let walker,surface,deathGroundMemo,activityPose,phoneVisual,cashVisual,weapon=null,disposed=false,time=0,lastPosition={x:0,y:0,z:0},lastYaw=0,lastSurface=null,appearance,gesture=null,gestureBlend=0,outgoingGesture=null,outgoingAt=0,outgoingBlend=0,outgoingPoseTime=0,lastGesturePoseTime=0,lifeGestureApplied=false,sourceDown={active:false,at:0,releaseAt:null},sourceFall=null,sourceDeathKey=null,sourceDeathAt=null;
+ const deathPresentation=createNpcDeathPresentation20(persistentId);const deathEntry20=createNpcDeathEntry20(THREE,()=>walker.artistContext());
  let hijackPose,socialPose,policeObservationPose,locomotionPose,extractionActive=false;
  // update() consumers use these values synchronously. Keep input buffers private
  // to this actor so crowd animation does not allocate argument objects every pose.
@@ -157,26 +162,53 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
  try{
   if(applyAppearance)appearance=applyAppearance(clone,{id:persistentId,sex,height:targetHeight,build});
   own(clone);creationTimings.appearance=performance.now()-creationMark;creationMark=performance.now();walker=createHeroWalker({THREE,scene:clone,targetHeight});
+  // Capture the exact original groundPose mesh set before props and wounds.
+  const deathGroundMeshes=[];clone.traverse(mesh=>{if(mesh.isMesh)deathGroundMeshes.push(mesh);});
   creationTimings.walker=performance.now()-creationMark;creationMark=performance.now();
   walker.object.name='NPC_'+persistentId;walker.object.userData.npcId=persistentId;scene.add(walker.object);
   locomotionPose=createNpcLocomotionPose({THREE,walker});
-  const pose=createArtist14Pose(THREE),context=walker.artistContext();activityPose=createNpcActivityPose({THREE,walker,renderPhone:false});phoneVisual=createNpcPhoneVisual({THREE,walker});cashVisual=createNpcCashOfferVisual({THREE,walker});
+  const pose=createArtist14Pose(THREE),deathPose=createNpcDeathPose20({THREE,basePose:pose}),context=walker.artistContext();activityPose=createNpcActivityPose({THREE,walker,renderPhone:false});phoneVisual=createNpcPhoneVisual({THREE,walker});cashVisual=createNpcCashOfferVisual({THREE,walker});
+  deathGroundMemo=createNpcGroundCorrectionMemo({THREE,context,poseMeshes:deathGroundMeshes});
+  const deathGroundContext={...context,groundPose:()=>deathGroundMemo.apply()};
   surface=createArtist14Surface({THREE,context,scene,
-   applySwim(s,c){const dead=surface?.state.kind==='dead';c.object.position.y=lastPosition.y+(sourceFall?0:s.liftWorld);c.object.updateMatrixWorld(true);if(!extractionActive){if(sourceFall)pose.reaction(sourceFall,c);else if(!dead)pose.swim(s,c);}if(weapon)weapon.visible=!extractionActive&&(dead||!!sourceFall||s.blend<.1);},
-   applyReaction(s,c){if(!extractionActive)pose.reaction(s.kind==='dead'&&sourceDeathAt!==null?{...s,age:Math.max(0,time-sourceDeathAt)}:s,c);}
+   applySwim(s,c){const dead=surface?.state.kind==='dead';c.object.position.y=lastPosition.y+(sourceFall?0:s.liftWorld);c.object.updateMatrixWorld(true);if(!extractionActive){if(sourceFall)pose.reaction(presentReaction(sourceFall,sourceDown.active),c);else if(!dead)pose.swim(s,c);}if(weapon)weapon.visible=!extractionActive&&(dead||!!sourceFall||s.blend<.1);},
+   applyReaction(s,c){if(!extractionActive){const presented=presentReaction(s);deathEntry20.render(presented,s.kind==='dead'&&presented.rawAge>=.62?deathGroundContext:c,s.kind==='dead'?deathPresentation.select(lastYaw):null,deathPose);}}
   });own(clone);creationTimings.surface=performance.now()-creationMark;creationTimings.total=performance.now()-creationStart;
- }catch(error){surface?.dispose();walker?.object.removeFromParent();for(const r of owned)r.dispose?.();throw error;}
+ }catch(error){deathGroundMemo?.dispose();surface?.dispose();walker?.object.removeFromParent();for(const r of owned)r.dispose?.();throw error;}
  function mountWeapon(node=null){
   if(disposed)return null;
   const next=node?privateClone(node,cloneSkeleton):null;
   if(weapon){const old=weapon;walker.mountWeapon(null);for(const r of resources(old)){r.dispose?.();owned.delete(r);}}
   weapon=next;if(weapon)own(weapon);walker.mountWeapon(weapon);return weapon;
  }
- function receive(event){
+ let sourceDownVisualBias=0,deathVisualBias=0,deathVisualSide=1;
+ function fallingAgeForWeight(weight){
+  if(weight<=0)return 0;if(weight>=1)return .62;
+  let lo=.03,hi=.62;for(let i=0;i<24;i++){const mid=(lo+hi)/2;if(THREE.MathUtils.smoothstep(mid,.03,.62)<weight)lo=mid;else hi=mid;}return (lo+hi)/2;
+ }
+ function continuityAt(atTime){
+  const state=surface.state,ease=THREE.MathUtils.smoothstep;
+  if(state.kind==='fall'){const age=Math.max(0,atTime-state.at);return {weight:ease(age,.03,.62)*(1-ease(age,1.55,2.7)),side:state.side};}
+  if(sourceDown.active)return {weight:ease(Math.max(0,atTime-sourceDown.at+sourceDownVisualBias),.03,.62),side:1};
+  if(sourceDown.releaseAt!==null)return {weight:1-ease(Math.max(0,atTime-sourceDown.releaseAt),0,1.15),side:1};
+  return {weight:0,side:1};
+ }
+ const reactionPresentation={kind:'idle',age:0,rawAge:0,visualWeight:0,side:1,unit:undefined,zone:undefined};
+ function presentReaction(s,sourceHeld=false){
+  if(s.kind!=='fall'&&s.kind!=='dead')return s;
+  const rawAge=s.kind==='dead'&&sourceDeathAt!==null?Math.max(0,time-sourceDeathAt):s.age;
+  const age=s.kind==='dead'?rawAge+deathVisualBias:sourceHeld?Math.min(.75,rawAge+sourceDownVisualBias):rawAge;
+  reactionPresentation.kind=s.kind;reactionPresentation.rawAge=rawAge;reactionPresentation.age=age;
+  reactionPresentation.visualWeight=THREE.MathUtils.smoothstep(age,.03,.62)*(s.kind==='dead'?1:1-THREE.MathUtils.smoothstep(age,1.55,2.7));
+  reactionPresentation.side=s.kind==='dead'?deathVisualSide+(s.side-deathVisualSide)*THREE.MathUtils.smoothstep(rawAge,0,.3):s.side;
+  reactionPresentation.unit=s.unit;reactionPresentation.zone=s.zone;return reactionPresentation;
+ }
+ function receive(event,presentationAt=time){
   if(disposed||event?.confirmed!==true)return false;
   if(event.targetId!==undefined&&String(event.targetId)!==persistentId)return false;
-  const wasDead=surface.state.kind==='dead',accepted=surface.receive(event);
-  if(accepted&&!wasDead&&surface.state.kind==='dead'){sourceDeathKey=null;sourceDeathAt=null;}
+  const inherited=continuityAt(presentationAt),wasDead=surface.state.kind==='dead',accepted=surface.receive(event);
+  if(accepted&&!wasDead&&surface.state.kind==='dead'){deathEntry20.begin(presentationAt);deathVisualBias=fallingAgeForWeight(inherited.weight);deathVisualSide=inherited.weight>0?inherited.side:surface.state.side;}
+  if(accepted&&!wasDead&&surface.state.kind==='dead'){sourceDeathKey=null;sourceDeathAt=null;deathPresentation.reset();}
   return accepted;
  }
  function syncSourceLifecycle(lifecycle={},atTime=time){
@@ -184,13 +216,15 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   // A sparse snapshot, temporary downing or custody never revives a corpse.
   // Hydrating an unknown death timestamp also must not replay its fall.
   const newEpoch=lifecycle.dead&&sourceDeathKey&&sourceDeathKey!=='dead'&&lifecycle.key!=='dead'&&sourceDeathKey!==lifecycle.key;
-  if(sourceDeathKey&&(lifecycle.explicitAlive||newEpoch)){surface.reset();sourceDeathKey=null;sourceDeathAt=null;sourceDown={active:false,at:atTime,releaseAt:null};sourceFall=null;}
+  if(sourceDeathKey&&(lifecycle.explicitAlive||newEpoch)){surface.reset();deathPresentation.reset();deathEntry20.reset();sourceDeathKey=null;sourceDeathAt=null;sourceDown={active:false,at:atTime,releaseAt:null};sourceFall=null;sourceDownVisualBias=0;deathVisualBias=0;deathVisualSide=1;}
   if(!lifecycle.dead)return;
   const oldAge=sourceDeathAt===null?null:Math.max(0,atTime-sourceDeathAt),alreadyDead=surface.state.kind==='dead';
-  if(!alreadyDead)receive({confirmed:true,id:`world-death:${persistentId}:${lifecycle.key}`,targetId:persistentId,dead:true,side:lifecycle.side});
+  if(!alreadyDead)receive({confirmed:true,id:`world-death:${persistentId}:${lifecycle.key}`,targetId:persistentId,dead:true,side:lifecycle.side},atTime);
+  if(!alreadyDead&&lifecycle.fromDowned===true)deathVisualBias=.62;
   if(sourceDeathAt===null)sourceDeathAt=atTime-(Number.isFinite(lifecycle.age)?lifecycle.age:alreadyDead?Math.max(0,atTime-surface.state.at):0);
   else if(Number.isFinite(lifecycle.age)&&lifecycle.age>oldAge)sourceDeathAt=atTime-lifecycle.age;
   sourceDeathKey=lifecycle.key||'dead';
+  deathPresentation.observe(lifecycle);
  }
  function update(dt,snapshot={}){
   if(disposed)return null;if(!Number.isFinite(dt)||dt<0)throw Error('Invalid NPC dt');
@@ -202,11 +236,11 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   syncSourceLifecycle(snapshot.lifecycle||normalizeNpcLifecycle(snapshot.life||{},{time,sourceNowMs:snapshot.sourceNowMs}),time);
   if(snapshot.hit)receive(snapshot.hit);
   const stun=snapshot.stun||{},sourceActive=stun.active===true;
-  if(sourceActive){if(!sourceDown.active)sourceDown.at=time-(Number.isFinite(stun.age)?Math.max(0,stun.age):0);sourceDown.active=true;sourceDown.releaseAt=null;}
+  if(sourceActive){if(!sourceDown.active){const age=Number.isFinite(stun.age)?Math.max(0,stun.age):0;sourceDownVisualBias=Math.max(0,fallingAgeForWeight(continuityAt(time).weight)-age);sourceDown.at=time-age;}sourceDown.active=true;sourceDown.releaseAt=null;}
   else if(sourceDown.active){
    sourceDown.active=false;const endedAge=Number.isFinite(stun.endedAge)?Math.max(0,stun.endedAge):0,endTime=time-endedAge;
    // If a short stun ends mid-fall, start recovery at the same tilt instead of snapping flat.
-   const weight=THREE.MathUtils.smoothstep(Math.max(0,endTime-sourceDown.at),.03,.62);let lo=0,hi=1;
+   const weight=THREE.MathUtils.smoothstep(Math.max(0,endTime-sourceDown.at+sourceDownVisualBias),.03,.62);let lo=0,hi=1;
    for(let i=0;i<18;i++){const mid=(lo+hi)/2;if(THREE.MathUtils.smoothstep(mid,0,1)<1-weight)lo=mid;else hi=mid;}
    sourceDown.releaseAt=endTime-(lo+hi)/2*1.15;
   }
@@ -221,7 +255,10 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   const bruiser=life.mercenary?.profession==='bruiser'&&!!life.mercenary.status&&!life.mercenaryCandidate;
   if(bruiser&&!bruiserShape)bruiserShape=createBruiserShape(THREE,clone,owned,walker);bruiserShape?.update(bruiser);
   const deepWater=snapshot.inWater&&Number.isFinite(snapshot.waterLevel)&&snapshot.waterLevel>(snapshot.chestWorldY??lastPosition.y+3*walker.scale);
-  const busyLife=locked||reaction!=='idle'||deepWater||(lastSurface?.swim.blend||0)>.05||snapshot.jump||snapshot.vehicle||vehicleBinding||snapshot.tumble||(snapshot.action&&(snapshot.action.type&&snapshot.action.type!=='none'||snapshot.action.blocking||snapshot.action.charge>0));
+  // Medical crawl owns the limbs even while the source's slower life tick
+  // still exports a previous cower, bench, phone, or surrender activity.
+  const medicalCrawl=life.downed===true&&snapshot.posture?.target==='prone';
+  const busyLife=medicalCrawl||locked||reaction!=='idle'||deepWater||(lastSurface?.swim.blend||0)>.05||snapshot.jump||snapshot.vehicle||vehicleBinding||snapshot.tumble||(snapshot.action&&(snapshot.action.type&&snapshot.action.type!=='none'||snapshot.action.blocking||snapshot.action.charge>0));
   const nextGesture=!busyLife&&!weapon?requestedGesture:null;
   const calmReleaseAllowed=!busyLife&&!weapon&&!escaping&&!moving&&!requestedGesture&&!life.activity&&!life.seat&&!life.professionAction&&!life.mercenaryAction&&!life.policeObservation&&!life.hijackReaction&&!snapshot.inWater;
   if(!calmReleaseAllowed)outgoingGesture=null;
@@ -262,20 +299,27 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   if(!locked&&snapshot.jump&&Number.isFinite(snapshot.jump.progress))walker.jumpPose(snapshot.jump.progress,snapshot.jump.directional!==false,weapon,snapshot.aim||{});
   if(!locked&&snapshot.vehicle)walker.vehiclePose(snapshot.vehicle.seated||0,snapshot.vehicle.reach||0,snapshot.vehicle);
   if(!locked&&snapshot.tumble&&Number.isFinite(snapshot.tumble.progress))walker.tumblePose(snapshot.tumble.progress,snapshot.tumble.rolls||1);
-  if(vehicleBinding&&!locked&&reaction==='idle'&&!deepWater&&(lastSurface?.swim.blend||0)<.05&&!snapshot.jump&&!snapshot.tumble&&!(snapshot.action?.type&&snapshot.action.type!=='none'))applyNpcVehicleBinding({THREE,walker,binding:vehicleBinding,dt});
+  let appliedVehicle20=false;if(vehicleBinding&&!locked&&reaction==='idle'&&!deepWater&&(lastSurface?.swim.blend||0)<.05&&!snapshot.jump&&!snapshot.tumble&&!(snapshot.action?.type&&snapshot.action.type!=='none')){applyNpcVehicleBinding({THREE,walker,binding:vehicleBinding,dt});appliedVehicle20=true;}
   surfaceInput.time=time;surfaceInput.waterLevel=snapshot.waterLevel;surfaceInput.inWater=!!snapshot.inWater;surfaceInput.moving=moving;surfaceInput.fast=running;surfaceInput.chestWorldY=snapshot.chestWorldY;surfaceInput.groundWorldY=lastPosition.y;surfaceInput.blocked=locked||!!snapshot.swimBlocked;lastSurface=surface.update(dt,surfaceInput);
   if(lastSurface.reaction.kind==='dead'&&sourceDeathAt!==null)lastSurface.reaction.age=Math.max(0,time-sourceDeathAt);
   if(extractionActive)hijackPose.applyVictim(life.vehicleHijack,{dt,dead:surface.state.kind==='dead',deathSide:surface.state.side});
   else hijackPose?.applyReaction(life.hijackReaction,{time,blocked:busyLife||!!gesture||!!weapon});
-  const visualAllowed=!locked&&!deepWater&&!extractionActive&&walker.object.visible;
+  const visualAllowed=!medicalCrawl&&!locked&&!deepWater&&!extractionActive&&walker.object.visible;
   phoneVisual.update(dt,{life,time,sourceNowMs:snapshot.sourceNowMs,visible:visualAllowed&&!life.cowering&&!life.surrendering&&!escaping,phoneBlocked:!!weapon||!!vehicleBinding||!!life.cashOffering});
   cashVisual.update(dt,{life,time,sourceNowMs:snapshot.sourceNowMs,visible:visualAllowed,cashOfferBlocked:!!weapon||!!vehicleBinding||!!life.phoneCalling});
-  walker.object.updateMatrixWorld(true);return lastSurface;
+  walker.object.updateMatrixWorld(true);deathEntry20.capture(appliedVehicle20?'vehicle':!locked&&(life.downed===true||life.lifeState==='downed')&&presentationInput.posture?.target==='prone'&&(presentationInput.posture?.value||0)>=1.99999?'prone':null,time);return lastSurface;
  }
- function saveSurfaceState(){if(disposed)throw Error('NPC disposed');const saved=surface.snapshot();if(saved.reaction.kind==='dead'&&sourceDeathAt!==null)saved.reaction.age=Math.max(0,time-sourceDeathAt);return {version:1,id:persistentId,sex,height:targetHeight,sourceDeathKey:sourceDeathKey,sourceDown:{active:sourceDown.active,age:Math.max(0,time-sourceDown.at),releaseAge:sourceDown.releaseAt===null?null:Math.max(0,time-sourceDown.releaseAt)},surface:saved};}
- function restoreSurfaceState(data,options={}){if(disposed)throw Error('NPC disposed');if(data?.version!==1||data.id!==persistentId||data.sex!==sex||data.height!==targetHeight)throw Error('NPC surface identity/asset mismatch');const down=data.sourceDown;if(down&&(typeof down.active!=='boolean'||!Number.isFinite(down.age)||down.age<0||down.releaseAge!==null&&(!Number.isFinite(down.releaseAge)||down.releaseAge<0)))throw Error('Invalid NPC downed state');if(data.sourceDeathKey!=null&&(typeof data.sourceDeathKey!=='string'||!data.sourceDeathKey))throw Error('Invalid NPC death key');surface.restore(data.surface,options);time=options.time??data.surface.time+(options.elapsedSeconds??0);const elapsed=options.elapsedSeconds??0;sourceDown=down?{active:down.active,at:time-down.age-elapsed,releaseAt:down.releaseAge===null?null:time-down.releaseAge-elapsed}:{active:false,at:time,releaseAt:null};sourceFall=null;sourceDeathKey=data.sourceDeathKey||null;sourceDeathAt=sourceDeathKey&&data.surface.reaction.kind==='dead'?time-data.surface.reaction.age-elapsed:null;return true;}
- function dispose(){if(disposed)return;disposed=true;phoneVisual?.dispose();cashVisual?.dispose();socialPose?.dispose();mercenaryPose?.dispose();const current=resources(clone),woundMaterials=new Set();clone.getObjectByName('PersistentBulletWounds')?.traverse(o=>{for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[])woundMaterials.add(m);});surface.dispose();for(const m of woundMaterials)m.dispose();const skeletons=new Set();clone.traverse(o=>{if(o.isSkinnedMesh)skeletons.add(o.skeleton);});for(const skeleton of skeletons)skeleton.dispose();walker.dispose();for(const r of owned)if(!current.has(r))r.dispose?.();owned.clear();weapon=null;}
- return {id:persistentId,sex,height:targetHeight,object:walker.object,walker,surface,appearance,update,receive,mountWeapon,saveSurfaceState,restoreSurfaceState,syncSourceLifecycle,saveSourceDeathKey:()=>sourceDeathKey,dispose,
-  get weapon(){return weapon;},diagnostics:()=>({creationMs:{...creationTimings},id:persistentId,sex,height:targetHeight,disposed,weapon:!!weapon,lifeGesture:gesture,phone:phoneVisual?.diagnostics(),cashOffer:cashVisual?.diagnostics(),sourceDown:sourceDown.active,sourceRecovering:!!sourceFall&&!sourceDown.active,reaction:surface.state.kind,surface:lastSurface,locomotion:locomotionPose.diagnostics(),walker:walker.diagnostics()})};
+ function saveSurfaceState(){if(disposed)throw Error('NPC disposed');const saved=surface.snapshot();if(saved.reaction.kind==='dead'&&sourceDeathAt!==null)saved.reaction.age=Math.max(0,time-sourceDeathAt);return {version:1,id:persistentId,sex,height:targetHeight,sourceDeathKey:sourceDeathKey,sourceDeathClock:sourceDeathAt===null?null:{at:sourceDeathAt,snapshotAt:time},deathEntry20:deathEntry20.save(),deathPresentation:deathPresentation.save(),sourceDown:{active:sourceDown.active,age:Math.max(0,time-sourceDown.at),releaseAge:sourceDown.releaseAt===null?null:Math.max(0,time-sourceDown.releaseAt)},reactionVisual:{sourceDownBias:sourceDownVisualBias,deathBias:deathVisualBias,deathSide:deathVisualSide},surface:saved};}
+ function restoreSurfaceState(data,options={}){if(disposed)throw Error('NPC disposed');if(data?.version!==1||data.id!==persistentId||data.sex!==sex||data.height!==targetHeight)throw Error('NPC surface identity/asset mismatch');const deathClock=data.sourceDeathClock;let restoredDeathAt=null;
+  if(deathClock!==undefined&&deathClock!==null){
+   if(typeof deathClock!=='object'||Array.isArray(deathClock)||!Number.isFinite(deathClock.at)||!Number.isFinite(deathClock.snapshotAt)||deathClock.snapshotAt!==data.surface?.time||!Number.isFinite(deathClock.snapshotAt-deathClock.at)||data.surface?.reaction?.kind!=='dead'||typeof data.sourceDeathKey!=='string'||!data.sourceDeathKey||Math.max(0,deathClock.snapshotAt-deathClock.at)!==data.surface.reaction.age)throw Error('Invalid source death clock');
+   const restoredTime=options.time??data.surface.time+(options.elapsedSeconds??0);
+   restoredDeathAt=deathClock.at+(restoredTime-deathClock.snapshotAt)-(options.elapsedSeconds??0);
+   if(!Number.isFinite(restoredDeathAt))throw Error('Invalid restored source death clock');
+  }
+  const visual=data.reactionVisual;if(visual&&(!Number.isFinite(visual.sourceDownBias)||visual.sourceDownBias<0||visual.sourceDownBias>.62||!Number.isFinite(visual.deathBias)||visual.deathBias<0||visual.deathBias>.62||!Number.isFinite(visual.deathSide)||Math.abs(visual.deathSide)>1))throw Error('Invalid reaction visual continuity');const down=data.sourceDown;if(down&&(typeof down.active!=='boolean'||!Number.isFinite(down.age)||down.age<0||down.releaseAge!==null&&(!Number.isFinite(down.releaseAge)||down.releaseAge<0)))throw Error('Invalid NPC downed state');if(data.sourceDeathKey!=null&&(typeof data.sourceDeathKey!=='string'||!data.sourceDeathKey))throw Error('Invalid NPC death key');const preparedEntry20=deathEntry20.prepare(data.deathEntry20,data.surface?.reaction?.kind==='dead');const preparedDeath=deathPresentation.prepareRestore(data.deathPresentation,data.sourceDeathKey,data.surface?.reaction?.kind==='dead');surface.restore(data.surface,options);deathPresentation.restore(preparedDeath,data.deathPresentation);deathEntry20.restore(preparedEntry20);sourceDownVisualBias=visual?.sourceDownBias||0;deathVisualBias=visual?.deathBias||0;deathVisualSide=visual?.deathSide??data.surface.reaction.side;time=options.time??data.surface.time+(options.elapsedSeconds??0);const elapsed=options.elapsedSeconds??0;sourceDown=down?{active:down.active,at:time-down.age-elapsed,releaseAt:down.releaseAge===null?null:time-down.releaseAge-elapsed}:{active:false,at:time,releaseAt:null};sourceFall=null;sourceDeathKey=data.sourceDeathKey||null;sourceDeathAt=deathClock!=null?restoredDeathAt:sourceDeathKey&&data.surface.reaction.kind==='dead'?time-data.surface.reaction.age-elapsed:null;return true;}
+ function dispose(){if(disposed)return;disposed=true;deathGroundMemo?.dispose();phoneVisual?.dispose();cashVisual?.dispose();socialPose?.dispose();mercenaryPose?.dispose();const current=resources(clone),woundMaterials=new Set();clone.getObjectByName('PersistentBulletWounds')?.traverse(o=>{for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[])woundMaterials.add(m);});surface.dispose();for(const m of woundMaterials)m.dispose();const skeletons=new Set();clone.traverse(o=>{if(o.isSkinnedMesh)skeletons.add(o.skeleton);});for(const skeleton of skeletons)skeleton.dispose();walker.dispose();for(const r of owned)if(!current.has(r))r.dispose?.();owned.clear();weapon=null;}
+ return {id:persistentId,sex,height:targetHeight,object:walker.object,walker,surface,appearance,update,receive,mountWeapon,saveSurfaceState,restoreSurfaceState,syncSourceLifecycle,saveSourceDeathKey:()=>sourceDeathKey,markDeathVisualReplaced:key=>sourceDeathKey===key&&deathPresentation.markReplaced(key),isDeathVisualReplaced:key=>sourceDeathKey===key&&deathPresentation.isReplaced(key),dispose,
+  get weapon(){return weapon;},diagnostics:()=>({creationMs:{...creationTimings},id:persistentId,sex,height:targetHeight,disposed,weapon:!!weapon,lifeGesture:gesture,phone:phoneVisual?.diagnostics(),cashOffer:cashVisual?.diagnostics(),sourceDown:sourceDown.active,sourceRecovering:!!sourceFall&&!sourceDown.active,reaction:surface.state.kind,deathProfile:deathPresentation.diagnostics(),deathGround:deathGroundMemo?.stats(),surface:lastSurface,locomotion:locomotionPose.diagnostics(),walker:walker.diagnostics()})};
 }
 

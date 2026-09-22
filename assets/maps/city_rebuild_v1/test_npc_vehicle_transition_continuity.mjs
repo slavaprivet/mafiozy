@@ -34,11 +34,34 @@ for(const sex of ['male','female']){
  assert(maxInitialJumpM<.1,sex+' first board frame must not snap limbs');
  if(maxStepM>=.1)console.log(JSON.stringify({sex,worst:steps.sort((a,b)=>b.distance-a.distance).slice(0,12)},null,2));
  assert(maxStepM<.1,sex+' board/drive/exit sequence must remain continuous: '+JSON.stringify(maxStep));
+ // A threat can cancel entry before the driver reaches the seat. The source
+ // reverses through exit progress 1-fold..1, preserving the exact first pose.
+ const cutoff=.55,cancelSteps=[];let cancelPrevious;
+ const cancelSample=(label,position,phase,progress,time)=>{actor.update(.05,{time,position,yaw:approachYaw,moving:false,running:false,gaitDistance:1.15,motionSpeed:0,posture:{target:'stand',value:0,blocked:false},aim:{},life:phase?{civilianTripRiding:false,civilianTripCarId:'car',civilianTripPhase:phase,civilianTripProgress:progress,vehicleSeatId:'front_left'}:{}});const current=positions();if(cancelPrevious)for(const name of watched)cancelSteps.push({label,name,distance:cancelPrevious[name].distanceTo(current[name])});cancelPrevious=current;};
+ cancelSample('cancel-approach',outside,null,0,6);
+ cancelSample('cancel-board-0',outside,'board',0,6.05);
+ for(let i=1;i<=20;i++){const p=cutoff*i/20,position=outside.clone().lerp(seatRoot,p);position.y=outside.y;cancelSample('cancel-board-'+i,position,'board',p,6.05+i*.05);}
+ const middle=outside.clone().lerp(seatRoot,cutoff);middle.y=outside.y;
+ cancelSample('cancel-exit-0',middle,'exit',1-cutoff,7.1);
+ for(let i=1;i<=20;i++){const q=i/20,p=1-cutoff+cutoff*q,position=middle.clone().lerp(outside,q);position.y=outside.y;cancelSample('cancel-exit-'+i,position,'exit',p,7.1+i*.05);}
+ cancelSample('cancel-released',outside,null,0,8.15);
+ const cancelWorst=cancelSteps.sort((a,b)=>b.distance-a.distance)[0];assert(cancelWorst.distance<.1,sex+' cancelled boarding must reverse continuously: '+JSON.stringify(cancelWorst));
+ // A nearby cull may destroy and recreate the presentation actor while the
+ // source-owned exit keeps running. Rehydrating the same seat/progress must
+ // reconstruct the same side and bone pose without advancing the transition.
+ let reentryMaxDifferenceM=0;
+ for(const seatId of ['front_left','front_right']){
+  const transitionSeat=vehicle.seats.find(s=>s.id===seatId),transitionOutside=vehicle.object.localToWorld(new THREE.Vector3(Math.sign(transitionSeat.anchor.side)*1.55,0,transitionSeat.anchor.front)),transitionRoot=bridge.getSeatRootWorld(seatId).clone(),position=transitionRoot.clone().lerp(transitionOutside,.4);position.y=transitionOutside.y;
+  const snapshot={time:9,position,yaw:approachYaw,moving:false,running:false,gaitDistance:1.15,motionSpeed:0,posture:{target:'stand',value:0,blocked:false},aim:{},life:{civilianTripRiding:false,civilianTripCarId:'car',civilianTripPhase:'exit',civilianTripProgress:.4,vehicleSeatId:seatId}};
+  const beforeCull=createNpcActor({THREE,scene,source:npcSource,cloneSkeleton:clone,id:'cull_'+sex+'_'+seatId,sex,getVehicle:()=>bridge});beforeCull.update(.05,snapshot);const beforePose=Object.fromEntries(watched.map(name=>[name,beforeCull.walker.artistContext().worldPosition(name).clone()]));beforeCull.dispose();
+  const returned=createNpcActor({THREE,scene,source:npcSource,cloneSkeleton:clone,id:'cull_'+sex+'_'+seatId,sex,getVehicle:()=>bridge});returned.update(0,snapshot);for(const name of watched)reentryMaxDifferenceM=Math.max(reentryMaxDifferenceM,beforePose[name].distanceTo(returned.walker.artistContext().worldPosition(name)));assert(returned.object.position.distanceTo(position)<1e-9,seatId+' reentry preserves source root');returned.dispose();
+ }
+ assert(reentryMaxDifferenceM<1e-6,sex+' cull/return must reconstruct the same exit pose and side');
  const baselineActor=createNpcActor({THREE,scene,source:npcSource,cloneSkeleton:clone,id:'baseline_'+sex,sex}),blendedActor=createNpcActor({THREE,scene,source:npcSource,cloneSkeleton:clone,id:'blended_'+sex,sex}),times={before:[],after:[]};
  baselineActor.object.position.copy(seatRoot);baselineActor.object.rotation.y=.65;blendedActor.object.position.copy(seatRoot);blendedActor.object.rotation.y=.65;
  for(let i=0;i<140;i++)for(const mode of i%2?['before','after']:['after','before']){const p=(i%41)/40,fold=p,gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit),walker=mode==='before'?baselineActor.walker:blendedActor.walker,at=performance.now();vehicle.poseOccupant(walker,'front_left',{fold,...(mode==='after'?{gripBlend}:{}),reach:Math.sin(p*Math.PI)*.65,dt:.05});if(i>=20)times[mode].push(performance.now()-at);}
  for(const values of Object.values(times))values.sort((a,b)=>a-b);const cpuMs=Object.fromEntries(Object.entries(times).map(([mode,values])=>[mode,{samples:values.length,p50:values[Math.floor(values.length*.5)],p95:values[Math.floor(values.length*.95)]}]));
- reports.push({sex,jumps,maxInitialJumpM,maxStepM,maxStep,cpuMs});
+ reports.push({sex,jumps,maxInitialJumpM,maxStepM,maxStep,cancelMaxStepM:cancelWorst.distance,cancelWorst,reentryMaxDifferenceM,cpuMs});
  assert(actor.object.position.distanceTo(outside)<1e-9,'authority root remains at the door');
  actor.dispose();baselineActor.dispose();blendedActor.dispose();
 }

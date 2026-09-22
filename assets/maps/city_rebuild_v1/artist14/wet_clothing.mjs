@@ -58,6 +58,9 @@ export function createWetClothing(THREE,{drySeconds=WET_DRY_SECONDS,sampleInterv
     for(const entry of record.meshes){entry.uniforms.uClothingWater.value=waterLevel??-1e6;entry.uniforms.uClothingInWater.value=waterLevel===null?0:1;}
     if(record.elapsed<sampleInterval)return;
     const elapsed=record.elapsed;record.elapsed=0;
+    // The surface host has already refreshed the pose. Fully dry clothes
+    // outside water have no vertex work; keep uniforms and sample clock above.
+    if(waterLevel===null&&!record.meshes.some(entry=>entry.hasWet))return;
     const root=model.root||model;root.updateWorldMatrix(true,true);
     for(const entry of record.meshes){
       if(waterLevel===null&&!entry.hasWet)continue;
@@ -82,5 +85,7 @@ export function createWetClothing(THREE,{drySeconds=WET_DRY_SECONDS,sampleInterv
     if(!Number.isFinite(elapsedSeconds)||elapsedSeconds<0)throw Error('Invalid wet elapsed time');const prepared=validateSnapshot(model,data);
     for(const {entry,bytes}of prepared){entry.hasWet=false;for(let i=0;i<bytes.length;i++){const value=Math.max(0,bytes[i]/255-elapsedSeconds/drySeconds);entry.wet.array[i]=value;entry.hasWet ||= value>0;}entry.wet.needsUpdate=true;entry.uniforms.uClothingInWater.value=0;entry.uniforms.uClothingWater.value=-1e6;}records.get(model).elapsed=0;
   }
-  return {attach,setWaterLevel,update,reset,snapshot,validateSnapshot,restore};
+  // Read stored flags only: diagnostics must never sample skin vertices or attach.
+  function diagnostics(model){const record=records.get(model);let wetMeshes=0;for(const entry of record?.meshes||[])if(entry.hasWet)wetMeshes++;return {inWater:waterLevel!==null,wetMeshes};}
+  return {attach,setWaterLevel,update,reset,snapshot,validateSnapshot,restore,diagnostics};
 }
