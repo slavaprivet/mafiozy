@@ -1,7 +1,7 @@
 // CPU-only lifecycle test: real THREE camera/objects, stub DOM/renderer/probe.
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
-import {createRenderIsolationQa,RENDER_ISOLATION_MODES} from './render_isolation_qa.mjs';
+import {createRenderIsolationQa,pointLightCensus,RENDER_ISOLATION_MODES} from './render_isolation_qa.mjs';
 const vendor=process.env.MAFIOZI_THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor';
 const T=await import(pathToFileURL(vendor+'/build/three.module.js'));
 function eventTarget(){const listeners=new Map();return {listeners,addEventListener(type,fn){if(!listeners.has(type))listeners.set(type,new Set());listeners.get(type).add(fn);},removeEventListener(type,fn){listeners.get(type)?.delete(fn)},fire(type){for(const fn of [...(listeners.get(type)||[])])fn({type});}};}
@@ -35,6 +35,22 @@ test('local perfqa + isolationqa identity gate; missing dependencies create no U
   const f=fixture({href});assert.equal(f.qa,null,href);assert.equal(f.doc.body.children.length,0);assert.equal(f.doc.listeners.size,0);assert.equal(f.win.listeners.size,0);
  }
  for(const option of [{noProbe:true},{noFreeze:true}]){const f=fixture(option);assert.equal(f.qa,null);assert.equal(f.doc.body.children.length,0);}
+});
+test('point-light census matches renderer visibility, zero intensity and bounded source groups',()=>{
+ const camera=new T.PerspectiveCamera();camera.layers.set(0);
+ const root=new T.Group(),hiddenParent=new T.Group();hiddenParent.visible=false;root.add(hiddenParent);
+ const lights=[];
+ for(const [name,intensity,parent,layer] of [
+  ['StreetLamp_PooledLight_0',0,root,0],['StreetLamp_PooledLight_1',2,root,0],['Entry_Light_Slot',0,root,0],['HiddenLight',3,hiddenParent,0],['LayerLight',4,root,2],['',1,root,0]
+ ]){const light=new T.PointLight(0xffffff,intensity);light.name=name;light.layers.set(layer);parent.add(light);lights.push(light);}
+ const duplicate=lights[0],notLight=new T.Group(),census=pointLightCensus([...lights,duplicate,notLight,null],camera,{maxGroups:2});
+ assert.deepEqual({...census,groups:undefined},{targets:6,rendererVisible:4,visibleZeroIntensity:2,visiblePositiveIntensity:2,hiddenByHierarchy:1,cameraLayerMismatch:1,groups:undefined});
+ assert.equal(census.groups.length,3);assert.deepEqual(census.groups[0],{name:'StreetLamp_PooledLight',total:2,rendererVisible:2,visibleZeroIntensity:1,visiblePositiveIntensity:1,hiddenByHierarchy:0,cameraLayerMismatch:0});
+ assert.equal(census.groups[2].name,'(other)');assert.equal(census.groups.reduce((sum,group)=>sum+group.total,0),6);
+});
+test('completed point-light isolation publishes its start-time census',()=>{
+ const f=fixture(),parent=new T.Group(),active=new T.PointLight(0xffffff,2),idle=new T.PointLight(0xffffff,0);active.name='Entry_Light_Slot';idle.name='Entry_Light_Slot';parent.add(active,idle);f.state.targets=[active,idle];
+ assert.equal(f.qa.start('pointlights'),true);f.frames(12);const census=f.qa.report().last.targetCensus;assert.equal(census.targets,2);assert.equal(census.rendererVisible,2);assert.equal(census.visibleZeroIntensity,1);assert.equal(census.visiblePositiveIntensity,1);assert.equal(census.groups[0].name,'Entry_Light_Slot');assert.match(f.doc.body.dataset.renderIsolation,/targetCensus/);f.assertRestored();f.qa.dispose();
 });
 test('requires active freeze and valid populated mode; UI start delegates selected mode',()=>{
  const f=fixture({held:false}),mode=f.doc.getElementById('render-isolation-mode'),start=f.doc.getElementById('render-isolation-start');assert(f.panel&&mode&&start);assert.equal(mode.children.length,Object.keys(RENDER_ISOLATION_MODES).length);

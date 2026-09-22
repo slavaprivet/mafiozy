@@ -2,6 +2,27 @@ import {allowRenderFreeze} from './render_freeze_qa.mjs';
 
 // Diagnostic only: never removes simulation actors or changes saved settings.
 export const RENDER_ISOLATION_MODES={shadows:'Без теней',residents:'Без отрисовки жителей',vehicles:'Без отрисовки машин',interiors:'Без мебели интерьеров',pointlights:'Без точечных источников света',water:'Без поверхности воды',resolution:'Половина разрешения по каждой оси'};
+function pointLightGroupName(light){
+ const name=String(light?.name||'').trim();
+ return (name||'(unnamed)').replace(/(?:[_\- ]?\d+)$/,'')||'(unnamed)';
+}
+function hierarchyVisible(object){for(let node=object;node;node=node.parent)if(node.visible===false)return false;return true;}
+export function pointLightCensus(targets,camera,{maxGroups=24}={}){
+ const unique=[...new Set(targets||[])].filter(target=>target?.isPointLight);
+ const summary={targets:unique.length,rendererVisible:0,visibleZeroIntensity:0,visiblePositiveIntensity:0,hiddenByHierarchy:0,cameraLayerMismatch:0,groups:[]};
+ const groups=new Map();
+ for(const light of unique){
+  const visible=hierarchyVisible(light),layerMatch=!camera?.layers||!light.layers||light.layers.test(camera.layers),rendererVisible=visible&&layerMatch;
+  const zero=!(Number(light.intensity)>0),key=pointLightGroupName(light),group=groups.get(key)||{name:key,total:0,rendererVisible:0,visibleZeroIntensity:0,visiblePositiveIntensity:0,hiddenByHierarchy:0,cameraLayerMismatch:0};
+  group.total++;if(!visible){summary.hiddenByHierarchy++;group.hiddenByHierarchy++;}else if(!layerMatch){summary.cameraLayerMismatch++;group.cameraLayerMismatch++;}
+  if(rendererVisible){summary.rendererVisible++;group.rendererVisible++;if(zero){summary.visibleZeroIntensity++;group.visibleZeroIntensity++;}else{summary.visiblePositiveIntensity++;group.visiblePositiveIntensity++;}}
+  groups.set(key,group);
+ }
+ const ordered=[...groups.values()].sort((a,b)=>b.rendererVisible-a.rendererVisible||b.total-a.total||a.name.localeCompare(b.name));
+ const limit=Math.max(1,Math.floor(maxGroups)||24),kept=ordered.slice(0,limit);
+ if(ordered.length>limit){const other={name:'(other)',total:0,rendererVisible:0,visibleZeroIntensity:0,visiblePositiveIntensity:0,hiddenByHierarchy:0,cameraLayerMismatch:0};for(const group of ordered.slice(limit))for(const key of Object.keys(other))if(key!=='name')other[key]+=group[key];kept.push(other);}
+ summary.groups=kept;return summary;
+}
 export function createRenderIsolationQa({document:doc,window:win,renderer,camera,probe,freeze,getTargets,now=()=>performance.now(),warmupFrames=45,sampleFrames=121}={}){
  if(!allowRenderFreeze(win.location.href)||new URL(win.location.href).searchParams.get('isolationqa')!=='1'||!freeze||!probe?.snapshot)return null;
  const panel=doc.createElement('section');panel.id='render-isolation-qa';
@@ -16,13 +37,13 @@ export function createRenderIsolationQa({document:doc,window:win,renderer,camera
  function publish(){const report={active:!!run,scope:'render-only; source simulation continues',mode:run?.mode||last?.mode||null,phase:run?.phase??null,frames:run?.frames||0,last,results};doc.body.dataset.renderIsolation=JSON.stringify(report);status.textContent=run?`${RENDER_ISOLATION_MODES[run.mode]} · ${['исходная сцена','временное отключение','исходная повторно'][run.phase]}\n${run.frames}/${warmupFrames+sampleFrames} кадров`:last?`${last.status}: ${last.reason||RENDER_ISOLATION_MODES[last.mode]}\n${last.phases.map(p=>`${p.name}: render ${p.profile.timings?.render?.p50??'?'} / ${p.profile.timings?.render?.p95??'?'} мс`).join('\n')}`:'Сначала зафиксируйте загруженную 3D-сцену.';button.disabled=!!run;select.disabled=!!run;}
  function stop(reason='cancelled',complete=false){
   if(!run)return;const prior=run;run=null;
-  try{renderer.setPixelRatio(prior.pixelRatio);}finally{try{probe.setDrawProfilingEnabled(prior.direct);}finally{probe.reset();last={mode:prior.mode,status:complete?'complete':'aborted',reason,targets:prior.targets.length,startedAt:prior.startedAt,endedAt:now(),camera:prior.pose,phases:prior.phases};if(complete){results.push(last);if(results.length>14)results.shift();}publish();}}
+  try{renderer.setPixelRatio(prior.pixelRatio);}finally{try{probe.setDrawProfilingEnabled(prior.direct);}finally{probe.reset();last={mode:prior.mode,status:complete?'complete':'aborted',reason,targets:prior.targets.length,targetCensus:prior.targetCensus,startedAt:prior.startedAt,endedAt:now(),camera:prior.pose,phases:prior.phases};if(complete){results.push(last);if(results.length>14)results.shift();}publish();}}
  }
  function start(mode){
   if(disposed||run||!freeze.active||!Object.hasOwn(RENDER_ISOLATION_MODES,mode))return false;
   const targets=[...new Set(getTargets(mode)||[])].filter(Boolean);
   if(!['shadows','resolution'].includes(mode)&&!targets.length){status.textContent='Нет объектов этой подсистемы: замер не запущен.';return false;}
-  run={mode,targets,phase:0,frames:0,phases:[],startedAt:now(),pixelRatio:renderer.getPixelRatio(),direct:probe.getDrawProfilingEnabled(),gpu:probe.getGpuTimingEnabled?.(),pose:pose(),width:renderer.domElement.width,height:renderer.domElement.height};
+  run={mode,targets,targetCensus:mode==='pointlights'?pointLightCensus(targets,camera):undefined,phase:0,frames:0,phases:[],startedAt:now(),pixelRatio:renderer.getPixelRatio(),direct:probe.getDrawProfilingEnabled(),gpu:probe.getGpuTimingEnabled?.(),pose:pose(),width:renderer.domElement.width,height:renderer.domElement.height};
   try{probe.setDrawProfilingEnabled(false);probe.reset();publish();return true;}catch(error){stop('start error');throw error;}
  }
  function valid(){if(!run)return false;const scale=run.mode==='resolution'&&run.phase===1?.5:1;return freeze.active&&!doc.hidden&&pose()===run.pose&&now()-run.startedAt<110000&&!probe.getDrawProfilingEnabled()&&probe.getGpuTimingEnabled?.()===run.gpu&&renderer.domElement.width===Math.floor(run.width*scale)&&renderer.domElement.height===Math.floor(run.height*scale);}
