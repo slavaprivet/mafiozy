@@ -27,6 +27,7 @@ assert.equal(report.draws,1,'renderer.info counts main pass after shadow reset; 
 assert.deepEqual(report.frameDraws,{total:2,shadow:1,main:1,triangles:24,shadowTriangles:12},'fresh frame totals include shadows even when Three resets renderer.info before main');
 assert.equal(report.renderGroups.environment.calls,2);
 assert.equal(report.renderGroups.environment.submitMs,4);
+let shadowReport=JSON.parse(document.body.dataset.walkShadowSubmissions);assert.equal(shadowReport.status,'ok');assert.deepEqual(shadowReport.totals,{submissions:1,triangles:12});assert.deepEqual(shadowReport.expected,shadowReport.totals);assert.equal(shadowReport.categories.other.submissions,1);
 native.userData.sourceVehicleId='traffic-test';
 probe.reset();
 for(let i=0;i<3;i++){time+=1000;probe.begin();time+=19;probe.mark('source');renderer.render(scene);probe.end();}
@@ -38,9 +39,11 @@ assert.equal(report.renderGroups.traffic.calls,2,'traffic ownership is found thr
 assert.equal(report.renderGroups.traffic.shadowCalls,1);
 assert.equal(report.renderGroups.traffic.submitMs,4);
 assert.equal(report.renderGroups.traffic.shadowSubmitMs,2);
+shadowReport=JSON.parse(document.body.dataset.walkShadowSubmissions);assert.equal(shadowReport.status,'ok');assert.equal(shadowReport.categories.transport.submissions,1);assert.equal(shadowReport.categories.other.submissions,0);
 delete native.userData.sourceVehicleId;
 probe.dispose();assert.equal(renderer.render,original);assert.equal(renderer.renderBufferDirect,direct);assert.equal(disposed,0);
 assert.equal(scene.updateMatrixWorld,originalMatrix);assert.equal(renderer.shadowMap.render,originalShadow);
+assert.equal(document.body.dataset.walkShadowSubmissions,undefined,'dispose removes the diagnostic dataset');
 const laterProbe=createWalkPerformanceProbe({renderer,scene,document,getStartup:()=>({phase}),now:()=>time});
 const newer=()=>{};renderer.render=newer;laterProbe.dispose();assert.equal(renderer.render,newer,'teardown does not erase another owner\'s later wrapper');
 console.log('PASS read-only renderer profiling: excludes compile frames, reports unavailable GPU timing honestly, measures actual draws, restores own hooks.');
@@ -101,6 +104,7 @@ for(const autoReset of [true,false]){
   const result=report(),shadow=cull?3:5;
   assert.equal(renderer.renderBufferDirect,outer,'toggle never removes an outer culling owner');assert.equal(result.directProfiling,profiling);
   assert.deepEqual(result.frameDraws,{total:(shadow+9)*2,shadow:shadow*2,main:18,triangles:(shadow*10+86)*2,shadowTriangles:shadow*20},'multiple renders/passes/frames retain exact counts in both modes and autoReset variants');
+  const shadowResult=JSON.parse(doc.body.dataset.walkShadowSubmissions);assert.equal(shadowResult.status,profiling?'ok':'disabled');if(profiling){assert.deepEqual(shadowResult.totals,{submissions:shadow*2,triangles:shadow*20});assert.deepEqual(shadowResult.expected,shadowResult.totals);}
   assert.equal(result.timings.render.p50,cull?22:26);assert.equal(result.timings.renderMatrix.p50,6);assert.equal(result.timings.renderShadow.p50,cull?4:8);
   if(profiling){assert(result.timings.renderMainSubmit);assert(result.census);assert.equal(result.materialGroups['main:MeshStandardMaterial:opaque'].calls,8);assert.equal(result.materialGroups['main:MeshPhysicalMaterial:transparent'].calls,1);assert.equal(result.materialGroups['shadow:MeshDepthMaterial:opaque'].calls,shadow);}
   else{assert.equal(result.timings.renderMainSubmit,undefined);assert.equal(result.timings.renderShadowSubmit,undefined);for(const key of ['census','renderGroups','materialGroups'])assert(!Object.hasOwn(result,key),'OFF omits '+key);}

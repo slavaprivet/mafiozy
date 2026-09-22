@@ -108,7 +108,7 @@ function standardStaticLocalLeaf(T,mesh){
   mesh.onBeforeRender===prototype.onBeforeRender&&mesh.onAfterRender===prototype.onAfterRender&&mesh.onBeforeShadow===prototype.onBeforeShadow&&mesh.onAfterShadow===prototype.onAfterShadow;
 }
 
-export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3,maxDistance=220,localMatrixOptimization=false}={}){
+export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3,maxDistance=220,localMatrixOptimization=false,shadowCensus=null}={}){
  if(!T?.InstancedMesh||!root?.add||!Array.isArray(instances))throw Error('Static render batches require THREE, root and instances');
  root.updateWorldMatrix(true,true);
  const rootInverse=new T.Matrix4().copy(root.matrixWorld).invert(),groups=new Map(),restores=[],sourceRestores=new WeakMap(),hiddenMaterials=new Map(),geometryLayouts=new WeakMap(),hierarchyCache=new WeakMap(),zero=new T.Matrix4().makeScale(0,0,0);
@@ -150,6 +150,7 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
   }
   batch.name='Static_Render_Batch';batch.userData.breakableGlass=false;batch.userData.staticRenderBatch=true;batch.userData.renderIsolationInteriorFurnishings=entry.interiorInstances===true;batch.castShadow=entry.castShadow;batch.receiveShadow=entry.receiveShadow;batch.layers.mask=entry.layersMask;batch.renderOrder=entry.renderOrder;batch.raycast=()=>{};
   batch.computeBoundingBox?.();batch.computeBoundingSphere?.();root.add(batch);
+  shadowCensus?.(batch,entry.members);
   for(const member of entry.members){
    if(member.sourceInstanced){
     if(instancedSourceMaterials.has(member.mesh))continue;
