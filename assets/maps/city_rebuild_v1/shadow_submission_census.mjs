@@ -1,5 +1,6 @@
 // QA only: fixed buckets, no object IDs, retained scene nodes or estimates.
 export const SHADOW_CATEGORIES=Object.freeze(['npc','transport','lamps','buildingsInteriors','decor','water','other']);
+export const SHADOW_DETAILS=Object.freeze(['buildingStaticBatch','buildingInteriorBatch','buildingSource','transport','npc','lampStaticBatch','lampSource','decor','water','other']);
 export function shadowSubmissionCategory(object){
  let kind=null;
  for(let node=object;node;node=node.parent){
@@ -17,6 +18,14 @@ export function shadowSubmissionCategory(object){
  }
  return kind||'other';
 }
+function shadowSubmissionDetail(object,category){
+ if(category==='buildingsInteriors'){
+  if(object?.userData?.staticRenderBatch)return object.userData.renderIsolationInteriorFurnishings?'buildingInteriorBatch':'buildingStaticBatch';
+  return 'buildingSource';
+ }
+ if(category==='lamps')return object?.userData?.staticRenderBatch?'lampStaticBatch':'lampSource';
+ return SHADOW_DETAILS.includes(category)?category:'other';
+}
 
 // Called only by perfqa while batches are created. Mixed batches stay whole.
 export function tagShadowBatch(batch,members){
@@ -31,27 +40,28 @@ export function tagShadowBatch(batch,members){
 }
 
 export function createShadowSubmissionCensus(){
- const values=new Float64Array(SHADOW_CATEGORIES.length*2);let invalidDeltas=0,mixedCalls=0,mixedTriangles=0;
+ const values=new Float64Array(SHADOW_CATEGORIES.length*2),details=new Float64Array(SHADOW_DETAILS.length*2);let invalidDeltas=0,mixedCalls=0,mixedTriangles=0;
  const valid=value=>Number.isSafeInteger(value)&&value>=0;
  const invalidate=()=>{invalidDeltas=Math.min(1000000,invalidDeltas+1);};
- function reset(){values.fill(0);invalidDeltas=mixedCalls=mixedTriangles=0;}
+ function reset(){values.fill(0);details.fill(0);invalidDeltas=mixedCalls=mixedTriangles=0;}
  function add(object,submissions,triangles){
   if(!valid(submissions)||!valid(triangles)||!submissions&&triangles){invalidate();return;}
   if(!submissions)return;
   try{
-   const offset=SHADOW_CATEGORIES.indexOf(shadowSubmissionCategory(object))*2;
-   if(!valid(values[offset]+submissions)||!valid(values[offset+1]+triangles)){invalidate();return;}
-   values[offset]+=submissions;values[offset+1]+=triangles;
+   const category=shadowSubmissionCategory(object),offset=SHADOW_CATEGORIES.indexOf(category)*2,detailOffset=SHADOW_DETAILS.indexOf(shadowSubmissionDetail(object,category))*2;
+   if(!valid(values[offset]+submissions)||!valid(values[offset+1]+triangles)||!valid(details[detailOffset]+submissions)||!valid(details[detailOffset+1]+triangles)){invalidate();return;}
+   values[offset]+=submissions;values[offset+1]+=triangles;details[detailOffset]+=submissions;details[detailOffset+1]+=triangles;
    if(object?.userData?.shadowCensusMixed===true){mixedCalls+=submissions;mixedTriangles+=triangles;}
   }catch{invalidate();}
  }
  function snapshot({frame=0,enabled=true,ready=true,expectedCalls=0,expectedTriangles=0}={}){
-  const categories={};let submissions=0,triangles=0;
+  const categories={},detailGroups={};let submissions=0,triangles=0;
   for(let index=0;index<SHADOW_CATEGORIES.length;index++){
    const calls=values[index*2],tris=values[index*2+1];categories[SHADOW_CATEGORIES[index]]={submissions:calls,triangles:tris};submissions+=calls;triangles+=tris;
   }
+  for(let index=0;index<SHADOW_DETAILS.length;index++)detailGroups[SHADOW_DETAILS[index]]={submissions:details[index*2],triangles:details[index*2+1]};
   const matches=valid(submissions)&&valid(triangles)&&submissions===expectedCalls&&triangles===expectedTriangles;
-  return {schema:1,scope:'last-frame-shadow',frame:valid(frame)?frame:0,status:!enabled?'disabled':!ready?'warming':invalidDeltas||!matches?'invalid':'ok',totals:{submissions,triangles},expected:{submissions:valid(expectedCalls)?expectedCalls:null,triangles:valid(expectedTriangles)?expectedTriangles:null},categories,mixed:{submissions:mixedCalls,triangles:mixedTriangles},invalidDeltas};
+  return {schema:2,scope:'last-frame-shadow',frame:valid(frame)?frame:0,status:!enabled?'disabled':!ready?'warming':invalidDeltas||!matches?'invalid':'ok',totals:{submissions,triangles},expected:{submissions:valid(expectedCalls)?expectedCalls:null,triangles:valid(expectedTriangles)?expectedTriangles:null},categories,details:detailGroups,mixed:{submissions:mixedCalls,triangles:mixedTriangles},invalidDeltas};
  }
  return {add,reset,invalidate,snapshot};
 }
