@@ -279,7 +279,7 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   activityInput.life=life;activityInput.time=time;activityInput.blocked=busyLife||escaping;activityInput.armed=!!weapon;activityInput.groundY=lastPosition.y;activityPose.apply(activityInput);
   const professionAction=life.professionAction||life.mercenaryAction;
   if(professionAction&&!mercenaryPose)mercenaryPose=createMercenaryPose({THREE,walker});
-  mercenaryPose?.apply(!busyLife&&!gesture&&!weapon&&!escaping?professionAction:null,time);
+  mercenaryPose?.apply(!busyLife&&!gesture&&!weapon&&!escaping?professionAction:null,time,moving);
   let socialApplied=false;
   if(socialPose||life.activity&&typeof life.activity==='object'){
    const socialBlocked=busyLife||!!weapon||moving||!!snapshot.inWater||!!life.phoneCalling||escaping||!!professionAction||!!life.hijackReaction||!!requestedGesture&&requestedGesture!=='talk';

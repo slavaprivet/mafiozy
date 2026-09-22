@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {createWorldVehiclePlayerAccess} from './world_vehicle_player_access.mjs';
 import {VEHICLE_SEATS,vehicleDoorPoint,canControlVehicle} from './vehicle_seats.mjs';
 import {advanceEntryHold,HOLD_SECONDS,EXIT_HOLD_SECONDS} from './car_entry.mjs';
+import {createVehicleEntryHoldClock} from './vehicle_entry_hold_clock.mjs';
 
 // Audit actual runtime source without loading the application or its backend.
 const world=readFileSync(new URL('../../../world.html',import.meta.url),'utf8');
@@ -45,7 +46,7 @@ async function run(mode,hostCode){
  const hostCtx={sourceVehicleActive:()=>api.state().active,sourceVehicleAccess:adapter,sourceVehicleState:api.state(),
   car:{profile:actor.profile},hero:{},transition:null,occupiedSeat:null,keys:new Set(),buildingKeyConsumed:false,pointerHeld:false,entryArmed:true,entryHeld:0,
   entrySpot:()=>{finds++;return adapter.findEntry(point,()=>true);},nearestInteraction:()=>({kind:'car'}),setCarInteractionText:()=>{},
-  advanceEntryHold,HOLD_SECONDS,EXIT_HOLD_SECONDS,canControlVehicle,carState:{speed:0},carDamage:null,exitNoticeUntil:0,performance:{now:()=>now},carDriveDiagnosticsAt:now};
+  entryHoldClock:createVehicleEntryHoldClock(),advanceEntryHold,HOLD_SECONDS,EXIT_HOLD_SECONDS,canControlVehicle,carState:{speed:0},carDamage:null,exitNoticeUntil:0,performance:{now:()=>now},carDriveDiagnosticsAt:now};
  vm.createContext(hostCtx);vm.runInContext(hostCode+';globalThis.step=updateCarInteraction;',hostCtx);
  for(let i=0;i<30;i++)hostCtx.step(1/60);
  assert.equal(finds,30);

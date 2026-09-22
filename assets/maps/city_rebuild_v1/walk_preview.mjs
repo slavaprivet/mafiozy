@@ -14,6 +14,7 @@ import {createMercenaryFences} from './mercenary_fences.mjs';
 import {createMercenaryPowerPanel} from './mercenary_power_panel.mjs';
 import {createMercenaryProfessionShowcase} from './mercenary_profession_showcase.mjs';
 import {createVehicleEntryHighlight} from './vehicle_entry_highlight.mjs';
+import {createVehicleEntryHoldClock} from './vehicle_entry_hold_clock.mjs';
 import {createMercenaryShowcaseUI} from './mercenary_showcase_ui.mjs';
 import {createHeroFollowGesture} from './hero_follow_gesture.mjs';
 import {createNpcRuntimeInspection} from './npc_runtime_inspection.mjs';
@@ -93,7 +94,7 @@ import {CAR,createDemoCar,carFits,stepCar,createCarWorld,carCorners,pointInPolyg
 import {createCityRoadNavigation} from './city_road_navigation.mjs';
 import {createLaneRouteJobs} from './city_lane_route_jobs.mjs';
 import {isExistingTrafficBridge} from './city_road_traffic_plan.mjs';
-import {advanceEntryHold,entryPose,TRANSITION_SECONDS,HOLD_SECONDS,EXIT_HOLD_SECONDS} from './car_entry.mjs';
+import {entryPose,TRANSITION_SECONDS,HOLD_SECONDS,EXIT_HOLD_SECONDS} from './car_entry.mjs';
 import {createTireTracks} from './tire_tracks.mjs';
 import {applyBuildingDoorsGlass} from './building_doors_glass.mjs';
 
@@ -368,6 +369,7 @@ let fleet=null,carTrunk=null,carHood=null,blastResponse=null,heroBlast=null,hero
 const vehicleImpactView=createVehicleImpactView(THREE);let vehicleImpactPoseResult=null;
 let vehicleVisualQa=null;
 let carRollover=null;let car=null,carState=null,carDamage=null,carQa=null,occupiedSeat=null,driveAllowed=()=>false,transition=null,entryHeld=0,entryArmed=true,pointerHeld=false,lastDoorSide=1,followCarCamera=true,carDriveDiagnosticsAt=-Infinity;
+const entryHoldClock=createVehicleEntryHoldClock({traceEnabled:()=>!!carQa});
 let jump=null,jumpCount=0;
 let artistInput=createArtist14Input({now:()=>performance.now()/1000});const artistPose=createArtist14Pose(THREE);
 let artistSurface=null,artistSurfaceState=null,artistAction={action:{type:'none'},start:null},artistDropId=0,artistDropDistance=0,artistDiagnosticsAt=-Infinity,fireDiagnosticsAt=-Infinity;
@@ -432,7 +434,7 @@ function applySourceVehiclePresentation(dt){
  }
  const shift=hero.object.position.clone().sub(before);camera.position.add(shift);controls.target.add(shift);
  if(weaponModel)weaponModel.visible=false;
- const now=performance.now();if(now-sourceVehicleDiagnosticAt>250){sourceVehicleDiagnosticAt=now;document.body.dataset.sourceVehiclePlayer=JSON.stringify({active:true,phase:s.phase,sourceCarId:s.sourceCarId,presentationCarId:s.presentationCarId,seatId:s.seatId,bound:posed.bound,progress:s.progress});}
+ const now=performance.now();if(now-sourceVehicleDiagnosticAt>250){sourceVehicleDiagnosticAt=now;document.body.dataset.sourceVehiclePlayer=JSON.stringify({active:true,phase:s.phase,sourceCarId:s.sourceCarId,presentationCarId:s.presentationCarId,seatId:s.seatId,bound:posed.bound,progress:s.progress,entryHoldTrace:carQa?entryHoldClock.getTrace():undefined});}
 }
 function requestSourceVehicle(action,candidate){
  if(!sourceVehicleAccess||!hero)return;
@@ -933,7 +935,7 @@ function updateCarInteraction(dt){
  sourceVehicleAccess?.poll();
  if(sourceVehicleActive()){
   const pressed=keys.has('KeyE')&&!buildingKeyConsumed;if(!pressed)entryArmed=true;
-  const hold=advanceEntryHold(entryHeld,pressed&&entryArmed,sourceVehicleState.phase==='driving',dt,EXIT_HOLD_SECONDS);entryHeld=hold.elapsed;
+  const hold=entryHoldClock.advance(pressed&&entryArmed,sourceVehicleState.phase==='driving',performance.now()/1000,EXIT_HOLD_SECONDS,'source-exit');entryHeld=hold.elapsed;
   setCarInteractionText('drive-status',sourceVehicleState.phase==='driving'?'E · удержать 0,3 с — выйти':sourceVehicleState.phase==='pull_driver'?'Вытаскиваем водителя…':sourceVehicleState.phase==='exit'?'Выходим…':'Садимся…');
   if(hold.ready)requestSourceVehicle('exit');return;
  }
@@ -956,7 +958,7 @@ function updateCarInteraction(dt){
   const holdDuration=occupiedSeat?EXIT_HOLD_SECONDS:HOLD_SECONDS;
 
 
-  const hold=advanceEntryHold(entryHeld,pressed&&entryArmed,entryAvailable&&(occupiedSeat||pointerHeld||nearestInteraction({fresh:true})?.kind==='car'),dt,holdDuration);entryHeld=hold.elapsed;
+  const hold=entryHoldClock.advance(pressed&&entryArmed,entryAvailable&&(occupiedSeat||pointerHeld||nearestInteraction({fresh:true})?.kind==='car'),performance.now()/1000,holdDuration,occupiedSeat?'local-exit':entryCandidate?.sourceOwned?'source-entry':'local-entry');entryHeld=hold.elapsed;
   setCarInteractionText('car',entryHeld>0?`Удерживай E · ${Math.round(entryHeld/holdDuration*100)}%`:occupiedSeat?'Удерживай E 0,3 с — выйти':'Удерживай E 0,3 с — сесть');
 
 
@@ -966,7 +968,7 @@ function updateCarInteraction(dt){
  }
  const state=transition?(transition.exiting?(transition.phase==='body'?(transition.kind==='tumble'?'tumbling':'stepping_off'):'exiting'):'entering'):occupiedSeat?(canControlVehicle(occupiedSeat)?'driving':'passenger'):'on_foot';
  setCarInteractionText('drive-status',performance.now()<exitNoticeUntil?exitNotice:transition?(transition.exiting?(transition.kind==='tumble'?'Выпадение и перекат…':'Выход на ходу…'):`Посадка · ${car.profile.label} · ${vehicleSeat(transition.seatId,carState).label}`):occupiedSeat?`${car.profile.label} · ${vehicleSeat(occupiedSeat,carState).label} · ${Math.round(Math.abs(carState.speed)*3.6)} км/ч · E 0,3 с — ${Math.abs(carState.speed)>EXIT.tumbleSpeed?'выпрыгнуть':'выйти'}${currentWeapon.id==='none'?' · Q — достать оружие':' · ПКМ — прицел из окна'}${carState.waterState?.engineDisabled?' · мотор затоплен — тяги нет':carDamage?.disabled?' · машина уничтожена':carState.bumped?' · препятствие':''}`:carDamage?.disabled?'Машина уничтожена':entryAvailable?`E · удержать 0,3 с — ${entryCandidate.label}`:Math.abs(carState.speed)>.5?'Машина катится по инерции':'');
- const diagnosticsNow=performance.now();if(diagnosticsNow-carDriveDiagnosticsAt>=100){carDriveDiagnosticsAt=diagnosticsNow;document.body.dataset.carDrive=JSON.stringify({vehicleId:fleet?.activeId,state,occupiedSeat,driving:canControlVehicle(occupiedSeat),speed:carState.speed,x:carState.x,z:carState.z,yaw:carState.yaw,steer:carState.steer||0,hold:entryHeld,doorSide:lastDoorSide,doorId:transition?.doorId||null,door:transition?.door||0,exitKind:transition?.kind||null,exitProgress:transition?.body?.progress||0,wheelSpin:car.wheels[0].wheel.rotation.x,handbrake:!!carState.handbrake,yawRate:carState.yawRate||0,slipAngle:carState.slipAngle||0,lateralVelocity:carState.lateralVelocity||0,bumped:!!carState.bumped,contact:carState.contact||null,maneuver:carQa?.stats?.()||null,y:car.object.position.y,water:carState.waterState||null});}
+ const diagnosticsNow=performance.now();if(diagnosticsNow-carDriveDiagnosticsAt>=100){carDriveDiagnosticsAt=diagnosticsNow;document.body.dataset.carDrive=JSON.stringify({vehicleId:fleet?.activeId,state,occupiedSeat,driving:canControlVehicle(occupiedSeat),speed:carState.speed,x:carState.x,z:carState.z,yaw:carState.yaw,steer:carState.steer||0,hold:entryHeld,entryHoldTrace:carQa?entryHoldClock.getTrace():undefined,doorSide:lastDoorSide,doorId:transition?.doorId||null,door:transition?.door||0,exitKind:transition?.kind||null,exitProgress:transition?.body?.progress||0,wheelSpin:car.wheels[0].wheel.rotation.x,handbrake:!!carState.handbrake,yawRate:carState.yawRate||0,slipAngle:carState.slipAngle||0,lateralVelocity:carState.lateralVelocity||0,bumped:!!carState.bumped,contact:carState.contact||null,maneuver:carQa?.stats?.()||null,y:car.object.position.y,water:carState.waterState||null});}
 }
 function setWalkPromptHidden(prompt,hidden){if(prompt.hidden!==hidden)prompt.hidden=hidden;}
 function updateCarPrompt(){
@@ -1290,12 +1292,12 @@ function initCar(){
  fleet=createVehicleFleet(THREE,{scene,wheelRenderOptimization,detailOptimization:renderer.extensions.has('WEBGL_multi_draw'),RoundedBox:RoundedBoxGeometry,world:()=>driveAllowed,groundHeight,pose:(vehicle,state,angle,dt)=>poseWalkVehicle(vehicle,state,angle,dt),getHero:()=>hero,onExplosion(event){const vehicle=event.vehicle;blastResponse?.enqueue({point:vehicle.object.localToWorld(new THREE.Vector3(0,1,0)),power:1,radius:10,source:vehicle});glass.shatterAll(vehicle.object,{impulse:80,weaponId:'vehicle_explosion'});if(vehicle===car){exitNotice='Машина уничтожена';exitNoticeUntil=performance.now()+2500;if(occupiedSeat&&!transition)beginCarTransition()}}});
  const first=fleet.addCar(car,best);carState=first.state;activateVehicle(first);glass.prepare(car.object);loadVehicleFleet(best);
  const p=carExitSpot();hero.object.position.copy(p);resetFootSupport();controls.target.copy(p).y=hero.object.position.y+1.1;camera.position.copy(carLocal(4,-6,3));
- const button=document.createElement('button');button.id='car';button.textContent='Удерживай E 0,3 с — сесть';button.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();button.setPointerCapture(e.pointerId);pointerHeld=true};button.onpointerup=button.onpointercancel=()=>{pointerHeld=false};$('controls').append(button);
+ const button=document.createElement('button');button.id='car';button.textContent='Удерживай E 0,3 с — сесть';button.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();button.setPointerCapture(e.pointerId);pointerHeld=true};button.onpointerup=button.onpointercancel=()=>{pointerHeld=false;entryArmed=true;entryHoldClock.reset('pointer-release',performance.now()/1000)};$('controls').append(button);
  if(new URLSearchParams(location.search).get('carqa')==='1'||new URLSearchParams(location.search).get('carphysicsqa')==='1')carQa=initCarPhysicsQa({document,
 
 
   onInput(input){for(const [name,key] of Object.entries({forward:'KeyW',reverse:'KeyS',left:'KeyA',right:'KeyD',handbrake:'Space'})){if(input[name])keys.add(key);else keys.delete(key)}},
-  onRelease(){keys.clear();pointerHeld=false},onEntryHold(pressed){pointerHeld=pressed},
+  onRelease(){keys.clear();pointerHeld=false;entryArmed=true;entryHoldClock.reset('qa-release',performance.now()/1000)},onEntryHold(pressed){pointerHeld=pressed;if(!pressed){entryArmed=true;entryHoldClock.reset('qa-hold-release',performance.now()/1000)}},
   onReset(){fleet.active.impactReaction?.reset();vehicleImpactView.reset();vehicleVisualQa?.reset();const best=fleet.active.spawn;releaseControls();glass.reset(car.object);carDamage.reset();carRollover?.reset();carHood?.reset();blastResponse?.reset();heroBlast=null;hero.object.rotation.z=0;tyres.reset();tireTracks.clear();transition=null;jump=null;occupiedSeat=null;entryArmed=true;resetHeroPosture(heroPosture);postureMotion=posturePresentation(heroPosture);hero.reset();carState={...carState,...best,speed:0,steer:0,yawRate:0,travelYaw:best.yaw,vx:0,vz:0,lateralVelocity:0,longitudinalVelocity:0,rearGripBlend:1,frontSlip:0,rearSlip:0,slipAngle:0};car.object.position.set(best.x,0,best.z);car.object.rotation.y=best.yaw;car.setDoorById(0,'front_left');hero.object.position.copy(carExitSpot());resetFootSupport();hero.object.rotation.y=best.yaw;setWalking(true);controls.target.copy(hero.object.position).y=hero.object.position.y+postureEyeHeight();camera.position.copy(carLocal(4,-6,3));for(const id of ['district','walk','reload'])$(id).disabled=false;fleet.syncActive(carState);setFreeMouse(false)}
  });
  if(carQa){installVehicleFleetQa();vehicleVisualQa=createVehicleVisualQa(THREE,{document,panel:carQa.panel,getRecord:()=>fleet?.active,onContact:receiveVehicleContact,onRelease:releaseControls});}
@@ -1682,7 +1684,7 @@ function updateTraversal(dt){
  if(jump.done){if(jump.blocked&&!traversalWorld.canOccupy(hero.object.position,1.9)){const target=traversalWorld.canOccupy(hero.object.position,1.69)?'crouch':'prone';resetHeroPosture(heroPosture,target);postureMotion=posturePresentation(heroPosture);}const grounded=jump.y<=heroGroundHeight(jump.x,jump.z)+.03;surfaceMotion.reset(hero.object.position,{grounded,velocityY:0});jump=null;for(const id of ['district','walk','reload'])$(id).disabled=false;}
  return pose;
 }
-const keys=new Set();addEventListener('keydown',e=>{if(hudInputBlocked()||e.defaultPrevented||e.target.isContentEditable||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||arsenalOpen())return;if(['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','AltLeft','AltRight'].includes(e.code)){buildingQaMove=null;keys.add(e.code);if(walking)e.preventDefault()}});addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyE'){buildingKeyConsumed=false;window.MafioziPoliceConvoyRescue?.end()}});addEventListener('blur',()=>keys.clear());
+const keys=new Set();addEventListener('keydown',e=>{if(hudInputBlocked()||e.defaultPrevented||e.target.isContentEditable||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||arsenalOpen())return;if(['KeyW','KeyA','KeyS','KeyD','ShiftLeft','ShiftRight','AltLeft','AltRight'].includes(e.code)){buildingQaMove=null;keys.add(e.code);if(walking)e.preventDefault()}});addEventListener('keyup',e=>{keys.delete(e.code);if(e.code==='KeyE'){entryArmed=true;entryHoldClock.reset('keyup',performance.now()/1000);buildingKeyConsumed=false;window.MafioziPoliceConvoyRescue?.end()}});addEventListener('blur',()=>keys.clear());
 addEventListener('keydown',e=>{
 
 
@@ -1783,7 +1785,7 @@ function updateJump(dt){
 }
 
 
-const releaseControls=()=>{window.MafioziPoliceConvoyRescue?.end();artistInput.cancel();keys.clear();if(jump)jump.queuedPosture=null;entryHeld=0;pointerHeld=false;buildingKeyConsumed=false;buildingQaMove=null;animationQaMoveUntil=0;animationQaMoveDirection=null;animationQaJumpPending=false;releaseWeapon()};addEventListener('blur',releaseControls);document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseControls();npcPopulation?.markPoseInterrupted()}});
+const releaseControls=()=>{entryArmed=true;entryHoldClock.reset('controls-release',performance.now()/1000);window.MafioziPoliceConvoyRescue?.end();artistInput.cancel();keys.clear();if(jump)jump.queuedPosture=null;entryHeld=0;pointerHeld=false;buildingKeyConsumed=false;buildingQaMove=null;animationQaMoveUntil=0;animationQaMoveDirection=null;animationQaJumpPending=false;releaseWeapon()};addEventListener('blur',releaseControls);document.addEventListener('visibilitychange',()=>{if(document.hidden){releaseControls();npcPopulation?.markPoseInterrupted()}});
 
 
 // Keep the whole UI gesture consumed, even when its button/dialog disappears

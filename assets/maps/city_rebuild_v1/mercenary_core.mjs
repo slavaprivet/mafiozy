@@ -3,6 +3,7 @@
  * Balance is provisional and may be overridden with options.balance.
  */
 export {createMercenaryRoutePlanner} from './mercenary_route.mjs';
+export {createMercenaryLongFollow} from './mercenary_long_follow.mjs';
 export const MERCENARY_PROFESSIONS = Object.freeze({
   medic: {name:'Медик',hpMultiplier:1,meleeMultiplier:1,skills:['medicine','fitness'],actions:['revive']},
   bruiser: {name:'Громила',hpMultiplier:1.65,meleeMultiplier:1.8,skills:['intimidation','melee','fitness'],actions:['intimidate','breach_door']},
@@ -202,10 +203,17 @@ export function createMercenarySquad(options={}){
         const heightDelta=(m.position.y||0)-(t.position.y||0),horizontalRange=Math.sqrt(Math.max(0,a.range*a.range-heightDelta*heightDelta));
         moveMember(a.memberId,t,{phase:'approach',stopDistance:horizontalRange*.85});publish(a);continue;
       }
-      if(a.phase==='approach'){a.phase='working';a.phaseStartedAt=time;moveMember(a.memberId,null,{phase:'stop',stopDistance:0});}
+      if(a.phase==='approach'){a.phase='working';a.phaseStartedAt=time;if(a.kind!=='intimidate')moveMember(a.memberId,null,{phase:'stop',stopDistance:0});}
+      // Intimidation keeps ordinary physical locomotion while its target walks.
+      // Work still requires the existing full 3D range check on every update.
+      if(a.kind==='intimidate'){
+        const heightDelta=(m.position.y||0)-(t.position.y||0),horizontalRange=Math.sqrt(Math.max(0,a.range*a.range-heightDelta*heightDelta));
+        moveMember(a.memberId,t,{phase:'approach',stopDistance:horizontalRange*.6});
+      }
       a.progress=Math.min(1,(time-a.phaseStartedAt)/a.duration);
       if(a.progress<1){publish(a);continue;}
       if(a.kind==='plant_bomb'){a.armed=true;a.armedAt=time;a.detonateAt=time+balance.bombFuse;a.phaseStartedAt=time;a.phase='retreat';a.progress=0;publish(a);continue;}
+      if(a.kind==='intimidate')moveMember(a.memberId,null,{phase:'stop',stopDistance:0});
       const ok=apply(a,t);if(ok!==null)finish(a,ok?'completed':'effect_rejected',ok);
     }
     // Explicit user work is FIFO and has priority over automatic medic scans.

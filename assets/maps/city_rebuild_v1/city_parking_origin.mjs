@@ -87,6 +87,18 @@ function clearPath(points,fits){
  }
  return true;
 }
+// A stopped reverse departure already on an authored exit resumes that path.
+// Match position AND interpolated body yaw; never snap an arbitrary pose onto it.
+function remainingExit(from,exit){
+ for(let i=1;i<exit.points.length;i++){
+  const a=exit.points[i-1],b=exit.points[i],dx=b.x-a.x,dz=b.z-a.z,lengthSq=dx*dx+dz*dz;
+  if(!lengthSq)continue;
+  const t=Math.max(0,Math.min(1,((from.x-a.x)*dx+(from.z-a.z)*dz)/lengthSq));
+  if(Math.hypot(from.x-a.x-dx*t,from.z-a.z-dz*t)>1e-7||Math.abs(angle(from.yaw-a.yaw-angle(b.yaw-a.yaw)*t))>1e-7)continue;
+  return [{...from,gear:exit.gear},...exit.points.slice(t>=1-1e-10?i+1:i).map(p=>({...p,gear:exit.gear}))];
+ }
+ return null;
+}
 function neighbouringBayPolygons(parking,lot,bay,shape){
  if(!bay)return [];
  return (parking.bays||[]).filter(other=>other.lotId===lot.id&&other.id!==bay.id).map(other=>({x:other.x,z:other.z,polygon:collisionPolygon(other.x,other.z,other.yaw,shape)}));
@@ -160,6 +172,10 @@ export function createParkingOriginResolver({parking,isRoad,poseAllowed}={}){
    if(exit.lotId!==lot.id||exit.kind!=='exit'||!exit.points?.length)continue;
    const target=exit.points[0],bodyYaw=Number.isFinite(from.yaw)?from.yaw:target.yaw,origin={x:from.x,z:from.z,yaw:bodyYaw},shift=exit.gear==='reverse'?Math.PI:0;
    if(!fits(origin.x,origin.z,origin.yaw))continue;
+   const remaining=lot.layout==='parallel'&&exit.gear==='reverse'?remainingExit(origin,exit):null;
+   if(remaining?.length>1&&clearPath(remaining,fits)){
+    checkedPaths++;starts.push({point:{...exit.points.at(-1)},prefix:remaining,accessRouteId:exit.id,lotId:lot.id,gearChanges:gearChanges(remaining),requiresLiveClearance:true,minRadiusM:RADIUS,speedLimitKmh:5});if(firstOnly)return starts;continue;
+   }
    const bay=(parking.bays||[]).find(b=>b.lotId===lot.id&&gap(b,origin)<1e-6&&Math.abs(angle(b.yaw-origin.yaw))<1e-6),index=bay?(lot.bayIds?.indexOf(bay.id)??(parking.bays||[]).filter(b=>b.lotId===lot.id).indexOf(bay)):-1,hasEntry=(parking.access?.routes||[]).some(r=>r.lotId===lot.id&&r.kind==='entry'&&r.points?.length>1),guardNeeded=hasEntry&&bay&&(lot.bayCount===2&&index===0||lot.bayCount===4&&[0,1,3].includes(index));
    const neighbours=guardNeeded?neighbouringBayPolygons(parking,lot,bay,shape):[];
    const safeFits=(x,z,yaw)=>fits(x,z,yaw)&&(!guardNeeded||neighbouringBayClear(neighbours,shape,x,z,yaw));

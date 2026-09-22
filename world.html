@@ -9311,25 +9311,35 @@ function _npcWaterEgressPassable(r,c){
  }
  return npcPassableForSnitch(r,c);
 }
-function _npcWaterEgressPath(n,r,c){
- const distance=Math.hypot(r-n.r,c-n.c),steps=Math.max(1,Math.ceil(distance/.14));let previous=_npcRouteWaterDepth(n.r,n.c);
- for(let i=1;i<=steps;i++){const next=_npcRouteWaterDepth(n.r+(r-n.r)*i/steps,n.c+(c-n.c)*i/steps);if(next>previous+.002)return false;previous=next;}
- _npcWaterBypass++;try{return _npcPathPassable(n.r,n.c,r,c,_npcWaterEgressPassable);}finally{_npcWaterBypass--;}
+function _npcWaterEscapeDepth(r,c,options){
+ if(!options?.bodyDepth)return _npcRouteWaterDepth(r,c);
+ const radius=.18;
+ return Math.max(_npcRouteWaterDepth(r,c),_npcRouteWaterDepth(r-radius,c-radius),_npcRouteWaterDepth(r-radius,c+radius),_npcRouteWaterDepth(r+radius,c-radius),_npcRouteWaterDepth(r+radius,c+radius));
 }
-function _npcWaterSearchStep(n,depth,now){
+function _npcWaterEgressPath(n,r,c,options){
+ const distance=Math.hypot(r-n.r,c-n.c),steps=Math.max(1,Math.ceil(distance/.14));let previous=_npcWaterEscapeDepth(n.r,n.c,options);
+ for(let i=1;i<=steps;i++){const next=_npcWaterEscapeDepth(n.r+(r-n.r)*i/steps,n.c+(c-n.c)*i/steps,options);if(next>previous+.002)return false;previous=next;}
+ _npcWaterBypass++;try{return _npcPathPassable(n.r,n.c,r,c,_npcWaterEgressPassable)&&(!options?.bodyDepth||typeof _walkNpcNavigationResolver!=='function'||!_walkNpcNavigationResolver({mode:'sweep',from:{r:n.r,c:n.c},to:{r,c},radius:.18})?.blocked);}finally{_npcWaterBypass--;}
+}
+function _npcWaterSearchStep(n,depth,now,options){
  if(typeof _npcReserveRouteWork==='function'&&!_npcReserveRouteWork(performance.now(),n))return;
   try {
  const deadline=performance.now()+4,expired=()=>performance.now()>=deadline||typeof _npcRouteWorkExpired==='function'&&_npcRouteWorkExpired();
  let search=n._waterEscapeSearch;if(!search||Math.hypot(n.r-search.r,n.c-search.c)>.01)search=n._waterEscapeSearch={r:n.r,c:n.c,depth,radius:.5,index:0,candidate:null};
  while(search.radius<=12&&!expired()){
-  if(!search.candidate){const angle=search.index*Math.PI*2/24,r=search.r+Math.sin(angle)*search.radius,c=search.c+Math.cos(angle)*search.radius,d=_npcRouteWaterDepth(r,c);search.index++;if(search.index>=24){search.index=0;search.radius+=.5;}
+  if(!search.candidate){const angle=search.index*Math.PI*2/24,r=search.r+Math.sin(angle)*search.radius,c=search.c+Math.cos(angle)*search.radius,d=_npcWaterEscapeDepth(r,c,options);search.index++;if(search.index>=24){search.index=0;search.radius+=.5;}
    if(d>=search.depth-.02)continue;search.candidate={r,c,steps:Math.max(1,Math.ceil(Math.hypot(r-search.r,c-search.c)/.14)),i:1,previous:search.depth};
   }
   const candidate=search.candidate;let valid=true;
   while(candidate.i<=candidate.steps&&!expired()){
-   const t=candidate.i/candidate.steps,r=search.r+(candidate.r-search.r)*t,c=search.c+(candidate.c-search.c)*t,d=_npcRouteWaterDepth(r,c);
+   const t=candidate.i/candidate.steps,r=search.r+(candidate.r-search.r)*t,c=search.c+(candidate.c-search.c)*t,d=_npcWaterEscapeDepth(r,c,options);
    if(d>candidate.previous+.002){valid=false;break;}
    _npcWaterBypass++;try{valid=_npcBodyPassable(r,c,_npcWaterEgressPassable);}finally{_npcWaterBypass--;}
+   if(valid&&options?.canStep)valid=options.canStep(n,r,c);
+   if(valid&&options?.bodyDepth&&typeof _walkNpcNavigationResolver==='function'){
+    const previousT=(candidate.i-1)/candidate.steps;
+    valid=!_walkNpcNavigationResolver({mode:'sweep',from:{r:search.r+(candidate.r-search.r)*previousT,c:search.c+(candidate.c-search.c)*previousT},to:{r,c},radius:.18})?.blocked;
+   }
    if(!valid)break;candidate.previous=d;candidate.i++;
   }
   if(!valid){search.candidate=null;continue;}
@@ -9339,21 +9349,21 @@ function _npcWaterSearchStep(n,depth,now){
   } finally { if(typeof _npcFinishRouteWork==='function')_npcFinishRouteWork(); }
 }
 
-function _npcWaterEscape(n,dt,now){
+function _npcWaterEscape(n,dt,now,options){
  if(!n||n.dead||n.alive===false||n._civilianTrip||n._civilianTripRiding||n._residentIndoors||n._interiorId||n.interior_id||n._insideBuilding||n._inVehicle||n._inCar||n.vehicleId||n.vehicle_id||n._policeCuffed||n._medicalDowned||n._carriedByAmbulance||n._evacuated||n._knockedUntil>now||n._meleeStunnedUntil>now||n._empireDownUntil>now||n._empireHospitalUntil>Date.now())return false;
  const special=n._uniqueNpc||n._said||n._empireBoss||n._empireCrew||n._gang||n._guard;
  if(special&&typeof _walkNpcNavigationResolver!=='function')return false;
- const depth=_npcRouteWaterDepth(n.r,n.c);if(depth<=.025){if(n._waterEscaping)_clearNpcRoute(n);n._waterEscaping=false;n._waterEscapeTarget=null;n._waterEscapeSearch=null;return false;}
+ const depth=_npcWaterEscapeDepth(n.r,n.c,options);if(depth<=.025){if(n._waterEscaping)_clearNpcRoute(n);n._waterEscaping=false;n._waterEscapeTarget=null;n._waterEscapeSearch=null;return false;}
  n._waterEscaping=true;
  // Pause locomotion recovery, not the boss's identity, orders or mission.
  // Otherwise time spent swimming can be mistaken for a stuck land route.
  if(special&&typeof _pauseEmpireMovementWatch==='function')_pauseEmpireMovementWatch(n,now);
  // An existing wet resident walks/swims back physically; collision recovery must not snap it.
- if(!n._waterEscapeTarget&&(n._waterEscapeSearch||now>=(n._waterEscapeRetryAt||0)))_npcWaterSearchStep(n,depth,now);
+ if(!n._waterEscapeTarget&&(n._waterEscapeSearch||now>=(n._waterEscapeRetryAt||0)))_npcWaterSearchStep(n,depth,now,options);
  const target=n._waterEscapeTarget;if(!target){n.walking=false;return true;}
  const distance=Math.hypot(target.r-n.r,target.c-n.c);if(distance<.03){n._waterEscapeTarget=null;n._waterEscapeRetryAt=0;return true;}
- const step=Math.min(distance,Math.min(.1,Math.max(0,dt))*Math.min(_npcEffectiveSpeed(n),depth>.7?.8:1)),r=n.r+(target.r-n.r)/distance*step,c=n.c+(target.c-n.c)/distance*step;
- if(_npcWaterEgressPath(n,r,c)){_npcNavigationStats.egressSteps++;n.ang=Math.atan2(r-n.r,c-n.c);n.r=r;n.c=c;n.tr=target.r;n.tc=target.c;n.walking=step>0;n.walkPhase=(Number(n.walkPhase)||0)+Math.min(.1,Math.max(0,dt))*7;}
+ const step=Math.min(distance,Math.min(.1,Math.max(0,dt))*Math.min((Number.isFinite(options?.speed)?Math.max(0,options.speed):_npcEffectiveSpeed(n)),depth>.7?.8:1)),r=n.r+(target.r-n.r)/distance*step,c=n.c+(target.c-n.c)/distance*step;
+ if(_npcWaterEgressPath(n,r,c,options)&&(!options?.canStep||options.canStep(n,r,c))){_npcNavigationStats.egressSteps++;n.ang=Math.atan2(r-n.r,c-n.c);n.r=r;n.c=c;n.tr=target.r;n.tc=target.c;n.walking=step>0;n.walkPhase=(Number(n.walkPhase)||0)+Math.min(.1,Math.max(0,dt))*7;}
  else{n._waterEscapeTarget=null;n._waterEscapeRetryAt=now+1000;n.walking=false;}
  return true;
 }
@@ -9602,6 +9612,7 @@ function _npcReserveRouteWork(now=performance.now(),owner=null){
     for(const actor of _npcRouteWorkBatch)if(!_npcRouteWorkQueue.has(actor))_npcRouteWorkBatch.delete(actor);
     if(!_npcRouteWorkBatch.size)_npcRouteWorkBatchCount=0;
   }
+  if(!_npcRouteWorkBatch.size)_npcRouteWorkBatchCount=0; // Reopen a drained cohort in this frame.
   let head=_npcRouteWorkQueue.keys().next().value;
   while(head?.dead){_npcRouteWorkQueue.delete(head);_npcRouteWorkBatch.delete(head);head=_npcRouteWorkQueue.keys().next().value;}
   // Update order differs from request order (police, visits and ordinary walkers).
@@ -10087,7 +10098,12 @@ function _civilianTripCancelLane(job){if(job?.laneRequestId&&typeof _walkTraffic
 function _civilianTripMaintainLane(trip,now){
  const job=trip.car._civilianNativePlan;if(!job?.laneRequestId||job.status!=='ready'||trip.phase==='exit'||trip.phase==='parked')return true;
  if(!job.leaseExpired&&now>=(job.touchAt||0)){job.touchAt=now+5000;const result=_walkTrafficNavigationResolver?.({mode:'lane-route-touch',requestId:job.laneRequestId});if(result?.reason==='route_expired')job.leaseExpired=true;}
- if(job.leaseExpired&&(trip.phase==='drive'||trip.phase==='approach')){trip.destinationDoor=trip.plan?.goal?.door||trip.destinationDoor;_civilianTripCancelLane(job);delete trip.car._civilianNativePlan;trip.phase='planning';trip.car.vr=trip.car.vc=0;trip.car.braking=true;return false;}
+ if(job.leaseExpired&&(trip.phase==='drive'||trip.phase==='approach')){
+  // Replanning may choose another bay. Release this plan's reservation before
+  // discarding its identity; physical occupancy remains checked separately.
+  const slot=job.parkingSlot||trip.plan?.goal?.slot;if(slot&&_nativeParkingAdmission.reservations.get(slot.id)===trip.car)_nativeParkingAdmission.reservations.delete(slot.id);
+  trip.destinationDoor=trip.plan?.goal?.door||trip.destinationDoor;_civilianTripCancelLane(job);delete trip.car._civilianNativePlan;trip.phase='planning';trip.car.vr=trip.car.vc=0;trip.car.braking=true;return false;
+ }
  return true;
 }
 // A pending request keeps its exact destination and origin until the shared
@@ -10676,7 +10692,11 @@ function _residentVisitDiagnostics(now){
     targetR:n._civilianPlan?.targetR??null,targetC:n._civilianPlan?.targetC??null,
     allowBeach:!!n._allowBeach,beach:!!n._beach,unique:!!n._uniqueNpc,said:!!n._said,police:!!n.police,
     indoors:!!n._residentIndoors,visiting:!!n._residentNativeVisit,riding:!!(n._civilianTripRiding||n._ambientTrafficDriver),
-    idleMs:Math.max(0,(n.idleUntil||0)-now),ageMs:ago(n._npcWanderSearch?.since??n._routeRequestAt),
+    idleMs:Math.max(0,(n.idleUntil||0)-now),ageMs:n._npcWanderSearch||n._routeSearchPending?ago(n._npcWanderSearch?.since??n._routeRequestAt):null,
+    lastRequestAgeMs:ago(n._routeRequestAt),
+    empireRequest:n._empirePendingRoute?{goalR:n._empirePendingRoute.goalR,goalC:n._empirePendingRoute.goalC,goalRadius:n._empirePendingRoute.goalRadius,maxVisited:n._empirePendingRoute.maxVisited,kind:n._empirePendingRoute.kind,generation:n._empirePendingRoute.generation,targetKey:String(n._empirePendingRoute.targetKey||'').slice(0,128),queued:!!n._empireRouteQueued}:null,
+    empire:n._empireBoss||n._empireCrew?{leaderId:String(n._empireLeaderId||n._specialistId||'').slice(0,128),actionKind:n._empireAction?.kind||null,actionKey:String(n._empireActionKey||'').slice(0,128),generation:n._empireRouteGeneration||0,targetR:n._empireTarget?.r??n._empireFormationTarget?.r??null,targetC:n._empireTarget?.c??n._empireFormationTarget?.c??null,arrived:!!n._empireActionArrived,joining:!!n._empireJoining,slot:n._empireCrewSlot??null,retryMs:Math.max(0,(n._empireRouteRetryAt||0)-now)}:null,
+    search:n._npcDirectedSearch?{algorithm:n._npcDirectedSearch.algorithm||null,fine:!!n._npcDirectedSearch.fine,limit:n._npcDirectedSearch.limit??null,bestDistance:n._npcDirectedSearch.bestD??null,goalAnchors:n._npcDirectedSearch.goalAnchors?.size??null,goalDiscoveryIndex:n._npcDirectedSearch.goalDiscovery?.index??null,heapSize:n._npcDirectedSearch.heap?.length??null}:null,
     visited:n._npcWanderSearch?.nodes.size||n._npcDirectedSearch?.nodes.size||0,
     expanded:n._npcWanderSearch?.qi||n._npcDirectedSearch?.qi||0,restarts:n._routeSearchRestarts||0,
     admittedAgoMs:ago(n._routeQueueAdmittedAt),queuePosition:queued.indexOf(n),
@@ -11535,6 +11555,16 @@ function _nearestEmpireWalkPoint(r,c) {
     if(d<bestD&&_npcBodyPassable(rr,cc,_empireBossPassable)){best={r:rr,c:cc};bestD=d;}
   }
   return best;
+}
+function _cancelEmpireEscortRoute(n){
+ const request=n._empirePendingRoute;
+ if(request&&request.kind!=='empire_escort')return false;
+ const owned=request?.kind==='empire_escort'||n._routeSearchKind==='empire_escort';
+ if(!owned)return false;
+ n._empirePendingRoute=null;n._empireRouteQueued=false;
+ if(n._routeSearchKind==='empire_escort')_cancelNpcDirectedSearch(n);
+ for(let i=_empireRoutePlanQueue.length-1;i>=0;i--)if(_empireRoutePlanQueue[i]===n)_empireRoutePlanQueue.splice(i,1);
+ return true;
 }
 function _planEmpireRouteTo(npc,goalR,goalC,goalRadius,maxVisited,kind,failedBackoff=1200,reason=EMPIRE_ROUTE_REQUEST_REASON.UNKNOWN,targetKey=''){
   const coalesced=!!npc._empireRouteQueued,effectiveReason=Number.isInteger(npc._empireNextRouteReason)?npc._empireNextRouteReason:reason,kindIndex=EMPIRE_ROUTE_KIND_INDEX[kind]??EMPIRE_ROUTE_KIND_INDEX.unknown,goalQR=Math.round(goalR*2),goalQC=Math.round(goalC*2),stableTargetKey=typeof targetKey==='string'?targetKey:'';
@@ -18617,15 +18647,15 @@ function updateNpcs(dt) {
       const adjusted={r:target.r+separation.r*1.15,c:target.c+separation.c*1.15};if(_npcBodyPassable(adjusted.r,adjusted.c,_empireBossPassable))target=adjusted;
       const distance=Math.hypot(target.r-n.r,target.c-n.c);
       if(distance<5.5&&distance>.22&&_npcPathPassable(n.r,n.c,target.r,target.c,_empireBossPassable)){
-        _clearNpcRoute(n);const step=Math.min(distance,_npcPacedSpeed(Math.max(1.12,(leader.speed||.8)*1.65),!!(leader._fighting||leader._empireEnemyLeaderId||leader.panicUntil>now))*dt),dr=target.r-n.r,dc=target.c-n.c;
+        _cancelEmpireEscortRoute(n);_clearNpcRoute(n);const step=Math.min(distance,_npcPacedSpeed(Math.max(1.12,(leader.speed||.8)*1.65),!!(leader._fighting||leader._empireEnemyLeaderId||leader.panicUntil>now))*dt),dr=target.r-n.r,dc=target.c-n.c;
         n.r+=dr/distance*step;n.c+=dc/distance*step;n.ang=Math.atan2(dr,dc);n.walking=true;n.walkPhase+=dt*10.5;_empireMovementWatch(n,target,now,true);continue;
       }
       if(distance>.8&&now>=(n._empireRouteRetryAt||0)&&
           (n._routeKind!=='empire_escort'||!n._route?.length||Math.hypot((n._routeGoalR??n.r)-target.r,(n._routeGoalC??n.c)-target.c)>5.2)){
-        if(!n._empireRouteQueued)_planEmpireRouteTo(n,target.r,target.c,.75,6000,'empire_escort',1200,n._routeKind!=='empire_escort'||!n._route?.length?EMPIRE_ROUTE_REQUEST_REASON.ESCORT_MISSING:EMPIRE_ROUTE_REQUEST_REASON.ESCORT_GOAL_DRIFT,String(leader._specialistId||''));
+        if(!n._empireRouteQueued||n._empirePendingRoute?.kind==='empire_escort'&&Math.hypot(n._empirePendingRoute.goalR-target.r,n._empirePendingRoute.goalC-target.c)>5.2)_planEmpireRouteTo(n,target.r,target.c,.75,6000,'empire_escort',1200,n._routeKind!=='empire_escort'||!n._route?.length?EMPIRE_ROUTE_REQUEST_REASON.ESCORT_MISSING:EMPIRE_ROUTE_REQUEST_REASON.ESCORT_GOAL_DRIFT,String(leader._specialistId||''));
       }
       const moved=_npcAdvanceRoute(n,dt,_npcPacedSpeed(Math.max(1.12,(leader.speed||.8)*1.65),!!(leader._fighting||leader._empireEnemyLeaderId||leader.panicUntil>now)),_empireBossPassable);_empireMovementWatch(n,target,now,moved);
-      if(moved==='arrived'||distance<.8){_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=leader.ang;if(n._empireJoining){n._empireJoining=false;if(now>=(n._empireJoinedLabelUntil||0))n.name=`Боец · ${leader._empireGang}`;}if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+13000+Math.random()*11000;_empireSpeak(n,'idle',now,2300);}}
+      if(moved==='arrived'||distance<.8){_cancelEmpireEscortRoute(n);_clearNpcRoute(n);n.walking=false;n.walkPhase=0;n.ang=leader.ang;if(n._empireJoining){n._empireJoining=false;if(now>=(n._empireJoinedLabelUntil||0))n.name=`Боец · ${leader._empireGang}`;}if(now>=(n._empireNextTalkAt||0)){n._empireNextTalkAt=now+13000+Math.random()*11000;_empireSpeak(n,'idle',now,2300);}}
       else if(moved==='blocked'){_clearNpcRoute(n);n._empireRouteRetryAt=now+650;n._empireNextRouteReason=EMPIRE_ROUTE_REQUEST_REASON.BLOCKED_RETRY;n.walking=false;}
       else if(moved===false)n.walking=false;
       continue;

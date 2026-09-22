@@ -10,7 +10,7 @@ import {createCarWorld,carFits} from './car_drive.mjs';
 import {createNpcLogicalVehicleBinding} from './npc_logical_vehicle_binding.mjs';
 import {createCivilianNativeFixture} from './test_civilian_native_fixture.mjs';
 
-const longTrip=process.argv.includes('--long'),asyncLane=process.argv.includes('--async'),laneJobs=asyncLane?createLaneRouteJobs({createWorker:nodeLaneWorker}):null;
+const resumeExit23=process.argv.includes('--resume-exit23'),longTrip=process.argv.includes('--long'),asyncLane=process.argv.includes('--async'),laneJobs=asyncLane?createLaneRouteJobs({createWorker:nodeLaneWorker}):null;
 const f=await createCivilianNativeFixture({laneJobs}),{box,car,npcs,M}=f;
 box.window.__npcTripDiagnostics=true;
 if(laneJobs)laneJobs.initialize({topology:f.top,bodies:f.bodies,roadPlan:f.snapshot.roadPlan,parkingPlan:f.snapshot.parkingPlan,instances:f.snapshot.buildings,metresPerCell:M});
@@ -41,11 +41,16 @@ let presentationLoaded=false;f.actor.object.removeFromParent();const logical=cre
 const longCarWorld=longTrip?createCarWorld(f.top,f.bodies,M):null;const longNav=longTrip?createNpcVehicleNavigation({worldScale:M,poseAllowed:(x,z,yaw,shape)=>carFits(x,z,yaw,longCarWorld,shape),waterAt:f.waterAt,groundHeight:f.floor,getVehicle:logical.getActor,getVehicles:logical.getVehicles}):null;
 const laneQueryCosts=[];box.nativeTrafficQuery=q=>{const started=performance.now();const result=q.mode==='driver'?logical.driver(q):q.mode==='parking-exit'?f.lanes.query(q):q.mode==='parking-anchors'?{ready:true,slots}:q.mode==='initial-vehicle-shape'?{ready:true,halfLength:f.actor.profile.halfLength/M,halfWidth:f.actor.profile.halfWidth/M}:longNav&&!q.mode?longNav.query(q):originalQuery(q);if(q.mode==='lane-route')laneQueryCosts.push(performance.now()-started);return result;};
 box.logicalAccess=logical.access;vm.runInContext('_walkTrafficNavigationResolver=nativeTrafficQuery;_walkNpcVehicleAccessResolver=logicalAccess;',box);
-box._nativeParkingPrepare(car);
+if(resumeExit23){
+ // Actual game23 stopped pose midway through a reverse parking exit. A new
+ // resident must approach and depart from here without initial relocation.
+ Object.assign(car,{r:14.776657476657771,c:153.6783536585366,ang:3.60913887831611,_nativeParkingPresented:true,_nativeParkingShape:{halfLength:f.actor.profile.halfLength/M,halfWidth:f.actor.profile.halfWidth/M}});
+ car.dirDy=Math.sin(car.ang);car.dirDx=Math.cos(car.ang);
+}else box._nativeParkingPrepare(car);
 const admissionCosts=[];
 for(let i=0;i<500&&car._nativeParkingPending;i++){f.nextFrame(.05);const begin=performance.now();box._nativeParkingAdmissionTick(f.now);admissionCosts.push(performance.now()-begin);}
 assert(!car._nativeParkingPending,'new parked source car must be admitted to an actual authored bay');
-assert(car._nativeParkingAnchor,'initial position must have exact bay identity');
+if(!resumeExit23)assert(car._nativeParkingAnchor,'initial position must have exact bay identity');
 f.syncCar();f.pedestrian.beginFrame();
 box.player={r:car.r+100,c:car.c+100};logical.beginFrame();
 const parkingAccess=logical.access({carId:car.id});
@@ -81,6 +86,7 @@ try{
   costs.push(performance.now()-t0);counts.frames++;
   const t=box.trip();if(longTrip&&t?.journey){assert.equal(t.journey.goalId,door.id);assert.equal(t.journey.range,'interdistrict');assert.notEqual(t.journey.originDistrict,t.journey.destinationDistrict);}
   const phase=t?.phase||npc._residentNativeVisit?.phase||npc._civilianPlan?.phase||'idle';seen.add(phase);
+  if(resumeExit23&&frame>0&&!t&&!seen.has('drive'))throw new Error('Recorded-origin trip released before driving: '+box.document.documentElement.dataset.civilianTrip);
   if(phase!==previous){traces.push({frame,timeMs:f.now,phase,npc:{r:npc.r,c:npc.c},car:{r:car.r,c:car.c},visitStatus:npc._residentVisitStatus,routePending:!!npc._routeSearchPending,planStatus:car._civilianNativePlan?.status,planReason:car._civilianNativePlan?.reason});previous=phase;}
   const carStep=Math.hypot(car.r-old.carR,car.c-old.carC),npcStep=Math.hypot(npc.r-old.r,npc.c-old.c);maxStep=Math.max(maxStep,npcStep*M);counts.carDistanceM+=carStep*M;
   if(t?.nextGear){gearStopFrames++;assert.equal(carStep,0,'gear change stops the actual vehicle before reverse/forward');}
@@ -106,7 +112,8 @@ if(process.argv.includes('--measure-lane')){
   report.warmLane.push({elapsedMs:performance.now()-begin,status:result.status,reason:result.reason});
  }
 }
-fs.writeFileSync(new URL('../../../outputs/'+(longTrip?(asyncLane?'npc_interdistrict_async_lifecycle_20260919.json':'npc_interdistrict_lifecycle_20260919.json'):'npc_native_parking_lifecycle_20260919.json'),import.meta.url),JSON.stringify(report,null,2));
+report.resumeExit23=resumeExit23;
+fs.writeFileSync(new URL('../../../outputs/'+(resumeExit23?'npc_parking_resume_lifecycle23.json':longTrip?(asyncLane?'npc_interdistrict_async_lifecycle_20260919.json':'npc_interdistrict_lifecycle_20260919.json'):'npc_native_parking_lifecycle_20260919.json'),import.meta.url),JSON.stringify(report,null,2));
 console.log(JSON.stringify({done,error,counts,phases:[...seen],cost:report.cost,final:report.final},null,2));
 laneJobs?.dispose();
 assert(!error,error?.message);assert(done,'actual source lifecycle must finish within bounded frames');

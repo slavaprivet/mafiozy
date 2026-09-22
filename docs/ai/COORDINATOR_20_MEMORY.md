@@ -8,6 +8,98 @@ LIVE проверки остаются в COORDINATOR_20_HANDOFF.md, не пот
 
 ### 23 сентября — главный текущий запрос
 
+НОВОЕ поручение23Sep02:12local: если МОЯ банда застряла/далекоотстала,
+разрешён безопасный телепорт к игроку. Нельзя помещать в здания/машины/воду;
+нет свободной проверенной точки — отложить, не падать на координаты игрока.
+Также совместная посадка на свободные места, поездка, выход и стрельба из
+машины по команде. gang_water_follow23 готовит bounded safe catchup helper,
+transport3 ведёт squad vehicle source/local integration, vehicle_entry23_audit
+делает read-only passenger fire contract. Новое задание не добавлено слепо в
+текущий gameplay checkpoint. Старое требование только physicalfollow уступает
+этому явному разрешению recovery teleport; обычная ходьба сохраняется.
+
+LATEST car LIVE: полный local Kingswell driver cycle entering→driving/front_left
+→exiting→on_foot и E0.2 remainsonfoot подтверждены. VEHICLE_ENTRY_LIVE23.md.
+Последний release/rearm edge исправлен,100productiontestsPASS+pending3PASS;
+его finalreload тожеPASS:105.5271→105.8928ready→driving и145.5664→145.9605
+ready→on_foot. Порогgap.5 сохранён, physicsdtнеизменён.
+Ниже предыдущие failedattempts — история, а не последний результат.
+
+Последнее уточнение перед публикацией: LIVE посадка после hold-clock reload
+пока НЕ принята. Кнопка E0.7 завершилась, машина осталась on_foot; часть
+предыдущих попыток также была отменена blur/CDP timeout. Visibility(true)
+восстановил ввод, но не саму посадку. Vehicle child добавляет bounded QA trace
+и CPU regression нового нажатия после idle-gap. Ранее успешные 54 проверки
+не подменяют этот LIVE. Astra-local делает независимый read-only input audit.
+Checkpoint ещё не публиковать как полностью исправленную посадку.
+
+LATEST LIVE22:34Z: moving intimidation resident270 физическиmoving → working
+progress.332→.773 при delta1.161м → completed/видимыйСтрах. Подробности
+NPC_LIVE23_MOVING_INTIMIDATION.md. Дальний merc138 дошёл от178м до
+r40.65196808/c38.84820810 arrived;33/95/192 тожеarrived.187сухой,ноno_route,
+exactgeometryrepro уgang_water_follow23. Не объявлять5/5/весьгородготовым.
+Phoneblackantenna production22CPU/GLB checksPASS, LIVEзвонокещёpending.
+Художник21 cohortdrain+QAиescorts отменаstaleREADY; транспорт3lease/suffixREADY.
+Однареальнаяиграtab3 уroot. Второйобщийreloadдобавилisolationqa1/carqa1
+дляCheckerautomaticshadows иреальнойпосадки. Escortpatch входитвэтотрeload.
+Все новыеruntimeпосле31f8ea6 покаWIPдо следующегоподтверждённогоSHA.
+
+Позднее22:44Z LIVEвозобновил usercarentrybug: QAуKingswelldriverdoor,
+E.2onfootожидаемо,E.7тожеonfoot,hold.12→0из-заclampdt. Childvehicle
+внедрилvehicle_entry_hold_clock.mjs +2гейта/releasehooksWalk,54actualCPU
+casesPASS, старыйpoll-before-active3PASS. Третийобщийreloadзагружаетclock
+иArtist21 pendingescortretarget>5.2 (productiontestPASS). LIVEпосадкапроверяется.
+Checker2 получил2automaticABA: shadowsGPU46.02→32.27→45.63ms,
+pointlights42.64→39.51→41.81ms(p50). Всёвосстановлено,render-only.
+NPC_RENDER_ISOLATION23.md. Pointlightsнеприписыватьтолько8streetlamps:
+нуженboundedDOMcensus всехPointLight; CheckerготовитQAвследующемпакете.
+Rootblastposechild17PASSisolatedactor+surfaceпереданChecker, runtimeнетронут.
+
+
+LATEST: Пользователь повторно попросил заменить зависшие20/transport2.
+Оба архивированы и откреплены, wait_threads подтвердил latestTurn interrupted.
+Созданы ЧИСТЫЕ задачи с файловой передачей в shared Desktop:
+- Художник21 `01a0cb2d-a8ab-78e1-ba8e-3ef7915a2d71`, pinned2,
+  docs/ai/ARTIST21_HANDOFF.md; УЖЕ ОТВЕТИЛ, читает actualresident205 и берёт
+  _npcReserveRouteWork empty-cohort lifecycle при прежних4ms/8grants.
+- Автомобили — продолжение3 `01a0cb2d-d723-70c2-aa21-79f76a12481f`, pinned3,
+  docs/ai/TRANSPORT3_HANDOFF.md; УЖЕ ОТВЕТИЛ, actualtrip/offroadproducer.
+Остальные pinned места сохранены. Старых20/transport2 больше не будить.
+
+Root WIP после31f8ea6: water-follow23-v1 production20+69testsPASS;
+moving intimidation production27+37testsPASS, moving thigh gait preserved.
+LIVE послеreload water: все3 прежних мокрых merc95/33/187 имеютbodyDepth0;
+95/33 arrived рядомhero40,40; screenshot95+33наулице подтверждён.187 сухой
+r27.7993 c45.1384 no_route (≈55м),138дальше178мno_route. Childvehicle внедряет
+bounded stagedfollow через24м, max48m/budgets unchanged. Не заявлять всюбандуготовой.
+IntimidationLIVE ещёнепроведён. Root phone child astra_local_inventory23 делает
+black antenna+gripactualGLB; Художник21 phone НЕ владеет покаrootнеосвободит.
+
+LIVE shadowculling2AB повтора в frozen same populated scene, по120samples:
+A CPUrender82.2/90.4 GPU67.46/73.83→B77.3/84.4 GPU60.97/66.62мс;
+main2370unchanged shadow1822→1108(-714), total4192→3478.
+Оба A2выброшены из-за120secfreeze timeout. CheckerпринялповторяемыйAB,
+оставляемштатновключено. Этоrender-only, НЕgameplayFPS. Следующий егоrequest:
+perfqa1+isolationqa1, одинauto shadows attribution baseline/variant/baseline;
+позжеNPCwindow. QAcontrols CtrlShiftF9, freezeкнопкуперекрываетcameraindex:
+видимыйлевыйкрайx530y66 работает; Enterоткрываетобщийчат, несообщения!
+
+
+MAIN PUBLISHED: `31f8ea6c6e52c44e1c545b1fecef843355415c94` pushed origin/main,
+remote SHA совпадает. 115 explicit paths,39runtime; остальные outputs/WIP
+не добавлялись. Проверщик2, Художник20, transport2 уведомлены; freeze снят.
+Все8Астра перевести на эту базу — поручено Проверщику2, оптимизацию ведёт он.
+
+Свежий LIVE 23Sep00:57 local: selected София Манчини, actual screenshot
+подтвердил троих hired в озере, полностью неподвижны и в одной точке:
+merc_resident_95/33/187 r27.799313847727056 c41.644286187278674, y≈-1.27.
+Hero r40 c40. Экспорт UI captured2026-09-22T21:57:23.591Z. Это реальный repro,
+не fixture. Water child применяет14case candidate с добавленным тестом
+совпадающих стартов. После patch reload той же игры, наблюдать этих же3.
+Пятый merc138 r78.5611 c19.6893 далеко, long-follow48m audit отдан childvehicle.
+Intimidation child готовит physical following while working, без remoteeffect.
+
+
 САМОЕ ПОЗДНЕЕ: пользователь расширил gameplay-задачи: каждый NPC/босс/банда
 имеет понятную цель; поездки NPC; банда застревает в воде и не следует игроку;
 запугиватель должен работать по движущейся цели; чёрный телефон с антенной и
@@ -41,7 +133,7 @@ Root исправил preview повторный release/confiscate и непо�
 Backend не импортирован, реальные БД/credentials не использовались.
 Child gang_water_follow23 готовит actual candidate + пять бойцов; child
 astra_local_inventory23 — moving intimidation candidate, production пока нет.
-Main checkpoint ещё не опубликован; далее root exact manifest stage/commit/push.
+Main checkpoint опубликован, актуальный SHA выше.
 
 Позднее поручение: агент передаст патчи, root продолжает NPC; обновить main и
 сообщить Проверщику ЧАТОВ2 подтверждённый SHA для работы Астра на новой базе.

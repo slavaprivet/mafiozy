@@ -154,7 +154,12 @@ function _civilianTripCancelLane(job){if(job?.laneRequestId&&typeof _walkTraffic
 function _civilianTripMaintainLane(trip,now){
  const job=trip.car._civilianNativePlan;if(!job?.laneRequestId||job.status!=='ready'||trip.phase==='exit'||trip.phase==='parked')return true;
  if(!job.leaseExpired&&now>=(job.touchAt||0)){job.touchAt=now+5000;const result=_walkTrafficNavigationResolver?.({mode:'lane-route-touch',requestId:job.laneRequestId});if(result?.reason==='route_expired')job.leaseExpired=true;}
- if(job.leaseExpired&&(trip.phase==='drive'||trip.phase==='approach')){trip.destinationDoor=trip.plan?.goal?.door||trip.destinationDoor;_civilianTripCancelLane(job);delete trip.car._civilianNativePlan;trip.phase='planning';trip.car.vr=trip.car.vc=0;trip.car.braking=true;return false;}
+ if(job.leaseExpired&&(trip.phase==='drive'||trip.phase==='approach')){
+  // Replanning may choose another bay. Release this plan's reservation before
+  // discarding its identity; physical occupancy remains checked separately.
+  const slot=job.parkingSlot||trip.plan?.goal?.slot;if(slot&&_nativeParkingAdmission.reservations.get(slot.id)===trip.car)_nativeParkingAdmission.reservations.delete(slot.id);
+  trip.destinationDoor=trip.plan?.goal?.door||trip.destinationDoor;_civilianTripCancelLane(job);delete trip.car._civilianNativePlan;trip.phase='planning';trip.car.vr=trip.car.vc=0;trip.car.braking=true;return false;
+ }
  return true;
 }
 // A pending request keeps its exact destination and origin until the shared

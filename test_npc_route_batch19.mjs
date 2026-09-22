@@ -20,7 +20,12 @@ function run({strict=false,frames=120,mixed=false,permuted=false}={}){
     const offset=permuted?(frame*17)%actors.length:0;
     const order=permuted?[...actors.slice(offset),...actors.slice(0,offset)]:actors;
     for(const actor of order){
+      box.testOwner=actor;
+      const older=vm.runInContext('[..._npcRouteWorkQueue.keys()].slice(0,[..._npcRouteWorkQueue.keys()].indexOf(testOwner)).filter(n=>!_npcRouteWorkServed.has(n))',box);
       if(!box._npcReserveRouteWork(now,actor))continue;
+      // Admission may reorder the oldest cohort, never jump past an older
+      // waiter outside it. Check the queue invariant, not only final totals.
+      for(const waiting of older){box.testWaiting=waiting;assert(vm.runInContext('_npcRouteWorkBatch.has(testWaiting)',box),'an older unserved waiter remains in the active cohort');}
       count++;admitted++;actor.grants++;actor.maxGap=Math.max(actor.maxGap,frame-actor.last);actor.last=frame;
       now+=mixed?(actor.index%3===0?1:.25):.2;
       box._npcFinishRouteWork();
@@ -39,5 +44,9 @@ const strict=run({strict:true}),batched=run(),permuted=run({permuted:true}),mixe
 assert.equal(strict.meanAdmissions,1);
 assert.equal(batched.meanAdmissions,8);
 assert(batched.maxGrants-batched.minGrants<=1,'persistent oldest cohort preserves long-term fairness');
-assert(mixed.maxGrants-mixed.minGrants<=1,'CPU-heavy jobs cannot replenish the cohort ahead of older waiters');
+// A cohort may straddle two service rounds (180 is not divisible by eight).
+// Reopening in the same frame allows a transient two-grant spread while the
+// per-admission oldest-cohort invariant above and maximum wait still hold.
+assert(mixed.maxGrants-mixed.minGrants<=2,'mixed jobs stay within one straddling cohort');
+assert(mixed.maxWaitFrames<=35,'refilling does not increase the baseline oldest wait');
 console.log(JSON.stringify({strict,batched,permuted,mixed,limits:'Actual-source scheduler with deterministic work costs; not LIVE movement or full-scene FPS.'},null,2));

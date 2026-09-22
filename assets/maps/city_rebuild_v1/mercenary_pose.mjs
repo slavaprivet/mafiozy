@@ -28,6 +28,8 @@ export function createMercenaryPose({THREE,walker}){
  const footL=new THREE.Vector3(),footR=new THREE.Vector3(),inv=new THREE.Matrix4(),kickSupport=new THREE.Vector3(),kickStart=new THREE.Vector3(),kickGoal=new THREE.Vector3(),kickQ=new THREE.Quaternion(),supportQ=new THREE.Quaternion(),kickShinRest=new THREE.Vector3(),kickFootRest=new THREE.Vector3();
  const contact=new THREE.Vector3(),normal=new THREE.Vector3(),forward=new THREE.Vector3(),palmTarget=new THREE.Vector3(),supportTarget=new THREE.Vector3(),currentPalm=new THREE.Vector3(),tip=new THREE.Vector3(),toolOffset=new THREE.Vector3(),rootPosition=new THREE.Vector3(),stowed=new THREE.Vector3(),axisZ=new THREE.Vector3(0,0,1);
  const toolQ=new THREE.Quaternion(),handQ=new THREE.Quaternion(),leftQ=new THREE.Quaternion(),socketQ=new THREE.Quaternion(),rootQ=new THREE.Quaternion();
+ const gaitPosition=new THREE.Vector3(),gaitScale=new THREE.Vector3(),gaitRotation=new THREE.Quaternion(),gaitSpread=new THREE.Quaternion();
+ function spreadWalkingThigh(name,angle){const bone=c.bones[name];if(!bone)return;bone.matrix.decompose(gaitPosition,gaitRotation,gaitScale);gaitRotation.multiply(gaitSpread.setFromAxisAngle(axisZ,angle));bone.matrix.compose(gaitPosition,gaitRotation,gaitScale);bone.matrixWorldNeedsUpdate=true;}
  if(c.rest?.socket_hand_r)socketQ.copy(c.rest.socket_hand_r.q).invert();
  function contactPose(action,kind,progress,time,weight){
   if(kind==='kick'||!finitePoint(action.workPoint)||typeof c.reachPalm!=='function'||!c.bones.socket_hand_r)return;
@@ -63,7 +65,7 @@ export function createMercenaryPose({THREE,walker}){
   }
  }
  function feetMin(){c.object.updateMatrixWorld(true);inv.copy(c.object.matrixWorld).invert();footL.setFromMatrixPosition(c.bones.foot_l.matrixWorld).applyMatrix4(inv);footR.setFromMatrixPosition(c.bones.foot_r.matrixWorld).applyMatrix4(inv);return Math.min(footL.y,footR.y);}
- function apply(action,time=0){
+ function apply(action,time=0,moving=false){
   if(disposed)return false;
   tools.visible=false;flame.visible=sparks.visible=false;for(const p of Object.values(props))p.visible=false;lastKind=null;contactError=null;contactActive=false;stage=null;kickExtension=1;
   const kind=KINDS[action?.kind];if(!kind)return false;
@@ -128,7 +130,9 @@ export function createMercenaryPose({THREE,walker}){
    const pull=clamp((progress-.66)/.26);r('chest',.12);r('head',.10);r('upperarm_l',-.9,0,-.16);r('forearm_l',-.6);r('upperarm_r',-1.1+pull*.3,0,.13);r('forearm_r',-.35-pull*.35);r('hand_r',pull*.4,pull?0:pulse*.08);
   }else{
    // Broad stance and a deliberate raised fist; source handles intimidation result.
-   r('thigh_l',0,0,-.12);r('thigh_r',0,0,.12);r('chest',-.06,Math.sin(t*2)*.04);
+   if(moving){spreadWalkingThigh('thigh_l',-.12*weight);spreadWalkingThigh('thigh_r',.12*weight);}
+   else{r('thigh_l',0,0,-.12);r('thigh_r',0,0,.12);}
+   r('chest',-.06,Math.sin(t*2)*.04);
    r('upperarm_l',-.22,0,-.3);r('forearm_l',-.7);r('upperarm_r',-.65,0,.48);r('forearm_r',-1.25);r('head',-.08);
   }
   // Constant-cost ankle reference maintains the actor's floor height. Never scan
