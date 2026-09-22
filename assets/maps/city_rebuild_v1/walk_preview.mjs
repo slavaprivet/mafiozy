@@ -621,7 +621,7 @@ const vehicleWindowPrompt=document.createElement('div');vehicleWindowPrompt.id='
 const vehicleWindowFire={car:null,seatId:null,frame:null,damage:null,plan:null,blend:0,result:null,pending:0,diagnosticsAt:-Infinity};
 let pendingCoverShotUntil=0,triggerHeld=false,triggerPressed=false,reloadPressed=false,aiming=false,aimBlend=0,savedCameraOffset=null;
 const walkBlastSession=crypto.randomUUID();
-blastResponse=createBlastResponse(THREE,scene,{getHero:()=>hero,getVehicles:()=>fleet?.records||[],getOcclusionVehicles:()=>[...(fleet?.records||[]),...sourceVehicleDriveControllerSet,...(worldTrafficPresentation?.getActors?.()||[])],getRoots:()=>[content],getGlass:()=>glass,groundHeight:heroGroundHeight,onBlast(event,heroExposure){
+blastResponse=createBlastResponse(THREE,scene,{getHero:()=>hero,getVehicles:()=>fleet?.records||[],getOcclusionVehicles:()=>[...(fleet?.records||[]),...sourceVehicleDriveControllerSet,...(worldTrafficPresentation?.getActors?.()||[])],getRoots:()=>[content],getGlass:()=>glass,groundHeight:heroGroundHeight,staticBatchSurfaceFix:staticRenderBatching,onBlast(event,heroExposure){
  // One physical vehicle explosion owns one source event. NPC damage is not
  // gated by hero proximity or by the renderer's current NPC culling window.
  const sourceVehicleId=String(event.source?.object?.userData?.sourceVehicleId??event.source?.object?.userData?.vehicleFleetId??'');

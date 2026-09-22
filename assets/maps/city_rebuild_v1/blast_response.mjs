@@ -1,7 +1,7 @@
 import {applyWorldBlast} from './world_blast.mjs';
 import {createBlastScorch} from './blast_scorch.mjs';
 import {planBlastKnockback} from './vehicle_blast_motion.mjs';
-export function createBlastResponse(T,scene,{getHero,getVehicles,getOcclusionVehicles=getVehicles,getRoots,getGlass,groundHeight,onHeroLaunch,onHeroExposure=()=>{},onBlast=()=>{}}){
+export function createBlastResponse(T,scene,{getHero,getVehicles,getOcclusionVehicles=getVehicles,getRoots,getGlass,groundHeight,onHeroLaunch,onHeroExposure=()=>{},onBlast=()=>{},staticBatchSurfaceFix=false}){
  const queue=[],scorch=createBlastScorch(T,scene);let sequence=0,total=0,last=null;
  // Cover rays run once for the hero and for every candidate vehicle in a
  // blast. They are synchronous, so these scratch values cannot escape a cast.
@@ -61,7 +61,7 @@ export function createBlastResponse(T,scene,{getHero,getVehicles,getOcclusionVeh
     const mass=Math.max(400,Number(v.car.object.userData.massKg)||1500);
     v.roll?.impact({point:p,normal:{x:-dx/length,y:0,z:-dz/length},impactSpeed:12*Math.sqrt(event.power)*falloff*1500/mass,slideSpeed:0},v.car.object.rotation.y);carsHit++;
    }
-   const world=applyWorldBlast(T,{point:event.point,radius:event.radius,power:120*event.power,roots:[...roots,...vehicles.map(v=>v.car.object)],glass:getGlass(),onSurfaceHit:scorch.hit});
+   const world=applyWorldBlast(T,{point:event.point,radius:event.radius,power:120*event.power,roots:[...roots,...vehicles.map(v=>v.car.object)],glass:getGlass(),onSurfaceHit:scorch.hit,staticBatchSurfaceFix});
    total++;last={id:event.id,power:event.power,radius:event.radius,carsHit,world};
   }
  }

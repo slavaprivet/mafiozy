@@ -10,6 +10,9 @@ export function createInteriorFinish(T,{color='#c9bbab',finish='plaster',floor=f
   shader.vertexShader='varying vec3 vInteriorMetric;\n'+shader.vertexShader;
   shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
    vec4 interiorMetric=vec4(transformed,1.0);
+   #ifdef USE_BATCHING
+    interiorMetric=batchingMatrix*interiorMetric;
+   #endif
    #ifdef USE_INSTANCING
     interiorMetric=instanceMatrix*interiorMetric;
    #endif
@@ -27,7 +30,7 @@ export function createInteriorFinish(T,{color='#c9bbab',finish='plaster',floor=f
    ${floor?'':'if(interiorNormal.y>max(interiorNormal.x,interiorNormal.z))surfaceTone=1.0;'}
    diffuseColor.rgb*=surfaceTone;`);
  };
- material.customProgramCacheKey=()=>`interior-finish-v1-${mode}-${floor}`;
+ material.customProgramCacheKey=()=>`interior-finish-v2-${mode}-${floor}`;
  return material;
 }
 

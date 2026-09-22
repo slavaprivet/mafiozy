@@ -9,10 +9,11 @@ function panelsFor(T,mesh){
 }
 // Presentation blast only. Source geometry/IDs/ownership stay under their
 // existing adapters; glass.hit owns its instance-local fracture resources.
-export function applyWorldBlast(T,{point,radius,power=120,roots=[],glass,onSurfaceHit,maxMeshes=96,maxPanels=96,maxSurfaceHits=24,spatialPrune=true}={}){
+export function applyWorldBlast(T,{point,radius,power=120,roots=[],glass,onSurfaceHit,maxMeshes=96,maxPanels=96,maxSurfaceHits=24,spatialPrune=true,staticBatchSurfaceFix=false}={}){
  const stats={broken:0,surfaceHits:0,candidates:0,panelsTested:0,prunedChunks:0,prunedInstancedMeshes:0,prunedInstanceRanges:0,prunedInstances:0,sphereRejectedInstances:0,instancesTested:0,truncated:false};
  if(!point||![point.x,point.y,point.z,radius,power].every(Number.isFinite)||radius<=0||power<=0)return stats;
  maxMeshes=Math.max(0,Math.min(256,Math.floor(maxMeshes)||0));maxPanels=Math.max(0,Math.min(256,Math.floor(maxPanels)||0));maxSurfaceHits=Math.max(0,Math.min(64,Math.floor(maxSurfaceHits)||0));
+ const preserveStaticSurfaces=staticBatchSurfaceFix===true;
  const origin=new T.Vector3(point.x,point.y,point.z),selected=[],seen=new Set(),matrix=new T.Matrix4(),local=new T.Matrix4(),bounds=new T.Box3(),sphere=new T.Sphere();let candidateCount=0;
  // Keep precisely the prefix that a stable distance sort followed by slice(0,
  // maxMeshes) would select. Most dense-world candidates are never rendered or
@@ -30,9 +31,12 @@ export function applyWorldBlast(T,{point,radius,power=120,roots=[],glass,onSurfa
  const visit=(node,fn)=>{if(!node)return;if(outsideChunk(node)){stats.prunedChunks++;return}fn(node);for(const child of node.children||[])visit(child,fn)};
  for(const root of Array.isArray(roots)?roots:[roots]){
   root?.updateWorldMatrix?.(true,true);visit(root,mesh=>{
+   // Batches only own drawing. Keep blast raycasts and decals on the exact
+   // source meshes so face/instance IDs and authored geometry stay intact.
+   if(preserveStaticSurfaces&&mesh.userData?.staticRenderBatch===true)return;
    if(seen.has(mesh)||!mesh.isMesh||!mesh.geometry?.attributes?.position||!visible(mesh)||mesh.userData.glassEffect||mesh.userData.worldBlastIgnore)return;seen.add(mesh);
    const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material],breakable=materials.some(m=>isBreakableGlass(mesh,m));
-   if(!breakable&&!materials.some(m=>m&&m.visible!==false&&!m.transparent))return;
+   if(!breakable&&!materials.some(m=>m&&(m.visible!==false||preserveStaticSurfaces&&m.userData?.staticRenderSource===true)&&!m.transparent))return;
    const g=mesh.geometry;if(!g.boundingBox)g.computeBoundingBox();if(!g.boundingBox||g.boundingBox.isEmpty())return;
    // Explicitly opted-in static batches have conservative aggregate boxes.
    // Skip the whole batch before touching individual instance matrices. Never
