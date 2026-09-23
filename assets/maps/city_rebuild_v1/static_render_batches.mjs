@@ -11,7 +11,7 @@ function hiddenMaterial(T,material){
 // opaque window surrounds. Panes and all moving door descendants remain excluded.
 function auditedStaticArchitecture(mesh){
  if(!/^(?:Entry_Interior_(?:Floor|Left|Right|Rear|Front|Header)|Entry_Corridor_(?:Floor|Wall|Ceiling)|Entry_Continuous_Ramp|Entry_Warm_Fixture|Storey_Walls_And_Ceilings|Storey_Floors|Room_Door_Frames|Stair_Treads_And_Posts|Brass_Stair_Handrails|RoofAccessSigns|(?:Front|Rear)Window\d+(?:Sill|Lintel|TrimLeft|TrimRight|MullionV|MullionH))$/.test(mesh?.name||''))return false;
- for(let node=mesh;node;node=node.parent){const id=node.userData?.instance?.assetId;if(id)return ['old_town_narrow_townhouse_v1','hillstep_chalet_v1','pine_ridge_cottage_v1','woodland_crosswing_house_v1'].includes(id)}
+ for(let node=mesh;node;node=node.parent){const id=node.userData?.instance?.assetId;if(id)return ['old_town_narrow_townhouse_v1','garden_lane_house_v1','hillstep_chalet_v1','pine_ridge_cottage_v1','woodland_crosswing_house_v1'].includes(id)}
  return false;
 }
 function hierarchyNodeBatchable(node,interiorInstances){

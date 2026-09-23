@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';import {registerHooks} from 'node:module';import {pathToFileURL} from 'node:url';import {createStaticRenderBatches} from './static_render_batches.mjs';import {createWindowedBuildingEntry} from './building_window_integration.mjs';import {applyBuildingDoorsGlass} from './building_doors_glass.mjs';
 const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';registerHooks({resolve(s,c,n){return n(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});const T=await import('three'),{GLTFLoader}=await import(pathToFileURL(vendor+'addons/loaders/GLTFLoader.js'));
 const all=JSON.parse(readFileSync(new URL('buildings_placement.v1.json',import.meta.url))).instances;
-for(const id of ['old_town_narrow_townhouse_v1','hillstep_chalet_v1','pine_ridge_cottage_v1']){
+for(const id of ['old_town_narrow_townhouse_v1','garden_lane_house_v1','hillstep_chalet_v1','pine_ridge_cottage_v1']){
  const items=all.filter(i=>i.assetId===id),bytes=readFileSync(new URL('../../..'+items[0].binding.url,import.meta.url));const loader=new GLTFLoader().register(()=>({name:'Test_Image_Upload',loadTexture(){return Promise.resolve(new T.Texture())}}));const template=(await loader.parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;
  template.traverse(n=>{if(/(^|[_\s])(collision|collider|clearance|socket|anchor|keepout|nav|proxy|datum)([_\s]|$)/i.test(n.name)||/^(COLLISION|SOCKET|CLEARANCE|NAV_|COL_)/i.test(n.name))n.visible=false;if(n.isMesh)n.castShadow=n.receiveShadow=true});
  const root=new T.Group(),instances=[],originals=[],resources=[];
