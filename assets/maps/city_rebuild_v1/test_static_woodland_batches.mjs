@@ -43,7 +43,7 @@ assert(rays.length>10,'real original collision/raycast geometry is exercised');
 class ObservedBatch extends T.BatchedMesh{
  addGeometry(geometry,...args){const id=super.addGeometry(geometry,...args);(this.sourceGeometry??=new Map()).set(id,geometry);return id;}
 }
-const batches=createStaticRenderBatches({THREE:{...T,BatchedMesh:ObservedBatch},root,instances}),stats=batches.stats();
+const batches=createStaticRenderBatches({THREE:{...T,BatchedMesh:ObservedBatch},root,instances,multiDraw:true}),stats=batches.stats();
 const allBatches=root.children.filter(n=>n.isBatchedMesh),allSources=originals.filter(s=>s.mesh.material!==s.material);
 batches.setOptimizationEnabled(false);
 const sources=allSources.filter(s=>s.mesh.material===s.material),architectureBatches=allBatches.filter(b=>!b.visible);

@@ -26,7 +26,7 @@ for(const fallback of [false,true]){
   if(kind==='custom-shadow-after')mesh.onAfterShadow=()=>{};
   if(kind==='animation')mesh.animations=[{}];root.add(mesh);sources.push(mesh);
  }
- const api=createStaticRenderBatches({THREE:fallback?{...T,BatchedMesh:undefined}:T,root,instances:[root],localMatrixOptimization:true});
+ const api=createStaticRenderBatches({THREE:fallback?{...T,BatchedMesh:undefined}:T,root,instances:[root],localMatrixOptimization:true,multiDraw:true});
  assert.equal(api.stats().localMatrixOptimizationEnabled,true);assert.equal(api.stats().frozenLocalSources,1);
  assert.equal(sources[0].matrixAutoUpdate,false);assert.equal(sources[1].matrixAutoUpdate,false);
  for(const n of sources.slice(2))assert.equal(n.matrixAutoUpdate,true);
@@ -49,7 +49,7 @@ for(const item of items){
 }
 scene.updateMatrixWorld(true);
 const originals=[];root.traverse(mesh=>{if(mesh.isMesh)originals.push({mesh,material:mesh.material,geometry:mesh.geometry,parent:mesh.parent,local:mesh.matrix.clone(),world:mesh.matrixWorld.clone(),auto:mesh.matrixAutoUpdate,worldAuto:mesh.matrixWorldAutoUpdate,instances:mesh.instanceMatrix?.array.slice(),colors:mesh.instanceColor?.array.slice(),id:mesh.id,uuid:mesh.uuid})});
-const api=createStaticRenderBatches({THREE:T,root,instances});
+const api=createStaticRenderBatches({THREE:T,root,instances,multiDraw:true});
 assert.equal(api.stats().frozenLocalSources,0);assert.equal(api.stats().localMatrixOptimizationEnabled,false,'Production default stays OFF');
 for(const s of originals)assert.equal(s.mesh.matrixAutoUpdate,s.auto);
 const batchState=root.children.filter(n=>n.userData.staticRenderBatch).map(mesh=>({mesh,material:mesh.material,geometry:mesh.geometry,ids:Array.from({length:mesh.instanceCount},(_,i)=>mesh.getGeometryIdAt(i)),matrices:Array.from({length:mesh.instanceCount},(_,i)=>{const m=new T.Matrix4();mesh.getMatrixAt(i,m);return m.elements})}));

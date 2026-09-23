@@ -13,7 +13,7 @@ assert(rawSource.includes(stampImport));
 // The data-URL audit exits before batch allocation and never needs the runtime
 // bounds stamp. Strip its relative import because data: modules have no base URL.
 const source=rawSource.replace(stampImport,'');
-const marker='const batches=[],instancedSourceMaterials=new Map();';
+const marker='const batches=[],instancedSourceMaterials=new Map(),batchedBackend=multiDraw===true&&!!T.BatchedMesh;';
 assert(source.includes(marker));
 // Use actual admission/grouping code, return before any BatchedMesh geometry allocation.
 const censusModule=await import('data:text/javascript;base64,'+Buffer.from(source.replace(marker,'return {groups:[...groups.values()]};\n '+marker)).toString('base64'));

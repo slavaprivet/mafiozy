@@ -14,7 +14,7 @@ for(const fallback of [false,true]){
   const original=group.position.distanceToSquared;
   group.position.distanceToSquared=function(p){distances++;return original.call(this,p)};
  }
- const api=createStaticRenderBatches({THREE:fallback?{...T,BatchedMesh:undefined}:T,root,instances,minInstances:3});
+ const api=createStaticRenderBatches({THREE:fallback?{...T,BatchedMesh:undefined}:T,root,instances,minInstances:3,multiDraw:true});
  const batch=root.children.find(n=>n.userData.staticRenderBatch);
  assert.equal(api.stats().members,count*parts);
  const method=fallback?'setMatrixAt':'setVisibleAt',original=batch[method];

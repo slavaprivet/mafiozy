@@ -286,7 +286,7 @@ test('actual static matrix walk setup remains opt-in and updates exposed counts 
  const expression=source.match(/const staticMatrixOptimization=([^;]+);/)?.[1];assert(expression);
  for(const [href,expected] of [['http://localhost/?perfqa=1&staticmatrix=1',true],['http://localhost/?perfqa=1',false],['http://localhost/?staticmatrix=1',false],['http://localhost/?perfqa=1&staticmatrix=0',false],['https://game.example/?perfqa=1&staticmatrix=1',false],['http://localhost/?perfqa=1&staticmatrix=1&token=x',false]])for(const batching of [false,true]){const url=new URL(href);assert.equal(vm.runInNewContext(expression,{staticRenderBatching:batching,allowRenderFreeze,location:{href,search:url.search},URLSearchParams}),batching&&expected);}
  assert(source.includes('applyStaticMatrices:staticMatrixOptimization?enabled=>{staticRenderBatches?.setLocalMatrixOptimizationEnabled(enabled);if(staticRenderBatches)document.body.dataset.staticRenderBatches=JSON.stringify(staticRenderBatches.stats());}:undefined'));
- assert(source.includes('staticRenderBatches=createStaticRenderBatches({THREE,root:content,instances,minInstances:3,maxDistance:220,localMatrixOptimization:staticMatrixOptimization,shadowCensus:performanceProbe?.tagShadowBatch})'));
+ assert(source.includes("staticRenderBatches=createStaticRenderBatches({THREE,root:content,instances,minInstances:3,maxDistance:220,localMatrixOptimization:staticMatrixOptimization,shadowCensus:performanceProbe?.tagShadowBatch,multiDraw:renderer.extensions.has('WEBGL_multi_draw')})"));
 });
 
 test('actual walk import/readiness/pagehide and early frame guard preserve normal health/NPC/mercenary flow',()=>{

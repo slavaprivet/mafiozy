@@ -99,6 +99,11 @@ function hierarchyVisible(node,cache){
  cache.set(node,visible);return visible;
 }
 
+function attachedTo(node,ancestor){
+ for(let current=node;current;current=current.parent)if(current===ancestor)return true;
+ return false;
+}
+
 // Admission into a static batch already requires immutable source transforms.
 // Freeze only ordinary leaf composition, never custom transform/render hooks,
 // descendants or inherited world updates. The source remains raycastable.
@@ -110,7 +115,7 @@ function standardStaticLocalLeaf(T,mesh){
   mesh.onBeforeRender===prototype.onBeforeRender&&mesh.onAfterRender===prototype.onAfterRender&&mesh.onBeforeShadow===prototype.onBeforeShadow&&mesh.onAfterShadow===prototype.onAfterShadow;
 }
 
-export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3,maxDistance=220,localMatrixOptimization=false,shadowCensus=null}={}){
+export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3,maxDistance=220,localMatrixOptimization=false,shadowCensus=null,multiDraw=false}={}){
  if(!T?.InstancedMesh||!root?.add||!Array.isArray(instances))throw Error('Static render batches require THREE, root and instances');
  root.updateWorldMatrix(true,true);
  const rootInverse=new T.Matrix4().copy(root.matrixWorld).invert(),groups=new Map(),restores=[],sourceRestores=new WeakMap(),hiddenMaterials=new Map(),geometryLayouts=new WeakMap(),hierarchyCache=new WeakMap(),zero=new T.Matrix4().makeScale(0,0,0);
@@ -133,12 +138,15 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
    entry.geometries.set(geometryKey,mesh.geometry);
   });
  }
- const batches=[],instancedSourceMaterials=new Map();
+ const batches=[],instancedSourceMaterials=new Map(),batchedBackend=multiDraw===true&&!!T.BatchedMesh;
  for(const entry of groups.values()){
   if(entry.members.length<minInstances)continue;
   const material=entry.material.clone(),geometries=[...entry.geometries.values()];material.onBeforeCompile=entry.material.onBeforeCompile;material.customProgramCacheKey=entry.material.customProgramCacheKey;if(entry.interiorInstances)material.vertexColors=true;
+  // Without WEBGL_multi_draw, BatchedMesh submits one draw per copied member.
+  // Preserve an authored InstancedMesh pool instead of expanding its instances.
+  if(!batchedBackend&&entry.members.some(member=>member.sourceInstanced)){material.dispose();continue}
   let batch,memberIds;
-  if(T.BatchedMesh){
+  if(batchedBackend){
    const totals=geometries.reduce((sum,geometry)=>{const size=geometrySize(geometry);sum.vertices+=size.vertices;sum.indices+=size.indices;return sum},{vertices:0,indices:0});
    batch=new T.BatchedMesh(entry.members.length,totals.vertices,totals.indices||totals.vertices*2,material);
    const geometryIds=new Map();for(const [geometryKey,geometry]of entry.geometries)geometryIds.set(geometryKey,batch.addGeometry(geometry));
@@ -155,11 +163,11 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
   shadowCensus?.(batch,entry.members);
   for(const member of entry.members){
    if(member.sourceInstanced){
-    if(instancedSourceMaterials.has(member.mesh))continue;
-    const source=member.mesh.material,hidden=hiddenMaterials.get(source)||hiddenMaterial(T,source),restore={mesh:member.mesh,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization};hiddenMaterials.set(source,hidden);instancedSourceMaterials.set(member.mesh,source);restores.push(restore);sourceRestores.set(member.mesh,restore);member.mesh.material=hidden;continue;
+    const existing=sourceRestores.get(member.mesh);if(existing){existing.members.push(member);continue}
+    const source=member.mesh.material,hidden=hiddenMaterials.get(source)||hiddenMaterial(T,source),restore={mesh:member.mesh,group:member.group,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization,members:[member],geometry:member.mesh.geometry,castShadow:member.mesh.castShadow,receiveShadow:member.mesh.receiveShadow,renderOrder:member.mesh.renderOrder,hasInstanceColor:!!member.mesh.instanceColor,detached:false,retired:false};hiddenMaterials.set(source,hidden);instancedSourceMaterials.set(member.mesh,source);restores.push(restore);sourceRestores.set(member.mesh,restore);member.mesh.material=hidden;continue;
    }
    const source=member.mesh.material,hidden=hiddenMaterials.get(source)||hiddenMaterial(T,source);hiddenMaterials.set(source,hidden);
-   const restore={mesh:member.mesh,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization};restores.push(restore);sourceRestores.set(member.mesh,restore);
+   const restore={mesh:member.mesh,group:member.group,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization,members:[member],geometry:member.mesh.geometry,castShadow:member.mesh.castShadow,receiveShadow:member.mesh.receiveShadow,renderOrder:member.mesh.renderOrder,hasInstanceColor:false,detached:false,retired:false};restores.push(restore);sourceRestores.set(member.mesh,restore);
    member.mesh.material=hidden;
   }
   batches.push({mesh:batch,members:entry.members,memberIds,optimization:entry.optimization});
@@ -173,17 +181,39 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
   const placement=placements.get(member.group);member.placement=placement;placement.members.push({batch,index,member});
  }
  for(const batch of batches)batch.visibleMembers=0;
- let optimizationEnabled=true,localMatrixOptimizationEnabled=false,frozenLocalSources=0;
+ const restoreAttached=restore=>attachedTo(restore.mesh,restore.group)&&attachedTo(restore.group,root);
+ const currentRootInverse=new T.Matrix4(),currentSourceMatrix=new T.Matrix4(),currentMemberMatrix=new T.Matrix4(),currentLocalMatrix=new T.Matrix4(),currentColor=new T.Color();
+ const matricesEqual=(a,b)=>a.elements.every((value,index)=>Math.abs(value-b.elements[index])<=1e-7);
+ function restorePoseMatches(restore){
+  const mesh=restore.mesh;if(mesh.geometry!==restore.geometry||mesh.castShadow!==restore.castShadow||mesh.receiveShadow!==restore.receiveShadow||mesh.renderOrder!==restore.renderOrder||mesh.layers.mask!==restore.layersMask)return false;
+  root.updateWorldMatrix(true,false);mesh.updateWorldMatrix(true,false);currentRootInverse.copy(root.matrixWorld).invert();currentSourceMatrix.multiplyMatrices(currentRootInverse,mesh.matrixWorld);
+  if(!mesh.isInstancedMesh)return restore.members.length===1&&matricesEqual(currentSourceMatrix,restore.members[0].matrix);
+  if(mesh.count!==restore.members.length||!!mesh.instanceColor!==restore.hasInstanceColor)return false;
+  for(let i=0;i<restore.members.length;i++){const member=restore.members[i];mesh.getMatrixAt(i,currentLocalMatrix);currentMemberMatrix.multiplyMatrices(currentSourceMatrix,currentLocalMatrix);if(!matricesEqual(currentMemberMatrix,member.matrix))return false;if(restore.hasInstanceColor){mesh.getColorAt(i,currentColor);if(!member.color||Math.abs(currentColor.r-member.color.r)>1e-7||Math.abs(currentColor.g-member.color.g)>1e-7||Math.abs(currentColor.b-member.color.b)>1e-7)return false}}
+  return true;
+ }
+ function restoreOwned(restore){
+  if(restore.retired)return false;
+  if(!restoreAttached(restore)){restore.detached=true;return false}
+  if(restore.mesh.material===restore.hidden)return true;
+  if(restore.mesh.material!==restore.material)return false;
+  if(restore.optimization&&!optimizationEnabled)return true;
+  if(!restore.detached)return false;
+  if(!restorePoseMatches(restore)){restore.retired=true;return false}
+  restore.detached=false;return true;
+ }
+ let optimizationEnabled=true,localMatrixOptimizationEnabled=false,frozenLocalSources=0,lastFocus=null,lastDistance=maxDistance;
  let disposed=false,lastVisible=-1,lastActiveBatches=-1,visibleMembers=0,activeBatches=0;
  function update({focus,maxDistance:nextDistance=maxDistance}={}){
  if(disposed)return {visible:lastVisible,batches:batches.length,activeBatches:lastActiveBatches};
-  const distanceSq=nextDistance*nextDistance,point=focus?.isVector3?focus:null,visibilityCache=new WeakMap();let touched=null;
+  const distanceSq=nextDistance*nextDistance,point=focus?.isVector3?focus:null,visibilityCache=new WeakMap(),ownershipCache=new WeakMap();lastDistance=nextDistance;if(point)(lastFocus??=new T.Vector3()).copy(point);else lastFocus=null;let touched=null;
   for(const placement of placements.values()){
    const placementVisible=!point||placement.group.position.distanceToSquared(point)<distanceSq;
    placement.visible=placementVisible;placement.initialized=true;
    for(const {batch,index,member}of placement.members){
-    const restore=sourceRestores.get(member.mesh),sourceOwned=restore&&member.mesh.layers.mask===restore.layersMask&&(member.mesh.material===restore.hidden||restore.optimization&&!optimizationEnabled&&member.mesh.material===restore.material);
+    const restore=sourceRestores.get(member.mesh);let sourceOwned=restore&&ownershipCache.get(restore);if(restore&&!ownershipCache.has(restore)){sourceOwned=restoreOwned(restore);ownershipCache.set(restore,sourceOwned)}
     if(restore&&!sourceOwned&&member.mesh.material===restore.hidden)member.mesh.material=restore.material;
+    else if(sourceOwned&&member.mesh.material===restore.material&&(!restore.optimization||optimizationEnabled))member.mesh.material=restore.hidden;
     const show=sourceOwned&&placementVisible&&hierarchyVisible(member.mesh,visibilityCache);
     if(member.shown===show)continue;
     const wasShown=member.shown===true,delta=show?1:wasShown?-1:0,before=batch.visibleMembers;
@@ -199,7 +229,8 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
  }
  function setOptimizationEnabled(enabled){
   if(disposed)return;optimizationEnabled=!!enabled;
-  for(const restore of restores)if(restore.optimization){if(optimizationEnabled&&restore.mesh.material===restore.material)restore.mesh.material=restore.hidden;else if(!optimizationEnabled&&restore.mesh.material===restore.hidden)restore.mesh.material=restore.material;}
+  for(const restore of restores)if(restore.optimization){const attached=restoreAttached(restore);if(!attached)restore.detached=true;let owned=attached&&!restore.retired&&restore.mesh.layers.mask===restore.layersMask;if(optimizationEnabled&&owned&&restore.mesh.material===restore.material){if(restore.detached){owned=restorePoseMatches(restore);restore.detached=!owned;if(!owned)restore.retired=true}if(owned)restore.mesh.material=restore.hidden}else if((!optimizationEnabled||!owned)&&restore.mesh.material===restore.hidden)restore.mesh.material=restore.material;}
+  update({focus:lastFocus,maxDistance:lastDistance});
   for(const batch of batches)if(batch.optimization)batch.mesh.visible=optimizationEnabled&&batch.visibleMembers>0;
   return optimizationEnabled;
  }
@@ -230,5 +261,5 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
  }
  update();
  if(localMatrixOptimization)setLocalMatrixOptimizationEnabled(true);
- return {update,dispose,setOptimizationEnabled,setLocalMatrixOptimizationEnabled,stats(){return{optimizationEnabled,localMatrixOptimizationEnabled,frozenLocalSources,optimizationBatches:batches.filter(b=>b.optimization).length,optimizationMembers:batches.filter(b=>b.optimization).reduce((s,b)=>s+b.members.length,0),batches:batches.length,members:batches.reduce((sum,b)=>sum+b.members.length,0),sourceMaterials:hiddenMaterials.size,visible:lastVisible,activeBatches:lastActiveBatches,mode:T.BatchedMesh?'BatchedMesh':zeroMatrixMarker}}};
+ return {update,dispose,setOptimizationEnabled,setLocalMatrixOptimizationEnabled,stats(){return{optimizationEnabled,localMatrixOptimizationEnabled,frozenLocalSources,optimizationBatches:batches.filter(b=>b.optimization).length,optimizationMembers:batches.filter(b=>b.optimization).reduce((s,b)=>s+b.members.length,0),batches:batches.length,members:batches.reduce((sum,b)=>sum+b.members.length,0),sourceMaterials:hiddenMaterials.size,visible:lastVisible,activeBatches:lastActiveBatches,mode:batchedBackend?'BatchedMesh':zeroMatrixMarker}}};
 }

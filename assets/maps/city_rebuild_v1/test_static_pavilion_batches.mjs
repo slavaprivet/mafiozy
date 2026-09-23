@@ -27,7 +27,7 @@ for(const item of items){
 }
 root.updateWorldMatrix(true,true);
 for(const group of instances)group.traverse(mesh=>{if(mesh.isMesh)originals.push({mesh,material:mesh.material,geometry:mesh.geometry,matrix:mesh.matrixWorld.clone(),parent:mesh.parent})});
-const batches=createStaticRenderBatches({THREE:T,root,instances}),stats=batches.stats(),sources=originals.filter(({mesh,material})=>mesh.material!==material);
+const batches=createStaticRenderBatches({THREE:T,root,instances,multiDraw:true}),stats=batches.stats(),sources=originals.filter(({mesh,material})=>mesh.material!==material);
 assert(sources.length>100,'the four real pavilion shells must enter static batches');
 assert(stats.batches<sources.length/2,'shared opaque surfaces reduce draw submissions');
 const matrix=new T.Matrix4();let copied=0,panes=0,doors=0;

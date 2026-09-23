@@ -22,7 +22,7 @@ function blast(options={}){
  return {stats,hits};
 }
 const before=blast();assert.equal(before.hits.length,3,'baseline reaches all three authored walls');
-const batches=createStaticRenderBatches({THREE:T,root,instances,minInstances:3,maxDistance:50});
+const batches=createStaticRenderBatches({THREE:T,root,instances,minInstances:3,maxDistance:50,multiDraw:true});
 assert.equal(batches.stats().members,3);assert.equal(root.children.filter(node=>node.userData.staticRenderBatch).length,1);
 assert(sources.every(mesh=>mesh.material.visible===false&&mesh.material.userData.staticRenderSource===true));
 const legacy=blast();assert.equal(legacy.hits.length,0,'negative control reproduces the hidden-source regression');

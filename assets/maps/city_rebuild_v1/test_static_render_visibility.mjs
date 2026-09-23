@@ -20,7 +20,7 @@ for(let index=0;index<3;index++){
  group.position.x=index*3;shell.name='StaticShell';mesh.name='NativeOpaqueWall';
  shell.add(mesh);group.add(shell);root.add(group);groups.push({group,shell,mesh});
 }
-const batches=createStaticRenderBatches({THREE:{...THREE,BatchedMesh:TracedBatchedMesh},root,instances:groups.map(item=>item.group),minInstances:3,maxDistance:100});
+const batches=createStaticRenderBatches({THREE:{...THREE,BatchedMesh:TracedBatchedMesh},root,instances:groups.map(item=>item.group),minInstances:3,maxDistance:100,multiDraw:true});
 const batch=root.children.find(node=>node.userData.staticRenderBatch);
 assert(batch,'expected one static batch');
 const visible=()=>[0,1,2].map(id=>batch.auditVisibility.get(id));

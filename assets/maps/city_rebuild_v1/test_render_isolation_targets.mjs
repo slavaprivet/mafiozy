@@ -24,7 +24,7 @@ for(const mode of ['batched','threshold-fallback','no-BatchedMesh']){
   const wall=new T.Mesh(geometry,exteriorMaterial);wall.name='Exterior_Wall';group.add(wall);exterior.push(wall);
   const floor=new T.Mesh(geometry,exteriorMaterial);floor.name='Entry_Interior_Floor';floor.userData.staticRenderMaterialImmutable=true;group.add(floor);architecture.push(floor);
  }
- const api=createStaticRenderBatches({THREE:mode==='no-BatchedMesh'?{...T,BatchedMesh:undefined}:T,root,instances,minInstances:mode==='threshold-fallback'?999:3});
+ const api=createStaticRenderBatches({THREE:mode==='no-BatchedMesh'?{...T,BatchedMesh:undefined}:T,root,instances,minInstances:mode==='threshold-fallback'?999:3,multiDraw:true});
  api.update({focus:new T.Vector3(),maxDistance:220});
  const getTargets=Function('scene','npcPopulation','fleet','worldTrafficPresentation',`return (${callback[1]});`)(root,null,null,null);
  const targets=getTargets('interiors'),furnitureBatches=root.children.filter(n=>n.userData.renderIsolationInteriorFurnishings===true),otherBatches=root.children.filter(n=>n.userData.staticRenderBatch&&!n.userData.renderIsolationInteriorFurnishings);
