@@ -19,7 +19,7 @@ export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=t
  if(!renderer?.shadowMap?.render||!renderer.renderBufferDirect||!sun?.isDirectionalLight)throw Error('Directional vehicle shadow culling requires renderer and sun');
  const originalShadow=renderer.shadowMap.render,originalDirect=renderer.renderBufferDirect;
  const frustum=new T.Frustum(),matrix=new T.Matrix4(),direction=new T.Vector3(),center=new T.Vector3(),lightPosition=new T.Vector3(),target=new T.Vector3(),batchSphere=new T.Sphere();
- const stamps=new WeakMap();let context=null,disposed=false,frames=0,restorePending=false;
+ const stamps=new WeakMap();let context=null,disposed=false,frames=0,restorePending=false,shadowDepth=0;
  const stats={enabled:!!enabled,buildingEnabled:!!buildingEnabled,tested:0,culled:0,vehicleTested:0,vehicleCulled:0,buildingTested:0,buildingCulled:0,unsupported:0,padding:0};
  const unsupportedMaterial=m=>!m?.isMeshStandardMaterial||m.displacementMap||m.onBeforeCompile!==T.Material.prototype.onBeforeCompile;
  const vehicle=object=>{for(let node=object;node;node=node.parent)if(node.userData?.vehicleFleetId||node.userData?.sourceVehicleId)return true;return false;};
@@ -53,18 +53,27 @@ export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=t
  const wrappedDirect=function(camera,renderScene,geometry,material,object,group){
   if(context&&camera===sun.shadow.camera&&object?.isMesh){
    const kind=stats.enabled&&vehicle(object)?'vehicle':stats.buildingEnabled&&building(object)?'building':null;
-   if(kind&&outside(object,geometry,kind)){stats.culled++;stats[kind+'Culled']++;return;}
+   if(kind&&outside(object,geometry,kind)){
+    stats.culled++;stats[kind+'Culled']++;
+    // Arm the full-map restore as soon as a submission is rejected. A nested
+    // shadow render (or dispose from a shadow callback) can happen before the
+    // outer WebGLShadowMap.render returns, so its finally block is too late.
+    restorePending=true;return;
+   }
   }
   return originalDirect.call(this,camera,renderScene,geometry,material,object,group);
  };
  const wrappedShadow=function(lights,renderScene,camera){
-  const previous=context;context=null;
-  stats.tested=stats.culled=stats.vehicleTested=stats.vehicleCulled=stats.buildingTested=stats.buildingCulled=stats.unsupported=0;
+  const previous=context,outermost=shadowDepth++===0;context=null;
+  // Only the public, outer pass owns the sample and restore lifecycle. Three
+  // permits user callbacks to render another shadow map synchronously; that
+  // nested pass must fail open without erasing the outer pass's cull result.
+  if(outermost)stats.tested=stats.culled=stats.vehicleTested=stats.vehicleCulled=stats.buildingTested=stats.buildingCulled=stats.unsupported=0;
   const automatic=renderer.shadowMap.autoUpdate!==false&&sun.shadow.autoUpdate!==false,includesSun=lights.includes(sun);
-  if(!automatic&&restorePending){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}
+  if(outermost&&!automatic&&restorePending){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}
   const attemptedSun=includesSun&&renderer.shadowMap.enabled!==false&&(renderer.shadowMap.autoUpdate!==false||renderer.shadowMap.needsUpdate)&&(sun.shadow.autoUpdate!==false||sun.shadow.needsUpdate);
   const sc=sun.shadow.camera,ordinaryShadowCamera=sc.isOrthographicCamera&&sc.matrixAutoUpdate!==false&&sc.matrixWorldAutoUpdate!==false&&!sc.parent&&!sc.view?.enabled&&sc.scale.x===1&&sc.scale.y===1&&sc.scale.z===1;
-  if(!previous&&!disposed&&(stats.enabled||stats.buildingEnabled)&&automatic&&ordinaryShadowCamera&&renderScene===scene&&renderer.shadowMap.enabled!==false&&renderer.shadowMap.type===T.PCFSoftShadowMap&&lights.includes(sun)&&!camera.isArrayCamera&&!camera.reversedDepth&&camera.coordinateSystem!==T.WebGPUCoordinateSystem){
+  if(outermost&&!disposed&&(stats.enabled||stats.buildingEnabled)&&automatic&&ordinaryShadowCamera&&renderScene===scene&&renderer.shadowMap.enabled!==false&&renderer.shadowMap.type===T.PCFSoftShadowMap&&lights.includes(sun)&&!camera.isArrayCamera&&!camera.reversedDepth&&camera.coordinateSystem!==T.WebGPUCoordinateSystem){
    matrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);frustum.setFromProjectionMatrix(matrix);
    lightPosition.setFromMatrixPosition(sun.matrixWorld);target.setFromMatrixPosition(sun.target.matrixWorld);direction.subVectors(target,lightPosition).normalize();
    const s=sun.shadow,cam=s.camera;
@@ -78,11 +87,15 @@ export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=t
   let completed=false;
   try{const result=originalShadow.call(this,lights,renderScene,camera);completed=restorePending&&attemptedSun&&sun.shadow.needsUpdate===false;return result}
   finally{
-   if(stats.culled)restorePending=true;else if(completed)restorePending=false;
-   // WebGLShadowMap clears its global needsUpdate even when a requested sun
-   // is absent. Keep the obligation armed until an actual full sun pass ends.
-   if(restorePending&&!automatic){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}
-   context=previous;if(onSample&&++frames%60===1)onSample(stats);
+   try{
+    if(outermost){
+     if(!stats.culled&&completed)restorePending=false;
+     // WebGLShadowMap clears its global needsUpdate even when a requested sun
+     // is absent. Keep the obligation armed until an actual full sun pass ends.
+     if(restorePending&&!automatic){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}
+     if(onSample&&++frames%60===1)onSample(stats);
+    }
+   }finally{shadowDepth--;context=disposed?null:previous;}
   }
  };
  renderer.renderBufferDirect=wrappedDirect;renderer.shadowMap.render=wrappedShadow;

@@ -16,6 +16,9 @@ multiple building bounds and camera poses, day/evening/night intensities,
 hidden and layer-filtered hierarchies, detach/reparent and owner mutations,
 fallback InstancedMesh and stale BatchedMesh fail-open paths, manual-update
 transitions, building opt-out, disposal/rebuild and exact full-map restoration.
+Nested empty, sun and other-light shadow renders also fail open without erasing
+the outer pass sample or its pending full-map restore; nested throws and disposal
+from a shadow callback preserve the same lifecycle contract.
 The previously recorded frozen-scene ABBA remains the LIVE
 evidence: shadow calls 2554 to 1477, total calls 7315 to 6238 and GPU p50 about
 96.97 to 91.40 ms at one daytime view. Broader LIVE views remain useful for

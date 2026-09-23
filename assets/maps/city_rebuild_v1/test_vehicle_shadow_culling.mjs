@@ -82,6 +82,42 @@ function reviewFixture(object,{kind='vehicle'}={}){
  return {world,light,view,owner,backend,guard,render:(lights=[light])=>backend.shadowMap.render(lights,world,view),get submissions(){return submissions},get passes(){return passes},get mapHasCaster(){return mapHasCaster}};
 }
 
+// A shadow callback is allowed to render another shadow map synchronously.
+// Nested work must fail open and must not consume or erase the outer pass's
+// obligation to replace a map that omitted a caster.
+function nestedReviewFixture(mode='empty'){
+ const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
+ const world=new T.Scene(),light=new T.DirectionalLight(),other=new T.DirectionalLight();light.position.set(-75,130,90);other.position.set(75,130,-90);world.add(light,light.target,other,other.target);light.castShadow=other.castShadow=true;
+ for(const current of [light,other]){Object.assign(current.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:320});current.shadow.mapSize.set(2048,2048);}
+ const owner=new T.Group();owner.userData.vehicleFleetId='nested-review';owner.add(shape);world.add(owner);shape.castShadow=true;world.updateMatrixWorld(true);
+ const view=camera.clone();view.updateMatrixWorld(true);let submissions=0,passes=0,nested=false,nestOnce=true,throwNested=false,nestedAction=null;
+ const backend={shadowMap:{enabled:true,autoUpdate:true,needsUpdate:false,type:T.PCFSoftShadowMap,render(lights=[light]){
+  if(throwNested&&nested)throw Error('nested shadow failure');
+  if(!backend.shadowMap.enabled||!backend.shadowMap.autoUpdate&&!backend.shadowMap.needsUpdate)return;
+  for(const current of lights){if(!current.shadow||!current.shadow.autoUpdate&&!current.shadow.needsUpdate)continue;passes++;if(current===light)backend.renderBufferDirect(light.shadow.camera,world,shape.geometry,shape.material,shape,null);
+   if(current===light&&nestOnce&&!nested){nestOnce=false;nested=true;try{if(mode==='empty')backend.shadowMap.render([],world,view);else if(mode==='sun')backend.shadowMap.render([light],world,view);else if(mode==='other')backend.shadowMap.render([other],world,view);nestedAction?.();}finally{nested=false;}}
+   current.shadow.needsUpdate=false;
+  }
+  backend.shadowMap.needsUpdate=false;
+ }},renderBufferDirect(){submissions++;}};
+ const originalShadow=backend.shadowMap.render,originalDirect=backend.renderBufferDirect,guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light});
+ return {shape,world,light,other,view,backend,guard,originalShadow,originalDirect,render:(lights=[light])=>backend.shadowMap.render(lights,world,view),setThrow(value){throwNested=value},setNestedAction(value){nestedAction=value},get submissions(){return submissions},get passes(){return passes}};
+}
+
+for(const mode of ['empty','sun','other']){
+ const f=nestedReviewFixture(mode);f.render();assert.equal(f.guard.stats.culled,1,mode+' nested pass preserves the outer cull sample');
+ const before=f.submissions;f.backend.shadowMap.autoUpdate=false;f.light.shadow.autoUpdate=false;f.render();
+ assert.equal(f.submissions,before+1,mode+' nested pass cannot consume the required full sun restore');const passes=f.passes;f.render();assert.equal(f.passes,passes,mode+' restore completes exactly once');f.guard.dispose();
+}
+{
+ const f=nestedReviewFixture('sun');f.setThrow(true);assert.throws(()=>f.render(),/nested shadow failure/);assert.equal(f.guard.stats.culled,1,'nested throw preserves the outer cull sample');
+ f.setThrow(false);f.backend.shadowMap.autoUpdate=false;f.light.shadow.autoUpdate=false;f.render();assert.equal(f.submissions,1,'nested throw leaves a full sun restore armed');f.guard.dispose();
+}
+{
+ const f=nestedReviewFixture('empty'),map={disposed:0,dispose(){this.disposed++;}},mapPass={disposed:0,dispose(){this.disposed++;}};f.light.shadow.map=map;f.light.shadow.mapPass=mapPass;
+ f.setNestedAction(()=>f.guard.dispose());f.render();assert.equal(map.disposed,1);assert.equal(mapPass.disposed,1);assert.equal(f.light.shadow.map,null);assert.equal(f.light.shadow.mapPass,null);assert.equal(f.backend.shadowMap.render,f.originalShadow);assert.equal(f.backend.renderBufferDirect,f.originalDirect);
+}
+
 // Emulate the relevant Three scene traversal gates as well as the actual
 // renderBufferDirect hook. This catches ownership changes without pretending
 // that hidden, detached or layer-mismatched objects reach the shadow draw.
@@ -230,4 +266,4 @@ for(const variant of ['perspective','parent','scaled','view-offset','manual-matr
  for(let i=0;i<positions.count;i++)if(frustum.containsPoint(point.fromBufferAttribute(positions,i).applyMatrix4(local).applyMatrix4(batch.matrixWorld)))inside++;
  assert(inside>0);f.render();assert.equal(f.submissions,1,'fresh aggregate batch sphere cannot assume per-instance matrices are shear-free');f.guard.dispose();
 }
-console.log(JSON.stringify({passed:true,sweptVolumePointChecks:checks,checks:['default_and_rollback_query','multiple_building_bounds','camera_and_day_evening_night_states','hidden_layer_detach_owner_mutation','geometry_and_transform_mutation','manual_shadow_map_restore','batched_and_instanced_fail_open','dispose_and_rebuild'],scope:'CPU geometry and actual THREE matrices; no GPU/FPS measurement'}));
+console.log(JSON.stringify({passed:true,sweptVolumePointChecks:checks,checks:['default_and_rollback_query','multiple_building_bounds','camera_and_day_evening_night_states','hidden_layer_detach_owner_mutation','geometry_and_transform_mutation','manual_shadow_map_restore','nested_shadow_reentry_throw_and_dispose','batched_and_instanced_fail_open','dispose_and_rebuild'],scope:'CPU geometry and actual THREE matrices; no GPU/FPS measurement'}));
