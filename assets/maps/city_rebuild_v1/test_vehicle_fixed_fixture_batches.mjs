@@ -67,7 +67,10 @@ test('canonical material changes remain live; hidden-proxy changes preserve exis
 // all legacy and arch batching remains enabled. No production files are edited.
 const moduleSource=fs.readFileSync(new URL('./vehicle_render_batches.mjs',import.meta.url),'utf8');
 assert.equal(moduleSource.split('const fixedFixture=mesh=>').length,2);
-const baselineModule=await import('data:text/javascript;base64,'+Buffer.from(moduleSource.replace('const fixedFixture=mesh=>','const fixedFixture=mesh=>false&&')).toString('base64'));
+const baselineSource=moduleSource
+  .replace(/^import \{stampBatchedShadowBounds\} from '\.\/shadow_bounds_stamp\.mjs';\r?\n/,'const stampBatchedShadowBounds=()=>{};\n')
+  .replace('const fixedFixture=mesh=>','const fixedFixture=mesh=>false&&');
+const baselineModule=await import('data:text/javascript;base64,'+Buffer.from(baselineSource).toString('base64'));
 function submissions(root){let main=0,shadow=0;root.traverse(n=>{if(!n.isMesh)return;for(let p=n;p;p=p.parent)if(!p.visible)return;for(const m of Array.isArray(n.material)?n.material:[n.material])if(m?.visible){main+=m.transparent&&m.side===T.DoubleSide&&!m.forceSinglePass?2:1;shadow+=Number(n.castShadow);}});return {main,shadow};}
 for(const profile of ARTIST_VEHICLE_PROFILES){
  const bytes=fs.readFileSync(new URL('./models/artist_vehicle_pack/'+profile.modelFile,import.meta.url)),gltf=await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'');

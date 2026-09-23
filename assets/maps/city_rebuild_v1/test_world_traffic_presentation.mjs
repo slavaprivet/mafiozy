@@ -28,7 +28,7 @@ console.log(JSON.stringify({passed:true,checks:['original-identity','4.1-coordin
 
 for(const enabled of [true,false]){
  const options=[],gated=createWorldTrafficPresentation({THREE:{BatchedMesh:class{}},scene,loader,detailOptimization:enabled,vehicleFactory:()=>({object:object(),profile:{halfWidth:1,halfLength:2,height:2},update(){}}),renderBatchFactory:config=>{options.push(config);return{update(){},dispose(){}}}});
- gated.sync([{...a,id:'multi-draw-gate'}]);await gated.whenIdle();gated.update(1/60);assert.equal(options.length,1);assert.equal(options[0].detailOptimization,enabled);gated.dispose();
+ gated.sync([{...a,id:'multi-draw-gate'}]);await gated.whenIdle();gated.update(1/60);assert.equal(options.length,1);assert.equal(options[0].detailOptimization,enabled);assert.equal(options[0].rootDoorBatches,enabled,'traffic root-door batches follow the existing multi-draw capability gate');gated.dispose();
 }
 
 // Remote traffic interpolation runs every render frame. Its transient drive input
