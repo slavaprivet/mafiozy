@@ -5,6 +5,7 @@ import {buildVehicleCollisionShape} from './vehicle_collision_shape.mjs';
 import {CAR,carCorners,carFits,carOverlapsCircle} from './car_drive.mjs';
 import {polygonVehicleContact,contactKinematics} from './vehicle_contact.mjs';
 import {resolveVehiclePairImpulse} from './vehicle_pair_impulse.mjs';
+import {createFleetPairOccupantContracts,deliverFleetOccupantContact} from './vehicle_occupant_impact_fleet_seam.mjs';
 import {createVehicleDamage} from './vehicle_damage.mjs';
 import {createVehicleRollover} from './vehicle_rollover.mjs';
 import {createTyreDamage} from './tyre_damage.mjs';
@@ -130,25 +131,24 @@ export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,ground
   const v=record===activeRecord?velocity(state):{vx:finite(state.vx),vz:finite(state.vz)};
   return {...state,...v,mass:mass(record),halfWidth:shape(record).collisionHalfWidth??shape(record).halfWidth,halfLength:shape(record).collisionHalfLength??shape(record).halfLength};
  }
- function notifyContact(record,contact){
+ function notifyContact(record,contact,confirmedMotion=null,confirmed=false){
   // Passive bodies can travel several substeps since their last visible pose.
   // Contact rays/deformation must use the current body transform.
   render(record,0,false);record.car.object.updateWorldMatrix(true,true);
-  const damaged=record.damage?.contactImpact?.(contact),rolled=record.roll?.impact?.(contact,record.state.yaw),reacted=record.impactReaction?.impact(contact,{yaw:record.state.yaw});return !!(damaged||rolled||reacted);
+  return deliverFleetOccupantContact({record,contact,motion:confirmedMotion,confirmed}).handled;
  }
  function resolvePair(a,b,contact,{before=a.state,after=a.state}={}){
   const incoming=body(a,before);
   if(contact.incomingPose&&contact.velocity){Object.assign(incoming,contact.incomingPose,{vx:contact.velocity.x,vz:contact.velocity.z,yawRate:contact.incomingYawRate??incoming.yawRate});}
-  const result=resolveVehiclePairImpulse(incoming,body(b),contact);if(!result.resolved)return result;
+  const otherIncoming=body(b),result=resolveVehiclePairImpulse(incoming,otherIncoming,contact);if(!result.resolved)return result;
   fromVelocity(after,result.a.vx,result.a.vz,result.a.yawRate);if(a===activeRecord)a.state=after;
   fromVelocity(b.state,result.b.vx,result.b.vz,result.b.yawRate);
   contacts++;lastImpulse={a:a.id,b:b.id,...result};
   const key=[a.id,b.id].sort().join('|');
   if(time-(pairDamageTimes.get(key)??-Infinity)>=.25){
    pairDamageTimes.set(key,time);
-   const first={...contact,impactSpeed:result.deltaVA,slideSpeed:0,velocity:{x:result.a.vx,y:0,z:result.a.vz},eventId:`fleet:${key}:${time}`};
-   const second={...contact,normal:{x:-contact.normal.x,y:-finite(contact.normal.y),z:-contact.normal.z},impactSpeed:result.deltaVB,slideSpeed:0,velocity:{x:result.b.vx,y:0,z:result.b.vz},eventId:first.eventId};
-   notifyContact(a,first);notifyContact(b,second);
+   const contracts=createFleetPairOccupantContracts({eventId:`fleet:${key}:${time}`,occurredAt:time,aId:a.id,bId:b.id,result,incoming,otherIncoming,contact});
+   if(contracts){notifyContact(a,contracts.a.contact,contracts.a.motion,true);notifyContact(b,contracts.b.contact,contracts.b.motion,true)}
   }
   return result;
  }
