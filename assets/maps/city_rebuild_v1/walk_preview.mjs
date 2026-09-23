@@ -259,8 +259,8 @@ const sun=new THREE.DirectionalLight('#fff0d4',1.7);sun.position.set(-75,130,90)
 
 
 sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:320});sun.shadow.bias=-.0003;sun.shadow.normalBias=.04;scene.add(sun,sun.target);
-// Vehicle shadow rejection is accepted by default. The same conservative
-// swept-volume proof for building casters remains an explicit QA candidate.
+// Vehicle and building casters use the same conservative swept-volume proof.
+// Either path can be rolled back independently with its explicit URL flag.
 const vehicleShadowEnabled=vehicleShadowCullingEnabled(location.search),buildingShadowEnabled=buildingShadowCullingEnabled(location.search);
 if(vehicleShadowEnabled||buildingShadowEnabled)vehicleShadowCulling=createVehicleShadowCulling({THREE,renderer,scene,sun,enabled:vehicleShadowEnabled,buildingEnabled:buildingShadowEnabled,onSample:performanceProbe?stats=>{document.body.dataset.vehicleShadowCulling=JSON.stringify(stats);}:undefined});
 function resetVehicleShadowQa(){vehicleShadowCulling?.setEnabled(vehicleShadowEnabled);vehicleShadowCulling?.setBuildingEnabled(buildingShadowEnabled);if(vehicleShadowQaButton)vehicleShadowQaButton.textContent='Тени машин: отсечение невидимых · сравнить';if(buildingShadowQaButton)buildingShadowQaButton.textContent='Тени зданий: отсечение невидимых · сравнить';}

@@ -2,7 +2,7 @@
 // outside the view is NOT enough: its complete shadow ray volume must miss it.
 import {batchedShadowBoundsCurrent} from './shadow_bounds_stamp.mjs';
 export const vehicleShadowCullingEnabled=(search='')=>new URLSearchParams(search).get('vehicleshadowcull')!=='0';
-export const buildingShadowCullingEnabled=(search='')=>new URLSearchParams(search).get('buildingshadowcull')==='1';
+export const buildingShadowCullingEnabled=(search='')=>new URLSearchParams(search).get('buildingshadowcull')!=='0';
 
 export function shadowVolumeOutsideView(planes,center,radius,direction,length,padding=0){
  if(!Number.isFinite(radius)||radius<0||!Number.isFinite(length)||length<0||!Number.isFinite(padding)||padding<0)return false;

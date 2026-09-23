@@ -294,7 +294,7 @@ test('actual walk import/readiness/pagehide and early frame guard preserve norma
  assert(source.includes('renderWeaponView(renderer,scene,camera,null,updateEntryLightsForRenderCamera)'),'held render refreshes entry lights for its final camera instead of retaining a stale impact or recoil view');
  assert(source.includes('renderWeaponView(renderer,scene,camera,combat.allowed?combat.recoil:null,updateEntryLightsForRenderCamera)'),'normal render refreshes entry lights after temporary camera presentation transforms');
  assert(source.includes('const vehicleShadowEnabled=vehicleShadowCullingEnabled(location.search),buildingShadowEnabled=buildingShadowCullingEnabled(location.search);'),'building shadow-volume candidate has an independent URL gate');
- assert(source.includes('buildingEnabled:buildingShadowEnabled'),'walk passes the default-off building gate into the accepted vehicle shadow owner');
+ assert(source.includes('buildingEnabled:buildingShadowEnabled'),'walk passes the independent building gate into the accepted shadow owner');
  assert(source.includes('vehicleShadowCulling?.setBuildingEnabled(buildingShadowEnabled)'),'freeze QA restores the configured building candidate after every comparison');
  assert(source.includes("top:274px"),'building shadow control stays between the static-matrix and draw-probe rows without covering the GPU timer');
  assert.match(source,/import \{createRenderFreezeQa,allowRenderFreeze\} from '\.\/render_freeze_qa\.mjs'/);

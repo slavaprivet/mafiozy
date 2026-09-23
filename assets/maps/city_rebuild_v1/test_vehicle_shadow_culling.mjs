@@ -7,9 +7,10 @@ assert.equal(vehicleShadowCullingEnabled(''),true,'ordinary walk enables conserv
 assert.equal(vehicleShadowCullingEnabled('?perfqa=1'),true,'unrelated QA parameters preserve the default');
 assert.equal(vehicleShadowCullingEnabled('?vehicleshadowcull=1'),true,'legacy opt-in remains compatible');
 assert.equal(vehicleShadowCullingEnabled('?vehicleshadowcull=0'),false,'explicit rollback disables the optimization');
-assert.equal(buildingShadowCullingEnabled(''),false,'building candidate remains off by default');
-assert.equal(buildingShadowCullingEnabled('?buildingshadowcull=1'),true,'building candidate requires its exact opt-in');
-assert.equal(buildingShadowCullingEnabled('?buildingshadowcull=0'),false);
+assert.equal(buildingShadowCullingEnabled(''),true,'ordinary walk enables conservative building shadow culling');
+assert.equal(buildingShadowCullingEnabled('?perfqa=1'),true,'unrelated QA parameters preserve the building default');
+assert.equal(buildingShadowCullingEnabled('?buildingshadowcull=1'),true,'legacy building opt-in remains compatible');
+assert.equal(buildingShadowCullingEnabled('?buildingshadowcull=0'),false,'explicit building rollback disables the optimization');
 const camera=new T.PerspectiveCamera(45,16/9,.2,1500);camera.position.set(0,1.7,0);camera.lookAt(0,1.7,-10);camera.updateMatrixWorld(true);
 const frustum=new T.Frustum().setFromProjectionMatrix(new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
 const direction=new T.Vector3(75,-130,-90).normalize();
@@ -52,24 +53,24 @@ render();assert.equal(calls,9,'moved geometry now inside view must render');
 throwDraw=true;assert.throws(render,/draw failure/);throwDraw=false;const before=calls;renderer.renderBufferDirect(sun.shadow.camera,scene,mesh.geometry,mesh.material,mesh,null);assert.equal(calls,before+1,'error clears shadow context');
 helper.dispose();helper.dispose();assert.equal(renderer.shadowMap.render,shadowOriginal);assert.equal(renderer.renderBufferDirect,directOriginal);
 
-// Building sources share the same mathematical proof but have a separate,
-// default-off switch. Their gameplay hierarchy and render flags stay intact.
+// Building sources share the same mathematical proof but have a separate
+// runtime switch. Their gameplay hierarchy and render flags stay intact.
 {
  const world=new T.Scene(),light=new T.DirectionalLight();light.position.set(-75,130,90);light.castShadow=true;world.add(light,light.target);Object.assign(light.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:320});light.shadow.mapSize.set(2048,2048);
  const placement=new T.Group();placement.userData.instance={assetId:'test_house'};const wall=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());wall.castShadow=true;wall.position.set(40,1,20);placement.add(wall);world.add(placement);world.updateMatrixWorld(true);
  let submissions=0;const backend={shadowMap:{enabled:true,autoUpdate:true,type:T.PCFSoftShadowMap,render(){backend.renderBufferDirect(light.shadow.camera,world,wall.geometry,wall.material,wall,null)}},renderBufferDirect(){submissions++}};
  const guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light,enabled:false,buildingEnabled:false});
- backend.shadowMap.render([light],world,camera);assert.equal(submissions,1,'default-off building source renders normally');
- guard.setBuildingEnabled(true);backend.shadowMap.render([light],world,camera);assert.equal(submissions,1,'opt-in rejects only the proven outside building shadow volume');assert.equal(guard.stats.buildingCulled,1);assert.equal(guard.stats.vehicleCulled,0);
+ backend.shadowMap.render([light],world,camera);assert.equal(submissions,1,'disabled building source renders normally');
+ guard.setBuildingEnabled(true);backend.shadowMap.render([light],world,camera);assert.equal(submissions,1,'enabled path rejects only the proven outside building shadow volume');assert.equal(guard.stats.buildingCulled,1);assert.equal(guard.stats.vehicleCulled,0);
  wall.position.set(0,1,-10);world.updateMatrixWorld(true);backend.shadowMap.render([light],world,camera);assert.equal(submissions,2,'building caster that can affect the view is retained');assert.equal(placement.visible,true);assert.equal(wall.castShadow,true);guard.dispose();
 }
 
 // Independent regressions from review. Emulate Three's manual-update gates
 // and map replacement, while leaving all geometry/matrix math real.
-function reviewFixture(object){
+function reviewFixture(object,{kind='vehicle'}={}){
  const world=new T.Scene(),light=new T.DirectionalLight();light.position.set(-75,130,90);world.add(light,light.target);light.castShadow=true;
  Object.assign(light.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:320});light.shadow.mapSize.set(2048,2048);light.shadow.bias=-.0003;light.shadow.normalBias=.04;
- const owner=new T.Group();owner.userData.vehicleFleetId='review';owner.add(object);world.add(owner);object.castShadow=true;world.updateMatrixWorld(true);
+ const owner=new T.Group();if(kind==='building')owner.userData.instance={assetId:'review_building'};else owner.userData.vehicleFleetId='review';owner.add(object);world.add(owner);object.castShadow=true;world.updateMatrixWorld(true);
  const view=camera.clone();view.updateMatrixWorld(true);
  let submissions=0,passes=0,mapHasCaster=null;
  const backend={shadowMap:{enabled:true,autoUpdate:true,needsUpdate:false,type:T.PCFSoftShadowMap,render(lights=[light]){
@@ -77,14 +78,33 @@ function reviewFixture(object){
   for(const current of lights){if(!current.shadow||!current.shadow.autoUpdate&&!current.shadow.needsUpdate)continue;const before=submissions;passes++;if(current===light)backend.renderBufferDirect(light.shadow.camera,world,object.geometry,object.material,object,null);if(current===light)mapHasCaster=submissions>before;current.shadow.needsUpdate=false}
   backend.shadowMap.needsUpdate=false;
  }},renderBufferDirect(){submissions++;}};
- const guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light});
+ const guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light,enabled:kind==='vehicle',buildingEnabled:kind==='building'});
  return {world,light,view,owner,backend,guard,render:(lights=[light])=>backend.shadowMap.render(lights,world,view),get submissions(){return submissions},get passes(){return passes},get mapHasCaster(){return mapHasCaster}};
+}
+
+// Emulate the relevant Three scene traversal gates as well as the actual
+// renderBufferDirect hook. This catches ownership changes without pretending
+// that hidden, detached or layer-mismatched objects reach the shadow draw.
+function traversalFixture(object,{building=true}={}){
+ const world=new T.Scene(),light=new T.DirectionalLight();light.position.set(-75,130,90);world.add(light,light.target);light.castShadow=true;
+ Object.assign(light.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:320});light.shadow.mapSize.set(2048,2048);light.shadow.bias=-.0003;light.shadow.normalBias=.04;
+ const owner=new T.Group();if(building)owner.userData.instance={assetId:'traversal_building'};else owner.userData.vehicleFleetId='traversal_vehicle';owner.add(object);world.add(owner);object.castShadow=true;
+ const view=camera.clone();view.updateMatrixWorld(true);let drawn=[];
+ const backend={shadowMap:{enabled:true,autoUpdate:true,needsUpdate:false,type:T.PCFSoftShadowMap,render(){
+  world.updateMatrixWorld(true);drawn=[];world.traverseVisible(node=>{if(node.isMesh&&node.castShadow&&node.layers.test(light.shadow.camera.layers))backend.renderBufferDirect(light.shadow.camera,world,node.geometry,node.material,node,null)});
+ }},renderBufferDirect(_camera,_scene,_geometry,_material,node){drawn.push(node);}};
+ const direct=backend.renderBufferDirect,shadow=backend.shadowMap.render,guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light,enabled:!building,buildingEnabled:building});
+ return {world,light,view,owner,backend,guard,direct,shadow,render(){world.updateMatrixWorld(true);backend.shadowMap.render([light],world,view);return drawn.slice()},get drawn(){return drawn.slice()}};
 }
 {
  const instance=new T.InstancedMesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial(),1);
  instance.setMatrixAt(0,new T.Matrix4().makeTranslation(40,1,20));instance.computeBoundingSphere();
  instance.setMatrixAt(0,new T.Matrix4().makeTranslation(0,1,-10));instance.instanceMatrix.needsUpdate=true;
  const f=reviewFixture(instance);f.render();assert(frustum.containsPoint(new T.Vector3(0,1,-10)));assert.equal(f.submissions,1,'unknown instanced bounds cannot reject a newly visible instance');assert.equal(f.guard.stats.unsupported,1);f.guard.dispose();
+}
+{
+ const instance=new T.InstancedMesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial(),1);instance.setMatrixAt(0,new T.Matrix4().makeTranslation(40,1,20));instance.computeBoundingSphere();
+ const f=reviewFixture(instance,{kind:'building'});f.render();assert.equal(f.submissions,1,'fallback building InstancedMesh always fails open');assert.equal(f.guard.stats.unsupported,1);f.guard.dispose();
 }
 {
  // A scale-independent shear bound is essential: all column cross-products
@@ -118,6 +138,47 @@ for(const action of ['disable','dispose']){
  if(action==='disable')f.guard.setEnabled(false);else f.guard.dispose();
  assert.equal(f.backend.shadowMap.needsUpdate,true);assert.equal(f.light.shadow.needsUpdate,true);
  f.render();assert.equal(f.mapHasCaster,true,action+' cannot leave a pruned map cached');f.guard.dispose();
+}
+{
+ const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
+ const f=reviewFixture(shape,{kind:'building'});f.render();assert.equal(f.mapHasCaster,false,'automatic building pass created a pruned sun map');
+ f.backend.shadowMap.autoUpdate=false;f.light.shadow.autoUpdate=false;f.guard.setBuildingEnabled(false);
+ assert.equal(f.backend.shadowMap.needsUpdate,true);assert.equal(f.light.shadow.needsUpdate,true);
+ f.render();assert.equal(f.mapHasCaster,true,'building opt-out cannot leave a pruned map cached');f.guard.dispose();
+}
+{
+ const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
+ const f=reviewFixture(shape,{kind:'building'});f.render();assert.equal(f.submissions,0);
+ f.light.intensity=.12;f.view.lookAt(shape.position);f.view.updateMatrixWorld(true);f.render();
+ assert.equal(f.submissions,1,'night intensity and the current camera still retain a newly relevant building caster');f.guard.dispose();
+}
+{
+ const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
+ const f=traversalFixture(shape);assert.deepEqual(f.render(),[],'far building is culled through actual traversal gates');
+ f.owner.visible=false;assert.deepEqual(f.render(),[],'hidden hierarchy never reaches the draw hook');assert.equal(f.guard.stats.tested,0);
+ f.owner.visible=true;shape.layers.set(3);assert.deepEqual(f.render(),[],'shadow-camera layer mismatch never reaches the draw hook');assert.equal(f.guard.stats.tested,0);
+ f.light.shadow.camera.layers.enable(3);assert.deepEqual(f.render(),[],'matching layer restores conservative far culling');assert.equal(f.guard.stats.buildingCulled,1);
+ shape.removeFromParent();f.world.add(shape);assert.deepEqual(f.render(),[shape],'detached mesh without an audited owner fails open');assert.equal(f.guard.stats.tested,0);
+ f.owner.add(shape);delete f.owner.userData.instance;assert.deepEqual(f.render(),[shape],'owner metadata mutation fails open');
+ f.owner.userData.instance={assetId:'traversal_building'};shape.position.set(0,1,-10);assert.deepEqual(f.render(),[shape],'reattached visible building draws');
+ shape.position.set(40,1,20);shape.scale.set(80,40,80);assert.deepEqual(f.render(),[shape],'large mutated bounds that reach the view draw');
+ f.guard.dispose();assert.equal(f.backend.renderBufferDirect,f.direct);assert.equal(f.backend.shadowMap.render,f.shadow);
+ const rebuilt=createVehicleShadowCulling({THREE:T,renderer:f.backend,scene:f.world,sun:f.light,enabled:false,buildingEnabled:true});shape.scale.set(1,1,1);assert.deepEqual(f.render(),[],'rebuilt guard resumes conservative culling');rebuilt.dispose();
+}
+{
+ // The game translates sun and target with the focus and changes intensity at
+ // day/evening/night. Exercise all three values, several focus/camera poses and
+ // differently transformed bounds without assuming a particular cull count.
+ const shape=new T.Mesh(new T.BoxGeometry(3,7,5),new T.MeshStandardMaterial());shape.position.set(40,3.5,20);shape.rotation.set(.11,.43,-.07);shape.scale.set(1.2,.8,1.7);
+ const f=traversalFixture(shape),states=[[1.7,0,0,0,0,1.7,0,0,1.7,-10],[.45,80,0,-60,80,2,-50,40,2,20],[.12,-120,0,90,-120,3,80,-80,2,70]];
+ let culled=0,kept=0;
+ for(const [intensity,fx,fy,fz,cx,cy,cz,tx,ty,tz] of states){
+  f.light.intensity=intensity;f.light.position.set(fx-75,fy+130,fz+90);f.light.target.position.set(fx,fy,fz);f.view.position.set(cx,cy,cz);f.view.lookAt(tx,ty,tz);f.view.updateMatrixWorld(true);
+  const draw=f.render();if(draw.length)kept++;else culled++;
+  assert.equal(shape.visible,true);assert.equal(shape.castShadow,true);assert.equal(shape.layers.mask,1);
+  f.view.lookAt(shape.getWorldPosition(new T.Vector3()));f.view.updateMatrixWorld(true);assert.deepEqual(f.render(),[shape],`visible transformed bounds draw at intensity ${intensity}`);
+ }
+ assert(culled>0&&kept>0,'multi-view cycle exercises both proven rejection and retained draws');f.guard.dispose();
 }
 {
  const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
@@ -169,4 +230,4 @@ for(const variant of ['perspective','parent','scaled','view-offset','manual-matr
  for(let i=0;i<positions.count;i++)if(frustum.containsPoint(point.fromBufferAttribute(positions,i).applyMatrix4(local).applyMatrix4(batch.matrixWorld)))inside++;
  assert(inside>0);f.render();assert.equal(f.submissions,1,'fresh aggregate batch sphere cannot assume per-instance matrices are shear-free');f.guard.dispose();
 }
-console.log(JSON.stringify({passed:true,sweptVolumePointChecks:checks,scope:'CPU geometry and actual THREE matrices; no GPU/FPS measurement'}));
+console.log(JSON.stringify({passed:true,sweptVolumePointChecks:checks,checks:['default_and_rollback_query','multiple_building_bounds','camera_and_day_evening_night_states','hidden_layer_detach_owner_mutation','geometry_and_transform_mutation','manual_shadow_map_restore','batched_and_instanced_fail_open','dispose_and_rebuild'],scope:'CPU geometry and actual THREE matrices; no GPU/FPS measurement'}));
