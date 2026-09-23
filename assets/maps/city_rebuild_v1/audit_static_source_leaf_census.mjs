@@ -9,12 +9,12 @@ import {STREET_LAMP_PROFILES as RUNTIME_STREET_LAMP_PROFILES} from './street_lig
 const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
 registerHooks({resolve(s,c,n){return n(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});
 const T=await import('three'),{GLTFLoader}=await import(pathToFileURL(vendor+'addons/loaders/GLTFLoader.js'));
-const stampImport="import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';",lampImport="import {STREET_LAMP_PROFILES} from './street_lighting.mjs';",rawSource=fs.readFileSync(new URL('./static_render_batches.mjs',import.meta.url),'utf8');
-assert(rawSource.includes(stampImport));assert(rawSource.includes(lampImport));
+const stampImport="import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';",lampImport="import {STREET_LAMP_PROFILES} from './street_lighting.mjs';",windowImport="import {WINDOW_PROFILES} from './residential_windows.mjs';",rawSource=fs.readFileSync(new URL('./static_render_batches.mjs',import.meta.url),'utf8');
+assert(rawSource.includes(stampImport));assert(rawSource.includes(lampImport));assert(rawSource.includes(windowImport));
 // The data-URL audit exits before batch allocation and never needs the runtime
 // bounds stamp. Strip relative imports because data: modules have no base URL,
 // then inject the exact frozen runtime lamp admission data as plain JSON.
-const source=`const STREET_LAMP_PROFILES=${JSON.stringify(RUNTIME_STREET_LAMP_PROFILES)};\n`+rawSource.replace(stampImport,'').replace(lampImport,'');
+const source=`const STREET_LAMP_PROFILES=${JSON.stringify(RUNTIME_STREET_LAMP_PROFILES)};\nconst WINDOW_PROFILES=${JSON.stringify((await import('./residential_windows.mjs')).WINDOW_PROFILES)};\n`+rawSource.replace(stampImport,'').replace(lampImport,'').replace(windowImport,'');
 const marker='const batches=[],instancedSourceMaterials=new Map(),batchedBackend=multiDraw===true&&!!T.BatchedMesh;';
 assert(source.includes(marker));
 // Use actual admission/grouping code, return before any BatchedMesh geometry allocation.

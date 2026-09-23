@@ -1,7 +1,9 @@
 import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';
 import {STREET_LAMP_PROFILES} from './street_lighting.mjs';
+import {WINDOW_PROFILES} from './residential_windows.mjs';
 
 const zeroMatrixMarker='StaticRenderBatch_Zero';
+const oldTownWindowFrameMaterials=new Set(['Residential stone reveal','Residential muted brass frame','Residential burgundy curtain']);
 
 function hiddenMaterial(T,material){
  const clone=material.clone();clone.visible=false;clone.name=`${material.name||'material'}_hidden_render_source`;clone.userData={...clone.userData,staticRenderSource:true};return clone;
@@ -46,6 +48,24 @@ function auditedStaticLampPost(mesh,group){
  return reached;
 }
 
+// Old Town's generated recess and frame pools are immutable opaque
+// InstancedMeshes.  They are siblings of the breakable glass pool, not part
+// of it.  Keep this lane pinned to the audited LOD0 source SHA, exact mesh and
+// material names; never admit the DeepGlass pool or another residential kit.
+function auditedOldTownWindowFrame(mesh,group){
+ const instance=group?.userData?.instance;
+ if(instance?.assetId!=='old_town_narrow_townhouse_v1'||instance?.binding?.lod!==0||String(instance?.binding?.sha256||'').toLowerCase()!==WINDOW_PROFILES.old_town_narrow_townhouse_v1)return false;
+ const allowed=mesh?.name==='ResidentialWindow_DeepRecess'?mesh.material?.name==='Residential deep interior':mesh?.name==='ResidentialWindow_Frame_And_Interior'?oldTownWindowFrameMaterials.has(mesh.material?.name):false;
+ if(!allowed||!mesh.isInstancedMesh||!mesh.userData?.worldBlastStaticBounds||mesh.userData?.breakableGlass)return false;
+ if(!mesh.material?.isMeshStandardMaterial||mesh.material.transparent||mesh.material.opacity!==1||(mesh.material.transmission||0)>0)return false;
+ let reached=false;
+ for(let node=mesh;node;node=node.parent){
+  if(node.visible===false||node.userData?.glassEffect||node.userData?.blastEffect||node.userData?.breakableGlass||node.userData?.movingDoor)return false;
+  if(node===group){reached=true;break}
+ }
+ return reached;
+}
+
 // A building template has many sibling meshes below the same two or three
 // groups. Its visibility/name/effect ancestry does not change while a batch
 // is assembled, so remember that result per ancestor. The cache has separate
@@ -60,13 +80,14 @@ function hierarchyBatchable(node,interiorInstances,cache){
 }
 
 function batchableMesh(T,mesh,hierarchyCache,group){
- const interiorInstances=auditedStaticArchitecture(mesh)||mesh?.isInstancedMesh&&/^Interior_Furnishings_/.test(mesh.name||'');
+ const staticOptimization=auditedStaticArchitecture(mesh)||auditedOldTownWindowFrame(mesh,group),interiorInstances=staticOptimization||mesh?.isInstancedMesh&&/^Interior_Furnishings_/.test(mesh.name||'');
  if(!mesh?.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh&&!interiorInstances||Array.isArray(mesh.material)||!mesh.geometry?.attributes?.position)return false;
  const prototype=T.Object3D?.prototype;
  if(!prototype||mesh.onBeforeRender!==prototype.onBeforeRender||mesh.onAfterRender!==prototype.onAfterRender||mesh.onBeforeShadow!==prototype.onBeforeShadow||mesh.onAfterShadow!==prototype.onAfterShadow||mesh.customDepthMaterial||mesh.customDistanceMaterial)return false;
  const material=mesh.material;if(!material||material.transparent||material.opacity<1||material.transmission>0||material.visible===false)return false;
  if(mesh.userData?.breakableGlass||material.userData?.breakableGlass)return false;
  if(auditedStaticLampPost(mesh,group))return true;
+ if(auditedOldTownWindowFrame(mesh,group))return true;
  // Batched copies live outside the original hierarchy. Never resurrect a
  // hidden collision proxy, clearance volume or authored hidden mesh.
  return hierarchyNodeBatchable(mesh,interiorInstances)&&hierarchyBatchable(mesh.parent,interiorInstances,hierarchyCache);
@@ -144,7 +165,7 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
   group.updateWorldMatrix(true,true);
   group.traverse(mesh=>{
    if(!batchableMesh(T,mesh,hierarchyCache,group))return;const layout=layoutFor(mesh.geometry);if(!layout)return;
-   const optimization=auditedStaticArchitecture(mesh),lampPost=auditedStaticLampPost(mesh,group),materialIdentity=optimization?auditedArchitectureMaterialKey(T,mesh):null,geometryKey=mesh.isInstancedMesh&&!optimization?'interior:'+mesh.name:mesh.geometry.uuid,fallbackGeometry=lampPost&&!(multiDraw===true&&T.BatchedMesh)?'|geometry:'+geometryKey:'',key=batchKey(mesh,layout,materialIdentity||mesh.material.uuid)+(optimization?'|architecture':'')+(lampPost?'|lamp-post'+fallbackGeometry:''),entry=groups.get(key)||{material:mesh.material,members:[],geometries:new Map(),castShadow:mesh.castShadow,receiveShadow:mesh.receiveShadow,renderOrder:mesh.renderOrder,layersMask:mesh.layers.mask,optimization,interiorInstances:mesh.isInstancedMesh&&!optimization};
+   const optimization=auditedStaticArchitecture(mesh)||auditedOldTownWindowFrame(mesh,group),lampPost=auditedStaticLampPost(mesh,group),materialIdentity=optimization?auditedArchitectureMaterialKey(T,mesh):null,geometryKey=mesh.isInstancedMesh&&!optimization?'interior:'+mesh.name:mesh.geometry.uuid,fallbackGeometry=lampPost&&!(multiDraw===true&&T.BatchedMesh)?'|geometry:'+geometryKey:'',key=batchKey(mesh,layout,materialIdentity||mesh.material.uuid)+(optimization?'|architecture':'')+(lampPost?'|lamp-post'+fallbackGeometry:''),entry=groups.get(key)||{material:mesh.material,members:[],geometries:new Map(),castShadow:mesh.castShadow,receiveShadow:mesh.receiveShadow,renderOrder:mesh.renderOrder,layersMask:mesh.layers.mask,optimization,interiorInstances:mesh.isInstancedMesh&&!optimization};
    if(!groups.has(key))groups.set(key,entry);
    if(mesh.isInstancedMesh){
     // Every instance below one source mesh shares this world transform.  The
