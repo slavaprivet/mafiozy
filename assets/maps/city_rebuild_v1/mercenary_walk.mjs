@@ -15,19 +15,21 @@ import {createMercenaryTaskMarkers} from './mercenary_task_markers.mjs';
 import {createMercenaryActionMenu} from './mercenary_action_menu.mjs';
 import {createMercenaryChatter} from './mercenary_chatter.mjs';
 import {createMercenarySpeechBubble} from './mercenary_speech_bubble.mjs';
+import {setInteractionPromptText} from './interaction_prompt.mjs';
 
 // Presentation adapter. The source host owns recruitment, inventory, HP and orders.
-export function createMercenaryWalk({THREE,document,parent=document.body,camera,scene,getHost,getFleet,getTraffic,getNpcs,getBuildings,getRoots,getPickRoots,getFocus=()=>null,getHero=()=>null,canMove,groundHeight=()=>0,isBlocked=()=>false,onOpenChange=()=>{},onFollowGesture=()=>{},onExplosion=()=>{},createDamage=createVehicleDamage}){
+export function createMercenaryWalk({THREE,document,parent=document.body,camera,scene,getHost,getFleet,getTraffic,getNpcs,getBuildings,getRoots,getPickRoots,getFocus=()=>null,getHero=()=>null,squadTransport=null,safeCatchupPoint=null,canMove,groundHeight=()=>0,isBlocked=()=>false,isCommandBlocked=isBlocked,hasPriorityInteraction=()=>false,onOpenChange=()=>{},onFollowGesture=()=>{},onExplosion=()=>{},createDamage=createVehicleDamage}){
  const trafficDamage=new Map();let host=null,chatter=null,disposed=false,talkId=null,aimElapsed=0,nextAimAt=0,diagnosticElapsed=0;const pickingStats={samples:0,lastMs:0,maxMs:0};
  const pickingQaParams=new URLSearchParams(document.defaultView?.location?.search||globalThis.location?.search||'');
  const pickingProbe=createMercenaryPickingProbe({THREE,enabled:pickingQaParams.get('perfqa')==='1'&&pickingQaParams.get('mercenarypickqa')==='1',document});
  const nativePickingQa=createNativePickingQa({document});
  const npcSkinPickingQa=createNpcSkinPickingQa({document,createMemo:()=>createNpcSkinPickMemo({THREE})});
  const trafficActor=id=>{const traffic=getTraffic();return traffic?.getActor?.(id)||traffic?.getActors?.().find(r=>String(r.id)===String(id))?.actor||null;};
- const badges=createMercenaryBadges({THREE,document,parent,scene:null,camera,getActors:getNpcs,getRoots,getOcclusionRoots:getPickRoots,getFocus,getTalkId:()=>talkId});
+ const badges=createMercenaryBadges({THREE,document,parent,scene:null,camera,getActors:getNpcs,getRoots,getOcclusionRoots:getPickRoots,getFocus,getTalkId:()=>talkId,hideOwned:vehicleCommandContext});
  const speechBubble=createMercenarySpeechBubble({THREE,document,parent,camera,getBadgeAnchor:id=>badges.getSpeakerAnchor(id),getHero,getFocus});
  const safeBinding=createMercenarySafeBinding({getHost,getRegistry:()=>globalThis.MafioziInteriorSafeTargets});
  const callbacks=target=>target.object?.userData?.mercenaryTarget||{};
+ function vehicleCommandContext(){return squadTransport?.isPlayerInVehicle?.()===true||!!squadTransport?.getPlayerVehicle?.();}
  const targets=createMercenaryTargets({THREE,camera,getRoots,getPickRoots,getFleet,getTraffic,getNpcs,getBuildings,pickingProbe,skinPickingMemo:npcSkinPickingQa?.memo,getVehicleLock:id=>globalThis.MafioziMercenaryVehicleLocks?.get(id),
   onVehicleBlast(target,effect){
    if(!host)return {ok:false,reason:'Источник мира ещё загружается'};
@@ -89,8 +91,8 @@ export function createMercenaryWalk({THREE,document,parent=document.body,camera,
  const commandReticle=document.createElement('span');commandReticle.setAttribute('aria-hidden','true');commandReticle.setAttribute('style','position:fixed;left:50%;top:50%;width:5px;height:5px;box-sizing:border-box;border:1px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 2px 1px #0008;pointer-events:none;z-index:9997;display:none');parent.append(commandReticle);
  const actionPrompt=document.createElement('p');actionPrompt.dataset.walkHud='mercenary-action';actionPrompt.hidden=true;actionPrompt.setAttribute('role','status');actionPrompt.setAttribute('style','position:fixed;left:50%;top:59%;transform:translateX(-50%);z-index:10003;padding:8px 14px;border:1px solid #89c49b;border-radius:5px;background:#153326eb;color:#def8df;font:600 14px system-ui;pointer-events:none;display:none');parent.append(actionPrompt);
  const actionPriority=['revive','unlock_safe','cut_fence','disable_power','breach_door','plant_bomb','unlock_door','eliminate','intimidate'];
- async function issueCommand(id,t){const result=await host?.command?.(id,t);if(!result?.queued)return result;const number=(Number(result.queuePosition)||1)+(host?.getAction?.(result.memberId)?1:0);return{...result,message:'Добавлено задание №'+number};}
- function contextActions(aimed){if(!aimed?.valid)return [];const seen=new Set();return(host?.getActions?.(aimed)||[]).filter(a=>a.enabled!==false&&a.available!==false&&!a.disabledReason).sort((a,b)=>{const rank=a=>{const i=actionPriority.indexOf(a.id||a.kind);return i<0?99:i;};return rank(a)-rank(b)||Number(a.willQueue)-Number(b.willQueue)||(a.queuedCount||0)-(b.queuedCount||0);}).filter(a=>{const id=a.id||a.kind;if(seen.has(id))return false;seen.add(id);return true;});}
+ async function issueCommand(id,t){if(isCommandBlocked()||isBlocked()||vehicleCommandContext())return{ok:false,reason:'Сейчас этот приказ недоступен.'};const result=await host?.command?.(id,t);if(!result?.queued)return result;const number=(Number(result.queuePosition)||1)+(host?.getAction?.(result.memberId)?1:0);return{...result,message:'Добавлено задание №'+number};}
+ function contextActions(aimed){if(!aimed?.valid||isCommandBlocked()||isBlocked()||vehicleCommandContext())return [];const seen=new Set();return(host?.getActions?.(aimed)||[]).filter(a=>a.enabled!==false&&a.available!==false&&!a.disabledReason).sort((a,b)=>{const rank=a=>{const i=actionPriority.indexOf(a.id||a.kind);return i<0?99:i;};return rank(a)-rank(b)||Number(a.willQueue)-Number(b.willQueue)||(a.queuedCount||0)-(b.queuedCount||0);}).filter(a=>{const id=a.id||a.kind;if(seen.has(id))return false;seen.add(id);return true;});}
  async function dispatchAction(id,t){const result=await issueCommand(id,t);if(!disposed){if(result?.ok)selection.setRally(null);ui.showNotice(result?.message||result?.reason||(result?.ok?'Приказ принят.':'Не удалось выполнить приказ.'));}return result;}
  const actionMenu=createMercenaryActionMenu({document,parent,getTarget:id=>{const t=target(id);return t&&{...t,valid:t.valid!==false};},getActions:contextActions,onChoose:dispatchAction,onOpenChange});
  function showActionPrompt(action){const visible=!!action&&!contextPending&&!actionMenu.isOpen;actionPrompt.hidden=!visible;actionPrompt.style.display=visible?'block':'none';const text=action?'X — '+(action.willQueue?'В очередь · ':'')+(action.label||action.id||action.kind):'';if(actionPrompt.textContent!==text)actionPrompt.textContent=text;}
@@ -102,7 +104,14 @@ export function createMercenaryWalk({THREE,document,parent=document.body,camera,
   const skinSample=npcSkinPickingQa?.begin();
   const pickStarted=performance.now();pickingProbe?.begin(pickStarted);let blocked=false,failed=true,sampledTargetId=null;
   try{
-   const canPick=!isBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen;blocked=!canPick;pickingProbe?.mark('guardAndRosterMs');
+   if(vehicleCommandContext()){
+    blocked=true;commandReticle.style.display='none';selection.setTarget(null);taskMarkers.clear();
+    const allowed=!isCommandBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen;
+    const defense=allowed?host?.getVehicleDefenseFireState?.():null;
+    showActionPrompt(defense&&(defense.enabled||defense.available)?{label:defense.enabled?'Прекратить огонь и сесть':'Высунуться и открыть ответный огонь'}:null);
+    failed=false;return;
+   }
+   const canPick=!isCommandBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen;blocked=!canPick;pickingProbe?.mark('guardAndRosterMs');
    const aimed=actionMenu.isOpen?target(actionMenu.targetId):canPick?pick():null;pickingStats.lastMs=performance.now()-pickStarted;pickingStats.maxMs=Math.max(pickingStats.maxMs,pickingStats.lastMs);pickingStats.samples++;
    sampledTargetId=aimed?.id??null;
    const working=aimed?.valid&&(host?.getRoster?.().members||[]).some(member=>{const action=host?.getAction?.(member.id);return action&&String(action.targetId)===String(aimed.id)&&(action.armed||['working','awaiting','retreat','countdown'].includes(action.phase));});
@@ -114,23 +123,32 @@ export function createMercenaryWalk({THREE,document,parent=document.body,camera,
  const ui=createMercenaryCommandUI({document,parent,getTarget:pick,getRoster:()=>host?.getRoster?.()||{members:[],candidates:[],weapons:[]},getActions:t=>host?.getActions?.(target(t.id)||t)||[],
   onFollow:()=>{const result=host?.follow?.();if(result?.ok){selection.setRally(null);onFollowGesture();}return result;},getActiveCommand:()=>{for(const m of host?.getRoster?.().members||[]){const a=host?.getAction?.(m.id);if(a)return {...a,memberId:m.id,cancelable:!a.armed&&a.phase!=='awaiting'};}return null;},onCancel:a=>host?.cancelCommand?.(a.memberId),onCommand:(id,t)=>issueCommand(id,target(t.id)||t),onEquip:(id,weapon)=>host?.equip?.(id,weapon),onUpgrade:(id,skill)=>host?.upgrade?.(id,skill),onDismiss:id=>host?.dismiss?.(id),isBlocked:()=>isBlocked()||dialogue.isOpen||actionMenu.isOpen,onOpenChange});
  function update(dt=0){
-  if(disposed)return;const next=getHost();if(next&&next!==host){chatter?.dispose();host=next;chatter=createMercenaryChatter({host,document,window:document.defaultView||globalThis.window,onCaption:line=>speechBubble.setLine(line)});host.bindTargets({get:id=>targets.get(id),performEffect:e=>targets.performEffect(e),canMove,groundHeight,playerPosition:()=>getFocus(),hasLineOfSight:(from,to,id)=>targets.hasLineOfSight(from,to,id)});}
+  if(disposed)return;const next=getHost();if(next&&next!==host){chatter?.dispose();host=next;chatter=createMercenaryChatter({host,document,window:document.defaultView||globalThis.window,onCaption:line=>speechBubble.setLine(line)});host.bindTargets({get:id=>targets.get(id),performEffect:e=>targets.performEffect(e),canMove,groundHeight,squadTransport,safeCatchupPoint,playerPosition:()=>getFocus(),hasLineOfSight:(from,to,id)=>targets.hasLineOfSight(from,to,id)});}
   greetingClock+=Math.max(0,dt);ui.update();dialogue.update();actionMenu.update(dt);chatter?.update();promptElapsed+=Math.max(0,dt);
-  if(promptElapsed>=.2){promptElapsed=0;const available=!isBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen;nearLoot=available&&!lootPending?findNearbyLoot():null;lootPrompt.hidden=!nearLoot;if(nearLoot&&lootPrompt.textContent!=='E — поднять мешок с деньгами')lootPrompt.textContent='E — поднять мешок с деньгами';const own=available&&!nearLoot?nearestOwnMember():null,id=own?.id||(available&&!nearLoot&&host?.nearestCandidate?.()),person=own||(id?candidate(id):null);talkId=person?(own?.talkActorId||id):null;updateGreeting(available&&!nearLoot);}
+  if(promptElapsed>=.2){promptElapsed=0;const available=!isBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen,priority=available&&hasPriorityInteraction();nearLoot=available&&!priority&&!lootPending?findNearbyLoot():null;lootPrompt.hidden=!nearLoot;if(nearLoot)setInteractionPromptText(lootPrompt,'E — поднять мешок с деньгами');const canTalk=available&&!priority&&!nearLoot,own=canTalk?nearestOwnMember():null,id=own?.id||(canTalk&&host?.nearestCandidate?.()),person=own||(id?candidate(id):null);talkId=person?(own?.talkActorId||id):null;updateGreeting(canTalk);}
   aimElapsed+=Math.max(0,dt);const aimNow=performance.now();if(aimNow>=nextAimAt||aimElapsed>=.12){aimElapsed=0;nextAimAt=aimNow+120;updateAimSelection();}diagnosticElapsed+=Math.max(0,dt);if(diagnosticElapsed>=1){diagnosticElapsed=0;if(document.documentElement?.dataset)document.documentElement.dataset.mercenaryPicking=JSON.stringify(pickingStats);}
   charges.update();if(!isBlocked())safeBinding.update();for(const [id,record]of trafficDamage){if(trafficActor(id)!==record.actor){record.damage.dispose();trafficDamage.delete(id);continue;}record.damage.update(Math.min(.1,Math.max(0,dt)));}
  }
  async function commandAtAim(){
-  if(contextPending)return;contextPending=true;
+  if(contextPending||isCommandBlocked())return;contextPending=true;
   try{
+   if(vehicleCommandContext()){
+    const result=await host?.toggleVehicleDefenseFire?.();
+    if(!disposed){selection.setRally(null);ui.showNotice(result?.message||result?.reason||(result?.ok?'Приказ принят.':'Ответный огонь сейчас недоступен.'));}
+    return;
+   }
    // Resolve again at the actual key press: never dispatch an old hover target.
    const aimed=pick();
    if(aimed){const actions=contextActions(aimed);if(!actions.length){ui.showNotice('Нет свободного специалиста для этого объекта.');return;}if(actions.length>1){actionMenu.open(aimed);return;}const action=actions[0];await dispatchAction(action.id||action.kind,aimed);return;}
+   if(isBlocked())return;
    const point=targets.pickGround?.();const result=point&&await host?.rally?.(point);if(disposed)return;if(result?.ok){selection.setRally(point);ui.showNotice('Точка сбора назначена · '+result.count+' бойцов');}else ui.showNotice(result?.reason||'Посмотри на свободную землю для точки сбора');
   }catch(error){if(!disposed)ui.showNotice(error?.message||'Не удалось выполнить приказ.');}
   finally{contextPending=false;if(!disposed)updateAimSelection();}
  }
- function keydown(e){if(e.code==='KeyX'&&!e.repeat&&!e.defaultPrevented&&!isBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen){const path=e.composedPath?.()||[e.target];if(path.some(n=>n?.isContentEditable||/INPUT|SELECT|TEXTAREA/.test(n?.tagName||'')))return;e.preventDefault();e.stopImmediatePropagation?.();void commandAtAim();return;}if(e.code!=='KeyE'||e.repeat||e.defaultPrevented||isBlocked()||ui.isOpen||dialogue.isOpen||actionMenu.isOpen)return;const path=e.composedPath?.()||[e.target];if(path.some(n=>n?.isContentEditable||/INPUT|SELECT|TEXTAREA/.test(n?.tagName||'')))return;
+ function keydown(e){if(e.code==='KeyX'&&!e.repeat&&!e.defaultPrevented&&!isCommandBlocked()&&!ui.isOpen&&!dialogue.isOpen&&!actionMenu.isOpen){const path=e.composedPath?.()||[e.target];if(path.some(n=>n?.isContentEditable||/INPUT|SELECT|TEXTAREA/.test(n?.tagName||'')))return;e.preventDefault();e.stopImmediatePropagation?.();void commandAtAim();return;}if(e.code!=='KeyE'||e.repeat||e.defaultPrevented||isBlocked()||ui.isOpen||dialogue.isOpen||actionMenu.isOpen)return;const path=e.composedPath?.()||[e.target];if(path.some(n=>n?.isContentEditable||/INPUT|SELECT|TEXTAREA/.test(n?.tagName||'')))return;
+  // Capture runs before the Walk key handler. Yield without consuming E so
+  // its normal door/vehicle/ladder/pickup controller can act or start the hold.
+  if(hasPriorityInteraction({fresh:true}))return;
   if(collectNearbyLoot()){e.preventDefault();e.stopImmediatePropagation?.();return;}const own=nearestOwnMember(),id=own?.id||host?.nearestCandidate?.();if(id){e.preventDefault();e.stopImmediatePropagation?.();talkId=null;const receipt=host?.beginConversation?.(id);if(receipt!==false&&receipt?.ok!==false){conversationId=id;if(!(own?dialogue.openMember(id):dialogue.open(id))){host?.endConversation?.(id);conversationId=null;}}else ui.showNotice(receipt?.message||receipt?.reason||'Разговор сейчас недоступен.');}
  }
  document.addEventListener('keydown',keydown,true);

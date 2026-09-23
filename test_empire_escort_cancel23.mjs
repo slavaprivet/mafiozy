@@ -26,7 +26,7 @@ function fixture(fixed){
  vm.createContext(box);
  vm.runInContext(world.slice(world.indexOf('let _npcRouteWorkFrame='),world.indexOf('function _planNpcRouteTo(')),box);
  vm.runInContext(world.slice(world.indexOf('const _empireRoutePlanQueue=[];'),world.indexOf('function _empireCrewOrigin(')),box);
- for(const name of ['_clearNpcRoute','_setNpcRoute','_planNpcRouteTo','_npcAdvanceRoute','_npcBodyPassable','_npcPathPassable','_nearestEmpireWalkPoint','_empireFormationOffset','_planEmpireRouteTo','_processEmpireRoutePlanQueue'])vm.runInContext(fn(name),box);
+ for(const name of ['_clearNpcRoute','_setNpcRoute','_planNpcRouteTo','_npcAdvanceRoute','_npcBodyPassable','_npcPathPassable','_empireTargetFootprintPassable23','_nearestEmpireWalkPoint','_empireFormationOffset','_planEmpireRouteTo','_processEmpireRoutePlanQueue'])vm.runInContext(fn(name),box);
  vm.runInContext(helper+'\nglobalThis.crewTick=(actor,dt,now)=>{for(const n of [actor]){'+(fixed?candidate:original)+'}};',box);
  const n={id:'escort',r:10.5,c:9.5,hp:60,_empireCrew:true,_empireLeaderId:'leila',_empireCrewSlot:0,walkPhase:0,speed:1};
  box.n=n;

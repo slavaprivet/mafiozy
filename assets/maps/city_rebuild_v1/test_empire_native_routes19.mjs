@@ -8,7 +8,7 @@ import {createCivilianNativeFixture,sourceFunction} from './test_civilian_native
 // A checked-in physical snapshot: no unpublished outputs/ report dependency.
 const snapshot=JSON.parse(gunzipSync(fs.readFileSync(new URL('test_fixtures/native_static_collision19.json.gz',import.meta.url))));
 const f=await createCivilianNativeFixture({snapshot}),b=f.box;
-for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_nearestEmpireWalkPoint'])vm.runInContext(sourceFunction(f.source,name),b);
+for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_empireTargetFootprintPassable23','_nearestEmpireWalkPoint'])vm.runInContext(sourceFunction(f.source,name),b);
 const planner=sourceFunction(f.source,'_planNpcRouteTo'),advance=sourceFunction(f.source,'_npcAdvanceRoute');
 const oldPlanner=planner.replace("||kind==='empire_action'||kind==='empire_escort'",'').replace('npc._npcDirectedSearch=null;goal=goal||search.best;','npc._compareExpanded=search.qi;npc._npcDirectedSearch=null;goal=goal||search.best;');
 const oldAdvance=advance.replace(/const nativeEmpire=[^;]+;/,'const nativeEmpire=false;');

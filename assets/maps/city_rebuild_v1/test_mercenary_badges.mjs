@@ -3,6 +3,18 @@ const THREE=await import(pathToFileURL((process.env.THREE_VENDOR_ROOT||'D:/codex
 class E{constructor(){this.children=[];this.style={};this.dataset={};this.attrs={};this.clientWidth=800;this.clientHeight=600;}append(...nodes){for(const n of nodes){n.parent=this;this.children.push(n);}}setAttribute(k,v){this.attrs[k]=v;}remove(){this.parent.children=this.parent.children.filter(n=>n!==this);}}
 function setup(){const parent=new E(),doc={createElement:()=>new E(),createElementNS:()=>new E()},scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(60,800/600,.1,100);camera.position.set(0,2.1,10);camera.lookAt(0,2.1,0);camera.updateMatrixWorld();const object=new THREE.Group();scene.add(object);let actors=[{id:'medic',name:'Лука',object,source:{mercenary:{profession:'medic'}}}],roots=[];const badges=createMercenaryBadges({aimOnly:false,THREE,document:doc,parent,camera,getActors:()=>actors,getRoots:()=>roots});return{scene,object,camera,parent,badges,setActors:a=>actors=a,setRoots:r=>roots=r,actors};}
 
+test('vehicle hides own crew immediately and exit restores the same cards without extra rays',()=>{
+ const parent=new E(),doc={createElement:()=>new E(),createElementNS:()=>new E()},scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(60,4/3,.1,100);camera.position.set(0,2.1,10);camera.lookAt(0,2.1,0);camera.updateMatrixWorld();
+ const own=new THREE.Group(),candidate=new THREE.Group();candidate.position.x=1;scene.add(own,candidate);let seated=false;
+ const badges=createMercenaryBadges({THREE,document:doc,parent,camera,aimOnly:false,hideOwned:()=>seated,getActors:()=>[
+  {id:'own',object:own,source:{name:'Лука',mercenary:{status:'active',profession:'medic'}}},
+  {id:'candidate',object:candidate,source:{mercenaryCandidate:true,mercenary:{profession:'medic'}}} ]});
+ badges.update(.11);badges.update(.11);const card=badges.element.children.find(n=>n.dataset.actorId==='own'),other=badges.element.children.find(n=>n.dataset.actorId==='candidate');assert(!card.hidden);assert(!other.hidden);
+ const casts=badges.stats().raycasts;seated=true;badges.update(.001);assert(card.hidden);assert.equal(card.style.display,'none');assert(!other.hidden);assert.equal(badges.getSpeakerAnchor('own'),null);
+ badges.update(.11);assert(card.hidden,'full registry refresh cannot show the seated crew');
+ seated=false;badges.update(.001);assert(!card.hidden);assert.equal(card.style.display,'grid');assert.equal(badges.element.children.find(n=>n.dataset.actorId==='own'),card);assert.equal(badges.stats().raycasts,casts);badges.dispose();
+});
+
 test('fullscreen world action-timer overlay never masks own crew name, MY GANG or proximity ring',()=>{
  const parent=new E(),timerOverlay=new E();timerOverlay.dataset.walkHud='mercenary-action-timers';timerOverlay.style.cssText='position:fixed;inset:0;pointer-events:none';timerOverlay.getBoundingClientRect=()=>({left:0,top:0,right:800,bottom:600,width:800,height:600});
  const doc={createElement:()=>new E(),createElementNS:()=>new E(),querySelectorAll:()=>[timerOverlay]},scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(60,4/3,.1,100);camera.position.set(0,2.1,10);camera.lookAt(0,2.1,0);camera.updateMatrixWorld();const object=new THREE.Group();scene.add(object);

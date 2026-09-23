@@ -10,11 +10,15 @@ import {installWalkDebugPanels} from './walk_debug_panels.mjs';
 import {createVehicleShadowCulling,vehicleShadowCullingEnabled} from './vehicle_shadow_culling.mjs';
 import {setVehicleRenderDetailOptimization} from './vehicle_render_batches.mjs';
 import {createMercenaryWalk} from './mercenary_walk.mjs';
+import {setInteractionPromptText} from './interaction_prompt.mjs';
+import {createMercenaryVehicleBridge} from './mercenary_vehicle_bridge.mjs';
+import {createMercenarySafePlacement} from './mercenary_catchup.mjs';
 import {createMercenaryFences} from './mercenary_fences.mjs';
 import {createMercenaryPowerPanel} from './mercenary_power_panel.mjs';
 import {createMercenaryProfessionShowcase} from './mercenary_profession_showcase.mjs';
 import {createVehicleEntryHighlight} from './vehicle_entry_highlight.mjs';
 import {createVehicleEntryHoldClock} from './vehicle_entry_hold_clock.mjs';
+import {createMercenaryVehicleFire} from './mercenary_vehicle_fire.mjs';
 import {createMercenaryShowcaseUI} from './mercenary_showcase_ui.mjs';
 import {createHeroFollowGesture} from './hero_follow_gesture.mjs';
 import {createNpcRuntimeInspection} from './npc_runtime_inspection.mjs';
@@ -269,7 +273,7 @@ const loader=new GLTFLoader(),templates=new Map(),content=new THREE.Group();scen
 
 let topology=null,instances=[],bodies=[],loaded=0,failed=0,busy=false,walking=false,revision='',lastLoadAt=0,hero=null;
 let walkPlayerHud=null,hudAppearanceHero=null;
-let mercenaryWalk=null;
+let mercenaryWalk=null,mercenaryVehicleBridge=null,mercenarySafePlacement=null;
 let mercenaryFences=null;
 let mercenaryPowerPanel=null;
 let mercenaryShowcase=null,mercenaryShowcaseUI=null;
@@ -501,12 +505,12 @@ async function initNpcPopulation(){
  sourceVehicleAccess=npcBridge?createWorldVehiclePlayerAccess({traffic:worldTrafficPresentation,bridge:npcBridge,worldScale:M}):null;
  const vehicleBindings=new WeakMap();
  const visibleNpcVehicleAccess=createNpcVehicleAccessResolver({traffic:worldTrafficPresentation,worldScale:M});
- const getSourceVehicle=id=>{const actor=worldTrafficPresentation.getActor(id);if(!actor)return null;let binding=vehicleBindings.get(actor);
+ const getSourceVehicle=id=>{const actor=String(id).startsWith('fleet:')?fleet?.records.find(r=>String(r.id)===String(id).slice(6))?.car:worldTrafficPresentation.getActor(id);if(!actor)return null;let binding=vehicleBindings.get(actor);
   if(!binding){binding=createNpcTrafficVehicleBinding({THREE,actor});if(binding)vehicleBindings.set(actor,binding);}return binding;};
  if(npcBridge){artistInput=createWorldWalkMeleeInput({bridge:npcBridge});worldWalkMelee=createWorldWalkMeleeHost({THREE,bridge:npcBridge,getHero:()=>hero,getActors:()=>npcPopulation?.getActors()||[],obstacles:()=>[content,...(fleet?.records.map(r=>r.car.object)||[])]});}
  npcSupportCache=createNpcSupportCache({sample:groundHeight,getEnvironment:()=>({scene,buildingIndex:buildingSampleIndex,railway:explorationRailway,railPlan:explorationRailPlan,landscape,topology,entries:buildingEntries})});
  npcSupportCache.beginFrame();
- npcNativeNavigation=createNpcNativeNavigation({worldScale:M,waterAt,groundHeight:npcSupportCache.sample,bodiesAt:(c,r)=>walkCollisionIndex?.(c,r)||[],bodiesInBounds:(...bounds)=>walkCollisionIndex?.queryBounds?.(...bounds)||[],containsBody:(body,r,c)=>inPolygon(r,c,body.polygonCR),terrainAllows:(x,z)=>landscape?.contains(x,z)?landscape.canWalk(x,z):nativePedestrianLand(topology,z/M,x/M)||!!waterAt(x,z),surfaceAt:(x,z,r,c)=>topology?.roadMask?.[Math.floor(r)]?.[Math.floor(c)]?'road':'land',blocksDynamic:(x,z,body)=>!!explorationRailway?.blocks(x,z,0)||!!fleet?.records.some(record=>npcVehicleBlocks(record.car,x,z,0,body))||!!npcLogicalVehicles?.blocks(x,z,body)});
+ npcNativeNavigation=createNpcNativeNavigation({worldScale:M,waterAt,groundHeight:npcSupportCache.sample,bodiesAt:(c,r)=>walkCollisionIndex?.(c,r)||[],bodiesInBounds:(...bounds)=>walkCollisionIndex?.queryBounds?.(...bounds)||[],containsBody:(body,r,c)=>inPolygon(r,c,body.polygonCR),terrainAllows:(x,z)=>landscape?.contains(x,z)?landscape.canWalk(x,z):nativePedestrianLand(topology,z/M,x/M)||!!waterAt(x,z),surfaceAt:(x,z,r,c)=>topology?.roadMask?.[Math.floor(r)]?.[Math.floor(c)]?'road':'land',blocksDynamic:(x,z,body)=>!!explorationRailway?.blocks(x,z,0)||!!fleet?.records.some(record=>body.ignoreId!=='fleet:'+record.id&&npcVehicleBlocks(record.car,x,z,0,body))||!!npcLogicalVehicles?.blocks(x,z,body)});
  npcBridge?.registerWalkNpcNavigationResolver?.(npcNativeNavigation.query);
  npcNativePerception=createNpcNativePerception({worldScale:M,groundHeight,bodiesAt:(c,r)=>walkCollisionIndex?.(c,r)||[],ready:()=>!!walkCollisionIndex,getVehicles:()=>[...(fleet?.records||[]),...(worldTrafficPresentation?.getActors()||[])]});
  npcBridge?.registerWalkNpcPerceptionResolver?.(npcNativePerception.query);
@@ -526,6 +530,9 @@ async function initNpcPopulation(){
  npcBlastParts=createNpcBlastPartsPrototype20(THREE,scene,{groundHeight});
  npcBlastPresentation=createNpcBlastPresentation20({parts:npcBlastParts,getActor:id=>npcPopulation?.getActor(id),groundHeight,worldScale:M});
  npcPopulation=await createNpcPopulation({THREE,scene,loader,cloneSkeleton:cloneNpcSkeleton,bridge:npcBridge,groundHeight:(x,z)=>groundHeight(x,z),waterAt:(x,z)=>waterAt(x,z),worldScale:M,getFocus:()=>hero?.object.position,renderDistance:NPC_RENDER_DISTANCE_M,creationBudget:1,profile:new URLSearchParams(location.search).get('perfqa')==='1',getInspectId:()=>npcInspection?.getSelection()?.id,getVehicle:getSourceVehicle,onSnapshot:(snapshot,{time})=>{npcBlastPresentation.sync(snapshot?.npcs||[],{now:time,sourceNowMs:time*1000});npcBloodMarks.sync(snapshot?.bloodFx||[],{time:performance.now()/1000,exterior:!npcBridge?.getPlayerState?.().interior&&!insideBuilding()});worldTrafficPresentation.sync(snapshot?.cars||[]);npcShotEffects.sync(snapshot?.npcs||[],time*1000,performance.now()/1000);},onBeforePose:({dt})=>worldTrafficPresentation.update(dt)});
+ const squadFire=createMercenaryVehicleFire({THREE,getActors:()=>npcPopulation?.getActors()||[],getActor:id=>npcPopulation?.getActor(id),getPlayer:()=>hero,obstacles:shotObstacles,getHost:()=>window.MafioziMercenaries,diagnostics:!!performanceProbe});
+ window.MafioziMercenaryVehicleFire=squadFire;
+ addEventListener('pagehide',()=>{if(window.MafioziMercenaryVehicleFire===squadFire)delete window.MafioziMercenaryVehicleFire;},{once:true});
  npcInspection=createNpcRuntimeInspection({document,parent:document.body,getActors:()=>npcPopulation?.getActors()||[],getFocus:()=>hero?.object.position,focusActor:row=>{if(!row.object?.visible)return;const p=row.object.position;followCarCamera=false;controls.target.set(p.x,p.y+1.1,p.z);camera.position.set(p.x+3.5,p.y+2.6,p.z+4.5);camera.lookAt(controls.target);}});
  window.MafioziWalkNpcs={getActors:()=>npcPopulation?.getActors()||[],getActor:id=>npcPopulation?.getActor(id),receive:(id,event)=>npcPopulation?.receive(id,event),attach:bridge=>{npcBridge=bridge;npcPopulation.attach(bridge);}};
  if(npcBridge){const state=npcBridge.getPlayerState();hero.object.position.set(state.c*M,groundHeight(state.c*M,state.r*M),state.r*M);hero.object.rotation.y=Math.PI/2-state.ang;controls.target.copy(hero.object.position).y+=1.1;camera.position.copy(hero.object.position).add(new THREE.Vector3(3,2.2,4));}
@@ -653,7 +660,7 @@ function updateNpcHoldUp(now=performance.now()){
  if(!hit?.npcId){clearNpcHoldUp();return;}
  const receipt=npcBridge.aimNpcHoldUp(hit.npcId);if(!receipt?.ok){clearNpcHoldUp();return;}
  npcHoldUp.id=String(hit.npcId);npcHoldUp.canTake=!!receipt.canTake;npcHoldUp.cashAvailable=receipt.cashAvailable!==false;
- const text=receipt.alreadyRobbed?'Руки вверх · наличных больше нет':receipt.robberyPending?'Передача наличных…':npcHoldUp.canTake?'E — взять наличные':'Держи на прицеле · подойди ближе';if(npcHoldUpPrompt.textContent!==text)npcHoldUpPrompt.textContent=text;npcHoldUpPrompt.hidden=false;
+ const text=receipt.alreadyRobbed?'Руки вверх · наличных больше нет':receipt.robberyPending?'Передача наличных…':npcHoldUp.canTake?'E — взять наличные':'Держи на прицеле · подойди ближе';setInteractionPromptText(npcHoldUpPrompt,text);npcHoldUpPrompt.hidden=false;
  document.body.dataset.npcHoldUp=JSON.stringify({id:npcHoldUp.id,canTake:npcHoldUp.canTake,cashAvailable:npcHoldUp.cashAvailable,alreadyRobbed:!!receipt.alreadyRobbed,robberyPending:!!receipt.robberyPending,distance:receipt.distance,intimidated:!!receipt.intimidated});
 }
 function takeNpcCash(){
@@ -803,9 +810,18 @@ function receiveVehicleContact(contact){if(!car||!carState)return false;if(car.o
 function carLocal(side,front=0,y=0){if(car){car.object.updateWorldMatrix(true,false);return car.object.localToWorld(new THREE.Vector3(side,y,front))}const {x,z,yaw}=carState;return new THREE.Vector3(x+Math.cos(yaw)*side+Math.sin(yaw)*front,y,z-Math.sin(yaw)*side+Math.cos(yaw)*front)}
 function pedestrianAllowed(x,z,ignoreSourceId=null){return canWalk(x,z)&&!worldTrafficPresentation?.blocks(x,z,0,{ignoreId:ignoreSourceId,y:hero?.object.position.y,height:1.9})&&(fleet?!fleet.overlaps(x,z,0):!carState||!pointInPolygon(x,z,carCorners(carState.x,carState.z,carState.yaw,carState.vehicleProfile)))}
 function updateMercenaries(dt){
+ if(!mercenarySafePlacement)mercenarySafePlacement=createMercenarySafePlacement({worldScale:M,ready:()=>!!walkCollisionIndex&&!!npcNativeNavigation,
+  queryPoint:p=>npcNativeNavigation.query({r:p.z/M,c:p.x/M}),
+  bodyClear:(p,m)=>window.MafioziMercenaries?.canMoveMember(m.id,{r:p.z/M,c:p.x/M},{r:p.z/M,c:p.x/M})===true,
+  groundHeight,isInsideBuilding:p=>sampledBuildingEntries(p.x,p.z).some(entry=>entry.containsInterior(p)),
+  blocksVehicle:(p,b)=>!!explorationRailway?.blocks(p.x,p.z,b.radius)||!!fleet?.records.some(r=>npcVehicleBlocks(r.car,p.x,p.z,b.radius,{y:p.y,height:b.height}))||!!npcLogicalVehicles?.getVehicles().some(r=>npcVehicleBlocks(r.actor,p.x,p.z,b.radius,{y:p.y,height:b.height}))||!!worldTrafficPresentation?.blocks(p.x,p.z,b.radius,{y:p.y,height:b.height})});
+ if(!mercenaryVehicleBridge)mercenaryVehicleBridge=createMercenaryVehicleBridge({worldScale:M,canCross:(id,from,to)=>{const q=npcNativeNavigation?.query({mode:'sweep',from:{r:from.r,c:from.c},to,radius:.18});return q?.swept===true&&q.blocked===false;},getFleet:()=>fleet,getTraffic:()=>worldTrafficPresentation,getPlayer:()=>{
+  if(sourceVehicleActive())return {id:sourceVehicleState.presentationCarId,seatId:sourceVehicleState.seatId,ready:sourceVehicleState.phase==='driving',exiting:sourceVehicleState.phase==='exit'};
+  return fleet?.active&&(occupiedSeat||transition)?{id:'fleet:'+fleet.active.id,seatId:occupiedSeat||transition.seatId,ready:!!occupiedSeat&&!transition,exiting:!!transition?.exiting}:null;
+ }});
  if(!mercenaryShowcaseUI&&hero&&window.MafioziMercenaries?.qaSupported?.())initMercenaryShowcase();
  mercenaryShowcase?.update(dt,hero?.object.position);mercenaryShowcaseUI?.update(dt);
- if(!mercenaryWalk&&hero&&window.MafioziMercenaries){mercenaryWalk=createMercenaryWalk({THREE,document,onFollowGesture:signalHeroFollow,parent:document.body,camera,scene,getHost:()=>window.MafioziMercenaries,getFleet:()=>({records:[...(fleet?.records||[]),...(mercenaryShowcase?.getVehicles()||[])]}),getTraffic:()=>worldTrafficPresentation,getNpcs:()=>npcPopulation?.getActors()||[],getFocus:()=>hero?.object.position,getHero:()=>hero?.object,getPickRoots:(origin,direction,distance)=>[...shotObstacles(origin,direction,distance),...(npcPopulation?.getActorObjects()||[])],getBuildings:()=>[...instances,...(mercenaryShowcase?.getTargets()||[]),...(mercenaryFences?.getTargets?.()||[]),...(mercenaryPowerPanel?.getTargets?.()||[]),...(window.MafioziInteriorSafeTargets?.getTargets?.()||[])],getRoots:()=>[content,...(fleet?.records||[]).map(r=>r.car.object),...(worldTrafficPresentation?.getActors()||[]).map(r=>r.object),...(npcPopulation?.getActorObjects()||[])],canMove:(from,to)=>{const steps=Math.max(1,Math.ceil(Math.hypot(to.x-from.x,to.z-from.z)/.2));for(let i=1;i<=steps;i++){const t=i/steps;if(!pedestrianAllowed(from.x+(to.x-from.x)*t,from.z+(to.z-from.z)*t))return false;}return true;},groundHeight,isBlocked:()=>mercenaryInputBlocked()||!!occupiedSeat||!!transition||busy||arsenalOpen()||!$('scene-menu').hidden,onOpenChange:open=>{releaseControls();setFreeMouse(!open);if(open&&document.pointerLockElement)document.exitPointerLock();}});}
+ if(!mercenaryWalk&&hero&&window.MafioziMercenaries){mercenaryWalk=createMercenaryWalk({THREE,document,onFollowGesture:signalHeroFollow,parent:document.body,camera,scene,getHost:()=>window.MafioziMercenaries,squadTransport:mercenaryVehicleBridge,safeCatchupPoint:(p,id)=>mercenarySafePlacement?.check(p,{id})||{ok:false,reason:"not-ready"},getFleet:()=>({records:[...(fleet?.records||[]),...(mercenaryShowcase?.getVehicles()||[])]}),getTraffic:()=>worldTrafficPresentation,getNpcs:()=>npcPopulation?.getActors()||[],getFocus:()=>hero?.object.position,getHero:()=>hero?.object,getPickRoots:(origin,direction,distance)=>[...shotObstacles(origin,direction,distance),...(npcPopulation?.getActorObjects()||[])],getBuildings:()=>[...instances,...(mercenaryShowcase?.getTargets()||[]),...(mercenaryFences?.getTargets?.()||[]),...(mercenaryPowerPanel?.getTargets?.()||[]),...(window.MafioziInteriorSafeTargets?.getTargets?.()||[])],getRoots:()=>[content,...(fleet?.records||[]).map(r=>r.car.object),...(worldTrafficPresentation?.getActors()||[]).map(r=>r.object),...(npcPopulation?.getActorObjects()||[])],canMove:(from,to)=>{const steps=Math.max(1,Math.ceil(Math.hypot(to.x-from.x,to.z-from.z)/.2));for(let i=1;i<=steps;i++){const t=i/steps;if(!pedestrianAllowed(from.x+(to.x-from.x)*t,from.z+(to.z-from.z)*t))return false;}return true;},groundHeight,hasPriorityInteraction,isBlocked:()=>mercenaryInputBlocked()||!!occupiedSeat||sourceVehicleActive()||!!transition||busy||arsenalOpen()||!$('scene-menu').hidden,isCommandBlocked:()=>mercenaryInputBlocked()||!window.MafioziMercenaries||!!transition||busy||arsenalOpen()||!$('scene-menu').hidden,onOpenChange:open=>{releaseControls();setFreeMouse(!open);if(open&&document.pointerLockElement)document.exitPointerLock();}});}
  mercenaryWalk?.update(dt);
 }
 function initMercenaryShowcase(){
@@ -864,7 +880,7 @@ function entrySpot({fresh=false}={}){
  let nearest=null;
  for(const record of fleet?.nearby(hero.object.position)||[]){
   if(record.damage?.disabled||record.roll?.unstable||record.state?.waterState?.flooded||squadVehicleLocked(record))continue;
-  const candidate=findVehicleEntry(record.state,hero.object.position,canWalk);if(!candidate||candidate.near>=(nearest?.near??Infinity))continue;
+  const candidate=findVehicleEntry(record.state,hero.object.position,canWalk,{occupiedSeats:mercenaryVehicleBridge?.reservedSeats('fleet:'+record.id)||[]});if(!candidate||candidate.near>=(nearest?.near??Infinity))continue;
   const from=hero.object.position,to=candidate.outside;let clear=true;for(let i=0;i<=12;i++){const t=i/12;if(!circleFits(from.x+(to.x-from.x)*t,from.z+(to.z-from.z)*t,pedestrianAllowed)){clear=false;break}}if(clear)nearest={...candidate,record,seatLabel:candidate.label,label:`${record.car.profile.label} · ${candidate.label}`};
  }
  const sourceCandidate=sourceVehicleAccess?.findEntry(hero.object.position,pedestrianAllowed);
@@ -928,7 +944,7 @@ function updateMovingExit(dt){
 }
 
 
-function setCarInteractionText(id,text){const node=$(id);if(node.textContent!==text)node.textContent=text;}
+function setCarInteractionText(id,text){setInteractionPromptText($(id),text);}
 function updateCarInteraction(dt){
  // Consume terminal entry/exit receipts while on foot too. Otherwise the
  // adapter remains pending after source.active becomes false and hides doors.
@@ -980,7 +996,7 @@ function updateCarPrompt(){
  else{const owner=selected.record.car,a=owner.anchors.doors.find(door=>door.id===selected.doorId)?.handle;if(!a){prompt.hidden=true;return}owner.object.updateWorldMatrix(true,false);anchor=owner.object.localToWorld(new THREE.Vector3(a.side,a.y??Math.min(1.95,owner.profile?.height||1.95),a.front));}
  const screen=anchor.project(camera);prompt.hidden=screen.z<-1||screen.z>1||Math.abs(screen.x)>1.1||Math.abs(screen.y)>1.1;
  $('car-seat-label').textContent=service?`${candidate.record.car.profile.label} · ${candidate.label}`:selected.label;
- prompt.querySelector('small').textContent=service?(candidate.action==='repair'?'R — ремонт двигателя':candidate.kind==='hood'&&(candidate.repairAvailable||candidate.record.hood?.stats().open)?'E — закрыть · R — ремонт двигателя':'E — нажать'):'Удерживайте E · 0,3 с · Ctrl — в укрытие';
+ setInteractionPromptText(prompt.querySelector('small'),service?(candidate.action==='repair'?'R — ремонт двигателя':candidate.kind==='hood'&&(candidate.repairAvailable||candidate.record.hood?.stats().open)?'E — закрыть · R — ремонт двигателя':'E — нажать'):'Удерживайте E · 0,3 с · Ctrl — в укрытие');
  if(!prompt.hidden){const x=Math.round((screen.x+1)*innerWidth/2),y=Math.round((1-screen.y)*innerHeight/2);prompt.style.transform=`translate3d(${x}px,${y}px,0) translate(-50%,-100%)`;$('car-hold-progress').style.transform=`scaleX(${service?0:entryHeld/HOLD_SECONDS})`}
 }
 function waterAt(x,z){
@@ -1043,10 +1059,16 @@ function insideBuilding(){return !!hero&&buildingEntries.some(entry=>entry.conta
 
 
 let frameInteraction,frameEntrySpot;
+function hasPriorityInteraction({fresh=false}={}){
+ if(occupiedSeat||sourceVehicleActive()||transition||verticalNavigation.active)return true;
+ if(npcHoldUp?.canTake||window.MafioziPoliceConvoyRescue?.getPrompt()?.canInteract||nearbyGroundWeapon())return true;
+ const candidate=nearestInteraction({fresh});
+ return !!candidate;
+}
 function nearestInteraction({fresh=false}={}){
  if(!fresh&&frameInteraction!==undefined)return frameInteraction;
  if(!hero||!walking||occupiedSeat||transition||jump||heroBlast||verticalNavigation.active||busy||arsenalOpen()||!$('scene-menu').hidden)return null;
- let nearest=null;const ladder=verticalNavigation.nearest();if(ladder)nearest={kind:'ladder',distance:ladder.distance,ladder,anchor:new THREE.Vector3(ladder.ladder[ladder.end].x,ladder.ladder[ladder.end].y+1.5,ladder.ladder[ladder.end].z),action:ladder.end==='lower'?'Подняться на крышу':'Быстро спуститься по лестнице'};
+ let nearest=null;const ladder=verticalNavigation.nearest();if(ladder)nearest={kind:'ladder',distance:ladder.distance,ladder,anchor:new THREE.Vector3(ladder.ladder[ladder.end].x,ladder.ladder[ladder.end].y+1.5,ladder.ladder[ladder.end].z),action:ladder.end==='lower'?'Подняться на крышу':'Спуститься по лестнице'};
  for(const entry of nearbyBuildingEntries(hero.object.position,3)){const proximity=entry.proximity(hero.object.position);if(proximity&&(!nearest||proximity.distance<nearest.distance))nearest={kind:'building',entry,...proximity}}
  const spot=entrySpot({fresh});if(spot&&(!nearest||spot.near<nearest.distance))nearest={kind:'car',distance:spot.near,spot};
  for(const record of fleet?.nearby(hero.object.position)||[])for(const kind of ['trunk','hood']){const controller=record[kind],service=controller?.interaction(hero.object.position,record.state,{damageState:record.damage.state,occupied:false,transition:false,blocked:record.roll?.unstable});if(service&&(!nearest||service.near<nearest.distance))nearest={...service,kind,record,controller,distance:service.near};}
@@ -1059,7 +1081,7 @@ function interactWithVehiclePanel(repair=false){
  if(repair&&result?.accepted||result?.reason){const reasons={'hood-closed':'Сначала открой капот','moving':'Останови машину','out-of-range':'Подойди ближе','destroyed':'Машина уничтожена','burning':'Сначала нужно потушить пожар','blocked':'Поставь машину на колёса','detached':'Крышка сорвана'};exitNotice=result.accepted?'Двигатель и охлаждение отремонтированы':reasons[result.reason]||'Сейчас недоступно';exitNoticeUntil=performance.now()+2200}frameInteraction=undefined;return true;
 }
 function interactWithBuilding(){
- const candidate=nearestInteraction({fresh:true});if(candidate?.kind==='ladder'){if(candidate.ladder.end!=='lower')return false;buildingKeyConsumed=true;entryHeld=0;pointerHeld=false;if(!verticalNavigation.begin(candidate.ladder)){exitNotice='Проход к лестнице закрыт';exitNoticeUntil=performance.now()+1800}return true}if(candidate?.kind!=='building')return false;
+ const candidate=nearestInteraction({fresh:true});if(candidate?.kind==='ladder'){buildingKeyConsumed=true;entryHeld=0;pointerHeld=false;if(!verticalNavigation.begin(candidate.ladder,{input:'E'})){exitNotice='Проход к лестнице закрыт';exitNoticeUntil=performance.now()+1800}return true}if(candidate?.kind!=='building')return false;
  buildingKeyConsumed=true;entryHeld=0;pointerHeld=false;releaseWeapon();
 
 
@@ -1097,13 +1119,13 @@ function updateBuildingPrompt(){
  prompt.hidden=screen.z<-1||screen.z>1||Math.abs(screen.x)>1.1||Math.abs(screen.y)>1.1;
 
 
- $('building-action').textContent=buildingDoorPrompt(candidate);prompt.querySelector('kbd').textContent=candidate.kind==='ladder'&&candidate.ladder.end==='upper'?'Ctrl':'E';
+ $('building-action').textContent=buildingDoorPrompt(candidate);prompt.querySelector('kbd').textContent='E';
 
 
  if(!prompt.hidden)prompt.style.transform=`translate3d(${Math.round((screen.x+1)*innerWidth/2)}px,${Math.round((1-screen.y)*innerHeight/2)}px,0) translate(-50%,-100%)`;
 
 
- if(!transition&&!occupiedSeat&&!jump&&performance.now()>=exitNoticeUntil)setCarInteractionText('drive-status',candidate.kind==='ladder'?(candidate.ladder.end==='upper'?'Ctrl — быстрый спуск':'E — подъём · Ctrl — скользить вниз'):'E — дверь · WASD — пройти');
+ if(!transition&&!occupiedSeat&&!jump&&performance.now()>=exitNoticeUntil)setCarInteractionText('drive-status',candidate.kind==='ladder'?(candidate.ladder.end==='upper'?'E — спуск':'E — подъём'):'E — дверь · WASD — пройти');
 
 
 }
@@ -1267,6 +1289,7 @@ function installVehicleFleetQa(){
   if(!p)return;releaseControls();hero.reset();hero.object.position.copy(p);hero.object.rotation.y=carState.yaw+(kind==='hood'?Math.PI:0);resetFootSupport();controls.target.copy(p).y+=1.1;camera.position.copy(carLocal(car.profile.halfWidth+4,kind==='hood'?car.profile.halfLength+4:-car.profile.halfLength-4,car.profile.height+2));setWalking(true);setFreeMouse(false);frameInteraction=undefined;
  };
  for(const [kind,label] of [['door','QA: к выбранной машине'],['trunk','QA: к багажнику'],['hood','QA: к капоту']]){const button=document.createElement('button');button.textContent=label;button.onclick=()=>near(kind);carQa.panel.append(button)}
+ if(['127.0.0.1','localhost','[::1]'].includes(location.hostname)){const button=document.createElement('button');button.textContent='QA: нападение патрульного';button.onclick=()=>{const result=window.MafioziMercenaries?.qaVehicleDefenseAttack?.();carQa.status.textContent=result?.message||result?.reason||'Подготовка ответного огня недоступна';};carQa.panel.append(button);}
  for(const [label,action] of [['QA: нажать E',()=>interactWithVehiclePanel()],['QA: ремонт R',()=>interactWithVehiclePanel(true)],['QA: фронтальный удар',()=>receiveVehicleContact({point:carLocal(0,car.profile.halfLength,.9),normal:{x:Math.sin(carState.yaw),y:0,z:Math.cos(carState.yaw)},impactSpeed:18,slideSpeed:0})]]){const button=document.createElement('button');button.textContent=label;button.onclick=action;carQa.panel.append(button)}refreshVehicleFleetQa();
 }
 function initCar(){
@@ -1297,7 +1320,7 @@ function initCar(){
 
 
   onInput(input){for(const [name,key] of Object.entries({forward:'KeyW',reverse:'KeyS',left:'KeyA',right:'KeyD',handbrake:'Space'})){if(input[name])keys.add(key);else keys.delete(key)}},
-  onRelease(){keys.clear();pointerHeld=false;entryArmed=true;entryHoldClock.reset('qa-release',performance.now()/1000)},onEntryHold(pressed){pointerHeld=pressed;if(!pressed){entryArmed=true;entryHoldClock.reset('qa-hold-release',performance.now()/1000)}},
+  onRelease(){keys.clear();pointerHeld=false;entryArmed=true;entryHoldClock.reset('qa-release',performance.now()/1000)},onEntryHold(pressed){document.body.dispatchEvent(new KeyboardEvent(pressed?'keydown':'keyup',{key:'e',code:'KeyE',bubbles:true,cancelable:true}));},
   onReset(){fleet.active.impactReaction?.reset();vehicleImpactView.reset();vehicleVisualQa?.reset();const best=fleet.active.spawn;releaseControls();glass.reset(car.object);carDamage.reset();carRollover?.reset();carHood?.reset();blastResponse?.reset();heroBlast=null;hero.object.rotation.z=0;tyres.reset();tireTracks.clear();transition=null;jump=null;occupiedSeat=null;entryArmed=true;resetHeroPosture(heroPosture);postureMotion=posturePresentation(heroPosture);hero.reset();carState={...carState,...best,speed:0,steer:0,yawRate:0,travelYaw:best.yaw,vx:0,vz:0,lateralVelocity:0,longitudinalVelocity:0,rearGripBlend:1,frontSlip:0,rearSlip:0,slipAngle:0};car.object.position.set(best.x,0,best.z);car.object.rotation.y=best.yaw;car.setDoorById(0,'front_left');hero.object.position.copy(carExitSpot());resetFootSupport();hero.object.rotation.y=best.yaw;setWalking(true);controls.target.copy(hero.object.position).y=hero.object.position.y+postureEyeHeight();camera.position.copy(carLocal(4,-6,3));for(const id of ['district','walk','reload'])$(id).disabled=false;fleet.syncActive(carState);setFreeMouse(false)}
  });
  if(carQa){installVehicleFleetQa();vehicleVisualQa=createVehicleVisualQa(THREE,{document,panel:carQa.panel,getRecord:()=>fleet?.active,onContact:receiveVehicleContact,onRelease:releaseControls});}
@@ -1606,7 +1629,7 @@ function updateGroundWeaponInteraction(dt){
  groundWeapons?.update(dt);
  const candidate=nearbyGroundWeapon();
  if(!candidate){if(!weaponPickupPrompt.hidden)weaponPickupPrompt.hidden=true;weaponPickupPromptState=null;}
- else{const drop=candidate.drop,next={weaponId:drop.weaponId,magazine:drop.fireState.magazine,reserve:drop.fireState.reserveAmmo};if(weaponPickupPrompt.hidden)weaponPickupPrompt.hidden=false;if(!weaponPickupPromptState||weaponPickupPromptState.weaponId!==next.weaponId||weaponPickupPromptState.magazine!==next.magazine||weaponPickupPromptState.reserve!==next.reserve){weaponPickupPrompt.textContent=`E · Подобрать ${ARSENAL.find(item=>item.id===next.weaponId)?.label||'оружие'} · ${next.magazine} / ${next.reserve}`;weaponPickupPromptState=next;}$('car-prompt').hidden=true;$('building-prompt').hidden=true;}
+ else{const drop=candidate.drop,next={weaponId:drop.weaponId,magazine:drop.fireState.magazine,reserve:drop.fireState.reserveAmmo};if(weaponPickupPrompt.hidden)weaponPickupPrompt.hidden=false;if(!weaponPickupPromptState||weaponPickupPromptState.weaponId!==next.weaponId||weaponPickupPromptState.magazine!==next.magazine||weaponPickupPromptState.reserve!==next.reserve){setInteractionPromptText(weaponPickupPrompt,`E · Подобрать ${ARSENAL.find(item=>item.id===next.weaponId)?.label||'оружие'} · ${next.magazine} / ${next.reserve}`);weaponPickupPromptState=next;}$('car-prompt').hidden=true;$('building-prompt').hidden=true;}
  // This is an inspection-only attribute.  The pickup test and its visible
  // prompt above still run every frame; avoid serialising inventory arrays and
  // mutating the DOM up to sixty times a second when no UI consumes the data.
@@ -1695,11 +1718,11 @@ addEventListener('keydown',e=>{
  if(arsenalOpen()){if(e.code==='Escape'){e.preventDefault();setArsenalOpen(false)}return}
  if(e.code==='KeyG'){e.preventDefault();if(!e.repeat)dropCurrentWeapon();return}
  if(e.code==='KeyR'&&!e.repeat&&!occupiedSeat&&interactWithVehiclePanel(true)){e.preventDefault();return}
- if((e.code==='ControlLeft'||e.code==='ControlRight')&&!e.repeat){e.preventDefault();if(verticalNavigation.active){verticalNavigation.slideDown();return}const ladderCandidate=nearestInteraction({fresh:true});if(ladderCandidate?.kind==='ladder'&&ladderCandidate.ladder.end==='upper'){if(!verticalNavigation.slideDown()){exitNotice='Проход к лестнице закрыт';exitNoticeUntil=performance.now()+1800}return}toggleHeroCover();return}
+ if((e.code==='ControlLeft'||e.code==='ControlRight')&&!e.repeat){e.preventDefault();if(verticalNavigation.active){verticalNavigation.slideDown();return}toggleHeroCover();return}
  if(e.code==='KeyC'&&!e.repeat){e.preventDefault();if(heroCover.active)return;setHeroPosture((jump?.queuedPosture??heroPosture.target)==='crouch'?'stand':'crouch');return}
  if(e.code==='KeyZ'&&!e.repeat){e.preventDefault();heroCover.leave();setHeroPosture((jump?.queuedPosture??heroPosture.target)==='prone'?'stand':'prone');return}
  if(e.code==='KeyE'){
-  if(sourceVehicleActive()){e.preventDefault();keys.add('KeyE');return;}
+  if(occupiedSeat||sourceVehicleActive()||transition){e.preventDefault();keys.add('KeyE');return;}
   if(!e.repeat&&takeNpcCash()){e.preventDefault();buildingKeyConsumed=true;entryHeld=0;pointerHeld=false;return;}
   const rescue=window.MafioziPoliceConvoyRescue;if(rescue?.getPrompt()?.canInteract){e.preventDefault();buildingKeyConsumed=true;entryHeld=0;pointerHeld=false;if(!e.repeat)rescue.begin();return;}
   heroCover.leave();
@@ -1765,24 +1788,31 @@ function beginJump(pressTime=performance.now()){
 
 
 function updateJump(dt){
- if(jump.mode==='traversal')return updateTraversal(dt);
-
-
- const bodyHeight=hero.height||1.9,probe=stepJump(jump,dt,()=>true),footY=jump.falling?hero.object.position.y:Math.max(hero.object.position.y,jump.baseY+probe.y),allowed=(x,z)=>traversalWorld.pointFits(x,z,footY,bodyHeight);
-
-
- jump=stepJump(jump,dt,allowed);const floor=traversalWorld.supportHeight(jump.x,jump.z,footY);jump=resolveJumpSurface(jump,{floor,ceiling:heroCeilingHeight(jump.x,jump.z),bodyHeight,previousY:hero.object.position.y,dt,flightTime:JUMP.flight});const worldY=jump.worldY;hero.object.position.set(jump.x,worldY,jump.z);const pose={...jump};
-
-
- document.body.dataset.heroJump=JSON.stringify({...jump,count:jumpCount});
-
-
- if(jump.queuedPosture&&jump.elapsed>=JUMP.flight&&worldY<=floor+.02){const target=jump.queuedPosture;landingEyeTransition={from:postureEyeHeight(),start:performance.now()};hero.blendIntoPosture(LANDING_POSTURE_SECONDS);surfaceMotion.reset(hero.object.position);jump=null;if(setHeroPosture(target)){resetHeroPosture(heroPosture,target);postureMotion=posturePresentation(heroPosture)}for(const id of ['district','walk','reload'])$(id).disabled=false;return null;}if(jump.done){surfaceMotion.reset(hero.object.position,{grounded:worldY<=floor+.02,velocityY:jump.falling?jump.fallVelocity:0});jump=null;for(const id of ['district','walk','reload'])$(id).disabled=false;}
-
-
- return pose;
-
-
+ if(!jump)return null;
+ // This clock belongs only to jumping. Discard hidden/long-gap debt; never
+ // turn returning to the tab into a large impulse or an unbounded catch-up.
+ if(document.hidden||!Number.isFinite(dt)||dt<=0||dt>1)return {...jump};
+ // Traversal retains its existing integration cap; ordinary jump/dive owns
+ // the elapsed-time correction below, not vehicles, NPCs or global physics.
+ if(jump.mode==='traversal')return updateTraversal(Math.min(dt,.04));
+ let remaining=Math.min(dt,.25),pose=null;
+ for(let substep=0;substep<7&&remaining>1e-9&&jump;substep++){
+  const stepDt=Math.min(.04,remaining);remaining-=stepDt;
+  const bodyHeight=hero.height||1.9,probe=stepJump(jump,stepDt,()=>true),footY=jump.falling?hero.object.position.y:Math.max(hero.object.position.y,jump.baseY+probe.y),allowed=(x,z)=>traversalWorld.pointFits(x,z,footY,bodyHeight);
+  jump=stepJump(jump,stepDt,allowed);
+  const floor=traversalWorld.supportHeight(jump.x,jump.z,footY);
+  jump=resolveJumpSurface(jump,{floor,ceiling:heroCeilingHeight(jump.x,jump.z),bodyHeight,previousY:hero.object.position.y,dt:stepDt,flightTime:JUMP.flight});
+  const worldY=jump.worldY;hero.object.position.set(jump.x,worldY,jump.z);pose=jump;
+  if(jump.queuedPosture&&jump.elapsed>=JUMP.flight&&worldY<=floor+.02){
+   document.body.dataset.heroJump=JSON.stringify({...jump,count:jumpCount});
+   const target=jump.queuedPosture;landingEyeTransition={from:postureEyeHeight(),start:performance.now()};hero.blendIntoPosture(LANDING_POSTURE_SECONDS);surfaceMotion.reset(hero.object.position);jump=null;
+   if(setHeroPosture(target)){resetHeroPosture(heroPosture,target);postureMotion=posturePresentation(heroPosture)}
+   for(const id of ['district','walk','reload'])$(id).disabled=false;return null;
+  }
+  if(jump.done){surfaceMotion.reset(hero.object.position,{grounded:worldY<=floor+.02,velocityY:jump.falling?jump.fallVelocity:0});jump=null;for(const id of ['district','walk','reload'])$(id).disabled=false;}
+ }
+ if(pose)document.body.dataset.heroJump=JSON.stringify({...pose,count:jumpCount});
+ return pose?{...pose}:null;
 }
 
 
@@ -1990,7 +2020,7 @@ function frame(){requestAnimationFrame(frame);frameInteraction=frameEntrySpot=un
  }
 
 
- performanceProbe?.mark('fleetMotion');const jumpFrame=jump?updateJump(dt):null;
+ performanceProbe?.mark('fleetMotion');const jumpFrame=jump?updateJump(rawDt):null;
 
 
  updateCarInteraction(dt);
@@ -2026,6 +2056,7 @@ function frame(){requestAnimationFrame(frame);frameInteraction=frameEntrySpot=un
  performanceProbe?.mark('npcEnvironmentAndRender');updateGroundWeaponInteraction(dt);performanceProbe?.end();
  if(now-lastStats>1000){document.body.dataset.vehicleDamage=JSON.stringify(carDamage?.stats()||{});if(carQa)document.body.dataset.vehicleImpactReaction=JSON.stringify({reaction:fleet?.active?.impactReaction?.sample(),pose:vehicleImpactPoseResult,camera:vehicleImpactView.stats()});document.body.dataset.tyreDamage=JSON.stringify(tyres?.stats()||{});document.body.dataset.streetLighting=JSON.stringify(streetLighting.stats());document.body.dataset.staticRenderBatches=JSON.stringify(staticRenderBatches?.stats?.()||null);document.body.dataset.surfaceMotion=JSON.stringify(surfaceMotion.state);document.body.dataset.glassBreakage=JSON.stringify(glass.stats());document.body.dataset.blastResponse=JSON.stringify(blastResponse?.stats?.()||null);document.body.dataset.startupCompile=JSON.stringify(startup.report)}
  if(now-lastStats>1000){
+  if(performanceProbe&&window.MafioziMercenaryVehicleFire?.stats)document.body.dataset.mercenaryVehicleFire=JSON.stringify({...window.MafioziMercenaryVehicleFire.stats(),defense:window.MafioziMercenaries?.getVehicleDefenseFireState?.()||null});
   document.body.dataset.tireTracks=JSON.stringify({active:tireTracks.pool.active,count:tireTracks.pool.count});
   document.body.dataset.vehicleFleet=JSON.stringify(fleet?.stats());
   $('stats').textContent=`${hero?'Персонаж Художника 13 · ':''}Вызовы отрисовки: ${renderer.info.render.calls} · r ${Math.round(controls.target.z/M)}, c ${Math.round(controls.target.x/M)}`;

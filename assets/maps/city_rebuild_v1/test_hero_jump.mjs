@@ -33,3 +33,11 @@ assert.ok(lowDive.y<JUMP.height);assert.ok(Math.abs(lowDive.x-JUMP.speed*.4)<1e-
 const midair=stepJump(launchJump({x:0,z:0},{x:1,z:0}),.1,free),lowered=tryDiveJump(midair,{x:1,z:0},100);
 assert.equal(stepJump(lowered,0,free).y,midair.y,'lowering starts continuously at the second press');
 console.log('PASS lower dive arc, unchanged ordinary apex/distance and continuous midair upgrade');
+// User-facing dive range/height envelope independent of parameter equality.
+for(const dt of [1/120,1/60,1/15,.1]){
+ let dive=tryDiveJump(launchJump({x:0,z:0},{x:1,z:0}),{x:1,z:0},0),peak=0;
+ while(!dive.done){dive=stepJump(dive,dt,free);peak=Math.max(peak,dive.y);}
+ assert(dive.x>=3.2&&dive.x<=3.5,'compact dive distance in world metres');
+ assert(peak>=.38&&peak<=.45,'low immediate dive arc');
+}
+console.log('PASS compact dive: 3.2–3.5m range, .38–.45m immediate apex at four timesteps');

@@ -10351,7 +10351,7 @@ function _civilianTripTickCar(car,dt){
  const next={r:distance?car.r+(target.r-car.r)/distance*step:car.r,c:distance?car.c+(target.c-car.c)/distance*step:car.c,angle};
  if(!t.plan.native&&typeof carCanGo==='function'&&_trafficRoadTile(car.r,car.c)&&_trafficRoadTile(car.r+Math.sin(angle)*1.5,car.c+Math.cos(angle)*1.5)&&_trafficCarFootprintClear(car,next.r,next.c)){car.vr=dt?(next.r-current.r)/dt:0;car.vc=dt?(next.c-current.c)/dt:0;if(!carCanGo(car,Math.min(.1,dt))){car.braking=true;return true;}}
  if(t.plan.native&&!_civilianTripRoadPermission(t,current,next)){car.vr=car.vc=0;car.braking=true;return true;}
- if(!_civilianTripSweep(car,current,next,t.plan.lots,true)){car.vr=car.vc=0;car.braking=true;t.driveSpeed=Math.max(0,t.driveSpeed-brake*Math.min(.1,dt));const now=performance.now();if(t.plan.native){t.blockedAt=t.blockedAt||now;if(now-t.blockedAt>(['vehicle','pedestrian'].includes(car._civilianBlockReason)?12000:1500)){const slot=t.plan.goal?.slot;if(slot&&_nativeParkingAdmission.reservations.get(slot.id)===car)_nativeParkingAdmission.reservations.delete(slot.id);t.destinationDoor=t.plan.goal.door;delete car._civilianNativePlan;t.phase='planning';t.blockedAt=0;}}return true;}t.blockedAt=0;
+ if(!_civilianTripSweep(car,current,next,t.plan.lots,true)){car.vr=car.vc=0;car.braking=true;t.driveSpeed=Math.max(0,t.driveSpeed-brake*Math.min(.1,dt));const now=performance.now();if(t.plan.native){t.blockedAt=t.blockedAt||now;if(now-t.blockedAt>(['vehicle','pedestrian'].includes(car._civilianBlockReason)?12000:1500)){const slot=t.plan.goal?.slot;if(slot&&_nativeParkingAdmission.reservations.get(slot.id)===car)_nativeParkingAdmission.reservations.delete(slot.id);t.destinationDoor=t.plan.goal.door;_civilianTripCancelLane(car._civilianNativePlan);delete car._civilianNativePlan;t.phase='planning';t.blockedAt=0;}}return true;}t.blockedAt=0;
  car.r=next.r;car.c=next.c;car.ang=angle;car.dirDy=Math.sin(angle);car.dirDx=Math.cos(angle);car.vr=dt?(next.r-current.r)/dt:0;car.vc=dt?(next.c-current.c)/dt:0;car.braking=false;t.travelledM=(t.travelledM||0)+Math.hypot(next.r-current.r,next.c-current.c)*4.1;if(distance<.025&&Math.abs(delta)<.025)t.index++;
  _civilianTripReport(t,performance.now());return true;
 }
@@ -11546,15 +11546,64 @@ function _empireBossWaypointPassable(r,c){return _npcBodyPassable(r,c,_empireBos
 // A narrow public lane from the Lair's northern camp to its gate. Empire
 // bosses may recruit here, but cannot wander through the whole combat arena.
 function _inEmpireRecruitmentYard(r,c){return r>=99&&r<=108&&c>=35.5&&c<=44.5;}
+function _empireTargetFootprintPassable23(r,c){
+ if(!_npcBodyPassable(r,c,_empireBossPassable))return false;
+ if(typeof _walkNpcNavigationResolver!=='function')return true;
+ const point={r,c},sweep=_walkNpcNavigationResolver({mode:'sweep',from:point,to:point,radius:.18});
+ return !(sweep?.swept===true&&sweep.blocked);
+}
 function _nearestEmpireWalkPoint(r,c) {
-  if(_npcBodyPassable(r,c,_empireBossPassable))return {r,c};
+  if(_empireTargetFootprintPassable23(r,c))return {r,c};
   let best=null,bestD=Infinity;
-  for(let radius=1;radius<=12;radius++)for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
-    if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius)continue;
-    const rr=Math.floor(r+dr)+.5,cc=Math.floor(c+dc)+.5,d=Math.hypot(rr-r,cc-c);
-    if(d<bestD&&_npcBodyPassable(rr,cc,_empireBossPassable)){best={r:rr,c:cc};bestD=d;}
+  for(let radius=1;radius<=12&&radius-.5<bestD;radius++){
+    const ring=[];
+    for(let dr=-radius;dr<=radius;dr++)for(let dc=-radius;dc<=radius;dc++){
+      if(Math.abs(dr)!==radius&&Math.abs(dc)!==radius)continue;
+      const rr=Math.floor(r+dr)+.5,cc=Math.floor(c+dc)+.5,d=Math.hypot(rr-r,cc-c);
+      if(d<bestD)ring.push({r:rr,c:cc,d});
+    }
+    ring.sort((a,b)=>a.d-b.d||a.r-b.r||a.c-b.c);
+    for(const point of ring)if(_empireTargetFootprintPassable23(point.r,point.c)){best={r:point.r,c:point.c};bestD=point.d;break;}
   }
   return best;
+}
+function refreshEmpireCachedTargets23() {
+  if(typeof _walkNpcNavigationResolver!=='function')return 0;
+  let changed=0;const now=performance.now();
+  for(const n of SPECIALIST_NPCS){
+    const action=n._empireAction,target=n._empireTarget,request=n._empirePendingRoute;
+    // Only the autonomous startup patrol is owned by this repair. Native business
+    // identity and authenticated server orders remain the coordinator's scope.
+    if(!n._empireBoss||action?.kind!=='patrol'||String(action.target_id)!==`offline:${n._specialistId}`||
+      !target||!Number.isFinite(target.r)||!Number.isFinite(target.c)||
+      n.dead||n.alive===false||Number.isFinite(n.hp)&&n.hp<=0||n._hiddenByEmpire||
+      n._hostile||n._fighting||n._fightingMelee||n._empirePlayerWar||n._empireEnemyLeaderId||n._empireCombatTarget||n._empireFieldEncounterStatus==='active'||n._policeCuffed||
+      n.panicUntil>now||n._knockedUntil>now||n._meleeStunnedUntil>now||n._empireDownUntil>now||n._empireHospitalUntil>Date.now()||
+      n._playerConversationOpen||n._empireStreetNegotiation||n._corpsePhoneCall||
+      n._civilianTrip||n._civilianTripRiding||n._inVehicle||n._inCar||n.vehicleId||n.vehicle_id||
+      n._responseVehicleId||n._civilianSeat||n._transportBoarded||n._ambientTrafficPhase==='drive'||n._vehicleHijackControlled||
+      n._residentIndoors||n._interiorId||n.interior_id||n._insideBuilding||n._residentNativeVisit||
+      n._medicalDowned||n._carriedByAmbulance||n._evacuated||
+      request&&request.kind!=='empire_action'||n._routeKind&&n._routeKind!=='empire_action'||
+      n._routeSearchKind&&n._routeSearchKind!=='empire_action')continue;
+    if(request&&(request.generation!==( +n._empireRouteGeneration||0)||request.targetKey!==String(n._empireActionKey||'')))continue;
+    if(_empireTargetFootprintPassable23(target.r,target.c))continue;
+    const replacement=_nearestEmpireWalkPoint(target.r,target.c);
+    if(!replacement||!_empireTargetFootprintPassable23(replacement.r,replacement.c))continue;
+    const base=n._empireActivityBaseTarget;
+    n._empireTarget=replacement;
+    if(base&&base.r===target.r&&base.c===target.c)n._empireActivityBaseTarget=replacement;
+    // Preserve shared scheduler position, active cohort and empire queue order.
+    // Only this actor's old frontier/path is invalidated; the next normal slice
+    // starts against the updated target with the same action generation.
+    n._npcDirectedSearch=null;n._npcWanderSearch=null;n._routeSearchPending=false;
+    n._routeSearchKind=null;n._routeRequestAt=null;_clearNpcRoute(n);
+    if(request)n._empirePendingRoute={...request,goalR:replacement.r,goalC:replacement.c};
+    n._empireActionArrived=false;n._empireArrivedGeneration=-1;
+    n._empireRouteRetryAt=0;n._empireRouteExact=null;n.walking=false;
+    _pauseEmpireMovementWatch(n);changed++;
+  }
+  return changed;
 }
 function _cancelEmpireEscortRoute(n){
  const request=n._empirePendingRoute;
@@ -12030,6 +12079,7 @@ function _empirePlayerCombatThink(n,now,dt){
   const pressing=order.type==='press'||order.type==='focus',cadence=(pressing ? .82-mind.courage*.08 : 1.06-mind.patience*.08)*(doctrine.signature==='sync_volley' ? .9 : 1);n._nextShootAt=now+Math.max(300,+profile.cooldown||1050)*cadence+((+n._empireStyle||0)%5)*24;n._shotAt=now;n._lastShotAt=now;n._shotSeq=(+n._shotSeq||0)+1;n._shotWeapon=weapon;
   const marked=now<(player._empireMarkedUntil||0),hidden=now<(n._empireHiddenUntil||0),hitChance=Math.max(.35,Math.min(.96,(+profile.hit||.72)+(n._empireBoss ? .04+mind.patience*.035 : 0)+(marked ? .07 : 0)+(order.type==='focus' ? .03+mind.patience*.025 : 0)+(hidden ? .05 : 0))),hit=Math.random()<hitChance,miss=hit?0:(Math.random()<.5?-1:1)*(.5+Math.random()*.7),aimR=player.r+miss,aimC=player.c-miss*.35,muz=_npcMuzzleWorldPoint(n.r,n.c,n.ang,weapon,.88),projectileKind=profile.effect==='arrow'?'arrow':profile.effect==='pull'?'harpoon':profile.kind==='dart'?'dart':'';
   const visualSpeed=melee?0:Math.max(11.5,Math.min(15.5,+profile.speed||+weaponProfile(weapon).bulletSpeed||15.5));
+  if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(n);
   if(!melee){if(!projectileKind)spawnMuzzle(muz.r,muz.c,n.ang,weapon,true);spawnBullet(muz.r,muz.c,aimR,aimC,{hit,fromNpc:true,weapon,projectileKind,speed:visualSpeed,color:profile.effect==='shock'?'#62c7ef':undefined,targetActor:hit?player:null});}
   _empireRecordAttack(n,hit,now);if(hit){const damage=Math.max(3,Math.round((+profile.damage||9)*(n._empireBoss?1.12:1)));if(melee)setTimeout(()=>{if(!myDead&&!_buildingInt&&!_bankInt&&n?._empirePlayerWar&&_empireCombatReady(n,performance.now()))_applyEmpirePlayerWeaponHit(n,damage,profile,performance.now());},170);else _queueEmpirePlayerBallisticHit(n,damage,profile,weapon,muz,visualSpeed,now);}return true;
 }
@@ -12828,6 +12878,7 @@ function _updatePrisonStaffCop(cop,dt,now){
         muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45;
       cop._nextShootAt=now+fireProfile.cd+Math.random()*(cop.weapon==='smg'?120:280);
       _markPoliceShot(cop,cop.weapon,now);
+      if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(cop);
       spawnBullet(muzR,muzC,player.r+miss,player.c-miss*.3,{hit:Math.abs(miss)<fireProfile.hit,fromNpc:true,weapon:cop.weapon});spawnMuzzle(muzR,muzC,cop.ang,cop.weapon,true);
       if(Math.abs(miss)<fireProfile.hit&&now>=_prisonPlayerHitCooldownUntil){
         _prisonPlayerHitCooldownUntil=now+360;
@@ -13196,6 +13247,7 @@ function updateCityCops(dt) {
           const muzR = cop.y + Math.sin(cop.ang) * 0.45;
           const muzC = cop.x + Math.cos(cop.ang) * 0.45;
           _markPoliceShot(cop,'pistol',now);
+          if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(cop);
           spawnBullet(muzR, muzC, player.r, player.c, { hit: true, fromNpc: true, weapon: 'pistol' });
           spawnMuzzle(muzR, muzC, cop.ang, 'pistol', true);
           spawnImpact(player.r, player.c, 'pistol', true);
@@ -13241,6 +13293,7 @@ function updateCityCops(dt) {
           const muzzleR=cop.y+Math.sin(cop.ang)*.45,muzzleC=cop.x+Math.cos(cop.ang)*.45;
           const hit=Math.abs(miss)<.38;
           _markPoliceShot(cop,'pistol',now);
+          if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(cop);
           spawnBullet(muzzleR,muzzleC,targetR,targetC,{hit,fromNpc:true,weapon:'pistol'});
           spawnMuzzle(muzzleR,muzzleC,cop.ang,'pistol',true);
           if(hit){
@@ -15762,7 +15815,7 @@ function _tickPoliceConvoyRescue(){
   if(hold.token&&!hold.sent&&now>=hold.readyAt){hold.sent=true;ws.send(JSON.stringify({t:'police_convoy',d:{action:'rescue_complete',custody_id:hold.custodyId,rescue_token:hold.token}}));}
 }
 window.MafioziPoliceConvoyRescue={getPrompt:()=>{const q=_policeConvoyRescueCandidate();return q?{text:'Удерживай E · освободить союзника',canInteract:!_LOCAL_PREVIEW,range:2.4,custodyId:q.custody_id,carId:q.id}:null;},begin:()=>_policeConvoyRescueInput(true),tick:_tickPoliceConvoyRescue,end:()=>_policeConvoyRescueInput(false)};
-window.addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat&&_policeConvoyRescueInput(true)){e.preventDefault();e.stopImmediatePropagation();}},true);
+window.addEventListener('keydown',e=>{if(_walkOwnsGameKey(e))return;if(e.code==='KeyE'&&!e.repeat&&_policeConvoyRescueInput(true)){e.preventDefault();e.stopImmediatePropagation();}},true);
 window.addEventListener('keyup',e=>{if(e.code==='KeyE')_policeConvoyRescueInput(false);},true);
 window.addEventListener('blur',()=>_policeConvoyRescueInput(false));
 
@@ -16136,6 +16189,7 @@ function _murderCopShootPlayer(cop,dt,now){
   const accuracy=.38+_murderPoliceTier(incident)*.055,muzR=cop.y+Math.sin(cop.ang)*.45,muzC=cop.x+Math.cos(cop.ang)*.45,miss=(Math.random()-.5)*(.72-_murderPoliceTier(incident)*.08);
   const tR=player.r+miss,tC=player.c-miss*.35,hit=Math.abs(miss)<accuracy,weapon=profile.weapon;
   _markPoliceShot(cop,weapon,now);
+  if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(cop);
   spawnBullet(muzR,muzC,tR,tC,{hit,fromNpc:true,weapon});spawnMuzzle(muzR,muzC,cop.ang,weapon,true);
   if(hit){const dmg=profile.damage[0]+Math.floor(Math.random()*(profile.damage[1]-profile.damage[0]+1));spawnImpact(player.r,player.c,weapon,true);_hurtLocal(dmg,'Полиция',true,{kind:'murder_police',cop});
     spawnFloatText(player.r-.4,player.c,`−${dmg}`,{color:'#ff4422',size:13,life:900});
@@ -18789,6 +18843,7 @@ function updateNpcs(dt) {
         const tR = player.r + miss, tC = player.c + miss;
         const isHit = _localHostileCanResolveHit() && Math.abs(miss) < 0.42 && d < 9;
         const wep = n._fightWeapon || 'pistol';
+        if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(n);
         spawnBullet(muzR, muzC, tR, tC, { hit: isHit, fromNpc: true, weapon: wep });
         spawnMuzzle(muzR, muzC, shootAng, wep, true);
         n._lastShotAt = now;
@@ -23453,6 +23508,13 @@ function _drawGangHpBar(g,x,y){
   ctx.fillText(`${Math.max(1,Math.min(25,parseInt(g.level)||1))} ур.`,x,y-2);
   ctx.restore();
 }
+// Only called by actual incoming attack/damage paths, never by target picking
+// or the player's own shots. Source host verifies the current actor identity.
+function _noteVehicleIncomingAttack(ref,victimKind='player',victimId='player'){
+  if(!ref)return false;
+  const kind=typeof cityCops!=='undefined'&&cityCops.includes(ref)?'city_cop':typeof _bankInt!=='undefined'&&_bankInt?.npcs?.includes(ref)?'bank_guard':typeof _buildingInt!=='undefined'&&_buildingInt?.npcs?.includes(ref)?'interior_guard':'street_npc';
+  return window.MafioziMercenaries?.noteVehicleAttack?.({kind,ref,id:ref.id,victimKind,victimId})===true;
+}
 // Автоспавн убран — нанимай бойцов вручную у бандитов
 function _gangAlertThreat(r, c, id, kind = null, ref = null) {
   const now = performance.now();
@@ -23624,6 +23686,56 @@ function _gangTargetPos(kind, ref) {
 function _updateGang(dt) {
   window.MafioziMercenaries?.tick(dt);
   const now = performance.now();
+  function acceptedGangShot(m,i,pos,dirY,dirX,vehicleProof=null){
+    const shotAngle=vehicleProof?Math.atan2(vehicleProof.direction.z,vehicleProof.direction.x):m.ang;
+    m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
+    m._shotAt=now;
+    m._shotSeq=(+m._shotSeq||0)+1;m._shotWeapon=m.weapon;
+    m._visualShot={sequence:m._shotSeq,at:now,shooterId:`npc_crew_${m.id}`,weapon:m.weapon,angle:shotAngle,target:{r:pos.r,c:pos.c,elevation:Number(m.targetRef?.elevation)||0},...(vehicleProof?{ray:{origin:{...vehicleProof.origin},target:{...vehicleProof.contact}}}:{})};
+    // Реальный кончик ствола (как у игрока), а не грубая точка m.r±0.45 —
+    // та не совпадала с нарисованным оружием («стреляет не из пушки»).
+    const _npcScale = (_buildingInt || _bankInt) ? 0.85 : 0.88;
+    const unit=Number(window.MAFIOZI_RENDERER_CONFIG?.worldScale)||4.1;
+    const muz = vehicleProof?{r:vehicleProof.origin.z/unit,c:vehicleProof.origin.x/unit}:_npcMuzzleWorldPoint(m.r, m.c, m.ang, m.weapon, _npcScale);
+    const muzR = muz.r, muzC = muz.c;
+    spawnBullet(muzR, muzC, pos.r, pos.c, { hit: true, fromNpc: true, weapon: m.weapon });
+    spawnMuzzle(muzR, muzC, shotAngle, m.weapon, true);
+    _gangSay(m, 'shoot', 0.58, true);
+    const levelDamage=1+(Math.max(1,Math.min(25,parseInt(m.level)||1))-1)*.03;
+    const dmg = Math.round((GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE)) * levelDamage * _mafiaDamageMultiplier() * (m.isBoss?1.25:1));
+    const localTarget=m.targetRef;
+    const mercenaryTargetHpBefore=Number(localTarget?.hp);
+    const targetWasAlive=!!(localTarget&&!localTarget.dead&&localTarget.alive!==false&&(+localTarget.hp||1)>0);
+    if (m.targetKind === 'bank_guard') {
+      _hitBankGuard(m.targetRef, dirY, dirX, dmg);
+    } else if (m.targetKind === 'interior_guard') {
+      _hitInteriorNpc(m.targetRef, dirY, dirX, dmg, m.weapon);
+    } else if (m.targetKind === 'city_cop') {
+      hitCityCop(m.targetRef, dirY, dirX, dmg,{kind:'gang_companion',ref:m,weapon:m.weapon});
+    } else if (m.targetKind === 'gang_car') {
+      hitGangCar(m.targetRef, dmg);
+    } else if (m.targetKind === 'street_npc') {
+      hitNpc(m.targetRef, dirY, dirX, m.weapon, dmg,{kind:'npc',ref:m});
+    } else if (m.targetKind === 'aggro_bot') {
+      try { ws && ws.send(JSON.stringify({ t: 'aggro_shoot', d: {
+        target: m.targetRef.id, weapon: m.weapon, member: i,
+      } })); } catch(e) {}
+    } else if (m.targetKind === 'world_cop') {
+      try { ws && ws.send(JSON.stringify({ t: 'cop_shoot', d: { target: m.targetRef.id, weapon: m.weapon, member:i } })); } catch(e) {}
+    } else if (m.targetKind === 'convoy') {
+      try { ws && ws.send(JSON.stringify({ t: 'event_shoot', d: { target: m.targetId, weapon: m.weapon, member:i } })); } catch(e) {}
+    } else if (m.targetKind === 'michael_guard') {
+      try { ws && ws.send(JSON.stringify({ t: 'mg_shoot', d: { target: m.targetId, weapon: m.weapon, member:i } })); } catch(e) {}
+    } else if (m.targetKind === 'player') {
+      // PvP companion damage needs a server-owned companion actor. Never
+      // masquerade it as the owner's trigger or spend the owner's magazine.
+    }
+    if(['bank_guard','interior_guard','city_cop','gang_car','street_npc'].includes(m.targetKind)){
+      const killed=targetWasAlive&&!!(localTarget&&(localTarget.dead||localTarget.alive===false||(+localTarget.hp||0)<=0||localTarget._wrecked));
+      const earnedDamage=window.MafioziMercenaries?.isMercenary(m.id)?Math.max(0,(Number.isFinite(mercenaryTargetHpBefore)?mercenaryTargetHpBefore:0)-Math.max(0,Number(localTarget?.hp)||0)):dmg;
+      _awardGangXp(m,earnedDamage,killed,+localTarget?.level||1);
+    }
+  }
   // A frame after tab switching/loading can be very long.  Never let that
   // single frame launch the whole crew through its formation.
   const followDt = Math.max(0, Math.min(.05, Number(dt) || 0));
@@ -23642,8 +23754,39 @@ function _updateGang(dt) {
     turn = Math.max(-maxTurn, Math.min(maxTurn, turn));
     _gangFormationAng += turn;
   }
+  // Actual skinned contact is intentionally bounded: one passenger proof per
+  // source tick, rotating fairly through the crew even at low frame rates.
+  let vehicleFireProbe=null;
+  if(!myDead)for(let offset=1;offset<=_myGang.length;offset++){
+    const index=((_updateGang._vehicleProbeIndex??-1)+offset)%_myGang.length,member=_myGang[index];
+    if(!member?._mercenaryVehicleSeat||now<(member._nextShootAt||0)||now<(member._vehicleFireProbeAt||0))continue;
+    const intent=window.MafioziMercenaries?.getVehicleFireIntent?.(member.id);if(!intent)continue;
+    vehicleFireProbe={member,intent};_updateGang._vehicleProbeIndex=index;member._vehicleFireProbeAt=now+250;break;
+  }
   for (let i = _myGang.length - 1; i >= 0; i--) {
     const m = _myGang[i];
+    // Seated companions never enter walking, separation, melee or the generic
+    // firing path. Their source owns one cooldown/receipt after physical proof.
+    if(m._mercenaryVehicleSeat){
+      if(vehicleFireProbe?.member===m){
+        const authority=window.MafioziMercenaries,intent=vehicleFireProbe.intent;
+        if(intent){
+          let proof;try{proof=window.MafioziMercenaryVehicleFire?.prepareShot?.(intent);}catch{proof=null;}
+          if(proof?.ready===true&&proof.memberId===m.id&&proof.sourceVehicleId===intent.sourceVehicleId&&proof.seatId===intent.seatId&&proof.targetId===intent.targetId&&proof.weaponId===intent.weaponId&&
+             [proof.origin?.x,proof.origin?.y,proof.origin?.z,proof.direction?.x,proof.direction?.y,proof.direction?.z,proof.contact?.x,proof.contact?.y,proof.contact?.z].every(Number.isFinite)&&authority.validateVehicleFireIntent?.(intent)===true){
+            const unit=Number(window.MAFIOZI_RENDERER_CONFIG?.worldScale)||4.1,horizontal=Math.hypot(proof.direction.x,proof.direction.z);
+            if(horizontal>1e-6){
+              const previousTarget={kind:m.targetKind,ref:m.targetRef,id:m.targetId};
+              try{m.targetKind=intent.targetKind;m.targetRef=intent.targetRef;m.targetId=intent.targetRef.id;
+                acceptedGangShot(m,i,{r:proof.contact.z/unit,c:proof.contact.x/unit},proof.direction.z/horizontal,proof.direction.x/horizontal,proof);
+                window.MafioziMercenaryVehicleFire?.recordAccepted?.(proof,m._shotSeq);
+              }finally{m.targetKind=previousTarget.kind;m.targetRef=previousTarget.ref;m.targetId=previousTarget.id;}
+            }
+          }
+        }
+      }
+      continue;
+    }
     if(window.MafioziMercenaries?.ownsUpdate(m))continue;
     const sourceMercenary=!!window.MafioziMercenaries?.isMercenary(m.id);
     if (m.hp <= 0) {
@@ -23834,52 +23977,7 @@ function _updateGang(dt) {
     if(combatMoved)m.walkPhase+=combatStep*8;
     if(!hasInteriorLine) continue;
     if (now < (m._nextShootAt || 0)) continue;
-    m._nextShootAt = now + GANG_SHOT_CD_MIN + Math.random() * GANG_SHOT_CD_RANGE;
-    m._shotAt=now;
-    m._shotSeq=(+m._shotSeq||0)+1;m._shotWeapon=m.weapon;
-    m._visualShot={sequence:m._shotSeq,at:now,shooterId:`npc_crew_${m.id}`,weapon:m.weapon,angle:m.ang,target:{r:pos.r,c:pos.c,elevation:Number(m.targetRef?.elevation)||0}};
-    // Реальный кончик ствола (как у игрока), а не грубая точка m.r±0.45 —
-    // та не совпадала с нарисованным оружием («стреляет не из пушки»).
-    const _npcScale = (_buildingInt || _bankInt) ? 0.85 : 0.88;
-    const muz = _npcMuzzleWorldPoint(m.r, m.c, m.ang, m.weapon, _npcScale);
-    const muzR = muz.r, muzC = muz.c;
-    spawnBullet(muzR, muzC, pos.r, pos.c, { hit: true, fromNpc: true, weapon: m.weapon });
-    spawnMuzzle(muzR, muzC, m.ang, m.weapon, true);
-    _gangSay(m, 'shoot', 0.58, true);
-    const levelDamage=1+(Math.max(1,Math.min(25,parseInt(m.level)||1))-1)*.03;
-    const dmg = Math.round((GANG_SHOT_DMG_MIN + Math.floor(Math.random() * GANG_SHOT_DMG_RANGE)) * levelDamage * _mafiaDamageMultiplier() * (m.isBoss?1.25:1));
-    const localTarget=m.targetRef;
-    const mercenaryTargetHpBefore=Number(localTarget?.hp);
-    const targetWasAlive=!!(localTarget&&!localTarget.dead&&localTarget.alive!==false&&(+localTarget.hp||1)>0);
-    if (m.targetKind === 'bank_guard') {
-      _hitBankGuard(m.targetRef, dirY, dirX, dmg);
-    } else if (m.targetKind === 'interior_guard') {
-      _hitInteriorNpc(m.targetRef, dirY, dirX, dmg, m.weapon);
-    } else if (m.targetKind === 'city_cop') {
-      hitCityCop(m.targetRef, dirY, dirX, dmg,{kind:'gang_companion',ref:m,weapon:m.weapon});
-    } else if (m.targetKind === 'gang_car') {
-      hitGangCar(m.targetRef, dmg);
-    } else if (m.targetKind === 'street_npc') {
-      hitNpc(m.targetRef, dirY, dirX, m.weapon, dmg,{kind:'npc',ref:m});
-    } else if (m.targetKind === 'aggro_bot') {
-      try { ws && ws.send(JSON.stringify({ t: 'aggro_shoot', d: {
-        target: m.targetRef.id, weapon: m.weapon, member: i,
-      } })); } catch(e) {}
-    } else if (m.targetKind === 'world_cop') {
-      try { ws && ws.send(JSON.stringify({ t: 'cop_shoot', d: { target: m.targetRef.id, weapon: m.weapon, member:i } })); } catch(e) {}
-    } else if (m.targetKind === 'convoy') {
-      try { ws && ws.send(JSON.stringify({ t: 'event_shoot', d: { target: m.targetId, weapon: m.weapon, member:i } })); } catch(e) {}
-    } else if (m.targetKind === 'michael_guard') {
-      try { ws && ws.send(JSON.stringify({ t: 'mg_shoot', d: { target: m.targetId, weapon: m.weapon, member:i } })); } catch(e) {}
-    } else if (m.targetKind === 'player') {
-      // PvP companion damage needs a server-owned companion actor. Never
-      // masquerade it as the owner's trigger or spend the owner's magazine.
-    }
-    if(['bank_guard','interior_guard','city_cop','gang_car','street_npc'].includes(m.targetKind)){
-      const killed=targetWasAlive&&!!(localTarget&&(localTarget.dead||localTarget.alive===false||(+localTarget.hp||0)<=0||localTarget._wrecked));
-      const earnedDamage=window.MafioziMercenaries?.isMercenary(m.id)?Math.max(0,(Number.isFinite(mercenaryTargetHpBefore)?mercenaryTargetHpBefore:0)-Math.max(0,Number(localTarget?.hp)||0)):dmg;
-      _awardGangXp(m,earnedDamage,killed,+localTarget?.level||1);
-    }
+    acceptedGangShot(m,i,pos,dirY,dirX);
     // В казино ответный урон приходит от настоящей пули конкретного
     // охранника. Старый случайный самоурон после собственного выстрела
     // оставляем только для упрощённых боёв вне major-интерьера.
@@ -24591,6 +24689,7 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
     document.documentElement.dataset.policeCustodyDamageBlocked=String((+document.documentElement.dataset.policeCustodyDamageBlocked||0)+1);
     return;
   }
+  if(underFire&&dmg>0&&typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(deathMode?.source||damageCop);
   const coverDamage=_walkCoverDamage(dmg,underFire,deathMode);
   if(coverDamage<=0&&dmg>0){document.documentElement.dataset.walkCoverHit='blocked';return false;}
   if(coverDamage!==dmg)document.documentElement.dataset.walkCoverHit=`exposed:${Math.round(coverDamage)}`;
@@ -62276,6 +62375,7 @@ function _npcEmpireWeaponProfile(n){
   return n?.uniqueWeaponProfile||NPC_EMPIRE_WEAPON_PROFILES[id]||null;
 }
 function _applyNpcEmpireWeaponHit(bi,n,victim,targetR,targetC,damage,profile){
+  if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(n,victim.kind==='gang'?'member':'player',victim.ref?.id||'player');
   const effect=String(profile?.effect||''),hurt=(amount,ballistic=false)=>{
     if(victim.kind==='gang')_hurtGangMemberInInterior(victim.ref,amount);
     else _hurtLocal(amount,`${n.uniqueWeaponName||'оружие банды'} (${BUSINESS_INTERIORS[bi.bizId]?.title||'штаб'})`,true,ballistic?{kind:profile?.kind==='melee'?'melee':'weapon',weapon:profile?.kind||n.weapon,source:n}:null);
@@ -70206,7 +70306,7 @@ function _threeCustodyPassengerSeat(arrest){
 window.Mafiozi3DBridge = Object.freeze({
   getWalkNpcNavigationDiagnostics(){return {..._npcNavigationStats,routeWork:{..._npcRouteWorkStats},connected:!!_walkNpcNavigationResolver,initialPlacement:{..._npcInitialPlacementStats}};},
   registerWalkNpcPerceptionResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcPerceptionResolver=resolver;return true;},
-  registerWalkNpcNavigationResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcNavigationResolver=resolver;if(resolver)_npcInitialSafePlacement();return true;},
+  registerWalkNpcNavigationResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;const changed=resolver!==_walkNpcNavigationResolver;_walkNpcNavigationResolver=resolver;if(resolver){_npcInitialSafePlacement();if(changed)refreshEmpireCachedTargets23();}return true;},
   registerWalkNpcVehicleAccessResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcVehicleAccessResolver=resolver;return true;},
   registerWalkTrafficNavigationResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkTrafficNavigationResolver=resolver;return true;},
   registerWalkNpcWaterResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcWaterResolver=resolver;return true;},

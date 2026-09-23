@@ -5,7 +5,7 @@ import {createCivilianNativeFixture,sourceFunction} from './test_civilian_native
 
 const f=await createCivilianNativeFixture(),b=f.box;
 b.BEACH_R0=145;
-for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_nearestEmpireWalkPoint','_uniqueNpcCityPassable','_uniqueNpcSafeCityPoint','_uniqueNpcPlacementRecoveryAllowed'])vm.runInContext(sourceFunction(f.source,name),b);
+for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_empireTargetFootprintPassable23','_nearestEmpireWalkPoint','_uniqueNpcCityPassable','_uniqueNpcSafeCityPoint','_uniqueNpcPlacementRecoveryAllowed'])vm.runInContext(sourceFunction(f.source,name),b);
 const start=f.source.indexOf('    if((n?._uniqueNpc||n?._said)&&'),end=f.source.indexOf('    if (n.dead)',start);
 assert(start>0&&end>start);
 vm.runInContext('globalThis.placementTick=(n,now)=>{'+f.source.slice(start,end)+'};',b);

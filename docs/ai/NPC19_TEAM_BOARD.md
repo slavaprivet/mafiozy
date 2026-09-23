@@ -1,5 +1,49 @@
 ## Последнее назначение 23 сентября (заменяет старые строки владельцев ниже)
 
+Новейшее: ganglabels скрыты при entering/driving и возвращаются после выхода —
+root LIVE5 PASS. E priority и жирнаяE LIVE4/5 PASS. Fire834c0a76 final geometry
+READY, rear LIVE показывает lean; передний хват/настоящий incomingfire pending
+из-за CDP input failures. Не объявлять визуальную/боевую приёмку по CPU.
+
+Пользователь: взрыв убивает всех остающихся внутри, авария наносит урон всем
+по физическому удару, высунувшиеся бойцы реагируют телом. Physicslead01a06e4d
+ведёт actual snapshot/deltaV/death; разрешён отдельный clean server блок
+mafiozi_bot.py/tests безdeployment. Наш firehelper ему не передан на правку.
+Новый Artist21 user scope: живые кассиры/service NPC у actual касс, смерть
+блокирует услугу, respawn60s, обычные HP/crime/police. Пока isolatedcontract.
+Needs candidate NOTaccepted: rootreview найдёт/исправляет receipt-before/after
+snapshot, late bank receipt, noop healing и overflow; world wiring ждётreview.
+
+Traversallead01a087e2 ведётАстра14/15. Его roof_ladder/building_vertical_navigation/
+hero_traversal_world уже dirty, общие Walkhooks покаHOLD; следующийатомарный
+ladderEupper/lower+activeCtrl блок должен исправить partial local contract.
+
+Новые user corrections: E для действий важнее разговора, E жирно в подсказках.
+Root воспроизвёл LIVE водительская дверь→разговорЕлена; fix Walk/mercenary
+priority + safe kbd formatter, source convoy capture delegatesWalk, 20E+10X
+и actual GEQ PASS; окончательная перезагрузка ожидает fireowner upperlean.
+Artist21 floorblendREADY, root256fullskinoracle/64continuityPASS.
+
+Следующие явно пользовательские NPC задачи через Artist21: perNPC cash+bank,
+траты в зданиях, нехватка наличных→банк, низкоеHP→больница/реальное лечение,
+дальняя нужная цель→машина, ограбленный→полиция→банк, разнообразные решения.
+Artist21 isolated needs candidate/tests+gapmap (безworldwiring доcheckpoint).
+Транспорт3 reuse preferredDoor/agenda и approved future driver-wait fix
+(independent9cycles+18negativesACCEPT; покаcandidateнеproduction).
+Контактная анимация посадки/открытия двери/захват-вытаскивание-падение:
+Artist21 victim/pose, transport3door+source timing, rootplayergrab/hooks.
+Новыхsharedправок этого этапа до текущегоcheckpoint нет. Old20небудить.
+
+Последнее уточнение: NPC — главный приоритет; после проверки их занятий,
+ходьбы/следования/транспорта перейти к поведению копов и банд. Root ведёт
+единственную LIVE-вкладку. Safe catchup + 3 passengers ride/exit/reboard уже
+наблюдались; X перерабатывается в ответный огонь по настоящим атакующим,
+с высовыванием/текущим оружием и сохранением мест. Это не пеший eliminate.
+Artist21 READY npc_locomotion_pose/hero_jump/узкий WalkupdateJump: полуприсед
+и слишком дальний/высокий/затяжной dive; rootCPU PASS, новыйLIVE ещё впереди.
+Production main покаe33212e, текущийпакет WIP. Перед новойправкой сверять
+COORDINATOR_20_MEMORY и владельцев, не переносить старыйREADYна весьгород.
+
 Позднее прямое поручение23Sep: безопасный teleport отставшей/застрявшей личной
 банды разрешён; проверять полныйbody, воду, здания, динамические машины и
 свободные места вокруггероя. Root+gang_water_follow23 — recovery/helper;

@@ -1,5 +1,18 @@
 # LIVE render attribution — 23 сентября 2026
 
+## Дополнение после main272d12c, 23:29Z
+
+Тот же camera[167,2.74,168], но пользовательское окно1049×920,p1; нельзя
+смешивать с1280×720 ниже. Новый pointlights ABA complete,120samples/phase:
+render p50/p95 64.1/69.2 →58.9/65.5 →61.9/70.3мс;
+GPU48/52.08 →43.4/47.78 →46.7/52.51мс. Все три draw totals одинаковы:
+main2238,shadow1052,total3290,triangles2958069,shadowTriangles786741.
+Target census327:40rendererVisible, из них32positive Entry_Light_Slot и
+8zero StreetLamp_PooledLight. Unnamed281:183hidden/98layer mismatch;
+ещё3hidden Detention_Cell +3hidden Detention_Intake. Положительная стоимость
+не приписывается восьми дневным уличным огням. Escape восстановил обычнуюигру.
+Render-only, не игровойFPS. Frame census/probe переданы Проверщику2.
+
 Root Coordinator20, одна существующая18538game, GTX980,1280×720,ratio1.
 Штатный automatic render isolation:45warm frames +121sample frames/phase;
 probe reports120samples. Camera[167,2.74,168], shadowculling ON.

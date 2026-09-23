@@ -8,6 +8,7 @@ import {ARSENAL,createWeaponModel} from './hero_arsenal.mjs';
 import {createGroundWeapons,nearestWeaponDrop} from './ground_weapons.mjs';
 import {createWeaponInventory} from './weapon_inventory.mjs';
 import {createWeaponFireState,stepWeaponFire} from './hero_weapon_fire.mjs';
+import {setInteractionPromptText} from './interaction_prompt.mjs';
 const THREE=await import(pathToFileURL((process.env.THREE_VENDOR||'D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor')+'/build/three.module.js'));
 const source=fs.readFileSync(new URL('./walk_preview.mjs',import.meta.url),'utf8').replace(/\r/g,'');
 const section=source.slice(source.indexOf('function arsenalOpen()'),source.indexOf('function initArsenal()'));
@@ -19,15 +20,17 @@ for(const branch of ['KeyQ','KeyG','KeyE'])assert(handler.includes(`if(e.code===
 let keydown,prevented=0,buildingCalls=0,mounts=0,menuOpen=false,dead=false,blocked=false,hudBlocked=false;
 let pickupHidden=true,pickupText='',pickupHiddenWrites=0,pickupTextWrites=0;
 const weaponPickupPrompt={};Object.defineProperties(weaponPickupPrompt,{hidden:{get:()=>pickupHidden,set:value=>{pickupHiddenWrites++;pickupHidden=value}},textContent:{get:()=>pickupText,set:value=>{pickupTextWrites++;pickupText=value}}});
+weaponPickupPrompt.ownerDocument={createElement:tag=>({tagName:tag.toUpperCase(),style:{},textContent:''})};
+weaponPickupPrompt.replaceChildren=(...children)=>{weaponPickupPrompt.children=children;weaponPickupPrompt.textContent=children.map(child=>typeof child==='string'?child:child.textContent).join('');};
 const elements=new Map(['scene-menu','car-prompt','building-prompt'].map(id=>[id,{hidden:true}]));
-const host={THREE,ARSENAL,createWeaponModel,createGroundWeapons,nearestWeaponDrop,createWeaponInventory,createWeaponFireState,
+const host={THREE,ARSENAL,createWeaponModel,createGroundWeapons,nearestWeaponDrop,createWeaponInventory,createWeaponFireState,setInteractionPromptText,
  weaponInventory:createWeaponInventory(),fireStates:new Map(),scene:new THREE.Scene(),currentWeapon:ARSENAL[0],weaponModel:null,groundWeapons:null,lastWeaponId:null,npcBridge:null,
  hero:{object:new THREE.Group(),scale:.368,mountWeapon(){mounts++}},verticalNavigation:{active:false},walking:true,occupiedSeat:null,transition:null,jump:null,heroBlast:null,busy:false,
  artistBusy:()=>dead,artistSwimming:()=>false,sourceVehicleActive:()=>false,hudInputBlocked:()=>hudBlocked,artistInput:{cancel(){}},groundHeight:()=>0,pedestrianAllowed:()=>!blocked,waterAt:()=>null,
  $:id=>elements.get(id),window:{},document:{body:{dataset:{}},pointerLockElement:null},weaponPickupPrompt,weaponPickupPromptState:null,performance:{now:()=>1000},
  weaponHud:{setState(s){host.ui=s},isOpen:()=>menuOpen,setOpen(value){menuOpen=value}},
  releaseWeapon(){},keys:new Set(),buildingKeyConsumed:false,entryHeld:0,pointerHeld:false,frameInteraction:undefined,
- addEventListener:(name,fn)=>{if(name==='keydown')keydown=fn},interactWithBuilding(){buildingCalls++;return false},interactWithVehiclePanel(){return false},
+ addEventListener:(name,fn)=>{if(name==='keydown')keydown=fn},takeNpcCash:()=>false,interactWithBuilding(){buildingCalls++;return false},interactWithVehiclePanel(){return false},
  heroCover:{leave(){}},heroPosture:{target:'stand'},setHeroPosture(){},beginJump(){},restoreBuildingCamera(){},followCarCamera:false,controls:{target:new THREE.Vector3()},camera:{position:new THREE.Vector3()},
  setFreeMouse(){},releaseControls(){},exitNotice:'',exitNoticeUntil:0};
 vm.createContext(host);vm.runInContext("function fireState(){if(!fireStates.has(currentWeapon.id))fireStates.set(currentWeapon.id,createWeaponFireState(currentWeapon.id));return fireStates.get(currentWeapon.id)}\n"+section+'\n'+handler,host);

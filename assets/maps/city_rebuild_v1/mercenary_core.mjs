@@ -4,6 +4,7 @@
  */
 export {createMercenaryRoutePlanner} from './mercenary_route.mjs';
 export {createMercenaryLongFollow} from './mercenary_long_follow.mjs';
+export {createMercenarySafePlacement,advanceMercenarySafeDrop,createMercenaryCatchup} from './mercenary_catchup.mjs';
 export const MERCENARY_PROFESSIONS = Object.freeze({
   medic: {name:'Медик',hpMultiplier:1,meleeMultiplier:1,skills:['medicine','fitness'],actions:['revive']},
   bruiser: {name:'Громила',hpMultiplier:1.65,meleeMultiplier:1.8,skills:['intimidation','melee','fitness'],actions:['intimidate','breach_door']},

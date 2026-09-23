@@ -1,7 +1,7 @@
 import {movePedestrian} from './walk_motion.mjs';
-// Native scene metres: a full dive travels at most 4.8m. Keep the authored
-// flight/recovery timing and pose while avoiding the former 8.4m launch.
-export const JUMP=Object.freeze({flight:.8,recovery:.45,height:1.05,diveHeight:.8,speed:6,radius:.36});
+// Native scene metres: a full dive travels at most 3.36m with a .42m arc.
+// Keep ordinary jumps and authored flight/recovery timing independent.
+export const JUMP=Object.freeze({flight:.8,recovery:.45,height:1.05,diveHeight:.42,speed:4.2,radius:.36});
 export const NORMAL_JUMP_SPEED=3.5;
 export const DOUBLE_JUMP_WINDOW_MS=500;
 export const DIVE_BLEND_SECONDS=.24;

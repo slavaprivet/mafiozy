@@ -7,7 +7,8 @@ for(const sex of ['male','female']){
  const bytes=fs.readFileSync(new URL(NPC_ASSETS[sex].url)),source=(await new GLTFLoader().parseAsync(bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength),'')).scene;templates[sex]=source;
  for(const speed of [1.5,2.6,7.8]){
   const running=speed>2.3,a=createNpcActor({THREE:T,scene:new T.Scene(),source,cloneSkeleton:clone,id:sex+speed,sex}),c=a.walker.artistContext(),baseline=createHeroWalker({THREE:T,scene:clone(source)}),bc=baseline.artistContext();
-  const len=c.worldPosition('thigh_l').distanceTo(c.worldPosition('shin_l'))+c.worldPosition('shin_l').distanceTo(c.worldPosition('foot_l')),stride=running?Math.max(len*2.85,speed*.52):len*2.32,stance=running?Math.max(.12,Math.min(.42,len*1.2/stride)):.52;
+  a.update(0,{moving:true,running,motionSpeed:speed,gaitDistance:0,life:{}});
+  const {stride,stance}=a.diagnostics().locomotion;
   const lengths=['l','r'].map(s=>[c.worldPosition('thigh_'+s).distanceTo(c.worldPosition('shin_'+s)),c.worldPosition('shin_'+s).distanceTo(c.worldPosition('foot_'+s))]);
   let previous=null,slip=0,oldSlip=0,count=0,maxSlip=0,maxBoneError=0;const dt=1/120;
   for(let i=0;i<720;i++){

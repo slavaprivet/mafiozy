@@ -12,6 +12,7 @@
  let core,professions,routeFactory,longFollowFactory,targets={},lastCandidates=-Infinity,lastSave=-Infinity,dismissing=false,ready=false,followAngle=null;
  let restoreBlocked=false,restoredOnce=false,safeLootBalance=0,qaRecruiting=false;const persistenceDiagnostics={restore:null,save:null,removals:[]};
  let routeWorkDeadline=0,routeFrameOffset=0;
+ let catchupRecovery=null,safeDropAdvance=null,squadDropChecksRemaining=4,squadDropCrowd=null;
  const waterEscapeOptions={bodyDepth:true,speed:0,canStep:(m,r,c)=>!gang().some(other=>other!==m&&other.hp>0&&!other._mercenaryHospital&&Math.hypot(other.r-r,other.c-c)*scale()<1.1&&Math.hypot(other.r-r,other.c-c)<=Math.hypot(other.r-m.r,other.c-m.c))};
  const movementQaEnabled=(()=>{try{return ['localhost','127.0.0.1','[::1]'].includes(location.hostname)&&new URL(location.href||location.origin).searchParams.get('npcqa')==='1';}catch{return false;}})();
  let lastMovementReport=-Infinity;
@@ -58,7 +59,7 @@
     movementQaActionHistory.push({at,memberId:m.id,memberR:m.r,memberC:m.c,...sample});
     if(movementQaActionHistory.length>16)movementQaActionHistory.splice(0,movementQaActionHistory.length-16);
    }
-   return {id:m.id,r:m.r,c:m.c,waterEscaping:!!m._waterEscaping,bodyDepth:bodyDepth?_npcWaterEscapeDepth(m.r,m.c,waterEscapeOptions):null,moveReason:m._mercenaryMoveReason||'idle',order:m._mercenaryOrder||'follow',goal:goal?{r:goal.z/scale(),c:goal.x/scale(),stopDistance:m._mercenaryMove.stopDistance}:null,followSpeed:Number(m._followSpeed)||0,action,lastAction};
+   return {id:m.id,r:m.r,c:m.c,waterEscaping:!!m._waterEscaping,bodyDepth:bodyDepth?_npcWaterEscapeDepth(m.r,m.c,waterEscapeOptions):null,moveReason:m._mercenaryMoveReason||'idle',order:m._mercenaryOrder||'follow',goal:goal?{r:goal.z/scale(),c:goal.x/scale(),stopDistance:m._mercenaryMove.stopDistance}:null,followSpeed:Number(m._followSpeed)||0,catchup:m._mercenaryCatchup||null,catchupStatus:catchupRecovery?.inspect(m.id)||null,action,lastAction};
   });
   document.documentElement.dataset.mercenaryMovement=JSON.stringify({version:'water-follow23-v1',actionHistoryVersion:1,at,local:local(),nativeConnected,hero:{r:player.r,c:player.c},crew,actionHistory:movementQaActionHistory});
  }
@@ -142,42 +143,135 @@
  function rescueContact(position,angle=0){const a=Number(angle)||0,dx=Math.cos(a),dz=Math.sin(a);return {workRange:.75,workPoint:{x:position.x+dx*.15,y:position.y+.35,z:position.z+dz*.15},workNormal:{x:-dz,y:0,z:dx},supportPoint:{x:position.x+dx*.15-dz*.16,y:position.y+.35,z:position.z+dz*.15+dx*.16}};}
  function squadPosture(m){if(!m||m.hp<=0||m._mercenaryHospital||['working','awaiting'].includes(m._mercenaryAction?.phase))return 'stand';const value=typeof _effectivePlayerStance==='function'?_effectivePlayerStance():'stand';return value==='crouch'||value==='prone'?value:'stand';}
  function movementSnapshot(m){const route=m._mercenaryPath;return {reason:m._mercenaryHospital?'hospital':m.hp<=0?'downed':m._mercenaryMoveReason||(!m._mercenaryMove?'idle':'moving'),clock:{...movementClock,substeps:m._mercenaryMoveSubsteps||0},search:route?.search?{...route.search.stats}:route?.stats?{...route.stats}:null,pathLength:route?.path?.length||0,pathIndex:route?.index||0,goal:m._mercenaryMove?.position?{...m._mercenaryMove.position}:null,routeGoal:route?.goal?{...route.goal}:null,lastAction:m._mercenaryLastAction?{...m._mercenaryLastAction}:null};}
- const squadPassengerSeats=['front_right','rear_left','rear_right'],squadBoardDistance=6,squadTeleportDistance=36,squadTeleportDelay=2.5;
+ const squadPassengerSeats=['front_right','rear_left','rear_right'];
+ function squadDoorPath(m,id,from,to){
+  return targets.squadTransport?.canCross?.(id,from,to)===true&&typeof _civilianTripDoorPath==='function'&&_civilianTripDoorPath({npc:m,carId:id},from.r,from.c,to.r,to.c);
+ }
+ function squadSourceCar(id){const key=String(id).replace(/^quest_/,''),numeric=Number(key);return typeof questCars!=='undefined'?questCars.get(key)||(String(numeric)===key?questCars.get(numeric):null):null;}
+ function squadVehicleById(id){
+  const vehicle=targets.squadTransport?.getVehicle?.(id);if(!vehicle||!vehicle.source)return vehicle;
+  const car=squadSourceCar(id);if(!car||![car.x,car.y].every(Number.isFinite))return null;
+  return {...vehicle,r:+car.y,c:+car.x,ang:+car.ang||0,speed:Math.hypot(+car.vx||0,+car.vy||0)*scale()};
+ }
  function playerSquadVehicle(){
-  if(typeof myDrivingCarId==='undefined'||!myDrivingCarId||typeof questCars==='undefined'||!questCars?.get)return null;
-  const car=questCars.get(myDrivingCarId)||questCars.get(String(myDrivingCarId));if(!car||![car.x,car.y].every(Number.isFinite)||car._hidden||car._towed||car._wrecked||car.wrecked)return null;
-  const id=`quest_${car.id}`,reserved=new Set();
-  if(typeof myIsPassenger!=='undefined'&&myIsPassenger)reserved.add(typeof _walkVehicleSeatId!=='undefined'&&squadPassengerSeats.includes(_walkVehicleSeatId)?_walkVehicleSeatId:'front_right');
-  for(const uid of car.passenger_uids||[])if(String(uid)!==String(typeof QP!=='undefined'?QP.uid:''))reserved.add('front_right');
-  return {id,car,r:+car.y,c:+car.x,ang:+car.ang||0,seats:squadPassengerSeats.filter(seat=>!reserved.has(seat))};
+  const vehicle=targets.squadTransport?.getPlayerVehicle?.();if(!vehicle||vehicle.blocked)return null;
+  const reserved=new Set(vehicle.occupied||[]);
+  if(vehicle.source&&typeof questCars!=='undefined'){
+   const car=squadSourceCar(vehicle.id);
+   if(!car||![car.x,car.y].every(Number.isFinite)||car._hidden||car._towed||car._wrecked||car._walkWrecked||car.wrecked)return null;
+   vehicle.r=+car.y;vehicle.c=+car.x;vehicle.ang=+car.ang||0;vehicle.speed=Math.hypot(+car.vx||0,+car.vy||0)*scale();
+   // Existing source contract has exactly one passenger slot. Unexpected
+   // anonymous additional occupants fail closed rather than sharing a seat.
+   const passengers=car.passenger_uids||[];if(passengers.length>1)for(const seat of vehicle.seats)reserved.add(seat);
+   else if(passengers.length)reserved.add('front_right');
+  }
+  return {...vehicle,seats:vehicle.seats.filter(seat=>squadPassengerSeats.includes(seat)&&!reserved.has(seat))};
  }
  function squadVehicleDrop(m,index,vehicle){
-  const angle=vehicle?.ang||0,origin=vehicle?{r:vehicle.r,c:vehicle.c}:{r:+player.r||0,c:+player.c||0};
-  for(const radius of [3.8,4.8,6])for(const turn of [Math.PI+index*.8,Math.PI/2+index*.8,-Math.PI/2+index*.8,index*.8]){
-   const a=angle+turn,r=origin.r+Math.sin(a)*radius/scale(),c=origin.c+Math.cos(a)*radius/scale(),p=toWorld({r,c});
-   if(typeof _npcBodyPassable==='function'&&!_npcBodyPassable(r,c))continue;if(targets.canMove&&targets.canMove(p,p,m.id)!==true)continue;return {r,c};
-  }
-  return {r:origin.r,c:origin.c};
+  if(!vehicle||vehicle.speed>.5||typeof findSquadSafeDrop!=='function')return null;
+  const access=targets.squadTransport?.access?.({carId:vehicle.id,seatId:m._mercenaryVehicleSeat});if(!access)return null;
+  m._mercenaryVehicleDropState??={};
+  const drop=findSquadSafeDrop(m,index,toWorld(access.outside),vehicle.ang,m._mercenaryVehicleDropState);
+  const point=drop?.point||drop;if(drop?.status&&drop.status!=='ready'||![point?.x,point?.z].every(Number.isFinite))return null;
+  const result={r:point.z/scale(),c:point.x/scale()};
+  if(!canMoveMember(m.id,m._mercenaryVehicleExitPlan?.stage==='body'?m:access.outside,result)){Object.assign(m._mercenaryVehicleDropState,{attempt:(m._mercenaryVehicleDropState.attempt||0)+1,pending:null,status:'pending'});return null;}return result;
  }
- function clearSquadVehicle(m,index,vehicle){
-  if(!m?._mercenaryVehicleSeat)return false;const drop=squadVehicleDrop(m,index,vehicle);m.r=m.tr=drop.r;m.c=m.tc=drop.c;m.ang=vehicle?.ang||m.ang||0;delete m._mercenaryVehicleSeat;delete m._mercenaryVehicleId;delete m._mercenaryVehicleChaseAt;m._mercenaryVehicleChase=false;m._mercenaryPath=null;m._mercenaryMove=null;m._followSpeed=0;m.walkPhase=0;return true;
+ function clearSquadVehicle(m,index,vehicle,elapsed=0){
+  if(!m?._mercenaryVehicleSeat)return false;
+  m._followSpeed=0;m.walking=false;
+  m._mercenaryVehicleExitPending=true;if(!vehicle||vehicle.speed>.5)return false;
+  const access=targets.squadTransport?.access?.({carId:vehicle.id,seatId:m._mercenaryVehicleSeat});if(!access)return false;
+  let plan=m._mercenaryVehicleExitPlan;
+  if(!plan){const drop=squadVehicleDrop(m,index,vehicle);if(!drop||!squadDoorPath(m,vehicle.id,m,access.outside))return false;
+   plan=m._mercenaryVehicleExitPlan={drop,stage:'door',doorDistance:Math.max(.01,Math.hypot(m.r-access.outside.r,m.c-access.outside.c)*scale())};m._mercenaryVehiclePhase='exit';m._mercenaryVehicleProgress=0;
+  }
+  if(!plan.drop){if(now()<(plan.retryAt||0))return false;plan.drop=squadVehicleDrop(m,index,vehicle);if(!plan.drop)return false;}
+  const target=plan.stage==='door'?access.outside:plan.drop,d=Math.hypot(target.r-m.r,target.c-m.c),step=Math.min(d,Math.max(0,elapsed)*3/scale());
+  const next=d>1e-8?{r:m.r+(target.r-m.r)*step/d,c:m.c+(target.c-m.c)*step/d}:{r:target.r,c:target.c};
+  if(plan.stage==='door'?!squadDoorPath(m,vehicle.id,m,next):!canMoveMember(m.id,m,next)){if(plan.stage==='body')invalidateSquadExit(m,plan);return false;}
+  const arrived=d-step<1e-5;
+  if(arrived&&plan.stage==='body'){
+   const budget=typeof squadDropChecksRemaining==='number'?squadDropChecksRemaining:0,valid=typeof validateSquadSafeDrop==='function'?validateSquadSafeDrop(m,toWorld(plan.drop)):null;
+   if(!valid||![valid.x,valid.y,valid.z].every(Number.isFinite)){if(budget>0)invalidateSquadExit(m,plan);return false;}
+  }
+  const heading=Math.atan2(next.r-m.r,next.c-m.c);m.r=m.tr=next.r;m.c=m.tc=next.c;m._followSpeed=elapsed>0?step*scale()/elapsed:0;m.walkPhase+=elapsed*6;if(plan.stage==='body'&&step>0){m.walking=true;m.ang=heading;}
+  if(plan.stage==='door'){m._mercenaryVehicleProgress=Math.min(1,Math.max(0,1-(d-step)*scale()/plan.doorDistance));if(arrived){plan.stage='body';m._mercenaryVehicleProgress=1;}}
+  targets.squadTransport?.access?.({carId:vehicle.id,seatId:m._mercenaryVehicleSeat,phase:'exit',progress:m._mercenaryVehicleProgress});
+  if(!arrived||target!==plan.drop)return false;
+  targets.squadTransport?.access?.({carId:m._mercenaryVehicleId,seatId:m._mercenaryVehicleSeat,phase:'release'});
+  m.ang=vehicle.ang;
+  for(const key of ['_mercenaryVehicleSeat','_mercenaryVehicleId','_mercenaryVehicleChaseAt','_mercenaryVehiclePhase','_mercenaryVehicleProgress','_mercenaryVehicleExitPending','_mercenaryVehicleDropState','_mercenaryVehicleExitPlan','_mercenaryVehicleMove','_mercenaryVehicleReservedSeat','_mercenaryVehicleReservedId'])delete m[key];
+  m._mercenaryVehicleChase=false;m._mercenaryPath=null;m._mercenaryMove=null;m._followSpeed=0;m.walkPhase=0;return true;
  }
- function squadVehicleTick(roster){
-  const vehicle=playerSquadVehicle(),members=roster.map(row=>({row,m:raw(row.id)})).filter(item=>item.m),assigned=new Set();let teleported=0;
-  for(const {row,m}of members){const eligible=row.status==='active'&&m.hp>0&&!m.dead&&!m._mercenaryHospital&&!core.getAction(row.id)&&(m._mercenaryOrder||'follow')==='follow'&&!m._mercenaryDefending;
-   if(!vehicle||!eligible||m._mercenaryVehicleId&&m._mercenaryVehicleId!==vehicle.id){clearSquadVehicle(m,members.findIndex(item=>item.m===m),vehicle);m._mercenaryVehicleChase=false;delete m._mercenaryVehicleChaseAt;continue;}
-   if(m._mercenaryVehicleSeat&&!vehicle.seats.includes(m._mercenaryVehicleSeat)){clearSquadVehicle(m,members.findIndex(item=>item.m===m),vehicle);continue;}
-   if(m._mercenaryVehicleSeat)assigned.add(m._mercenaryVehicleSeat);
+ function invalidateSquadExit(m,plan){
+  plan.drop=null;plan.retryAt=now()+.2;m._followSpeed=0;m.walking=false;
+  const state=m._mercenaryVehicleDropState||(m._mercenaryVehicleDropState={});Object.assign(state,{attempt:(state.attempt||0)+1,pending:null,status:'pending'});
+ }
+ function catchupSquadVehicle(m,index,vehicle,access,elapsed){
+  const stamp=now(),position=toWorld(m),origin=toWorld(vehicle),distance=Math.hypot(position.x-origin.x,position.z-origin.z);
+  let state=m._mercenaryVehicleCatchup;
+  if(!state||state.vehicleId!==vehicle.id)state=m._mercenaryVehicleCatchup={vehicleId:vehicle.id,progressAt:stamp,position,farAt:distance>65?stamp:null,search:{}};
+  const interrupted=elapsed<=0||document.hidden===true||state.lastAt!==undefined&&stamp-state.lastAt>1;
+  state.lastAt=stamp;
+  if(interrupted||m._mercenaryConversation||m._playerConversationOpen||m._mercenarySafeExit||m._carriedByAmbulance||m._ambulanceInTransit||m._ambulanceLoading||m._evacuated||m._carriedBy||m.carrying||m._carrying||m._carriedNpc||m._residentIndoors||m._insideBuilding||m._interiorId||m.interior_id){state.progressAt=stamp;state.position=position;state.farAt=null;state.search={};return false;}
+  if(Math.hypot(position.x-state.position.x,position.z-state.position.z)>=1.25){state.progressAt=stamp;state.position=position;}
+  if(distance>65){state.farAt??=stamp;}else state.farAt=null;
+  if(Math.hypot(m.r-access.outside.r,m.c-access.outside.c)*scale()<=1.5){state.progressAt=stamp;state.search={};return false;}
+  if(vehicle.speed>.5||stamp<(m._mercenaryVehicleCatchupUntil||0)||!(state.farAt!==null&&stamp-state.farAt>=6||stamp-state.progressAt>=10))return false;
+  const point=typeof findSquadSafeDrop==='function'?findSquadSafeDrop(m,index,origin,vehicle.ang,state.search):null;if(!point)return false;
+  // A safe point must also connect to this reserved door. Failed candidates
+  // advance the bounded search; there is no car-centre or seat fallback.
+  const target={r:point.z/scale(),c:point.x/scale()};
+  if(!canMoveMember(m.id,target,access.outside)){Object.assign(state.search,{attempt:(state.search.attempt||0)+1,pending:null,status:'pending'});return false;}
+  m.r=m.tr=target.r;m.c=m.tc=target.c;if(typeof _clearNpcRoute==='function')_clearNpcRoute(m);m._mercenaryPath=null;m._mercenaryFollowGoal=null;m._mercenaryFollowAt=0;m._mercenaryDetourUntil=0;m._followSpeed=0;m.walkPhase=0;m.walking=false;m._mercenaryVehicleCatchupUntil=stamp+20;
+  m._waterEscaping=false;m._waterEscapeTarget=null;m._waterEscapeSearch=null;m._waterEscapeRetryAt=0;
+  state.progressAt=stamp;state.position=point;state.farAt=null;state.search={};return true;
+ }
+ function squadVehicleTick(roster,elapsed=0){
+  const vehicle=playerSquadVehicle(),members=roster.map(row=>({row,m:raw(row.id)})).filter(item=>item.m),assigned=new Set(),transport=targets.squadTransport;let teleported=0;
+  for(let index=0;index<members.length;index++){const {m}=members[index];if(!m._mercenaryVehicleSeat)continue;
+   const own=squadVehicleById(m._mercenaryVehicleId);
+   // A wound or a firing order never changes occupied-seat ownership.
+   const exit=m._mercenaryVehiclePhase==='exit'||!vehicle||vehicle.id!==m._mercenaryVehicleId||!vehicle.seats.includes(m._mercenaryVehicleSeat)||(m._mercenaryOrder||'follow')!=='follow'||!!core.getAction(m.id);
+   if(!exit&&m._mercenaryVehicleExitPending){delete m._mercenaryVehicleExitPending;delete m._mercenaryVehicleDropState;}
+   if(exit&&m.hp>0&&!m.dead&&!m._mercenaryHospital&&clearSquadVehicle(m,index,own,elapsed))continue;
+   if(vehicle?.id===m._mercenaryVehicleId)assigned.add(m._mercenaryVehicleSeat);
+   if(m._mercenaryVehiclePhase==='exit')continue;
+   if(!own)continue;
+   const access=transport.access({carId:own.id,seatId:m._mercenaryVehicleSeat,phase:m._mercenaryVehiclePhase||'drive',progress:m._mercenaryVehicleProgress??1});
+   if(!access)continue;
+   if(m._mercenaryVehiclePhase==='board'){
+    if(own.speed>.5){
+     // Keep the source body where it is. Once the moving hull has cleared it,
+     // return to ordinary door approach while retaining this exact reservation.
+     m._followSpeed=0;m.walkPhase=0;
+     if(canMoveMember(m.id,m,m)){
+      assigned.delete(m._mercenaryVehicleSeat);transport.access({carId:own.id,seatId:m._mercenaryVehicleSeat,phase:'release'});
+      m._mercenaryVehicleReservedId=own.id;m._mercenaryVehicleReservedSeat=m._mercenaryVehicleSeat;
+      delete m._mercenaryVehicleSeat;delete m._mercenaryVehicleId;delete m._mercenaryVehiclePhase;delete m._mercenaryVehicleProgress;m._mercenaryPath=null;
+     }continue;
+    }
+    const progress=Math.min(1,(m._mercenaryVehicleProgress||0)+Math.max(0,elapsed)/.75),goalR=access.outside.r+(access.seat.r-access.outside.r)*progress,goalC=access.outside.c+(access.seat.c-access.outside.c)*progress,distance=Math.hypot(goalR-m.r,goalC-m.c),step=Math.min(distance,Math.max(0,elapsed)*3/scale()),factor=distance>1e-8?step/distance:1,r=m.r+(goalR-m.r)*factor,c=m.c+(goalC-m.c)*factor;
+    if(!squadDoorPath(m,own.id,m,{r,c}))continue;
+    if(distance-step<1e-6)m._mercenaryVehicleProgress=progress;m.r=m.tr=r;m.c=m.tc=c;if(m._mercenaryVehicleProgress>=1){m._mercenaryVehiclePhase='drive';transport.access({carId:own.id,seatId:m._mercenaryVehicleSeat,phase:'release'});}
+   }else{m.r=m.tr=access.seat.r;m.c=m.tc=access.seat.c;}
+   m.ang=own.ang;m._mercenaryMove=null;m._mercenaryPath=null;m._followSpeed=0;m.walkPhase=0;m._mercenaryMoveReason=m._mercenaryVehicleExitPending?'vehicle_exit_pending':'vehicle_passenger';
   }
-  if(!vehicle)return null;
-  for(let index=0;index<members.length;index++){const {row,m}=members[index],eligible=row.status==='active'&&m.hp>0&&!m.dead&&!m._mercenaryHospital&&!core.getAction(row.id)&&(m._mercenaryOrder||'follow')==='follow'&&!m._mercenaryDefending;if(!eligible)continue;
-   if(m._mercenaryVehicleSeat){m.r=m.tr=vehicle.r;m.c=m.tc=vehicle.c;m.ang=vehicle.ang;m._mercenaryMove=null;m._mercenaryPath=null;m._followSpeed=0;m.walkPhase=0;m._mercenaryMoveReason='vehicle_passenger';continue;}
-   const distance=Math.hypot(m.r-vehicle.r,m.c-vehicle.c)*scale(),seat=vehicle.seats.find(id=>!assigned.has(id));m._mercenaryVehicleChase=true;m._mercenaryVehicleChaseAt??=now();
-   const catchup=distance>=squadTeleportDistance&&now()-m._mercenaryVehicleChaseAt>=squadTeleportDelay;
-   if(catchup){const drop=squadVehicleDrop(m,index,vehicle);m.r=m.tr=drop.r;m.c=m.tc=drop.c;m._mercenaryPath=null;m._mercenaryMove=null;m._mercenaryVehicleChaseAt=now();teleported++;}
-   if(seat&&(distance<=squadBoardDistance||catchup)){assigned.add(seat);m._mercenaryVehicleSeat=seat;m._mercenaryVehicleId=vehicle.id;m.r=m.tr=vehicle.r;m.c=m.tc=vehicle.c;m.ang=vehicle.ang;m._mercenaryVehicleChase=false;delete m._mercenaryVehicleChaseAt;m._mercenaryMove=null;m._mercenaryPath=null;m._followSpeed=0;m.walkPhase=0;m._mercenaryMoveReason='vehicle_passenger';}
+  const reservedOwners=new Map();for(const {row,m}of members){const seat=m._mercenaryVehicleReservedSeat;if(vehicle&&row.status==='active'&&m.hp>0&&!m.dead&&!m._mercenaryHospital&&!core.getAction(row.id)&&(m._mercenaryOrder||'follow')==='follow'&&!m._mercenaryDefending&&!m._mercenaryVehicleSeat&&m._mercenaryVehicleReservedId===vehicle.id&&vehicle.seats.includes(seat)&&!assigned.has(seat)&&!reservedOwners.has(seat))reservedOwners.set(seat,m.id);}
+  for(const {row,m}of members){if(m._mercenaryVehicleSeat)continue;
+   const eligible=vehicle&&row.status==='active'&&m.hp>0&&!m.dead&&!m._mercenaryHospital&&!core.getAction(row.id)&&(m._mercenaryOrder||'follow')==='follow'&&!m._mercenaryDefending;
+   const previous=m._mercenaryVehicleReservedId===vehicle?.id?m._mercenaryVehicleReservedSeat:null,available=id=>!assigned.has(id)&&(!reservedOwners.has(id)||reservedOwners.get(id)===m.id),seat=eligible&&(vehicle.seats.includes(previous)&&available(previous)?previous:vehicle.seats.find(available));
+   if(!seat){m._mercenaryVehicleChase=false;delete m._mercenaryVehicleMove;delete m._mercenaryVehicleReservedId;delete m._mercenaryVehicleReservedSeat;delete m._mercenaryVehicleCatchup;continue;}
+   assigned.add(seat);m._mercenaryVehicleReservedSeat=seat;m._mercenaryVehicleReservedId=vehicle.id;
+   const access=transport.access({carId:vehicle.id,seatId:seat});if(!access)continue;
+   m._mercenaryVehicleChase=true;m._mercenaryVehicleMove={position:toWorld(access.outside),stopDistance:.12};
+   if(catchupSquadVehicle(m,members.findIndex(item=>item.m===m),vehicle,access,elapsed)){teleported++;continue;}
+   if(vehicle.speed>.5||Math.hypot(m.r-access.outside.r,m.c-access.outside.c)*scale()>.45)continue;
+   if(!squadDoorPath(m,vehicle.id,m,access.seat))continue;
+   m._mercenaryVehicleSeat=seat;m._mercenaryVehicleId=vehicle.id;m._mercenaryVehiclePhase='board';m._mercenaryVehicleProgress=0;m._mercenaryVehicleChase=false;m._mercenaryMove=null;m._mercenaryPath=null;m._followSpeed=0;m.walkPhase=0;
   }
-  if(document.documentElement?.dataset)document.documentElement.dataset.mercenaryVehicle=JSON.stringify({vehicleId:vehicle.id,seated:members.filter(({m})=>m._mercenaryVehicleSeat).map(({m})=>({id:m.id,seatId:m._mercenaryVehicleSeat})),chasing:members.filter(({m})=>m._mercenaryVehicleChase).map(({m})=>m.id),teleported});
+  transport?.setReservations(members.map(({m})=>({vehicleId:m._mercenaryVehicleId||m._mercenaryVehicleReservedId,seatId:m._mercenaryVehicleSeat||m._mercenaryVehicleReservedSeat})));
+  if(document.documentElement?.dataset)document.documentElement.dataset.mercenaryVehicle=JSON.stringify({vehicleId:vehicle?.id||null,seated:members.filter(({m})=>m._mercenaryVehicleSeat).map(({m})=>({id:m.id,vehicleId:m._mercenaryVehicleId,seatId:m._mercenaryVehicleSeat,phase:m._mercenaryVehiclePhase,exitPending:!!m._mercenaryVehicleExitPending})),chasing:members.filter(({m})=>m._mercenaryVehicleChase).map(({m})=>m.id),teleported});
   return vehicle;
  }
  function getMember(id){const m=raw(id);if(!m)return null;const r=record(m.id);return{id:m.id,kind:'npc',queued:r?.queued||[],posture:squadPosture(m),revivable:r?.status!=='hospital',approachMoving:!!m._mercenaryPath?.path&&m._followSpeed>0,approachSearching:!!m._mercenaryPath?.search&&now()-(m._mercenaryPath.lastSearchProgressAt||0)<2,...(qaSupported()?{movement:movementSnapshot(m)}:{}),qaRescueUntil:m._mercenaryQaRescueUntil&&qaSupported()?m._mercenaryQaRescueUntil:0,intimidatable:false,position:toWorld(m),...(m.hp<=0?rescueContact(toWorld(m),m.ang):{}),hp:+m.hp||0,dead:false,downed:m.hp<=0,available:r?.status!=='hospital',followArrived:Math.hypot(m.r-player.r,m.c-player.c)*scale()<7};}
@@ -207,6 +301,76 @@
  function clearFocus(m){if(m){delete m._mercenarySafeExit;delete m._mercenaryConversation;delete m._mercenaryGreetingUntil;}const focus=m?._mercenaryFocus;if(!focus)return;if(m.targetRef===focus.ref){m.targetKind=null;m.targetRef=null;m.targetId=null;}delete m._mercenaryFocus;m._mercenaryDefending=false;}
  function getFocusedTarget(id){const m=raw(id),focus=m?._mercenaryFocus;if(!focus)return null;const live=focusTarget(focus.sourceId);if(!live||live.ref!==focus.ref){clearFocus(m);return null;}return live;}
  function focusPosition(focus){return toWorld({r:Number(focus.ref.r??focus.ref.y),c:Number(focus.ref.c??focus.ref.x)});}
+ const vehicleFireWeapons=new Set(['pistol','pistol_heavy','nagan','tt_pistol','revolver','deagle','golden_colt','golden_pistol','pistol_gold','smg','uzi','golden_uzi','tommy_gun','golden_tommy','rifle','golden_ak','ak74','m16','sawn_off','shotgun','sniper']);
+ const vehicleAttackReceipts=new Map();let vehicleDefenseEnabled=false,vehicleDefenseId=null,vehicleAttackSequence=0;
+ function defenseVehicle(){const vehicle=local()&&!(typeof myDead!=='undefined'&&myDead)&&playerSquadVehicle();if(!vehicle||vehicleDefenseId&&vehicle.id!==vehicleDefenseId){vehicleDefenseEnabled=false;vehicleDefenseId=null;vehicleAttackReceipts.clear();}return vehicle||null;}
+ function vehicleWeaponReason(weapon){return weapon==='rpg'||weapon==='bazooka'?'Для РПГ из машины ещё нет подтверждаемого запуска ракеты.':!weapon||['none','melee','fists','unarmed'].includes(weapon)?'Нужно огнестрельное оружие в руках.':'Это оружие нельзя использовать из окна.';}
+ function vehicleFireMember(id){
+  if(!ready||!local()||typeof myDead!=='undefined'&&myDead)return null;
+  const m=raw(id),r=m&&record(m.id);if(!m||r?.status!=='active'||m.hp<=0||m.dead||m._mercenaryHospital||core.getAction(m.id)||!vehicleFireWeapons.has(m.weapon)||m._mercenaryVehiclePhase!=='drive'||m._mercenaryVehicleExitPending||!squadPassengerSeats.includes(m._mercenaryVehicleSeat))return null;
+  const vehicle=targets.squadTransport?.getVehicle?.(m._mercenaryVehicleId),playerVehicle=playerSquadVehicle();
+  if(!vehicle||vehicle.blocked||playerVehicle?.id!==vehicle.id||!vehicle.seats?.includes(m._mercenaryVehicleSeat)||![vehicle.r,vehicle.c,vehicle.ang].every(Number.isFinite))return null;
+  return {m,vehicle};
+ }
+ function getVehicleDefenseFireState(){
+  const vehicle=defenseVehicle(),roster=core?.getRoster()||[],eligible=vehicle?roster.filter(r=>!!vehicleFireMember(r.id)).length:0;
+  const unsupportedWeapons=vehicle?roster.map(r=>raw(r.id)).filter(m=>m?._mercenaryVehicleId===vehicle.id&&m._mercenaryVehicleSeat&&!vehicleFireWeapons.has(m.weapon)).map(m=>({memberId:m.id,weaponId:m.weapon||'none',reason:vehicleWeaponReason(m.weapon)})):[];
+  return {enabled:vehicleDefenseEnabled,available:!!vehicle&&(vehicleDefenseEnabled||eligible>0),eligible,unsupportedWeapons,vehicleId:vehicle?.id||null,reason:!vehicle?'Нужно находиться в машине.':eligible?'':unsupportedWeapons[0]?.reason||'Нет готового вооружённого пассажира.'};
+ }
+ function setVehicleDefenseFire(enabled){
+  if(!enabled){vehicleDefenseEnabled=false;vehicleDefenseId=null;return {...success('Ответный огонь выключен.'),enabled:false};}
+  const state=getVehicleDefenseFireState();if(!state.available||!state.eligible)return failure(state.reason);
+  vehicleDefenseEnabled=true;vehicleDefenseId=state.vehicleId;return {...success('Ответный огонь включён · ждём атакующих.'),enabled:true};
+ }
+ function toggleVehicleDefenseFire(){return setVehicleDefenseFire(!getVehicleDefenseFireState().enabled);}
+ function qaVehicleDefenseAttack(){
+  const qa=local()&&['localhost','127.0.0.1','[::1]'].includes(location.hostname)&&(qaSupported()||new URL(location.href||location.origin).searchParams.get('carqa')==='1');
+  if(!qa||!defenseVehicle()||typeof _cityCopEngagePlayerAfterHit!=='function'||typeof _policeWorldLineClear!=='function')return failure('Проверка доступна только в локальной машине.');
+  const cop=(typeof cityCops!=='undefined'?cityCops:[]).filter(c=>c?.alive&&!c.dead&&c.hp>0&&!c._allied&&!c._friendly&&Math.hypot(c.y-player.r,c.x-player.c)>.7&&Math.hypot(c.y-player.r,c.x-player.c)<50).sort((a,b)=>Math.hypot(a.y-player.r,a.x-player.c)-Math.hypot(b.y-player.r,b.x-player.c))[0];
+  if(!cop)return failure('В радиусе проверки нет живого патрульного.');
+  const distance=Math.hypot(cop.y-player.r,cop.x-player.c),pursuitRange=Math.max(24,typeof CITYCOP_PURSUE_R==='number'?CITYCOP_PURSUE_R:24);
+  _cityCopEngagePlayerAfterHit(cop);return {...success(distance>pursuitRange?'Патрульный спровоцирован · приблизьтесь к нему для настоящей погони.':'Патрульный спровоцирован · ждём подхода и настоящей атаки.'),copId:cop.id,distanceMeters:Math.round(distance*scale())};
+ }
+ function canIssueVehicleFireCommand(){return getVehicleDefenseFireState().available;}
+ // Only real incoming attack paths call this. Generic gang alerts also contain
+ // player-selected targets and must never be treated as defensive provenance.
+ function noteVehicleAttack(event){
+  const vehicle=defenseVehicle();if(!vehicle||!event?.ref||!['player','member','vehicle'].includes(event.victimKind))return false;
+  if(event.victimKind==='player'&&event.victimId&&event.victimId!=='player'||event.victimKind==='member'&&!raw(event.victimId)||event.victimKind==='vehicle'&&String(event.victimId)!==String(vehicle.id))return false;
+  const sourceId=event.kind==='city_cop'?`npc_city_cop_${event.ref.id}`:typeof _threeNpcEntityId==='function'?_threeNpcEntityId(event.ref):String(event.ref.id??event.id??'');
+  const focus=focusTarget(sourceId);if(!focus||focus.ref!==event.ref||focus.kind!==event.kind)return false;
+  const key=focus.kind+':'+sourceId;vehicleAttackReceipts.delete(key);vehicleAttackReceipts.set(key,{...focus,at:performance.now(),vehicleId:vehicle.id,sequence:++vehicleAttackSequence});
+  while(vehicleAttackReceipts.size>16)vehicleAttackReceipts.delete(vehicleAttackReceipts.keys().next().value);return true;
+ }
+ function vehicleAttacker(m,vehicle,rangeMeters){
+  let best=null,bestDistance=Infinity;const stamp=performance.now(),yaw=Math.PI/2-vehicle.ang,side=m._mercenaryVehicleSeat.endsWith('left')?1:-1;
+  for(const [key,receipt]of vehicleAttackReceipts){
+   const live=focusTarget(receipt.sourceId);if(stamp<receipt.at||stamp-receipt.at>6000||receipt.vehicleId!==vehicle.id||!live||live.ref!==receipt.ref){vehicleAttackReceipts.delete(key);continue;}
+   const position=focusPosition(live),dx=position.x-m.c*scale(),dz=position.z-m.r*scale(),distance=Math.hypot(dx,dz);
+   if(distance>.01&&distance<=rangeMeters&&distance<bestDistance&&(dx*Math.cos(yaw)-dz*Math.sin(yaw))*side/distance>=.45){best={...live,attackSequence:receipt.sequence};bestDistance=distance;}
+  }return best;
+ }
+ function getVehicleFireReadiness(id){
+  if(!defenseVehicle()||!vehicleDefenseEnabled)return null;const member=vehicleFireMember(id);if(!member)return null;
+  return {sourceVehicleId:member.vehicle.id,seatId:member.m._mercenaryVehicleSeat,weaponId:member.m.weapon};
+ }
+ function getVehicleFireIntent(id){
+  if(!defenseVehicle()||!vehicleDefenseEnabled)return null;
+  const member=vehicleFireMember(id);if(!member)return null;
+  const {m,vehicle}=member,rangeMeters=(typeof GANG_ENGAGE_R==='number'?GANG_ENGAGE_R:10)*scale(),focus=vehicleAttacker(m,vehicle,rangeMeters);if(!focus)return null;
+  const targetPosition=focusPosition(focus);
+  targetPosition.y+=(Number(focus.ref.elevation)||0)+1.05;
+  if(Math.hypot(targetPosition.x-m.c*scale(),targetPosition.z-m.r*scale())>rangeMeters)return null;
+  const targetId=focus.kind==='city_cop'?`npc_city_cop_${focus.ref.id}`:typeof _threeNpcEntityId==='function'?_threeNpcEntityId(focus.ref):focus.sourceId;
+  return {memberId:m.id,sourceVehicleId:vehicle.id,presentationVehicleId:vehicle.id,seatId:m._mercenaryVehicleSeat,weaponId:m.weapon,targetId,targetKind:focus.kind,targetRef:focus.ref,targetPosition,rangeMeters,attackSequence:focus.attackSequence,
+   vehiclePose:{x:vehicle.c*scale(),y:0,z:vehicle.r*scale(),yaw:Math.PI/2-vehicle.ang}};
+ }
+ function validateVehicleFireIntent(intent){
+  if(!intent)return false;const live=getVehicleFireIntent(intent.memberId);if(!live)return false;
+  return live.sourceVehicleId===intent.sourceVehicleId&&live.presentationVehicleId===intent.presentationVehicleId&&live.seatId===intent.seatId&&live.weaponId===intent.weaponId&&live.targetId===intent.targetId&&live.targetKind===intent.targetKind&&live.targetRef===intent.targetRef&&live.attackSequence===intent.attackSequence&&
+   ['x','y','z'].every(key=>Number.isFinite(intent.targetPosition?.[key])&&Math.abs(live.targetPosition[key]-intent.targetPosition[key])<1e-6)&&
+   ['x','z','yaw'].every(key=>Number.isFinite(intent.vehiclePose?.[key])&&Math.abs(live.vehiclePose[key]-intent.vehiclePose[key])<1e-6);
+ }
  function focusOrderCheck(focus){
   const from=targets.playerPosition?.()||toWorld(player),to=focusPosition(focus);if(Math.hypot(to.x-from.x,to.z-from.z)>60)return failure('Цель дальше 60 м. Подойдите ближе.');
   let visible=true;try{if(typeof targets.hasLineOfSight==='function')visible=targets.hasLineOfSight(from,to,focus.sourceId)===true;else if(typeof _policeWorldLineClear==='function')visible=_policeWorldLineClear(from.z/scale(),from.x/scale(),to.z/scale(),to.x/scale());}catch{visible=false;}
@@ -537,17 +701,70 @@
    return success('Специалист рядом на 10 секунд. Наймите через E.');
   }return failure('Рядом нет свободного места для проверки.');
  }
+ // Shared with vehicle dismount: one bounded geometry allowance for the whole crew.
+ function squadDropOccupied(point,id){
+  const near=n=>n&&String(n.id)!==String(id)&&Number.isFinite(n.r)&&Number.isFinite(n.c)&&Math.hypot(n.c*scale()-point.x,n.r*scale()-point.z)<1.6;
+  if(near({...player,id:'player'}))return true;
+  if(gang().some(n=>!n._mercenaryHospital&&!n._mercenaryVehicleSeat&&near(n)))return true;
+  // Source has no shared pedestrian proximity index. Snapshot once only on an
+  // actual recovery attempt; an unexpected population overflow fails closed.
+  if(!squadDropCrowd){const source=npcs();if(source.length>1024)return true;squadDropCrowd=source.filter(n=>n&&!n.dead&&(n.hp??100)>0&&!n._civilianSeat&&!n._inVehicle&&!n._inCar).map(n=>({id:n.id,r:n.r,c:n.c}));}
+  return squadDropCrowd.some(near);
+ }
+ function checkSquadDropPoint(point,id){
+  if(squadDropOccupied(point,id))return {ok:false,reason:'occupied'};
+  return targets.safeCatchupPoint?.(point,id)||{ok:false,reason:'resolver_unavailable'};
+ }
+ function validateSquadSafeDrop(m,point){
+  if(!ready||!local()||!m||!record(m.id)||m.hp<=0||m.dead||squadDropChecksRemaining<=0||![point?.x,point?.z].every(Number.isFinite))return null;
+  squadDropChecksRemaining--;const result=checkSquadDropPoint(point,m.id);return result.ok&&[result.point?.x,result.point?.y,result.point?.z].every(Number.isFinite)?result.point:null;
+ }
+ function findSquadSafeDrop(m,index,origin,yaw,state){
+  if(!safeDropAdvance||!ready||!local()||!m||!record(m.id)||m.hp<=0||m.dead||!targets.safeCatchupPoint)return null;
+  const occupied=gang().filter(n=>n!==m&&!n._mercenaryHospital&&!n._mercenaryVehicleSeat).map(n=>({id:n.id,x:n.c*scale(),z:n.r*scale()}));
+  const result=safeDropAdvance(state,{origin,yaw,memberId:m.id,slot:index,occupied,validate:checkSquadDropPoint,now:performance.now(),maxChecks:squadDropChecksRemaining});
+  squadDropChecksRemaining=Math.max(0,squadDropChecksRemaining-result.checks);return result.point;
+ }
+ function bindCatchupModule(module){
+  safeDropAdvance=module.advanceMercenarySafeDrop;
+  catchupRecovery=module.createMercenaryCatchup({placement:{check:(point,member)=>checkSquadDropPoint(point,member.id)}});
+ }
+ function recoverFollowers(roster){
+  if(!catchupRecovery)return;
+  const stamp=performance.now(),heroInterior=!!(typeof _bankInt!=='undefined'&&_bankInt||typeof _buildingInt!=='undefined'&&_buildingInt||typeof _majorInteriorObjectId!=='undefined'&&_majorInteriorObjectId),heroInCar=!!(typeof myDrivingCarId!=='undefined'&&myDrivingCarId)||targets.squadTransport?.isPlayerInVehicle?.()===true||!!targets.squadTransport?.getPlayerVehicle?.();
+  const members=roster.map(row=>{
+   const m=raw(row.id);if(!m)return null;
+   return {id:m.id,owned:!!record(m.id),status:row.status,hp:m.hp,dead:!!m.dead,position:toWorld(m),order:m._mercenaryOrder||'follow',action:core.getAction(m.id),queued:!!row.queued?.length,
+    combat:!!(m._mercenaryDefending||m._mercenaryFocus||m.targetKind||m.targetId||m._fighting||m._fightingMelee||m._hostile||m._threatUntil>stamp||m._shotAt>0&&stamp-m._shotAt<500),
+    carried:!!(m._carriedByAmbulance||m._ambulanceInTransit||m._ambulanceLoading||m._evacuated||m._carriedBy),carrying:!!(m.carrying||m._carrying||m._carriedNpc),
+    seated:!!(m._mercenaryVehicleSeat||m._inVehicle||m._inCar||m.vehicleId||m.vehicle_id||m._civilianSeat),vehicleChase:!!m._mercenaryVehicleChase,
+    interior:!!(m._residentIndoors||m._insideBuilding||m._interiorId||m.interior_id),safeExit:!!m._mercenarySafeExit,
+    conversation:!!(m._mercenaryConversation||m._playerConversationOpen||m._mercenaryGreetingUntil>now())};
+  }).filter(Boolean);
+  const result=catchupRecovery.update({now:stamp,enabled:ready&&local()&&document.hidden!==true,hero:{position:toWorld(player),angle:player.ang||0,alive:!(typeof myDead!=='undefined'&&myDead),interior:heroInterior,inVehicle:heroInCar},members,maxChecks:squadDropChecksRemaining});
+  squadDropChecksRemaining=Math.max(0,squadDropChecksRemaining-result.checks);
+  for(const relocation of result.relocations){
+   const m=raw(relocation.id);if(!m)continue;
+   const from={r:m.r,c:m.c};m.r=m.tr=relocation.point.z/scale();m.c=m.tc=relocation.point.x/scale();
+   if(typeof _clearNpcRoute==='function')_clearNpcRoute(m);
+   m._mercenaryPath=null;m._mercenaryMove=null;m._mercenaryFollowGoal=null;m._mercenaryFollowAt=0;m._mercenaryDetourUntil=0;m._followSpeed=0;m.walkPhase=0;m.walking=false;
+   m._waterEscaping=false;m._waterEscapeTarget=null;m._waterEscapeSearch=null;m._waterEscapeRetryAt=0;
+   m._mercenaryCatchup={at:stamp,reason:relocation.reason,fromR:from.r,fromC:from.c,r:m.r,c:m.c};m._mercenaryMoveReason='catchup_'+relocation.reason;
+  }
+ }
  function tick(dt){
+  squadDropChecksRemaining=4;squadDropCrowd=null;
   if(!ready||!local()){resetMovementClock();reportMovement();return;}if(!restoredOnce){restore();reconcileInventory(inventory());}reconcileMembers();adoptCandidates();const elapsed=movementElapsed(dt);
   const wantedAngle=Number(player.ang)||0,maxTurn=1.45*Math.min(.05,elapsed);
   if(followAngle===null)followAngle=wantedAngle;
   else{const turn=Math.atan2(Math.sin(wantedAngle-followAngle),Math.cos(wantedAngle-followAngle));followAngle+=Math.max(-maxTurn,Math.min(maxTurn,turn));}
   for(const r of core.getRoster()){const m=raw(r.id);if(m){if(m.hp<=0&&!m._mercenaryDownAt)m._mercenaryDownAt=performance.now();else if(m.hp>0)m._mercenaryDownAt=0;}}
   core.update();let lifecycleChanged=false;
-  const moveRoster=core.getRoster();squadVehicleTick(moveRoster);routeWorkDeadline=performance.now()+1.5;routeFrameOffset=(routeFrameOffset+1)%Math.max(1,moveRoster.length);
+  const moveRoster=core.getRoster();squadVehicleTick(moveRoster,elapsed);recoverFollowers(moveRoster);routeWorkDeadline=performance.now()+1.5;routeFrameOffset=(routeFrameOffset+1)%Math.max(1,moveRoster.length);
   for(let offset=0;offset<moveRoster.length;offset++){const index=(offset+routeFrameOffset)%moveRoster.length,r=moveRoster[index];
    if(records.get(r.id)?.status!==r.status){records.set(r.id,r);lifecycleChanged=true;}
    const m=raw(r.id);if(!m)continue;m.level=r.level;m.fighterXp=r.xp;const action=core.getAction(r.id);if(m._mercenaryPath?.stagedFollow&&(action||r.status==='hospital'||r.status==='downed'||m._mercenaryVehicleSeat||m._mercenaryVehicleChase))m._mercenaryPath=null;if(m._mercenaryVehicleSeat){m._mercenaryMove=null;m._followSpeed=0;m.walkPhase=0;continue;}
+   if(m._mercenaryVehicleChase&&m._mercenaryVehicleMove){m._mercenaryMove=m._mercenaryVehicleMove;advanceMember(m,elapsed);continue;}
    if(!action&&r.status!=='hospital'&&r.status!=='downed'){const defense=defend(m);if(defense){if(defense==='approach')advanceMember(m,elapsed);continue;}}
    if(!action&&m._mercenarySafeExit){const exit=m._mercenarySafeExit,p=toWorld(m),arrived=Math.hypot(p.x-exit.position.x,p.z-exit.position.z)<=exit.stopDistance+1e-6;if(arrived&&!exit.arrivedAt)exit.arrivedAt=now();if(r.status==='active'&&now()<exit.expires&&(!arrived||now()-exit.arrivedAt<1)){m._mercenaryMove=exit;advanceMember(m,elapsed);continue;}delete m._mercenarySafeExit;m._mercenaryPath=null;}
    if(!action&&m._mercenaryGreetingUntil){if(now()<m._mercenaryGreetingUntil&&m.hp>0&&!m._mercenaryHospital&&Math.hypot(m.r-player.r,m.c-player.c)*scale()<=3.5){facePlayer(m,elapsed);continue;}delete m._mercenaryGreetingUntil;}
@@ -561,8 +778,8 @@
   if(lifecycleChanged||now()-lastSave>=2)persist();reportMovement();
  }
 
- function decorateEntities(value){if(!ready||!value)return value;const list=Array.isArray(value)?value:value.npcs;if(!Array.isArray(list))return value;const result=[];for(const n of list){const id=String(n.id||'').replace(/^npc_/,'');const memberId=id.startsWith('crew_')?id.slice(5):null;const r=memberId?record(memberId):null;if(r?.status==='hospital')continue;const c=candidates.get(id);if(r){const m=raw(memberId),riding=!!m?._mercenaryVehicleSeat,downed=r.status==='downed'&&n.deathConfirmed!==true&&m?.dead!==true;result.unshift({...n,crouching:!riding&&squadPosture(m)==='crouch',prone:!riding&&squadPosture(m)==='prone',...(riding?{civilianTripRiding:true,civilianTripCarId:m._mercenaryVehicleId,civilianTripPhase:'drive',civilianTripProgress:1,vehicleSeatId:m._mercenaryVehicleSeat}:{}),...(downed?{downed:true,lifeState:'downed',dead:false,deathConfirmed:false,downedAt:m?._mercenaryDownAt||0,downedUntil:0}:{}),mercenary:{profession:r.profession,level:r.level,status:r.status},weapon:riding||!weaponDrawn(m)||['working','awaiting','retreat','countdown'].includes(m?._mercenaryAction?.phase)?'none':m.weapon||n.weapon||'pistol',_mercenaryAction:m?._mercenaryAction,mercenaryAction:m?._mercenaryAction});}else result.push(c?{...n,weapon:weaponDrawn(c.npc)?c.npc.weapon||'pistol':'none',mercenaryCandidate:true,mercenary:{profession:c.profession}}:n);}return Array.isArray(value)?result:{...value,npcs:result};}
- const api={get ready(){return ready;},greetMember,bindChatter,chatterEvent,getChatterSettings:()=>({volume:typeof _sfxVol==='number'?Math.max(0,Math.min(1,_sfxVol)):.5}),get dismissing(){return dismissing;},getRoster,cancelCommand,rally,follow,isDefending:id=>!!raw(id)?._mercenaryDefending,beginConversation,endConversation,demoSupported,qaSupported,qaInvite,qaLineup,qaPrepareProfessions,qaAssembleProfessions,qaPlacePatient,getCharges:()=>core?.snapshot().charges||[],getPendingTransactions:()=>core?.snapshot().pendingTransactions||[],resolvePending(requestId,receipt){if(!core||!local())return failure('Подтверждение недоступно.');const result=core.resolvePending(requestId,receipt);persist();return result;},recruit,equip,dismiss,upgrade,tick,resetMovementClock,awardCombatXp,reconcileInventory,canMoveMember,getMember,getTarget,blastVehicle,canUseLocalEffects:()=>local(),canCollectSafeLoot,syncSafeLootBalance,stats:id=>core?.stats(memberKey(id)),getAction:id=>core?.getAction(id),getQueue:id=>core?.getQueue(memberKey(id))||[],getFocusedTarget,getActions:t=>(core?.availableActions(t)||[]).map(a=>({...a,id:a.kind,label:a.kind==='unlock_door'&&t.kind==='vehicle'?'Взломать автомобиль':{revive:'Поднять союзника',intimidate:'Запугать',breach_door:'Выбить дверь',unlock_safe:'Вскрыть сейф',unlock_door:'Вскрыть замок',cut_fence:'Прорезать сетку',disable_power:'Отключить электричество',plant_bomb:'Подорвать'}[a.kind]||a.kind,enabled:a.available,disabledReason:a.available?undefined:'Специалист занят, ранен или восстанавливает навык'})).concat(focusActions(t)),command(actionId,target){const blocked=permitted();if(blocked)return blocked;if(actionId==='eliminate')return eliminate(target);const options=core.availableActions(target).filter(a=>a.kind===actionId&&a.available).sort((a,b)=>Number(a.willQueue)-Number(b.willQueue)||a.queuedCount-b.queuedCount);if(!options.length)return failure('Нет свободного специалиста для этого приказа.');const result=core.command(options[0].memberId,actionId,target.id);if(result.ok){if(!result.queued)clearFocus(raw(options[0].memberId));persist();chatterEvent(options[0].memberId,result.queued?'queued':'ack',{action:actionId});return {...result,...success(result.queued?'Задача добавлена в очередь · '+result.queuePosition:'Приказ принят.')};}return failure('Цель или боец недоступны.');},bindTargets:value=>{targets=value||{};},isMercenary:id=>!!record(id),ownsUpdate:m=>!!record(m?.id)&&(m.hp<=0||m._mercenaryHospital||!!core.getAction(m.id)||!m._mercenaryDefending),decorateEntities,nearestCandidate(){adoptCandidates();return[...candidates].filter(([,c])=>npcs().includes(c.npc)&&recruitableResident(c.npc)).map(([id,c])=>({id,d:Math.hypot(c.npc.r-player.r,c.npc.c-player.c)*scale()})).filter(c=>c.d<=3).sort((a,b)=>a.d-b.d)[0]?.id||null;}};
+ function decorateEntities(value){if(!ready||!value)return value;const list=Array.isArray(value)?value:value.npcs;if(!Array.isArray(list))return value;const result=[];for(const n of list){const id=String(n.id||'').replace(/^npc_/,'');const memberId=id.startsWith('crew_')?id.slice(5):null;const r=memberId?record(memberId):null;if(r?.status==='hospital')continue;const c=candidates.get(id);if(r){const m=raw(memberId),riding=!!m?._mercenaryVehicleSeat,exitWalk=m?._mercenaryVehiclePhase==='exit'&&m?._mercenaryVehicleExitPlan?.stage==='body',vehicleFire=riding&&typeof getVehicleFireIntent==='function'?getVehicleFireIntent(m.id):null,vehicleReady=riding?getVehicleFireReadiness(m.id):null,downed=r.status==='downed'&&n.deathConfirmed!==true&&m?.dead!==true;result.unshift({...n,crouching:!riding&&squadPosture(m)==='crouch',prone:!riding&&squadPosture(m)==='prone',...(riding?{civilianTripRiding:!exitWalk&&m._mercenaryVehiclePhase!=='board',civilianTripCarId:m._mercenaryVehicleId,civilianTripPhase:exitWalk?'exit_walk':m._mercenaryVehiclePhase||'drive',civilianTripProgress:m._mercenaryVehicleProgress??1,vehicleSeatId:m._mercenaryVehicleSeat,...(exitWalk?{moving:!!m.walking,walking:!!m.walking}:{}),...(vehicleReady?{mercenaryVehicleReady:vehicleReady}:{}),...(vehicleFire?{mercenaryVehicleFire:{targetId:vehicleFire.targetId,targetPosition:vehicleFire.targetPosition,weaponId:vehicleFire.weaponId,sourceVehicleId:vehicleFire.sourceVehicleId,seatId:vehicleFire.seatId}}:{})}:{}),...(downed?{downed:true,lifeState:'downed',dead:false,deathConfirmed:false,downedAt:m?._mercenaryDownAt||0,downedUntil:0}:{}),mercenary:{profession:r.profession,level:r.level,status:r.status},weapon:riding?(vehicleReady?m.weapon:'none'):!weaponDrawn(m)||['working','awaiting','retreat','countdown'].includes(m?._mercenaryAction?.phase)?'none':m.weapon||n.weapon||'pistol',_mercenaryAction:m?._mercenaryAction,mercenaryAction:m?._mercenaryAction});}else result.push(c?{...n,weapon:weaponDrawn(c.npc)?c.npc.weapon||'pistol':'none',mercenaryCandidate:true,mercenary:{profession:c.profession}}:n);}return Array.isArray(value)?result:{...value,npcs:result};}
+ const api={get ready(){return ready;},greetMember,bindChatter,chatterEvent,getChatterSettings:()=>({volume:typeof _sfxVol==='number'?Math.max(0,Math.min(1,_sfxVol)):.5}),get dismissing(){return dismissing;},getRoster,cancelCommand,rally,follow,isDefending:id=>!!raw(id)?._mercenaryDefending,beginConversation,endConversation,demoSupported,qaSupported,qaInvite,qaLineup,qaPrepareProfessions,qaAssembleProfessions,qaPlacePatient,getCharges:()=>core?.snapshot().charges||[],getPendingTransactions:()=>core?.snapshot().pendingTransactions||[],resolvePending(requestId,receipt){if(!core||!local())return failure('Подтверждение недоступно.');const result=core.resolvePending(requestId,receipt);persist();return result;},recruit,equip,dismiss,upgrade,tick,resetMovementClock,awardCombatXp,reconcileInventory,canMoveMember,getMember,getTarget,blastVehicle,canUseLocalEffects:()=>local(),canCollectSafeLoot,syncSafeLootBalance,stats:id=>core?.stats(memberKey(id)),getAction:id=>core?.getAction(id),getQueue:id=>core?.getQueue(memberKey(id))||[],getFocusedTarget,getVehicleFireIntent,validateVehicleFireIntent,canIssueVehicleFireCommand,getVehicleDefenseFireState,setVehicleDefenseFire,toggleVehicleDefenseFire,qaVehicleDefenseAttack,noteVehicleAttack,getActions:t=>(core?.availableActions(t)||[]).map(a=>({...a,id:a.kind,label:a.kind==='unlock_door'&&t.kind==='vehicle'?'Взломать автомобиль':{revive:'Поднять союзника',intimidate:'Запугать',breach_door:'Выбить дверь',unlock_safe:'Вскрыть сейф',unlock_door:'Вскрыть замок',cut_fence:'Прорезать сетку',disable_power:'Отключить электричество',plant_bomb:'Подорвать'}[a.kind]||a.kind,enabled:a.available,disabledReason:a.available?undefined:'Специалист занят, ранен или восстанавливает навык'})).concat(focusActions(t)),command(actionId,target){const blocked=permitted();if(blocked)return blocked;if(actionId==='eliminate')return eliminate(target);const options=core.availableActions(target).filter(a=>a.kind===actionId&&a.available).sort((a,b)=>Number(a.willQueue)-Number(b.willQueue)||a.queuedCount-b.queuedCount);if(!options.length)return failure('Нет свободного специалиста для этого приказа.');const result=core.command(options[0].memberId,actionId,target.id);if(result.ok){if(!result.queued)clearFocus(raw(options[0].memberId));persist();chatterEvent(options[0].memberId,result.queued?'queued':'ack',{action:actionId});return {...result,...success(result.queued?'Задача добавлена в очередь · '+result.queuePosition:'Приказ принят.')};}return failure('Цель или боец недоступны.');},bindTargets:value=>{targets=value||{};if(!value){vehicleDefenseEnabled=false;vehicleDefenseId=null;vehicleAttackReceipts.clear();}},isMercenary:id=>!!record(id),ownsUpdate:m=>!!record(m?.id)&&(!!m._mercenaryVehicleSeat||m.hp<=0||m._mercenaryHospital||!!core.getAction(m.id)||!m._mercenaryDefending),decorateEntities,nearestCandidate(){adoptCandidates();return[...candidates].filter(([,c])=>npcs().includes(c.npc)&&recruitableResident(c.npc)).map(([id,c])=>({id,d:Math.hypot(c.npc.r-player.r,c.npc.c-player.c)*scale()})).filter(c=>c.d<=3).sort((a,b)=>a.d-b.d)[0]?.id||null;}};
  window.MafioziMercenaries=api;
- import(new URL('./mercenary_core.mjs',scriptUrl).href).then(module=>{professions=module.MERCENARY_PROFESSIONS;routeFactory=module.createMercenaryRoutePlanner;longFollowFactory=module.createMercenaryLongFollow;core=module.createMercenarySquad({now,getMember,getTarget,moveMember,performEffect:effect,onAction:(id,action)=>{const m=raw(id);if(m){const previous=m._mercenaryAction;if(action.phase==='working'&&(previous?.phase!=='working'||previous?.targetId!==action.targetId))chatterEvent(id,'task',{action:action.kind});if(action.phase==='retreat'&&action.kind==='plant_bomb'&&previous?.phase==='working')chatterEvent(id,'armed',{action:action.kind});if(action.phase==='completed')chatterEvent(id,'done',{action:action.kind});if(action.phase==='cancelled'&&action.reason==='path_timeout')chatterEvent(id,'failed',{action:action.kind});if(['completed','cancelled'].includes(action.phase)){m._mercenaryLastAction={kind:action.kind,targetId:action.targetId,phase:action.phase,reason:action.reason,at:now()};m._mercenaryMoveReason='idle';queueSafeExit(m,action);if(action.reason==='damaged'){m._mercenaryOrder='rally';m._mercenaryRally=toWorld(m);}}if(action.phase==='working'){const target=action.workPoint?null:getTarget(action.targetId),p=action.workPoint||target?.center||target?.position;if(p)m.ang=Math.atan2(p.z-m.r*scale(),p.x-m.c*scale());}m._mercenaryAction=action;}},allowQaPatientReset:()=>qaSupported(),canStartQueued:id=>!raw(id)?._mercenarySafeExit,canAutoRevive:id=>raw(id)?._mercenaryOrder!=='rally'&&!raw(id)?._mercenaryFocus,scanReviveTargets:()=>['player',...core.getRoster().filter(r=>r.status!=='hospital').map(r=>r.id)].filter(id=>getTarget(id)?.hp<=0)});if(local())restore();ready=true;reconcileInventory(inventory());if(local())reconcileMembers();adoptCandidates();}).catch(error=>console.error('Mercenary initialization failed',error));
+ import(new URL('./mercenary_core.mjs',scriptUrl).href).then(module=>{bindCatchupModule(module);professions=module.MERCENARY_PROFESSIONS;routeFactory=module.createMercenaryRoutePlanner;longFollowFactory=module.createMercenaryLongFollow;core=module.createMercenarySquad({now,getMember,getTarget,moveMember,performEffect:effect,onAction:(id,action)=>{const m=raw(id);if(m){const previous=m._mercenaryAction;if(action.phase==='working'&&(previous?.phase!=='working'||previous?.targetId!==action.targetId))chatterEvent(id,'task',{action:action.kind});if(action.phase==='retreat'&&action.kind==='plant_bomb'&&previous?.phase==='working')chatterEvent(id,'armed',{action:action.kind});if(action.phase==='completed')chatterEvent(id,'done',{action:action.kind});if(action.phase==='cancelled'&&action.reason==='path_timeout')chatterEvent(id,'failed',{action:action.kind});if(['completed','cancelled'].includes(action.phase)){m._mercenaryLastAction={kind:action.kind,targetId:action.targetId,phase:action.phase,reason:action.reason,at:now()};m._mercenaryMoveReason='idle';queueSafeExit(m,action);if(action.reason==='damaged'){m._mercenaryOrder='rally';m._mercenaryRally=toWorld(m);}}if(action.phase==='working'){const target=action.workPoint?null:getTarget(action.targetId),p=action.workPoint||target?.center||target?.position;if(p)m.ang=Math.atan2(p.z-m.r*scale(),p.x-m.c*scale());}m._mercenaryAction=action;}},allowQaPatientReset:()=>qaSupported(),canStartQueued:id=>!raw(id)?._mercenarySafeExit,canAutoRevive:id=>raw(id)?._mercenaryOrder!=='rally'&&!raw(id)?._mercenaryFocus,scanReviveTargets:()=>['player',...core.getRoster().filter(r=>r.status!=='hospital').map(r=>r.id)].filter(id=>getTarget(id)?.hp<=0)});if(local())restore();ready=true;reconcileInventory(inventory());if(local())reconcileMembers();adoptCandidates();}).catch(error=>console.error('Mercenary initialization failed',error));
 })();

@@ -7,7 +7,7 @@ import {createCivilianNativeFixture,sourceFunction} from './test_civilian_native
 
 const snapshot=JSON.parse(gunzipSync(fs.readFileSync(new URL('test_fixtures/native_static_collision19.json.gz',import.meta.url))));
 const f=await createCivilianNativeFixture({snapshot}),b=f.box;
-for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_nearestEmpireWalkPoint','_empireBossWorkWaypoint','_empireActivityTarget','_empireBossReachedActivityTarget','_empireRecoverySide','_pauseEmpireMovementWatch','_empireMovementWatch','_empireLocalPatrolFallback'])vm.runInContext(sourceFunction(f.source,name),b);
+for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_empireTargetFootprintPassable23','_nearestEmpireWalkPoint','_empireBossWorkWaypoint','_empireActivityTarget','_empireBossReachedActivityTarget','_empireRecoverySide','_pauseEmpireMovementWatch','_empireMovementWatch','_empireLocalPatrolFallback'])vm.runInContext(sourceFunction(f.source,name),b);
 b._npcEmpireById=new Map();b.SPECIALIST_NPCS=[];b._empireSpeak=()=>{};
 const declarations=f.source.slice(f.source.indexOf('const _empireRoutePlanQueue=[];'),f.source.indexOf('function _empireCrewOrigin('));
 vm.runInContext(declarations+sourceFunction(f.source,'_planEmpireRouteTo')+sourceFunction(f.source,'_processEmpireRoutePlanQueue'),b);
@@ -18,9 +18,13 @@ const actor=()=>({id:'local-patrol',r:7,c:164,walkPhase:0,speed:.8,hp:100,_empir
 const reset=()=>vm.runInContext('_empireRoutePlanQueue.length=0;_npcRouteWorkQueue.clear();_npcRouteWorkBatch.clear();_npcRouteWorkBatchCount=0;_npcRouteWorkUsedMs=0;',b);
 const fallback=b._empireLocalPatrolFallback;
 const fallbackCpu=[];
-function run(enabled){
+function run(enabled,seedHistoricalGoal=true){
  reset();b._empireLocalPatrolFallback=enabled?((...args)=>{const start=performance.now();try{return fallback(...args);}finally{fallbackCpu.push(performance.now()-start);}}):undefined;
  const n=actor(),action=n._empireAction,base=n._empireActivityBaseTarget;let firstGoal=null,firstAlternative=null,arrivedAlternative=false,maxInstantMove=0;
+ // The full-footprint nearest fix now avoids the old goal during new selection.
+ // Retain the documented historical coordinates as an existing cached job to
+ // exercise fallback itself; every route and movement still uses real geometry.
+ if(seedHistoricalGoal){n._empireWorkStep=8;n._empireTarget={r:10.198526098792687,c:164.09711228213794};n._empireActionArrived=false;n._empireLocalPatrolTarget={generation:1,actionKey:n._empireActionKey,...n._empireTarget,baseR:7,baseC:164};}
  const oldEmpty=vm.runInContext('_empireRoutePlanTotals[5]',b);
  for(let frame=0;frame<3600;frame++){
   f.nextFrame();b.bossTick(n,.05,f.now);if(!firstGoal)firstGoal={...n._empireTarget};
@@ -33,6 +37,9 @@ function run(enabled){
  return {n,firstGoal,firstAlternative,arrivedAlternative,maxInstantMove,empty:vm.runInContext('_empireRoutePlanTotals[5]',b)-oldEmpty};
 }
 const before=run(false),after=run(true);
+const prevention=run(false,false);
+assert.equal(prevention.empty,0,'new production target selection avoids historical invalid endpoint');
+assert(Math.hypot(prevention.n.r-7,prevention.n.c-164)>1,'new selection allows physical movement without fallback');
 assert.equal(before.empty,45);assert.equal(before.n.r,7);assert.equal(before.n.c,164);assert.equal(before.n._empireWorkStep,8);
 assert(b._empireBossWaypointPassable(before.firstGoal.r,before.firstGoal.c),'target endpoint alone is physically clear');
 assert(f.pedestrian.query({mode:'sweep',from:{r:7,c:164},to:before.firstGoal,radius:.18}).blocked,'closed approach isolates endpoint');

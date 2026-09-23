@@ -9,7 +9,7 @@ const snapshot=JSON.parse(gunzipSync(fs.readFileSync('assets/maps/city_rebuild_v
 const helper=fs.readFileSync('test_empire_escort_cancel23.mjs','utf8').match(/const helper=`([\s\S]*?)`;/)[1];
 async function run(fixed){
  const f=await createCivilianNativeFixture({snapshot}),b=f.box,s=f.source;
- for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_nearestEmpireWalkPoint','_empireFormationOffset','_empireLeaderIdOf','_empireCombatPool','_empireSeparationVector','_empireRecoverySide','_pauseEmpireMovementWatch','_empireMovementWatch'])vm.runInContext(sourceFunction(s,name),b);
+ for(const name of ['_inEmpireRecruitmentYard','_empireBossPassable','_empireBossWaypointPassable','_empireTargetFootprintPassable23','_nearestEmpireWalkPoint','_empireFormationOffset','_empireLeaderIdOf','_empireCombatPool','_empireSeparationVector','_empireRecoverySide','_pauseEmpireMovementWatch','_empireMovementWatch'])vm.runInContext(sourceFunction(s,name),b);
  vm.runInContext(s.slice(s.indexOf('const _empireRoutePlanQueue=[];'),s.indexOf('function _empireCrewOrigin('))+sourceFunction(s,'_planEmpireRouteTo')+sourceFunction(s,'_processEmpireRoutePlanQueue')+helper,b);
  const start=s.indexOf('    if(n._empireCrew&&!n._hostile&&!n._fighting&&!n._fightingMelee&&!(n.panicUntil>now)){'),end=s.indexOf('    if(n._empireBoss&&n._empireAction',start);
  let branch=s.slice(start,end).replaceAll('_cancelEmpireEscortRoute(n);','');

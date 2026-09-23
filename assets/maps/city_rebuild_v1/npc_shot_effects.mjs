@@ -19,8 +19,10 @@ export function createNpcShotEffects({THREE,scene,getActor,groundHeight=()=>0,wo
  }
  function spawn(shot,time){
   const actor=getActor?.(shot.shooterId),weapon=actor?.weapon;if(!actor?.object?.visible||!weapon?.visible||!Array.isArray(weapon.userData?.muzzle)){dropped++;return;}
-  const transforms=resolveWeaponShotTransforms(THREE,weapon),origin=transforms.origin;
-  const x=shot.target.c*worldScale,z=shot.target.r*worldScale,target=new THREE.Vector3(x,groundHeight(x,z)+(Number(shot.target.elevation)||0)+1.05,z);
+  const acceptedRay=shot.ray;
+  if(acceptedRay&&![acceptedRay.origin?.x,acceptedRay.origin?.y,acceptedRay.origin?.z,acceptedRay.target?.x,acceptedRay.target?.y,acceptedRay.target?.z].every(Number.isFinite)){dropped++;return;}
+  const origin=acceptedRay?new THREE.Vector3(acceptedRay.origin.x,acceptedRay.origin.y,acceptedRay.origin.z):resolveWeaponShotTransforms(THREE,weapon).origin;
+  const x=shot.target.c*worldScale,z=shot.target.r*worldScale,target=acceptedRay?new THREE.Vector3(acceptedRay.target.x,acceptedRay.target.y,acceptedRay.target.z):new THREE.Vector3(x,groundHeight(x,z)+(Number(shot.target.elevation)||0)+1.05,z);
   const direction=target.sub(origin),range=direction.length();if(!Number.isFinite(range)||range<.01||range>160){dropped++;return;}direction.divideScalar(range);
   if(shots.length>=capacity){shots.shift();dropped++;}shots.push({shooterId:shot.shooterId,sequence:shot.sequence,at:time,origin,direction,range,life:Math.max(.12,Math.min(.24,range/100))});totalShots++;
  }

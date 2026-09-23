@@ -72,13 +72,10 @@ export function createLadderClimbController({validatePosition,validateSegment,sp
   const roofPoint=ladder=>({x:ladder.upper.x-ladder.normal.x*stepOff,y:ladder.upper.y,z:ladder.upper.z-ladder.normal.z*stepOff});
   function clear(a,b,ctx){if(!validateSegment(a,b,ctx))return false;const steps=Math.max(1,Math.ceil(distance(a,b)/.18));for(let i=0;i<=steps;i++)if(!validatePosition(lerp(a,b,i/steps),ctx))return false;return true;}
   function prompt(point,ladders){if(state||!finite(point))return null;let best=null;for(const ladder of ladders)for(const end of ['lower','upper']){const d=distance(point,ladder[end]);
-    // The roof endpoint is vertically gated: a player standing on the ground
-    // under a tall ladder must never receive a misleading Ctrl prompt.  Ctrl
-    // becomes available only in the roof approach band, where mounting the
-    // ladder is physically possible; the lower endpoint keeps the normal E
-    // interaction distance.
+    // Both endpoints are admitted by the same E interaction. A player standing
+    // below a roof must not see its upper endpoint through the ceiling.
     const upperApproach=end==='upper'&&point.y>=ladder.upper.y-1.15&&d<=Math.min(reach,.95);
-    if((end==='lower'?d<=reach:upperApproach)&&(!best||d<best.distance))best={ladder,end,distance:d,text:end==='lower'?'E — подняться на крышу':'Ctrl — быстро спуститься'};}
+    if((end==='lower'?d<=reach:upperApproach)&&(!best||d<best.distance))best={ladder,end,distance:d,text:end==='lower'?'E — подняться на крышу':'E — спуститься по лестнице'};}
   return best;}
   function pose(s){const progress=s.direction>0&&!s.cancelling?Math.max(0,Math.min(1,(s.travelled-s.exitStart)/Math.max(.01,s.total-s.exitStart))):0;return sampleLadderPose(s.ladder,s.position,s.travelled,s.direction,{sliding:s.sliding,dismount:progress});}
   function begin(point,ladder,end,{sliding=false}={}){if(state||!finite(point))return false;end??=distance(point,ladder.lower)<=distance(point,ladder.upper)?'lower':'upper';if(!['lower','upper'].includes(end)||distance(point,ladder[end])>reach)return false;

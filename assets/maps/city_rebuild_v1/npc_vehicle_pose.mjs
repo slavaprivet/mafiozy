@@ -4,11 +4,15 @@
 export function createNpcTrafficVehicleBinding({THREE,actor}={}){
  if(!THREE?.Vector3||!actor?.object?.isObject3D)return null;
  const anchor=actor.seats?.find(seat=>seat.id==='front_left')?.anchor,driverRoot=new THREE.Vector3(),doorHandle=new THREE.Vector3();
- return {object:actor.object,get yaw(){return actor.object.rotation.y;},getSeat(seatId='front_left'){return actor.seats?.find(seat=>seat.id===seatId)||null;},getDriverRootWorld(){
+ return {actor,object:actor.object,get yaw(){return actor.object.rotation.y;},getSeat(seatId='front_left'){return actor.seats?.find(seat=>seat.id===seatId)||null;},getDriverRootWorld(){
   if(!anchor)return null;actor.object.updateWorldMatrix(true,false);return actor.object.localToWorld(driverRoot.set(anchor.side,anchor.y,anchor.front));
  },getSeatRootWorld(seatId='front_left'){
   const target=actor.seats?.find(seat=>seat.id===seatId)?.anchor;if(!target)return null;actor.object.updateWorldMatrix(true,false);return actor.object.localToWorld(driverRoot.set(target.side,target.y,target.front));
- },getDoorHandleWorld(seatId='front_left'){return actor.getDoorHandleWorld?.(seatId,doorHandle)||null;},poseOccupant(walker,seatId,options){return actor.poseOccupant(walker,seatId,options);}};
+ },getDoorHandleWorld(seatId='front_left'){return actor.getDoorHandleWorld?.(seatId,doorHandle)||null;},poseOccupant(walker,seatId,options={}){
+  if(typeof actor.poseOccupant==='function')return actor.poseOccupant(walker,seatId,options);
+  const seat=actor.seats?.find(s=>s.id===seatId);if(!seat)return;
+  return walker.vehiclePose(options.fold??1,options.reach??0,{...options,driver:seat.canDrive===true,steeringGrips:seat.canDrive===true?actor.getSteeringGrips?.():undefined});
+ }};
 }
 export function resolveNpcVehicleBinding(source,getVehicle){
  const phase=source?.civilianTripPhase,transition=phase==='board'||phase==='exit';

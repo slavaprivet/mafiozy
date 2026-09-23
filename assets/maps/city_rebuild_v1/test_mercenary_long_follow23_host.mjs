@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import * as runtimeModule from './mercenary_core.mjs';
 import {createNpcNativeNavigation} from './npc_native_navigation.mjs';
+import {createMercenaryVehicleBridge} from './mercenary_vehicle_bridge.mjs';
 
 const read=name=>fs.readFileSync(new URL(name,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const source=read('./mercenary_world.js');
@@ -102,11 +103,16 @@ test('full host clears staged state on rally, follow cancellation, action, downe
 
 test('full host clears staged state when the fighter becomes a vehicle passenger',async()=>{
   const f=await fixture(),m=f.crew[0];f.tick(.05);assert(m._mercenaryPath?.stagedFollow);const retired=m._mercenaryPath.stagedFollow;
-  const car={id:'test-car',x:m.c,y:m.r,ang:0,passenger_uids:[]};
-  Object.assign(f.ctx,{questCars:new Map([[car.id,car]]),myDrivingCarId:car.id,myIsPassenger:false,_walkVehicleSeatId:'front_left'});
+  const actor={object:{parent:{},position:{x:m.c*4.1+2,z:m.r*4.1,y:0},rotation:{y:0},scale:{x:1,y:1,z:1}},profile:{halfWidth:1},seats:[{id:'front_right',canDrive:false,side:-1,doorDistance:2,doorFront:0,anchor:{side:-.5,front:0,y:.7}}],setDoorById(){}};
+  let playerVehicle={id:'fleet:test-car',seatId:'front_left',ready:true};
+  const squadTransport=createMercenaryVehicleBridge({canCross:(id,from,to)=>f.ctx._walkNpcNavigationResolver({mode:'sweep',from,to,radius:.18}).blocked===false,getFleet:()=>({records:[{id:'test-car',car:actor,state:{speed:0}}]}),getPlayer:()=>playerVehicle});
+  f.api.bindTargets({squadTransport,canMove:()=>true,groundHeight:()=>0,safeCatchupPoint:p=>({ok:true,point:{...p,y:0}})});
+  f.ctx._civilianTripDoorPath=(trip,r,c,r1,c1)=>f.ctx._npcPathPassable(r,c,r1,c1);
   f.ctx.player.r=m.r;f.ctx.player.c=m.c;
-  f.tick(.05);assert(m._mercenaryVehicleSeat);assert.equal(m._mercenaryPath,null);
-  f.ctx.myDrivingCarId=null;f.tick(.05);assert(!m._mercenaryVehicleSeat);assert.notEqual(m._mercenaryPath?.stagedFollow,retired);
+  f.tick(.05);assert(m._mercenaryVehicleSeat);assert.equal(m._mercenaryVehiclePhase,'board');assert.equal(m._mercenaryPath,null);
+  for(let i=0;i<18;i++)f.tick(.05);assert.equal(m._mercenaryVehiclePhase,'drive');
+  playerVehicle=null;for(let i=0;i<100&&m._mercenaryVehicleSeat;i++)f.tick(.05);
+  assert(!m._mercenaryVehicleSeat);assert.notEqual(m._mercenaryPath?.stagedFollow,retired);
 });
 
 test('full host shares its original 1.5ms deadline among five staged searches',async()=>{

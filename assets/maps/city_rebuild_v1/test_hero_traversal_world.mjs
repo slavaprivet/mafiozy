@@ -48,6 +48,13 @@ test('world bridge vaults low thin obstacle', () => {
   const world = worldFor([box(.55, .75, -3, 3, 0, 1.1)]), plan = planAt(world);
   assert.equal(plan?.kind, 'vault'); finish(world, plan);
 });
+test('world bridge exposes a 34 cm curb as support without weakening a medium barrier', () => {
+  const curb=worldFor([box(.55,.95,-3,3,0,.34)]),medium=worldFor([box(.55,.95,-3,3,0,.5)]);
+  assert.equal(curb.supportHeight(.7,0,0),.34);
+  assert.equal(curb.pointFits(.7,0,.34,1.9),true);
+  assert.equal(medium.supportHeight(.7,0,0),0);
+  assert.equal(medium.pointFits(.7,0,0,1.9),false);
+});
 test('world bridge mantles broad pedestal and surface motion preserves support', () => {
   const world = worldFor([box(.55, 4, -3, 3, 0, 1.2)]), plan = planAt(world);
   assert.equal(plan?.kind, 'mantle'); const state = finish(world, plan), surface = createSurfaceMotion();

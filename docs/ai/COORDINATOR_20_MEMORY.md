@@ -8,6 +8,189 @@ LIVE проверки остаются в COORDINATOR_20_HANDOFF.md, не пот
 
 ### 23 сентября — главный текущий запрос
 
+LATEST user REJECTED834LIVE5: только головыторчат, пушекнет. Childподтвердил
+receiverUzi/AK .15–.37m ВНУТРИокна несмотряmuzzleoutside. Новыйfixisolated
+покаrootделает промежуточныйcheckpoint радиperf. НЕvisualPASS/неfinished.
+LadderownerREADY atomicEupper/lower/activeCtrl подключён;20input+ladderPASS,
+runtime3dependencyвключитьв68pathpackage, LIVEпослеreloadещёнет.
+NeedsreviewACCEPT12+54изолированно, userserviceNPCrespawnчерезреальнуюкладовку,
+активномуChecker(новоеназвание«Проверщик ЧАТОВ 1-8»)переданanchorsauditАстра4.
+Perf08e62f8independent214PASS, дневные0rendererlights/ночные8, firstnightcompile
+ещёLIVE. Maincheckpointфункциональный, художественныйXfixпродолжаетсясразу.
+
+LATEST reload5: finalfire834c0a76 загружен; hideOwned LIVE PASS all5hidden
+entering/driving, afterfullExit4visible затем5AX, seats[]/on_foot. E/reboardPASS.
+Xrearview heads/upperbodiesoutside; gunpartlyoccludedbycarfromrear, боковой
+вид/реальныйattackerpending из-заpersistentCDPinputtimeouts, DOM/AXживы.
+Physicsleadразрешёнcleanserver mafiozi_bot.py+scopedtests confirmed explosion
+occupants; online visualblastНЕauthority, servergta_crash0HP сейчас лишьwreck.
+Needsindependentreviewнашёлsnapshot-beforehealreceipt stalegoal, позднийbank,
+noopheal/overflow; Artistfixesisolated, неwireдоACCEPT. Новоеегоuserпоручение
+живыепродавцы/кассиры service: deadblocksservice,60srespawn,обычныеHP/crime.
+Traversal триruntimeужеdirtyчастичнодоWalkhooks; OWNERподтвердилHOLD.
+Manifest63 включаетnewlean2880cases; checkpointнеявляетсяfinalfire/FPSPASS.
+
+LATEST reload4 E priority LIVE PASS: literalE неоткрываетразговор у5бойцов,
+keyboardQAhold входит/выходит/сновавходит с3пассажирами, dialoguehidden;
+kbdE900 видима у двери/выхода. НовыйhideOwned табличекбанды вмашине готов
+CPU24PASS, НЕзагружен — reload5послеfinalfire. Firevisualпользователь
+видиторужиеиззаспины; childдорабатывает верхнююпозу/окно, READYещёнет.
+AX/screenshotдоступны, inputCDPтаймаутит; patrolattackНЕподтверждён.
+Manifestexpected62pathsплюсfinalfiretests, последний60устарел.
+Новыйпрямойзапрос: explosionубиваетвсехвнутри, crashdamage всемпоимпульсу,
+высунувшиесяX реагируюттелом. Переданоphysicslead01a06e4d; isolated
+snapshot/receipt/deltaVcandidateесть, wiringпослеcheckpoint, безfakeauthority.
+Traversalowner01a087e2 ведётАстра14/15, smallhooksпослеcheckpoint; новые
+измененияобщегоWalk/world покаHOLD. БудущееEверхнейлестницызаменитCtrl.
+
+LATEST checkpoint now60paths (15runtime/27tests/10handoffs), syntax368PASS,
+дальнейшиеhashобновитьпослеfinalfire+LIVE. RootE20+X10+GEQPASS, независимый
+reviewACCEPT sourcecaptureworlddelegatesWalk, inputhold/repeatcorrect.
+Artistчерезсвойuser получил NPCpersonalbank/needs/robbery→police→bank,
+lowHP→hospital, far→car сразнообразием; approvedisolatedneeds/tests только,
+finite cash+bank conservation /actualacceptedreceipts authority. Sharedwiring
+послеcheckpoint. Такжеnewcontacthijackanimations разделены Artistvictim,
+transportdoors/sourcetiming, rootplayergrab; покаread-only. Transportdriverwait
+independent9actualcycles+18boundaryACCEPT, неproduction. Perfnew f44ca3e
+building shadow cullOFFpendingreview/GPU; oldec76030+b1pairacceptedOFF.
+Physicslead newisolated crashstepnoalloc exact1400frameparity,72carsCPU
+p95 9.208→4.848ms; candidateonly/noLIVE, проверитьпослеNPCcheckpoint.
+
+LATEST user E bug+bolderE: root reproduced CURRENTOLDLIVE Kingswell driver
+door literalE→ЕленаКонтиconversation вместоhold. FIX added
+hasPriorityInteraction callback in Walk/mercenary capture (freshkeypress,
+cachedprompt), occupied/sourceexitfirst, object/ladder/pickup/rescue priority.
+New interaction_prompt.mjs safeDOMkbdE900, noextraEblock. QA E.7 nowuses
+actual bodyKeyboardEvent insteadpointerHeld (oldLIVEholdmissedkeyboardbug).
+test_interaction_priority23 17 +X10PASS, indepreviewastra_local_inventory23.
+Handoff INTERACTION_PRIORITY23_HANDOFF.md. Finalreloadstillpendingfirelean:
+oldreadygunoutsidebuthead40cminside, childvehicle_entry23_audit improves
+upperbodyonly. ArtistfloorREADY root256oracle+64casesPASS, newtest
+test_npc_entry_floor23.mjs neededmanifest. No cityFPS acceptance.
+
+LATEST: третья combined LIVE загружена. Resident53 upright1.74–1.80m/s,
+shop→bench; resident115 entered building. Late doubleSpace .3474s → dive
+1.90092m/elapsed1.25/y0 безblocked. Не immediate.42peakLIVE. Все5catchupdry;
+E threshold493.259s→3drive, actualcar≈23m+turn .298yaw/peak14.3, seatskept.
+X ON/OFF success, eligible3/attempts0/accepted0 в мирнойсцене, errors[].
+IncomingfireLIVE ещёpending: nearestcop≈84m, QA14cellcorrectrefusal.
+Childvehicle_entry23_audit разрешёнТОЛЬКОQAnearestexisting50/noinitialLOS
+normalengage/pursuit, никакихteleport/hit. Artist21 обнаружилskinfoot-.01843m
+в.22sentryblend иразрешёнузкийfix; fullgroundPose1.5msслишкомдорог,
+делаетcachedsoles с fullvertexoracle. ФинальныйreloadпослеREADY.
+Manifest55путиготов, перепроверитьhashпосленовыхправок/docs. НеcommitдоLIVE.
+Transport3 отдельныйnextcandidate: drivernotready infinite settling exemption,
+actualpermanent110sbaseline→candidateexit91.35s, transient10s→drive/arrive.
+Runtimeэтогоnextfixнеправитьдоcheckpoint; astra_local_inventory23review.
+Perf ec76030+b1c29b5 reviewACCEPT26actualcases,550ffd8accepted; не в55пакете,
+defaultOFF и candidateGPUA/Bнепроведён. Physics/editor isolatedждутслота.
+
+LATEST: все новыеruntimeREADY. Female walk→board исправлен, root original
+continuity+64actualwarmcasesPASS (maxstep.099734m<.1); handoff
+NPC_WALK_BOARD_ENTRY23_HANDOFF.md. Fireroot2039+103PASS, indepreview86PASS.
+Третьяcombinedreload тойжеtab3 запущена, выбранPvP, городещёгрузится.
+Предыдущийgateнижеустранён; задача root — LIVEgait/dive/Xlean+attacker
+потомexactcheckpointpush. manifestworker gang_water_follow23 делаетfinal
+closure/syntaxноmemory/LIVEdocхешиобновитьпередstage. Mainещёe33212e.
+
+Текущий gate передreload: FireREADY2039actual+103defense, новыйtest
+test_mercenary_vehicle_defense23.mjs. UIroot10PASS (дажеunsupportedgun X
+возвращаетпричину, neverfootorders). Fireincomingsourceprecedencefix дляturret:
+deathMode.source||damageCop, не назначатьпервогоофицерастрелкомзафургон.
+НО compatibility test_npc_vehicle_transition_continuity FAIL female first
+board frame must not snap limbs (rootповторил); Artist21 взялbaseline+gait
+interaction. НовуюcombinedигруЕЩЁнеперезагружатьдоразбораэтогорегресса.
+Transport3малыйapprovedNPCfixREADY: _civilianTripCancelLane передdelete
+вblocked-replan helper+world; actualtest_transport_blocked_route_lifetime23
+rootPASS (cancelonce, othercachedroutesurvives). Exacthandoff
+TRANSPORT_BLOCKED_ROUTE_LIFETIME23_HANDOFF.md. Squadposesнеизменены.
+Checkerfollowup b1c29b5 исправляетec76030recoil/freeze defects, pendingreview,
+применятьстрогопаройOFFпозженашегоNPCfunctionalcheckpoint. Не потерять550ffd8.
+
+Последнее usersteering: «главное по нпс решайте задачи. доведете до идеала
+переходите к копам и бандам к их поведению». Главный порядок: довести обычные
+NPC/занятия/ходьбу/следование/транспорт реальным LIVE, затем копы и банды
+с их реакциями/преследованием/охраной/целями. Нельзя считать весь город
+готовым из-за текущих узких PASS. ТекущийcarX/gait/diveпакет продолжается.
+
+READY Artist21: NPC_UPRIGHT_WALK_DIVE23_HANDOFF.md. walkstride1.9legs,
+pelvisdrop phase-dependent, actual16male/femaleposesPASS, crouch/runсохранены.
+Dive3.36m/.42m immediate; late2ndtap preservesalreadygainednormalheight.
+WalkupdateJump теперьrawDt ONLYjump, .25sbudget/7substeps≤.04 eachgeometry,
+hidden/>1sfreeze/no debt;3/5/10/60FPS1.667/1.4/1.3/1.25s, rootrerunPASS.
+Firechildещёзавершаетleanready+defensiveactualattack, reloadдоREADYждёт.
+
+Perf ec76030 ON отклонён independentactualreview: cull ДОweaponrecoilcamera
+false-negative; earlyrenderFreezebypass keepsstaleculledslot. Checkerисправляет
+всвоёмworktree; currentcanonicalнетронут. 550ffd8test-onlyreviewACCEPT.
+Архитектор01a06e4d-e3ed-7f13-bda3-7fd677972336 поотдельномуuserпоручению
+ведётisolatedAstra12/13 GTAvehiclephysics/crashoccupantreactions и explosion
+lethaloccupants-at-event+fire/smoke. Нашиproductionhooksfrozenдлянихдоcheckpoint,
+eventId/authority/snapshotcontractпередадутroot/transport3. НовыхGPUнет.
+
+НОВЕЙШЕЕ уточнение пользователя: X В МАШИНЕ = высунуться и вести ответный
+огонь из текущего оружия по тем, кто атакует игрока/отряд/машину. Это НЕ
+eliminate наведённого гражданского и НЕ пеший подход. Root изменил seated
+X/UI на toggleVehicleDefenseFire без pick/rally; 9 regression tests PASS.
+vehicle_entry23_audit меняет fire authority/actual incoming attack provenance,
+все поддерживаемые ballistic weapon families, lean pose; RPG не fake hitscan.
+Пакет снова WIP, не объявлять стрельбу принятой по старым 1677 тестам.
+
+Пользователь также заметил полуприсед при ходьбе и слишком дальний/высокий
+MaxPayne dive. Artist21 отложил isolated guard, проверяет npc_locomotion_pose
+и hero_jump. LIVE resident111 обычный walk1.2–1.8m/s, без crouch/fear/vehicle;
+actual snapshot activity=null gesture=work seek_shop. Первичный виновник —
+слишком длинный stride и footplant pelvisdrop, не посадка. Root GPU один.
+
+ПОСЛЕДНИЙ LIVE после bruiser+Kingswell fixes: surface errors0, 3 пассажира
+board→drive, реальный проезд17.7896m, peak14.04m/s, distinct seats, затем
+E.7 complete exit всех3/bodyDepth0/reservations cleared и повторная посадка.
+Скриншот4 реальных occupants. Fire ещё не проверен и контракт сейчас меняется.
+Ниже строки про stuck board/Surface mismatch — ИСТОРИЯ первой загрузки.
+Последний loaded WIP поверхe33212e; index пуст, main не обновлён этимпакетом.
+Checker предложил OFF ec76030 entrylightfrustum + testfix550ffd8; пока не
+применены и безGPU A/B. Сопоставимый FPS общей сцены ещё не принят.
+
+АКТУАЛЬНЫЙ main=origin/main e33212ec36768df6b8c23efe612d73fff7647ef1,
+push/remote проверены. f70cba1 —54reviewedgameplaypaths; затем3Checkerpatch
+59106fe/fa110c3/671a691 адресноcherry-pick как2a5cc45/43615bd/272d12c.
+26isolation+shadowcensus/probe/staticbatchsurfacePASS. ПоследнийSHAloaded,
+rendererrors0. PointlightABA1049x920complete;32positiveEntryLightSlots,
+8zeroStreetLamp,rendererVisible40/327. NPC_RENDER_ISOLATION23.md дополнен.
+Freeze OFF через Escape. Checker уведомлён. 9c2711f QA shadow census schema2
+применён как e33212e, проверен и опубликован; браузер ещё на272d12c.
+
+LATEST LIVE нового WIP: stuck merc187 r33.60845/c50.82624 →dry safe
+r39.12195/c40 at44.57s затем ordinary arrived r40.21004/c39.49005.
+QA переместил героя кKingswell614.85/59.3; все5 far-recovery91.37–92.78s
+и затем arrived/bodyDepth0. Driver E.7 source driving125.70s PASS.
+НО совместнаяпоездка не принята:3passengers phaseboard stuck иNPCpresentation
+сломалась Surface geometry signature mismatch приcacheeviction/recreate.
+Artist21 срочночинит bruiser private-shape metadata доsurfacerestore,
+с rollback иwet/wounds/receipts. Transport3 actualKingswell обнаружил:
+VEHICLE_SEATS outsideNaN(no doorDistance/doorFront), actor no poseOccupant.
+Разрешены bridge-local authoreddefaults/finiteguard + vehicleposefallback
+existingwalker; no collision bypass. RuntimeещёWIPнеcommit.
+Детали docs/ai/SQUAD_CATCHUP_TRANSPORT_LIVE23.md. ПоследнийGPU/perfwindow
+послеошибки stale, не считатьFPS. Freeze attempt недоступен pendingNPC,
+activefalse. Однавкладка3, reloadпослеобоихREADY.
+
+НОВЫЙ WIP поверх e33212e: safecrewcatchup + local/sourcepassengerseats/board/
+phasedexit + explicitXfire. Childgang helper mercenary_catchup/core/host
+recovery, transport3 bridge/Walkhooks/squadtick/metadata, childvehicle
+firehelper/actor/shotfx/world_updateGang/mercworldintent+ownsUpdate.
+Rootcommand-onlyUI guards7actualtestsPASS иWalkfirefactoryinit. Reviewer
+astra_local_inventory23 проверяетunsafeplacementreadonly. ДОREADYвсехновый
+пакетнеreload/commit; стараяиграещёна272d12c. Artist21 cachedtarget/Nico
+production2sitesworld applied/CPUtestsPASS, LIVE послеобщегоreload.
+Независимый review обнаружил3 транспортных дефекта: door5samples пропускают
+тонкий столб, blocked drop не перепланируется, body-stage exit скользит.
+Transport3 отозвал READY и исправляет sweep/replan/exit_walk. Firechild
+657 actual checks PASS; bounded max1 physical probe/tick, reject retry250ms,
+расход fullprobe13/14ms p50/p95 пока толькоCPU. Root LIVE ждёт fixes.
+SharedexitAPI validateSquadSafeDrop(m,point)=>checkedworldpoint|null,
+бюджет4geometrychecks/tickобщий, finalcollisioncheck передplacement.
+
 НОВОЕ поручение23Sep02:12local: если МОЯ банда застряла/далекоотстала,
 разрешён безопасный телепорт к игроку. Нельзя помещать в здания/машины/воду;
 нет свободной проверенной точки — отложить, не падать на координаты игрока.

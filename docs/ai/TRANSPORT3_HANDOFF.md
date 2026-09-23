@@ -1,5 +1,49 @@
 # Автомобили — продолжение 3, 23 сентября 2026
 
+## Terrain authority — read-only boundary
+
+`docs/ai/PEDESTRIAN_VEHICLE_TERRAIN_AUTHORITY23_CONTRACT.md`: pedestrian
+walk/scramble/climb физика отделена от vehicle road/parking/driveway/service
+authority. `roadsOnly:false` не означает произвольный off-road; без authored
+access identity гора/трава/пешеходный путь запрещены машине. Production0 до
+checkpoint; после него первым остаётся driver-not-ready lifetime fix.
+
+## Следующая итерация hijack — read-only contract
+
+`docs/ai/NPC_VEHICLE_HIJACK_CONTACT23_CONTRACT.md`: Transport3 + Художник21
+согласовали additive stages grab/extract/release/fall/settle, source timestamps,
+двухручные actual-rig anchors, explicit door openness и отложенный protest до
+settle. Владельцы файлов разделены; production0 до checkpoint, fire/E/floor не
+трогались. Driver-wait candidate остаётся первым малым NPC fix после публикации.
+
+## Остаточный near-vehicle follow probe
+
+`docs/ai/MERC33_NEAR_VEHICLE_FOLLOW23_PROBE.md`: после принятого физического
+выхода merc33 остался `source_blocked` в 3.16 м от follow goal и 3.19 м от
+центра остановленной Kingswell; bodyDepth0, остальные4 arrived. Машина —
+правдоподобный, но ещё не доказанный blocker. Сохранён точный следующий
+read-only probe; production0, collision radius/teleport не менялись.
+
+## Последний пакет: blocked-route lifetime
+
+`docs/ai/TRANSPORT_BLOCKED_ROUTE_LIFETIME23_HANDOFF.md`: по разрешению
+Координатора20 добавлен cancel старого lane job перед delete плана при
+длительном препятствии, helper + mirror world. Old FAIL / new PASS,
+cancel exactly once, другая ready поездка не вытесняется orphan-результатом.
+Смежные lease/control tests PASS. Runtime после пакета снова FROZEN.
+LIVE/FPS этого исправления не проверены. Squad transport уже принят root
+в LIVE, evidence `SQUAD_CATCHUP_TRANSPORT_LIVE23.md`.
+
+## Squad transport production — пакет для LIVE
+
+`docs/ai/SQUAD_TRANSPORT23_HANDOFF.md`: после lock на main272d12c внедрены
+source+localfleet bridge, exact seats/reservations, physical board/ride/exit,
+pending unsafeexit безfallback, sharedbudget finalcheck, reserved-only safe
+transportcatchup65m6s/10sstuck20scooldown.23actual-hosttestsPASS и обновлённый
+existing long-follow route-clear testPASS. Own runtime hunks завершены,
+firing/ownsUpdate уchildvehicle, catchup geometry уchildgang, UIhandlers уroot.
+Производительность общей сцены не проверена; root принимает LIVE однойигрой.
+
 ## Новый приоритет — транспорт банды
 
 Пользователь через coordinator20 переключил на squad boarding/free seats/
