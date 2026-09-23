@@ -164,10 +164,10 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
   for(const member of entry.members){
    if(member.sourceInstanced){
     const existing=sourceRestores.get(member.mesh);if(existing){existing.members.push(member);continue}
-    const source=member.mesh.material,hidden=hiddenMaterials.get(source)||hiddenMaterial(T,source),restore={mesh:member.mesh,group:member.group,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization,members:[member],geometry:member.mesh.geometry,castShadow:member.mesh.castShadow,receiveShadow:member.mesh.receiveShadow,renderOrder:member.mesh.renderOrder,hasInstanceColor:!!member.mesh.instanceColor,detached:false,retired:false};hiddenMaterials.set(source,hidden);instancedSourceMaterials.set(member.mesh,source);restores.push(restore);sourceRestores.set(member.mesh,restore);member.mesh.material=hidden;continue;
+    const source=member.mesh.material,hidden=hiddenMaterials.get(source)||hiddenMaterial(T,source),restore={mesh:member.mesh,group:member.group,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization,members:[member],geometry:member.mesh.geometry,castShadow:member.mesh.castShadow,receiveShadow:member.mesh.receiveShadow,renderOrder:member.mesh.renderOrder,hasInstanceColor:!!member.mesh.instanceColor,detached:false,needsValidation:false,retired:false};hiddenMaterials.set(source,hidden);instancedSourceMaterials.set(member.mesh,source);restores.push(restore);sourceRestores.set(member.mesh,restore);member.mesh.material=hidden;continue;
    }
    const source=member.mesh.material,hidden=hiddenMaterials.get(source)||hiddenMaterial(T,source);hiddenMaterials.set(source,hidden);
-   const restore={mesh:member.mesh,group:member.group,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization,members:[member],geometry:member.mesh.geometry,castShadow:member.mesh.castShadow,receiveShadow:member.mesh.receiveShadow,renderOrder:member.mesh.renderOrder,hasInstanceColor:false,detached:false,retired:false};restores.push(restore);sourceRestores.set(member.mesh,restore);
+   const restore={mesh:member.mesh,group:member.group,material:source,hidden,layersMask:member.mesh.layers.mask,optimization:entry.optimization,members:[member],geometry:member.mesh.geometry,castShadow:member.mesh.castShadow,receiveShadow:member.mesh.receiveShadow,renderOrder:member.mesh.renderOrder,hasInstanceColor:false,detached:false,needsValidation:false,retired:false};restores.push(restore);sourceRestores.set(member.mesh,restore);
    member.mesh.material=hidden;
   }
   batches.push({mesh:batch,members:entry.members,memberIds,optimization:entry.optimization});
@@ -194,14 +194,14 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
  }
  function restoreOwned(restore){
   if(restore.retired)return false;
-  if(!restoreAttached(restore)){restore.detached=true;return false}
-  if(restore.mesh.layers.mask!==restore.layersMask)return false;
+  if(!restoreAttached(restore)){restore.detached=true;restore.needsValidation=true;return false}
+  if(restore.mesh.layers.mask!==restore.layersMask){restore.needsValidation=true;return false}
   if(restore.mesh.material===restore.hidden)return true;
-  if(restore.mesh.material!==restore.material)return false;
+  if(restore.mesh.material!==restore.material){restore.needsValidation=true;return false}
   if(restore.optimization&&!optimizationEnabled)return true;
   if(!restore.detached)return false;
   if(!restorePoseMatches(restore)){restore.retired=true;return false}
-  restore.detached=false;return true;
+  restore.detached=false;restore.needsValidation=false;return true;
  }
  let optimizationEnabled=true,localMatrixOptimizationEnabled=false,frozenLocalSources=0,lastFocus=null,lastDistance=maxDistance;
  let disposed=false,lastVisible=-1,lastActiveBatches=-1,visibleMembers=0,activeBatches=0;
@@ -229,8 +229,17 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
   lastVisible=visibleMembers;lastActiveBatches=activeBatches;return {visible:lastVisible,batches:batches.length,activeBatches:lastActiveBatches};
  }
  function setOptimizationEnabled(enabled){
-  if(disposed)return;optimizationEnabled=!!enabled;
-  for(const restore of restores)if(restore.optimization){const attached=restoreAttached(restore);if(!attached)restore.detached=true;let owned=attached&&!restore.retired&&restore.mesh.layers.mask===restore.layersMask;if(optimizationEnabled&&owned&&restore.mesh.material===restore.material){if(restore.detached){owned=restorePoseMatches(restore);restore.detached=!owned;if(!owned)restore.retired=true}if(owned)restore.mesh.material=restore.hidden}else if((!optimizationEnabled||!owned)&&restore.mesh.material===restore.hidden)restore.mesh.material=restore.material;}
+  if(disposed)return;const wasEnabled=optimizationEnabled;optimizationEnabled=!!enabled;
+  for(const restore of restores)if(restore.optimization){
+   const attached=restoreAttached(restore);if(!attached){restore.detached=true;restore.needsValidation=true}
+   if(wasEnabled&&!optimizationEnabled)restore.needsValidation=true;
+   if(restore.mesh.layers.mask!==restore.layersMask||restore.mesh.material!==restore.material&&restore.mesh.material!==restore.hidden)restore.needsValidation=true;
+   let owned=attached&&!restore.retired&&restore.mesh.layers.mask===restore.layersMask;
+   if(optimizationEnabled&&owned&&restore.mesh.material===restore.material){
+    if(restore.detached||restore.needsValidation){owned=restorePoseMatches(restore);if(!owned)restore.retired=true;else{restore.detached=false;restore.needsValidation=false}}
+    if(owned)restore.mesh.material=restore.hidden;
+   }else if((!optimizationEnabled||!owned)&&restore.mesh.material===restore.hidden)restore.mesh.material=restore.material;
+  }
   update({focus:lastFocus,maxDistance:lastDistance});
   for(const batch of batches)if(batch.optimization)batch.mesh.visible=optimizationEnabled&&batch.visibleMembers>0;
   return optimizationEnabled;
