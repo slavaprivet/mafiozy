@@ -25,21 +25,35 @@ export function resolveNpcVehicleBinding(source,getVehicle){
  if(!seat||![seat.x,seat.y,seat.z,vehicle.yaw].every(Number.isFinite))return null;
  return {vehicle,seat,seatId,side:seatMeta?.side,canDrive:seatMeta?.canDrive,yaw:vehicle.yaw,rootSeat:!!rootSeat,phase,progress:Math.max(0,Math.min(1,Number(source.civilianTripProgress)||0)),transition};
 }
+const seatPoseScratch=new WeakMap();
+const newSeatPoseScratch=T=>({position:new T.Vector3(),quaternion:new T.Quaternion(),sourcePoint:new T.Vector3(),seatPoint:new T.Vector3(),seatQuaternion:new T.Quaternion(),carQuaternion:new T.Quaternion(),parentQuaternion:new T.Quaternion(),visualWorld:new T.Matrix4(),inverseWorld:new T.Matrix4()});
 export function applyNpcVehicleBinding({THREE,walker,binding,dt}){
  const c=walker.artistContext();
  if(binding.rootSeat&&typeof binding.vehicle.poseOccupant==='function'){
- const position=c.object.position.clone(),quaternion=c.object.quaternion.clone();
+  let pool=seatPoseScratch.get(walker);
+  if(!pool){pool={depth:0,slots:[]};seatPoseScratch.set(walker,pool);}
+  // Keep the usual and one nested callback allocation-free after warmup.
+  // Deeper reentry uses independent temporary storage, never the outer root.
+  const scratch=pool.depth<2?(pool.slots[pool.depth]??=newSeatPoseScratch(THREE)):newSeatPoseScratch(THREE);pool.depth++;
+  try{
+  const {position,quaternion,sourcePoint,seatPoint,seatQuaternion,carQuaternion,parentQuaternion,visualWorld,inverseWorld}=scratch;
+  position.copy(c.object.position);quaternion.copy(c.object.quaternion);
   const fold=binding.transition?(binding.phase==='board'?binding.progress:1-binding.progress):1;
-  const sourceYaw=c.object.rotation.y,seatYaw=sourceYaw+Math.atan2(Math.sin(binding.yaw-sourceYaw),Math.cos(binding.yaw-sourceYaw))*fold;
+  c.object.getWorldPosition(sourcePoint);seatPoint.set(binding.transition?sourcePoint.x:binding.seat.x,sourcePoint.y+(binding.seat.y-sourcePoint.y)*fold,binding.transition?sourcePoint.z:binding.seat.z);
+  c.object.getWorldQuaternion(seatQuaternion).slerp(binding.vehicle.object.getWorldQuaternion(carQuaternion),fold);
+  // Both seat anchors and the car rotation are world-space. Convert the
+  // temporary pose through the actor parent, then restore authority below.
+  if(c.object.parent){c.object.parent.worldToLocal(seatPoint);seatQuaternion.premultiply(c.object.parent.getWorldQuaternion(parentQuaternion).invert());}
   // During the door crossing the source root advances continuously. Snapping
   // to the seat here used to erase that motion and hide the entire entry.
   // Blend the facing as well: a side-on approach must not rotate every limb
   // to the car axis in the zero-progress boarding frame.
-  c.object.position.set(binding.transition?position.x:binding.seat.x,position.y+(binding.seat.y-position.y)*fold,binding.transition?position.z:binding.seat.z);c.object.rotation.set(0,seatYaw,0);c.object.updateMatrixWorld(true);
+  c.object.position.copy(seatPoint);c.object.quaternion.copy(seatQuaternion);c.object.updateMatrixWorld(true);
   const gripUnit=Math.max(0,Math.min(1,(fold-.62)/.38)),gripBlend=gripUnit*gripUnit*(3-2*gripUnit),doorUnit=Math.max(0,Math.min(1,binding.progress/.55)),doorRelease=Math.max(0,Math.min(1,(binding.progress-.45)/.55)),doorGripBlend=.55*doorUnit*doorUnit*(3-2*doorUnit)*(1-doorRelease*doorRelease*(3-2*doorRelease)),doorGrip=binding.transition&&doorGripBlend>0?binding.vehicle.getDoorHandleWorld?.(binding.seatId):null;
   binding.vehicle.poseOccupant(walker,binding.seatId||'front_left',{fold,...(binding.transition?{side:binding.side,driver:binding.canDrive,gripBlend,doorGrip,doorGripBlend}:{}),reach:binding.transition?Math.sin(binding.progress*Math.PI)*.65:0,dt,steer:binding.vehicle.steer||0});c.object.updateMatrixWorld(true);
-  const visualWorld=c.visualPivot.matrixWorld.clone();c.object.position.copy(position);c.object.quaternion.copy(quaternion);c.object.updateMatrixWorld(true);
-  visualWorld.premultiply(c.object.matrixWorld.clone().invert());visualWorld.decompose(c.visualPivot.position,c.visualPivot.quaternion,c.visualPivot.scale);c.object.updateMatrixWorld(true);return;
+  visualWorld.copy(c.visualPivot.matrixWorld);c.object.position.copy(position);c.object.quaternion.copy(quaternion);c.object.updateMatrixWorld(true);
+  visualWorld.premultiply(inverseWorld.copy(c.object.matrixWorld).invert());visualWorld.decompose(c.visualPivot.position,c.visualPivot.quaternion,c.visualPivot.scale);c.object.updateMatrixWorld(true);return;
+  }finally{pool.depth--;}
  }
  walker.vehiclePose(1,0,{driver:true,dt,steer:binding.vehicle.steer||0});
  c.visualPivot.rotation.y=Math.atan2(Math.sin(binding.yaw-c.object.rotation.y),Math.cos(binding.yaw-c.object.rotation.y));c.object.updateMatrixWorld(true);

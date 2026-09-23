@@ -56,7 +56,7 @@ export function createCityRoadNavigation({getRoadPlan,getParkingPlan,getInstance
    }
    if(end.serviceAccess){const retained=end.serviceAccess.retainedTurnId;if(retained&&!controls.some(c=>c.turnId===retained)){failure={status:'blocked',reason:'missing_service_approach_control',points:[]};continue;}for(const control of controls)if(control.turnId===retained){control.appliesUntilM=distanceM;control.serviceAccessId=end.accessRouteId;}}
    controls.sort((a,b)=>a.distanceM-b.distanceM);
-   const candidate={...result,points,gearChanges:changesOfGear(points),distanceM,distance:distanceM,controls,destination:{kind:target.kind,lotId:end.lotId,buildingId:target.buildingId,walkingDistance:end.walkingDistance||0},accessRouteIds:[start.accessRouteId,end.accessRouteId].filter(Boolean)};if(!best||distanceM<best.distanceM)best=candidate;
+   const candidate={...result,points,gearChanges:changesOfGear(points),distanceM,distance:distanceM,controls,destination:{kind:target.kind,lotId:end.lotId,buildingId:target.buildingId,walkingDistance:end.walkingDistance||0},accessRouteIds:[start.accessRouteId,end.accessRouteId].filter(Boolean),accessLotIds:[start.lotId,end.lotId].filter(Boolean)};if(!best||distanceM<best.distanceM)best=candidate;
   }}
   lastResult=best||failure;return lastResult;
  }
@@ -102,5 +102,5 @@ export function createCityRoadNavigation({getRoadPlan,getParkingPlan,getInstance
   const vehicleProfile=validateParkingVehicleProfile(raw);if(!vehicleProfile)return {ready:false,status:'blocked',reason:'invalid_vehicle_profile',points:[]};
   const result=routeWorld({from:native(request.from),to:native(request.to),maxDistance:request.maxSnapDistance??8,vehicleProfile}),snap=s=>s?{...s,point:source(s.point),...(s.connector?{connector:{...s.connector,points:s.connector.points.map(source)}}:{})}:null;return {...result,ready:result.status==='ready',points:(result.points||[]).map(source),snappedStart:snap(result.snappedStart),snappedEnd:snap(result.snappedEnd),controls:(result.controls||[]).map(c=>({...c,stopPoint:c.stopPoint?{r:c.stopPoint.z/metresPerCell,c:c.stopPoint.x/metresPerCell}:null}))};
  }
- return {query,route:routeWorld,prepare:ensure,roadControlRecords(controls){ensure();return controls.flatMap(c=>{const canonical=router?.edgeControls?.byId.get(c.id);return canonical?[canonical]:[]})},invalidate(){previousPlan=null;router=null;originResolver?.clear();originResolver=null;lastResult=null;routeJobs?.invalidate()},diagnostics(){return {ready:!!router,queries,lastStatus:lastResult?.status,graph:router?.diagnostics,jobs:routeJobs?.diagnostics()}}};
+ return {query,route:routeWorld,prepare:ensure,verifyLaneSegment(request){return routeJobs?.evaluateSegment(request)||{allowed:false,reason:'route_expired'}},roadControlRecords(controls){ensure();return controls.flatMap(c=>{const canonical=router?.edgeControls?.byId.get(c.id);return canonical?[canonical]:[]})},invalidate(){previousPlan=null;router=null;originResolver?.clear();originResolver=null;lastResult=null;routeJobs?.invalidate()},diagnostics(){return {ready:!!router,queries,lastStatus:lastResult?.status,graph:router?.diagnostics,jobs:routeJobs?.diagnostics()}}};
 }

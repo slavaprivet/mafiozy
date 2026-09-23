@@ -6,6 +6,7 @@ import {createLaneRouteJobs} from './city_lane_route_jobs.mjs';
 import {nodeLaneWorker} from './test_lane_worker_adapter.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNpcVehicleNavigation} from './npc_vehicle_navigation.mjs';
+import {createNpcVehicleSurfaceAccess} from './npc_vehicle_surface_access.mjs';
 import {createCarWorld,carFits} from './car_drive.mjs';
 import {createNpcLogicalVehicleBinding} from './npc_logical_vehicle_binding.mjs';
 import {createCivilianNativeFixture} from './test_civilian_native_fixture.mjs';
@@ -38,7 +39,7 @@ if(longTrip){
 }
 const originalQuery=box.nativeTrafficQuery;
 let presentationLoaded=false;f.actor.object.removeFromParent();const logical=createNpcLogicalVehicleBinding({bridge:{getWalkNpcVehicleBinding:q=>box._getWalkNpcVehicleBinding(q),getWalkNpcVehicleTraffic:()=>box._getWalkNpcVehicleTraffic()},worldScale:M,groundHeight:f.floor,getTemplate:id=>id==='compact_sedan'?f.actor:null,getVisibleVehicle:()=>presentationLoaded?f.actor:null,getVisibleNpc:()=>null});
-const longCarWorld=longTrip?createCarWorld(f.top,f.bodies,M):null;const longNav=longTrip?createNpcVehicleNavigation({worldScale:M,poseAllowed:(x,z,yaw,shape)=>carFits(x,z,yaw,longCarWorld,shape),waterAt:f.waterAt,groundHeight:f.floor,getVehicle:logical.getActor,getVehicles:logical.getVehicles}):null;
+const longCarWorld=longTrip?createCarWorld(f.top,f.bodies,M):null,longSurface=longTrip?createNpcVehicleSurfaceAccess({getParkingPlan:()=>f.snapshot.parkingPlan,getRoadPlan:()=>f.snapshot.roadPlan,verifyLaneSegment:request=>f.lanes.verifyLaneSegment(request),worldScale:M}):null;const longNav=longTrip?createNpcVehicleNavigation({worldScale:M,poseAllowed:(x,z,yaw,shape)=>carFits(x,z,yaw,longCarWorld,shape),isRoad:(x,z)=>!!f.top.roadMask?.[Math.floor(z/M)]?.[Math.floor(x/M)],vehicleAccess:longSurface.query,waterAt:f.waterAt,groundHeight:f.floor,getVehicle:logical.getActor,getVehicles:logical.getVehicles}):null;
 const laneQueryCosts=[];box.nativeTrafficQuery=q=>{const started=performance.now();const result=q.mode==='driver'?logical.driver(q):q.mode==='parking-exit'?f.lanes.query(q):q.mode==='parking-anchors'?{ready:true,slots}:q.mode==='initial-vehicle-shape'?{ready:true,halfLength:f.actor.profile.halfLength/M,halfWidth:f.actor.profile.halfWidth/M}:longNav&&!q.mode?longNav.query(q):originalQuery(q);if(q.mode==='lane-route')laneQueryCosts.push(performance.now()-started);return result;};
 box.logicalAccess=logical.access;vm.runInContext('_walkTrafficNavigationResolver=nativeTrafficQuery;_walkNpcVehicleAccessResolver=logicalAccess;',box);
 if(resumeExit23){
@@ -70,7 +71,7 @@ const limit=Number(process.argv.find(a=>a.startsWith('--frames='))?.split('=')[1
 try{
  for(let frame=0;frame<limit;frame++){
   if(laneJobs&&(!box.trip()||box.trip()?.phase==='planning'))await delay(5);
-  f.nextFrame(.05);logical.beginFrame();longNav?.beginFrame();if(box.trip()?.phase==='drive'&&presentationLoaded){presentationLoaded=false;f.actor.object.removeFromParent();}const old={r:npc.r,c:npc.c,carR:car.r,carC:car.c,angle:car.ang},before=box.trip()?.phase,t0=performance.now();
+  f.nextFrame(.05);logical.beginFrame();longNav?.beginFrame();if(box.trip()?.phase==='drive'&&presentationLoaded){presentationLoaded=false;f.actor.object.removeFromParent();}const old={r:npc.r,c:npc.c,carR:car.r,carC:car.c,angle:car.ang,routeTarget:box.trip()?.plan?.points?.[box.trip()?.index]},before=box.trip()?.phase,t0=performance.now();
   if(!box.trip()&&!npc._civilianPlan?.tripDestination&&!npc._residentNativeVisit&&!seen.has('drive'))box._civilianTripSchedule(f.now);
   const activeTrip=box.trip();if(longTrip&&!blocker&&!blockerRemoved&&activeTrip?.travelledM>100&&activeTrip.plan.points[activeTrip.index+80]){const point=activeTrip.plan.points[activeTrip.index+80];blocker={id:'actual-longtrip-blocker',r:point.r,c:point.c,ang:point.angle,parked:true,model:{name:'sedan'}};f.cars.push(blocker);logical.beginFrame();}
   if(blocker&&car._civilianBlockReason==='vehicle'){blockedAt||=f.now;blockedFrames++;}
@@ -92,7 +93,7 @@ try{
   if(t?.nextGear){gearStopFrames++;assert.equal(carStep,0,'gear change stops the actual vehicle before reverse/forward');}
   if(!npc._civilianTripRiding)counts.footDistanceM+=npcStep*M;
   if(carStep>1e-9&&(!npc._civilianTripRiding||npc.hp<=0||npc.dead))carMovedWithoutDriver=true;
-  if(carStep>0)assert((longNav||f.nav).query({carId:car.id,from:{r:old.carR,c:old.carC,angle:old.angle},to:{r:car.r,c:car.c,angle:car.ang},roadsOnly:false}).clear,'every actual moved car edge remains swept-clear');
+  if(carStep>0){const plan=box.trip()?.plan,slot=plan?.goal?.slot;assert((longNav||f.nav).query({carId:car.id,from:{r:old.carR,c:old.carC,angle:old.angle},to:{r:car.r,c:car.c,angle:car.ang},roadsOnly:false,accessRouteIds:plan?.accessRouteIds||[],accessLotIds:plan?.accessLotIds||[],lotId:slot?.lotId,parkingSlotId:slot?.id,laneRouteToken:plan?.laneRouteToken}).clear,'every actual moved car edge remains swept-clear');}
   assert(npcStep<.23,'no pedestrian/seat teleport between frames');
   assert(carStep<=1.35*.05+1e-7,'car translation respects actual source speed');
   assert.equal(npcs.length,1,'source identity cannot disappear or duplicate');assert.equal(npcs[0],npc);

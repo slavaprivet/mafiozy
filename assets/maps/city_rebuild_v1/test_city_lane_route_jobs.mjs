@@ -85,6 +85,27 @@ test('canonical controls cannot be forged or mutated and expire with their cache
  f.advance(100);assert.equal(f.client.evaluateControl(controls[0],{}).reason,'route_expired');
 });
 
+test('canonical route segments require the active token, owner, geometry and forward direction',()=>{
+ const f=fixture(),w=f.init(),route=request('surface',{carId:'surface-car'});f.client.query(route);
+ f.ready(w,{status:'ready',points:[{r:7,c:5},{r:7,c:7},{r:9,c:7}],controls:[]});
+ const result=f.client.query(route),proof={routeJob:result.routeJob,carId:'surface-car',from:{r:7,c:5.5},to:{r:7,c:6.5}};
+ assert.equal(result.routeJob,w.messages[1].token);assert.equal(f.client.evaluateSegment(proof).allowed,true);
+ assert.equal(f.client.evaluateSegment({...proof,routeJob:'never-issued'}).reason,'route_expired');
+ assert.equal(f.client.evaluateSegment({...proof,carId:'other-car'}).reason,'route_owner_mismatch');
+ assert.equal(f.client.evaluateSegment({...proof,from:{r:40,c:39},to:{r:40,c:41}}).reason,'unknown_route_segment');
+ assert.equal(f.client.evaluateSegment({...proof,from:proof.to,to:proof.from}).reason,'unknown_route_segment');
+ f.client.cancel('surface');assert.equal(f.client.evaluateSegment(proof).reason,'route_expired');
+ const next=request('surface-2',{carId:'surface-car'});f.client.query(next);f.ready(w,{status:'ready',points:[{r:7,c:5},{r:7,c:7}],controls:[]});const old=f.client.query(next).routeJob;
+ f.client.updateWorld([]);assert.equal(f.client.evaluateSegment({...proof,routeJob:old}).reason,'route_expired');
+});
+
+test('endpoint tolerance remains a world distance on long canonical segments',()=>{
+ const f=fixture(),w=f.init(),route=request('long-segment',{carId:'surface-car'});f.client.query(route);
+ f.ready(w,{status:'ready',points:[{r:0,c:0},{r:0,c:20}],controls:[]});const routeJob=f.client.query(route).routeJob;
+ assert.equal(f.client.evaluateSegment({routeJob,carId:'surface-car',from:{r:0,c:19.9},to:{r:0,c:20.1},tolerance:.2}).allowed,true);
+ assert.equal(f.client.evaluateSegment({routeJob,carId:'surface-car',from:{r:0,c:20},to:{r:0,c:22},tolerance:.2}).reason,'unknown_route_segment');
+});
+
 test('malformed results cannot leave a job stuck or allow an unknown control',()=>{
  const f=fixture(),w=f.init();f.client.query(request());f.ready(w,{status:'pending'});
  assert.equal(f.client.query(request()).reason,'route_worker_invalid_result');

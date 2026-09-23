@@ -20,7 +20,7 @@ const approach=(value,amount)=>Math.sign(value)*Math.max(0,Math.abs(value)-amoun
 const velocity=state=>({vx:Math.sin(state.travelYaw??state.yaw)*state.speed,vz:Math.cos(state.travelYaw??state.yaw)*state.speed});
 const profileOf=car=>({...CAR,massKg:finite(car.object?.userData?.massKg,1500),...car.profile});
 
-export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,groundHeight=()=>0,pose=null,getHero=()=>null,onExplosion=()=>{},detailOptimization=true,wheelRenderOptimization=false}={}){
+export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,groundHeight=()=>0,pose=null,getHero=()=>null,onExplosion=()=>{},onDamageReset=()=>{},detailOptimization=true,wheelRenderOptimization=false}={}){
  if(!scene||!RoundedBox)throw Error('Fleet requires scene and RoundedBox');
  const records=[],byId=new Map(),wrappers=new WeakMap(),pairDamageTimes=new Map();
  let activeRecord=null,time=0,disposed=false,sequence=0,contacts=0,lastImpulse=null,parkedCache=[],parkedCacheActive=null,parkedCacheCount=-1;
@@ -90,7 +90,7 @@ export function createVehicleFleet(T,{scene,RoundedBox,world=()=>()=>true,ground
   const record={id,car,state,impactReaction:supplied?.impactReaction||createVehicleImpactReaction(),spawn:{x:state.x,z:state.z,yaw:state.yaw},damage:null,roll:null,tyres:null,trunk:null,hood:null,mapColor:car.object.userData.mapColor||car.profile?.mapColor||'#a75048'};
   record.trunk=supplied?.trunk||car.trunk||createVehicleTrunk(T,RoundedBox,car,{scene,groundHeight});car.trunk=record.trunk;
   record.hood=supplied?.hood||car.hood||createVehicleHood(T,RoundedBox,car,{scene,groundHeight});car.hood=record.hood;
-  record.damage=supplied?.damage||createVehicleDamage(T,car,{scene,groundHeight,allowed:(x,z)=>world()(x,z),getState:()=>record.state,trunk:record.trunk,profile:{maxHp:Math.max(240,Math.min(1200,Math.round(mass(record)*.16)))},onExplosion:event=>onExplosion({...event,record})});
+  record.damage=supplied?.damage||createVehicleDamage(T,car,{scene,groundHeight,allowed:(x,z)=>world()(x,z),getState:()=>record.state,trunk:record.trunk,profile:{maxHp:Math.max(240,Math.min(1200,Math.round(mass(record)*.16)))},onExplosion:event=>onExplosion({...event,record}),onReset:event=>onDamageReset({...event,record})});
   record.roll=supplied?.roll||createVehicleRollover(T,car);
   record.tyres=supplied?.tyres||createTyreDamage(T,car,{groundHeight});
   // Capture canonical materials after damage adapters have established their

@@ -154,7 +154,7 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
  creationTimings.clone=performance.now()-creationMark;creationMark=performance.now();
  let walker,surface,deathGroundMemo,activityPose,phoneVisual,cashVisual,weapon=null,disposed=false,time=0,lastPosition={x:0,y:0,z:0},lastYaw=0,lastSurface=null,appearance,gesture=null,gestureBlend=0,outgoingGesture=null,outgoingAt=0,outgoingBlend=0,outgoingPoseTime=0,lastGesturePoseTime=0,lifeGestureApplied=false,sourceDown={active:false,at:0,releaseAt:null},sourceFall=null,sourceDeathKey=null,sourceDeathAt=null;
  const deathPresentation=createNpcDeathPresentation20(persistentId);const deathEntry20=createNpcDeathEntry20(THREE,()=>walker.artistContext());
- let hijackPose,socialPose,policeObservationPose,locomotionPose,extractionActive=false;
+ let hijackPose,socialPose,policeObservationPose,locomotionPose,extractionActive=false,deathSeatBound=false;
  // update() consumers use these values synchronously. Keep input buffers private
  // to this actor so crowd animation does not allocate argument objects every pose.
  const gaitOutput={phase:0,gait:0},locomotionInput={running:false,slowWalking:false,speed:0};
@@ -173,7 +173,7 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   const deathGroundContext={...context,groundPose:()=>deathGroundMemo.apply()};
   surface=createArtist14Surface({THREE,context,scene,
    applySwim(s,c){const dead=surface?.state.kind==='dead';c.object.position.y=lastPosition.y+(sourceFall?0:s.liftWorld);c.object.updateMatrixWorld(true);if(!extractionActive){if(sourceFall)pose.reaction(presentReaction(sourceFall,sourceDown.active),c);else if(!dead)pose.swim(s,c);}if(weapon)weapon.visible=!extractionActive&&(dead||!!sourceFall||s.blend<.1);},
-   applyReaction(s,c){if(!extractionActive){const presented=presentReaction(s);deathEntry20.render(presented,s.kind==='dead'&&presented.rawAge>=.62?deathGroundContext:c,s.kind==='dead'?deathPresentation.select(lastYaw):null,deathPose);}}
+   applyReaction(s,c){if(!extractionActive){const presented=presentReaction(s);deathEntry20.render(presented,s.kind==='dead'&&presented.rawAge>=.62?deathGroundContext:c,s.kind==='dead'?deathPresentation.select(lastYaw):null,deathPose,deathSeatBound);}}
   });own(clone);creationTimings.surface=performance.now()-creationMark;creationTimings.total=performance.now()-creationStart;
  }catch(error){deathGroundMemo?.dispose();surface?.dispose();walker?.object.removeFromParent();for(const r of owned)r.dispose?.();throw error;}
  function mountWeapon(node=null){
@@ -252,7 +252,7 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   const vehicleBinding=resolveNpcVehicleBinding(snapshot.life,getVehicle);
   if(!hijackPose&&(snapshot.life?.vehicleHijack||snapshot.life?.hijackReaction))hijackPose=createVehicleHijackPose({THREE,walker,getVehicle});
   extractionActive=!!hijackPose&&lifeGesture(snapshot.life||{})!=='cuffed'&&hijackPose.isActive(snapshot.life?.vehicleHijack);
-  const reaction=surface.state.kind,locked=reaction==='dead'||reaction==='fall'||!!sourceFall||extractionActive,moving=!!snapshot.moving&&!locked&&!vehicleBinding;
+  const reaction=surface.state.kind,locked=reaction==='dead'||reaction==='fall'||!!sourceFall||extractionActive,moving=!!snapshot.moving&&!locked&&!vehicleBinding;deathSeatBound=reaction==='dead'&&!!vehicleBinding&&snapshot.life?.civilianTripRiding===true&&(vehicleBinding.phase==='drive'||vehicleBinding.phase==='exit');
   const life=snapshot.life||{},escaping=escapingLife(life),requestedGesture=lifeGesture(life),running=!!snapshot.running||(!Number.isFinite(snapshot.motionSpeed)&&escaping);
   const bruiser=life.mercenary?.profession==='bruiser'&&!!life.mercenary.status&&!life.mercenaryCandidate;
   if(bruiser&&!bruiserShape)bruiserShape=createBruiserShape(THREE,clone,owned,walker);bruiserShape?.update(bruiser);
@@ -302,7 +302,7 @@ export function createNpcActor({THREE,scene,source,cloneSkeleton,id,sex='male',h
   if(!locked&&snapshot.jump&&Number.isFinite(snapshot.jump.progress))walker.jumpPose(snapshot.jump.progress,snapshot.jump.directional!==false,weapon,snapshot.aim||{});
   if(!locked&&snapshot.vehicle)walker.vehiclePose(snapshot.vehicle.seated||0,snapshot.vehicle.reach||0,snapshot.vehicle);
   if(!locked&&snapshot.tumble&&Number.isFinite(snapshot.tumble.progress))walker.tumblePose(snapshot.tumble.progress,snapshot.tumble.rolls||1);
-  let appliedVehicle20=false;if(vehicleBinding&&!locked&&reaction==='idle'&&!deepWater&&(lastSurface?.swim.blend||0)<.05&&!snapshot.jump&&!snapshot.tumble&&!(snapshot.action?.type&&snapshot.action.type!=='none')){applyNpcVehicleBinding({THREE,walker,binding:vehicleBinding,dt});appliedVehicle20=true;}
+  let appliedVehicle20=false;const regularVehicle20=vehicleBinding&&!locked&&reaction==='idle'&&!deepWater&&(lastSurface?.swim.blend||0)<.05&&!snapshot.jump&&!snapshot.tumble&&!(snapshot.action?.type&&snapshot.action.type!=='none');if(vehicleBinding&&(regularVehicle20||deathSeatBound)){applyNpcVehicleBinding({THREE,walker,binding:vehicleBinding,dt});appliedVehicle20=regularVehicle20;}
   locomotionPose.applyVehicleEntry(dt,vehicleBinding,appliedVehicle20);
   surfaceInput.time=time;surfaceInput.waterLevel=snapshot.waterLevel;surfaceInput.inWater=!!snapshot.inWater;surfaceInput.moving=moving;surfaceInput.fast=running;surfaceInput.chestWorldY=snapshot.chestWorldY;surfaceInput.groundWorldY=lastPosition.y;surfaceInput.blocked=locked||!!snapshot.swimBlocked;lastSurface=surface.update(dt,surfaceInput);
   if(lastSurface.reaction.kind==='dead'&&sourceDeathAt!==null)lastSurface.reaction.age=Math.max(0,time-sourceDeathAt);

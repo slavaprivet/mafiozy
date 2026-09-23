@@ -4,7 +4,7 @@ import {collisionPolygon} from './vehicle_collision_shape.mjs';
 import {polygonVehicleContact} from './vehicle_contact.mjs';
 const finite=p=>p&&[p.r,p.c,p.angle].every(Number.isFinite), delta=(a,b)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
 const directions=Array.from({length:8},(_,i)=>({r:Math.round(Math.sin(i*Math.PI/4)),c:Math.round(Math.cos(i*Math.PI/4)),angle:i*Math.PI/4}));
-export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAllowed,isRoad=()=>false,waterAt=()=>null,groundHeight=()=>0,getVehicle=()=>null,getVehicles=()=>[],clock=()=>performance.now(),frameBudgetMs=3,maxExpanded=18000,inspectRoutes=false}={}){
+export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAllowed,isRoad=()=>false,vehicleAccess=()=>false,waterAt=()=>null,groundHeight=()=>0,getVehicle=()=>null,getVehicles=()=>[],clock=()=>performance.now(),frameBudgetMs=3,maxExpanded=18000,inspectRoutes=false}={}){
  if(typeof poseAllowed!=='function')throw new TypeError('Native vehicle poseAllowed is required');
  const jobs=new Map(),targetJobs=new Map();let spent=0,vehicleRecords=null,frameEpoch=0,eligible=null,lastVehicleBlocker=null;const counts={sweeps:0,poses:0,blocked:0,routeExpanded:0,completed:0,failed:0};
  function shapeFor(request){
@@ -14,9 +14,14 @@ export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAl
   const halfLength=Math.max(.5,profile?(profile.collisionHalfLength??profile.halfLength)*sz:(Number(request.halfLength)||.7)*worldScale);
   return {halfWidth,halfLength,collisionPadding:.08};
  }
- function pose(p,request,shape,dynamic=true){
+ function pose(p,request,shape,dynamic=true,semantic=true){
   counts.poses++;const x=p.c*worldScale,z=p.r*worldScale,yaw=Math.PI/2-p.angle;
-  if(request.roadsOnly&&!isRoad(x,z))return 'off-road';
+  if(semantic&&!isRoad(x,z)){
+   if(request.roadsOnly!==false)return 'off-road';
+   const identified=!!(request.accessRouteId||request.lotId||request.parkingSlotId||request.accessRouteIds?.length||request.accessLotIds?.length||request.laneRouteToken);let access=false;
+   if(identified)try{access=vehicleAccess({x,z,r:p.r,c:p.c,yaw,shape,request});}catch{return 'vehicle_surface_forbidden';}
+   if(access!==true&&access?.allowed!==true)return access?.reason||'vehicle_surface_forbidden';
+  }
   if(!poseAllowed(x,z,yaw,shape))return 'solid-or-surface';
   const poly=collisionPolygon(x,z,yaw,shape),floor=groundHeight(x,z);
   for(const point of [[x,z],...poly]){const water=waterAt(...point),level=water?.level,depth=Number.isFinite(level)?level-groundHeight(...point):water?.depth||0;if(depth>.12)return 'water';}
@@ -31,18 +36,18 @@ export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAl
   }
   return null;
  }
- function sweep(from,to,request,shape,dynamic=true){
+ function sweep(from,to,request,shape,dynamic=true,semantic=true){
   counts.sweeps++;lastVehicleBlocker=null;const turn=delta(from.angle,to.angle),distance=Math.hypot(to.r-from.r,to.c-from.c)*worldScale;
   // Limit each corner's movement to 15 cm, including rotation. No near/far LOD bypass.
   const steps=Math.max(1,Math.ceil((distance+Math.abs(turn)*Math.hypot(shape.halfLength,shape.halfWidth))/.15));
   if(steps>1500)return {clear:false,reason:'segment-too-long'};
-  for(let i=0;i<=steps;i++){const t=i/steps,reason=pose({r:from.r+(to.r-from.r)*t,c:from.c+(to.c-from.c)*t,angle:from.angle+turn*t},request,shape,dynamic);if(reason){counts.blocked++;return {clear:false,reason,...(reason==='vehicle'&&lastVehicleBlocker?{blockerId:lastVehicleBlocker}:{})};}}
+  for(let i=0;i<=steps;i++){const t=i/steps,reason=pose({r:from.r+(to.r-from.r)*t,c:from.c+(to.c-from.c)*t,angle:from.angle+turn*t},request,shape,dynamic,semantic);if(reason){counts.blocked++;return {clear:false,reason,...(reason==='vehicle'&&lastVehicleBlocker?{blockerId:lastVehicleBlocker}:{})};}}
   return {clear:true,reason:'clear'};
  }
  function push(heap,node){let i=heap.length;heap.push(node);while(i){const p=(i-1)>>1;if(heap[p].f<=node.f)break;heap[i]=heap[p];i=p;}heap[i]=node;}
  function pop(heap){const top=heap[0],last=heap.pop();if(heap.length){let i=0;while(i*2+1<heap.length){let child=i*2+1;if(child+1<heap.length&&heap[child+1].f<heap[child].f)child++;if(last.f<=heap[child].f)break;heap[i]=heap[child];i=child;}heap[i]=last;}return top;}
  function route(request,shape){
-  const key=[request.carId,request.requestId,request.from.r,request.from.c,request.from.angle,request.to.r,request.to.c,request.to.angle,!!request.roadsOnly].join('|'),stamp=[shape.halfWidth,shape.halfLength,request.to.angle].join('|');
+  const identities=[request.accessRouteId,request.lotId,request.parkingSlotId,request.laneRouteToken,...(Array.isArray(request.accessRouteIds)?request.accessRouteIds:[]),...(Array.isArray(request.accessLotIds)?request.accessLotIds:[])].filter(Boolean).sort().join(','),key=[request.carId,request.requestId,request.from.r,request.from.c,request.from.angle,request.to.r,request.to.c,request.to.angle,request.roadsOnly===false?'access':'road',identities].join('|'),stamp=[shape.halfWidth,shape.halfLength,request.to.angle,identities].join('|');
   let job=jobs.get(key);
   if(request.reset||job?.stamp!==stamp){jobs.delete(key);job=null;}
   if(!job){
@@ -98,5 +103,10 @@ export function createNpcVehicleNavigation({worldScale=4.1,ready=()=>true,poseAl
   if(request.mode==='route')return route(request,shape);
   return sweep(request.from,request.to,request,shape);
  }
- return {query,beginFrame(){spent=0;vehicleRecords=null;frameEpoch++;eligible=new Set([...jobs.values()].filter(j=>j.status==='pending'&&j.lastRequested>=frameEpoch-2).sort((a,b)=>a.lastServed-b.lastServed).slice(0,4));},invalidate(){jobs.clear();targetJobs.clear();vehicleRecords=null;eligible=null;},diagnostics:()=>({...counts,jobs:jobs.size,routeCpuMs:spent,routes:[...jobs.values()].filter(j=>j.lastRequested>=frameEpoch-2).slice(0,4).map(j=>({carId:j.request.carId,from:j.request.from,to:j.request.to,status:j.status,reason:j.reason,startBlocked:j.startBlocked,endBlocked:j.endBlocked,shape:j.shape,expanded:j.expanded,frontier:j.heap.length}))})};
+ function queryPhysical(request={}){
+  if(!ready())return null;
+  if(!finite(request.from)||!finite(request.to))return {clear:false,status:'blocked',reason:'invalid-pose'};
+  return sweep(request.from,request.to,request,shapeFor(request),true,false);
+ }
+ return {query,queryPhysical,beginFrame(){spent=0;vehicleRecords=null;frameEpoch++;eligible=new Set([...jobs.values()].filter(j=>j.status==='pending'&&j.lastRequested>=frameEpoch-2).sort((a,b)=>a.lastServed-b.lastServed).slice(0,4));},invalidate(){jobs.clear();targetJobs.clear();vehicleRecords=null;eligible=null;},diagnostics:()=>({...counts,jobs:jobs.size,routeCpuMs:spent,routes:[...jobs.values()].filter(j=>j.lastRequested>=frameEpoch-2).slice(0,4).map(j=>({carId:j.request.carId,from:j.request.from,to:j.request.to,status:j.status,reason:j.reason,startBlocked:j.startBlocked,endBlocked:j.endBlocked,shape:j.shape,expanded:j.expanded,frontier:j.heap.length}))})};
 }

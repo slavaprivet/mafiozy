@@ -9995,7 +9995,7 @@ function _nativeParkingAdmissionTick(now){
    }
    if(!exit.clear){if(row.index>=state.slots.length){row.index=0;row.retryAt=now+10000;}state.queue.push(row);continue;}
    if(checks>=2||performance.now()>=deadline){row.index--;state.queue.push(row);continue;}
-   checks++;state.checked++;const result=_walkTrafficNavigationResolver({carId:_threeVehicleEntityId(car),from:pose,to:pose,halfLength:shape.halfLength,halfWidth:shape.halfWidth,roadsOnly:false});
+   checks++;state.checked++;const result=_walkTrafficNavigationResolver({carId:_threeVehicleEntityId(car),from:pose,to:pose,halfLength:shape.halfLength,halfWidth:shape.halfWidth,roadsOnly:false,lotId:slot.lotId,parkingSlotId:slot.id});
    if(result?.clear===true){Object.assign(car,{r:slot.r,c:slot.c,ang:slot.angle,dirDy:Math.sin(slot.angle),dirDx:Math.cos(slot.angle),vr:0,vc:0,_nativeParkingAnchor:{id:slot.id,lotId:slot.lotId,r:slot.r,c:slot.c},_nativeParkingShape:{halfLength:shape.halfLength,halfWidth:shape.halfWidth}});delete car._nativeParkingPending;delete car._onParking;state.reservations.set(slot.id,car);state.admitted++;state.cursor=(state.slots.indexOf(slot)+7)%state.slots.length;continue;}state.rejected++;
   }
   if(row.index>=state.slots.length){row.index=0;row.retryAt=now+10000;}state.queue.push(row);
@@ -10084,13 +10084,13 @@ function _civilianTripParkingCurve(car,start,slot){
  const distance=Math.hypot(slot.r-start.r,slot.c-start.c);if(!distance)return [{...slot,gear:'forward',speedLimitKmh:5,parking:true}];
  const handle=Math.max(.22,Math.min(1.15,distance*.45)),p1={r:start.r+Math.sin(start.angle)*handle,c:start.c+Math.cos(start.angle)*handle},p2={r:slot.r-Math.sin(slot.angle)*handle,c:slot.c-Math.cos(slot.angle)*handle},steps=Math.max(5,Math.ceil(distance/.055)),points=[];
  for(let i=1;i<=steps;i++){const t=i/steps,u=1-t,r=u*u*u*start.r+3*u*u*t*p1.r+3*u*t*t*p2.r+t*t*t*slot.r,c=u*u*u*start.c+3*u*u*t*p1.c+3*u*t*t*p2.c+t*t*t*slot.c,dr=3*u*u*(p1.r-start.r)+6*u*t*(p2.r-p1.r)+3*t*t*(slot.r-p2.r),dc=3*u*u*(p1.c-start.c)+6*u*t*(p2.c-p1.c)+3*t*t*(slot.c-p2.c),angle=i===steps?slot.angle:Math.atan2(dr,dc);points.push({r,c,angle,gear:'forward',speedLimitKmh:5,parking:true});}
- let previous=start;for(const point of points){if(!_civilianTripSweep(car,previous,point,[],false))return null;previous=point;}return points;
+ let previous=start;for(const point of points){if(!_civilianTripSweep(car,previous,point,[],false,{lotId:slot.lotId,parkingSlotId:slot.id}))return null;previous=point;}return points;
 }
 function _civilianTripAttachParking(car,door,lane,job){
  const lotId=lane.destination?.lotId;if(!lotId||!lane.points?.length)return null;
  let slots=_nativeParkingAdmission.slots;if(!slots){const result=_walkTrafficNavigationResolver?.({mode:'parking-anchors'});if(result?.ready&&result.slots?.length)_nativeParkingAdmission.slots=slots=result.slots.filter(p=>p.id&&[p.r,p.c,p.angle,p.widthM,p.lengthM].every(Number.isFinite));}
  const start=lane.points.at(-1),candidates=(slots||[]).filter(slot=>slot.lotId===lotId&&_civilianTripParkingPoseFree(car,slot)).sort((a,b)=>Math.hypot(a.r-start.r,a.c-start.c)-Math.hypot(b.r-start.r,b.c-start.c)||String(a.id).localeCompare(String(b.id)));
- for(const slot of candidates){const tail=_civilianTripParkingCurve(car,start,slot);if(!tail)continue;if(job.parkingSlot&&job.parkingSlot.id!==slot.id&&_nativeParkingAdmission.reservations.get(job.parkingSlot.id)===car)_nativeParkingAdmission.reservations.delete(job.parkingSlot.id);job.parkingSlot=slot;_nativeParkingAdmission.reservations.set(slot.id,car);return {native:true,points:[...lane.points,...tail],parkingStartIndex:lane.points.length,goal:{door,lot:null,slot},lots:[],controls:lane.controls||[],destination:lane.destination};}
+ for(const slot of candidates){const tail=_civilianTripParkingCurve(car,start,slot);if(!tail)continue;if(job.parkingSlot&&job.parkingSlot.id!==slot.id&&_nativeParkingAdmission.reservations.get(job.parkingSlot.id)===car)_nativeParkingAdmission.reservations.delete(job.parkingSlot.id);job.parkingSlot=slot;_nativeParkingAdmission.reservations.set(slot.id,car);return {native:true,points:[...lane.points,...tail],parkingStartIndex:lane.points.length,goal:{door,lot:null,slot},lots:[],controls:lane.controls||[],destination:lane.destination,accessRouteIds:lane.accessRouteIds||[],accessLotIds:lane.accessLotIds||[slot.lotId],laneRouteToken:lane.routeJob};}
  return null;
 }
 function _civilianTripCancelLane(job){if(job?.laneRequestId&&typeof _walkTrafficNavigationResolver==='function')_walkTrafficNavigationResolver({mode:'lane-route-cancel',requestId:job.laneRequestId});if(job){job.laneRequestId=null;job.laneTo=null;}}
@@ -10220,9 +10220,9 @@ function _civilianTripPoseClear(car,r,c,angle,lots,dynamic=true){
  if(dynamic){for(const p of [player,...NPCS]){if(p===_civilianTripForCar(car)?.npc||p.dead||p._residentIndoors)continue;const rr=p.r-r,cc=p.c-c;if(Math.abs(rr*dr+cc*dc)<L+.22&&Math.abs(-rr*dc+cc*dr)<W+.22)return false;}}
  return true;
 }
-function _civilianTripSweep(car,a,b,lots,dynamic=true){
+function _civilianTripSweep(car,a,b,lots,dynamic=true,authority=null){
  if(_civilianTripNative()){
-  const result=typeof _walkTrafficNavigationResolver==='function'?_walkTrafficNavigationResolver({carId:_threeVehicleEntityId(car),from:a,to:b,roadsOnly:false}):null;car._civilianBlockReason=result?.clear===true?'':result?.reason||'navigation-not-ready';car._civilianBlockerId=result?.clear===true?'':result?.blockerId||'';if(result?.clear!==true)return false;
+  const trip=_civilianTripForCar(car),slot=trip?.plan?.goal?.slot||car._civilianNativePlan?.parkingSlot,result=typeof _walkTrafficNavigationResolver==='function'?_walkTrafficNavigationResolver({carId:_threeVehicleEntityId(car),from:a,to:b,roadsOnly:false,accessRouteIds:authority?.accessRouteIds||trip?.plan?.accessRouteIds||[],accessLotIds:authority?.accessLotIds||trip?.plan?.accessLotIds||[],lotId:authority?.lotId||slot?.lotId,parkingSlotId:authority?.parkingSlotId||slot?.id,laneRouteToken:authority?.laneRouteToken}):null;car._civilianBlockReason=result?.clear===true?'':result?.reason||'navigation-not-ready';car._civilianBlockerId=result?.clear===true?'':result?.blockerId||'';if(result?.clear!==true)return false;
   const length=Math.max(.75,Math.min(1.2,(car.model?.L||1.8)*.5)),width=Math.max(.4,Math.min(.65,(car.model?.W||.88)*.5)),steps=Math.max(1,Math.ceil(Math.hypot(b.r-a.r,b.c-a.c)/.1)),delta=Math.atan2(Math.sin(b.angle-a.angle),Math.cos(b.angle-a.angle));
   for(let personIndex=-1;dynamic&&personIndex<NPCS.length;personIndex++){const n=personIndex<0?player:NPCS[personIndex];if(n._npcInitialPlacementPending||n===_civilianTripForCar(car)?.npc||n.dead||n._residentIndoors||n._civilianTripRiding||n._ambientTrafficPhase==='drive'||n._inVehicle||n._transportBoarded)continue;if(Math.hypot(n.r-a.r,n.c-a.c)>length+width+Math.hypot(b.r-a.r,b.c-a.c)+.4)continue;
    for(let i=0;i<=steps;i++){const f=i/steps,angle=a.angle+delta*f,dr=n.r-a.r-(b.r-a.r)*f,dc=n.c-a.c-(b.c-a.c)*f;if(Math.abs(dr*Math.sin(angle)+dc*Math.cos(angle))<length+.18&&Math.abs(-dr*Math.cos(angle)+dc*Math.sin(angle))<width+.18){car._civilianBlockReason='pedestrian';car._civilianBlockerId=personIndex<0?'player':_threeNpcEntityId(n);return false;}}
@@ -10290,7 +10290,7 @@ function _civilianTripWatchProgress(trip,now){
  if(progress.riding!==riding){progress.r=r;progress.c=c;progress.riding=riding;}
  else if(Math.hypot(r-progress.r,c-progress.c)>.01){progress.r=r;progress.c=c;progress.at=now;}
  const driveTarget=trip.phase==='drive'?trip.plan?.points?.[trip.index]:null,driveAngle=Number.isFinite(car.ang)?car.ang:Math.atan2(car.dirDy||0,car.dirDx||1),settling=driveTarget&&Math.hypot(car.r-driveTarget.r,car.c-driveTarget.c)<.03&&Math.abs(Math.atan2(Math.sin(driveTarget.angle-driveAngle),Math.cos(driveTarget.angle-driveAngle)))<.03;
- if(trip.phase==='exit'||trip.phase==='parked'||trip.phase==='drive'&&!driveTarget||settling||now-progress.at<(riding?90000:60000))return true;
+ if(trip.phase==='exit'||trip.phase==='parked'||(trip.phase==='drive'&&!driveTarget||settling)&&!car._civilianDriverNotReady||now-progress.at<(riding?90000:60000))return true;
  const goal=trip.destinationDoor||trip.plan?.goal?.door||car._civilianNativePlan?.doors?.[car._civilianNativePlan?.doorIndex||0];
  if(goal?.id){const avoid=npc._civilianTripAvoid||(npc._civilianTripAvoid=Object.create(null));for(const id of Object.keys(avoid))if(avoid[id]<=now)delete avoid[id];if(Object.keys(avoid).length>=8)delete avoid[Object.keys(avoid)[0]];avoid[goal.id]=now+300000;}
  trip.recovery={reason:riding?'drive-no-progress':'trip-no-progress',since:now,goalId:goal?.id||null};trip.interrupted=true;car.vr=car.vc=0;car.braking=true;
@@ -10351,7 +10351,7 @@ function _civilianTripTickCar(car,dt){
  const next={r:distance?car.r+(target.r-car.r)/distance*step:car.r,c:distance?car.c+(target.c-car.c)/distance*step:car.c,angle};
  if(!t.plan.native&&typeof carCanGo==='function'&&_trafficRoadTile(car.r,car.c)&&_trafficRoadTile(car.r+Math.sin(angle)*1.5,car.c+Math.cos(angle)*1.5)&&_trafficCarFootprintClear(car,next.r,next.c)){car.vr=dt?(next.r-current.r)/dt:0;car.vc=dt?(next.c-current.c)/dt:0;if(!carCanGo(car,Math.min(.1,dt))){car.braking=true;return true;}}
  if(t.plan.native&&!_civilianTripRoadPermission(t,current,next)){car.vr=car.vc=0;car.braking=true;return true;}
- if(!_civilianTripSweep(car,current,next,t.plan.lots,true)){car.vr=car.vc=0;car.braking=true;t.driveSpeed=Math.max(0,t.driveSpeed-brake*Math.min(.1,dt));const now=performance.now();if(t.plan.native){t.blockedAt=t.blockedAt||now;if(now-t.blockedAt>(['vehicle','pedestrian'].includes(car._civilianBlockReason)?12000:1500)){const slot=t.plan.goal?.slot;if(slot&&_nativeParkingAdmission.reservations.get(slot.id)===car)_nativeParkingAdmission.reservations.delete(slot.id);t.destinationDoor=t.plan.goal.door;_civilianTripCancelLane(car._civilianNativePlan);delete car._civilianNativePlan;t.phase='planning';t.blockedAt=0;}}return true;}t.blockedAt=0;
+ if(!_civilianTripSweep(car,current,next,t.plan.lots,true,{laneRouteToken:t.plan.laneRouteToken})){car.vr=car.vc=0;car.braking=true;t.driveSpeed=Math.max(0,t.driveSpeed-brake*Math.min(.1,dt));const now=performance.now();if(t.plan.native){t.blockedAt=t.blockedAt||now;if(now-t.blockedAt>(['vehicle','pedestrian'].includes(car._civilianBlockReason)?12000:1500)){const slot=t.plan.goal?.slot;if(slot&&_nativeParkingAdmission.reservations.get(slot.id)===car)_nativeParkingAdmission.reservations.delete(slot.id);t.destinationDoor=t.plan.goal.door;_civilianTripCancelLane(car._civilianNativePlan);delete car._civilianNativePlan;t.phase='planning';t.blockedAt=0;}}return true;}t.blockedAt=0;
  car.r=next.r;car.c=next.c;car.ang=angle;car.dirDy=Math.sin(angle);car.dirDx=Math.cos(angle);car.vr=dt?(next.r-current.r)/dt:0;car.vc=dt?(next.c-current.c)/dt:0;car.braking=false;t.travelledM=(t.travelledM||0)+Math.hypot(next.r-current.r,next.c-current.c)*4.1;if(distance<.025&&Math.abs(delta)<.025)t.index++;
  _civilianTripReport(t,performance.now());return true;
 }
@@ -12911,7 +12911,7 @@ function _sendPoliceWitnessOpenFire(){
 }
 function _policePerceptionActor(cop){
   const n=cop._perceptionActor||(cop._perceptionActor={});
-  n.r=cop.y??cop.r;n.c=cop.x??cop.c;n.ang=cop.ang;
+  n.r=cop.y??cop.r;n.c=cop.x??cop.c;n.ang=cop.ang;n._walkVehicleObserver=cop;n._walkVehicleSightPending=false;
   n.prone=cop.prone;n.stance=cop.stance;n._forcedCrawl=cop._forcedCrawl;n._medicalDowned=cop._medicalDowned;n._waterEscaping=cop._waterEscaping;
   return n;
 }
@@ -12940,7 +12940,7 @@ function _policePursuitTarget(cop,now,radius,knownDirect=false){
     cop._perceivedPlayerR=player.r;cop._perceivedPlayerC=player.c;cop._perceivedPlayerUntil=now+7000;
   }
   if(!(cop._perceivedPlayerUntil>now))return null;
-  return {r:cop._perceivedPlayerR,c:cop._perceivedPlayerC,visible};
+  return {r:cop._perceivedPlayerR,c:cop._perceivedPlayerC,visible,pending:cop._perceptionActor?._walkVehicleSightPending===true};
 }
 function _alertNearbyCops(reason,eventR=player.r,eventC=player.c,forceMurderAttack=false) {
   const cries = _COP_REACT_CRIES[reason] || _COP_REACT_CRIES.shot;
@@ -13287,22 +13287,32 @@ function updateCityCops(dt) {
       if(perceivedTarget.visible&&_localHostileCanResolveHit()&&armedAggro&&distToPlayer>.7&&distToPlayer<14&&_policeWorldLineClear(cop.y,cop.x,player.r,player.c)){
         if(!cop._murderNextShootAt)cop._murderNextShootAt=now+280+Math.random()*420;
         if(now>=cop._murderNextShootAt){
-          cop._murderNextShootAt=now+900+Math.random()*550;
+          const nextShootAt=now+900+Math.random()*550;
           const miss=(Math.random()-.5)*Math.min(1.15,.15+distToPlayer*.055);
           const targetR=player.r+Math.sin(cop.ang+Math.PI/2)*miss,targetC=player.c+Math.cos(cop.ang+Math.PI/2)*miss;
           const muzzleR=cop.y+Math.sin(cop.ang)*.45,muzzleC=cop.x+Math.cos(cop.ang)*.45;
-          const hit=Math.abs(miss)<.38;
-          _markPoliceShot(cop,'pistol',now);
-          if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(cop);
-          spawnBullet(muzzleR,muzzleC,targetR,targetC,{hit,fromNpc:true,weapon:'pistol'});
-          spawnMuzzle(muzzleR,muzzleC,cop.ang,'pistol',true);
-          if(hit){
-            const dmg=8+Math.floor(Math.random()*5);
-            spawnImpact(player.r,player.c,'pistol',true);
-            _hurtLocal(dmg,'Полиция',true,{kind:'city_police',cop});
-            spawnFloatText(player.r-.4,player.c,`−${dmg}`,{color:'#ff4422',size:13,life:900});
+          const physical=_walkPoliceVehicleIncoming({phase:'prepare',cop,now,targetR,targetC,muzzleR,muzzleC});
+          if(!physical?.handled||physical.ready===true){
+            const legacyHit=Math.abs(miss)<.38,damage=physical?.handled||legacyHit?8+Math.floor(Math.random()*5):0;
+            cop._murderNextShootAt=nextShootAt;
+            _markPoliceShot(cop,'pistol',now);
+            const consumed=physical?.handled?_walkPoliceVehicleIncoming({phase:'consume',cop,now,proof:physical.proof,damage}):null;
+            if(!physical?.handled||consumed?.consumed===true){
+              const hit=physical?.handled?consumed.kind==='occupant':legacyHit;
+              const endR=physical?.handled?consumed.target.z/4.1:targetR,endC=physical?.handled?consumed.target.x/4.1:targetC;
+              if(physical?.handled)cop._visualShot={sequence:cop._shotSeq,at:now,shooterId:'npc_city_cop_'+cop.id,weapon:'pistol',angle:cop.ang,target:{r:endR,c:endC,elevation:0},ray:{origin:consumed.origin,target:consumed.target}};
+              else delete cop._visualShot;
+              if(typeof _noteVehicleIncomingAttack==='function')_noteVehicleIncomingAttack(cop);
+              spawnBullet(muzzleR,muzzleC,endR,endC,{hit,fromNpc:true,weapon:'pistol'});
+              spawnMuzzle(muzzleR,muzzleC,cop.ang,'pistol',true);
+              if(hit){
+                spawnImpact(player.r,player.c,'pistol',true);
+                _hurtLocal(damage,'Полиция',true,physical?.handled?{kind:'city_police',cop,sourceHeight:1.45,muzzleR,muzzleC}:{kind:'city_police',cop});
+                spawnFloatText(player.r-.4,player.c,`−${damage}`,{color:'#ff4422',size:13,life:900});
+              }
+              document.documentElement.dataset.policeWitnessAttackShots=String((+document.documentElement.dataset.policeWitnessAttackShots||0)+1);
+            }
           }
-          document.documentElement.dataset.policeWitnessAttackShots=String((+document.documentElement.dataset.policeWitnessAttackShots||0)+1);
         }
       }
       // Игрок в машине — бежим к точке за машиной, но не лезем под колёса.
@@ -14435,8 +14445,11 @@ function _completePlayerAmbulanceRecovery(patient,v,now=performance.now(),mode='
   if(_murderPoliceArrest){_setPlayerEmergencyTransport(false);return false;}
   const east=v?.hospitalId==='east',hospitalId=east?'hospital_east':'hospital';
   const door=v?._nativeHospital?.door||(east?_hospitalDoorAt(HOSPITAL_EAST_R,HOSPITAL_EAST_C):_hospitalDoor());
+  // Record the old life before recovery; the bridge exists only after epoch init.
+  window.Mafiozi3DBridge?.getWalkLocalVehicleOccupantLifeGeneration?.();
   _localDeath=false;myDead=false;myDeathBy='';myDeathLeft=0;
   myHp=Math.max(40,Math.ceil((PVP.max_hp||100)*.4));
+  window.Mafiozi3DBridge?.getWalkLocalVehicleOccupantLifeGeneration?.();
   _localHpHurtAt=0;_selfHpBarUntil=0;_bankShieldUntil=0;
   for(let i=_myGang.length-1;i>=0;i--)if(!window.MafioziMercenaries?.isMercenary(_myGang[i].id))_myGang.splice(i,1);
   _saveGang();myDrivingCarId=null;myIsPassenger=false;_exitRequested=false;camShake=0;
@@ -15686,50 +15699,108 @@ function _seatGroundPoliceCop(v,cop,seat){
   if(cop._transportSeatId==='front_left')v._driverCopId=cop.id;
   _syncPoliceConvoyCop(cop);
 }
+function _policeVehicleCancelLane(v){
+ const pending=v?._nativePoliceJob?.lane?v._nativePoliceJob.id:null,requestIds=[...new Set([v?._nativePoliceLaneRequestId,pending].filter(Boolean))];
+ const hadLane=!!(requestIds.length||v?._nativePoliceAuthority?.laneRouteToken);
+ if(typeof _walkTrafficNavigationResolver==='function')for(const requestId of requestIds)_walkTrafficNavigationResolver({mode:'lane-route-cancel',requestId});
+ if(v){v._nativePoliceLaneRequestId=null;v._nativePoliceLaneTouchAt=0;v._nativePoliceAuthority=null;v._nativePoliceControls=null;v._nativePoliceControlIndex=0;v._nativePoliceLaneTravelledM=0;}
+ return hadLane;
+}
+function _policeVehicleLanePermission(v,from,to){
+ const controls=v._nativePoliceControls||[],moved=v._nativePoliceLaneTravelledM||0,nextDistance=moved+Math.hypot(to.r-from.r,to.c-from.c)*4.1;
+ let index=v._nativePoliceControlIndex||0;while(index<controls.length&&controls[index].distanceM<moved-.2)index++;v._nativePoliceControlIndex=index;
+ for(let i=index;i<controls.length;i++){
+  const control=controls[i];if(control.distanceM>nextDistance+3)break;
+  const prisonerAttached=_murderPoliceArrest?.playerBoarded&&String(_murderPoliceArrest.playerAttachedVehicleId||_murderPoliceArrest.vehicleId||'')===String(v.id||'');
+  const point=control.stopPoint,occupied=point&&[player,...NPCS].some(n=>!(n===player&&prisonerAttached)&&!n.dead&&!n._residentIndoors&&!n._transportBoarded&&Math.hypot((n.r??n.y)-point.r,(n.c??n.x)-point.c)<1.8);
+  const others=point&&[...CARS,...serviceVehicles].some(other=>other!==v&&!other._towed&&other.state!=='done'&&Math.hypot((other.r??other.y)-point.r,(other.c??other.x)-point.c)<2.2);
+  const answer=_walkTrafficNavigationResolver({mode:'road-rules',control,approachId:control.approachId,turnId:control.turnId,time:performance.now()/1000,occupiedCrosswalkIds:occupied?(control.crosswalkIds||[]):[],occupiedTurnIds:others?(control.conflicts||control.yieldTo||[]):[],occupiedEdgeIds:others&&control.edgeId?[control.edgeId]:[]});
+  if(answer?.control?.allowed!==true&&control.distanceM<=nextDistance+1.2){v._nativePoliceReason=answer?.control?.reason||'road-control-wait';return false;}
+ }
+ return true;
+}
 function _policeVehicleStep(v,dt){
   const query=_walkTrafficNavigationResolver,now=performance.now();
   if(typeof query!=='function'){
     if(typeof _walkRendererActive==='function'&&_walkRendererActive()){v._nativePoliceReason='navigation-not-ready';v._lastMoveT=now;return false;}
     return _vehicleStep(v,dt);
   }
-  if(!_groundPoliceCanDrive(v,now))return false;
-  const carId=`service_${v.id}`,incident=v.payload?.murderIncident;
-  const target=v.state==='returning'?{r:v.homeR,c:v.homeC}:incident?{r:incident.r,c:incident.c}:{r:v.finalTarget?.y??v.sceneParkingR,c:v.finalTarget?.x??v.sceneParkingC};
+  if(!_groundPoliceCanDrive(v,now)){if(_policeVehicleCancelLane(v)){v._nativePoliceRoute=null;v._nativePoliceJob=null;}return false;}
+  const carId=`service_${v.id}`,incident=v.payload?.murderIncident,ar=_murderPoliceArrest;
+  const detention=v._policePrisonTransport&&ar?.phase==='transport'&&v.state==='returning'&&ar.destination?.instanceId?ar.destination:null;
+  const target=detention?detention.stop:v.state==='returning'?{r:v.homeR,c:v.homeC}:incident?{r:incident.r,c:incident.c}:{r:v.finalTarget?.y??v.sceneParkingR,c:v.finalTarget?.x??v.sceneParkingC};
   if(!Number.isFinite(+target.r)||!Number.isFinite(+target.c)){v._nativePoliceReason='target-unavailable';return false;}
-  const signature=`${v.state}:${(+target.r).toFixed(2)}:${(+target.c).toFixed(2)}`;
-  if(v._nativePoliceGoal!==signature){v._nativePoliceGoal=signature;v._nativePoliceRoute=null;v._nativePoliceJob=null;v._nativePoliceRetryAt=0;}
+  const signature=`${detention?'detention:'+detention.instanceId:v.state}:${(+target.r).toFixed(3)}:${(+target.c).toFixed(3)}`;
+  if(v._nativePoliceGoal!==signature){_policeVehicleCancelLane(v);v._nativePoliceGoal=signature;v._nativePoliceRoute=null;v._nativePoliceJob=null;v._nativePoliceRetryAt=0;}
   v._lastMoveT=now;v._prevX=v.x;v._prevY=v.y;
   if(!v._nativePoliceRoute){
     if(now<(v._nativePoliceRetryAt||0))return false;
     if(!v._nativePoliceJob){
-      const options=query({mode:'road-targets',carId,from:{r:+target.r,c:+target.c,angle:+v.ang||0},minDistance:0,maxDistance:4});
-      const points=options?.points||[],goal=points[0];
-      if(!goal){v._nativePoliceReason=options?.reason||'road-endpoint-unavailable';v._nativePoliceRetryAt=now+600;return false;}
-      v._nativePoliceRouteSeq=(v._nativePoliceRouteSeq||0)+1;
-      v._nativePoliceJob={id:carId+':police:'+v._nativePoliceRouteSeq,first:true,from:{r:v.y,c:v.x,angle:+v.ang||0},to:{r:goal.r,c:goal.c,angle:Number.isFinite(+goal.angle)?+goal.angle:+v.ang||0}};
+      if(detention){
+        v._nativePoliceRouteSeq=(v._nativePoliceRouteSeq||0)+1;
+        v._nativePoliceJob={id:carId+':detention-lane:'+v._nativePoliceRouteSeq,lane:true,from:{r:v.y,c:v.x,angle:+v.ang||0},to:{r:+target.r,c:+target.c,angle:+target.angle||0,buildingId:detention.instanceId}};
+      }else{
+        const options=query({mode:'road-targets',carId,from:{r:+target.r,c:+target.c,angle:+v.ang||0},minDistance:0,maxDistance:4});
+        const points=options?.points||[],goal=points[0];
+        if(!goal){v._nativePoliceReason=options?.reason||'road-endpoint-unavailable';v._nativePoliceRetryAt=now+600;return false;}
+        v._nativePoliceRouteSeq=(v._nativePoliceRouteSeq||0)+1;
+        v._nativePoliceJob={id:carId+':police:'+v._nativePoliceRouteSeq,lane:false,first:true,from:{r:v.y,c:v.x,angle:+v.ang||0},to:{r:goal.r,c:goal.c,angle:Number.isFinite(+goal.angle)?+goal.angle:+v.ang||0}};
+      }
     }
     if(now<(v._nativePolicePollAt||0))return false;v._nativePolicePollAt=now+100;
-    const job=v._nativePoliceJob,route=query({mode:'route',carId,requestId:job.id,reset:job.first,from:job.from,to:job.to,roadsOnly:true});job.first=false;
-    if(route?.status==='ready'&&route.points?.length){v._nativePoliceRoute=route.points;v._nativePoliceIndex=0;v._nativePoliceJob=null;}
-    else{v._nativePoliceReason=route?.reason||'route-pending';if(route?.status==='blocked'){v._nativePoliceJob=null;v._nativePoliceRetryAt=now+1300;}return false;}
+    const job=v._nativePoliceJob,route=job.lane
+      ?query({mode:'lane-route',requestId:job.id,carId,from:job.from,to:job.to,maxSnapDistance:12})
+      :query({mode:'route',carId,requestId:job.id,reset:job.first,from:job.from,to:job.to,roadsOnly:true});
+    job.first=false;
+    if(route?.status==='ready'&&route.points?.length){
+      const end=route.points.at(-1),endpointError=Math.hypot(end.r-job.to.r,end.c-job.to.c);
+      if(job.lane&&endpointError>.001){
+        query({mode:'lane-route-cancel',requestId:job.id});v._nativePoliceReason='route-endpoint-mismatch';v._nativePoliceJob=null;v._nativePoliceRetryAt=now+1300;return false;
+      }
+      v._nativePoliceRoute=route.points;v._nativePoliceIndex=0;
+      if(job.lane){
+        v._nativePoliceLaneRequestId=job.id;v._nativePoliceLaneTouchAt=now+5000;
+        v._nativePoliceAuthority={accessRouteIds:route.accessRouteIds||[],accessLotIds:route.accessLotIds||[],laneRouteToken:route.routeJob};
+        v._nativePoliceControls=(route.controls||[]).filter(control=>Number.isFinite(control.distanceM)).slice().sort((a,b)=>a.distanceM-b.distanceM);
+        v._nativePoliceControlIndex=0;v._nativePoliceLaneTravelledM=0;
+      }
+      v._nativePoliceJob=null;
+    }else{v._nativePoliceReason=route?.reason||'route-pending';if(route?.status==='blocked'){if(job.lane)query({mode:'lane-route-cancel',requestId:job.id});v._nativePoliceJob=null;v._nativePoliceRetryAt=now+1300;}return false;}
   }
-  const path=v._nativePoliceRoute;let index=v._nativePoliceIndex||0;
-  while(index<path.length-1&&Math.hypot(path[index].r-v.y,path[index].c-v.x)<.2)index++;
+  if(v._nativePoliceLaneRequestId&&now>=(v._nativePoliceLaneTouchAt||0)){
+    v._nativePoliceLaneTouchAt=now+5000;const lease=query({mode:'lane-route-touch',requestId:v._nativePoliceLaneRequestId});
+    if(lease?.reason==='route_expired'){_policeVehicleCancelLane(v);v._nativePoliceRoute=null;v._nativePoliceJob=null;v._nativePoliceRetryAt=now+250;v._nativePoliceReason='route-expired';return false;}
+  }
+  const path=v._nativePoliceRoute,lane=!!v._nativePoliceLaneRequestId,tolerance=lane?.001:.2;let index=v._nativePoliceIndex||0;
+  while(index<path.length-1&&Math.hypot(path[index].r-v.y,path[index].c-v.x)<tolerance)index++;
   v._nativePoliceIndex=index;const point=path[index],dr=point.r-v.y,dc=point.c-v.x,d=Math.hypot(dr,dc);
-  if(d<.25&&index===path.length-1){v._nativePoliceReason='arrived';return true;}
-  const desired=Math.atan2(dr,dc),delta=Math.atan2(Math.sin(desired-v.ang),Math.cos(desired-v.ang));
+  if(d<tolerance&&index===path.length-1){
+    if(lane&&Number.isFinite(point.angle)){
+      const turn=Math.atan2(Math.sin(point.angle-v.ang),Math.cos(point.angle-v.ang));
+      if(Math.abs(turn)>.035){
+        const safeDt=Math.min(.1,Math.max(0,dt)),angle=v.ang+Math.max(-safeDt*2.2,Math.min(safeDt*2.2,turn)),authority=v._nativePoliceAuthority||{};
+        const rotate=query({carId,from:{r:v.y,c:v.x,angle:v.ang},to:{r:v.y,c:v.x,angle},roadsOnly:false,accessRouteIds:authority.accessRouteIds||[],accessLotIds:authority.accessLotIds||[],laneRouteToken:authority.laneRouteToken});
+        if(rotate?.clear!==true){v._nativePoliceReason=rotate?.reason||'arrival-turn-blocked';return false;}
+        v.ang=angle;v._nativePoliceReason='arrival-turn';return false;
+      }
+    }
+    _policeVehicleCancelLane(v);v._nativePoliceReason='arrived';return true;
+  }
+  const pathAngle=lane&&Number.isFinite(point.angle)?point.angle:Math.atan2(dr,dc),delta=Math.atan2(Math.sin(pathAngle-v.ang),Math.cos(pathAngle-v.ang));
   const safeDt=Math.min(.1,Math.max(0,dt)),angle=v.ang+Math.max(-safeDt*2.2,Math.min(safeDt*2.2,delta));
   const speed=Math.max(0,+v.speed||0),step=Math.min(d,speed*safeDt)*(Math.abs(delta)<.55?1:0);
-  const from={r:v.y,c:v.x,angle:v.ang},to={r:v.y+Math.sin(angle)*step,c:v.x+Math.cos(angle)*step,angle};
-  const hit=query({carId,from,to,roadsOnly:true});
+  const from={r:v.y,c:v.x,angle:v.ang},to={r:v.y+dr/d*step,c:v.x+dc/d*step,angle},authority=v._nativePoliceAuthority||{};
+  if(lane&&!_policeVehicleLanePermission(v,from,to))return false;
+  const hit=query({carId,from,to,roadsOnly:!lane,accessRouteIds:authority.accessRouteIds||[],accessLotIds:authority.accessLotIds||[],laneRouteToken:authority.laneRouteToken});
   if(hit?.clear!==true){
     v._nativePoliceReason=hit?.reason||'sweep-pending';v._nativePoliceBlockedAt??=now;
-    if(now-v._nativePoliceBlockedAt>1400){v._nativePoliceRoute=null;v._nativePoliceJob=null;v._nativePoliceRetryAt=now+400;v._nativePoliceBlockedAt=now;}
+    if(now-v._nativePoliceBlockedAt>1400){_policeVehicleCancelLane(v);v._nativePoliceRoute=null;v._nativePoliceJob=null;v._nativePoliceRetryAt=now+400;v._nativePoliceBlockedAt=now;}
     return false;
   }
-  v._nativePoliceBlockedAt=null;v._nativePoliceReason='driving';v.x=to.c;v.y=to.r;v.ang=to.angle;return false;
+  v._nativePoliceBlockedAt=null;v._nativePoliceReason='driving';v.x=to.c;v.y=to.r;v.ang=to.angle;
+  if(lane)v._nativePoliceLaneTravelledM=(v._nativePoliceLaneTravelledM||0)+step*4.1;
+  return false;
 }
-
 function _groundPoliceCanDrive(v,now){
   if(v.kind!=='police'||v._npcCustodyRemote)return true;
   if(!['go_to_scene','returning'].includes(v.state))return true;
@@ -16355,8 +16426,8 @@ function updateServiceVehicles(dt) {
     if(_ambientTrafficServiceKind(v)&&!_ambientTrafficServiceReady(v,now))continue;
     if(v._murderFleet)_updatePoliceArmoredVanTurret(v,dt,now);
     if(v._murderFleet)_enforceMurderPoliceCustodyVehicle(v,now);
-    if(v._policePrisonTransport&&!_policeConvoyCanDrive(v,_murderPoliceArrest,now))continue;
-    if(!_groundPoliceCanDrive(v,now))continue;
+    if(v._policePrisonTransport&&!_policeConvoyCanDrive(v,_murderPoliceArrest,now)){if(_policeVehicleCancelLane(v)){v._nativePoliceRoute=null;v._nativePoliceJob=null;}continue;}
+    if(!_groundPoliceCanDrive(v,now)){if(_policeVehicleCancelLane(v)){v._nativePoliceRoute=null;v._nativePoliceJob=null;}continue;}
     if(v.kind==='ambulance'){
       _ensureAmbulanceCrew(v);_syncAmbulanceSeatedCrew(v);
       if(v.state==='ambulance_disabled'){v.speed=0;continue;}
@@ -17807,6 +17878,9 @@ function _npcCanSeePoint(n,r,c,radius=8,targetHeight=null){
   // 140-degree field of view; close contact is still blocked by a wall.
   const angle=Number.isFinite(n.ang)?n.ang:Math.atan2((n.tr??n.r)-n.r,(n.tc??n.c+1)-n.c);
   if(d2>.16&&(Math.sin(angle)*dr+Math.cos(angle)*dc)<Math.sqrt(d2)*.342)return false;
+  n._walkVehicleSightPending=false;
+  const vehicleSight=n._walkVehicleObserver?_walkPoliceVehicleIncoming({phase:'sight',cop:n._walkVehicleObserver,r,c,eyeHeight:_npcPerceptionHeight(n)}):null;
+  if(vehicleSight?.handled){n._walkVehicleSightPending=vehicleSight.pending===true;return vehicleSight.visible===true;}
   const native=typeof _walkNpcPerceptionResolver==='function'?_walkNpcPerceptionResolver({fromR:n.r,fromC:n.c,toR:r,toC:c,eyeHeight:_npcPerceptionHeight(n),targetHeight:Number.isFinite(targetHeight)?targetHeight:_npcPerceptionTargetHeight(r,c)}):null;
   return native&&typeof native.blocked==='boolean'?!native.blocked:_policeWorldLineClear(n.r,n.c,r,c);
 }
@@ -24665,6 +24739,26 @@ function _drawSuppressedByFire(px, py) {
 const MELEE_BRUISE_LIFETIME_MS=60000;
 let _threePlayerImpactState={at:0,angle:0,power:0,kind:'generic',bodyPart:'torso'},_meleeBruiseAt=0;
 function _localHostileCanResolveHit(){return _LOCAL_PREVIEW||_worldDirectCombatDemo;}
+let _walkNpcVehicleIncomingResolver=null;
+let _walkVehicleOccupancyResolver=null;
+function _walkPoliceVehicleUnavailable(reason){
+  let occupied=false;
+  try{
+    occupied=typeof _getWalkVehicleState==='function'&&_getWalkVehicleState()?.active===true;
+    if(typeof _walkVehicleOccupancyResolver==='function')occupied=_walkVehicleOccupancyResolver()!==false||occupied;
+  }catch(_){occupied=true;}
+  return occupied?{handled:true,ready:false,visible:false,reason}:null;
+}
+function _walkPoliceVehicleIncoming(request){
+  const cop=request?.cop;
+  if(!_walkRendererActive())return null;
+  if(!cop||!cityCops.includes(cop))return {handled:true,ready:false,visible:false,reason:'unregistered-source'};
+  if(request.phase==='sight'&&Math.hypot(request.r-player.r,request.c-player.c)>.02)return null;
+  if(myDead||cop.alive===false||cop.dead||cop.hp<=0)return {handled:true,ready:false,visible:false,reason:'actor-life'};
+  if(typeof _walkNpcVehicleIncomingResolver!=='function')return _walkPoliceVehicleUnavailable('renderer-unavailable');
+  try{return _walkNpcVehicleIncomingResolver({...request,sourceId:'city_cop:'+String(cop.id),sourceRef:cop,playerR:player.r,playerC:player.c,localAllowed:_LOCAL_PREVIEW&&!_serverAuthoritativeAmmo})||null;}
+  catch(error){return _walkPoliceVehicleUnavailable('renderer-error');}
+}
 let _walkCoverResolver=null;
 function _walkCoverDamage(damage,underFire,detail){
   // Authoritative network combat never accepts client cover vetoes. Only the
@@ -24743,6 +24837,8 @@ function _hurtLocal(dmg, by, underFire = false, deathMode = null) {
   }else myHp = Math.max(0, myHp - bodyDamage);
   _localHpHurtAt = impactNow;
   _selfHpBarUntil = _localHpHurtAt + 4500;
+  // The published bridge is initialized; early boot cannot reach the epoch TDZ.
+  if(myHp<=0)window.Mafiozi3DBridge?.getWalkLocalVehicleOccupantLifeGeneration?.();
   if (myHp <= 0 && !myDead) {
     if(deathMode?.kind==='murder_police'&&_beginMurderPoliceArrest(deathMode.cop,_localHpHurtAt))return;
     const policeDeathKind=String(deathMode?.kind||'');
@@ -26549,7 +26645,7 @@ function _playerVehicleFootprintClear(vehicle, r, c, ang = null) {
     const carId=`quest_${vehicle.id}`,heading=Number.isFinite(ang)?ang:Number(vehicle.ang)||0;
     if(typeof _walkTrafficNavigationResolver!=='function'||!_walkNpcVehicleAccessResolver?.({carId}))return false;
     const from=vehicle._nativeDriveFrameFrom||{r:vehicle.y,c:vehicle.x,angle:Number(vehicle.ang)||0};
-    return _walkTrafficNavigationResolver({mode:'sweep',carId,from,to:{r,c,angle:heading},roadsOnly:false})?.clear===true;
+    return _walkTrafficNavigationResolver({mode:'player-physical',carId,from,to:{r,c,angle:heading}})?.clear===true;
   }
   const model = QUEST_CAR_MODELS[vehicle.model] || resolveCarModel(vehicle.model) || {};
   const heading = Number.isFinite(+ang) ? +ang : (Number.isFinite(+vehicle.ang) ? +vehicle.ang : 0);
@@ -69570,6 +69666,25 @@ function _threeVisibleObjectAnchor(sourceR,sourceC,maxRadius=7){
 // Only the explicit local world simulation can accept a renderer-owned fleet
 // blast. Authenticated body/armor changes still arrive as combat_state.v1.
 const _walkBlastReceipts=new Set();
+const _walkVehicleOccupantLethalReceipts=new Set();
+let _walkVehicleOccupantLifeGeneration=0,_walkVehicleOccupantWasDead=typeof myDead!=='undefined'&&myDead||typeof myHp!=='undefined'&&myHp<=0;
+function _walkLocalVehicleOccupantLifeGeneration(){
+  const dead=typeof myDead!=='undefined'&&myDead||typeof myHp!=='undefined'&&myHp<=0;
+  if(_walkVehicleOccupantWasDead&&!dead)_walkVehicleOccupantLifeGeneration++;
+  _walkVehicleOccupantWasDead=dead;return _walkVehicleOccupantLifeGeneration;
+}
+function _applyWalkLocalVehicleOccupantLethal(input={}){
+  if(!_walkRendererActive()||!_localHostileCanResolveHit())return {accepted:false,reason:'authority'};
+  const {id,eventId,vehicleId,actorId,seatId,lifeGeneration,kind,confirmed,lethal}=input;
+  if(confirmed!==true||lethal!==true||kind!=='vehicle_explosion'||actorId!=='player'||![id,eventId,vehicleId,seatId].every(value=>typeof value==='string'&&value.length>0&&value.length<=160)||!Number.isInteger(lifeGeneration)||lifeGeneration<0)return {accepted:false,reason:'invalid'};
+  if(_walkVehicleOccupantLethalReceipts.has(id))return {accepted:true,duplicate:true,receiptId:id,dead:myDead,hp:myHp};
+  const currentGeneration=_walkLocalVehicleOccupantLifeGeneration();
+  if(currentGeneration!==lifeGeneration)return {accepted:false,reason:'stale-life'};
+  _walkVehicleOccupantLethalReceipts.add(id);while(_walkVehicleOccupantLethalReceipts.size>256)_walkVehicleOccupantLethalReceipts.delete(_walkVehicleOccupantLethalReceipts.values().next().value);
+  if(myDead||myHp<=0)return {accepted:false,reason:'already-dead',receiptId:id};
+  _hurtLocal(10000,'взрыв автомобиля',false,{kind:'vehicle_explosion',weapon:'vehicle_explosion'});_walkVehicleOccupantWasDead=myDead||myHp<=0;
+  return {accepted:myDead||myHp<=0,receiptId:id,dead:myDead,hp:myHp};
+}
 let _walkBlastExposureResolver=null;
 function _applyWalkLocalBlast19(input={}){
   if(!_walkRendererActive())return {accepted:false,reason:'renderer'};
@@ -70305,6 +70420,8 @@ function _threeCustodyPassengerSeat(arrest){
 }
 window.Mafiozi3DBridge = Object.freeze({
   getWalkNpcNavigationDiagnostics(){return {..._npcNavigationStats,routeWork:{..._npcRouteWorkStats},connected:!!_walkNpcNavigationResolver,initialPlacement:{..._npcInitialPlacementStats}};},
+  registerWalkNpcVehicleIncomingResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcVehicleIncomingResolver=resolver;return true;},
+  registerWalkVehicleOccupancyResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkVehicleOccupancyResolver=resolver;return true;},
   registerWalkNpcPerceptionResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcPerceptionResolver=resolver;return true;},
   registerWalkNpcNavigationResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;const changed=resolver!==_walkNpcNavigationResolver;_walkNpcNavigationResolver=resolver;if(resolver){_npcInitialSafePlacement();if(changed)refreshEmpireCachedTargets23();}return true;},
   registerWalkNpcVehicleAccessResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkNpcVehicleAccessResolver=resolver;return true;},
@@ -70321,6 +70438,8 @@ window.Mafiozi3DBridge = Object.freeze({
   getWorldClock(){return {now:performance.now(),epochNow:Date.now(),renderer:_walkRendererActive()?'walk':'legacy'};},
   registerWalkBlastExposureResolver(resolver){if(resolver!==null&&typeof resolver!=='function')return false;if(resolver!==null&&!_walkRendererActive())return false;_walkBlastExposureResolver=resolver;return true;},
   applyWalkVehicleBlast(input){return _applyWalkVehicleBlast(input);},
+  getWalkLocalVehicleOccupantLifeGeneration(){return _walkLocalVehicleOccupantLifeGeneration();},
+  applyWalkLocalVehicleOccupantLethal(input){return _applyWalkLocalVehicleOccupantLethal(input);},
   syncWalkPlayer(input={}){
     const state=()=>this.getPlayerState();
     if(!_walkRendererActive())return {ok:false,locked:true,reason:'renderer',state:state()};

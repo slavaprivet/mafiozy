@@ -25,7 +25,7 @@ export function createLaneRouteJobs({
  function finish(job,result,roadControls=[]){
   job.phase='done';job.completedAt=job.lastUsedAt=clock();job.canonical=new Map();job.identities=new Set();
   for(const c of roadControls||[])if(c?.id)job.canonical.set(c.id,freeze(clone(c)));
-  const publicResult=clone(result);publicResult.ready=publicResult.status==='ready';
+  const publicResult=clone(result);publicResult.ready=publicResult.status==='ready';publicResult.routeJob=job.token;
   publicResult.controls=(publicResult.controls||[]).map(c=>{job.identities.add(identity(c));return {...c,routeJob:job.token};});
   job.result=freeze(publicResult);completed.set(job.id,job);prune();
  }
@@ -98,6 +98,16 @@ export function createLaneRouteJobs({
   // current main-thread controller; none of the caller's rule data is trusted.
   renew(job);return null;
  }
+ function evaluateSegment({routeJob,carId,from,to,tolerance=.05}={}){
+  timedOut();prune();const job=tokens.get(routeJob),finite=p=>p&&Number.isFinite(p.r)&&Number.isFinite(p.c);
+  if(!job||job.phase!=='done'||job.result.status!=='ready')return {allowed:false,reason:'route_expired'};
+  if(carId===undefined||carId===null||String(job.request?.carId)!==String(carId))return {allowed:false,reason:'route_owner_mismatch'};
+  if(!finite(from)||!finite(to))return {allowed:false,reason:'unknown_route_segment'};
+  const limit=Math.max(1e-6,Math.min(.2,Number(tolerance)||.05)),project=(p,a,b)=>{const dr=b.r-a.r,dc=b.c-a.c,lengthSq=dr*dr+dc*dc;if(lengthSq<1e-12)return null;const t=((p.r-a.r)*dr+(p.c-a.c)*dc)/lengthSq;return {t,gap:Math.hypot(p.r-a.r-dr*t,p.c-a.c-dc*t),margin:limit/Math.sqrt(lengthSq)};};
+  const points=job.result.points||[];
+  for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],f=project(from,a,b),t=project(to,a,b);if(!f||!t||f.gap>limit||t.gap>limit||f.t< -f.margin||f.t>1+f.margin||t.t< -t.margin||t.t>1+t.margin||t.t+1e-8<f.t)continue;renew(job);return {allowed:true,reason:'canonical_route_segment',routeJob};}
+  return {allowed:false,reason:'unknown_route_segment'};
+ }
  function invalidate(snapshot){stop();generation++;failure=null;if(snapshot!==undefined)return initialize(snapshot);return {generation,status:'blocked'};}
  function updateWorld(bodies){
   timedOut();if(disposed)return blocked('route_jobs_disposed');if(!worker)return blocked(failure||'route_worker_uninitialized');
@@ -109,5 +119,5 @@ export function createLaneRouteJobs({
  }
  function dispose(){stop();generation++;disposed=true;failure=null;}
  function diagnostics(){timedOut();prune();return {generation,initialized,disposed,failure,queued:queue.length,inFlight:active?1:0,results:completed.size,pending:[...jobs.values()].filter(j=>j.phase!=='done').length};}
- return {initialize,query,touch,cancel,invalidate,updateWorld,dispose,evaluateControl,diagnostics};
+ return {initialize,query,touch,cancel,invalidate,updateWorld,dispose,evaluateControl,evaluateSegment,diagnostics};
 }

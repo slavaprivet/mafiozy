@@ -5,11 +5,13 @@ import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {performance} from 'node:perf_hooks';
+import {gunzipSync} from 'node:zlib';
 import {createWindowedBuildingEntry} from './building_window_integration.mjs';
 import {applyBuildingDoorsGlass} from './building_doors_glass.mjs';
 import {createWalkCollisionIndex} from './walk_collision_index.mjs';
 import {createNpcNativeNavigation} from './npc_native_navigation.mjs';
 import {createNpcVehicleNavigation} from './npc_vehicle_navigation.mjs';
+import {createNpcVehicleSurfaceAccess} from './npc_vehicle_surface_access.mjs';
 import {createNpcVehicleAccessResolver} from './npc_vehicle_access.mjs';
 import {createCityRoadNavigation} from './city_road_navigation.mjs';
 import {createLandscapePlan} from './landscape_plan.mjs';
@@ -18,8 +20,24 @@ import {createCarWorld,carFits,pointInPolygon} from './car_drive.mjs';
 import {createArtistVehicle} from './vehicle_fleet_models.mjs';
 import {npcVehicleBlocks} from './world_traffic_presentation.mjs';
 import {createNpcResidentBuildingAccess} from './npc_resident_building_access.mjs';
+import {buildEnvironmentVisualPlans} from './environment_planning_worker_core.mjs';
+import {explorationKeepouts} from './exploration_scene_support.mjs';
 
 export const read=n=>JSON.parse(fs.readFileSync(new URL(n,import.meta.url)));
+let currentNativeSnapshot=null;
+export function createCurrentNativeSnapshot(){
+ if(currentNativeSnapshot)return currentNativeSnapshot;
+ const staticSnapshot=JSON.parse(gunzipSync(fs.readFileSync(new URL('test_fixtures/native_static_collision19.json.gz',import.meta.url))));
+ const buildings=[...read('buildings_placement.v1.json').instances,...read('detention_native_sites.v1.json').instances];
+ const authoredDecor=read('decor_placement.v1.json').instances;
+ assert.deepEqual(staticSnapshot.buildings,buildings,'tracked static fixture must match current building and detention records');
+ assert.equal(staticSnapshot.authoredDecor.length,authoredDecor.length);
+ for(let i=0;i<authoredDecor.length;i++)assert.deepEqual(staticSnapshot.authoredDecor[i],{collision:authoredDecor[i].collision},'tracked decor collision '+i);
+ const instances=[...buildings,...authoredDecor],decorPlan={colliders:staticSnapshot.decorPlan.colliders};
+ const plans=buildEnvironmentVisualPlans({topology:read('topology_for_placement.json'),instances,keepouts:explorationKeepouts(instances),decorPlan});
+ currentNativeSnapshot={description:'current production plans rebuilt from tracked source placements and exact compressed static collision fixture',buildings,authoredDecor,decorPlan,roadPlan:plans.roadPlan,parkingPlan:plans.parkingPlan};
+ return currentNativeSnapshot;
+}
 export function sourceFunction(source,name){
  const start=source.indexOf('function '+name+'(');assert(start>=0,'source function '+name);
  const lineEnd=source.indexOf('\n',start),line=source.slice(start,lineEnd);
@@ -27,9 +45,9 @@ export function sourceFunction(source,name){
  // are wholly on their declaration line. Preserve their actual implementation.
  return line.trimEnd().endsWith('}')?line:source.slice(start,source.indexOf('\n}',start)+2);
 }
-export async function createCivilianNativeFixture({assetId='hospital',tripLimit=null,laneJobs=null,snapshot:providedSnapshot=null}={}){
+export async function createCivilianNativeFixture({assetId='hospital',tripLimit=null,laneJobs=null,snapshot:providedSnapshot=null,candidateTripSource=false}={}){
  const M=4.1,top=read('topology_for_placement.json');
- const snapshot=providedSnapshot||read('../../../outputs/roads_logical_20260912/integration_candidate_snapshot.json');
+ const snapshot=providedSnapshot||createCurrentNativeSnapshot();
  const buildings=snapshot.buildings,item=buildings.find(b=>b.assetId===assetId);assert(item);
  const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
  registerHooks({resolve(s,c,next){return next(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});
@@ -58,8 +76,9 @@ export async function createCivilianNativeFixture({assetId='hospital',tripLimit=
  const syncCar=()=>{actor.object.position.set(car.c*M,floor(car.c*M,car.r*M),car.r*M);actor.object.rotation.y=Math.PI/2-car.ang;actor.object.updateMatrixWorld(true)};
  const isRoad=(x,z)=>!!top.roadMask?.[Math.floor(z/M)]?.[Math.floor(x/M)];
  const pedestrian=createNpcNativeNavigation({worldScale:M,waterAt,groundHeight:floor,bodiesAt:(c,r)=>index(c,r),bodiesInBounds:(...bounds)=>index.queryBounds(...bounds),containsBody:(body,r,c)=>pointInPolygon(c,r,body.polygonCR),terrainAllows:(x,z)=>landscape.contains(x,z)?landscape.canWalk(x,z):nativePedestrianLand(top,z/M,x/M)||!!waterAt(x,z),surfaceAt:(x,z)=>isRoad(x,z)?'road':'land',blocksDynamic:(x,z,body)=>body.ignoreId===car.id?false:npcVehicleBlocks(actor,x,z,0,body)});
- const nav=createNpcVehicleNavigation({worldScale:M,frameBudgetMs:3,poseAllowed:(x,z,yaw,shape)=>carFits(x,z,yaw,carWorld,shape),isRoad,waterAt,groundHeight:floor,getVehicle:()=>actor});
- const lanes=createCityRoadNavigation({routeJobs:laneJobs,getRoadPlan:()=>snapshot.roadPlan,getParkingPlan:()=>snapshot.parkingPlan,getInstances:()=>buildings,isRoad,poseAllowed:(x,z,yaw)=>carFits(x,z,yaw,carWorld,actor.profile),metresPerCell:M});
+ let lanes;const vehicleSurface=createNpcVehicleSurfaceAccess({getParkingPlan:()=>snapshot.parkingPlan,getRoadPlan:()=>snapshot.roadPlan,verifyLaneSegment:request=>lanes?.verifyLaneSegment(request)||{allowed:false,reason:'route_expired'},worldScale:M});
+ const nav=createNpcVehicleNavigation({worldScale:M,frameBudgetMs:3,poseAllowed:(x,z,yaw,shape)=>carFits(x,z,yaw,carWorld,shape),isRoad,vehicleAccess:vehicleSurface.query,waterAt,groundHeight:floor,getVehicle:()=>actor});
+ lanes=createCityRoadNavigation({routeJobs:laneJobs,getRoadPlan:()=>snapshot.roadPlan,getParkingPlan:()=>snapshot.parkingPlan,getInstances:()=>buildings,isRoad,poseAllowed:(x,z,yaw)=>carFits(x,z,yaw,carWorld,actor.profile),metresPerCell:M});
  const access=createNpcVehicleAccessResolver({traffic:{getActor:id=>id===car.id?actor:null,setNpcAccess:()=>{}},worldScale:M});
  let now=0,frameClock=performance.now();const source=fs.readFileSync(new URL('../../../world.html',import.meta.url),'utf8');
  const box={console,Math,Number,Array,Map,Set,performance:{now:()=>now+performance.now()%1},prevT:0,MAP:top.grid,MAP_ROWS:top.grid.length,MAP_COLS:top.grid[0].length,CARS:cars,NPCS:npcs,PARKING_LOTS:[],_parkingNpcs:[],player:{r:20,c:155},myDrivingCarId:null,document:{documentElement:{dataset:{}}},window:{},_inPrisonIslandRestrictedZone:()=>false,inArena:()=>false,inLair:()=>false,_inPitCorridor:()=>false,isBlockedPed:(r,c)=>top.grid[Math.floor(r)]?.[Math.floor(c)]===1,_cityV3NextSurfaceAt:()=>false,_threeVehicleEntityId:c=>c.id,_threeNpcEntityId:n=>n.id,_trafficRoadTile:(r,c)=>isRoad(c*M,r*M),_trafficHardTileAt:(r,c)=>top.grid[Math.floor(r)]?.[Math.floor(c)]===1,_npcEffectiveSpeed:()=>.4,_npcLifeEligible:n=>!n.dead,_isRespawnableResident:n=>!n.dead,_getTrafficRoadGraph:()=>({nodes:[]})};
@@ -86,7 +105,10 @@ export async function createCivilianNativeFixture({assetId='hospital',tripLimit=
  const footEnd=source.indexOf('  // Entries are collected after iteration'),footStart=source.lastIndexOf('    if (now < n.idleUntil)',footEnd),footCode=source.slice(footStart,footEnd).replace(/\s*}\s*$/,'');
  assert(footStart>0&&footEnd>footStart,'actual updateNpc foot branch');
  vm.runInContext('globalThis.actualFootTick=(npc,dt,now)=>{for(const n of [npc]){const civilianRoutineDt=_npcConsumeCivilianElapsed(n,dt,now);'+footCode+'}};',box);
- const rawHelper=fs.readFileSync(new URL('civilian_parking_trip_source.js',import.meta.url),'utf8'),helper=tripLimit?rawHelper.replace(/const CIVILIAN_TRIP_LIMIT=\d+;/,'const CIVILIAN_TRIP_LIMIT='+tripLimit+';'):rawHelper;vm.runInContext(helper,box);
+ const markerStart='// CIVILIAN_PARKING_TRIP_START',markerEnd='// CIVILIAN_PARKING_TRIP_END',tripStart=source.indexOf(markerStart),tripEnd=source.indexOf(markerEnd,tripStart);assert(tripStart>=0&&tripEnd>tripStart,'actual world civilian parking trip markers');
+ const worldHelper=source.slice(tripStart,tripEnd+markerEnd.length),candidateHelper=fs.readFileSync(new URL('civilian_parking_trip_source.js',import.meta.url),'utf8'),canonical=value=>value.replace(/\r\n/g,'\n').trim();
+ assert.equal(canonical(candidateHelper),canonical(worldHelper),'candidate civilian parking source must exactly mirror the actual world marker region');
+ const rawHelper=candidateTripSource?candidateHelper:worldHelper,helper=tripLimit?rawHelper.replace(/const CIVILIAN_TRIP_LIMIT=\d+;/,'const CIVILIAN_TRIP_LIMIT='+tripLimit+';'):rawHelper;vm.runInContext(helper,box);
  const residentAccess=createNpcResidentBuildingAccess({getEntries:()=>[entry],worldScale:M});
  const callCosts=[];let driverPresentationReady=true;
  box.nativePedestrianQuery=pedestrian.query;box.nativeAccess=access;box.nativeTrafficQuery=q=>{

@@ -294,3 +294,34 @@ export function createMercenarySquad(options={}){
   return {recruit,dismiss,upgrade,addXP,command,cancel,clearQueue,getQueue:id=>copy(roster.get(id)?.queued||[]),update,snapshot,restore,stats,availableActions,setWeapon,resolvePending,getRecord,resetQaPatient,
     getRoster:()=>copy([...roster.values()].map(r=>({...r,hospitalRemaining:Math.max(0,r.hospitalUntil-now())}))),getAction:id=>actions.has(id)?copy(actions.get(id)):null};
 }
+
+
+export function createMercenaryVehicleExplosionOwner({isLocal,gang,getRecord,persist=()=>{},now=()=>Date.now()}={}){
+ const seatOrder=Object.freeze(['front_left','front_right','rear_left','rear_right']),validIdentifier=value=>typeof value==='string'&&value.length>0&&value.length<=160;
+ if(typeof isLocal!=='function'||typeof gang!=='function'||typeof getRecord!=='function'||typeof persist!=='function'||typeof now!=='function')throw Error('Invalid mercenary vehicle explosion owner');
+ const receipts=new Set(),lifeGeneration=m=>Number.isInteger(m?._mercenaryLifeGeneration)&&m._mercenaryLifeGeneration>=0?m._mercenaryLifeGeneration:0;
+ const physical=(m,vehicleId)=>!!m?._mercenaryVehicleSeat&&m._mercenaryVehicleId===vehicleId&&(m._mercenaryVehiclePhase==='drive'||m._mercenaryVehiclePhase==='exit'&&m._mercenaryVehicleExitPlan?.stage==='door');
+ function snapshot(vehicleId){
+  if(isLocal()!==true||!validIdentifier(vehicleId))return Object.freeze([]);
+  const rows=[];for(const m of gang()){
+   if(!m||!getRecord(m.id)||m.hp<=0||m.dead||m.deathConfirmed||m._mercenaryHospital||!physical(m,vehicleId))continue;
+   rows.push(Object.freeze({actorId:String(m.id),vehicleId,seatId:String(m._mercenaryVehicleSeat),phase:String(m._mercenaryVehiclePhase),exitStage:String(m._mercenaryVehicleExitPlan?.stage||''),hp:Number(m.hp),dead:false,lifeGeneration:lifeGeneration(m)}));
+  }
+  rows.sort((a,b)=>seatOrder.indexOf(a.seatId)-seatOrder.indexOf(b.seatId)||a.actorId.localeCompare(b.actorId));return Object.freeze(rows.slice(0,3));
+ }
+ function apply(receipt){
+  if(isLocal()!==true)return{accepted:false,reason:'authority'};
+  if(receipt?.confirmed!==true||receipt.kind!=='vehicle_explosion'||receipt.lethal!==true||!validIdentifier(receipt.id)||!validIdentifier(receipt.eventId)||!validIdentifier(receipt.vehicleId)||!validIdentifier(receipt.actorId)||!validIdentifier(receipt.seatId))return{accepted:false,reason:'invalid'};
+  if(receipts.has(receipt.id))return{accepted:true,duplicate:true,receiptId:receipt.id};
+  const m=gang().find(row=>String(row?.id)===receipt.actorId),record=m&&getRecord(m.id);
+  if(!m||!record)return{accepted:false,reason:'missing'};
+  if(m.dead||m.deathConfirmed||m.hp<=0)return{accepted:false,reason:'already-dead'};
+  if(lifeGeneration(m)!==receipt.lifeGeneration||m._mercenaryVehicleSeat!==receipt.seatId||!physical(m,receipt.vehicleId))return{accepted:false,reason:'stale-snapshot'};
+  receipts.add(receipt.id);while(receipts.size>768)receipts.delete(receipts.values().next().value);
+  const deadAt=now();Object.assign(m,{hp:0,dead:true,deathConfirmed:true,deadAt,_lifeState:'dead',_mercenaryVehicleExplosionFatal:true,_mercenaryDownAt:deadAt});
+  m._mercenaryMove=null;m._mercenaryPath=null;m._followSpeed=0;m.walking=false;persist(true);
+  return{accepted:true,duplicate:false,receiptId:receipt.id,dead:true,hp:0,deadAt};
+ }
+ function beginNewLife(id){const m=gang().find(row=>String(row?.id)===String(id));if(!m)return false;delete m._mercenaryVehicleExplosionFatal;delete m.deathConfirmed;delete m.deadAt;delete m._lifeState;m.dead=false;m._mercenaryLifeGeneration=lifeGeneration(m)+1;return true;}
+ return Object.freeze({snapshot,apply,beginNewLife,isReviveBlocked:id=>!!gang().find(m=>String(m?.id)===String(id))?._mercenaryVehicleExplosionFatal,stats:()=>Object.freeze({receipts:receipts.size})});
+}
