@@ -2,10 +2,10 @@
 // a bounded PointLight pool. Daylight removes its zero-radiance members from
 // the renderer; night keeps a fixed signature as lamps enter camera range.
 export const STREET_LAMP_PROFILES=Object.freeze({
- lamp_pine_v1:Object.freeze({sha256:'fe092a7d5833b2008fa90a54ae0580f03ee19d90f03dd26297ad54f0647b54c1',glows:1}),
- lamp_bellini_v1:Object.freeze({sha256:'81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5',glows:1}),
- lamp_civic_double_v1:Object.freeze({sha256:'47ae1fe13f50413fde7ee6a2dc35126765b34ff10ab725bf5983fbaa789a9a89',glows:2}),
- lamp_foundry_v1:Object.freeze({sha256:'efed19a8fe04819321de8304e71f9c4e4ed892662e2844cb4bdbdcdb29492bb6',glows:1}),
+ lamp_pine_v1:Object.freeze({sha256:'fe092a7d5833b2008fa90a54ae0580f03ee19d90f03dd26297ad54f0647b54c1',glows:1,opaque:Object.freeze({Lamp_Base_PINE:'District_Blue',Lamp_Lower_PINE:'Matte_Charcoal',Lamp_Upper_PINE:'Matte_Charcoal'})}),
+ lamp_bellini_v1:Object.freeze({sha256:'81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5',glows:1,opaque:Object.freeze({Lamp_Base_BELLINI:'District_Gold',Lamp_Lower_BELLINI:'Matte_Charcoal',Lamp_Upper_BELLINI:'Matte_Charcoal',Lamp_Arm_BELLINI:'Matte_Charcoal'})}),
+ lamp_civic_double_v1:Object.freeze({sha256:'47ae1fe13f50413fde7ee6a2dc35126765b34ff10ab725bf5983fbaa789a9a89',glows:2,opaque:Object.freeze({Lamp_Base_CIVIC_DOUBLE:'District_Teal',Lamp_Lower_CIVIC_DOUBLE:'Matte_Charcoal',Lamp_Upper_CIVIC_DOUBLE:'Matte_Charcoal',Lamp_Arm_CIVIC_DOUBLE:'Matte_Charcoal'})}),
+ lamp_foundry_v1:Object.freeze({sha256:'efed19a8fe04819321de8304e71f9c4e4ed892662e2844cb4bdbdcdb29492bb6',glows:1,opaque:Object.freeze({Lamp_Base_FOUNDRY:'District_Rust',Lamp_Lower_FOUNDRY:'Matte_Charcoal',Lamp_Upper_FOUNDRY:'Matte_Charcoal',Lamp_Arm_FOUNDRY:'Matte_Charcoal'})}),
 });
 
 // Retain the first nearest slots in stable fixture order. Distances are

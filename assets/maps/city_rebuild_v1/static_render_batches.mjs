@@ -1,4 +1,5 @@
 import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';
+import {STREET_LAMP_PROFILES} from './street_lighting.mjs';
 
 const zeroMatrixMarker='StaticRenderBatch_Zero';
 
@@ -27,6 +28,24 @@ function hierarchyNodeBatchable(node,interiorInstances){
  return !node.userData?.glassEffect&&!node.userData?.blastEffect;
 }
 
+// The four pinned street-lamp GLBs have immutable opaque posts below names
+// containing "Lamp".  The broad hierarchy guard correctly excludes their
+// dynamic Glow panes, but would also reject these exact static body meshes.
+// Keep this as a separate SHA/name/material-authorised lane; never loosen the
+// general Light/Lamp/Glow exclusion used by every other asset.
+function auditedStaticLampPost(mesh,group){
+ const instance=group?.userData?.instance,profile=STREET_LAMP_PROFILES[instance?.assetId];
+ if(!profile||instance?.binding?.lod!==0||String(instance?.binding?.sha256||'').toLowerCase()!==profile.sha256)return false;
+ const materialName=profile.opaque?.[mesh?.name];
+ if(!materialName||mesh.material?.name!==materialName||!mesh.material?.isMeshStandardMaterial||mesh.material.transparent||mesh.material.opacity!==1||(mesh.material.transmission||0)>0)return false;
+ let reached=false;
+ for(let node=mesh;node;node=node.parent){
+  if(node.visible===false||node.userData?.glassEffect||node.userData?.blastEffect||node.userData?.breakableGlass||node.userData?.movingDoor)return false;
+  if(node===group){reached=true;break}
+ }
+ return reached;
+}
+
 // A building template has many sibling meshes below the same two or three
 // groups. Its visibility/name/effect ancestry does not change while a batch
 // is assembled, so remember that result per ancestor. The cache has separate
@@ -40,13 +59,14 @@ function hierarchyBatchable(node,interiorInstances,cache){
  const saved=prior||[null,null];saved[lane]=result;cache.set(node,saved);return result;
 }
 
-function batchableMesh(T,mesh,hierarchyCache){
+function batchableMesh(T,mesh,hierarchyCache,group){
  const interiorInstances=auditedStaticArchitecture(mesh)||mesh?.isInstancedMesh&&/^Interior_Furnishings_/.test(mesh.name||'');
  if(!mesh?.isMesh||mesh.isSkinnedMesh||mesh.isInstancedMesh&&!interiorInstances||Array.isArray(mesh.material)||!mesh.geometry?.attributes?.position)return false;
  const prototype=T.Object3D?.prototype;
  if(!prototype||mesh.onBeforeRender!==prototype.onBeforeRender||mesh.onAfterRender!==prototype.onAfterRender||mesh.onBeforeShadow!==prototype.onBeforeShadow||mesh.onAfterShadow!==prototype.onAfterShadow||mesh.customDepthMaterial||mesh.customDistanceMaterial)return false;
  const material=mesh.material;if(!material||material.transparent||material.opacity<1||material.transmission>0||material.visible===false)return false;
  if(mesh.userData?.breakableGlass||material.userData?.breakableGlass)return false;
+ if(auditedStaticLampPost(mesh,group))return true;
  // Batched copies live outside the original hierarchy. Never resurrect a
  // hidden collision proxy, clearance volume or authored hidden mesh.
  return hierarchyNodeBatchable(mesh,interiorInstances)&&hierarchyBatchable(mesh.parent,interiorInstances,hierarchyCache);
@@ -123,8 +143,8 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
  for(const group of instances){
   group.updateWorldMatrix(true,true);
   group.traverse(mesh=>{
-   if(!batchableMesh(T,mesh,hierarchyCache))return;const layout=layoutFor(mesh.geometry);if(!layout)return;
-   const optimization=auditedStaticArchitecture(mesh),materialIdentity=optimization?auditedArchitectureMaterialKey(T,mesh):null,key=batchKey(mesh,layout,materialIdentity||mesh.material.uuid)+(optimization?'|architecture':''),geometryKey=mesh.isInstancedMesh&&!optimization?'interior:'+mesh.name:mesh.geometry.uuid,entry=groups.get(key)||{material:mesh.material,members:[],geometries:new Map(),castShadow:mesh.castShadow,receiveShadow:mesh.receiveShadow,renderOrder:mesh.renderOrder,layersMask:mesh.layers.mask,optimization,interiorInstances:mesh.isInstancedMesh&&!optimization};
+   if(!batchableMesh(T,mesh,hierarchyCache,group))return;const layout=layoutFor(mesh.geometry);if(!layout)return;
+   const optimization=auditedStaticArchitecture(mesh),lampPost=auditedStaticLampPost(mesh,group),materialIdentity=optimization?auditedArchitectureMaterialKey(T,mesh):null,geometryKey=mesh.isInstancedMesh&&!optimization?'interior:'+mesh.name:mesh.geometry.uuid,fallbackGeometry=lampPost&&!(multiDraw===true&&T.BatchedMesh)?'|geometry:'+geometryKey:'',key=batchKey(mesh,layout,materialIdentity||mesh.material.uuid)+(optimization?'|architecture':'')+(lampPost?'|lamp-post'+fallbackGeometry:''),entry=groups.get(key)||{material:mesh.material,members:[],geometries:new Map(),castShadow:mesh.castShadow,receiveShadow:mesh.receiveShadow,renderOrder:mesh.renderOrder,layersMask:mesh.layers.mask,optimization,interiorInstances:mesh.isInstancedMesh&&!optimization};
    if(!groups.has(key))groups.set(key,entry);
    if(mesh.isInstancedMesh){
     // Every instance below one source mesh shares this world transform.  The

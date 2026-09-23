@@ -5,14 +5,16 @@ import {registerHooks} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {applyCloneVisibilityMask} from './template_visibility_mask.mjs';
 import {applyBuildingDoorsGlass} from './building_doors_glass.mjs';
+import {STREET_LAMP_PROFILES as RUNTIME_STREET_LAMP_PROFILES} from './street_lighting.mjs';
 const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
 registerHooks({resolve(s,c,n){return n(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});
 const T=await import('three'),{GLTFLoader}=await import(pathToFileURL(vendor+'addons/loaders/GLTFLoader.js'));
-const stampImport="import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';",rawSource=fs.readFileSync(new URL('./static_render_batches.mjs',import.meta.url),'utf8');
-assert(rawSource.includes(stampImport));
+const stampImport="import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';",lampImport="import {STREET_LAMP_PROFILES} from './street_lighting.mjs';",rawSource=fs.readFileSync(new URL('./static_render_batches.mjs',import.meta.url),'utf8');
+assert(rawSource.includes(stampImport));assert(rawSource.includes(lampImport));
 // The data-URL audit exits before batch allocation and never needs the runtime
-// bounds stamp. Strip its relative import because data: modules have no base URL.
-const source=rawSource.replace(stampImport,'');
+// bounds stamp. Strip relative imports because data: modules have no base URL,
+// then inject the exact frozen runtime lamp admission data as plain JSON.
+const source=`const STREET_LAMP_PROFILES=${JSON.stringify(RUNTIME_STREET_LAMP_PROFILES)};\n`+rawSource.replace(stampImport,'').replace(lampImport,'');
 const marker='const batches=[],instancedSourceMaterials=new Map(),batchedBackend=multiDraw===true&&!!T.BatchedMesh;';
 assert(source.includes(marker));
 // Use actual admission/grouping code, return before any BatchedMesh geometry allocation.
