@@ -4,7 +4,7 @@ export const WALK_DEBUG_PANEL_SELECTORS=[
  '#npc-combat-session','#npc-transport-qa','#mercenary-qa',
  '[data-walk-hud="mercenary-showcase"]',
  '#static-batch-qa','#building-camera-index-qa','#render-freeze-qa',
- '#vehicle-detail-batch-qa','#vehicle-shadow-qa','#gpu-timer-qa',
+ '#vehicle-detail-batch-qa','#vehicle-shadow-qa','#building-shadow-qa','#gpu-timer-qa',
  '#draw-probe-qa','#vehicle-wheel-batch-qa','#static-matrix-qa','#render-isolation-qa','#npc-skin-pick-qa',
  '#building-qa','#car-physics-qa','#cover-qa','#traversal-qa','#animation-qa',
 ];
