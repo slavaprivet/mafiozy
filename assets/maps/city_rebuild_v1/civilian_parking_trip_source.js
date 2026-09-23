@@ -346,7 +346,7 @@ function _civilianTripWatchProgress(trip,now){
  if(progress.riding!==riding){progress.r=r;progress.c=c;progress.riding=riding;}
  else if(Math.hypot(r-progress.r,c-progress.c)>.01){progress.r=r;progress.c=c;progress.at=now;}
  const driveTarget=trip.phase==='drive'?trip.plan?.points?.[trip.index]:null,driveAngle=Number.isFinite(car.ang)?car.ang:Math.atan2(car.dirDy||0,car.dirDx||1),settling=driveTarget&&Math.hypot(car.r-driveTarget.r,car.c-driveTarget.c)<.03&&Math.abs(Math.atan2(Math.sin(driveTarget.angle-driveAngle),Math.cos(driveTarget.angle-driveAngle)))<.03;
- if(trip.phase==='exit'||trip.phase==='parked'||trip.phase==='drive'&&!driveTarget||settling||now-progress.at<(riding?90000:60000))return true;
+ if(trip.phase==='exit'||trip.phase==='parked'||(trip.phase==='drive'&&!driveTarget||settling)&&!car._civilianDriverNotReady||now-progress.at<(riding?90000:60000))return true;
  const goal=trip.destinationDoor||trip.plan?.goal?.door||car._civilianNativePlan?.doors?.[car._civilianNativePlan?.doorIndex||0];
  if(goal?.id){const avoid=npc._civilianTripAvoid||(npc._civilianTripAvoid=Object.create(null));for(const id of Object.keys(avoid))if(avoid[id]<=now)delete avoid[id];if(Object.keys(avoid).length>=8)delete avoid[Object.keys(avoid)[0]];avoid[goal.id]=now+300000;}
  trip.recovery={reason:riding?'drive-no-progress':'trip-no-progress',since:now,goalId:goal?.id||null};trip.interrupted=true;car.vr=car.vc=0;car.braking=true;
