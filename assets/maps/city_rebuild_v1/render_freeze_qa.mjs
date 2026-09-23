@@ -47,7 +47,7 @@ export function createRenderFreezeQa({document:doc,window:win,camera,probe,isRea
  const blockInput=e=>{
   if(!active)return;
   if(e.type==='keydown'&&e.code==='Escape'){e.preventDefault();e.stopImmediatePropagation();stop('Escape');return;}
-  const onControl=(e.composedPath?.()||[e.target]).some(n=>['render-freeze-qa','static-batch-qa','vehicle-detail-batch-qa','vehicle-shadow-qa','gpu-timer-qa','vehicle-wheel-batch-qa','static-matrix-qa','draw-probe-qa','render-isolation-qa','render-isolation-mode','render-isolation-start'].includes(n?.id));
+  const onControl=(e.composedPath?.()||[e.target]).some(n=>['render-freeze-qa','static-batch-qa','vehicle-detail-batch-qa','vehicle-shadow-qa','building-shadow-qa','gpu-timer-qa','vehicle-wheel-batch-qa','static-matrix-qa','draw-probe-qa','render-isolation-qa','render-isolation-mode','render-isolation-start'].includes(n?.id));
   if(onControl&&!['keydown','keyup'].includes(e.type))return;
   if(onControl&&['Tab','Enter','Space'].includes(e.code)){e.stopPropagation?.();return;}
   e.preventDefault();e.stopImmediatePropagation();

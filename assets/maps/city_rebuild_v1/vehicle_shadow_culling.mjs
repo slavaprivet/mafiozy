@@ -1,6 +1,8 @@
 // Conservative, render-only rejection of directional vehicle shadows. A caster
 // outside the view is NOT enough: its complete shadow ray volume must miss it.
+import {batchedShadowBoundsCurrent} from './shadow_bounds_stamp.mjs';
 export const vehicleShadowCullingEnabled=(search='')=>new URLSearchParams(search).get('vehicleshadowcull')!=='0';
+export const buildingShadowCullingEnabled=(search='')=>new URLSearchParams(search).get('buildingshadowcull')==='1';
 
 export function shadowVolumeOutsideView(planes,center,radius,direction,length,padding=0){
  if(!Number.isFinite(radius)||radius<0||!Number.isFinite(length)||length<0||!Number.isFinite(padding)||padding<0)return false;
@@ -13,27 +15,28 @@ export function shadowVolumeOutsideView(planes,center,radius,direction,length,pa
  return false;
 }
 
-export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=true,onSample}={}){
+export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=true,buildingEnabled=false,onSample}={}){
  if(!renderer?.shadowMap?.render||!renderer.renderBufferDirect||!sun?.isDirectionalLight)throw Error('Directional vehicle shadow culling requires renderer and sun');
  const originalShadow=renderer.shadowMap.render,originalDirect=renderer.renderBufferDirect;
  const frustum=new T.Frustum(),matrix=new T.Matrix4(),direction=new T.Vector3(),center=new T.Vector3(),lightPosition=new T.Vector3(),target=new T.Vector3(),batchSphere=new T.Sphere();
- const stamps=new WeakMap();let context=null,disposed=false,frames=0,prunedMap=false;
- const stats={enabled:!!enabled,tested:0,culled:0,unsupported:0,padding:0};
+ const stamps=new WeakMap();let context=null,disposed=false,frames=0,restorePending=false;
+ const stats={enabled:!!enabled,buildingEnabled:!!buildingEnabled,tested:0,culled:0,vehicleTested:0,vehicleCulled:0,buildingTested:0,buildingCulled:0,unsupported:0,padding:0};
  const unsupportedMaterial=m=>!m?.isMeshStandardMaterial||m.displacementMap||m.onBeforeCompile!==T.Material.prototype.onBeforeCompile;
  const vehicle=object=>{for(let node=object;node;node=node.parent)if(node.userData?.vehicleFleetId||node.userData?.sourceVehicleId)return true;return false;};
+ const building=object=>{for(let node=object;node;node=node.parent)if(node.userData?.staticRenderBatch||node.userData?.instance?.assetId)return true;return false;};
  function getSphere(object,geometry){
   if(object.isSkinnedMesh||object.customDepthMaterial||object.customDistanceMaterial)return null;
   if(object.onBeforeShadow!==T.Object3D.prototype.onBeforeShadow&&(!object.isBatchedMesh||object.onBeforeShadow!==T.BatchedMesh.prototype.onBeforeShadow))return null;
   if(Array.isArray(object.material)?object.material.some(unsupportedMaterial):unsupportedMaterial(object.material))return null;
   if(object.isInstancedMesh)return null;
-  if(object.isBatchedMesh)return object.userData?.vehicleRenderBatch&&object.onBeforeRender===T.BatchedMesh.prototype.onBeforeRender&&object.boundingBox?object.boundingBox.getBoundingSphere(batchSphere):null;
+  if(object.isBatchedMesh)return (object.userData?.vehicleRenderBatch||object.userData?.staticRenderBatch)&&batchedShadowBoundsCurrent(object)&&object.onBeforeRender===T.BatchedMesh.prototype.onBeforeRender&&object.boundingBox?object.boundingBox.getBoundingSphere(batchSphere):null;
   if(Object.keys(geometry.morphAttributes||{}).length)return null;
   const a=geometry.attributes?.position;if(!a||a.isInterleavedBufferAttribute||a.isGLBufferAttribute)return null;
   const stamp=stamps.get(geometry);
   if(!stamp||stamp.attribute!==a||stamp.version!==a.version||stamp.array!==a.array||stamp.count!==a.count){geometry.computeBoundingSphere();stamps.set(geometry,{attribute:a,version:a.version,array:a.array,count:a.count});}
   return geometry.boundingSphere;
  }
- function outside(object,geometry){
+ function outside(object,geometry,kind){
   const sphere=getSphere(object,geometry);if(!sphere){stats.unsupported++;return false;}
   center.copy(sphere.center).applyMatrix4(object.matrixWorld);
   // Largest absolute row sum of A^T A bounds its maximum eigenvalue. Unlike
@@ -45,19 +48,23 @@ export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=t
   // Include the caster radius so the entire sphere, not just its centre, fits.
   const depth=(center.x-context.lightPosition.x)*context.direction.x+(center.y-context.lightPosition.y)*context.direction.y+(center.z-context.lightPosition.z)*context.direction.z;
   const length=Math.max(0,context.far-depth+radius+context.padding);
-  stats.tested++;return shadowVolumeOutsideView(context.planes,center,radius,context.direction,length,context.padding);
+  stats.tested++;stats[kind+'Tested']++;return shadowVolumeOutsideView(context.planes,center,radius,context.direction,length,context.padding);
  }
  const wrappedDirect=function(camera,renderScene,geometry,material,object,group){
-  if(context&&camera===sun.shadow.camera&&object?.isMesh&&vehicle(object)&&outside(object,geometry)){stats.culled++;return;}
+  if(context&&camera===sun.shadow.camera&&object?.isMesh){
+   const kind=stats.enabled&&vehicle(object)?'vehicle':stats.buildingEnabled&&building(object)?'building':null;
+   if(kind&&outside(object,geometry,kind)){stats.culled++;stats[kind+'Culled']++;return;}
+  }
   return originalDirect.call(this,camera,renderScene,geometry,material,object,group);
  };
  const wrappedShadow=function(lights,renderScene,camera){
   const previous=context;context=null;
-  stats.tested=stats.culled=stats.unsupported=0;
-  const automatic=renderer.shadowMap.autoUpdate!==false&&sun.shadow.autoUpdate!==false;
-  if(!automatic&&prunedMap){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;prunedMap=false;}
+  stats.tested=stats.culled=stats.vehicleTested=stats.vehicleCulled=stats.buildingTested=stats.buildingCulled=stats.unsupported=0;
+  const automatic=renderer.shadowMap.autoUpdate!==false&&sun.shadow.autoUpdate!==false,includesSun=lights.includes(sun);
+  if(!automatic&&restorePending){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}
+  const attemptedSun=includesSun&&renderer.shadowMap.enabled!==false&&(renderer.shadowMap.autoUpdate!==false||renderer.shadowMap.needsUpdate)&&(sun.shadow.autoUpdate!==false||sun.shadow.needsUpdate);
   const sc=sun.shadow.camera,ordinaryShadowCamera=sc.isOrthographicCamera&&sc.matrixAutoUpdate!==false&&sc.matrixWorldAutoUpdate!==false&&!sc.parent&&!sc.view?.enabled&&sc.scale.x===1&&sc.scale.y===1&&sc.scale.z===1;
-  if(!previous&&!disposed&&stats.enabled&&automatic&&ordinaryShadowCamera&&renderScene===scene&&renderer.shadowMap.enabled!==false&&renderer.shadowMap.type===T.PCFSoftShadowMap&&lights.includes(sun)&&!camera.isArrayCamera&&!camera.reversedDepth&&camera.coordinateSystem!==T.WebGPUCoordinateSystem){
+  if(!previous&&!disposed&&(stats.enabled||stats.buildingEnabled)&&automatic&&ordinaryShadowCamera&&renderScene===scene&&renderer.shadowMap.enabled!==false&&renderer.shadowMap.type===T.PCFSoftShadowMap&&lights.includes(sun)&&!camera.isArrayCamera&&!camera.reversedDepth&&camera.coordinateSystem!==T.WebGPUCoordinateSystem){
    matrix.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);frustum.setFromProjectionMatrix(matrix);
    lightPosition.setFromMatrixPosition(sun.matrixWorld);target.setFromMatrixPosition(sun.target.matrixWorld);direction.subVectors(target,lightPosition).normalize();
    const s=sun.shadow,cam=s.camera;
@@ -68,9 +75,18 @@ export function createVehicleShadowCulling({THREE:T,renderer,scene,sun,enabled=t
    const padding=4*texel+Math.abs(s.normalBias||0)+Math.abs(s.bias||0)*(cam.far-cam.near)+.01;
    if(Number.isFinite(padding)&&direction.lengthSq()>.99&&cam.far>0){context={planes:frustum.planes,direction,lightPosition,far:cam.far,padding};stats.padding=padding;}
   }
-  try{return originalShadow.call(this,lights,renderScene,camera);}finally{if(stats.culled)prunedMap=true;context=previous;if(onSample&&++frames%60===1)onSample(stats);}
+  let completed=false;
+  try{const result=originalShadow.call(this,lights,renderScene,camera);completed=restorePending&&attemptedSun&&sun.shadow.needsUpdate===false;return result}
+  finally{
+   if(stats.culled)restorePending=true;else if(completed)restorePending=false;
+   // WebGLShadowMap clears its global needsUpdate even when a requested sun
+   // is absent. Keep the obligation armed until an actual full sun pass ends.
+   if(restorePending&&!automatic){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}
+   context=previous;if(onSample&&++frames%60===1)onSample(stats);
+  }
  };
  renderer.renderBufferDirect=wrappedDirect;renderer.shadowMap.render=wrappedShadow;
- const refreshMap=()=>{if(prunedMap){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;prunedMap=false;}};
- return {stats,setEnabled(value){if(stats.enabled!==!!value)refreshMap();stats.enabled=!!value;},dispose(){if(disposed)return;refreshMap();disposed=true;context=null;if(renderer.renderBufferDirect===wrappedDirect)renderer.renderBufferDirect=originalDirect;if(renderer.shadowMap.render===wrappedShadow)renderer.shadowMap.render=originalShadow;}};
+ const refreshMap=()=>{if(restorePending){renderer.shadowMap.needsUpdate=true;sun.shadow.needsUpdate=true;}};
+ const discardPrunedMap=()=>{if(!restorePending)return;const shadow=sun.shadow;shadow.map?.dispose?.();shadow.mapPass?.dispose?.();shadow.map=null;shadow.mapPass=null;renderer.shadowMap.needsUpdate=true;shadow.needsUpdate=true;restorePending=false;};
+ return {stats,setEnabled(value){if(stats.enabled!==!!value)refreshMap();stats.enabled=!!value;},setBuildingEnabled(value){if(stats.buildingEnabled!==!!value)refreshMap();stats.buildingEnabled=!!value;},dispose(){if(disposed)return;discardPrunedMap();disposed=true;context=null;if(renderer.renderBufferDirect===wrappedDirect)renderer.renderBufferDirect=originalDirect;if(renderer.shadowMap.render===wrappedShadow)renderer.shadowMap.render=originalShadow;}};
 }

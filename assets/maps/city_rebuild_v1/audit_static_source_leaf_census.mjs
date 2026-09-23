@@ -8,7 +8,11 @@ import {applyBuildingDoorsGlass} from './building_doors_glass.mjs';
 const vendor='D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/';
 registerHooks({resolve(s,c,n){return n(s==='three'?pathToFileURL(vendor+'build/three.module.js').href:s,c)}});
 const T=await import('three'),{GLTFLoader}=await import(pathToFileURL(vendor+'addons/loaders/GLTFLoader.js'));
-const source=fs.readFileSync(new URL('./static_render_batches.mjs',import.meta.url),'utf8');
+const stampImport="import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';",rawSource=fs.readFileSync(new URL('./static_render_batches.mjs',import.meta.url),'utf8');
+assert(rawSource.includes(stampImport));
+// The data-URL audit exits before batch allocation and never needs the runtime
+// bounds stamp. Strip its relative import because data: modules have no base URL.
+const source=rawSource.replace(stampImport,'');
 const marker='const batches=[],instancedSourceMaterials=new Map();';
 assert(source.includes(marker));
 // Use actual admission/grouping code, return before any BatchedMesh geometry allocation.

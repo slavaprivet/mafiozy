@@ -1,3 +1,5 @@
+import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';
+
 const zeroMatrixMarker='StaticRenderBatch_Zero';
 
 function hiddenMaterial(T,material){
@@ -149,7 +151,7 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
    batch.instanceMatrix.needsUpdate=true;
   }
   batch.name='Static_Render_Batch';batch.userData.breakableGlass=false;batch.userData.staticRenderBatch=true;batch.userData.renderIsolationInteriorFurnishings=entry.interiorInstances===true;batch.castShadow=entry.castShadow;batch.receiveShadow=entry.receiveShadow;batch.layers.mask=entry.layersMask;batch.renderOrder=entry.renderOrder;batch.raycast=()=>{};
-  batch.computeBoundingBox?.();batch.computeBoundingSphere?.();root.add(batch);
+  batch.computeBoundingBox?.();batch.computeBoundingSphere?.();stampBatchedShadowBounds(batch);root.add(batch);
   shadowCensus?.(batch,entry.members);
   for(const member of entry.members){
    if(member.sourceInstanced){

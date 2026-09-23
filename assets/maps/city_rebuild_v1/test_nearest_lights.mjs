@@ -35,12 +35,14 @@ for(let i=0;i<120;i++){
  const expected=original(apps.flatMap(app=>app.fixtures),focus,8);
  // At exactly zero intensity the lamp positions cannot change the frame. The
  // manager intentionally skips the nearest-fixture scan until night resumes.
- if(night===0)assert(manager.lights.every(light=>light.intensity===0));
+ if(night===0){assert(manager.lights.every(light=>light.intensity===0&&!light.visible));assert.equal(manager.stats().rendererLights,0)}
  else expected.forEach((entry,j)=>{
+  assert.equal(manager.lights[j].visible,true);
   assert.deepEqual(manager.lights[j].position.toArray(),entry.world.clone().add(new T.Vector3(0,-.08,0)).toArray());
   const distance=Math.sqrt(entry.world.distanceToSquared(focus)),falloff=distance<34?1-Math.pow(distance/34,2):0;
   assert.equal(manager.lights[j].intensity,18*night*Math.max(0,falloff));
  });
+ if(night>0)assert.equal(manager.stats().rendererLights,8);
 }
 manager.dispose();geometry.dispose();material.dispose();
 

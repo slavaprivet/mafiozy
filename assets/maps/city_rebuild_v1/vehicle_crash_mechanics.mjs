@@ -23,6 +23,13 @@ const healthLoss = (value, amount) => clamp(value-Math.max(0, amount), 0, 1);
 // contains only immutable scalar math; no fragment state is shared.
 let debrisDragStep=NaN,debrisDrag=1;
 let debrisContactStep=NaN,debrisContactFriction=1,debrisContactAngularFriction=1;
+const structuralForceScratch=new WeakMap();
+function structuralForces(state){
+  const length=state.nodes.length*3;
+  let scratch=structuralForceScratch.get(state);
+  if(!scratch||scratch.length!==length){scratch=new Float64Array(length);structuralForceScratch.set(state,scratch)}
+  return scratch;
+}
 function debrisDragForStep(h) {
   if(h!==debrisDragStep) {debrisDragStep=h;debrisDrag=Math.exp(-.10*h);}
   return debrisDrag;
@@ -203,30 +210,33 @@ export function applyCrashMechanicsImpact(state, contact = {}) {
 }
 
 function fixedStep(state,h) {
-  const forces=state.nodes.map(node=>vec(
-    (node.plastic.x-node.position.x)*240-node.velocity.x*26,
-    (node.plastic.y-node.position.y)*240-node.velocity.y*26,
-    (node.plastic.z-node.position.z)*240-node.velocity.z*26,
-  ));
+  const forces=structuralForces(state),nodes=state.nodes;
+  for(let i=0,j=0;i<nodes.length;i++,j+=3){
+    const node=nodes[i];
+    forces[j]=(node.plastic.x-node.position.x)*240-node.velocity.x*26;
+    forces[j+1]=(node.plastic.y-node.position.y)*240-node.velocity.y*26;
+    forces[j+2]=(node.plastic.z-node.position.z)*240-node.velocity.z*26;
+  }
   for (const beam of state.beams) {
     if (beam.broken) continue;
-    const a=state.nodes[beam.a],b=state.nodes[beam.b];
+    const a=nodes[beam.a],b=nodes[beam.b];
     const dx=b.position.x-a.position.x,dy=b.position.y-a.position.y,dz=b.position.z-a.position.z;
     const len=Math.hypot(dx,dy,dz);if(len<1e-8)continue;
     const relative=((b.velocity.x-a.velocity.x)*dx+(b.velocity.y-a.velocity.y)*dy+(b.velocity.z-a.velocity.z)*dz)/len;
     const force=clamp((len-beam.restLength)*42+relative*1.8,-100,100)/len;
-    forces[beam.a].x+=dx*force;forces[beam.a].y+=dy*force;forces[beam.a].z+=dz*force;
-    forces[beam.b].x-=dx*force;forces[beam.b].y-=dy*force;forces[beam.b].z-=dz*force;
+    const ai=beam.a*3,bi=beam.b*3;
+    forces[ai]+=dx*force;forces[ai+1]+=dy*force;forces[ai+2]+=dz*force;
+    forces[bi]-=dx*force;forces[bi+1]-=dy*force;forces[bi+2]-=dz*force;
   }
   let moving=false;
-  for (let i=0;i<state.nodes.length;i++) {
-    const node=state.nodes[i],force=forces[i];
-    for (const axis of ['x','y','z']) {
-      node.velocity[axis]=clamp(node.velocity[axis]+force[axis]*h,-2,2);
-      node.position[axis]+=node.velocity[axis]*h;
-      const delta=node.position[axis]-node.plastic[axis];
-      if(Math.abs(delta)>.15) {node.position[axis]=node.plastic[axis]+Math.sign(delta)*.15;node.velocity[axis]=0;}
-    }
+  for (let i=0,j=0;i<nodes.length;i++,j+=3) {
+    const node=nodes[i];
+    node.velocity.x=clamp(node.velocity.x+forces[j]*h,-2,2);node.position.x+=node.velocity.x*h;
+    let delta=node.position.x-node.plastic.x;if(Math.abs(delta)>.15){node.position.x=node.plastic.x+Math.sign(delta)*.15;node.velocity.x=0}
+    node.velocity.y=clamp(node.velocity.y+forces[j+1]*h,-2,2);node.position.y+=node.velocity.y*h;
+    delta=node.position.y-node.plastic.y;if(Math.abs(delta)>.15){node.position.y=node.plastic.y+Math.sign(delta)*.15;node.velocity.y=0}
+    node.velocity.z=clamp(node.velocity.z+forces[j+2]*h,-2,2);node.position.z+=node.velocity.z*h;
+    delta=node.position.z-node.plastic.z;if(Math.abs(delta)>.15){node.position.z=node.plastic.z+Math.sign(delta)*.15;node.velocity.z=0}
     if(length(node.velocity)>.0008)moving=true;
   }
   state.simulationTime+=h;
@@ -248,7 +258,7 @@ export function stepCrashMechanics(state,dt,{speed=0,throttle=0}={}) {
     if(steps) {
       state.active=moving;state.revision++;changed=true;
       // Freeze a settled configuration, preserving its permanent plastic form.
-      if(!moving)for(const node of state.nodes)node.velocity=vec();
+      if(!moving)for(const node of state.nodes)node.velocity.x=node.velocity.y=node.velocity.z=0;
     }
   }
   if(state.radiator<.8&&state.engine>.015) {

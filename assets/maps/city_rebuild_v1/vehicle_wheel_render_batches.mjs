@@ -2,6 +2,7 @@
 // Source objects remain in the actual steering/spinning hierarchy for gameplay.
 import {getVehicleWheelRenderBinding} from './vehicle_wheels.mjs';
 import {registerVehicleRenderSourceMaterial,unregisterVehicleRenderSourceMaterial} from './vehicle_render_batches.mjs';
+import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';
 
 const managers=new WeakMap(),ids=new Set(['front_left','front_right','rear_left','rear_right']);
 const materialStamp=m=>[m.version,m.visible,m.opacity,m.transparent,m.transmission,m.side,m.color?.r,m.color?.g,m.color?.b,m.emissive?.r,m.emissive?.g,m.emissive?.b,m.emissiveIntensity,m.roughness,m.metalness,m.depthWrite,m.depthTest,m.alphaTest,m.map,m.normalMap,m.roughnessMap,m.metalnessMap,m.emissiveMap,m.alphaMap,m.aoMap,m.lightMap,m.envMap,m.wireframe,m.vertexColors,m.flatShading,m.toneMapped,m.blending,m.polygonOffset,m.polygonOffsetFactor,m.polygonOffsetUnits,m.onBeforeCompile,m.displacementMap];
@@ -58,7 +59,7 @@ export function createVehicleWheelRenderBatches({THREE:T,car,multiDraw=false,ena
    const hidden=entry.material.clone();hidden.visible=false;entry.hidden=hidden;entry.hiddenStamp=materialStamp(hidden);entry.batch=batch;ownedHidden.add(hidden);entries.push(entry);
    for(const g of entry.geometries.keys())entry.geometries.set(g,batch.addGeometry(g));
    for(const member of entry.members){member.id=batch.addInstance(entry.geometries.get(member.geometry));batch.setMatrixAt(member.id,member.matrix);registerVehicleRenderSourceMaterial(member.mesh,hidden,entry.material);member.registered=true;if(active)member.mesh.material=hidden;}
-   batch.computeBoundingBox();batch.computeBoundingSphere();root.add(batch);stats.members+=entry.members.length;
+   batch.computeBoundingBox();batch.computeBoundingSphere();stampBatchedShadowBounds(batch);root.add(batch);stats.members+=entry.members.length;
   }
  }}catch(error){
   for(const entry of entries){for(const member of entry.members)if(member.registered){if(member.mesh.material===entry.hidden)member.mesh.material=entry.material;unregisterVehicleRenderSourceMaterial(member.mesh,entry.hidden);}entry.batch.removeFromParent();entry.batch.dispose();}
@@ -80,7 +81,7 @@ export function createVehicleWheelRenderBatches({THREE:T,car,multiDraw=false,ena
     if(show){localMatrix(mesh,scratch);if(scratch.determinant()<=0){fallback(entry,member,false);continue;}shown++;if(!scratch.equals(member.matrix)){member.matrix.copy(scratch);entry.batch.setMatrixAt(member.id,scratch);matricesChanged=true;}}
    }
    entry.batch.visible=active&&shown>0;if(entry.batch.visible){stats.activeBatches++;stats.activeMembers+=shown;}
-   if(matricesChanged){entry.batch.computeBoundingBox();entry.batch.computeBoundingSphere();}
+   if(matricesChanged){entry.batch.computeBoundingBox();entry.batch.computeBoundingSphere();stampBatchedShadowBounds(entry.batch);}
   }
   return stats;
  }

@@ -34,3 +34,19 @@ assert.equal(bounded.stats().activeLights,0);assert.equal(lights.length,32,'cull
 bounded.dispose();assert(originals.every(light=>light.layers.mask===1));assert.equal(city.getObjectByName('Stable_Entry_Light_Slots'),undefined);
 const empty=createStableEntryLights(THREE,[],city);assert.equal(empty.stats().fixedLights,0);empty.update();empty.dispose();
 console.log('PASS 600 room sources capped to32 permanent slots, camera-nearest reassignment, no slot churn, complete mask restore');
+
+// Optional view culling preserves the fixed shader signature. It only zeros a
+// member of the already-selected nearest set when its finite light sphere is
+// disjoint from the current camera frustum; rotating the camera restores it.
+const viewScene=new THREE.Scene(),viewEntries=[],viewSources=[];
+for(const [name,position,distance]of[['front',[0,0,-8],3],['behind',[0,0,8],3],['side',[30,0,-8],2]]){
+ const object=new THREE.Group(),light=new THREE.PointLight(0xffcc99,5,distance,2);light.name=name;light.position.fromArray(position);object.add(light);viewScene.add(object);viewEntries.push({object});viewSources.push(light);
+}
+const viewCamera=new THREE.PerspectiveCamera(60,1,.1,100);viewCamera.updateProjectionMatrix();viewCamera.updateMatrixWorld(true);
+const culled=createStableEntryLights(THREE,viewEntries,viewScene,{maxLights:3,getFocus:()=>new THREE.Vector3(),viewCull:true}),viewSlots=viewScene.getObjectByName('Stable_Entry_Light_Slots').children;
+culled.update({camera:viewCamera});assert.equal(culled.stats().activeLights,3);assert.equal(culled.stats().rendererPositiveLights,1);assert.equal(culled.stats().viewCulled,2);assert(viewSlots.some(light=>light.userData.roomLightSource===viewSources[0].uuid&&light.intensity===5));
+const projection=new THREE.Matrix4().multiplyMatrices(viewCamera.projectionMatrix,viewCamera.matrixWorldInverse),viewFrustum=new THREE.Frustum().setFromProjectionMatrix(projection),testSphere=new THREE.Sphere();
+for(const source of viewSources.slice(1))assert.equal(viewFrustum.intersectsSphere(testSphere.set(source.getWorldPosition(new THREE.Vector3()),source.distance)),false,'zeroed finite light volume must be disjoint from every visible frustum point');
+viewCamera.rotation.y=Math.PI;viewCamera.updateMatrixWorld(true);culled.updateView(viewCamera);assert(viewSlots.some(light=>light.userData.roomLightSource===viewSources[1].uuid&&light.intensity===5));assert(!viewSlots.some(light=>light.userData.roomLightSource===viewSources[0].uuid));
+culled.dispose();assert(viewSources.every(light=>light.layers.mask===1));
+console.log('PASS opt-in entry-light view culling keeps 3 fixed slots, zeros only frustum-disjoint finite volumes and restores on camera rotation');

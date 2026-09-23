@@ -1,6 +1,6 @@
 // Runtime presentation for the four audited street-lamp GLBs. The manager owns
-// a fixed PointLight pool from construction to dispose, avoiding shader program
-// changes as lamps enter and leave camera range.
+// a bounded PointLight pool. Daylight removes its zero-radiance members from
+// the renderer; night keeps a fixed signature as lamps enter camera range.
 export const STREET_LAMP_PROFILES=Object.freeze({
  lamp_pine_v1:Object.freeze({sha256:'fe092a7d5833b2008fa90a54ae0580f03ee19d90f03dd26297ad54f0647b54c1',glows:1}),
  lamp_bellini_v1:Object.freeze({sha256:'81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5',glows:1}),
@@ -34,7 +34,7 @@ export function createStreetLighting({THREE:T,scene,maxLights=8,maxFixtures=192,
  const glass=new T.MeshPhysicalMaterial({name:'StreetLamp_ClearGlass',color:0xb8d8d2,transparent:true,opacity:.34,transmission:.48,thickness:.08,roughness:.14,metalness:.08,clearcoat:1,clearcoatRoughness:.08,depthWrite:false,side:T.DoubleSide});glass.userData.breakableGlass=true;
  const bulbMaterial=new T.MeshStandardMaterial({name:'StreetLamp_SmallBulb',color:0xffe3a7,emissive:0xffba58,emissiveIntensity:.04,roughness:.3,metalness:.04}),bulbGeometry=new T.SphereGeometry(.075,9,6),groundGeometry=new T.CircleGeometry(1,28),groundMaterial=new T.MeshBasicMaterial({name:'StreetLamp_GroundIllumination',color:0xd3a65b,transparent:true,opacity:0,depthWrite:false,toneMapped:true,side:T.DoubleSide});
  const ground=new T.InstancedMesh(groundGeometry,groundMaterial,maxFixtures);ground.name='StreetLamp_GroundLightPool';ground.userData.breakableGlass=false;ground.frustumCulled=false;ground.raycast=()=>{};const bulbs=new T.InstancedMesh(bulbGeometry,bulbMaterial,maxFixtures);bulbs.name='StreetLamp_SmallBulbPool';bulbs.userData.breakableGlass=false;bulbs.frustumCulled=false;bulbs.raycast=()=>{};scene.add(ground,bulbs);const zero=new T.Matrix4().makeScale(0,0,0);for(let i=0;i<maxFixtures;i++){ground.setMatrixAt(i,zero);bulbs.setMatrixAt(i,zero)}ground.instanceMatrix.needsUpdate=bulbs.instanceMatrix.needsUpdate=true;
- const lights=Array.from({length:maxLights},(_,i)=>{const light=new T.PointLight(0xffc978,0,lightDistance,2);light.name=`StreetLamp_PooledLight_${i}`;light.castShadow=false;light.userData.fixedStreetLightPool=true;scene.add(light);return light});
+ const lights=Array.from({length:maxLights},(_,i)=>{const light=new T.PointLight(0xffc978,0,lightDistance,2);light.name=`StreetLamp_PooledLight_${i}`;light.castShadow=false;light.visible=false;light.userData.fixedStreetLightPool=true;scene.add(light);return light});
  const nearest=[],nearestDistances=[],defaultOrigin=new T.Vector3();
  function prepare(visual,instance={}){
   if(disposed)return null;if(applications.has(visual))return applications.get(visual);const profile=STREET_LAMP_PROFILES[instance.assetId];if(!profile||String(instance.binding?.sha256||'').toLowerCase()!==profile.sha256||instance.binding?.lod!==0)return null;if(!visual?.traverse)throw Error('Cloned lamp visual required');
@@ -53,12 +53,13 @@ export function createStreetLighting({THREE:T,scene,maxLights=8,maxFixtures=192,
   // In daylight the pools are completely invisible and every PointLight has
   // zero intensity.  Selecting the closest 176 fixtures per render frame
   // cannot affect the image; defer that work until night is actually enabled.
-  if(night<=0){for(const light of lights)light.intensity=0;activeLightCount=0;return stats()}
+  if(night<=0){for(const light of lights){light.intensity=0;light.visible=false}activeLightCount=0;return stats()}
+  for(const light of lights)light.visible=true;
   const origin=focus?.isVector3?focus:defaultOrigin;selectNearestLightFixtures(fixtures,origin,lights.length,nearest,nearestDistances);activeLightCount=0;for(let i=0;i<lights.length;i++){const light=lights[i],entry=nearest[i],distance=entry?Math.sqrt(nearestDistances[i]):Infinity,falloff=distance<activeDistance?1-Math.pow(distance/activeDistance,2):0;if(entry){light.position.copy(entry.world);light.position.y-=.08}light.intensity=entry?lightIntensity*night*Math.max(0,falloff):0;if(light.intensity>0)activeLightCount++}
   return stats();
  }
  function stats(){
-  return{fixtures:activeFixtureCount,activeLights:activeLightCount,fixedLights:lights.length,night,maxFixtures,activeGroundPools:activeFixtureCount};
+  return{fixtures:activeFixtureCount,activeLights:activeLightCount,fixedLights:lights.length,rendererLights:night>0?lights.length:0,night,maxFixtures,activeGroundPools:activeFixtureCount};
  }
  function dispose(){if(disposed)return;disposed=true;for(const entry of [...fixtures])applications.get(entry.visual)?.dispose();for(const light of lights)light.removeFromParent();ground.removeFromParent();bulbs.removeFromParent();ground.dispose();bulbs.dispose();groundGeometry.dispose();groundMaterial.dispose();bulbGeometry.dispose();bulbMaterial.dispose();glass.dispose()}
  return{prepare,update,stats,dispose,invalidatePlacement(){placementDirty=true},lights,ground,bulbs,materials:Object.freeze({glass,bulb:bulbMaterial,ground:groundMaterial})};

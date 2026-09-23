@@ -1,3 +1,5 @@
+import {stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';
+
 // Presentation-only batching of stationary cabin and optional body parts. The owning car and
 // Interior_* hierarchy stay intact. Optional door batches remain in their own
 // moving door root, never in the cabin/body coordinate frame.
@@ -84,7 +86,7 @@ export function createVehicleRenderBatches({THREE:T,root,includeDoors=false,incl
    if(!hidden){hidden=entry.material.clone();hidden.name=entry.material.name;hidden.visible=false;hiddenMaterials.set(entry.material,hidden);ownedHidden.add(hidden)}
    entry.hidden=hidden;entry.hiddenStamp=materialStamp(hidden);entry.batch=batch;
    for(const member of entry.members){member.id=batch.addInstance(entry.geometries.get(member.geometry));batch.setMatrixAt(member.id,member.matrix);member.mesh.material=entry.detail&&!detailEnabled?entry.material:hidden;sourceMaterials.set(member.mesh,{hidden,material:entry.material});}
-   batch.computeBoundingBox();batch.computeBoundingSphere();interior.add(batch);records.push(entry);stats.members+=entry.members.length;
+   batch.computeBoundingBox();batch.computeBoundingSphere();stampBatchedShadowBounds(batch);interior.add(batch);records.push(entry);stats.members+=entry.members.length;
    if(isDoor){stats.doorBatches++;stats.doorMembers+=entry.members.length;}
    if(interior===root){stats.bodyBatches++;stats.bodyMembers+=entry.members.length;}
    if(entry.detail){stats.detailBatches++;stats.detailMembers+=entry.members.length;}if(entry.arch)stats.archMembers+=entry.members.length;if(entry.fixture){stats.fixtureBatches++;stats.fixtureMembers+=entry.members.length;}
@@ -118,7 +120,7 @@ export function createVehicleRenderBatches({THREE:T,root,includeDoors=false,incl
     if(visible){localMatrix(mesh,entry.interior,scratch);if(scratch.determinant()<=0){fallback(entry,member,false);continue;}shown++;if(!scratch.equals(member.matrix)){member.matrix.copy(scratch);entry.batch.setMatrixAt(member.id,member.matrix);matricesChanged=true;}}
    }
    entry.batch.visible=shown>0&&(!entry.detail||detailEnabled);if(entry.batch.visible){stats.activeMembers+=shown;stats.activeBatches++;}
-   if(matricesChanged){entry.batch.computeBoundingBox();entry.batch.computeBoundingSphere();}
+   if(matricesChanged){entry.batch.computeBoundingBox();entry.batch.computeBoundingSphere();stampBatchedShadowBounds(entry.batch);}
   }
   stats.fallbackMembers=fallbackMembers;return stats;
  }

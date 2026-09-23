@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
 import {pathToFileURL} from 'node:url';
-import {shadowVolumeOutsideView,createVehicleShadowCulling,vehicleShadowCullingEnabled} from './vehicle_shadow_culling.mjs';
+import {buildingShadowCullingEnabled,shadowVolumeOutsideView,createVehicleShadowCulling,vehicleShadowCullingEnabled} from './vehicle_shadow_culling.mjs';
+import {batchedShadowBoundsCurrent,stampBatchedShadowBounds} from './shadow_bounds_stamp.mjs';
 const T=await import(pathToFileURL('D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js'));
 assert.equal(vehicleShadowCullingEnabled(''),true,'ordinary walk enables conservative vehicle shadow culling');
 assert.equal(vehicleShadowCullingEnabled('?perfqa=1'),true,'unrelated QA parameters preserve the default');
 assert.equal(vehicleShadowCullingEnabled('?vehicleshadowcull=1'),true,'legacy opt-in remains compatible');
 assert.equal(vehicleShadowCullingEnabled('?vehicleshadowcull=0'),false,'explicit rollback disables the optimization');
+assert.equal(buildingShadowCullingEnabled(''),false,'building candidate remains off by default');
+assert.equal(buildingShadowCullingEnabled('?buildingshadowcull=1'),true,'building candidate requires its exact opt-in');
+assert.equal(buildingShadowCullingEnabled('?buildingshadowcull=0'),false);
 const camera=new T.PerspectiveCamera(45,16/9,.2,1500);camera.position.set(0,1.7,0);camera.lookAt(0,1.7,-10);camera.updateMatrixWorld(true);
 const frustum=new T.Frustum().setFromProjectionMatrix(new T.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse));
 const direction=new T.Vector3(75,-130,-90).normalize();
@@ -48,6 +52,18 @@ render();assert.equal(calls,9,'moved geometry now inside view must render');
 throwDraw=true;assert.throws(render,/draw failure/);throwDraw=false;const before=calls;renderer.renderBufferDirect(sun.shadow.camera,scene,mesh.geometry,mesh.material,mesh,null);assert.equal(calls,before+1,'error clears shadow context');
 helper.dispose();helper.dispose();assert.equal(renderer.shadowMap.render,shadowOriginal);assert.equal(renderer.renderBufferDirect,directOriginal);
 
+// Building sources share the same mathematical proof but have a separate,
+// default-off switch. Their gameplay hierarchy and render flags stay intact.
+{
+ const world=new T.Scene(),light=new T.DirectionalLight();light.position.set(-75,130,90);light.castShadow=true;world.add(light,light.target);Object.assign(light.shadow.camera,{left:-90,right:90,top:90,bottom:-90,near:1,far:320});light.shadow.mapSize.set(2048,2048);
+ const placement=new T.Group();placement.userData.instance={assetId:'test_house'};const wall=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());wall.castShadow=true;wall.position.set(40,1,20);placement.add(wall);world.add(placement);world.updateMatrixWorld(true);
+ let submissions=0;const backend={shadowMap:{enabled:true,autoUpdate:true,type:T.PCFSoftShadowMap,render(){backend.renderBufferDirect(light.shadow.camera,world,wall.geometry,wall.material,wall,null)}},renderBufferDirect(){submissions++}};
+ const guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light,enabled:false,buildingEnabled:false});
+ backend.shadowMap.render([light],world,camera);assert.equal(submissions,1,'default-off building source renders normally');
+ guard.setBuildingEnabled(true);backend.shadowMap.render([light],world,camera);assert.equal(submissions,1,'opt-in rejects only the proven outside building shadow volume');assert.equal(guard.stats.buildingCulled,1);assert.equal(guard.stats.vehicleCulled,0);
+ wall.position.set(0,1,-10);world.updateMatrixWorld(true);backend.shadowMap.render([light],world,camera);assert.equal(submissions,2,'building caster that can affect the view is retained');assert.equal(placement.visible,true);assert.equal(wall.castShadow,true);guard.dispose();
+}
+
 // Independent regressions from review. Emulate Three's manual-update gates
 // and map replacement, while leaving all geometry/matrix math real.
 function reviewFixture(object){
@@ -56,14 +72,13 @@ function reviewFixture(object){
  const owner=new T.Group();owner.userData.vehicleFleetId='review';owner.add(object);world.add(owner);object.castShadow=true;world.updateMatrixWorld(true);
  const view=camera.clone();view.updateMatrixWorld(true);
  let submissions=0,passes=0,mapHasCaster=null;
- const backend={shadowMap:{enabled:true,autoUpdate:true,needsUpdate:false,type:T.PCFSoftShadowMap,render(){
+ const backend={shadowMap:{enabled:true,autoUpdate:true,needsUpdate:false,type:T.PCFSoftShadowMap,render(lights=[light]){
   if(!backend.shadowMap.enabled||!backend.shadowMap.autoUpdate&&!backend.shadowMap.needsUpdate)return;
-  if(!light.shadow.autoUpdate&&!light.shadow.needsUpdate)return;
-  const before=submissions;passes++;backend.renderBufferDirect(light.shadow.camera,world,object.geometry,object.material,object,null);mapHasCaster=submissions>before;
-  backend.shadowMap.needsUpdate=false;light.shadow.needsUpdate=false;
+  for(const current of lights){if(!current.shadow||!current.shadow.autoUpdate&&!current.shadow.needsUpdate)continue;const before=submissions;passes++;if(current===light)backend.renderBufferDirect(light.shadow.camera,world,object.geometry,object.material,object,null);if(current===light)mapHasCaster=submissions>before;current.shadow.needsUpdate=false}
+  backend.shadowMap.needsUpdate=false;
  }},renderBufferDirect(){submissions++;}};
  const guard=createVehicleShadowCulling({THREE:T,renderer:backend,scene:world,sun:light});
- return {world,light,view,owner,backend,guard,render:()=>backend.shadowMap.render([light],world,view),get submissions(){return submissions},get passes(){return passes},get mapHasCaster(){return mapHasCaster}};
+ return {world,light,view,owner,backend,guard,render:(lights=[light])=>backend.shadowMap.render(lights,world,view),get submissions(){return submissions},get passes(){return passes},get mapHasCaster(){return mapHasCaster}};
 }
 {
  const instance=new T.InstancedMesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial(),1);
@@ -87,6 +102,14 @@ for(const manualTarget of ['renderer','light']){
  (manualTarget==='renderer'?f.backend.shadowMap:f.light.shadow).autoUpdate=false;
  f.render();assert.equal(f.mapHasCaster,true,'switch to manual mode regenerates a complete map once');assert.equal(f.passes,2);
  f.render();assert.equal(f.passes,2,'completed manual map is not regenerated repeatedly');f.guard.dispose();
+}
+{
+ const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
+ const f=reviewFixture(shape);f.render();assert.equal(f.mapHasCaster,false,'automatic pass created a pruned sun map');
+ f.backend.shadowMap.autoUpdate=false;f.light.shadow.autoUpdate=false;
+ const other=new T.DirectionalLight();other.castShadow=true;other.shadow.autoUpdate=false;other.shadow.needsUpdate=true;
+ f.render([other]);assert.equal(other.shadow.needsUpdate,false,'other light completed');assert.equal(f.backend.shadowMap.needsUpdate,true,'other-only pass cannot consume the pending sun restore');assert.equal(f.light.shadow.needsUpdate,true);
+ f.render();assert.equal(f.mapHasCaster,true,'pending restore clears only after the full sun pass');assert.equal(f.backend.shadowMap.needsUpdate,false);assert.equal(f.light.shadow.needsUpdate,false);f.guard.dispose();
 }
 for(const action of ['disable','dispose']){
  const shape=new T.Mesh(new T.BoxGeometry(2,2,4),new T.MeshStandardMaterial());shape.position.set(40,1,20);
@@ -114,10 +137,25 @@ for(const variant of ['perspective','parent','scaled','view-offset','manual-matr
 }
 {
  const geometry=new T.BoxGeometry(2,2,4),batch=new T.BatchedMesh(1,geometry.attributes.position.count,geometry.index.count,new T.MeshStandardMaterial());
- const geometryId=batch.addGeometry(geometry),instance=batch.addInstance(geometryId);batch.setMatrixAt(instance,new T.Matrix4().makeTranslation(40,1,20));batch.computeBoundingBox();batch.computeBoundingSphere();
+ const geometryId=batch.addGeometry(geometry),instance=batch.addInstance(geometryId);batch.setMatrixAt(instance,new T.Matrix4().makeTranslation(40,1,20));batch.computeBoundingBox();batch.computeBoundingSphere();stampBatchedShadowBounds(batch);
  const f=reviewFixture(batch);f.render();assert.equal(f.submissions,1,'unowned BatchedMesh is not assumed to maintain aggregate bounds');
  batch.userData.vehicleRenderBatch=true;f.render();assert.equal(f.submissions,1,'known owner/default callback permits conservative cull');
- batch.onBeforeRender=()=>{};f.render();assert.equal(f.submissions,2,'custom callback reached through onBeforeShadow bypasses geometry inference');f.guard.dispose();
+ batch.onBeforeRender=()=>{};f.render();assert.equal(f.submissions,2,'custom callback reached through onBeforeShadow bypasses geometry inference');
+ batch.onBeforeRender=T.BatchedMesh.prototype.onBeforeRender;batch.userData.vehicleRenderBatch=false;batch.userData.staticRenderBatch=true;f.owner.userData.vehicleFleetId=null;f.guard.setEnabled(false);f.guard.setBuildingEnabled(true);f.render();assert.equal(f.submissions,2,'audited static building batch bounds use the same conservative proof');
+ batch.setMatrixAt(instance,new T.Matrix4().makeTranslation(0,1,-10));f.render();assert.equal(f.submissions,3,'matrix mutation after the aggregate-bounds stamp fails open');assert.equal(f.guard.stats.unsupported,1);
+ batch.computeBoundingBox();batch.computeBoundingSphere();stampBatchedShadowBounds(batch);f.render();assert.equal(f.submissions,4,'restamped visible batch renders from its current bounds');f.guard.dispose();
+}
+{
+ const farGeometry=new T.BoxGeometry(2,2,4),nearGeometry=new T.BoxGeometry(2,2,4).translate(-40,0,-30),batch=new T.BatchedMesh(1,farGeometry.attributes.position.count+nearGeometry.attributes.position.count,farGeometry.index.count+nearGeometry.index.count,new T.MeshStandardMaterial());
+ const farId=batch.addGeometry(farGeometry),nearId=batch.addGeometry(nearGeometry),instance=batch.addInstance(farId);batch.setMatrixAt(instance,new T.Matrix4().makeTranslation(40,1,20));batch.computeBoundingBox();batch.computeBoundingSphere();stampBatchedShadowBounds(batch);batch.userData.vehicleRenderBatch=true;
+ const f=reviewFixture(batch);f.render();assert.equal(f.submissions,0,'stamped far geometry is conservatively culled');assert.equal(batchedShadowBoundsCurrent(batch),true);
+ batch.setGeometryIdAt(instance,nearId);assert.equal(batchedShadowBoundsCurrent(batch),false,'geometry binding mutation invalidates aggregate bounds without a buffer-version signal');f.render();assert.equal(f.submissions,1,'mutated geometry binding fails open before any restamp');f.guard.dispose();
+}
+{
+ const farGeometry=new T.BoxGeometry(2,2,4),nearGeometry=new T.BoxGeometry(2,2,4).translate(-40,0,-30),source=new T.BatchedMesh(1,farGeometry.attributes.position.count+nearGeometry.attributes.position.count,farGeometry.index.count+nearGeometry.index.count,new T.MeshStandardMaterial());
+ const farId=source.addGeometry(farGeometry),nearId=source.addGeometry(nearGeometry),instance=source.addInstance(farId);source.setMatrixAt(instance,new T.Matrix4().makeTranslation(40,1,20));source.computeBoundingBox();source.computeBoundingSphere();stampBatchedShadowBounds(source);
+ const copy=new T.BatchedMesh(1,farGeometry.attributes.position.count+nearGeometry.attributes.position.count,farGeometry.index.count+nearGeometry.index.count,new T.MeshStandardMaterial());copy.copy(source);copy.computeBoundingBox();copy.computeBoundingSphere();stampBatchedShadowBounds(copy);assert.equal(batchedShadowBoundsCurrent(copy),true);
+ copy.setGeometryIdAt(instance,nearId);assert.equal(batchedShadowBoundsCurrent(copy),false,'copied userData cannot impersonate a mutation guard installed on another object');
 }
 {
  // Three's aggregate sphere uses max-column scale for each instance matrix;
@@ -125,7 +163,7 @@ for(const variant of ['perspective','parent','scaled','view-offset','manual-matr
  const geometry=new T.SphereGeometry(1e7,64,32),batch=new T.BatchedMesh(1,geometry.attributes.position.count,geometry.index.count,new T.MeshStandardMaterial());
  const geometryId=batch.addGeometry(geometry),instance=batch.addInstance(geometryId),local=new T.Matrix4();
  local.set(1e-7,1e-7,1e-7,10.36,1e-7,1.2e-7,1e-7,1,1e-7,1e-7,1.2e-7,-10,0,0,0,1);
- batch.setMatrixAt(instance,local);batch.computeBoundingBox();batch.computeBoundingSphere();batch.userData.vehicleRenderBatch=true;
+ batch.setMatrixAt(instance,local);batch.computeBoundingBox();batch.computeBoundingSphere();stampBatchedShadowBounds(batch);batch.userData.vehicleRenderBatch=true;
  const f=reviewFixture(batch),positions=geometry.attributes.position,point=new T.Vector3();let inside=0;
  batch.getMatrixAt(instance,local);
  for(let i=0;i<positions.count;i++)if(frustum.containsPoint(point.fromBufferAttribute(positions,i).applyMatrix4(local).applyMatrix4(batch.matrixWorld)))inside++;
