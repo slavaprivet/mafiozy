@@ -82,6 +82,19 @@ for(let i=0;i<6;i++){
 layerRoot.updateMatrixWorld(true);const layerBatches=createStaticRenderBatches({THREE:T,root:layerRoot,instances:layerGroups,minInstances:3,multiDraw:true}),layerMeshes=layerRoot.children.filter(node=>node.userData.staticRenderBatch);
 assert.equal(layerBatches.stats().members,6);assert.equal(layerMeshes.length,2,'different source layer masks stay in separate batches');assert.deepEqual(layerMeshes.map(mesh=>mesh.layers.mask).sort(),[1,2]);layerBatches.setOptimizationEnabled(false);layerBatches.update();assert.equal(layerBatches.stats().visible,6,'disabled optimization retains the current visibility census');assert.ok(layerMeshes.every(mesh=>!mesh.visible),'disabled optimization hides architecture batches');for(let i=0;i<layerGroups.length;i++)assert.equal(layerGroups[i].children[0].material,layerMaterials[i],'disabled optimization restores source materials');layerBatches.setOptimizationEnabled(true);assert.equal(layerBatches.stats().visible,6,'re-enabled optimization immediately retains visible members');assert.ok(layerMeshes.every(mesh=>mesh.visible),'re-enabled optimization immediately reveals architecture batches');for(const group of layerGroups)assert.equal(group.children[0].material.visible,false,'re-enabled optimization immediately hides source materials');layerBatches.dispose();for(const material of layerMaterials)material.dispose();layerGeometry.dispose();layerRoot.removeFromParent();
 
+// A runtime layer change must immediately fail open before either backend's
+// hidden-material fast path. Architecture may reclaim an unchanged source
+// after its original layer is restored and the explicit optimization toggle
+// establishes a fresh ownership boundary.
+for(const multiDraw of [false,true]){
+ const guardRoot=new T.Group(),guardGroups=[],guardGeometry=new T.BoxGeometry(1,1,1),guardMaterial=new T.MeshStandardMaterial({color:'#6b5142'});scene.add(guardRoot);
+ for(let i=0;i<3;i++){const group=new T.Group(),mesh=new T.Mesh(guardGeometry,guardMaterial);group.userData.instance={assetId:'hillstep_chalet_v1'};mesh.name='Entry_Interior_Floor';mesh.userData.staticRenderMaterialImmutable=true;group.add(mesh);guardRoot.add(group);guardGroups.push(group)}
+ guardRoot.updateMatrixWorld(true);const guardBatches=createStaticRenderBatches({THREE:T,root:guardRoot,instances:guardGroups,minInstances:3,multiDraw});const changed=guardGroups[0].children[0];
+ assert.equal(guardBatches.stats().visible,3,`${multiDraw?'multi-draw':'fallback'} architecture starts fully batched`);changed.layers.set(1);assert.equal(guardBatches.update().visible,2,`${multiDraw?'multi-draw':'fallback'} layer mutation removes the stale copied member`);assert.equal(changed.material,guardMaterial,'changed layer restores the exact source material');
+ changed.layers.set(0);assert.equal(guardBatches.update().visible,2,'restoring a layer alone does not silently reclaim source ownership');guardBatches.setOptimizationEnabled(false);guardBatches.setOptimizationEnabled(true);assert.equal(guardBatches.stats().visible,3,'architecture toggle safely reclaims a source on its original layer');assert.equal(changed.material.visible,false,'reclaimed source is hidden behind its exact batch copy');
+ guardBatches.dispose();guardMaterial.dispose();guardGeometry.dispose();guardRoot.removeFromParent();
+}
+
 // Equivalent but unowned materials and mesh-specific render hooks fail open.
 for(const mode of ['untagged','callback','depth']){
  const safetyRoot=new T.Group(),safetyGroups=[],safetyGeometry=new T.BoxGeometry(1,1,1),safetyMaterials=[];scene.add(safetyRoot);

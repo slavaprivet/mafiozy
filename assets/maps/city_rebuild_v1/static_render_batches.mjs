@@ -195,6 +195,7 @@ export function createStaticRenderBatches({THREE:T,root,instances,minInstances=3
  function restoreOwned(restore){
   if(restore.retired)return false;
   if(!restoreAttached(restore)){restore.detached=true;return false}
+  if(restore.mesh.layers.mask!==restore.layersMask)return false;
   if(restore.mesh.material===restore.hidden)return true;
   if(restore.mesh.material!==restore.material)return false;
   if(restore.optimization&&!optimizationEnabled)return true;
