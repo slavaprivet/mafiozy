@@ -131,9 +131,19 @@ $logPath = Join-Path $outputDirectory 'export.log'
 
 # Record the inputs before export; never read user://, save files or credentials.
 $inputPaths = @((Join-Path $projectPath 'project.godot'), (Join-Path $projectPath 'export_presets.cfg'))
+$presetText = Get-Content -LiteralPath (Join-Path $projectPath 'export_presets.cfg') -Raw
+$selectedMode = $presetText -match 'export_filter="resources"'
+$selectedPaths = @([regex]::Matches(($presetText -split "`n" | Where-Object { $_ -match '^export_files=' }), '"res://([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
+$includeFilters = (([regex]::Match($presetText, 'include_filter="([^"]*)"')).Groups[1].Value).Split(',')
 foreach ($directory in @('scripts', 'scenes', 'data', 'assets')) {
     $inputPaths += @(Get-ChildItem -LiteralPath (Join-Path $projectPath $directory) -File -Recurse |
-        Where-Object { $_.Name -notlike 'test_*' -and $_.Extension -ne '.uid' } |
+        Where-Object {
+            $relative = $_.FullName.Substring($projectPath.Length + 1).Replace('\', '/')
+            $selected = -not $selectedMode -or $selectedPaths -contains $relative -or
+                ($_.Extension -eq '.import' -and $selectedPaths -contains $relative.Substring(0, $relative.Length - 7))
+            $included = @($includeFilters | Where-Object { $relative -like $_ }).Count -gt 0
+            $_.Name -notlike 'test_*' -and $_.Extension -ne '.uid' -and ($selected -or $included)
+        } |
         ForEach-Object { $_.FullName })
 }
 $inputReceipts = @($inputPaths | Sort-Object -Unique | ForEach-Object {
@@ -154,6 +164,20 @@ if (-not (Test-Path -LiteralPath $exePath) -or -not (Test-Path -LiteralPath $pac
     throw 'Expected executable and PCK were not both generated'
 }
 $packInventory = Read-ExportPackDirectory $packPath
+foreach ($sourceInput in $inputReceipts) {
+    $relative = $sourceInput.path
+    if ($relative.EndsWith('.gd') -and
+        $packInventory.paths -notcontains $relative -and
+        $packInventory.paths -notcontains ([IO.Path]::ChangeExtension($relative, '.gdc').Replace('\', '/'))) {
+        throw "Selected runtime script missing from PCK: $relative"
+    }
+    if ($relative.StartsWith('data/') -and $packInventory.paths -notcontains $relative) {
+        throw "Selected runtime data missing from PCK: $relative"
+    }
+    if ($relative.EndsWith('.glb') -and $packInventory.paths -notcontains ($relative + '.import')) {
+        throw "Selected asset import missing from PCK: $relative"
+    }
+}
 $artifacts = @(Get-ChildItem -LiteralPath $outputDirectory -File | Where-Object { $_.Name -ne 'export.log' } | ForEach-Object {
     [ordered]@{ filename = $_.Name; bytes = $_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
 })

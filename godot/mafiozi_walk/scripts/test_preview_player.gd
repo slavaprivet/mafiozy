@@ -47,6 +47,9 @@ func _run() -> void:
 	Input.action_release(&"preview_jump")
 	var peak_y: float = _player.position.y
 	var airborne: bool = false
+	var saw_source_dive: bool = false
+	var previous_elapsed := 0.0
+	var clock_preserved := true
 	for frame: int in range(90):
 		if frame == 18:
 			Input.action_press(&"preview_jump")
@@ -55,7 +58,13 @@ func _run() -> void:
 		await _frames(1)
 		peak_y = maxf(peak_y, _player.position.y)
 		airborne = airborne or not _player.is_on_floor()
-	_check(airborne and peak_y > 1.1 and peak_y < 1.5, "grounded jump follows bounded arc; second press cannot double-jump")
+		var jump: Dictionary = _player.get_preview_status().get("source_jump", {})
+		if not jump.is_empty():
+			clock_preserved = clock_preserved and float(jump.elapsed) >= previous_elapsed
+			previous_elapsed = float(jump.elapsed)
+			saw_source_dive = saw_source_dive or jump.mode == "dive"
+	_check(airborne and peak_y > 0.95 and peak_y < 1.06 and saw_source_dive, "late second Space upgrades source 1.05m normal arc without second impulse")
+	_check(clock_preserved, "second Space preserves existing trajectory clock")
 	_check(_player.is_on_floor(), "jump lands on physical floor")
 	_add_box(Vector3(0.0, 2.0, -2.0), Vector3(6.0, 4.0, 0.3))
 	_player.position = Vector3(0.0, 0.05, 2.0)

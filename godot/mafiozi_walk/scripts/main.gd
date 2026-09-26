@@ -1,12 +1,40 @@
 extends Node3D
-## First visible migration checkpoint: exact authored assets, external walking only.
+## First migration quarter: authored assets, walking and source printshop doors.
 
 const PlayerController = preload("res://scripts/preview_player.gd")
 const BlockValidation = preload("res://scripts/preview_block_validation.gd")
 const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
 const PreviewPerfAdapter = preload("res://scripts/perf/preview_perf_adapter.gd")
+const PrintshopInterior = preload("res://scripts/preview_printshop_interior.gd")
+const WaterSurface = preload("res://scripts/preview_water_surface.gd")
+const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
+@export_file("*.json") var printshop_data_path: String = "res://data/printshop_interior.json"
+@export_file("*.json") var water_data_path: String = "res://data/preview_water.json"
 @export var preview_perf_enabled: bool = false
+@export var preview_water_detail_enabled: bool = true
+@export var preview_start_at_printshop: bool = true
+var water_status: String = "not_loaded"
+var water_errors: PackedStringArray = []
+var water_summary: Dictionary = {}
+var _water_host: RefCounted
+var _jump_surface_cells: PackedByteArray = PackedByteArray()
+var _jump_surface_offsets: PackedVector2Array = PackedVector2Array()
+var _jump_surface_cell_size: float = 0.0
+var _jump_surface_start: Vector2i
+var _jump_surface_size: Vector2i
+var printshop_status: String = "not_loaded"
+var printshop_errors: PackedStringArray = []
+var _printshop: Node3D
+var _printshop_data: Dictionary = {}
+var _player_capsule: CollisionShape3D
+var _door_occupants: Array = [{"position": Vector3.ZERO, "radius": 0.0, "height": 0.0}]
+var _door_hint: Label
+var _door_hint_panel: PanelContainer
+var _door_hint_key: PanelContainer
+var _door_hint_world: Vector3 = Vector3.ZERO
+var _door_feedback_seconds: float = 0.0
 var preview_perf: Node = null
 var preview_ready: bool = false
 var validation_errors: PackedStringArray = []
@@ -34,6 +62,7 @@ func _ready() -> void:
 	_resource_scenes = prepared["scenes"]
 	_block = parsed
 	_origin = _v3(_block["originM"])
+	_cache_jump_surface_contains()
 	# Material preparation is also atomic: a failed shader/material must not
 	# leave a partially populated scene reporting READY.
 	for row: Array in _block["surface"]["grid"]:
@@ -52,18 +81,35 @@ func _ready() -> void:
 		return
 	_build_lighting()
 	_build_surface()
+	_load_printshop_data()
 	for record: Dictionary in _block["buildings"]:
 		_add_asset(record)
 	for record: Dictionary in _block["decor"]:
 		_add_asset(record)
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
+	var spawn_yaw := 0.0
+	# User-requested preview start, derived from the real public entrance.
+	# Source IDs, authored map spawn and any future saved session stay distinct.
+	if preview_start_at_printshop and printshop_status == "ready" and is_instance_valid(_printshop):
+		var approach: Vector3 = _printshop.anchor("publicApproach")
+		var inside: Vector3 = _printshop.anchor("publicInside")
+		if approach.is_finite() and inside.is_finite():
+			_spawn = approach + Vector3.UP * 0.05
+			var facing := inside - approach
+			spawn_yaw = atan2(-facing.x, -facing.z)
 	_player = PlayerController.new()
 	_player.hero_scene_path = str(_block["hero"]["path"])
 	_player.model_target_height = float(_block["hero"]["targetHeightM"])
 	_player.position = _spawn
+	_player.set("_camera_yaw", spawn_yaw)
+	_player.set("_heading", spawn_yaw)
 	add_child(_player)
+	_player.get_node("VisualHeading").rotation.y = spawn_yaw + deg_to_rad(_player.visual_yaw_degrees)
+	_player.set_preview_jump_surface_guard(Callable(self, "preview_jump_surface_allowed"))
+	_player_capsule = _player.get_node_or_null("PlayerCapsule") as CollisionShape3D
 	if not bool(_player.get_preview_status().get("model_loaded", false)):
 		validation_errors.append("Hero did not produce a valid visible model")
+		_dispose_water_surface()
 		for child: Node in get_children():
 			child.queue_free()
 		_show_load_error()
@@ -76,6 +122,250 @@ func _ready() -> void:
 	_setup_preview_perf()
 	_last_frame_usec = Time.get_ticks_usec()
 	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
+	print("PRINTSHOP_INTERIOR_STATUS ", printshop_status)
+	print("WATER_SURFACE_STATUS ", water_status)
+
+func _build_water_surface() -> bool:
+	# Build-time selection only. Never mutate water topology from a frame callback.
+	water_status = "baseline_disabled"
+	if not preview_water_detail_enabled or OS.get_cmdline_user_args().has("--preview-water-off"):
+		return false
+	water_status = "baseline_fallback"
+	if not FileAccess.file_exists(water_data_path):
+		water_errors.append("WATER_DATA_MISSING")
+		return false
+	var source_text: String = FileAccess.get_file_as_string(water_data_path).replace("\r\n", "\n")
+	if source_text.sha256_text() != WATER_DATA_SHA256:
+		water_errors.append("WATER_DATA_CHECKSUM")
+		return false
+	var parsed: Variant = JSON.parse_string(source_text)
+	water_errors.append_array(WaterSurface.validate(parsed))
+	if not water_errors.is_empty():
+		return false
+	water_errors.append_array(_validate_water_crop(parsed))
+	if not water_errors.is_empty():
+		return false
+	var candidate: RefCounted = WaterSurface.new()
+	var result: Dictionary = candidate.build(parsed, self)
+	if not bool(result.get("ok", false)):
+		water_errors.append_array(result.get("errors", PackedStringArray(["WATER_BUILD_FAILED"])))
+		candidate.dispose() # Remove any owned partial resource before fallback.
+		return false
+	_water_host = candidate
+	water_summary = result
+	water_status = "detail_ready"
+	return true
+
+func _validate_water_crop(data: Dictionary) -> PackedStringArray:
+	# Hash pins reviewed source depths; these checks prevent that valid package
+	# being applied to a different currently admitted preview block/crop.
+	var errors: PackedStringArray = []
+	var surface: Dictionary = _block["surface"]
+	for axis: int in range(3):
+		if absf(float(data.originM[axis]) - float(_block.originM[axis])) > 0.000001:
+			errors.append("WATER_BLOCK_ORIGIN")
+	var cell: float = float(surface.cellSize)
+	if absf(float(data.metresPerCell) - cell) > 0.000001:
+		errors.append("WATER_BLOCK_CELL_SIZE")
+	var expected_bounds: Dictionary = {"rMinInclusive": int(surface.startRow), "rMaxExclusive": int(surface.startRow) + int(surface.rows),
+		"cMinInclusive": int(surface.startCol), "cMaxExclusive": int(surface.startCol) + int(surface.cols)}
+	var bounds: Variant = data.get("previewBoundsRC")
+	if not bounds is Dictionary:
+		errors.append("WATER_BLOCK_BOUNDS")
+	else:
+		for key: String in expected_bounds:
+			if not WaterSurface._number(bounds.get(key), 0, 100000) or float(bounds[key]) != float(expected_bounds[key]):
+				errors.append("WATER_BLOCK_BOUNDS")
+				break
+	var water_palette: Dictionary = surface.palette.get("16", {})
+	if water_palette.is_empty() or bool(water_palette.get("solid", true)) or absf(float(water_palette.get("heightM", INF)) - float(data.native.surfaceYM)) > 0.000001:
+		errors.append("WATER_BLOCK_SURFACE_HEIGHT")
+	var masks: Variant = surface.get("masks")
+	if not masks is Dictionary or not masks.get("protectedMask") is Array:
+		errors.append("WATER_PROTECTED_MASK_REQUIRED")
+		return errors
+	var protected: Array = masks.protectedMask
+	if protected.size() != int(surface.rows):
+		errors.append("WATER_PROTECTED_MASK_ROWS")
+		return errors
+	var expected: Dictionary = {}
+	for row: int in range(int(surface.rows)):
+		if not protected[row] is Array or protected[row].size() != int(surface.cols):
+			errors.append("WATER_PROTECTED_MASK_COLUMNS")
+			return errors
+		for col: int in range(int(surface.cols)):
+			var flag: Variant = protected[row][col]
+			if not (flag is bool or ((flag is int or flag is float) and (flag == 0 or flag == 1))):
+				errors.append("WATER_PROTECTED_MASK_VALUE")
+				return errors
+			if int(surface.grid[row][col]) != 16:
+				continue
+			if bool(protected[row][col]):
+				errors.append("WATER_PROTECTED_CELL_UNSUPPORTED")
+				continue
+			expected[Vector2i(int(surface.startRow) + row, int(surface.startCol) + col)] = true
+	var cells: Array = data.native.cells
+	if cells.size() != 303 or expected.size() != cells.size():
+		errors.append("WATER_BLOCK_CELL_COUNT")
+	for record: Dictionary in cells:
+		if not expected.has(Vector2i(int(record.r), int(record.c))):
+			errors.append("WATER_BLOCK_FOOTPRINT")
+			break
+	return errors
+
+func _dispose_water_surface() -> void:
+	if _water_host != null:
+		_water_host.dispose()
+		_water_host = null
+
+func _cache_jump_surface_contains() -> void:
+	# Source traversalMapContains for this native crop only: nativePedestrianLand
+	# OR waterAt. This is not full traversal occupancy, swimming or a new floor.
+	_jump_surface_cells.clear()
+	_jump_surface_offsets.clear()
+	var surface: Dictionary = _block.surface
+	var masks: Variant = surface.get("masks")
+	if not masks is Dictionary:
+		return
+	for name: String in ["walkableMask", "policeMask", "protectedMask"]:
+		var rows: Variant = masks.get(name)
+		if not rows is Array or rows.size() != int(surface.rows):
+			return
+		for row: Variant in rows:
+			if not row is Array or row.size() != int(surface.cols):
+				return
+			for flag: Variant in row:
+				if not (flag is bool or ((flag is int or flag is float) and (flag == 0 or flag == 1))):
+					return
+	_jump_surface_cell_size = float(surface.cellSize)
+	_jump_surface_start = Vector2i(int(surface.startCol), int(surface.startRow))
+	_jump_surface_size = Vector2i(int(surface.cols), int(surface.rows))
+	_jump_surface_cells.resize(_jump_surface_size.x * _jump_surface_size.y)
+	for row: int in range(_jump_surface_size.y):
+		for col: int in range(_jump_surface_size.x):
+			var tile: int = int(surface.grid[row][col])
+			var police: Variant = masks.policeMask[row][col]
+			var land: bool = bool(masks.walkableMask[row][col]) or (tile == 9 and (police is int or police is float) and police == 1)
+			var water: bool = tile == 16 and not bool(masks.protectedMask[row][col])
+			_jump_surface_cells[row * _jump_surface_size.x + col] = 1 if land or water else 0
+	for index: int in range(12):
+		var angle: float = float(index) * PI / 6.0
+		_jump_surface_offsets.append(Vector2(cos(angle), sin(angle)))
+
+func preview_jump_surface_allowed(feet_world: Vector3, radius: float = 0.36) -> bool:
+	# Exact source circle sample count: centre +12, bounded cached lookups only.
+	# Player separately owns swept substeps, physical collision/height/ceiling.
+	if _jump_surface_cells.is_empty() or not feet_world.is_finite() or not is_finite(radius) or radius <= 0.0:
+		return false
+	var local: Vector3 = to_local(feet_world)
+	var centre: Vector2 = Vector2(local.x + _origin.x, local.z + _origin.z)
+	if not _jump_surface_point_contains(centre):
+		return false
+	for offset: Vector2 in _jump_surface_offsets:
+		if not _jump_surface_point_contains(centre + offset * radius):
+			return false
+	return true
+
+func _jump_surface_point_contains(source_xz: Vector2) -> bool:
+	var col: float = source_xz.x / _jump_surface_cell_size - float(_jump_surface_start.x)
+	var row: float = source_xz.y / _jump_surface_cell_size - float(_jump_surface_start.y)
+	# Check signed fractions before conversion: negative positions never truncate
+	# into the first cell. The exclusive far bounds stay exclusive.
+	if not is_finite(col) or not is_finite(row) or col < 0.0 or row < 0.0 or col >= _jump_surface_size.x or row >= _jump_surface_size.y:
+		return false
+	return _jump_surface_cells[int(floor(row)) * _jump_surface_size.x + int(floor(col))] == 1
+
+func _exit_tree() -> void:
+	# Parent still exists here; clear host-owned mesh/material before destruction.
+	_dispose_water_surface()
+
+func _load_printshop_data() -> void:
+	# Pin this reviewed generated package before passing structured data to the
+	# adapter. A corrupt/unreviewed package keeps the complete exterior fallback.
+	printshop_status = "exterior_fallback"
+	if not FileAccess.file_exists(printshop_data_path):
+		printshop_errors.append("Printshop package missing or checksum mismatch")
+		return
+	# Windows checkouts may convert text newlines. Hash and parse the same
+	# canonical text; content changes still fail closed, CRLF/LF alone do not.
+	var source_text: String = FileAccess.get_file_as_string(printshop_data_path).replace("\r\n", "\n")
+	if source_text.sha256_text() != PRINTSHOP_DATA_SHA256:
+		printshop_errors.append("Printshop package missing or checksum mismatch")
+		return
+	var parsed: Variant = JSON.parse_string(source_text)
+	if not parsed is Dictionary:
+		printshop_errors.append("Printshop package is not a dictionary")
+		return
+	_printshop_data = parsed
+
+func _current_door_occupants() -> Array:
+	# Read the actual collider; the current player radius is 0.30, not the
+	# independent adapter test's conservative 0.36. Missing bounds fail closed.
+	var occupant: Dictionary = _door_occupants[0]
+	occupant.radius = 0.0
+	occupant.height = 0.0
+	if is_instance_valid(_player_capsule) and _player_capsule.shape is CapsuleShape3D:
+		var capsule: CapsuleShape3D = _player_capsule.shape as CapsuleShape3D
+		var frame: Transform3D = _player_capsule.global_transform
+		occupant.height = capsule.height * frame.basis.y.length()
+		occupant.radius = capsule.radius * maxf(frame.basis.x.length(), frame.basis.z.length())
+		occupant.position = frame.origin - Vector3.UP * float(occupant.height) * 0.5
+	return _door_occupants
+
+func _current_door_action() -> Dictionary:
+	if not preview_ready or not is_instance_valid(_printshop) or not is_instance_valid(_player):
+		return {}
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	if focused is LineEdit or focused is TextEdit:
+		return {}
+	return _printshop.nearest_action(_player.global_position)
+
+func _update_door_hint() -> void:
+	if _door_hint == null:
+		return
+	var action: Dictionary = _current_door_action()
+	var hint: String = str(action.label) if not action.is_empty() else ""
+	_door_hint_key.visible = not action.is_empty() and _door_feedback_seconds <= 0.0
+	if not action.is_empty() and _door_feedback_seconds > 0.0:
+		hint = "Отойдите от створки двери"
+	if _door_hint.text != hint:
+		_door_hint.text = hint
+		_door_hint_panel.reset_size()
+
+func _position_door_hint() -> void:
+	if _door_hint_panel == null:
+		return
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	_door_hint_panel.visible = not _door_hint.text.is_empty() and camera != null and not camera.is_position_behind(_door_hint_world)
+	if not _door_hint_panel.visible:
+		return
+	var screen: Vector2 = camera.unproject_position(_door_hint_world)
+	var viewport: Vector2 = get_viewport().get_visible_rect().size
+	var size: Vector2 = _door_hint_panel.size
+	_door_hint_panel.position = Vector2(clampf(screen.x - size.x * 0.5, 12.0, maxf(12.0, viewport.x - size.x - 12.0)),
+		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
+		return
+	var action: Dictionary = _current_door_action()
+	if action.is_empty():
+		return
+	var result: Dictionary = _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
+	_door_feedback_seconds = 0.0
+	if not bool(result.get("accepted", false)) and str(result.get("reason", "")) == "door-sweep-occupied":
+		_door_feedback_seconds = 0.9
+	_update_door_hint()
+	get_viewport().set_input_as_handled()
+
+func _physics_process(delta: float) -> void:
+	if not preview_ready or not is_instance_valid(_printshop):
+		return
+	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
+	_printshop.advance(delta, _current_door_occupants())
+	_update_door_hint()
 
 func _setup_preview_perf() -> void:
 	preview_perf = PreviewPerfAdapter.new()
@@ -98,6 +388,7 @@ func begin_preview_perf_capture(config: Dictionary = {}) -> bool:
 	context["population"] = 0
 	context["vehicles"] = 0
 	context["block_data_path"] = block_data_path
+	context["water_status"] = water_status
 	context["qualification"] = "Small preview quarter; not full-city gameplay acceptance"
 	settings["context"] = context
 	return preview_perf.begin_capture(settings)
@@ -148,6 +439,7 @@ func _build_surface() -> void:
 	var grid: Array = surface["grid"]
 	var palette: Dictionary = surface["palette"]
 	var cell: float = float(surface["cellSize"])
+	var detail_water: bool = _build_water_surface()
 	var groups: Dictionary = {}
 	for row in range(grid.size()):
 		for col in range(grid[row].size()):
@@ -156,6 +448,8 @@ func _build_surface() -> void:
 				groups[key] = []
 			groups[key].append(Vector3((int(surface["startCol"]) + col + 0.5) * cell - _origin.x, float(palette[key]["heightM"]) - 0.02, (int(surface["startRow"]) + row + 0.5) * cell - _origin.z))
 	for key: String in groups:
+		if detail_water and key == "16":
+			continue # Exactly one source plane batch replaces all old water boxes.
 		var mesh: BoxMesh = BoxMesh.new()
 		mesh.size = Vector3(cell, 0.04, cell)
 		mesh.material = _surface_materials[key]
@@ -207,6 +501,17 @@ func _add_asset(record: Dictionary) -> void:
 	parent.add_child(visual)
 	add_child(parent)
 	_hide_helpers(visual, record.get("effectiveHiddenNodeNames", []))
+	if str(record["id"]) == PrintshopInterior.SOURCE_ID and not _printshop_data.is_empty():
+		var interior: Node3D = PrintshopInterior.new()
+		interior.name = "PrintshopInterior"
+		add_child(interior)
+		if interior.attach_existing(visual, record, _printshop_data):
+			_printshop = interior
+			printshop_status = "ready"
+			return # Only this record's exactly three validated envelope bodies.
+		printshop_errors.append_array(interior.errors)
+		interior.restore_original()
+		interior.free()
 	for data: Dictionary in record.get("collisionBodiesM", []):
 		var points: PackedVector3Array = PackedVector3Array()
 		for point: Array in data["polygonXZ"]:
@@ -216,6 +521,7 @@ func _add_asset(record: Dictionary) -> void:
 		shape.points = points
 		var body: StaticBody3D = StaticBody3D.new()
 		body.set_meta("source_id", record["id"])
+		body.set_meta("source_index", data["sourceIndex"])
 		var collider: CollisionShape3D = CollisionShape3D.new()
 		collider.shape = shape
 		body.add_child(collider)
@@ -254,7 +560,7 @@ func _build_hud() -> void:
 	title.add_theme_color_override("font_color", Color("ebc77f"))
 	stack.add_child(title)
 	var stage: Label = Label.new()
-	stage.text = "Первый квартал · ходьба и бег\nЖители, транспорт и интерьеры ещё переносятся"
+	stage.text = "Первый квартал · ходьба и бег\nТипография открывается через E; жители и транспорт ещё переносятся" if printshop_status == "ready" else "Первый квартал · ходьба и бег\nИнтерьер типографии недоступен; сохранено исходное здание"
 	stage.add_theme_font_size_override("font_size", 14)
 	stack.add_child(stage)
 	_stats = Label.new()
@@ -262,20 +568,130 @@ func _build_hud() -> void:
 	_stats.add_theme_font_size_override("font_size", 13)
 	stack.add_child(_stats)
 	var controls: Label = Label.new()
-	controls.text = "WASD — идти   Shift — бег   Space — прыжок\nПКМ + мышь — камера   Tab — захват мыши   Esc — освободить"
+	controls.text = "WASD — идти   Shift — бег   Space — прыжок   2×Space — Max Payne\nМышь — камера   Колесо — ближе / дальше   Esc — курсор   Tab — камера"
 	controls.position = Vector2(24, 640)
 	controls.add_theme_color_override("font_shadow_color", Color.BLACK)
 	controls.add_theme_constant_override("shadow_offset_x", 1)
 	controls.add_theme_constant_override("shadow_offset_y", 2)
 	layer.add_child(controls)
+	_door_hint_panel = PanelContainer.new()
+	_door_hint_panel.name = "DoorActionAboveEntrance"
+	_door_hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_door_hint_panel.visible = false
+	var door_style := StyleBoxFlat.new()
+	door_style.bg_color = Color(0.035, 0.055, 0.07, 0.95)
+	door_style.set_border_width_all(1)
+	door_style.border_color = Color("dfb968")
+	door_style.set_corner_radius_all(6)
+	door_style.content_margin_left = 16
+	door_style.content_margin_right = 16
+	door_style.content_margin_top = 9
+	door_style.content_margin_bottom = 9
+	_door_hint_panel.add_theme_stylebox_override("panel", door_style)
+	layer.add_child(_door_hint_panel)
+	if is_instance_valid(_printshop):
+		_door_hint_world = _v3(_printshop_data.doors.public.anchor)
+		for body: Dictionary in _printshop_data.doors.public.bodies:
+			_door_hint_world.y = maxf(_door_hint_world.y, float(body.maxY))
+		_door_hint_world.y += 0.25
+	var door_row := HBoxContainer.new()
+	door_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	door_row.add_theme_constant_override("separation", 12)
+	_door_hint_panel.add_child(door_row)
+	_door_hint_key = PanelContainer.new()
+	_door_hint_key.name = "InteractionKeyE"
+	_door_hint_key.custom_minimum_size = Vector2(36, 36)
+	_door_hint_key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var key_style := StyleBoxFlat.new()
+	key_style.bg_color = Color("f7dc9c")
+	key_style.border_color = Color("a27a35")
+	key_style.set_border_width_all(1)
+	key_style.border_width_bottom = 3
+	key_style.set_corner_radius_all(5)
+	_door_hint_key.add_theme_stylebox_override("panel", key_style)
+	door_row.add_child(_door_hint_key)
+	var key_label := Label.new()
+	key_label.text = "E"
+	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	key_label.add_theme_color_override("font_color", Color("17202a"))
+	key_label.add_theme_font_size_override("font_size", 23)
+	key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_door_hint_key.add_child(key_label)
+	_door_hint = Label.new()
+	_door_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_door_hint.add_theme_color_override("font_color", Color("f7dc9c"))
+	_door_hint.add_theme_font_size_override("font_size", 20)
+	_door_hint.add_theme_color_override("font_shadow_color", Color.BLACK)
+	_door_hint.add_theme_constant_override("shadow_offset_x", 1)
+	_door_hint.add_theme_constant_override("shadow_offset_y", 2)
+	door_row.add_child(_door_hint)
+	_build_update_panel(layer)
+
+func _build_update_panel(layer: CanvasLayer) -> void:
+	var path := "res://data/preview_updates.json"
+	if not FileAccess.file_exists(path):
+		return
+	var update: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not update is Dictionary or not update.get("items") is Array:
+		return
+	var notes := PanelContainer.new()
+	notes.name = "PreviewUpdates"
+	notes.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	notes.offset_left = -374
+	notes.offset_right = -24
+	notes.offset_top = 24
+	notes.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.035, 0.055, 0.07, 0.90)
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	style.border_width_top = 2
+	style.border_color = Color("dfb968")
+	notes.add_theme_stylebox_override("panel", style)
+	layer.add_child(notes)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 10)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	notes.add_child(stack)
+	var heading := Label.new()
+	heading.text = "ЧТО НОВОГО И ЧТО ПОПРОБОВАТЬ"
+	heading.add_theme_font_size_override("font_size", 15)
+	heading.add_theme_color_override("font_color", Color("ebc77f"))
+	stack.add_child(heading)
+	var version := Label.new()
+	version.text = str(update.get("title", "Обновление сцены")).left(80)
+	version.add_theme_font_size_override("font_size", 13)
+	version.add_theme_color_override("font_color", Color("aabec8"))
+	version.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	stack.add_child(version)
+	var number := 0
+	for item: Variant in update.items:
+		if not item is String or item.strip_edges().is_empty():
+			continue
+		number += 1
+		var label := Label.new()
+		label.text = "%d. %s" % [number, item.left(240)]
+		label.add_theme_font_size_override("font_size", 14)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.add_child(label)
+		if number >= 5:
+			break
 
 func _process(delta: float) -> void:
 	if not preview_ready or _player == null:
 		return
+	_position_door_hint()
 	if _player.position.y < -12:
 		_player.position = _spawn
 		_player.velocity = Vector3.ZERO
+		_player.set_preview_pose_authority(&"on_foot", true)
 	var now: int = Time.get_ticks_usec()
+	if _water_host != null:
+		_water_host.advance(float(now) / 1000000.0)
 	_samples.append(float(now - _last_frame_usec) / 1000.0)
 	_last_frame_usec = now
 	_runtime_seconds += delta

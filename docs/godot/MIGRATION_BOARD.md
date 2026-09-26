@@ -1,6 +1,27 @@
 # Перенос Walk → Godot
 
+## Текущая шапка — 27 сентября, 00:44 MSK
+
+Актуальная память: `docs/ai/COORDINATOR_21_MEMORY.md`, первый раздел выше истории.
+Editor6508 / одна пользовательская игра32648; старые release PID ниже неактуальны.
+Source final player13e3d83b: длинный бросок1.25s, восстановление после контакта,
+101 independent и3×6489 integration PASS; новую позу ещё обновить в живом окне.
+Пользователь подтвердил выделенную кнопку E над дверью и поручил исправить
+преждевременный подъём после броска. Export09 подготовлен, новая поза LIVE OPEN.
+GPU QA воды07 пройден в малом квартале (p95≈7.12–7.15ms при144cap), не fullcityFPS.
+Художник21: staticbatch сдан/root hook впереди; новый scope NPC appearance bridge.
+Root subagent: встроенный NavigationServer3D backend; actual source NPC session,
+agenda/commerce/server/fullcity остаются OPEN. Lead14 только Проверщик ЧАТОВ1-8.
+Штаб заглушён. Обновление игры — один экземпляр, не параллельные GPU-прогоны.
+
 ## Актуальное распределение — 26 сентября, чистый Координатор21
+
+Текущий LIVE после последовательных обновлений: **release06 PID12540,
+session49876**, `exports/win64/s01-20260926-camera-notes06`.
+Обычный прыжок/landing, типографияE и физическийвход, свободнаямышь/колесо,
+списокобновленийсправа показаны вновомviewport. Root50camera/42interior/
+298airborneheadlessPASS; полноесравнимоеLIVEFPS и interiorvisualещёOPEN.
+Freshmemory `docs/ai/COORDINATOR_21_MEMORY.md` важнее старыхPIDниже.
 
 **Координатор21** `01a0df60-f834-7e23-a846-00b47c48e0cc` — чистый преемник20,
 общий каталог, интеграция/main/project/LIVE/Git. Сначала

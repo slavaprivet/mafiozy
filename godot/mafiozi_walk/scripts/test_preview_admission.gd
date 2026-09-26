@@ -58,7 +58,16 @@ func _run() -> void:
 				colliders += 1
 			elif child is Node3D:
 				visuals += 1
-	_check(visuals == 16 and colliders == 27, "valid scene restores all 16 visuals and 27 source colliders")
+	_check(visuals == 16 and colliders == 24, "valid scene restores all 16 visuals and 24 unchanged exterior source colliders")
+	var interior: Node3D = valid.get("_printshop") as Node3D
+	_check(interior != null and str(valid.get("printshop_status")) == "ready", "valid source printshop interior admitted")
+	if interior != null:
+		var kinds: Dictionary = {}
+		for body: Node in interior.find_children("*", "StaticBody3D", true, false):
+			var kind: String = str(body.get_meta("interior_kind", ""))
+			kinds[kind] = int(kinds.get(kind, 0)) + 1
+			_check(str(body.get_meta("source_id", "")) == "REBUILD-VISUAL-print_shop-001", "replacement body retains exact building ID")
+		_check(kinds == {"door:public": 2, "door:service": 2, "source-floor-ceiling": 4, "source-static": 103}, "exact source interior replaces only three old envelopes: " + str(kinds))
 	_results.append({"case": "valid_after_rejections", "preview_ready": valid.get("preview_ready"), "visuals": visuals, "source_colliders": colliders})
 	var valid_ref: WeakRef = weakref(valid)
 	valid.queue_free()

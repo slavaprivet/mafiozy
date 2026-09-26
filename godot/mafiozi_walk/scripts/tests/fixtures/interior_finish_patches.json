@@ -1,0 +1,320 @@
+{
+  "originM": [
+    395.65,
+    0,
+    45.099999999999994
+  ],
+  "runtimeVersions": {
+    "node": "v26.1.0",
+    "three": "180"
+  },
+  "patched": [
+    {
+      "index": 15,
+      "descriptor": {
+        "name": "InteriorFinish_concrete",
+        "sourceProgramKey": "interior-finish-v2-4-true",
+        "colorLinear": [
+          0.24620132669705552,
+          0.24620132669705552,
+          0.20507873637973145
+        ],
+        "roughness": 0.82,
+        "metalness": 0,
+        "emissiveLinear": [
+          0,
+          0,
+          0
+        ],
+        "emissiveIntensity": 1,
+        "opacity": 1,
+        "transparent": false,
+        "doubleSided": true,
+        "vertexColors": false,
+        "sourceProceduralShader": true
+      },
+      "vertexPatch": "vec4 interiorMetric=vec4(transformed,1.0);\n   #ifdef USE_BATCHING\n    interiorMetric=batchingMatrix*interiorMetric;\n   #endif\n   #ifdef USE_INSTANCING\n    interiorMetric=instanceMatrix*interiorMetric;\n   #endif\n   vInteriorMetric=(modelMatrix*interiorMetric).xyz;",
+      "fragmentPatch": "vec3 interiorNormal=abs(cross(dFdx(vInteriorMetric),dFdy(vInteriorMetric)));\n   vec2 ip=vInteriorMetric.xz;\n   float surfaceTone=1.0;\n   \n   \n   \n   surfaceTone=.97+.025*sin(ip.x*3.2+sin(ip.y*5.0))+.013*sin(ip.y*32.0+ip.x*27.0);\n   \n   \n   diffuseColor.rgb*=surfaceTone;",
+      "uniformNames": [],
+      "meshNames": [
+        "Entry_Interior_Floor"
+      ]
+    },
+    {
+      "index": 16,
+      "descriptor": {
+        "name": "InteriorFinish_brick",
+        "sourceProgramKey": "interior-finish-v2-1-false",
+        "colorLinear": [
+          0.5394794890033748,
+          0.4969329950515914,
+          0.38642943377667954
+        ],
+        "roughness": 0.82,
+        "metalness": 0,
+        "emissiveLinear": [
+          0,
+          0,
+          0
+        ],
+        "emissiveIntensity": 1,
+        "opacity": 1,
+        "transparent": false,
+        "doubleSided": true,
+        "vertexColors": false,
+        "sourceProceduralShader": true
+      },
+      "vertexPatch": "vec4 interiorMetric=vec4(transformed,1.0);\n   #ifdef USE_BATCHING\n    interiorMetric=batchingMatrix*interiorMetric;\n   #endif\n   #ifdef USE_INSTANCING\n    interiorMetric=instanceMatrix*interiorMetric;\n   #endif\n   vInteriorMetric=(modelMatrix*interiorMetric).xyz;",
+      "fragmentPatch": "vec3 interiorNormal=abs(cross(dFdx(vInteriorMetric),dFdy(vInteriorMetric)));\n   vec2 ip=interiorNormal.x>interiorNormal.z?vInteriorMetric.zy:vInteriorMetric.xy;\n   float surfaceTone=1.0;\n   vec2 brick=ip/vec2(.42,.20);brick.x+=mod(floor(brick.y),2.0)*.5;vec2 joint=abs(fract(brick)-.5);float mortar=smoothstep(.455,.48,max(joint.x,joint.y));surfaceTone=mix(.89+sin(floor(brick.x)*3.1+floor(brick.y)*7.3)*.045,1.16,mortar);\n   \n   \n   \n   \n   if(interiorNormal.y>max(interiorNormal.x,interiorNormal.z))surfaceTone=1.0;\n   diffuseColor.rgb*=surfaceTone;",
+      "uniformNames": [],
+      "meshNames": [
+        "Entry_Interior_Left",
+        "Entry_Interior_Right",
+        "Entry_Interior_Rear",
+        "Entry_Interior_Front",
+        "Entry_Interior_Front",
+        "Storey_Walls_And_Ceilings"
+      ]
+    }
+  ],
+  "lights": [
+    {
+      "position": [
+        -3.2384999999999877,
+        6.109999999999999,
+        0.5494466629250638
+      ],
+      "colorLinear": [
+        1,
+        0.6444796819634361,
+        0.3515325994898463
+      ],
+      "intensity": 8,
+      "distance": 15.100000000000001,
+      "decay": 2
+    },
+    {
+      "position": [
+        1.6064999999999259,
+        6.109999999999999,
+        0.5494466629250709
+      ],
+      "colorLinear": [
+        1,
+        0.6444796819634361,
+        0.3515325994898463
+      ],
+      "intensity": 8,
+      "distance": 15.100000000000001,
+      "decay": 2
+    }
+  ],
+  "sources": [
+    {
+      "path": "assets/maps/city_rebuild_v1/building_doors_glass.mjs",
+      "bytes": 5316,
+      "sha256": "5239dbbf19fde137febcdb3de9e82089ca75ff75d9b4773c020ec8c454141d9c"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_entry.mjs",
+      "bytes": 21434,
+      "sha256": "d822be6e32269d4f175a328e09c008a37e56ef2dec0e55b5ea9992ba08be3333"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_entry_profiles.mjs",
+      "bytes": 29222,
+      "sha256": "cdafc87850c0eaabf64090cd8f441c78a20bf9c4d75be7eed1bb3850a482f53b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_floor_surface.mjs",
+      "bytes": 1268,
+      "sha256": "c2da865acc3b2cc9ee83f06bbbb0a00ab0116cfacf9f47d75513ad812cc93a67"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_garden_site_scale.mjs",
+      "bytes": 8522,
+      "sha256": "cc4369419830d65b819a0baa3197700206836261a68cd10fca7d4e2958386ad2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_interior_design.mjs",
+      "bytes": 17340,
+      "sha256": "a0881b7b05800c2ee7fe16d3dd3a2f58d983fb0f92fb6582edc4f5e7a25a4b76"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_interior_purpose.mjs",
+      "bytes": 3497,
+      "sha256": "37c47750491dc7a935a414a625aa016077f26767d3f1a667af30e87932808791"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_models/print_shop/print_shop.ad7b8ef7e7e4.glb",
+      "bytes": 966720,
+      "sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_room_profiles.mjs",
+      "bytes": 3106,
+      "sha256": "37ab0d42239015ce40c5e78ef241bc35e57122d761c1f66702225fd06f9aaf94"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_site_collision.mjs",
+      "bytes": 2015,
+      "sha256": "656bcb9eedd815855adfe34f9836eadaf4132f12f8d1f302c2e40710e61925ae"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_site_scale.mjs",
+      "bytes": 4563,
+      "sha256": "775978bb1fc3d0915c70ce34884616ce59a376687853da6856522b4d9e5e6d70"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_size_policy.mjs",
+      "bytes": 2935,
+      "sha256": "d61a16c35a8ab73f2e6dd3a5f03e4d0f951ae9ee137feace527f2f34558d72ad"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_storey_profiles.mjs",
+      "bytes": 14146,
+      "sha256": "5246a900962dbf67a3ecef134908f20c52a4df276e289bbdb0cf6db1c26b9e6a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_storeys.mjs",
+      "bytes": 25331,
+      "sha256": "9dd183dc2712e3ab8543cebe911bc3bdc3ea4aff09aa8288bd4d1e31a4cb3223"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_window_integration.mjs",
+      "bytes": 6000,
+      "sha256": "bf2f0331bd544e2e7c44fd3bf79228e6d5ca70135a55af25972e820c968a2634"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/buildings_placement.v1.json",
+      "bytes": 425058,
+      "sha256": "90e0b27196b51fc1f09ccc67d4c5f8374d5c37611576106f34b30559e86ed3ca"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/detention_native_sites.mjs",
+      "bytes": 31357,
+      "sha256": "113e0e5f7c8415ed083ff7ef9e4ba373c3b4c7c5e6522b38cd2c260abb5ad0f8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/detention_road_stop_pose.mjs",
+      "bytes": 678,
+      "sha256": "e123e09ec248aa61585d8780a3100787c270480c093f4fe269787245d543eeeb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/glass_breakage.mjs",
+      "bytes": 20526,
+      "sha256": "d5b8f7380eb716067203395808e7c94ed45cc44ff4d7cfc4bb1d278b24cecf3a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hospital_public_approach.mjs",
+      "bytes": 4770,
+      "sha256": "4a653d571cf3497c78daa8eb90691ea4fedc96c49cb44614c10533acde85ba34"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_bank_room_plan.mjs",
+      "bytes": 8336,
+      "sha256": "2ead9bea139b700e1a14709e625f38be975eb1ef3e590ac53cd6c1dc804bbf32"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_finishes.mjs",
+      "bytes": 3751,
+      "sha256": "95f5d850ba2414194d0e2982224dfe6ce9fba0b1c9f713d415dd1b74e51320dd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_functional_furnishing.mjs",
+      "bytes": 37103,
+      "sha256": "9045dd84e9e0d722d6efaf57094377e57f4f074667439cb5bfe68cff852b92c8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_interactive_safe.mjs",
+      "bytes": 16850,
+      "sha256": "7a2892501579762bad2de7684933b01682fcbcbf90742e4c8075c8b19ac5a8e5"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_mesh_pool.mjs",
+      "bytes": 7446,
+      "sha256": "6c4e585ed5b649cc03e76a9022728a17e002cf60599a5dc9b1cac982477b7ddd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_room_doors.mjs",
+      "bytes": 6116,
+      "sha256": "7e1a786a229078b4e496324ae03f661997980b8c3029de02fd466f5d8fab156a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_safe_registry.mjs",
+      "bytes": 3045,
+      "sha256": "ca0f42714d60a24831af26549638383e6a593ffcb8a5deb020ed117022372c29"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_spacious_layout.mjs",
+      "bytes": 20377,
+      "sha256": "aaf45e3387e7a26cf9296b7488cb06622059b52fc2fc933dffb55be601dece41"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_staircase.mjs",
+      "bytes": 9788,
+      "sha256": "714cf1b1b0c28ef6438c2b48daf1efd8868d6e69fa36eb7969d953de8479784d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs",
+      "bytes": 8245,
+      "sha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/oriented_staircase.mjs",
+      "bytes": 2900,
+      "sha256": "6ec9285077ff34c2461546a87a68ce0748755b2fa09c993182c8f16b20ae8bf9"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/render_freeze_qa.mjs",
+      "bytes": 10818,
+      "sha256": "c2bd6b91573397c50a1387fe30b4a33e36fec61effc58620d9a5cd20a985abfb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/residential_windows.mjs",
+      "bytes": 16731,
+      "sha256": "a9e25aa9b5a7e09ea7997ea7f0ff28ec983febc8bc43e6ff3c996f5110914d0a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/roof_ladder.mjs",
+      "bytes": 13701,
+      "sha256": "a6a2982426053df4a6ac8b38db029ec36af97afa0fa868787c688bca8b2b1733"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/tower_public_approach.mjs",
+      "bytes": 4408,
+      "sha256": "2b100e666cfa440c01190dd8b30efa5e381a2520fbce03adb1f860ca3e091479"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/block.json",
+      "bytes": 159703,
+      "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
+    },
+    {
+      "path": "THREE_VENDOR/addons/loaders/GLTFLoader.js",
+      "bytes": 114739,
+      "sha256": "67ac5551fdafa6e349bd80c8f8e5e39c136d6b2fb1ad647db9abb21dc86f9e4a"
+    },
+    {
+      "path": "THREE_VENDOR/addons/utils/BufferGeometryUtils.js",
+      "bytes": 35539,
+      "sha256": "fda7e946b8e0b5ab39b779206589e7a1079a22eb24efb89d7223e03fdfb1f751"
+    },
+    {
+      "path": "THREE_VENDOR/build/three.core.js",
+      "bytes": 1403455,
+      "sha256": "eb077d2417f61d3e6d9264c317cabc4ea35769ed6b0ab533067292a550784c20"
+    },
+    {
+      "path": "THREE_VENDOR/build/three.module.js",
+      "bytes": 603113,
+      "sha256": "c8211c69345d2e9949dc7a8ac969380497aa0600a5a8ac6a459c8cd02dd9cb8a"
+    }
+  ],
+  "verification": {
+    "descriptorMatches": 2,
+    "lightsMatch": true,
+    "receiptCount": 40,
+    "gpu": "NOT_RUN"
+  }
+}
