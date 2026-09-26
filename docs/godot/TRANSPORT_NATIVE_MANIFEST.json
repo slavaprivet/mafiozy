@@ -1,0 +1,124 @@
+{
+  "schema": "mafiozi.transport.package-manifest.v1",
+  "revision": 6,
+  "base_commit": "a9cbd7e009e44e0224855482809597b0a6512396",
+  "status": "FROZEN_FOR_ROOT_REVIEW_UNCOMMITTED",
+  "descriptor_sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a",
+  "factory_sha256": "482aca7ebd5bd83f4083dc5b23f26c52b47bd5b039295b563a4b47e473d3a8c7",
+  "factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af",
+  "factory_source_manifest_sha256": "10133bb94515eb41078b5b801a647fedad21b1eab4199a430b112359928fc0db",
+  "coordinate_frame": "godot_local=source_world-origin_m",
+  "tests": {
+    "godot": "4.7.2-stable",
+    "checks": 137,
+    "failures": 0,
+    "suites": 6,
+    "root_scene_checks": 14,
+    "root_scene_failures": 0
+  },
+  "files": [
+    {
+      "path": "docs/godot/TRANSPORT_NATIVE_HANDOFF.md",
+      "sha256": "0c6042310fb26892f13bd01ec75b566daa1a7dc1bd1eebb84725e3d09a55681a",
+      "bytes": 13027
+    },
+    {
+      "path": "tools/godot/export_transport_factory_oracle.mjs",
+      "sha256": "a54bdb894ac279c436807c2ed6244d5e679ff47e735306f05288f58e05a52d60",
+      "bytes": 3371
+    },
+    {
+      "path": "tools/godot/export_transport_descriptors.mjs",
+      "sha256": "766f6df08c622565413a17e31e3b09341981455918f94c006e665e2ea0b6d53c",
+      "bytes": 13035
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/vehicle_factory_oracle.v1.json",
+      "sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af",
+      "bytes": 33761
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/vehicle_descriptors.v1.json",
+      "sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a",
+      "bytes": 100522
+    },
+    {
+      "path": "godot/mafiozi_walk/data/transport/transport_bootstrap_factory.v1.json",
+      "sha256": "482aca7ebd5bd83f4083dc5b23f26c52b47bd5b039295b563a4b47e473d3a8c7",
+      "bytes": 1917
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_descriptor_catalog.gd",
+      "sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "bytes": 4134
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_bootstrap_provider.gd",
+      "sha256": "39b045aaad5ce05af782c4387fb6d809339968f2976890c66be379e821a11bb6",
+      "bytes": 6091
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_access_provider.gd",
+      "sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "bytes": 4997
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_logical_host.gd",
+      "sha256": "5371b8561507d23334b83765d25d2d655033d3bb6f493568ff00868b779ea5ad",
+      "bytes": 17273
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_timing.gd",
+      "sha256": "0e34935e455ad8d38556ae7f9f5fedc9985b0332d5df1cde554d0908ad7c2f56",
+      "bytes": 449
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_actor_transition.gd",
+      "sha256": "3894c486b0301705ef70421736d6b3340f362d9a29e292456b483b230c6ab27c",
+      "bytes": 14904
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/transport/transport_runtime.gd",
+      "sha256": "d493809fc33415ca9f0ad2204ad4fb2f458391cdcc80771311d1979f5dc9c04c",
+      "bytes": 9837
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_descriptors.gd",
+      "sha256": "405d9b128a7ed80fe0360f2fc71b6c7200b93f9769315412a1a0d1325e6a9b98",
+      "bytes": 3100
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_bootstrap_provider.gd",
+      "sha256": "5fb9ed8d9f13fb4c969db6a22d6ab9f46ed06ea40c4d948fd2078007cc1d721e",
+      "bytes": 3720
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_logical_host.gd",
+      "sha256": "fed396aac02a2420642c00bf4317025f42c8ca7a51e8bcbf8a7c0fca14f39b8a",
+      "bytes": 9429
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_access_physics.gd",
+      "sha256": "05c2e0f09e7a6e148aaa12bd4fc74d83f0b7b1ff4bbce6c35802c63cc4227428",
+      "bytes": 6063
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_actor_transition.gd",
+      "sha256": "d152f33728debb0573b9f5d3cb8ad7bd861bc8af1dd755f78734bee41405e271",
+      "bytes": 12406
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/tests/test_transport_runtime.gd",
+      "sha256": "b32f6303f6ebaafce4d972c0e845751144aa5e3de26c638abc036291e9ee6ba7",
+      "bytes": 9285
+    }
+  ],
+  "limitations": [
+    "main/player/export wiring owned by root",
+    "visible door and occupant pose application owned by root",
+    "LIVE/GPU not run by transport owner",
+    "water exit dry-only fail-closed",
+    "vehicle physics body owned separately",
+    "durable DETACH/action-arbiter/store remains HOLD/NO_GO"
+  ]
+}

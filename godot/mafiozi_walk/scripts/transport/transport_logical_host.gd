@@ -1,5 +1,7 @@
 extends RefCounted
 
+const Timing = preload("res://scripts/transport/transport_timing.gd")
+
 const SESSION_MODES := ["NEW_SESSION_BOOTSTRAP", "IMPORTED_EXISTING"]
 const HOLD_DURATION_US := 300000
 const MAX_HOLD_GAP_US := 120000
@@ -12,6 +14,7 @@ var _actors: Dictionary = {}
 var _claims: Dictionary = {}
 var _actor_claim: Dictionary = {}
 var _last_clock := 0
+var _clock_consumers: Dictionary = {}
 var _roster_revision := 0
 var _sequence := 0
 
@@ -24,7 +27,7 @@ func begin_session(packet: Dictionary) -> Dictionary:
 	if id.is_empty() or mode not in SESSION_MODES or generation < 1 or clock < 1: return _result("INVALID_SESSION")
 	_session = {"session_id": id, "mode": mode, "session_generation": generation}
 	_vehicles.clear(); _actors.clear(); _claims.clear(); _actor_claim.clear()
-	_last_clock = clock; _roster_revision = 0; _sequence = 0
+	_last_clock = clock; _clock_consumers.clear(); _roster_revision = 0; _sequence = 0
 	return _result("OK", {"session": _session.duplicate(true)})
 
 func publish_roster(snapshot: Dictionary) -> Dictionary:
@@ -58,13 +61,13 @@ func publish_roster(snapshot: Dictionary) -> Dictionary:
 		for supplied_id in supplied:
 			if not seats.has(supplied_id): return _result("UNKNOWN_SEAT")
 		vehicle["seats"] = seats; next_vehicles[key] = vehicle
-	_actors = next_actors; _vehicles = next_vehicles; _last_clock = clock; _roster_revision = revision
+	_actors = next_actors; _vehicles = next_vehicles; _last_clock = clock; _clock_consumers.clear(); _roster_revision = revision
 	_reconcile_claims()
 	return _result("OK", {"actors": _actors.size(), "vehicles": _vehicles.size(), "roster_revision": revision})
 
 func begin_board(actor_ref: Dictionary, vehicle_ref: Dictionary, seat_id: String, source_clock: int, receipt: Dictionary) -> Dictionary:
 	var actor_key := _actor_key(actor_ref); var vehicle_key := _vehicle_key(vehicle_ref)
-	if not _advance_clock(source_clock): return _result("STALE_CLOCK")
+	if not _advance_clock(source_clock, actor_key + ":BOARD"): return _result("STALE_CLOCK")
 	if not _actors.has(actor_key): return _result("ACTOR")
 	if not _vehicles.has(vehicle_key): return _result("VEHICLE")
 	if _actor_claim.has(actor_key) or _occupied_seat(actor_key).size() > 0: return _result("ACTOR_BUSY")
@@ -76,7 +79,7 @@ func begin_board(actor_ref: Dictionary, vehicle_ref: Dictionary, seat_id: String
 
 func begin_exit(actor_ref: Dictionary, vehicle_ref: Dictionary, seat_id: String, source_clock: int, receipt: Dictionary) -> Dictionary:
 	var actor_key := _actor_key(actor_ref); var vehicle_key := _vehicle_key(vehicle_ref)
-	if not _advance_clock(source_clock): return _result("STALE_CLOCK")
+	if not _advance_clock(source_clock, actor_key + ":EXIT"): return _result("STALE_CLOCK")
 	if not _actors.has(actor_key) or not _vehicles.has(vehicle_key): return _result("IDENTITY")
 	if _actor_claim.has(actor_key): return _result("ACTOR_BUSY")
 	var seats: Dictionary = _vehicles[vehicle_key].seats
@@ -85,9 +88,9 @@ func begin_exit(actor_ref: Dictionary, vehicle_ref: Dictionary, seat_id: String,
 	return _create_claim("EXIT", actor_ref, vehicle_ref, seat_id, source_clock)
 
 func advance_hold(token: String, pressed: bool, source_clock: int, receipt: Dictionary) -> Dictionary:
-	if not _advance_clock(source_clock): return _result("STALE_CLOCK")
 	if not _claims.has(token): return _result("LEASE")
 	var claim: Dictionary = _claims[token]
+	if not _advance_clock(source_clock, _actor_key(claim.actor) + ":" + claim.action): return _result("STALE_CLOCK")
 	if source_clock - int(claim.last_clock) > MAX_HOLD_GAP_US:
 		_cancel(token); return _result("CONTINUITY_LOST")
 	if not pressed:
@@ -97,6 +100,26 @@ func advance_hold(token: String, pressed: bool, source_clock: int, receipt: Dict
 	claim.last_clock = source_clock; _claims[token] = claim
 	var elapsed := source_clock - int(claim.started_clock)
 	if elapsed < HOLD_DURATION_US: return _result("HOLDING", {"token": token, "held_us": elapsed, "remaining_us": HOLD_DURATION_US - elapsed})
+	claim.phase = "TRANSITION"; claim.transition_started_clock = source_clock; _claims[token] = claim
+	if claim.action == "BOARD":
+		return _result("TRANSITION_REQUIRED", {"token": token, "action": claim.action, "duration_us": Timing.BOARD_DURATION_US})
+	return _result("TRANSITION_REQUIRED", {"token": token, "action": claim.action, "release_duration_us": Timing.EXIT_RELEASE_US, "walk_recovery_us": Timing.EXIT_WALK_RECOVERY_US, "tumble_recovery_us": Timing.EXIT_TUMBLE_RECOVERY_US})
+
+func complete_transition(token: String, source_clock: int, receipt: Dictionary) -> Dictionary:
+	if not _claims.has(token): return _result("LEASE")
+	var claim: Dictionary = _claims[token]
+	if claim.get("phase", "") != "TRANSITION": return _result("PHASE")
+	if not _advance_clock(source_clock, _actor_key(claim.actor) + ":" + claim.action): return _result("STALE_CLOCK")
+	var required_duration := Timing.BOARD_DURATION_US
+	if claim.action == "EXIT":
+		var exit_kind := String(receipt.get("source_exit_kind", ""))
+		if exit_kind not in ["walk", "tumble"]: return _result("TRANSITION_UNCONFIRMED")
+		required_duration = Timing.EXIT_RELEASE_US + (Timing.EXIT_TUMBLE_RECOVERY_US if exit_kind == "tumble" else Timing.EXIT_WALK_RECOVERY_US)
+	if source_clock - int(claim.get("transition_started_clock", source_clock)) < required_duration: return _result("TRANSITION_ACTIVE")
+	var reached := bool(receipt.get("seat_reached", false)) if claim.action == "BOARD" else bool(receipt.get("outside_reached", false))
+	var exit_done: bool = claim.action == "BOARD" or (bool(receipt.get("door_release_done", false)) and bool(receipt.get("recovery_done", false)) and bool(receipt.get("grounded", false)) and not bool(receipt.get("blocked", true)))
+	if receipt.get("provider", "") != "TRANSPORT_ACTOR_TRANSITION_V1" or receipt.get("action", "") != claim.action or receipt.get("token", "") != token or int(receipt.get("source_clock", 0)) != source_clock or not bool(receipt.get("pose_done", false)) or not bool(receipt.get("physical_safe", false)) or not reached or not exit_done:
+		return _result("TRANSITION_UNCONFIRMED")
 	return _complete(token)
 
 func cancel(token: String) -> Dictionary:
@@ -113,6 +136,22 @@ func driver(vehicle_ref: Dictionary) -> Dictionary:
 	var vehicle: Dictionary = _vehicles.get(_vehicle_key(vehicle_ref), {})
 	var value: Variant = (vehicle.get("seats", {}) as Dictionary).get("front_left")
 	return value.duplicate(true) if value is Dictionary else {}
+
+func vehicle_record(vehicle_ref: Dictionary) -> Dictionary:
+	return (_vehicles.get(_vehicle_key(vehicle_ref), {}) as Dictionary).duplicate(true)
+
+func sync_native_vehicle_pose(vehicle_ref: Dictionary, position_m: Vector3, yaw_rad: float, source_clock: int) -> Dictionary:
+	if _session.get("mode", "") != "NEW_SESSION_BOOTSTRAP": return _result("SOURCE_AUTHORITY")
+	var vehicle_key := _vehicle_key(vehicle_ref)
+	if vehicle_key.is_empty() or not _vehicles.has(vehicle_key): return _result("VEHICLE")
+	if not is_finite(position_m.x) or not is_finite(position_m.y) or not is_finite(position_m.z) or not is_finite(yaw_rad): return _result("POSE")
+	if not _advance_clock(source_clock, vehicle_key + ":NATIVE_POSE"): return _result("STALE_CLOCK")
+	var vehicle: Dictionary = _vehicles[vehicle_key]
+	vehicle.position_m = {"x": position_m.x, "y": position_m.y, "z": position_m.z}
+	vehicle.yaw_rad = wrapf(yaw_rad, -PI, PI)
+	vehicle.source_clock = source_clock
+	_vehicles[vehicle_key] = vehicle
+	return _result("OK", {"vehicle": vehicle_ref.duplicate(true), "position_m": vehicle.position_m.duplicate(true), "yaw_rad": vehicle.yaw_rad})
 
 func diagnostics() -> Dictionary:
 	return {"session": _session.duplicate(true), "source_clock": _last_clock, "roster_revision": _roster_revision, "actors": _actors.size(), "vehicles": _vehicles.size(), "leases": _claims.size()}
@@ -156,10 +195,12 @@ func _reconcile_claims() -> void:
 			_cancel(token)
 
 func _receipt_valid(receipt: Dictionary, action: String, actor_ref: Dictionary, vehicle_ref: Dictionary, seat_id: String, clock: int) -> bool:
+	var distance_ok := float(receipt.get("distance_to_target_m", INF)) <= (1.3 if action == "BOARD" else 8.0)
+	var arrival_ok := action == "EXIT" or bool(receipt.get("arrival_ready", false))
 	return receipt.get("provider", "") == ACCESS_PROVIDER and receipt.get("action", "") == action and int(receipt.get("source_clock", 0)) == clock \
 		and receipt.get("door_id", "") == seat_id and receipt.get("actor_id", "") == actor_ref.get("actor_id", "") and int(receipt.get("actor_generation", 0)) == int(actor_ref.get("life_generation", -1)) \
 		and receipt.get("vehicle_id", "") == vehicle_ref.get("vehicle_id", "") and int(receipt.get("vehicle_generation", 0)) == int(vehicle_ref.get("life_generation", -1)) \
-		and bool(receipt.get("reachable", false)) and bool(receipt.get("path_clear", false)) and bool(receipt.get("destination_clear", false))
+		and bool(receipt.get("door_ready", false)) and distance_ok and arrival_ok and bool(receipt.get("reachable", false)) and bool(receipt.get("start_clear", false)) and bool(receipt.get("path_clear", false)) and bool(receipt.get("destination_clear", false)) and bool(receipt.get("support_clear", false))
 
 func _world_anchor(vehicle_ref: Dictionary, seat_id: String, field: String) -> Dictionary:
 	var vehicle: Dictionary = _vehicles.get(_vehicle_key(vehicle_ref), {})
@@ -189,9 +230,11 @@ func _cancel(token: String) -> void:
 	if not claim.is_empty(): _actor_claim.erase(_actor_key(claim.actor))
 	_claims.erase(token)
 
-func _advance_clock(clock: int) -> bool:
-	if clock <= _last_clock: return false
-	_last_clock = clock; return true
+func _advance_clock(clock: int, consumer: String) -> bool:
+	if clock < _last_clock or consumer.is_empty(): return false
+	if clock > _last_clock: _last_clock = clock; _clock_consumers.clear()
+	if _clock_consumers.has(consumer): return false
+	_clock_consumers[consumer] = true; return true
 
 func _session_matches(packet: Dictionary) -> bool:
 	return packet.get("session_id", "") == _session.session_id and int(packet.get("session_generation", 0)) == int(_session.session_generation)

@@ -11,12 +11,19 @@ import {explorationKeepouts} from '../../assets/maps/city_rebuild_v1/exploration
 const repositoryRoot = new URL('../../', import.meta.url);
 const cityRoot = new URL('assets/maps/city_rebuild_v1/', repositoryRoot);
 const outputUrl = new URL('godot/mafiozi_walk/data/transport/vehicle_descriptors.v1.json', repositoryRoot);
+const factoryOutputUrl = new URL('godot/mafiozi_walk/data/transport/transport_bootstrap_factory.v1.json', repositoryRoot);
+const factoryOracleUrl = new URL('godot/mafiozi_walk/data/transport/vehicle_factory_oracle.v1.json', repositoryRoot);
 const readJson = name => JSON.parse(fs.readFileSync(new URL(name, cityRoot), 'utf8'));
 const round = value => Number(Number(value).toFixed(9));
 const vector = (x, y, z) => ({x: round(x), y: round(y), z: round(z)});
 const localVector = (sourceX, sourceY, sourceZ) => vector(-sourceX, sourceY, -sourceZ);
 const godotYaw = sourceYaw => round(Math.atan2(Math.sin(sourceYaw + Math.PI), Math.cos(sourceYaw + Math.PI)));
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const factoryOracle = JSON.parse(fs.readFileSync(factoryOracleUrl, 'utf8'));
+assert.equal(factoryOracle.schema, 'mafiozi.transport.vehicle-factory-oracle.v1');
+assert.deepEqual(factoryOracle.authority.coordinate_system, {units: 'metres', up: '+Y', forward: '-Z', left: '-X'});
+const factoryProfiles = new Map(factoryOracle.profiles.map(profile => [profile.profile_id, profile]));
+assert.equal(factoryProfiles.size, ARTIST_VEHICLE_PROFILES.length, 'factory oracle profile count differs from source fleet');
 
 const sourceFiles = [
   'vehicle_fleet_models.mjs', 'vehicle_dynamics.mjs', 'vehicle_seats.mjs',
@@ -54,6 +61,11 @@ function adaptedCabin(source) {
 
 function sourceProfile(source) {
   const {p, floorTop, bodyH, bodyY, front, rear, roofBottom, seatRecline, cabinRaise, movedCab} = adaptedCabin(source);
+  const factory = factoryProfiles.get(p.id);
+  assert(factory, 'actual factory oracle missing profile ' + p.id);
+  assert.equal(factory.source_glb_sha256, p.sha256, 'actual factory oracle source GLB differs for ' + p.id);
+  const factoryAnchors = new Map(factory.anchors.map(anchor => [anchor.id, anchor]));
+  const runtime = factory.runtime_profile;
   const interiorHalfWidth = Math.min(p.cabinWidth * .5 - .065, p.width * .49);
   const rowCount = p.seatCount === 4 ? 2 : 1;
   const rowLength = (front - rear) / rowCount;
@@ -74,18 +86,22 @@ function sourceProfile(source) {
     const seatZ = front - row * rowLength - Math.min(rowLength * .62, .62);
     const doorFrontMid = (doorRear + doorFront) / 2;
     const canDrive = id === 'front_left';
+    const actual = factoryAnchors.get(id);
+    assert(actual, 'actual factory oracle missing seat ' + p.id + ':' + id);
+    assert.equal(actual.door_id, id);
+    assert.equal(actual.can_drive, canDrive);
     doors.push({
       id, side: side > 0 ? 'left' : 'right', row: row ? 'rear' : 'front',
       hinge_local_m: localVector(doorX, Math.max(floorTop + .4, panelTop), doorFront),
-      handle_local_m: localVector(doorX + side * .05, panelTop, doorRear + .15),
+      handle_local_m: vector(...actual.handle_local_m),
       opening_local_aabb_m: opening,
     });
     seats.push({
       id, door_id: id,
       label_ru: canDrive ? 'Водитель' : row ? (side > 0 ? 'Задний левый пассажир' : 'Задний правый пассажир') : 'Передний пассажир',
       can_drive: canDrive,
-      anchor_local_m: localVector(side * seatSide, driverRootY, seatZ),
-      approach_local_m: localVector(side * (p.halfWidth + .57), 0, doorFrontMid),
+      anchor_local_m: vector(...actual.seat_local_m),
+      approach_local_m: vector(...actual.approach_local_m),
       source_side: side,
     });
   }
@@ -93,7 +109,8 @@ function sourceProfile(source) {
     profile_id: p.id, label: p.label, family: p.family, model_file: p.modelFile,
     model_sha256: p.sha256, source_units: 'metres', godot_forward_axis: '-Z', source_forward_axis: '+Z',
     seat_count: seats.length, mass_kg: round(p.massKg),
-    body_half_extents_m: vector(p.halfWidth, p.height * .5, p.halfLength),
+    body_half_extents_m: vector(runtime.half_width_m, runtime.height_m * .5, runtime.half_length_m),
+    runtime_visual_bounds_source_m: {min: runtime.bounds_source_m.min.map(round), max: runtime.bounds_source_m.max.map(round)},
     ground_clearance_m: null, center_of_mass_local_m: null,
     wheelbase_m: round(p.wheelBase), track_width_m: null, wheel_radius_m: round(p.wheelRadius),
     suspension_rest_length_m: null, steering_limit_rad: round(VEHICLE_DYNAMICS.maxSteer),
@@ -102,8 +119,9 @@ function sourceProfile(source) {
     linear_drag: round(VEHICLE_DYNAMICS.coastDrag), angular_drag: null,
     dynamics_note: p.physicsTuning,
     physics_source_provenance: {
-      exact_or_source_derived: ['mass_kg', 'body_half_extents_m', 'wheelbase_m', 'wheel_radius_m', 'steering_limit_rad', 'engine_accel_mps2', 'brake_decel_mps2', 'reverse_accel_mps2', 'max_forward_speed_mps', 'max_reverse_speed_mps', 'linear_drag'],
+      exact_or_source_derived: ['mass_kg', 'body_half_extents_m', 'runtime_visual_bounds_source_m', 'wheelbase_m', 'wheel_radius_m', 'steering_limit_rad', 'engine_accel_mps2', 'brake_decel_mps2', 'reverse_accel_mps2', 'max_forward_speed_mps', 'max_reverse_speed_mps', 'linear_drag'],
       unavailable_in_walk_source: ['ground_clearance_m', 'center_of_mass_local_m', 'track_width_m', 'suspension_rest_length_m', 'angular_drag'],
+      actual_factory_oracle_sha256: sha256(fs.readFileSync(factoryOracleUrl)),
     },
     cabin_derivation: {floor_top_m: round(floorTop), roof_bottom_m: round(roofBottom), seat_recline_rad: round(seatRecline), cabin_raise_m: round(cabinRaise), source_cab_forward_correction_m: round(movedCab)},
     seats, doors,
@@ -140,6 +158,7 @@ function parkingDescriptors(plan) {
 
 const parking = currentParkingPlan();
 const sources = sourceFiles.map(path => ({path: 'assets/maps/city_rebuild_v1/' + path, sha256: sha256(fs.readFileSync(new URL(path, cityRoot)))}));
+sources.push({path: 'godot/mafiozi_walk/data/transport/vehicle_factory_oracle.v1.json', sha256: sha256(fs.readFileSync(factoryOracleUrl))});
 const document = {
   schema: 'mafiozi.transport.descriptors.v1',
   authority: {kind: 'derived_from_tracked_walk_source', immutable: true, sources},
@@ -156,4 +175,26 @@ const document = {
 
 fs.mkdirSync(new URL('.', outputUrl), {recursive: true});
 fs.writeFileSync(outputUrl, JSON.stringify(document, null, 2) + '\n');
-console.log(JSON.stringify({output: fileURLToPath(outputUrl), profiles: document.profiles.length, lots: parking.lots.length, bays: document.parking.bays.length, sha256: sha256(fs.readFileSync(outputUrl))}));
+const worldBytes = fs.readFileSync(new URL('world.html', repositoryRoot));
+const bootstrapFactoryProfiles = [
+  ['parked-sedan', 'sedan', 'compact_sedan'], ['parked-hatchback', 'hatch_blue', 'city_hatchback'],
+  ['parked-wagon', 'wagon', 'family_wagon'], ['parked-executive', 'classic', 'executive_sedan'],
+  ['parked-coupe', 'coupe', 'sport_coupe'], ['parked-suv', 'suv', 'city_suv'],
+  ['parked-van', 'van', 'delivery_van'], ['parked-pickup', 'pickup', 'utility_pickup'],
+].map(([factory_slot_id, source_model_id, profile_id]) => ({factory_slot_id, source_model_id, profile_id}));
+const factory = {
+  schema: 'mafiozi.transport.bootstrap-factory.v1',
+  authority: {
+    kind: 'native_port_of_tracked_walk_new_session_factory', source_id: 'world.html:initCars/spawnParkedCar/_threeVehicleEntityId',
+    source_sha256: sha256(worldBytes), source_symbols: ['initCars', 'spawnParkedCar', '_nativeParkingPrepare', '_threeVehicleEntityId'],
+    identity_rule: 'first explicit native birth uses local_vehicle_1 with life_generation 1 inside caller-supplied session',
+  },
+  policy: {
+    mode: 'NEW_SESSION_BOOTSTRAP', explicit_factory_slot_required: true, explicit_parking_id_required: true,
+    origin_rule: 'vehicle.position_m=source_parking.position_m-origin_m; omitted origin_m is legacy explicit zero',
+    imported_existing_births: 0, first_slice_birth_limit: 1,
+  },
+  factory_slots: bootstrapFactoryProfiles,
+};
+fs.writeFileSync(factoryOutputUrl, JSON.stringify(factory, null, 2) + '\n');
+console.log(JSON.stringify({output: fileURLToPath(outputUrl), factory_output: fileURLToPath(factoryOutputUrl), profiles: document.profiles.length, lots: parking.lots.length, bays: document.parking.bays.length, sha256: sha256(fs.readFileSync(outputUrl)), factory_sha256: sha256(fs.readFileSync(factoryOutputUrl))}));

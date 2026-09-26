@@ -25,6 +25,9 @@ func run() -> void:
 	var passed: bool = main.get("preview_ready") == true and main.get("printshop_status") == "ready" and player != null
 	var status: Dictionary = player.get_preview_status() if player != null else {}
 	passed = passed and bool(status.get("airborne", {}).get("ready", false))
+	# Enabled transport must also survive packaging, including runtime GLB bytes.
+	if main.get("preview_transport_enabled") == true:
+		passed = passed and main.get("transport_status") == "ready"
 	var features: Dictionary = {}
 	if require_upgrade:
 		var roles: Array[String] = []

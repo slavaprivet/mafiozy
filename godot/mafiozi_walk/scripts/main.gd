@@ -7,6 +7,18 @@ const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
 const PreviewPerfAdapter = preload("res://scripts/perf/preview_perf_adapter.gd")
 const PrintshopInterior = preload("res://scripts/preview_printshop_interior.gd")
 const WaterSurface = preload("res://scripts/preview_water_surface.gd")
+const UpdatePanel = preload("res://scripts/preview_update_panel.gd")
+const StaticBatch = preload("res://scripts/preview_static_batch.gd")
+const PreviewTransport = preload("res://scripts/preview_transport.gd")
+const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
+const STATIC_RENDER_OWNER_IDS := [
+	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
+	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-004", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
+	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
+]
+const PREVIEW_RUNTIME_REVISION := "s01-20260927-compact14b"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -15,6 +27,16 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_perf_enabled: bool = false
 @export var preview_water_detail_enabled: bool = true
 @export var preview_start_at_printshop: bool = true
+@export var preview_static_batch_enabled: bool = false
+@export var preview_transport_enabled: bool = true
+@export var preview_start_at_vehicle: bool = true
+var preview_transport: Node3D
+var transport_status := "disabled"
+var preview_dead := false
+var static_batch_status: String = "disabled"
+var static_batch_summary: Dictionary = {}
+var _static_batch_lease: RefCounted
+var _static_render_roots: Array[Node3D] = []
 var water_status: String = "not_loaded"
 var water_errors: PackedStringArray = []
 var water_summary: Dictionary = {}
@@ -81,11 +103,16 @@ func _ready() -> void:
 		return
 	_build_lighting()
 	_build_surface()
+	var boundary := PreviewBoundary.new()
+	add_child(boundary)
+	boundary.configure(_block.surface.boundsLocalM)
 	_load_printshop_data()
 	for record: Dictionary in _block["buildings"]:
 		_add_asset(record)
 	for record: Dictionary in _block["decor"]:
 		_add_asset(record)
+	if (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
+		apply_preview_static_batches()
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
 	var spawn_yaw := 0.0
 	# User-requested preview start, derived from the real public entrance.
@@ -109,12 +136,26 @@ func _ready() -> void:
 	_player_capsule = _player.get_node_or_null("PlayerCapsule") as CollisionShape3D
 	if not bool(_player.get_preview_status().get("model_loaded", false)):
 		validation_errors.append("Hero did not produce a valid visible model")
+		restore_preview_static_batches("invalid_player")
 		_dispose_water_surface()
 		for child: Node in get_children():
 			child.queue_free()
 		_show_load_error()
 		return
 	_build_hud()
+	if preview_transport_enabled or OS.get_cmdline_user_args().has("--preview-transport"):
+		preview_transport = PreviewTransport.new()
+		preview_transport.name = "PreviewTransport"
+		add_child(preview_transport)
+		var vehicle_setup: Dictionary = preview_transport.setup(_player, _origin)
+		transport_status = "ready" if vehicle_setup.get("ok", false) else str(vehicle_setup.get("error", "failed"))
+		if vehicle_setup.get("ok", false) and preview_start_at_vehicle:
+			_player.position = vehicle_setup.spawn
+			_player.set_preview_pose_authority(&"on_foot", true)
+			_player._camera_yaw = preview_transport.body.global_rotation.y - PI / 2.0
+			_player._heading = _player._camera_yaw
+			_player._visual.rotation.y = _player._heading + PI
+			_player._update_camera_rotation()
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
@@ -124,6 +165,52 @@ func _ready() -> void:
 	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
 	print("PRINTSHOP_INTERIOR_STATUS ", printshop_status)
 	print("WATER_SURFACE_STATUS ", water_status)
+	print("STATIC_BATCH_STATUS ", static_batch_status)
+
+## Startup/controlled rebuild only. Restore BEFORE source geometry, transforms,
+## visibility, materials or shared-sun/sky lighting dependencies are changed.
+## Printshop, terrain, actors and all physics stay outside this render lease.
+func apply_preview_static_batches() -> bool:
+	if _static_batch_lease != null:
+		return static_batch_status == "ready"
+	var declarations: Array = []
+	for owner: Node3D in _static_render_roots:
+		if not is_instance_valid(owner) or owner.get_parent() != self:
+			static_batch_status = "fallback"
+			static_batch_summary = {"ok": false, "errors": ["Static owner changed before planning"]}
+			return false
+		var source_id: String = str(owner.get_meta("source_id", ""))
+		if source_id not in STATIC_RENDER_OWNER_IDS:
+			static_batch_status = "fallback"
+			static_batch_summary = {"ok": false, "errors": ["Static owner identity changed"]}
+			return false
+		declarations.append({"root": owner, "source_id": source_id, "static_authorized": true,
+			"shared_sun_sky_only": true, "allow_static_gi_without_capture": true})
+	var lease := StaticBatch.new()
+	var started := Time.get_ticks_usec()
+	static_batch_summary = lease.plan(self, declarations, 16.0)
+	var planned := Time.get_ticks_usec()
+	if not bool(static_batch_summary.get("ok", false)) or not lease.apply():
+		static_batch_summary["ok"] = false
+		static_batch_summary["errors"] = lease.errors.duplicate()
+		lease.restore()
+		static_batch_status = "fallback"
+		return false
+	static_batch_summary["plan_us"] = planned - started
+	static_batch_summary["apply_us"] = Time.get_ticks_usec() - planned
+	static_batch_summary["active"] = true
+	_static_batch_lease = lease
+	static_batch_status = "ready"
+	return true
+
+func restore_preview_static_batches(reason: String = "restored") -> void:
+	if _static_batch_lease == null:
+		return
+	_static_batch_lease.restore()
+	_static_batch_lease = null
+	static_batch_summary["active"] = false
+	static_batch_summary["restore_reason"] = reason
+	static_batch_status = "restored"
 
 func _build_water_surface() -> bool:
 	# Build-time selection only. Never mutate water topology from a frame callback.
@@ -277,6 +364,7 @@ func _jump_surface_point_contains(source_xz: Vector2) -> bool:
 
 func _exit_tree() -> void:
 	# Parent still exists here; clear host-owned mesh/material before destruction.
+	restore_preview_static_batches("scene_exit")
 	_dispose_water_surface()
 
 func _load_printshop_data() -> void:
@@ -346,6 +434,11 @@ func _position_door_hint() -> void:
 		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
 
 func _unhandled_input(event: InputEvent) -> void:
+	if preview_dead:
+		if event is InputEventKey and event.pressed and not event.echo and (event.physical_keycode == KEY_R or event.keycode == KEY_R):
+			get_viewport().set_input_as_handled()
+			get_tree().reload_current_scene.call_deferred()
+		return
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
@@ -389,6 +482,7 @@ func begin_preview_perf_capture(config: Dictionary = {}) -> bool:
 	context["vehicles"] = 0
 	context["block_data_path"] = block_data_path
 	context["water_status"] = water_status
+	context["static_batch_status"] = static_batch_status
 	context["qualification"] = "Small preview quarter; not full-city gameplay acceptance"
 	settings["context"] = context
 	return preview_perf.begin_capture(settings)
@@ -501,6 +595,8 @@ func _add_asset(record: Dictionary) -> void:
 	parent.add_child(visual)
 	add_child(parent)
 	_hide_helpers(visual, record.get("effectiveHiddenNodeNames", []))
+	if str(record["id"]) in STATIC_RENDER_OWNER_IDS:
+		_static_render_roots.append(parent)
 	if str(record["id"]) == PrintshopInterior.SOURCE_ID and not _printshop_data.is_empty():
 		var interior: Node3D = PrintshopInterior.new()
 		interior.name = "PrintshopInterior"
@@ -539,14 +635,14 @@ func _build_hud() -> void:
 	var layer: CanvasLayer = CanvasLayer.new()
 	add_child(layer)
 	var panel: PanelContainer = PanelContainer.new()
-	panel.position = Vector2(24, 24)
+	panel.position = Vector2(16, 16)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.035, 0.055, 0.07, 0.9)
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 7
+	style.content_margin_bottom = 7
 	style.border_width_left = 3
 	style.border_color = Color("dfb968")
 	panel.add_theme_stylebox_override("panel", style)
@@ -555,21 +651,20 @@ func _build_hud() -> void:
 	stack.add_theme_constant_override("separation", 5)
 	panel.add_child(stack)
 	var title: Label = Label.new()
-	title.text = "МАФИОЗИ  /  GODOT"
-	title.add_theme_font_size_override("font_size", 18)
+	title.text = "МАФИОЗИ · тестовый квартал"
+	title.add_theme_font_size_override("font_size", 13)
 	title.add_theme_color_override("font_color", Color("ebc77f"))
 	stack.add_child(title)
-	var stage: Label = Label.new()
-	stage.text = "Первый квартал · ходьба и бег\nТипография открывается через E; жители и транспорт ещё переносятся" if printshop_status == "ready" else "Первый квартал · ходьба и бег\nИнтерьер типографии недоступен; сохранено исходное здание"
-	stage.add_theme_font_size_override("font_size", 14)
-	stack.add_child(stage)
 	_stats = Label.new()
 	_stats.add_theme_color_override("font_color", Color("aabec8"))
-	_stats.add_theme_font_size_override("font_size", 13)
+	_stats.add_theme_font_size_override("font_size", 12)
 	stack.add_child(_stats)
 	var controls: Label = Label.new()
 	controls.text = "WASD — идти   Shift — бег   Space — прыжок   2×Space — Max Payne\nМышь — камера   Колесо — ближе / дальше   Esc — курсор   Tab — камера"
-	controls.position = Vector2(24, 640)
+	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+	controls.offset_left = 16
+	controls.offset_top = -46
+	controls.add_theme_font_size_override("font_size", 12)
 	controls.add_theme_color_override("font_shadow_color", Color.BLACK)
 	controls.add_theme_constant_override("shadow_offset_x", 1)
 	controls.add_theme_constant_override("shadow_offset_y", 2)
@@ -583,10 +678,10 @@ func _build_hud() -> void:
 	door_style.set_border_width_all(1)
 	door_style.border_color = Color("dfb968")
 	door_style.set_corner_radius_all(6)
-	door_style.content_margin_left = 16
-	door_style.content_margin_right = 16
-	door_style.content_margin_top = 9
-	door_style.content_margin_bottom = 9
+	door_style.content_margin_left = 8
+	door_style.content_margin_right = 8
+	door_style.content_margin_top = 4
+	door_style.content_margin_bottom = 4
 	_door_hint_panel.add_theme_stylebox_override("panel", door_style)
 	layer.add_child(_door_hint_panel)
 	if is_instance_valid(_printshop):
@@ -596,11 +691,11 @@ func _build_hud() -> void:
 		_door_hint_world.y += 0.25
 	var door_row := HBoxContainer.new()
 	door_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	door_row.add_theme_constant_override("separation", 12)
+	door_row.add_theme_constant_override("separation", 6)
 	_door_hint_panel.add_child(door_row)
 	_door_hint_key = PanelContainer.new()
 	_door_hint_key.name = "InteractionKeyE"
-	_door_hint_key.custom_minimum_size = Vector2(36, 36)
+	_door_hint_key.custom_minimum_size = Vector2(24, 24)
 	_door_hint_key.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var key_style := StyleBoxFlat.new()
 	key_style.bg_color = Color("f7dc9c")
@@ -615,13 +710,13 @@ func _build_hud() -> void:
 	key_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	key_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	key_label.add_theme_color_override("font_color", Color("17202a"))
-	key_label.add_theme_font_size_override("font_size", 23)
+	key_label.add_theme_font_size_override("font_size", 16)
 	key_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_door_hint_key.add_child(key_label)
 	_door_hint = Label.new()
 	_door_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_door_hint.add_theme_color_override("font_color", Color("f7dc9c"))
-	_door_hint.add_theme_font_size_override("font_size", 20)
+	_door_hint.add_theme_font_size_override("font_size", 14)
 	_door_hint.add_theme_color_override("font_shadow_color", Color.BLACK)
 	_door_hint.add_theme_constant_override("shadow_offset_x", 1)
 	_door_hint.add_theme_constant_override("shadow_offset_y", 2)
@@ -629,66 +724,16 @@ func _build_hud() -> void:
 	_build_update_panel(layer)
 
 func _build_update_panel(layer: CanvasLayer) -> void:
-	var path := "res://data/preview_updates.json"
-	if not FileAccess.file_exists(path):
-		return
-	var update: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
-	if not update is Dictionary or not update.get("items") is Array:
-		return
-	var notes := PanelContainer.new()
-	notes.name = "PreviewUpdates"
-	notes.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	notes.offset_left = -374
-	notes.offset_right = -24
-	notes.offset_top = 24
-	notes.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.035, 0.055, 0.07, 0.90)
-	style.content_margin_left = 16
-	style.content_margin_right = 16
-	style.content_margin_top = 14
-	style.content_margin_bottom = 14
-	style.border_width_top = 2
-	style.border_color = Color("dfb968")
-	notes.add_theme_stylebox_override("panel", style)
+	var notes := UpdatePanel.new()
 	layer.add_child(notes)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 10)
-	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	notes.add_child(stack)
-	var heading := Label.new()
-	heading.text = "ЧТО НОВОГО И ЧТО ПОПРОБОВАТЬ"
-	heading.add_theme_font_size_override("font_size", 15)
-	heading.add_theme_color_override("font_color", Color("ebc77f"))
-	stack.add_child(heading)
-	var version := Label.new()
-	version.text = str(update.get("title", "Обновление сцены")).left(80)
-	version.add_theme_font_size_override("font_size", 13)
-	version.add_theme_color_override("font_color", Color("aabec8"))
-	version.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	stack.add_child(version)
-	var number := 0
-	for item: Variant in update.items:
-		if not item is String or item.strip_edges().is_empty():
-			continue
-		number += 1
-		var label := Label.new()
-		label.text = "%d. %s" % [number, item.left(240)]
-		label.add_theme_font_size_override("font_size", 14)
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		stack.add_child(label)
-		if number >= 5:
-			break
+	notes.setup("res://data/preview_updates.json", PREVIEW_RUNTIME_REVISION)
 
 func _process(delta: float) -> void:
 	if not preview_ready or _player == null:
 		return
 	_position_door_hint()
-	if _player.position.y < -12:
-		_player.position = _spawn
-		_player.velocity = Vector3.ZERO
-		_player.set_preview_pose_authority(&"on_foot", true)
+	if not preview_dead and _player.global_position.y < -25.0:
+		_die_outside_world()
 	var now: int = Time.get_ticks_usec()
 	if _water_host != null:
 		_water_host.advance(float(now) / 1000000.0)
@@ -707,7 +752,7 @@ func _process(delta: float) -> void:
 	var sorted: Array[float] = _samples.duplicate()
 	sorted.sort()
 	var p95: float = sorted[mini(sorted.size() - 1, int(sorted.size() * 0.95))]
-	_stats.text = "%s · %d FPS · кадр p95 %.1f мс\nМалый квартал; производительность города ещё не проверена" % [RenderingServer.get_current_rendering_method(), Engine.get_frames_per_second(), p95]
+	_stats.text = "%d FPS · p95 %.1f мс" % [Engine.get_frames_per_second(), p95]
 	if not _capture_path.is_empty() and _runtime_seconds < 12.0:
 		print("PREVIEW_FRAME_SAMPLE ", JSON.stringify({"elapsed_seconds": _runtime_seconds, "fps": Engine.get_frames_per_second(), "frame_p95_ms": p95, "draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), "primitives": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), "limits": "Static small debug preview, not full gameplay or exported release benchmark"}))
 
@@ -716,3 +761,27 @@ func _save_preview_frame() -> void:
 	var frame: Image = get_viewport().get_texture().get_image()
 	var result: Error = frame.save_png(_capture_path)
 	print("PREVIEW_CAPTURE ", result, " ", _capture_path)
+
+func _die_outside_world() -> void:
+	# Explicit local-preview death; never teleport a still-occupied actor away
+	# from a falling vehicle or silently grant walking authority.
+	preview_dead = true
+	if is_instance_valid(preview_transport):
+		preview_transport.mark_dead()
+	else:
+		_player.set_preview_pose_authority(&"dead")
+	_player.set_mouse_captured(false)
+	var layer := CanvasLayer.new()
+	layer.layer = 20
+	add_child(layer)
+	var shade := ColorRect.new()
+	shade.color = Color(0.03, 0.03, 0.04, .72)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(shade)
+	var label := Label.new()
+	label.text = "ВЫ ПОГИБЛИ\nПадение за пределы карты\n\nR — начать заново"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 28)
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.add_child(label)

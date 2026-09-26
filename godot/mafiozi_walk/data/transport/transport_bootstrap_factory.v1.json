@@ -1,0 +1,65 @@
+{
+  "schema": "mafiozi.transport.bootstrap-factory.v1",
+  "authority": {
+    "kind": "native_port_of_tracked_walk_new_session_factory",
+    "source_id": "world.html:initCars/spawnParkedCar/_threeVehicleEntityId",
+    "source_sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+    "source_symbols": [
+      "initCars",
+      "spawnParkedCar",
+      "_nativeParkingPrepare",
+      "_threeVehicleEntityId"
+    ],
+    "identity_rule": "first explicit native birth uses local_vehicle_1 with life_generation 1 inside caller-supplied session"
+  },
+  "policy": {
+    "mode": "NEW_SESSION_BOOTSTRAP",
+    "explicit_factory_slot_required": true,
+    "explicit_parking_id_required": true,
+    "origin_rule": "vehicle.position_m=source_parking.position_m-origin_m; omitted origin_m is legacy explicit zero",
+    "imported_existing_births": 0,
+    "first_slice_birth_limit": 1
+  },
+  "factory_slots": [
+    {
+      "factory_slot_id": "parked-sedan",
+      "source_model_id": "sedan",
+      "profile_id": "compact_sedan"
+    },
+    {
+      "factory_slot_id": "parked-hatchback",
+      "source_model_id": "hatch_blue",
+      "profile_id": "city_hatchback"
+    },
+    {
+      "factory_slot_id": "parked-wagon",
+      "source_model_id": "wagon",
+      "profile_id": "family_wagon"
+    },
+    {
+      "factory_slot_id": "parked-executive",
+      "source_model_id": "classic",
+      "profile_id": "executive_sedan"
+    },
+    {
+      "factory_slot_id": "parked-coupe",
+      "source_model_id": "coupe",
+      "profile_id": "sport_coupe"
+    },
+    {
+      "factory_slot_id": "parked-suv",
+      "source_model_id": "suv",
+      "profile_id": "city_suv"
+    },
+    {
+      "factory_slot_id": "parked-van",
+      "source_model_id": "van",
+      "profile_id": "delivery_van"
+    },
+    {
+      "factory_slot_id": "parked-pickup",
+      "source_model_id": "pickup",
+      "profile_id": "utility_pickup"
+    }
+  ]
+}

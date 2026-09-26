@@ -1,5 +1,54 @@
 # Перенос Walk → Godot
 
+## Update 27 сентября, 02:35 MSK — compact14b, moving exit LIVE
+
+Единственная интерактивная source игра PID45824, editor6508. Revision s01-20260927-compact14b. Actual GPU QA native01 выполнял настоящие E/W input events, посадку, разгон, выход и перекат; report passed=true, failures=[], stable_hashes=true, restored_interactive=true. Все четыре viewport PNG просмотрены. SpringArm исключает свой кузов: spring hit4.8m во всех фазах, приближение к голове устранено. Реальная середина переката видна, машина продолжает движение. Поза сохраняет исходный source tumble, контакт/перемещение проверяет physics host; это не full ragdoll.
+
+Frame time ms: pre p50/p95 6.973/8.053, roll6.939/11.143, post6.965/7.749; roll pose CPU p50/p953.126/3.585ms. PNG readback frames исключены. Это короткий тест одного квартала/одной машины, не производительность полного города. Evidence outputs/coordinator21_vehicle_liveqa/native01/report.json и seated/mid-release/mid-tumble/settled.png.
+
+После GPU исправлены два видимых дефекта: stale BLOCKED hint очищается при resumed ACTIVE; компактная правая плашка имеет minimum width280 вместо сброса в полоску. Final outputs/compact14b_live.png просмотрен: обе плашки компактны и читаемы, E выделена. Capture p957.8ms/144FPS после прогрева, не сравнение fullworld. Export exports/win64/s01-20260927-compact14b: build receipt unchanged inputs, PCK smoke PASS main/transport/interior/water/dive. Source physics остается EXACT a382537914fe9494b72c042a35d9ba76948ab90fb79397e05767dd9d7ca59401. Candidate873/coast/wall/handbrake отдельно, НЕ production acceptance; текущий газ+ручник известный pending дефект. Не stage candidate tests как проверенные production.
+
+NPC host c8f3019a готов отдельно73actual-mainPASS, НЕ подключён main. Его CPU p95~1.17ms/3moving, выброс6.661ms, cold34ms/actor. Cargo319 pure geometry admission готов отдельно, реальные предметы/authority/visible cargo НЕ подключены. Полная миграция остается ACTIVE; cloud/Astra assignments paused до reset по user/lead, локальные авторы продолжают. Исторические статусы ниже.
+
+
+## Update 27 сентября, 02:15 MSK — vehicle13 LIVE
+
+Единственная source игра PID10376, окно15861446; editor6508. Старые PID2080/32516 закрыты пользователем; свежий inventory подтвердил отсутствие перед запуском13. Source `s01-20260927-vehicle13` с hotnotes. Capture outputs/vehicle13_live.png просмотрен: герой/машина/E/актуальные5пунктов и явно временная граница видны. Короткий статический LIVE144cap, p95~7.85–7.89ms,669drawcalls; это НЕ сравнительный benchmark/выходс перекатом/fullcity. PCK13 smoke PASS включая transport ready.
+
+Реальный пользовательский дефект12: машина выехала за cropedge x43.05 и упала; герой завис снаружи. Причины: seated move_and_collide цеплялся за мир; main автоматически телепортировал actor y<-12 на старт и выдавал on_foot, оставляя occupied seat. Исправлено: full6DOF seat attachment с временным0/0collisionfilters только SEATED/EXIT_HOLD; точное восстановление до физического EXIT; upright независимая камера. Main больше не телепортирует: y<-25 => local preview death, герой остаётся в падающей машине, E/W заблокированы, R reload новый session. Временная видимая ограда по реальным cropbounds; исходный floor/вода не подменены. Это локальная previewdeath, server HP/save ещё не перенесены.
+
+Root independent: 141 all4roll/fall/collider +29 blocked +9coast PASS; deepfall17PASS actual process crosses−12 and−25 no teleport; fast exit20PASS actual appliedtumble101samples, thighfold1.9rad, quaternionmax3.10694, carcoasts8.6144m. Freezeподробности outputs/coordinator21_transport_scene_review/*REVIEW.md. Root cycle14PASS current13. Физика steering a3825379 исправляет A/D/колёса; native127+independent26+8signedchecks, actualmain Aleft/Dright. Boundary unit47PASS, actualgravityeast дополнительный ownerreceipt ожидается.
+
+Transport rev6 manifest ca32e094,19files,137independentPASS: единый timing1.2s по прямому пользовательскому изменению (исторические2.6s отменены), EXIT support-aware floor correction<=5cm с сохранением actualfrom_m, movingexit tumble>15km/h. Root убрал autoBrake после начала выхода; машина катится физикой и после освобождения driver. Pure exitpose source1afafedf:4409PASS,72frames; CPU p50/p95 2.986/3.457ms +floorphysicscalls, фактический LIVEFPS во время переката ЕЩЁ НЕ ПРОВЕРЕН. Root routes exit_body (раньше flatpose безfold терялась).
+
+Visual13 actual factory rawGLBs сохранены .bytes, rawmanifest source10133bb9, productiongeometry exact31,394PASS /4,460,817corners. Source independent28,699PASS. Occupant7b82de39 source3371+rotated125PASS; root smoothgrip устранил скачок ладони27cm до.19mm, currenthinge/wheel updated before singleposewriter, approachgait иheadinghandoff. Капот/багажник nativecompartments99ee5fcd+data423c09c2:11793native/274sourcePASS на13профилях, engine49parts exposed; rootEnearfront/rear, speed/roll/onfootgates, autoclose>2.5m/s. Не путать geometry contains_item с inventory! Genericnativecargo/importedbankbags/questboxes transfer/visibleitems ЕЩЁ НЕ ПОДКЛЮЧЕНЫ; user прямо просит реальныевидимые предметы, docs/godot/VEHICLE_COMPARTMENTS_SOURCE_HANDOFF.md.
+
+Полный перенос остаётся ACTIVE. Пользователь также Artist21 поручил входы/бордюры (Traversal уведомлён) и просит реальных NPC сейчас. Artist21 frozenpendingprovider017d46e6, correctedsourcepacket e926... проходитactualsource151/provider46PASS; НЕ использовать rejected384f. Preparedsessioncache precisionfix в работе уArtist. Rootagent migration_next_package делает эксклюзивный preview_resident_host.gd на existing NavigationHost/realplacement/cache/IDs; main ещёнеподключён. Imported saves/authority/commerce/AIagenda/fullworld не объявлятьготовыми. Пять авторов +14Astraчерезlead+штаб работают; batch20QA refs неruntimeacceptance.
+
+Часовой Git checkpoint готовится scoped native13; чужой Walk/backend WIP не stage/reset/stash. Предыдущий origin7afd372d, локальныйbase a9cbd7e. Последующие исторические записи ниже.
+
+## Update 27 сентября, около 01:16 MSK
+
+Одна source игра **PID32516**, editor6508, после F6; hotnotes доступны.
+Root static render hook:54 independent actual-main PASS, default OFF.
+Candidate11 GPU comparison отменён вводом после61 кадров; partial timings
+не являются приёмкой. Подробности `S01_STATIC_RENDER_QA.md` и fresh memory.
+Native navigation backend357 headless PASS, production host adapter в работе.
+Transport70 author PASS/frozen проходит независимые negatives; Area3D-only
+support выявлен как gap. Physics121+11 author PASS передан independent reviewer.
+Main/NPC/transport LIVE остаются отдельной незавершённой интеграцией.
+HEAD локально a9cbd7e (transport author commit); origin/main7afd372d.
+Пять авторов и штаб активны. Последующие статусы ниже исторические.
+
+## Update 27 сентября, 00:57MSK
+
+Main/origin verified **7afd372d239066dd988ed12e3270224b8997c9fa**, scoped80files.
+Новая единственная editor game29172/редактор6508 после F6 содержит final13e3d83b
+и hotnotes Timer2s; экспорт10/PCK smokePASS. Визуальный захват Windows недоступен,
+новый loaded-scene FPS не измерен. Hotnotes/mainhook после checkpoint локальные.
+Пять авторов и Общий штаб снова работают по явному новому поручению пользователя;
+точные scopes/IDs в AGENT_HUB.md. Старое заглушение и PID ниже исторические.
+
 ## Текущая шапка — 27 сентября, 00:44 MSK
 
 Актуальная память: `docs/ai/COORDINATOR_21_MEMORY.md`, первый раздел выше истории.

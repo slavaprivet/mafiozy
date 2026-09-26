@@ -43,6 +43,10 @@
       {
         "path": "assets/maps/city_rebuild_v1/test_fixtures/native_static_collision19.json.gz",
         "sha256": "447079d70b9929c23971b79048652fa4223d7f665bf75f495614ab63ceb9f2d4"
+      },
+      {
+        "path": "godot/mafiozi_walk/data/transport/vehicle_factory_oracle.v1.json",
+        "sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       }
     ]
   },
@@ -84,9 +88,21 @@
       "seat_count": 4,
       "mass_kg": 1150,
       "body_half_extents_m": {
-        "x": 1.1196,
-        "y": 0.76,
+        "x": 1.157399988,
+        "y": 1.061311928,
         "z": 2.1482
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.057399988,
+          0.000829045,
+          -2.030339956
+        ],
+        "max": [
+          1.057399988,
+          2.123452902,
+          2.001240015
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -107,6 +123,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -123,7 +140,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.2304,
@@ -144,7 +162,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": -1.6896,
+            "x": -1.727399988,
             "y": 0,
             "z": -0.65
           },
@@ -161,7 +179,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": -1.6896,
+            "x": -1.727399988,
             "y": 0,
             "z": 0.65
           },
@@ -178,7 +196,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": 1.6896,
+            "x": 1.727399988,
             "y": 0,
             "z": -0.65
           },
@@ -195,7 +213,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": 1.6896,
+            "x": 1.727399988,
             "y": 0,
             "z": 0.65
           },
@@ -325,9 +343,21 @@
       "seat_count": 4,
       "mass_kg": 1320,
       "body_half_extents_m": {
-        "x": 1.152,
-        "y": 0.735,
+        "x": 1.18799994,
+        "y": 0.982986056,
         "z": 2.4542
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.08799994,
+          0.000854972,
+          -2.322540045
+        ],
+        "max": [
+          1.08799994,
+          1.966827084,
+          2.290440083
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -348,6 +378,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -364,7 +395,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.2376,
@@ -385,7 +417,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": -1.722,
+            "x": -1.75799994,
             "y": 0,
             "z": -0.65
           },
@@ -402,7 +434,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": -1.722,
+            "x": -1.75799994,
             "y": 0,
             "z": 0.65
           },
@@ -419,7 +451,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": 1.722,
+            "x": 1.75799994,
             "y": 0,
             "z": -0.65
           },
@@ -436,7 +468,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": 1.722,
+            "x": 1.75799994,
             "y": 0,
             "z": 0.65
           },
@@ -566,9 +598,21 @@
       "seat_count": 4,
       "mass_kg": 1540,
       "body_half_extents_m": {
-        "x": 1.1844,
-        "y": 0.79,
+        "x": 1.218600011,
+        "y": 0.986573092,
         "z": 2.597
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.118600011,
+          0.0008809,
+          -2.458899975
+        ],
+        "max": [
+          1.118600011,
+          1.974027084,
+          2.425400019
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -589,6 +633,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -605,7 +650,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.2448,
@@ -626,7 +672,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": -1.7544,
+            "x": -1.788600011,
             "y": 0,
             "z": -0.65
           },
@@ -643,7 +689,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": -1.7544,
+            "x": -1.788600011,
             "y": 0,
             "z": 0.65
           },
@@ -660,7 +706,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": 1.7544,
+            "x": 1.788600011,
             "y": 0,
             "z": -0.65
           },
@@ -677,7 +723,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": 1.7544,
+            "x": 1.788600011,
             "y": 0,
             "z": 0.65
           },
@@ -807,9 +853,21 @@
       "seat_count": 4,
       "mass_kg": 1810,
       "body_half_extents_m": {
-        "x": 1.233,
-        "y": 0.745,
+        "x": 1.264499998,
+        "y": 0.99374718,
         "z": 2.7755
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.164499998,
+          0.000932725,
+          -2.629349947
+        ],
+        "max": [
+          1.164499998,
+          1.988427084,
+          2.594099998
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -830,6 +888,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -846,7 +905,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.2592,
@@ -867,7 +927,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": -1.803,
+            "x": -1.834499998,
             "y": 0,
             "z": -0.65
           },
@@ -884,7 +944,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": -1.803,
+            "x": -1.834499998,
             "y": 0,
             "z": 0.65
           },
@@ -901,7 +961,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": 1.803,
+            "x": 1.834499998,
             "y": 0,
             "z": -0.65
           },
@@ -918,7 +978,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": 1.803,
+            "x": 1.834499998,
             "y": 0,
             "z": 0.65
           },
@@ -1048,9 +1108,21 @@
       "seat_count": 2,
       "mass_kg": 1380,
       "body_half_extents_m": {
-        "x": 1.2114,
-        "y": 0.615,
+        "x": 1.24410007,
+        "y": 0.944765425,
         "z": 2.5205
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.14410007,
+          0.000932725,
+          -2.385849953
+        ],
+        "max": [
+          1.14410007,
+          1.890463574,
+          2.353100061
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -1071,6 +1143,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -1087,7 +1160,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.2592,
@@ -1108,7 +1182,7 @@
             "z": -0.16
           },
           "approach_local_m": {
-            "x": -1.7814,
+            "x": -1.81410007,
             "y": 0,
             "z": 0
           },
@@ -1125,7 +1199,7 @@
             "z": -0.16
           },
           "approach_local_m": {
-            "x": 1.7814,
+            "x": 1.81410007,
             "y": 0,
             "z": 0
           },
@@ -1201,9 +1275,21 @@
       "seat_count": 4,
       "mass_kg": 2020,
       "body_half_extents_m": {
-        "x": 1.2492,
-        "y": 0.915,
+        "x": 1.279800034,
+        "y": 1.08254543,
         "z": 2.5868
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.179800034,
+          0.001036345,
+          -2.449160099
+        ],
+        "max": [
+          1.179800034,
+          2.166127205,
+          2.41576004
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -1224,6 +1310,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -1240,7 +1327,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.288,
@@ -1261,7 +1349,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": -1.8192,
+            "x": -1.849800034,
             "y": 0,
             "z": -0.65
           },
@@ -1278,7 +1366,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": -1.8192,
+            "x": -1.849800034,
             "y": 0,
             "z": 0.65
           },
@@ -1295,7 +1383,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": 1.8192,
+            "x": 1.849800034,
             "y": 0,
             "z": -0.65
           },
@@ -1312,7 +1400,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": 1.8192,
+            "x": 1.849800034,
             "y": 0,
             "z": 0.65
           },
@@ -1442,9 +1530,21 @@
       "seat_count": 2,
       "mass_kg": 2390,
       "body_half_extents_m": {
-        "x": 1.287,
-        "y": 1.21,
+        "x": 1.364500024,
+        "y": 1.30103403,
         "z": 2.7755
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.264500024,
+          0.00098452,
+          -2.629349947
+        ],
+        "max": [
+          1.264500024,
+          2.603052579,
+          2.594099998
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -1465,6 +1565,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -1481,7 +1582,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.835,
@@ -1502,7 +1604,7 @@
             "z": -1.259
           },
           "approach_local_m": {
-            "x": -1.857,
+            "x": -1.934500024,
             "y": 0,
             "z": -1.114
           },
@@ -1519,7 +1621,7 @@
             "z": -1.259
           },
           "approach_local_m": {
-            "x": 1.857,
+            "x": 1.934500024,
             "y": 0,
             "z": -1.114
           },
@@ -1595,9 +1697,21 @@
       "seat_count": 2,
       "mass_kg": 2160,
       "body_half_extents_m": {
-        "x": 1.2708,
-        "y": 0.89,
+        "x": 1.300200081,
+        "y": 1.027508117,
         "z": 2.852
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.200200081,
+          0.001036345,
+          -2.702399969
+        ],
+        "max": [
+          1.200200081,
+          2.056052579,
+          2.666399956
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -1618,6 +1732,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -1634,7 +1749,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.288,
@@ -1655,7 +1771,7 @@
             "z": -0.145
           },
           "approach_local_m": {
-            "x": -1.8408,
+            "x": -1.870200081,
             "y": 0,
             "z": 0
           },
@@ -1672,7 +1788,7 @@
             "z": -0.145
           },
           "approach_local_m": {
-            "x": 1.8408,
+            "x": 1.870200081,
             "y": 0,
             "z": 0
           },
@@ -1748,9 +1864,21 @@
       "seat_count": 2,
       "mass_kg": 9800,
       "body_half_extents_m": {
-        "x": 1.557,
-        "y": 1.59,
+        "x": 1.609371755,
+        "y": 1.666891176,
         "z": 5.708
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.509371755,
+          0.001217687,
+          -5.429600239
+        ],
+        "max": [
+          1.509371755,
+          3.335000038,
+          5.365600109
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -1771,6 +1899,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -1787,7 +1916,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 1.015,
@@ -1808,7 +1938,7 @@
             "z": -4.0564
           },
           "approach_local_m": {
-            "x": -2.127,
+            "x": -2.179371755,
             "y": 0,
             "z": -3.9914
           },
@@ -1825,7 +1955,7 @@
             "z": -4.0564
           },
           "approach_local_m": {
-            "x": 2.127,
+            "x": 2.179371755,
             "y": 0,
             "z": -3.9914
           },
@@ -1901,9 +2031,21 @@
       "seat_count": 4,
       "mass_kg": 1830,
       "body_half_extents_m": {
-        "x": 1.2384,
-        "y": 0.765,
+        "x": 1.26960001,
+        "y": 1.071997269,
         "z": 2.7092
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.16960001,
+          0.000932725,
+          -2.566040039
+        ],
+        "max": [
+          1.16960001,
+          2.144927263,
+          2.53144002
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -1924,6 +2066,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -1940,7 +2083,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.2592,
@@ -1961,7 +2105,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": -1.8084,
+            "x": -1.83960001,
             "y": 0,
             "z": -0.65
           },
@@ -1978,7 +2122,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": -1.8084,
+            "x": -1.83960001,
             "y": 0,
             "z": 0.65
           },
@@ -1995,7 +2139,7 @@
             "z": -0.68
           },
           "approach_local_m": {
-            "x": 1.8084,
+            "x": 1.83960001,
             "y": 0,
             "z": -0.65
           },
@@ -2012,7 +2156,7 @@
             "z": 0.62
           },
           "approach_local_m": {
-            "x": 1.8084,
+            "x": 1.83960001,
             "y": 0,
             "z": 0.65
           },
@@ -2142,9 +2286,21 @@
       "seat_count": 2,
       "mass_kg": 3500,
       "body_half_extents_m": {
-        "x": 1.3572,
-        "y": 1.36,
-        "z": 3.2192
+        "x": 1.428199979,
+        "y": 1.419232251,
+        "z": 3.426000118
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.328199979,
+          0.00108814,
+          -3.426000118
+        ],
+        "max": [
+          1.328199979,
+          2.839552641,
+          3.013440132
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -2165,6 +2321,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -2181,7 +2338,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 0.915,
@@ -2202,7 +2360,7 @@
             "z": -1.5026
           },
           "approach_local_m": {
-            "x": -1.9272,
+            "x": -1.998199979,
             "y": 0,
             "z": -1.3576
           },
@@ -2219,7 +2377,7 @@
             "z": -1.5026
           },
           "approach_local_m": {
-            "x": 1.9272,
+            "x": 1.998199979,
             "y": 0,
             "z": -1.3576
           },
@@ -2295,9 +2453,21 @@
       "seat_count": 2,
       "mass_kg": 10500,
       "body_half_extents_m": {
-        "x": 1.5192,
-        "y": 1.52,
+        "x": 1.575200054,
+        "y": 1.501368645,
         "z": 3.821
+      },
+      "runtime_visual_bounds_source_m": {
+        "min": [
+          -1.475200054,
+          0.001243584,
+          -3.62770009
+        ],
+        "max": [
+          1.475200054,
+          3.003980875,
+          3.58220005
+        ]
       },
       "ground_clearance_m": null,
       "center_of_mass_local_m": null,
@@ -2318,6 +2488,7 @@
         "exact_or_source_derived": [
           "mass_kg",
           "body_half_extents_m",
+          "runtime_visual_bounds_source_m",
           "wheelbase_m",
           "wheel_radius_m",
           "steering_limit_rad",
@@ -2334,7 +2505,8 @@
           "track_width_m",
           "suspension_rest_length_m",
           "angular_drag"
-        ]
+        ],
+        "actual_factory_oracle_sha256": "d2a7943d34009350f37a59c7238f46d9d1ee714f7826fdf69033c8014b4df2af"
       },
       "cabin_derivation": {
         "floor_top_m": 1.035,
@@ -2355,7 +2527,7 @@
             "z": -2.121
           },
           "approach_local_m": {
-            "x": -2.0892,
+            "x": -2.145200054,
             "y": 0,
             "z": -1.901
           },
@@ -2372,7 +2544,7 @@
             "z": -2.121
           },
           "approach_local_m": {
-            "x": 2.0892,
+            "x": 2.145200054,
             "y": 0,
             "z": -1.901
           },

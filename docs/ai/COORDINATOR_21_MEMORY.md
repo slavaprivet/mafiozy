@@ -1,5 +1,102 @@
 # Координатор21 — актуальная память
 
+## Update 27 сентября, 02:35 MSK — compact14b, moving exit LIVE
+
+Единственная интерактивная source игра PID45824, editor6508. Revision s01-20260927-compact14b. Actual GPU QA native01 выполнял настоящие E/W input events, посадку, разгон, выход и перекат; report passed=true, failures=[], stable_hashes=true, restored_interactive=true. Все четыре viewport PNG просмотрены. SpringArm исключает свой кузов: spring hit4.8m во всех фазах, приближение к голове устранено. Реальная середина переката видна, машина продолжает движение. Поза сохраняет исходный source tumble, контакт/перемещение проверяет physics host; это не full ragdoll.
+
+Frame time ms: pre p50/p95 6.973/8.053, roll6.939/11.143, post6.965/7.749; roll pose CPU p50/p953.126/3.585ms. PNG readback frames исключены. Это короткий тест одного квартала/одной машины, не производительность полного города. Evidence outputs/coordinator21_vehicle_liveqa/native01/report.json и seated/mid-release/mid-tumble/settled.png.
+
+После GPU исправлены два видимых дефекта: stale BLOCKED hint очищается при resumed ACTIVE; компактная правая плашка имеет minimum width280 вместо сброса в полоску. Final outputs/compact14b_live.png просмотрен: обе плашки компактны и читаемы, E выделена. Capture p957.8ms/144FPS после прогрева, не сравнение fullworld. Export exports/win64/s01-20260927-compact14b: build receipt unchanged inputs, PCK smoke PASS main/transport/interior/water/dive. Source physics остается EXACT a382537914fe9494b72c042a35d9ba76948ab90fb79397e05767dd9d7ca59401. Candidate873/coast/wall/handbrake отдельно, НЕ production acceptance; текущий газ+ручник известный pending дефект. Не stage candidate tests как проверенные production.
+
+NPC host c8f3019a готов отдельно73actual-mainPASS, НЕ подключён main. Его CPU p95~1.17ms/3moving, выброс6.661ms, cold34ms/actor. Cargo319 pure geometry admission готов отдельно, реальные предметы/authority/visible cargo НЕ подключены. Полная миграция остается ACTIVE; cloud/Astra assignments paused до reset по user/lead, локальные авторы продолжают. Исторические статусы ниже.
+
+
+## Update 27 сентября, 02:15 MSK — vehicle13 LIVE
+
+Единственная source игра PID10376, окно15861446; editor6508. Старые PID2080/32516 закрыты пользователем; свежий inventory подтвердил отсутствие перед запуском13. Source `s01-20260927-vehicle13` с hotnotes. Capture outputs/vehicle13_live.png просмотрен: герой/машина/E/актуальные5пунктов и явно временная граница видны. Короткий статический LIVE144cap, p95~7.85–7.89ms,669drawcalls; это НЕ сравнительный benchmark/выходс перекатом/fullcity. PCK13 smoke PASS включая transport ready.
+
+Реальный пользовательский дефект12: машина выехала за cropedge x43.05 и упала; герой завис снаружи. Причины: seated move_and_collide цеплялся за мир; main автоматически телепортировал actor y<-12 на старт и выдавал on_foot, оставляя occupied seat. Исправлено: full6DOF seat attachment с временным0/0collisionfilters только SEATED/EXIT_HOLD; точное восстановление до физического EXIT; upright независимая камера. Main больше не телепортирует: y<-25 => local preview death, герой остаётся в падающей машине, E/W заблокированы, R reload новый session. Временная видимая ограда по реальным cropbounds; исходный floor/вода не подменены. Это локальная previewdeath, server HP/save ещё не перенесены.
+
+Root independent: 141 all4roll/fall/collider +29 blocked +9coast PASS; deepfall17PASS actual process crosses−12 and−25 no teleport; fast exit20PASS actual appliedtumble101samples, thighfold1.9rad, quaternionmax3.10694, carcoasts8.6144m. Freezeподробности outputs/coordinator21_transport_scene_review/*REVIEW.md. Root cycle14PASS current13. Физика steering a3825379 исправляет A/D/колёса; native127+independent26+8signedchecks, actualmain Aleft/Dright. Boundary unit47PASS, actualgravityeast дополнительный ownerreceipt ожидается.
+
+Transport rev6 manifest ca32e094,19files,137independentPASS: единый timing1.2s по прямому пользовательскому изменению (исторические2.6s отменены), EXIT support-aware floor correction<=5cm с сохранением actualfrom_m, movingexit tumble>15km/h. Root убрал autoBrake после начала выхода; машина катится физикой и после освобождения driver. Pure exitpose source1afafedf:4409PASS,72frames; CPU p50/p95 2.986/3.457ms +floorphysicscalls, фактический LIVEFPS во время переката ЕЩЁ НЕ ПРОВЕРЕН. Root routes exit_body (раньше flatpose безfold терялась).
+
+Visual13 actual factory rawGLBs сохранены .bytes, rawmanifest source10133bb9, productiongeometry exact31,394PASS /4,460,817corners. Source independent28,699PASS. Occupant7b82de39 source3371+rotated125PASS; root smoothgrip устранил скачок ладони27cm до.19mm, currenthinge/wheel updated before singleposewriter, approachgait иheadinghandoff. Капот/багажник nativecompartments99ee5fcd+data423c09c2:11793native/274sourcePASS на13профилях, engine49parts exposed; rootEnearfront/rear, speed/roll/onfootgates, autoclose>2.5m/s. Не путать geometry contains_item с inventory! Genericnativecargo/importedbankbags/questboxes transfer/visibleitems ЕЩЁ НЕ ПОДКЛЮЧЕНЫ; user прямо просит реальныевидимые предметы, docs/godot/VEHICLE_COMPARTMENTS_SOURCE_HANDOFF.md.
+
+Полный перенос остаётся ACTIVE. Пользователь также Artist21 поручил входы/бордюры (Traversal уведомлён) и просит реальных NPC сейчас. Artist21 frozenpendingprovider017d46e6, correctedsourcepacket e926... проходитactualsource151/provider46PASS; НЕ использовать rejected384f. Preparedsessioncache precisionfix в работе уArtist. Rootagent migration_next_package делает эксклюзивный preview_resident_host.gd на existing NavigationHost/realplacement/cache/IDs; main ещёнеподключён. Imported saves/authority/commerce/AIagenda/fullworld не объявлятьготовыми. Пять авторов +14Astraчерезlead+штаб работают; batch20QA refs неruntimeacceptance.
+
+Часовой Git checkpoint готовится scoped native13; чужой Walk/backend WIP не stage/reset/stash. Предыдущий origin7afd372d, локальныйbase a9cbd7e. Последующие исторические записи ниже.
+
+## Update 27 сентября, около 01:16 MSK
+
+Пользователь: «ок. делай. не мешаю». Пять авторов продолжают брать пакеты
+из действующего штаба; старый запрет на сообщения в штаб отменён.
+
+Текущая единственная видимая игра снова из редактора: **PID32516**, parent6508,
+`--scene res://scenes/main.tscn`, окно2688712. Редактор6508 / окно2754302.
+После QA закрыта только standalone игра41156; fresh inventory подтвердил её
+отсутствие, затем F6 запустил source scene. Hotnotes source Timer2s доступен.
+Windows screenshots всё ещё недоступны; не объявлять новую визуальную проверку.
+
+Root static batching hook реализован, **default OFF**. Независимый actual-main
+review54 PASS: 69 groups /248 instances, сохранены source nodes/IDs/resources,
+коллизии и работа двери. `S01_STATIC_BATCH_MAIN_REVIEW.md` содержит границы.
+Candidate11 экспортирован. Настоящий GPU OFF/ON/ON/OFF прогон отменён вводом
+на первом OFF окне после61 кадров; report `outputs/static_render_qa11/report.json`
+имеет cancelled/input_seen/interactive_restored=true. Частичные FPS недействительны,
+PNG/readback/сравнение не выполнены. Не включать batching до новой приёмки.
+
+Native NavigationServer3D backend завершён:357 actual headless PASS, реальные
+коллизии квартала и физический проход через типографию. Фоновый bake p50
+1244→262ms — НЕ FPS. Handoff `PREVIEW_ENGINE_NAVIGATION_HANDOFF.md`.
+Child migration_next_package делает production host adapter существующей main
+геометрии, без fake NPC/permissions; trusted roster provider у Художника21.
+
+Transport3 самостоятельно сделал локальный scoped commit **a9cbd7e009e44e0224855482809597b0a6512396**
+(17 transport files), он теперь HEAD; origin/main по-прежнему **7afd372d**.
+Root запретил автору дальнейшие Git mutations, историю не переписывал.
+Новый uncommitted frozen manifest c968fe46… содержит70 author PASS и fixes;
+independent review нашёл Area3D sensor, ошибочно допускаемый как опора.
+Автор исправляет. Старый position_m failure относится к предыдущему snapshot;
+актуальный runtime test98687ce5… независимо9/9 PASS. Main integration HOLD.
+
+Physics12-13 сдал native body121 +scaling11 author PASS; perf_acceptance проверяет
+независимо source/impulses/lifetime. Main/LIVE ещё не подключены. Художнику21
+разрешён NPC-only FLOAT32 COLOR/CUSTOM0 seam как выключенный кандидат: source
+HDR clamp и KHR material equivalence остаются GPU HOLD, допуски не расширять.
+Следующий hourly Git checkpoint около01:54; только проверенные scoped изменения.
+
+## Update около00:57MSK
+
+Опубликован scoped80files checkpoint **7afd372d239066dd988ed12e3270224b8997c9fa**;
+push/ls-remote совпали, index пуст. Чужие Walk/server WIP не включены.
+Последующие изменения ниже пока локальные до следующего hourly checkpoint.
+
+Root подключил preview_update_panel.gd (21headlessPASS) вместо staticbuilder.
+Native Timer2s/stat-only; bounded16KiB/5items; ошибки сохраняют lastvalid;
+runtime_revision mismatch показывает restartnotice без новых неподгруженных
+механик. Source main/JSONrevision `s01-20260927-landing-notes10`, titleпроисправление
+подъёма после броска, E и hotnotes. Экспорт10/PCKheadlesssmokePASS.
+
+После нового прямого поручения обновлять данные пользовательская сцена обновлена
+через существующий editor F6. Новый единственный GPUgame **PID29172**, start00:56:35,
+editor6508, Responding=true. Загружен source10/finalplayer13e3d83b. Native screenshot
+Windows не получен: SetIsBorderRequired0x80004002. Не объявлять visual/FPS finalfix
+проверенным screenshot; предыдущие пользовательскиекадры E/квартала есть.
+User earlier Escape остановил только ту попытку UI; новый restart по свежемупоручению.
+
+Три новые tasks активны по wait_threads; heartbeat10min создан каждому:
+godot→Transport3, godot-2→Physics12-13, godot-3→Traversal.
+Artist heartbeat21-14-astra обновлён наNPCvisual; roothourlywalk-godot-14 на5owners.
+Штаб снова активен по прямому поручению, получил свежий batch01..10 index и
+checkpoint; пакеты маршрутизируются одному владельцу, безACKциклов.
+
+Physics12-13 предупредил о промежуточных ParseError в своём vehicle_native_body.gd,
+пойманных живым editor. Автор исправляет; main ещё не импортирует этот WIP.
+Не менять его файлы. Попросил публиковать .gd вproject только после isolatedparse.
+Native navigation actual async bake+agent/body переход publicdoor PASS уrootchild;
+negative/lifecycle проверки ещё продолжаются. Staticbatch root hook ещёOPEN.
+
 ## Новое поручение пользователя около00:50MSK
 
 Добавлены к внедрению существующие закреплённые3/4/5: Transport3 (logicaltransport),

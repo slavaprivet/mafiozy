@@ -629,7 +629,8 @@ func _exit_tree() -> void:
 
 func _update_camera_rotation() -> void:
 	if is_instance_valid(_yaw_pivot) and is_instance_valid(_spring_arm):
-		_yaw_pivot.rotation.y = _camera_yaw
+		# Camera horizon is independent of the vehicle's roll and pitch.
+		_yaw_pivot.global_basis = Basis(Vector3.UP, _camera_yaw)
 		_spring_arm.rotation.x = _camera_pitch
 
 
