@@ -1,0 +1,3400 @@
+{
+  "schema": "mafiozi.transport.descriptors.v1",
+  "authority": {
+    "kind": "derived_from_tracked_walk_source",
+    "immutable": true,
+    "sources": [
+      {
+        "path": "assets/maps/city_rebuild_v1/vehicle_fleet_models.mjs",
+        "sha256": "5dcec7102fc425c7828239ad5de10d4feb29ff7216610fc842333894f811545c"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/vehicle_dynamics.mjs",
+        "sha256": "105cce8bf2cac63136e1c5e48f38465c4bf8e448a271702136b7c014e3396faf"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/vehicle_seats.mjs",
+        "sha256": "1e6b2178bee7ed6ec51ecbb5d99e13772942c8fb71a2f3cc7579ad2aa3537779"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/city_parking_plan.mjs",
+        "sha256": "cf072458316fca09af802c699ba6e8dd71f2e2ab28a2f58621deff719210f21d"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/environment_planning_worker_core.mjs",
+        "sha256": "73db8573409137b33c774e49c20c3f55df6d313feb170b61ba9eec91c4568af8"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/topology_for_placement.json",
+        "sha256": "11f256f20ea5f8f5387fa4829173e84cf688aa2ba554aa5b6aacdb85301d67b6"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/buildings_placement.v1.json",
+        "sha256": "90e0b27196b51fc1f09ccc67d4c5f8374d5c37611576106f34b30559e86ed3ca"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/detention_native_sites.v1.json",
+        "sha256": "646f354a383cbc3b0b025159b3ac573c9046e005a92e7068c534b2e94fb1d138"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/decor_placement.v1.json",
+        "sha256": "9bdd858e781914df73eba62d47f2df8eec7c9e3057e34f98f9c18134122036c8"
+      },
+      {
+        "path": "assets/maps/city_rebuild_v1/test_fixtures/native_static_collision19.json.gz",
+        "sha256": "447079d70b9929c23971b79048652fa4223d7f665bf75f495614ab63ceb9f2d4"
+      }
+    ]
+  },
+  "coordinate_system": {
+    "units": "metres",
+    "up": "+Y",
+    "forward": "-Z",
+    "left": "-X",
+    "source_local_conversion": "godot_local=(-source_x,source_y,-source_z)",
+    "source_yaw_conversion": "godot_yaw=wrap(source_yaw+pi)"
+  },
+  "lifecycle_contract": {
+    "vehicle_identity": [
+      "vehicle_id",
+      "life_generation"
+    ],
+    "actor_identity": [
+      "actor_id",
+      "life_generation"
+    ],
+    "source_clock": "strictly_monotonic_integer_microseconds",
+    "session_modes": [
+      "NEW_SESSION_BOOTSTRAP",
+      "IMPORTED_EXISTING"
+    ],
+    "births": "explicit_authoritative_roster_only",
+    "hold_duration_us": 300000
+  },
+  "profiles": [
+    {
+      "profile_id": "city_hatchback",
+      "label": "Brooklyn SX",
+      "family": "hatch",
+      "model_file": "city_hatchback.glb",
+      "model_sha256": "2b8f1e5a319556b67b1322f3bab55de521f3855e8894e82e1166c8ef5870772e",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 4,
+      "mass_kg": 1150,
+      "body_half_extents_m": {
+        "x": 1.1196,
+        "y": 0.76,
+        "z": 2.1482
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 2.3684,
+      "track_width_m": null,
+      "wheel_radius_m": 0.32,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 7.2,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 28,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.2304,
+        "roof_bottom_m": 1.801127084,
+        "seat_recline_rad": 0.8,
+        "cabin_raise_m": 0.272479084,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.4112,
+            "y": -0.0196,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": -1.6896,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "rear_left",
+          "door_id": "rear_left",
+          "label_ru": "Задний левый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": -0.4112,
+            "y": -0.0196,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": -1.6896,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4112,
+            "y": -0.0196,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": 1.6896,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": -1
+        },
+        {
+          "id": "rear_right",
+          "door_id": "rear_right",
+          "label_ru": "Задний правый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4112,
+            "y": -0.0196,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": 1.6896,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.8524,
+            "y": 0.865528,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": -0.9024,
+            "y": 0.865528,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.218,
+              "y": 0.2554,
+              "z": -1.265
+            },
+            "max": {
+              "x": -0.8144,
+              "y": 1.766127084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_left",
+          "side": "left",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": -0.8524,
+            "y": 0.865528,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": -0.9024,
+            "y": 0.865528,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.218,
+              "y": 0.2554,
+              "z": 0.035
+            },
+            "max": {
+              "x": -0.8144,
+              "y": 1.766127084,
+              "z": 1.265
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.8524,
+            "y": 0.865528,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": 0.9024,
+            "y": 0.865528,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.8144,
+              "y": 0.2554,
+              "z": -1.265
+            },
+            "max": {
+              "x": 1.218,
+              "y": 1.766127084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_right",
+          "side": "right",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": 0.8524,
+            "y": 0.865528,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": 0.9024,
+            "y": 0.865528,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.8144,
+              "y": 0.2554,
+              "z": 0.035
+            },
+            "max": {
+              "x": 1.218,
+              "y": 1.766127084,
+              "z": 1.265
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "compact_sedan",
+      "label": "Easton S",
+      "family": "sedan",
+      "model_file": "compact_sedan.glb",
+      "model_sha256": "08cf5677dec9ebdbbca329610be9e210e91185f976d3cdc307f87ff7345233f5",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 4,
+      "mass_kg": 1320,
+      "body_half_extents_m": {
+        "x": 1.152,
+        "y": 0.735,
+        "z": 2.4542
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 2.7404,
+      "track_width_m": null,
+      "wheel_radius_m": 0.33,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 7,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 31,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.2376,
+        "roof_bottom_m": 1.808327084,
+        "seat_recline_rad": 0.8,
+        "cabin_raise_m": 0.338549084,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.4265,
+            "y": -0.0124,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": -1.722,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "rear_left",
+          "door_id": "rear_left",
+          "label_ru": "Задний левый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": -0.4265,
+            "y": -0.0124,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": -1.722,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4265,
+            "y": -0.0124,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": 1.722,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": -1
+        },
+        {
+          "id": "rear_right",
+          "door_id": "rear_right",
+          "label_ru": "Задний правый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4265,
+            "y": -0.0124,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": 1.722,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.883,
+            "y": 0.857583,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": -0.933,
+            "y": 0.857583,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.26,
+              "y": 0.2626,
+              "z": -1.265
+            },
+            "max": {
+              "x": -0.845,
+              "y": 1.773327084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_left",
+          "side": "left",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": -0.883,
+            "y": 0.857583,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": -0.933,
+            "y": 0.857583,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.26,
+              "y": 0.2626,
+              "z": 0.035
+            },
+            "max": {
+              "x": -0.845,
+              "y": 1.773327084,
+              "z": 1.265
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.883,
+            "y": 0.857583,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": 0.933,
+            "y": 0.857583,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.845,
+              "y": 0.2626,
+              "z": -1.265
+            },
+            "max": {
+              "x": 1.26,
+              "y": 1.773327084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_right",
+          "side": "right",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": 0.883,
+            "y": 0.857583,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": 0.933,
+            "y": 0.857583,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.845,
+              "y": 0.2626,
+              "z": 0.035
+            },
+            "max": {
+              "x": 1.26,
+              "y": 1.773327084,
+              "z": 1.265
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "family_wagon",
+      "label": "Brooklyn LX",
+      "family": "wagon",
+      "model_file": "family_wagon.glb",
+      "model_sha256": "8357e3cba37673c565b3d289f8437afc4b140eeb963841c2aed6915a056761ce",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 4,
+      "mass_kg": 1540,
+      "body_half_extents_m": {
+        "x": 1.1844,
+        "y": 0.79,
+        "z": 2.597
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 2.914,
+      "track_width_m": null,
+      "wheel_radius_m": 0.34,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 6.2,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 30,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.2448,
+        "roof_bottom_m": 1.815527084,
+        "seat_recline_rad": 0.8,
+        "cabin_raise_m": 0.194235084,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.4418,
+            "y": -0.0052,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": -1.7544,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "rear_left",
+          "door_id": "rear_left",
+          "label_ru": "Задний левый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": -0.4418,
+            "y": -0.0052,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": -1.7544,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4418,
+            "y": -0.0052,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": 1.7544,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": -1
+        },
+        {
+          "id": "rear_right",
+          "door_id": "rear_right",
+          "label_ru": "Задний правый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4418,
+            "y": -0.0052,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": 1.7544,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.9136,
+            "y": 0.907062,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": -0.9636,
+            "y": 0.907062,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.302,
+              "y": 0.2698,
+              "z": -1.265
+            },
+            "max": {
+              "x": -0.8756,
+              "y": 1.780527084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_left",
+          "side": "left",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": -0.9136,
+            "y": 0.907062,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": -0.9636,
+            "y": 0.907062,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.302,
+              "y": 0.2698,
+              "z": 0.035
+            },
+            "max": {
+              "x": -0.8756,
+              "y": 1.780527084,
+              "z": 1.265
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.9136,
+            "y": 0.907062,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": 0.9636,
+            "y": 0.907062,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.8756,
+              "y": 0.2698,
+              "z": -1.265
+            },
+            "max": {
+              "x": 1.302,
+              "y": 1.780527084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_right",
+          "side": "right",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": 0.9136,
+            "y": 0.907062,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": 0.9636,
+            "y": 0.907062,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.8756,
+              "y": 0.2698,
+              "z": 0.035
+            },
+            "max": {
+              "x": 1.302,
+              "y": 1.780527084,
+              "z": 1.265
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "executive_sedan",
+      "label": "Bellhaven V8",
+      "family": "executive",
+      "model_file": "executive_sedan.glb",
+      "model_sha256": "08f8c863152eda4edfdd2262d93857a6f0e3476d7046fb4d105f2f7ead42b3d7",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 4,
+      "mass_kg": 1810,
+      "body_half_extents_m": {
+        "x": 1.233,
+        "y": 0.745,
+        "z": 2.7755
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 3.131,
+      "track_width_m": null,
+      "wheel_radius_m": 0.36,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 7.8,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 36,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.2592,
+        "roof_bottom_m": 1.829927084,
+        "seat_recline_rad": 0.8,
+        "cabin_raise_m": 0.342601084,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.46475,
+            "y": 0.0092,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": -1.803,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "rear_left",
+          "door_id": "rear_left",
+          "label_ru": "Задний левый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": -0.46475,
+            "y": 0.0092,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": -1.803,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.46475,
+            "y": 0.0092,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": 1.803,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": -1
+        },
+        {
+          "id": "rear_right",
+          "door_id": "rear_right",
+          "label_ru": "Задний правый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.46475,
+            "y": 0.0092,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": 1.803,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.9595,
+            "y": 0.894761,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": -1.0095,
+            "y": 0.894761,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.365,
+              "y": 0.2842,
+              "z": -1.265
+            },
+            "max": {
+              "x": -0.9215,
+              "y": 1.794927084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_left",
+          "side": "left",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": -0.9595,
+            "y": 0.894761,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": -1.0095,
+            "y": 0.894761,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.365,
+              "y": 0.2842,
+              "z": 0.035
+            },
+            "max": {
+              "x": -0.9215,
+              "y": 1.794927084,
+              "z": 1.265
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.9595,
+            "y": 0.894761,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": 1.0095,
+            "y": 0.894761,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9215,
+              "y": 0.2842,
+              "z": -1.265
+            },
+            "max": {
+              "x": 1.365,
+              "y": 1.794927084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_right",
+          "side": "right",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": 0.9595,
+            "y": 0.894761,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": 1.0095,
+            "y": 0.894761,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9215,
+              "y": 0.2842,
+              "z": 0.035
+            },
+            "max": {
+              "x": 1.365,
+              "y": 1.794927084,
+              "z": 1.265
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "sport_coupe",
+      "label": "Ravelli GT",
+      "family": "coupe",
+      "model_file": "sport_coupe.glb",
+      "model_sha256": "764576c6919bdd03f79e6b2f9738e9c9862b59b03f23d88893d8f35b0dbff158",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 2,
+      "mass_kg": 1380,
+      "body_half_extents_m": {
+        "x": 1.2114,
+        "y": 0.615,
+        "z": 2.5205
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 2.821,
+      "track_width_m": null,
+      "wheel_radius_m": 0.36,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 10,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 43,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.2592,
+        "roof_bottom_m": 1.731963574,
+        "seat_recline_rad": 1,
+        "cabin_raise_m": 0.467363574,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.45455,
+            "y": 0.0092,
+            "z": -0.16
+          },
+          "approach_local_m": {
+            "x": -1.7814,
+            "y": 0,
+            "z": 0
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.45455,
+            "y": 0.0092,
+            "z": -0.16
+          },
+          "approach_local_m": {
+            "x": 1.7814,
+            "y": 0,
+            "z": 0
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.9391,
+            "y": 0.8256,
+            "z": -0.745
+          },
+          "handle_local_m": {
+            "x": -0.9891,
+            "y": 0.8256,
+            "z": 0.595
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.337,
+              "y": 0.2842,
+              "z": -0.745
+            },
+            "max": {
+              "x": -0.9011,
+              "y": 1.696963574,
+              "z": 0.745
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.9391,
+            "y": 0.8256,
+            "z": -0.745
+          },
+          "handle_local_m": {
+            "x": 0.9891,
+            "y": 0.8256,
+            "z": 0.595
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9011,
+              "y": 0.2842,
+              "z": -0.745
+            },
+            "max": {
+              "x": 1.337,
+              "y": 1.696963574,
+              "z": 0.745
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "city_suv",
+      "label": "Blackridge",
+      "family": "suv",
+      "model_file": "city_suv.glb",
+      "model_sha256": "9e194b2b0fae7b1443743a47dbf97389e151f8c2d5e96c42e796a64640b42cb3",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 4,
+      "mass_kg": 2020,
+      "body_half_extents_m": {
+        "x": 1.2492,
+        "y": 0.915,
+        "z": 2.5868
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 2.9016,
+      "track_width_m": null,
+      "wheel_radius_m": 0.4,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 6.3,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 31,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.288,
+        "roof_bottom_m": 1.941981089,
+        "seat_recline_rad": 0.55,
+        "cabin_raise_m": 0.066339089,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.4724,
+            "y": 0.038,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": -1.8192,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "rear_left",
+          "door_id": "rear_left",
+          "label_ru": "Задний левый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": -0.4724,
+            "y": 0.038,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": -1.8192,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4724,
+            "y": 0.038,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": 1.8192,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": -1
+        },
+        {
+          "id": "rear_right",
+          "door_id": "rear_right",
+          "label_ru": "Задний правый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4724,
+            "y": 0.038,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": 1.8192,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.9748,
+            "y": 1.056787,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": -1.0248,
+            "y": 1.056787,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.386,
+              "y": 0.313,
+              "z": -1.265
+            },
+            "max": {
+              "x": -0.9368,
+              "y": 1.906981089,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_left",
+          "side": "left",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": -0.9748,
+            "y": 1.056787,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": -1.0248,
+            "y": 1.056787,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.386,
+              "y": 0.313,
+              "z": 0.035
+            },
+            "max": {
+              "x": -0.9368,
+              "y": 1.906981089,
+              "z": 1.265
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.9748,
+            "y": 1.056787,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": 1.0248,
+            "y": 1.056787,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9368,
+              "y": 0.313,
+              "z": -1.265
+            },
+            "max": {
+              "x": 1.386,
+              "y": 1.906981089,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_right",
+          "side": "right",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": 0.9748,
+            "y": 1.056787,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": 1.0248,
+            "y": 1.056787,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9368,
+              "y": 0.313,
+              "z": 0.035
+            },
+            "max": {
+              "x": 1.386,
+              "y": 1.906981089,
+              "z": 1.265
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "delivery_van",
+      "label": "Union Van",
+      "family": "van",
+      "model_file": "delivery_van.glb",
+      "model_sha256": "42abb4ee66d11850e7d2dfe13f449cb68f9b67e770c50a6e9ad0505a96ebe438",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 2,
+      "mass_kg": 2390,
+      "body_half_extents_m": {
+        "x": 1.287,
+        "y": 1.21,
+        "z": 2.7755
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 3.131,
+      "track_width_m": null,
+      "wheel_radius_m": 0.38,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 4.8,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 26,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.835,
+        "roof_bottom_m": 2.444552579,
+        "seat_recline_rad": 0.7,
+        "cabin_raise_m": 0.568400579,
+        "source_cab_forward_correction_m": 1.114
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.49025,
+            "y": 0.585,
+            "z": -1.259
+          },
+          "approach_local_m": {
+            "x": -1.857,
+            "y": 0,
+            "z": -1.114
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.49025,
+            "y": 0.585,
+            "z": -1.259
+          },
+          "approach_local_m": {
+            "x": 1.857,
+            "y": 0,
+            "z": -1.114
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -1.0105,
+            "y": 1.235,
+            "z": -1.844
+          },
+          "handle_local_m": {
+            "x": -1.0605,
+            "y": 1.037272,
+            "z": -0.534
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.435,
+              "y": 0.86,
+              "z": -1.844
+            },
+            "max": {
+              "x": -0.9725,
+              "y": 2.409552579,
+              "z": -0.384
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 1.0105,
+            "y": 1.235,
+            "z": -1.844
+          },
+          "handle_local_m": {
+            "x": 1.0605,
+            "y": 1.037272,
+            "z": -0.534
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9725,
+              "y": 0.86,
+              "z": -1.844
+            },
+            "max": {
+              "x": 1.435,
+              "y": 2.409552579,
+              "z": -0.384
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "utility_pickup",
+      "label": "Ironvale",
+      "family": "pickup",
+      "model_file": "utility_pickup.glb",
+      "model_sha256": "bad6a8f7d857f85edda09131ade16af1695e60fff5516d046f6e9f9ddb41f92e",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 2,
+      "mass_kg": 2160,
+      "body_half_extents_m": {
+        "x": 1.2708,
+        "y": 0.89,
+        "z": 2.852
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 3.224,
+      "track_width_m": null,
+      "wheel_radius_m": 0.4,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 5.8,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 29,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.288,
+        "roof_bottom_m": 1.897552579,
+        "seat_recline_rad": 0.7,
+        "cabin_raise_m": 0.140780579,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.4826,
+            "y": 0.038,
+            "z": -0.145
+          },
+          "approach_local_m": {
+            "x": -1.8408,
+            "y": 0,
+            "z": 0
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4826,
+            "y": 0.038,
+            "z": -0.145
+          },
+          "approach_local_m": {
+            "x": 1.8408,
+            "y": 0,
+            "z": 0
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.9952,
+            "y": 1.038842,
+            "z": -0.73
+          },
+          "handle_local_m": {
+            "x": -1.0452,
+            "y": 1.038842,
+            "z": 0.58
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.414,
+              "y": 0.313,
+              "z": -0.73
+            },
+            "max": {
+              "x": -0.9572,
+              "y": 1.862552579,
+              "z": 0.73
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.9952,
+            "y": 1.038842,
+            "z": -0.73
+          },
+          "handle_local_m": {
+            "x": 1.0452,
+            "y": 1.038842,
+            "z": 0.58
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9572,
+              "y": 0.313,
+              "z": -0.73
+            },
+            "max": {
+              "x": 1.414,
+              "y": 1.862552579,
+              "z": 0.73
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "city_bus",
+      "label": "Metroline 90",
+      "family": "bus",
+      "model_file": "city_bus.glb",
+      "model_sha256": "9735522832f8b314a93cbef116d51916eca633861178a5d6a5c1d94b2402a01f",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 2,
+      "mass_kg": 9800,
+      "body_half_extents_m": {
+        "x": 1.557,
+        "y": 1.59,
+        "z": 5.708
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 7.128,
+      "track_width_m": null,
+      "wheel_radius_m": 0.47,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 2.7,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 23,
+      "max_reverse_speed_mps": 4,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 1.015,
+        "roof_bottom_m": 3.06,
+        "seat_recline_rad": 0.3,
+        "cabin_raise_m": 0,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.52,
+            "y": 0.765,
+            "z": -4.0564
+          },
+          "approach_local_m": {
+            "x": -2.127,
+            "y": 0,
+            "z": -3.9914
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.52,
+            "y": 0.765,
+            "z": -4.0564
+          },
+          "approach_local_m": {
+            "x": 2.127,
+            "y": 0,
+            "z": -3.9914
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -1.115,
+            "y": 1.415,
+            "z": -4.6414
+          },
+          "handle_local_m": {
+            "x": -1.165,
+            "y": 1.333688,
+            "z": -3.4914
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.785,
+              "y": 1.04,
+              "z": -4.6414
+            },
+            "max": {
+              "x": -1.077,
+              "y": 3.025,
+              "z": -3.3414
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 1.115,
+            "y": 1.415,
+            "z": -4.6414
+          },
+          "handle_local_m": {
+            "x": 1.165,
+            "y": 1.333688,
+            "z": -3.4914
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 1.077,
+              "y": 1.04,
+              "z": -4.6414
+            },
+            "max": {
+              "x": 1.785,
+              "y": 3.025,
+              "z": -3.3414
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "police_interceptor",
+      "label": "Patrol LX",
+      "family": "police",
+      "model_file": "police_interceptor.glb",
+      "model_sha256": "07374fcdaa792fb2b8933a420b71be9567c5df130f63bb353791a79edfca8c6e",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 4,
+      "mass_kg": 1830,
+      "body_half_extents_m": {
+        "x": 1.2384,
+        "y": 0.765,
+        "z": 2.7092
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 3.0504,
+      "track_width_m": null,
+      "wheel_radius_m": 0.36,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 8.9,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 39,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.2592,
+        "roof_bottom_m": 1.829927084,
+        "seat_recline_rad": 0.8,
+        "cabin_raise_m": 0.307505084,
+        "source_cab_forward_correction_m": 0
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.4673,
+            "y": 0.0092,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": -1.8084,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "rear_left",
+          "door_id": "rear_left",
+          "label_ru": "Задний левый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": -0.4673,
+            "y": 0.0092,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": -1.8084,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4673,
+            "y": 0.0092,
+            "z": -0.68
+          },
+          "approach_local_m": {
+            "x": 1.8084,
+            "y": 0,
+            "z": -0.65
+          },
+          "source_side": -1
+        },
+        {
+          "id": "rear_right",
+          "door_id": "rear_right",
+          "label_ru": "Задний правый пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.4673,
+            "y": 0.0092,
+            "z": 0.62
+          },
+          "approach_local_m": {
+            "x": 1.8084,
+            "y": 0,
+            "z": 0.65
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -0.9646,
+            "y": 0.909117,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": -1.0146,
+            "y": 0.909117,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.372,
+              "y": 0.2842,
+              "z": -1.265
+            },
+            "max": {
+              "x": -0.9266,
+              "y": 1.794927084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_left",
+          "side": "left",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": -0.9646,
+            "y": 0.909117,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": -1.0146,
+            "y": 0.909117,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.372,
+              "y": 0.2842,
+              "z": 0.035
+            },
+            "max": {
+              "x": -0.9266,
+              "y": 1.794927084,
+              "z": 1.265
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 0.9646,
+            "y": 0.909117,
+            "z": -1.265
+          },
+          "handle_local_m": {
+            "x": 1.0146,
+            "y": 0.909117,
+            "z": -0.185
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9266,
+              "y": 0.2842,
+              "z": -1.265
+            },
+            "max": {
+              "x": 1.372,
+              "y": 1.794927084,
+              "z": -0.035
+            }
+          }
+        },
+        {
+          "id": "rear_right",
+          "side": "right",
+          "row": "rear",
+          "hinge_local_m": {
+            "x": 0.9646,
+            "y": 0.909117,
+            "z": 0.035
+          },
+          "handle_local_m": {
+            "x": 1.0146,
+            "y": 0.909117,
+            "z": 1.115
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 0.9266,
+              "y": 0.2842,
+              "z": 0.035
+            },
+            "max": {
+              "x": 1.372,
+              "y": 1.794927084,
+              "z": 1.265
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "city_ambulance",
+      "label": "Union Medic",
+      "family": "ambulance",
+      "model_file": "city_ambulance.glb",
+      "model_sha256": "49306bfb80af503a36bf2c3f88ca7561d2433b587d638aa12136c05842a26933",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 2,
+      "mass_kg": 3500,
+      "body_half_extents_m": {
+        "x": 1.3572,
+        "y": 1.36,
+        "z": 3.2192
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 3.6704,
+      "track_width_m": null,
+      "wheel_radius_m": 0.42,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 4.9,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 29,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 0.915,
+        "roof_bottom_m": 2.524552579,
+        "seat_recline_rad": 0.7,
+        "cabin_raise_m": 0.502720579,
+        "source_cab_forward_correction_m": 1.3576
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.52,
+            "y": 0.665,
+            "z": -1.5026
+          },
+          "approach_local_m": {
+            "x": -1.9272,
+            "y": 0,
+            "z": -1.3576
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.52,
+            "y": 0.665,
+            "z": -1.5026
+          },
+          "approach_local_m": {
+            "x": 1.9272,
+            "y": 0,
+            "z": -1.3576
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -1.0768,
+            "y": 1.315,
+            "z": -2.0876
+          },
+          "handle_local_m": {
+            "x": -1.1268,
+            "y": 1.158752,
+            "z": -0.7776
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.526,
+              "y": 0.94,
+              "z": -2.0876
+            },
+            "max": {
+              "x": -1.0388,
+              "y": 2.489552579,
+              "z": -0.6276
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 1.0768,
+            "y": 1.315,
+            "z": -2.0876
+          },
+          "handle_local_m": {
+            "x": 1.1268,
+            "y": 1.158752,
+            "z": -0.7776
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 1.0388,
+              "y": 0.94,
+              "z": -2.0876
+            },
+            "max": {
+              "x": 1.526,
+              "y": 2.489552579,
+              "z": -0.6276
+            }
+          }
+        }
+      ]
+    },
+    {
+      "profile_id": "fire_engine",
+      "label": "Ironvale F",
+      "family": "fire",
+      "model_file": "fire_engine.glb",
+      "model_sha256": "967118f3763671e68c34b33fc0a7a8da2adf9f8eae564662af63f9a41f8ef55f",
+      "source_units": "metres",
+      "godot_forward_axis": "-Z",
+      "source_forward_axis": "+Z",
+      "seat_count": 2,
+      "mass_kg": 10500,
+      "body_half_extents_m": {
+        "x": 1.5192,
+        "y": 1.52,
+        "z": 3.821
+      },
+      "ground_clearance_m": null,
+      "center_of_mass_local_m": null,
+      "wheelbase_m": 4.686,
+      "track_width_m": null,
+      "wheel_radius_m": 0.48,
+      "suspension_rest_length_m": null,
+      "steering_limit_rad": 0.56,
+      "engine_accel_mps2": 3,
+      "brake_decel_mps2": 11,
+      "reverse_accel_mps2": 4.5,
+      "max_forward_speed_mps": 25,
+      "max_reverse_speed_mps": 6,
+      "linear_drag": 0.75,
+      "angular_drag": null,
+      "dynamics_note": "gameplay engineering estimates, not manufacturer specifications",
+      "physics_source_provenance": {
+        "exact_or_source_derived": [
+          "mass_kg",
+          "body_half_extents_m",
+          "wheelbase_m",
+          "wheel_radius_m",
+          "steering_limit_rad",
+          "engine_accel_mps2",
+          "brake_decel_mps2",
+          "reverse_accel_mps2",
+          "max_forward_speed_mps",
+          "max_reverse_speed_mps",
+          "linear_drag"
+        ],
+        "unavailable_in_walk_source": [
+          "ground_clearance_m",
+          "center_of_mass_local_m",
+          "track_width_m",
+          "suspension_rest_length_m",
+          "angular_drag"
+        ]
+      },
+      "cabin_derivation": {
+        "floor_top_m": 1.035,
+        "roof_bottom_m": 2.688981089,
+        "seat_recline_rad": 0.55,
+        "cabin_raise_m": 0.215757089,
+        "source_cab_forward_correction_m": 1.901
+      },
+      "seats": [
+        {
+          "id": "front_left",
+          "door_id": "front_left",
+          "label_ru": "Водитель",
+          "can_drive": true,
+          "anchor_local_m": {
+            "x": -0.52,
+            "y": 0.785,
+            "z": -2.121
+          },
+          "approach_local_m": {
+            "x": -2.0892,
+            "y": 0,
+            "z": -1.901
+          },
+          "source_side": 1
+        },
+        {
+          "id": "front_right",
+          "door_id": "front_right",
+          "label_ru": "Передний пассажир",
+          "can_drive": false,
+          "anchor_local_m": {
+            "x": 0.52,
+            "y": 0.785,
+            "z": -2.121
+          },
+          "approach_local_m": {
+            "x": 2.0892,
+            "y": 0,
+            "z": -1.901
+          },
+          "source_side": -1
+        }
+      ],
+      "doors": [
+        {
+          "id": "front_left",
+          "side": "left",
+          "row": "front",
+          "hinge_local_m": {
+            "x": -1.2298,
+            "y": 1.435,
+            "z": -2.706
+          },
+          "handle_local_m": {
+            "x": -1.2798,
+            "y": 1.305664,
+            "z": -1.246
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": -1.736,
+              "y": 1.06,
+              "z": -2.706
+            },
+            "max": {
+              "x": -1.1918,
+              "y": 2.653981089,
+              "z": -1.096
+            }
+          }
+        },
+        {
+          "id": "front_right",
+          "side": "right",
+          "row": "front",
+          "hinge_local_m": {
+            "x": 1.2298,
+            "y": 1.435,
+            "z": -2.706
+          },
+          "handle_local_m": {
+            "x": 1.2798,
+            "y": 1.305664,
+            "z": -1.246
+          },
+          "opening_local_aabb_m": {
+            "min": {
+              "x": 1.1918,
+              "y": 1.06,
+              "z": -2.706
+            },
+            "max": {
+              "x": 1.736,
+              "y": 2.653981089,
+              "z": -1.096
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "parking": {
+    "source_version": 1,
+    "metres_per_cell": 4.1,
+    "stats": {
+      "lots": 39,
+      "bays": 59,
+      "hospitalLots": 1,
+      "residentialLots": 38,
+      "skipped": 7,
+      "servedBuildings": 46,
+      "uncoveredBuildings": 0,
+      "pointLights": 0
+    },
+    "bays": [
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hospital-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-hospital-001",
+        "building_id": "REBUILD-VISUAL-hospital-001",
+        "kind": "hospital",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 679.25,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hospital-001:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-hospital-001",
+        "building_id": "REBUILD-VISUAL-hospital-001",
+        "kind": "hospital",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 676.05,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hospital-001:bay:2",
+        "lot_id": "parking:REBUILD-VISUAL-hospital-001",
+        "building_id": "REBUILD-VISUAL-hospital-001",
+        "kind": "hospital",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 672.85,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hospital-001:bay:3",
+        "lot_id": "parking:REBUILD-VISUAL-hospital-001",
+        "building_id": "REBUILD-VISUAL-hospital-001",
+        "kind": "hospital",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 669.65,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-001",
+        "building_id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 443.25,
+          "y": 0,
+          "z": 584.9
+        },
+        "yaw_rad": 3.141592654,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-001:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-001",
+        "building_id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 446.45,
+          "y": 0,
+          "z": 584.9
+        },
+        "yaw_rad": 3.141592654,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-002",
+        "building_id": "REBUILD-VISUAL-coastal_orchard_house_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 677.9,
+          "y": 0,
+          "z": 558.05
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-002:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-coastal_orchard_house_v1-002",
+        "building_id": "REBUILD-VISUAL-coastal_orchard_house_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 677.9,
+          "y": 0,
+          "z": 561.25
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-compact_podium_glass_tower_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+        "building_id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 654.1,
+          "y": 0,
+          "z": 121.45
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-compact_podium_glass_tower_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-compact_podium_glass_tower_v1-002",
+        "building_id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-002",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 645.9,
+          "y": 0,
+          "z": 170.65
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+        "building_id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 554.9,
+          "y": 0,
+          "z": 94.75
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-001:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+        "building_id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 554.9,
+          "y": 0,
+          "z": 97.95
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-002",
+        "building_id": "REBUILD-VISUAL-eastside_garden_walkup_v1-002",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 494.2,
+          "y": 0,
+          "z": 43.55
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-003:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-003",
+        "building_id": "REBUILD-VISUAL-eastside_garden_walkup_v1-003",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 719.05,
+          "y": 0,
+          "z": 92.4
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-004:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_garden_walkup_v1-004",
+        "building_id": "REBUILD-VISUAL-eastside_garden_walkup_v1-004",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 707.4,
+          "y": 0,
+          "z": 178.85
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+        "building_id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 526.7,
+          "y": 0,
+          "z": 116.35
+        },
+        "yaw_rad": 3.141592654,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-002",
+        "building_id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-002",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 601.15,
+          "y": 0,
+          "z": 71.6
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-003:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-003",
+        "building_id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-003",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 620.65,
+          "y": 0,
+          "z": 145.7
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-004:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-eastside_stepped_apartment_v1-004",
+        "building_id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-004",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 628.85,
+          "y": 0,
+          "z": 199
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-garden_lane_house_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-garden_lane_house_v1-001",
+        "building_id": "REBUILD-VISUAL-garden_lane_house_v1-001",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 625.75,
+          "y": 0,
+          "z": 59.3
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-garden_lane_house_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-garden_lane_house_v1-002",
+        "building_id": "REBUILD-VISUAL-garden_lane_house_v1-002",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 539.3,
+          "y": 0,
+          "z": 113.25
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-garden_lane_house_v1-003:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-garden_lane_house_v1-003",
+        "building_id": "REBUILD-VISUAL-garden_lane_house_v1-003",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 473.4,
+          "y": 0,
+          "z": 165.55
+        },
+        "yaw_rad": 3.141592654,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-001",
+        "building_id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 32.35,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-001:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-001",
+        "building_id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 29.15,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-002",
+        "building_id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 54.7,
+          "y": 0,
+          "z": 135.75
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-002:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-002",
+        "building_id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 54.7,
+          "y": 0,
+          "z": 138.95
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-003:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-003",
+        "building_id": "REBUILD-VISUAL-hillstep_chalet_v1-003",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 40.55,
+          "y": 0,
+          "z": 194.1
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-003:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-hillstep_chalet_v1-003",
+        "building_id": "REBUILD-VISUAL-hillstep_chalet_v1-003",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 37.35,
+          "y": 0,
+          "z": 194.1
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 255.75,
+          "y": 0,
+          "z": 30.9
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-002",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 252.65,
+          "y": 0,
+          "z": 38.8
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-003:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 297.9,
+          "y": 0,
+          "z": 233.25
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-003:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-003",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 297.9,
+          "y": 0,
+          "z": 230.05
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 432.7,
+          "y": 0,
+          "z": 35.35
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-005:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 440.1,
+          "y": 0,
+          "z": 45.55
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-005:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 440.1,
+          "y": 0,
+          "z": 48.75
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-006:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 218.7,
+          "y": 0,
+          "z": 94.75
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-006:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-006",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 218.7,
+          "y": 0,
+          "z": 97.95
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-007:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 423.85,
+          "y": 0,
+          "z": 100.6
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-009:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-009",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 240,
+          "y": 0,
+          "z": 121.45
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-010:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 204.55,
+          "y": 0,
+          "z": 198.2
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-010:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-010",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 201.35,
+          "y": 0,
+          "z": 198.2
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-011:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 196.35,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-011:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-011",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 193.15,
+          "y": 0,
+          "z": 5.5
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-013:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 471.95,
+          "y": 0,
+          "z": 117.5
+        },
+        "yaw_rad": 3.141592654,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-013:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 475.15,
+          "y": 0,
+          "z": 117.5
+        },
+        "yaw_rad": 3.141592654,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-019:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 445.5,
+          "y": 0,
+          "z": 184.05
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-019:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-019",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 445.5,
+          "y": 0,
+          "z": 180.85
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-020:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-020",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 469.6,
+          "y": 0,
+          "z": 178.85
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-021:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-021",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 300.85,
+          "y": 0,
+          "z": 248.2
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-022:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+        "building_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-022",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 166.55,
+          "y": 0,
+          "z": 10.1
+        },
+        "yaw_rad": 1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-pine_ridge_cottage_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+        "building_id": "REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+        "kind": "residential",
+        "layout": "parallel",
+        "position_m": {
+          "x": 157.35,
+          "y": 0,
+          "z": 30.9
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 6.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-pine_ridge_cottage_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+        "building_id": "REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 101.1,
+          "y": 0,
+          "z": 163.55
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-pine_ridge_cottage_v1-002:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+        "building_id": "REBUILD-VISUAL-pine_ridge_cottage_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 101.1,
+          "y": 0,
+          "z": 160.35
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-veranda_bungalow_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-veranda_bungalow_v1-001",
+        "building_id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 524.35,
+          "y": 0,
+          "z": 571.3
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-veranda_bungalow_v1-001:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-veranda_bungalow_v1-001",
+        "building_id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 521.15,
+          "y": 0,
+          "z": 571.3
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-001:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+        "building_id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 175.85,
+          "y": 0,
+          "z": 144.9
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-001:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+        "building_id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 172.65,
+          "y": 0,
+          "z": 144.9
+        },
+        "yaw_rad": 0,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-002:bay:0",
+        "lot_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+        "building_id": "REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 150.3,
+          "y": 0,
+          "z": 175.85
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      },
+      {
+        "parking_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-002:bay:1",
+        "lot_id": "parking:REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+        "building_id": "REBUILD-VISUAL-woodland_crosswing_house_v1-002",
+        "kind": "residential",
+        "layout": "perpendicular",
+        "position_m": {
+          "x": 150.3,
+          "y": 0,
+          "z": 172.65
+        },
+        "yaw_rad": -1.570796327,
+        "width_m": 3.2,
+        "length_m": 5.4,
+        "exit_rule": "yield_to_road_and_pedestrians"
+      }
+    ]
+  }
+}
