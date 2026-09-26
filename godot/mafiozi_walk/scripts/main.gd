@@ -2,6 +2,13 @@ extends Node3D
 ## First visible migration checkpoint: exact authored assets, external walking only.
 
 const PlayerController = preload("res://scripts/preview_player.gd")
+const BlockValidation = preload("res://scripts/preview_block_validation.gd")
+const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
+@export_file("*.json") var block_data_path: String = "res://data/block.json"
+var preview_ready: bool = false
+var validation_errors: PackedStringArray = []
+var _resource_scenes: Dictionary = {}
+var _surface_materials: Dictionary = {}
 var _block: Dictionary = {}
 var _origin: Vector3
 var _player: CharacterBody3D
@@ -12,14 +19,34 @@ var _samples: Array[float] = []
 var _runtime_seconds: float = 0.0
 var _capture_done: bool = false
 var _capture_path: String = ""
+var _last_frame_usec: int = 0
 
 func _ready() -> void:
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/block.json"))
-	if not parsed is Dictionary:
-		push_error("Preview block is unavailable")
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(block_data_path))
+	var prepared: Dictionary = BlockValidation.prepare_assets(parsed)
+	validation_errors = prepared["errors"]
+	if not validation_errors.is_empty():
+		_show_load_error()
 		return
+	_resource_scenes = prepared["scenes"]
 	_block = parsed
 	_origin = _v3(_block["originM"])
+	# Material preparation is also atomic: a failed shader/material must not
+	# leave a partially populated scene reporting READY.
+	for row: Array in _block["surface"]["grid"]:
+		for tile: Variant in row:
+			var key: String = str(int(tile))
+			if _surface_materials.has(key):
+				continue
+			var material: Material = SurfaceMaterials.create_material(_block["surface"], int(tile), _origin)
+			_surface_materials[key] = material
+			if material == null:
+				validation_errors.append("Surface material unavailable for tile " + key)
+	if not validation_errors.is_empty():
+		_surface_materials.clear()
+		_resource_scenes.clear()
+		_show_load_error()
+		return
 	_build_lighting()
 	_build_surface()
 	for record: Dictionary in _block["buildings"]:
@@ -28,13 +55,34 @@ func _ready() -> void:
 		_add_asset(record)
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
 	_player = PlayerController.new()
+	_player.hero_scene_path = str(_block["hero"]["path"])
+	_player.model_target_height = float(_block["hero"]["targetHeightM"])
 	_player.position = _spawn
 	add_child(_player)
+	if not bool(_player.get_preview_status().get("model_loaded", false)):
+		validation_errors.append("Hero did not produce a valid visible model")
+		for child: Node in get_children():
+			child.queue_free()
+		_show_load_error()
+		return
 	_build_hud()
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
-	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"]])
+	preview_ready = true
+	_last_frame_usec = Time.get_ticks_usec()
+	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
+
+func _show_load_error() -> void:
+	set_process(false)
+	var layer: CanvasLayer = CanvasLayer.new()
+	add_child(layer)
+	var label: Label = Label.new()
+	label.position = Vector2(32, 32)
+	label.text = "Не удалось загрузить квартал.\nДанные или ресурсы повреждены; сцена не запущена."
+	label.add_theme_font_size_override("font_size", 22)
+	layer.add_child(label)
+	push_error("MAFIOZI_PREVIEW_REJECTED: " + "; ".join(validation_errors))
 
 func _v3(value: Array) -> Vector3:
 	return Vector3(float(value[0]), float(value[1]), float(value[2]))
@@ -53,7 +101,7 @@ func _build_lighting() -> void:
 	environment.sky = sky
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	environment.ambient_light_energy = 0.65
-	environment.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	environment.tonemap_mode = Environment.TONE_MAPPER_ACES
 	environment.tonemap_white = 6.0
 	world.environment = environment
 	add_child(world)
@@ -81,10 +129,7 @@ func _build_surface() -> void:
 	for key: String in groups:
 		var mesh: BoxMesh = BoxMesh.new()
 		mesh.size = Vector3(cell, 0.04, cell)
-		var material: StandardMaterial3D = StandardMaterial3D.new()
-		material.albedo_color = Color(str(palette[key]["colorSrgb"]))
-		material.roughness = 0.9 if bool(palette[key]["solid"]) else 0.25
-		mesh.material = material
+		mesh.material = _surface_materials[key]
 		var multi: MultiMesh = MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
 		multi.mesh = mesh
@@ -117,10 +162,8 @@ func _build_surface() -> void:
 			add_child(body)
 
 func _add_asset(record: Dictionary) -> void:
-	var resource: PackedScene = load(str(record["path"])) as PackedScene
-	if resource == null:
-		push_error("Missing authored asset: " + str(record["id"]))
-		return
+	# Every scene passed preflight before any world/physics node was created.
+	var resource: PackedScene = _resource_scenes[str(record["path"])]
 	var parent: Node3D = Node3D.new()
 	parent.name = str(record["id"])
 	parent.set_meta("source_id", record["id"])
@@ -174,18 +217,20 @@ func _build_hud() -> void:
 	panel.add_theme_stylebox_override("panel", style)
 	layer.add_child(panel)
 	var stack: VBoxContainer = VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 7)
+	stack.add_theme_constant_override("separation", 5)
 	panel.add_child(stack)
 	var title: Label = Label.new()
 	title.text = "МАФИОЗИ  /  GODOT"
-	title.add_theme_font_size_override("font_size", 22)
+	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color", Color("ebc77f"))
 	stack.add_child(title)
 	var stage: Label = Label.new()
-	stage.text = "Первый квартал · перенос в процессе\nАнимации и игровые системы ещё переносятся"
+	stage.text = "Первый квартал · ходьба и бег\nЖители, транспорт и интерьеры ещё переносятся"
+	stage.add_theme_font_size_override("font_size", 14)
 	stack.add_child(stage)
 	_stats = Label.new()
 	_stats.add_theme_color_override("font_color", Color("aabec8"))
+	_stats.add_theme_font_size_override("font_size", 13)
 	stack.add_child(_stats)
 	var controls: Label = Label.new()
 	controls.text = "WASD — идти   Shift — бег   Space — прыжок\nПКМ + мышь — камера   Tab — захват мыши   Esc — освободить"
@@ -196,12 +241,14 @@ func _build_hud() -> void:
 	layer.add_child(controls)
 
 func _process(delta: float) -> void:
-	if _player == null:
+	if not preview_ready or _player == null:
 		return
 	if _player.position.y < -12:
 		_player.position = _spawn
 		_player.velocity = Vector3.ZERO
-	_samples.append(delta * 1000.0)
+	var now: int = Time.get_ticks_usec()
+	_samples.append(float(now - _last_frame_usec) / 1000.0)
+	_last_frame_usec = now
 	_runtime_seconds += delta
 	if not _capture_done and not _capture_path.is_empty() and _runtime_seconds > 5.0:
 		_capture_done = true
@@ -215,7 +262,7 @@ func _process(delta: float) -> void:
 	var sorted: Array[float] = _samples.duplicate()
 	sorted.sort()
 	var p95: float = sorted[mini(sorted.size() - 1, int(sorted.size() * 0.95))]
-	_stats.text = "8 зданий · 8 фонарей · %d FPS · кадр p95 %.1f мс\nПоказ квартала; полный городской FPS ещё не проверен" % [Engine.get_frames_per_second(), p95]
+	_stats.text = "%s · %d FPS · кадр p95 %.1f мс\nМалый квартал; производительность города ещё не проверена" % [RenderingServer.get_current_rendering_method(), Engine.get_frames_per_second(), p95]
 	if not _capture_path.is_empty() and _runtime_seconds < 12.0:
 		print("PREVIEW_FRAME_SAMPLE ", JSON.stringify({"elapsed_seconds": _runtime_seconds, "fps": Engine.get_frames_per_second(), "frame_p95_ms": p95, "draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), "primitives": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), "limits": "Static small debug preview, not full gameplay or exported release benchmark"}))
 

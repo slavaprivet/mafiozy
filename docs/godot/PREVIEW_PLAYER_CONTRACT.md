@@ -89,15 +89,17 @@ recolour because eyes, skin shading, shirt and other details share surfaces.
 The original GLB declares Y-up/+Z-forward. Its imported bright eye vertices have
 centroid Z=+0.552 (122 vertices); current 180° visual correction turns that front
 toward Godot's movement -Z, away from the initial camera at +Z. The first white
-screenshot alone does not justify reversing this. Coloured LIVE orientation
-acceptance remains with the coordinator.
+screenshot alone does not justify reversing this. The coordinator subsequently
+viewed `outputs/godot_preview_materials_20260926.png` and confirmed authored
+colours and correct rear orientation. No yaw change was needed.
 
 The source `player_male.8130dfb1f7eb.glb` has **zero embedded animation clips**.
-This controller deliberately shows the imported static pose during movement;
-Walk's procedural skeleton/weapon animation is not ported here. The status
-dictionary reports this even if a future GLB contains animation clips. The root
-HUD must make this unfinished animation state visible. Do not describe this
-controller as complete animation migration.
+The first visible checkpoint used its static pose. The next bounded step adds
+canonical procedural unarmed idle/walk/run through `preview_locomotion.gd`; see
+[the locomotion contract](PREVIEW_LOCOMOTION_CONTRACT.md) for source coefficients,
+actual skin contact checks and limits. The status still reports jump/combat
+animation as unfinished. This is not complete animation migration; locomotion
+needs independent review and native LIVE acceptance.
 
 This stage has no stair-step resolver, vaulting, swimming, water authority,
 vehicle entry, aiming, weapon animation, automatic unstuck teleport or savegame

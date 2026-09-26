@@ -58,7 +58,7 @@ func _run() -> void:
 	_check(material_copies.size() == 4, "four semantic materials share four owned copies")
 	_check(color_count == 8338, "all 8338 imported authored colors retained")
 	print(JSON.stringify({"passed": _failures.is_empty(), "mapping": mappings,
-		"vertex_colors": color_count, "pose": "static imported pose; visual orientation acceptance pending LIVE"}))
+		"vertex_colors": color_count, "scope": "actual imported materials; animation/render acceptance is separate"}))
 	for failure: String in _failures:
 		push_error(failure)
 	quit(0 if _failures.is_empty() else 1)

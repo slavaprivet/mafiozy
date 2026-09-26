@@ -1,5 +1,13 @@
 # S00 material audit, 26 September 2026
 
+**Later source tracing supersedes the intermediate-asphalt recommendation below.**
+`environment_visuals.mjs` replaces the initial native terrain materials after
+`terrain()` builds them. The final canonical dry materials are now ported in
+`preview_surface_materials.gd`; see the implementation contract at the end.
+Root's subsequent LIVE reported that white point 6 did **not** fix clipping.
+That initial lighting hypothesis is therefore not an accepted fix, and source
+materials must not be darkened to hide the lighting issue.
+
 Read-only review of `outputs/godot_preview_20260926.png`, current imported
 resources, source GLBs and Walk's material setup. No game script, source asset
 or GPU process was changed/launched by this audit. A short Godot 4.7.2
@@ -50,15 +58,17 @@ compare explicit ACES/white-point and light settings using the unchanged
 camera and actual scene, instead of compensating by permanently darkening
 source building materials.
 
-The source asphalt descriptor is also a small, separate parity discrepancy:
+The initial source asphalt descriptor was identified as an intermediate discrepancy:
 Walk's `terrain()` overrides tile 0 with `MAT_CLAY_ASPHALT_CLEAN`, linear factor
 `(0.105,0.115,0.12)`, roughness approximately 0.8. Current Godot line 84 always
 uses palette `#525a5a`, whose linear value is `(0.0844,0.1022,0.1022)`, and line
 85 uses roughness 0.9. `block.json` already carries the actual descriptor.
-For parity, a future root patch can assign
+To reproduce only this intermediate layer, a material can assign
 `Color(0.105,0.115,0.12).linear_to_srgb()` to `albedo_color` and use descriptor
 roughness. The existing fallback hex must remain direct `Color(hex)`. This
-small difference cannot explain the all-white pavement by itself.
+small difference cannot explain the all-white pavement by itself. Further
+source tracing found that the final environment layer replaces this material;
+using the descriptor alone is therefore not final Walk visual parity.
 
 ## Safe colour-array recipe for later imported assets
 
@@ -85,3 +95,97 @@ The source GLBs are unchanged and hash-verified by the exporter. This audit
 does not prove final lighting, transparent-glass parity, dynamic night lights,
 animation quality or full-city FPS. Only the root's single visible Godot run
 can accept the proposed lighting changes.
+
+## Implemented dry-surface helper contract
+
+Owned files:
+
+- `godot/mafiozi_walk/scripts/preview_surface_materials.gd`
+- `godot/mafiozi_walk/scripts/test_preview_surface_materials.gd`
+
+Integration is deliberately root-owned; `main.gd`, the exporter, assets, project
+settings and player were not edited by this task.
+
+```gdscript
+const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
+# The current excerpt has zero protected cells; false is correct for its groups.
+mesh.material = SurfaceMaterials.create_material(surface, int(key), _origin)
+```
+
+API:
+`create_material(surface: Dictionary, tile_id: int, source_origin: Vector3 =
+Vector3.ZERO, protected_cell: bool = false, detail: bool = true) -> Material`.
+Call once per material group, not once per frame or individual cell. Dry
+materials share one shader resource but keep independent uniforms. The origin
+must be the exported block's original world origin: procedural detail uses
+source-world coordinates, so moving the preview origin does not move the
+authored stone joints or asphalt patches.
+
+Default `detail=true` returns the final dry `ShaderMaterial` port:
+
+| Tile | Final Walk surface | sRGB base | Roughness | Original detail |
+|---|---|---|---|---|
+| 0 / 19 | asphalt | `#525b59` | 0.90 | filtered aggregate, wear, cracks, rotated repair patches |
+| 8 | grass | `#748d68` | 0.95 | broad sod clumps, sparse soil, subtle relief |
+| 9 | paving | `#c0bda7` | 0.89 | staggered 1.45 × 0.90 m limestone slabs and joints |
+| 14 | sand | `#cfbd96` | 0.97 | filtered shallow ridges |
+
+The source formulas, frequencies, antialiasing fades, roughness modulation and
+derivative relief are preserved from `environment_surface_materials.mjs` dry
+revision 4. The shader has no texture samplers, time update, extra pass,
+geometry movement or collision effect. Colour uniforms use Godot's
+`source_color` hint, with the original sRGB preset passed as `Color(hex)`;
+internal soil/tint multipliers remain their original linear shader constants.
+
+`create_base_material(surface, tile_id, protected_cell=false)` returns the
+original native **intermediate** `StandardMaterial3D`. It consumes the actual
+`MAT_CLAY_ASPHALT_CLEAN` descriptor for tile 0 only, preserving linear factors
+with one `.linear_to_srgb()` conversion for the Godot colour property. It
+retains source palette fallback, roughness, metallic and protected-key rules.
+The final dry material keeps this intermediate resource as provenance metadata
+`source_base_material`; it does not render an extra base pass.
+
+`protected_cell=true` selects paving, matching `nativeTerrainKind` in the source
+for the special protected key. The current 31 × 31 crop has **zero protected
+cells**, so root does not need to split its MultiMeshes now. A future crop with
+protected cells must group by both tile ID and protected status.
+
+Water is explicitly outside this dry-surface task. Tile 16 returns the original
+base water material, tagged with `migration_limit`: source depth absorption,
+shore coverage and ripples are not migrated by this helper. It must not be
+reported as finished water. Unknown tiles return null; unsupported asphalt
+colour encodings are rejected rather than guessed.
+
+Current source crop counts are 253 road, 114 sidewalk, 291 grass and 303 water
+cells. These are exactly the source topology cells, including the canal and
+the source's pending-host-snapshot status. This helper adds no lane markings,
+kerbs, road-dressing geometry, grass blades or new roads. The coarse cell
+outlines and incomplete surrounding map remain separate migration limitations.
+
+## Helper validation
+
+Run with the installed engine:
+
+```powershell
+Godot_v4.7.2-stable_win64_console.exe --headless --path godot/mafiozi_walk --script res://scripts/test_preview_surface_materials.gd
+```
+
+**43 checks PASS**, including actual source preset/override lookup, source
+asphalt linear roundtrip, actual roughness, palette fallback without double
+conversion, distinct road/paving modes, source-origin preservation, independent
+instance uniforms, protected/bridge semantics, unknown-tile rejection and
+explicit incomplete-water metadata. Godot's headless shader parser exposes all
+required uniforms with no shader/script errors in the final run. An initial
+reserved shader-variable name was corrected before acceptance.
+
+This is a parsed shader/resource contract test; the Compatibility GPU driver
+has not compiled/rendered this shader in this task. Root still owns that live
+check and the same-camera lighting comparison. Correct dry materials alone do
+not prove the severe highlight clipping is fixed.
+
+Source receipts used for the final port:
+
+- `environment_surface_materials.mjs`: SHA-256
+  `6598e763455f568902d678b24954e9f659fcd8dc804d41fc769270befe6be334`
+- `environment_visuals.mjs`: SHA-256
+  `0e2b59bfb8db2489383ac6177182139491bb1767fe9b460fabc65cc9930adfeb`

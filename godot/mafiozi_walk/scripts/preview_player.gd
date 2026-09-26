@@ -20,6 +20,7 @@ const ACTION_BACK: StringName = &"preview_move_back"
 const ACTION_RUN: StringName = &"preview_run"
 const ACTION_JUMP: StringName = &"preview_jump"
 const ACTION_CAPTURE: StringName = &"preview_capture_mouse"
+const LocomotionPose = preload("res://scripts/preview_locomotion.gd")
 
 var _visual: Node3D
 var _yaw_pivot: Node3D
@@ -38,6 +39,7 @@ var _mesh_count: int = 0
 var _animation_names: PackedStringArray = PackedStringArray()
 var _vertex_color_surfaces: int = 0
 var _material_names: PackedStringArray = PackedStringArray()
+var _locomotion: LocomotionPose
 
 
 func _ready() -> void:
@@ -91,7 +93,10 @@ func _build_visual() -> void:
 		return
 	var normalized: Node3D = Node3D.new()
 	normalized.name = "UniformModelScale"
-	_visual.add_child(normalized)
+	var visual_motion: Node3D = Node3D.new()
+	visual_motion.name = "LocomotionOffset"
+	_visual.add_child(visual_motion)
+	visual_motion.add_child(normalized)
 	normalized.add_child(hero)
 	# Merge actual imported mesh bounds in one coordinate space before scaling.
 	var bounds: AABB = AABB()
@@ -120,7 +125,7 @@ func _build_visual() -> void:
 	normalized.position = Vector3(-center.x, -bounds.position.y, -center.z) * _model_scale
 	_model_loaded = true
 	_restore_authored_vertex_colors(meshes)
-	# Import discovery is diagnostic only. No procedural Walk animation is claimed.
+	# Embedded clips stay disabled; the canonical procedural gait owns this rig.
 	var animation_players: Array[Node] = hero.find_children("*", "AnimationPlayer", true, false)
 	for node: Node in animation_players:
 		var animation_player: AnimationPlayer = node as AnimationPlayer
@@ -128,6 +133,9 @@ func _build_visual() -> void:
 			if animation_name != "RESET" and not _animation_names.has(animation_name):
 				_animation_names.append(animation_name)
 		animation_player.stop()
+	_locomotion = LocomotionPose.new()
+	if not _locomotion.bind(hero, visual_motion):
+		push_warning(str(_locomotion.get_status().get("error", "Locomotion bind failed")))
 
 
 func _restore_authored_vertex_colors(meshes: Array[Node]) -> void:
@@ -223,6 +231,8 @@ func _physics_process(delta: float) -> void:
 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
 	move_and_slide()
+	if _locomotion != null:
+		_locomotion.update_pose(delta, get_real_velocity(), is_on_floor())
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -282,6 +292,7 @@ func get_preview_camera() -> Camera3D:
 
 
 func get_preview_status() -> Dictionary:
+	var locomotion_status: Dictionary = _locomotion.get_status() if _locomotion != null else {}
 	return {
 		"model_loaded": _model_loaded,
 		"model_error": _model_error,
@@ -290,7 +301,8 @@ func get_preview_status() -> Dictionary:
 		"uniform_scale": _model_scale,
 		"height_m": model_target_height,
 		"animations_found": _animation_names.duplicate(),
-		"animation_status": "Imported static pose; Walk animations are not migrated",
+		"animation_status": "Canonical idle/walk/run; jump and combat animation not migrated" if bool(locomotion_status.get("ready", false)) else "Static pose; locomotion binding failed",
+		"locomotion": locomotion_status,
 		"vertex_color_surfaces": _vertex_color_surfaces,
 		"material_names": _material_names.duplicate(),
 		"grounded": is_on_floor(),

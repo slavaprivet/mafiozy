@@ -65,6 +65,8 @@ func _run() -> void:
 	await _frames(150)
 	Input.action_release(&"preview_move_forward")
 	_check(_player.position.z > -1.57 and _player.position.z < -1.45, "wall blocks movement at capsule surface")
+	var locomotion_status: Dictionary = _player.get_preview_status().get("locomotion", {}) as Dictionary
+	_check(float(locomotion_status.get("gait", 1.0)) < 0.001, "held movement against wall stops actual walking pose")
 	_player.position = Vector3(0.0, 0.05, 2.0)
 	_player.velocity = Vector3.ZERO
 	_add_box(Vector3(0.0, 2.0, 4.4), Vector3(3.0, 4.0, 0.3))

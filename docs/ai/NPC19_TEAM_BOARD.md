@@ -1,4 +1,289 @@
+## CURRENT Godot — 26 сентября 2026, после живой проверки
+
+UPDATE20:00UTC: актуальный единственный показ standalone releasePID43332,
+package s01-20260926-review02; debug48888 завершился по неизвестнойпричине.
+Execsession9305 ждёт exit и пишетlifetimeJSON, не terminate. Releaseviewport
+outputs/godot_release_live26.png просмотрен. UserпроситGitHubсохранениеразвчас;
+automationwalk-godot-14 обновлена. Художник21 теперьтакже реализуетсогласованный
+scripts/perf/frame_recorder.gd+preview_perf_adapter.gd иtests/test_frame_recorder.gd,
+main/project/player/surfaces не трогает; root интегрирует и проверяет LIVE.
+
+Root и его субагенты непосредственно переносят игру. Художник21 руководит всеми
+14Astra; confirmed задания всем14, приёмка пакетов отдельно от доставки.
+Один видимый Godot PID48888 оставлен открытым и поднят пользователю. Не закрывать
+после QA; следующий необходимый restart готовить заранее и сразу возвращать показ.
+Forward+ / source procedural ground / actualrig walking подключены. LIVE
+outputs/godot_motion26:11.9083m walk/run/idle/jump1.4239m/land PASS,6PNG,
+без runtime/shadererrors. Input программный, не физическая клавиатура.
+240stationaryframes p95 7.365ms ~144FPS не full-city/release; NPC/traffic ещё нет.
+Пользователь сам отметил лучшую плавность/физику. Актуальные ограничения и
+проверки docs/godot/S01_MOTION_LIVE_20260926.md. Экспорт Windows готовится отдельно.
+Прежнее заявление «white6 устранил пересвет» неверно: решён выбором проверенного
+Forward+ профиля; Compatibility оставался белым. Не перекрашивали sourceGLB.
+
+## Проверенный Godot checkpoint — 26 сентября 2026 (история первого запуска)
+
+main/origin fcfed9ce6e29ebd780d08d486b84dade1a08e569 опубликован и проверен.
+33 scoped файла первого Godotpreview; старыйWalk/WIP сохранён отдельно.
+Один видимый GodotPID41772. Цвета героя/видсоспины/освещение проверены на
+реальном viewport outputs/godot_preview_materials_20260926.png после исправлений.
+Материалы7surfaces8338colors и16physicschecks PASS; анимации и game systems OPEN.
+Художник21 подтвердилlead14Astra; точные доставки/таймауты унего в
+docs/godot/astra21_DISPATCH_20260926.md. Root не дублирует рассылку.
+Следующий rootplayer scope proceduralidle/walk/run, Astra11 independentreview.
+Живой показ маленькой сцены не является приёмкой игрового FPS полной карты.
+
+## Новое поручение — перенос Walk в Godot, 26 сентября 2026
+
+Пользователь сменил главный приоритет: полный поэтапный перенос Walk от третьего
+лица в Godot. Позднее уточнил: Astra всего14; ими руководит Художник21
+01a0cb2d-a8ab-78e1-ba8e-3ef7915a2d71. Координатор20 и его субагенты занимаются
+самой игрой, общей интеграцией и единственным живым экземпляром. Не продолжать
+прежнюю независимую рассылку14Astra. Актуальная доска docs/godot/MIGRATION_BOARD.md.
+
+Создана активная цель полного переноса без token budget. Ежечасная автоматизация
+walk-godot-14 ACTIVE; prompt уточнён новым распределением. Старой npc в приложении
+уже нет. Пользователь хочет видеть изменения в окне Godot, проверять каждый этап
+на механику и лаги до перехода дальше; ноль лагов не является доказанным результатом.
+
+Godot4.7.2-stable установлен из официальной загрузки в
+C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/.
+--version подтвердил4.7.2.stable.official.ed1daf0bf. Реальный проект:
+godot/mafiozi_walk. Один видимый процесс36308 (последующий restart требует обновить
+PID), окно «Мафиози — перенос в Godot (DEBUG)». Не открывать ещё один экземпляр.
+
+Импорт:8 исходных зданий,8 фонарей,6 уникальныхGLB,27 исходных коллизий,961 ячейка
+настоящей topology вокругprint_shop001. Экспортёр проверяет SHA/bytes/path,
+повторяемость и108 вершин. Игрок:actualGodot16 headless checks PASS (модель1.9m,
+пол,бег,прыжок,стены,камера). Главнаясцена120 headless frames безerrors после
+исправления JSON float tile keys. Реальное GPU окно запущено наGTX980 OpenGL3.3.
+Снимок собственного viewport: outputs/godot_preview_20260926.png; это настоящий
+кадр приложения. На первом кадре hero белый и смотрит вкамеру; player-subagent
+исправляет appearance/orientation, root снижает пересвет. Нельзя объявлять
+визуальное качество/анимации принятыми. ИсходныйGLB имеет0 animation clips.
+Обычный Windows screen capture дважды вернул SetIsBorderRequired0x80004002;
+Computer Use не продолжать на старых координатах. Кадр сохранён игровым viewport.
+
+Первые render-only debug1280×720:около144FPS,p95dt6.9ms,~1015drawcalls,189kprimitives.
+БезNPC/авто, неподвижный маленький квартал, не release/full-game benchmark;
+запись screenshot добавляет разовый overhead. Общую производительность не объявлять.
+
+S00: docs/godot/S00_BASELINE.md, outputs/godot_s00_20260926_final/source_snapshot.zip
+SHA509a6a4ffca16abe8b4dc0e309de775244f5865800c2e121e44ab0c4b2668daa;
+711 элементов проверены. HEAD3612fa6,serviceWorld9f5/Walk e80 сохранены,
+13runtime совпадают; один service-test изменился относительно manifest.
+Hospital26 patch9382243e=22CPU ONLY,notapplied; gun26patch193a2c42=HOLDframecollisions.
+Не потерять их как исходные регрессии. Полная S00 ещё требует host snapshot,
+тяжёлый LIVE baseline и полный планАстра10. Прочитана лишь итоговая сводка,
+сохранена ASTRA10_PLAN_SUMMARY_20260924.md; полный текст запрошен вАстра10.
+
+## CURRENT — 26 September 2026, 18:37 UTC
+
+Root resumed after the usage-limit interruption. All four inspected owners
+(Artist21, Transport3, Checker1-8, Physics12-13) report their last turns FAILED
+with usage limit; do not claim uninterrupted work or new overnight results.
+One concrete resume message to each failed with execution-config-loading.
+No repeated retries and no predecessor tasks awakened.
+
+HEAD is still3612fa62f8d3bcb6888c7028ed0791fe0c928085; no new publish this turn.
+Service runtime WIP hashes confirmed unchanged: World9f5cc5a1, Walk e80ebf4b.
+The older337d header below is obsolete: revision49d2 IS applied. Last historical
+LIVE14 reported printshop-active; actual seller/customer visual acceptance and
+whole-scene FPS remain OPEN. Checkpoint NPC_SERVICE_WALK23_CHECKPOINT.json/.patch
+(36476477 patch) remains a review delta, not something to reapply to current WIP.
+
+Root reran actual applied revision test: PASS271-char rejection, bounded token,
+stale entry invalidation and generation separation without guard relaxation.
+Transport's common fixture now contains actual service helpers and empty-provider
+assertion. Root test_native_parking_lifecycle PASS4200 frames: physical boarding,
+248.41m driving,53.49m walking, real entry/visit/exit, same NPC identity. Test-only
+update cost p50 .0685/p95 .1536ms; NOT browser FPS, not crew hospital-discharge proof.
+No runtime source changed this turn; gun helper has no semantic Git diff.
+
+Current browser tools changed to computer-use sky. Inventory found Chrome at
+Google sign-in and the ChatGPT desktop window; no new window/tab opened. Chrome
+read-only state capture was STOPPED by Computer Use because it could not determine
+the browser URL sufficiently to enforce policy. No more UI input this turn.
+Old browser1/tab3 handles are historical and must not be guessed/reused.
+LIVE blocked by tool access; not a successful run and not a new game defect.
+
+Two bounded outputs-only subagents are running: /root/hospital_return26 for the
+legacy hospital-road discharge bug, /root/vehicle_weapon26 for coordinated READY
+pose visibility and real aperture/grip collision checks. No production ownership
+was delegated. Old child tree was absent. New best gun experiment lean45 has male
+TT rear seats0 intersections/48-50 of64 visible samples, but female head and
+2-handed sleeve collisions remain: HOLD, not accepted or applied.
+
+Next: finish/review their proposals; retain native static/dynamic/water/occupancy
+checks on hospital exit. Restore access to EXISTING game before LIVE acceptance.
+Service publication remains pending actual visual check; Checker shadow defects
+and source-car owner repair proof remain pending, GPU candidates HOLD.
+
+## LATEST WIP — service applied, gun remains baseline
+
+Root APPLIED independently accepted service38d5b63a local only, not committed.
+World raw9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5;
+Walk raw337d53c2659a0053e0c67645b199e446a2e3b4d0bbb7377e27155ee6d0c9d48f.
+All11 deps checked beforeapply; actualapplied GLB/cash/death/blockers rootPASS,
+6inlineWorldscriptsparse/WalksyntaxPASS. Portabletests suppliedArtist21.
+LIVE12 samegame+buildingqa=1: printed realprintshop001 openpublicdoor, but service
+init HOLD 'Pilot service anchors not certified'. NoJSerrors; NOT operational yet.
+Root applied exact diagnostic-only outputs/service_anchor_diagnostic23.patch4e2e7a77,
+helper walk_host757c→956a23c5 changes onlyfirstfailure exception details, guards unchanged.
+Reload SAME tab nowLIVE13 loading; need DOMstationaryService23 firstbadanchor toArtist.
+Do notcommit service until actualanchorissue fixed+live. Traversal slotstillNOTreleased.
+Gun bc6/ffd wasreverted; newgunposeisolatedentrychild, ganggeometryhelp. Latestnew
+TT12cases26–51/64 visibility butUzi3–5/64 stillqualityFAIL, noapply/noreadyclaim.
+Hospital threecrew timerfinished but UI 'Ожидаетвыхода' persisted beforeLIVE13;
+actualreturn/seat reuse NOT accepted. Explosion4/4+hero actualrecovery wasconfirmed.
+One browser1/tab3, nootherGPU; Checker clarifiedwheelnumbershistorical, notnewtab.
+## LATEST — LIVE10 result and main3612fa6
+
+main/origin3612fa62f8d3bcb6888c7028ed0791fe0c928085 published/remoteverified.
+Includes shadowchain9896+270 as3e51249+06a8035, root76320+30PASS; oldHOLD superseded.
+3612fa6 narrowpolice testfix root3PASS + docs/ai/NPC_VEHICLE_LIVE10_20260923.md.
+
+Gunbc6d/ffd7 candidate REJECTED and REVERSED from production (helperdiffempty).
+EarlyLIVE Easton rearleft still mostlyhead/no readablegun. Expandedindependent
+compactmale/frontright/Uzi front=-.11773m,receiver/triggerinside,bodyframe8.
+Author refines isolated coordinatedtorso/hands; gang independentgeometry help.
+Browser LIVE10 still f30+temporarycandidate loaded, reload removesit; no gunfixclaim.
+
+LIVE actual explosion Easton hero+3crew XON: acceptedtrue targets4 delivered4,
+duplicatefalse, hero0/deadconfirmed/inputsblocked. All3 crew explicitlyhospitalized
+UI namesЕленаКонти/СофияМоретти/СофияМанчини5min. Hero actualhospitalrecovery100,
+inputsBlockedfalse,on_foot,occupiedSeatnull. NoJSerrors. Localpreviewonly/serverOFF.
+Seat reuse after3crewreturn stillpending; keeponegame browser1/tab3.
+
+Servicef2c independentpanic rereview nowinventorychild. Nativecoverage31+82PASS
+isolated but captureactivationHOLD genuineunknown sourcecollections/feet/revision.
+Transport3 actualsourcecardamage privatelease proposal next outputs-only; testfixcommitted.
+Traversal finalrebuildstillnotreleased (perfallocs+QA diagnostics). Checkerwheelauditnext.
+## Актуально: LIVE10, 23 сентября — выше исторических записей
+
+main/origin f30d6dcf747896154cb66a567f5ba2fbcc55030e PUSHED/remote verified.
+0bec159: 43 curated vehicle/NPC/road/lifecycle files committed, all283 imports in Git.
+f30d6dc: traffic doors285 accepted, actual12models/1254102 vertices +presentation PASS.
+Building shadow default9896 HOLD: Checker found nested shadow reentry BSC-REENTRY-001.
+Do not apply9896. GPU/FPS acceptance still open, structural call savings are not FPS.
+Ghost-seat detach +hero life ownerhooks +fullquat2slot scratch all committed/PASS.
+
+Latest user priority guns: exact READY patch bc6d22084327912d44560e03343587348987e20d85e29401f92442a39cb8a371
+APPLIED locally for bounded LIVE, NOT committed. Applied raw helper5753CC786DE031BB05CFEC2C247274143F7D9E8E318A84BD93EA4FB8622B705C.
+Author focused30 transitions +12actual endpoints PASS; full156+780 and gang independent review pending.
+Root single browser1/tab3 intentionally reloaded SAME URL on main f30 +gunWIP (LIVE10 loading).
+No explosion/gun finalLIVE or currentFPS claim yet. Current build includes ghost/hero/tilt now.
+Artist service f2c952 candidate fixes panic-yield, not applied; independent rereview needed.
+Traversal67F91 superseded by diagnostic-only final candidate pending; production slot NOT released.
+Inventory native roster actual raw pools contract underway; never fabricate complete:true.
 ## Последнее назначение 23 сентября (заменяет старые строки владельцев ниже)
+
+NEWER: explosion7 applied after independent ACCEPT, actual portable3PASS;
+deadseat v2 final56bebab9+4actorseams applied, actual origins/integration/fullhost
+testsPASS. Fullquat tilt independent review; incoming source bodydamage stillHOLD.
+Transport portable actual road/service tests ready; next ghostseat on realhospital
+removal. Physics next severity-scaled actualNPCcrash/jerk proposal, no duplicate.
+Fresh heads/guns report: entrychild audits14cars/allweapons/normalrear occlusion,
+root same single tab reloaded currentf8+WIP (LIVE9 inprogress). Artist realWalk
+servicehost isolated composition next; Checker9896defaultshadow nextcheckpoint.
+
+NEW main/origin f8f1a6e published oldtown6files (168potential submissions removed,
+noLIVEyet). Root police025EA3 APPLIED after7independent+3actualsourcePASS; QAselect
+directDOM fixAPPLIED. Transport ports portabletests for incoming+road checkpoint.
+Explosione2 proposal31rootPASS awaitsfinalindependent (-1hero/crewreload corrected).
+Deadseatv2 narrowACCEPT but legacy version1/origin migration beingfixed bygangchild;
+entrychild fullquat pitchroll candidate; sourcecar2421PASS still bodydamageHOLD.
+Artist next real Walk servicehost composition, returnaddon independentACCEPT.
+See root memory new WIP section; game remains LIVE8/f416, single tab.
+
+LATEST LIVE8 overrides old reload gate below: root reloaded same single tab on
+f4164be+incoming/road WIP. Kingswell3crew boarding/XON visible hands+TT; actual
+cop19 attack led to8accepted crew shots, copHP0; XOFF returns inside. Hero77/glass2
+at end, sequential glass→skin not visually isolated. NoJSerrors. Othercars notLIVE.
+Dynamic perf still poor (frame195.8/288.4ms, GPU118.93/132.62), Checker informed.
+Police4D5 proposal HOLD pending-request leak + actual source earlycontinue skips
+ready-token cleanup; author fixing, root not applied. Empty carQA selector assigned
+Transport. Customer revised packet narrowACCEPT8+9, remoteemployee candidate next;
+serviceactivation0. Native-site82 isolated, hooks/coverage/feet open. Explosion28
+proposal checks pass but fullhost import/init proof pending; serverOFF/deadseatHOLD.
+Detailed current browser/build/owners in COORDINATOR_20_MEMORY.md LIVE8 top section.
+
+Incoming loading regression nowACCEPT18portableactualPASS +5extra staleproofs.
+14localfamilies appliedWIP3355PASS, sourcecar nextisolatedbyentrychild.
+Reloadgate concrete: Transport actualpolice convoy consumesoldgenericroute/
+ignoresreversegear despite3fullhull detentionroutesPASS; explicitownerproposal
+assigned. Missingfire/towdepots separatebaselinegap, notphantomfixturegate.
+
+LATEST published f4164be garden4files, remoteverified; rootgarden/houses/lampPASS.
+Incoming WIP now14localcars3355/176 +42+82 actualPASS. Reviewfoundfootblindness
+onmissingcarresolver; rootearlyoccupancycallbackfixapplied, gangmatrixpending.
+Servicegate stillreloadblock; Transportbaseline fire/towmissingnativeanchors
+noted, existingambulance/police actualcases continue. Physicsno tyrepoolprod,
+priorityexplosion/deadseat/impactcoldprogress. Memorytopcontainsdetails.
+
+PUBLISHED LATEST5661b28 lamp4files on217fleet, originverified; root3lamp/street/
+staticchecksPASS, all176Glow preserved. NoLIVEclaim. Checker gardenrebasepending.
+Player portableactual9PASS. Service source narrowACCEPT fullbindings; addonWIP.
+Inventory child native-site sourcefacts candidate (root hooks kept), noGPU.
+
+LATEST GOAL pass: main/origin217075c published5fleetpaths, root8+19PASS;
+optional yawRate/invalid presentation больше не подавляют physicaldamage.
+Root playerphysical0E1+surfacefactory APPLIED WIP; independent9 + rootactual
+driverwait3/surface/901m civilian lifecycle PASS. Ambientservice1192 notapplied,
+Transport exactbay tests/suffix WIP, still blocksreload. Deadseated newHOLD:
+colddeadstream groundpose and verticalcar+1m/corpse+0m. Physicsfix isolated.
+Entry cross14localcars; inventory servicefullmarker re-review; gang portable
+playerphysical actualworldtests. LIVEstill4d one tab3; detailsMemorytop.
+
+Новее: root повторил LIVE видимость оружия + X OFF/ON в обычной задней
+камере той же Kingswell, PASS limited current car, без reload/newpose.
+Incoming cop bridge6paths APPLIED42+82PASS, неLIVE; entry child cross-family
+isolated proof. Fleet missingyawRate regression HOLD/Physicsrepair; Transport
+player physical proposal review у gang_water_follow23, service planner WIP.
+Artist sourcepilot binding HOLD (stale site/building +missing role), исправляет.
+Lamp b7b95388 pending Checker independent review, garden HOLD. Reload ждёт
+road/fleet repairs. Подробности в начале COORDINATOR_20_MEMORY.md.
+
+Новейший rootWIPпосле1d: appliedworldcivilianmirror +missingdriverwaitline,
+appliedfleetpair eventseam (4runtimefiles), rootactualtestsPASS, independent
+gangreviewидёт. Неloaded/неcommit. Fatalcrewreviewнашёлgroundcorpseattachedcar
+иhospitalghostseat: Physics/Transportполучилиразныеseams. ВседеталиMemoryвверху.
+
+Новейший review: main/origin1d0fc45 опубликован/remoteverified, perfchain
+включает третий686fix(19fc1fb) с48/12 independentPASS и QAhide. LIVEещё4d4cd84,
+FPS новогоchainнеизмерен. DefaultON shadows894 ждёт multiview/night.
+Transport route9files HOLD: actualreverse и dimensional endpointtol;
+worldcaller semanticIDs тоже rootfinding, authorготовитpatch.
+Servicepilot+arrival ACCEPT: exactarrivalpatch применёнArtistвpassivecommerce,
+provider/NPCactivation0. Source/Walk cop carwindow bridge
+готовит vehicle_entry23_audit (geometry82PASS, не runtime). Physics pulse HOLD
+до теста exact предложенного runtime, не другой candidateimplementation.
+Artist21 готовит isolated source serviceactivation, legacy _cashier не использовать.
+Одна игра3 сохранена без reload. Детали сверху COORDINATOR_20_MEMORY.md.
+
+Текущее после LIVE7: main/origin4d4cd84 опубликован. Видимость оружия из окон
+исправлена (три ракурса + возврат X проверены), реальный ответный огонь ещё
+блокируется coarse hull perception. Root child vehicle_entry23_audit готовит
+ограниченный exact window/glass/skin candidate, без production hooks пока.
+Не делать следующий reload вслепую: Transport3 дорожный7-file пакет DIRTY,
+factory ещё не подключён и review нашёл fake laneRouteId/segment bypass.
+gang_water_follow23 проверяет; автор исправляет canonical active route proof.
+Новый perf87a0123 заменяет rejected da9a2ec, astra_local_inventory23 проверяет
+reattach matrices. Artist21 service pilot isolated, floor-arrival fix pending.
+Physicslead — local actual crash/explosion all occupants candidate; online OFF.
+GPU один, у root. Последний single-view frozen A/B около5.5%GPUmedian лучше,
+без стабильного p95 выигрыша; PERF_SHADOW_LIVE23.md. Это не готовый FPS города.
+
+LIVE6 latest: gun pose3eee loaded, Kingswell side view pistol+hands outside
+and rear-view left pistol visible. All3crew seated, Xeligible3. Real incoming
+fire still pending0attempts; child entryaudit investigates cop path readonly.
+Perf16 files through0d applied/loaded, both newculling flags defaultOFF;
+GPU frozen A/B next in SAME tab with explicit buildingshadowcull=1.
+Published main/origin c6c8bc3 driver-wait source+actualtests. Transport3 owns
+next road-only/lot identity scoped patch. Artist21 passive commerce frozen,
+new printshop pilot isolated geometry actualCPU tests allowed, no activation.
+Physics noalloc solver frozen parity1400; serveroccupant lethal HOLD until
+physical admission+life generation. Token test side effect restored/isolated.
 
 Новейшее: ganglabels скрыты при entering/driving и возвращаются после выхода —
 root LIVE5 PASS. E priority и жирнаяE LIVE4/5 PASS. Fire834c0a76 final geometry
