@@ -4,7 +4,10 @@ extends Node3D
 const PlayerController = preload("res://scripts/preview_player.gd")
 const BlockValidation = preload("res://scripts/preview_block_validation.gd")
 const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
+const PreviewPerfAdapter = preload("res://scripts/perf/preview_perf_adapter.gd")
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
+@export var preview_perf_enabled: bool = false
+var preview_perf: Node = null
 var preview_ready: bool = false
 var validation_errors: PackedStringArray = []
 var _resource_scenes: Dictionary = {}
@@ -70,8 +73,34 @@ func _ready() -> void:
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
 	preview_ready = true
+	_setup_preview_perf()
 	_last_frame_usec = Time.get_ticks_usec()
 	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
+
+func _setup_preview_perf() -> void:
+	preview_perf = PreviewPerfAdapter.new()
+	preview_perf.name = "PreviewPerf"
+	add_child(preview_perf)
+	# Explicit opt-in only. The default adapter has no process callback.
+	if preview_perf_enabled or OS.get_cmdline_user_args().has("--preview-perf"):
+		begin_preview_perf_capture()
+
+func begin_preview_perf_capture(config: Dictionary = {}) -> bool:
+	# PNG readback/encoding would contaminate an otherwise identical route.
+	if not preview_ready or preview_perf == null or not _capture_path.is_empty():
+		return false
+	var supplied_context: Variant = config.get("context", {})
+	if not supplied_context is Dictionary:
+		return false
+	var settings: Dictionary = config.duplicate(true)
+	var context: Dictionary = supplied_context.duplicate(true)
+	context["scene"] = "s01_preview_quarter"
+	context["population"] = 0
+	context["vehicles"] = 0
+	context["block_data_path"] = block_data_path
+	context["qualification"] = "Small preview quarter; not full-city gameplay acceptance"
+	settings["context"] = context
+	return preview_perf.begin_capture(settings)
 
 func _show_load_error() -> void:
 	set_process(false)
