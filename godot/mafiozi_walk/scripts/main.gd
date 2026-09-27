@@ -10,6 +10,7 @@ const WaterSurface = preload("res://scripts/preview_water_surface.gd")
 const UpdatePanel = preload("res://scripts/preview_update_panel.gd")
 const StaticBatch = preload("res://scripts/preview_static_batch.gd")
 const PreviewTransport = preload("res://scripts/preview_transport.gd")
+const PlayerImpactHost = preload("res://scripts/character_physics/player_impact_host.gd")
 const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
 const PreviewPopulation = preload("res://scripts/preview_population.gd")
 const STATIC_RENDER_OWNER_IDS := [
@@ -19,7 +20,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260927-physics18"
+const PREVIEW_RUNTIME_REVISION := "s01-20260927-physics19"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -35,6 +36,7 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 var preview_population: RefCounted
 var population_status := "disabled"
 var preview_transport: Node3D
+var preview_character_impacts: Node
 var transport_status := "disabled"
 var preview_dead := false
 var preview_physics_fault := false
@@ -461,6 +463,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
 		return
+	if not is_instance_valid(_player) or _player._pose_authority != &"on_foot":
+		return
 	var action: Dictionary = _current_door_action()
 	if action.is_empty():
 		return
@@ -472,6 +476,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_door_feedback_seconds = 0.9
 	_update_door_hint()
 	get_viewport().set_input_as_handled()
+
+func install_character_impact_source(resolver: Callable, reaction_profile: Dictionary, local_inertias: Dictionary) -> Dictionary:
+	# Only a real source owner supplies accepted current contacts and force data.
+	# No preview key, damage observation or arbitrary confirmed flag creates hits.
+	if is_instance_valid(preview_character_impacts) or preview_dead or preview_physics_fault or not resolver.is_valid():
+		return {"ok":false,"error":"impact_source_binding"}
+	var host := PlayerImpactHost.new()
+	host.name = "CharacterImpacts"
+	add_child(host)
+	var result: Dictionary = host.configure(_player, preview_transport, reaction_profile, local_inertias, resolver)
+	if not result.get("ok", false):
+		host.queue_free()
+		return result
+	preview_character_impacts = host
+	return result
+
 
 func _physics_process(delta: float) -> void:
 	if not preview_ready or not is_instance_valid(_printshop):

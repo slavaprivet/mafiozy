@@ -5,6 +5,15 @@ melee, bullets and explosions, with stable ordinary walking and aiming.
 
 ## Current playable boundary
 
+Updated physics19: sole interactive game PID46688. The actual hero now has an
+explicit admitted-impact install seam, verified with TEST_ONLY weak/repeated
+impulses, physical fall and recovery in the real native scene. Real combat input
+is not installed by default. Quiet indirect support and loss/motion of support
+during getup are fixed. Full acceptance and measurements are in
+PLAYER_IMPACT_HOST_INTEGRATION.md. Export19 main and impact PCK tests pass.
+
+Historical physics18 milestone:
+
 Current visible game is **physics18, PID19064**, with articulated exits enabled
 by default. Fresh inventory on the resumed goal turn showed the previous game
 was closed. Two successive actual native E/W drive tests passed; each restored

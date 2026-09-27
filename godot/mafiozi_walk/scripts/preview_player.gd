@@ -62,6 +62,7 @@ var _jump_floor_ray: PhysicsRayQueryParameters3D
 var _jump_ceiling_ray: PhysicsRayQueryParameters3D
 var _jump_physics_visible: bool = true
 var _source_falling: bool = false
+var _hit_pose_decorator: Callable
 
 
 func _ready() -> void:
@@ -536,7 +537,7 @@ func _update_owned_pose(delta: float) -> void:
 		var source: Dictionary = _dive.sample(float(_jump_pose.progress), float(_jump_pose.diveBlend), _visual.global_rotation.y,
 			aim_yaw, _camera_pitch, travel_yaw, _pose_authority, _pose_epoch)
 		if bool(source.get("valid", false)) and bool(source.get("active", false)):
-			_apply_selected_pose(source)
+			_apply_selected_pose(_decorate_hit_pose(delta, source))
 			return
 	var actual_velocity: Vector3 = get_real_velocity()
 	var grounded: bool = is_on_floor()
@@ -548,7 +549,21 @@ func _update_owned_pose(delta: float) -> void:
 			selected["poses"], selected["visual_offset"], _pose_authority, _pose_epoch)
 		if bool(air.get("valid", false)):
 			selected = air
-	_apply_selected_pose(selected)
+	_apply_selected_pose(_decorate_hit_pose(delta, selected))
+
+
+func set_hit_pose_decorator(decorator: Callable) -> bool:
+	# One optional presentation consumer, before the existing sole bone writer.
+	if decorator.is_valid() and _hit_pose_decorator.is_valid() and decorator != _hit_pose_decorator:
+		return false
+	_hit_pose_decorator = decorator
+	return true
+
+
+func _decorate_hit_pose(delta: float, selected: Dictionary) -> Dictionary:
+	if not _hit_pose_decorator.is_valid(): return selected
+	var decorated: Variant = _hit_pose_decorator.call(delta, selected)
+	return decorated if decorated is Dictionary and decorated.get("valid", false) else selected
 
 
 func _apply_selected_pose(selected: Dictionary) -> void:

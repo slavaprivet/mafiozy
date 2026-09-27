@@ -189,6 +189,9 @@ func _nearest_panel() -> Dictionary:
 func _unhandled_input(event: InputEvent) -> void:
 	if not ready_for_play or phase in ["DEAD", "FAULTED"] or not event is InputEventKey or event.echo:
 		return
+	if phase == "ON_FOOT" and player._pose_authority != &"on_foot":
+		_e_down = false
+		return
 	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
 		return
 	var focused := get_viewport().gui_get_focus_owner()
@@ -257,7 +260,9 @@ func _physics_process(delta: float) -> void:
 	if phase == "ON_FOOT":
 		_selected_panel = _nearest_panel()
 		_selected_seat = _nearest_seat()
-		if pressed and not _selected_seat.is_empty() and pose_writer.is_valid() and player.is_on_floor():
+		if player._pose_authority != &"on_foot":
+			_e_down = false
+		elif pressed and not _selected_seat.is_empty() and pose_writer.is_valid() and player.is_on_floor():
 			active_seat = _selected_seat
 			phase = "APPROACH"
 			# Transfer the on-foot heading without a first-frame turn toward +Z.
