@@ -49,6 +49,8 @@ var _pose_skeleton: Skeleton3D
 var _pose_motion: Node3D
 var _pose_authority: StringName = &"on_foot"
 var _pose_epoch: int = 0
+var _pose_affine_active := false
+var _pose_affine_globals: Array[Transform3D] = []
 var _dive: RefCounted
 var _jump: Dictionary = {}
 var _jump_pose: Dictionary = {}
@@ -510,6 +512,7 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	# Explicit new lifetimes cover respawn/teleport even when owner is unchanged.
 	if owner == _pose_authority and not new_lifetime:
 		return
+	_clear_affine_pose()
 	_pose_authority = owner
 	_pose_epoch += 1
 	_jump.clear()
@@ -569,10 +572,28 @@ func _decorate_hit_pose(delta: float, selected: Dictionary) -> Dictionary:
 func _apply_selected_pose(selected: Dictionary) -> void:
 	# The sole runtime writer applies one selected pose after actual physics.
 	var poses: Array[Transform3D] = selected["poses"]
+	var affine := selected.has("melee")
+	if not affine: _clear_affine_pose()
 	for bone: int in range(poses.size()):
 		_pose_skeleton.set_bone_pose(bone, poses[bone])
+	# Authored melee IK contains inverse-parent shear. Skeleton3D's local setter
+	# decomposes that matrix into rotation/scale, moving a kick's skin by >5 cm.
+	# Keep complete hierarchy products in the engine's final pose override.
+	if affine:
+		_pose_affine_globals.resize(poses.size())
+		for bone: int in range(poses.size()):
+			var parent := _pose_skeleton.get_bone_parent(bone)
+			_pose_affine_globals[bone] = poses[bone] if parent < 0 else _pose_affine_globals[parent] * poses[bone]
+			_pose_skeleton.set_bone_global_pose_override(bone, _pose_affine_globals[bone], 1.0, true)
+		_pose_affine_active = true
 	_pose_motion.position = selected["visual_offset"]
 	_pose_motion.quaternion = selected.get("visual_rotation", Quaternion.IDENTITY)
+
+
+func _clear_affine_pose() -> void:
+	if _pose_affine_active and is_instance_valid(_pose_skeleton):
+		_pose_skeleton.clear_bones_global_pose_override()
+	_pose_affine_active = false
 
 
 func _unhandled_input(event: InputEvent) -> void:
