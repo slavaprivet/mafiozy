@@ -1,8 +1,9 @@
 # Native authored melee pose — 27 September 2026
 
-Pure sampler source parity passes. Production writer integration is BLOCKED:
-independent review found loss of inverse-parent shear through ordinary
-`set_bone_pose` decomposition. Gameplay combat and LIVE acceptance remain OPEN.
+Pure sampler source parity passes. The independently found full-matrix writer
+blocker is now FIXED by root's published `4a98` / player `63e` integration
+(121 + 95 writer checks, sampler `33b0780f`). Gameplay combat and LIVE acceptance
+remain OPEN; canonical physical-body handoff still needs separate work.
 No main, player, input, physical body, damage, contact provider or authority code was changed.
 
 ## Files and frozen API
@@ -123,8 +124,9 @@ meshes. It does not compare unrelated same-index vertices.
   matrix error at most 4.771e-7. **This is not general writer acceptance.**
   Independent review subsequently tested kick progress 0.5 and punch progress
   0.29032258, finding skin errors of 5.274 cm and 2.620 cm from decomposing
-  inverse-parent shear in `set_bone_pose`. Root owns the full-matrix/global
-  override integration fix. Evidence:
+  inverse-parent shear in `set_bone_pose`. Root subsequently fixed this with
+  the full-matrix/global override writer and ordinary-pose clearing in
+  published `4a98` / player `63e` (121 + 95 checks). Historical defect evidence:
   `outputs/coordinator21_melee_pose_review/skin_writer.json`. Sampler outputs
   preserve those matrices, but a rotation/scale-only writer does not.
 - Sampling leaves all node transforms, bones, velocity and pose-owner fields

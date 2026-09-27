@@ -65,6 +65,7 @@ var _jump_ceiling_ray: PhysicsRayQueryParameters3D
 var _jump_physics_visible: bool = true
 var _source_falling: bool = false
 var _hit_pose_decorator: Callable
+var _melee_practice: Node
 
 
 func _ready() -> void:
@@ -264,6 +265,7 @@ func _build_camera() -> void:
 
 func _physics_process(delta: float) -> void:
 	_jump_pose = {}
+	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
 	if _pose_authority != &"on_foot":
 		_jump_event_consumed = false
 		return # External owner owns movement as well as the final pose.
@@ -513,6 +515,7 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	if owner == _pose_authority and not new_lifetime:
 		return
 	_clear_affine_pose()
+	if is_instance_valid(_melee_practice): _melee_practice.cancel("pose_authority")
 	_pose_authority = owner
 	_pose_epoch += 1
 	_jump.clear()
@@ -552,6 +555,7 @@ func _update_owned_pose(delta: float) -> void:
 			selected["poses"], selected["visual_offset"], _pose_authority, _pose_epoch)
 		if bool(air.get("valid", false)):
 			selected = air
+	if is_instance_valid(_melee_practice): selected = _melee_practice.decorate(selected,delta)
 	_apply_selected_pose(_decorate_hit_pose(delta, selected))
 
 
@@ -626,6 +630,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			set_mouse_captured(true)
 			get_viewport().set_input_as_handled()
 			return
+		if is_instance_valid(_melee_practice) and _melee_practice.input_event(event):
+			get_viewport().set_input_as_handled()
+			return
 		if button.pressed and _free_mouse_look and button.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			# Walk uses exponential wheel zoom with on-foot limits 3..16 metres.
 			var steps := button.factor if button.factor > 0.0 else 1.0
@@ -676,6 +683,7 @@ func _text_control_focused() -> bool:
 
 
 func set_mouse_captured(captured: bool) -> void:
+	if not captured and is_instance_valid(_melee_practice): _melee_practice.cancel("mouse_released")
 	_right_mouse_down = false
 	_free_mouse_look = captured
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
@@ -695,7 +703,7 @@ func get_preview_status() -> Dictionary:
 		"uniform_scale": _model_scale,
 		"height_m": model_target_height,
 		"animations_found": _animation_names.duplicate(),
-		"animation_status": ("Canonical idle/walk/run/jump/landing; combat animation not migrated" if _airborne != null and bool(_airborne.get_status().get("ready", false)) else "Canonical idle/walk/run; jump and combat animation not migrated") if bool(locomotion_status.get("ready", false)) else "Static pose; locomotion binding failed",
+		"animation_status": ("Canonical locomotion and ground melee practice; combat targets not connected" if is_instance_valid(_melee_practice) else ("Canonical idle/walk/run/jump/landing; combat animation not migrated" if _airborne != null and bool(_airborne.get_status().get("ready", false)) else "Canonical idle/walk/run; jump and combat animation not migrated")) if bool(locomotion_status.get("ready", false)) else "Static pose; locomotion binding failed",
 		"locomotion": locomotion_status,
 		"airborne": _airborne.get_status() if _airborne != null else {},
 		"pose_authority": _pose_authority,

@@ -3,6 +3,7 @@ extends RefCounted
 const Body = preload("res://scripts/character_physics/exit_ragdoll_body.gd")
 const Pose = preload("res://scripts/character_physics/character_physics_pose.gd")
 const Clearance = preload("res://scripts/character_physics/recovery_clearance.gd")
+const SurfaceBounds = preload("res://scripts/character_physics/recovery_surface_bounds.gd")
 const MIN_FALL_TIME := 1.2
 const STABLE_TIME := .35
 const RECOVERY_STABLE_TIME := .2
@@ -34,6 +35,8 @@ var _recovery_query: PhysicsShapeQueryParameters3D
 var _recovery_shape: BoxShape3D
 var _clearance: RefCounted
 var _accepted_skin: Dictionary = {}
+var _accepted_recovery_pose: Dictionary = {}
+var _surface_bounds: RefCounted
 var _impact_binding: Dictionary = {}
 var _impact_busy := false
 var _impact_dead := false
@@ -54,6 +57,12 @@ func configure(player: CharacterBody3D, parent: Node3D) -> Dictionary:
 		body.dispose()
 		_pose.dispose()
 		return {"ok":false,"error":"clearance_binding"}
+	_surface_bounds = SurfaceBounds.new()
+	if not _surface_bounds.configure(_pose):
+		_surface_bounds.dispose()
+		body.dispose()
+		_pose.dispose()
+		return {"ok":false,"error":"surface_bounds_binding"}
 	_floor_ray = PhysicsRayQueryParameters3D.new()
 	_floor_ray.collision_mask = player.collision_mask
 	_floor_ray.exclude = [player.get_rid()]
@@ -140,6 +149,7 @@ func advance(delta: float, allow_getup: bool = true) -> Dictionary:
 				_getup_pose = _pose.from_world_frames(last_snapshot.bone_world_frames, _player._pose_epoch)
 				selected = _getup_pose
 				_accepted_skin = _clearance.snapshot(selected, _player._pose_motion.get_parent().global_transform, false)
+				_accepted_recovery_pose = selected
 				_getup_elapsed = 0.0
 				body.stop_preserve()
 				mode = "GETTING_UP"
@@ -163,8 +173,10 @@ func advance(delta: float, allow_getup: bool = true) -> Dictionary:
 			return selected
 		var next_skin: Dictionary = _clearance.snapshot(selected, _player._pose_motion.get_parent().global_transform)
 		var sweep: Dictionary = _clearance.between(_accepted_skin, next_skin)
-		if not _recovery_path_clear(sweep): return _resume_fall("recovery_skin_blocked")
+		if not _recovery_path_clear(sweep) and not _refined_recovery_path_clear(sweep, selected):
+			return _resume_fall("recovery_skin_blocked")
 		_accepted_skin = next_skin
+		_accepted_recovery_pose = selected
 		_getup_elapsed = proposed_time
 		if _getup_elapsed >= GET_UP_TIME:
 			_player.collision_layer = _saved_layer
@@ -248,6 +260,81 @@ func _recovery_path_clear(sweep: Dictionary) -> bool:
 		if not _player.get_world_3d().direct_space_state.intersect_shape(_recovery_query, 1).is_empty(): return false
 	return true
 
+func _verified_box_shapes(object: PhysicsBody3D) -> Array[CollisionShape3D]:
+	# A whole body can leave the broad query only after EVERY actual shape has
+	# a continuous separation proof. A compound floor/wall is never exempted
+	# because one of its shapes happened to be clear.
+	var result: Array[CollisionShape3D] = []
+	if not is_instance_valid(object) or object.is_queued_for_deletion() or not object.is_inside_tree(): return result
+	var rid := object.get_rid()
+	var count := PhysicsServer3D.body_get_shape_count(rid)
+	if count < 1 or count > 16: return result
+	var indices: Dictionary = {}
+	for owner_id: int in object.get_shape_owners():
+		for slot in object.shape_owner_get_shape_count(owner_id):
+			indices[object.shape_owner_get_shape_index(owner_id, slot)] = owner_id
+	if indices.size() != count: return result
+	var body_transform: Transform3D = PhysicsServer3D.body_get_state(rid, PhysicsServer3D.BODY_STATE_TRANSFORM)
+	# Relative approximate equality can hide millimetres at large coordinates.
+	# A node-only proof is admitted only for exactly matching native geometry.
+	if body_transform != object.global_transform: return result
+	for index in count:
+		if not indices.has(index): return []
+		var owner: int = indices[index]
+		var node: Object = object.shape_owner_get_owner(owner)
+		if not node is CollisionShape3D or node.get_parent() != object or node.disabled or node.is_queued_for_deletion() or not node.shape is BoxShape3D: return []
+		if object.shape_owner_get_shape_count(owner) != 1 or object.shape_owner_get_shape_index(owner, 0) != index or object.is_shape_owner_disabled(owner): return []
+		var shape: RID = PhysicsServer3D.body_get_shape(rid, index)
+		if shape != node.shape.get_rid() or PhysicsServer3D.shape_get_type(shape) != PhysicsServer3D.SHAPE_BOX: return []
+		var data: Variant = PhysicsServer3D.shape_get_data(shape)
+		if not data is Vector3 or data != node.shape.size * .5: return []
+		var transform := body_transform * PhysicsServer3D.body_get_shape_transform(rid, index)
+		if transform != node.global_transform: return []
+		result.append(node)
+	return result
+
+func _refined_recovery_path_clear(sweep: Dictionary, selected: Dictionary) -> bool:
+	if not sweep.get("valid", false) or _accepted_recovery_pose.is_empty() or _surface_bounds == null: return false
+	var bounds: AABB = sweep.bounds
+	_recovery_shape.size = bounds.size.max(Vector3.ONE * .001)
+	_recovery_query.transform = Transform3D(Basis.IDENTITY, bounds.get_center())
+	var hits := _player.get_world_3d().direct_space_state.intersect_shape(_recovery_query, 64)
+	if hits.is_empty() or hits.size() >= 64: return false
+	var bodies: Dictionary = {}
+	for hit: Dictionary in hits:
+		var object: Variant = hit.get("collider")
+		if object is PhysicsBody3D: bodies[object.get_rid()] = object
+	if bodies.size() > 8: return false
+	# Allocate full-skin snapshots only on the rejected broad-phase path. The
+	# successful ordinary getup path keeps its previous cost and queries.
+	_surface_bounds.reset()
+	var world: Transform3D = _player._pose_motion.get_parent().global_transform
+	var previous: Dictionary = _surface_bounds.snapshot(_accepted_recovery_pose, world, false)
+	var next: Dictionary = _surface_bounds.snapshot(selected, world, true)
+	if not previous.get("valid", false) or not next.get("valid", false): return false
+	var saved: Array[RID] = _recovery_query.exclude
+	var exclusions: Array[RID] = saved.duplicate()
+	var visited := 0
+	for rid: RID in bodies:
+		var object: PhysicsBody3D = bodies[rid]
+		var nodes := _verified_box_shapes(object)
+		if nodes.is_empty(): continue
+		visited += nodes.size()
+		if visited > 16: return false
+		var separated := true
+		for node: CollisionShape3D in nodes:
+			if not _surface_bounds.prove_box_separation(previous, next, node, _recovery_query.margin, 8).get("proven", false):
+				separated = false
+				break
+		# No callbacks/await occur during proof. Recheck live server identity and
+		# shapes anyway; unknown/replaced/compound geometry stays in the query.
+		if separated and nodes == _verified_box_shapes(object): exclusions.append(rid)
+	if exclusions.size() == saved.size(): return false
+	_recovery_query.exclude = exclusions
+	var clear := _recovery_path_clear(sweep)
+	_recovery_query.exclude = saved
+	return clear
+
 func _resume_fall(reason: String) -> Dictionary:
 	var current_frames: Dictionary = body.capture_world_frames()
 	body.reset()
@@ -276,11 +363,13 @@ func _floor_height(x: float, z: float) -> float:
 
 func cancel() -> void:
 	if body != null and body.has_method("reset"): body.reset()
+	if _surface_bounds != null: _surface_bounds.reset()
 	if _valid_life() and mode in ["FALLING", "GETTING_UP", "FAULTED"] and _player._pose_epoch == _pose_epoch and _player._pose_authority == _pose_owner:
 		_player.collision_layer = _saved_layer
 		_player.collision_mask = _saved_mask
 	mode = "IDLE"
 	_getup_pose.clear()
+	_accepted_recovery_pose.clear()
 
 func continue_after_death() -> void:
 	if not _valid_life() or mode not in ["FALLING", "GETTING_UP"]: return
@@ -298,6 +387,7 @@ func continue_after_death() -> void:
 
 func dispose() -> void:
 	cancel()
+	if _surface_bounds != null: _surface_bounds.dispose()
 	if body != null: body.dispose()
 	if _pose != null: _pose.dispose()
 	mode = "DISPOSED"

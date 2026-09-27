@@ -13,6 +13,7 @@ const PreviewTransport = preload("res://scripts/preview_transport.gd")
 const PlayerImpactHost = preload("res://scripts/character_physics/player_impact_host.gd")
 const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
 const PreviewPopulation = preload("res://scripts/preview_population.gd")
+const PreviewMelee = preload("res://scripts/combat/preview_melee.gd")
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -20,7 +21,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260927-physics19"
+const PREVIEW_RUNTIME_REVISION := "s01-20260927-melee21"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -33,6 +34,9 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_transport_enabled: bool = true
 @export var preview_start_at_vehicle: bool = true
 @export var preview_residents_enabled: bool = false
+@export var preview_melee_enabled: bool = true
+var preview_melee: Node
+var melee_status := "disabled"
 var preview_population: RefCounted
 var population_status := "disabled"
 var preview_transport: Node3D
@@ -166,6 +170,8 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
+	if preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee"):
+		_install_preview_melee_practice()
 	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
 		# Physics must see the authored colliders before source placement proofs.
 		await get_tree().physics_frame
@@ -181,6 +187,26 @@ func _ready() -> void:
 	print("WATER_SURFACE_STATUS ", water_status)
 	print("STATIC_BATCH_STATUS ", static_batch_status)
 	print("RESIDENT_POPULATION_STATUS ", population_status)
+	print("MELEE_PRACTICE_STATUS ", melee_status)
+
+func _install_preview_melee_practice() -> bool:
+	if is_instance_valid(preview_melee) or not is_instance_valid(_player): return false
+	# Explicit practice presentation only. A future live combat owner must bind
+	# actual targets, state and source consequences instead of reusing this host.
+	var adapter_script: Script = load("res://scripts/combat/melee_physical_pose.gd")
+	if adapter_script == null:
+		melee_status = "physical_pose_unavailable"; return false
+	var adapter: RefCounted = adapter_script.new()
+	if not adapter.configure(_player._pose_skeleton, _player._locomotion._rest_poses):
+		melee_status = "physical_pose_binding"; return false
+	var host := PreviewMelee.new()
+	host.name = "MeleePractice"
+	add_child(host)
+	if not host.configure(self, _player, adapter):
+		host.queue_free(); melee_status = "host_binding"; return false
+	preview_melee = host; _player._melee_practice = host
+	melee_status = "ground_practice_no_combat_targets"
+	return true
 
 ## Startup/controlled rebuild only. Restore BEFORE source geometry, transforms,
 ## visibility, materials or shared-sun/sky lighting dependencies are changed.

@@ -6,6 +6,10 @@ var host: Node
 var driver: RefCounted
 var output := ""
 var headless := false
+var during_melee := false
+var pack_path := ""
+var pack_sha := ""
+var source_hashes_available := true
 var event: Dictionary = {}
 var events: Array[Dictionary] = []
 var failures: Array[String] = []
@@ -37,7 +41,9 @@ class Observer extends Node:
 const SOURCES := ["main.gd","preview_player.gd","preview_transport.gd",
 	"character_physics/player_impact_host.gd","character_physics/character_physics_driver.gd",
 	"character_physics/character_impact_sink.gd","character_physics/local_hit_reaction.gd",
-	"character_physics/exit_ragdoll_body.gd","character_physics/character_physics_pose.gd"]
+	"character_physics/exit_ragdoll_body.gd","character_physics/character_physics_pose.gd",
+	"character_physics/recovery_clearance.gd","character_physics/recovery_surface_bounds.gd",
+	"combat/preview_melee.gd","combat/melee_physical_pose.gd","combat/melee_pose.gd"]
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -74,10 +80,19 @@ func run() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--impact-liveqa-output="): output = arg.trim_prefix("--impact-liveqa-output=")
 		elif arg == "--impact-liveqa-selftest": headless = true
+		elif arg == "--impact-liveqa-melee": during_melee = true
+		elif arg.begins_with("--impact-liveqa-pack="): pack_path = arg.trim_prefix("--impact-liveqa-pack=")
 	if not output.is_absolute_path() or headless != (DisplayServer.get_name()=="headless"):
 		quit(2); return
 	DirAccess.make_dir_recursive_absolute(output)
-	for source in SOURCES: hashes[source] = FileAccess.get_sha256("res://scripts/"+source)
+	if not pack_path.is_empty():
+		if not pack_path.is_absolute_path() or not pack_path.ends_with(".pck"): quit(2); return
+		pack_sha = FileAccess.get_sha256(pack_path)
+		if pack_sha.is_empty(): quit(2); return
+	for source in SOURCES:
+		hashes[source] = FileAccess.get_sha256("res://scripts/"+source)
+		source_hashes_available = source_hashes_available and not hashes[source].is_empty()
+	if not source_hashes_available and pack_sha.is_empty(): quit(2); return
 	var observer := Observer.new()
 	observer.qa = self
 	root.add_child(observer)
@@ -96,11 +111,27 @@ func run() -> void:
 	frame_phase = "baseline"
 	await pause(.1 if headless else 2.0)
 	await capture("baseline")
+	if during_melee:
+		if not is_instance_valid(main.preview_melee):
+			failures.append("melee_practice_unavailable"); await finish(); return
+		var practice: Node = main.preview_melee
+		for seed_value in 100:
+			practice._rng.seed = seed_value
+			if practice.random_draw() < .2:
+				practice._rng.seed = seed_value; break
+		# Same real player event handler as interactive clicks. Incoming impact
+		# below is still explicitly TEST_ONLY; this is not an NPC combat claim.
+		var click := InputEventMouseButton.new()
+		click.button_index = MOUSE_BUTTON_LEFT; click.pressed = true
+		player._unhandled_input(click)
+		click.pressed = false; player._unhandled_input(click)
+		await pause(.22)
+		if practice._source.snapshot().animation.get("type") != "kick": failures.append("melee_input_not_admitted")
 	frame_phase = "weak"
 	hit("weak", Vector3(0,0,2))
 	await pause(.07)
 	await capture("weak-local")
-	await pause(.8)
+	await pause(.03 if during_melee else .8)
 	frame_phase = "fall"
 	hit("strong", Vector3(0,0,24))
 	await pause(.15)
@@ -139,6 +170,8 @@ func finish() -> void:
 	var stable := true
 	for source in hashes: stable = stable and hashes[source] == FileAccess.get_sha256("res://scripts/"+source)
 	if not stable: failures.append("source_changed")
+	var pack_stable := not pack_sha.is_empty() and pack_sha == FileAccess.get_sha256(pack_path)
+	if not pack_sha.is_empty() and not pack_stable: failures.append("pack_changed")
 	var restored := false
 	if not cancelled:
 		main.queue_free()
@@ -154,9 +187,10 @@ func finish() -> void:
 		values.sort()
 		if not values.is_empty(): timings[phase] = {"frames":values.size(),"p50_ms":values[int((values.size()-1)*.5)],"p95_ms":values[int((values.size()-1)*.95)]}
 	var report := {"passed":failures.is_empty(),"failures":failures,"test_only_admission":true,"frame_times":timings,
-		"production_combat":false,"headless":headless,"events":events,"samples":samples,"source_hashes":hashes,
-		"stable_hashes":stable,"restored_interactive":restored}
+		"production_combat":false,"during_melee":during_melee,"headless":headless,"events":events,"samples":samples,"source_hashes":hashes,
+		"source_hashes_available":source_hashes_available,"stable_hashes":stable if source_hashes_available else null,
+		"pack_sha256":pack_sha,"pack_unchanged":pack_stable if not pack_sha.is_empty() else null,"restored_interactive":restored}
 	var file := FileAccess.open(output.path_join("report.json"),FileAccess.WRITE)
 	file.store_string(JSON.stringify(report,"\t")); file.close()
-	print("IMPACT_NATIVE_QA "+JSON.stringify({"passed":report.passed,"failures":failures,"stable_hashes":stable,"headless":headless,"test_only_admission":true}))
+	print("IMPACT_NATIVE_QA "+JSON.stringify({"passed":report.passed,"failures":failures,"stable_hashes":report.stable_hashes,"pack_unchanged":report.pack_unchanged,"headless":headless,"test_only_admission":true}))
 	if headless: quit(0 if failures.is_empty() else 1)

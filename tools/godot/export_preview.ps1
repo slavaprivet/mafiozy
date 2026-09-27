@@ -135,6 +135,21 @@ $presetText = Get-Content -LiteralPath (Join-Path $projectPath 'export_presets.c
 $selectedMode = $presetText -match 'export_filter="resources"'
 $selectedPaths = @([regex]::Matches(($presetText -split "`n" | Where-Object { $_ -match '^export_files=' }), '"res://([^"]+)"') | ForEach-Object { $_.Groups[1].Value })
 $includeFilters = (([regex]::Match($presetText, 'include_filter="([^"]*)"')).Groups[1].Value).Split(',')
+if ($selectedMode) {
+    # Selected-resource exports do not reliably collect GDScript literal loads.
+    # Fail before export if a selected runtime script references an omitted one.
+    # This deliberately does not admit every WIP script in the shared project.
+    foreach ($selectedScript in ($selectedPaths | Where-Object { $_.EndsWith('.gd') })) {
+        $selectedText = Get-Content -LiteralPath (Join-Path $projectPath $selectedScript) -Raw
+        foreach ($dependency in [regex]::Matches($selectedText, 'res://scripts/[^"\s]+\.gd')) {
+            $dependencyPath = $dependency.Value.Substring(6)
+            $included = @($includeFilters | Where-Object { $dependencyPath -like $_ }).Count -gt 0
+            if ($selectedPaths -notcontains $dependencyPath -and -not $included) {
+                throw "Runtime dependency omitted from export: $selectedScript -> $dependencyPath"
+            }
+        }
+    }
+}
 foreach ($directory in @('scripts', 'scenes', 'data', 'assets')) {
     $inputPaths += @(Get-ChildItem -LiteralPath (Join-Path $projectPath $directory) -File -Recurse |
         Where-Object {
