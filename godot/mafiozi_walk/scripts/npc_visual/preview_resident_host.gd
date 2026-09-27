@@ -10,6 +10,9 @@ const REJECTED_PACKET := "384f1f2d2b673bde13a49cfdff2f88b4e84469801b1f572624c532
 const FOOTPRINT := .738 # Source _npcBodyPassable radius .18 * native scale 4.1.
 const HEIGHT := 1.9
 const MAX_RESIDENTS := 3
+const PLACEMENT_CONTEXT := "a05ad020429ea8994dba534fe2d6e0886ac02975aadc7db531ea11d93a560f9c"
+const PLACEMENT_SOURCE := "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5"
+const PLACEMENT_PHASE := "AFTER_FULL_DEFERRED_POPULATION_CALLBACK_BEFORE_ANY_SERVER_SNAPSHOT_BEFORE_NATIVE_RESOLVER"
 const SUPPORT_OFFSETS := [Vector2.ZERO, Vector2(-FOOTPRINT, -FOOTPRINT), Vector2(-FOOTPRINT, FOOTPRINT), Vector2(FOOTPRINT, -FOOTPRINT), Vector2(FOOTPRINT, FOOTPRINT)]
 var _scene: WeakRef
 var _navigation: RefCounted
@@ -22,6 +25,9 @@ var _manifest_sha := ""
 var _directory := ""
 var _busy := false
 var _disposed := false
+var _dispose_requested := false
+var _placement_receipt := {}
+var _placement_current: Callable
 var _box: BoxShape3D
 var _ray := PhysicsRayQueryParameters3D.new()
 var _overlap := PhysicsShapeQueryParameters3D.new()
@@ -64,16 +70,24 @@ func configure(scene: Node3D, navigation: RefCounted, packet: PackedByteArray, t
 
 func _living(record: Dictionary) -> bool:
 	var owner: RefCounted = record.owner
-	return not owner.dead and owner.source_id == record.row.source_id and owner.life_generation == record.generation
+	return not _disposed and not _dispose_requested and not owner.dead and owner.source_id == record.row.source_id and owner.life_generation == record.generation
+
+func _scene_alive() -> bool:
+	var scene: Node3D = _scene.get_ref() if _scene != null else null
+	return is_instance_valid(scene) and scene.is_inside_tree() and not scene.is_queued_for_deletion()
+
+func _leave_busy() -> void:
+	_busy = false
+	if _dispose_requested: dispose()
 
 func _source_admits(point: Vector3, record: Dictionary, purpose: String) -> bool:
-	if not _living(record) or not point.is_finite() or not _admit.is_valid(): return false
+	if not _living(record) or not _scene_alive() or not point.is_finite() or not _admit.is_valid(): return false
 	var accepted: Variant = _admit.call(point, record.row.source_id, record.generation, FOOTPRINT, purpose)
-	return accepted is bool and accepted and _living(record)
+	return accepted is bool and accepted and _living(record) and _scene_alive()
 
 func _physical_clear(point: Vector3, excluded: Array[RID]) -> bool:
 	var scene: Node3D = _scene.get_ref()
-	if not is_instance_valid(scene) or not scene.is_inside_tree(): return false
+	if not is_instance_valid(scene) or not scene.is_inside_tree() or scene.is_queued_for_deletion(): return false
 	var space := scene.get_world_3d().direct_space_state
 	# Preserve source centre + four square corners. Do not replace by nav radius.
 	_ray.exclude = excluded
@@ -95,10 +109,12 @@ func _route_admit(point: Vector3, identity: String, generation: int) -> bool:
 	var was_busy := _busy; _busy = true
 	var allowed := _source_admits(point, record, "route") and _physical_clear(point, [record.body.get_rid()])
 	_busy = was_busy
+	if not _busy and _dispose_requested: dispose()
 	return allowed
 
 func admit_next() -> Dictionary:
 	if not Thread.is_main_thread() or _busy or _disposed or _scene == null: return {"status": "UNAVAILABLE"}
+	if not _placement_receipt.is_empty(): return {"status":"PENDING_PLACEMENT", "reason":"candidate_required"}
 	var selected := ""
 	for id: String in _records:
 		if not _records[id].attempted: selected = id; break
@@ -109,7 +125,7 @@ func admit_next() -> Dictionary:
 	record.attempted = true
 	var result := _admit_record(record)
 	_stats.admit_us_max = maxi(_stats.admit_us_max, Time.get_ticks_usec() - started)
-	_busy = false
+	_leave_busy()
 	return result
 
 func _reject(record: Dictionary, reason: String) -> Dictionary:
@@ -117,8 +133,54 @@ func _reject(record: Dictionary, reason: String) -> Dictionary:
 	if reason == "owner_invalid": record.status = "REMOVED"
 	return {"status": record.status, "source_id": record.row.source_id, "reason": reason}
 
-func _admit_record(record: Dictionary) -> Dictionary:
+## One captured full-source placement batch. The validator must prove completed
+## all-326 solving and current source/scene/life leases, not just echo labels.
+## Never modifies immutable source_raw or executes diagnostic route commands.
+func bind_placement_source(receipt: Dictionary, current_validator: Callable) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or _scene == null or not _placement_receipt.is_empty(): return {"ok":false,"error":"lifetime"}
+	if not current_validator.is_valid() or receipt.get("context_sha256") != PLACEMENT_CONTEXT or receipt.get("source_world_sha256") != PLACEMENT_SOURCE or receipt.get("session_id") != _session or receipt.get("phase") != PLACEMENT_PHASE: return {"ok":false,"error":"placement_binding"}
+	var provider: Variant = receipt.get("provider")
+	if not provider is Dictionary or provider.get("semantics") != "ROLE_BODY_PASS": return {"ok":false,"error":"placement_provider"}
+	for field in ["id", "version", "sha256"]:
+		if not provider.get(field) is String or provider[field].is_empty(): return {"ok":false,"error":"placement_provider"}
+	if provider.sha256.length() != 64 or not provider.sha256.is_valid_hex_number(): return {"ok":false,"error":"placement_provider"}
+	for record: Dictionary in _records.values():
+		if is_instance_valid(record.body) or record.status != "PENDING_PLACEMENT": return {"ok":false,"error":"already_admitted"}
+	_placement_receipt = receipt.duplicate(true)
+	_placement_current = current_validator
+	return {"ok":true}
+
+func _candidate_current(candidate: Dictionary, record: Dictionary) -> bool:
+	if _placement_receipt.is_empty() or not _placement_current.is_valid() or not _living(record): return false
+	var scene: Node3D = _scene.get_ref()
+	if not is_instance_valid(scene) or not scene.is_inside_tree() or scene.is_queued_for_deletion(): return false
+	var accepted: Variant = _placement_current.call(candidate.duplicate(true), record.row.source_id, record.generation)
+	return accepted is bool and accepted and _placement_current.is_valid() and _living(record) and _scene_alive()
+
+func admit_candidate(candidate: Dictionary, generation: int) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or _scene == null or _placement_receipt.is_empty(): return {"status":"UNAVAILABLE"}
+	var identity: Variant = candidate.get("raw_id")
+	if not identity is String or not _records.has(identity): return {"status":"REJECTED", "reason":"candidate_identity"}
+	var record: Dictionary = _records[identity]
+	if generation != record.generation or not _living(record): return {"status":"REJECTED", "reason":"owner_invalid"}
+	if record.status != "PENDING_PLACEMENT" or is_instance_valid(record.body): return {"status":"REJECTED", "reason":"already_admitted"}
+	for field in ["context_sha256", "source_world_sha256", "session_id", "phase", "provider"]:
+		if candidate.get(field) != _placement_receipt.get(field): return {"status":"REJECTED", "reason":"candidate_provenance"}
+	if candidate.get("kind") != "resident" or candidate.get("status") not in ["original", "relocated"] or not candidate.get("object_key") is String or candidate.object_key.is_empty() or not candidate.get("physical_admission") is bool or candidate.physical_admission: return {"status":"REJECTED", "reason":"candidate_schema"}
+	for field in ["r", "c"]:
+		if not (candidate.get(field) is float or candidate.get(field) is int) or not is_finite(float(candidate[field])): return {"status":"REJECTED", "reason":"candidate_position"}
+	if candidate.r < 0.0 or candidate.r >= 200.0 or candidate.c < 0.0 or candidate.c >= 180.0: return {"status":"REJECTED", "reason":"candidate_position"}
+	_busy = true
+	var started := Time.get_ticks_usec()
+	var owned := candidate.duplicate(true)
+	var result := _admit_record(record, owned)
+	_stats.admit_us_max = maxi(_stats.admit_us_max, Time.get_ticks_usec() - started)
+	_leave_busy()
+	return result
+
+func _admit_record(record: Dictionary, candidate: Dictionary = {}) -> Dictionary:
 	if not _living(record): return _reject(record, "owner_invalid")
+	if not candidate.is_empty() and not _candidate_current(candidate, record): return _reject(record, "placement_lease_changed")
 	if not _support.is_valid(): return _reject(record, "support_provider_unavailable")
 	var scene: Node3D = _scene.get_ref()
 	if not is_instance_valid(scene): return _reject(record, "scene_unavailable")
@@ -126,6 +188,7 @@ func _admit_record(record: Dictionary) -> Dictionary:
 		if node.get_meta("source_id", "") == record.row.source_id: return _reject(record, "duplicate_source_body")
 	var raw: Dictionary = record.row.source_raw
 	var point := Vector3(float(raw.c) * 4.1 - 395.65, 0, float(raw.r) * 4.1 - 45.1)
+	if not candidate.is_empty(): point = Vector3(float(candidate.c) * 4.1 - 395.65, 0, float(candidate.r) * 4.1 - 45.1)
 	var height: Variant = _support.call(point, record.row.source_id, record.generation)
 	if not (height is float or height is int) or not is_finite(float(height)): return _reject(record, "support_unknown")
 	point.y = height
@@ -136,6 +199,10 @@ func _admit_record(record: Dictionary) -> Dictionary:
 	var appearance: Dictionary = cache.instantiate_actor()
 	cache.dispose()
 	if not appearance.ok: return _reject(record, "visual:" + str(appearance.error))
+	# Callbacks and asset loading must not turn stale admission into a spawn.
+	if not _living(record) or not _source_admits(point, record, "placement") or (not candidate.is_empty() and not _candidate_current(candidate, record)) or not _physical_clear(point, []):
+		appearance.visual.free()
+		return _reject(record, "placement_changed_before_spawn")
 	var body := CharacterBody3D.new()
 	body.name = record.row.bridge_id
 	body.collision_layer = 1; body.collision_mask = 1
@@ -172,7 +239,7 @@ func request_walk(identity: String, target: Vector3) -> int:
 	var id := -1
 	if allowed: id = _navigation.request(record.owner, record.body, target, _route_admit)
 	if id >= 0: record.request = id; record.status = "PENDING"
-	_busy = false
+	_leave_busy()
 	return id
 
 func step(delta: float) -> void:
@@ -180,7 +247,7 @@ func step(delta: float) -> void:
 	_busy = true
 	var started := Time.get_ticks_usec()
 	for record: Dictionary in _records.values():
-		var body: CharacterBody3D = record.body
+		var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
 		if not _living(record):
 			if record.request >= 0: _navigation.cancel(record.request)
 			if is_instance_valid(body): body.queue_free()
@@ -200,14 +267,14 @@ func step(delta: float) -> void:
 		record.gait.update_pose(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
 	_stats.steps += 1
 	_stats.step_us_max = maxi(_stats.step_us_max, Time.get_ticks_usec() - started)
-	_busy = false
+	_leave_busy()
 
 func snapshot() -> Dictionary:
 	var rows: Array = []
 	if not Thread.is_main_thread(): return {"status": "INVALID_THREAD"}
 	for id: String in _records:
 		var record: Dictionary = _records[id]
-		var body: CharacterBody3D = record.body
+		var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
 		rows.append({"source_id": id, "bridge_id": record.row.bridge_id, "descriptor_sha256": record.row.descriptor_sha256, "status": record.status, "reason": record.reason, "position": body.global_position if is_instance_valid(body) else null, "life_generation": record.generation, "speed_mps": record.speed})
 	return {"session_id": _session, "disposed": _disposed, "rows": rows, "stats": _stats.duplicate()}
 
@@ -219,11 +286,15 @@ func occupants() -> Array[Dictionary]:
 	return positions
 
 func dispose() -> void:
-	if not Thread.is_main_thread() or _busy or _disposed: return
+	if not Thread.is_main_thread() or _disposed: return
+	if _busy:
+		_dispose_requested = true
+		return
 	_disposed = true
+	_dispose_requested = false
 	for record: Dictionary in _records.values():
 		if record.request >= 0: _navigation.cancel(record.request)
 		if is_instance_valid(record.body): record.body.queue_free()
-	_records.clear(); _manifest.clear(); _admit = Callable(); _support = Callable(); _navigation = null; _box = null; _overlap = null; _ray = null
+	_records.clear(); _manifest.clear(); _admit = Callable(); _support = Callable(); _placement_current = Callable(); _placement_receipt.clear(); _navigation = null; _box = null; _overlap = null; _ray = null
 	var scene: Node3D = _scene.get_ref() if _scene != null else null
 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)
