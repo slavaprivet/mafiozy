@@ -6,7 +6,11 @@ const BodyFactory = preload("res://scripts/vehicle_physics/vehicle_body_factory.
 const Visual = preload("res://scripts/vehicle_visual/vehicle_visual.gd")
 const OccupantPose = preload("res://scripts/vehicle_visual/vehicle_occupant_pose.gd")
 const Compartments = preload("res://scripts/vehicle_visual/vehicle_compartments.gd")
-const ExitPose = preload("res://scripts/vehicle_visual/vehicle_exit_pose.gd")
+const ExitPose = preload("res://scripts/vehicle_visual/vehicle_exit_pose_blend.gd")
+const ExitPresentation = preload("res://scripts/vehicle_visual/vehicle_exit_presentation.gd")
+const Timing = preload("res://scripts/transport/transport_timing.gd")
+const CharacterPhysics = preload("res://scripts/character_physics/character_physics_driver.gd")
+const RagdollTransition = preload("res://scripts/character_physics/ragdoll_actor_transition.gd")
 const PARKING_ID := "parking:REBUILD-VISUAL-old_town_narrow_townhouse_v1-004:bay:0"
 const ACTOR := {"actor_id": "player", "life_generation": 1}
 var runtime: Node3D
@@ -48,6 +52,11 @@ var _dead_in_seat := false
 var _exit_pose: RefCounted
 var _exit_floor_ray: PhysicsRayQueryParameters3D
 var _exit_rolls := 1.0
+var _exit_presentation_token := ""
+var _exit_presentation_progress := 0.0
+var _last_exit_presentation: Dictionary = {}
+var character_physics: RefCounted
+var articulated_enabled := true
 
 func setup(existing_player: CharacterBody3D, origin: Vector3) -> Dictionary:
 	if player != null or existing_player == null or not existing_player.is_inside_tree():
@@ -112,6 +121,15 @@ func setup(existing_player: CharacterBody3D, origin: Vector3) -> Dictionary:
 	_exit_floor_ray.collision_mask = player.collision_mask
 	_exit_floor_ray.exclude = [player.get_rid(), body.get_rid()]
 	_exit_floor_ray.collide_with_areas = false
+	if articulated_enabled or OS.get_cmdline_user_args().has("--preview-ragdoll"):
+		character_physics = CharacterPhysics.new()
+		var physics_setup: Dictionary = character_physics.configure(player, self)
+		if not physics_setup.get("ok", false): return _failure("character_physics:" + str(physics_setup.get("error")))
+		for rid: RID in character_physics.body.body_rids(): player._spring_arm.add_excluded_object(rid)
+		runtime.actor_transition.cancel_all()
+		runtime.actor_transition = RagdollTransition.new()
+		runtime.actor_transition.configure(runtime.access)
+		runtime.actor_transition.character_physics = character_physics
 	var roster: Dictionary = packet.roster.duplicate(true)
 	_clock += 2
 	_roster_revision += 1
@@ -169,7 +187,7 @@ func _nearest_panel() -> Dictionary:
 	return best
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not ready_for_play or phase == "DEAD" or not event is InputEventKey or event.echo:
+	if not ready_for_play or phase in ["DEAD", "FAULTED"] or not event is InputEventKey or event.echo:
 		return
 	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
 		return
@@ -186,7 +204,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if phase == "ON_FOOT" and _nearest_seat().is_empty():
 		return
 	_e_down = event.pressed
-	if event.pressed and phase == "EXITING" and _blocked_transition:
+	if event.pressed and phase == "EXITING" and _blocked_transition and (character_physics == null or character_physics.mode in ["IDLE", "DONE"]):
 		phase = "RETURNING_TO_SEAT"
 	if event.pressed and phase == "SEATED":
 		_pending_exit = true
@@ -195,12 +213,21 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	if not ready_for_play:
 		return
+	if character_physics != null and character_physics.mode == "FAULTED":
+		phase = "FAULTED"
+		_e_down = false
+		_pending_exit = false
+		if is_instance_valid(body): body.clear_control(_sequence + 1)
+		return
 	if not is_instance_valid(player) or not is_instance_valid(body) or player.get_meta("actor_id", "") != ACTOR.actor_id or int(player.get_meta("life_generation", 0)) != ACTOR.life_generation or body.get_meta("vehicle_id", "") != _vehicle_ref.vehicle_id or int(body.get_meta("life_generation", 0)) != int(_vehicle_ref.life_generation):
 		_drop_binding("LIFETIME_ENDED")
 		return
 	if phase == "DEAD":
 		if _dead_in_seat:
 			_follow_seat()
+		elif character_physics != null and character_physics.mode == "FALLING":
+			var fallen: Dictionary = character_physics.advance(delta, false)
+			if fallen.get("valid", false) and fallen.get("pose", {}).get("valid", false): player._apply_selected_pose(fallen.pose)
 		body.clear_control(_sequence + 1)
 		return
 	_clock += maxi(1, int(round(delta * 1000000.0)))
@@ -371,10 +398,16 @@ func _physics_process(delta: float) -> void:
 	# advancing the pose sampler's smoothing twice during a single tick.
 	if not pose_this_tick.is_empty() and phase != "ON_FOOT" and pose_writer.is_valid():
 		pose_writer.call(pose_this_tick, active_seat, body, visual)
+	# External approach/boarding motion rotates the actor while the player
+	# controller is suspended. Preserve the user's world camera heading every
+	# tick, rather than inheriting those rotations until the first seated frame.
+	player._update_camera_rotation()
 	_last_body_position = body.global_position
 	_update_hint()
 
 func _return_on_foot() -> void:
+	_exit_presentation_token = ""
+	_exit_presentation_progress = 0.0
 	_restore_walking_collision()
 	if not token.is_empty():
 		runtime.cancel_interaction(token)
@@ -441,6 +474,7 @@ func mark_dead() -> void:
 	_e_down = false
 	_pending_exit = false
 	player.set_preview_pose_authority(&"dead")
+	if character_physics != null: character_physics.continue_after_death()
 	if _dead_in_seat:
 		_apply_transport_pose({"fold": 1.0}, active_seat, body, visual)
 	_panel.visible = false
@@ -458,10 +492,30 @@ func _restore_walking_collision() -> void:
 	player._update_camera_rotation()
 
 func _apply_transport_pose(state: Dictionary, seat_id: String, _body: RigidBody3D, _visual: RefCounted) -> void:
+	if state.get("source_phase") == "exit_ragdoll":
+		var physical_pose: Dictionary = state.get("physical_pose", {})
+		if physical_pose.get("valid", false):
+			player._apply_selected_pose(physical_pose)
+			var anchor: Vector3 = character_physics.last_snapshot.get("anchor_world", player.global_position + Vector3.UP)
+			var focus_y := clampf(anchor.y - player.global_position.y + .35, .5, player.model_target_height * .79)
+			player._yaw_pivot.position.y = lerpf(player._yaw_pivot.position.y, focus_y, 1.0 - exp(-_last_delta * 8.0))
+		return
 	if state.get("source_phase") == "exit_body":
 		if state.get("exit_kind") == "tumble":
-			var rolled: Dictionary = _exit_pose.sample(float(state.get("body_progress", 0.0)), _exit_rolls, Callable(self, "_exit_floor_height"), null, player._pose_epoch)
+			var pose_token := str(state.get("token", token))
+			if pose_token != _exit_presentation_token:
+				_exit_presentation_token = pose_token
+				_exit_presentation_progress = 0.0
+			_last_exit_presentation = ExitPresentation.sample(float(state.get("recovery_elapsed_s", 0.0)), Timing.EXIT_TUMBLE_RECOVERY_S, float(state.get("recovery_initial_speed_mps", 0.0)), _exit_presentation_progress, bool(state.get("blocked", false)))
+			if not _last_exit_presentation.get("valid", false):
+				error = "exit_presentation_invalid"
+				return
+			_exit_presentation_progress = float(_last_exit_presentation.visual_progress)
+			var rolled: Dictionary = _exit_pose.sample(_exit_presentation_progress, _exit_rolls * float(_last_exit_presentation.rolls_scale), Callable(self, "_exit_floor_height"), null, player._pose_epoch)
 			if rolled.get("valid", false):
+				# The source exit hop is presentation only. Swept native movement
+				# remains the sole writer of the physical character position.
+				rolled.visual_offset += player._pose_motion.get_parent().global_basis.inverse() * Vector3.UP * float(state.get("body_hop_m", 0.0))
 				player._apply_selected_pose(rolled)
 				var focus_y := clampf(float(rolled.skin_height) * .65, .45, float(player.model_target_height) * .79)
 				player._yaw_pivot.position.y = lerpf(player._yaw_pivot.position.y, focus_y, 1.0 - exp(-_last_delta * 8.0))
@@ -500,6 +554,8 @@ func _apply_transport_pose(state: Dictionary, seat_id: String, _body: RigidBody3
 		"doorGrip": door.to_global(handle_local), "doorGripBlend": maxf(float(state.get("hand_reach", 0.0)), float(state.get("close_reach", 0.0)))}
 	var sampled: Dictionary = _occupant_pose.sample({"id": seat_id, "can_drive": seat.can_drive, "side": seat.source_side,
 		"recline": profile.cabin_derivation.seat_recline_rad}, options, null, player._pose_epoch)
+	if sampled.get("valid", false) and state.get("source_phase") == "exit" and state.get("exit_kind") == "tumble":
+		sampled = _exit_pose.blend_release(sampled, float(state.get("progress", 0.0)), Callable(self, "_exit_floor_height"), null, player._pose_epoch)
 	if sampled.get("valid", false):
 		player._apply_selected_pose(sampled)
 	else:
@@ -543,6 +599,9 @@ func _build_hint() -> void:
 	row.add_child(_hint)
 
 func _update_hint() -> void:
+	if character_physics != null and character_physics.mode in ["FALLING", "GETTING_UP", "FAULTED"]:
+		_panel.visible = false
+		return
 	if phase == "ON_FOOT" and not _selected_panel.is_empty():
 		_panel.visible = true
 		var kind: String = _selected_panel.kind
@@ -578,6 +637,7 @@ func _exit_tree() -> void:
 		if compartments != null:
 			compartments.dispose()
 		visual.dispose()
+	if character_physics != null: character_physics.dispose()
 
 func _vector(value: Dictionary) -> Vector3:
 	return Vector3(float(value.x), float(value.y), float(value.z))

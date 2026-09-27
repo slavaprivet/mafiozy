@@ -11,6 +11,7 @@ const UpdatePanel = preload("res://scripts/preview_update_panel.gd")
 const StaticBatch = preload("res://scripts/preview_static_batch.gd")
 const PreviewTransport = preload("res://scripts/preview_transport.gd")
 const PreviewBoundary = preload("res://scripts/preview_boundary.gd")
+const PreviewPopulation = preload("res://scripts/preview_population.gd")
 const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-013", "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
 	"REBUILD-VISUAL-gun_shop-001", "REBUILD-VISUAL-pawnshop-001",
@@ -18,7 +19,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260927-compact14b"
+const PREVIEW_RUNTIME_REVISION := "s01-20260927-physics18"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -30,9 +31,13 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_static_batch_enabled: bool = false
 @export var preview_transport_enabled: bool = true
 @export var preview_start_at_vehicle: bool = true
+@export var preview_residents_enabled: bool = false
+var preview_population: RefCounted
+var population_status := "disabled"
 var preview_transport: Node3D
 var transport_status := "disabled"
 var preview_dead := false
+var preview_physics_fault := false
 var static_batch_status: String = "disabled"
 var static_batch_summary: Dictionary = {}
 var _static_batch_lease: RefCounted
@@ -159,6 +164,13 @@ func _ready() -> void:
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
+	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
+		# Physics must see the authored colliders before source placement proofs.
+		await get_tree().physics_frame
+		await get_tree().physics_frame
+		preview_population = PreviewPopulation.new()
+		preview_population.setup(self)
+		population_status = preview_population.status
 	preview_ready = true
 	_setup_preview_perf()
 	_last_frame_usec = Time.get_ticks_usec()
@@ -166,6 +178,7 @@ func _ready() -> void:
 	print("PRINTSHOP_INTERIOR_STATUS ", printshop_status)
 	print("WATER_SURFACE_STATUS ", water_status)
 	print("STATIC_BATCH_STATUS ", static_batch_status)
+	print("RESIDENT_POPULATION_STATUS ", population_status)
 
 ## Startup/controlled rebuild only. Restore BEFORE source geometry, transforms,
 ## visibility, materials or shared-sun/sky lighting dependencies are changed.
@@ -363,6 +376,8 @@ func _jump_surface_point_contains(source_xz: Vector2) -> bool:
 	return _jump_surface_cells[int(floor(row)) * _jump_surface_size.x + int(floor(col))] == 1
 
 func _exit_tree() -> void:
+	if preview_population != null:
+		preview_population.dispose()
 	# Parent still exists here; clear host-owned mesh/material before destruction.
 	restore_preview_static_batches("scene_exit")
 	_dispose_water_surface()
@@ -387,6 +402,7 @@ func _load_printshop_data() -> void:
 	_printshop_data = parsed
 
 func _current_door_occupants() -> Array:
+	_door_occupants.resize(1)
 	# Read the actual collider; the current player radius is 0.30, not the
 	# independent adapter test's conservative 0.36. Missing bounds fail closed.
 	var occupant: Dictionary = _door_occupants[0]
@@ -398,6 +414,8 @@ func _current_door_occupants() -> Array:
 		occupant.height = capsule.height * frame.basis.y.length()
 		occupant.radius = capsule.radius * maxf(frame.basis.x.length(), frame.basis.z.length())
 		occupant.position = frame.origin - Vector3.UP * float(occupant.height) * 0.5
+	if preview_population != null:
+		_door_occupants.append_array(preview_population.occupants())
 	return _door_occupants
 
 func _current_door_action() -> Dictionary:
@@ -434,7 +452,7 @@ func _position_door_hint() -> void:
 		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
 
 func _unhandled_input(event: InputEvent) -> void:
-	if preview_dead:
+	if preview_dead or preview_physics_fault:
 		if event is InputEventKey and event.pressed and not event.echo and (event.physical_keycode == KEY_R or event.keycode == KEY_R):
 			get_viewport().set_input_as_handled()
 			get_tree().reload_current_scene.call_deferred()
@@ -447,6 +465,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if action.is_empty():
 		return
 	var result: Dictionary = _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
+	if result.get("accepted", false) and preview_population != null:
+		preview_population.door_started(str(action.door), bool(result.open))
 	_door_feedback_seconds = 0.0
 	if not bool(result.get("accepted", false)) and str(result.get("reason", "")) == "door-sweep-occupied":
 		_door_feedback_seconds = 0.9
@@ -458,6 +478,8 @@ func _physics_process(delta: float) -> void:
 		return
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
 	_printshop.advance(delta, _current_door_occupants())
+	if preview_population != null:
+		preview_population.step(delta)
 	_update_door_hint()
 
 func _setup_preview_perf() -> void:
@@ -732,7 +754,9 @@ func _process(delta: float) -> void:
 	if not preview_ready or _player == null:
 		return
 	_position_door_hint()
-	if not preview_dead and _player.global_position.y < -25.0:
+	if not preview_physics_fault and is_instance_valid(preview_transport) and preview_transport.character_physics != null and preview_transport.character_physics.mode == "FAULTED":
+		_show_physics_fault()
+	if not preview_dead and not preview_physics_fault and _player.global_position.y < -25.0:
 		_die_outside_world()
 	var now: int = Time.get_ticks_usec()
 	if _water_host != null:
@@ -785,3 +809,19 @@ func _die_outside_world() -> void:
 	label.add_theme_font_size_override("font_size", 28)
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.add_child(label)
+
+func _show_physics_fault() -> void:
+	preview_physics_fault = true
+	_player.set_mouse_captured(false)
+	var layer := CanvasLayer.new()
+	layer.layer = 21
+	add_child(layer)
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	layer.add_child(panel)
+	var label := Label.new()
+	label.text = "Не удалось восстановить движение персонажа.\nR — перезапустить тестовую сцену"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 20)
+	panel.add_child(label)
+	push_error("Character physics stopped: " + preview_transport.character_physics.fault_reason)

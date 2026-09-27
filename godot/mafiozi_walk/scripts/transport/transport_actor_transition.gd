@@ -139,26 +139,42 @@ func _step_exit(state: Dictionary, actor: CharacterBody3D, vehicle: RigidBody3D,
 		if float(state.elapsed) < Timing.EXIT_RELEASE_S - .000001: return _result("ACTIVE", _pose_state(state, progress, seat_blend))
 		var outward := (vehicle.global_basis * ((state.approach_local_m as Vector3) - (state.seat_local_m as Vector3))).slide(Vector3.UP).normalized()
 		var tumble: bool = state.exit_kind == "tumble"
-		state.recovery_velocity = vehicle.linear_velocity * (.6 if tumble else .45) + outward * (2.4 if tumble else .8)
+		state.recovery_velocity = vehicle.linear_velocity.slide(Vector3.UP) * (.6 if tumble else .45) + outward * (2.4 if tumble else .8)
+		state.recovery_initial_speed_mps = (state.recovery_velocity as Vector3).length()
+		state.recovery_distance_m = 0.0
 		state.phase = "RECOVERY"; state.elapsed = 0.0
-		return _result("ACTIVE", _public_state(state))
+		return _result("ACTIVE", _pose_state(state, 0.0, 0.0))
 	var duration := Timing.EXIT_TUMBLE_RECOVERY_S if state.exit_kind == "tumble" else Timing.EXIT_WALK_RECOVERY_S
 	var old_velocity: Vector3 = state.recovery_velocity
 	var speed := old_velocity.length()
 	var next_speed := maxf(0.0, speed - (9.0 if state.exit_kind == "tumble" else 6.0) * dt)
 	var next_velocity := old_velocity * (next_speed / speed) if speed > 0.00001 else Vector3.ZERO
 	var motion := (old_velocity + next_velocity) * .5 * dt
-	var collision := actor.move_and_collide(motion)
-	if collision != null:
-		state.blocked = true
-		return _result("BLOCKED", _public_state(state))
-	state.recovery_velocity = next_velocity
-	if motion.length_squared() > .000001: actor.global_rotation.y = atan2(-motion.x, -motion.z)
+	var vertical_speed := float(state.get("recovery_vertical_speed_mps", 0.0)) - float(ProjectSettings.get_setting("physics/3d/default_gravity",9.8)) * dt
+	motion.y = vertical_speed * dt
+	var before := actor.global_position
+	var remaining_motion := motion
+	for contact in range(4):
+		if remaining_motion.length_squared() < .00000001: break
+		var collision := actor.move_and_collide(remaining_motion)
+		if collision == null: break
+		if collision.get_normal().dot(Vector3.UP) >= .7 and vertical_speed < 0.0: vertical_speed = 0.0
+		remaining_motion = collision.get_remainder().slide(collision.get_normal())
+	state.recovery_vertical_speed_mps = vertical_speed
+	var actual := actor.global_position - before
+	state.recovery_distance_m = float(state.get("recovery_distance_m", 0.0)) + actual.slide(Vector3.UP).length()
+	var blocked := (actual.slide(Vector3.UP) - motion.slide(Vector3.UP)).length() > .001
+	state.blocked = blocked
+	state.recovery_velocity = actual.slide(Vector3.UP) / dt if blocked and dt > 0.0 else next_velocity
+	if actual.slide(Vector3.UP).length_squared() > .000001: actor.global_rotation.y = atan2(-actual.x, -actual.z)
 	state.elapsed = minf(duration, float(state.elapsed) + dt)
 	var progress := clampf(float(state.elapsed) / duration, 0.0, 1.0)
 	if float(state.elapsed) < duration - .000001: return _result("ACTIVE", _pose_state(state, progress, 0.0))
 	var physical := _final_exit_probe(state, actor, vehicle)
-	if not bool(physical.get("reachable", false)): return _result("BLOCKED", {"physical": physical, "pose": _public_state(state)})
+	var ground_collision := KinematicCollision3D.new()
+	var touching_floor := actor.test_move(actor.global_transform, Vector3.DOWN * .005, ground_collision, .001, true) and ground_collision.get_normal().dot(Vector3.UP) >= .7
+	if not touching_floor: return _result("BLOCKED", {"physical": physical, "pose": _pose_state(state, progress, 0.0), "reason":"AWAIT_PHYSICAL_GROUND"})
+	if not bool(physical.get("reachable", false)): return _result("BLOCKED", {"physical": physical, "pose": _pose_state(state, progress, 0.0)})
 	actor.velocity = Vector3.ZERO
 	return _result("COMPLETE", {"receipt": _receipt(state, {"outside_reached": true, "source_exit_kind": state.exit_kind, "door_release_done": true, "recovery_done": true, "grounded": true, "blocked": false}), "physical": physical, "pose": _pose_state(state, 1.0, 0.0)})
 
@@ -198,7 +214,7 @@ func _pose_state(state: Dictionary, progress: float, seat_blend: float) -> Dicti
 		var u := 1.0 - progress
 		out.merge({"source_phase":"exit", "fold":_smooth((u - .12) / .36), "door":_smooth(progress / .2) * (1.0 - _smooth((progress - .8) / .2)), "reach":sin(PI * progress) * .8})
 	else:
-		out.merge({"source_phase":"exit_body", "door":maxf(0.0, 1.0 - float(state.elapsed) / .3), "body_progress":progress})
+		out.merge({"source_phase":"exit_body", "door":maxf(0.0, 1.0 - float(state.elapsed) / .3), "body_progress":progress, "recovery_initial_speed_mps":state.get("recovery_initial_speed_mps",0.0), "recovery_speed_mps":(state.recovery_velocity as Vector3).length(), "recovery_elapsed_s":state.elapsed, "recovery_distance_m":state.get("recovery_distance_m",0.0), "body_hop_m":.28 * sin(PI * float(state.elapsed) / .3) if state.exit_kind == "tumble" and float(state.elapsed) < .3 else 0.0, "body_visual_lift_m":.28 * sin(PI * float(state.elapsed) / .3) if state.exit_kind == "tumble" and float(state.elapsed) < .3 else 0.0})
 	return out
 
 func _entry_phase(progress: float) -> String:
@@ -213,7 +229,7 @@ func _entry_phase(progress: float) -> String:
 
 func _public_state(state: Dictionary) -> Dictionary:
 	if state.is_empty(): return {}
-	return {"token": state.token, "action": state.action, "seat_id": state.seat_id, "phase": state.phase, "elapsed": state.elapsed, "exit_kind": state.exit_kind, "blocked": state.blocked}
+	return {"token": state.token, "action": state.action, "seat_id": state.seat_id, "phase": state.phase, "elapsed": state.elapsed, "exit_kind": state.exit_kind, "blocked": state.blocked, "recovery_initial_speed_mps":state.get("recovery_initial_speed_mps",0.0), "recovery_speed_mps":(state.recovery_velocity as Vector3).length(), "recovery_elapsed_s":state.elapsed if state.phase == "RECOVERY" else 0.0, "recovery_distance_m":state.get("recovery_distance_m",0.0)}
 
 func _cancel_state(state: Dictionary, release_all: bool = false) -> void:
 	_states.erase(state.token)
@@ -234,3 +250,9 @@ func _smooth(value: float) -> float:
 
 func _result(code: String, extra: Dictionary = {}) -> Dictionary:
 	var out := {"code": code}; out.merge(extra); return out
+
+
+
+
+
+

@@ -1,0 +1,978 @@
+{
+  "schema": "mafiozi.npc-visual/v1",
+  "scope": "neutral appearance from explicitly supplied source row/resolved descriptor",
+  "material_fidelity": "HOLD",
+  "node_version": "v26.1.0",
+  "three_revision": "180",
+  "export_options": {
+    "binary": true,
+    "trs": false,
+    "onlyVisible": true,
+    "animations": [],
+    "includeCustomExtensions": false
+  },
+  "canonical_sources": {
+    "male": {
+      "bytes": 652732,
+      "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+      "path": "assets/maps/city_rebuild_v1/hero_models/player_male.8130dfb1f7eb.glb",
+      "textures": 0,
+      "animations": 0
+    },
+    "female": {
+      "bytes": 641836,
+      "sha256": "298d50e6244a7f17cf9cb66530fc34645fec0f19b575fe99d1df514709e90c40",
+      "path": "assets/maps/city_rebuild_v1/hero_models/player_female.298d50e6244a.glb",
+      "textures": 0,
+      "animations": 0
+    }
+  },
+  "dependencies": [
+    {
+      "path": "assets/maps/city_rebuild_v1/artist14/bullet_wounds.mjs",
+      "bytes": 11714,
+      "sha256": "9b19a82b92a11a5e26c8d8d068f1eb7c8df412b3496a75848fc32a3d69229741"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/artist14/swim_motion.mjs",
+      "bytes": 3267,
+      "sha256": "4c1ed3557af7700b74c861a97cbb7abeaf41e374291ba94f280d8d168d9a75d9"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/artist14/wet_clothing.mjs",
+      "bytes": 8048,
+      "sha256": "4c72f99611e45e825ba5c62d7e1c36ba7e3619ee17fe325e05fb02768619426d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/artist14/wound_bleeding.mjs",
+      "bytes": 7658,
+      "sha256": "6d2b5485fbc4935c8db4b48ad03abc9b03e2c15acda0f17d8d5118522218d30e"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/car_drive.mjs",
+      "bytes": 15459,
+      "sha256": "a25cb6c140cd770f387f3f9004672d3dcd1aa224f0ba17d2d778c0ae7a7258eb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/car_entry.mjs",
+      "bytes": 1446,
+      "sha256": "342a3f959cd7d82bfa5759f1706d6471bc32998fdb49be79361a2556ab3245b6"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/car_exit.mjs",
+      "bytes": 3179,
+      "sha256": "c89df365c19659e02cd89a5ba75df1a3218808845a8154e0973ce682fb7ee263"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_arsenal.mjs",
+      "bytes": 27703,
+      "sha256": "347ce91ba445b35476451a14ec30bb29acf724e34cd518294f05b34ac5a01355"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_artist14_melee.mjs",
+      "bytes": 13210,
+      "sha256": "eeb7ca0d7d58df796c436a13e92c1ca93b601d7af2c0cc7f6616bfe600ed1835"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_artist14_pose.mjs",
+      "bytes": 2462,
+      "sha256": "56d262fff424c8760138f22405dc6790adb91d88d3958098082be5b4b656dbbe"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_artist14_surface.mjs",
+      "bytes": 10771,
+      "sha256": "30de352fc12723343aafad5c7b04a3a46a40f417a246953f85bc60c48b0af243"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_bruise_projection.mjs",
+      "bytes": 4187,
+      "sha256": "8eff71893a14df7b754086e1dc576ffeaff221dac32e19a9d762835a72603960"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_contact_ground_bound.mjs",
+      "bytes": 2464,
+      "sha256": "3ac28174104aeab81d7a7458a18a8a109e132be72a00d7f7ae90cc6eee90b749"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_models/player_female.298d50e6244a.glb",
+      "bytes": 641836,
+      "sha256": "298d50e6244a7f17cf9cb66530fc34645fec0f19b575fe99d1df514709e90c40"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_models/player_male.8130dfb1f7eb.glb",
+      "bytes": 652732,
+      "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_motion_presentation.mjs",
+      "bytes": 2174,
+      "sha256": "d37b364b49e1ff0ace71f47e9a2d8a142a1f21c0fbb746d7367a8f27bfaf8f27"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_pose_transition.mjs",
+      "bytes": 2636,
+      "sha256": "674fcfce49b4cbe3048ff829e784595b680625f901d73b95a4976128e4a0b8e2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_posture.mjs",
+      "bytes": 3848,
+      "sha256": "4e359a6d1491636b5e4ba2a40bb8ea8f41d6dbfe35c5fc5c18cda43f4937a9bc"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_walk.mjs",
+      "bytes": 32889,
+      "sha256": "60ad2135010926f9fe1f18c62a89a877eb2547c708b723d7926f513043cc28c3"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_weapon_clearance.mjs",
+      "bytes": 9344,
+      "sha256": "a765010578b84142ee81bb5c7f0eec6eafb0a5dcfe8886445d2516327100e5a6"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/mercenary_pose.mjs",
+      "bytes": 15190,
+      "sha256": "a16456e22fea355c527b8993cbf3780bc0859b5f1a787f6d59681e8cd666c30b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/mercenary_vehicle_fire.mjs",
+      "bytes": 14022,
+      "sha256": "044634742af62c4d4cbbc8d96d4fdaa81cd6359c2cb665fc44c492d998bf1ad2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_activity_pose.mjs",
+      "bytes": 8526,
+      "sha256": "09bb7612593597b13ef72b7832214da7d811701a3ba9a9782937b999f34b1ae1"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_actor.mjs",
+      "bytes": 37485,
+      "sha256": "ceb7266a1fcb9013eda78b6dce8ee67cf5f80c547beb2850e2be76602110af30"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_appearance.mjs",
+      "bytes": 17125,
+      "sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_boss_art_direction.mjs",
+      "bytes": 7385,
+      "sha256": "a2d7ab942038e5ab6d4072652628c7764dca9f5ba88f94d9e2a47619b06df2f2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_cash_offer_visual.mjs",
+      "bytes": 11394,
+      "sha256": "0cb11640b47dd2064b21cc64a2607d61eeb5b62d5940c1d33892f2e6e93e9d3d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_civilian_weapon_policy.mjs",
+      "bytes": 1306,
+      "sha256": "84fd5e93a3d4a08f3f384dbee04ba5b034058e900051fb9a9c7ae68536e54db8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_contact_anchor.mjs",
+      "bytes": 4070,
+      "sha256": "251463d944eefde8073b9410050dd757cef145ad9c28431e7b92126d5268da54"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_contact_ray.mjs",
+      "bytes": 5524,
+      "sha256": "f1507e1e5ac0007efd32e95dcddfc172badd86917791112dfa5448afc5d5df4f"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_death_entry20.mjs",
+      "bytes": 9789,
+      "sha256": "56bebab9056949f0964b47f2ba24e174d55163e82e22156384f8135a65a1f23f"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_death_pose20.mjs",
+      "bytes": 2756,
+      "sha256": "501887edc93e7ccce0c8207f691277c77912511d160b915b304cc2cf20d1f74b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_death_presentation20.mjs",
+      "bytes": 2875,
+      "sha256": "e55282d46630479d27dba57cb2d7923f5731171f8a739cffa62617397933f8e3"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_death_profile20.mjs",
+      "bytes": 2992,
+      "sha256": "45fada00da64f49a9a36d755cb00347a1fac5ee91d9b5611587014e3929a5d96"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_ground_correction_memo.mjs",
+      "bytes": 6995,
+      "sha256": "5815e1e7d4553545d97bb3434b051ad9e9e5d2a4a38c06a469e524802a755397"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_locomotion_pose.mjs",
+      "bytes": 10107,
+      "sha256": "5d602c6b64f2362c8286803abbe58382783e8713c90969d38bd579d39755863d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_phone_visual.mjs",
+      "bytes": 15347,
+      "sha256": "ae866463e4ab393dd39243d68cbab7ddd7f18172a1b2c4c5e2d93cede3232997"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_police_observation_pose.mjs",
+      "bytes": 1211,
+      "sha256": "ba5706c8205b27c47cf646182be3d689241f547fc082e2f9220435582c17963a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_population.mjs",
+      "bytes": 28733,
+      "sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_role_catalogue.mjs",
+      "bytes": 46901,
+      "sha256": "54e5475c57d1d35d00f5aec7ac4512793c954db885ff11134064ef254af1668c"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_skeleton_sharing.mjs",
+      "bytes": 2558,
+      "sha256": "22107c1c181cf05fe514d70677fe7151e721bd8b904bb48b64a31f5831834f95"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_social_pose.mjs",
+      "bytes": 7909,
+      "sha256": "36fb317a2aa654275a1cc43e3c5c33ea20bff9673e11f67c4ea6aa245e9060f9"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_source_lifecycle.mjs",
+      "bytes": 1157,
+      "sha256": "e2ffa20660b666f9fe993b3ccaed150107789dee6b3456e2e77dc4732d7940e5"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_surface_diagnostics.mjs",
+      "bytes": 965,
+      "sha256": "a617a2d7c3b25a8d139ea9661b19b00bc12bb17eeef09180a25a3f58a04749c7"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_surface_state.mjs",
+      "bytes": 2366,
+      "sha256": "dad320a27af83169ca0287ada32ecbdc4102c098d1fa508a2504e383f89a7980"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_vehicle_pose.mjs",
+      "bytes": 7221,
+      "sha256": "09d5a5957bf1753cdae944e61a9d46360d2f11c3dde9b67724baaaf67c0279d9"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_visual_shot.mjs",
+      "bytes": 1269,
+      "sha256": "05cdddc802a5ebd78862407ff4b5b94dbddb070461467024887443917df7bf62"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_weapon_batches.mjs",
+      "bytes": 5420,
+      "sha256": "cc7aaf6aa5546db1580f4a5ee5b709c16891f913edff4adc79b3625969b75550"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_collision_shape.mjs",
+      "bytes": 6255,
+      "sha256": "97c3fb895450937da0e0ec3c818036b3f066db4803b1877c6969acfd90cd166f"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_contact.mjs",
+      "bytes": 3287,
+      "sha256": "668e776961d474e6a2bceb62f6435027b859f926b819c0f77da5f4bb0afd4020"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_contact_motion.mjs",
+      "bytes": 4218,
+      "sha256": "aa787eb0fef14df3e9324b797c263195e4cf943b594f7d0b3c1a1569164f63ff"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_dynamics.mjs",
+      "bytes": 6975,
+      "sha256": "105cce8bf2cac63136e1c5e48f38465c4bf8e448a271702136b7c014e3396faf"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_hijack_pose.mjs",
+      "bytes": 6346,
+      "sha256": "92c435ca08a087b50a225c2024ca9e0ede139b1446e6ad1f447e17c1d78c00ca"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_interior_colors.mjs",
+      "bytes": 3637,
+      "sha256": "b2f36e1460896dc75e727e00909ecda557ad7af5fd13156691ebf75ac8023b44"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_interiors.mjs",
+      "bytes": 6254,
+      "sha256": "060f3a36b7ca4d75d872f957f5501f27f150817937d399b422de72d85ecd3a35"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_seats.mjs",
+      "bytes": 4301,
+      "sha256": "1e6b2178bee7ed6ec51ecbb5d99e13772942c8fb71a2f3cc7579ad2aa3537779"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_wheels.mjs",
+      "bytes": 13582,
+      "sha256": "c792b2c51d198e4d098946b6df6f83c01e143413b85b20df52f7ef2b95417bbf"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_window_fire.mjs",
+      "bytes": 8824,
+      "sha256": "821750bdddfcd26e2b1d835094fda3593b902fcb5c66e296cf84bf6b699f6bda"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/verified_glb_bytes.mjs",
+      "bytes": 2661,
+      "sha256": "1c21bbdd60c9c7db384a0b7719ca84f297b07bfde1f3678356221a975be644ed"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_motion.mjs",
+      "bytes": 1234,
+      "sha256": "8c525b07e8b74b71dd363b447bcf82dca64d0c961fec58cfc2af10de554b652c"
+    },
+    {
+      "path": "outputs/astra21_npc_visual_source/deps/GLTFExporter.mjs",
+      "bytes": 86392,
+      "sha256": "e7c29444454eb321b39e4c8b3062944f4fd5299a0e7483e9cb8c0594cdec829f"
+    },
+    {
+      "path": "outputs/astra21_npc_visual_source/deps/SkeletonUtils.mjs",
+      "bytes": 11062,
+      "sha256": "0761b1e003917b215d25dd81439d854b36034b5a57ce84c2cfe3b02428d7b253"
+    },
+    {
+      "path": "tools/godot/export_npc_visual.mjs",
+      "bytes": 26216,
+      "sha256": "d9a4925db4eda34c40dcd48d2efc15cf3ac3afc7b08f8e24d7fff94a761c8dc9"
+    },
+    {
+      "path": "D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/addons/loaders/GLTFLoader.js",
+      "bytes": 114739,
+      "sha256": "67ac5551fdafa6e349bd80c8f8e5e39c136d6b2fb1ad647db9abb21dc86f9e4a"
+    },
+    {
+      "path": "D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/addons/utils/BufferGeometryUtils.js",
+      "bytes": 35539,
+      "sha256": "fda7e946b8e0b5ab39b779206589e7a1079a22eb24efb89d7223e03fdfb1f751"
+    },
+    {
+      "path": "D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.core.js",
+      "bytes": 1403455,
+      "sha256": "eb077d2417f61d3e6d9264c317cabc4ea35769ed6b0ab533067292a550784c20"
+    },
+    {
+      "path": "D:/codex_release/artist13_hero_first_DEV_20260907/demo/vendor/build/three.module.js",
+      "bytes": 603113,
+      "sha256": "c8211c69345d2e9949dc7a8ac969380497aa0600a5a8ac6a459c8cd02dd9cb8a"
+    }
+  ],
+  "addon_receipts": {
+    "tag": "r180",
+    "files": [
+      {
+        "file": "GLTFExporter.mjs",
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/exporters/GLTFExporter.js",
+        "bytes": 86392,
+        "sha256": "e7c29444454eb321b39e4c8b3062944f4fd5299a0e7483e9cb8c0594cdec829f"
+      },
+      {
+        "file": "SkeletonUtils.mjs",
+        "url": "https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/jsm/utils/SkeletonUtils.js",
+        "bytes": 11062,
+        "sha256": "0761b1e003917b215d25dd81439d854b36034b5a57ce84c2cfe3b02428d7b253"
+      }
+    ]
+  },
+  "entries": [
+    {
+      "kind": "captured_appearance",
+      "catalogue_only": false,
+      "not_live_spawn": true,
+      "bridge_id": "npc_resident_72",
+      "label": "npc_resident_72",
+      "source_provenance": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+      "descriptor": {
+        "id": "npc_resident_72",
+        "sex": "male",
+        "role": "housewife",
+        "height": 1.8757261815480888,
+        "build": 1,
+        "skin": "#D4935A",
+        "hairColor": "#76523a",
+        "hairstyle": "part",
+        "browStyle": 4,
+        "outfit": "#334851",
+        "shirt": "#e2d8c7",
+        "hat": "none",
+        "prisonGear": "",
+        "shield": false
+      },
+      "descriptor_json": "{\"id\":\"npc_resident_72\",\"sex\":\"male\",\"role\":\"housewife\",\"height\":1.8757261815480888,\"build\":1,\"skin\":\"#D4935A\",\"hairColor\":\"#76523a\",\"hairstyle\":\"part\",\"browStyle\":4,\"outfit\":\"#334851\",\"shirt\":\"#e2d8c7\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+      "descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+      "asset_file": "e6210a186cf3bdf368e44566eb0f635b46f96b34d0fe86a38bafa51e6c2e7632.glb",
+      "asset_sha256": "e6210a186cf3bdf368e44566eb0f635b46f96b34d0fe86a38bafa51e6c2e7632",
+      "asset_bytes": 584716,
+      "canonical_source_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+      "oracle_file": "1046bc5183af647500e77421b39d92342b7cdb387b14749371d2b0b6a254811d.json",
+      "oracle_sha256": "1046bc5183af647500e77421b39d92342b7cdb387b14749371d2b0b6a254811d",
+      "oracle_bytes": 2305614,
+      "appearance_application_count": 1,
+      "normalization_application_count": 1,
+      "animation_count": 0,
+      "material_fidelity": "HOLD",
+      "normalization": {
+        "target_height": 1.8757261815480888,
+        "source_height": 4.928141966989858,
+        "scale": 0.3806152895172772,
+        "offset": [
+          -0.0003742676524588484,
+          -0.02999992517452443,
+          -0.05661511421203613
+        ],
+        "scaled_matrix": [
+          0.3806152895172772,
+          0,
+          0,
+          0,
+          0,
+          0.3806152895172772,
+          0,
+          0,
+          0,
+          0,
+          0.3806152895172772,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "offset_matrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          -0.0003742676524588484,
+          -0.02999992517452443,
+          -0.05661511421203613,
+          1
+        ]
+      },
+      "bounds": {
+        "min": [
+          -0.5250388034547223,
+          -1.5612511283791264e-17,
+          -0.23650857804232137
+        ],
+        "max": [
+          0.5250388034610903,
+          1.8657202141308402,
+          0.23650857804232137
+        ]
+      },
+      "mesh_count": 11,
+      "bone_count": 28,
+      "hairstyle": "part",
+      "roundtrip": {
+        "pass": true,
+        "vertices": 7566,
+        "color_values": 26960,
+        "max_world_vertex_component_error_m": 5.8878171338427876e-8,
+        "max_triangle_used_attribute_error": 2.9802322387695312e-8,
+        "max_color_error": 0,
+        "unused_normal_changes": [],
+        "max_unused_normal_component_error": 0,
+        "full_normal_buffer_equality": true,
+        "max_full_normal_component_error": 0
+      },
+      "limits": [
+        "Neutral appearance/rest oracle, no wet/wounds/phone/cash/combat/AI/HP",
+        "All COLOR_0 numeric values are linear; native vertex_color_is_srgb=false",
+        "No native pixels or full actor runtime parity"
+      ],
+      "source_input": {
+        "input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+        "input_bytes": 4194,
+        "source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+        "appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+        "tests_only": false,
+        "authority": "NONE: self-declared provenance is not authenticated live capture or source birth",
+        "fixture": false,
+        "provenance": {
+          "label": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+          "test_only": false
+        },
+        "input_kind": "source_row"
+      },
+      "normal_degenerate_fidelity": "HOLD",
+      "normal_corrections": 56,
+      "bone_parent_map": {
+        "root": null,
+        "pelvis": "root",
+        "spine_01": "pelvis",
+        "chest": "spine_01",
+        "neck": "chest",
+        "head": "neck",
+        "socket_head": "head",
+        "clavicle_l": "chest",
+        "upperarm_l": "clavicle_l",
+        "forearm_l": "upperarm_l",
+        "hand_l": "forearm_l",
+        "socket_hand_l": "hand_l",
+        "clavicle_r": "chest",
+        "upperarm_r": "clavicle_r",
+        "forearm_r": "upperarm_r",
+        "hand_r": "forearm_r",
+        "socket_hand_r": "hand_r",
+        "socket_weapon": "hand_r",
+        "socket_back": "chest",
+        "socket_steering_l": "chest",
+        "socket_steering_r": "chest",
+        "thigh_l": "pelvis",
+        "shin_l": "thigh_l",
+        "foot_l": "shin_l",
+        "thigh_r": "pelvis",
+        "shin_r": "thigh_r",
+        "foot_r": "shin_r",
+        "socket_seat": "pelvis"
+      },
+      "color_ranges": [
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_FABRIC[0]",
+          "min": 0.019862860441207886,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_HAIR[1]",
+          "min": 0.011612244881689548,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_SKIN[2]",
+          "min": 0.061345040798187256,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_TRIM[3]",
+          "min": 0.177888423204422,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        }
+      ],
+      "color_hdr_fidelity": "not_present"
+    },
+    {
+      "kind": "captured_appearance",
+      "catalogue_only": false,
+      "not_live_spawn": true,
+      "bridge_id": "npc_resident_169",
+      "label": "npc_resident_169",
+      "source_provenance": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+      "descriptor": {
+        "id": "npc_resident_169",
+        "sex": "female",
+        "role": "student",
+        "height": 1.8998691982589662,
+        "build": 0.94,
+        "skin": "#D4935A",
+        "hairColor": "#493329",
+        "hairstyle": "wavy",
+        "browStyle": 5,
+        "outfit": "#68414b",
+        "shirt": "#b8c6be",
+        "hat": "none",
+        "prisonGear": "",
+        "shield": false
+      },
+      "descriptor_json": "{\"id\":\"npc_resident_169\",\"sex\":\"female\",\"role\":\"student\",\"height\":1.8998691982589662,\"build\":0.94,\"skin\":\"#D4935A\",\"hairColor\":\"#493329\",\"hairstyle\":\"wavy\",\"browStyle\":5,\"outfit\":\"#68414b\",\"shirt\":\"#b8c6be\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+      "descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+      "asset_file": "9014e6ffd2fa25c605326057f85d790b5ebf5a339d4d569c090e95d7f34cfb38.glb",
+      "asset_sha256": "9014e6ffd2fa25c605326057f85d790b5ebf5a339d4d569c090e95d7f34cfb38",
+      "asset_bytes": 592008,
+      "canonical_source_sha256": "298d50e6244a7f17cf9cb66530fc34645fec0f19b575fe99d1df514709e90c40",
+      "oracle_file": "d6382266cc31a0d8fabbd50216d3a3459796907bd353d8f708fe50714ee1cd4c.json",
+      "oracle_sha256": "d6382266cc31a0d8fabbd50216d3a3459796907bd353d8f708fe50714ee1cd4c",
+      "oracle_bytes": 2314771,
+      "appearance_application_count": 1,
+      "normalization_application_count": 1,
+      "animation_count": 0,
+      "material_fidelity": "HOLD",
+      "normalization": {
+        "target_height": 1.8998691982589662,
+        "source_height": 4.9698569960189865,
+        "scale": 0.38227844378235065,
+        "offset": [
+          -0.0003742573899853108,
+          -0.02999992517452443,
+          -0.05661511421203613
+        ],
+        "scaled_matrix": [
+          0.38227844378235065,
+          0,
+          0,
+          0,
+          0,
+          0.38227844378235065,
+          0,
+          0,
+          0,
+          0,
+          0.38227844378235065,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "offset_matrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          -0.0003742573899853108,
+          -0.02999992517452443,
+          -0.05661511421203613,
+          1
+        ]
+      },
+      "bounds": {
+        "min": [
+          -0.5273330570782706,
+          2.2551405187698492e-17,
+          -0.2375420369209608
+        ],
+        "max": [
+          0.5273330570740067,
+          1.8872063048206853,
+          0.23754203692096076
+        ]
+      },
+      "mesh_count": 12,
+      "bone_count": 28,
+      "hairstyle": "wavy",
+      "roundtrip": {
+        "pass": true,
+        "vertices": 7704,
+        "color_values": 27044,
+        "max_world_vertex_component_error_m": 5.9135448315927874e-8,
+        "max_triangle_used_attribute_error": 1.4901161193847656e-8,
+        "max_color_error": 0,
+        "unused_normal_changes": [],
+        "max_unused_normal_component_error": 0,
+        "full_normal_buffer_equality": true,
+        "max_full_normal_component_error": 0
+      },
+      "limits": [
+        "Neutral appearance/rest oracle, no wet/wounds/phone/cash/combat/AI/HP",
+        "All COLOR_0 numeric values are linear; native vertex_color_is_srgb=false",
+        "No native pixels or full actor runtime parity"
+      ],
+      "source_input": {
+        "input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+        "input_bytes": 4194,
+        "source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+        "appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+        "tests_only": false,
+        "authority": "NONE: self-declared provenance is not authenticated live capture or source birth",
+        "fixture": false,
+        "provenance": {
+          "label": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+          "test_only": false
+        },
+        "input_kind": "source_row"
+      },
+      "normal_degenerate_fidelity": "HOLD",
+      "normal_corrections": 55,
+      "bone_parent_map": {
+        "root": null,
+        "pelvis": "root",
+        "spine_01": "pelvis",
+        "chest": "spine_01",
+        "neck": "chest",
+        "head": "neck",
+        "socket_head": "head",
+        "clavicle_l": "chest",
+        "upperarm_l": "clavicle_l",
+        "forearm_l": "upperarm_l",
+        "hand_l": "forearm_l",
+        "socket_hand_l": "hand_l",
+        "clavicle_r": "chest",
+        "upperarm_r": "clavicle_r",
+        "forearm_r": "upperarm_r",
+        "hand_r": "forearm_r",
+        "socket_hand_r": "hand_r",
+        "socket_weapon": "hand_r",
+        "socket_back": "chest",
+        "socket_steering_l": "chest",
+        "socket_steering_r": "chest",
+        "thigh_l": "pelvis",
+        "shin_l": "thigh_l",
+        "foot_l": "shin_l",
+        "thigh_r": "pelvis",
+        "shin_r": "thigh_r",
+        "foot_r": "shin_r",
+        "socket_seat": "pelvis"
+      },
+      "color_ranges": [
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_FABRIC[0]",
+          "min": 0.021219009533524513,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_HAIR[1]",
+          "min": 0.011612244881689548,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_SKIN[2]",
+          "min": 0.061345040798187256,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_TRIM[3]",
+          "min": 0.1441284716129303,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        }
+      ],
+      "color_hdr_fidelity": "not_present"
+    },
+    {
+      "kind": "captured_appearance",
+      "catalogue_only": false,
+      "not_live_spawn": true,
+      "bridge_id": "npc_resident_252",
+      "label": "npc_resident_252",
+      "source_provenance": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+      "descriptor": {
+        "id": "npc_resident_252",
+        "sex": "male",
+        "role": "pensioner",
+        "height": 1.710592126380652,
+        "build": 1.07,
+        "skin": "#FDDBB4",
+        "hairColor": "#b7a188",
+        "hairstyle": "crew",
+        "browStyle": 5,
+        "outfit": "#334851",
+        "shirt": "#b8c6be",
+        "hat": "none",
+        "prisonGear": "",
+        "shield": false
+      },
+      "descriptor_json": "{\"id\":\"npc_resident_252\",\"sex\":\"male\",\"role\":\"pensioner\",\"height\":1.710592126380652,\"build\":1.07,\"skin\":\"#FDDBB4\",\"hairColor\":\"#b7a188\",\"hairstyle\":\"crew\",\"browStyle\":5,\"outfit\":\"#334851\",\"shirt\":\"#b8c6be\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+      "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+      "asset_file": "fc502bd2919f77611ecefa24c30faf607c84f2642b452bf43a3a108d49f262af.glb",
+      "asset_sha256": "fc502bd2919f77611ecefa24c30faf607c84f2642b452bf43a3a108d49f262af",
+      "asset_bytes": 590288,
+      "canonical_source_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+      "oracle_file": "dab5621d20c3565abcfc7be2d35bb322b96f885d5d5e8fadedc70b8ea1bb37fd.json",
+      "oracle_sha256": "dab5621d20c3565abcfc7be2d35bb322b96f885d5d5e8fadedc70b8ea1bb37fd",
+      "oracle_bytes": 2328294,
+      "appearance_application_count": 1,
+      "normalization_application_count": 1,
+      "animation_count": 0,
+      "material_fidelity": "HOLD",
+      "normalization": {
+        "target_height": 1.710592126380652,
+        "source_height": 4.895000074825476,
+        "scale": 0.34945701741212754,
+        "offset": [
+          -0.0003742676524588484,
+          -0.02999992517452443,
+          -0.05661511421203613
+        ],
+        "scaled_matrix": [
+          0.34945701741212754,
+          0,
+          0,
+          0,
+          0,
+          0.34945701741212754,
+          0,
+          0,
+          0,
+          0,
+          0.34945701741212754,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "offset_matrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          -0.0003742676524588484,
+          -0.02999992517452443,
+          -0.05661511421203613,
+          1
+        ]
+      },
+      "bounds": {
+        "min": [
+          -0.4820576033969095,
+          2.6020852139652106e-17,
+          -0.21714729952092826
+        ],
+        "max": [
+          0.4820576034027562,
+          1.7105921263806516,
+          0.2171472995209283
+        ]
+      },
+      "mesh_count": 12,
+      "bone_count": 28,
+      "hairstyle": "crew",
+      "roundtrip": {
+        "pass": true,
+        "vertices": 7683,
+        "color_values": 26960,
+        "max_world_vertex_component_error_m": 5.405823338966442e-8,
+        "max_triangle_used_attribute_error": 2.9802322387695312e-8,
+        "max_color_error": 0,
+        "unused_normal_changes": [],
+        "max_unused_normal_component_error": 0,
+        "full_normal_buffer_equality": true,
+        "max_full_normal_component_error": 0
+      },
+      "limits": [
+        "Neutral appearance/rest oracle, no wet/wounds/phone/cash/combat/AI/HP",
+        "All COLOR_0 numeric values are linear; native vertex_color_is_srgb=false",
+        "No native pixels or full actor runtime parity"
+      ],
+      "source_input": {
+        "input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+        "input_bytes": 4194,
+        "source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+        "appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+        "tests_only": false,
+        "authority": "NONE: self-declared provenance is not authenticated live capture or source birth",
+        "fixture": false,
+        "provenance": {
+          "label": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+          "test_only": false
+        },
+        "input_kind": "source_row"
+      },
+      "normal_degenerate_fidelity": "HOLD",
+      "normal_corrections": 56,
+      "bone_parent_map": {
+        "root": null,
+        "pelvis": "root",
+        "spine_01": "pelvis",
+        "chest": "spine_01",
+        "neck": "chest",
+        "head": "neck",
+        "socket_head": "head",
+        "clavicle_l": "chest",
+        "upperarm_l": "clavicle_l",
+        "forearm_l": "upperarm_l",
+        "hand_l": "forearm_l",
+        "socket_hand_l": "hand_l",
+        "clavicle_r": "chest",
+        "upperarm_r": "clavicle_r",
+        "forearm_r": "upperarm_r",
+        "hand_r": "forearm_r",
+        "socket_hand_r": "hand_r",
+        "socket_weapon": "hand_r",
+        "socket_back": "chest",
+        "socket_steering_l": "chest",
+        "socket_steering_r": "chest",
+        "thigh_l": "pelvis",
+        "shin_l": "thigh_l",
+        "foot_l": "shin_l",
+        "thigh_r": "pelvis",
+        "shin_r": "thigh_r",
+        "foot_r": "shin_r",
+        "socket_seat": "pelvis"
+      },
+      "color_ranges": [
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_FABRIC[0]",
+          "min": 0.019862860441207886,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_HAIR[1]",
+          "min": 0.011612244881689548,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_SKIN[2]",
+          "min": 0.2738466262817383,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        },
+        {
+          "source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_TRIM[3]",
+          "min": 0.177888423204422,
+          "max": 1,
+          "outside_unit_values": 0,
+          "linear": true
+        }
+      ],
+      "color_hdr_fidelity": "not_present"
+    }
+  ],
+  "limits": [
+    "Input provenance is self-declared and does not authenticate live/session/roster/source birth",
+    "No spawn/authority/HP/AI/commerce/gait/state serialization",
+    "Dry neutral StandardMaterial GLB; native material/pixel fidelity HOLD",
+    "Exact descriptor-specific asset, no source birth/roster authority granted",
+    "No GPU/native gameplay/performance acceptance"
+  ],
+  "tests_only": false,
+  "source_input": {
+    "input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+    "input_bytes": 4194,
+    "source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+    "appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+    "tests_only": false,
+    "authority": "NONE: self-declared provenance is not authenticated live capture or source birth"
+  }
+}

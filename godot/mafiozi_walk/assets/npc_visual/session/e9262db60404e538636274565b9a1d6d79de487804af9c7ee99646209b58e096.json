@@ -1,0 +1,397 @@
+{
+  "schema": "mafiozi.npc-preview-session/v1",
+  "mode": "NEW_SESSION_BOOTSTRAP",
+  "session_id": "godot-preview-new-session-20260927-01",
+  "rng": {
+    "algorithm": "mulberry32/v1",
+    "seed": 20260927,
+    "draw_count": 6356,
+    "boundary": "BEFORE_ORDINARY_INIT_LOOP"
+  },
+  "clock": {
+    "source_frame": "POST_BUILDMAP_BEFORE_NATIVE_RESOLVER",
+    "source_now_ms": 0,
+    "game_minutes": 720
+  },
+  "world": {
+    "map_rows": 200,
+    "map_cols": 180,
+    "map_sha256": "be566fd54e9afdd24e2150dd1b53498c1d00d0063b5b5f19a8ceba9fdbee59f4",
+    "query_oracle_sha256": "74e84ad4fbf0c8f54d3c9dacd765a34ef8667246890a95e14a45737a390afca3",
+    "provider_ready": false
+  },
+  "bootstrap": {
+    "scope": "ordinary_native_init_loop",
+    "fresh_serial_start": 0,
+    "init_attempts": 288,
+    "factory_birth_count": 288,
+    "failed_attempts": 0,
+    "resident_serial": 288,
+    "placement_cutoff": "BEFORE_NATIVE_RESOLVER"
+  },
+  "coordinates": {
+    "origin": [
+      395.65,
+      0,
+      45.099999999999994
+    ],
+    "scale": 4.1,
+    "crop": {
+      "r_min": 0,
+      "r_max": 31,
+      "c_min": 76,
+      "c_max": 107,
+      "bounds": "half_open"
+    }
+  },
+  "full_roster_sha256": "43262037de6d987c9f36cac1aa8bd66569a69cfb2d89933e3784d206e14f409d",
+  "full_roster_count": 288,
+  "source_receipts": [
+    {
+      "path": "world.html",
+      "bytes": 5109059,
+      "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_city_population_source.js",
+      "bytes": 2781,
+      "sha256": "ac4806ed13d002f2f23df77debd7165f09a0e0367df3d576a6e5ee2039ada59e"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_native_navigation.mjs",
+      "bytes": 4196,
+      "sha256": "fe466a75277ce60267d46c4fe4e9b26e9d16b68d5ad6a8640f89dc9b5e3f2efb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_swept_footprint.mjs",
+      "bytes": 2864,
+      "sha256": "918467e987c06cbdc88af5772113d8492f1d58e9198d0e86e7050b2c1c617258"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_population.mjs",
+      "bytes": 28733,
+      "sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_appearance.mjs",
+      "bytes": 17125,
+      "sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_role_catalogue.mjs",
+      "bytes": 46901,
+      "sha256": "54e5475c57d1d35d00f5aec7ac4512793c954db885ff11134064ef254af1668c"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_boss_art_direction.mjs",
+      "bytes": 7385,
+      "sha256": "a2d7ab942038e5ab6d4072652628c7764dca9f5ba88f94d9e2a47619b06df2f2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "bytes": 252219,
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/block.json",
+      "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
+    },
+    {
+      "path": "outputs/coordinator21_npc_source_map/MAP.post_buildMap.json",
+      "sha256": "be566fd54e9afdd24e2150dd1b53498c1d00d0063b5b5f19a8ceba9fdbee59f4"
+    },
+    {
+      "path": "outputs/astra21_npc_preview_session/bootstrap_config_v2.json",
+      "sha256": "1176bf985c5722035affdf135effc39a8f428bf32c322d5916f1de42cd0eb920"
+    },
+    {
+      "path": "outputs/astra21_npc_preview_session/1176bf985c5722035affdf135effc39a8f428bf32c322d5916f1de42cd0eb920/synchronous_prerequisites.json",
+      "sha256": "14156045fa510945be9e2246766268ff23d9a08b982a1853ff87d14547aa4b55"
+    }
+  ],
+  "provenance": {
+    "kind": "NEW_SESSION_BOOTSTRAP",
+    "phase": "POST_BUILDMAP_BEFORE_NATIVE_RESOLVER",
+    "closure_revision": "sync-business-cache-clock-garden-v2",
+    "location_search": "?render=3d&renderer=walk",
+    "location_hostname": "localhost",
+    "clock_override": "INJECTED_NEW_SESSION_AFTER_SYNCHRONOUS_PREREQUISITES",
+    "startup_clock_game_minutes": 721,
+    "synchronous_prerequisites_sha256": "14156045fa510945be9e2246766268ff23d9a08b982a1853ff87d14547aa4b55",
+    "authority": "offline_new_source_session_only",
+    "full_page_rng_stream_reproduced": false,
+    "full_combat_snapshot_executed": false,
+    "existing_session_authenticated": false
+  },
+  "rows": [
+    {
+      "source_id": "resident_72",
+      "bridge_id": "npc_resident_72",
+      "source_raw": {
+        "id": "resident_72",
+        "r": 9.5,
+        "c": 76.5,
+        "tr": 9.5,
+        "tc": 76.5,
+        "speed": 0.7716332539566793,
+        "ang": 0,
+        "walkPhase": 0,
+        "idleUntil": 0,
+        "hp": 60,
+        "max_hp": 60,
+        "look": {
+          "gender": 0,
+          "skin": 2,
+          "body": 1,
+          "face": 0,
+          "hair": 3,
+          "hat": 2
+        },
+        "_arcKey": "housewife",
+        "_arc": {
+          "speedRange": [
+            0.75,
+            1
+          ],
+          "idleMult": 2,
+          "panicMult": 2.4,
+          "fearDist": 6,
+          "weight": 12,
+          "hours": [
+            8,
+            21
+          ],
+          "look": {},
+          "phrases": [
+            "Надо купить хлеба",
+            "Муж опять задержался",
+            "Цены опять выросли",
+            "Дети достали",
+            "Скоро ужин готовить",
+            "Очередь бесконечная"
+          ]
+        },
+        "_relation": 0,
+        "_beach": false,
+        "_allowBeach": false,
+        "_fear": 0.14181334257591516,
+        "_fatigue": 0.09141683313064276,
+        "_aggression": 0.1285980392131023,
+        "_emLastAt": 0,
+        "_npcInitialPlacementPending": true
+      },
+      "bridge_row": {
+        "id": "npc_resident_72",
+        "r": 9.5,
+        "c": 76.5,
+        "role": "housewife",
+        "look": {
+          "gender": 0,
+          "skin": 2,
+          "body": 1,
+          "face": 0,
+          "hair": 3,
+          "hat": 2
+        },
+        "empireBoss": false,
+        "bossColor": "",
+        "bossAccent": "",
+        "police": false,
+        "visualRole": "civilian",
+        "prisonGear": "",
+        "shield": false
+      },
+      "descriptor_json": "{\"id\":\"npc_resident_72\",\"sex\":\"male\",\"role\":\"housewife\",\"height\":1.8757261815480888,\"build\":1,\"skin\":\"#D4935A\",\"hairColor\":\"#76523a\",\"hairstyle\":\"part\",\"browStyle\":4,\"outfit\":\"#334851\",\"shirt\":\"#e2d8c7\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+      "descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+      "placement": {
+        "pending": true,
+        "body_clear": false,
+        "support_known": false,
+        "source_body_clear": true
+      }
+    },
+    {
+      "source_id": "resident_169",
+      "bridge_id": "npc_resident_169",
+      "source_raw": {
+        "id": "resident_169",
+        "r": 4.5,
+        "c": 106.5,
+        "tr": 4.5,
+        "tc": 106.5,
+        "speed": 1.3573183923843315,
+        "ang": 0,
+        "walkPhase": 0,
+        "idleUntil": 0,
+        "hp": 60,
+        "max_hp": 60,
+        "look": {
+          "gender": 1,
+          "skin": 2,
+          "body": 0,
+          "face": 0,
+          "hair": 3,
+          "hat": 0
+        },
+        "_arcKey": "student",
+        "_arc": {
+          "speedRange": [
+            1.2,
+            1.65
+          ],
+          "idleMult": 0.25,
+          "panicMult": 3.1,
+          "fearDist": 5,
+          "weight": 14,
+          "hours": [
+            7,
+            23
+          ],
+          "look": {
+            "hat": 0
+          },
+          "phrases": [
+            "Лекции скучные",
+            "Стипендия кончилась",
+            "Хочу спать",
+            "Сессия на носу",
+            "Чё за движ?",
+            "Здарова!"
+          ]
+        },
+        "_relation": 0,
+        "_beach": false,
+        "_allowBeach": false,
+        "_fear": 0.09102518901927396,
+        "_fatigue": 0.0806363804731518,
+        "_aggression": 0.14689627157058566,
+        "_emLastAt": 0,
+        "_npcInitialPlacementPending": true
+      },
+      "bridge_row": {
+        "id": "npc_resident_169",
+        "r": 4.5,
+        "c": 106.5,
+        "role": "student",
+        "look": {
+          "gender": 1,
+          "skin": 2,
+          "body": 0,
+          "face": 0,
+          "hair": 3,
+          "hat": 0
+        },
+        "empireBoss": false,
+        "bossColor": "",
+        "bossAccent": "",
+        "police": false,
+        "visualRole": "civilian",
+        "prisonGear": "",
+        "shield": false
+      },
+      "descriptor_json": "{\"id\":\"npc_resident_169\",\"sex\":\"female\",\"role\":\"student\",\"height\":1.8998691982589662,\"build\":0.94,\"skin\":\"#D4935A\",\"hairColor\":\"#493329\",\"hairstyle\":\"wavy\",\"browStyle\":5,\"outfit\":\"#68414b\",\"shirt\":\"#b8c6be\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+      "descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+      "placement": {
+        "pending": true,
+        "body_clear": false,
+        "support_known": false,
+        "source_body_clear": true
+      }
+    },
+    {
+      "source_id": "resident_252",
+      "bridge_id": "npc_resident_252",
+      "source_raw": {
+        "id": "resident_252",
+        "r": 12.5,
+        "c": 104.5,
+        "tr": 12.5,
+        "tc": 104.5,
+        "speed": 0.565774921728298,
+        "ang": 0,
+        "walkPhase": 0,
+        "idleUntil": 0,
+        "hp": 60,
+        "max_hp": 60,
+        "look": {
+          "gender": 0,
+          "skin": 0,
+          "body": 2,
+          "face": 3,
+          "hair": 2,
+          "hat": 2
+        },
+        "_arcKey": "pensioner",
+        "_arc": {
+          "speedRange": [
+            0.42,
+            0.62
+          ],
+          "idleMult": 2.8,
+          "panicMult": 1.7,
+          "fearDist": 7,
+          "weight": 12,
+          "hours": [
+            8,
+            21
+          ],
+          "look": {
+            "hat": 2
+          },
+          "phrases": [
+            "Эх, молодёжь…",
+            "А раньше тут было тихо",
+            "Куда спешите-то",
+            "Помогите пожилому",
+            "Ноги болят",
+            "Пенсию опять задержали"
+          ]
+        },
+        "_relation": 0,
+        "_beach": false,
+        "_allowBeach": false,
+        "_fear": 0.08718903400003909,
+        "_fatigue": 0.16425652499310672,
+        "_aggression": 0.07236710999859497,
+        "_emLastAt": 0,
+        "_npcInitialPlacementPending": true
+      },
+      "bridge_row": {
+        "id": "npc_resident_252",
+        "r": 12.5,
+        "c": 104.5,
+        "role": "pensioner",
+        "look": {
+          "gender": 0,
+          "skin": 0,
+          "body": 2,
+          "face": 3,
+          "hair": 2,
+          "hat": 2
+        },
+        "empireBoss": false,
+        "bossColor": "",
+        "bossAccent": "",
+        "police": false,
+        "visualRole": "civilian",
+        "prisonGear": "",
+        "shield": false
+      },
+      "descriptor_json": "{\"id\":\"npc_resident_252\",\"sex\":\"male\",\"role\":\"pensioner\",\"height\":1.710592126380652,\"build\":1.07,\"skin\":\"#FDDBB4\",\"hairColor\":\"#b7a188\",\"hairstyle\":\"crew\",\"browStyle\":5,\"outfit\":\"#334851\",\"shirt\":\"#b8c6be\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+      "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+      "placement": {
+        "pending": true,
+        "body_clear": false,
+        "support_known": false,
+        "source_body_clear": true
+      }
+    }
+  ],
+  "limits": [
+    "Fresh ordinary source factory; not an existing source session or old save",
+    "All rows hidden/pending until real native placement resolves body and support",
+    "No native_position/support_y inferred from source tile/map",
+    "Crop performed after complete source generation",
+    "Material/degenerate fidelity HOLD for downstream visual assets"
+  ]
+}

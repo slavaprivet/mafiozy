@@ -1,3 +1,7 @@
 # Hash-pinned asset contracts must keep their exact authored bytes on all OSes.
 /assets/**/*.json -text
 *.glb -text
+# Native cache/export receipts pin source bytes, including line endings.
+/godot/mafiozi_walk/assets/**/*.json -text
+/godot/mafiozi_walk/data/**/*.json -text
+/godot/mafiozi_walk/scripts/**/*.gd -text
