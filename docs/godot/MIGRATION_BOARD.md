@@ -1,3 +1,29 @@
+## 29 September — Coordinator22 succession
+
+User appointed `01a0eec3-2733-7130-9aea-c289c76574af` as root22 after21 stalled.
+Read `docs/ai/COORDINATOR_22_MEMORY.md` first. Fresh local/remote main both
+bf28d72b16ef92940786653fcf2eab8418f3c39a. Initial process inventory: no Godot
+or MafioziPreview, so historical PID43848/editor6508 below are NOT current.
+Restored release melee21b: sole PID42040, hashes match build/PCK receipts,
+Responding=true. No new LIVE benchmark. Artist22 01a0eeca-67c0-7160-9f41-b86362cc05c9
+replaces Artist21 by separate direct user request; other owner boundaries remain.
+NPC original capture pending root22 GPU slot; actual enemy combat/contact lifetime
+and full migration remain incomplete. Separate component receipts are not LIVE.
+
+Root22 reproduced existing pose receipt33, skeleton writer346, physical handoff20,
+preview melee21 headless PASS. Finishing late21 contact selector with original JS
+oracle and adversarial callback lifetime checks, still no target/HP/main wiring.
+
+## Published melee21 checkpoint — 27 September 06:45
+
+Late: independent bulk-skin100381+actual-rig4540 PASS on isolatedDLLf9de67f7/C485a28d5, no main integration. Artist PREPARES original source capture procedure/schema/freshprofile proof; GPU HOLD until root explicitGO, root alone stops/restores43848. Editor tools-only actualpause audit keeps clocks/nav/water gaps explicit.
+
+Verified main/origin **bf28d72b16ef92940786653fcf2eab8418f3c39a**. Curated38files: default ground practice, canonical melee presentation, conservative recovery refinement, source-admission fixtures, real regression harnesses/docs, corrected export preset/dependency guard. Fresh staged archive import+actualmain21/source9363/recovery36 PASS, native21 impact/refined PASS. Correct release **melee21b**; first melee21 export FAILED missing scripts and is not release. Pinned actual PCK impulse/recovery PASS, source hashes unavailable in compiled pack reported null, wholePCK unchangedtrue. Sole visible gamePID43848 stays open, editor6508. Current native runtime21 is exactly verified source; no GPU measurement ongoing. Full migration and actual enemy combat remain ACTIVE/uncompleted.
+
+Next concrete work: independent bulk-skin native prototype review (migration_next_package) then root integration contract with actual target/contact lifetime, not generic empty-registry practice. Accepted isolated triangleDLL2e7427c8/sourcec6a4 has11832+31197PASS; new separate skinDLLf9de67f7/source485a28d5 author183599PASS22poses exactfloat32, native+framepack140/211us, independentpending; neitherautoloaded/committed. Prior upstream4.6ms skin was separate from query timings. Airborne completed recoveryhelper; no furtherdriverWIP.
+
+Artist fullsource providers received (59924/389281/d4d8) but actual original registration-frame dynamic capture needs a brief realWebGL boot. Capture is HOLD until root allocates one-game GPU lifecycle after checkpoint; no sourcefake renderer/emptydynamic/defaultgates. Freshbaseline must distinctsession and verifiedstaticbindings; preserve user save and immutablebirths. AllCPU owners released. Editor bounded actual-main pauseclock proof allowed tools-only; capture textures289/304passed stillfont/IBL/ownersHOLD. Do not wake oldowners or claim these are fullgameintegration.
+
 ## 27 September 06:38 — melee21 LIVE PASS, checkpoint preparation
 
 Sole interactive native gamePID43848, editor6508, source revision s01-20260927-melee21. Actual input/render ground practice20 previously PASS; new actual kick→TEST_ONLY weak/strong/repeat→fall→getup→ordinary native impact_refined_native01 PASS with all dependency hashes stable, captures reviewed, fresh interactive scene restored. Main09163814/player92885321/host5098c2a1, canonical adapter7bea3a76. No enemy targets/HP/network combat yet. Panel updated.

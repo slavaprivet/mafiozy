@@ -1,5 +1,13 @@
 # Общий штаб агентов
 
+## Смена координатора — 29 сентября 2026
+
+Пользователь назначил Координатора22 `01a0eec3-2733-7130-9aea-c289c76574af`
+преемником зависшего21. Root/main/player/project/export/LIVE/Git и адрес доставки
+root-пакетов переходят22. Остальные владельцы и lead14Astra сохраняются.
+Актуальная память: `docs/ai/COORDINATOR_22_MEMORY.md`. Исторические записи
+Root21 ниже описывают прежние проверки, а не текущее назначение.
+
 ## Текущее указание пользователя
 
 27 сентября, около00:50MSK, пользователь прямо вернул штаб в рабочий процесс:
@@ -13,8 +21,8 @@
 
 | Задача | ID | Исключительный участок |
 | --- | --- | --- |
-| Координатор 21 | 01a0df60-f834-7e23-a846-00b47c48e0cc | main/player/project/export, сборка, одна LIVE игра, Git |
-| Художник 21 | 01a0cb2d-a8ab-78e1-ba8e-3ef7915a2d71 | scripts/npc_visual, source appearance/model bridge |
+| Кординатор 22 | 01a0eec3-2733-7130-9aea-c289c76574af | main/player/project/export, сборка, одна LIVE игра, Git |
+| Художник 22 | 01a0eeca-67c0-7160-9f41-b86362cc05c9 | scripts/npc_visual, source appearance/model bridge |
 | Автомобили — продолжение 3 | 01a0cb2d-d723-70c2-aa21-79f76a12481f | scripts/transport, source descriptors, seats/doors/parking/ride lifecycle |
 | Физика Автомобилей 12-13 | 01a06e4d-e3ed-7f13-bda3-7fd677972336 | scripts/vehicle_physics, native body/control/contact/suspension |
 | Добавить прыжок и перелезание | 01a087e2-a009-7873-a45f-8e1a4c2effc4 | scripts/traversal, ledge/vault/climb/shore probes and motion |
