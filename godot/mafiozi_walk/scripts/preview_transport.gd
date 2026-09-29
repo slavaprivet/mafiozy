@@ -187,6 +187,9 @@ func _nearest_panel() -> Dictionary:
 	return best
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not is_instance_valid(player) or not player._free_mouse_look:
+		_e_down = false; _pending_exit = false
+		return
 	if not ready_for_play or phase in ["DEAD", "FAULTED"] or not event is InputEventKey or event.echo:
 		return
 	if phase == "ON_FOOT" and player._pose_authority != &"on_foot":
@@ -252,7 +255,8 @@ func _physics_process(delta: float) -> void:
 			_drop_binding("SEAT_AUTHORITY_CHANGED")
 			return
 	var focused := get_viewport().gui_get_focus_owner()
-	var allow_input := not (focused is LineEdit or focused is TextEdit) and (DisplayServer.get_name() == "headless" or get_window().has_focus())
+	var allow_input: bool = player._free_mouse_look and not (focused is LineEdit or focused is TextEdit) and (DisplayServer.get_name() == "headless" or get_window().has_focus())
+	if not allow_input: _e_down = false; _pending_exit = false
 	var pressed := allow_input and _e_down and Input.is_physical_key_pressed(KEY_E)
 	var pose_this_tick: Dictionary = {}
 	if DisplayServer.get_name() == "headless":

@@ -9,6 +9,13 @@ const PREPARED_SHA := "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473
 const BLOCK_SHA := "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
 const SESSION := "godot-preview-new-session-20260927-01"
 const DIRECTORY := "res://assets/npc_visual/session/"
+# Explicit new-session preview staging near the starting car. These are not
+# original birth coordinates or a full-source population placement receipt.
+const PREVIEW_STAGES := {
+	"resident_72": Vector2(105.310391309785, 7.73170787532155),
+	"resident_169": Vector2(105.310391309785, 9.56097616800448),
+	"resident_252": Vector2(104.944537651248, 6.26829324117521),
+}
 var residents: RefCounted
 var navigation: RefCounted
 var policy: RefCounted
@@ -17,8 +24,9 @@ var _queue: RefCounted
 var status := "not_loaded"
 var error := ""
 var _disposed := false
+var _staged_preview := false
 
-func setup(scene: Node3D) -> bool:
+func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = true) -> bool:
 	if _disposed or status != "not_loaded": return false
 	status = "loading"
 	var packet_path := DIRECTORY + PACKET_SHA + ".json"
@@ -46,7 +54,14 @@ func setup(scene: Node3D) -> bool:
 		owners, Callable(policy, "source_admit"), Callable(policy, "support_height"))
 	if not result.get("ok", false): return _fail("residents:" + str(result.get("error", "unknown")))
 	# Cold asset verification/admission belongs to startup, before gameplay READY.
-	for i in parsed.rows.size(): residents.admit_next()
+	if staged_preview:
+		for row: Dictionary in parsed.rows:
+			var stage: Vector2 = PREVIEW_STAGES[row.source_id]
+			residents.admit_preview_stage(row.source_id, stage.y, stage.x)
+		_staged_preview = true
+		if walking_preview and residents.occupants().size() == parsed.rows.size(): residents.enable_walk_preview()
+	else:
+		for i in parsed.rows.size(): residents.admit_next()
 	status = "ready" if residents.occupants().size() == parsed.rows.size() else "pending_placement"
 	return true
 
@@ -60,6 +75,7 @@ func step(delta: float) -> void:
 	if _disposed or residents == null: return
 	navigation.pump(Engine.get_physics_frames())
 	residents.step(delta)
+	if _staged_preview: residents.preview_walk_step(delta)
 
 func door_started(key: String, opening: bool) -> void:
 	if not _disposed and navigation != null:
@@ -74,6 +90,7 @@ func request_walk(identity: String, target: Vector3) -> int:
 
 func snapshot() -> Dictionary:
 	return {"status": status, "error": error, "session_id": SESSION,
+		"placement_mode": "PREVIEW_STAGE" if _staged_preview else "SOURCE_BIRTH", "original_agenda": false,
 		"residents": residents.snapshot() if residents != null else {},
 		"navigation": navigation.diagnostics() if navigation != null else {}}
 

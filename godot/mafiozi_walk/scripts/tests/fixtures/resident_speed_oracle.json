@@ -1,0 +1,17 @@
+{
+  "function_sha256": "6812fa521db4a3b63e387da2a728d0a95a96ca6d276a52749641cca22217d6a0",
+  "rows": [
+    {
+      "id": "resident_72",
+      "speed_mps": 1.3118482738187358
+    },
+    {
+      "id": "resident_169",
+      "speed_mps": 1.8
+    },
+    {
+      "id": "resident_252",
+      "speed_mps": 0.912652391870984
+    }
+  ]
+}

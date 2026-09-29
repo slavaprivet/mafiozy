@@ -9,6 +9,7 @@ const Gait = preload("res://scripts/preview_locomotion.gd")
 const REJECTED_PACKET := "384f1f2d2b673bde13a49cfdff2f88b4e84469801b1f572624c53259a472901d"
 const FOOTPRINT := .738 # Source _npcBodyPassable radius .18 * native scale 4.1.
 const HEIGHT := 1.9
+const SOURCE_RENDER_YAW_SECONDS := .1 # npc_population.mjs default interpolationSeconds.
 const MAX_RESIDENTS := 3
 const PLACEMENT_CONTEXT := "a05ad020429ea8994dba534fe2d6e0886ac02975aadc7db531ea11d93a560f9c"
 const PLACEMENT_SOURCE := "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5"
@@ -28,6 +29,9 @@ var _disposed := false
 var _dispose_requested := false
 var _placement_receipt := {}
 var _placement_current: Callable
+var _walk_preview_enabled := false
+var _walk_preview_clock := 0.0
+var _walk_preview: Dictionary = {}
 var _box: BoxShape3D
 var _ray := PhysicsRayQueryParameters3D.new()
 var _overlap := PhysicsShapeQueryParameters3D.new()
@@ -100,6 +104,18 @@ func _physical_clear(point: Vector3, excluded: Array[RID]) -> bool:
 	_overlap.transform = Transform3D(Basis.IDENTITY, point + Vector3.UP * (HEIGHT * .5 + .025))
 	return space.intersect_shape(_overlap, 1).is_empty()
 
+## Godot's broadphase may not contain a body added earlier in this same
+## physics frame. Reserve its source square footprint until the next sync.
+func _owned_clear(point: Vector3, identity: String) -> bool:
+	for id: String in _records:
+		if id == identity: continue
+		var other: Dictionary = _records[id]
+		if not is_instance_valid(other.body): continue
+		var occupied: Vector3 = other.body.global_position
+		if absf(point.y - occupied.y) < HEIGHT and absf(point.x - occupied.x) <= FOOTPRINT * 2.0 + .001 and absf(point.z - occupied.z) <= FOOTPRINT * 2.0 + .001:
+			return false
+	return true
+
 func _route_admit(point: Vector3, identity: String, generation: int) -> bool:
 	if _disposed or not _records.has(identity): return false
 	var record: Dictionary = _records[identity]
@@ -124,6 +140,20 @@ func admit_next() -> Dictionary:
 	var record: Dictionary = _records[selected]
 	record.attempted = true
 	var result := _admit_record(record)
+	_stats.admit_us_max = maxi(_stats.admit_us_max, Time.get_ticks_usec() - started)
+	_leave_busy()
+	return result
+
+## Explicit local QA staging. Source birth coordinates remain immutable in the
+## packet; this is neither the original 326-actor placement nor saved progress.
+func admit_preview_stage(identity: String, r: float, c: float) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or _scene == null or not _placement_receipt.is_empty(): return {"status":"UNAVAILABLE"}
+	if not _records.has(identity) or not is_finite(r) or not is_finite(c) or r < 1.0 or r >= 30.0 or c < 76.0 or c >= 106.0: return {"status":"REJECTED", "reason":"preview_stage_bounds"}
+	var record: Dictionary = _records[identity]
+	if record.status != "PENDING_PLACEMENT" or is_instance_valid(record.body): return {"status":"REJECTED", "reason":"already_admitted"}
+	_busy = true
+	var started := Time.get_ticks_usec()
+	var result := _admit_record(record, {}, {"r":r, "c":c})
 	_stats.admit_us_max = maxi(_stats.admit_us_max, Time.get_ticks_usec() - started)
 	_leave_busy()
 	return result
@@ -178,7 +208,7 @@ func admit_candidate(candidate: Dictionary, generation: int) -> Dictionary:
 	_leave_busy()
 	return result
 
-func _admit_record(record: Dictionary, candidate: Dictionary = {}) -> Dictionary:
+func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage: Dictionary = {}) -> Dictionary:
 	if not _living(record): return _reject(record, "owner_invalid")
 	if not candidate.is_empty() and not _candidate_current(candidate, record): return _reject(record, "placement_lease_changed")
 	if not _support.is_valid(): return _reject(record, "support_provider_unavailable")
@@ -189,10 +219,11 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}) -> Dictionary
 	var raw: Dictionary = record.row.source_raw
 	var point := Vector3(float(raw.c) * 4.1 - 395.65, 0, float(raw.r) * 4.1 - 45.1)
 	if not candidate.is_empty(): point = Vector3(float(candidate.c) * 4.1 - 395.65, 0, float(candidate.r) * 4.1 - 45.1)
+	if not preview_stage.is_empty(): point = Vector3(float(preview_stage.c) * 4.1 - 395.65, 0, float(preview_stage.r) * 4.1 - 45.1)
 	var height: Variant = _support.call(point, record.row.source_id, record.generation)
 	if not (height is float or height is int) or not is_finite(float(height)): return _reject(record, "support_unknown")
 	point.y = height
-	if not _source_admits(point, record, "placement") or not _physical_clear(point, []): return _reject(record, "current_placement_blocked")
+	if not _source_admits(point, record, "placement") or not _owned_clear(point, record.row.source_id) or not _physical_clear(point, []): return _reject(record, "current_placement_blocked")
 	var loaded: Dictionary = Cache.load_verified(_manifest, _manifest_sha, record.row.bridge_id, record.row.descriptor_sha256, _directory)
 	if not loaded.ok: return _reject(record, "visual:" + str(loaded.error))
 	var cache: RefCounted = loaded.cache
@@ -200,7 +231,7 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}) -> Dictionary
 	cache.dispose()
 	if not appearance.ok: return _reject(record, "visual:" + str(appearance.error))
 	# Callbacks and asset loading must not turn stale admission into a spawn.
-	if not _living(record) or not _source_admits(point, record, "placement") or (not candidate.is_empty() and not _candidate_current(candidate, record)) or not _physical_clear(point, []):
+	if not _living(record) or not _source_admits(point, record, "placement") or (not candidate.is_empty() and not _candidate_current(candidate, record)) or not _owned_clear(point, record.row.source_id) or not _physical_clear(point, []):
 		appearance.visual.free()
 		return _reject(record, "placement_changed_before_spawn")
 	var body := CharacterBody3D.new()
@@ -209,6 +240,7 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}) -> Dictionary
 	body.floor_snap_length = .25
 	body.set_meta("source_id", record.row.source_id); body.set_meta("session_id", _session)
 	body.set_meta("descriptor_sha256", record.row.descriptor_sha256)
+	body.set_meta("placement_mode", "PREVIEW_STAGE" if not preview_stage.is_empty() else "SOURCE_CANDIDATE" if not candidate.is_empty() else "SOURCE_BIRTH")
 	var capsule := CapsuleShape3D.new(); capsule.radius = .36; capsule.height = HEIGHT
 	var shape := CollisionShape3D.new(); shape.shape = capsule; shape.position.y = HEIGHT * .5
 	body.add_child(shape)
@@ -222,8 +254,81 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}) -> Dictionary
 	if not gait.bind(appearance.visual, motion):
 		body.free(); return _reject(record, "canonical_gait:" + str(gait.get_status().error))
 	record.body = body; record.motion = motion; record.gait = gait; record.origin = point
+	record["display_yaw"] = body.rotation.y
+	record["turn_from"] = body.rotation.y
+	record["turn_to"] = body.rotation.y
+	record["turn_elapsed"] = SOURCE_RENDER_YAW_SECONDS
+	record["placement_mode"] = body.get_meta("placement_mode")
+	record.attempted = true
 	record.status = "IDLE"; record.reason = ""; _stats.admissions += 1
 	return {"status": "IDLE", "source_id": record.row.source_id, "position": point}
+
+## Deterministic two-metre walking exercise, not the source NPC agenda. Every
+## goal and path is still checked by current source access and native physics.
+func enable_walk_preview() -> bool:
+	if not Thread.is_main_thread() or _busy or _disposed or _scene == null: return false
+	_walk_preview_enabled = true
+	_walk_preview_clock = 0.0
+	_walk_preview.clear()
+	for id: String in _records:
+		_walk_preview[id] = {"awaiting":false, "next_at":0.0, "requests":0, "blocked_at":-1.0, "direction_cursor":0}
+	return true
+
+func preview_walk_step(delta: float) -> void:
+	if not _walk_preview_enabled or _busy or _disposed or not is_finite(delta) or delta <= 0.0 or delta > .05 or _navigation.state() != "READY": return
+	_walk_preview_clock += delta
+	for id: String in _records:
+		var record: Dictionary = _records[id]
+		if not _living(record) or not is_instance_valid(record.body): continue
+		var exercise: Dictionary = _walk_preview[id]
+		if exercise.awaiting:
+			if record.status == "ARRIVED":
+				exercise.awaiting = false
+				exercise.blocked_at = -1.0
+				exercise.next_at = _walk_preview_clock + 1.5
+			elif record.status == "BLOCKED":
+				if exercise.blocked_at < 0.0: exercise.blocked_at = _walk_preview_clock
+				if _walk_preview_clock - exercise.blocked_at < 1.0: continue
+				exercise.awaiting = false
+				exercise.direction_cursor = (exercise.direction_cursor + 1) % 4
+				exercise.next_at = _walk_preview_clock
+			elif record.status in ["PENDING", "READY"]:
+				exercise.blocked_at = -1.0
+				continue
+			elif record.status in ["STALE", "NO_PATH"]:
+				# Door/access changes invalidate the old receipt. After a pause the
+				# demonstration may ask for a new route through current guards.
+				exercise.awaiting = false
+				exercise.blocked_at = -1.0
+				exercise.direction_cursor = (exercise.direction_cursor + 1) % 4
+				exercise.next_at = _walk_preview_clock + 1.5
+			else:
+				# Unsupported physical bodies and destroyed owners cannot be revived.
+				continue
+		if record.status not in ["IDLE", "ARRIVED", "BLOCKED", "STALE", "NO_PATH"] or _walk_preview_clock < exercise.next_at: continue
+		var body: CharacterBody3D = record.body
+		var returning := body.global_position.distance_to(record.origin) > .5
+		var accepted := -1
+		if returning:
+			accepted = request_walk(id, record.origin)
+		else:
+			var directions := [Vector3.RIGHT, Vector3.FORWARD, Vector3.LEFT, Vector3.BACK]
+			for attempt in 4:
+				var direction: Vector3 = directions[(exercise.direction_cursor + attempt) % 4]
+				var goal: Vector3 = record.origin + direction * 2.0
+				var height: Variant = _support.call(goal, id, record.generation)
+				if not (height is float or height is int) or not is_finite(float(height)): continue
+				goal.y = float(height)
+				accepted = request_walk(id, goal)
+				if accepted >= 0:
+					exercise.direction_cursor = (exercise.direction_cursor + attempt) % 4
+					break
+		if accepted >= 0:
+			exercise.awaiting = true
+			exercise.blocked_at = -1.0
+			exercise.requests += 1
+		else:
+			exercise.next_at = _walk_preview_clock + 5.0
 
 func retry_pending(identity: String) -> bool:
 	if not Thread.is_main_thread() or _busy or _disposed or not _records.has(identity) or _records[identity].status != "PENDING_PLACEMENT": return false
@@ -238,7 +343,9 @@ func request_walk(identity: String, target: Vector3) -> int:
 	var allowed := _source_admits(target, record, "target") and _physical_clear(target, [record.body.get_rid()])
 	var id := -1
 	if allowed: id = _navigation.request(record.owner, record.body, target, _route_admit)
-	if id >= 0: record.request = id; record.status = "PENDING"
+	if id >= 0:
+		if record.request >= 0: _navigation.cancel(record.request)
+		record.request = id; record.status = "PENDING"
 	_leave_busy()
 	return id
 
@@ -264,6 +371,17 @@ func step(delta: float) -> void:
 		var displacement := body.global_position - before
 		var horizontal := Vector3(displacement.x, 0, displacement.z)
 		if horizontal.length_squared() > .00000001: body.rotation.y = atan2(-horizontal.x, -horizontal.z)
+		# Source renderer interpolates the shortest yaw arc while source motion
+		# can change angle immediately. Keep the physical body/path untouched;
+		# rotate only the canonical presentation node against body heading.
+		var desired_yaw: float = body.rotation.y
+		if absf(atan2(sin(desired_yaw - float(record.turn_to)), cos(desired_yaw - float(record.turn_to)))) >= .000001:
+			record.turn_from = record.display_yaw
+			record.turn_to = desired_yaw
+			record.turn_elapsed = 0.0
+		record.turn_elapsed = minf(SOURCE_RENDER_YAW_SECONDS, float(record.turn_elapsed) + delta)
+		record.display_yaw = float(record.turn_from) + atan2(sin(float(record.turn_to) - float(record.turn_from)), cos(float(record.turn_to) - float(record.turn_from))) * (float(record.turn_elapsed) / SOURCE_RENDER_YAW_SECONDS)
+		record.motion.rotation.y = PI + atan2(sin(float(record.display_yaw) - desired_yaw), cos(float(record.display_yaw) - desired_yaw))
 		record.gait.update_pose(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
 	_stats.steps += 1
 	_stats.step_us_max = maxi(_stats.step_us_max, Time.get_ticks_usec() - started)
@@ -272,11 +390,13 @@ func step(delta: float) -> void:
 func snapshot() -> Dictionary:
 	var rows: Array = []
 	if not Thread.is_main_thread(): return {"status": "INVALID_THREAD"}
+	var walk_requests := 0
 	for id: String in _records:
 		var record: Dictionary = _records[id]
 		var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
-		rows.append({"source_id": id, "bridge_id": record.row.bridge_id, "descriptor_sha256": record.row.descriptor_sha256, "status": record.status, "reason": record.reason, "position": body.global_position if is_instance_valid(body) else null, "life_generation": record.generation, "speed_mps": record.speed})
-	return {"session_id": _session, "disposed": _disposed, "rows": rows, "stats": _stats.duplicate()}
+		rows.append({"source_id": id, "bridge_id": record.row.bridge_id, "descriptor_sha256": record.row.descriptor_sha256, "status": record.status, "reason": record.reason, "position": body.global_position if is_instance_valid(body) else null, "life_generation": record.generation, "speed_mps": record.speed, "placement_mode": record.get("placement_mode", "NONE")})
+		if _walk_preview.has(id): walk_requests += int(_walk_preview[id].requests)
+	return {"session_id": _session, "disposed": _disposed, "rows": rows, "stats": _stats.duplicate(), "walk_preview": {"enabled":_walk_preview_enabled, "requests":walk_requests}}
 
 func occupants() -> Array[Dictionary]:
 	var positions: Array[Dictionary] = []
@@ -296,5 +416,6 @@ func dispose() -> void:
 		if record.request >= 0: _navigation.cancel(record.request)
 		if is_instance_valid(record.body): record.body.queue_free()
 	_records.clear(); _manifest.clear(); _admit = Callable(); _support = Callable(); _placement_current = Callable(); _placement_receipt.clear(); _navigation = null; _box = null; _overlap = null; _ray = null
+	_walk_preview.clear(); _walk_preview_enabled = false
 	var scene: Node3D = _scene.get_ref() if _scene != null else null
 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)

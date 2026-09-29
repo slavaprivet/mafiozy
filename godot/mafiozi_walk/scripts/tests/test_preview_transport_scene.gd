@@ -20,6 +20,9 @@ func _run() -> void:
 	scene = load("res://scenes/main.tscn").instantiate()
 	scene.preview_transport_enabled = true
 	root.add_child(scene)
+	var deadline := Time.get_ticks_msec()+15000
+	while not scene.preview_ready and Time.get_ticks_msec()<deadline: await physics_frame
+	scene._player.set_mouse_captured(true) # This QA explicitly acquires control.
 	transport = scene.preview_transport
 	check(scene.preview_ready, "actual main ready")
 	check(scene.transport_status == "ready", "transport setup: " + scene.transport_status)

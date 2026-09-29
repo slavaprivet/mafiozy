@@ -34,7 +34,7 @@ var _heading: float = 0.0
 var _camera_yaw: float = 0.0
 var _camera_pitch: float = -0.24
 var _right_mouse_down: bool = false
-var _free_mouse_look: bool = true
+var _free_mouse_look: bool = false
 var _model_loaded: bool = false
 var _model_error: String = ""
 var _source_height: float = 0.0
@@ -98,8 +98,7 @@ func _ready() -> void:
 	_jump_ceiling_ray.collision_mask = collision_mask
 	_jump_ceiling_ray.exclude = [get_rid()]
 	set_process_unhandled_input(true)
-	if DisplayServer.get_name() != "headless":
-		set_mouse_captured(true)
+	set_mouse_captured(false)
 
 
 func _build_collision() -> void:
@@ -271,7 +270,7 @@ func _physics_process(delta: float) -> void:
 	if _pose_authority != &"on_foot":
 		_jump_event_consumed = false
 		return # External owner owns movement as well as the final pose.
-	if not _jump_event_consumed and not _text_control_focused() and Input.is_action_just_pressed(ACTION_JUMP):
+	if _free_mouse_look and not _jump_event_consumed and not _text_control_focused() and Input.is_action_just_pressed(ACTION_JUMP):
 		_request_preview_jump(float(Time.get_ticks_msec()))
 	_jump_event_consumed = false
 	if not _jump.is_empty():
@@ -292,7 +291,7 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
 		_source_falling = false
-	var typing: bool = _text_control_focused()
+	var typing: bool = not _free_mouse_look or _text_control_focused()
 	var axes: Vector2 = Vector2.ZERO
 	if not typing:
 		axes = Input.get_vector(ACTION_LEFT, ACTION_RIGHT, ACTION_FORWARD, ACTION_BACK)
@@ -331,7 +330,7 @@ func _jump_direction() -> Vector2:
 
 
 func _request_preview_jump(now_ms: float) -> bool:
-	if _pose_authority != &"on_foot" or _text_control_focused() or not _jump_physics_visible or _dive == null or not is_finite(now_ms):
+	if not _free_mouse_look or _pose_authority != &"on_foot" or _text_control_focused() or not _jump_physics_visible or _dive == null or not is_finite(now_ms):
 		return false
 	var direction := _jump_direction()
 	if not _jump.is_empty():
@@ -640,6 +639,11 @@ func _clear_affine_pose() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		var key: InputEventKey = event as InputEventKey
+		if key.pressed and not key.echo and (key.keycode == KEY_ESCAPE or key.physical_keycode == KEY_ESCAPE):
+			set_mouse_captured(false)
+			get_viewport().set_input_as_handled()
+			return
+		if not _free_mouse_look: return
 		if key.is_action_released(ACTION_JUMP):
 			_jump_key_down = false
 		if key.pressed and not key.echo:
@@ -649,10 +653,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_jump_key_down = true
 				_jump_event_consumed = true
 				_request_preview_jump(float(Time.get_ticks_msec()))
-				get_viewport().set_input_as_handled()
-				return
-			if key.keycode == KEY_ESCAPE or key.physical_keycode == KEY_ESCAPE:
-				set_mouse_captured(false)
 				get_viewport().set_input_as_handled()
 				return
 			if not _text_control_focused() and key.is_action_pressed(ACTION_CAPTURE):
@@ -667,6 +667,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			set_mouse_captured(true)
 			get_viewport().set_input_as_handled()
 			return
+		if not _free_mouse_look: return
 		if is_instance_valid(_melee_practice) and _melee_practice.input_event(event):
 			get_viewport().set_input_as_handled()
 			return
@@ -684,7 +685,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
-		if not _text_control_focused() and (_free_mouse_look or (_right_mouse_down and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
+		if _free_mouse_look and not _text_control_focused():
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, -1.05, 0.45)
 			_update_camera_rotation()
@@ -725,6 +726,11 @@ func set_mouse_captured(captured: bool) -> void:
 	_right_mouse_down = false
 	_free_mouse_look = captured
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
+	if not captured:
+		_jump_key_down = false
+		_jump_event_consumed = false
+		for action: StringName in [ACTION_LEFT, ACTION_RIGHT, ACTION_FORWARD, ACTION_BACK, ACTION_RUN, ACTION_JUMP]:
+			if InputMap.has_action(action): Input.action_release(action)
 
 
 func get_preview_camera() -> Camera3D:

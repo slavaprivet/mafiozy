@@ -1,3 +1,36 @@
+## 30 September 01:12 — first residents and click control delivered
+
+Accepted residents22b PCK de2728bb, actual-main24 / compiled-click18 /
+compiled-transport14 PASS. Comparable NPC off/on LIVE: logical frame p95
+8.220→8.747ms; actual drawn interval p95 7.389→7.194ms,1731draws each.
+Same1280x720 quarter,3original residents,notwholecityFPS. Evidence
+outputs/coordinator22_residents/retry05. Click required to control; Esc/blur
+release, focus return requires newclick. NPC currently2mwalkingexercise,
+NOT sourceagenda/HP/combat. Smooth facing local Artist candidate pending export.
+Fresh01:09 inventory no MafioziPreview; old37616 acceptancePID nowhistorical.
+User stopped pinned5 traversal; no messages/tasks/replacement; both automations
+PAUSED. Root weapon/trunk/actualhit integration; Artist NPC/action/death.
+
+## 29 September 23:48 — braking22 published
+
+Verified main/origin d8ae1d1c7d03ba8eb87b7f3fe33a11c5c5f36a4a,10curatedfiles.
+Cleanarchive import/braking33/receipt33/real-time actualmelee21/transport14PASS.
+Sole LIVE43120 remains afterPCK14a1e0de. Native activation coldeditor crash under
+isolated investigation; no productionextension enabled. Waterexit needs wet
+authority and actual swim successor; owners implementing, no runtimeclaim.
+
+## 29 September 23:33 — braking22 LIVE
+
+Root22 integrated exactAE4D native vehicle physics after owner coordination.
+Production131/138/25+steering8/maincycle14, newbraking33PASS. Single interactive
+game43120 restored from actual afterPCK14a1e0de, old42040/43496 retired sequentially.
+Physical E/W/Space baseline+after nativePASS: brakeend3.001→0.039m/s, reaccelerate,
+movingexit/ragdoll/getup/driverrelease allPASS; four PNG viewed, stablePCK, noerrors.
+Braking framep50/p95 6.951/8.290→6.920/8.191ms, smallquarter only, notcityFPS.
+Notes updated in running scene. docs/godot/VEHICLE_BRAKING_22_INTEGRATION.md.
+Lastremote be574dae; newruntime still local until next hourly curated checkpoint.
+NPC and actual enemycombat remain incomplete. Earlier PIDs/statuses are historical.
+
 ## 29 September — Coordinator22 succession
 
 User appointed `01a0eec3-2733-7130-9aea-c289c76574af` as root22 after21 stalled.

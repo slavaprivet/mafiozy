@@ -21,7 +21,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260929-braking22"
+const PREVIEW_RUNTIME_REVISION := "s01-20260930-residents22"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -33,7 +33,8 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_static_batch_enabled: bool = false
 @export var preview_transport_enabled: bool = true
 @export var preview_start_at_vehicle: bool = true
-@export var preview_residents_enabled: bool = false
+@export var preview_residents_enabled: bool = true
+@export var preview_resident_walk_enabled: bool = true
 @export var preview_melee_enabled: bool = true
 var preview_melee: Node
 var melee_status := "disabled"
@@ -177,7 +178,7 @@ func _ready() -> void:
 		await get_tree().physics_frame
 		await get_tree().physics_frame
 		preview_population = PreviewPopulation.new()
-		preview_population.setup(self)
+		preview_population.setup(self, true, preview_resident_walk_enabled)
 		population_status = preview_population.status
 	preview_ready = true
 	_setup_preview_perf()
@@ -480,6 +481,7 @@ func _position_door_hint() -> void:
 		clampf(screen.y - size.y, 12.0, maxf(12.0, viewport.y - size.y - 12.0)))
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not is_instance_valid(_player) or not _player._free_mouse_look: return
 	if preview_dead or preview_physics_fault:
 		if event is InputEventKey and event.pressed and not event.echo and (event.physical_keycode == KEY_R or event.keycode == KEY_R):
 			get_viewport().set_input_as_handled()
@@ -728,7 +730,7 @@ func _build_hud() -> void:
 	_stats.add_theme_font_size_override("font_size", 12)
 	stack.add_child(_stats)
 	var controls: Label = Label.new()
-	controls.text = "WASD — идти   Shift — бег   Space — прыжок   2×Space — Max Payne\nМышь — камера   Колесо — ближе / дальше   Esc — курсор   Tab — камера"
+	controls.text = "Клик по игре — включить управление   Esc — свободный курсор\nWASD — идти   Shift — бег   Space — прыжок   2×Space — бросок   Колесо — камера"
 	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	controls.offset_left = 16
 	controls.offset_top = -46
