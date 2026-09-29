@@ -49,6 +49,8 @@ var _pose_skeleton: Skeleton3D
 var _pose_motion: Node3D
 var _pose_authority: StringName = &"on_foot"
 var _pose_epoch: int = 0
+var _pose_revision: int = 0
+const MELEE_POSE_RECEIPT := &"melee_skin_pose"
 var _pose_affine_active := false
 var _pose_affine_globals: Array[Transform3D] = []
 var _dive: RefCounted
@@ -516,6 +518,7 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 		return
 	_clear_affine_pose()
 	if is_instance_valid(_melee_practice): _melee_practice.cancel("pose_authority")
+	_invalidate_pose_receipt()
 	_pose_authority = owner
 	_pose_epoch += 1
 	_jump.clear()
@@ -536,6 +539,7 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 func _update_owned_pose(delta: float) -> void:
 	if _pose_authority != &"on_foot" or _locomotion == null or not is_instance_valid(_pose_skeleton):
 		return
+	var expected_epoch := _pose_epoch
 	if not _jump_pose.is_empty() and _dive != null:
 		var direction: Vector2 = _jump_pose.direction
 		var aim_yaw := _camera_yaw + PI
@@ -543,7 +547,7 @@ func _update_owned_pose(delta: float) -> void:
 		var source: Dictionary = _dive.sample(float(_jump_pose.progress), float(_jump_pose.diveBlend), _visual.global_rotation.y,
 			aim_yaw, _camera_pitch, travel_yaw, _pose_authority, _pose_epoch)
 		if bool(source.get("valid", false)) and bool(source.get("active", false)):
-			_apply_selected_pose(_decorate_hit_pose(delta, source))
+			_apply_selected_pose(_decorate_hit_pose(delta, source), expected_epoch)
 			return
 	var actual_velocity: Vector3 = get_real_velocity()
 	var grounded: bool = is_on_floor()
@@ -556,7 +560,7 @@ func _update_owned_pose(delta: float) -> void:
 		if bool(air.get("valid", false)):
 			selected = air
 	if is_instance_valid(_melee_practice): selected = _melee_practice.decorate(selected,delta)
-	_apply_selected_pose(_decorate_hit_pose(delta, selected))
+	_apply_selected_pose(_decorate_hit_pose(delta, selected), expected_epoch)
 
 
 func set_hit_pose_decorator(decorator: Callable) -> bool:
@@ -573,9 +577,26 @@ func _decorate_hit_pose(delta: float, selected: Dictionary) -> Dictionary:
 	return decorated if decorated is Dictionary and decorated.get("valid", false) else selected
 
 
-func _apply_selected_pose(selected: Dictionary) -> void:
+func _apply_selected_pose(selected: Dictionary, expected_epoch: int = -1) -> bool:
 	# The sole runtime writer applies one selected pose after actual physics.
-	var poses: Array[Transform3D] = selected["poses"]
+	if not Thread.is_main_thread(): return false
+	if expected_epoch >= 0 and (expected_epoch != _pose_epoch or _pose_authority != &"on_foot"): return false
+	_invalidate_pose_receipt()
+	if not is_inside_tree() or is_queued_for_deletion() or not is_instance_valid(_pose_skeleton) or not is_instance_valid(_pose_motion): return false
+	var ancestor: Node = self
+	while ancestor != null:
+		if ancestor.is_queued_for_deletion(): return false
+		ancestor = ancestor.get_parent()
+	if not is_ancestor_of(_pose_motion) or not _pose_motion.is_ancestor_of(_pose_skeleton): return false
+	if _pose_skeleton.is_queued_for_deletion() or _pose_motion.is_queued_for_deletion() or not selected.get("valid", false) or not selected.get("poses") is Array: return false
+	if selected.poses.size() != _pose_skeleton.get_bone_count(): return false
+	var offset: Variant = selected.get("visual_offset")
+	var rotation: Variant = selected.get("visual_rotation", Quaternion.IDENTITY)
+	if not offset is Vector3 or not offset.is_finite() or not rotation is Quaternion or not rotation.is_finite() or not rotation.is_normalized(): return false
+	for frame: Variant in selected.poses:
+		if not frame is Transform3D or not frame.is_finite(): return false
+	var poses: Array[Transform3D] = []
+	poses.assign(selected["poses"])
 	var affine := selected.has("melee")
 	if not affine: _clear_affine_pose()
 	for bone: int in range(poses.size()):
@@ -592,9 +613,25 @@ func _apply_selected_pose(selected: Dictionary) -> void:
 		_pose_affine_active = true
 	_pose_motion.position = selected["visual_offset"]
 	_pose_motion.quaternion = selected.get("visual_rotation", Quaternion.IDENTITY)
+	_pose_revision += 1
+	# A receipt describes the completed displayed pose, never a proposed pose.
+	# External vehicle/physical writers need their own publication integration.
+	if _pose_authority == &"on_foot":
+		var actor_id: Variant = get_meta("actor_id", "")
+		var life: Variant = get_meta("life_generation", 0)
+		if actor_id is String and not actor_id.is_empty() and life is int and life > 0:
+			var receipt := {"actor_id":actor_id,"life_generation":life,"pose_epoch":_pose_epoch,"pose_revision":_pose_revision,"pose_owner":String(_pose_authority)}
+			receipt.make_read_only()
+			set_meta(MELEE_POSE_RECEIPT, receipt)
+	return true
+
+
+func _invalidate_pose_receipt() -> void:
+	if has_meta(MELEE_POSE_RECEIPT): remove_meta(MELEE_POSE_RECEIPT)
 
 
 func _clear_affine_pose() -> void:
+	_invalidate_pose_receipt()
 	if _pose_affine_active and is_instance_valid(_pose_skeleton):
 		_pose_skeleton.clear_bones_global_pose_override()
 	_pose_affine_active = false
@@ -667,6 +704,7 @@ func _notification(what: int) -> void:
 
 
 func _exit_tree() -> void:
+	_invalidate_pose_receipt()
 	set_mouse_captured(false)
 
 
@@ -708,6 +746,7 @@ func get_preview_status() -> Dictionary:
 		"airborne": _airborne.get_status() if _airborne != null else {},
 		"pose_authority": _pose_authority,
 		"pose_epoch": _pose_epoch,
+		"pose_revision": _pose_revision,
 		"vertex_color_surfaces": _vertex_color_surfaces,
 		"material_names": _material_names.duplicate(),
 		"grounded": is_on_floor(),

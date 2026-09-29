@@ -9,6 +9,8 @@ const FRONT_WHEEL_MASK := 0b0011
 const REAR_WHEEL_MASK := 0b1100
 const MAX_CONTACTS_PER_TICK := 8
 const CONTROL_DEADZONE := 0.0001
+const OPPOSITE_PEDAL_SPEED_EPSILON_MPS := 0.02
+const SOURCE_HANDBRAKE_DECEL_MPS2 := 12.0
 
 var profile
 var _wheel_rays: Array[RayCast3D] = []
@@ -176,7 +178,9 @@ func _rebuild_physical_body() -> void:
 	if profile == null or not profile.is_valid():
 		return
 	mass = profile.mass_kg
-	linear_damp = profile.linear_drag
+	# Source linear_drag is coast deceleration (m/s²), not velocity damping.
+	linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
+	linear_damp = 0.0
 	angular_damp = profile.angular_drag
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	center_of_mass = profile.center_of_mass_local_m
@@ -222,6 +226,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		return
 	_grounded_wheel_mask = 0
 	var grounded := 0
+	var support_mask := 0
+	var gravity_up := Vector3.UP
+	if state.total_gravity.length_squared() > 0.000001:
+		gravity_up = -state.total_gravity.normalized()
 	for i in _wheel_rays.size():
 		var ray := _wheel_rays[i]
 		ray.force_raycast_update()
@@ -231,13 +239,23 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			_wheel_slip[i] = 0.0
 			_wheel_longitudinal_mps[i] = 0.0
 			continue
+		var support_normal := ray.get_collision_normal()
+		if not support_normal.is_finite() or support_normal.length_squared() < 0.000001 \
+				or support_normal.normalized().dot(gravity_up) <= 0.05:
+			_wheel_surface_ids[i] = ""
+			_wheel_load_n[i] = 0.0
+			_wheel_slip[i] = 0.0
+			_wheel_longitudinal_mps[i] = 0.0
+			continue
 		grounded += 1
-		_grounded_wheel_mask |= 1 << i
+		support_mask |= 1 << i
 		var collider := ray.get_collider()
 		_wheel_surface_ids[i] = str(collider.get_meta("vehicle_surface_id", "default")) if collider is Object else "default"
+	_grounded_wheel_mask = support_mask
 	var substeps := force_substeps(dt)
 	var step_dt := dt / float(substeps)
 	for substep in substeps:
+		_apply_coast_step(state, step_dt)
 		_apply_wheel_step(state, grounded, step_dt)
 	_collect_contacts(state)
 	_publish_state(state)
@@ -247,16 +265,19 @@ func _apply_wheel_step(state: PhysicsDirectBodyState3D, grounded: int, dt: float
 		return
 	var basis := state.transform.basis.orthonormalized()
 	var body_forward := (-basis.z).normalized()
-	var body_right := basis.x.normalized()
 	var up := basis.y.normalized()
 	var local_forward_speed := state.linear_velocity.dot(body_forward)
+	var opposite_pedal_braking := _throttle * local_forward_speed < -OPPOSITE_PEDAL_SPEED_EPSILON_MPS
+	var requested_service_brake := maxf(_brake, 1.0 if opposite_pedal_braking else 0.0)
+	var grounded_rear_count := int((_grounded_wheel_mask & (1 << 2)) != 0) \
+		+ int((_grounded_wheel_mask & (1 << 3)) != 0)
 	var speed_abs := absf(local_forward_speed)
 	var steer_limit: float = profile.steering_limit_rad / (1.0 + speed_abs * 0.035 + speed_abs * speed_abs * 0.0012)
 	var target_steer: float = _steering_input * steer_limit
 	_steering_angle = move_toward(_steering_angle, target_steer, (10.0 if absf(_steering_input) > CONTROL_DEADZONE else 12.0) * dt)
 	for i in _wheel_rays.size():
 		var ray := _wheel_rays[i]
-		if not ray.is_colliding():
+		if (_grounded_wheel_mask & (1 << i)) == 0 or not ray.is_colliding():
 			continue
 		var point := ray.get_collision_point()
 		var normal := ray.get_collision_normal().normalized()
@@ -273,34 +294,88 @@ func _apply_wheel_step(state: PhysicsDirectBodyState3D, grounded: int, dt: float
 		var normal_load := spring_force
 		_wheel_load_n[i] = normal_load
 		state.apply_impulse(normal * spring_force * dt, offset)
-		var wheel_forward := body_forward
-		var wheel_right := body_right
+		var steered_forward := body_forward
 		if i < 2:
 			# Same +Y steering convention as authored wheel pivots under the
 			# source-to-Godot basis wrapper: positive steering turns toward -X.
-			wheel_forward = body_forward.rotated(up, _steering_angle).normalized()
-			wheel_right = wheel_forward.cross(up).normalized()
-		var grip: float = profile.tyre_grip * (profile.handbrake_rear_grip if _handbrake and (REAR_WHEEL_MASK & (1 << i)) else 1.0)
-		var lateral_force := clampf(-point_velocity.dot(wheel_right) * profile.mass_kg * 4.0 / float(grounded), -normal_load * grip, normal_load * grip)
+			steered_forward = body_forward.rotated(up, _steering_angle).normalized()
+		var wheel_forward := steered_forward - normal * steered_forward.dot(normal)
+		if not wheel_forward.is_finite() or wheel_forward.length_squared() < 0.000001:
+			_wheel_slip[i] = 0.0
+			_wheel_longitudinal_mps[i] = 0.0
+			continue
+		wheel_forward = wheel_forward.normalized()
+		var wheel_right := wheel_forward.cross(normal)
+		if not wheel_right.is_finite() or wheel_right.length_squared() < 0.000001:
+			_wheel_slip[i] = 0.0
+			_wheel_longitudinal_mps[i] = 0.0
+			continue
+		wheel_right = wheel_right.normalized()
+		var rear_handbrake_wheel := _handbrake and (REAR_WHEEL_MASK & (1 << i)) != 0
+		# A handbrake releases rear lateral grip, but does not divide the rear
+		# wheel's longitudinal braking traction by the same 0.20 coefficient.
+		var lateral_grip: float = profile.handbrake_rear_grip if rear_handbrake_wheel else profile.tyre_grip
+		var longitudinal_grip: float = profile.tyre_grip
+		var lateral_limit := normal_load * lateral_grip
+		var longitudinal_limit := normal_load * longitudinal_grip
+		var lateral_force := clampf(-point_velocity.dot(wheel_right) * profile.mass_kg * 4.0 / float(grounded), -lateral_limit, lateral_limit)
 		var drive_accel: float = profile.engine_accel_mps2 if _throttle >= 0.0 else profile.reverse_accel_mps2
 		var requested_drive: float = _throttle * drive_accel
+		# Source braking wins over propulsion. Opposite pedal is a service-brake
+		# request until signed forward speed reaches the source transition band.
+		if _handbrake or requested_service_brake > CONTROL_DEADZONE:
+			requested_drive = 0.0
 		if (requested_drive > 0.0 and local_forward_speed >= profile.max_forward_speed_mps) or (requested_drive < 0.0 and local_forward_speed <= -profile.max_reverse_speed_mps):
 			requested_drive = 0.0
 		var longitudinal_force: float = requested_drive * profile.mass_kg / float(grounded)
 		var wheel_long_speed := point_velocity.dot(wheel_forward)
 		_wheel_longitudinal_mps[i] = wheel_long_speed
-		var total_brake := maxf(_brake, 1.0 if _handbrake and i >= 2 else 0.0)
-		if total_brake > 0.0 and absf(wheel_long_speed) > 0.02:
-			var brake_force: float = profile.brake_decel_mps2 * profile.mass_kg * total_brake / float(grounded)
-			longitudinal_force -= signf(wheel_long_speed) * minf(brake_force, absf(wheel_long_speed) * profile.mass_kg / maxf(dt, 0.001) / float(grounded))
+		if absf(wheel_long_speed) > OPPOSITE_PEDAL_SPEED_EPSILON_MPS:
+			var brake_force := 0.0
+			if requested_service_brake > CONTROL_DEADZONE:
+				var service_request: float = profile.brake_decel_mps2 * profile.mass_kg \
+					* requested_service_brake / float(grounded)
+				var service_stop_limit: float = absf(wheel_long_speed) * profile.mass_kg \
+					/ maxf(dt, 0.001) / float(grounded)
+				brake_force = minf(service_request, service_stop_limit)
+			if rear_handbrake_wheel and grounded_rear_count > 0:
+				var handbrake_request: float = SOURCE_HANDBRAKE_DECEL_MPS2 * profile.mass_kg \
+					/ float(grounded_rear_count)
+				var handbrake_stop_limit: float = absf(wheel_long_speed) * profile.mass_kg \
+					/ maxf(dt, 0.001) / float(grounded_rear_count)
+				brake_force = maxf(brake_force, minf(handbrake_request, handbrake_stop_limit))
+			longitudinal_force -= signf(wheel_long_speed) * brake_force
+		# The tyre budget is anisotropic under handbrake: low rear lateral grip
+		# remains available for rotation while full longitudinal tyre grip brakes.
+		var lateral_ratio := lateral_force / maxf(0.001, lateral_limit)
+		var longitudinal_ratio := longitudinal_force / maxf(0.001, longitudinal_limit)
+		var ellipse_utilization := sqrt(lateral_ratio * lateral_ratio + longitudinal_ratio * longitudinal_ratio)
+		if ellipse_utilization > 1.0:
+			lateral_force /= ellipse_utilization
+			longitudinal_force /= ellipse_utilization
 		var tyre_force := wheel_right * lateral_force + wheel_forward * longitudinal_force
-		var tyre_limit := normal_load * grip
-		if tyre_force.length_squared() > tyre_limit * tyre_limit:
-			tyre_force = tyre_force.normalized() * tyre_limit
-		var utilization := tyre_force.length() / maxf(1.0, tyre_limit)
+		var utilization := minf(1.0, ellipse_utilization)
 		var handbrake_slip := 0.65 if _handbrake and i >= 2 else 0.0
 		_wheel_slip[i] = clampf(absf(point_velocity.dot(wheel_right)) * 0.20 + maxf(0.0, utilization - 0.82) * 2.5 + handbrake_slip, 0.0, 1.0)
 		state.apply_impulse(tyre_force * dt, offset)
+
+func _apply_coast_step(state: PhysicsDirectBodyState3D, dt: float) -> void:
+	# Road coast is a supported-wheel rule, not artificial airborne drag.
+	if _grounded_wheel_mask == 0:
+		return
+	var planar := Vector3(state.linear_velocity.x, 0.0, state.linear_velocity.z)
+	var speed := planar.length()
+	if speed <= 0.0:
+		return
+	var forward := -state.transform.basis.z.normalized()
+	var braking := _brake > CONTROL_DEADZONE or _handbrake or (_throttle * planar.dot(forward) < -CONTROL_DEADZONE)
+	var drive_limit: float = profile.max_reverse_speed_mps if _throttle < 0.0 else profile.max_forward_speed_mps
+	if braking or (absf(_throttle) > CONTROL_DEADZONE and speed <= drive_limit):
+		return
+	# Source aeroDrag=.012; damage/engine-disabled authority remains separate.
+	var decel: float = profile.linear_drag + 0.012 * speed * speed
+	var remaining := maxf(0.0, speed - decel * dt)
+	state.linear_velocity += planar * (remaining / speed - 1.0)
 
 func _collect_contacts(state: PhysicsDirectBodyState3D) -> void:
 	var count := mini(state.get_contact_count(), MAX_CONTACTS_PER_TICK)
