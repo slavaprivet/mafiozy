@@ -1,0 +1,25 @@
+{
+  "base": "candidate10 exported23g",
+  "status": "READY_HEADLESS_233_PASS_GPU_PENDING",
+  "files": [
+    {
+      "path": "scripts/weapons/walk_trunk_window.gd",
+      "before_sha256": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+      "after_sha256": "13afa3ee94614e0392d0c7f7cb87a8bcae18cf2b51a7d3d3d44c7a252771a45e",
+      "bytes": 6916
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "before_sha256": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+      "after_sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+      "bytes": 21513
+    }
+  ],
+  "native_result": "RESULT02.json",
+  "gpu_regression_harness": "outputs/coordinator23_trunk_visual10/capture.gd",
+  "proofs": {
+    "test_native.gd": "8d437710004090e4fd3aca0b324c1cc3b5cae91b0c9a94343f3fc99c20508406",
+    "RESULT02.json": "9c590dd7f86d2741cddd2e4274db7c1867aed324b9a676ada9bbc4249756b575",
+    "native02.log": "17e2009cd8ac89d7654305a2e73801cbcd985008923f934a6af4f3e4f9778e55"
+  }
+}

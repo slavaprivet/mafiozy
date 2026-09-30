@@ -1,0 +1,18 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.3.280 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce GTX 980
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL 02_trunk_14_800x600: outer panel has no overflow
+FAIL 03_trunk_last_row_800x600: outer panel has no overflow
+FAIL take last card at800: button entirely inside viewport
+FAIL 800 actual last-card click takes UID
+FAIL store at800: visible enabled button
+FAIL close at800: button entirely inside viewport
+FAIL close button dismisses only cargo
+FAIL native Q arsenal never overlaps trunk
+TRUNK_GUI_RESULT {"checks":120,"errors":["02_trunk_14_800x600: outer panel has no overflow","03_trunk_last_row_800x600: outer panel has no overflow","take last card at800: button entirely inside viewport","800 actual last-card click takes UID","store at800: visible enabled button","close at800: button entirely inside viewport","close button dismisses only cargo","native Q arsenal never overlaps trunk"],"seconds":10.159}

@@ -30,6 +30,7 @@ var _disposed := false
 var _staged_preview := false
 var hit_owners: Array[RefCounted] = []
 var combat_status := "unbound"
+var _final_dead_contact_port: RefCounted
 
 func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = true) -> bool:
 	if _disposed or status != "not_loaded": return false
@@ -97,6 +98,8 @@ func step(delta: float) -> void:
 	for owner: RefCounted in hit_owners:
 		if owner.blood!=null and owner.blood.should_step(): owner.blood.step(delta)
 	if _staged_preview: residents.preview_walk_step(delta)
+	for owner: RefCounted in hit_owners:
+		if owner.marks!=null and owner.marks.renderer!=null and not owner.marks.renderer._marks.is_empty(): owner.marks.step()
 
 func door_started(key: String, opening: bool) -> void:
 	if not _disposed and navigation != null:
@@ -120,6 +123,9 @@ func snapshot() -> Dictionary:
 func dispose() -> void:
 	if _disposed: return
 	_disposed = true
+	if _final_dead_contact_port != null:
+		_final_dead_contact_port.dispose()
+		_final_dead_contact_port = null
 	for owner: RefCounted in hit_owners: owner.dispose()
 	hit_owners.clear()
 	if residents != null: residents.dispose()
@@ -128,3 +134,33 @@ func dispose() -> void:
 	if policy != null: policy.dispose()
 	owners.clear()
 	status = "disposed"
+
+
+## Registered by the NPC owner through a public capability accessor only.
+## Empty/unreviewed limits never enable contact force.
+func setup_final_dead_contact(player: CharacterBody3D, measured_limits: Dictionary) -> Dictionary:
+	if _disposed or status != "ready" or _final_dead_contact_port != null:
+		return {"ok":false, "reason":"population_lifetime"}
+	if measured_limits.is_empty() or residents == null or not residents.has_method("public_final_dead_contact_capabilities"):
+		return {"ok":false, "reason":"reviewed_public_owner_or_limits_missing"}
+	var capabilities: Variant = residents.public_final_dead_contact_capabilities()
+	if not capabilities is Array or capabilities.is_empty():
+		return {"ok":false, "reason":"public_capabilities_missing"}
+	var script: Script = load("res://scripts/npc_visual/final_dead_contact_port.gd")
+	if script == null: return {"ok":false, "reason":"contact_port_missing"}
+	var port: RefCounted = script.new()
+	var result: Dictionary = port.configure(player, capabilities, measured_limits)
+	if not result.get("ok",false):
+		port.dispose()
+		return result
+	_final_dead_contact_port = port
+	return result
+
+func player_final_dead_contact_ready() -> Dictionary:
+	if _disposed or _final_dead_contact_port == null: return {"ready":false}
+	return _final_dead_contact_port.player_final_dead_contact_ready()
+
+func admit_player_final_dead_contact(request: Dictionary) -> Dictionary:
+	if _disposed or _final_dead_contact_port == null:
+		return {"ok":false, "reason":"population_contact_unbound"}
+	return _final_dead_contact_port.admit_player_final_dead_contact(request)

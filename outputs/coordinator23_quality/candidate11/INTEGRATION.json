@@ -1,0 +1,153 @@
+{
+  "schema": "mafiozi.isolated.integration-candidate/v1",
+  "parent": "candidate10",
+  "parent_receipt_sha256": "cd703ba6edb2ca31123f5d9d729f3d2be043571790896ad5cb049ea3c5d8a3e3",
+  "baseline_pck": "023070fe6b1895cfc7571d9bb402d5c324577f84cccf74a73ec823c9e963f2bc",
+  "verified_baseline_inputs": 197,
+  "changes": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "before": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c",
+      "parent_before": "fa1c551a8501f1f731126d374c25ab07ac209137862febd5ee40ec0b7102049e",
+      "after": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "source": "outputs\\coordinator23_head_merge07\\files\\scripts\\npc_visual\\npc_local_preview_hit_owner.gd",
+      "status": "component800 + ACTIVE89; compiled rendered acceptance pending"
+    },
+    "scripts/npc_visual/npc_hit_impulse.gd": {
+      "before": null,
+      "after": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "source": "outputs\\artist23_hit_impulse\\ready_point_impulse\\npc_hit_impulse.gd"
+    },
+    "scripts/preview_player.gd": {
+      "before": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493",
+      "parent_before": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06",
+      "after": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+      "source": "outputs\\coordinator23_trunk_window\\files\\scripts\\preview_player.gd",
+      "status": "native143; compiled/rendered pending"
+    },
+    "scripts/player_corpse_contact.gd": {
+      "before": null,
+      "after": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "source": "outputs/coordinator23_contact_integration06/player_corpse_contact.gd; completed-movement stamp required"
+    },
+    "export_presets.cfg": {
+      "before": "0a32d4d01cde8223967ce097b1f215edc37e610328d0a0acc9e5c4ab8459f804",
+      "after": "4fa384de55c6ecfcf075ad74fbe493b3e82ad1feab1383b156dfc09975530bb8",
+      "source": "this guarded script"
+    },
+    "scripts/preview_population.gd": {
+      "before": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366",
+      "parent_before": "f98702f302b1b275829e43c622a3e93e02310634860cd0f77431aa056de790a7",
+      "after": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "source": "outputs\\coordinator23_combo_merge06\\files\\scripts\\preview_population.gd",
+      "status": "untested combined overlay"
+    },
+    "scripts/main.gd": {
+      "before": "59850cd423a83223422b4c3d6a58284f559990c865cc1d9ba9fb7cee39ca1740",
+      "after": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f",
+      "source": "reviewed root wiring, default ON in acceptance candidate; same as compiled08"
+    },
+    "scripts/npc_visual/preview_resident_host.gd": {
+      "before": "f6e95a9000fa2c1c9f64aa7a66c67a3eed7e9bf2edb91a260e20f50d1367f125",
+      "after": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "source": "outputs\\coordinator23_contact_port_proposal\\ARTIST_REVIEW_public_accessor.patch",
+      "status": "isolated proposed read-only public capability; no shared NPC edit"
+    },
+    "scripts/npc_visual/npc_bullet_marks.gd": {
+      "before": null,
+      "parent_before": "3235343d64754b5a2711ec43f49d9c992112e0b7ba852937903ea6d17db399b6",
+      "after": "14d769365d98603f2997ce2cf6dce40500a2a22198305fc3d15a8b7c2388c9e9",
+      "source": "outputs\\coordinator23_marks_fix10\\files\\scripts\\npc_visual\\npc_bullet_marks.gd",
+      "status": "art only; exposed face21PASS; no skin-filter changes"
+    },
+    "scripts/npc_visual/npc_hit_marks_adapter.gd": {
+      "before": null,
+      "parent_before": null,
+      "after": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+      "source": "outputs\\coordinator23_combo_merge06\\files\\scripts\\npc_visual\\npc_hit_marks_adapter.gd",
+      "status": "untested combined overlay"
+    },
+    "scripts/npc_visual/npc_blood_renderer.gd": {
+      "before": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "parent_before": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "after": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "source": "outputs\\coordinator23_combo_merge06\\files\\scripts\\npc_visual\\npc_blood_renderer.gd",
+      "status": "untested combined overlay"
+    },
+    "scripts/npc_visual/final_dead_contact_port.gd": {
+      "before": null,
+      "after": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "source": "outputs\\coordinator23_contact_port_proposal\\final_dead_contact_port.gd",
+      "status": "native119 proposal; actual root hook and LIVE pending"
+    },
+    "scripts/npc_visual/npc_head_zone.gd": {
+      "before": null,
+      "parent_before": null,
+      "after": "f83544fdb13623d3f42221e94d88d93626f450972c085dac8286e988775cf2da",
+      "source": "outputs\\coordinator23_head_merge07\\files\\scripts\\npc_visual\\npc_head_zone.gd",
+      "status": "component800 + ACTIVE89; compiled rendered acceptance pending"
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": {
+      "before": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e",
+      "parent_before": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e",
+      "after": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "source": "outputs\\coordinator23_head_merge07\\files\\scripts\\npc_visual\\npc_ordinary_hit_lifecycle.gd",
+      "status": "component800 + ACTIVE89; compiled rendered acceptance pending"
+    },
+    "data/preview_updates.json": {
+      "before": "f6c7af6af79e6ea7cd5418c42077a5f9fda470cebeedabec43e5a5dd2368f274",
+      "after": "6fecf656d80f307cf660bc16d93542a55ae9aeb7075c7722a7c5b4967ea8251c",
+      "source": "paired exact runtime revision and available actions; pending acceptance"
+    },
+    "scripts/weapons/preview_weapon_cargo.gd": {
+      "before": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9",
+      "parent_before": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9",
+      "after": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "source": "outputs\\coordinator23_trunk_window\\files\\scripts\\weapons\\preview_weapon_cargo.gd",
+      "status": "native143; compiled/rendered pending"
+    },
+    "scripts/weapons/preview_weapons.gd": {
+      "before": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+      "parent_before": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+      "after": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+      "source": "outputs\\coordinator23_trunk_layout11\\files\\scripts\\weapons\\preview_weapons.gd",
+      "status": "responsive fix; compiled GUI acceptance pending"
+    },
+    "scripts/weapons/walk_trunk_window.gd": {
+      "before": null,
+      "parent_before": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+      "after": "13afa3ee94614e0392d0c7f7cb87a8bcae18cf2b51a7d3d3d44c7a252771a45e",
+      "source": "outputs\\coordinator23_trunk_layout11\\files\\scripts\\weapons\\walk_trunk_window.gd",
+      "status": "responsive fix; compiled GUI acceptance pending"
+    },
+    "scripts/weapons/walk_weapon_ui.gd": {
+      "before": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "parent_before": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "after": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "source": "outputs\\coordinator23_trunk_window\\files\\scripts\\weapons\\walk_weapon_ui.gd",
+      "status": "native143; compiled/rendered pending"
+    },
+    "scripts/weapons/weapon_aim_camera.gd": {
+      "before": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "parent_before": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "after": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+      "source": "outputs\\coordinator23_trunk_window\\files\\scripts\\weapons\\weapon_aim_camera.gd",
+      "status": "native143; compiled/rendered pending"
+    },
+    "scripts/weapons/weapon_cargo_bridge.gd": {
+      "before": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf",
+      "parent_before": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf",
+      "after": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+      "source": "outputs\\coordinator23_trunk_window\\files\\scripts\\weapons\\weapon_cargo_bridge.gd",
+      "status": "native143; compiled/rendered pending"
+    }
+  },
+  "status": "ISOLATED23g responsive trunk; acceptance pending",
+  "runtime_revision": "s01-20260930-quality23g",
+  "limits": [
+    "Source stage only; export/rendered performance pending",
+    "RPG blast damage and full source agendas/recovery still incomplete"
+  ],
+  "combo_receipt_sha256": "5ba71c395d4562e2c3356b704d991b8317fe462a714f1f32c5e7b2e91f5a17a9",
+  "head_receipt_sha256": "5b1af270070ab1245d4ab67dca846bd03e2eec9ddcd7178fdfedf3b63f311ae1",
+  "head_active_receipt_sha256": "22a32c5e43d63d18d63e38f8157a759d12d80b52645315d1ab1646883b335da1"
+}

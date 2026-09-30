@@ -1,0 +1,98 @@
+{
+  "checks": 29,
+  "draws": 134,
+  "errors": [],
+  "images": [
+    "01_clothing_wound.png",
+    "02_head_skin_wound.png",
+    "03_final_eyes_side_a.png",
+    "04_final_eyes_side_b.png"
+  ],
+  "impacts": [
+    {
+      "collider": "/root/MafioziWalkMigration/npc_resident_72",
+      "direction": "(0.567757, 0.068381, -0.820351)",
+      "normal": "(-0.576742, 0.0, 0.816926)",
+      "point": "(36.15551, 1.217212, -13.1059)",
+      "shot_id": "tt_pistol:1"
+    },
+    {
+      "collider": "/root/MafioziWalkMigration/npc_resident_72",
+      "direction": "(-0.966735, 0.207526, -0.149519)",
+      "normal": "(0.99259, 0.11354, 0.043283)",
+      "point": "(37.50756, 1.58167, -13.38441)",
+      "shot_id": "tt_pistol:2"
+    }
+  ],
+  "phases": [
+    {
+      "actor": "resident_72",
+      "ammo": 11,
+      "at_ms": 6910,
+      "dead": false,
+      "hp": 36,
+      "label": "TT_clothing",
+      "medical": false,
+      "physical": {},
+      "shots": 1
+    },
+    {
+      "actor": "resident_72",
+      "ammo": 10,
+      "at_ms": 7359,
+      "dead": true,
+      "hp": 0,
+      "label": "TT_anatomical_head",
+      "medical": false,
+      "physical": {
+        "damage_authority": false,
+        "death_key": "2511.969",
+        "error": "",
+        "event_id": "resident_72:2:tt_pistol:2",
+        "final_dead": true,
+        "mode": "ACTIVE",
+        "ok": true
+      },
+      "shots": 2
+    }
+  ],
+  "rendered": true,
+  "scope": "actual equip/input/presentation/muzzle/ammo/native ray/HP/physical lifecycle; stationary NPCs, QA camera, deterministic source survival seed",
+  "shots": [
+    {
+      "ammo": 11,
+      "muzzle": {
+        "actor_id": "player",
+        "direction": "(0.48423, -0.214639, -0.848205)",
+        "ejection_origin": "(34.55902, 1.094291, -10.85296)",
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": "(34.63851, 1.034503, -10.914)",
+        "pose_epoch": 1,
+        "pose_revision": 25,
+        "sample_serial": 16,
+        "weapon_id": "tt_pistol"
+      },
+      "shot_id": "tt_pistol:1"
+    },
+    {
+      "ammo": 10,
+      "muzzle": {
+        "actor_id": "player",
+        "direction": "(-0.996953, 0.068218, -0.037814)",
+        "ejection_origin": "(39.55061, 1.196888, -13.04181)",
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": "(39.44666, 1.165411, -13.08451)",
+        "pose_epoch": 1,
+        "pose_revision": 75,
+        "sample_serial": 66,
+        "weapon_id": "tt_pistol"
+      },
+      "shot_id": "tt_pistol:2"
+    }
+  ],
+  "test_sha256": "065217ed53ba909a73f1e0c3e74f07458f663e37ca87c188f17ed46f43881ea1"
+}

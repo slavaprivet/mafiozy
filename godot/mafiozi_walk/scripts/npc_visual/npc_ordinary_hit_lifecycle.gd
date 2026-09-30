@@ -96,7 +96,9 @@ func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 		if _call("feedback",{"kind":"invulnerable"})==null: return _stop("feedback_lease")
 		return _done(event_id,false,"invulnerable",h)
 	var was_downed: bool=bool(_row.get("_medicalDowned",false))
-	_row.hp=maxi(0,Rules._int32(_row.hp)-Rules._int32(h.damage))
+	# Explicit user-requested policy, admitted by exact anatomical skin contact.
+	var fatal_head: bool=h.get("hit_zone")=="head" and h.get("head_policy")=="user_requested_headshot_final_v1"
+	_row.hp=0 if fatal_head else maxi(0,Rules._int32(_row.hp)-Rules._int32(h.damage))
 	if _call("confirm",h)==null: return _stop("confirm_lease",true)
 	if _call("bleeding",h)==null: return _stop("bleeding_lease",true)
 	var nr: float=_row.r+h.dir_r*.09
@@ -125,7 +127,7 @@ func hit(event_id: String, proposed: Dictionary) -> Dictionary:
 		var surrender: Variant=_call("surrender",{"now_ms":now})
 		if not surrender is bool: return _stop("surrender_lease",true)
 		if surrender: return _done(event_id,true,"surrender",h)
-	if _row.hp<=0 and not _row.get("_medicalDowned",false) and not _row.get("_policeCriminal",false) and not _row.get("_guard",false) and not _row.get("_cashier",false) and not _row.get("_invulnerable",false):
+	if _row.hp<=0 and not fatal_head and not _row.get("_medicalDowned",false) and not _row.get("_policeCriminal",false) and not _row.get("_guard",false) and not _row.get("_cashier",false) and not _row.get("_invulnerable",false):
 		var survival: Variant=_call("random")
 		if not Rules._finite(survival) or survival<0 or survival>=1: return _stop("survival_random",true)
 		if survival<.72:

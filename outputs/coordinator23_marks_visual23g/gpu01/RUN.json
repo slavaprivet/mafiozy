@@ -1,0 +1,21 @@
+{
+  "exit_code": 0,
+  "seconds": 9.770840599900112,
+  "command": [
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--main-pack",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate10\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23g\\MafioziPreview.pck",
+    "--position",
+    "-32000,-32000",
+    "--resolution",
+    "1280x720",
+    "--script",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_marks_visual23g\\capture.gd",
+    "--",
+    "--qa-out=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_marks_visual23g\\gpu01",
+    "--qa-pack-sha=3ba945307a9d71f800a687c3cb75fb62c5d7a39834eaa30be74f263b6f8adb0a"
+  ],
+  "pck_sha256": "3ba945307a9d71f800a687c3cb75fb62c5d7a39834eaa30be74f263b6f8adb0a",
+  "build_receipt_sha256": "9dc8e597a9e6c3bfd0ff7becf194b81556da7dd2a50f0e703f261945bc3ce23e",
+  "scope": "Root-only offscreen actualGPU evidence; no native-camera or perf claim"
+}

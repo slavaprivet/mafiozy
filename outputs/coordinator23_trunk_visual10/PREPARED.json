@@ -1,0 +1,19 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "engine_or_gpu_runs": 0,
+  "launcher_python_ast": "PASS",
+  "files": {
+    "capture.gd": {
+      "sha256": "d26afc431b7a47de2638e4b9da126df4ef9a7ecfb4744c68cbff66fd8bd2f594",
+      "bytes": 12734
+    },
+    "README.md": {
+      "sha256": "2e1b4d29be2678eaf5d4b05314e04efd1be5406b0cb000d0ed72fa66671d4082",
+      "bytes": 2390
+    },
+    "run_capture.py": {
+      "sha256": "19f8425836797dd1a6a5a54206230924194f8945b1964c651ef83b55818a507c",
+      "bytes": 1944
+    }
+  }
+}

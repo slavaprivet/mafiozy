@@ -1,9 +1,22 @@
 extends RefCounted
+const HitImpulse=preload("npc_hit_impulse.gd")
+const MEDICAL_IMPULSE_MAX_NS:=75.0
+const HeadZone=preload("npc_head_zone.gd")
+var _head_zone: RefCounted
+var last_head_zone: Dictionary={}
+const POINT_SHARE:=0.10
+const POINT_MAX_NS:=2.5
+var _point_consumed: Dictionary={}
+var _native_impulse_context: Dictionary={}
+var last_impulse: Dictionary={}
+var last_source_path_request: Dictionary={}
 ## Explicit NEW_SESSION_BOOTSTRAP combat owner for one already admitted resident.
 ## Owns ONLY new local HP/medical/death state. Never authenticates a save/server.
 ## Deferred world/social effects remain in pending_effects, not fake callbacks.
 const Blood=preload("res://scripts/npc_visual/npc_blood_adapter.gd")
 var blood: RefCounted
+const Marks=preload("res://scripts/npc_visual/npc_hit_marks_adapter.gd")
+var marks: RefCounted
 const Provider=preload("res://scripts/npc_visual/npc_preview_source_provider.gd")
 const Adapter=preload("res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd")
 const Rules=preload("res://scripts/weapons/weapon_hit_rules.gd")
@@ -74,9 +87,15 @@ func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, tru
 	var entry: Dictionary={}
 	for manifest_item: Dictionary in manifest.entries:
 		if manifest_item.entry.bridge_id==_token.render_id: entry=manifest_item.entry
+	marks=Marks.new()
+	if not marks.configure(_host,_token,self,weapons.scene,entry):
+		dispose(); return {"ok":false,"reason":"marks_original_binding"}
 	blood=Blood.new()
 	if not blood.configure(_host,_token,self,weapons.scene,entry):
 		dispose(); return {"ok":false,"reason":"blood_original_binding"}
+	_head_zone=HeadZone.new()
+	if not _head_zone.configure(_token.rig): dispose(); return {"ok":false,"reason":"original_head_skin_required"}
+	_host._records[_token.source_id]["walk_pause"]=Callable(self,"should_pause_walk")
 	return {"ok":true,"scope":"new_local_session_hp","source_callbacks_complete":false,"pellet_receipts_bound":_effects.has_signal("projectile_resolved"),"gaps":["social_execution","blood_pending_rendered_acceptance","medical_crawl_ambulance","murder_authority","resident_respawn","additional_penetrating_targets","nagan_fire_cadence_owner"]}
 
 func _now() -> float:
@@ -92,23 +111,11 @@ func _service(row: Dictionary,p: Dictionary,name: String) -> Variant:
 		"random": return _rng.randf()
 		"admit_contact": return _admitting.duplicate(true) if p.event_id==_admitting.get("event_id") else null
 		"path":
-			# This callback checks real source admission AND native collision before
-			# a body movement. It does not replace either with a boolean assertion.
+			# Preserve the source's .09-cell request without instantly sliding the
+			# native standing collider. Physical impact owns the visible movement.
 			if _current(_binding).is_empty(): return false
-			var body: CharacterBody3D=_token.body
-			var record: Dictionary=_host._records[_token.source_id]
-			if record.get("physical_failed",false) or _host._physical_occupied(_token.source_id) or body.collision_layer!=1 or body.collision_mask!=1: return false
-			var before:=body.global_transform
-			var margin:=body.safe_margin
-			var to:=Vector3(float(p.c)*4.1-395.65,before.origin.y,float(p.r)*4.1-45.1)
-			if not _host._source_admits(to,record,"route"): return false
-			# A synchronous source callback can retire or replace this exact actor.
-			if _current(_binding).is_empty() or not is_instance_valid(body) or body.is_queued_for_deletion() or record.body!=body or body.global_transform!=before: return false
-			if record.get("physical_failed",false) or _host._physical_occupied(_token.source_id) or body.collision_layer!=1 or body.collision_mask!=1 or body.safe_margin!=margin: return false
-			var excluded: Array[RID]=[body.get_rid()]
-			if not _host._physical_clear(to,excluded) or not _host._owned_clear(to,_token.source_id): return false
-			if body.test_move(before,to-before.origin): return false
-			body.global_position=to; return true
+			last_source_path_request=p.duplicate(true)
+			return false
 		"aggression": row._relation=clampf(float(row.get("_relation",0))+1,-2,2); row._relUpdAt=_now(); return true
 		"civilian": return true # configure admits verified ordinary three only.
 		"surrender": return false # bandit/formerMerc excluded at configure.
@@ -201,9 +208,10 @@ func _on_native_impact(impact: Dictionary) -> void:
 		var first:=Rules.penetrating_damage(shot.weapon_id,distance,0,shot.modifiers.critical,shot.modifiers.critical_multiplier)
 		if not first.ok: return
 		damage=first.damage; direction*=first.direction_multiplier
-	_apply_hit(str(impact.shotId),shot,damage,direction,impact.point,impact.normal)
+	var zone:=_head_contact(shot,impact)
+	_apply_hit(str(impact.shotId),shot,damage,direction,zone.get("point",impact.point),zone.get("normal",impact.normal),zone.get("direction",Vector3.ZERO),zone)
 
-func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3) -> void:
+func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3,physical_direction: Vector3=Vector3.ZERO,zone: Dictionary={}) -> void:
 	if _current(_binding).is_empty(): return
 	var started_us:=Time.get_ticks_usec()
 	var body: CharacterBody3D=_token.body
@@ -212,12 +220,21 @@ func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,
 	_serial+=1
 	var id: String=_token.source_id+":"+str(_serial)+":"+shot_id
 	_admitting={"event_id":id,"binding":_binding.duplicate(true),"hit":{"weapon_id":shot.weapon_id,"damage":damage,"dir_r":direction.z,"dir_c":direction.x,"player_r":(_last_player.z+45.1)/4.1,"player_c":(_last_player.x+395.65)/4.1,"source":{"kind":"player","uid":"local"}}}
+	if zone.get("zone")=="head" and zone.get("proof")=="native_owned_hit_then_first_anatomical_skin_triangle":
+		_admitting.hit["hit_zone"]="head"
+		_admitting.hit["head_policy"]="user_requested_headshot_final_v1"
+		last_head_zone=zone.duplicate(true)
+	var contact_actor_transform: Transform3D=body.global_transform
 	last_result=_adapter.hit(id,_admitting.hit)
 	_admitting={}
 	if not last_result.ok or not last_result.get("applied",false): return
-	last_contact={"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
+	last_contact={"event_id":id,"incoming_direction":(direction if physical_direction==Vector3.ZERO else physical_direction).normalized(),"actor_transform_at_impact":contact_actor_transform,"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
+	if not zone.is_empty(): last_contact["projectile_index"]=zone.get("projectile_index",0)
 	if blood!=null: blood.receive(id,point,normal)
+	if marks!=null: marks.receive(id,point,normal)
+	_native_impulse_context={"event_id":id,"value":HitImpulse.bullet(shot.weapon_id,shot.muzzle.distance_to(point),damage,direction if physical_direction==Vector3.ZERO else physical_direction,_row.get("_invulnerable",false))}
 	_publish_physical(id,last_result.reason,point)
+	_native_impulse_context={}
 	_last_hit_us=Time.get_ticks_usec()-started_us
 
 ## One completed native pellet terminal per accepted p.index. A cosmetic hit
@@ -244,8 +261,16 @@ func _on_projectile_resolved(receipt: Dictionary) -> void:
 				var candidate: Variant=ref.get_ref()
 				if not is_instance_valid(candidate) or candidate._current(candidate._binding).is_empty() or not candidate._owns_collider(receipt.get("collider")): continue
 				var id: String=candidate._token.source_id
-				if not shot.targets.has(id): shot.targets[id]={"owner":ref,"binding":candidate._binding.duplicate(true),"distances":[],"point":receipt.point,"normal":receipt.normal}
+				if not shot.targets.has(id): shot.targets[id]={"owner":ref,"binding":candidate._binding.duplicate(true),"distances":[],"point":receipt.point,"normal":receipt.normal,"physical_direction":receipt.direction}
 				shot.targets[id].distances.append(distance)
+				if not shot.targets[id].has("head_zone"):
+					var zone: Dictionary=candidate._head_contact(shot,receipt)
+					if zone.get("zone")=="head":
+						# One selected native pellet owns the entire refined contact tuple.
+						shot.targets[id]["head_zone"]=zone
+						shot.targets[id].point=zone.point
+						shot.targets[id].normal=zone.normal
+						shot.targets[id].physical_direction=zone.direction
 				break
 	if shot.terminals.size()!=7: return
 	shot.used=true # close before callbacks, including recursively emitted signals.
@@ -256,7 +281,7 @@ func _on_projectile_resolved(receipt: Dictionary) -> void:
 		var target: Variant=group.owner.get_ref()
 		if not is_instance_valid(target) or target._current(group.binding).is_empty(): continue
 		var damage:=Rules.shotgun_damage(group.distances,_marksman,shot.modifiers.critical,shot.modifiers.critical_multiplier)
-		if damage.ok: target._apply_hit(str(receipt.shotId),shot,damage.damage,shot.base_direction,group.point,group.normal)
+		if damage.ok: target._apply_hit(str(receipt.shotId),shot,damage.damage,shot.base_direction,group.point,group.normal,group.physical_direction,group.get("head_zone",{}))
 	shot.targets.clear()
 
 func _publish_physical(id: String,reason: String,point: Vector3) -> void:
@@ -266,8 +291,37 @@ func _publish_physical(id: String,reason: String,point: Vector3) -> void:
 	var body: CharacterBody3D=_token.body
 	_events[id]={"id":id,"kind":kind,"confirmed":true,"death_key":str(_row.deadAt) if final else "","source_id":_token.source_id,"life_generation":_token.life_generation,"medical_downed":not final,"local_preview_hp_revision":last_result.get("revision",0),"already_solved_by_godot":true,"apply_again":false,"linear_velocity":body.velocity,"angular_velocity":Vector3.ZERO,"reference_point":point,"impulse_ns":Vector3.ZERO}
 	var physical: RefCounted=_host._ragdolls[_token.source_id]
-	if physical.status().mode=="IDLE": last_physical=_host.activate_physical(_token,id)
-	elif final: last_physical=_host.confirm_physical_death(_token,id)
+	var impulse:=Vector3.ZERO
+	if reason in ["final_death","medical_downed"] and _native_impulse_context.get("event_id")==id and not _current(_binding).is_empty():
+		var proposal: Dictionary=_native_impulse_context.value
+		# Requests are bounded, physical velocities are never clamped.
+		if proposal.get("ok",false) and last_result.get("ok",false) and last_result.get("applied",false) and not _row.get("_invulnerable",false):
+			impulse=proposal.impulse_ns
+			if reason=="medical_downed":impulse=impulse.limit_length(MEDICAL_IMPULSE_MAX_NS)
+	if physical.status().mode=="IDLE":
+		var point_impulse:=impulse.normalized()*minf(POINT_MAX_NS,impulse.length()*POINT_SHARE)
+		var uniform_impulse:=impulse-point_impulse
+		if impulse!=Vector3.ZERO:
+			_events[id].impulse_ns=uniform_impulse
+			_events[id].already_solved_by_godot=false
+			_events[id].apply_again=true
+		last_physical=_host.activate_physical(_token,id)
+		if last_physical.get("ok",false) and impulse!=Vector3.ZERO:
+			last_impulse={"event_id":id,"impulse_ns":impulse,"reason":reason,"source_id":_token.source_id,"life_generation":_token.life_generation,"phase":"initial","requested_total_ns":impulse,"uniform_ns":uniform_impulse,"point_ns":Vector3.ZERO,"point":point}
+			last_impulse.impulse_ns=uniform_impulse
+			# Same completed HP receipt and activated physical lease; native point
+			# share is subtracted from uniform J, never added to the total budget.
+			if not _point_consumed.has(id) and _adapter.receipt(id)==last_result and not _current(_binding).is_empty() and _host._ragdolls.get(_token.source_id)==physical and physical.status().mode=="ACTIVE":
+				_point_consumed[id]=true
+				var applied: Dictionary=physical._body.apply_impulse(point,point_impulse,id+":point")
+				last_impulse["point_result"]=applied
+				if applied.get("ok",false):
+					last_impulse["point_lever_m"]=point-physical._body._bodies[applied.bone].global_position
+					last_impulse["point_torque_ns_m"]=last_impulse.point_lever_m.cross(point_impulse)
+					last_impulse.point_ns=point_impulse
+					last_impulse.impulse_ns=uniform_impulse+point_impulse
+	elif final:last_physical=_host.confirm_physical_death(_token,id)
+
 
 func physical_event(request: Dictionary) -> Dictionary:
 	if _current(_binding).is_empty() or request.get("mode")!="event" or not request.get("binding") is Dictionary or not _events.has(request.get("event_id","")): return {}
@@ -299,6 +353,7 @@ func should_pause_walk(source_now_ms: float = -1.0) -> bool:
 
 func dispose() -> void:
 	if blood!=null: blood.dispose(); blood=null
+	if marks!=null: marks.dispose(); marks=null
 	_ready=false
 	if _registry_key!=0 and _registries.has(_registry_key):
 		var owners: Dictionary=_registries[_registry_key].owners
@@ -312,4 +367,14 @@ func dispose() -> void:
 		if _effects.cosmetic_impact.is_connected(_on_native_impact): _effects.cosmetic_impact.disconnect(_on_native_impact)
 		if _effects.has_signal("projectile_resolved") and _effects.is_connected("projectile_resolved",_on_projectile_resolved): _effects.disconnect("projectile_resolved",_on_projectile_resolved)
 	if _adapter!=null: _adapter.dispose()
-	_adapter=null; _host=null; _weapons=null; _effects=null
+	_adapter=null; _head_zone=null; _host=null; _weapons=null; _effects=null
+
+## Geometry can refine only an existing accepted shot on this owned collider.
+func _head_contact(shot: Dictionary,impact: Dictionary) -> Dictionary:
+	if _head_zone==null or _row.get("_invulnerable",false) or _current(_binding).is_empty() or not _contact_shape(impact) or not _owns_collider(impact.get("collider")):return {}
+	var physical: RefCounted=_host._ragdolls[_token.source_id]
+	var excluded: Array[RID]=[_token.body.get_rid(),_weapons.player.get_rid()]
+	excluded.append_array(physical._body.body_rids())
+	var zone: Dictionary=_head_zone.classify(shot.muzzle,impact.direction,float(Rules.damage_profile(shot.weapon_id).range)*4.1,physical,_weapons.scene,excluded)
+	if not zone.is_empty(): zone["projectile_index"]=impact.get("projectileIndex",0)
+	return zone

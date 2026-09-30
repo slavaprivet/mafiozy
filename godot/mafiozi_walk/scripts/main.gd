@@ -21,7 +21,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23e"
+const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23g"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -34,6 +34,9 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_transport_enabled: bool = true
 @export var preview_start_at_vehicle: bool = true
 @export var preview_residents_enabled: bool = true
+@export var preview_final_dead_contact_enabled: bool = true
+const FINAL_DEAD_CONTACT_LIMITS: Dictionary = {"max_impulse_ns": 3.0, "impulse_ns_per_mps": 1.0, "max_point_delta_energy_j": 1.5, "max_linear_speed_mps": 2.5, "max_angular_speed_rps": 15.0, "cooldown_ms": 160} # Bounded per-contact limits; original masses and joint constraints preserved.
+var final_dead_contact_status := "disabled"
 @export var preview_resident_walk_enabled: bool = true
 @export var preview_melee_enabled: bool = true
 @export var preview_weapons_enabled: bool = true
@@ -203,6 +206,7 @@ func _ready() -> void:
 		preview_population = PreviewPopulation.new()
 		preview_population.setup(self, true, preview_resident_walk_enabled)
 		population_status = preview_population.status
+	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
 	preview_ready = true
 	_setup_preview_perf()
 	_last_frame_usec = Time.get_ticks_usec()
@@ -896,3 +900,16 @@ func _show_physics_fault() -> void:
 	label.add_theme_font_size_override("font_size", 20)
 	panel.add_child(label)
 	push_error("Character physics stopped: " + preview_transport.character_physics.fault_reason)
+
+
+func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONTACT_LIMITS) -> bool:
+	if preview_population == null or not is_instance_valid(_player) or not _player.has_method("set_final_dead_contact_owner"):
+		final_dead_contact_status = "unavailable_player_or_population"
+		return false
+	var registered: Dictionary = preview_population.setup_final_dead_contact(_player, measured_limits)
+	if not registered.get("ok",false):
+		final_dead_contact_status = str(registered.get("reason","owner_registration_failed"))
+		return false
+	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
+	final_dead_contact_status = "bound_waiting_final_death" if bound else "binding_failed"
+	return bound

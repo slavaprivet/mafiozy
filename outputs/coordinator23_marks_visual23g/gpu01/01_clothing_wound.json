@@ -1,0 +1,34 @@
+{
+	"actor": "resident_72",
+	"camera": "[X: (0.166367, 0.0, 0.986064), Y: (0.601507, 0.792395, -0.101485), Z: (-0.781352, 0.610008, 0.131828), O: (35.88817, 1.670172, -13.14122)]",
+	"camera_fov": 42.0,
+	"contact": {
+		"actor_transform_at_impact": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (36.385, 0.000783, -13.4)]",
+		"event_id": "resident_72:1:tt_pistol:1",
+		"incoming_direction": "(0.567757, 0.068381, -0.820351)",
+		"life_generation": 1,
+		"normal": "(-0.576742, 0.0, 0.816926)",
+		"point": "(36.15551, 1.217212, -13.1059)",
+		"shot_id": "tt_pistol:1",
+		"source_id": "resident_72",
+		"weapon_id": "tt_pistol"
+	},
+	"dead": false,
+	"draws": 86,
+	"eyes_closed": false,
+	"geometry": {
+		"clothing": true,
+		"event_id": "resident_72:1:tt_pistol:1",
+		"normal": "(-0.848852, 0.50886, 0.143217)",
+		"original_material": true,
+		"point": "(36.43993, 1.239412, -13.23431)",
+		"surface": "player_male_DEMO_core_FABRIC",
+		"triangles": 35
+	},
+	"head_proof": {},
+	"hp": 36,
+	"label": "01_clothing_wound",
+	"marks": 1,
+	"observer_only": true,
+	"original_materials_unchanged": true
+}

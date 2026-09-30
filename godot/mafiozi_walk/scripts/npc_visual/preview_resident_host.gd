@@ -612,3 +612,26 @@ func dispose() -> void:
 	_walk_preview.clear(); _walk_preview_enabled = false
 	var scene: Node3D = _scene.get_ref() if _scene != null else null
 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)
+
+
+## ARTIST-REVIEW PROPOSAL: explicit read-only capability registration.
+## Does not admit force, death, recovery or changes to collision ownership.
+func public_final_dead_contact_capabilities() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested or not _scene_alive(): return result
+	for host: RefCounted in _ragdolls.values():
+		var state: Dictionary = host.status()
+		if state.get("mode") not in ["IDLE", "ACTIVE"] or not state.get("binding") is Dictionary: continue
+		var binding: Dictionary = state.binding.duplicate(true)
+		if not physical_life_current(binding): continue
+		result.append({"ragdoll_host":host, "binding":binding, "current_life":Callable(self,"public_final_dead_contact_current").bind(host)})
+	return result
+
+
+## Same-generation host replacement also retires the old capability.
+func public_final_dead_contact_current(binding: Dictionary, expected_host: RefCounted) -> bool:
+	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested or not _scene_alive(): return false
+	if not is_instance_valid(expected_host) or _ragdolls.get(binding.get("source_id")) != expected_host: return false
+	if not physical_life_current(binding): return false
+	var state: Dictionary = expected_host.status()
+	return state.get("mode") == "ACTIVE" and state.get("final_dead") == true and not str(state.get("death_key", "")).is_empty()

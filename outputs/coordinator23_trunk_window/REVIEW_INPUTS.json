@@ -1,0 +1,9 @@
+{
+  "scripts/preview_player.gd": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+  "scripts/weapons/preview_weapons.gd": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+  "scripts/weapons/preview_weapon_cargo.gd": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+  "scripts/weapons/walk_trunk_window.gd": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+  "scripts/weapons/walk_weapon_ui.gd": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+  "scripts/weapons/weapon_aim_camera.gd": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+  "scripts/weapons/weapon_cargo_bridge.gd": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264"
+}

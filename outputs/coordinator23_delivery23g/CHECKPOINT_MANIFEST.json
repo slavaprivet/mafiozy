@@ -1,0 +1,798 @@
+{
+  "schema": "coordinator23.accepted23g-checkpoint/v1",
+  "base": "269b356ed2d1506b05d04d92f7d369b8b5a2c282",
+  "pack_sha256": "ae82e44c46cf3d5f420897c7e91d8a631691dbf4180d27c45342ff428916209e",
+  "scope": "Accepted scoped runtime, actual GUI and visual evidence. Full Walk migration remains incomplete.",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "bytes": 25828
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd.uid",
+      "sha256": "f82f848ed847138a78d89d85b6f90c665c5f5b0fb03a5e205f4525b6da3eae92",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_impulse.gd",
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "bytes": 2135
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_player.gd",
+      "sha256": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+      "bytes": 37786
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_player.gd.uid",
+      "sha256": "399a7b55aaf7806c83c7ef38f911f03f8e62c3b81a5c66ef2af41a9a58d0976f",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/player_corpse_contact.gd",
+      "sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "bytes": 6764
+    },
+    {
+      "path": "godot/mafiozi_walk/export_presets.cfg",
+      "sha256": "4fa384de55c6ecfcf075ad74fbe493b3e82ad1feab1383b156dfc09975530bb8",
+      "bytes": 9179
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_population.gd",
+      "sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "bytes": 8333
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_population.gd.uid",
+      "sha256": "23d708a920aed4438e588316b1287ef8d124994330ebd1ebf72d125e4537014d",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd",
+      "sha256": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f",
+      "bytes": 43374
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd.uid",
+      "sha256": "56e29bea0afdb02818f41104453f4af7070d01451415fc358b579fc04ba5316a",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd",
+      "sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "bytes": 42243
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd.uid",
+      "sha256": "f85521987dba020184f719fc8fce660b150bc915e6fc1bbe79b50fe56f26fee7",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_bullet_marks.gd",
+      "sha256": "14d769365d98603f2997ce2cf6dce40500a2a22198305fc3d15a8b7c2388c9e9",
+      "bytes": 23378
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "sha256": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+      "bytes": 5048
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd",
+      "sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "bytes": 6448
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd.uid",
+      "sha256": "4780d60998cfd797421bcfeaf1f4850bb7e6615730362db4dc5943b6e9938c0a",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/final_dead_contact_port.gd",
+      "sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "bytes": 14255
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_head_zone.gd",
+      "sha256": "f83544fdb13623d3f42221e94d88d93626f450972c085dac8286e988775cf2da",
+      "bytes": 12764
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "bytes": 10318
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd.uid",
+      "sha256": "6d5fe4ebc06f4efa44e27f20f367fd83c0ac0a8a33a1e80ea34a707994d13f39",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/data/preview_updates.json",
+      "sha256": "6fecf656d80f307cf660bc16d93542a55ae9aeb7075c7722a7c5b4967ea8251c",
+      "bytes": 1252
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd",
+      "sha256": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "bytes": 35393
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd.uid",
+      "sha256": "4574e894d81e47a52731dd819bef46474a218b7713a511513cc56941deafed62",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+      "bytes": 21513
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd.uid",
+      "sha256": "2673bd9030b7b9c5d1cc2e4c13cf3b9ffa56e6f06773992b6983ef29a8c6b869",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_trunk_window.gd",
+      "sha256": "13afa3ee94614e0392d0c7f7cb87a8bcae18cf2b51a7d3d3d44c7a252771a45e",
+      "bytes": 6916
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd",
+      "sha256": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "bytes": 11658
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd.uid",
+      "sha256": "0e35cb0438298d3f6ac118f42fd8718d774843f3a652bb124c75eac906e5267d",
+      "bytes": 19
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd",
+      "sha256": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+      "bytes": 8691
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd.uid",
+      "sha256": "eef72fe83414d8925db738f1862c4d9ec6a8bfd5caf67dcb05ce7b8f8880efeb",
+      "bytes": 20
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_cargo_bridge.gd",
+      "sha256": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+      "bytes": 12626
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_cargo_bridge.gd.uid",
+      "sha256": "a6db5f9ceeb2449c1a48ed3578f65ea7ba81b99ce61f5122d7918705dd9afcce",
+      "bytes": 19
+    },
+    {
+      "path": "docs/ai/COORDINATOR_23_MEMORY.md",
+      "sha256": "85bcc4be3b00c9dbd67814261a1148208376b28bd46a2b828cc8e2ac27dc3e93",
+      "bytes": 38220
+    },
+    {
+      "path": "docs/ai/COORDINATOR_23_HANDOFF.md",
+      "sha256": "f195124b88c41f2be14aced208db38b15be9a16235899400b5f9cbe693b0d0c8",
+      "bytes": 20041
+    },
+    {
+      "path": "docs/godot/MIGRATION_BOARD.md",
+      "sha256": "cdead94dc1b60d43fda63bf8a121952e621d910cc1de6d2814eb0da594565d38",
+      "bytes": 51688
+    },
+    {
+      "path": "docs/godot/WEAPONS_23G_CHECKPOINT.md",
+      "sha256": "b73e7ad0352670508ed68e55a1796341d136f56d70bd61712e801eb52d9b4bc7",
+      "bytes": 4624
+    },
+    {
+      "path": "outputs/coordinator23_quality/prepare_candidate10.py",
+      "sha256": "e1e783e19c9984b7afa80296bb178c6bd2df158dbfcd1e0a0ff8935d0b5ef4b9",
+      "bytes": 3967
+    },
+    {
+      "path": "outputs/coordinator23_quality/prepare_candidate11.py",
+      "sha256": "2b6962d89d49082c7329af15b4ec70e7a69563e5c9bc39c90a76d0ed2da14006",
+      "bytes": 1732
+    },
+    {
+      "path": "outputs/coordinator23_quality/promote_23g.py",
+      "sha256": "5f859da6a8279a3e0f9ca7c2312eb28ce468ec81afd2e30d3acd7c58591b5703",
+      "bytes": 3594
+    },
+    {
+      "path": "outputs/coordinator23_quality/open_23g.ps1",
+      "sha256": "2ff124e4789a713ead080e07a7a0dd23f7ed5a6061c538495bb176bca9d4db4c",
+      "bytes": 2699
+    },
+    {
+      "path": "outputs/coordinator23_quality/checkpoint_23g.py",
+      "sha256": "3e770d77fae2b1ab91a6724d50418001cdaced76ee3398333b66aeccf8cff354",
+      "bytes": 3931
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/preview_player.gd",
+      "sha256": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+      "bytes": 37786
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/weapons/preview_weapon_cargo.gd",
+      "sha256": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "bytes": 35393
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/weapons/preview_weapons.gd",
+      "sha256": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+      "bytes": 21122
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/weapons/walk_trunk_window.gd",
+      "sha256": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+      "bytes": 6096
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/weapons/walk_weapon_ui.gd",
+      "sha256": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "bytes": 11658
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/weapons/weapon_aim_camera.gd",
+      "sha256": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+      "bytes": 8691
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/files/scripts/weapons/weapon_cargo_bridge.gd",
+      "sha256": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+      "bytes": 12626
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/INDEPENDENT_REVIEW.md",
+      "sha256": "bf00adebb8ff3f1a3023ba4141865064d02e0705762571e7c375823a93a2afd2",
+      "bytes": 3561
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/merge.patch",
+      "sha256": "189e143a36aa780bdea618c8d8645dcf4504e4f221cef69e7b691ae5bc0806fa",
+      "bytes": 22900
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/native01.log",
+      "sha256": "bb1ba26ebdf8fd49ebefea3276d6ef1222bc8f4bf724ee7fdd6ba8f78aa41bc7",
+      "bytes": 514
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/prepare.py",
+      "sha256": "e90fce29cf6c3ba00393be1b0eafae00ac9aa9cbee9c2d3f5295fdeaea0e49b9",
+      "bytes": 10476
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/README.md",
+      "sha256": "829880b28344abffef435ba510cfad73a3bd5e8f7ef02c22d6f30c0181c5e2ba",
+      "bytes": 4001
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/RECEIPT.json",
+      "sha256": "6db74696e9bb738bc6c69e93862bc305a1a5ec9f056ae0d284398a11976a5290",
+      "bytes": 3247
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/RESULT01.json",
+      "sha256": "cc6f0feaeebad6c7fc54e2e966d81d5c180e8bbcc984ef47e6f221f8ce600f9d",
+      "bytes": 159
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/REVIEW_INPUTS.json",
+      "sha256": "aaa15c38d8e558164e03dce7950cddd137fb5d1ce9cf07e83047a5919fb69d29",
+      "bytes": 761
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/RUN01.json",
+      "sha256": "2d9ebb396603483189d1a776969c57b5ae7e752bd4e195126a3097cac545e512",
+      "bytes": 596
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/run_once.py",
+      "sha256": "408980b7b98c9ca9f646fefd948bb728dc04f90ccbc0dde25d3527e60b6fd8e9",
+      "bytes": 1257
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/STAGE_INPUTS.json",
+      "sha256": "5907c504ff2ec229d4b8bf1857a5ff341238b70e6077ee8886ae8b33fa768d65",
+      "bytes": 36286
+    },
+    {
+      "path": "outputs/coordinator23_trunk_window/test_native.gd",
+      "sha256": "3cd4eafafe4120e05ef855f2a333bcacea2f5ebcee7fd1d855591c6f76d84fcb",
+      "bytes": 7117
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/compiled11.log",
+      "sha256": "17e2009cd8ac89d7654305a2e73801cbcd985008923f934a6af4f3e4f9778e55",
+      "bytes": 1097
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/files/scripts/weapons/preview_weapons.gd",
+      "sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+      "bytes": 21513
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/files/scripts/weapons/walk_trunk_window.gd",
+      "sha256": "13afa3ee94614e0392d0c7f7cb87a8bcae18cf2b51a7d3d3d44c7a252771a45e",
+      "bytes": 6916
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/merge.patch",
+      "sha256": "6469113d89fcdffa05b656d41cc7d5e597c9a260bc3bcdf20764175cf1c6b5fd",
+      "bytes": 8202
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/native01.log",
+      "sha256": "20644d367e3b4a868550ea518be5aa79f0c7e242065c93520642e4d75e911bc9",
+      "bytes": 1097
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/native02.log",
+      "sha256": "17e2009cd8ac89d7654305a2e73801cbcd985008923f934a6af4f3e4f9778e55",
+      "bytes": 1097
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/README.md",
+      "sha256": "2a5232acfcf3f39edc30106ad447b5b105287fd496f697c3a466c541ac7eff68",
+      "bytes": 1739
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/RECEIPT.json",
+      "sha256": "2b01a64ba02032b4f6a850ad4d09e595b606a3a05e16ec8d5729a421ce12b15e",
+      "bytes": 1068
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/RESULT02.json",
+      "sha256": "9c590dd7f86d2741cddd2e4274db7c1867aed324b9a676ada9bbc4249756b575",
+      "bytes": 1208
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/RUN01.json",
+      "sha256": "7688688c83d8c6291e37098f45bc5b295ca94f62bad616f538cd79b2145b6a78",
+      "bytes": 592
+    },
+    {
+      "path": "outputs/coordinator23_trunk_layout11/test_native.gd",
+      "sha256": "8d437710004090e4fd3aca0b324c1cc3b5cae91b0c9a94343f3fc99c20508406",
+      "bytes": 9628
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/capture.gd",
+      "sha256": "d26afc431b7a47de2638e4b9da126df4ef9a7ecfb4744c68cbff66fd8bd2f594",
+      "bytes": 12734
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/01_trunk_14_1280x720.png",
+      "sha256": "885dd9b26d7a79df9c00ba7a0907e7b954a67fd4cdb1ddb664e94f5d27200ed4",
+      "bytes": 165509
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/02_trunk_14_800x600.png",
+      "sha256": "2295edb1a0c5283511692b76992f27e5033b53bc3e998d38876c50e78edfcd22",
+      "bytes": 72238
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/03_trunk_last_row_800x600.png",
+      "sha256": "e6304f815682d693f53ae1016c6c5051fe5d881e2af4e47b608cb26031dc1475",
+      "bytes": 69225
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/04_arsenal_800x600.png",
+      "sha256": "96936286376c624144ba60493786938f7eebddbbeec34adc5de92aed5c1211cf",
+      "bytes": 234966
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/engine.log",
+      "sha256": "bfc8642b3439bfd657dc2b704c758c756392500a7be4cd7bbd7ce14579b223b1",
+      "bytes": 1248
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/RESULT.json",
+      "sha256": "0b7f706e11ce33c22a9563e694542a4846ecdf555206c8ca91ae0b7521bc6f68",
+      "bytes": 77672
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu01/RUN.json",
+      "sha256": "6f8c5461f67e87ee96a8a1b910fdae3cee9386c9660f8f1b64963422784a323d",
+      "bytes": 1260
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/01_trunk_14_1280x720.png",
+      "sha256": "76ba7d686643152e3c4ad070794d62679cc1add8603b88538d17221afec012a8",
+      "bytes": 164173
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/02_trunk_14_800x600.png",
+      "sha256": "fa104205c62d2e15f0c7975d442008b30c53233a47c22e463c0c680294afd393",
+      "bytes": 80953
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/03_trunk_last_row_800x600.png",
+      "sha256": "26474ee035908ad5dadac119024f6f6a930e8674c5c75827ec3d25b976996dfc",
+      "bytes": 76702
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/04_arsenal_800x600.png",
+      "sha256": "e7b4e152752b98e542fe7c4bf0d63eaf7266cbdf4769cf96588d1985a5414c38",
+      "bytes": 98771
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/engine.log",
+      "sha256": "12048e67622a03d83a423bea5f81392e5ff7baa5b4b3897be1b11ff353441dc4",
+      "bytes": 489
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/RESULT.json",
+      "sha256": "a8e5547b24d3a09e704b39ba557d57cbbc8746e7ca3005cdda3e02b70d3f1c40",
+      "bytes": 77290
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/gpu11/RUN.json",
+      "sha256": "c3c9e5002503d098c49c8a0edc4c15e4da96908b0df77a213e78afe39e2a6382",
+      "bytes": 1260
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/PREPARED.json",
+      "sha256": "7f750ba2a47704b5b0d5e77f7b0aee44ac1029613bdba87442a5b3d300b1d9ad",
+      "bytes": 533
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/README.md",
+      "sha256": "2e1b4d29be2678eaf5d4b05314e04efd1be5406b0cb000d0ed72fa66671d4082",
+      "bytes": 2390
+    },
+    {
+      "path": "outputs/coordinator23_trunk_visual10/run_capture.py",
+      "sha256": "19f8425836797dd1a6a5a54206230924194f8945b1964c651ef83b55818a507c",
+      "bytes": 1944
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/EXACT_CURRENT10_PROMOTION.patch",
+      "sha256": "1d275ddd13d9734ecc30b8d480384b4a30bcc6ecf20b18fc3c6c9740bb6cbbca",
+      "bytes": 116001
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/FINAL11_GUARDS.json",
+      "sha256": "d0a992c694ce56f77b5f835476b0ba56824d9517da83dd4b62d69383eb3b60c5",
+      "bytes": 102239
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/FINAL11_PCK_ENTRIES.json",
+      "sha256": "a9b54be68a80b790798b941cd0dcb0c03100a5de0d5bb5c0aa99597e320ad284",
+      "bytes": 60346
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/GUARDED_PROMOTION.json",
+      "sha256": "61753d2f407c2e2715168f4634882a7cdc6b4df08d77ae4ba436c42060583285",
+      "bytes": 110585
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/PROMOTION_PLAN.md",
+      "sha256": "6e87937ad914876c8e82153c690dc1f71ebefbabb0b79bc2ab6f8e0b495d87c5",
+      "bytes": 4610
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/SCOPED_PATHS.txt",
+      "sha256": "800ae033e37e5514ba2096a576e339c4f2c8a8a9afe8e34b4092f8f630530474",
+      "bytes": 1158
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/verify_final11_readonly.py",
+      "sha256": "5019ffd0cef0cb771696b8ac74bce8402fc6fad0868253ed692b38caa64b6969",
+      "bytes": 7169
+    },
+    {
+      "path": "outputs/coordinator23_adoption11_guards/verify_readonly.py",
+      "sha256": "4c141f742bac1da0b396af4d0a3c16a4423bcb1a988e72482e85709c28503ec1",
+      "bytes": 8393
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/capture.gd",
+      "sha256": "f70c5d217033f48fe3391c68aadedc6512ddf0fc903c78ad27600a0b44051817",
+      "bytes": 14364
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/frozen_actual_input.gd",
+      "sha256": "1d4cbcfad790c55bc4338ef3b0d77bf28375dae9155d5e5c0b3c9e6cd2ef19d1",
+      "bytes": 10368
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/01_clothing_wound.json",
+      "sha256": "7e91df759498e03048ea5ed8fa0fd96ea347779c4d59cfb13b43814fd1b912e1",
+      "bytes": 1101
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/01_clothing_wound.png",
+      "sha256": "3f60e4c21c2f4cf23043bae73826797fd246921a42083461e488097320581c4d",
+      "bytes": 390342
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/02_head_skin_wound.json",
+      "sha256": "2c768cb11db9e92272de285220830de2c21afcfa540ff58ca0e5e438ae04b79d",
+      "bytes": 1443
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/02_head_skin_wound.png",
+      "sha256": "ec2d6c8055fd6cbdc63e7e88300faafcecda5c959479f548e8225f6b67ab4488",
+      "bytes": 89152
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/03_final_eyes_side_a.json",
+      "sha256": "b7e707c23f9531e73e55b654569b9536f801f113bc2797fdc5fc0c2731f6b113",
+      "bytes": 1196
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/03_final_eyes_side_a.png",
+      "sha256": "acfbe1b96dcf5885820aad5d8ca0ceaf0f1b30f208149990a08eef34056cf682",
+      "bytes": 88957
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/04_final_eyes_side_b.json",
+      "sha256": "adb41ebcbad48566a02f03209d227f0dff3459eddd5ef3c5fd13b3f73537ce6b",
+      "bytes": 1196
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/04_final_eyes_side_b.png",
+      "sha256": "885946d8cced767ab332f8caa0b8e52067d0cbc0dd38d65ffabc164c4b867bd1",
+      "bytes": 245727
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/engine.log",
+      "sha256": "8dd4c401c143bac27917bb2e4c8f43acb14aee44c636958814c50da937a46613",
+      "bytes": 2776
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/PHASE.json",
+      "sha256": "0203329c4aa13633cc8a3cfb2720bb58355ec706953bc2f70aea4a28b1e123e2",
+      "bytes": 274
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/RESULT.json",
+      "sha256": "0828a3c1f50d11d7c8891e29c9bc5e7af88900e28b7737b1411b11537105acd3",
+      "bytes": 2644
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/RUN.json",
+      "sha256": "c3a72780387814b254222988f1c41ef1c764a84d91988f94d8320290e753db0f",
+      "bytes": 1226
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/gpu01/VISUAL_RESULT.json",
+      "sha256": "29a925ecfb5e65016e6889030335c4fadc9d832c86855e0838e2fe9457bd95c3",
+      "bytes": 7868
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/HARNESS_PINS.json",
+      "sha256": "41681b9a6f67dab7cc48b8dbe37becba00ef95143e7fb51fb4de131994ffa840",
+      "bytes": 185
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless01/engine.log",
+      "sha256": "f530520a42f195f8c2b3a85461eab2bf82cdf00886b27c9efeacb89594db99fd",
+      "bytes": 2594
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless01/PHASE.json",
+      "sha256": "4f5c24b56a674c615c72afe4c0c1502a841938cbcf2ab7522585b5f8d03eef33",
+      "bytes": 275
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless01/RESULT.json",
+      "sha256": "fed48dd2ee801b2121645e429a03492f19027bbc2c95fd8f95bbde1d49820c5d",
+      "bytes": 2516
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless01/VISUAL_RESULT.json",
+      "sha256": "7e5b2c048fea06f0d9aad1f8f245da4e589009becbfd258dac8226ed83c061e2",
+      "bytes": 5016
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless_delayed300/engine.log",
+      "sha256": "7c4a9b60ff59f2af3d6349b0931579deefa9e20456a8ca085e2fbe132b63f5d2",
+      "bytes": 2592
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless_delayed300/PHASE.json",
+      "sha256": "75d33f40ebc8657e746e8c15b7d4bce4254963ad7a79930c99b1e4a68fea7f9f",
+      "bytes": 275
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless_delayed300/RESULT.json",
+      "sha256": "b0be161c06dc8a6a48e4c347ad45e2ef56ec4ce606dec8cb4b02258ef62643ee",
+      "bytes": 2514
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/headless_delayed300/VISUAL_RESULT.json",
+      "sha256": "4c77265b683c098f81cdcca79c1ad3f872e448709314967f5210cdd995756d99",
+      "bytes": 5017
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/prepare.py",
+      "sha256": "9d7d17ad37ac623cd1ab3346c290649290b3544f1f250b9e385f19f1f0858108",
+      "bytes": 5982
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/README.md",
+      "sha256": "2d804efccb7b2b66fd08a57cba8315b500c6ffad8e6dc58290d05187b7bcf2a9",
+      "bytes": 2830
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g/run_capture.py",
+      "sha256": "f80326eef4d3fe40eced8f602a0fcf58445f81e85475081c8c5800035ca99bbf",
+      "bytes": 1734
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/capture.gd",
+      "sha256": "065217ed53ba909a73f1e0c3e74f07458f663e37ca87c188f17ed46f43881ea1",
+      "bytes": 19303
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/frozen_actual_input.gd",
+      "sha256": "1d4cbcfad790c55bc4338ef3b0d77bf28375dae9155d5e5c0b3c9e6cd2ef19d1",
+      "bytes": 10368
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/01_clothing_wound.json",
+      "sha256": "67be2b0e60acebf38a56a661c634785d5e5e11507be5bd58da6ffa80c4ac8bae",
+      "bytes": 1510
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/01_clothing_wound.png",
+      "sha256": "0af8b7f665c8bd451dd7b272ce0ca6051007e12a71fb504111ee8a3863b8c49b",
+      "bytes": 390491
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/02_head_skin_wound.json",
+      "sha256": "8c6e3138eeafddf0b854119ea94ce7755d5ffb3be94c66b4442ffd2ce858cacf",
+      "bytes": 1847
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/02_head_skin_wound.png",
+      "sha256": "24c5beab5e754b79a6652bcdc24d5d5a644b7a4098e7a730e411dca9efd58281",
+      "bytes": 319127
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/03_final_eyes_side_a.json",
+      "sha256": "75e42cbcb093b4a380035a6404513dc02060e3aea77f0660ba8dad3e6cd767c5",
+      "bytes": 1599
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/03_final_eyes_side_a.png",
+      "sha256": "2b5d5074b744a72f535b0a3c4784caa8b5d6b66a0bb515eb70ebefdfea26448d",
+      "bytes": 293129
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/04_final_eyes_side_b.json",
+      "sha256": "514adc6326be64fe3b7d144df45cf728a88a874ae934fcc30436aa5a4c313f62",
+      "bytes": 1593
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/04_final_eyes_side_b.png",
+      "sha256": "67f7c33dcf620374c39efd78110f6c18d1dd810ca0a970997c0690fc96d609c6",
+      "bytes": 339359
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/engine.log",
+      "sha256": "8ba6bc48a0de3ebc999f33f1edc206061b10581fce2711463a8bfe7df89dc7ec",
+      "bytes": 2775
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/PHASE.json",
+      "sha256": "3b7edcd0d1f77eda0e26dfd560ef3d4768b0c6ab900848f59270859ab1cb8feb",
+      "bytes": 275
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/RESULT.json",
+      "sha256": "af5c5b02baffbefdf730649238210180d530c48c6c06533e48d2d57d5976b8ed",
+      "bytes": 2642
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/RUN.json",
+      "sha256": "4473c51e4be588dd331404a8fcabe1597681385294b8c905d406795540c492bd",
+      "bytes": 1238
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/gpu01/VISUAL_RESULT.json",
+      "sha256": "1cf3e2e05de5272555b803703f93eb785211b15eb7b1961738293c52db6a45e2",
+      "bytes": 9574
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/HARNESS_PINS.json",
+      "sha256": "8f1c873567bdbd087fa3d72166f68d8d7c0ff129d4b32840d1b802ee2fabdc2d",
+      "bytes": 185
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/headless01/engine.log",
+      "sha256": "1b921c07db55953bffed7a104587505b15d8b7ab0ddcf065836e88b56ddf68e7",
+      "bytes": 2595
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/headless01/PHASE.json",
+      "sha256": "4d5b2073646bee93bab6f01dc98a0f6914f6e6fb85a0f4c478ca5213ddd17d58",
+      "bytes": 275
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/headless01/RESULT.json",
+      "sha256": "f1ee487393c71d4a6f7458540c8c797862417cb7b61a8c6aaae5354c811291b6",
+      "bytes": 2517
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/headless01/VISUAL_RESULT.json",
+      "sha256": "da847de544e4018fd6fe67aa30801db49e90d3f9a274f01469e37e6427b21006",
+      "bytes": 6726
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/prepare.py",
+      "sha256": "e81a04e6f8910de16918660477d4a89f9ad45b2918a74c7bab2b55a26cbbf5d3",
+      "bytes": 7108
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/README.md",
+      "sha256": "ff19394f1fca4ca452f08ab986ee1bcf58d3be1065d42e6869eb2d6a3ce6fb47",
+      "bytes": 2399
+    },
+    {
+      "path": "outputs/coordinator23_marks_visual23g_clear/run_capture.py",
+      "sha256": "f80326eef4d3fe40eced8f602a0fcf58445f81e85475081c8c5800035ca99bbf",
+      "bytes": 1734
+    },
+    {
+      "path": "outputs/coordinator23_delivery23g/PROMOTION.json",
+      "sha256": "c25bc803b59f3ee54e6b817bf58cf125ed9c0d5d962938187eec3d3e416c3fa6",
+      "bytes": 20025
+    },
+    {
+      "path": "outputs/coordinator23_delivery23g/RUNNING.json",
+      "sha256": "dfcb771477915fc2427adec156b35ba2376f6d6423955bdd862de8346a8bf657",
+      "bytes": 1708
+    },
+    {
+      "path": "outputs/coordinator23_delivery23g/shared_startup.log",
+      "sha256": "34f29f9cd221309a3e55f3c8954ada82b127981af741eb91d9493910bf85c8f3",
+      "bytes": 638
+    },
+    {
+      "path": "outputs/coordinator23_compiled10/contact01/PHASE.json",
+      "sha256": "9e8487c0aa41786abfb73a21b29c803a69a6e63e152dc32b58b0667a080303e9",
+      "bytes": 273
+    },
+    {
+      "path": "outputs/coordinator23_compiled10/contact01/RESULT.json",
+      "sha256": "8d57a4cf900abdc13cd6a565e53121cf0b2826ea8bdfde0fcef0c5e6feead021",
+      "bytes": 13116
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate10/INTEGRATION.json",
+      "sha256": "ad051275350955750f708a3c7ea5e6358e2ac066849b2a1aea9cd57a866fcd33",
+      "bytes": 9372
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/exports/win64/s01-20260930-quality23g/build_receipt.json",
+      "sha256": "9dc8e597a9e6c3bfd0ff7becf194b81556da7dd2a50f0e703f261945bc3ce23e",
+      "bytes": 55683
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate11/INTEGRATION.json",
+      "sha256": "2233b2795816827a21ebb5b33d40713332b9277b0040aa0eae8e6362446c9b24",
+      "bytes": 9431
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate11/godot/mafiozi_walk/exports/win64/s01-20260930-quality23g/build_receipt.json",
+      "sha256": "da2c3fc9a215895d69dd2434e15ca551e78e3fc380530d5af68f6977553d607f",
+      "bytes": 55683
+    },
+    {
+      "path": "outputs/coordinator23_compiled10/trunk01.log",
+      "sha256": "bb1ba26ebdf8fd49ebefea3276d6ef1222bc8f4bf724ee7fdd6ba8f78aa41bc7",
+      "bytes": 514
+    }
+  ]
+}

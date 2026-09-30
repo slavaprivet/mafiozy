@@ -1,4 +1,19 @@
-## 30 September 05:38 — current accepted checkpoint 23e
+## 30 September 12:39 — accepted23g trunk window and combat integration
+
+User's requested trunk contents window delivered in exact PCK
+ae82e44c46cf3d5f420897c7e91d8a631691dbf4180d27c45342ff428916209e.
+E at open trunk gives large Take/Store cards with finite ammo, UID and100capacity;
+14items checked. Compiled233/actualGUI120 PASS including800x600. Project-root
+shortcut and21 scoped shared F5 sources updated; ordinary shared startup PASS.
+Head/cloth/skin/point impulse/public foot contact jointly checked; source/GPU
+evidence and exact measurement limits: WEAPONS_23G_CHECKPOINT.md. Original
+Artist preload retained; foreign palette/transport WIP untouched. Initial game
+PID12304, fresh inventory required. Main269b356 was previous proof checkpoint;
+read Git for subsequent accepted-runtime save. Full migration, blastHP/authority,
+medical recovery/fullNPC city still incomplete. CPU/GPU test window RELEASED;
+one user game retained. Pinned5 remains stopped, agents report only through HQ.
+
+## 30 September 05:38 — earlier accepted checkpoint 23e
 
 Remote main523a54eb5befc133a3dfbe8e430e30e8ca1d3713 verified. Accepted23e
 weapon UI/aim/real-wall marks/cargo-memory improvement + Artist COMBINED13guns

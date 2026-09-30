@@ -1,0 +1,2075 @@
+{
+  "created_utc": "2026-09-30T09:31:35.723880+00:00",
+  "status": "GUARDS_READY_AWAIT_LAYOUT11_ACCEPTANCE",
+  "errors": [],
+  "engine_run": false,
+  "git_run": false,
+  "shared_mutations": false,
+  "candidate_mutations": false,
+  "promotion_performed": false,
+  "prior15_count": 15,
+  "extra_trunk_count": 6,
+  "scope_count": 21,
+  "inputs_verified": 204,
+  "guards": [
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "relative_path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "expected_current_sha256": "7e203b256f73fdf7348af2a532338af5c76c88ce570ab1d17e127854195386a5",
+      "prior_expected_current_sha256": "7e203b256f73fdf7348af2a532338af5c76c88ce570ab1d17e127854195386a5",
+      "target_current10_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_impulse.gd",
+      "relative_path": "scripts/npc_visual/npc_hit_impulse.gd",
+      "expected_current_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "prior_expected_current_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "target_current10_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_hit_impulse.gd",
+      "action": "KEEP_IDENTICAL",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_player.gd",
+      "relative_path": "scripts/preview_player.gd",
+      "expected_current_sha256": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493",
+      "prior_expected_current_sha256": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493",
+      "target_current10_sha256": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/preview_player.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/player_corpse_contact.gd",
+      "relative_path": "scripts/player_corpse_contact.gd",
+      "expected_current_sha256": null,
+      "prior_expected_current_sha256": null,
+      "target_current10_sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/player_corpse_contact.gd",
+      "action": "CREATE_ONLY_IF_ABSENT",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/export_presets.cfg",
+      "relative_path": "export_presets.cfg",
+      "expected_current_sha256": "2e32e4f4516a3d425c9e408131a7491e808794361dd5ba085b1ec02346816749",
+      "prior_expected_current_sha256": "2e32e4f4516a3d425c9e408131a7491e808794361dd5ba085b1ec02346816749",
+      "target_current10_sha256": "4fa384de55c6ecfcf075ad74fbe493b3e82ad1feab1383b156dfc09975530bb8",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/export_presets.cfg",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_population.gd",
+      "relative_path": "scripts/preview_population.gd",
+      "expected_current_sha256": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366",
+      "prior_expected_current_sha256": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366",
+      "target_current10_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/preview_population.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd",
+      "relative_path": "scripts/main.gd",
+      "expected_current_sha256": "59850cd423a83223422b4c3d6a58284f559990c865cc1d9ba9fb7cee39ca1740",
+      "prior_expected_current_sha256": "59850cd423a83223422b4c3d6a58284f559990c865cc1d9ba9fb7cee39ca1740",
+      "target_current10_sha256": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/main.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd",
+      "relative_path": "scripts/npc_visual/preview_resident_host.gd",
+      "expected_current_sha256": "f6e95a9000fa2c1c9f64aa7a66c67a3eed7e9bf2edb91a260e20f50d1367f125",
+      "prior_expected_current_sha256": "f6e95a9000fa2c1c9f64aa7a66c67a3eed7e9bf2edb91a260e20f50d1367f125",
+      "target_current10_sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_bullet_marks.gd",
+      "relative_path": "scripts/npc_visual/npc_bullet_marks.gd",
+      "expected_current_sha256": null,
+      "prior_expected_current_sha256": null,
+      "target_current10_sha256": "14d769365d98603f2997ce2cf6dce40500a2a22198305fc3d15a8b7c2388c9e9",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_bullet_marks.gd",
+      "action": "CREATE_ONLY_IF_ABSENT",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "relative_path": "scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "expected_current_sha256": null,
+      "prior_expected_current_sha256": null,
+      "target_current10_sha256": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "action": "CREATE_ONLY_IF_ABSENT",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd",
+      "relative_path": "scripts/npc_visual/npc_blood_renderer.gd",
+      "expected_current_sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "prior_expected_current_sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "target_current10_sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/final_dead_contact_port.gd",
+      "relative_path": "scripts/npc_visual/final_dead_contact_port.gd",
+      "expected_current_sha256": null,
+      "prior_expected_current_sha256": null,
+      "target_current10_sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/final_dead_contact_port.gd",
+      "action": "CREATE_ONLY_IF_ABSENT",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_head_zone.gd",
+      "relative_path": "scripts/npc_visual/npc_head_zone.gd",
+      "expected_current_sha256": "99b61a6e0ccf394617af389dc5362c3e7052bb2a3a8db6c27a5572980f06775e",
+      "prior_expected_current_sha256": "99b61a6e0ccf394617af389dc5362c3e7052bb2a3a8db6c27a5572980f06775e",
+      "target_current10_sha256": "f83544fdb13623d3f42221e94d88d93626f450972c085dac8286e988775cf2da",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_head_zone.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "relative_path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "expected_current_sha256": "7b01789e7213abf154c2fdfe7bfc5969160605c4cd86b8ff7a3070507aee8230",
+      "prior_expected_current_sha256": "7b01789e7213abf154c2fdfe7bfc5969160605c4cd86b8ff7a3070507aee8230",
+      "target_current10_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/data/preview_updates.json",
+      "relative_path": "data/preview_updates.json",
+      "expected_current_sha256": "f6c7af6af79e6ea7cd5418c42077a5f9fda470cebeedabec43e5a5dd2368f274",
+      "prior_expected_current_sha256": "f6c7af6af79e6ea7cd5418c42077a5f9fda470cebeedabec43e5a5dd2368f274",
+      "target_current10_sha256": "6fecf656d80f307cf660bc16d93542a55ae9aeb7075c7722a7c5b4967ea8251c",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/data/preview_updates.json",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "prior15_root_npc",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd",
+      "relative_path": "scripts/weapons/preview_weapon_cargo.gd",
+      "expected_current_sha256": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9",
+      "prior_expected_current_sha256": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9",
+      "target_current10_sha256": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "extra6_trunk",
+      "future_layout11_overlay_possible": true,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "relative_path": "scripts/weapons/preview_weapons.gd",
+      "expected_current_sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+      "prior_expected_current_sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+      "target_current10_sha256": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "extra6_trunk",
+      "future_layout11_overlay_possible": true,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_trunk_window.gd",
+      "relative_path": "scripts/weapons/walk_trunk_window.gd",
+      "expected_current_sha256": null,
+      "prior_expected_current_sha256": null,
+      "target_current10_sha256": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/weapons/walk_trunk_window.gd",
+      "action": "CREATE_ONLY_IF_ABSENT",
+      "origin": "extra6_trunk",
+      "future_layout11_overlay_possible": true,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": null
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd",
+      "relative_path": "scripts/weapons/walk_weapon_ui.gd",
+      "expected_current_sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "prior_expected_current_sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "target_current10_sha256": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "extra6_trunk",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd",
+      "relative_path": "scripts/weapons/weapon_aim_camera.gd",
+      "expected_current_sha256": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "prior_expected_current_sha256": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "target_current10_sha256": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "extra6_trunk",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_cargo_bridge.gd",
+      "relative_path": "scripts/weapons/weapon_cargo_bridge.gd",
+      "expected_current_sha256": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf",
+      "prior_expected_current_sha256": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf",
+      "target_current10_sha256": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+      "target_source": "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/scripts/weapons/weapon_cargo_bridge.gd",
+      "action": "GUARDED_REPLACE_EXACT_BYTES",
+      "origin": "extra6_trunk",
+      "future_layout11_overlay_possible": false,
+      "final11_sha256": null,
+      "trunk_receipt_before_sha256": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf"
+    }
+  ],
+  "preserve_three_unscoped": [
+    {
+      "path": "scripts/preview_update_panel.gd",
+      "current_sha256": "bff22dbcd6ad068f59796512be2e3d9b52aca39f48f5f23ac04fa60faccf05e7",
+      "target_current10_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a",
+      "receipt_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": false
+    },
+    {
+      "path": "scripts/transport/transport_access_provider.gd",
+      "current_sha256": "d0386f508fbfedf5c9a73035ff7716d26ca02e4160bd0c7bc8d62291c1db887b",
+      "target_current10_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "receipt_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": false
+    },
+    {
+      "path": "scripts/transport/transport_descriptor_catalog.gd",
+      "current_sha256": "9a6923c3eeab011946667449b8ccad1085651c0e8ee4ec86fff62fb971868f52",
+      "target_current10_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "receipt_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": false
+    }
+  ],
+  "all_unscoped_differences_preserve": [
+    {
+      "path": "scenes/main.tscn",
+      "current_sha256": "b30a6aca7fef43d24ca4027f957fc411bd0bcddd36555a03ec646cee0e2689a6",
+      "target_current10_sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde",
+      "receipt_sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": true
+    },
+    {
+      "path": "scripts/preview_interior_finish.gd",
+      "current_sha256": "f2137740ac1b31669454f18c258db3560bf3c9eb9ff35b0a00875db0ee6bb497",
+      "target_current10_sha256": "666bb28093d3bc9fbf17b702dda9c460d1364c64dee63c236b02fc9d80519ced",
+      "receipt_sha256": "666bb28093d3bc9fbf17b702dda9c460d1364c64dee63c236b02fc9d80519ced",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": true
+    },
+    {
+      "path": "scripts/preview_printshop_interior.gd",
+      "current_sha256": "300b48c8efa0d0b953514b36e0c0319febfd6d9a2ff61450601a45e1109e37f4",
+      "target_current10_sha256": "f6f082584ada23dcd55b384c629505730c80a59080768910a17c653d7eb1b5df",
+      "receipt_sha256": "f6f082584ada23dcd55b384c629505730c80a59080768910a17c653d7eb1b5df",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": true
+    },
+    {
+      "path": "scripts/preview_update_panel.gd",
+      "current_sha256": "bff22dbcd6ad068f59796512be2e3d9b52aca39f48f5f23ac04fa60faccf05e7",
+      "target_current10_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a",
+      "receipt_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": false
+    },
+    {
+      "path": "scripts/preview_water_material.gd",
+      "current_sha256": "51f3d2d5f6c744cc98b0131a62d2acb1e97b8327f2235702b9b1896615952d88",
+      "target_current10_sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09",
+      "receipt_sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": true
+    },
+    {
+      "path": "scripts/preview_water_surface.gd",
+      "current_sha256": "7d89235d93f31dd565aadf37f549a05074bec5534acfb120543228f1dba2655c",
+      "target_current10_sha256": "19dc5dcde715826117daed263342d1af71f1b6f7bb6607cddea894bd7fff04bd",
+      "receipt_sha256": "19dc5dcde715826117daed263342d1af71f1b6f7bb6607cddea894bd7fff04bd",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": true
+    },
+    {
+      "path": "scripts/transport/transport_access_provider.gd",
+      "current_sha256": "d0386f508fbfedf5c9a73035ff7716d26ca02e4160bd0c7bc8d62291c1db887b",
+      "target_current10_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "receipt_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": false
+    },
+    {
+      "path": "scripts/transport/transport_actor_transition.gd",
+      "current_sha256": "c9ed1ad7205c74d1131cfda0588f8c862fb1ae6cf64d7b42c83b25f1b0df4c6f",
+      "target_current10_sha256": "82353738b20d76679ee0202b9a00591c80592978c7b8ddcea2c3f95eff074766",
+      "receipt_sha256": "82353738b20d76679ee0202b9a00591c80592978c7b8ddcea2c3f95eff074766",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": true
+    },
+    {
+      "path": "scripts/transport/transport_descriptor_catalog.gd",
+      "current_sha256": "9a6923c3eeab011946667449b8ccad1085651c0e8ee4ec86fff62fb971868f52",
+      "target_current10_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "receipt_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "action": "PRESERVE_SHARED_DO_NOT_COPY",
+      "newline_only": false
+    }
+  ],
+  "shared_drift_since09": [],
+  "export_entries_added": [
+    "scripts/npc_visual/final_dead_contact_port.gd",
+    "scripts/npc_visual/npc_bullet_marks.gd",
+    "scripts/npc_visual/npc_hit_marks_adapter.gd",
+    "scripts/player_corpse_contact.gd",
+    "scripts/weapons/walk_trunk_window.gd"
+  ],
+  "export_entries_removed": [],
+  "literal_dependencies": [
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/npc_visual/npc_head_zone.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/npc_visual/npc_hit_impulse.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/npc_visual/npc_blood_adapter.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/npc_visual/npc_preview_source_provider.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "dependency": "scripts/weapons/weapon_hit_rules.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_hit_impulse.gd",
+      "dependency": "scripts/weapons/weapon_hit_rules.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_player.gd",
+      "dependency": "scripts/player_corpse_contact.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_player.gd",
+      "dependency": "scripts/preview_airborne.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_player.gd",
+      "dependency": "scripts/preview_dive.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_player.gd",
+      "dependency": "scripts/preview_locomotion.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_population.gd",
+      "dependency": "scripts/navigation/path_job_queue.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_population.gd",
+      "dependency": "scripts/navigation/preview_navigation_host.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_population.gd",
+      "dependency": "scripts/npc_visual/final_dead_contact_port.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_population.gd",
+      "dependency": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_population.gd",
+      "dependency": "scripts/npc_visual/preview_resident_host.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/preview_population.gd",
+      "dependency": "scripts/npc_visual/preview_resident_world_policy.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/character_physics/player_impact_host.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/combat/melee_physical_pose.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/combat/preview_melee.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/perf/preview_perf_adapter.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_block_validation.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_boundary.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_player.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_population.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_printshop_interior.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_static_batch.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_surface_materials.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_transport.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_update_panel.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/preview_water_surface.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/weapons/preview_weapon_cargo.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/main.gd",
+      "dependency": "scripts/weapons/preview_weapons.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/navigation/path_job_queue.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/navigation/preview_navigation_host.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/npc_visual/npc_preview_activity.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/npc_visual/npc_preview_source_provider.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/npc_visual/npc_ragdoll_host.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/npc_visual/npc_visual_cache.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/preview_resident_host.gd",
+      "dependency": "scripts/preview_locomotion.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "dependency": "scripts/npc_visual/npc_bullet_marks.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "dependency": "scripts/weapons/weapon_hit_rules.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/preview_water_surface.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/transport/transport_cargo_evidence.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/transport/trunk/transport_trunk_cargo_store.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapon_visual/weapon_visual_catalog.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/cargo_aim_picker.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/ground_weapon_rules.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/walk_cargo_card.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/walk_trunk_window.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/weapon_cargo_bridge.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/weapon_fire.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapon_cargo.gd",
+      "dependency": "scripts/weapons/weapon_pickup_visuals.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/player_weapon_presentation.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/rpg_effects.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/walk_weapon_ui.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/weapon_aim_camera.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/weapon_fire.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/weapon_inventory.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/weapon_posture_base.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/weapon_projectiles.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/preview_weapons.gd",
+      "dependency": "scripts/weapons/weapon_surface_impacts.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/walk_trunk_window.gd",
+      "dependency": "scripts/weapons/walk_weapon_ui.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/walk_weapon_ui.gd",
+      "dependency": "scripts/weapons/walk_weapon_crosshair.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/weapon_aim_camera.gd",
+      "dependency": "scripts/weapons/weapon_fire.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/weapon_cargo_bridge.gd",
+      "dependency": "scripts/transport/trunk/transport_trunk_cargo_store.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/weapon_cargo_bridge.gd",
+      "dependency": "scripts/weapons/weapon_cargo_sizes.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    },
+    {
+      "consumer": "scripts/weapons/weapon_cargo_bridge.gd",
+      "dependency": "scripts/weapons/weapon_inventory.gd",
+      "exists_candidate": true,
+      "exists_after_scoped_promotion": true
+    }
+  ],
+  "source_inputs": [
+    {
+      "path": "addons/npc_source_receipts/export_plugin.gd",
+      "current_sha256": "fa2cc9fb17d56c31dc4a738487020f3c877ca89cdb3cea0345ce834ac636092a",
+      "target_current10_sha256": "fa2cc9fb17d56c31dc4a738487020f3c877ca89cdb3cea0345ce834ac636092a",
+      "receipt_sha256": "fa2cc9fb17d56c31dc4a738487020f3c877ca89cdb3cea0345ce834ac636092a"
+    },
+    {
+      "path": "addons/npc_source_receipts/plugin.cfg",
+      "current_sha256": "84447b81c4df11957a788bc204d6f2f348d906f67960af58e44ca7649c17bcf8",
+      "target_current10_sha256": "84447b81c4df11957a788bc204d6f2f348d906f67960af58e44ca7649c17bcf8",
+      "receipt_sha256": "84447b81c4df11957a788bc204d6f2f348d906f67960af58e44ca7649c17bcf8"
+    },
+    {
+      "path": "addons/npc_source_receipts/plugin.gd",
+      "current_sha256": "f03a77b1055fff9591fdf066b64109a8fb0638fd18933ec053a16460da9284fb",
+      "target_current10_sha256": "f03a77b1055fff9591fdf066b64109a8fb0638fd18933ec053a16460da9284fb",
+      "receipt_sha256": "f03a77b1055fff9591fdf066b64109a8fb0638fd18933ec053a16460da9284fb"
+    },
+    {
+      "path": "assets/buildings/gun_shop.e97d6fac4097.glb",
+      "current_sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755",
+      "target_current10_sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755",
+      "receipt_sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755"
+    },
+    {
+      "path": "assets/buildings/gun_shop.e97d6fac4097.glb.import",
+      "current_sha256": "fc1403055544db1110ca3a4bf7258d294159310eb114c29af3aaf767433ff8ea",
+      "target_current10_sha256": "fc1403055544db1110ca3a4bf7258d294159310eb114c29af3aaf767433ff8ea",
+      "receipt_sha256": "fc1403055544db1110ca3a4bf7258d294159310eb114c29af3aaf767433ff8ea"
+    },
+    {
+      "path": "assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "current_sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+      "target_current10_sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+      "receipt_sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067"
+    },
+    {
+      "path": "assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb.import",
+      "current_sha256": "e9666e6559c5526f9f5ba130f12fd0f288db9bc293716a3743a7c9be5e6d4b29",
+      "target_current10_sha256": "e9666e6559c5526f9f5ba130f12fd0f288db9bc293716a3743a7c9be5e6d4b29",
+      "receipt_sha256": "e9666e6559c5526f9f5ba130f12fd0f288db9bc293716a3743a7c9be5e6d4b29"
+    },
+    {
+      "path": "assets/buildings/pawnshop.1a95f97569d9.glb",
+      "current_sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f",
+      "target_current10_sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f",
+      "receipt_sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f"
+    },
+    {
+      "path": "assets/buildings/pawnshop.1a95f97569d9.glb.import",
+      "current_sha256": "70906054c60b90b33a963f48577b9bd1a13c76df24af228b133596658f023cb2",
+      "target_current10_sha256": "70906054c60b90b33a963f48577b9bd1a13c76df24af228b133596658f023cb2",
+      "receipt_sha256": "70906054c60b90b33a963f48577b9bd1a13c76df24af228b133596658f023cb2"
+    },
+    {
+      "path": "assets/buildings/print_shop.ad7b8ef7e7e4.glb",
+      "current_sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "target_current10_sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+      "receipt_sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97"
+    },
+    {
+      "path": "assets/buildings/print_shop.ad7b8ef7e7e4.glb.import",
+      "current_sha256": "92d09f8a1bfb3995737d10e1fcf50db2ed11123125760b97376c2636976273ba",
+      "target_current10_sha256": "92d09f8a1bfb3995737d10e1fcf50db2ed11123125760b97376c2636976273ba",
+      "receipt_sha256": "92d09f8a1bfb3995737d10e1fcf50db2ed11123125760b97376c2636976273ba"
+    },
+    {
+      "path": "assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "current_sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+      "target_current10_sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+      "receipt_sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+    },
+    {
+      "path": "assets/decor/lamp_bellini_v1.81c8b123ded3.glb.import",
+      "current_sha256": "d584a782c258460347ff89009e00e941c62df59ceefcbc0c78b859b140452581",
+      "target_current10_sha256": "d584a782c258460347ff89009e00e941c62df59ceefcbc0c78b859b140452581",
+      "receipt_sha256": "d584a782c258460347ff89009e00e941c62df59ceefcbc0c78b859b140452581"
+    },
+    {
+      "path": "assets/hero.glb",
+      "current_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+      "target_current10_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+      "receipt_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00"
+    },
+    {
+      "path": "assets/hero.glb.import",
+      "current_sha256": "34ab2a37b29d2f0133b3974fc5f3ebccb8c7264c3ad71b3017abd36be46a924e",
+      "target_current10_sha256": "34ab2a37b29d2f0133b3974fc5f3ebccb8c7264c3ad71b3017abd36be46a924e",
+      "receipt_sha256": "34ab2a37b29d2f0133b3974fc5f3ebccb8c7264c3ad71b3017abd36be46a924e"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/assets_manifest.json",
+      "current_sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f",
+      "target_current10_sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f",
+      "receipt_sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res",
+      "current_sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1",
+      "target_current10_sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1",
+      "receipt_sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res",
+      "current_sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b",
+      "target_current10_sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b",
+      "receipt_sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res",
+      "current_sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956",
+      "target_current10_sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956",
+      "receipt_sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res",
+      "current_sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d",
+      "target_current10_sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d",
+      "receipt_sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res",
+      "current_sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5",
+      "target_current10_sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5",
+      "receipt_sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5"
+    },
+    {
+      "path": "assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res",
+      "current_sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85",
+      "target_current10_sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85",
+      "receipt_sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85"
+    },
+    {
+      "path": "assets/npc_visual/session/e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096.json",
+      "current_sha256": "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+      "target_current10_sha256": "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+      "receipt_sha256": "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096"
+    },
+    {
+      "path": "assets/npc_visual/session/prepared/31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f.scn",
+      "current_sha256": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f",
+      "target_current10_sha256": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f",
+      "receipt_sha256": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f"
+    },
+    {
+      "path": "assets/npc_visual/session/prepared/604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe.scn",
+      "current_sha256": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe",
+      "target_current10_sha256": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe",
+      "receipt_sha256": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe"
+    },
+    {
+      "path": "assets/npc_visual/session/prepared/60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22.scn",
+      "current_sha256": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22",
+      "target_current10_sha256": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22",
+      "receipt_sha256": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22"
+    },
+    {
+      "path": "assets/npc_visual/session/prepared/manifest.json",
+      "current_sha256": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0",
+      "target_current10_sha256": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0",
+      "receipt_sha256": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0"
+    },
+    {
+      "path": "assets/vehicle_visual/city_ambulance.a986c0525921.glb.bytes",
+      "current_sha256": "a986c05259215bddf6ef98b328d937501ad8dc803365376c2f0372a2ea07e233",
+      "target_current10_sha256": "a986c05259215bddf6ef98b328d937501ad8dc803365376c2f0372a2ea07e233",
+      "receipt_sha256": "a986c05259215bddf6ef98b328d937501ad8dc803365376c2f0372a2ea07e233"
+    },
+    {
+      "path": "assets/vehicle_visual/city_bus.a7c922603eb9.glb.bytes",
+      "current_sha256": "a7c922603eb97451ac124b7005c9c9f6cbcf88689701d05a40ddefb5f6b40c78",
+      "target_current10_sha256": "a7c922603eb97451ac124b7005c9c9f6cbcf88689701d05a40ddefb5f6b40c78",
+      "receipt_sha256": "a7c922603eb97451ac124b7005c9c9f6cbcf88689701d05a40ddefb5f6b40c78"
+    },
+    {
+      "path": "assets/vehicle_visual/city_hatchback.bd8f755516c8.glb.bytes",
+      "current_sha256": "bd8f755516c88b94df7193d5af45b9770f8466ab318fd31440bcf5afc8fee353",
+      "target_current10_sha256": "bd8f755516c88b94df7193d5af45b9770f8466ab318fd31440bcf5afc8fee353",
+      "receipt_sha256": "bd8f755516c88b94df7193d5af45b9770f8466ab318fd31440bcf5afc8fee353"
+    },
+    {
+      "path": "assets/vehicle_visual/city_suv.2e756583142a.glb.bytes",
+      "current_sha256": "2e756583142a051418527d504ca5bf9cdc7df268ccea7a6578b0b2e7a116dc03",
+      "target_current10_sha256": "2e756583142a051418527d504ca5bf9cdc7df268ccea7a6578b0b2e7a116dc03",
+      "receipt_sha256": "2e756583142a051418527d504ca5bf9cdc7df268ccea7a6578b0b2e7a116dc03"
+    },
+    {
+      "path": "assets/vehicle_visual/city_taxi.4a044ed6cffc.glb.bytes",
+      "current_sha256": "4a044ed6cffc10d2da3e9b010c40dda23977c66fc8b9b93cde93d9661d99c9d6",
+      "target_current10_sha256": "4a044ed6cffc10d2da3e9b010c40dda23977c66fc8b9b93cde93d9661d99c9d6",
+      "receipt_sha256": "4a044ed6cffc10d2da3e9b010c40dda23977c66fc8b9b93cde93d9661d99c9d6"
+    },
+    {
+      "path": "assets/vehicle_visual/compact_sedan.f2b7d7884d48.glb.bytes",
+      "current_sha256": "f2b7d7884d486e08e66a7fb25cf4fe58900814efaabe9dcee42b408c21353783",
+      "target_current10_sha256": "f2b7d7884d486e08e66a7fb25cf4fe58900814efaabe9dcee42b408c21353783",
+      "receipt_sha256": "f2b7d7884d486e08e66a7fb25cf4fe58900814efaabe9dcee42b408c21353783"
+    },
+    {
+      "path": "assets/vehicle_visual/compartments.json",
+      "current_sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51",
+      "target_current10_sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51",
+      "receipt_sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51"
+    },
+    {
+      "path": "assets/vehicle_visual/delivery_van.36ecba518304.glb.bytes",
+      "current_sha256": "36ecba5183043cf4f5b1836b0911bcf6569dc84c6189bcd80c636ff3fbb9a2f9",
+      "target_current10_sha256": "36ecba5183043cf4f5b1836b0911bcf6569dc84c6189bcd80c636ff3fbb9a2f9",
+      "receipt_sha256": "36ecba5183043cf4f5b1836b0911bcf6569dc84c6189bcd80c636ff3fbb9a2f9"
+    },
+    {
+      "path": "assets/vehicle_visual/executive_sedan.51db79d3b3f3.glb.bytes",
+      "current_sha256": "51db79d3b3f39a0f530177a246645ed532903ea3e3ab8adabc52025854347c26",
+      "target_current10_sha256": "51db79d3b3f39a0f530177a246645ed532903ea3e3ab8adabc52025854347c26",
+      "receipt_sha256": "51db79d3b3f39a0f530177a246645ed532903ea3e3ab8adabc52025854347c26"
+    },
+    {
+      "path": "assets/vehicle_visual/family_wagon.a4220ed6be23.glb.bytes",
+      "current_sha256": "a4220ed6be23de6112bfe352a44e7916fe8d36097a2799d95a612c7ca15404e2",
+      "target_current10_sha256": "a4220ed6be23de6112bfe352a44e7916fe8d36097a2799d95a612c7ca15404e2",
+      "receipt_sha256": "a4220ed6be23de6112bfe352a44e7916fe8d36097a2799d95a612c7ca15404e2"
+    },
+    {
+      "path": "assets/vehicle_visual/fire_engine.a1b624c76214.glb.bytes",
+      "current_sha256": "a1b624c7621491ada3f4064ca9c177d48287e496f31b260f376d5e9ab03e20ab",
+      "target_current10_sha256": "a1b624c7621491ada3f4064ca9c177d48287e496f31b260f376d5e9ab03e20ab",
+      "receipt_sha256": "a1b624c7621491ada3f4064ca9c177d48287e496f31b260f376d5e9ab03e20ab"
+    },
+    {
+      "path": "assets/vehicle_visual/manifest.json",
+      "current_sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+      "target_current10_sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+      "receipt_sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03"
+    },
+    {
+      "path": "assets/vehicle_visual/police_interceptor.4f6d8a8e668a.glb.bytes",
+      "current_sha256": "4f6d8a8e668a172a9ba307afab0a6e2e489dd090ac190c808e97d399cf4dee53",
+      "target_current10_sha256": "4f6d8a8e668a172a9ba307afab0a6e2e489dd090ac190c808e97d399cf4dee53",
+      "receipt_sha256": "4f6d8a8e668a172a9ba307afab0a6e2e489dd090ac190c808e97d399cf4dee53"
+    },
+    {
+      "path": "assets/vehicle_visual/sport_coupe.a378db174e0a.glb.bytes",
+      "current_sha256": "a378db174e0a391c403dfdc15b3c5e48febb16d6a83a5cb60a188cb9ca95ac07",
+      "target_current10_sha256": "a378db174e0a391c403dfdc15b3c5e48febb16d6a83a5cb60a188cb9ca95ac07",
+      "receipt_sha256": "a378db174e0a391c403dfdc15b3c5e48febb16d6a83a5cb60a188cb9ca95ac07"
+    },
+    {
+      "path": "assets/vehicle_visual/utility_pickup.5edc5d7f0f98.glb.bytes",
+      "current_sha256": "5edc5d7f0f987f14b5cbca8bbf90b21ad2e7431eaa75011879e0724de455a0ff",
+      "target_current10_sha256": "5edc5d7f0f987f14b5cbca8bbf90b21ad2e7431eaa75011879e0724de455a0ff",
+      "receipt_sha256": "5edc5d7f0f987f14b5cbca8bbf90b21ad2e7431eaa75011879e0724de455a0ff"
+    },
+    {
+      "path": "assets/weapon_thumbnails/ak74.png",
+      "current_sha256": "ee5577850f0fd4970d4eaad5fa7fc0fa3020363f9ce8830d5d25fc914a7cba3c",
+      "target_current10_sha256": "ee5577850f0fd4970d4eaad5fa7fc0fa3020363f9ce8830d5d25fc914a7cba3c",
+      "receipt_sha256": "ee5577850f0fd4970d4eaad5fa7fc0fa3020363f9ce8830d5d25fc914a7cba3c"
+    },
+    {
+      "path": "assets/weapon_thumbnails/ak74.png.import",
+      "current_sha256": "8ce948d167a4f078c006b3fcfc7e2c7b5de380143f01b4046a5817f7ff97ed77",
+      "target_current10_sha256": "8ce948d167a4f078c006b3fcfc7e2c7b5de380143f01b4046a5817f7ff97ed77",
+      "receipt_sha256": "8ce948d167a4f078c006b3fcfc7e2c7b5de380143f01b4046a5817f7ff97ed77"
+    },
+    {
+      "path": "assets/weapon_thumbnails/deagle.png",
+      "current_sha256": "5904b1f2b69b73f409a644d7bc1d744dd5f456de2fb2dd52b3dac34716ac7608",
+      "target_current10_sha256": "5904b1f2b69b73f409a644d7bc1d744dd5f456de2fb2dd52b3dac34716ac7608",
+      "receipt_sha256": "5904b1f2b69b73f409a644d7bc1d744dd5f456de2fb2dd52b3dac34716ac7608"
+    },
+    {
+      "path": "assets/weapon_thumbnails/deagle.png.import",
+      "current_sha256": "5ff2e6040007cd099b5f5b79d32d0890e5954100deaa49543e3844b60b2edb1e",
+      "target_current10_sha256": "5ff2e6040007cd099b5f5b79d32d0890e5954100deaa49543e3844b60b2edb1e",
+      "receipt_sha256": "5ff2e6040007cd099b5f5b79d32d0890e5954100deaa49543e3844b60b2edb1e"
+    },
+    {
+      "path": "assets/weapon_thumbnails/golden_colt.png",
+      "current_sha256": "a3515e2f1e7ff7326325e04ba31b944fe4c59688cd19a3eb213a2b77032de7e8",
+      "target_current10_sha256": "a3515e2f1e7ff7326325e04ba31b944fe4c59688cd19a3eb213a2b77032de7e8",
+      "receipt_sha256": "a3515e2f1e7ff7326325e04ba31b944fe4c59688cd19a3eb213a2b77032de7e8"
+    },
+    {
+      "path": "assets/weapon_thumbnails/golden_colt.png.import",
+      "current_sha256": "131a548c63f73f93f4029094e0b5255eed46f54188bf10b965353ab3083e5315",
+      "target_current10_sha256": "131a548c63f73f93f4029094e0b5255eed46f54188bf10b965353ab3083e5315",
+      "receipt_sha256": "131a548c63f73f93f4029094e0b5255eed46f54188bf10b965353ab3083e5315"
+    },
+    {
+      "path": "assets/weapon_thumbnails/golden_uzi.png",
+      "current_sha256": "3abbc03923455286af7a66527241bf888ffbe85dfde29ccfd36a2aeacf20817f",
+      "target_current10_sha256": "3abbc03923455286af7a66527241bf888ffbe85dfde29ccfd36a2aeacf20817f",
+      "receipt_sha256": "3abbc03923455286af7a66527241bf888ffbe85dfde29ccfd36a2aeacf20817f"
+    },
+    {
+      "path": "assets/weapon_thumbnails/golden_uzi.png.import",
+      "current_sha256": "bd20199caf9dcf1be687f9d231f81ac9d742ba91a31d464bba502397df270355",
+      "target_current10_sha256": "bd20199caf9dcf1be687f9d231f81ac9d742ba91a31d464bba502397df270355",
+      "receipt_sha256": "bd20199caf9dcf1be687f9d231f81ac9d742ba91a31d464bba502397df270355"
+    },
+    {
+      "path": "assets/weapon_thumbnails/m16.png",
+      "current_sha256": "07a600e5ebdecf3e2d249083d639acf083f9d2aac96df5edd8283d7b09ace0fb",
+      "target_current10_sha256": "07a600e5ebdecf3e2d249083d639acf083f9d2aac96df5edd8283d7b09ace0fb",
+      "receipt_sha256": "07a600e5ebdecf3e2d249083d639acf083f9d2aac96df5edd8283d7b09ace0fb"
+    },
+    {
+      "path": "assets/weapon_thumbnails/m16.png.import",
+      "current_sha256": "f2c7b38ca51bdeb833bf713f9f54b90733c0b2da4aafe8266a5c37d2f01fbe46",
+      "target_current10_sha256": "f2c7b38ca51bdeb833bf713f9f54b90733c0b2da4aafe8266a5c37d2f01fbe46",
+      "receipt_sha256": "f2c7b38ca51bdeb833bf713f9f54b90733c0b2da4aafe8266a5c37d2f01fbe46"
+    },
+    {
+      "path": "assets/weapon_thumbnails/nagan.png",
+      "current_sha256": "80c7b25deb5f9858867c5ae902a6f60dd1a601d9038b75378f16910fa2d10aa7",
+      "target_current10_sha256": "80c7b25deb5f9858867c5ae902a6f60dd1a601d9038b75378f16910fa2d10aa7",
+      "receipt_sha256": "80c7b25deb5f9858867c5ae902a6f60dd1a601d9038b75378f16910fa2d10aa7"
+    },
+    {
+      "path": "assets/weapon_thumbnails/nagan.png.import",
+      "current_sha256": "037cc1963088797e9aadee48d7fc3b3cec6734373d4fdb770f76aef143a2166f",
+      "target_current10_sha256": "037cc1963088797e9aadee48d7fc3b3cec6734373d4fdb770f76aef143a2166f",
+      "receipt_sha256": "037cc1963088797e9aadee48d7fc3b3cec6734373d4fdb770f76aef143a2166f"
+    },
+    {
+      "path": "assets/weapon_thumbnails/none.png",
+      "current_sha256": "9f0a4312240a782e3a1a5564f7a2fded31cc45d2db78a13005b7301d1d0a3c16",
+      "target_current10_sha256": "9f0a4312240a782e3a1a5564f7a2fded31cc45d2db78a13005b7301d1d0a3c16",
+      "receipt_sha256": "9f0a4312240a782e3a1a5564f7a2fded31cc45d2db78a13005b7301d1d0a3c16"
+    },
+    {
+      "path": "assets/weapon_thumbnails/none.png.import",
+      "current_sha256": "ea427fd137a83ab7253fe7d33bdb79eff11a1cac1a504337a568aaefd9f04ca6",
+      "target_current10_sha256": "ea427fd137a83ab7253fe7d33bdb79eff11a1cac1a504337a568aaefd9f04ca6",
+      "receipt_sha256": "ea427fd137a83ab7253fe7d33bdb79eff11a1cac1a504337a568aaefd9f04ca6"
+    },
+    {
+      "path": "assets/weapon_thumbnails/revolver.png",
+      "current_sha256": "84527475cf79eb01ebbd5214a53bc2f12e74062ddfc46139f86f42edd1f932c3",
+      "target_current10_sha256": "84527475cf79eb01ebbd5214a53bc2f12e74062ddfc46139f86f42edd1f932c3",
+      "receipt_sha256": "84527475cf79eb01ebbd5214a53bc2f12e74062ddfc46139f86f42edd1f932c3"
+    },
+    {
+      "path": "assets/weapon_thumbnails/revolver.png.import",
+      "current_sha256": "fd4bc489829d35a8212094ba3bd0e2f6610b53992353bacd391aaf5cd903e347",
+      "target_current10_sha256": "fd4bc489829d35a8212094ba3bd0e2f6610b53992353bacd391aaf5cd903e347",
+      "receipt_sha256": "fd4bc489829d35a8212094ba3bd0e2f6610b53992353bacd391aaf5cd903e347"
+    },
+    {
+      "path": "assets/weapon_thumbnails/rpg.png",
+      "current_sha256": "0133bfea24454ad43417dabb65899745648daf3268f3afda7569689a491bd2e7",
+      "target_current10_sha256": "0133bfea24454ad43417dabb65899745648daf3268f3afda7569689a491bd2e7",
+      "receipt_sha256": "0133bfea24454ad43417dabb65899745648daf3268f3afda7569689a491bd2e7"
+    },
+    {
+      "path": "assets/weapon_thumbnails/rpg.png.import",
+      "current_sha256": "0c28352b5a1d819593e544f71342e4834bad72cc2ab42900376f51196f363aa0",
+      "target_current10_sha256": "0c28352b5a1d819593e544f71342e4834bad72cc2ab42900376f51196f363aa0",
+      "receipt_sha256": "0c28352b5a1d819593e544f71342e4834bad72cc2ab42900376f51196f363aa0"
+    },
+    {
+      "path": "assets/weapon_thumbnails/sawn_off.png",
+      "current_sha256": "eec075a4f447546a12b717b7cbe26cef091b8650c6c49881935b60503d87226e",
+      "target_current10_sha256": "eec075a4f447546a12b717b7cbe26cef091b8650c6c49881935b60503d87226e",
+      "receipt_sha256": "eec075a4f447546a12b717b7cbe26cef091b8650c6c49881935b60503d87226e"
+    },
+    {
+      "path": "assets/weapon_thumbnails/sawn_off.png.import",
+      "current_sha256": "ce1571fbf7034158bfe9268ad2d7015f049c46bf17ff2439fbcd9b6b9026039b",
+      "target_current10_sha256": "ce1571fbf7034158bfe9268ad2d7015f049c46bf17ff2439fbcd9b6b9026039b",
+      "receipt_sha256": "ce1571fbf7034158bfe9268ad2d7015f049c46bf17ff2439fbcd9b6b9026039b"
+    },
+    {
+      "path": "assets/weapon_thumbnails/shotgun.png",
+      "current_sha256": "eeb33d9fd1b9d9daef997b779f20c7c12240f7a78178f4969e75af890a0e944b",
+      "target_current10_sha256": "eeb33d9fd1b9d9daef997b779f20c7c12240f7a78178f4969e75af890a0e944b",
+      "receipt_sha256": "eeb33d9fd1b9d9daef997b779f20c7c12240f7a78178f4969e75af890a0e944b"
+    },
+    {
+      "path": "assets/weapon_thumbnails/shotgun.png.import",
+      "current_sha256": "8727a78f8f93814fb9636eeb8d9699857d0fd66102266e0a8049989c7a231f9c",
+      "target_current10_sha256": "8727a78f8f93814fb9636eeb8d9699857d0fd66102266e0a8049989c7a231f9c",
+      "receipt_sha256": "8727a78f8f93814fb9636eeb8d9699857d0fd66102266e0a8049989c7a231f9c"
+    },
+    {
+      "path": "assets/weapon_thumbnails/sniper.png",
+      "current_sha256": "a679c42f0f0f0d63cf1f75bf5526b2caa31ff316677b77df9413759741ffa5f0",
+      "target_current10_sha256": "a679c42f0f0f0d63cf1f75bf5526b2caa31ff316677b77df9413759741ffa5f0",
+      "receipt_sha256": "a679c42f0f0f0d63cf1f75bf5526b2caa31ff316677b77df9413759741ffa5f0"
+    },
+    {
+      "path": "assets/weapon_thumbnails/sniper.png.import",
+      "current_sha256": "f7ae116eea2f9e8b6ee593c553c12e233e59f4ff613f0ce2e71263400679077c",
+      "target_current10_sha256": "f7ae116eea2f9e8b6ee593c553c12e233e59f4ff613f0ce2e71263400679077c",
+      "receipt_sha256": "f7ae116eea2f9e8b6ee593c553c12e233e59f4ff613f0ce2e71263400679077c"
+    },
+    {
+      "path": "assets/weapon_thumbnails/tommy_gun.png",
+      "current_sha256": "c572c9706ad2a852343f9867ebf9c607b7c86c21c719ed5b5436cab57af04817",
+      "target_current10_sha256": "c572c9706ad2a852343f9867ebf9c607b7c86c21c719ed5b5436cab57af04817",
+      "receipt_sha256": "c572c9706ad2a852343f9867ebf9c607b7c86c21c719ed5b5436cab57af04817"
+    },
+    {
+      "path": "assets/weapon_thumbnails/tommy_gun.png.import",
+      "current_sha256": "399292750c25a54585edfaf19a4df4f3fda6971b7e38e4662452b55028229ff0",
+      "target_current10_sha256": "399292750c25a54585edfaf19a4df4f3fda6971b7e38e4662452b55028229ff0",
+      "receipt_sha256": "399292750c25a54585edfaf19a4df4f3fda6971b7e38e4662452b55028229ff0"
+    },
+    {
+      "path": "assets/weapon_thumbnails/tt_pistol.png",
+      "current_sha256": "116ea2461fef5261b5ff2fe42925320b22f798bc88dd36d27271711af4a7cebb",
+      "target_current10_sha256": "116ea2461fef5261b5ff2fe42925320b22f798bc88dd36d27271711af4a7cebb",
+      "receipt_sha256": "116ea2461fef5261b5ff2fe42925320b22f798bc88dd36d27271711af4a7cebb"
+    },
+    {
+      "path": "assets/weapon_thumbnails/tt_pistol.png.import",
+      "current_sha256": "ab3d957f5370d5cb66a8a64e30f329eb99ed1dd38062664add175a46dc919182",
+      "target_current10_sha256": "ab3d957f5370d5cb66a8a64e30f329eb99ed1dd38062664add175a46dc919182",
+      "receipt_sha256": "ab3d957f5370d5cb66a8a64e30f329eb99ed1dd38062664add175a46dc919182"
+    },
+    {
+      "path": "assets/weapon_thumbnails/uzi.png",
+      "current_sha256": "a1d12626c3ea8a576b7621cc4f257ed7e51013b2391946c511a7d0a01187d3ed",
+      "target_current10_sha256": "a1d12626c3ea8a576b7621cc4f257ed7e51013b2391946c511a7d0a01187d3ed",
+      "receipt_sha256": "a1d12626c3ea8a576b7621cc4f257ed7e51013b2391946c511a7d0a01187d3ed"
+    },
+    {
+      "path": "assets/weapon_thumbnails/uzi.png.import",
+      "current_sha256": "929a8d708976e0ba614c235b218c6341802338fddd883faf5fbf56e76271783d",
+      "target_current10_sha256": "929a8d708976e0ba614c235b218c6341802338fddd883faf5fbf56e76271783d",
+      "receipt_sha256": "929a8d708976e0ba614c235b218c6341802338fddd883faf5fbf56e76271783d"
+    },
+    {
+      "path": "assets/weapon_visual/ak74.scn",
+      "current_sha256": "21a0e71f26d8b590974071bdf90eb3fead00864a9e82d24aa4008d5e09e439dc",
+      "target_current10_sha256": "21a0e71f26d8b590974071bdf90eb3fead00864a9e82d24aa4008d5e09e439dc",
+      "receipt_sha256": "21a0e71f26d8b590974071bdf90eb3fead00864a9e82d24aa4008d5e09e439dc"
+    },
+    {
+      "path": "assets/weapon_visual/deagle.scn",
+      "current_sha256": "a983429aee530dc1290c8d263ee6ab5dbc0e61bba3c90bb2fec40adb0ac96829",
+      "target_current10_sha256": "a983429aee530dc1290c8d263ee6ab5dbc0e61bba3c90bb2fec40adb0ac96829",
+      "receipt_sha256": "a983429aee530dc1290c8d263ee6ab5dbc0e61bba3c90bb2fec40adb0ac96829"
+    },
+    {
+      "path": "assets/weapon_visual/golden_colt.scn",
+      "current_sha256": "af60c7fdf7d9532e90e072dfd768b7552e45ec68a4f80b0ba93b06d2222d1b79",
+      "target_current10_sha256": "af60c7fdf7d9532e90e072dfd768b7552e45ec68a4f80b0ba93b06d2222d1b79",
+      "receipt_sha256": "af60c7fdf7d9532e90e072dfd768b7552e45ec68a4f80b0ba93b06d2222d1b79"
+    },
+    {
+      "path": "assets/weapon_visual/golden_uzi.scn",
+      "current_sha256": "6fc21555b11e117d59068dfdaddb7c601e707bc20ceefe0f7a2773ddf575a9d8",
+      "target_current10_sha256": "6fc21555b11e117d59068dfdaddb7c601e707bc20ceefe0f7a2773ddf575a9d8",
+      "receipt_sha256": "6fc21555b11e117d59068dfdaddb7c601e707bc20ceefe0f7a2773ddf575a9d8"
+    },
+    {
+      "path": "assets/weapon_visual/m16.scn",
+      "current_sha256": "98167eb456466138240de0866cbe087e9c6f812f42162794082a241b930b0a33",
+      "target_current10_sha256": "98167eb456466138240de0866cbe087e9c6f812f42162794082a241b930b0a33",
+      "receipt_sha256": "98167eb456466138240de0866cbe087e9c6f812f42162794082a241b930b0a33"
+    },
+    {
+      "path": "assets/weapon_visual/manifest.json",
+      "current_sha256": "cb7ef4eaf1e30233f2854b7e5fadba186573b64c60f32c6360f4b01a493045a7",
+      "target_current10_sha256": "cb7ef4eaf1e30233f2854b7e5fadba186573b64c60f32c6360f4b01a493045a7",
+      "receipt_sha256": "cb7ef4eaf1e30233f2854b7e5fadba186573b64c60f32c6360f4b01a493045a7"
+    },
+    {
+      "path": "assets/weapon_visual/nagan.scn",
+      "current_sha256": "b3dd3fff18940f7c0406fbfd10c8f7773904cc9bd58d02192f3919a9e3a3473e",
+      "target_current10_sha256": "b3dd3fff18940f7c0406fbfd10c8f7773904cc9bd58d02192f3919a9e3a3473e",
+      "receipt_sha256": "b3dd3fff18940f7c0406fbfd10c8f7773904cc9bd58d02192f3919a9e3a3473e"
+    },
+    {
+      "path": "assets/weapon_visual/none.scn",
+      "current_sha256": "c366180141509e5599c7c77564062fb7d752bf2b5dfab04efa3410695d86cfb5",
+      "target_current10_sha256": "c366180141509e5599c7c77564062fb7d752bf2b5dfab04efa3410695d86cfb5",
+      "receipt_sha256": "c366180141509e5599c7c77564062fb7d752bf2b5dfab04efa3410695d86cfb5"
+    },
+    {
+      "path": "assets/weapon_visual/revolver.scn",
+      "current_sha256": "768b900dfaa7fc5a00467f23eb5a73e62e59c0cc1c4cf9c0ad0589deda7cc078",
+      "target_current10_sha256": "768b900dfaa7fc5a00467f23eb5a73e62e59c0cc1c4cf9c0ad0589deda7cc078",
+      "receipt_sha256": "768b900dfaa7fc5a00467f23eb5a73e62e59c0cc1c4cf9c0ad0589deda7cc078"
+    },
+    {
+      "path": "assets/weapon_visual/rpg.scn",
+      "current_sha256": "079f109d33220696a3daa0b0439fc5fef136dedec9a7ebe40edc6b376b035166",
+      "target_current10_sha256": "079f109d33220696a3daa0b0439fc5fef136dedec9a7ebe40edc6b376b035166",
+      "receipt_sha256": "079f109d33220696a3daa0b0439fc5fef136dedec9a7ebe40edc6b376b035166"
+    },
+    {
+      "path": "assets/weapon_visual/sawn_off.scn",
+      "current_sha256": "9be427d492513d2f5e1f93e2559cc1abe304a7fc86e9d1de0e1b333c155a8c42",
+      "target_current10_sha256": "9be427d492513d2f5e1f93e2559cc1abe304a7fc86e9d1de0e1b333c155a8c42",
+      "receipt_sha256": "9be427d492513d2f5e1f93e2559cc1abe304a7fc86e9d1de0e1b333c155a8c42"
+    },
+    {
+      "path": "assets/weapon_visual/shotgun.scn",
+      "current_sha256": "a7551f16492245d0859af07de32199fec7617c23590e7bea3a3ada46c1768a41",
+      "target_current10_sha256": "a7551f16492245d0859af07de32199fec7617c23590e7bea3a3ada46c1768a41",
+      "receipt_sha256": "a7551f16492245d0859af07de32199fec7617c23590e7bea3a3ada46c1768a41"
+    },
+    {
+      "path": "assets/weapon_visual/sniper.scn",
+      "current_sha256": "36f908ddba87135adf0b2b2fa93fe2bea75041c49394b3a0374ee93ccc79fc36",
+      "target_current10_sha256": "36f908ddba87135adf0b2b2fa93fe2bea75041c49394b3a0374ee93ccc79fc36",
+      "receipt_sha256": "36f908ddba87135adf0b2b2fa93fe2bea75041c49394b3a0374ee93ccc79fc36"
+    },
+    {
+      "path": "assets/weapon_visual/tommy_gun.scn",
+      "current_sha256": "a91f5fc14541785e2b91785d9d2bbe39cc3bf94ca1a2238dbfa18d51f0b3fded",
+      "target_current10_sha256": "a91f5fc14541785e2b91785d9d2bbe39cc3bf94ca1a2238dbfa18d51f0b3fded",
+      "receipt_sha256": "a91f5fc14541785e2b91785d9d2bbe39cc3bf94ca1a2238dbfa18d51f0b3fded"
+    },
+    {
+      "path": "assets/weapon_visual/tt_pistol.scn",
+      "current_sha256": "ba507e709df8952ae4cfc839f27a13fa6001e7921b2ae9a6b943a75f3b735bfc",
+      "target_current10_sha256": "ba507e709df8952ae4cfc839f27a13fa6001e7921b2ae9a6b943a75f3b735bfc",
+      "receipt_sha256": "ba507e709df8952ae4cfc839f27a13fa6001e7921b2ae9a6b943a75f3b735bfc"
+    },
+    {
+      "path": "assets/weapon_visual/uzi.scn",
+      "current_sha256": "4a827d3e6dd05cec266a943b72dfe7619d98a290e3a7f8b559eb9ac0284a302a",
+      "target_current10_sha256": "4a827d3e6dd05cec266a943b72dfe7619d98a290e3a7f8b559eb9ac0284a302a",
+      "receipt_sha256": "4a827d3e6dd05cec266a943b72dfe7619d98a290e3a7f8b559eb9ac0284a302a"
+    },
+    {
+      "path": "data/block.json",
+      "current_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+      "target_current10_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+      "receipt_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
+    },
+    {
+      "path": "data/preview_updates.json",
+      "current_sha256": "f6c7af6af79e6ea7cd5418c42077a5f9fda470cebeedabec43e5a5dd2368f274",
+      "target_current10_sha256": "6fecf656d80f307cf660bc16d93542a55ae9aeb7075c7722a7c5b4967ea8251c",
+      "receipt_sha256": "6fecf656d80f307cf660bc16d93542a55ae9aeb7075c7722a7c5b4967ea8251c"
+    },
+    {
+      "path": "data/preview_water.json",
+      "current_sha256": "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824",
+      "target_current10_sha256": "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824",
+      "receipt_sha256": "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
+    },
+    {
+      "path": "data/printshop_interior.json",
+      "current_sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b",
+      "target_current10_sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b",
+      "receipt_sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+    },
+    {
+      "path": "data/transport/transport_bootstrap_factory.v1.json",
+      "current_sha256": "482aca7ebd5bd83f4083dc5b23f26c52b47bd5b039295b563a4b47e473d3a8c7",
+      "target_current10_sha256": "482aca7ebd5bd83f4083dc5b23f26c52b47bd5b039295b563a4b47e473d3a8c7",
+      "receipt_sha256": "482aca7ebd5bd83f4083dc5b23f26c52b47bd5b039295b563a4b47e473d3a8c7"
+    },
+    {
+      "path": "data/transport/vehicle_descriptors.v1.json",
+      "current_sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a",
+      "target_current10_sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a",
+      "receipt_sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a"
+    },
+    {
+      "path": "data/weapons/projectile_meshes.json",
+      "current_sha256": "84c1101d72a850f44149dc0be564d5d1972e9b58c60df162b53703590c52c714",
+      "target_current10_sha256": "84c1101d72a850f44149dc0be564d5d1972e9b58c60df162b53703590c52c714",
+      "receipt_sha256": "84c1101d72a850f44149dc0be564d5d1972e9b58c60df162b53703590c52c714"
+    },
+    {
+      "path": "data/weapons/surface_effect_meshes.json",
+      "current_sha256": "b968eb74064b3028cdcdbce0336ac90b174e5c2c98f9d2417905a1da0dd9a0c1",
+      "target_current10_sha256": "b968eb74064b3028cdcdbce0336ac90b174e5c2c98f9d2417905a1da0dd9a0c1",
+      "receipt_sha256": "b968eb74064b3028cdcdbce0336ac90b174e5c2c98f9d2417905a1da0dd9a0c1"
+    },
+    {
+      "path": "export_presets.cfg",
+      "current_sha256": "2e32e4f4516a3d425c9e408131a7491e808794361dd5ba085b1ec02346816749",
+      "target_current10_sha256": "4fa384de55c6ecfcf075ad74fbe493b3e82ad1feab1383b156dfc09975530bb8",
+      "receipt_sha256": "4fa384de55c6ecfcf075ad74fbe493b3e82ad1feab1383b156dfc09975530bb8"
+    },
+    {
+      "path": "project.godot",
+      "current_sha256": "64211c1d8cd66482e37af4a6a15001ac66f5ed29e86df1d21b4bac0469e2baa3",
+      "target_current10_sha256": "64211c1d8cd66482e37af4a6a15001ac66f5ed29e86df1d21b4bac0469e2baa3",
+      "receipt_sha256": "64211c1d8cd66482e37af4a6a15001ac66f5ed29e86df1d21b4bac0469e2baa3"
+    },
+    {
+      "path": "scenes/main.tscn",
+      "current_sha256": "b30a6aca7fef43d24ca4027f957fc411bd0bcddd36555a03ec646cee0e2689a6",
+      "target_current10_sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde",
+      "receipt_sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde"
+    },
+    {
+      "path": "scripts/character_physics/character_impact_policy.gd",
+      "current_sha256": "7cde00d9978e6940952877866fce1f3eedabedd0955414cf878a5987e6923e9b",
+      "target_current10_sha256": "7cde00d9978e6940952877866fce1f3eedabedd0955414cf878a5987e6923e9b",
+      "receipt_sha256": "7cde00d9978e6940952877866fce1f3eedabedd0955414cf878a5987e6923e9b"
+    },
+    {
+      "path": "scripts/character_physics/character_impact_sink.gd",
+      "current_sha256": "6cdc58298a64ad11f055d9b112e8b70d70c24b7a631cf05260ecceb19fe4d1de",
+      "target_current10_sha256": "6cdc58298a64ad11f055d9b112e8b70d70c24b7a631cf05260ecceb19fe4d1de",
+      "receipt_sha256": "6cdc58298a64ad11f055d9b112e8b70d70c24b7a631cf05260ecceb19fe4d1de"
+    },
+    {
+      "path": "scripts/character_physics/character_physics_driver.gd",
+      "current_sha256": "5499d0e11279fccbde7d2949bc510c2f2e5df94696ca0284a0a53bda5637b633",
+      "target_current10_sha256": "5499d0e11279fccbde7d2949bc510c2f2e5df94696ca0284a0a53bda5637b633",
+      "receipt_sha256": "5499d0e11279fccbde7d2949bc510c2f2e5df94696ca0284a0a53bda5637b633"
+    },
+    {
+      "path": "scripts/character_physics/character_physics_pose.gd",
+      "current_sha256": "1118f21a76b1d74e5e0cd303d3cc66c05338479f01a00b19008383adb8e0b6b9",
+      "target_current10_sha256": "1118f21a76b1d74e5e0cd303d3cc66c05338479f01a00b19008383adb8e0b6b9",
+      "receipt_sha256": "1118f21a76b1d74e5e0cd303d3cc66c05338479f01a00b19008383adb8e0b6b9"
+    },
+    {
+      "path": "scripts/character_physics/exit_ragdoll_body.gd",
+      "current_sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8",
+      "target_current10_sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8",
+      "receipt_sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8"
+    },
+    {
+      "path": "scripts/character_physics/local_hit_reaction.gd",
+      "current_sha256": "c5cb4afd51127a26b3a60d37b7e13ed8572c267bd207b8f9a20d307ee8ba9b36",
+      "target_current10_sha256": "c5cb4afd51127a26b3a60d37b7e13ed8572c267bd207b8f9a20d307ee8ba9b36",
+      "receipt_sha256": "c5cb4afd51127a26b3a60d37b7e13ed8572c267bd207b8f9a20d307ee8ba9b36"
+    },
+    {
+      "path": "scripts/character_physics/player_impact_host.gd",
+      "current_sha256": "30ac8294109c165427719a3d045a8250dfb1507df7c29de07cb3a78b68480c24",
+      "target_current10_sha256": "30ac8294109c165427719a3d045a8250dfb1507df7c29de07cb3a78b68480c24",
+      "receipt_sha256": "30ac8294109c165427719a3d045a8250dfb1507df7c29de07cb3a78b68480c24"
+    },
+    {
+      "path": "scripts/character_physics/ragdoll_actor_transition.gd",
+      "current_sha256": "db31b7ecf3f8ef92a76f9bc191bd344148d3832982badd6405a4da363adaf733",
+      "target_current10_sha256": "db31b7ecf3f8ef92a76f9bc191bd344148d3832982badd6405a4da363adaf733",
+      "receipt_sha256": "db31b7ecf3f8ef92a76f9bc191bd344148d3832982badd6405a4da363adaf733"
+    },
+    {
+      "path": "scripts/character_physics/recovery_clearance.gd",
+      "current_sha256": "d5ff65db2e804dcab31756559dbb3170640962ccdc376a5013b8eb974893ede2",
+      "target_current10_sha256": "d5ff65db2e804dcab31756559dbb3170640962ccdc376a5013b8eb974893ede2",
+      "receipt_sha256": "d5ff65db2e804dcab31756559dbb3170640962ccdc376a5013b8eb974893ede2"
+    },
+    {
+      "path": "scripts/character_physics/recovery_surface_bounds.gd",
+      "current_sha256": "23b78c72bdca0a2da64dcd7d4e8e54163299414feb66ae9c9cb489ed6f247c1e",
+      "target_current10_sha256": "23b78c72bdca0a2da64dcd7d4e8e54163299414feb66ae9c9cb489ed6f247c1e",
+      "receipt_sha256": "23b78c72bdca0a2da64dcd7d4e8e54163299414feb66ae9c9cb489ed6f247c1e"
+    },
+    {
+      "path": "scripts/combat/melee_attack_source.gd",
+      "current_sha256": "1127d5eba2139af8b01df56c77f67dc32e66fb055252810d92b440d46e3bffc4",
+      "target_current10_sha256": "1127d5eba2139af8b01df56c77f67dc32e66fb055252810d92b440d46e3bffc4",
+      "receipt_sha256": "1127d5eba2139af8b01df56c77f67dc32e66fb055252810d92b440d46e3bffc4"
+    },
+    {
+      "path": "scripts/combat/melee_input.gd",
+      "current_sha256": "21b211d8a4d45347c8bdc960e1d6113bfdf8f038ceec943f0862d9cff962aac4",
+      "target_current10_sha256": "21b211d8a4d45347c8bdc960e1d6113bfdf8f038ceec943f0862d9cff962aac4",
+      "receipt_sha256": "21b211d8a4d45347c8bdc960e1d6113bfdf8f038ceec943f0862d9cff962aac4"
+    },
+    {
+      "path": "scripts/combat/melee_physical_pose.gd",
+      "current_sha256": "7bea3a765b7f505314db2f8c914d6c68d604ea6d984dcd5760ab3d1775b439a4",
+      "target_current10_sha256": "7bea3a765b7f505314db2f8c914d6c68d604ea6d984dcd5760ab3d1775b439a4",
+      "receipt_sha256": "7bea3a765b7f505314db2f8c914d6c68d604ea6d984dcd5760ab3d1775b439a4"
+    },
+    {
+      "path": "scripts/combat/melee_pose.gd",
+      "current_sha256": "33b0780f7482602ccfc28e1433c702657742df124e0c201d8aa5232a84161be1",
+      "target_current10_sha256": "33b0780f7482602ccfc28e1433c702657742df124e0c201d8aa5232a84161be1",
+      "receipt_sha256": "33b0780f7482602ccfc28e1433c702657742df124e0c201d8aa5232a84161be1"
+    },
+    {
+      "path": "scripts/combat/preview_melee.gd",
+      "current_sha256": "5098c2a1c98757446fa71bcb23117f3dfacc9b121d4c66d226ad572a6d64e5dc",
+      "target_current10_sha256": "5098c2a1c98757446fa71bcb23117f3dfacc9b121d4c66d226ad572a6d64e5dc",
+      "receipt_sha256": "5098c2a1c98757446fa71bcb23117f3dfacc9b121d4c66d226ad572a6d64e5dc"
+    },
+    {
+      "path": "scripts/main.gd",
+      "current_sha256": "59850cd423a83223422b4c3d6a58284f559990c865cc1d9ba9fb7cee39ca1740",
+      "target_current10_sha256": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f",
+      "receipt_sha256": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f"
+    },
+    {
+      "path": "scripts/navigation/path_job_queue.gd",
+      "current_sha256": "dc19de386ccef8e23dcf1c2f0b62f6a46f7f816cf8fd5c3c26c8a6409b7be473",
+      "target_current10_sha256": "dc19de386ccef8e23dcf1c2f0b62f6a46f7f816cf8fd5c3c26c8a6409b7be473",
+      "receipt_sha256": "dc19de386ccef8e23dcf1c2f0b62f6a46f7f816cf8fd5c3c26c8a6409b7be473"
+    },
+    {
+      "path": "scripts/navigation/preview_engine_navigation.gd",
+      "current_sha256": "aca4ff31b689a5b652ca85ddd0999d45696debb912bb8e1495f056d02db69aab",
+      "target_current10_sha256": "aca4ff31b689a5b652ca85ddd0999d45696debb912bb8e1495f056d02db69aab",
+      "receipt_sha256": "aca4ff31b689a5b652ca85ddd0999d45696debb912bb8e1495f056d02db69aab"
+    },
+    {
+      "path": "scripts/navigation/preview_navigation_host.gd",
+      "current_sha256": "0b6fd34bc1d77e1f27c2005b699477453f089f4f65bf7d21942e73adbad631d4",
+      "target_current10_sha256": "0b6fd34bc1d77e1f27c2005b699477453f089f4f65bf7d21942e73adbad631d4",
+      "receipt_sha256": "0b6fd34bc1d77e1f27c2005b699477453f089f4f65bf7d21942e73adbad631d4"
+    },
+    {
+      "path": "scripts/npc_visual/final_dead_contact_port.gd",
+      "current_sha256": null,
+      "target_current10_sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "receipt_sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3"
+    },
+    {
+      "path": "scripts/npc_visual/npc_blood_adapter.gd",
+      "current_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "target_current10_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "receipt_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591"
+    },
+    {
+      "path": "scripts/npc_visual/npc_blood_renderer.gd",
+      "current_sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "target_current10_sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "receipt_sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48"
+    },
+    {
+      "path": "scripts/npc_visual/npc_body.gd",
+      "current_sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162",
+      "target_current10_sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162",
+      "receipt_sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162"
+    },
+    {
+      "path": "scripts/npc_visual/npc_bullet_marks.gd",
+      "current_sha256": null,
+      "target_current10_sha256": "14d769365d98603f2997ce2cf6dce40500a2a22198305fc3d15a8b7c2388c9e9",
+      "receipt_sha256": "14d769365d98603f2997ce2cf6dce40500a2a22198305fc3d15a8b7c2388c9e9"
+    },
+    {
+      "path": "scripts/npc_visual/npc_death_eyes.gd",
+      "current_sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c",
+      "target_current10_sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c",
+      "receipt_sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c"
+    },
+    {
+      "path": "scripts/npc_visual/npc_float_color_bridge.gd",
+      "current_sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662",
+      "target_current10_sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662",
+      "receipt_sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662"
+    },
+    {
+      "path": "scripts/npc_visual/npc_head_zone.gd",
+      "current_sha256": "99b61a6e0ccf394617af389dc5362c3e7052bb2a3a8db6c27a5572980f06775e",
+      "target_current10_sha256": "f83544fdb13623d3f42221e94d88d93626f450972c085dac8286e988775cf2da",
+      "receipt_sha256": "f83544fdb13623d3f42221e94d88d93626f450972c085dac8286e988775cf2da"
+    },
+    {
+      "path": "scripts/npc_visual/npc_hit_impulse.gd",
+      "current_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "target_current10_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "receipt_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "current_sha256": null,
+      "target_current10_sha256": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+      "receipt_sha256": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "current_sha256": "7e203b256f73fdf7348af2a532338af5c76c88ce570ab1d17e127854195386a5",
+      "target_current10_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "receipt_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225"
+    },
+    {
+      "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "current_sha256": "7b01789e7213abf154c2fdfe7bfc5969160605c4cd86b8ff7a3070507aee8230",
+      "target_current10_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "receipt_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309"
+    },
+    {
+      "path": "scripts/npc_visual/npc_preview_activity.gd",
+      "current_sha256": "3f431c774e923512bdd1a7c5f217f98435716dda5695b2a5ed2e361a7e05fd06",
+      "target_current10_sha256": "3f431c774e923512bdd1a7c5f217f98435716dda5695b2a5ed2e361a7e05fd06",
+      "receipt_sha256": "3f431c774e923512bdd1a7c5f217f98435716dda5695b2a5ed2e361a7e05fd06"
+    },
+    {
+      "path": "scripts/npc_visual/npc_preview_source_provider.gd",
+      "current_sha256": "017d46e68a629516703cb9899169d1c688b29a4d3aa996d44c49bc1b01ac0efa",
+      "target_current10_sha256": "017d46e68a629516703cb9899169d1c688b29a4d3aa996d44c49bc1b01ac0efa",
+      "receipt_sha256": "017d46e68a629516703cb9899169d1c688b29a4d3aa996d44c49bc1b01ac0efa"
+    },
+    {
+      "path": "scripts/npc_visual/npc_ragdoll_host.gd",
+      "current_sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "target_current10_sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "receipt_sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2"
+    },
+    {
+      "path": "scripts/npc_visual/npc_visual_cache.gd",
+      "current_sha256": "16a29e700dc78d5006461d1ee509dc1894830ced1e67fd006e3a4207382bd4a7",
+      "target_current10_sha256": "16a29e700dc78d5006461d1ee509dc1894830ced1e67fd006e3a4207382bd4a7",
+      "receipt_sha256": "16a29e700dc78d5006461d1ee509dc1894830ced1e67fd006e3a4207382bd4a7"
+    },
+    {
+      "path": "scripts/npc_visual/npc_visual_loader.gd",
+      "current_sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54",
+      "target_current10_sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54",
+      "receipt_sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_host.gd",
+      "current_sha256": "f6e95a9000fa2c1c9f64aa7a66c67a3eed7e9bf2edb91a260e20f50d1367f125",
+      "target_current10_sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "receipt_sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb"
+    },
+    {
+      "path": "scripts/npc_visual/preview_resident_world_policy.gd",
+      "current_sha256": "f4e35012690fd4c6cd2c43a6973a8bb9d92b7ad34d493eba5084715eb6ed17f8",
+      "target_current10_sha256": "f4e35012690fd4c6cd2c43a6973a8bb9d92b7ad34d493eba5084715eb6ed17f8",
+      "receipt_sha256": "f4e35012690fd4c6cd2c43a6973a8bb9d92b7ad34d493eba5084715eb6ed17f8"
+    },
+    {
+      "path": "scripts/perf/frame_recorder.gd",
+      "current_sha256": "4cc30a2b7b681c1177f6cfa403dd80ae2f10aef9b84d214ce5fa0234f6e101a0",
+      "target_current10_sha256": "4cc30a2b7b681c1177f6cfa403dd80ae2f10aef9b84d214ce5fa0234f6e101a0",
+      "receipt_sha256": "4cc30a2b7b681c1177f6cfa403dd80ae2f10aef9b84d214ce5fa0234f6e101a0"
+    },
+    {
+      "path": "scripts/perf/preview_perf_adapter.gd",
+      "current_sha256": "84d39fb251a89dc94b7834d63107737c8340921be97e6d2bbcb905e0aa810c7b",
+      "target_current10_sha256": "84d39fb251a89dc94b7834d63107737c8340921be97e6d2bbcb905e0aa810c7b",
+      "receipt_sha256": "84d39fb251a89dc94b7834d63107737c8340921be97e6d2bbcb905e0aa810c7b"
+    },
+    {
+      "path": "scripts/player_corpse_contact.gd",
+      "current_sha256": null,
+      "target_current10_sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "receipt_sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122"
+    },
+    {
+      "path": "scripts/preview_airborne.gd",
+      "current_sha256": "7ce4732463e6fd3906eb2e15e0dcb02ef297e2848dbcafa2fb7e367799f777f9",
+      "target_current10_sha256": "7ce4732463e6fd3906eb2e15e0dcb02ef297e2848dbcafa2fb7e367799f777f9",
+      "receipt_sha256": "7ce4732463e6fd3906eb2e15e0dcb02ef297e2848dbcafa2fb7e367799f777f9"
+    },
+    {
+      "path": "scripts/preview_block_validation.gd",
+      "current_sha256": "97645903259d401b9ebb8da13d6e648758cd769c8d8a15302f48e6c5e6fc088e",
+      "target_current10_sha256": "97645903259d401b9ebb8da13d6e648758cd769c8d8a15302f48e6c5e6fc088e",
+      "receipt_sha256": "97645903259d401b9ebb8da13d6e648758cd769c8d8a15302f48e6c5e6fc088e"
+    },
+    {
+      "path": "scripts/preview_boundary.gd",
+      "current_sha256": "ba9b9797e8982ede31909786ff8fe3e5c2a34a1537643eb84356d60a864c1e87",
+      "target_current10_sha256": "ba9b9797e8982ede31909786ff8fe3e5c2a34a1537643eb84356d60a864c1e87",
+      "receipt_sha256": "ba9b9797e8982ede31909786ff8fe3e5c2a34a1537643eb84356d60a864c1e87"
+    },
+    {
+      "path": "scripts/preview_dive.gd",
+      "current_sha256": "32be580dbbfdc9169225e822acafb7c73c68c6e33a139c0b0970585808927ceb",
+      "target_current10_sha256": "32be580dbbfdc9169225e822acafb7c73c68c6e33a139c0b0970585808927ceb",
+      "receipt_sha256": "32be580dbbfdc9169225e822acafb7c73c68c6e33a139c0b0970585808927ceb"
+    },
+    {
+      "path": "scripts/preview_interior_finish.gd",
+      "current_sha256": "f2137740ac1b31669454f18c258db3560bf3c9eb9ff35b0a00875db0ee6bb497",
+      "target_current10_sha256": "666bb28093d3bc9fbf17b702dda9c460d1364c64dee63c236b02fc9d80519ced",
+      "receipt_sha256": "666bb28093d3bc9fbf17b702dda9c460d1364c64dee63c236b02fc9d80519ced"
+    },
+    {
+      "path": "scripts/preview_locomotion.gd",
+      "current_sha256": "ce0d4d22e730246183283df79ba42a61bc8800b3178f91776e455b7cfcfc9478",
+      "target_current10_sha256": "ce0d4d22e730246183283df79ba42a61bc8800b3178f91776e455b7cfcfc9478",
+      "receipt_sha256": "ce0d4d22e730246183283df79ba42a61bc8800b3178f91776e455b7cfcfc9478"
+    },
+    {
+      "path": "scripts/preview_player.gd",
+      "current_sha256": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493",
+      "target_current10_sha256": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+      "receipt_sha256": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf"
+    },
+    {
+      "path": "scripts/preview_population.gd",
+      "current_sha256": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366",
+      "target_current10_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "receipt_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9"
+    },
+    {
+      "path": "scripts/preview_printshop_interior.gd",
+      "current_sha256": "300b48c8efa0d0b953514b36e0c0319febfd6d9a2ff61450601a45e1109e37f4",
+      "target_current10_sha256": "f6f082584ada23dcd55b384c629505730c80a59080768910a17c653d7eb1b5df",
+      "receipt_sha256": "f6f082584ada23dcd55b384c629505730c80a59080768910a17c653d7eb1b5df"
+    },
+    {
+      "path": "scripts/preview_static_batch.gd",
+      "current_sha256": "53618a287f52310ef4acea9ec4e2fbad0e5a79d4d29d2ad125a453f32c74ebf3",
+      "target_current10_sha256": "53618a287f52310ef4acea9ec4e2fbad0e5a79d4d29d2ad125a453f32c74ebf3",
+      "receipt_sha256": "53618a287f52310ef4acea9ec4e2fbad0e5a79d4d29d2ad125a453f32c74ebf3"
+    },
+    {
+      "path": "scripts/preview_surface_materials.gd",
+      "current_sha256": "473a1a2dcad7e09e589cf5162bfc7f3e86ddd24c160d07b8cb16a1ae63e43eb2",
+      "target_current10_sha256": "473a1a2dcad7e09e589cf5162bfc7f3e86ddd24c160d07b8cb16a1ae63e43eb2",
+      "receipt_sha256": "473a1a2dcad7e09e589cf5162bfc7f3e86ddd24c160d07b8cb16a1ae63e43eb2"
+    },
+    {
+      "path": "scripts/preview_transport.gd",
+      "current_sha256": "3a67a707ee4ef53116323ce4bf52c801f1c8f2e4b3e494bc7c9579c95adb8213",
+      "target_current10_sha256": "3a67a707ee4ef53116323ce4bf52c801f1c8f2e4b3e494bc7c9579c95adb8213",
+      "receipt_sha256": "3a67a707ee4ef53116323ce4bf52c801f1c8f2e4b3e494bc7c9579c95adb8213"
+    },
+    {
+      "path": "scripts/preview_update_panel.gd",
+      "current_sha256": "bff22dbcd6ad068f59796512be2e3d9b52aca39f48f5f23ac04fa60faccf05e7",
+      "target_current10_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a",
+      "receipt_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a"
+    },
+    {
+      "path": "scripts/preview_water_material.gd",
+      "current_sha256": "51f3d2d5f6c744cc98b0131a62d2acb1e97b8327f2235702b9b1896615952d88",
+      "target_current10_sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09",
+      "receipt_sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09"
+    },
+    {
+      "path": "scripts/preview_water_surface.gd",
+      "current_sha256": "7d89235d93f31dd565aadf37f549a05074bec5534acfb120543228f1dba2655c",
+      "target_current10_sha256": "19dc5dcde715826117daed263342d1af71f1b6f7bb6607cddea894bd7fff04bd",
+      "receipt_sha256": "19dc5dcde715826117daed263342d1af71f1b6f7bb6607cddea894bd7fff04bd"
+    },
+    {
+      "path": "scripts/transport/transport_access_provider.gd",
+      "current_sha256": "d0386f508fbfedf5c9a73035ff7716d26ca02e4160bd0c7bc8d62291c1db887b",
+      "target_current10_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "receipt_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830"
+    },
+    {
+      "path": "scripts/transport/transport_actor_transition.gd",
+      "current_sha256": "c9ed1ad7205c74d1131cfda0588f8c862fb1ae6cf64d7b42c83b25f1b0df4c6f",
+      "target_current10_sha256": "82353738b20d76679ee0202b9a00591c80592978c7b8ddcea2c3f95eff074766",
+      "receipt_sha256": "82353738b20d76679ee0202b9a00591c80592978c7b8ddcea2c3f95eff074766"
+    },
+    {
+      "path": "scripts/transport/transport_bootstrap_provider.gd",
+      "current_sha256": "39b045aaad5ce05af782c4387fb6d809339968f2976890c66be379e821a11bb6",
+      "target_current10_sha256": "39b045aaad5ce05af782c4387fb6d809339968f2976890c66be379e821a11bb6",
+      "receipt_sha256": "39b045aaad5ce05af782c4387fb6d809339968f2976890c66be379e821a11bb6"
+    },
+    {
+      "path": "scripts/transport/transport_cargo_admission.gd",
+      "current_sha256": "ddc78bc1c7f0dc34e393c90a344dd4b27d004bf41cd85f452122483e863d48bc",
+      "target_current10_sha256": "ddc78bc1c7f0dc34e393c90a344dd4b27d004bf41cd85f452122483e863d48bc",
+      "receipt_sha256": "ddc78bc1c7f0dc34e393c90a344dd4b27d004bf41cd85f452122483e863d48bc"
+    },
+    {
+      "path": "scripts/transport/transport_cargo_evidence.gd",
+      "current_sha256": "a6e235b1b56c332f6a5a5b2283e3ad6d045876c46dc28b32fffed207db875a2e",
+      "target_current10_sha256": "a6e235b1b56c332f6a5a5b2283e3ad6d045876c46dc28b32fffed207db875a2e",
+      "receipt_sha256": "a6e235b1b56c332f6a5a5b2283e3ad6d045876c46dc28b32fffed207db875a2e"
+    },
+    {
+      "path": "scripts/transport/transport_descriptor_catalog.gd",
+      "current_sha256": "9a6923c3eeab011946667449b8ccad1085651c0e8ee4ec86fff62fb971868f52",
+      "target_current10_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "receipt_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97"
+    },
+    {
+      "path": "scripts/transport/transport_logical_host.gd",
+      "current_sha256": "5371b8561507d23334b83765d25d2d655033d3bb6f493568ff00868b779ea5ad",
+      "target_current10_sha256": "5371b8561507d23334b83765d25d2d655033d3bb6f493568ff00868b779ea5ad",
+      "receipt_sha256": "5371b8561507d23334b83765d25d2d655033d3bb6f493568ff00868b779ea5ad"
+    },
+    {
+      "path": "scripts/transport/transport_runtime.gd",
+      "current_sha256": "d493809fc33415ca9f0ad2204ad4fb2f458391cdcc80771311d1979f5dc9c04c",
+      "target_current10_sha256": "d493809fc33415ca9f0ad2204ad4fb2f458391cdcc80771311d1979f5dc9c04c",
+      "receipt_sha256": "d493809fc33415ca9f0ad2204ad4fb2f458391cdcc80771311d1979f5dc9c04c"
+    },
+    {
+      "path": "scripts/transport/transport_timing.gd",
+      "current_sha256": "0e34935e455ad8d38556ae7f9f5fedc9985b0332d5df1cde554d0908ad7c2f56",
+      "target_current10_sha256": "0e34935e455ad8d38556ae7f9f5fedc9985b0332d5df1cde554d0908ad7c2f56",
+      "receipt_sha256": "0e34935e455ad8d38556ae7f9f5fedc9985b0332d5df1cde554d0908ad7c2f56"
+    },
+    {
+      "path": "scripts/transport/trunk/transport_trunk_cargo_store.gd",
+      "current_sha256": "007e935a06253510db21fbf84a8ead3fd92239dc06a69943ed2833a297309afe",
+      "target_current10_sha256": "007e935a06253510db21fbf84a8ead3fd92239dc06a69943ed2833a297309afe",
+      "receipt_sha256": "007e935a06253510db21fbf84a8ead3fd92239dc06a69943ed2833a297309afe"
+    },
+    {
+      "path": "scripts/vehicle_physics/vehicle_body_factory.gd",
+      "current_sha256": "7b733835e1736edf35ce801b4c27705616687e13210e270340caa2d41aedba2f",
+      "target_current10_sha256": "7b733835e1736edf35ce801b4c27705616687e13210e270340caa2d41aedba2f",
+      "receipt_sha256": "7b733835e1736edf35ce801b4c27705616687e13210e270340caa2d41aedba2f"
+    },
+    {
+      "path": "scripts/vehicle_physics/vehicle_contact_buffer.gd",
+      "current_sha256": "845153ae1e77734faeeae2b6a388a3b44ff7de53a731cc98c37c72b18a35e513",
+      "target_current10_sha256": "845153ae1e77734faeeae2b6a388a3b44ff7de53a731cc98c37c72b18a35e513",
+      "receipt_sha256": "845153ae1e77734faeeae2b6a388a3b44ff7de53a731cc98c37c72b18a35e513"
+    },
+    {
+      "path": "scripts/vehicle_physics/vehicle_contact_ledger.gd",
+      "current_sha256": "b829bbd00ff2bffcb1c355721df8aaa07879cf98bd6455b983b3b0e0b7c4c0cc",
+      "target_current10_sha256": "b829bbd00ff2bffcb1c355721df8aaa07879cf98bd6455b983b3b0e0b7c4c0cc",
+      "receipt_sha256": "b829bbd00ff2bffcb1c355721df8aaa07879cf98bd6455b983b3b0e0b7c4c0cc"
+    },
+    {
+      "path": "scripts/vehicle_physics/vehicle_native_body.gd",
+      "current_sha256": "ae4d67e7f931e33e3cf65404af665579498986cb307418a45989dba5e0dfe5d5",
+      "target_current10_sha256": "ae4d67e7f931e33e3cf65404af665579498986cb307418a45989dba5e0dfe5d5",
+      "receipt_sha256": "ae4d67e7f931e33e3cf65404af665579498986cb307418a45989dba5e0dfe5d5"
+    },
+    {
+      "path": "scripts/vehicle_physics/vehicle_profile.gd",
+      "current_sha256": "565838c1aad88384c6f2afd6aba611b489669d911432e94ada27e3b76ac621ea",
+      "target_current10_sha256": "565838c1aad88384c6f2afd6aba611b489669d911432e94ada27e3b76ac621ea",
+      "receipt_sha256": "565838c1aad88384c6f2afd6aba611b489669d911432e94ada27e3b76ac621ea"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_compartments.gd",
+      "current_sha256": "99ee5fcd0b07cb9b918f90280d30ee3f462ab54537c0073f2b079e25d14ca9df",
+      "target_current10_sha256": "99ee5fcd0b07cb9b918f90280d30ee3f462ab54537c0073f2b079e25d14ca9df",
+      "receipt_sha256": "99ee5fcd0b07cb9b918f90280d30ee3f462ab54537c0073f2b079e25d14ca9df"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_exit_pose_blend.gd",
+      "current_sha256": "8e1350680b10511e88c75df70be887b9ac3bc40041575a7578362d07589ecad3",
+      "target_current10_sha256": "8e1350680b10511e88c75df70be887b9ac3bc40041575a7578362d07589ecad3",
+      "receipt_sha256": "8e1350680b10511e88c75df70be887b9ac3bc40041575a7578362d07589ecad3"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_exit_pose.gd",
+      "current_sha256": "1afafedfa6c1544e47cabb19e76fa438aff6a29ef2f495fdb73d6b2bef725a89",
+      "target_current10_sha256": "1afafedfa6c1544e47cabb19e76fa438aff6a29ef2f495fdb73d6b2bef725a89",
+      "receipt_sha256": "1afafedfa6c1544e47cabb19e76fa438aff6a29ef2f495fdb73d6b2bef725a89"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_exit_presentation.gd",
+      "current_sha256": "5acd95e835b3779847a9518cca3a0ab8aef266ce362547021343a1f5e04be1cb",
+      "target_current10_sha256": "5acd95e835b3779847a9518cca3a0ab8aef266ce362547021343a1f5e04be1cb",
+      "receipt_sha256": "5acd95e835b3779847a9518cca3a0ab8aef266ce362547021343a1f5e04be1cb"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_occupant_pose.gd",
+      "current_sha256": "7b82de39c87dcf6aa0e3df179a71ce203b9d371a5e7b329be02d83d8622b3319",
+      "target_current10_sha256": "7b82de39c87dcf6aa0e3df179a71ce203b9d371a5e7b329be02d83d8622b3319",
+      "receipt_sha256": "7b82de39c87dcf6aa0e3df179a71ce203b9d371a5e7b329be02d83d8622b3319"
+    },
+    {
+      "path": "scripts/vehicle_visual/vehicle_visual.gd",
+      "current_sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34",
+      "target_current10_sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34",
+      "receipt_sha256": "d586952de302b7ec0467b89b91ba117e3350e8a5c217f48c303f06ff88494e34"
+    },
+    {
+      "path": "scripts/weapon_visual/weapon_visual_catalog.gd",
+      "current_sha256": "5fb94f96e98f7f0d0d050529bf2763716513c8e61aae3529be3334c31543677d",
+      "target_current10_sha256": "5fb94f96e98f7f0d0d050529bf2763716513c8e61aae3529be3334c31543677d",
+      "receipt_sha256": "5fb94f96e98f7f0d0d050529bf2763716513c8e61aae3529be3334c31543677d"
+    },
+    {
+      "path": "scripts/weapon_visual/weapon_visual.gd",
+      "current_sha256": "2782626033a665a8ff60df784e30fc1a7278ad544a475d29e40c6f85d9897abb",
+      "target_current10_sha256": "2782626033a665a8ff60df784e30fc1a7278ad544a475d29e40c6f85d9897abb",
+      "receipt_sha256": "2782626033a665a8ff60df784e30fc1a7278ad544a475d29e40c6f85d9897abb"
+    },
+    {
+      "path": "scripts/weapons/cargo_aim_picker.gd",
+      "current_sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0",
+      "target_current10_sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0",
+      "receipt_sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0"
+    },
+    {
+      "path": "scripts/weapons/context_plate_layout.gd",
+      "current_sha256": "ec9a6f2686ffa5b40e3d73f5e12e613f985cd227d991f19514e14f4b4e0a45ca",
+      "target_current10_sha256": "ec9a6f2686ffa5b40e3d73f5e12e613f985cd227d991f19514e14f4b4e0a45ca",
+      "receipt_sha256": "ec9a6f2686ffa5b40e3d73f5e12e613f985cd227d991f19514e14f4b4e0a45ca"
+    },
+    {
+      "path": "scripts/weapons/ground_weapon_rules.gd",
+      "current_sha256": "96f1c956029cb45b26b1ab0c8944e006db1f3b99735102d445eb02055b0e079e",
+      "target_current10_sha256": "96f1c956029cb45b26b1ab0c8944e006db1f3b99735102d445eb02055b0e079e",
+      "receipt_sha256": "96f1c956029cb45b26b1ab0c8944e006db1f3b99735102d445eb02055b0e079e"
+    },
+    {
+      "path": "scripts/weapons/impact_mark_art.gd",
+      "current_sha256": "3396a15b773854a34ac35dbc08abc9e6f4f00c6bc0bea9288413cd1880bda130",
+      "target_current10_sha256": "3396a15b773854a34ac35dbc08abc9e6f4f00c6bc0bea9288413cd1880bda130",
+      "receipt_sha256": "3396a15b773854a34ac35dbc08abc9e6f4f00c6bc0bea9288413cd1880bda130"
+    },
+    {
+      "path": "scripts/weapons/player_weapon_presentation.gd",
+      "current_sha256": "155c8ba0a9a806a399a631f7bffad0596454dd27a60fadd29d5e6d51adb75e5d",
+      "target_current10_sha256": "155c8ba0a9a806a399a631f7bffad0596454dd27a60fadd29d5e6d51adb75e5d",
+      "receipt_sha256": "155c8ba0a9a806a399a631f7bffad0596454dd27a60fadd29d5e6d51adb75e5d"
+    },
+    {
+      "path": "scripts/weapons/preview_weapon_cargo.gd",
+      "current_sha256": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9",
+      "target_current10_sha256": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "receipt_sha256": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639"
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "current_sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+      "target_current10_sha256": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+      "receipt_sha256": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a"
+    },
+    {
+      "path": "scripts/weapons/rpg_effects.gd",
+      "current_sha256": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "target_current10_sha256": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "receipt_sha256": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e"
+    },
+    {
+      "path": "scripts/weapons/rpg_flight.gd",
+      "current_sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+      "target_current10_sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+      "receipt_sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f"
+    },
+    {
+      "path": "scripts/weapons/scope_optic.svg",
+      "current_sha256": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
+      "target_current10_sha256": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed",
+      "receipt_sha256": "477959383b359752a578a851e9b678e498b4904cca0e76a47b4a7dd5b33395ed"
+    },
+    {
+      "path": "scripts/weapons/walk_cargo_card.gd",
+      "current_sha256": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413",
+      "target_current10_sha256": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413",
+      "receipt_sha256": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413"
+    },
+    {
+      "path": "scripts/weapons/walk_trunk_window.gd",
+      "current_sha256": null,
+      "target_current10_sha256": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+      "receipt_sha256": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5"
+    },
+    {
+      "path": "scripts/weapons/walk_weapon_crosshair.gd",
+      "current_sha256": "c86d4c65b7dc31800ecf09596f75ee059542a5e3661980fc4a0b0099083eb8d2",
+      "target_current10_sha256": "c86d4c65b7dc31800ecf09596f75ee059542a5e3661980fc4a0b0099083eb8d2",
+      "receipt_sha256": "c86d4c65b7dc31800ecf09596f75ee059542a5e3661980fc4a0b0099083eb8d2"
+    },
+    {
+      "path": "scripts/weapons/walk_weapon_ui.gd",
+      "current_sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "target_current10_sha256": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "receipt_sha256": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443"
+    },
+    {
+      "path": "scripts/weapons/weapon_aim_camera.gd",
+      "current_sha256": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "target_current10_sha256": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+      "receipt_sha256": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3"
+    },
+    {
+      "path": "scripts/weapons/weapon_cargo_bridge.gd",
+      "current_sha256": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf",
+      "target_current10_sha256": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+      "receipt_sha256": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264"
+    },
+    {
+      "path": "scripts/weapons/weapon_cargo_sizes.gd",
+      "current_sha256": "b1fa3deb908c9c24614b77ce8171f0708324c6779e5d37e540204bd9be244cfe",
+      "target_current10_sha256": "b1fa3deb908c9c24614b77ce8171f0708324c6779e5d37e540204bd9be244cfe",
+      "receipt_sha256": "b1fa3deb908c9c24614b77ce8171f0708324c6779e5d37e540204bd9be244cfe"
+    },
+    {
+      "path": "scripts/weapons/weapon_fire_profiles.gd",
+      "current_sha256": "8a062c7a0c7e9e7db1a1b98c2ae524bdf8d66390b24070aa4e62f4e2dcd1ea4a",
+      "target_current10_sha256": "8a062c7a0c7e9e7db1a1b98c2ae524bdf8d66390b24070aa4e62f4e2dcd1ea4a",
+      "receipt_sha256": "8a062c7a0c7e9e7db1a1b98c2ae524bdf8d66390b24070aa4e62f4e2dcd1ea4a"
+    },
+    {
+      "path": "scripts/weapons/weapon_fire.gd",
+      "current_sha256": "55af8a7f8be7153b0e4530dfa5a5c46a567f2e38ca34096665bfd0c2831d8cb6",
+      "target_current10_sha256": "55af8a7f8be7153b0e4530dfa5a5c46a567f2e38ca34096665bfd0c2831d8cb6",
+      "receipt_sha256": "55af8a7f8be7153b0e4530dfa5a5c46a567f2e38ca34096665bfd0c2831d8cb6"
+    },
+    {
+      "path": "scripts/weapons/weapon_hit_rules.gd",
+      "current_sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274",
+      "target_current10_sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274",
+      "receipt_sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274"
+    },
+    {
+      "path": "scripts/weapons/weapon_inventory.gd",
+      "current_sha256": "e5d2448223b1356054c26402e2b71432facbd18b9dc89450f18501a81d5a1704",
+      "target_current10_sha256": "e5d2448223b1356054c26402e2b71432facbd18b9dc89450f18501a81d5a1704",
+      "receipt_sha256": "e5d2448223b1356054c26402e2b71432facbd18b9dc89450f18501a81d5a1704"
+    },
+    {
+      "path": "scripts/weapons/weapon_pickup_visuals.gd",
+      "current_sha256": "b1190548d80464738a4f8e2500e0ca173f0535f818b7dc82d413212dc9d4e797",
+      "target_current10_sha256": "b1190548d80464738a4f8e2500e0ca173f0535f818b7dc82d413212dc9d4e797",
+      "receipt_sha256": "b1190548d80464738a4f8e2500e0ca173f0535f818b7dc82d413212dc9d4e797"
+    },
+    {
+      "path": "scripts/weapons/weapon_pose.gd",
+      "current_sha256": "c728d6c875fe1fd4e8812c629c3422a2354ce5409675dee123c41eee272a334b",
+      "target_current10_sha256": "c728d6c875fe1fd4e8812c629c3422a2354ce5409675dee123c41eee272a334b",
+      "receipt_sha256": "c728d6c875fe1fd4e8812c629c3422a2354ce5409675dee123c41eee272a334b"
+    },
+    {
+      "path": "scripts/weapons/weapon_posture_base.gd",
+      "current_sha256": "540ab7bbd32ceffad430d8ee07759b8e1c0d7ce2a4c139c2da1eaf1d83157c41",
+      "target_current10_sha256": "540ab7bbd32ceffad430d8ee07759b8e1c0d7ce2a4c139c2da1eaf1d83157c41",
+      "receipt_sha256": "540ab7bbd32ceffad430d8ee07759b8e1c0d7ce2a4c139c2da1eaf1d83157c41"
+    },
+    {
+      "path": "scripts/weapons/weapon_projectiles.gd",
+      "current_sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27",
+      "target_current10_sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27",
+      "receipt_sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27"
+    },
+    {
+      "path": "scripts/weapons/weapon_surface_impacts.gd",
+      "current_sha256": "bc116ecee2aad8f6b394efc824706ffaf8259467655ea44ba183750aafe3b552",
+      "target_current10_sha256": "bc116ecee2aad8f6b394efc824706ffaf8259467655ea44ba183750aafe3b552",
+      "receipt_sha256": "bc116ecee2aad8f6b394efc824706ffaf8259467655ea44ba183750aafe3b552"
+    }
+  ],
+  "candidate10_artifacts_verified": [
+    {
+      "filename": "MafioziPreview.exe",
+      "bytes": 109268480,
+      "sha256": "d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562",
+      "verified": true
+    },
+    {
+      "filename": "MafioziPreview.pck",
+      "bytes": 68011852,
+      "sha256": "3ba945307a9d71f800a687c3cb75fb62c5d7a39834eaa30be74f263b6f8adb0a",
+      "verified": true
+    }
+  ],
+  "source_receipts": {
+    "outputs/coordinator23_adoption09_guards/VERIFY_AND_GUARDS.json": "f37554a8617cf4dd4015a45c18a60f8f8788b704def04b7eb3187b4d467cbac8",
+    "outputs/coordinator23_trunk_window/RECEIPT.json": "6db74696e9bb738bc6c69e93862bc305a1a5ec9f056ae0d284398a11976a5290",
+    "outputs/coordinator23_quality/candidate10/INTEGRATION.json": "ad051275350955750f708a3c7ea5e6358e2ac066849b2a1aea9cd57a866fcd33",
+    "outputs/coordinator23_quality/candidate10/godot/mafiozi_walk/exports/win64/s01-20260930-quality23g/build_receipt.json": "9dc8e597a9e6c3bfd0ff7becf194b81556da7dd2a50f0e703f261945bc3ce23e"
+  },
+  "future11": {
+    "status": "UNACCEPTED_NOT_A_PROMOTION_TARGET",
+    "expected_parent": "candidate10 exact SHA in each guard",
+    "anticipated_paths": [
+      "scripts/weapons/preview_weapon_cargo.gd",
+      "scripts/weapons/preview_weapons.gd",
+      "scripts/weapons/walk_trunk_window.gd"
+    ],
+    "rule": "Freeze accepted11 receipt and replace targets only for its explicit guarded overlay; compare every other source input against candidate10. Runtime revision/notes changes require paired explicit guards. Abort new shared drift. Never whole-tree copy."
+  },
+  "limits": [
+    "This plan pins candidate10, not unfinished candidate11.",
+    "Preserved shared transport/palette differs from measured candidate10; final shared export requires its own exact receipt and acceptance.",
+    "Literal dependency scan does not prove dynamically constructed paths; export receipt/artifact hashes verified, engine not launched."
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "native": {
+    "checks": 233,
+    "errors": [],
+    "scope": "actual hatchback/inventory/cargo/14UID+ammo+UI buttons; source scene headless, no visual/GPU/perf claim"
+  },
+  "layout_bounds": [
+    {
+      "columns": 3,
+      "minimum": "(722.0, 245.0)",
+      "panel": "[P: (24.0, 24.0), S: (752.0, 552.0)]",
+      "viewport": "(800, 600)"
+    },
+    {
+      "columns": 4,
+      "minimum": "(970.0, 245.0)",
+      "panel": "[P: (140.0, 25.0), S: (1000.0, 670.0)]",
+      "viewport": "(1280, 720)"
+    },
+    {
+      "columns": 3,
+      "minimum": "(722.0, 245.0)",
+      "panel": "[P: (24.0, 24.0), S: (752.0, 552.0)]",
+      "viewport": "(800, 600)"
+    },
+    {
+      "columns": 2,
+      "minimum": "(564.0, 245.0)",
+      "panel": "[P: (24.0, 24.0), S: (592.0, 432.0)]",
+      "viewport": "(640, 480)"
+    },
+    {
+      "columns": 4,
+      "minimum": "(970.0, 245.0)",
+      "panel": "[P: (140.0, 25.0), S: (1000.0, 670.0)]",
+      "viewport": "(1280, 720)"
+    }
+  ],
+  "gpu": "NOT_RUN",
+  "stage_base": "private previous trunk143 stage plus exact two layout11 file overlays; same UI/player/cargo base as candidate10; NPC disabled in this component test"
+}

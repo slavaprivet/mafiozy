@@ -1,0 +1,63 @@
+{
+  "status": "OUTPUTS_ONLY_NATIVE143_PASS_VISUAL_PERF_PENDING",
+  "base": "candidate09 source stage; original shared/candidate unchanged",
+  "changes": {
+    "scripts/preview_player.gd": {
+      "before": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06",
+      "after": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+      "bytes": 37786
+    },
+    "scripts/weapons/preview_weapon_cargo.gd": {
+      "before": "4752651c44d45a0a00305306ec8bf420d17ef207bc20ac4076a3d0218728d2d9",
+      "after": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "bytes": 35393
+    },
+    "scripts/weapons/preview_weapons.gd": {
+      "before": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+      "after": "45f2f9e5c23dd6963b527bf2cbbae4e3058c4114f8fbeb4773f8c0375d07b42a",
+      "bytes": 21122
+    },
+    "scripts/weapons/walk_trunk_window.gd": {
+      "before": null,
+      "after": "c43f4287e621ac2d794eec8594f24e6bcdb9489529ce8e13aa25c803b6d134d5",
+      "bytes": 6096
+    },
+    "scripts/weapons/walk_weapon_ui.gd": {
+      "before": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "after": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "bytes": 11658
+    },
+    "scripts/weapons/weapon_aim_camera.gd": {
+      "before": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "after": "18511841822cbd2173a4e94e4c0285ac4f1205219ee295f268d0cf175d0ffca3",
+      "bytes": 8691
+    },
+    "scripts/weapons/weapon_cargo_bridge.gd": {
+      "before": "51be8a8a918d422a23060f38df657c453dbfb956ff4ee17376d8775fae5fc2cf",
+      "after": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+      "bytes": 12626
+    }
+  },
+  "evidence": {
+    "test_native.gd": "3cd4eafafe4120e05ef855f2a333bcacea2f5ebcee7fd1d855591c6f76d84fcb",
+    "native01.log": "bb1ba26ebdf8fd49ebefea3276d6ef1222bc8f4bf724ee7fdd6ba8f78aa41bc7",
+    "RUN01.json": "2d9ebb396603483189d1a776969c57b5ae7e752bd4e195126a3097cac545e512",
+    "RESULT01.json": "cc6f0feaeebad6c7fc54e2e966d81d5c180e8bbcc984ef47e6f221f8ce600f9d",
+    "STAGE_INPUTS.json": "5907c504ff2ec229d4b8bf1857a5ff341238b70e6077ee8886ae8b33fa768d65",
+    "merge.patch": "189e143a36aa780bdea618c8d8645dcf4504e4f221cef69e7b691ae5bc0806fa"
+  },
+  "stage_resources_unchanged_after_run": 310,
+  "engine_seconds": 3.5904239998199046,
+  "required_root_seams": [
+    "Explicit export_files add res://scripts/weapons/walk_trunk_window.gd",
+    "Update preview_updates trunk instruction E opens contents; large cards take, G store; new runtime notes must match accepted pack",
+    "Player file contains ONLY one additional controls_blocked guard at physics jump shortcut; preserve exact before SHA"
+  ],
+  "limits": [
+    "No GPU/window opened",
+    "No rendered layout acceptance or whole-scene performance claim",
+    "Headless fixture uses actual hatchback/inventory/cargo/visual ownership; normal NPC disabled solely for this behavioral test",
+    "Camera intentionally faces away to prove model aim is not required",
+    "Guard tests intentionally move player/set car speed/add a temporary real wall"
+  ]
+}

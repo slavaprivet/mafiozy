@@ -1,0 +1,1609 @@
+--- a/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd
++++ b/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd
+@@ -1,6 +1,9 @@
+ extends RefCounted
+ const HitImpulse=preload("npc_hit_impulse.gd")
+ const MEDICAL_IMPULSE_MAX_NS:=75.0
++const HeadZone=preload("npc_head_zone.gd")
++var _head_zone: RefCounted
++var last_head_zone: Dictionary={}
+ const POINT_SHARE:=0.10
+ const POINT_MAX_NS:=2.5
+ var _point_consumed: Dictionary={}
+@@ -12,9 +15,8 @@
+ ## Deferred world/social effects remain in pending_effects, not fake callbacks.
+ const Blood=preload("res://scripts/npc_visual/npc_blood_adapter.gd")
+ var blood: RefCounted
+-const HeadZone=preload("npc_head_zone.gd")
+-var _head_zone: RefCounted
+-var last_head_zone: Dictionary={}
++const Marks=preload("res://scripts/npc_visual/npc_hit_marks_adapter.gd")
++var marks: RefCounted
+ const Provider=preload("res://scripts/npc_visual/npc_preview_source_provider.gd")
+ const Adapter=preload("res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd")
+ const Rules=preload("res://scripts/weapons/weapon_hit_rules.gd")
+@@ -85,6 +87,9 @@
+ 	var entry: Dictionary={}
+ 	for manifest_item: Dictionary in manifest.entries:
+ 		if manifest_item.entry.bridge_id==_token.render_id: entry=manifest_item.entry
++	marks=Marks.new()
++	if not marks.configure(_host,_token,self,weapons.scene,entry):
++		dispose(); return {"ok":false,"reason":"marks_original_binding"}
+ 	blood=Blood.new()
+ 	if not blood.configure(_host,_token,self,weapons.scene,entry):
+ 		dispose(); return {"ok":false,"reason":"blood_original_binding"}
+@@ -204,9 +209,9 @@
+ 		if not first.ok: return
+ 		damage=first.damage; direction*=first.direction_multiplier
+ 	var zone:=_head_contact(shot,impact)
+-	_apply_hit(str(impact.shotId),shot,damage,direction,zone.get("point",impact.point),impact.normal,zone)
+-
+-func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3,zone: Dictionary={},physical_direction: Vector3=Vector3.ZERO) -> void:
++	_apply_hit(str(impact.shotId),shot,damage,direction,zone.get("point",impact.point),zone.get("normal",impact.normal),zone.get("direction",Vector3.ZERO),zone)
++
++func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3,physical_direction: Vector3=Vector3.ZERO,zone: Dictionary={}) -> void:
+ 	if _current(_binding).is_empty(): return
+ 	var started_us:=Time.get_ticks_usec()
+ 	var body: CharacterBody3D=_token.body
+@@ -219,11 +224,14 @@
+ 		_admitting.hit["hit_zone"]="head"
+ 		_admitting.hit["head_policy"]="user_requested_headshot_final_v1"
+ 		last_head_zone=zone.duplicate(true)
++	var contact_actor_transform: Transform3D=body.global_transform
+ 	last_result=_adapter.hit(id,_admitting.hit)
+ 	_admitting={}
+ 	if not last_result.ok or not last_result.get("applied",false): return
+-	last_contact={"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
++	last_contact={"event_id":id,"incoming_direction":(direction if physical_direction==Vector3.ZERO else physical_direction).normalized(),"actor_transform_at_impact":contact_actor_transform,"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
++	if not zone.is_empty(): last_contact["projectile_index"]=zone.get("projectile_index",0)
+ 	if blood!=null: blood.receive(id,point,normal)
++	if marks!=null: marks.receive(id,point,normal)
+ 	_native_impulse_context={"event_id":id,"value":HitImpulse.bullet(shot.weapon_id,shot.muzzle.distance_to(point),damage,direction if physical_direction==Vector3.ZERO else physical_direction,_row.get("_invulnerable",false))}
+ 	_publish_physical(id,last_result.reason,point)
+ 	_native_impulse_context={}
+@@ -258,8 +266,11 @@
+ 				if not shot.targets[id].has("head_zone"):
+ 					var zone: Dictionary=candidate._head_contact(shot,receipt)
+ 					if zone.get("zone")=="head":
++						# One selected native pellet owns the entire refined contact tuple.
+ 						shot.targets[id]["head_zone"]=zone
+-						shot.targets[id]["head_physical_direction"]=receipt.direction
++						shot.targets[id].point=zone.point
++						shot.targets[id].normal=zone.normal
++						shot.targets[id].physical_direction=zone.direction
+ 				break
+ 	if shot.terminals.size()!=7: return
+ 	shot.used=true # close before callbacks, including recursively emitted signals.
+@@ -270,7 +281,7 @@
+ 		var target: Variant=group.owner.get_ref()
+ 		if not is_instance_valid(target) or target._current(group.binding).is_empty(): continue
+ 		var damage:=Rules.shotgun_damage(group.distances,_marksman,shot.modifiers.critical,shot.modifiers.critical_multiplier)
+-		if damage.ok: target._apply_hit(str(receipt.shotId),shot,damage.damage,shot.base_direction,group.get("head_zone",{}).get("point",group.point),group.normal,group.get("head_zone",{}),group.get("head_physical_direction",group.physical_direction))
++		if damage.ok: target._apply_hit(str(receipt.shotId),shot,damage.damage,shot.base_direction,group.point,group.normal,group.physical_direction,group.get("head_zone",{}))
+ 	shot.targets.clear()
+ 
+ func _publish_physical(id: String,reason: String,point: Vector3) -> void:
+@@ -342,6 +353,7 @@
+ 
+ func dispose() -> void:
+ 	if blood!=null: blood.dispose(); blood=null
++	if marks!=null: marks.dispose(); marks=null
+ 	_ready=false
+ 	if _registry_key!=0 and _registries.has(_registry_key):
+ 		var owners: Dictionary=_registries[_registry_key].owners
+@@ -357,10 +369,12 @@
+ 	if _adapter!=null: _adapter.dispose()
+ 	_adapter=null; _head_zone=null; _host=null; _weapons=null; _effects=null
+ 
+-## Refine only an admitted native shot on this actor's owned collider.
++## Geometry can refine only an existing accepted shot on this owned collider.
+ func _head_contact(shot: Dictionary,impact: Dictionary) -> Dictionary:
+ 	if _head_zone==null or _row.get("_invulnerable",false) or _current(_binding).is_empty() or not _contact_shape(impact) or not _owns_collider(impact.get("collider")):return {}
+ 	var physical: RefCounted=_host._ragdolls[_token.source_id]
+ 	var excluded: Array[RID]=[_token.body.get_rid(),_weapons.player.get_rid()]
+ 	excluded.append_array(physical._body.body_rids())
+-	return _head_zone.classify(shot.muzzle,impact.direction,float(Rules.damage_profile(shot.weapon_id).range)*4.1,physical,_weapons.scene,excluded)
++	var zone: Dictionary=_head_zone.classify(shot.muzzle,impact.direction,float(Rules.damage_profile(shot.weapon_id).range)*4.1,physical,_weapons.scene,excluded)
++	if not zone.is_empty(): zone["projectile_index"]=impact.get("projectileIndex",0)
++	return zone
+--- a/godot/mafiozi_walk/scripts/preview_player.gd
++++ b/godot/mafiozi_walk/scripts/preview_player.gd
+@@ -69,6 +69,29 @@
+ var _hit_pose_decorator: Callable
+ var _melee_practice: Node
+ var _weapon_host: Node
++var _corpse_contact_sampler: RefCounted
++var _ground_move_frame: int = -1
++var _ground_move_serial: int = 0
++var _ground_move_pose_epoch: int = -1
++var _ground_move_start := Vector3.ZERO
++var _ground_move_end := Vector3.ZERO
++
++
++## Only the actual completed normal movement path can publish this receipt.
++## get_position_delta() alone can still describe an older physics frame.
++func completed_ground_move_receipt() -> Dictionary:
++	if not Engine.is_in_physics_frame() or _ground_move_frame != Engine.get_physics_frames() or _ground_move_pose_epoch != _pose_epoch or _pose_authority != &"on_foot": return {}
++	return {"frame":_ground_move_frame, "serial":_ground_move_serial, "pose_epoch":_ground_move_pose_epoch, "start":_ground_move_start, "end":_ground_move_end}
++
++
++## Optional public NPC contact owner; no queries when unbound.
++func set_final_dead_contact_owner(ready_hook: Callable, admit_hook: Callable) -> bool:
++	_corpse_contact_sampler = null
++	if not ready_hook.is_valid() or not admit_hook.is_valid(): return false
++	var sampler: RefCounted = load("res://scripts/player_corpse_contact.gd").new()
++	if not sampler.configure(ready_hook, admit_hook): return false
++	_corpse_contact_sampler = sampler
++	return true
+ 
+ 
+ func _ready() -> void:
+@@ -266,13 +289,14 @@
+ 
+ 
+ func _physics_process(delta: float) -> void:
++	_ground_move_frame = -1
+ 	_jump_pose = {}
+ 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
+ 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
+ 	if _pose_authority != &"on_foot":
+ 		_jump_event_consumed = false
+ 		return # External owner owns movement as well as the final pose.
+-	if _free_mouse_look and not _jump_event_consumed and not _text_control_focused() and Input.is_action_just_pressed(ACTION_JUMP):
++	if _free_mouse_look and not _jump_event_consumed and not _text_control_focused() and not (is_instance_valid(_weapon_host) and _weapon_host.controls_blocked()) and Input.is_action_just_pressed(ACTION_JUMP):
+ 		_request_preview_jump(float(Time.get_ticks_msec()))
+ 	_jump_event_consumed = false
+ 	if not _jump.is_empty():
+@@ -306,7 +330,14 @@
+ 		var target_heading: float = atan2(-direction.x, -direction.z)
+ 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
+ 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
++	var corpse_contact_start: Dictionary = _corpse_contact_sampler.begin(self) if _corpse_contact_sampler != null and not typing else {}
++	_ground_move_start = global_position
+ 	move_and_slide()
++	_ground_move_frame = Engine.get_physics_frames()
++	_ground_move_serial += 1
++	_ground_move_pose_epoch = _pose_epoch
++	_ground_move_end = global_position
++	if _corpse_contact_sampler != null: _corpse_contact_sampler.finish(self, corpse_contact_start, delta)
+ 	if _source_falling:
+ 		if is_on_floor():
+ 			_source_falling = false
+--- /dev/null
++++ b/godot/mafiozi_walk/scripts/player_corpse_contact.gd
+@@ -0,0 +1,87 @@
++extends RefCounted
++## PROPOSAL ONLY. No binding or production enable until NPC owner implements
++## the public admission contract. Root detects contact; NPC owner owns force.
++var _ready_hook:Callable
++var _admit_hook:Callable
++var _query:=PhysicsShapeQueryParameters3D.new()
++var _last_attempt_ms:=-1000000
++var _serial:=0
++var attempts:=0
++var accepted:=0
++var last_result:Dictionary={}
++func configure(ready_hook:Callable,admit_hook:Callable)->bool:
++	_ready_hook=ready_hook;_admit_hook=admit_hook
++	return _ready_hook.is_valid() and _admit_hook.is_valid()
++func begin(player:CharacterBody3D)->Dictionary:
++	if not _ready_hook.is_valid() or not _admit_hook.is_valid() or not player.is_on_floor():return {}
++	if player._pose_authority!=&"on_foot" or not player._jump.is_empty() or not player._free_mouse_look:return {}
++	var capsule:CollisionShape3D=player.get_node_or_null("PlayerCapsule")
++	if not is_instance_valid(capsule) or capsule.disabled or capsule.shape==null:return {}
++	return {"position":player.global_position,"capsule":capsule.global_transform,"shape":capsule.shape,"velocity":player.velocity,"frame":Engine.get_physics_frames(),"pose_epoch":player._pose_epoch}
++func finish(player:CharacterBody3D,start:Dictionary,delta:float)->void:
++	if start.is_empty() or not _ready_hook.is_valid() or not _admit_hook.is_valid():return
++	if not Engine.is_in_physics_frame() or start.frame!=Engine.get_physics_frames() or start.pose_epoch!=player._pose_epoch:return
++	if player._pose_authority!=&"on_foot" or not player._jump.is_empty() or not player.is_on_floor() or not player._free_mouse_look:return
++	if not is_finite(delta) or delta<=0 or delta>.1:return
++	if not player.has_method("completed_ground_move_receipt"):return
++	var movement:Dictionary=player.completed_ground_move_receipt()
++	if movement.get("frame")!=start.frame or movement.get("pose_epoch")!=start.pose_epoch or not movement.get("serial") is int or movement.serial<1:return
++	if movement.get("start")!=start.position or movement.get("end")!=player.global_position:return
++	var motion:Vector3=player.global_position-start.position
++	var horizontal:=Vector3(motion.x,0,motion.z)
++	if not motion.is_finite() or horizontal.length()<.001 or absf(motion.y)>.15:return
++	# Actual move_and_slide result, never desired movement or teleported placement.
++	var intended:Vector3=start.velocity*delta
++	if horizontal.length()>Vector2(intended.x,intended.z).length()+.02:return
++	var now:=Time.get_ticks_msec()
++	# Fixed coarse gate avoids repeated owner work while standing in contact.
++	if now-_last_attempt_ms<50:return
++	var contract:Variant=_ready_hook.call()
++	if not contract is Dictionary or not contract.get("ready",false) or contract.get("schema")!="npc_final_dead_contact/v1":return
++	for name:String in ["epoch","max_impulse_ns","impulse_ns_per_mps","cooldown_ms","max_contact_height_m","max_relative_speed_mps"]:
++		if not contract.has(name):return
++		if typeof(contract[name]) not in [TYPE_INT,TYPE_FLOAT]:return
++	if not contract.epoch is int or contract.epoch<1:return
++	var cap:float=contract.max_impulse_ns;var gain:float=contract.impulse_ns_per_mps
++	var cooldown:int=contract.cooldown_ms;var height:float=contract.max_contact_height_m;var maximum_speed:float=contract.max_relative_speed_mps
++	if not is_finite(cap) or cap<=0 or not is_finite(gain) or gain<=0 or cooldown<50 or cooldown>1000 or not is_finite(height) or height<=0 or height>.65 or not is_finite(maximum_speed) or maximum_speed<=0:return
++	if now-_last_attempt_ms<cooldown:return
++	_query.shape=start.shape;_query.transform=start.capsule;_query.motion=motion
++	_query.collision_mask=256;_query.exclude=[player.get_rid()];_query.margin=.001
++	_query.collide_with_areas=false;_query.collide_with_bodies=true
++	var space:=player.get_world_3d().direct_space_state
++	# cast_motion intentionally ignores bodies already overlapping the start.
++	# First use a real rest-info contact at the actual initial capsule transform.
++	_query.motion=Vector3.ZERO
++	var contact:Dictionary=space.get_rest_info(_query)
++	var initial_overlap:=not contact.is_empty()
++	var sweep:=PackedFloat32Array([0.0,0.0])
++	if contact.is_empty():
++		_query.motion=motion;sweep=space.cast_motion(_query)
++		if sweep.size()!=2 or sweep[0]>=1.0:return
++		_query.transform.origin=start.capsule.origin+motion*clampf(sweep[1],0,1)
++		_query.motion=Vector3.ZERO
++		contact=space.get_rest_info(_query)
++	if contact.is_empty() or not contact.get("rid") is RID or not contact.get("point") is Vector3 or not contact.get("normal") is Vector3:return
++	var point:Vector3=contact.point;var normal:Vector3=contact.normal
++	if not point.is_finite() or not normal.is_finite() or normal.length_squared()<.5:return
++	var local_height:=point.y-minf(start.position.y,player.global_position.y)
++	if local_height<-.025 or local_height>height:return
++	var horizontal_normal:=Vector3(normal.x,0,normal.z)
++	if horizontal_normal.length_squared()<.25:return
++	horizontal_normal=horizontal_normal.normalized()
++	var actor_velocity:=horizontal/delta
++	var body_velocity:Vector3=contact.get("linear_velocity",Vector3.ZERO)
++	if not body_velocity.is_finite():return
++	var closing_speed:float=maxf(0.0,-(actor_velocity-body_velocity).dot(horizontal_normal))
++	if closing_speed<.15 or closing_speed>maximum_speed:return
++	# Separate layer1 obstruction check; cannot transmit a nudge through a wall.
++	var origin:=player.global_position+Vector3.UP*.35
++	var end:=point+(origin-point).normalized()*.003
++	var wall_ray:=PhysicsRayQueryParameters3D.create(origin,end,1,[player.get_rid()])
++	if not space.intersect_ray(wall_ray).is_empty():return
++	_last_attempt_ms=now;_serial+=1;attempts+=1
++	var request:Dictionary={"schema":"npc_final_dead_contact/v1","owner_epoch":contract.epoch,"event_id":"player_contact:%d:%d:%d"%[player.get_instance_id(),start.pose_epoch,_serial],"physics_frame":start.frame,"movement_serial":movement.serial,"now_ms":now,"actor_instance_id":player.get_instance_id(),"actor_rid":player.get_rid(),"actor_pose_epoch":start.pose_epoch,"actor_start":start.position,"actor_end":player.global_position,"actual_velocity":actor_velocity,"requested_velocity":start.velocity,"collider_instance_id":contact.get("collider_id",0),"collider_rid":contact.rid,"shape_index":contact.get("shape",-1),"world_point":point,"world_normal":normal,"body_velocity":body_velocity,"relative_closing_speed":closing_speed,"contact_height":local_height,"safe_fraction":sweep[0],"unsafe_fraction":sweep[1],"initial_overlap":initial_overlap,"suggested_impulse_ns":-horizontal_normal*minf(cap,closing_speed*gain),"max_impulse_ns":cap,"delivery":"command_unapplied","damage":false}
++	var result:Variant=_admit_hook.call(request)
++	last_result=result.duplicate(true) if result is Dictionary else {"ok":false,"reason":"invalid_owner_result"}
++	if last_result.get("ok",false):accepted+=1
+--- a/godot/mafiozi_walk/export_presets.cfg
++++ b/godot/mafiozi_walk/export_presets.cfg
+@@ -7,7 +7,7 @@
+ dedicated_server=false
+ custom_features="s01_preview"
+ export_filter="resources"
+-export_files=PackedStringArray("res://scripts/weapons/impact_mark_art.gd", "res://scripts/weapons/context_plate_layout.gd", "res://scripts/weapons/weapon_aim_camera.gd", "res://scripts/weapons/rpg_effects.gd", "res://scripts/weapons/rpg_flight.gd", "res://scripts/weapons/ground_weapon_rules.gd", "res://scripts/npc_visual/npc_body.gd", "res://scripts/npc_visual/npc_local_preview_hit_owner.gd", "res://scripts/npc_visual/npc_hit_impulse.gd", "res://scripts/npc_visual/npc_head_zone.gd", "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd", "res://scripts/weapons/weapon_hit_rules.gd", "res://assets/buildings/gun_shop.e97d6fac4097.glb", "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb", "res://assets/buildings/pawnshop.1a95f97569d9.glb", "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb", "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb", "res://assets/hero.glb", "res://assets/npc_visual/session/prepared/31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f.scn", "res://assets/npc_visual/session/prepared/604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe.scn", "res://assets/npc_visual/session/prepared/60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22.scn", "res://assets/weapon_thumbnails/ak74.png", "res://assets/weapon_thumbnails/deagle.png", "res://assets/weapon_thumbnails/golden_colt.png", "res://assets/weapon_thumbnails/golden_uzi.png", "res://assets/weapon_thumbnails/m16.png", "res://assets/weapon_thumbnails/nagan.png", "res://assets/weapon_thumbnails/none.png", "res://assets/weapon_thumbnails/revolver.png", "res://assets/weapon_thumbnails/rpg.png", "res://assets/weapon_thumbnails/sawn_off.png", "res://assets/weapon_thumbnails/shotgun.png", "res://assets/weapon_thumbnails/sniper.png", "res://assets/weapon_thumbnails/tommy_gun.png", "res://assets/weapon_thumbnails/tt_pistol.png", "res://assets/weapon_thumbnails/uzi.png", "res://assets/weapon_visual/ak74.scn", "res://assets/weapon_visual/deagle.scn", "res://assets/weapon_visual/golden_colt.scn", "res://assets/weapon_visual/golden_uzi.scn", "res://assets/weapon_visual/m16.scn", "res://assets/weapon_visual/nagan.scn", "res://assets/weapon_visual/none.scn", "res://assets/weapon_visual/revolver.scn", "res://assets/weapon_visual/rpg.scn", "res://assets/weapon_visual/sawn_off.scn", "res://assets/weapon_visual/shotgun.scn", "res://assets/weapon_visual/sniper.scn", "res://assets/weapon_visual/tommy_gun.scn", "res://assets/weapon_visual/tt_pistol.scn", "res://assets/weapon_visual/uzi.scn", "res://scenes/main.tscn", "res://scripts/character_physics/character_impact_policy.gd", "res://scripts/character_physics/character_impact_sink.gd", "res://scripts/character_physics/character_physics_driver.gd", "res://scripts/character_physics/character_physics_pose.gd", "res://scripts/character_physics/exit_ragdoll_body.gd", "res://scripts/character_physics/local_hit_reaction.gd", "res://scripts/character_physics/player_impact_host.gd", "res://scripts/character_physics/ragdoll_actor_transition.gd", "res://scripts/character_physics/recovery_clearance.gd", "res://scripts/character_physics/recovery_surface_bounds.gd", "res://scripts/combat/melee_attack_source.gd", "res://scripts/combat/melee_input.gd", "res://scripts/combat/melee_physical_pose.gd", "res://scripts/combat/melee_pose.gd", "res://scripts/combat/preview_melee.gd", "res://scripts/main.gd", "res://scripts/navigation/path_job_queue.gd", "res://scripts/navigation/preview_engine_navigation.gd", "res://scripts/navigation/preview_navigation_host.gd", "res://scripts/npc_visual/npc_float_color_bridge.gd", "res://scripts/npc_visual/npc_preview_activity.gd", "res://scripts/npc_visual/npc_preview_source_provider.gd", "res://scripts/npc_visual/npc_ragdoll_host.gd", "res://scripts/npc_visual/npc_visual_cache.gd", "res://scripts/npc_visual/npc_visual_loader.gd", "res://scripts/npc_visual/preview_resident_host.gd", "res://scripts/npc_visual/preview_resident_world_policy.gd", "res://scripts/perf/frame_recorder.gd", "res://scripts/perf/preview_perf_adapter.gd", "res://scripts/preview_airborne.gd", "res://scripts/preview_block_validation.gd", "res://scripts/preview_boundary.gd", "res://scripts/preview_dive.gd", "res://scripts/preview_interior_finish.gd", "res://scripts/preview_locomotion.gd", "res://scripts/preview_player.gd", "res://scripts/preview_population.gd", "res://scripts/preview_printshop_interior.gd", "res://scripts/preview_static_batch.gd", "res://scripts/preview_surface_materials.gd", "res://scripts/preview_transport.gd", "res://scripts/preview_update_panel.gd", "res://scripts/preview_water_material.gd", "res://scripts/preview_water_surface.gd", "res://scripts/transport/transport_access_provider.gd", "res://scripts/transport/transport_actor_transition.gd", "res://scripts/transport/transport_bootstrap_provider.gd", "res://scripts/transport/transport_cargo_admission.gd", "res://scripts/transport/transport_cargo_evidence.gd", "res://scripts/transport/transport_descriptor_catalog.gd", "res://scripts/transport/transport_logical_host.gd", "res://scripts/transport/transport_runtime.gd", "res://scripts/transport/transport_timing.gd", "res://scripts/transport/trunk/transport_trunk_cargo_store.gd", "res://scripts/vehicle_physics/vehicle_body_factory.gd", "res://scripts/vehicle_physics/vehicle_contact_buffer.gd", "res://scripts/vehicle_physics/vehicle_contact_ledger.gd", "res://scripts/vehicle_physics/vehicle_native_body.gd", "res://scripts/vehicle_physics/vehicle_profile.gd", "res://scripts/vehicle_visual/vehicle_compartments.gd", "res://scripts/vehicle_visual/vehicle_exit_pose.gd", "res://scripts/vehicle_visual/vehicle_exit_pose_blend.gd", "res://scripts/vehicle_visual/vehicle_exit_presentation.gd", "res://scripts/vehicle_visual/vehicle_occupant_pose.gd", "res://scripts/vehicle_visual/vehicle_visual.gd", "res://scripts/weapon_visual/weapon_visual.gd", "res://scripts/weapon_visual/weapon_visual_catalog.gd", "res://scripts/weapons/cargo_aim_picker.gd", "res://scripts/weapons/player_weapon_presentation.gd", "res://scripts/weapons/preview_weapon_cargo.gd", "res://scripts/weapons/preview_weapons.gd", "res://scripts/weapons/walk_cargo_card.gd", "res://scripts/weapons/walk_weapon_ui.gd", "res://scripts/weapons/walk_weapon_crosshair.gd", "res://scripts/weapons/weapon_cargo_bridge.gd", "res://scripts/weapons/weapon_cargo_sizes.gd", "res://scripts/weapons/weapon_fire.gd", "res://scripts/weapons/weapon_fire_profiles.gd", "res://scripts/weapons/weapon_inventory.gd", "res://scripts/weapons/weapon_pickup_visuals.gd", "res://scripts/weapons/weapon_pose.gd", "res://scripts/weapons/weapon_posture_base.gd", "res://scripts/weapons/weapon_projectiles.gd", "res://scripts/weapons/weapon_surface_impacts.gd", "res://assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res", "res://scripts/npc_visual/npc_blood_adapter.gd", "res://scripts/npc_visual/npc_blood_renderer.gd", "res://scripts/npc_visual/npc_death_eyes.gd")
++export_files=PackedStringArray("res://scripts/weapons/walk_trunk_window.gd", "res://scripts/npc_visual/npc_head_zone.gd", "res://scripts/npc_visual/final_dead_contact_port.gd", "res://scripts/npc_visual/npc_bullet_marks.gd", "res://scripts/npc_visual/npc_hit_marks_adapter.gd", "res://scripts/player_corpse_contact.gd", "res://scripts/npc_visual/npc_hit_impulse.gd", "res://scripts/weapons/impact_mark_art.gd", "res://scripts/weapons/context_plate_layout.gd", "res://scripts/weapons/weapon_aim_camera.gd", "res://scripts/weapons/rpg_effects.gd", "res://scripts/weapons/rpg_flight.gd", "res://scripts/weapons/ground_weapon_rules.gd", "res://scripts/npc_visual/npc_body.gd", "res://scripts/npc_visual/npc_local_preview_hit_owner.gd", "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd", "res://scripts/weapons/weapon_hit_rules.gd", "res://assets/buildings/gun_shop.e97d6fac4097.glb", "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb", "res://assets/buildings/pawnshop.1a95f97569d9.glb", "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb", "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb", "res://assets/hero.glb", "res://assets/npc_visual/session/prepared/31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f.scn", "res://assets/npc_visual/session/prepared/604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe.scn", "res://assets/npc_visual/session/prepared/60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22.scn", "res://assets/weapon_thumbnails/ak74.png", "res://assets/weapon_thumbnails/deagle.png", "res://assets/weapon_thumbnails/golden_colt.png", "res://assets/weapon_thumbnails/golden_uzi.png", "res://assets/weapon_thumbnails/m16.png", "res://assets/weapon_thumbnails/nagan.png", "res://assets/weapon_thumbnails/none.png", "res://assets/weapon_thumbnails/revolver.png", "res://assets/weapon_thumbnails/rpg.png", "res://assets/weapon_thumbnails/sawn_off.png", "res://assets/weapon_thumbnails/shotgun.png", "res://assets/weapon_thumbnails/sniper.png", "res://assets/weapon_thumbnails/tommy_gun.png", "res://assets/weapon_thumbnails/tt_pistol.png", "res://assets/weapon_thumbnails/uzi.png", "res://assets/weapon_visual/ak74.scn", "res://assets/weapon_visual/deagle.scn", "res://assets/weapon_visual/golden_colt.scn", "res://assets/weapon_visual/golden_uzi.scn", "res://assets/weapon_visual/m16.scn", "res://assets/weapon_visual/nagan.scn", "res://assets/weapon_visual/none.scn", "res://assets/weapon_visual/revolver.scn", "res://assets/weapon_visual/rpg.scn", "res://assets/weapon_visual/sawn_off.scn", "res://assets/weapon_visual/shotgun.scn", "res://assets/weapon_visual/sniper.scn", "res://assets/weapon_visual/tommy_gun.scn", "res://assets/weapon_visual/tt_pistol.scn", "res://assets/weapon_visual/uzi.scn", "res://scenes/main.tscn", "res://scripts/character_physics/character_impact_policy.gd", "res://scripts/character_physics/character_impact_sink.gd", "res://scripts/character_physics/character_physics_driver.gd", "res://scripts/character_physics/character_physics_pose.gd", "res://scripts/character_physics/exit_ragdoll_body.gd", "res://scripts/character_physics/local_hit_reaction.gd", "res://scripts/character_physics/player_impact_host.gd", "res://scripts/character_physics/ragdoll_actor_transition.gd", "res://scripts/character_physics/recovery_clearance.gd", "res://scripts/character_physics/recovery_surface_bounds.gd", "res://scripts/combat/melee_attack_source.gd", "res://scripts/combat/melee_input.gd", "res://scripts/combat/melee_physical_pose.gd", "res://scripts/combat/melee_pose.gd", "res://scripts/combat/preview_melee.gd", "res://scripts/main.gd", "res://scripts/navigation/path_job_queue.gd", "res://scripts/navigation/preview_engine_navigation.gd", "res://scripts/navigation/preview_navigation_host.gd", "res://scripts/npc_visual/npc_float_color_bridge.gd", "res://scripts/npc_visual/npc_preview_activity.gd", "res://scripts/npc_visual/npc_preview_source_provider.gd", "res://scripts/npc_visual/npc_ragdoll_host.gd", "res://scripts/npc_visual/npc_visual_cache.gd", "res://scripts/npc_visual/npc_visual_loader.gd", "res://scripts/npc_visual/preview_resident_host.gd", "res://scripts/npc_visual/preview_resident_world_policy.gd", "res://scripts/perf/frame_recorder.gd", "res://scripts/perf/preview_perf_adapter.gd", "res://scripts/preview_airborne.gd", "res://scripts/preview_block_validation.gd", "res://scripts/preview_boundary.gd", "res://scripts/preview_dive.gd", "res://scripts/preview_interior_finish.gd", "res://scripts/preview_locomotion.gd", "res://scripts/preview_player.gd", "res://scripts/preview_population.gd", "res://scripts/preview_printshop_interior.gd", "res://scripts/preview_static_batch.gd", "res://scripts/preview_surface_materials.gd", "res://scripts/preview_transport.gd", "res://scripts/preview_update_panel.gd", "res://scripts/preview_water_material.gd", "res://scripts/preview_water_surface.gd", "res://scripts/transport/transport_access_provider.gd", "res://scripts/transport/transport_actor_transition.gd", "res://scripts/transport/transport_bootstrap_provider.gd", "res://scripts/transport/transport_cargo_admission.gd", "res://scripts/transport/transport_cargo_evidence.gd", "res://scripts/transport/transport_descriptor_catalog.gd", "res://scripts/transport/transport_logical_host.gd", "res://scripts/transport/transport_runtime.gd", "res://scripts/transport/transport_timing.gd", "res://scripts/transport/trunk/transport_trunk_cargo_store.gd", "res://scripts/vehicle_physics/vehicle_body_factory.gd", "res://scripts/vehicle_physics/vehicle_contact_buffer.gd", "res://scripts/vehicle_physics/vehicle_contact_ledger.gd", "res://scripts/vehicle_physics/vehicle_native_body.gd", "res://scripts/vehicle_physics/vehicle_profile.gd", "res://scripts/vehicle_visual/vehicle_compartments.gd", "res://scripts/vehicle_visual/vehicle_exit_pose.gd", "res://scripts/vehicle_visual/vehicle_exit_pose_blend.gd", "res://scripts/vehicle_visual/vehicle_exit_presentation.gd", "res://scripts/vehicle_visual/vehicle_occupant_pose.gd", "res://scripts/vehicle_visual/vehicle_visual.gd", "res://scripts/weapon_visual/weapon_visual.gd", "res://scripts/weapon_visual/weapon_visual_catalog.gd", "res://scripts/weapons/cargo_aim_picker.gd", "res://scripts/weapons/player_weapon_presentation.gd", "res://scripts/weapons/preview_weapon_cargo.gd", "res://scripts/weapons/preview_weapons.gd", "res://scripts/weapons/walk_cargo_card.gd", "res://scripts/weapons/walk_weapon_ui.gd", "res://scripts/weapons/walk_weapon_crosshair.gd", "res://scripts/weapons/weapon_cargo_bridge.gd", "res://scripts/weapons/weapon_cargo_sizes.gd", "res://scripts/weapons/weapon_fire.gd", "res://scripts/weapons/weapon_fire_profiles.gd", "res://scripts/weapons/weapon_inventory.gd", "res://scripts/weapons/weapon_pickup_visuals.gd", "res://scripts/weapons/weapon_pose.gd", "res://scripts/weapons/weapon_posture_base.gd", "res://scripts/weapons/weapon_projectiles.gd", "res://scripts/weapons/weapon_surface_impacts.gd", "res://assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res", "res://assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res", "res://scripts/npc_visual/npc_blood_adapter.gd", "res://scripts/npc_visual/npc_blood_renderer.gd", "res://scripts/npc_visual/npc_death_eyes.gd")
+ include_filter="scripts/weapons/scope_optic.svg,data/block.json,data/printshop_interior.json,data/preview_updates.json,data/preview_water.json,data/transport/vehicle_descriptors.v1.json,data/transport/transport_bootstrap_factory.v1.json,assets/vehicle_visual/manifest.json,assets/vehicle_visual/compartments.json,assets/vehicle_visual/*.bytes,assets/npc_visual/session/e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096.json,assets/npc_visual/session/prepared/manifest.json,scripts/npc_visual/npc_visual_loader.gd,scripts/npc_visual/npc_float_color_bridge.gd,assets/weapon_visual/manifest.json,data/weapons/projectile_meshes.json,data/weapons/surface_effect_meshes.json,assets/npc_visual/death_eyes/assets_manifest.json"
+ exclude_filter="scripts/test_*,scripts/tests/*,tests/*,outputs/*,exports/*,*.log,*.md,export_presets.cfg,export_credentials.cfg"
+ export_path="exports/win64/MafioziPreview.exe"
+--- a/godot/mafiozi_walk/scripts/preview_population.gd
++++ b/godot/mafiozi_walk/scripts/preview_population.gd
+@@ -30,6 +30,7 @@
+ var _staged_preview := false
+ var hit_owners: Array[RefCounted] = []
+ var combat_status := "unbound"
++var _final_dead_contact_port: RefCounted
+ 
+ func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = true) -> bool:
+ 	if _disposed or status != "not_loaded": return false
+@@ -97,6 +98,8 @@
+ 	for owner: RefCounted in hit_owners:
+ 		if owner.blood!=null and owner.blood.should_step(): owner.blood.step(delta)
+ 	if _staged_preview: residents.preview_walk_step(delta)
++	for owner: RefCounted in hit_owners:
++		if owner.marks!=null and owner.marks.renderer!=null and not owner.marks.renderer._marks.is_empty(): owner.marks.step()
+ 
+ func door_started(key: String, opening: bool) -> void:
+ 	if not _disposed and navigation != null:
+@@ -120,6 +123,9 @@
+ func dispose() -> void:
+ 	if _disposed: return
+ 	_disposed = true
++	if _final_dead_contact_port != null:
++		_final_dead_contact_port.dispose()
++		_final_dead_contact_port = null
+ 	for owner: RefCounted in hit_owners: owner.dispose()
+ 	hit_owners.clear()
+ 	if residents != null: residents.dispose()
+@@ -128,3 +134,33 @@
+ 	if policy != null: policy.dispose()
+ 	owners.clear()
+ 	status = "disposed"
++
++
++## Registered by the NPC owner through a public capability accessor only.
++## Empty/unreviewed limits never enable contact force.
++func setup_final_dead_contact(player: CharacterBody3D, measured_limits: Dictionary) -> Dictionary:
++	if _disposed or status != "ready" or _final_dead_contact_port != null:
++		return {"ok":false, "reason":"population_lifetime"}
++	if measured_limits.is_empty() or residents == null or not residents.has_method("public_final_dead_contact_capabilities"):
++		return {"ok":false, "reason":"reviewed_public_owner_or_limits_missing"}
++	var capabilities: Variant = residents.public_final_dead_contact_capabilities()
++	if not capabilities is Array or capabilities.is_empty():
++		return {"ok":false, "reason":"public_capabilities_missing"}
++	var script: Script = load("res://scripts/npc_visual/final_dead_contact_port.gd")
++	if script == null: return {"ok":false, "reason":"contact_port_missing"}
++	var port: RefCounted = script.new()
++	var result: Dictionary = port.configure(player, capabilities, measured_limits)
++	if not result.get("ok",false):
++		port.dispose()
++		return result
++	_final_dead_contact_port = port
++	return result
++
++func player_final_dead_contact_ready() -> Dictionary:
++	if _disposed or _final_dead_contact_port == null: return {"ready":false}
++	return _final_dead_contact_port.player_final_dead_contact_ready()
++
++func admit_player_final_dead_contact(request: Dictionary) -> Dictionary:
++	if _disposed or _final_dead_contact_port == null:
++		return {"ok":false, "reason":"population_contact_unbound"}
++	return _final_dead_contact_port.admit_player_final_dead_contact(request)
+--- a/godot/mafiozi_walk/scripts/main.gd
++++ b/godot/mafiozi_walk/scripts/main.gd
+@@ -21,7 +21,7 @@
+ 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
+ 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
+ ]
+-const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23e"
++const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23g"
+ const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
+ @export_file("*.json") var block_data_path: String = "res://data/block.json"
+@@ -34,6 +34,9 @@
+ @export var preview_transport_enabled: bool = true
+ @export var preview_start_at_vehicle: bool = true
+ @export var preview_residents_enabled: bool = true
++@export var preview_final_dead_contact_enabled: bool = true
++const FINAL_DEAD_CONTACT_LIMITS: Dictionary = {"max_impulse_ns": 3.0, "impulse_ns_per_mps": 1.0, "max_point_delta_energy_j": 1.5, "max_linear_speed_mps": 2.5, "max_angular_speed_rps": 15.0, "cooldown_ms": 160} # Bounded per-contact limits; original masses and joint constraints preserved.
++var final_dead_contact_status := "disabled"
+ @export var preview_resident_walk_enabled: bool = true
+ @export var preview_melee_enabled: bool = true
+ @export var preview_weapons_enabled: bool = true
+@@ -203,6 +206,7 @@
+ 		preview_population = PreviewPopulation.new()
+ 		preview_population.setup(self, true, preview_resident_walk_enabled)
+ 		population_status = preview_population.status
++	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
+ 	preview_ready = true
+ 	_setup_preview_perf()
+ 	_last_frame_usec = Time.get_ticks_usec()
+@@ -896,3 +900,16 @@
+ 	label.add_theme_font_size_override("font_size", 20)
+ 	panel.add_child(label)
+ 	push_error("Character physics stopped: " + preview_transport.character_physics.fault_reason)
++
++
++func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONTACT_LIMITS) -> bool:
++	if preview_population == null or not is_instance_valid(_player) or not _player.has_method("set_final_dead_contact_owner"):
++		final_dead_contact_status = "unavailable_player_or_population"
++		return false
++	var registered: Dictionary = preview_population.setup_final_dead_contact(_player, measured_limits)
++	if not registered.get("ok",false):
++		final_dead_contact_status = str(registered.get("reason","owner_registration_failed"))
++		return false
++	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
++	final_dead_contact_status = "bound_waiting_final_death" if bound else "binding_failed"
++	return bound
+--- a/godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd
++++ b/godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd
+@@ -612,3 +612,26 @@
+ 	_walk_preview.clear(); _walk_preview_enabled = false
+ 	var scene: Node3D = _scene.get_ref() if _scene != null else null
+ 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)
++
++
++## ARTIST-REVIEW PROPOSAL: explicit read-only capability registration.
++## Does not admit force, death, recovery or changes to collision ownership.
++func public_final_dead_contact_capabilities() -> Array[Dictionary]:
++	var result: Array[Dictionary] = []
++	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested or not _scene_alive(): return result
++	for host: RefCounted in _ragdolls.values():
++		var state: Dictionary = host.status()
++		if state.get("mode") not in ["IDLE", "ACTIVE"] or not state.get("binding") is Dictionary: continue
++		var binding: Dictionary = state.binding.duplicate(true)
++		if not physical_life_current(binding): continue
++		result.append({"ragdoll_host":host, "binding":binding, "current_life":Callable(self,"public_final_dead_contact_current").bind(host)})
++	return result
++
++
++## Same-generation host replacement also retires the old capability.
++func public_final_dead_contact_current(binding: Dictionary, expected_host: RefCounted) -> bool:
++	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested or not _scene_alive(): return false
++	if not is_instance_valid(expected_host) or _ragdolls.get(binding.get("source_id")) != expected_host: return false
++	if not physical_life_current(binding): return false
++	var state: Dictionary = expected_host.status()
++	return state.get("mode") == "ACTIVE" and state.get("final_dead") == true and not str(state.get("death_key", "")).is_empty()
+--- /dev/null
++++ b/godot/mafiozi_walk/scripts/npc_visual/npc_bullet_marks.gd
+@@ -0,0 +1,441 @@
++extends RefCounted
++## Cosmetic original-surface anchors. Admission belongs to npc_hit_marks_adapter.
++## No HP, source RNG, body, Skin, animation, or collider writes.
++const MAX_MARKS := 24
++const MAX_RECEIPTS := 512
++const COLORS := [Color("1d1215"), Color("4f3c3a"), Color("40151d"), Color("5d1a24"), Color("49303b")]
++var _root: Node3D
++var _rig: Skeleton3D
++var _unit := 1.0
++var _surfaces: Array[Dictionary] = []
++var _marks: Array[Dictionary] = []
++var _receipts: Array[String] = []
++var _mesh_node: MeshInstance3D
++var _mesh: ArrayMesh
++var _material: ShaderMaterial
++var _anchors: Array[Dictionary] = []
++var _unique_anchors: Array[Dictionary] = []
++var _anchor_indices := PackedInt32Array()
++var _sample_surfaces := PackedInt32Array()
++var _sample_vertices := PackedInt32Array()
++var _sample_triangles: Array[Vector3i] = []
++var _anchor_triangles := PackedInt32Array()
++var _anchor_weights := PackedVector3Array()
++var _anchor_offsets := PackedFloat32Array()
++var _used_bones := PackedInt32Array()
++var _influence_start := PackedInt32Array()
++var _influence_bones := PackedInt32Array()
++var _influence_points := PackedVector3Array()
++var _influence_weights := PackedFloat32Array()
++var _pose_key: Array = []
++var _seed := 0
++var last_cost: Dictionary = {}
++var prepare_us:=0
++var prepare_memory_delta_bytes:=0
++var _query_cache: Dictionary = {}
++var _query_bones: Array[Transform3D] = []
++
++func configure(actor: Node3D, rig: Skeleton3D, unit: float) -> bool:
++	if _root != null or not is_instance_valid(actor) or not is_instance_valid(rig) or not actor.is_ancestor_of(rig) or not is_finite(unit) or unit <= 0: return false
++	var prepare_start:=Time.get_ticks_usec()
++	var prepare_memory:=int(Performance.get_monitor(Performance.MEMORY_STATIC))
++	_root = actor; _rig = rig; _unit = unit
++	for node: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
++		if not node.mesh is ArrayMesh or node.get_meta("npc_bullet_mark", false): continue
++		var bindings: Array[int] = []
++		if node.skin != null:
++			for bind in node.skin.get_bind_count():
++				var name: String = str(node.skin.get_bind_name(bind))
++				var bone: int = rig.find_bone(name) if not name.is_empty() else node.skin.get_bind_bone(bind)
++				if bone < 0 or bone >= rig.get_bone_count(): dispose(); return false
++				bindings.append(bone)
++		for s in node.mesh.get_surface_count():
++			if node.mesh.surface_get_primitive_type(s) != Mesh.PRIMITIVE_TRIANGLES: continue
++			var a: Array = node.mesh.surface_get_arrays(s)
++			if a[Mesh.ARRAY_VERTEX] == null: continue
++			var vertices: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
++			var indices: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
++			if indices.is_empty():
++				for i in vertices.size(): indices.append(i)
++			if indices.size() % 3 != 0: dispose(); return false
++			var bones: PackedInt32Array = a[Mesh.ARRAY_BONES] if a[Mesh.ARRAY_BONES] != null else PackedInt32Array()
++			var weights: PackedFloat32Array = a[Mesh.ARRAY_WEIGHTS] if a[Mesh.ARRAY_WEIGHTS] != null else PackedFloat32Array()
++			if node.skin != null and (bones.size() != vertices.size() * 4 or weights.size() != bones.size()): dispose(); return false
++			var material: Material = node.get_active_material(s)
++			var entry:Dictionary={"node":weakref(node), "original":node.mesh, "skin":node.skin, "surface":s, "vertices":vertices, "indices":indices, "bones":bones, "weights":weights, "bindings":bindings, "skin_material":material != null and "SKIN" in material.resource_name.to_upper()}
++			entry.clusters=_clusters(entry)
++			_surfaces.append(entry)
++	if _surfaces.is_empty(): dispose(); return false
++	_mesh_node = MeshInstance3D.new(); _mesh_node.name = "PersistentNpcBulletMarks"
++	_mesh_node.set_meta("npc_bullet_mark", true)
++	_mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
++	_root.add_child(_mesh_node)
++	# One batched draw per actor. Fragment normals follow the actual moving wound
++	# triangles; positions alone are streamed. No full ArrayMesh rebuild per frame.
++	var shader := Shader.new()
++	shader.code = "shader_type spatial; render_mode cull_disabled, depth_draw_never; void fragment(){vec3 n=normalize(cross(dFdx(VERTEX),dFdy(VERTEX))); NORMAL=faceforward(n,VERTEX,n); ALBEDO=COLOR.rgb; ROUGHNESS=1.0;}"
++	_material = ShaderMaterial.new(); _material.shader = shader
++	# Prepare the exact indexed/color/dynamic material pipeline before any hit.
++	# Degenerate geometry covers no pixels, does not admit a wound or HP receipt.
++	# Keep a finite bound so render-list preparation can see the surface.
++	_mesh = ArrayMesh.new()
++	var warm_arrays: Array = []; warm_arrays.resize(Mesh.ARRAY_MAX)
++	warm_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO,Vector3.ZERO,Vector3.ZERO])
++	warm_arrays[Mesh.ARRAY_COLOR] = PackedColorArray([COLORS[0].srgb_to_linear(),COLORS[0].srgb_to_linear(),COLORS[0].srgb_to_linear()])
++	warm_arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0,1,2])
++	_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,warm_arrays,[],{},Mesh.ARRAY_FLAG_USE_DYNAMIC_UPDATE)
++	_mesh.surface_set_material(0,_material)
++	_mesh.custom_aabb = AABB(Vector3(-.05,0,-.05),Vector3(.1,.1,.1))
++	_mesh_node.mesh = _mesh
++	prepare_us=Time.get_ticks_usec()-prepare_start
++	prepare_memory_delta_bytes=int(Performance.get_monitor(Performance.MEMORY_STATIC))-prepare_memory
++	return true
++
++func _clusters(s:Dictionary)->Array[Dictionary]:
++	# Conservative bound per dominant-bone triangle group. Every contributing
++	# bone keeps its own original-point AABB, so blends remain inside their union.
++	var groups:Dictionary={};var ids:PackedInt32Array=s.indices
++	var cell_size:=.45/_unit
++	for i in range(0,ids.size(),3):
++		var scores:Dictionary={};var dominant:=-1;var best:=-1.0
++		if s.skin!=null:
++			for index:int in [ids[i],ids[i+1],ids[i+2]]:
++				for j in 4:
++					var k:=index*4+j;var weight:float=s.weights[k];var bone:int=s.bones[k]
++					if weight>0:scores[bone]=float(scores.get(bone,0.0))+weight
++			for bone:int in scores:
++				if scores[bone]>best:best=scores[bone];dominant=bone
++		var centroid:Vector3=(s.vertices[ids[i]]+s.vertices[ids[i+1]]+s.vertices[ids[i+2]])/3.0
++		var cell:=Vector3i(floori(centroid.x/cell_size),floori(centroid.y/cell_size),floori(centroid.z/cell_size))
++		var group_key:=str(dominant)+":"+str(cell)
++		if not groups.has(group_key):groups[group_key]={"indices":PackedInt32Array(),"bounds":{},"seen":{}}
++		var group:Dictionary=groups[group_key]
++		for index:int in [ids[i],ids[i+1],ids[i+2]]:
++			group.indices.append(index)
++			if group.seen.has(index):continue
++			group.seen[index]=true
++			var p:Vector3=s.vertices[index]
++			if s.skin==null:
++				group.bounds[-1]=group.bounds[-1].expand(p) if group.bounds.has(-1) else AABB(p,Vector3.ZERO)
++			else:
++				for j in 4:
++					var k:=index*4+j;var bone:int=s.bones[k]
++					if s.weights[k]<=0:continue
++					group.bounds[bone]=group.bounds[bone].expand(p) if group.bounds.has(bone) else AABB(p,Vector3.ZERO)
++	var result:Array[Dictionary]=[]
++	for group:Dictionary in groups.values():result.append(group)
++	return result
++
++func _adopt_vertices(s:Dictionary,vertices:PackedVector3Array)->void:
++	# Same topology + bind arrays: keep cluster membership and only expand old
++	# conservative bounds for changed source vertices (closed eyes alter550).
++	for i in vertices.size():
++		if vertices[i]==s.vertices[i]:continue
++		for group:Dictionary in s.clusters:
++			if not group.seen.has(i):continue
++			if s.skin==null:group.bounds[-1]=group.bounds[-1].expand(vertices[i])
++			else:
++				for j in 4:
++					var k:=i*4+j
++					if s.weights[k]>0:group.bounds[s.bones[k]]=group.bounds[s.bones[k]].expand(vertices[i])
++	s.vertices=vertices
++
++func _valid() -> bool:
++	if not is_instance_valid(_root) or not is_instance_valid(_rig) or not is_instance_valid(_mesh_node) or _root.is_queued_for_deletion(): return false
++	var changed:=false
++	for s: Dictionary in _surfaces:
++		var node: MeshInstance3D = s.node.get_ref()
++		if not is_instance_valid(node) or node.is_queued_for_deletion() or not _root.is_ancestor_of(node) or node.skin != s.skin: return false
++		if node.mesh != s.original:
++			# Final-death eyelids replace two meshes with topology-identical original
++			# variants. Follow their actual vertices, but reject any remapped surface.
++			if not node.mesh is ArrayMesh or node.mesh.get_surface_count()!=s.original.get_surface_count(): return false
++			var arrays: Array = node.mesh.surface_get_arrays(s.surface)
++			if arrays[Mesh.ARRAY_VERTEX].size()!=s.vertices.size() or arrays[Mesh.ARRAY_INDEX]!=s.indices: return false
++			if s.skin!=null and (arrays[Mesh.ARRAY_BONES]!=s.bones or arrays[Mesh.ARRAY_WEIGHTS]!=s.weights): return false
++			s.original=node.mesh; _adopt_vertices(s,arrays[Mesh.ARRAY_VERTEX])
++			_pose_key.clear()
++			changed=true
++	if changed:_bind_samples()
++	return true
++
++func _bone_poses(required:PackedInt32Array=PackedInt32Array())->Array[Transform3D]:
++	var out:Array[Transform3D]=[]
++	var rig_world:=_rig.global_transform
++	for bone in _rig.get_bone_count():out.append(Transform3D.IDENTITY)
++	if required.is_empty():
++		for bone in _rig.get_bone_count():out[bone]=rig_world*_rig.get_bone_global_pose(bone)
++	else:
++		for bone:int in required:out[bone]=rig_world*_rig.get_bone_global_pose(bone)
++	return out
++
++func _matrices(s: Dictionary, poses:Array[Transform3D]=[]) -> Array[Transform3D]:
++	var out: Array[Transform3D] = []
++	if s.skin == null: return out
++	if poses.is_empty():poses=_bone_poses()
++	for b in s.bindings.size(): out.append(poses[s.bindings[b]] * s.skin.get_bind_pose(b))
++	return out
++
++func _vertex(s: Dictionary, index: int, matrices: Array[Transform3D]) -> Vector3:
++	var p: Vector3 = s.vertices[index]
++	if s.skin == null: return s.node.get_ref().global_transform * p
++	var result := Vector3.ZERO
++	for j in 4:
++		var k := index * 4 + j
++		var w: float = s.weights[k]
++		if w > 0: result += matrices[s.bones[k]] * p * w
++	return result
++
++func _query(point: Vector3, normal: Vector3, coarse_depth:float=0.0) -> Dictionary:
++	var result: Array[Dictionary] = []
++	var u := (Vector3.UP if absf(normal.y)<.9 else Vector3.RIGHT).cross(normal).normalized()
++	var v := normal.cross(u)
++	# Largest source fray probe is .105*1.20*1.24=.15624 units; bruises
++	# reach .075*1.20*1.45=.1305. Accepted axial depth is exactly .20.
++	var extent := (u.abs()*.16+v.abs()*.16+normal.abs()*.20)*_unit+Vector3.ONE*.00001
++	var box := AABB(point - extent, extent * 2.0)
++	for sid in _surfaces.size():
++		var s: Dictionary = _surfaces[sid]
++		var matrices := _matrices(s,_query_bones)
++		if not _query_cache.has(sid):_query_cache[sid]={}
++		var posed:Dictionary=_query_cache[sid]
++		var ids:=PackedInt32Array()
++		for group:Dictionary in s.clusters:
++			var bounds:=AABB();var first:=true
++			for bind:int in group.bounds:
++				var transform:Transform3D=s.node.get_ref().global_transform if bind<0 else matrices[bind]
++				var b:AABB=transform*group.bounds[bind]
++				bounds=b if first else bounds.merge(b);first=false
++			bounds=bounds.grow(.00001)
++			if coarse_depth>0:
++				if bounds.intersects_segment(point,point-normal*coarse_depth)==null:continue
++			elif not box.intersects(bounds):continue
++			ids.append_array(group.indices)
++		for index:int in ids:
++			if not posed.has(index):posed[index]=_vertex(s,index,matrices)
++		for i in range(0, ids.size(), 3):
++			var a:Vector3=posed[ids[i]]; var b:Vector3=posed[ids[i+1]]; var c:Vector3=posed[ids[i+2]]
++			var lo := a.min(b).min(c); var hi := a.max(b).max(c)
++			if coarse_depth>0 and AABB(lo-Vector3.ONE*.00001,(hi-lo)+Vector3.ONE*.00002).intersects_segment(point,point-normal*coarse_depth)==null: continue
++			if coarse_depth<=0 and not box.intersects(AABB(lo, (hi-lo)+Vector3.ONE*.000001)): continue
++			var pa := Vector3(u.dot(a-point),v.dot(a-point),normal.dot(a-point))
++			var pb := Vector3(u.dot(b-point),v.dot(b-point),normal.dot(b-point))
++			var pc := Vector3(u.dot(c-point),v.dot(c-point),normal.dot(c-point))
++			var e1 := pb-pa; var e2 := pc-pa
++			var determinant := e1.x*e2.y-e1.y*e2.x
++			var minx:=minf(pa.x,minf(pb.x,pc.x));var maxx:=maxf(pa.x,maxf(pb.x,pc.x))
++			var miny:=minf(pa.y,minf(pb.y,pc.y));var maxy:=maxf(pa.y,maxf(pb.y,pc.y))
++			var lateral:=0.0 if coarse_depth>0 else .16*_unit
++			if minx>lateral or maxx < -lateral or miny>lateral or maxy < -lateral:continue
++			var near_z:=.001 if coarse_depth>0 else .20*_unit
++			var far_z:=-coarse_depth if coarse_depth>0 else -.20*_unit
++			if absf(determinant)<1e-12 or minf(pa.z,minf(pb.z,pc.z))>=near_z or maxf(pa.z,maxf(pb.z,pc.z))<=far_z: continue
++			# Parallel source probes share this inverse ray/triangle projection.
++			# Compute it once rather than repeating 3D cross products for every rim.
++			result.append({"s":sid, "ids":Vector3i(ids[i],ids[i+1],ids[i+2]), "a":pa, "e1z":e1.z, "e2z":e2.z,
++				"ux":e2.y/determinant,"uy":-e2.x/determinant,"vx":-e1.y/determinant,"vy":e1.x/determinant,
++				"minx":minx,"maxx":maxx,"miny":miny,"maxy":maxy,"sign":-1.0 if determinant<0 else 1.0,"normal":(b-a).cross(c-a).normalized()})
++	return {"triangles":result,"point":point,"u":u,"v":v,"normal":normal,"depth":coarse_depth}
++
++func _probe(query: Dictionary, point: Vector3, _normal: Vector3) -> Dictionary:
++	var delta: Vector3=point-query.point
++	var x: float=query.u.dot(delta); var y: float=query.v.dot(delta)
++	var nearest := -INF; var anchor: Dictionary = {}
++	for t: Dictionary in query.triangles:
++		if x<t.minx or x>t.maxx or y<t.miny or y>t.maxy: continue
++		var dx: float=x-t.a.x; var dy: float=y-t.a.y
++		var u: float=dx*t.ux+dy*t.uy; var v: float=dx*t.vx+dy*t.vy
++		if u<0 or v<0 or u+v>1: continue
++		var z: float=t.a.z+u*t.e1z+v*t.e2z
++		if z<=nearest:continue
++		if query.depth>0:
++			if z>.001 or z < -float(query.depth):continue
++		elif absf(z)>=.20*_unit:continue
++		nearest=z
++		anchor={"s":t.s,"ids":t.ids,"weights":Vector3(1-u-v,u,v),"sign":t.sign,"world_point":query.point+query.u*x+query.v*y+query.normal*z,"world_normal":t.normal*t.sign}
++	return anchor
++
++func _random() -> float:
++	_seed = (_seed * 1664525 + 1013904223) & 0xffffffff
++	return float(_seed)/4294967296.0
++
++func _shape(event_id: String, clothing: bool) -> Array[Dictionary]:
++	_seed = 2166136261
++	for character in event_id:
++		_seed = ((_seed ^ character.unicode_at(0)) * 16777619) & 0xffffffff
++	var edge: Array[Vector2] = []; var radius := (.105 if clothing else .075)*_unit
++	for i in 11:
++		var a := float(i)/11.0*TAU
++		edge.append(Vector2(cos(a)*radius*(.65+_random()*.55),sin(a)*radius*(.65+_random()*.55)))
++	var triangles: Array[Dictionary] = []
++	for i in 11:
++		var p := edge[i]; var q := edge[(i+1)%11]
++		triangles.append({"points":[Vector2.ZERO,p,q],"material":0 if clothing else 2,"offset":.010*_unit})
++		if clothing:
++			triangles.append({"points":[p,p*1.24,q],"material":1,"offset":.012*_unit})
++			if i%2 == 0: triangles.append({"points":[p*1.24,q*1.10,q],"material":1,"offset":.012*_unit})
++		elif i%3 != 0:
++			# Explicit user-requested bruise presentation, not an extra HP event.
++			# Broken outer fragments share actual skin anchors; no face decal plane.
++			triangles.append({"points":[p,p*1.45,q],"material":4,"offset":.008*_unit})
++	# One contiguous, off-centre seven-sided blood pool, not alternating radial
++	# wedges. Same seven triangles and original maximum footprint/caps.
++	var blood_center:=Vector2(.08,-.10)*radius
++	var blood_edge:Array[Vector2]=[]
++	for i in 7:
++		var angle:=float(i)/7.0*TAU
++		blood_edge.append(blood_center+Vector2(cos(angle),sin(angle))*radius*(.38+_random()*.16))
++	for i in 7:
++		triangles.append({"points":[blood_center,blood_edge[i],blood_edge[(i+1)%7]],"material":3,"offset":.014*_unit})
++	return triangles
++
++func accept(event_id: String, point: Vector3, normal: Vector3, incoming:Vector3=Vector3.ZERO, ray_depth:float=0.0) -> bool:
++	if not _valid() or event_id.is_empty() or event_id in _receipts or not point.is_finite() or not normal.is_finite() or normal.length_squared()<.5: return false
++	var start := Time.get_ticks_usec(); var n := normal.normalized()
++	var coarse_us:=0
++	_query_cache.clear()
++	_query_bones=_bone_poses()
++	if ray_depth>0:
++		if not incoming.is_finite() or incoming.length_squared()<.5:return false
++		var visual_query:=_query(point,-incoming.normalized(),ray_depth)
++		var visual:=_probe(visual_query,point,-incoming.normalized())
++		if visual.is_empty():_query_cache.clear();return false
++		point=visual.world_point;n=visual.world_normal
++		coarse_us=Time.get_ticks_usec()-start
++	var query_start:=Time.get_ticks_usec()
++	var query := _query(point,n); var center := _probe(query,point,n)
++	var query_us:=Time.get_ticks_usec()-query_start
++	_query_cache.clear()
++	if center.is_empty(): return false
++	var clothing: bool = not _surfaces[center.s].skin_material
++	var u := (Vector3.UP if absf(n.y)<.9 else Vector3.RIGHT).cross(n).normalized(); var v := n.cross(u)
++	var cache: Dictionary = {Vector2.ZERO:center}; var triangles: Array[Dictionary] = []
++	var probes_start:=Time.get_ticks_usec()
++	for template: Dictionary in _shape(event_id,clothing):
++		var anchors: Array[Dictionary] = []; var good := true
++		for xy: Vector2 in template.points:
++			if not cache.has(xy): cache[xy] = _probe(query,point+u*xy.x+v*xy.y,n)
++			if cache[xy].is_empty(): good = false; break
++			var a: Dictionary = cache[xy].duplicate(); a.offset = template.offset; a.probe=xy; anchors.append(a)
++		if good: triangles.append({"anchors":anchors,"color":COLORS[template.material].srgb_to_linear()})
++	if triangles.is_empty() or not _valid(): return false
++	var probes_us:=Time.get_ticks_usec()-probes_start
++	_marks.append({"id":event_id,"triangles":triangles,"clothing":clothing})
++	_receipts.append(event_id)
++	if _marks.size()>MAX_MARKS: _marks.pop_front()
++	if _receipts.size()>MAX_RECEIPTS: _receipts.pop_front()
++	var rebuild_start:=Time.get_ticks_usec();_rebuild()
++	last_cost = {"accept_us":Time.get_ticks_usec()-start,"coarse_us":coarse_us,"query_us":query_us,"probes_us":probes_us,"rebuild_us":Time.get_ticks_usec()-rebuild_start,"candidate_triangles":query.triangles.size(),"probes":cache.size(),"marks":_marks.size(),"vertices":_anchors.size(),"update_us":last_cost.get("update_us",0)}
++	return true
++
++func _build_sample_tables()->void:
++	_sample_surfaces.clear();_sample_vertices.clear();_sample_triangles.clear()
++	_anchor_triangles.clear();_anchor_weights.clear();_anchor_offsets.clear()
++	_used_bones.clear()
++	var sample_map:Dictionary={};var triangle_map:Dictionary={}
++	for a:Dictionary in _unique_anchors:
++		var triangle:=Vector3i()
++		for corner in 3:
++			var key:=Vector2i(a.s,a.ids[corner])
++			if not sample_map.has(key):
++				sample_map[key]=_sample_vertices.size();_sample_surfaces.append(key.x);_sample_vertices.append(key.y)
++			triangle[corner]=sample_map[key]
++		if not triangle_map.has(triangle):triangle_map[triangle]=_sample_triangles.size();_sample_triangles.append(triangle)
++		_anchor_triangles.append(triangle_map[triangle]);_anchor_weights.append(a.weights);_anchor_offsets.append(float(a.offset)*float(a.sign))
++	_bind_samples()
++
++func _bind_samples()->void:
++	_used_bones.clear();_influence_start.clear();_influence_bones.clear();_influence_points.clear();_influence_weights.clear()
++	var used:Dictionary={}
++	for i in _sample_vertices.size():
++		_influence_start.append(_influence_bones.size())
++		var s:Dictionary=_surfaces[_sample_surfaces[i]]
++		if s.skin==null:continue
++		var index:=_sample_vertices[i]
++		for j in 4:
++			var k:=index*4+j;var weight:float=s.weights[k]
++			if weight<=0:continue
++			var bone:int=s.bindings[s.bones[k]]
++			used[bone]=true;_influence_bones.append(bone)
++			_influence_points.append(s.skin.get_bind_pose(s.bones[k])*s.vertices[index])
++			_influence_weights.append(weight)
++	_influence_start.append(_influence_bones.size())
++	for bone:int in used:_used_bones.append(bone)
++
++func _positions(poses:Array[Transform3D]=[]) -> PackedVector3Array:
++	# Table construction is receipt-time only. Animated updates traverse flat
++	# samples/triangles/weights; no per-anchor dictionaries or small Array creation.
++	if poses.is_empty():poses=_bone_poses(_used_bones)
++	var posed:=PackedVector3Array();posed.resize(_sample_vertices.size())
++	var local_points:=PackedVector3Array();local_points.resize(_sample_vertices.size())
++	var inverse:=_mesh_node.global_transform.affine_inverse()
++	for i in _sample_vertices.size():
++		var p:=Vector3.ZERO
++		var begin:=_influence_start[i];var end:=_influence_start[i+1]
++		if begin==end:
++			var s:Dictionary=_surfaces[_sample_surfaces[i]]
++			p=s.node.get_ref().global_transform*s.vertices[_sample_vertices[i]]
++		else:
++			for j in range(begin,end):p+=poses[_influence_bones[j]]*_influence_points[j]*_influence_weights[j]
++		posed[i]=p
++		local_points[i]=inverse*posed[i]
++	var normals:=PackedVector3Array();normals.resize(_sample_triangles.size())
++	for i in _sample_triangles.size():
++		var t:=_sample_triangles[i]
++		normals[i]=inverse.basis*(posed[t.y]-posed[t.x]).cross(posed[t.z]-posed[t.x]).normalized()
++	var unique:=PackedVector3Array();unique.resize(_anchor_triangles.size())
++	for i in _anchor_triangles.size():
++		var ti:=_anchor_triangles[i];var t:=_sample_triangles[ti];var w:=_anchor_weights[i]
++		unique[i]=local_points[t.x]*w.x+local_points[t.y]*w.y+local_points[t.z]*w.z+normals[ti]*_anchor_offsets[i]
++	return unique
++
++func _rebuild() -> void:
++	_anchors.clear();_unique_anchors.clear();_anchor_indices.clear(); var colors := PackedColorArray()
++	for mark: Dictionary in _marks:
++		var seen:Dictionary={}
++		for triangle: Dictionary in mark.triangles:
++			for a: Dictionary in triangle.anchors:
++				var key:=Vector3(a.probe.x,a.probe.y,a.offset)
++				if not seen.has(key):seen[key]={}
++				var color_keys:Dictionary=seen[key]
++				if not color_keys.has(triangle.color):
++					color_keys[triangle.color]=_unique_anchors.size();_unique_anchors.append(a);colors.append(triangle.color)
++				_anchor_indices.append(color_keys[triangle.color]);_anchors.append(a)
++	_build_sample_tables()
++	_mesh = ArrayMesh.new()
++	var arrays: Array = []; arrays.resize(Mesh.ARRAY_MAX)
++	arrays[Mesh.ARRAY_VERTEX] = _positions(); arrays[Mesh.ARRAY_COLOR] = colors
++	arrays[Mesh.ARRAY_INDEX]=_anchor_indices
++	_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,[],{},Mesh.ARRAY_FLAG_USE_DYNAMIC_UPDATE)
++	_mesh.surface_set_material(0,_material); _mesh_node.mesh = _mesh
++	_pose_key.clear()
++
++func step() -> bool:
++	if not _valid(): dispose(); return false
++	if _anchors.is_empty(): return true
++	var poses:=_bone_poses(_used_bones)
++	var key: Array = [_rig.global_transform,_root.global_transform]
++	key.append_array(poses)
++	for s: Dictionary in _surfaces:
++		if s.skin == null: key.append(s.node.get_ref().global_transform)
++	if key == _pose_key: return true
++	_pose_key = key
++	var start := Time.get_ticks_usec(); var positions := _positions(poses)
++	_mesh.surface_update_vertex_region(0,0,positions.to_byte_array())
++	var bounds := AABB(positions[0],Vector3.ZERO)
++	for p: Vector3 in positions: bounds = bounds.expand(p)
++	_mesh.custom_aabb = bounds.grow(.02*_unit)
++	last_cost["update_us"] = Time.get_ticks_usec()-start
++	return true
++
++func dispose() -> void:
++	if is_instance_valid(_mesh_node): _mesh_node.visible = false; _mesh_node.queue_free()
++	_root = null; _rig = null; _mesh_node = null; _mesh = null
++	_surfaces.clear(); _marks.clear(); _receipts.clear(); _anchors.clear(); _pose_key.clear()
++	_unique_anchors.clear();_anchor_indices.clear()
++	_sample_surfaces.clear();_sample_vertices.clear();_sample_triangles.clear()
++	_anchor_triangles.clear();_anchor_weights.clear();_anchor_offsets.clear()
++	_used_bones.clear()
++	_influence_start.clear();_influence_bones.clear();_influence_points.clear();_influence_weights.clear()
++	_query_cache.clear()
++	_query_bones.clear()
+--- /dev/null
++++ b/godot/mafiozi_walk/scripts/npc_visual/npc_hit_marks_adapter.gd
+@@ -0,0 +1,76 @@
++extends RefCounted
++## Match the completed HP receipt seam used by blood. Never accept raw rays.
++const Renderer = preload("npc_bullet_marks.gd")
++var renderer: RefCounted
++var _host: RefCounted
++var _owner: RefCounted
++var _token: Dictionary = {}
++var _binding: Dictionary = {}
++var _last_revision := 0
++var _retired := false
++var _height := 0.0
++
++func configure(host: RefCounted, token: Dictionary, owner: RefCounted, parent: Node3D, prepared_entry: Dictionary) -> bool:
++	if renderer!=null or _retired or not is_instance_valid(host) or not is_instance_valid(owner) or not host.physical_life_current(token): return false
++	if prepared_entry.get("descriptor_sha256")!=token.get("descriptor_sha256") or prepared_entry.get("bridge_id")!=token.get("render_id"): return false
++	var norm: Dictionary=prepared_entry.get("normalization",{})
++	if not norm.has("scale") or not norm.has("target_height") or not norm.has("source_height"): return false
++	var unit:=float(norm.scale); var source_height:=float(norm.source_height); var target_height:=float(norm.target_height)
++	if not is_finite(source_height) or source_height<=0 or not is_finite(unit) or not is_finite(target_height) or unit<=0 or absf(unit-target_height/source_height)>1e-10: return false
++	_host=host; _owner=owner; _token=token.duplicate(); _binding=owner._binding.duplicate(true)
++	_height=target_height
++	if _binding.get("owner_instance_id")!=owner.get_instance_id() or _binding.get("source_id")!=token.get("source_id") or _binding.get("life_generation")!=token.get("life_generation") or owner._current(_binding).is_empty(): return false
++	renderer=Renderer.new()
++	if not parent.is_ancestor_of(token.body): return false
++	return renderer.configure(token.body,token.rig,unit)
++
++func _current() -> bool:
++	if _retired or renderer==null or not is_instance_valid(_host) or not is_instance_valid(_owner): return false
++	var host:RefCounted=_host; var owner:RefCounted=_owner
++	var binding:Dictionary=_binding.duplicate(true)
++	if not host.physical_life_current(_token): return false
++	if _retired or renderer==null or _host!=host or _owner!=owner or _binding!=binding: return false
++	if owner._current(binding).is_empty(): return false
++	return not _retired and renderer!=null and _host==host and _owner==owner and _binding==binding
++
++func receive(event_id: String, point: Vector3, normal: Vector3) -> bool:
++	if not _current(): retire(); return false
++	if event_id.is_empty() or not point.is_finite() or not normal.is_finite() or normal.length_squared()<.5: return false
++	var receipt: Dictionary=_owner._adapter.receipt(event_id)
++	if receipt.is_empty() or receipt!=_owner.last_result or receipt.get("binding")!=_binding or receipt.get("event_id")!=event_id: return false
++	if not receipt.get("ok",false) or not receipt.get("applied",false) or receipt.get("reason") not in ["hit","surrender","medical_downed","final_death"]: return false
++	var revision:=int(receipt.get("revision",0)); var damage:=float(receipt.get("hit",{}).get("damage",0))
++	if revision<=_last_revision or not is_finite(damage) or damage<=0: return false
++	# Contacts must be the owner-captured native pair, never a caller-provided
++	# alternate point decorating an unrelated completed source transaction.
++	var contact: Dictionary=_owner.last_contact
++	if contact.get("event_id")!=event_id or contact.get("point")!=point or contact.get("normal")!=normal: return false
++	if contact.get("source_id")!=_token.source_id or contact.get("life_generation")!=_token.life_generation or not contact.get("actor_transform_at_impact") is Transform3D: return false
++	if not contact.get("incoming_direction") is Vector3 or not contact.incoming_direction.is_finite() or contact.incoming_direction.length_squared()<.5:return false
++	var before: Transform3D=contact.actor_transform_at_impact
++	if not before.is_finite() or absf(before.basis.determinant())<1e-9: return false
++	# Preserve contact on the original actor through the already-committed source
++	# kick. Raw native point/normal remain untouched in the owner receipt.
++	var frame: Transform3D=_token.body.global_transform*before.affine_inverse()
++	var attached_point: Vector3=frame*point
++	var attached_normal: Vector3=(frame.basis.inverse().transposed()*normal).normalized()
++	var incoming:Vector3=(frame.basis*contact.incoming_direction).normalized()
++	if not _current(): retire(); return false
++	_last_revision=revision
++	# The native CharacterBody/RigidBody capsule is intentionally a coarse shape.
++	# Narrow only this cosmetic contact against THIS actor's original triangles
++	# along the genuine incoming ray. A capsule graze missing the mesh draws no mark.
++	# This performs no additional HP or penetration beyond the already accepted hit.
++	return renderer.accept(event_id,attached_point,attached_normal,incoming,_height*1.5)
++
++func step() -> void:
++	if not _current(): retire(); return
++	if renderer._marks.is_empty(): return
++	renderer.step()
++
++func retire() -> void:
++	_retired=true
++	if renderer!=null: renderer.dispose()
++	renderer=null; _owner=null; _host=null; _token.clear(); _binding.clear()
++
++func dispose() -> void: retire()
+--- a/godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd
++++ b/godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd
+@@ -1,6 +1,8 @@
+ extends RefCounted
+ ## Cosmetic port of hero_artist14_surface.mjs + wound_bleeding.mjs.
+ ## Fixed 112 particles and four bone anchors per actual actor; no HP writes.
++## User-requested readability profile: 1.65x particle radius, opacity .95.
++## Source counts 20/32, trajectories, lifetimes, wounds, idle optimization intact.
+ const CAPACITY := 112
+ var mesh: MultiMeshInstance3D
+ var _rig: Skeleton3D
+@@ -32,9 +34,9 @@
+ 		var parent_index:=rig.get_bone_parent(i)
+ 		if parent_index>=0: _children[parent_index].append(i)
+ 	var sphere:=SphereMesh.new()
+-	sphere.radius=.028*unit; sphere.height=.056*unit; sphere.radial_segments=6; sphere.rings=3
++	sphere.radius=.028*unit*1.65; sphere.height=.056*unit*1.65; sphere.radial_segments=6; sphere.rings=3
+ 	var material:=StandardMaterial3D.new()
+-	material.albedo_color=Color("8c1524"); material.albedo_color.a=.85
++	material.albedo_color=Color("8c1524"); material.albedo_color.a=.95
+ 	material.roughness=.55; material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ 	sphere.material=material
+ 	var instances:=MultiMesh.new()
+--- /dev/null
++++ b/godot/mafiozi_walk/scripts/npc_visual/final_dead_contact_port.gd
+@@ -0,0 +1,162 @@
++extends RefCounted
++## OUTPUTS-ONLY PROPOSAL for Artist23 review. Capability registration is explicit.
++## No masks, body/rig transforms, freeze, HP, blood, pose or death writes.
++const SCHEMA:="npc_final_dead_contact/v1"
++const IDENTITY:=["session_id","source_id","render_id","bridge_id","descriptor_sha256","placement_mode","life_generation","rig_epoch","body_instance_id","body_rid","rig_instance_id"]
++var _player:WeakRef
++var _capsule:WeakRef
++var _records:Array=[]
++var _by_rid:Dictionary={}
++var _seen:Dictionary={}
++var _epoch:=0
++var _last_consumed_move:=-1
++var _configured:=false
++var _disposed:=false
++var _busy:=false
++var _query:=PhysicsShapeQueryParameters3D.new()
++var _options:Dictionary={}
++var stats:Dictionary={"attempted":0,"accepted":0,"rejected":0,"applied_ns":0.0}
++func _init()->void:
++	# Godot ObjectID is unique across simultaneous/replaced port instances.
++	# RefCounted ObjectIDs reserve the sign bit; all ports share that category.
++	_epoch=get_instance_id() & 0x7fffffffffffffff
++func configure(player:CharacterBody3D,records:Array,options:Dictionary)->Dictionary:
++	if _configured or _disposed or not Thread.is_main_thread():return {"ok":false,"reason":"lifetime"}
++	if not is_instance_valid(player) or not player.is_inside_tree() or str(player.get_script().resource_path)!="res://scripts/preview_player.gd":return {"ok":false,"reason":"original_player_required"}
++	var capsule:CollisionShape3D=player.get_node_or_null("PlayerCapsule")
++	if capsule==null or not capsule.shape is CapsuleShape3D or records.is_empty() or records.size()>128:return {"ok":false,"reason":"capsule_or_records"}
++	for key:String in ["max_impulse_ns","impulse_ns_per_mps","max_point_delta_energy_j","max_linear_speed_mps","max_angular_speed_rps","cooldown_ms"]:
++		if typeof(options.get(key)) not in [TYPE_FLOAT,TYPE_INT] or not is_finite(float(options[key])) or float(options[key])<=0:return {"ok":false,"reason":"explicit_measured_limits_required:"+key}
++	if options.max_impulse_ns>3.0 or options.impulse_ns_per_mps>1.0 or options.max_point_delta_energy_j>2.0 or options.max_linear_speed_mps>3.0 or options.max_angular_speed_rps>15.0 or options.cooldown_ms<80 or options.cooldown_ms>1000:return {"ok":false,"reason":"proposal_absolute_bound"}
++	if not player.has_method("completed_ground_move_receipt"):return {"ok":false,"reason":"completed_move_receipt_required"}
++	var pending:Array=[];var rid_map:Dictionary={}
++	for item:Variant in records:
++		if not item is Dictionary or not item.get("ragdoll_host") is RefCounted or not item.get("binding") is Dictionary or not item.get("current_life") is Callable or not item.current_life.is_valid():return {"ok":false,"reason":"capability_record"}
++		var host:RefCounted=item.ragdoll_host
++		if not host.has_method("status") or not host.has_method("owned_bodies"):return {"ok":false,"reason":"public_host_interface"}
++		var status:Dictionary=host.status()
++		for key:String in IDENTITY:
++			if not item.binding.has(key) or status.get("binding",{}).get(key)!=item.binding[key]:return {"ok":false,"reason":"binding:"+key}
++		var record:Dictionary={"host":host,"binding":item.binding.duplicate(true),"current":item.current_life,"parts":[],"last_ms":-1000000}
++		var parts:Array=host.owned_bodies()
++		if parts.size()!=16:return {"ok":false,"reason":"original_16_part_pool_required"}
++		for body:Variant in parts:
++			if not body is RigidBody3D or not is_instance_valid(body) or not body.is_inside_tree() or body.get_world_3d()!=player.get_world_3d() or rid_map.has(body.get_rid()):return {"ok":false,"reason":"part_identity"}
++			var part:Dictionary={"body":weakref(body),"rid":body.get_rid(),"instance":body.get_instance_id(),"record":pending.size()}
++			record.parts.append(part);rid_map[body.get_rid()]=part
++		pending.append(record)
++	_player=weakref(player);_capsule=weakref(capsule);_records=pending;_by_rid=rid_map;_options=options.duplicate();_configured=true
++	return {"ok":true,"schema":SCHEMA,"records":_records.size(),"epoch":_epoch,"enabled":true,"proposal_only":true}
++func _identity_live(record:Dictionary,incarnation:int)->bool:
++	if _disposed or not _configured or _epoch!=incarnation or not _records.has(record) or not is_instance_valid(record.host) or not record.current.is_valid():return false
++	var status:Dictionary=record.host.status()
++	if status.get("mode")!="ACTIVE" or status.get("final_dead")!=true or str(status.get("death_key","")).is_empty():return false
++	for key:String in IDENTITY:
++		if status.get("binding",{}).get(key)!=record.binding[key]:return false
++	return true
++func _live(record:Dictionary)->bool:
++	var incarnation:=_epoch
++	if not _identity_live(record,incarnation):return false
++	var host_id:int=record.host.get_instance_id()
++	var current:Variant=record.current.call(record.binding.duplicate(true))
++	# The owner callback may retire this port or change/recycle its host.
++	return current is bool and current and _identity_live(record,incarnation) and record.host.get_instance_id()==host_id
++func player_final_dead_contact_ready()->Dictionary:
++	if not _configured or _disposed or _busy:return {"ready":false}
++	for record:Dictionary in _records:
++		if _live(record):return {"ready":true,"schema":SCHEMA,"epoch":_epoch,"max_impulse_ns":_options.max_impulse_ns,"impulse_ns_per_mps":_options.impulse_ns_per_mps,"cooldown_ms":_options.cooldown_ms,"max_contact_height_m":.65,"max_relative_speed_mps":7.0}
++	return {"ready":false}
++func _reject(reason:String)->Dictionary:
++	stats.rejected+=1;return {"ok":false,"reason":reason,"applied_impulse_ns":Vector3.ZERO}
++func admit_player_final_dead_contact(request:Dictionary)->Dictionary:
++	if not Thread.is_main_thread() or _busy or _disposed or not _configured:return _reject("lifetime_or_reentry")
++	_busy=true;stats.attempted+=1
++	var result:=_admit(request)
++	_busy=false;return result
++func _admit(r:Dictionary)->Dictionary:
++	var incarnation:=_epoch
++	var player:CharacterBody3D=_player.get_ref();var capsule:CollisionShape3D=_capsule.get_ref()
++	if not is_instance_valid(player) or not player.is_inside_tree() or player.is_queued_for_deletion() or not is_instance_valid(capsule) or capsule.disabled:return _reject("player_lifetime")
++	if not Engine.is_in_physics_frame() or r.get("schema")!=SCHEMA or r.get("owner_epoch")!=_epoch or r.get("physics_frame")!=Engine.get_physics_frames():return _reject("frame_or_epoch")
++	if not r.get("event_id") is String or r.event_id.is_empty() or r.event_id.length()>160 or _seen.has(r.event_id):return _reject("replay_or_event_id")
++	if r.get("actor_instance_id")!=player.get_instance_id() or r.get("actor_rid")!=player.get_rid() or r.get("actor_pose_epoch")!=player._pose_epoch:return _reject("actor_identity")
++	var completed:Dictionary=player.completed_ground_move_receipt()
++	if completed.get("frame")!=Engine.get_physics_frames() or completed.get("pose_epoch")!=player._pose_epoch or not completed.get("serial") is int or completed.serial<=_last_consumed_move or r.get("movement_serial")!=completed.serial:return _reject("completed_move_required")
++	if completed.get("start")!=r.get("actor_start") or completed.get("end")!=r.get("actor_end"):return _reject("completed_move_mismatch")
++	if player._pose_authority!=&"on_foot" or not player._jump.is_empty() or not player.is_on_floor() or not player._free_mouse_look or player._text_control_focused():return _reject("actor_not_ground_walking")
++	if is_instance_valid(player._weapon_host) and player._weapon_host.controls_blocked():return _reject("actor_menu")
++	if r.get("delivery")!="command_unapplied" or r.get("damage")!=false or not _by_rid.has(r.get("collider_rid")):return _reject("target_or_delivery")
++	var part:Dictionary=_by_rid[r.collider_rid];var record:Dictionary=_records[part.record]
++	if not _live(record):return _reject("not_current_final_dead")
++	var body:RigidBody3D=part.body.get_ref()
++	if not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion() or body.get_rid()!=part.rid or body.get_instance_id()!=part.instance or r.get("collider_instance_id")!=part.instance:return _reject("part_replaced")
++	if body.get_world_3d()!=player.get_world_3d() or body.freeze or body.collision_layer!=256 or body.collision_mask!=257:return _reject("part_inactive_or_filters")
++	# Detect pool replacement through its public capability, not a private chain.
++	if not body in record.host.owned_bodies():return _reject("not_owned_part")
++	var now:=Time.get_ticks_msec()
++	if now-int(record.last_ms)<int(_options.cooldown_ms):return _reject("corpse_cooldown")
++	if not r.get("now_ms") is int or abs(now-r.now_ms)>50:return _reject("stale_clock")
++	for key:String in ["actor_start","actor_end","actual_velocity","world_point","world_normal","body_velocity","suggested_impulse_ns"]:
++		if not r.get(key) is Vector3 or not r[key].is_finite():return _reject("nonfinite:"+key)
++	var delta:=player.get_physics_process_delta_time();var motion:=player.get_position_delta()
++	if not motion.is_finite() or delta<=0 or delta>.1:return _reject("motion_delta")
++	var horizontal:=Vector3(motion.x,0,motion.z);var velocity:=horizontal/delta
++	if horizontal.length()<.001 or absf(motion.y)>.15 or velocity.length()>7.0:return _reject("motion_not_walking")
++	if r.actor_end.distance_to(player.global_position)>.002 or r.actor_start.distance_to(player.global_position-motion)>.002 or r.actual_velocity.distance_to(velocity)>.03:return _reject("actual_motion_mismatch")
++	_query.shape=capsule.shape;_query.transform=capsule.global_transform;_query.transform.origin-=motion;_query.collision_mask=256;_query.exclude=[player.get_rid()];_query.margin=.001;_query.motion=Vector3.ZERO
++	var space:=player.get_world_3d().direct_space_state
++	var contact:=space.get_rest_info(_query)
++	if contact.is_empty():
++		_query.motion=motion;var sweep:=space.cast_motion(_query)
++		if sweep.size()!=2 or sweep[0]>=1:return _reject("no_native_sweep_contact")
++		_query.transform.origin+=motion*clampf(sweep[1],0,1);_query.motion=Vector3.ZERO;contact=space.get_rest_info(_query)
++	if contact.is_empty() or contact.rid!=part.rid or contact.collider_id!=part.instance or contact.shape!=r.get("shape_index"):return _reject("native_contact_identity")
++	if contact.point.distance_to(r.world_point)>.005 or contact.normal.dot(r.world_normal)<.98:return _reject("native_contact_changed")
++	var height:float=contact.point.y-minf(player.global_position.y,(player.global_position-motion).y)
++	if height<-.025 or height>.65:return _reject("not_foot_contact")
++	var normal:=Vector3(contact.normal.x,0,contact.normal.z)
++	if normal.length_squared()<.25:return _reject("nonhorizontal_contact")
++	normal=normal.normalized()
++	var closing:float=-(velocity-contact.linear_velocity).dot(normal)
++	if closing<.15 or closing>7 or contact.linear_velocity.distance_to(r.body_velocity)>.05:return _reject("not_closing_or_velocity_changed")
++	var origin:=player.global_position+Vector3.UP*.35;var end:Vector3=contact.point+(origin-contact.point).normalized()*.003
++	if not space.intersect_ray(PhysicsRayQueryParameters3D.create(origin,end,1,[player.get_rid()])).is_empty():return _reject("world_occluded")
++	var expected:Vector3=-normal*minf(float(_options.max_impulse_ns),closing*float(_options.impulse_ns_per_mps))
++	if expected.distance_to(r.suggested_impulse_ns)>.005 or absf(expected.y)>.00001:return _reject("impulse_formula")
++	var state:=PhysicsServer3D.body_get_direct_state(body.get_rid())
++	if state==null or not state.inverse_inertia_tensor.is_finite() or not is_finite(body.mass) or body.mass<=0:return _reject("native_state")
++	var impulse:=expected;var offset:Vector3=contact.point-body.global_position
++	# Bounded search retains safe point impulse strength without the up-to-2x
++	# loss of a coarse halve-and-stop limiter. No transforms/velocities changed.
++	var predicted:Dictionary={}
++	var lower:=0.0;var upper:=1.0;var fraction:=1.0
++	var safe_prediction:Dictionary={}
++	for attempt:int in 10:
++		impulse=expected*fraction
++		var dv:=impulse/body.mass;var dw:Vector3=state.inverse_inertia_tensor*(offset.cross(impulse))
++		var v:Vector3=state.linear_velocity+dv;var w:Vector3=state.angular_velocity+dw
++		var linear_energy:=.5*body.mass*(v.length_squared()-state.linear_velocity.length_squared())
++		var angular_energy:float=state.angular_velocity.dot(offset.cross(impulse))+.5*dw.dot(offset.cross(impulse))
++		predicted={"linear_speed":v.length(),"angular_speed":w.length(),"delta_energy_j":linear_energy+angular_energy}
++		if v.length()<=float(_options.max_linear_speed_mps) and w.length()<=float(_options.max_angular_speed_rps) and linear_energy+angular_energy<=float(_options.max_point_delta_energy_j):
++			lower=fraction;safe_prediction=predicted
++			if fraction==1.0:break
++		else:upper=fraction
++		fraction=(lower+upper)*.5
++	impulse=expected*lower;predicted=safe_prediction
++	if predicted.is_empty():return _reject("point_energy_bound")
++	if impulse.length()<.005 or predicted.linear_speed>float(_options.max_linear_speed_mps) or predicted.angular_speed>float(_options.max_angular_speed_rps) or predicted.delta_energy_j>float(_options.max_point_delta_energy_j):return _reject("point_energy_bound")
++	if not _live(record) or not _identity_live(record,incarnation) or not is_instance_valid(body) or body.is_queued_for_deletion() or body.freeze:return _reject("life_changed_before_commit")
++	if player.completed_ground_move_receipt()!=completed or body.get_rid()!=part.rid or body.get_instance_id()!=part.instance or not body in record.host.owned_bodies():return _reject("capability_changed_before_commit")
++	_last_consumed_move=completed.serial
++	_seen[r.event_id]=true
++	if _seen.size()>1024:_seen.erase(_seen.keys()[0])
++	record.last_ms=now
++	var was_sleeping:=body.sleeping
++	# Native public method, on the exact revalidated owned segment only.
++	body.apply_impulse(impulse,offset)
++	stats.accepted+=1;stats.applied_ns+=impulse.length()
++	return {"ok":true,"event_id":r.event_id,"owner_epoch":_epoch,"source_id":record.binding.source_id,"life_generation":record.binding.life_generation,"applied_segment":str(body.name),"applied_body_instance_id":part.instance,"applied_impulse_ns":impulse,"native_point":contact.point,"was_sleeping":was_sleeping,"sleeping_after_call":body.sleeping,"predicted":predicted,"damage":false}
++func dispose()->void:
++	if _disposed:return
++	_disposed=true;_configured=false;_epoch+=1;_records.clear();_by_rid.clear();_seen.clear();_player=null;_capsule=null
+--- a/godot/mafiozi_walk/scripts/npc_visual/npc_head_zone.gd
++++ b/godot/mafiozi_walk/scripts/npc_visual/npc_head_zone.gd
+@@ -102,19 +102,22 @@
+ 		else:right.append(order[i].id)
+ 	return {"bounds":bounds.grow(.000001),"left":_build_head_tree(left),"right":_build_head_tree(right)}
+ 
+-func _trace_head_tree(node: Dictionary,origin: Vector3,direction: Vector3,maximum: float) -> Variant:
+-	if node.is_empty() or node.bounds.intersects_segment(origin,origin+direction*maximum)==null:return null
+-	var nearest: Variant=null;var distance:=maximum
++func _trace_head_tree(node: Dictionary,origin: Vector3,direction: Vector3,maximum: float) -> Dictionary:
++	if node.is_empty() or node.bounds.intersects_segment(origin,origin+direction*maximum)==null:return {}
++	var nearest: Dictionary={};var distance:=maximum
+ 	if node.has("ids"):
+ 		for id: int in node.ids:
+-			var hit: Variant=Geometry3D.ray_intersects_triangle(origin,direction,_head_triangles[id],_head_triangles[id+1],_head_triangles[id+2])
++			var a: Vector3=_head_triangles[id];var b: Vector3=_head_triangles[id+1];var c: Vector3=_head_triangles[id+2]
++			var hit: Variant=Geometry3D.ray_intersects_triangle(origin,direction,a,b,c)
+ 			if hit is Vector3:
+ 				var t: float=(hit-origin).dot(direction)
+-				if t>=0 and t<distance:nearest=hit;distance=t
++				var normal: Vector3=(b-a).cross(c-a)
++				if t>=0 and t<distance and normal.length_squared()>1e-16:
++					nearest={"point":hit,"normal":normal.normalized()};distance=t
+ 	else:
+ 		for child: Dictionary in [node.left,node.right]:
+-			var hit: Variant=_trace_head_tree(child,origin,direction,distance)
+-			if hit is Vector3:nearest=hit;distance=(hit-origin).dot(direction)
++			var hit: Dictionary=_trace_head_tree(child,origin,direction,distance)
++			if not hit.is_empty():nearest=hit;distance=(hit.point-origin).dot(direction)
+ 	return nearest
+ 
+ func _clusters(s: Dictionary) -> Array[Dictionary]:
+@@ -188,7 +191,7 @@
+ 	elif physical.mode=="IDLE":
+ 		for i in rig.get_bone_count():frames[str(rig.get_bone_name(i))]=rig.global_transform*rig.get_bone_global_pose(i)
+ 	else:return {}
+-	var caches: Array[Dictionary]=[];var nearest:=maximum;var point:=Vector3.ZERO;var found:=false
++	var caches: Array[Dictionary]=[];var nearest:=maximum;var point:=Vector3.ZERO;var normal:=Vector3.ZERO;var found:=false
+ 	var transforms: Array=[]
+ 	var ray:=direction.normalized()
+ 	if not _head_ray_bounds(origin,ray,maximum,frames.head):return {}
+@@ -196,9 +199,9 @@
+ 	# only reject; surviving leaves still use the original triangle intersection.
+ 	var inverse: Transform3D=frames.head.affine_inverse()
+ 	var local_ray: Vector3=inverse.basis*ray
+-	var rigid_hit: Variant=_trace_head_tree(_head_tree,inverse*origin,local_ray.normalized(),maximum*local_ray.length())
+-	if rigid_hit is Vector3:
+-		point=frames.head*rigid_hit;nearest=(point-origin).dot(ray);found=true
++	var rigid_hit: Dictionary=_trace_head_tree(_head_tree,inverse*origin,local_ray.normalized(),maximum*local_ray.length())
++	if not rigid_hit.is_empty():
++		point=frames.head*rigid_hit.point;normal=(inverse.basis.transposed()*rigid_hit.normal).normalized();nearest=(point-origin).dot(ray);found=true
+ 	for s: Dictionary in _surfaces:
+ 		var node: MeshInstance3D=s.node.get_ref()
+ 		if not is_instance_valid(node) or not node.is_inside_tree() or node.mesh!=s.resource or node.skin!=s.skin:return {}
+@@ -207,10 +210,15 @@
+ 		transforms.append(matrices)
+ 		var cache: Dictionary={};caches.append(cache)
+ 		for i in range(0,s.dynamic_head_indices.size(),3):
+-			var hit: Variant=Geometry3D.ray_intersects_triangle(origin,ray,_vertex(s,s.dynamic_head_indices[i],matrices,cache),_vertex(s,s.dynamic_head_indices[i+1],matrices,cache),_vertex(s,s.dynamic_head_indices[i+2],matrices,cache))
++			var a: Vector3=_vertex(s,s.dynamic_head_indices[i],matrices,cache)
++			var b: Vector3=_vertex(s,s.dynamic_head_indices[i+1],matrices,cache)
++			var c: Vector3=_vertex(s,s.dynamic_head_indices[i+2],matrices,cache)
++			var hit: Variant=Geometry3D.ray_intersects_triangle(origin,ray,a,b,c)
+ 			if hit is Vector3:
+ 				var t: float=(hit-origin).dot(ray)
+-				if t>=0 and t<nearest:nearest=t;point=hit;found=true
++				var face_normal: Vector3=(b-a).cross(c-a)
++				if t>=0 and t<nearest and face_normal.length_squared()>1e-16:
++					nearest=t;point=hit;normal=face_normal.normalized();found=true
+ 	if not found:return {}
+ 	# Another body part in front of the skull wins. Hair/hat bound entirely to
+ 	# head cannot promote a miss: an anatomical SKIN triangle already hit above.
+@@ -237,4 +245,6 @@
+ 	query.hit_from_inside=true
+ 	var block: Dictionary=scene.get_world_3d().direct_space_state.intersect_ray(query)
+ 	if not block.is_empty() and origin.distance_to(block.position)<nearest-.0001:return {}
+-	return {"zone":"head","point":point,"direction":ray,"distance_m":nearest,"proof":"native_owned_hit_then_first_anatomical_skin_triangle","user_rule":true}
++	if not normal.is_finite() or normal.length_squared()<.5:return {}
++	if normal.dot(ray)>0:normal=-normal
++	return {"zone":"head","point":point,"normal":normal,"direction":ray,"distance_m":nearest,"proof":"native_owned_hit_then_first_anatomical_skin_triangle","user_rule":true}
+--- a/godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd
++++ b/godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd
+@@ -96,7 +96,7 @@
+ 		if _call("feedback",{"kind":"invulnerable"})==null: return _stop("feedback_lease")
+ 		return _done(event_id,false,"invulnerable",h)
+ 	var was_downed: bool=bool(_row.get("_medicalDowned",false))
+-	# Explicit new user rule, supplied only by the admitted exact-skin owner.
++	# Explicit user-requested policy, admitted by exact anatomical skin contact.
+ 	var fatal_head: bool=h.get("hit_zone")=="head" and h.get("head_policy")=="user_requested_headshot_final_v1"
+ 	_row.hp=0 if fatal_head else maxi(0,Rules._int32(_row.hp)-Rules._int32(h.damage))
+ 	if _call("confirm",h)==null: return _stop("confirm_lease",true)
+--- a/godot/mafiozi_walk/data/preview_updates.json
++++ b/godot/mafiozi_walk/data/preview_updates.json
+@@ -1,12 +1,12 @@
+ {
+-  "title": "30.09 · Стрельба по жителям · 23e",
++  "title": "30.09 · Окно багажника · 23g",
+   "items": [
+-    "Q — арсенал, 14 видов оружия. Мягкая палитра и свет карточек. ЛКМ — выстрел, R — перезарядка.",
+-    "ПКМ — приближение и прицел Walk с разбросом; у снайперской винтовки — оптика. Колесо — расстояние камеры.",
+-    "13 видов стрелкового оружия наносят урон трём жителям. Есть кровь, падение и закрытие глаз после окончательной смерти.",
+-    "У открытого багажника G — положить, E по модели — взять. Вдали G — бросить, E рядом — подобрать. Патроны сохраняются.",
+-    "Дорабатываются следы на теле, импульс от пуль и толчки трупов ногами. РПГ пока без урона взрывом. C/Z — присесть/лечь; Esc — мышь."
++    "У открытого багажника нажмите E: крупные карточки оружия, патроны и кнопка «Взять». Наводиться на маленькую модель не нужно.",
++    "В окне багажника: «Положить» или G — убрать оружие из рук. Показаны занятое и свободное место. E/Q — закрыть окно.",
++    "Q вне багажника — арсенал. ЛКМ — выстрел, ПКМ — прицел, R — перезарядка. Вдали от машины G/E — бросить/подобрать.",
++    "Есть следы на одежде и коже. Попадание в голову смертельно; тело получает импульс пули и сдвигается от шага игрока.",
++    "Сейчас доступны три жителя тестового квартала. РПГ пока без урона взрывом. C/Z — присесть/лечь; Esc — мышь."
+   ],
+-  "updated_at": "2026-09-30T05:30:00+03:00",
+-  "runtime_revision": "s01-20260930-quality23e"
++  "updated_at": "2026-09-30T12:15:00+03:00",
++  "runtime_revision": "s01-20260930-quality23g"
+ }
+--- a/godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd
++++ b/godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd
+@@ -8,6 +8,14 @@
+ var _ground_water_cell_size := 4.1
+ var _ground_water_known := false
+ const WalkCargoCard = preload("res://scripts/weapons/walk_cargo_card.gd")
++const TrunkWindow = preload("res://scripts/weapons/walk_trunk_window.gd")
++var window_open:=false
++var _window:Control
++var _window_epoch:=0
++var _window_selected_uid:=""
++var _window_busy:=false
++var _window_snapshot:Dictionary={}
++var _window_revision:=-1
+ var _cargo_ui_revision := -1
+ var _cargo_ui_names: Dictionary = {}
+ var _cargo_card_scope := ""
+@@ -69,6 +77,8 @@
+ 	if not result.ok: return result
+ 	_shape_query.shape=_shape; _shape_query.collision_mask=7; _shape_query.margin=.001
+ 	_hint=WalkCargoCard.new(); weapons._layer.add_child(_hint)
++	_window=TrunkWindow.new();weapons._layer.add_child(_window);_window.configure(self)
++	weapons.cargo_menu_owner=self
+ 	_load_ground_water_policy()
+ 	_ready_for_play=true
+ 	return {"ok":true}
+@@ -141,16 +151,25 @@
+ 
+ func _sample() -> Dictionary:
+ 	var context:=aim_context()
+-	return {"revision":1,"sample":evidence.sample(),"target_open":bool(context.open),"interaction_allowed":_allowed() and bool(context.cargo_allowed),"aimed_trunk":bool(context.aimed_trunk),"aimed_item_uid":str(context.item_uid)}
++	var sample:Dictionary={"revision":1,"sample":evidence.sample(),"target_open":bool(context.open),"interaction_allowed":_allowed() and bool(context.cargo_allowed),"aimed_trunk":bool(context.aimed_trunk),"aimed_item_uid":str(context.item_uid)}
++	if _window_access():
++		sample.selection_mode="trunk_window" if window_open else "near_open_trunk"
++		sample.window_open=window_open;sample.window_epoch=_window_epoch;sample.selected_item_uid=_window_selected_uid
++	elif window_open:
++		sample.interaction_allowed=false
++	return sample
+ 
+ func _input(event: InputEvent) -> void:
++	if window_open: return # Weapon host owns modal keys before transport/player shortcuts.
+ 	if not _allowed() or not event is InputEventKey or not event.pressed or event.echo: return
+ 	var key: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+ 	if key not in [KEY_G,KEY_E]: return
+ 	var context:=aim_context()
++	if key==KEY_E and context.near_trunk and context.open:
++		open_window();get_viewport().set_input_as_handled();return
+ 	if key==KEY_G and context.near_trunk:
+ 		# Closed cargo never falls through to a ground drop.
+-		if context.cargo_allowed and context.open and context.aimed_trunk: store_held()
++		if _window_access(): store_held()
+ 		get_viewport().set_input_as_handled(); return
+ 	if key==KEY_E and not str(context.item_uid).is_empty():
+ 		take_item(context.item_uid); get_viewport().set_input_as_handled(); return
+@@ -205,6 +224,7 @@
+ 		_feedback="Недостаточно места" if str(result.get("reason","")) in ["CAPACITY","NO_PHYSICAL_SLOT"] else "Не удалось переместить оружие"
+ 		_feedback_time=1.6
+ 	_refresh=0
++	if window_open: _refresh_window(true)
+ 	return result
+ 
+ func _ground_reservations(same_items: Array=[]) -> Dictionary:
+@@ -375,6 +395,7 @@
+ 
+ func _process(delta: float) -> void:
+ 	if not _ready_for_play: return
++	if window_open and (not _allowed() or not transport.compartments.is_open("trunk")):close_window(false)
+ 	if renderer.has_method("update"): renderer.update(delta)
+ 	# Invalidation is immediate; geometry/authority sampling remains bounded.
+ 	# Do not erase a ground pickup hint each frame merely because trunk is closed.
+@@ -389,6 +410,10 @@
+ 	if _refresh>0: return
+ 	_refresh=.15
+ 	if not _allowed(): return
++	if window_open:
++		if not _window_access():close_window(false)
++		else:_refresh_window()
++		return
+ 	var context:=aim_context()
+ 	var camera: Camera3D=weapons.player.get_preview_camera()
+ 	weapons.set_cargo_reticle(bool(context.near_trunk and context.open) or not str(context.drop_uid).is_empty())
+@@ -402,18 +427,10 @@
+ 				_cargo_ui_names.clear()
+ 				for entry: Dictionary in contents.items: _cargo_ui_names[str(entry.item.uid)]=str(entry.item.weaponId)
+ 				_cargo_ui_revision=int(contents.revision)
+-		var actions: Array=[]
+-		var has_take:=false
+-		for action: Dictionary in state.get("actions",[]):
+-			var id: String=str(weapons.fire_state.weaponId) if action.action=="store" else str(_cargo_ui_names.get(str(action.get("uid","")),""))
+-			var name: String=weapons.LABELS.get(id,"Оружие")
+-			actions.append({"key":action.key,"label":action.label+" · "+name})
+-			has_take=has_take or action.action=="take"
+-		# No take action: E falls through to the existing admitted transport panel.
+-		# Display that existing action on this one card and suppress its duplicate.
+-		if context.cargo_allowed and not has_take: actions.append({"key":"E","label":"Закрыть багажник"})
++		var actions:Array=[{"key":"E","label":"Открыть содержимое"}]
++		if weapons.armed():actions.append({"key":"G","label":"Положить оружие"})
+ 		transport.set_cargo_item_hint_focus(bool(context.cargo_allowed))
+-		var detail: String="" if has_take else "Наведите прицел на оружие в багажнике"
++		var detail:String="Выберите оружие в окне багажника"
+ 		if int(state.get("selected_cost",0))>0: detail+=("\n" if not detail.is_empty() else "")+"В руках: %d ед. места" % int(state.selected_cost)
+ 		if _feedback_time>0: detail+=("\n" if not detail.is_empty() else "")+_feedback
+ 		var bounds: Dictionary=transport.compartments.cargo_bounds()
+@@ -453,6 +470,9 @@
+ 	_hint.clear()
+ 
+ func _exit_tree() -> void:
++	close_window(false)
++	if is_instance_valid(weapons) and weapons.cargo_menu_owner==self:weapons.cargo_menu_owner=null
++	if is_instance_valid(_window):_window.queue_free()
+ 	_ready_for_play=false
+ 	if is_instance_valid(transport): transport.set_cargo_item_hint_focus(false)
+ 	if bridge!=null: bridge.dispose()
+@@ -544,3 +564,75 @@
+ 	if lid is MeshInstance3D: meshes.append(lid)
+ 	for mesh: MeshInstance3D in meshes:
+ 		if mesh.mesh!=null: _ui_lid_bounds.append({"node":weakref(mesh),"bounds":mesh.get_aabb()})
++
++## Explicit modal selection retains actual access/lid/body/ownership admission.
++func _window_access()->bool:
++	if not _allowed() or not _near_trunk_geometry() or transport._nearest_panel().get("kind")!="trunk" or not transport.compartments.is_open("trunk"):return false
++	var sample:Dictionary=evidence.sample()
++	if not sample.get("available",false) or not sample.get("has_floor",false) or float(sample.get("amount",0))<.85:return false
++	var profile:Dictionary=transport.compartments.access_profile("trunk")
++	var point:Vector3=transport.body.to_global(profile.position_local_m+profile.outward_local*.12)
++	var ray:Dictionary=_ray_hit(weapons.player.global_position+Vector3.UP*.9,point,true)
++	return ray.is_empty() or ray.position.distance_to(point)<.03
++
++func _release_window_actions()->void:
++	for action:StringName in [weapons.player.ACTION_LEFT,weapons.player.ACTION_RIGHT,weapons.player.ACTION_FORWARD,weapons.player.ACTION_BACK,weapons.player.ACTION_RUN,weapons.player.ACTION_JUMP]:
++		if InputMap.has_action(action):Input.action_release(action)
++
++func open_window()->bool:
++	if window_open:return true
++	if not _window_access():return false
++	var state:Dictionary=cargo.snapshot(generation)
++	if not state.get("ok",false) or state.destroyed or state.pending:return false
++	weapons.cancel_inputs();weapons.set_menu(false);_release_window_actions()
++	_window_epoch+=1;window_open=true;_window_selected_uid="";_window_revision=-1;_window.visible=true
++	_clear_cargo_ui();transport.set_cargo_item_hint_focus(true);Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
++	_refresh_window(true);return true
++
++func close_window(capture:bool=true)->void:
++	if not window_open:return
++	window_open=false;_window_epoch+=1;_window_selected_uid="";_window_snapshot.clear();_window_revision=-1
++	if is_instance_valid(_window):_window.visible=false
++	if is_instance_valid(transport):transport.set_cargo_item_hint_focus(false)
++	if is_instance_valid(weapons):
++		weapons.cancel_inputs();_release_window_actions()
++		if capture and weapons._interaction_allowed():Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
++	_refresh=0
++
++func window_input(event:InputEvent)->bool:
++	if not window_open:return false
++	if event is InputEventKey:
++		_release_window_actions()
++		if event.pressed and not event.echo:
++			var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
++			if code in [KEY_E,KEY_Q]:close_window()
++			elif code==KEY_ESCAPE:close_window(false);weapons.player.set_mouse_captured(false)
++			elif code==KEY_G:window_store()
++		return true
++	return event is InputEventMouseButton or event is InputEventMouseMotion
++
++func window_store()->Dictionary:
++	if _window_busy or not window_open or not _window_access():return {"ok":false,"reason":"window_access"}
++	_window_busy=true
++	var result:Dictionary=store_held()
++	_window_busy=false;_refresh_window(true);return result
++
++func window_take(uid:String)->Dictionary:
++	if _window_busy or not window_open or not _window_access():return {"ok":false,"reason":"window_access"}
++	_window_busy=true;_window_selected_uid=uid
++	var result:Dictionary=take_item(uid)
++	_window_selected_uid="";_window_busy=false;_refresh_window(true);return result
++
++func window_close_lid()->void:
++	if not window_open or not _window_access():return
++	close_window();transport.compartments.set_open("trunk",false)
++
++func _refresh_window(force:bool=false)->void:
++	if not window_open:return
++	var summary:Dictionary=cargo.summary(generation)
++	if not summary.get("ok",false) or summary.destroyed:close_window(false);return
++	if force or _window_revision!=int(summary.revision):
++		_window_snapshot=cargo.snapshot(generation)
++		if not _window_snapshot.get("ok",false):close_window(false);return
++		_window_revision=int(summary.revision)
++	_window.present(_window_snapshot,weapons.fire_state,_feedback if _feedback_time>0 else "")
+--- a/godot/mafiozi_walk/scripts/weapons/preview_weapons.gd
++++ b/godot/mafiozi_walk/scripts/weapons/preview_weapons.gd
+@@ -24,6 +24,7 @@
+ var scene: Node3D
+ var fire_state: Dictionary = {}
+ var menu_open := false
++var cargo_menu_owner: Node
+ var ready_for_play := false
+ var _held := false
+ var _pressed := false
+@@ -95,8 +96,11 @@
+ func armed() -> bool:
+ 	return ready_for_play and fire_state.get("weaponId", "none") != "none"
+ 
++func cargo_menu_active() -> bool:
++	return is_instance_valid(cargo_menu_owner) and cargo_menu_owner.window_open
++
+ func controls_blocked() -> bool:
+-	return menu_open
++	return menu_open or cargo_menu_active()
+ 
+ func equip(id: String) -> Dictionary:
+ 	if not _interaction_allowed(): return {"ok":false,"reason":"inactive"}
+@@ -118,6 +122,7 @@
+ 
+ func set_menu(open: bool) -> void:
+ 	if open and not _interaction_allowed(): return
++	if open and cargo_menu_active(): cargo_menu_owner.close_window(false)
+ 	var was_open := menu_open
+ 	menu_open = open
+ 	cancel_inputs()
+@@ -162,10 +167,12 @@
+ 	return state
+ 
+ func release_controls() -> void:
++	if cargo_menu_active(): cargo_menu_owner.close_window(false)
+ 	cancel_inputs()
+ 	set_menu(false)
+ 
+ func input_event(event: InputEvent) -> bool:
++	if cargo_menu_active(): return cargo_menu_owner.window_input(event)
+ 	if not _owner_current() or not player._free_mouse_look: return false
+ 	if event is InputEventKey:
+ 		if event.pressed and not event.echo:
+@@ -192,7 +199,7 @@
+ func _input(event: InputEvent) -> void:
+ 	# The visible arsenal owns keys before vehicle/building unhandled shortcuts.
+ 	# GUI mouse clicks still reach the actual weapon buttons.
+-	if menu_open and event is InputEventKey and input_event(event):
++	if controls_blocked() and event is InputEventKey and input_event(event):
+ 		get_viewport().set_input_as_handled()
+ 
+ func advance(delta: float) -> void:
+@@ -210,6 +217,7 @@
+ 	if not _interaction_allowed():
+ 		cancel_inputs()
+ 		if menu_open: set_menu(false)
++		if cargo_menu_active(): cargo_menu_owner.close_window(false)
+ 	if not is_finite(delta) or delta < 0.0 or delta > 5.0: cancel_inputs(); return
+ 	if player._pose_authority==&"on_foot" and player._jump.is_empty():
+ 		_posture_view=posture.step_posture(delta,Callable(self,"_can_occupy_posture"),Input.is_action_pressed(player.ACTION_RUN))
+@@ -219,7 +227,7 @@
+ 	var forward: Vector3 = -player.get_preview_camera().global_basis.z
+ 	_aim={"aimYaw":atan2(forward.x,forward.z),"aimPitch":asin(clampf(forward.y,-.958,.958)),"recoil":0.0,"recoilYaw":0.0,"reloadProgress":0.0}
+ 	if not armed(): return
+-	var allowed: bool = _interaction_allowed() and not menu_open
++	var allowed: bool = _interaction_allowed() and not controls_blocked()
+ 	var moving: bool = Vector2(player.velocity.x,player.velocity.z).length_squared() > .01
+ 	var stance: String="prone" if float(_posture_view.value)>=1.95 else "crouch" if float(_posture_view.value)>=.95 else "stand"
+ 	var input := {"triggerHeld":allowed and _held,"triggerPressed":allowed and _pressed,"reload":allowed and _reload,"aiming":_aiming,"posture":stance,"moving":moving,"running":moving and Input.is_action_pressed(player.ACTION_RUN)}
+--- /dev/null
++++ b/godot/mafiozi_walk/scripts/weapons/walk_trunk_window.gd
+@@ -0,0 +1,72 @@
++extends Control
++const WalkUI=preload("walk_weapon_ui.gd")
++var host:Node
++var panel:PanelContainer
++var summary:Label
++var grid:GridContainer
++var scroll:ScrollContainer
++var empty:Label
++var feedback:Label
++var held:Label
++var store_button:Button
++var gauge:ProgressBar
++var cards:Dictionary={}
++var _revision:=-1
++var _last_size:=Vector2.ZERO
++
++func configure(cargo_host:Node)->void:
++	host=cargo_host;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter=Control.MOUSE_FILTER_STOP;visible=false
++	var shade:=ColorRect.new();shade.color=Color(0,0,0,.48);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade)
++	panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",WalkUI.panel_style("1d2429fc","ad956c",9));add_child(panel)
++	var inset:=WalkUI.margins(20);panel.add_child(inset)
++	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",12);inset.add_child(column)
++	var top:=HBoxContainer.new();column.add_child(top)
++	var copy:=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;top.add_child(copy)
++	copy.add_child(WalkUI.label("Б А Г А Ж Н И К",23,"d8d1bd"));summary=WalkUI.label("",14,"b6c0c4");copy.add_child(summary)
++	var close:=Button.new();close.text="Закрыть  ×";close.custom_minimum_size=Vector2(112,42);close.pressed.connect(func():host.close_window());top.add_child(close)
++	gauge=ProgressBar.new();gauge.show_percentage=false;gauge.custom_minimum_size.y=6;gauge.add_theme_stylebox_override("background",WalkUI.panel_style("303637","303637",2));gauge.add_theme_stylebox_override("fill",WalkUI.panel_style("aa9169","aa9169",2));column.add_child(gauge)
++	scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;column.add_child(scroll)
++	var contents:=VBoxContainer.new();contents.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(contents)
++	empty=WalkUI.label("В багажнике пока пусто.\nВозьмите оружие в руки и нажмите «Положить».",17,"aeb7bc");empty.custom_minimum_size.y=150;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;contents.add_child(empty)
++	grid=GridContainer.new();grid.columns=3;grid.add_theme_constant_override("h_separation",12);grid.add_theme_constant_override("v_separation",12);grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;contents.add_child(grid)
++	var footer:=HBoxContainer.new();footer.add_theme_constant_override("separation",14);column.add_child(footer)
++	held=WalkUI.label("",14,"d8d1bd");held.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;held.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer.add_child(held)
++	store_button=Button.new();store_button.text="G  Положить оружие";store_button.custom_minimum_size=Vector2(220,48);store_button.pressed.connect(func():host.window_store());footer.add_child(store_button)
++	var shut:=Button.new();shut.text="Закрыть крышку";shut.custom_minimum_size=Vector2(160,48);shut.pressed.connect(func():host.window_close_lid());footer.add_child(shut)
++	feedback=WalkUI.label("",13,"d99b94");column.add_child(feedback)
++	column.add_child(WalkUI.label("E / Q — закрыть окно     Esc — свободная мышь     Выберите «Взять» на нужной карточке",12,"aeb7bc"))
++	_layout()
++func _process(_delta:float)->void:
++	if visible:_layout()
++func _layout()->void:
++	var area:=get_viewport_rect().size
++	if area==_last_size:return
++	_last_size=area
++	var width:=minf(1000,maxf(400,area.x-48));var height:=minf(670,maxf(320,area.y-48))
++	panel.position=(area-Vector2(width,height))*.5;panel.size=Vector2(width,height)
++	grid.columns=4 if width>=950 else (3 if width>=700 else 2)
++	for entry:Dictionary in cards.values():entry.panel.custom_minimum_size.x=(width-66.0)/grid.columns-12.0
++func present(snapshot:Dictionary,state:Dictionary,message:String="")->void:
++	var used:=int(snapshot.used_units);var maximum:=int(snapshot.capacity_units)
++	summary.text="Занято %d / %d · Свободно %d · Оружия: %d"%[used,maximum,maxi(0,maximum-used),snapshot.items.size()]
++	gauge.max_value=maximum;gauge.value=used
++	if _revision!=int(snapshot.revision):
++		_revision=int(snapshot.revision)
++		for child:Node in grid.get_children():grid.remove_child(child);child.queue_free()
++		cards.clear()
++		for entry:Dictionary in snapshot.items:
++			var item:Dictionary=entry.item;var uid:String=item.uid;var id:String=item.weaponId
++			var card:=PanelContainer.new();card.custom_minimum_size=Vector2(210,198);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",WalkUI.panel_style("252e35","4f595f",6));grid.add_child(card)
++			var padding:=WalkUI.margins(12);card.add_child(padding);var box:=VBoxContainer.new();box.add_theme_constant_override("separation",8);padding.add_child(box)
++			var picture:=WalkUI.picture(100);picture.texture=host.weapons._walk_ui.textures.get(id);box.add_child(picture)
++			var name:=WalkUI.label(host.weapons.LABELS.get(id,id),16);box.add_child(name)
++			var ammo:=WalkUI.label("Патроны: %d / %d"%[int(item.fireState.magazine),int(item.fireState.reserveAmmo)],14,"b4bec4");box.add_child(ammo)
++			var take:=Button.new();take.text="Взять";take.custom_minimum_size.y=40;take.pressed.connect(Callable(host,"window_take").bind(uid));box.add_child(take)
++			cards[uid]={"panel":card,"button":take,"ammo":ammo,"weapon_id":id}
++		empty.visible=cards.is_empty();_last_size=Vector2.ZERO;_layout()
++	var id:=str(state.get("weaponId","none"));var cost:=int(host.bridge.COSTS.get(id,0))
++	held.text="В руках: %s"%host.weapons.LABELS.get(id,id)
++	if id!="none":held.text+=" · %d / %d патронов · %d ед. места"%[int(state.magazine),int(state.reserveAmmo),cost]
++	store_button.disabled=id=="none" or used+cost>maximum or bool(snapshot.pending)
++	feedback.text=message;feedback.visible=not message.is_empty()
++	for entry:Dictionary in cards.values():entry.button.disabled=bool(snapshot.pending)
+--- a/godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd
++++ b/godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd
+@@ -135,7 +135,7 @@
+ 		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and magazine==0 else "adb8be")))
+ 	if menu.visible != host.menu_open: menu.visible = host.menu_open
+ 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
+-	var allowed:bool=host._interaction_allowed() and not host.menu_open and not host.player._text_control_focused()
++	var allowed:bool=host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+ 	# Walk shows ordinary crosshair only while aiming or holding the trigger.
+ 	var firearm_reticle:bool=allowed and host.armed() and (host._aiming or host._held) and not scoped
+ 	var show_reticle:bool=firearm_reticle or (allowed and host.cargo_reticle_requested and not scoped)
+--- a/godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd
++++ b/godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd
+@@ -54,7 +54,7 @@
+ func _live() -> bool:
+ 	return _ready and _host!=null and is_instance_valid(_host.get_ref()) and _host.get_ref()._owner_current() and is_instance_valid(_camera) and _camera.get_parent()==_arm and _arm.get_parent()==_pivot and not _camera.top_level
+ func _on_foot(host: Node) -> bool:
+-	return host._interaction_allowed() and not host.menu_open and not host.player._text_control_focused()
++	return host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+ func _allowed(host: Node) -> bool:
+ 	# Walk combatAllowed does not disable aim/scope during reload.
+ 	return _on_foot(host) and host.armed()
+--- a/godot/mafiozi_walk/scripts/weapons/weapon_cargo_bridge.gd
++++ b/godot/mafiozi_walk/scripts/weapons/weapon_cargo_bridge.gd
+@@ -72,7 +72,14 @@
+ 	var amount:Variant=sample.get("amount")
+ 	return sample.get("available")==true and sample.get("has_floor")==true and (amount is float or amount is int) and is_finite(float(amount)) and float(amount)>=.85
+ func _aimed(evidence:Dictionary,action:String,uid:String="")->bool:
+-	return _open(evidence) and (evidence.aimed_trunk if action=="store" else not uid.is_empty() and evidence.aimed_item_uid==uid)
++	if not _open(evidence):return false
++	# Explicit near-open/modal selection is user intent, not a forged model ray.
++	var mode:String=str(evidence.get("selection_mode","aim"))
++	if mode=="trunk_window":
++		if evidence.get("window_open")!=true or not evidence.get("window_epoch") is int or evidence.window_epoch<1:return false
++		return action=="store" or (not uid.is_empty() and evidence.get("selected_item_uid")==uid)
++	if mode=="near_open_trunk":return action=="store"
++	return mode=="aim" and (evidence.aimed_trunk if action=="store" else not uid.is_empty() and evidence.aimed_item_uid==uid)
+ func _unchanged(before:Dictionary,action:String,uid:String="")->bool:
+ 	var after:=_sample()
+ 	return _aimed(after,action,uid) and after==before

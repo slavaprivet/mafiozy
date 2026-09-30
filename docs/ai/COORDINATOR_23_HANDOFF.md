@@ -1,4 +1,17 @@
-## 30 September 05:38 — current accepted checkpoint 23e
+## 30 September 12:39 — current accepted checkpoint23g
+
+Read the latest COORDINATOR_23_MEMORY first. Dedicated trunk contents window is
+delivered: E near open trunk, big cards/Take, G/Store, UID/ammo/capacity100. Exact
+candidate11 PCK ae82e44c46cf3d5f420897c7e91d8a631691dbf4180d27c45342ff428916209e;
+project-root shortcut and shared F5 source updated. One game12304 initially
+responding; always fresh inventory. Compiled233/actualGUI120 PASS;21 scoped paths,
+204source/310embedded payloads verified. Accepted wounds, anatomical headshot,
+point impulse and public corpse-foot contact; evidence/limits in
+docs/godot/WEAPONS_23G_CHECKPOINT.md. Shared foreign palette/transport WIP preserved.
+GPU tests RELEASED, user's game stays. Full migration/RPG blastHP/medical/source
+city not finished. Historical status below superseded. All reports HQ; pinned5 OFF.
+
+## 30 September 05:38 — earlier accepted checkpoint 23e
 
 Remote main523a54eb5befc133a3dfbe8e430e30e8ca1d3713 verified. Accepted23e
 weapon UI/aim/real-wall marks/cargo-memory improvement + Artist COMBINED13guns

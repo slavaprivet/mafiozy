@@ -1,0 +1,385 @@
+--- a/scripts/preview_player.gd
++++ b/scripts/preview_player.gd
+@@ -296,7 +296,7 @@
+ 	if _pose_authority != &"on_foot":
+ 		_jump_event_consumed = false
+ 		return # External owner owns movement as well as the final pose.
+-	if _free_mouse_look and not _jump_event_consumed and not _text_control_focused() and Input.is_action_just_pressed(ACTION_JUMP):
++	if _free_mouse_look and not _jump_event_consumed and not _text_control_focused() and not (is_instance_valid(_weapon_host) and _weapon_host.controls_blocked()) and Input.is_action_just_pressed(ACTION_JUMP):
+ 		_request_preview_jump(float(Time.get_ticks_msec()))
+ 	_jump_event_consumed = false
+ 	if not _jump.is_empty():
+--- a/scripts/weapons/preview_weapon_cargo.gd
++++ b/scripts/weapons/preview_weapon_cargo.gd
+@@ -8,6 +8,14 @@
+ var _ground_water_cell_size := 4.1
+ var _ground_water_known := false
+ const WalkCargoCard = preload("res://scripts/weapons/walk_cargo_card.gd")
++const TrunkWindow = preload("res://scripts/weapons/walk_trunk_window.gd")
++var window_open:=false
++var _window:Control
++var _window_epoch:=0
++var _window_selected_uid:=""
++var _window_busy:=false
++var _window_snapshot:Dictionary={}
++var _window_revision:=-1
+ var _cargo_ui_revision := -1
+ var _cargo_ui_names: Dictionary = {}
+ var _cargo_card_scope := ""
+@@ -69,6 +77,8 @@
+ 	if not result.ok: return result
+ 	_shape_query.shape=_shape; _shape_query.collision_mask=7; _shape_query.margin=.001
+ 	_hint=WalkCargoCard.new(); weapons._layer.add_child(_hint)
++	_window=TrunkWindow.new();weapons._layer.add_child(_window);_window.configure(self)
++	weapons.cargo_menu_owner=self
+ 	_load_ground_water_policy()
+ 	_ready_for_play=true
+ 	return {"ok":true}
+@@ -141,16 +151,25 @@
+ 
+ func _sample() -> Dictionary:
+ 	var context:=aim_context()
+-	return {"revision":1,"sample":evidence.sample(),"target_open":bool(context.open),"interaction_allowed":_allowed() and bool(context.cargo_allowed),"aimed_trunk":bool(context.aimed_trunk),"aimed_item_uid":str(context.item_uid)}
++	var sample:Dictionary={"revision":1,"sample":evidence.sample(),"target_open":bool(context.open),"interaction_allowed":_allowed() and bool(context.cargo_allowed),"aimed_trunk":bool(context.aimed_trunk),"aimed_item_uid":str(context.item_uid)}
++	if _window_access():
++		sample.selection_mode="trunk_window" if window_open else "near_open_trunk"
++		sample.window_open=window_open;sample.window_epoch=_window_epoch;sample.selected_item_uid=_window_selected_uid
++	elif window_open:
++		sample.interaction_allowed=false
++	return sample
+ 
+ func _input(event: InputEvent) -> void:
++	if window_open: return # Weapon host owns modal keys before transport/player shortcuts.
+ 	if not _allowed() or not event is InputEventKey or not event.pressed or event.echo: return
+ 	var key: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+ 	if key not in [KEY_G,KEY_E]: return
+ 	var context:=aim_context()
++	if key==KEY_E and context.near_trunk and context.open:
++		open_window();get_viewport().set_input_as_handled();return
+ 	if key==KEY_G and context.near_trunk:
+ 		# Closed cargo never falls through to a ground drop.
+-		if context.cargo_allowed and context.open and context.aimed_trunk: store_held()
++		if _window_access(): store_held()
+ 		get_viewport().set_input_as_handled(); return
+ 	if key==KEY_E and not str(context.item_uid).is_empty():
+ 		take_item(context.item_uid); get_viewport().set_input_as_handled(); return
+@@ -205,6 +224,7 @@
+ 		_feedback="Недостаточно места" if str(result.get("reason","")) in ["CAPACITY","NO_PHYSICAL_SLOT"] else "Не удалось переместить оружие"
+ 		_feedback_time=1.6
+ 	_refresh=0
++	if window_open: _refresh_window(true)
+ 	return result
+ 
+ func _ground_reservations(same_items: Array=[]) -> Dictionary:
+@@ -375,6 +395,7 @@
+ 
+ func _process(delta: float) -> void:
+ 	if not _ready_for_play: return
++	if window_open and (not _allowed() or not transport.compartments.is_open("trunk")):close_window(false)
+ 	if renderer.has_method("update"): renderer.update(delta)
+ 	# Invalidation is immediate; geometry/authority sampling remains bounded.
+ 	# Do not erase a ground pickup hint each frame merely because trunk is closed.
+@@ -389,6 +410,10 @@
+ 	if _refresh>0: return
+ 	_refresh=.15
+ 	if not _allowed(): return
++	if window_open:
++		if not _window_access():close_window(false)
++		else:_refresh_window()
++		return
+ 	var context:=aim_context()
+ 	var camera: Camera3D=weapons.player.get_preview_camera()
+ 	weapons.set_cargo_reticle(bool(context.near_trunk and context.open) or not str(context.drop_uid).is_empty())
+@@ -402,18 +427,10 @@
+ 				_cargo_ui_names.clear()
+ 				for entry: Dictionary in contents.items: _cargo_ui_names[str(entry.item.uid)]=str(entry.item.weaponId)
+ 				_cargo_ui_revision=int(contents.revision)
+-		var actions: Array=[]
+-		var has_take:=false
+-		for action: Dictionary in state.get("actions",[]):
+-			var id: String=str(weapons.fire_state.weaponId) if action.action=="store" else str(_cargo_ui_names.get(str(action.get("uid","")),""))
+-			var name: String=weapons.LABELS.get(id,"Оружие")
+-			actions.append({"key":action.key,"label":action.label+" · "+name})
+-			has_take=has_take or action.action=="take"
+-		# No take action: E falls through to the existing admitted transport panel.
+-		# Display that existing action on this one card and suppress its duplicate.
+-		if context.cargo_allowed and not has_take: actions.append({"key":"E","label":"Закрыть багажник"})
++		var actions:Array=[{"key":"E","label":"Открыть содержимое"}]
++		if weapons.armed():actions.append({"key":"G","label":"Положить оружие"})
+ 		transport.set_cargo_item_hint_focus(bool(context.cargo_allowed))
+-		var detail: String="" if has_take else "Наведите прицел на оружие в багажнике"
++		var detail:String="Выберите оружие в окне багажника"
+ 		if int(state.get("selected_cost",0))>0: detail+=("\n" if not detail.is_empty() else "")+"В руках: %d ед. места" % int(state.selected_cost)
+ 		if _feedback_time>0: detail+=("\n" if not detail.is_empty() else "")+_feedback
+ 		var bounds: Dictionary=transport.compartments.cargo_bounds()
+@@ -453,6 +470,9 @@
+ 	_hint.clear()
+ 
+ func _exit_tree() -> void:
++	close_window(false)
++	if is_instance_valid(weapons) and weapons.cargo_menu_owner==self:weapons.cargo_menu_owner=null
++	if is_instance_valid(_window):_window.queue_free()
+ 	_ready_for_play=false
+ 	if is_instance_valid(transport): transport.set_cargo_item_hint_focus(false)
+ 	if bridge!=null: bridge.dispose()
+@@ -544,3 +564,75 @@
+ 	if lid is MeshInstance3D: meshes.append(lid)
+ 	for mesh: MeshInstance3D in meshes:
+ 		if mesh.mesh!=null: _ui_lid_bounds.append({"node":weakref(mesh),"bounds":mesh.get_aabb()})
++
++## Explicit modal selection retains actual access/lid/body/ownership admission.
++func _window_access()->bool:
++	if not _allowed() or not _near_trunk_geometry() or transport._nearest_panel().get("kind")!="trunk" or not transport.compartments.is_open("trunk"):return false
++	var sample:Dictionary=evidence.sample()
++	if not sample.get("available",false) or not sample.get("has_floor",false) or float(sample.get("amount",0))<.85:return false
++	var profile:Dictionary=transport.compartments.access_profile("trunk")
++	var point:Vector3=transport.body.to_global(profile.position_local_m+profile.outward_local*.12)
++	var ray:Dictionary=_ray_hit(weapons.player.global_position+Vector3.UP*.9,point,true)
++	return ray.is_empty() or ray.position.distance_to(point)<.03
++
++func _release_window_actions()->void:
++	for action:StringName in [weapons.player.ACTION_LEFT,weapons.player.ACTION_RIGHT,weapons.player.ACTION_FORWARD,weapons.player.ACTION_BACK,weapons.player.ACTION_RUN,weapons.player.ACTION_JUMP]:
++		if InputMap.has_action(action):Input.action_release(action)
++
++func open_window()->bool:
++	if window_open:return true
++	if not _window_access():return false
++	var state:Dictionary=cargo.snapshot(generation)
++	if not state.get("ok",false) or state.destroyed or state.pending:return false
++	weapons.cancel_inputs();weapons.set_menu(false);_release_window_actions()
++	_window_epoch+=1;window_open=true;_window_selected_uid="";_window_revision=-1;_window.visible=true
++	_clear_cargo_ui();transport.set_cargo_item_hint_focus(true);Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
++	_refresh_window(true);return true
++
++func close_window(capture:bool=true)->void:
++	if not window_open:return
++	window_open=false;_window_epoch+=1;_window_selected_uid="";_window_snapshot.clear();_window_revision=-1
++	if is_instance_valid(_window):_window.visible=false
++	if is_instance_valid(transport):transport.set_cargo_item_hint_focus(false)
++	if is_instance_valid(weapons):
++		weapons.cancel_inputs();_release_window_actions()
++		if capture and weapons._interaction_allowed():Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
++	_refresh=0
++
++func window_input(event:InputEvent)->bool:
++	if not window_open:return false
++	if event is InputEventKey:
++		_release_window_actions()
++		if event.pressed and not event.echo:
++			var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
++			if code in [KEY_E,KEY_Q]:close_window()
++			elif code==KEY_ESCAPE:close_window(false);weapons.player.set_mouse_captured(false)
++			elif code==KEY_G:window_store()
++		return true
++	return event is InputEventMouseButton or event is InputEventMouseMotion
++
++func window_store()->Dictionary:
++	if _window_busy or not window_open or not _window_access():return {"ok":false,"reason":"window_access"}
++	_window_busy=true
++	var result:Dictionary=store_held()
++	_window_busy=false;_refresh_window(true);return result
++
++func window_take(uid:String)->Dictionary:
++	if _window_busy or not window_open or not _window_access():return {"ok":false,"reason":"window_access"}
++	_window_busy=true;_window_selected_uid=uid
++	var result:Dictionary=take_item(uid)
++	_window_selected_uid="";_window_busy=false;_refresh_window(true);return result
++
++func window_close_lid()->void:
++	if not window_open or not _window_access():return
++	close_window();transport.compartments.set_open("trunk",false)
++
++func _refresh_window(force:bool=false)->void:
++	if not window_open:return
++	var summary:Dictionary=cargo.summary(generation)
++	if not summary.get("ok",false) or summary.destroyed:close_window(false);return
++	if force or _window_revision!=int(summary.revision):
++		_window_snapshot=cargo.snapshot(generation)
++		if not _window_snapshot.get("ok",false):close_window(false);return
++		_window_revision=int(summary.revision)
++	_window.present(_window_snapshot,weapons.fire_state,_feedback if _feedback_time>0 else "")
+--- a/scripts/weapons/preview_weapons.gd
++++ b/scripts/weapons/preview_weapons.gd
+@@ -24,6 +24,7 @@
+ var scene: Node3D
+ var fire_state: Dictionary = {}
+ var menu_open := false
++var cargo_menu_owner: Node
+ var ready_for_play := false
+ var _held := false
+ var _pressed := false
+@@ -95,8 +96,11 @@
+ func armed() -> bool:
+ 	return ready_for_play and fire_state.get("weaponId", "none") != "none"
+ 
++func cargo_menu_active() -> bool:
++	return is_instance_valid(cargo_menu_owner) and cargo_menu_owner.window_open
++
+ func controls_blocked() -> bool:
+-	return menu_open
++	return menu_open or cargo_menu_active()
+ 
+ func equip(id: String) -> Dictionary:
+ 	if not _interaction_allowed(): return {"ok":false,"reason":"inactive"}
+@@ -118,6 +122,7 @@
+ 
+ func set_menu(open: bool) -> void:
+ 	if open and not _interaction_allowed(): return
++	if open and cargo_menu_active(): cargo_menu_owner.close_window(false)
+ 	var was_open := menu_open
+ 	menu_open = open
+ 	cancel_inputs()
+@@ -162,10 +167,12 @@
+ 	return state
+ 
+ func release_controls() -> void:
++	if cargo_menu_active(): cargo_menu_owner.close_window(false)
+ 	cancel_inputs()
+ 	set_menu(false)
+ 
+ func input_event(event: InputEvent) -> bool:
++	if cargo_menu_active(): return cargo_menu_owner.window_input(event)
+ 	if not _owner_current() or not player._free_mouse_look: return false
+ 	if event is InputEventKey:
+ 		if event.pressed and not event.echo:
+@@ -192,7 +199,7 @@
+ func _input(event: InputEvent) -> void:
+ 	# The visible arsenal owns keys before vehicle/building unhandled shortcuts.
+ 	# GUI mouse clicks still reach the actual weapon buttons.
+-	if menu_open and event is InputEventKey and input_event(event):
++	if controls_blocked() and event is InputEventKey and input_event(event):
+ 		get_viewport().set_input_as_handled()
+ 
+ func advance(delta: float) -> void:
+@@ -210,6 +217,7 @@
+ 	if not _interaction_allowed():
+ 		cancel_inputs()
+ 		if menu_open: set_menu(false)
++		if cargo_menu_active(): cargo_menu_owner.close_window(false)
+ 	if not is_finite(delta) or delta < 0.0 or delta > 5.0: cancel_inputs(); return
+ 	if player._pose_authority==&"on_foot" and player._jump.is_empty():
+ 		_posture_view=posture.step_posture(delta,Callable(self,"_can_occupy_posture"),Input.is_action_pressed(player.ACTION_RUN))
+@@ -219,7 +227,7 @@
+ 	var forward: Vector3 = -player.get_preview_camera().global_basis.z
+ 	_aim={"aimYaw":atan2(forward.x,forward.z),"aimPitch":asin(clampf(forward.y,-.958,.958)),"recoil":0.0,"recoilYaw":0.0,"reloadProgress":0.0}
+ 	if not armed(): return
+-	var allowed: bool = _interaction_allowed() and not menu_open
++	var allowed: bool = _interaction_allowed() and not controls_blocked()
+ 	var moving: bool = Vector2(player.velocity.x,player.velocity.z).length_squared() > .01
+ 	var stance: String="prone" if float(_posture_view.value)>=1.95 else "crouch" if float(_posture_view.value)>=.95 else "stand"
+ 	var input := {"triggerHeld":allowed and _held,"triggerPressed":allowed and _pressed,"reload":allowed and _reload,"aiming":_aiming,"posture":stance,"moving":moving,"running":moving and Input.is_action_pressed(player.ACTION_RUN)}
+--- a/scripts/weapons/walk_trunk_window.gd
++++ b/scripts/weapons/walk_trunk_window.gd
+@@ -0,0 +1,72 @@
++extends Control
++const WalkUI=preload("walk_weapon_ui.gd")
++var host:Node
++var panel:PanelContainer
++var summary:Label
++var grid:GridContainer
++var scroll:ScrollContainer
++var empty:Label
++var feedback:Label
++var held:Label
++var store_button:Button
++var gauge:ProgressBar
++var cards:Dictionary={}
++var _revision:=-1
++var _last_size:=Vector2.ZERO
++
++func configure(cargo_host:Node)->void:
++	host=cargo_host;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter=Control.MOUSE_FILTER_STOP;visible=false
++	var shade:=ColorRect.new();shade.color=Color(0,0,0,.48);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade)
++	panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",WalkUI.panel_style("1d2429fc","ad956c",9));add_child(panel)
++	var inset:=WalkUI.margins(20);panel.add_child(inset)
++	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",12);inset.add_child(column)
++	var top:=HBoxContainer.new();column.add_child(top)
++	var copy:=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;top.add_child(copy)
++	copy.add_child(WalkUI.label("Б А Г А Ж Н И К",23,"d8d1bd"));summary=WalkUI.label("",14,"b6c0c4");copy.add_child(summary)
++	var close:=Button.new();close.text="Закрыть  ×";close.custom_minimum_size=Vector2(112,42);close.pressed.connect(func():host.close_window());top.add_child(close)
++	gauge=ProgressBar.new();gauge.show_percentage=false;gauge.custom_minimum_size.y=6;gauge.add_theme_stylebox_override("background",WalkUI.panel_style("303637","303637",2));gauge.add_theme_stylebox_override("fill",WalkUI.panel_style("aa9169","aa9169",2));column.add_child(gauge)
++	scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;column.add_child(scroll)
++	var contents:=VBoxContainer.new();contents.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(contents)
++	empty=WalkUI.label("В багажнике пока пусто.\nВозьмите оружие в руки и нажмите «Положить».",17,"aeb7bc");empty.custom_minimum_size.y=150;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;contents.add_child(empty)
++	grid=GridContainer.new();grid.columns=3;grid.add_theme_constant_override("h_separation",12);grid.add_theme_constant_override("v_separation",12);grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;contents.add_child(grid)
++	var footer:=HBoxContainer.new();footer.add_theme_constant_override("separation",14);column.add_child(footer)
++	held=WalkUI.label("",14,"d8d1bd");held.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;held.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer.add_child(held)
++	store_button=Button.new();store_button.text="G  Положить оружие";store_button.custom_minimum_size=Vector2(220,48);store_button.pressed.connect(func():host.window_store());footer.add_child(store_button)
++	var shut:=Button.new();shut.text="Закрыть крышку";shut.custom_minimum_size=Vector2(160,48);shut.pressed.connect(func():host.window_close_lid());footer.add_child(shut)
++	feedback=WalkUI.label("",13,"d99b94");column.add_child(feedback)
++	column.add_child(WalkUI.label("E / Q — закрыть окно     Esc — свободная мышь     Выберите «Взять» на нужной карточке",12,"aeb7bc"))
++	_layout()
++func _process(_delta:float)->void:
++	if visible:_layout()
++func _layout()->void:
++	var area:=get_viewport_rect().size
++	if area==_last_size:return
++	_last_size=area
++	var width:=minf(1000,maxf(400,area.x-48));var height:=minf(670,maxf(320,area.y-48))
++	panel.position=(area-Vector2(width,height))*.5;panel.size=Vector2(width,height)
++	grid.columns=4 if width>=950 else (3 if width>=700 else 2)
++	for entry:Dictionary in cards.values():entry.panel.custom_minimum_size.x=(width-66.0)/grid.columns-12.0
++func present(snapshot:Dictionary,state:Dictionary,message:String="")->void:
++	var used:=int(snapshot.used_units);var maximum:=int(snapshot.capacity_units)
++	summary.text="Занято %d / %d · Свободно %d · Оружия: %d"%[used,maximum,maxi(0,maximum-used),snapshot.items.size()]
++	gauge.max_value=maximum;gauge.value=used
++	if _revision!=int(snapshot.revision):
++		_revision=int(snapshot.revision)
++		for child:Node in grid.get_children():grid.remove_child(child);child.queue_free()
++		cards.clear()
++		for entry:Dictionary in snapshot.items:
++			var item:Dictionary=entry.item;var uid:String=item.uid;var id:String=item.weaponId
++			var card:=PanelContainer.new();card.custom_minimum_size=Vector2(210,198);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",WalkUI.panel_style("252e35","4f595f",6));grid.add_child(card)
++			var padding:=WalkUI.margins(12);card.add_child(padding);var box:=VBoxContainer.new();box.add_theme_constant_override("separation",8);padding.add_child(box)
++			var picture:=WalkUI.picture(100);picture.texture=host.weapons._walk_ui.textures.get(id);box.add_child(picture)
++			var name:=WalkUI.label(host.weapons.LABELS.get(id,id),16);box.add_child(name)
++			var ammo:=WalkUI.label("Патроны: %d / %d"%[int(item.fireState.magazine),int(item.fireState.reserveAmmo)],14,"b4bec4");box.add_child(ammo)
++			var take:=Button.new();take.text="Взять";take.custom_minimum_size.y=40;take.pressed.connect(Callable(host,"window_take").bind(uid));box.add_child(take)
++			cards[uid]={"panel":card,"button":take,"ammo":ammo,"weapon_id":id}
++		empty.visible=cards.is_empty();_last_size=Vector2.ZERO;_layout()
++	var id:=str(state.get("weaponId","none"));var cost:=int(host.bridge.COSTS.get(id,0))
++	held.text="В руках: %s"%host.weapons.LABELS.get(id,id)
++	if id!="none":held.text+=" · %d / %d патронов · %d ед. места"%[int(state.magazine),int(state.reserveAmmo),cost]
++	store_button.disabled=id=="none" or used+cost>maximum or bool(snapshot.pending)
++	feedback.text=message;feedback.visible=not message.is_empty()
++	for entry:Dictionary in cards.values():entry.button.disabled=bool(snapshot.pending)
+--- a/scripts/weapons/walk_weapon_ui.gd
++++ b/scripts/weapons/walk_weapon_ui.gd
+@@ -135,7 +135,7 @@
+ 		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and magazine==0 else "adb8be")))
+ 	if menu.visible != host.menu_open: menu.visible = host.menu_open
+ 	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
+-	var allowed:bool=host._interaction_allowed() and not host.menu_open and not host.player._text_control_focused()
++	var allowed:bool=host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+ 	# Walk shows ordinary crosshair only while aiming or holding the trigger.
+ 	var firearm_reticle:bool=allowed and host.armed() and (host._aiming or host._held) and not scoped
+ 	var show_reticle:bool=firearm_reticle or (allowed and host.cargo_reticle_requested and not scoped)
+--- a/scripts/weapons/weapon_aim_camera.gd
++++ b/scripts/weapons/weapon_aim_camera.gd
+@@ -54,7 +54,7 @@
+ func _live() -> bool:
+ 	return _ready and _host!=null and is_instance_valid(_host.get_ref()) and _host.get_ref()._owner_current() and is_instance_valid(_camera) and _camera.get_parent()==_arm and _arm.get_parent()==_pivot and not _camera.top_level
+ func _on_foot(host: Node) -> bool:
+-	return host._interaction_allowed() and not host.menu_open and not host.player._text_control_focused()
++	return host._interaction_allowed() and not host.controls_blocked() and not host.player._text_control_focused()
+ func _allowed(host: Node) -> bool:
+ 	# Walk combatAllowed does not disable aim/scope during reload.
+ 	return _on_foot(host) and host.armed()
+--- a/scripts/weapons/weapon_cargo_bridge.gd
++++ b/scripts/weapons/weapon_cargo_bridge.gd
+@@ -72,7 +72,14 @@
+ 	var amount:Variant=sample.get("amount")
+ 	return sample.get("available")==true and sample.get("has_floor")==true and (amount is float or amount is int) and is_finite(float(amount)) and float(amount)>=.85
+ func _aimed(evidence:Dictionary,action:String,uid:String="")->bool:
+-	return _open(evidence) and (evidence.aimed_trunk if action=="store" else not uid.is_empty() and evidence.aimed_item_uid==uid)
++	if not _open(evidence):return false
++	# Explicit near-open/modal selection is user intent, not a forged model ray.
++	var mode:String=str(evidence.get("selection_mode","aim"))
++	if mode=="trunk_window":
++		if evidence.get("window_open")!=true or not evidence.get("window_epoch") is int or evidence.window_epoch<1:return false
++		return action=="store" or (not uid.is_empty() and evidence.get("selected_item_uid")==uid)
++	if mode=="near_open_trunk":return action=="store"
++	return mode=="aim" and (evidence.aimed_trunk if action=="store" else not uid.is_empty() and evidence.aimed_item_uid==uid)
+ func _unchanged(before:Dictionary,action:String,uid:String="")->bool:
+ 	var after:=_sample()
+ 	return _aimed(after,action,uid) and after==before

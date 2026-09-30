@@ -1,5 +1,38 @@
 # Кординатор 23 — 30 сентября 2026
 
+## 12:39 — accepted23g delivered: dedicated trunk window and tested combat union
+
+Latest user request completed: E beside open trunk opens large contents cards,
+Take/Store buttons, exact UID/ammo, capacity100. No tiny-model aiming required.
+Final candidate11 PCK ae82e44c46cf3d5f420897c7e91d8a631691dbf4180d27c45342ff428916209e.
+Delivered identical export to godot/mafiozi_walk/exports/win64/s01-20260930-quality23g-play;
+existing PROJECT ROOT shortcut (not Desktop root) updated. One game12304 observed
+responding after launch; Manager45268 retained. Fresh inventory required next time.
+Shared21 guarded paths promoted, old bytes preserved in delivery23g/before;
+Artist LocalHits preload/point/head work reconciled. Unscoped softer update-panel
+palette and transport access/parking WIP preserved. Shared F5 normal startup PASS
+14guns/3NPC/transport; shared tree is not identical to frozen export due those WIP.
+
+Compiled233 trunk/keyboard/layout PASS and actualGUI120PASS1280/800, original3NPC,
+8buildings/377colliders. Root viewed PNGs. Candidate10 real800 GUI failed overflow;
+11 fixes only two sources/payloads: wrapped text, footer, deferred size, GUI keys.
+All204source inputs/310PCK payloads independently verified. No loss/dupe/ammo reset.
+Accepted prior combined foot64/head89 and loaded combat/perf evidence preserved.
+Skin visual correction: 09 FAIL was hair occlusion, not runtime skin bug. No
+skin-only filter adopted. Clear actualGPU10 visual29PASS with face/closedeyes
+viewed, same combat bytes in11; earlier blank test-observer frames not acceptance.
+
+Full evidence/limits: docs/godot/WEAPONS_23G_CHECKPOINT.md. First-use material
+warmup improves repeated fresh application-cache firsthit47.463→15.576ms; driver
+cache not reset. Original caches restored. No whole-city or zero-stutter claim.
+RPG blast HP/authority, sourceNPC agendas/fullcity, medical recovery, passenger/
+cover fire and real vehicle cargo destruction remain open. Building showcase
+previously saved; mass destruction rollout still separate owner scope.
+
+GPU test/CPU QUIET RELEASED via HQ; preserve user's one running game. Main at
+269b356 before this accepted-runtime save; read actual Git for newer commit.
+No new coordinators; Astra onlyChecker; pinned5 remains stopped. All reports HQ.
+
 ## 12:08 — combined23f held for visual correction; trunk-window user request
 
 Published main/origin4c6d4f70fbdea70fb7c2470bb1547b7aca95fdb3. This turn resumed
