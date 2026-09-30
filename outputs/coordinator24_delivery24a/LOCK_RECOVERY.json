@@ -1,0 +1,8 @@
+{
+  "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\.git\\index.lock",
+  "length": 0,
+  "last_write": "2026-09-30T15:47:48.8384330+03:00",
+  "recovered_at": "2026-09-30T17:22:06.9383313+03:00",
+  "active_index_writers": 0,
+  "action": "Move stale empty lock to proof directory; no index or worktree reset"
+}

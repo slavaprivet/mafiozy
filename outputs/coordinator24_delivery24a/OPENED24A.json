@@ -1,0 +1,11 @@
+{
+  "opened_at": "2026-09-30T17:17:54.1077518+03:00",
+  "pid": 31528,
+  "responding": true,
+  "exe": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24a-play\\MafioziPreview.exe",
+  "exe_sha256": "d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562",
+  "pack_sha256": "634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5",
+  "shortcut": "C:\\Users\\Слава\\Desktop\\Мафиози\\Мафиози — актуальная версия.lnk",
+  "shortcut_target": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24a-play\\MafioziPreview.exe",
+  "scope": "Exact accepted cargo24a, one user gameplay process; pre-existing ProjectManager retained"
+}

@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+SHARED_STARTUP24A {"arsenal":["ak74","deagle","golden_colt","golden_uzi","m16","nagan","revolver","rpg","sawn_off","shotgun","sniper","tommy_gun","tt_pistol","uzi"],"checks":24,"collision_bodies":377,"collision_shapes":377,"errors":[],"notes_panel":{"notes":{"items":["E берёт подсвеченное оружие из багажника, в том числе во время прицеливания. Без выбранного оружия E открывает или закрывает крышку.","F — содержимое багажника. Карточка + E или «Взять» — в руки. Удерживаемая W/A/S/D продолжает движение после взятия; G — положить оружие.","Q или × закрывает окно и возвращает в игру; Esc освобождает мышь. В окне также есть кнопка «Закрыть крышку».","Q — арсенал. ЛКМ — выстрел, ПКМ — прицел, R — перезарядка. Вдали от машины G/E — бросить/подобрать. C/Z — присесть/лечь.","Три жителя тестового квартала, следы попаданий и физика тел доступны. РПГ пока без урона взрывом."],"title":"30.09 · Управление багажником · 24a"},"polling":true,"read_count":1,"restart_required":false,"stat_count":1},"npc_hit_owners":3,"population":"ready","runtime_revision":"s01-20260930-quality24a","scope":"Ordinary shared main startup after guarded24a promotion; headless only, not rendered/FPS/OS-input acceptance.","scope_texture_width":800,"seconds":3.721,"transport":"ready","valid":true}

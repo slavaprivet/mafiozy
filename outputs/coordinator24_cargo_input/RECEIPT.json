@@ -1,0 +1,33 @@
+{
+  "status": "ISOLATED_PROPOSAL_NOT_PROMOTED",
+  "base": "accepted16 / delivered23h",
+  "path": "scripts/weapons/preview_weapon_cargo.gd",
+  "before_sha256": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+  "after_sha256": "e647d6cf902097ef4b9e4c8eb993cc95c6e8b1fb1b42ab4fb8c17aefe556359b",
+  "test_sha256": "9d8578ef0e2f3e526f5fad4138cea51c20e783ccec86064d45e63c193b32cace",
+  "baseline": {
+    "action_forward": false,
+    "physical_w": true,
+    "expected_failures": 2,
+    "movement_m": 0,
+    "assertions": 35,
+    "log": "baseline_final.log"
+  },
+  "proposal": {
+    "action_forward": true,
+    "physical_w": true,
+    "movement_m": 0.029998779296875,
+    "assertions": 55,
+    "failures": 0,
+    "log": "patched02.log"
+  },
+  "bounds": [
+    "headless component proof; exact accepted PCK plus optional sole cargo override",
+    "NPC disabled in input matrix; original residents enabled in interactive smoke",
+    "OS pointer capture/focus not proven",
+    "No full-city performance/memory acceptance",
+    "Intermittent direct E extra click/freeze remains unresolved",
+    "No shared production edits or GPU runs"
+  ],
+  "cpu_slot": "RELEASED"
+}

@@ -1,0 +1,9 @@
+{
+	"checks": 17,
+	"errors": [
+		"25s startup deadline"
+	],
+	"scope": "Ordinary shared main startup after guarded24a promotion; headless only, not rendered/FPS/OS-input acceptance.",
+	"seconds": 25.001,
+	"valid": false
+}

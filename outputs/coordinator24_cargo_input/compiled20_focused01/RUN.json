@@ -1,0 +1,105 @@
+{
+  "passed": false,
+  "pid": 41108,
+  "seconds": 10.8080144,
+  "timed_out": false,
+  "exit_code": 1,
+  "pack_unchanged": true,
+  "native_errors": false,
+  "result": {
+    "captures": [
+      {
+        "blocked": true,
+        "camera_top_level": true,
+        "focus": true,
+        "free_mouse_look": true,
+        "label": "01_modal_before_E",
+        "mouse_mode": 0,
+        "notes": {
+          "notes": {
+            "items": [
+              "E берёт подсвеченное оружие из багажника, в том числе во время прицеливания. Без выбранного оружия E открывает или закрывает крышку.",
+              "F — содержимое багажника. Карточка + E или «Взять» — в руки. Удерживаемая W/A/S/D продолжает движение после взятия; G — положить оружие.",
+              "Q или × закрывает окно и возвращает в игру; Esc освобождает мышь. В окне также есть кнопка «Закрыть крышку».",
+              "Q — арсенал. ЛКМ — выстрел, ПКМ — прицел, R — перезарядка. Вдали от машины G/E — бросить/подобрать. C/Z — присесть/лечь.",
+              "Три жителя тестового квартала, следы попаданий и физика тел доступны. РПГ пока без урона взрывом."
+            ],
+            "title": "30.09 · Управление багажником · 24a"
+          },
+          "polling": true,
+          "read_count": 1,
+          "restart_required": false,
+          "stat_count": 5
+        },
+        "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_input\\compiled20_focused01/01_modal_before_E.png",
+        "weapon": "none"
+      },
+      {
+        "blocked": false,
+        "camera_top_level": true,
+        "focus": true,
+        "free_mouse_look": true,
+        "label": "02_after_E_and_keyup",
+        "mouse_mode": 2,
+        "notes": {
+          "notes": {
+            "items": [
+              "E берёт подсвеченное оружие из багажника, в том числе во время прицеливания. Без выбранного оружия E открывает или закрывает крышку.",
+              "F — содержимое багажника. Карточка + E или «Взять» — в руки. Удерживаемая W/A/S/D продолжает движение после взятия; G — положить оружие.",
+              "Q или × закрывает окно и возвращает в игру; Esc освобождает мышь. В окне также есть кнопка «Закрыть крышку».",
+              "Q — арсенал. ЛКМ — выстрел, ПКМ — прицел, R — перезарядка. Вдали от машины G/E — бросить/подобрать. C/Z — присесть/лечь.",
+              "Три жителя тестового квартала, следы попаданий и физика тел доступны. РПГ пока без урона взрывом."
+            ],
+            "title": "30.09 · Управление багажником · 24a"
+          },
+          "polling": true,
+          "read_count": 1,
+          "restart_required": false,
+          "stat_count": 5
+        },
+        "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_input\\compiled20_focused01/02_after_E_and_keyup.png",
+        "weapon": "tt_pistol"
+      }
+    ],
+    "checks": 86,
+    "compiled_candidate": true,
+    "content": [
+      {
+        "buildings": 8.0,
+        "colliders": 377,
+        "label": "startup",
+        "npc_hit_owners": 3,
+        "population": "ready",
+        "shapes": 377
+      },
+      {
+        "buildings": 8.0,
+        "colliders": 377,
+        "label": "complete",
+        "npc_hit_owners": 3,
+        "population": "ready",
+        "shapes": 377
+      }
+    ],
+    "elapsed_seconds": 9.082207,
+    "errors": [
+      "resumed W stops physical horizontal velocity within three ticks",
+      "released W stays stationary for following three ticks"
+    ],
+    "findings": [
+      {
+        "action_forward": true,
+        "case": "modal_E_while_W_held",
+        "controls_blocked": false,
+        "free_mouse_look": true,
+        "movement_distance": 0.0750007629394531,
+        "physical_w": true
+      }
+    ],
+    "gpu": true,
+    "harness_sha256": "566df3ae6a44a7f0bad755f043b19a8409e6a412c91f4a1af2efaef32a630989",
+    "pack_sha256": "634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5",
+    "scope": "exact compiled20 pack only; real Godot input dispatch with injected key/mouse events; original3NPC/8buildings/377collision content retained; direct-E camera fixture uses top_level triangle targeting; no whole-city FPS or manual OS-input proof",
+    "valid": false
+  }
+}

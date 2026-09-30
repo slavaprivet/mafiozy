@@ -1,3 +1,20 @@
+## 30 September17:18 — cargo24a accepted and opened by Root24
+
+Exact candidate20 PCK634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5.
+Four guarded paths promoted;1724 unrelated shared files preserved. Fixes heldWASD return
+after F/E and directE during RMB aim. Headless78/attachedaim28/focusedGPU136/shared24 PASS.
+PID31528 responding at17:17; fresh inventory required. Project shortcut now24a.
+See outputs/coordinator24_delivery24a/ACCEPTANCE.md for conditional perf and proof limits.
+Intermittent extra-click complaint not fully closed; RPG19 remains isolated, rebase onto24a.
+QUIET24 RELEASED; keep only one user game. Root24 memory is current.
+## 30 September16:43 — user appointed Coordinator24, accepted23h reopened
+
+Current root24 `01a0f288-91e5-7092-9d8b-ef7d725cc696`; read `docs/ai/COORDINATOR_24_MEMORY.md`.
+Root23 frozen; no new root23 production/GPU. Owner boundaries and HQ-only reporting preserved.
+Accepted23h reopened at user's request, exact PCK8051926d… verified, PID11604 initially responding.
+Latest isolated RPG18 has415nativePASS and GPU02/visual18 evidence. Before delivery fix
+main runtime23h vs notes23i mismatch causing false restart-needed banner. No whole-city claim.
+
 ## 30 September 14:19 — accepted23h delivered: cargo hover, return, game cursor
 
 Current exact export: candidate16 PCK8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741.

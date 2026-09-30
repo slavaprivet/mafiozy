@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+CARGO_INPUT_RESULT {"checks":55,"errors":[],"findings":[{"action_forward":true,"case":"modal_E_while_W_held","controls_blocked":false,"free_mouse_look":true,"movement_distance":0.029998779296875,"physical_w":true}],"patched":true,"scope":"exact23h compiled pack with optional one-file cargo override; headless real Godot input dispatch; OS focus/capture not reproduced; NPC disabled component fixture"}

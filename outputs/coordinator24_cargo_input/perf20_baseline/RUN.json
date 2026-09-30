@@ -1,0 +1,30 @@
+{
+  "exit_code": 0,
+  "seconds": 14.371855499921367,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--main-pack",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate16\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23h\\MafioziPreview.pck",
+    "--position",
+    "-32000,-32000",
+    "--resolution",
+    "1280x720",
+    "--rendering-method",
+    "forward_plus",
+    "--rendering-driver",
+    "vulkan",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_input\\perf20tools\\capture.gd",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_input\\perf20_baseline",
+    "--qa-side=baseline",
+    "--qa-pack=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate16\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23h\\MafioziPreview.pck",
+    "--qa-sha=8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741"
+  ],
+  "side": "baseline",
+  "pack_sha256": "8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741",
+  "receipt_sha256": "9e18c421b15422b667f3787b2fcc263a5ebd427402589a5c219ef107023e9472",
+  "harness_sha256": "7d2e23e78409c8eec37f9d9ab7101df32c1aaa7e8641f50393aebdfdb64867cc",
+  "cache_note": "existing-driver-cache-no-manual-cache-clear",
+  "scope": "Prepared sequential GPU pair; offscreen(-32000,-32000) NO_FOCUS window; no capture. Driver owns logical QA control, real scene/UI/inventory/collisions stay scheduled."
+}

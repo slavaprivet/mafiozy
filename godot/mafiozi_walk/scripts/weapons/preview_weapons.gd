@@ -136,8 +136,8 @@ func set_menu(open: bool) -> void:
 			if InputMap.has_action(action): Input.action_release(action)
 	_refresh_ui()
 
-func cancel_inputs() -> void:
-	if aim_camera!=null: aim_camera.reset()
+func cancel_inputs(reset_camera: bool = true) -> void:
+	if reset_camera and aim_camera!=null: aim_camera.reset()
 	_combat_active=false
 	_settle_pending(false)
 	_held = false; _pressed = false; _reload = false; _aiming = false

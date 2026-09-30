@@ -1,0 +1,61 @@
+{
+  "status": "VERIFIED_209_SOURCE_PINS_316_PAYLOADS_WITH_DECLARED_NONVISUAL_IMPORT_ID_DRIFT",
+  "pack_sha256": "634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5",
+  "baseline_pack_sha256": "8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741",
+  "source_inputs_verified": 209,
+  "embedded_payload_md5_verified": 316,
+  "source_changes": [
+    {
+      "path": "data/preview_updates.json",
+      "before": "f54b8c0be2111c3e9b97af03ec144f2458dda63b451e2b4229a8860aa207368d",
+      "after": "9352054dbaed4f2f558948622224724fe81479aff7b5aefc2f4affcbd178200d"
+    },
+    {
+      "path": "scripts/main.gd",
+      "before": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+      "after": "d83df7ab226ead9fe86c8c66d00a3fec7b11b3f44453e89398db5b16965b9b9a"
+    },
+    {
+      "path": "scripts/weapons/preview_weapon_cargo.gd",
+      "before": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+      "after": "e59b0efcfab75422faedc93f2e22f3b6068b144e9281af446c61a7c767bd5836"
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "after": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c"
+    }
+  ],
+  "unchanged_packed_payloads": 304,
+  "intentional_packed_changes": [
+    "data/preview_updates.json",
+    "scripts/main.gdc",
+    "scripts/weapons/preview_weapon_cargo.gdc",
+    "scripts/weapons/preview_weapons.gdc"
+  ],
+  "declared_internal_metadata_changes": [
+    ".godot/uid_cache.bin",
+    ".godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn",
+    ".godot/imported/gun_shop.e97d6fac4097.glb-8de329855b9386dafb5ee0b3672e7308.scn",
+    ".godot/imported/hero.glb-60b1dda00ac356d0d41e9d312bcd657c.scn",
+    ".godot/imported/lamp_bellini_v1.81c8b123ded3.glb-b84d3d66ea234dfc25d9a30c2a0b6ecb.scn",
+    ".godot/imported/old_town_narrow_townhouse_v1.fd0178400e60.glb-51320986262831de1d5a09cd3d619fc1.scn",
+    ".godot/imported/pawnshop.1a95f97569d9.glb-5ae0599955c699f94c733cdcbf4fdc5f.scn",
+    ".godot/imported/print_shop.ad7b8ef7e7e4.glb-2f9796d6c00706cbe0fd06b7ad488ffd.scn"
+  ],
+  "metadata_proof": "CARGO20_METADATA_DRIFT.json",
+  "metadata_proof_sha256": "b91be05bcd56791acae96a8ae6bc6fe834c821c24f14ac6d50734758c356a3a8",
+  "metadata_scope": "All six imported GLB scenes differ only in PackedScene node_ids array contents. Exported main scene differs only in its one node_id and 8-byte external main.gd resource UID. All other decompressed serialized bytes are identical. Authored gameplay IDs, source GLBs/import configs and other code remain unchanged.",
+  "main_notes_revision": "s01-20260930-quality24a",
+  "notes_count": 5,
+  "rpg_damage_not_adopted": true,
+  "export_receipt_sha256": "ce19b634175f77890b9e8de86675d10352316c09cb8bd81640799b9de7248e07",
+  "integration_sha256": "7855145fc2f4dcb5977227ac6f0aa2a9d22e0ea316f552671264ae4b37d43bd3",
+  "errors": [],
+  "limits": [
+    "Read-only independent review; no Godot, engine tests or GPU executed.",
+    "Metadata-normalized asset equality is not raw byte identity of all payloads.",
+    "Functional, actual focused input and performance acceptance remain Root24 responsibility.",
+    "Candidate20 and its export were not changed during this audit."
+  ]
+}

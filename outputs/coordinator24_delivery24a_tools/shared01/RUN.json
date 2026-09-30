@@ -1,0 +1,37 @@
+{
+  "exit_code": 1,
+  "seconds": 25.338066700147465,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--fixed-fps",
+    "60",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_delivery24a_tools\\test_shared_startup24a.gd",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_delivery24a_tools\\shared01"
+  ],
+  "before": {
+    "scripts/weapons/preview_weapon_cargo.gd": "e59b0efcfab75422faedc93f2e22f3b6068b144e9281af446c61a7c767bd5836",
+    "scripts/weapons/preview_weapons.gd": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c",
+    "scripts/main.gd": "d83df7ab226ead9fe86c8c66d00a3fec7b11b3f44453e89398db5b16965b9b9a",
+    "data/preview_updates.json": "9352054dbaed4f2f558948622224724fe81479aff7b5aefc2f4affcbd178200d"
+  },
+  "after": {
+    "scripts/weapons/preview_weapon_cargo.gd": "e59b0efcfab75422faedc93f2e22f3b6068b144e9281af446c61a7c767bd5836",
+    "scripts/weapons/preview_weapons.gd": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c",
+    "scripts/main.gd": "d83df7ab226ead9fe86c8c66d00a3fec7b11b3f44453e89398db5b16965b9b9a",
+    "data/preview_updates.json": "9352054dbaed4f2f558948622224724fe81479aff7b5aefc2f4affcbd178200d"
+  },
+  "harness_sha256": "9935ae2dd39577c6d87c06cdd8752e7ae9241988a30a766bc0d13644f442fa9d",
+  "stable_guarded_sources": true,
+  "native_valid": false,
+  "checks": 17,
+  "errors": [
+    "25s startup deadline"
+  ],
+  "clean_engine_log": false,
+  "valid": false
+}

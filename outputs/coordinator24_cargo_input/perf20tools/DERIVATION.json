@@ -1,0 +1,20 @@
+{
+  "changes": "Only allowed baseline pack pin/label updated 11 to16. Same3NPC/8buildings/377colliders/14cargo/100units, original attached camera, three240frame phases. No native-input proof.",
+  "files": [
+    {
+      "path": "capture.gd",
+      "source_sha256": "50aaa930184a7a0d348f1c5dd587eaae2ef421a601d220478a17df47fd981f8d",
+      "after_sha256": "7d2e23e78409c8eec37f9d9ab7101df32c1aaa7e8641f50393aebdfdb64867cc"
+    },
+    {
+      "path": "run_pair_side.py",
+      "source_sha256": "669caeb24911f9ce27400d1ffc929b042fa88c3d5728f46006cdc415e5c04789",
+      "after_sha256": "be580eeae106201f69198cf75b2ac5ac93dffa082e71c714855e1d66c61b7204"
+    },
+    {
+      "path": "compare.py",
+      "source_sha256": "2f96e7fbb5337d5d06bad69851e04a9e8fbc4deebf86f0e66786fb2ad21a0108",
+      "after_sha256": "853b2ac3f3616c5375a6d8ee5acb78848df31b7ce0ad8cfc6517ee993e55812a"
+    }
+  ]
+}

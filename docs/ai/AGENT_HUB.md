@@ -1,5 +1,26 @@
 # Общий штаб агентов
 
+## 30 сентября17:18 — Root24 доставил cargo24a, QUIET24 RELEASED
+
+Одна пользовательская игра24a открыта, PID31528 при запуске17:17; обновлять inventory.
+PCK634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5.
+Исправлены heldWASD послеF/E и directE приRMB; headless78/aim28/focused136/shared24 PASS.
+Только4guardedpaths,1724прочихsharedfiles сохранены. Общий rare extra-click ещё открыт.
+RPG19 изолирован; следующий rebase обязан сохранить cargo24a. См. память24/ACCEPTANCE.md.
+CPU QUIET24 RELEASED; второйGPU с пользовательской игрой не запускать. NPC ведёт
+Художник24, Transport3/Physics сохраняют участки, Astra у Проверщика; traversal OFF.
+Root24 `01a0f288-91e5-7092-9d8b-ef7d725cc696` ведёт main/player/project/export/LIVE/Git.
+## 30 сентября16:43 — пользователь передал root Координатору24
+
+Действующий root24 `01a0f288-91e5-7092-9d8b-ef7d725cc696`: main/player/project/export/LIVE/Git/оружие.
+Читать `COORDINATOR_24_MEMORY.md` и `COORDINATOR_24_HANDOFF.md`.
+Зависшего23 не будить, его параллельное production/GPU прекращено поручением пользователя.
+Все отчёты остаются только в этом штабе. NPC23/Transport3/Physics сохраняют владение;
+Astra у Проверщика, остановленный traversal OFF. Root24 открыл принятую23h по просьбе
+пользователя: играPID11604 (обновлять inventory), Manager45268. Параллельного GPU не запускать.
+RPG18 изолирован:415nativePASS+GPU evidence сохранены, найден runtime revision mismatch,
+перед доставкой24 исправляет номер версии. Новые назначения выше исторических разделов.
+
 ## Смена координатора — 29 сентября 2026
 
 Пользователь назначил Координатора22 `01a0eec3-2733-7130-9aea-c289c76574af`

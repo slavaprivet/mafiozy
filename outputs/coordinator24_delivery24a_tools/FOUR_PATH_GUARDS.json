@@ -1,0 +1,105 @@
+{
+  "status": "READY_FOR_ROOT_GUARDED_FOUR_PATH_PROMOTION",
+  "integration_sha256": "7855145fc2f4dcb5977227ac6f0aa2a9d22e0ea316f552671264ae4b37d43bd3",
+  "paths": [
+    {
+      "path": "scripts/weapons/preview_weapon_cargo.gd",
+      "expected_before": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+      "shared_now": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+      "expected_after": "e59b0efcfab75422faedc93f2e22f3b6068b144e9281af446c61a7c767bd5836",
+      "candidate_now": "e59b0efcfab75422faedc93f2e22f3b6068b144e9281af446c61a7c767bd5836",
+      "shared_before_matches": true,
+      "candidate_after_matches": true,
+      "export_receipt_matches_candidate": true
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "expected_before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "shared_now": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "expected_after": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c",
+      "candidate_now": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c",
+      "shared_before_matches": true,
+      "candidate_after_matches": true,
+      "export_receipt_matches_candidate": true
+    },
+    {
+      "path": "scripts/main.gd",
+      "expected_before": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+      "shared_now": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+      "expected_after": "d83df7ab226ead9fe86c8c66d00a3fec7b11b3f44453e89398db5b16965b9b9a",
+      "candidate_now": "d83df7ab226ead9fe86c8c66d00a3fec7b11b3f44453e89398db5b16965b9b9a",
+      "shared_before_matches": true,
+      "candidate_after_matches": true,
+      "export_receipt_matches_candidate": true
+    },
+    {
+      "path": "data/preview_updates.json",
+      "expected_before": "f54b8c0be2111c3e9b97af03ec144f2458dda63b451e2b4229a8860aa207368d",
+      "shared_now": "f54b8c0be2111c3e9b97af03ec144f2458dda63b451e2b4229a8860aa207368d",
+      "expected_after": "9352054dbaed4f2f558948622224724fe81479aff7b5aefc2f4affcbd178200d",
+      "candidate_now": "9352054dbaed4f2f558948622224724fe81479aff7b5aefc2f4affcbd178200d",
+      "shared_before_matches": true,
+      "candidate_after_matches": true,
+      "export_receipt_matches_candidate": true
+    }
+  ],
+  "candidate_revision": "s01-20260930-quality24a",
+  "candidate_note_count": 5,
+  "unscoped_receipt_differences": [
+    {
+      "path": "scenes/main.tscn",
+      "shared_sha256": "b30a6aca7fef43d24ca4027f957fc411bd0bcddd36555a03ec646cee0e2689a6",
+      "candidate_sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/preview_interior_finish.gd",
+      "shared_sha256": "f2137740ac1b31669454f18c258db3560bf3c9eb9ff35b0a00875db0ee6bb497",
+      "candidate_sha256": "666bb28093d3bc9fbf17b702dda9c460d1364c64dee63c236b02fc9d80519ced",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/preview_printshop_interior.gd",
+      "shared_sha256": "300b48c8efa0d0b953514b36e0c0319febfd6d9a2ff61450601a45e1109e37f4",
+      "candidate_sha256": "f6f082584ada23dcd55b384c629505730c80a59080768910a17c653d7eb1b5df",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/preview_update_panel.gd",
+      "shared_sha256": "bff22dbcd6ad068f59796512be2e3d9b52aca39f48f5f23ac04fa60faccf05e7",
+      "candidate_sha256": "ddc84afd868d267259ca2e99f57b2c4d3a45f95761b77ad3795118cbd0195d3a",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/preview_water_material.gd",
+      "shared_sha256": "51f3d2d5f6c744cc98b0131a62d2acb1e97b8327f2235702b9b1896615952d88",
+      "candidate_sha256": "05b99692520d2b2cea39639ef380e7cdee77db8a57a73972d8c50ae0d5793e09",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/preview_water_surface.gd",
+      "shared_sha256": "7d89235d93f31dd565aadf37f549a05074bec5534acfb120543228f1dba2655c",
+      "candidate_sha256": "19dc5dcde715826117daed263342d1af71f1b6f7bb6607cddea894bd7fff04bd",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/transport/transport_access_provider.gd",
+      "shared_sha256": "d0386f508fbfedf5c9a73035ff7716d26ca02e4160bd0c7bc8d62291c1db887b",
+      "candidate_sha256": "325be57c92fca3b83aa884d47577c7e7014553850ee1806166fa67419f5cf830",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/transport/transport_actor_transition.gd",
+      "shared_sha256": "c9ed1ad7205c74d1131cfda0588f8c862fb1ae6cf64d7b42c83b25f1b0df4c6f",
+      "candidate_sha256": "82353738b20d76679ee0202b9a00591c80592978c7b8ddcea2c3f95eff074766",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    },
+    {
+      "path": "scripts/transport/transport_descriptor_catalog.gd",
+      "shared_sha256": "9a6923c3eeab011946667449b8ccad1085651c0e8ee4ec86fff62fb971868f52",
+      "candidate_sha256": "85614568d1a4b23391618e84e8de250c9b872a9215353734d3f7e1f7638d3e97",
+      "action": "PRESERVE_SHARED_UNSCOPED"
+    }
+  ],
+  "scope": "Only four guarded paths may be promoted. Shared player/transport/NPC/palette/scene WIP stays untouched. Native startup prepared but NOT_RUN."
+}

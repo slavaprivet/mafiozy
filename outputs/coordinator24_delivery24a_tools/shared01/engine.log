@@ -1,0 +1,15 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+SCRIPT ERROR: Trying to assign value of type 'RefCounted' to a variable of type 'Node'.
+   at: run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator24_delivery24a_tools/test_shared_startup24a.gd:56)
+   GDScript backtrace (most recent call first):
+       [0] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator24_delivery24a_tools/test_shared_startup24a.gd:56)
+       [1] step (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator24_delivery24a_tools/test_shared_startup24a.gd:24)
+FAIL 25s startup deadline
+SHARED_STARTUP24A {"checks":17,"errors":["25s startup deadline"],"scope":"Ordinary shared main startup after guarded24a promotion; headless only, not rendered/FPS/OS-input acceptance.","seconds":25.001,"valid":false}

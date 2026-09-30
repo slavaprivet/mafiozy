@@ -1,0 +1,25 @@
+{
+  "mode": "focused_gpu",
+  "expected_pack_sha256": "634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5",
+  "receipt_sha256": "ce19b634175f77890b9e8de86675d10352316c09cb8bd81640799b9de7248e07",
+  "harness_sha256": "566df3ae6a44a7f0bad755f043b19a8409e6a412c91f4a1af2efaef32a630989",
+  "verified_source_inputs": 209,
+  "command": [
+    "C:/Users/Слава/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe",
+    "--main-pack",
+    "\"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate20\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24a\\MafioziPreview.pck\"",
+    "--script",
+    "\"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_input\\compiled20tools\\test_compiled.gd\"",
+    "--resolution",
+    "1280x720",
+    "--",
+    "--compiled-candidate",
+    "\"--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_input\\compiled20_focused01\"",
+    "--expected-sha=634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5",
+    "\"--exact-pack=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate20\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24a\\MafioziPreview.pck\"",
+    "--gpu"
+  ],
+  "window": "normal focused on-screen; no NO_FOCUS/offscreen flags",
+  "max_seconds": 45,
+  "scope": "single exact compiled PCK; no resource overrides; original3NPC/8buildings/377collision; top_level aiming fixture; no whole-city perf claim"
+}

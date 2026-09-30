@@ -1,0 +1,40 @@
+{
+	"captures": [],
+	"checks": 78,
+	"compiled_candidate": true,
+	"content": [
+		{
+			"buildings": 8.0,
+			"colliders": 377,
+			"label": "startup",
+			"npc_hit_owners": 3,
+			"population": "ready",
+			"shapes": 377
+		},
+		{
+			"buildings": 8.0,
+			"colliders": 377,
+			"label": "complete",
+			"npc_hit_owners": 3,
+			"population": "ready",
+			"shapes": 377
+		}
+	],
+	"elapsed_seconds": 3.597799,
+	"errors": [],
+	"findings": [
+		{
+			"action_forward": true,
+			"case": "modal_E_while_W_held",
+			"controls_blocked": false,
+			"free_mouse_look": true,
+			"movement_distance": 0.029998779296875,
+			"physical_w": true
+		}
+	],
+	"gpu": false,
+	"harness_sha256": "566df3ae6a44a7f0bad755f043b19a8409e6a412c91f4a1af2efaef32a630989",
+	"pack_sha256": "634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5",
+	"scope": "exact compiled20 pack only; real Godot input dispatch with injected key/mouse events; original3NPC/8buildings/377collision content retained; direct-E camera fixture uses top_level triangle targeting; no whole-city FPS or manual OS-input proof",
+	"valid": true
+}

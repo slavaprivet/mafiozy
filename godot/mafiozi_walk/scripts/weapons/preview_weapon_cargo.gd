@@ -209,7 +209,9 @@ func take_item(uid: String) -> Dictionary:
 	if not _allowed(): return {"ok":false,"reason":"inactive"}
 	# Settle any uncommitted shot against the OLD held UID before presentation
 	# or ownership changes. A later cancellation must not restore an old weapon.
-	weapons.cancel_inputs()
+	# Keep the displayed aim ray stable through the paired ownership checks.
+	# The successful transfer resets the view only after committing this UID.
+	weapons.cancel_inputs(false)
 	var selected: Dictionary={}
 	var snapshot: Dictionary=cargo.snapshot(generation)
 	if not snapshot.get("ok",false): return snapshot
@@ -631,8 +633,21 @@ func _invalidate_window_controls()->void:
 func _resume_window_controls()->void:
 	# Normal focused gameplay resumes immediately. Synthetic offscreen QA must
 	# not steal the desktop cursor; losing focus also suspends logical controls.
-	if DisplayServer.get_name()=="headless" or (get_window().has_focus() and not get_window().unfocusable):weapons.player.set_mouse_captured(true)
+	if DisplayServer.get_name()=="headless" or (get_window().has_focus() and not get_window().unfocusable):
+		weapons.player.set_mouse_captured(true)
+		_restore_window_movement()
 	else:weapons.player.set_mouse_captured(false)
+
+func _restore_window_movement()->void:
+	# Modal keys release actions without releasing physical keys. Resume only
+	# the movement still physically held when this valid, focused modal closes.
+	# E, jump and mouse activation stay quarantined; never replay them as actions.
+	if not _allowed():return
+	for action:StringName in [weapons.player.ACTION_LEFT,weapons.player.ACTION_RIGHT,weapons.player.ACTION_FORWARD,weapons.player.ACTION_BACK,weapons.player.ACTION_RUN]:
+		for mapped:InputEvent in InputMap.action_get_events(action):
+			if not mapped is InputEventKey:continue
+			var held:bool=Input.is_physical_key_pressed(mapped.physical_keycode) if mapped.physical_keycode!=0 else Input.is_key_pressed(mapped.keycode)
+			if held:Input.action_press(action);break
 
 func window_input(event:InputEvent)->bool:
 	if not window_open:return false
