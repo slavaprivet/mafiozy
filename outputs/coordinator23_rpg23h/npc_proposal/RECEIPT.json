@@ -1,0 +1,24 @@
+{
+  "status": "OUTPUTS_ONLY_UNRUN_23G_COMPATIBLE_HP_AND_INITIAL_UNIFORM_J",
+  "base_user_checkpoint": "27ee4b39",
+  "gate_reused_without_changes": "outputs/artist23_rpg_damage/npc_rpg_blast_gate.gd",
+  "gate_sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+  "files": [
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "before_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "after_sha256": "667be7f18ba25945812c4423bd384c3b94a6c2f93b5446867c2230d12a2cd27f"
+    },
+    {
+      "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "before_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "after_sha256": "5422c7d1a1cb26fad15bef3cca73a7881e381fc43dfd0d54022df0210d1d5d67"
+    }
+  ],
+  "limits": [
+    "No engine, parse or integration test run. Prior445/88/18 belong to earlier component fixture, not this overlay.",
+    "Initial IDLE uses existing HitImpulse.blast uniform-only J; medical75Ns retained. ACTIVE additional pressure remains explicit HOLD.",
+    "No fake bullet surface contact or bullet blood/mark at epicentre.",
+    "Preserves exact23g anatomical-head logic, marks, ordinary/pellet methods, current_damage_context; only publish point-share gains trusted matching-event uniform-only branch."
+  ]
+}

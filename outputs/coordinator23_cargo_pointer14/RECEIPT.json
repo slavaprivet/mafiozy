@@ -1,0 +1,18 @@
+{
+  "status": "FROZEN_READY_NATIVE277_PASS_RENDERED_PENDING",
+  "files": [
+    {
+      "path": "scripts/weapons/walk_trunk_window.gd",
+      "before_sha256": "fe95b9be731e965677507ed70b877288c0e7cfcffdf3d50effe7d567e437d33e",
+      "after_sha256": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
+      "bytes": 9792
+    }
+  ],
+  "proofs": {
+    "test_native.gd": "d21ec08b3a64efc3bb28634324e219ae5224128053c8e4b654ee20b17a93e99b",
+    "native02.log": "f2fa0c0e1bfc4db4c0efae7dfae114e25ec96b481fdbae1cc902e8cd491ccd57",
+    "RESULT02.json": "4dac81d5f98e9fee455c27b9e033dc46d410ad53870ce4fe85266982c6261c0b"
+  },
+  "test_binding": "Exact external proposed Window replaces only actual main window instance; original controls13 stage remains unchanged. Copied walk_weapon_ui dependency is support only, not an adoption file. Native NPC disabled, no rendering/performance/focus claim. All owner transactions unchanged.",
+  "scope": "Actual MouseMotion/MouseButton viewport coordinates cached for GUI selection. One seed on open, revision rebuild preserves event pointer. Window.mouse_exited parks outside through frames; E cannot take remembered UID. Actual input motion recovers."
+}

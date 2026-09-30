@@ -1,0 +1,62 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+Vulkan 1.3.280 - Forward+ - Using Device #0: NVIDIA - NVIDIA GeForce GTX 980
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL real mouse hover selects first exact UID
+FAIL hovered card uses gold highlight material
+FAIL hover E takes exact UID and auto closes
+FAIL hover E retains finite ammunition
+FAIL hover E suspends safely in NO_FOCUS without rogue shot
+FAIL stale UID fails and leaves modal open
+FAIL store first item after F reopen: visible enabled button
+FAIL store first item after F reopen: OS cursor remains free
+FAIL store first item after F reopen: GUI click never fires
+FAIL first item returns to cargo capacity100
+FAIL modal E without card hover never takes/closes/seats
+FAIL real mouse Take returns to game: visible enabled button
+FAIL real mouse Take returns to game: OS cursor remains free
+FAIL real LMB transfers exact second UID and auto closes
+FAIL real LMB retains finite ammunition
+FAIL real LMB suspends in NO_FOCUS and activation release never leaks into firing
+FAIL F reopens after mouse Take
+FAIL store second item after F reopen: visible enabled button
+FAIL store second item after F reopen: OS cursor remains free
+FAIL second item returns to cargo capacity100
+FAIL native world hover visible-part center fixture tt_pistol
+SCRIPT ERROR: Invalid access to property or key 'local-weapon-item--9223371844973750211-1' on a base object of type 'Dictionary'.
+   at: world_photo (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_cargo_visual12/capture.gd:100)
+   GDScript backtrace (most recent call first):
+       [0] world_photo (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_cargo_visual12/capture.gd:100)
+       [1] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_cargo_visual12/capture.gd:236)
+       [2] world_photo (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_cargo_visual12/capture.gd:122)
+       [3] step (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_cargo_visual12/capture.gd:32)
+FAIL F opens after real world E/G checks
+FAIL 800 card hover uses actual layout
+FAIL take last card at800: visible enabled button
+FAIL take last card at800: OS cursor remains free
+FAIL take last card at800: GUI click never fires
+FAIL 800 actual last-card click takes UID and auto closes
+FAIL F reopens at800 after auto return
+FAIL store last item at800: visible enabled button
+FAIL store last item at800: button entirely inside viewport
+FAIL store last item at800: OS cursor remains free
+FAIL close at800: visible enabled button
+FAIL close at800: button entirely inside viewport
+FAIL close at800: OS cursor remains free
+FAIL reopen by native F
+FAIL Q closes trunk without opening arsenal
+FAIL automatic invalidation leaves consistent released controls
+FAIL all 14 exact original items retained
+TRUNK_GUI_RESULT {"checks":154,"errors":["real mouse hover selects first exact UID","hovered card uses gold highlight material","hover E takes exact UID and auto closes","hover E retains finite ammunition","hover E suspends safely in NO_FOCUS without rogue shot","stale UID fails and leaves modal open","store first item after F reopen: visible enabled button","store first item after F reopen: OS cursor remains free","store first item after F reopen: GUI click never fires","first item returns to cargo capacity100","modal E without card hover never takes/closes/seats","real mouse Take returns to game: visible enabled button","real mouse Take returns to game: OS cursor remains free","real LMB transfers exact second UID and auto closes","real LMB retains finite ammunition","real LMB suspends in NO_FOCUS and activation release never leaks into firing","F reopens after mouse Take","store second item after F reopen: visible enabled button","store second item after F reopen: OS cursor remains free","second item returns to cargo capacity100","native world hover visible-part center fixture tt_pistol","F opens after real world E/G checks","800 card hover uses actual layout","take last card at800: visible enabled button","take last card at800: OS cursor remains free","take last card at800: GUI click never fires","800 actual last-card click takes UID and auto closes","F reopens at800 after auto return","store last item at800: visible enabled button","store last item at800: button entirely inside viewport","store last item at800: OS cursor remains free","close at800: visible enabled button","close at800: button entirely inside viewport","close at800: OS cursor remains free","reopen by native F","Q closes trunk without opening arsenal","automatic invalidation leaves consistent released controls","all 14 exact original items retained"],"seconds":14.906}
+ERROR: 2 RID allocations of type 'N10RendererRD14TextureStorage7TextureE' were leaked at exit.
+ERROR: Parameter "RenderingServer::get_singleton()" is null.
+   at: ~CompressedTexture2D (scene/resources/compressed_texture.cpp:464)
+ERROR: Parameter "RenderingServer::get_singleton()" is null.
+   at: ~CompressedTexture2D (scene/resources/compressed_texture.cpp:464)
+WARNING: 4 RIDs of type "Texture" were leaked.
+   at: finalize (servers/rendering/rendering_device.cpp:8900)

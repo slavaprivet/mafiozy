@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL bounded screen assist reaches real tiny pistol between sparse old rays
+CARGO_HOVER_RESULT {"checks":84,"errors":["bounded screen assist reaches real tiny pistol between sparse old rays"],"max_probe_rays":1,"picker_headless_us":{"max":1417,"p50":1003,"p95":1219},"scope":"headless actual main, all14 real stored items, native E event, fixtures reposition player/camera only; no GPU or camera parity/performance claim"}

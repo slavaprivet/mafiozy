@@ -1,0 +1,23 @@
+{
+  "exit_code": 2,
+  "seconds": 16.370285999961197,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--main-pack",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate12\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23h\\MafioziPreview.pck",
+    "--position",
+    "-32000,-32000",
+    "--resolution",
+    "1280x720",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_cargo_visual12\\capture.gd",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_cargo_visual12\\gpu01",
+    "--qa-pack-sha=4cf4cd1acda59f9d10e7da2b9fa4dea664c450cd87cebb344ae808d7533404be",
+    "--qa-revision=s01-20260930-quality23h"
+  ],
+  "pack_sha256": "4cf4cd1acda59f9d10e7da2b9fa4dea664c450cd87cebb344ae808d7533404be",
+  "receipt_sha256": "41c487e510b70b349faae4cfaf8f6e2df6383937b781900d5cf8446b6a51b55a",
+  "harness_sha256": "2b84d5e1592cbc593a273568a93d47e11b4bdb92722926422e6a3cf86f1334ed",
+  "scope": "Root-only actual GUI acceptance, offscreen NO_FOCUS. No native camera or comparable performance claim. Does not manage other game processes."
+}

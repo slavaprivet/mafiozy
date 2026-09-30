@@ -1,0 +1,44 @@
+{
+  "status": "outputs-only headless PASS; root GPU/visual/performance pending",
+  "files": {
+    "scripts/weapons/cargo_aim_picker.gd": {
+      "before_sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0",
+      "after_sha256": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731"
+    },
+    "scripts/weapons/weapon_pickup_visuals.gd": {
+      "before_sha256": "b1190548d80464738a4f8e2500e0ca173f0535f818b7dc82d413212dc9d4e797",
+      "after_sha256": "4300cf77d8b67e41b05703474f9b70409d218f3374641c6bc70d4c98994b934a"
+    }
+  },
+  "tested_controls13_dependencies": {
+    "scripts/weapons/preview_weapon_cargo.gd": "7a2e75fd95c53a056eb89db6c8c468cd907291c1cfc4097514bb11fbd157ec84",
+    "scripts/weapons/walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
+    "scripts/weapons/walk_trunk_window.gd": "fe95b9be731e965677507ed70b877288c0e7cfcffdf3d50effe7d567e437d33e"
+  },
+  "test_sha256": "f080eb13441426cdb1447a37d9984414940d314bddd5bea021a8c3029ea10939",
+  "log_sha256": "318eca3d469cc2f744fef6fdedfefa2804864d2e1cdc887941e3c41a7be2c840",
+  "result": {
+    "checks": 85,
+    "errors": [],
+    "max_probe_rays": 2,
+    "old_picker_headless_us": {
+      "max": 1025,
+      "p50": 773,
+      "p95": 892
+    },
+    "picker_headless_us": {
+      "max": 1278,
+      "p50": 821,
+      "p95": 1024
+    },
+    "scope": "headless actual main, all14 real stored items, native E event, fixtures reposition player/camera only; no GPU or camera parity/performance claim"
+  },
+  "source_input_manifest_sha256": "6c6e443e1b2144a1bfb7b4e4e52e799cbb978980a01c36229457f8edcfbf66aa",
+  "limits": [
+    "No GPU launch or full loaded FPS claim",
+    "NPC disabled in component actual-main fixture; 8 buildings and actual hatchback/cargo retained",
+    "Camera/player placement fixtures, actual unmodified E event dispatch and real model/collision admission",
+    "No production or Git changes; no invented UID/context/ammo",
+    "First-hover GPU pipeline and selected overlay draw cost require root visual acceptance"
+  ]
+}

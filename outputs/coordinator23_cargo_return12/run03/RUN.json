@@ -1,0 +1,16 @@
+{
+  "code": 1,
+  "before": {
+    "scripts/weapons/preview_weapon_cargo.gd": "7a2e75fd95c53a056eb89db6c8c468cd907291c1cfc4097514bb11fbd157ec84",
+    "scripts/weapons/walk_trunk_window.gd": "fe95b9be731e965677507ed70b877288c0e7cfcffdf3d50effe7d567e437d33e",
+    "scripts/weapons/preview_weapons.gd": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+    "scripts/preview_player.gd": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf"
+  },
+  "after": {
+    "scripts/weapons/preview_weapon_cargo.gd": "7a2e75fd95c53a056eb89db6c8c468cd907291c1cfc4097514bb11fbd157ec84",
+    "scripts/weapons/walk_trunk_window.gd": "fe95b9be731e965677507ed70b877288c0e7cfcffdf3d50effe7d567e437d33e",
+    "scripts/weapons/preview_weapons.gd": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+    "scripts/preview_player.gd": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf"
+  },
+  "stable": true
+}

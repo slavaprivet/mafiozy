@@ -1,0 +1,94 @@
+--- candidate13/data/preview_updates.json
++++ candidate15/data/preview_updates.json
+@@ -3,7 +3,7 @@
+   "items": [
+     "Наведите камеру на оружие в открытом багажнике: оно подсвечивается, E — взять. Без наведения на оружие E открывает или закрывает крышку.",
+     "F — содержимое багажника. Наведите мышь на карточку и нажмите E или «Взять»: управление вернётся сразу. G — положить оружие.",
+-    "Q или × закрывает окно и возвращает в игру; Esc освобождает мышь. В окне также есть кнопка «Закрыть багажник».",
++    "Q или × закрывает окно и возвращает в игру; Esc освобождает мышь. В окне также есть кнопка «Закрыть крышку».",
+     "Q — арсенал. ЛКМ — выстрел, ПКМ — прицел, R — перезарядка. Вдали от машины G/E — бросить/подобрать. C/Z — присесть/лечь.",
+     "Три жителя тестового квартала, следы попаданий и физика тел доступны. РПГ пока без урона взрывом."
+   ],
+--- candidate13/scripts/main.gd
++++ candidate15/scripts/main.gd
+@@ -434,6 +434,7 @@
+ 	return _jump_surface_cells[int(floor(row)) * _jump_surface_size.x + int(floor(col))] == 1
+ 
+ func _exit_tree() -> void:
++	GameCursor.release()
+ 	if preview_population != null:
+ 		preview_population.dispose()
+ 	# Parent still exists here; clear host-owned mesh/material before destruction.
+--- candidate13/scripts/ui/walk_cursor.gd
++++ candidate15/scripts/ui/walk_cursor.gd
+@@ -6,3 +6,9 @@
+ 	var hand: Texture2D = load("res://assets/ui/cursor_hand.svg")
+ 	Input.set_custom_mouse_cursor(arrow, Input.CURSOR_ARROW, Vector2(5, 3))
+ 	Input.set_custom_mouse_cursor(hand, Input.CURSOR_POINTING_HAND, Vector2(16, 3))
++
++static func release() -> void:
++	if DisplayServer.get_name() == "headless": return
++	# Input owns cursor textures. Release them before RenderingServer shuts down.
++	Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
++	Input.set_custom_mouse_cursor(null, Input.CURSOR_POINTING_HAND)
+--- candidate13/scripts/weapons/walk_trunk_window.gd
++++ candidate15/scripts/weapons/walk_trunk_window.gd
+@@ -18,9 +18,12 @@
+ var _hover_signature:Array=[]
+ var _normal_card:StyleBoxFlat
+ var _hover_card:StyleBoxFlat
++var _pointer_position:=Vector2.ZERO
++var _pointer_valid:=false
+ 
+ func configure(cargo_host:Node)->void:
+ 	_normal_card=WalkUI.panel_style("252e35","4f595f",6);_hover_card=WalkUI.panel_style("353e3b","dfbd79",6);_hover_card.set_border_width_all(2)
++	get_window().mouse_exited.connect(_on_window_mouse_exited)
+ 	host=cargo_host;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter=Control.MOUSE_FILTER_STOP;visible=false
+ 	var shade:=ColorRect.new();shade.color=Color(0,0,0,.48);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade)
+ 	panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",WalkUI.panel_style("1d2429fc","ad956c",9));add_child(panel)
+@@ -65,7 +68,7 @@
+ 	summary.text="Занято %d / %d · Свободно %d · Оружия: %d"%[used,maximum,maxi(0,maximum-used),snapshot.items.size()]
+ 	gauge.max_value=maximum;gauge.value=used
+ 	if _revision!=int(snapshot.revision):
+-		clear_hover()
++		clear_hover(false)
+ 		_revision=int(snapshot.revision)
+ 		for child:Node in grid.get_children():grid.remove_child(child);child.queue_free()
+ 		cards.clear()
+@@ -87,9 +90,24 @@
+ 	for entry:Dictionary in cards.values():entry.button.disabled=bool(snapshot.pending)
+ 
+ # Pointer selection is independent of keyboard focus; E never takes a remembered row.
+-func clear_hover()->void:
++func _on_window_mouse_exited()->void:
++	clear_hover(false)
++	# Keep an explicit outside coordinate until the next real pointer event.
++	# Invalidating the cache here would reseed the previous OS position next frame.
++	_pointer_position=Vector2(-1000000,-1000000);_pointer_valid=true
++
++func _input(event:InputEvent)->void:
++	if not visible or not is_instance_valid(host) or not host.window_open:return
++	if event is InputEventMouseMotion or event is InputEventMouseButton:
++		# Use the same viewport coordinates delivered to GUI buttons. OS polling can differ
++		# after a frame, especially for embedded/offscreen windows or synthetic events.
++		_pointer_position=event.position;_pointer_valid=true
++		_update_hover(true)
++
++func clear_hover(reset_pointer:bool=true)->void:
+ 	if cards.has(hovered_uid):cards[hovered_uid].panel.add_theme_stylebox_override("panel",_normal_card)
+ 	hovered_uid="";_hover_signature.clear()
++	if reset_pointer:_pointer_valid=false
+ 
+ func hovered_item_uid()->String:
+ 	_update_hover(true)
+@@ -98,7 +116,9 @@
+ func _update_hover(force:bool=false)->void:
+ 	if not visible or not is_instance_valid(host) or not host.window_open:
+ 		clear_hover();return
+-	var pointer:Vector2=get_global_mouse_position()
++	if not _pointer_valid:
++		_pointer_position=get_global_mouse_position();_pointer_valid=true
++	var pointer:Vector2=_pointer_position
+ 	var signature:Array=[pointer,scroll.scroll_vertical,_revision,panel.get_global_rect(),scroll.get_global_rect(),grid.get_global_rect()]
+ 	if not force and signature==_hover_signature:return
+ 	_hover_signature=signature

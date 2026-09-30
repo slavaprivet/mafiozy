@@ -1,0 +1,13 @@
+--- a/scripts/weapons/preview_weapon_cargo.gd
++++ b/scripts/weapons/preview_weapon_cargo.gd
+@@ -630,8 +630,9 @@
+ 
+ func _resume_window_controls()->void:
+ 	# Normal focused gameplay resumes immediately. Synthetic offscreen QA must
+-	# not steal the desktop cursor; logical gameplay is already active there.
++	# not steal the desktop cursor; losing focus also suspends logical controls.
+ 	if DisplayServer.get_name()=="headless" or get_window().has_focus():weapons.player.set_mouse_captured(true)
++	else:weapons.player.set_mouse_captured(false)
+ 
+ func window_input(event:InputEvent)->bool:
+ 	if not window_open:return false

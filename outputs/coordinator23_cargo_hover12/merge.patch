@@ -1,0 +1,241 @@
+--- a/scripts/weapons/cargo_aim_picker.gd
++++ b/scripts/weapons/cargo_aim_picker.gd
+@@ -1,7 +1,8 @@
+ extends RefCounted
+ ## Candidate: bounded screen-space assist, each accepted ray touches real mesh.
+ ## Caller keeps proximity, open-lid, ownership and actor-control admission.
+-const RADIUS_AT_720:=12.0
++const RADIUS_AT_720:=18.0
++const MAX_PROBES:=25
+ var _renderer:RefCounted
+ var _parts:Array=[]
+ var _options:Dictionary={}
+@@ -33,9 +34,9 @@
+ 		last_stats.car_triangle_tests+=1
+ 		if not triangle.intersect_segment(a,b).is_empty():return false
+ 	return true
+-func pick(camera:Camera3D)->Dictionary:
++func pick(camera:Camera3D,screen_point:Vector2=Vector2(-1,-1))->Dictionary:
+ 	if not _renderer._start(true):return {"ok":false,"reason":"state"}
+-	var result:=_pick(camera)
++	var result:=_pick(camera,screen_point)
+ 	return _renderer._finish(result)
+ func _surface_pick(origin:Vector3,direction:Vector3,candidates:Array)->Dictionary:
+ 	var endpoint:=origin+direction.normalized()*12.0
+@@ -52,12 +53,14 @@
+ 		nearest=distance
+ 		best={"ok":true,"hit":true,"item_uid":row.uid,"weaponId":row.weapon_id,"scope":"trunk","distance":distance,"point":point,"vehicle_id":_options.vehicle_id,"generation":_options.generation}
+ 	return best
+-func _pick(camera:Camera3D)->Dictionary:
++func _pick(camera:Camera3D,screen_point:Vector2)->Dictionary:
+ 	last_stats={"rays":0,"car_aabb_tests":0,"car_triangle_tests":0}
+ 	if _options.get("enabled")!=true or _options.get("scope")!="trunk" or _options.get("trunk_open")!=true:return {"ok":true,"hit":false}
+ 	if not is_instance_valid(camera) or not _external_clear.is_valid():return {}
+ 	var size:=camera.get_viewport().get_visible_rect().size
+-	var center:=size*.5;var unit:=size.y/720.0
++	var center:=size*.5 if screen_point==Vector2(-1,-1) else screen_point
++	if not center.is_finite() or not Rect2(Vector2.ZERO,size).has_point(center):return {"ok":true,"hit":false}
++	var unit:=size.y/720.0
+ 	# Project model bounds once, so the empty rays never traverse every model.
+ 	# These rectangles are only broad phase; every accepted pick is a triangle.
+ 	var rectangles:Array[Rect2]=[]
+@@ -80,22 +83,46 @@
+ 			rectangles.append(rectangle.grow(.01))
+ 			candidates.append({"row":row,"mesh":mesh,"inverse":row.visual.global_transform.affine_inverse()})
+ 	if rectangles.is_empty():return {"ok":true,"hit":false}
+-	# Direct aim wins. Rings improve the tiny mini-model target without selecting
+-	# empty AABBs. Query order is deterministic: closest screen ring first.
+-	for radius:float in [0.0,4.0,8.0,RADIUS_AT_720]:
+-		var count:=1 if radius==0 else 8
+-		for index:int in count:
+-			var angle:=TAU*float(index)/float(count)
+-			var pixel:=center+Vector2(cos(angle),sin(angle))*radius*unit
+-			var possible:=false
+-			for rectangle:Rect2 in rectangles:
+-				if rectangle.has_point(pixel):possible=true;break
+-			if not possible:continue
+-			last_stats.rays+=1
+-			var hit:Dictionary=_surface_pick(camera.global_position,camera.project_ray_normal(pixel),candidates)
+-			if not hit.get("hit",false):continue
+-			if not car_clear(camera.global_position,hit.point):continue
+-			if not _external_clear.call(camera.global_position,hit.point):continue
+-			hit.screen_assist_pixels=radius*unit
++	# Common exact aim avoids allocating/projecting/sorting assist samples at all.
++	for rectangle:Rect2 in rectangles:
++		if not rectangle.has_point(center):continue
++		last_stats.rays+=1
++		var hit:Dictionary=_surface_pick(camera.global_position,camera.project_ray_normal(center),candidates)
++		if hit.get("hit",false) and car_clear(camera.global_position,hit.point) and _external_clear.call(camera.global_position,hit.point):
++			hit.screen_assist_pixels=0.0
+ 			return hit
++		break
++	# Closest screen sample first; direct aim always wins. Real triangle samples
++	# prevent sparse rings missing a tiny pistol between their probe directions.
++	var probes:Array[Vector2]=[]
++	for radius:float in [4.0,8.0,12.0,RADIUS_AT_720]:
++		for index:int in 8:
++			var angle:=TAU*float(index)/8.0
++			probes.append(center+Vector2(cos(angle),sin(angle))*radius*unit)
++	for candidate:Dictionary in candidates:
++		var row:Dictionary=candidate.row
++		for point:Vector3 in _renderer._aim_samples.get(row.weapon_id,PackedVector3Array()):
++			var world:Vector3=row.visual.global_transform*point
++			if camera.is_position_behind(world):continue
++			var pixel:=camera.unproject_position(world)
++			if center.distance_squared_to(pixel)<=pow(RADIUS_AT_720*unit,2):probes.append(pixel)
++	probes.sort_custom(func(a:Vector2,b:Vector2)->bool:return a.distance_squared_to(center)<b.distance_squared_to(center))
++	var used:Array[Vector2]=[center]
++	for pixel:Vector2 in probes:
++		if last_stats.rays>=MAX_PROBES:break
++		var duplicate:=false
++		for previous:Vector2 in used:
++			if previous.distance_squared_to(pixel)<.01:duplicate=true;break
++		if duplicate:continue
++		var possible:=false
++		for rectangle:Rect2 in rectangles:
++			if rectangle.has_point(pixel):possible=true;break
++		if not possible:continue
++		used.append(pixel);last_stats.rays+=1
++		var hit:Dictionary=_surface_pick(camera.global_position,camera.project_ray_normal(pixel),candidates)
++		if not hit.get("hit",false):continue
++		if not car_clear(camera.global_position,hit.point):continue
++		if not _external_clear.call(camera.global_position,hit.point):continue
++		hit.screen_assist_pixels=center.distance_to(pixel)
++		return hit
+ 	return {"ok":true,"hit":false}
+--- a/scripts/weapons/weapon_pickup_visuals.gd
++++ b/scripts/weapons/weapon_pickup_visuals.gd
+@@ -17,6 +17,10 @@
+ var _pending:Dictionary={}
+ var _geometry:Dictionary={}
+ var _native_bounds:Dictionary={}
++var _aim_samples:Dictionary={}
++var _hover:Dictionary={}
++var _hover_parts:Array=[]
++var _hover_material:StandardMaterial3D
+ var _ground_scale:=GROUND_SCALE
+ var _trunk_scale:=TRUNK_SCALE
+ var _max_items:=512
+@@ -57,6 +61,12 @@
+ 		if not _box_valid(box):return _error("catalog_bounds")
+ 		bounds[id]=box
+ 	_catalog=catalog;_world=weakref(world_root);_validator=ground_validator;_ground_scale=gs;_trunk_scale=ts;_max_items=cap;_native_bounds=bounds
++	# Shared ordinary material, no new model nodes or custom first-hit shader.
++	_hover_material=StandardMaterial3D.new()
++	_hover_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED
++	_hover_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
++	_hover_material.albedo_color=Color(1.0,.72,.16,.48)
++	_hover_material.no_depth_test=false
+ 	_busy=true;_interrupted=false;_ready=true
+ 	_ground_layer=Node3D.new();_ground_layer.name="WeaponGroundItems";_ground_layer.top_level=true
+ 	world_root.add_child(_ground_layer)
+@@ -93,6 +103,7 @@
+ 	if not _start():return _error("state")
+ 	var binding:=_binding(vehicle_id,generation)
+ 	if binding.is_empty():return _finish(_error("binding"))
++	if _hover.get("vehicle_id")==vehicle_id:clear_hover()
+ 	if is_instance_valid(binding.layer):binding.layer.free()
+ 	_trunks.erase(vehicle_id)
+ 	return _finish({"ok":true})
+@@ -140,8 +151,9 @@
+ 	# Build immutable picking geometry during placement preparation, not hover.
+ 	if _triangle_mesh(row)==null: model.free(); return {}
+ 	return row
+-static func _free_rows(rows:Array)->void:
++func _free_rows(rows:Array)->void:
+ 	for row:Dictionary in rows:
++		if _hover.get("item_uid")==row.uid:clear_hover()
+ 		if is_instance_valid(row.get("visual")):row.visual.free()
+ func _row_live(row:Dictionary)->bool:
+ 	return _node_live(row.visual) and _node_live(row.parent.get_ref()) and row.visual.get_parent()==row.parent.get_ref() and row.visual.transform==row.transform
+@@ -303,6 +315,7 @@
+ 	# All parenting/loading/physics checks already happened during preparation.
+ 	_busy=true
+ 	for row:Dictionary in _pending.removed:
++		if _hover.get("item_uid")==row.uid:clear_hover()
+ 		binding.items.erase(row.uid);row.visual.visible=false;row.visual.queue_free()
+ 	for row:Dictionary in _pending.rows:
+ 		if request.action=="store":binding.items[row.uid]=row
+@@ -365,6 +378,9 @@
+ func update(dt:float)->Dictionary:
+ 	# Source fall only: bounded .4 seconds, then zero traversal of settled items.
+ 	if not is_finite(dt):return _error("delta")
++	if not _hover.is_empty():
++		var selected:Variant=_hover.node.get_ref()
++		if not _node_live(selected) or not selected.is_visible_in_tree():clear_hover()
+ 	if _falling.is_empty():return {"ok":true,"updated":0}
+ 	if not _start():return _error("state")
+ 	var updated:=0
+@@ -389,6 +405,15 @@
+ 	if faces.is_empty():return null
+ 	var mesh:=TriangleMesh.new()
+ 	if not mesh.create_from_faces(faces):return null
++	# At most 32 actual triangle centroids per weapon, prepared once with BVH.
++	# Hover never reads mesh arrays or constructs geometry.
++	var samples:=PackedVector3Array()
++	var triangles:=faces.size()/3
++	var count:=mini(32,triangles)
++	for index:int in count:
++		var first:=int(float(index)*float(triangles)/float(count))*3
++		samples.append((faces[first]+faces[first+1]+faces[first+2])/3.0)
++	_aim_samples[row.weapon_id]=samples
+ 	_geometry[row.weapon_id]=mesh;_stats.geometry_builds+=1
+ 	return mesh
+ func pick(origin:Vector3,direction:Vector3,max_distance:float,options:Dictionary={})->Dictionary:
+@@ -435,9 +460,10 @@
+ 	var rows:Array=[]
+ 	for row:Dictionary in _ground.values():
+ 		if _row_live(row):rows.append({"item_uid":row.uid,"drop_uid":row.drop_uid,"weaponId":row.weapon_id,"world_aabb":row.visual.global_transform*row.bounds})
+-	result.ground=rows;return result
++	result.ground=rows;result.hover=hover_snapshot();return result
+ func dispose()->void:
+ 	if not Thread.is_main_thread():return
++	clear_hover()
+ 	if not _pending.is_empty():_close_requested=true;return
+ 	_ready=false;_interrupted=true
+ 	# Host calls this from _exit_tree while its parent is already removing children.
+@@ -445,7 +471,7 @@
+ 	if is_instance_valid(_ground_layer):_ground_layer.visible=false;_ground_layer.queue_free()
+ 	for binding:Dictionary in _trunks.values():
+ 		if is_instance_valid(binding.layer):binding.layer.visible=false;binding.layer.queue_free()
+-	_ground_layer=null;_trunks={};_ground={};_falling={};_geometry={};_native_bounds={};_catalog=null;_world=null;_validator=Callable();_close_requested=false
++	_ground_layer=null;_trunks={};_ground={};_falling={};_geometry={};_native_bounds={};_aim_samples={};_hover_material=null;_catalog=null;_world=null;_validator=Callable();_close_requested=false
+ func _notification(what:int)->void:
+ 	if what==NOTIFICATION_PREDELETE and Thread.is_main_thread():
+ 		# RefCounted script methods cannot be dispatched during PREDELETE.
+@@ -470,3 +496,35 @@
+ 		row=binding.get("items",{}).get(uid,{})
+ 	if row.is_empty() or not _row_live(row) or not row.visual.is_visible_in_tree(): return {}
+ 	return {"node":weakref(row.visual),"bounds":row.bounds}
++
++## Cosmetic only. Caller supplies fresh admitted aim_context; never owns an item.
++func set_hover(context:Dictionary)->void:
++	if not Thread.is_main_thread() or _busy:return
++	var row:Dictionary={};var scope:="";var vehicle_id:=""
++	var uid:=str(context.get("item_uid",""));var drop_uid:=str(context.get("drop_uid",""))
++	if not uid.is_empty() and context.get("cargo_allowed",false) and context.get("open",false):
++		for id:String in _trunks:
++			var binding:Dictionary=_binding(id,int(_trunks[id].generation))
++			if binding.get("items",{}).has(uid):row=binding.items[uid];scope="trunk";vehicle_id=id;break
++	elif not drop_uid.is_empty():row=_ground.get(drop_uid,{});scope="ground"
++	if not _live() or row.is_empty() or not _row_live(row) or not row.visual.is_visible_in_tree():clear_hover();return
++	if _hover.get("node") is WeakRef and _hover.node.get_ref()==row.visual:return
++	clear_hover()
++	for part:Dictionary in row.parts:
++		var node:MeshInstance3D=part.node.get_ref()
++		if not is_instance_valid(node) or not node.is_visible_in_tree():continue
++		_hover_parts.append({"node":weakref(node),"overlay":node.material_overlay})
++		node.material_overlay=_hover_material
++	_hover={"node":weakref(row.visual),"item_uid":row.uid,"scope":scope,"vehicle_id":vehicle_id,"drop_uid":drop_uid}
++
++func clear_hover()->void:
++	if not Thread.is_main_thread():return
++	for part:Dictionary in _hover_parts:
++		var node:MeshInstance3D=part.node.get_ref()
++		# Restore precisely our override; do not clobber a later owner's material.
++		if is_instance_valid(node) and node.material_overlay==_hover_material:node.material_overlay=part.overlay
++	_hover_parts.clear();_hover.clear()
++
++func hover_snapshot()->Dictionary:
++	if _hover.is_empty():return {"active":false,"parts":0}
++	return {"active":true,"item_uid":_hover.item_uid,"scope":_hover.scope,"vehicle_id":_hover.vehicle_id,"drop_uid":_hover.drop_uid,"parts":_hover_parts.size(),"depth_test":not _hover_material.no_depth_test}

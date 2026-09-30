@@ -1,0 +1,16 @@
+{
+  "checks": 85,
+  "errors": [],
+  "max_probe_rays": 2,
+  "old_picker_headless_us": {
+    "max": 1025,
+    "p50": 773,
+    "p95": 892
+  },
+  "picker_headless_us": {
+    "max": 1278,
+    "p50": 821,
+    "p95": 1024
+  },
+  "scope": "headless actual main, all14 real stored items, native E event, fixtures reposition player/camera only; no GPU or camera parity/performance claim"
+}

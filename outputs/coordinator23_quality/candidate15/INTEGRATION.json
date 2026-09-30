@@ -1,0 +1,72 @@
+{
+  "parent": "candidate14",
+  "status": "FROZEN23h15; release native cursor texture ownership on main exit; acceptance pending",
+  "changes": {
+    "scripts/weapons/preview_weapon_cargo.gd": {
+      "before": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "after": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+      "source": "outputs\\coordinator23_cargo_controls13\\files\\scripts\\weapons\\preview_weapon_cargo.gd",
+      "additional_guard": "Explicit unfocusable flag: native Windows has_focus may remain cached true in a NO_FOCUS test window. Normal focused gameplay resumes; else suspend both controls."
+    },
+    "scripts/weapons/walk_cargo_card.gd": {
+      "before": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413",
+      "after": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
+      "source": "outputs\\coordinator23_cargo_controls13\\files\\scripts\\weapons\\walk_cargo_card.gd"
+    },
+    "scripts/weapons/walk_trunk_window.gd": {
+      "before": "13afa3ee94614e0392d0c7f7cb87a8bcae18cf2b51a7d3d3d44c7a252771a45e",
+      "after": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
+      "source": "controls13 + pointer14 actual input-event coordinates, exit invalidation;277nativePASS"
+    },
+    "scripts/weapons/cargo_aim_picker.gd": {
+      "before": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0",
+      "after": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
+      "source": "outputs\\coordinator23_cargo_hover12\\files\\scripts\\weapons\\cargo_aim_picker.gd"
+    },
+    "scripts/weapons/weapon_pickup_visuals.gd": {
+      "before": "b1190548d80464738a4f8e2500e0ca173f0535f818b7dc82d413212dc9d4e797",
+      "after": "4300cf77d8b67e41b05703474f9b70409d218f3374641c6bc70d4c98994b934a",
+      "source": "outputs\\coordinator23_cargo_hover12\\files\\scripts\\weapons\\weapon_pickup_visuals.gd"
+    },
+    "scripts/ui/walk_cursor.gd": {
+      "before": null,
+      "after": "5e988ec3997682781ba3a33a81a10aa49b1df02da4195c8004419aaca2e6e0f0",
+      "source": "root local texture installation; removes static GPU resource lifetime on exit"
+    },
+    "assets/ui/cursor_arrow.svg": {
+      "before": null,
+      "after": "a373774e72317e7cbb2901247407dbc90184b1110c90878b5c2176ef670013e9",
+      "source": "outputs\\coordinator23_cursor12\\files\\assets\\ui\\cursor_arrow.svg"
+    },
+    "assets/ui/cursor_hand.svg": {
+      "before": null,
+      "after": "861941959710971d5a43d746b9ac360c652056a820c44fd99ae9299d492ce46b",
+      "source": "outputs\\coordinator23_cursor12\\files\\assets\\ui\\cursor_hand.svg"
+    },
+    "scripts/main.gd": {
+      "before": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f",
+      "after": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+      "source": "root cursor installation and revision"
+    },
+    "scripts/weapons/walk_weapon_ui.gd": {
+      "before": "7d4fd78db917b4d26d70bf7a60071db09f051a84448cc51c0a32e23e8265f443",
+      "after": "4e1627e44ee4a5a5e8211c0a134136174a9ff4007aca8b92d9e01853883bdf96",
+      "source": "root pointer-hand controls"
+    },
+    "export_presets.cfg": {
+      "before": "4fa384de55c6ecfcf075ad74fbe493b3e82ad1feab1383b156dfc09975530bb8",
+      "after": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "source": "root cursor export inclusion"
+    },
+    "data/preview_updates.json": {
+      "before": "6fecf656d80f307cf660bc16d93542a55ae9aeb7075c7722a7c5b4967ea8251c",
+      "after": "f54b8c0be2111c3e9b97af03ec144f2458dda63b451e2b4229a8860aa207368d",
+      "source": "root actual controls"
+    },
+    "scripts/weapons/preview_weapons.gd": {
+      "before": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+      "after": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "source": "independent scheduled pose invalidation before/after18 PASS patch"
+    }
+  }
+}

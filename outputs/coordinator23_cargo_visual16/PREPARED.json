@@ -1,0 +1,9 @@
+{
+  "status": "READY_NOT_GPU_RUN",
+  "files": {
+    "capture.gd": "71356cbe390cc2b4b07b70663421b817248ba717852572038e8e5b0fe9aab28c",
+    "run_capture.py": "19f8425836797dd1a6a5a54206230924194f8945b1964c651ef83b55818a507c",
+    "README.md": "6c933a70e44c4d5f1d902a2a7c7124e70ae6aef2fb3cbfa9c4d17770ef1186c2"
+  },
+  "scope": "Root only GPU, same exact candidate15 PCK pins. New visual fixture and scoped first-use diagnostic; historical15 remains245PASS but visually rejected."
+}

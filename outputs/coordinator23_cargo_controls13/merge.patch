@@ -1,0 +1,287 @@
+--- a/scripts/weapons/preview_weapon_cargo.gd
++++ b/scripts/weapons/preview_weapon_cargo.gd
+@@ -16,6 +16,10 @@
+ var _window_busy:=false
+ var _window_snapshot:Dictionary={}
+ var _window_revision:=-1
++var _modal_keys_down:Dictionary={}
++var _modal_mouse_down:Dictionary={}
++var _take_key_releases:Dictionary={}
++var _take_mouse_releases:Dictionary={}
+ var _cargo_ui_revision := -1
+ var _cargo_ui_names: Dictionary = {}
+ var _cargo_card_scope := ""
+@@ -153,19 +157,36 @@
+ 	var context:=aim_context()
+ 	var sample:Dictionary={"revision":1,"sample":evidence.sample(),"target_open":bool(context.open),"interaction_allowed":_allowed() and bool(context.cargo_allowed),"aimed_trunk":bool(context.aimed_trunk),"aimed_item_uid":str(context.item_uid)}
+ 	if _window_access():
+-		sample.selection_mode="trunk_window" if window_open else "near_open_trunk"
++		sample.selection_mode="trunk_window" if window_open else ("aim" if not str(context.item_uid).is_empty() else "near_open_trunk")
+ 		sample.window_open=window_open;sample.window_epoch=_window_epoch;sample.selected_item_uid=_window_selected_uid
+ 	elif window_open:
+ 		sample.interaction_allowed=false
+ 	return sample
+ 
+ func _input(event: InputEvent) -> void:
+-	if window_open: return # Weapon host owns modal keys before transport/player shortcuts.
++	# A successful take may close the modal on key-down; its matching release
++	# still belongs to that activation, never to a seat/jump/fire action.
++	if event is InputEventKey:
++		var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
++		if _take_key_releases.has(code):
++			if not event.pressed:_take_key_releases.erase(code)
++			get_viewport().set_input_as_handled();return
++		if code in [KEY_E,KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
++			if window_open and event.pressed:_modal_keys_down[code]=true
++			elif not event.pressed:_modal_keys_down.erase(code)
++	elif event is InputEventMouseButton:
++		if _take_mouse_releases.has(event.button_index):
++			if not event.pressed:_take_mouse_releases.erase(event.button_index)
++			get_viewport().set_input_as_handled();return
++		if event.button_index==MOUSE_BUTTON_LEFT:
++			if window_open and event.pressed:_modal_mouse_down[event.button_index]=true
++			elif not event.pressed:_modal_mouse_down.erase(event.button_index)
++	if window_open:return # Weapon host owns modal keys before transport/player shortcuts.
+ 	if not _allowed() or not event is InputEventKey or not event.pressed or event.echo: return
+ 	var key: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+-	if key not in [KEY_G,KEY_E]: return
++	if key not in [KEY_G,KEY_E,KEY_F]: return
+ 	var context:=aim_context()
+-	if key==KEY_E and context.near_trunk and context.open:
++	if key==KEY_F and context.near_trunk and context.open:
+ 		open_window();get_viewport().set_input_as_handled();return
+ 	if key==KEY_G and context.near_trunk:
+ 		# Closed cargo never falls through to a ground drop.
+@@ -395,7 +416,8 @@
+ 
+ func _process(delta: float) -> void:
+ 	if not _ready_for_play: return
+-	if window_open and (not _allowed() or not transport.compartments.is_open("trunk")):close_window(false)
++	if not _allowed():_take_key_releases.clear();_take_mouse_releases.clear()
++	if window_open and (not _allowed() or not transport.compartments.is_open("trunk")):_invalidate_window_controls()
+ 	if renderer.has_method("update"): renderer.update(delta)
+ 	# Invalidation is immediate; geometry/authority sampling remains bounded.
+ 	# Do not erase a ground pickup hint each frame merely because trunk is closed.
+@@ -411,10 +433,11 @@
+ 	_refresh=.15
+ 	if not _allowed(): return
+ 	if window_open:
+-		if not _window_access():close_window(false)
++		if not _window_access():_invalidate_window_controls()
+ 		else:_refresh_window()
+ 		return
+ 	var context:=aim_context()
++	if renderer.has_method("set_hover"):renderer.set_hover(context)
+ 	var camera: Camera3D=weapons.player.get_preview_camera()
+ 	weapons.set_cargo_reticle(bool(context.near_trunk and context.open) or not str(context.drop_uid).is_empty())
+ 	if context.near_trunk and context.open:
+@@ -427,11 +450,10 @@
+ 				_cargo_ui_names.clear()
+ 				for entry: Dictionary in contents.items: _cargo_ui_names[str(entry.item.uid)]=str(entry.item.weaponId)
+ 				_cargo_ui_revision=int(contents.revision)
+-		var actions:Array=[{"key":"E","label":"Открыть содержимое"}]
+-		if weapons.armed():actions.append({"key":"G","label":"Положить оружие"})
++		var aimed_uid:String=str(context.item_uid)
++		var actions:Array=[{"key":"E","label":"Взять" if not aimed_uid.is_empty() else "Закрыть крышку"},{"key":"F","label":"Содержимое"}]
+ 		transport.set_cargo_item_hint_focus(bool(context.cargo_allowed))
+-		var detail:String="Выберите оружие в окне багажника"
+-		if int(state.get("selected_cost",0))>0: detail+=("\n" if not detail.is_empty() else "")+"В руках: %d ед. места" % int(state.selected_cost)
++		var detail:String="G — положить оружие" if weapons.armed() else ""
+ 		if _feedback_time>0: detail+=("\n" if not detail.is_empty() else "")+_feedback
+ 		var bounds: Dictionary=transport.compartments.cargo_bounds()
+ 		if bounds.is_empty(): _clear_cargo_ui(); return
+@@ -443,7 +465,8 @@
+ 		_bind_ui_layout()
+ 		targets.append_array(_ui_lid_bounds)
+ 		_hint.set_layout_context(camera,"trunk:"+vehicle_id,targets,weapons.player,_ui_control_refs)
+-		_hint.present(camera,anchor,"Багажник",actions,int(state.get("used_units",0)),int(state.get("capacity_units",100)),detail)
++		var title:String=weapons.LABELS.get(_cargo_ui_names.get(aimed_uid,""),"Багажник") if not aimed_uid.is_empty() else "Багажник"
++		_hint.present_trunk(camera,anchor,title,actions,detail)
+ 	elif not str(context.drop_uid).is_empty():
+ 		transport.set_cargo_item_hint_focus(false)
+ 		# Pick metadata is already present in renderer.pick; no new ray/mesh query.
+@@ -464,6 +487,7 @@
+ 		_clear_cargo_ui()
+ 
+ func _clear_cargo_ui() -> void:
++	if renderer!=null and renderer.has_method("clear_hover"):renderer.clear_hover()
+ 	_cargo_card_scope=""
+ 	transport.set_cargo_item_hint_focus(false)
+ 	weapons.set_cargo_reticle(false)
+@@ -592,12 +616,22 @@
+ func close_window(capture:bool=true)->void:
+ 	if not window_open:return
+ 	window_open=false;_window_epoch+=1;_window_selected_uid="";_window_snapshot.clear();_window_revision=-1
+-	if is_instance_valid(_window):_window.visible=false
++	_modal_keys_down.clear();_modal_mouse_down.clear()
++	if is_instance_valid(_window):_window.clear_hover();_window.visible=false
+ 	if is_instance_valid(transport):transport.set_cargo_item_hint_focus(false)
+ 	if is_instance_valid(weapons):
+ 		weapons.cancel_inputs();_release_window_actions()
+-		if capture and weapons._interaction_allowed():Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
++		if capture and weapons._interaction_allowed():_resume_window_controls()
+ 	_refresh=0
++
++func _invalidate_window_controls()->void:
++	close_window(false)
++	if is_instance_valid(weapons) and is_instance_valid(weapons.player):weapons.player.set_mouse_captured(false)
++
++func _resume_window_controls()->void:
++	# Normal focused gameplay resumes immediately. Synthetic offscreen QA must
++	# not steal the desktop cursor; logical gameplay is already active there.
++	if DisplayServer.get_name()=="headless" or get_window().has_focus():weapons.player.set_mouse_captured(true)
+ 
+ func window_input(event:InputEvent)->bool:
+ 	if not window_open:return false
+@@ -605,7 +639,10 @@
+ 		_release_window_actions()
+ 		if event.pressed and not event.echo:
+ 			var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+-			if code in [KEY_E,KEY_Q]:close_window()
++			if code==KEY_Q:close_window()
++			elif code==KEY_E:
++				var uid:String=_window.hovered_item_uid()
++				if not uid.is_empty():window_take(uid)
+ 			elif code==KEY_ESCAPE:close_window(false);weapons.player.set_mouse_captured(false)
+ 			elif code==KEY_G:window_store()
+ 		return true
+@@ -621,7 +658,18 @@
+ 	if _window_busy or not window_open or not _window_access():return {"ok":false,"reason":"window_access"}
+ 	_window_busy=true;_window_selected_uid=uid
+ 	var result:Dictionary=take_item(uid)
+-	_window_selected_uid="";_window_busy=false;_refresh_window(true);return result
++	_window_selected_uid="";_window_busy=false
++	if result.get("ok",false):
++		# Claim the GUI activation before hiding controls. Button activation can
++		# occur on either edge; currently held activation edges are quarantined.
++		get_viewport().set_input_as_handled()
++		_take_key_releases=_modal_keys_down.duplicate();_take_mouse_releases=_modal_mouse_down.duplicate()
++		_modal_keys_down.clear();_modal_mouse_down.clear()
++		weapons.cancel_inputs();close_window()
++	else:
++		_feedback="Оружие уже недоступно" if result.get("reason")=="missing_item" else "Не удалось взять оружие"
++		_feedback_time=1.6;_refresh_window(true)
++	return result
+ 
+ func window_close_lid()->void:
+ 	if not window_open or not _window_access():return
+@@ -630,9 +678,9 @@
+ func _refresh_window(force:bool=false)->void:
+ 	if not window_open:return
+ 	var summary:Dictionary=cargo.summary(generation)
+-	if not summary.get("ok",false) or summary.destroyed:close_window(false);return
++	if not summary.get("ok",false) or summary.destroyed:_invalidate_window_controls();return
+ 	if force or _window_revision!=int(summary.revision):
+ 		_window_snapshot=cargo.snapshot(generation)
+-		if not _window_snapshot.get("ok",false):close_window(false);return
++		if not _window_snapshot.get("ok",false):_invalidate_window_controls();return
+ 		_window_revision=int(summary.revision)
+ 	_window.present(_window_snapshot,weapons.fire_state,_feedback if _feedback_time>0 else "")
+--- a/scripts/weapons/walk_cargo_card.gd
++++ b/scripts/weapons/walk_cargo_card.gd
+@@ -149,3 +149,8 @@
+ 	if not _fixed_ground: add_theme_stylebox_override("panel",_style("202629f5","ad956c",6))
+ 	_fixed_ground=true
+ 	_project()
++
++# Compact world affordance; full inventory/capacity remains in the dedicated F window.
++func present_trunk(view_camera:Camera3D,world_anchor:Vector3,card_title:String,actions:Array,message:String="")->void:
++	detail.custom_minimum_size.x=210
++	present(view_camera,world_anchor,card_title,actions,-1,100,message)
+--- a/scripts/weapons/walk_trunk_window.gd
++++ b/scripts/weapons/walk_trunk_window.gd
+@@ -14,8 +14,13 @@
+ var _revision:=-1
+ var _last_size:=Vector2.ZERO
+ var _target_size:=Vector2.ZERO
++var hovered_uid:=""
++var _hover_signature:Array=[]
++var _normal_card:StyleBoxFlat
++var _hover_card:StyleBoxFlat
+ 
+ func configure(cargo_host:Node)->void:
++	_normal_card=WalkUI.panel_style("252e35","4f595f",6);_hover_card=WalkUI.panel_style("353e3b","dfbd79",6);_hover_card.set_border_width_all(2)
+ 	host=cargo_host;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter=Control.MOUSE_FILTER_STOP;visible=false
+ 	var shade:=ColorRect.new();shade.color=Color(0,0,0,.48);shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);shade.mouse_filter=Control.MOUSE_FILTER_STOP;add_child(shade)
+ 	panel=PanelContainer.new();panel.add_theme_stylebox_override("panel",WalkUI.panel_style("1d2429fc","ad956c",9));add_child(panel)
+@@ -24,7 +29,7 @@
+ 	var top:=HBoxContainer.new();column.add_child(top)
+ 	var copy:=VBoxContainer.new();copy.size_flags_horizontal=Control.SIZE_EXPAND_FILL;top.add_child(copy)
+ 	copy.add_child(WalkUI.label("Б А Г А Ж Н И К",23,"d8d1bd"));summary=WalkUI.label("",14,"b6c0c4");summary.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;copy.add_child(summary)
+-	var close:=Button.new();close.text="Закрыть  ×";close.custom_minimum_size=Vector2(112,42);close.pressed.connect(func():host.close_window());top.add_child(close)
++	var close:=Button.new();close.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;close.text="Закрыть  ×";close.custom_minimum_size=Vector2(112,42);close.pressed.connect(func():host.close_window());top.add_child(close)
+ 	gauge=ProgressBar.new();gauge.show_percentage=false;gauge.custom_minimum_size.y=6;gauge.add_theme_stylebox_override("background",WalkUI.panel_style("303637","303637",2));gauge.add_theme_stylebox_override("fill",WalkUI.panel_style("aa9169","aa9169",2));column.add_child(gauge)
+ 	scroll=ScrollContainer.new();scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;column.add_child(scroll)
+ 	var contents:=VBoxContainer.new();contents.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(contents)
+@@ -33,16 +38,17 @@
+ 	var footer:=VBoxContainer.new();footer.add_theme_constant_override("separation",8);column.add_child(footer)
+ 	held=WalkUI.label("",14,"d8d1bd");held.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;held.size_flags_horizontal=Control.SIZE_EXPAND_FILL;footer.add_child(held)
+ 	var actions:=HBoxContainer.new();actions.add_theme_constant_override("separation",12);footer.add_child(actions)
+-	store_button=Button.new();store_button.text="G  Положить оружие";store_button.custom_minimum_size=Vector2(160,48);store_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;store_button.pressed.connect(func():host.window_store());actions.add_child(store_button)
+-	var shut:=Button.new();shut.text="Закрыть крышку";shut.custom_minimum_size=Vector2(160,48);shut.size_flags_horizontal=Control.SIZE_EXPAND_FILL;shut.pressed.connect(func():host.window_close_lid());actions.add_child(shut)
++	store_button=Button.new();store_button.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;store_button.text="G  Положить оружие";store_button.custom_minimum_size=Vector2(160,48);store_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;store_button.pressed.connect(func():host.window_store());actions.add_child(store_button)
++	var shut:=Button.new();shut.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;shut.text="Закрыть крышку";shut.custom_minimum_size=Vector2(160,48);shut.size_flags_horizontal=Control.SIZE_EXPAND_FILL;shut.pressed.connect(func():host.window_close_lid());actions.add_child(shut)
+ 	feedback=WalkUI.label("",13,"d99b94");feedback.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(feedback)
+-	var hint:=WalkUI.label("E / Q — закрыть окно     Esc — свободная мышь     Выберите «Взять» на нужной карточке",12,"aeb7bc");hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(hint)
++	var hint:=WalkUI.label("E — взять подсвеченное оружие     Q / Esc — закрыть окно     Tab / Enter — выбрать",12,"aeb7bc");hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(hint)
+ 	_layout()
+ func _process(_delta:float)->void:
+ 	if visible:
+ 		_layout()
+ 		# Container minima settle after deferred sorts; retry only while the actual size differs.
+ 		if panel.size!=_target_size:panel.size=_target_size
++		_update_hover()
+ func _layout()->void:
+ 	var area:=get_viewport_rect().size
+ 	if area==_last_size:return
+@@ -59,17 +65,18 @@
+ 	summary.text="Занято %d / %d · Свободно %d · Оружия: %d"%[used,maximum,maxi(0,maximum-used),snapshot.items.size()]
+ 	gauge.max_value=maximum;gauge.value=used
+ 	if _revision!=int(snapshot.revision):
++		clear_hover()
+ 		_revision=int(snapshot.revision)
+ 		for child:Node in grid.get_children():grid.remove_child(child);child.queue_free()
+ 		cards.clear()
+ 		for entry:Dictionary in snapshot.items:
+ 			var item:Dictionary=entry.item;var uid:String=item.uid;var id:String=item.weaponId
+-			var card:=PanelContainer.new();card.custom_minimum_size=Vector2(210,198);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",WalkUI.panel_style("252e35","4f595f",6));grid.add_child(card)
++			var card:=PanelContainer.new();card.custom_minimum_size=Vector2(210,198);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;card.add_theme_stylebox_override("panel",_normal_card);grid.add_child(card)
+ 			var padding:=WalkUI.margins(12);card.add_child(padding);var box:=VBoxContainer.new();box.add_theme_constant_override("separation",8);padding.add_child(box)
+ 			var picture:=WalkUI.picture(100);picture.texture=host.weapons._walk_ui.textures.get(id);box.add_child(picture)
+ 			var name:=WalkUI.label(host.weapons.LABELS.get(id,id),16);name.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;box.add_child(name)
+ 			var ammo:=WalkUI.label("Патроны: %d / %d"%[int(item.fireState.magazine),int(item.fireState.reserveAmmo)],14,"b4bec4");ammo.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;box.add_child(ammo)
+-			var take:=Button.new();take.text="Взять";take.custom_minimum_size.y=40;take.pressed.connect(Callable(host,"window_take").bind(uid));box.add_child(take)
++			var take:=Button.new();take.mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;take.text="Взять";take.custom_minimum_size.y=40;take.pressed.connect(Callable(host,"window_take").bind(uid));box.add_child(take)
+ 			cards[uid]={"panel":card,"button":take,"ammo":ammo,"weapon_id":id}
+ 		empty.visible=cards.is_empty();_last_size=Vector2.ZERO;_layout()
+ 	var id:=str(state.get("weaponId","none"));var cost:=int(host.bridge.COSTS.get(id,0))
+@@ -78,3 +85,29 @@
+ 	store_button.disabled=id=="none" or used+cost>maximum or bool(snapshot.pending)
+ 	feedback.text=message;feedback.visible=not message.is_empty()
+ 	for entry:Dictionary in cards.values():entry.button.disabled=bool(snapshot.pending)
++
++# Pointer selection is independent of keyboard focus; E never takes a remembered row.
++func clear_hover()->void:
++	if cards.has(hovered_uid):cards[hovered_uid].panel.add_theme_stylebox_override("panel",_normal_card)
++	hovered_uid="";_hover_signature.clear()
++
++func hovered_item_uid()->String:
++	_update_hover(true)
++	return hovered_uid
++
++func _update_hover(force:bool=false)->void:
++	if not visible or not is_instance_valid(host) or not host.window_open:
++		clear_hover();return
++	var pointer:Vector2=get_global_mouse_position()
++	var signature:Array=[pointer,scroll.scroll_vertical,_revision,panel.get_global_rect(),scroll.get_global_rect(),grid.get_global_rect()]
++	if not force and signature==_hover_signature:return
++	_hover_signature=signature
++	var next_uid:=""
++	if scroll.get_global_rect().has_point(pointer):
++		for uid:String in cards:
++			var entry:Dictionary=cards[uid]
++			if entry.panel.is_visible_in_tree() and not entry.button.disabled and entry.panel.get_global_rect().has_point(pointer):next_uid=uid;break
++	if next_uid==hovered_uid:return
++	if cards.has(hovered_uid):cards[hovered_uid].panel.add_theme_stylebox_override("panel",_normal_card)
++	hovered_uid=next_uid
++	if cards.has(hovered_uid):cards[hovered_uid].panel.add_theme_stylebox_override("panel",_hover_card)

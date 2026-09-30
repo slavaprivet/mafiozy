@@ -1,0 +1,30 @@
+{
+  "status": "FROZEN_READY_NATIVE_269_PASS_OS_CAPTURE_SKIP_GPU_PENDING",
+  "supersedes": "controls12 frozen244; latest user now requires Take automatic return",
+  "files": [
+    {
+      "path": "scripts/weapons/preview_weapon_cargo.gd",
+      "before_sha256": "d816b917b4d24f2a104cc1ebe1a22475e52173eb1f435b9231fb70b4e6d94639",
+      "after_sha256": "7a2e75fd95c53a056eb89db6c8c468cd907291c1cfc4097514bb11fbd157ec84",
+      "bytes": 38004
+    },
+    {
+      "path": "scripts/weapons/walk_cargo_card.gd",
+      "before_sha256": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413",
+      "after_sha256": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
+      "bytes": 8932
+    },
+    {
+      "path": "scripts/weapons/walk_trunk_window.gd",
+      "before_sha256": "13afa3ee94614e0392d0c7f7cb87a8bcae18cf2b51a7d3d3d44c7a252771a45e",
+      "after_sha256": "fe95b9be731e965677507ed70b877288c0e7cfcffdf3d50effe7d567e437d33e",
+      "bytes": 8677
+    }
+  ],
+  "result": "RESULT04.json",
+  "proofs": {
+    "test_native.gd": "af4f7de7b8fae7f8c3e6de691c9548f0f25454d0944b07e5abca86378916bdd1",
+    "native04.log": "b5f62c4a254f13db891ce8a26349c36b8524858c9168d5251268542648e4847e",
+    "RESULT04.json": "194b88ebca239459ad44c44c9ee3c62498701e985165b96b24aa892615dd52bd"
+  }
+}

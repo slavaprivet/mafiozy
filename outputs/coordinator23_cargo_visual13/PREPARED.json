@@ -1,0 +1,11 @@
+{
+  "status": "READY_NOT_GPU_RUN",
+  "files": {
+    "capture.gd": "dc0a03c88e514276bfeaa5cba56a703a1a6e1150b90b9869fa26246123930308",
+    "run_capture.py": "19f8425836797dd1a6a5a54206230924194f8945b1964c651ef83b55818a507c",
+    "README.md": "92308be23441e02ce85da40fc7110599b944238e6eb9952a6af238f31bd0960d"
+  },
+  "required_window_sha256": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
+  "native_parse_only": true,
+  "historical_run": "../coordinator23_cargo_visual12/gpu01 remains failed and unchanged"
+}

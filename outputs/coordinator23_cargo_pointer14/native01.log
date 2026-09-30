@@ -1,0 +1,13 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL cached pointer equals actual dispatched viewport coordinates
+OS_CAPTURE_CHECK SKIP in headless Dummy: independent direct setter returned VISIBLE; actual focused GPU capture remains required
+RETURN_CAPTURE_STATE {"blocked":false,"display":"headless","free":true,"mode":0}
+LAYOUT_BOUNDS [{"columns":3,"minimum":"(722.0, 275.0)","panel":"[P: (24.0, 24.0), S: (752.0, 552.0)]","viewport":"(800, 600)"},{"columns":4,"minimum":"(970.0, 275.0)","panel":"[P: (140.0, 25.0), S: (1000.0, 670.0)]","viewport":"(1280, 720)"},{"columns":3,"minimum":"(722.0, 245.0)","panel":"[P: (24.0, 24.0), S: (752.0, 552.0)]","viewport":"(800, 600)"},{"columns":2,"minimum":"(564.0, 245.0)","panel":"[P: (24.0, 24.0), S: (592.0, 432.0)]","viewport":"(640, 480)"},{"columns":4,"minimum":"(970.0, 245.0)","panel":"[P: (140.0, 25.0), S: (1000.0, 670.0)]","viewport":"(1280, 720)"}]
+TRUNK_POINTER_RESULT {"checks":274,"errors":["cached pointer equals actual dispatched viewport coordinates"],"scope":"actual hatchback/inventory/cargo/14UID+ammo+UI buttons; source scene headless, no visual/GPU/perf claim"}

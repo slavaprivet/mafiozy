@@ -1,0 +1,15 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL GUI_LMB_release_take_closed_modal
+FAIL GUI_LMB_release_take_same_UID_equipped
+FAIL GUI_LMB_release_take_ammo_unchanged
+FAIL GUI_LMB_take_next_deliberate_click_fires_exactly_once
+FAIL real_TT_equip
+FAIL real_store_exact_TT
+CARGO_RETURN_RESULT {"capture_capability_probe":{"read_back":0,"requested":2,"supported":false},"capture_samples":[{"free":true,"label":"GUI_LMB_release_take","mode":0}],"checks":[{"label":"actual_main_ready","ok":true},{"label":"real_open_trunk_rear_access","ok":true},{"label":"real_TT_equip","ok":true},{"label":"real_store_exact_TT","ok":true},{"label":"F_opens_modal_through_input","ok":true},{"label":"real_visible_take_button","ok":true},{"label":"release_mode_take_press_does_not_fire_or_take","ok":true},{"label":"GUI_LMB_release_take_closed_modal","ok":false},{"label":"GUI_LMB_release_take_logical_capture","ok":true},{"label":"GUI_LMB_release_take_same_UID_equipped","ok":false},{"label":"GUI_LMB_release_take_ammo_unchanged","ok":false},{"label":"GUI_LMB_release_take_no_spurious_shot_or_latch","ok":true},{"label":"GUI_LMB_take_next_deliberate_click_fires_exactly_once","ok":false},{"label":"real_TT_equip","ok":false},{"label":"real_store_exact_TT","ok":false},{"label":"F_opens_modal_through_input","ok":true}],"count":16,"display_server":"headless","elapsed_ms":3763,"errors":["GUI_LMB_release_take_closed_modal","GUI_LMB_release_take_same_UID_equipped","GUI_LMB_release_take_ammo_unchanged","GUI_LMB_take_next_deliberate_click_fires_exactly_once","real_TT_equip","real_store_exact_TT"],"native_pointer_mode_status":"SKIP: direct headless setter is a no-op; root rendered acceptance required","scope":"Actual main + scheduled physics + Input.parse_input_event GUI Take LMB/E. Logical capture and immediate shooting behavior asserted. Native pointer mode only checked if direct mode setter works. No GPU or visual/performance claim."}

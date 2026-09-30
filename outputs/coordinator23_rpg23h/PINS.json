@@ -1,0 +1,174 @@
+{
+  "read_only": true,
+  "engine_run": false,
+  "paths": [
+    {
+      "path": "world.html",
+      "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5",
+      "bytes": 5109059
+    },
+    {
+      "path": "docs/ai/AGENT_HUB.md",
+      "sha256": "3cadca280521c253c82d82dced906628a6f816baf4a380674586cca990cd045f",
+      "bytes": 488672
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/HANDOFF.md",
+      "sha256": "acd8300e99a1dbd37155775eee935850d51a552466daa4780b72a74cc76973c2",
+      "bytes": 6841
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/npc_rpg_blast_gate.gd",
+      "sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "bytes": 15110
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/recipient_seam.gd.txt",
+      "sha256": "78e72e74a054c68012d5d77762a3cc116672cdee258369d0faed2e360ae08e49",
+      "bytes": 1624
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/root_hooks.gd.txt",
+      "sha256": "ccba936b61f39de6c332c9d356440b33738f4d3e032912cad9c6ae3a0ca9aa14",
+      "bytes": 2987
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional02_RESULT.json",
+      "sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a",
+      "bytes": 6349
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar02_RESULT.json",
+      "sha256": "42c0c38543c0bf50e271d88a850bd61a987f2e8b65556397a2fa405cb8b2d8b3",
+      "bytes": 381
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/SOURCE_PARITY.json",
+      "sha256": "ff4d88405f705ea511fdbfc036dcd2efddbcc35ead5a27b1ce78567e903ddb6d",
+      "bytes": 17608
+    },
+    {
+      "path": "outputs/artist23_hit_impulse/HANDOFF.md",
+      "sha256": "8b202a86d8792abfcc5a9fa85ba1ca1844f9f286bf30cb39a0f8793d912f6c49",
+      "bytes": 12854
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_blast_record20_source.js",
+      "sha256": "3c9469433dfbf77b1ce1d6fc3e96dccd1f5f5d5185f4a2d874bda271ea432310",
+      "bytes": 1296
+    },
+    {
+      "path": "outputs/astra21_character_impact_ranged_blast/CONTRACT.json",
+      "sha256": "627372cff44a4e9ef15661ec3eb4c91043a5d0c89af2826565a1085fc96dce27",
+      "bytes": 2291
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "bytes": 25828
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "bytes": 10318
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_impulse.gd",
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "bytes": 2135
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ragdoll_host.gd",
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "bytes": 17295
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_body.gd",
+      "sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162",
+      "bytes": 3626
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_blood_adapter.gd",
+      "sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "bytes": 4368
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_marks_adapter.gd",
+      "sha256": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+      "bytes": 5048
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/final_dead_contact_port.gd",
+      "sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "bytes": 14255
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/character_physics/exit_ragdoll_body.gd",
+      "sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8",
+      "bytes": 26622
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_hit_rules.gd",
+      "sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274",
+      "bytes": 11136
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/rpg_effects.gd",
+      "sha256": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "bytes": 12515
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/rpg_flight.gd",
+      "sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+      "bytes": 13595
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+      "bytes": 21513
+    }
+  ],
+  "existing_owner_methods_unchanged_except_dispose_publish": [
+    "configure",
+    "_now",
+    "_current",
+    "_service",
+    "_queue",
+    "_on_shot",
+    "current_damage_context",
+    "_cleanup_shots",
+    "_owns_collider",
+    "_on_native_impact",
+    "_apply_hit",
+    "_on_projectile_resolved",
+    "physical_event",
+    "step",
+    "snapshot",
+    "should_pause_walk",
+    "_head_contact"
+  ],
+  "proposal": {
+    "status": "OUTPUTS_ONLY_UNRUN_23G_COMPATIBLE_HP_AND_INITIAL_UNIFORM_J",
+    "base_user_checkpoint": "27ee4b39",
+    "gate_reused_without_changes": "outputs/artist23_rpg_damage/npc_rpg_blast_gate.gd",
+    "gate_sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+    "files": [
+      {
+        "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+        "before_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+        "after_sha256": "667be7f18ba25945812c4423bd384c3b94a6c2f93b5446867c2230d12a2cd27f"
+      },
+      {
+        "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+        "before_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+        "after_sha256": "5422c7d1a1cb26fad15bef3cca73a7881e381fc43dfd0d54022df0210d1d5d67"
+      }
+    ],
+    "limits": [
+      "No engine, parse or integration test run. Prior445/88/18 belong to earlier component fixture, not this overlay.",
+      "Initial IDLE uses existing HitImpulse.blast uniform-only J; medical75Ns retained. ACTIVE additional pressure remains explicit HOLD.",
+      "No fake bullet surface contact or bullet blood/mark at epicentre.",
+      "Preserves exact23g anatomical-head logic, marks, ordinary/pellet methods, current_damage_context; only publish point-share gains trusted matching-event uniform-only branch."
+    ]
+  }
+}

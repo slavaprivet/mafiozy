@@ -1,0 +1,1585 @@
+{
+  "sha256": "9bd5357853d5866b2dda5166303f31a57fca5916399e834a41537694dcaaa115",
+  "entries": {
+    ".godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn": {
+      "bytes": 693,
+      "sha256": "5cee6d39d6f31aaf154beba82bd3c2b67acb82f44bc2af0ba259d27cfa7ec50b",
+      "md5_verified": true
+    },
+    ".godot/global_script_class_cache.cfg": {
+      "bytes": 1750,
+      "sha256": "1ba22d3eaf6402363306b06d01fd465c17cda174711c85f8b0d64ebd2cbafee9",
+      "md5_verified": true
+    },
+    ".godot/imported/ak74.png-d58e993ad1198e5c307046f21047fe94.ctex": {
+      "bytes": 13898,
+      "sha256": "b90f82e771c8ff880e24724ccf8a104da685ff7027fd326f56db58c4bc7cf959",
+      "md5_verified": true
+    },
+    ".godot/imported/cursor_arrow.svg-6ee71446bafd5e0a91c924d645c6d903.ctex": {
+      "bytes": 1588,
+      "sha256": "b5bb68065bdf0869562a51edc427ab0f43edcd6b68c58852a7c2afb53a5288f6",
+      "md5_verified": true
+    },
+    ".godot/imported/cursor_hand.svg-ed9be3d9ea1471e7721b4e5fd737e873.ctex": {
+      "bytes": 1002,
+      "sha256": "05dffc7b067371a4cce48b2ba52138ce2caa4f8f3c0dcf6d5d419b1078c22199",
+      "md5_verified": true
+    },
+    ".godot/imported/deagle.png-67dfe9dfd30cf25da3be9ab27a628648.ctex": {
+      "bytes": 9712,
+      "sha256": "8eb3242a37a216c31ac955e68f61ce2cacc4dc566ae364b838898d2d5d30afc0",
+      "md5_verified": true
+    },
+    ".godot/imported/golden_colt.png-2de941d9549c50ff60afe0d97693d45f.ctex": {
+      "bytes": 11848,
+      "sha256": "fe7d10d3304d5f6baff6519975fc07290338d275f72114ab6994b35128f31770",
+      "md5_verified": true
+    },
+    ".godot/imported/golden_uzi.png-477671fead3606c352a4e41530e78a25.ctex": {
+      "bytes": 10634,
+      "sha256": "2bbaaac7fcb91ed66a3e42dfc489e9258668726cc15fed7e312300a349b704e3",
+      "md5_verified": true
+    },
+    ".godot/imported/gun_shop.e97d6fac4097.glb-8de329855b9386dafb5ee0b3672e7308.scn": {
+      "bytes": 665888,
+      "sha256": "4af192c5a72e15f825dfbd1018071ff2f1b087fd6f0a6a3262a583f812811d3e",
+      "md5_verified": true
+    },
+    ".godot/imported/hero.glb-60b1dda00ac356d0d41e9d312bcd657c.scn": {
+      "bytes": 250725,
+      "sha256": "07a5a948a0f8e3ef78c583d22861470b703a7820297803e78f9745de90bdfd80",
+      "md5_verified": true
+    },
+    ".godot/imported/lamp_bellini_v1.81c8b123ded3.glb-b84d3d66ea234dfc25d9a30c2a0b6ecb.scn": {
+      "bytes": 40568,
+      "sha256": "def53e83fe4d98d4c73c63bfc57b3c43fe5567abea6d9c8aae40e39dff8c617d",
+      "md5_verified": true
+    },
+    ".godot/imported/m16.png-986a6b31fcef0273a74b1ab6c01e889f.ctex": {
+      "bytes": 12146,
+      "sha256": "89af8d88dd016f32f7e2dc994f360d502f52a4b89429636d34cac00e90f43c40",
+      "md5_verified": true
+    },
+    ".godot/imported/nagan.png-9a8cf5ed44d8adc252eb8c6ba2335f20.ctex": {
+      "bytes": 11678,
+      "sha256": "a2aa1a43823af0f2e741e6ce6902ab4c537c06548e498b4826676268923940d0",
+      "md5_verified": true
+    },
+    ".godot/imported/none.png-6a4ea0b32d381a48fe39c76e4c34beea.ctex": {
+      "bytes": 17280,
+      "sha256": "b844a664a2d2f7cd39cb8f42a4a8baae3ef999b22443ec1196e14f22a892d1cd",
+      "md5_verified": true
+    },
+    ".godot/imported/old_town_narrow_townhouse_v1.fd0178400e60.glb-51320986262831de1d5a09cd3d619fc1.scn": {
+      "bytes": 82071,
+      "sha256": "ef5421e2d21dd7117303fa3e713b7461e7b11599dd64309c772fb7da8fde5bb1",
+      "md5_verified": true
+    },
+    ".godot/imported/pawnshop.1a95f97569d9.glb-5ae0599955c699f94c733cdcbf4fdc5f.scn": {
+      "bytes": 622104,
+      "sha256": "6142910be3f179b284e0cc40dd743673fadfd65c647311b8773b9e5ee9a651ec",
+      "md5_verified": true
+    },
+    ".godot/imported/print_shop.ad7b8ef7e7e4.glb-2f9796d6c00706cbe0fd06b7ad488ffd.scn": {
+      "bytes": 507343,
+      "sha256": "90b9f45888be17389c1fe413701486ab8b90f3956b030e16d39abab4f0c8f5a2",
+      "md5_verified": true
+    },
+    ".godot/imported/revolver.png-0b2b31b3f1cadd74dba222aa9379880b.ctex": {
+      "bytes": 13098,
+      "sha256": "0c2d49c48f12fb64499fd26559ce042fb4ab8522df1b668dc883a69dcada20e3",
+      "md5_verified": true
+    },
+    ".godot/imported/rpg.png-5d43da66232d7f19b39e7b843d9431b6.ctex": {
+      "bytes": 16698,
+      "sha256": "de966915c3565325852ec3eeff6e7b25c4c65fac28b920a482524a5d3ec4d8a7",
+      "md5_verified": true
+    },
+    ".godot/imported/sawn_off.png-50692187cccf48f95a990920310ed5a3.ctex": {
+      "bytes": 10908,
+      "sha256": "c2192b94067054862fa783c311be995639247290b9eea06eb5d592abd519ec76",
+      "md5_verified": true
+    },
+    ".godot/imported/scope_optic.svg-ea1f8aef7d4e0dfdbc481880050b73a4.ctex": {
+      "bytes": 96780,
+      "sha256": "91a8dddb2ad113820ae8153028e3bed393383b40efd4073bc0a67ccd4ae5e1e7",
+      "md5_verified": true
+    },
+    ".godot/imported/shotgun.png-7e56a1be5580f5834ae7eaa25324b906.ctex": {
+      "bytes": 15760,
+      "sha256": "31f209d9725ba51ddffa004a2bf0aa18453270c90aab001d07a844bee4891bae",
+      "md5_verified": true
+    },
+    ".godot/imported/sniper.png-b61f5051a6c18076ecd2b2ec513e953a.ctex": {
+      "bytes": 15294,
+      "sha256": "29f5c0d0917ab3c6e3ed8d9af48224207181edff204d147239259100810f3718",
+      "md5_verified": true
+    },
+    ".godot/imported/tommy_gun.png-c1d5df3ec209f7f8e477a9fd65e3a99f.ctex": {
+      "bytes": 16184,
+      "sha256": "d21f42df64451c753b39d5d0c659491ae57f982e3150bcee8e7f8ab1ea1c9708",
+      "md5_verified": true
+    },
+    ".godot/imported/tt_pistol.png-a2f7129c9d246d0c1e47fe59520763f3.ctex": {
+      "bytes": 9782,
+      "sha256": "83750a36a3d86a46200d24929c7f6fd5e255eca84928a9cf5e4269fe68f895c0",
+      "md5_verified": true
+    },
+    ".godot/imported/uzi.png-169722ce837b1a1de7e31fd445516427.ctex": {
+      "bytes": 8290,
+      "sha256": "19d8c08cd65f60537643434862b17bd9b68d636d41d7f5a6fae0b7933e3e6f6e",
+      "md5_verified": true
+    },
+    ".godot/uid_cache.bin": {
+      "bytes": 7305,
+      "sha256": "4d879dd7a5e762cbf34c7cd8336fd91c858b3f2f9f00fae18c1d431ff54f6662",
+      "md5_verified": true
+    },
+    "assets/buildings/gun_shop.e97d6fac4097.glb.import": {
+      "bytes": 183,
+      "sha256": "30106cd0d3117e1afb69cdfb7e5c637ae20cff7bce147546e047c0aa79d957d8",
+      "md5_verified": true
+    },
+    "assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb.import": {
+      "bytes": 203,
+      "sha256": "8734c061fcda5c661dbe5d373059b6e6dfe61081f22d72d1cdf0a49cd6b9b498",
+      "md5_verified": true
+    },
+    "assets/buildings/pawnshop.1a95f97569d9.glb.import": {
+      "bytes": 183,
+      "sha256": "1e22c8fc5f25995b7ddad7613fc04f45889016b9c44d566c8ba933b0e61fc450",
+      "md5_verified": true
+    },
+    "assets/buildings/print_shop.ad7b8ef7e7e4.glb.import": {
+      "bytes": 185,
+      "sha256": "6f4da813c777edef0066bedb0b6c4e9f9f1ad8d6202abcfadb82efd3b81209c3",
+      "md5_verified": true
+    },
+    "assets/decor/lamp_bellini_v1.81c8b123ded3.glb.import": {
+      "bytes": 190,
+      "sha256": "d95338804a9fe07888f30791e3b7ca498761cbab2591d46c598a97c3364c30c2",
+      "md5_verified": true
+    },
+    "assets/hero.glb.import": {
+      "bytes": 166,
+      "sha256": "c5e87624730af18260852d82096ca5cb78c791d8fce14f90ea983341d92e251b",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/assets_manifest.json": {
+      "bytes": 9158,
+      "sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res": {
+      "bytes": 64346,
+      "sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res": {
+      "bytes": 175998,
+      "sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res": {
+      "bytes": 62234,
+      "sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res": {
+      "bytes": 175998,
+      "sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res": {
+      "bytes": 62234,
+      "sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5",
+      "md5_verified": true
+    },
+    "assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res": {
+      "bytes": 175998,
+      "sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85",
+      "md5_verified": true
+    },
+    "assets/npc_visual/session/e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096.json": {
+      "bytes": 12219,
+      "sha256": "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+      "md5_verified": true
+    },
+    "assets/npc_visual/session/prepared/31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f.scn": {
+      "bytes": 449635,
+      "sha256": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f",
+      "md5_verified": true
+    },
+    "assets/npc_visual/session/prepared/604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe.scn": {
+      "bytes": 454845,
+      "sha256": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe",
+      "md5_verified": true
+    },
+    "assets/npc_visual/session/prepared/60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22.scn": {
+      "bytes": 455817,
+      "sha256": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22",
+      "md5_verified": true
+    },
+    "assets/npc_visual/session/prepared/manifest.json": {
+      "bytes": 19971,
+      "sha256": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0",
+      "md5_verified": true
+    },
+    "assets/ui/cursor_arrow.svg.import": {
+      "bytes": 201,
+      "sha256": "e1241073f668f7bfa2e650f01fb6bbd54f365bcc18727cfa5c293dccf7a672a2",
+      "md5_verified": true
+    },
+    "assets/ui/cursor_hand.svg.import": {
+      "bytes": 200,
+      "sha256": "4793bfa28840049c3a8a9e0c115b13b0f80198cbbcff594c8c65ee7d45c3cdc5",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/city_ambulance.a986c0525921.glb.bytes": {
+      "bytes": 4023648,
+      "sha256": "a986c05259215bddf6ef98b328d937501ad8dc803365376c2f0372a2ea07e233",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/city_bus.a7c922603eb9.glb.bytes": {
+      "bytes": 4042508,
+      "sha256": "a7c922603eb97451ac124b7005c9c9f6cbcf88689701d05a40ddefb5f6b40c78",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/city_hatchback.bd8f755516c8.glb.bytes": {
+      "bytes": 4188360,
+      "sha256": "bd8f755516c88b94df7193d5af45b9770f8466ab318fd31440bcf5afc8fee353",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/city_suv.2e756583142a.glb.bytes": {
+      "bytes": 4181180,
+      "sha256": "2e756583142a051418527d504ca5bf9cdc7df268ccea7a6578b0b2e7a116dc03",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/city_taxi.4a044ed6cffc.glb.bytes": {
+      "bytes": 4362132,
+      "sha256": "4a044ed6cffc10d2da3e9b010c40dda23977c66fc8b9b93cde93d9661d99c9d6",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/compact_sedan.f2b7d7884d48.glb.bytes": {
+      "bytes": 4112896,
+      "sha256": "f2b7d7884d486e08e66a7fb25cf4fe58900814efaabe9dcee42b408c21353783",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/compartments.json": {
+      "bytes": 18023,
+      "sha256": "423c09c28b0fbeac819e1d1b351087cdf2e05790254bb9e8371d4e1a2c1cbd51",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/delivery_van.36ecba518304.glb.bytes": {
+      "bytes": 3937892,
+      "sha256": "36ecba5183043cf4f5b1836b0911bcf6569dc84c6189bcd80c636ff3fbb9a2f9",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/executive_sedan.51db79d3b3f3.glb.bytes": {
+      "bytes": 4268428,
+      "sha256": "51db79d3b3f39a0f530177a246645ed532903ea3e3ab8adabc52025854347c26",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/family_wagon.a4220ed6be23.glb.bytes": {
+      "bytes": 4233940,
+      "sha256": "a4220ed6be23de6112bfe352a44e7916fe8d36097a2799d95a612c7ca15404e2",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/fire_engine.a1b624c76214.glb.bytes": {
+      "bytes": 3980816,
+      "sha256": "a1b624c7621491ada3f4064ca9c177d48287e496f31b260f376d5e9ab03e20ab",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/manifest.json": {
+      "bytes": 4070550,
+      "sha256": "38598f43beb77c095879206ea5820c7fe922b227a64f77f793353f89321fee03",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/police_interceptor.4f6d8a8e668a.glb.bytes": {
+      "bytes": 4501764,
+      "sha256": "4f6d8a8e668a172a9ba307afab0a6e2e489dd090ac190c808e97d399cf4dee53",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/sport_coupe.a378db174e0a.glb.bytes": {
+      "bytes": 4137112,
+      "sha256": "a378db174e0a391c403dfdc15b3c5e48febb16d6a83a5cb60a188cb9ca95ac07",
+      "md5_verified": true
+    },
+    "assets/vehicle_visual/utility_pickup.5edc5d7f0f98.glb.bytes": {
+      "bytes": 4117484,
+      "sha256": "5edc5d7f0f987f14b5cbca8bbf90b21ad2e7431eaa75011879e0724de455a0ff",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/ak74.png.import": {
+      "bytes": 192,
+      "sha256": "af4a6990f74222653ae983099c91a899dbec389dfdcbbb82551ee59a7ed983c5",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/deagle.png.import": {
+      "bytes": 195,
+      "sha256": "53b03975225a9a37cb56cd0dbcb54d25964e7a2d15920c82b1963d3130f79786",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/golden_colt.png.import": {
+      "bytes": 200,
+      "sha256": "2be8694f110d278491a0acad6b9afdbac78a284a04bdcafee73f5551551ef1ee",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/golden_uzi.png.import": {
+      "bytes": 199,
+      "sha256": "7ac982e161d485e5fc82eb7db2efe483c6029142fc935abbf7d847b1c4868a77",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/m16.png.import": {
+      "bytes": 192,
+      "sha256": "57a14fdf9208ee06bfe7bed39a26855ed6bd830d2ac0fb59519cca4804cae411",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/nagan.png.import": {
+      "bytes": 194,
+      "sha256": "9098e3620b2cabcd45d3ba8b72eaa20494de948962668e358c40f798b660e3f5",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/none.png.import": {
+      "bytes": 193,
+      "sha256": "f64003d407fc3e4fdf1ec4a63b51e70814d37a405cbcc0dffd15cc827d1b59f3",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/revolver.png.import": {
+      "bytes": 196,
+      "sha256": "3938bfa9cc7f320dd75029653f571d214b40234e5f3b6b4b677eaf59d40b933f",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/rpg.png.import": {
+      "bytes": 192,
+      "sha256": "86d7370cd264d424a26455f005b54b637ffd7a90590f259df79d4e8917edacfc",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/sawn_off.png.import": {
+      "bytes": 197,
+      "sha256": "22254e46e6ef03575cc74b4a355d245ffec4257e8069d55a708c2834bafa8b99",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/shotgun.png.import": {
+      "bytes": 196,
+      "sha256": "99d8a05d756ab22c8f865cbeea6d4f7e9e7f7618d8f80e7153d7c55d71726107",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/sniper.png.import": {
+      "bytes": 195,
+      "sha256": "2907edaf93fb2b10a69c2b1e90416b00ff12fbfd5eca56997db14a974e4947c3",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/tommy_gun.png.import": {
+      "bytes": 198,
+      "sha256": "b4029c0dac70a11e6e17858ec1adf8d82fdcc868f3a7d611b92c5f433b0dbf63",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/tt_pistol.png.import": {
+      "bytes": 197,
+      "sha256": "61cd97bb2b32099d784e6c847fad1d5a4af1e94c888f2e6468c9a4f24d52e52c",
+      "md5_verified": true
+    },
+    "assets/weapon_thumbnails/uzi.png.import": {
+      "bytes": 192,
+      "sha256": "21ef1d73fc4e57d3a1f34d59c4b5c63cb5f3d52145d186462ca2e5ae68b15b3d",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/ak74.scn": {
+      "bytes": 129287,
+      "sha256": "21a0e71f26d8b590974071bdf90eb3fead00864a9e82d24aa4008d5e09e439dc",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/deagle.scn": {
+      "bytes": 105638,
+      "sha256": "a983429aee530dc1290c8d263ee6ab5dbc0e61bba3c90bb2fec40adb0ac96829",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/golden_colt.scn": {
+      "bytes": 154583,
+      "sha256": "af60c7fdf7d9532e90e072dfd768b7552e45ec68a4f80b0ba93b06d2222d1b79",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/golden_uzi.scn": {
+      "bytes": 97442,
+      "sha256": "6fc21555b11e117d59068dfdaddb7c601e707bc20ceefe0f7a2773ddf575a9d8",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/m16.scn": {
+      "bytes": 146970,
+      "sha256": "98167eb456466138240de0866cbe087e9c6f812f42162794082a241b930b0a33",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/manifest.json": {
+      "bytes": 38468,
+      "sha256": "cb7ef4eaf1e30233f2854b7e5fadba186573b64c60f32c6360f4b01a493045a7",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/nagan.scn": {
+      "bytes": 107696,
+      "sha256": "b3dd3fff18940f7c0406fbfd10c8f7773904cc9bd58d02192f3919a9e3a3473e",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/none.scn": {
+      "bytes": 1778,
+      "sha256": "c366180141509e5599c7c77564062fb7d752bf2b5dfab04efa3410695d86cfb5",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/revolver.scn": {
+      "bytes": 103869,
+      "sha256": "768b900dfaa7fc5a00467f23eb5a73e62e59c0cc1c4cf9c0ad0589deda7cc078",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/rpg.scn": {
+      "bytes": 87021,
+      "sha256": "079f109d33220696a3daa0b0439fc5fef136dedec9a7ebe40edc6b376b035166",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/sawn_off.scn": {
+      "bytes": 101671,
+      "sha256": "9be427d492513d2f5e1f93e2559cc1abe304a7fc86e9d1de0e1b333c155a8c42",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/shotgun.scn": {
+      "bytes": 95186,
+      "sha256": "a7551f16492245d0859af07de32199fec7617c23590e7bea3a3ada46c1768a41",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/sniper.scn": {
+      "bytes": 137507,
+      "sha256": "36f908ddba87135adf0b2b2fa93fe2bea75041c49394b3a0374ee93ccc79fc36",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/tommy_gun.scn": {
+      "bytes": 138012,
+      "sha256": "a91f5fc14541785e2b91785d9d2bbe39cc3bf94ca1a2238dbfa18d51f0b3fded",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/tt_pistol.scn": {
+      "bytes": 120645,
+      "sha256": "ba507e709df8952ae4cfc839f27a13fa6001e7921b2ae9a6b943a75f3b735bfc",
+      "md5_verified": true
+    },
+    "assets/weapon_visual/uzi.scn": {
+      "bytes": 95630,
+      "sha256": "4a827d3e6dd05cec266a943b72dfe7619d98a290e3a7f8b559eb9ac0284a302a",
+      "md5_verified": true
+    },
+    "data/block.json": {
+      "bytes": 159703,
+      "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+      "md5_verified": true
+    },
+    "data/preview_updates.json": {
+      "bytes": 1269,
+      "sha256": "74b7de81f6b44798fc9ebaca043e58edd95fee338dab14f35110a1478ff25439",
+      "md5_verified": true
+    },
+    "data/preview_water.json": {
+      "bytes": 78247,
+      "sha256": "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824",
+      "md5_verified": true
+    },
+    "data/printshop_interior.json": {
+      "bytes": 1922988,
+      "sha256": "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b",
+      "md5_verified": true
+    },
+    "data/transport/transport_bootstrap_factory.v1.json": {
+      "bytes": 1917,
+      "sha256": "482aca7ebd5bd83f4083dc5b23f26c52b47bd5b039295b563a4b47e473d3a8c7",
+      "md5_verified": true
+    },
+    "data/transport/vehicle_descriptors.v1.json": {
+      "bytes": 100522,
+      "sha256": "99d328bc4a581bc65815498b265ae5eec71a25b831512b15d376e1c0f5ac031a",
+      "md5_verified": true
+    },
+    "data/weapons/projectile_meshes.json": {
+      "bytes": 59181,
+      "sha256": "84c1101d72a850f44149dc0be564d5d1972e9b58c60df162b53703590c52c714",
+      "md5_verified": true
+    },
+    "data/weapons/surface_effect_meshes.json": {
+      "bytes": 261985,
+      "sha256": "b968eb74064b3028cdcdbce0336ac90b174e5c2c98f9d2417905a1da0dd9a0c1",
+      "md5_verified": true
+    },
+    "project.binary": {
+      "bytes": 1110,
+      "sha256": "e4660b7812131a3a37c951e24d6b94f28c0a988502067ae686dabfca2d13d523",
+      "md5_verified": true
+    },
+    "scenes/main.tscn.remap": {
+      "bytes": 97,
+      "sha256": "e06953e0896a129b556ff2dc6ee7ab070f7032689d0d08ce8bba6f62ed084668",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_impact_policy.gd.remap": {
+      "bytes": 76,
+      "sha256": "1129e79346b7f5570d02c5b2eea144092dc42b66a45d694495d2c0fe3be26443",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_impact_policy.gdc": {
+      "bytes": 4823,
+      "sha256": "c824be903c2d62ffb5f00e8c6262ff9e8ebd49a58a14627196eb39b8e02c971b",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_impact_sink.gd.remap": {
+      "bytes": 74,
+      "sha256": "11550de2bfaf6f0bdd18b831b6ae8b79a5dde6f4b5a6338e6a04e38f5202bbfe",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_impact_sink.gdc": {
+      "bytes": 11023,
+      "sha256": "87dfaff39db0c97e07c6b2c5953515c6f97d46352f719bb263c998129ff9377a",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_physics_driver.gd.remap": {
+      "bytes": 77,
+      "sha256": "e124cf82049bae9510691964d52530f00ca337a46cf2bd632dc12debc910aaed",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_physics_driver.gdc": {
+      "bytes": 22015,
+      "sha256": "cea46890cadacfb05eee8e0c353e7b9cbf50c1a4e690c61b55c076dd7302ab7b",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_physics_pose.gd.remap": {
+      "bytes": 75,
+      "sha256": "be3e2add5dbc5464b3b97ddf2303311dea7dd4f9570cb2a444a6976fd7b06e8b",
+      "md5_verified": true
+    },
+    "scripts/character_physics/character_physics_pose.gdc": {
+      "bytes": 6076,
+      "sha256": "1ff09cb6d485ec38053a25d03b07c72dc718055271dbbc9a6b67c5e6d36d50ee",
+      "md5_verified": true
+    },
+    "scripts/character_physics/exit_ragdoll_body.gd.remap": {
+      "bytes": 70,
+      "sha256": "8564b9a0cf8b766cf81acaad8ea2a72378e58dfbc369cfbf74018da1a7753486",
+      "md5_verified": true
+    },
+    "scripts/character_physics/exit_ragdoll_body.gdc": {
+      "bytes": 19700,
+      "sha256": "2467642faf6e7feb441be0582c4c488825790a3bd5688cf490112511d37b487c",
+      "md5_verified": true
+    },
+    "scripts/character_physics/local_hit_reaction.gd.remap": {
+      "bytes": 71,
+      "sha256": "4dc96538723e6efd9b150006d7c0723476912d54582d7cc7316217b1548e208e",
+      "md5_verified": true
+    },
+    "scripts/character_physics/local_hit_reaction.gdc": {
+      "bytes": 10979,
+      "sha256": "772871ba5629b48a5807421fbe7ff8d2987a851af8375169091b6929172be7b9",
+      "md5_verified": true
+    },
+    "scripts/character_physics/player_impact_host.gd.remap": {
+      "bytes": 71,
+      "sha256": "40e92d0f86614b5c587015dd99b7fcb8533f34239ad18b0a5cdb8ca858e755a9",
+      "md5_verified": true
+    },
+    "scripts/character_physics/player_impact_host.gdc": {
+      "bytes": 8334,
+      "sha256": "8c6e705bfc743c942e6be16485890bb6bdc3f23be424dd0e31b88d3f9242a6b2",
+      "md5_verified": true
+    },
+    "scripts/character_physics/ragdoll_actor_transition.gd.remap": {
+      "bytes": 77,
+      "sha256": "a0a2ad3566d96042b1962198517cd5efb5f39d899977190db14c771a1c5ed040",
+      "md5_verified": true
+    },
+    "scripts/character_physics/ragdoll_actor_transition.gdc": {
+      "bytes": 2132,
+      "sha256": "3445d6464cf964d39e49091a31963147ebeea6e49b18635365226f514302afd8",
+      "md5_verified": true
+    },
+    "scripts/character_physics/recovery_clearance.gd.remap": {
+      "bytes": 71,
+      "sha256": "44b04e4ab5006c584271760f96c24e96cc24e54587c1242b7495c44517fd6753",
+      "md5_verified": true
+    },
+    "scripts/character_physics/recovery_clearance.gdc": {
+      "bytes": 5164,
+      "sha256": "616b29102864de40b64d7f6a023db9668e226a5a918da2dfbc8a5c0b08a94ca9",
+      "md5_verified": true
+    },
+    "scripts/character_physics/recovery_surface_bounds.gd.remap": {
+      "bytes": 76,
+      "sha256": "fd7b610f7d7ac84cc1e9225cf7d378df247e02511b68f83da70e5e619f5e8216",
+      "md5_verified": true
+    },
+    "scripts/character_physics/recovery_surface_bounds.gdc": {
+      "bytes": 9044,
+      "sha256": "8e4bf8d9b04d29e6b0b09a6ce2fe247f735d46d074f6bbda8167c6ca402e0f10",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_attack_source.gd.remap": {
+      "bytes": 61,
+      "sha256": "4270c98055773f16646870a147f90e07576740423da156196292b75d8d5f3849",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_attack_source.gdc": {
+      "bytes": 9958,
+      "sha256": "aeaf1bb1acb269bba04fc55ba4d1db84be2cd71d93fb9cef6a0f225d78f05775",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_input.gd.remap": {
+      "bytes": 53,
+      "sha256": "7b1941816f01b56e70b865db1710232c44e30e14d85c0cfc75e1af2605fc93fa",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_input.gdc": {
+      "bytes": 6937,
+      "sha256": "a2bb597c26c5ed32bfa22e7f3f7f472a58f64dd8cfc99cd7fafd08a5857f9694",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_physical_pose.gd.remap": {
+      "bytes": 61,
+      "sha256": "bc71215a3e86bbcaae78542b8e9566bc279597fcf50e49ceaf601a6ee204bf16",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_physical_pose.gdc": {
+      "bytes": 9235,
+      "sha256": "9621f567177d7fe1de770ae89dab2ab648f33f06e9c041a5853d42a1e3aa6f1e",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_pose.gd.remap": {
+      "bytes": 52,
+      "sha256": "6d851efce4b795b1c0735a22aa5598436ff8c21b33f55a7262f8072b06dba2e8",
+      "md5_verified": true
+    },
+    "scripts/combat/melee_pose.gdc": {
+      "bytes": 12279,
+      "sha256": "f1aa14ea8c65a0f0ded0563cb563735280e893bcedc71ab4a766bae5ecea23bf",
+      "md5_verified": true
+    },
+    "scripts/combat/preview_melee.gd.remap": {
+      "bytes": 55,
+      "sha256": "6efacb074162d6c8839674bc30caf154075f20e9472e72045fb8d29b99a4f57f",
+      "md5_verified": true
+    },
+    "scripts/combat/preview_melee.gdc": {
+      "bytes": 6153,
+      "sha256": "ca1121546debbc1bb1b8f0c14a77508d520cd2abe8e722cf4b72cf6b4ac9db63",
+      "md5_verified": true
+    },
+    "scripts/main.gd.remap": {
+      "bytes": 39,
+      "sha256": "49fa76d6d4c786bc0ffa6e2674ce7fadcd33649ece61eadbd4c2784a6d2e75c9",
+      "md5_verified": true
+    },
+    "scripts/main.gdc": {
+      "bytes": 34048,
+      "sha256": "c998c16f2e9612ad7bd99cf390058726e6286e1cc30c366f27d1884e2c08556b",
+      "md5_verified": true
+    },
+    "scripts/navigation/path_job_queue.gd.remap": {
+      "bytes": 60,
+      "sha256": "bb24d2647ddfd2f26160ffba98d95ffa856fac2306b7097d747116cfcaef45b4",
+      "md5_verified": true
+    },
+    "scripts/navigation/path_job_queue.gdc": {
+      "bytes": 5358,
+      "sha256": "1bce56b4b886a39db73f54ffda31ee53029a10c53c8147c217cb7fffc9bd065f",
+      "md5_verified": true
+    },
+    "scripts/navigation/preview_engine_navigation.gd.remap": {
+      "bytes": 71,
+      "sha256": "108f6e14131d03760256cd3390ec62d22555007ac448e3a0eefe8ec66c6d6d14",
+      "md5_verified": true
+    },
+    "scripts/navigation/preview_engine_navigation.gdc": {
+      "bytes": 12188,
+      "sha256": "0ce6622c1fc5f248c2a7eca629a87cdc7cdd37a523a528a70ba7fc548af07d8c",
+      "md5_verified": true
+    },
+    "scripts/navigation/preview_navigation_host.gd.remap": {
+      "bytes": 69,
+      "sha256": "d9ee24d2e53cd1034940e9adbbe07f08a1205da83fefef4bb3d25d0068fc2c13",
+      "md5_verified": true
+    },
+    "scripts/navigation/preview_navigation_host.gdc": {
+      "bytes": 16339,
+      "sha256": "711833a2da32c3b1f54357e09bb95eca92d8ac78fc4d7c01d3f5b38b85643876",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/final_dead_contact_port.gd.remap": {
+      "bytes": 69,
+      "sha256": "e39b69dc436e39192a024688820a9aad43b16a0d94cc134368640c560ea4c44d",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/final_dead_contact_port.gdc": {
+      "bytes": 10405,
+      "sha256": "a36f0d42584fb5148302a042a4f8ea8d11663d3ff2a62b93c55f89da3ff09eee",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_blood_adapter.gd.remap": {
+      "bytes": 63,
+      "sha256": "54600ba6a68c769be37e0095c87c12e771f9e3dff02834d4b583898f06604ebb",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_blood_adapter.gdc": {
+      "bytes": 2815,
+      "sha256": "6483407911d5df2a4cee3229edc08fab8a5ad2f2598c76aec0636315730025f2",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_blood_renderer.gd.remap": {
+      "bytes": 64,
+      "sha256": "559946f5e6147a5da19427f9d0de7c2a67a99b060d941bc33a0f8a1bd8a4ea8e",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_blood_renderer.gdc": {
+      "bytes": 5499,
+      "sha256": "24632fad81901ec1b0f49fd3240970b4a51368f597b332e572b07d29f8464dbe",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_body.gd.remap": {
+      "bytes": 54,
+      "sha256": "850d73a0c03393cb75887f9a006a97a376a5d19507912066aff63665cb564d15",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_body.gdc": {
+      "bytes": 3134,
+      "sha256": "37bfecb57474f9542d2ce9b275fac5a91940492694bb956a47eea7026a5093c5",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_bullet_marks.gd.remap": {
+      "bytes": 62,
+      "sha256": "e4fca068ff9b84e9f51b4eafc1d5326959bfff4b25b359d7f856508002b52afb",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_bullet_marks.gdc": {
+      "bytes": 18082,
+      "sha256": "6432a37fefdc12e6043ef4ab3f21f65158751e3e67649a24b3330a52dcf4dcf1",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_death_eyes.gd.remap": {
+      "bytes": 60,
+      "sha256": "d55513f134b2cf11ebdfb04677dc8c3208571d0d522c49fa57861c51abcd4f9c",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_death_eyes.gdc": {
+      "bytes": 3757,
+      "sha256": "8eeedb351cfe688cba0c26293f3271fbfbe26b3746a22e1238b27d319b6368b7",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_float_color_bridge.gd": {
+      "bytes": 20335,
+      "sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_float_color_bridge.gd.remap": {
+      "bytes": 68,
+      "sha256": "e070414675aad04422c741560f09ad9ba8b07fe996be6e509f629836548997af",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_float_color_bridge.gdc": {
+      "bytes": 14350,
+      "sha256": "ce604b65e56c1d22988dec46064b9708e375b341443898a5cf4b30e372f37c5c",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_head_zone.gd.remap": {
+      "bytes": 59,
+      "sha256": "ea42eb15cfc724afe4914f308b5a4ba34b010aed56f436487a21b8554678fbf2",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_head_zone.gdc": {
+      "bytes": 10081,
+      "sha256": "262fd5e13ab7984f3fae98020146f9f6b08faa9484385f2d6e7a2b4ac013372a",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_hit_impulse.gd.remap": {
+      "bytes": 61,
+      "sha256": "64c5379ea1cdbb63a92b3d56168a1342297267639e42e4c6e61d50d16cff7e1a",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_hit_impulse.gdc": {
+      "bytes": 1601,
+      "sha256": "5b640f407e3a3ac31091b073963c669d59280777e9b144d245d0dcf06d4972fd",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_hit_marks_adapter.gd.remap": {
+      "bytes": 67,
+      "sha256": "8b933a363c5c35df7990243c0f8c586f622191f12c8b3179e4b3d431e9514146",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_hit_marks_adapter.gdc": {
+      "bytes": 3282,
+      "sha256": "14ea57cf6ec4b3c01139a10bd6bf881d6b40638b02057a5b2e3058578ab6f401",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd.remap": {
+      "bytes": 73,
+      "sha256": "f9233b6808a04e165d555b89252000ede0a68fe636b8efd5a8dfaa7df92d315e",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_local_preview_hit_owner.gdc": {
+      "bytes": 17876,
+      "sha256": "ba321da7d4f87677524693310b0dbca712278af1e767bffeebd9fae1a70ee99d",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd.remap": {
+      "bytes": 72,
+      "sha256": "dc19474fac2649427bb6c0a9f778b6f356168fd7d92896edc1e24b0a0ce0fcec",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gdc": {
+      "bytes": 7639,
+      "sha256": "4c453bda80b4d49ab743813d52a6a02fc8d4972f18c8c8be9d8a4316c973a5ab",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_preview_activity.gd.remap": {
+      "bytes": 66,
+      "sha256": "819beaead15edd060c96da03656c2e247e8dd5ae3c8a434f18ea3cf7bf0e80cf",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_preview_activity.gdc": {
+      "bytes": 1635,
+      "sha256": "f182ed09c7c03bc07ca876ce1d5bf9c1597416832cca532f1e68c2761787fd8b",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_preview_source_provider.gd.remap": {
+      "bytes": 73,
+      "sha256": "8eb7cda739044ed094ddd9a3bed7477f0a645684dc875a75c72a7faa75152ed9",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_preview_source_provider.gdc": {
+      "bytes": 5715,
+      "sha256": "ff75512260b472256138aed6843426930a48a6774411b9285a191dc123c98011",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_ragdoll_host.gd.remap": {
+      "bytes": 62,
+      "sha256": "cc41d31bab82f60ad122feb8de80f818cbe9af412775b2c1ab82fef5825fa045",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_ragdoll_host.gdc": {
+      "bytes": 11084,
+      "sha256": "d87acd5f05eff01d4e1114c09d2dbc20fc597a51f4b19488f46bdb706f443e82",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_visual_cache.gd.remap": {
+      "bytes": 62,
+      "sha256": "4b205d558276fee378d154dcdb00a242516c08d0b42b9dba79a03c639562b6d5",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_visual_cache.gdc": {
+      "bytes": 7524,
+      "sha256": "71ffb2a53636e20d59b75e1ede403a3601f41003ed78df3a0e1d88132f24917b",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_visual_loader.gd": {
+      "bytes": 20467,
+      "sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_visual_loader.gd.remap": {
+      "bytes": 63,
+      "sha256": "a9274410bd1c757bc4cd74d04c4eb35f9307e1b3fea1243bf7c4305cbc17a1c2",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/npc_visual_loader.gdc": {
+      "bytes": 15691,
+      "sha256": "b303215fbb45f0927f3eee768164fc759e428d9e67cccbc00de6c749befe71ad",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/preview_resident_host.gd.remap": {
+      "bytes": 67,
+      "sha256": "8e3adbd80a8d17ff350b1475ae87a31b3abdaa9d37f569bafc13ffc75f41fb1e",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/preview_resident_host.gdc": {
+      "bytes": 26164,
+      "sha256": "766aa55c70ad6fdec40a8bea4087fbc042f9b5046870aa1c1799ee1cd57e23b1",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/preview_resident_world_policy.gd.remap": {
+      "bytes": 75,
+      "sha256": "b5fd1aacf4390d3920dcc8abf3b9a1f460c2dc3ad961466c673a80b08d150bbc",
+      "md5_verified": true
+    },
+    "scripts/npc_visual/preview_resident_world_policy.gdc": {
+      "bytes": 8592,
+      "sha256": "133690d52e86bb2bb0efddf9e3d2905a9f21672226e6223a479c740b18a86f15",
+      "md5_verified": true
+    },
+    "scripts/perf/frame_recorder.gd.remap": {
+      "bytes": 54,
+      "sha256": "5a134aafc9b202e42eabf2092a5bd97bbcdd0e4990ed4a73a14ba4c5fa759c99",
+      "md5_verified": true
+    },
+    "scripts/perf/frame_recorder.gdc": {
+      "bytes": 6046,
+      "sha256": "563e10aec8cc65c720bdeb8569c2583caca9dcc89ec8d5ec15b96d57f3d9c7c5",
+      "md5_verified": true
+    },
+    "scripts/perf/preview_perf_adapter.gd.remap": {
+      "bytes": 60,
+      "sha256": "fd3e8ed1e05d9cf9a3a6216c5a1ef8567e524dd67679c2e7af28f2f44cd9967c",
+      "md5_verified": true
+    },
+    "scripts/perf/preview_perf_adapter.gdc": {
+      "bytes": 2954,
+      "sha256": "6e380b4833a655a75284be212b7af3187ef06cc44882296cc71e08e5be2042f6",
+      "md5_verified": true
+    },
+    "scripts/player_corpse_contact.gd.remap": {
+      "bytes": 56,
+      "sha256": "37264096e756f03514ff3d8cc68adbcbf7ef04d525e77bf1845095048696c69a",
+      "md5_verified": true
+    },
+    "scripts/player_corpse_contact.gdc": {
+      "bytes": 5268,
+      "sha256": "1389109ac2f2de635faa1fde1d7548653c5b5428a5cd5501b56e5c9d3a3efec5",
+      "md5_verified": true
+    },
+    "scripts/preview_airborne.gd.remap": {
+      "bytes": 51,
+      "sha256": "485516dd4ebf7c74d28c5ab86f5ea441d5596836ceefaeb0c16924bbaddde89f",
+      "md5_verified": true
+    },
+    "scripts/preview_airborne.gdc": {
+      "bytes": 9322,
+      "sha256": "03d6940afc8080b15c5bacfb458ac9d6e04e3529e0f32c5508ed29f3cc5c9bac",
+      "md5_verified": true
+    },
+    "scripts/preview_block_validation.gd.remap": {
+      "bytes": 59,
+      "sha256": "bd622c0053a2da118f0c20b8d748ddb9baec0cdbc53549563034d0548f203b9b",
+      "md5_verified": true
+    },
+    "scripts/preview_block_validation.gdc": {
+      "bytes": 11341,
+      "sha256": "ffb0e015427d1ff913f3a67b0594f3bda553b65fff7b904d1ea477187d06aa9b",
+      "md5_verified": true
+    },
+    "scripts/preview_boundary.gd.remap": {
+      "bytes": 51,
+      "sha256": "cedf3cfb479eb230de6f4b51fb50eb33f8de34dfaf2096da166eeb9f2d9d4279",
+      "md5_verified": true
+    },
+    "scripts/preview_boundary.gdc": {
+      "bytes": 3361,
+      "sha256": "2721f6838e47e795a85cd6dfbb7b1e2ced77c271674eae69c837002a1be717e0",
+      "md5_verified": true
+    },
+    "scripts/preview_dive.gd.remap": {
+      "bytes": 47,
+      "sha256": "88dc1f54e495b58f4df5ec65a522e31a291aa30f9c0557754b709c8aef77505c",
+      "md5_verified": true
+    },
+    "scripts/preview_dive.gdc": {
+      "bytes": 13616,
+      "sha256": "06d7fdb9c65ad160ff57462faee1c62eeeb220f7770d8b3f28ea790a0dd8d32a",
+      "md5_verified": true
+    },
+    "scripts/preview_interior_finish.gd.remap": {
+      "bytes": 58,
+      "sha256": "b18e28036009d4ec0ecc2c7c518884c3633f394d67c32f5280542103af4b75cb",
+      "md5_verified": true
+    },
+    "scripts/preview_interior_finish.gdc": {
+      "bytes": 3986,
+      "sha256": "005a42ecc4d2abfa1719038124a1e39746ef4d1c0f91b52cc023a74125f796ae",
+      "md5_verified": true
+    },
+    "scripts/preview_locomotion.gd.remap": {
+      "bytes": 53,
+      "sha256": "25257fc727d6c5561fbdf48c917e1a4ae8878afeef3dba2c922f8a6a9ee7c9fb",
+      "md5_verified": true
+    },
+    "scripts/preview_locomotion.gdc": {
+      "bytes": 7148,
+      "sha256": "0da506c30d18802df0652c92948ca4122274efe8986e97f2001a2525b5feaa00",
+      "md5_verified": true
+    },
+    "scripts/preview_player.gd.remap": {
+      "bytes": 49,
+      "sha256": "d1fdd170be2584330ab2958dc7a75bbe9fa250ad0ea330c42b25ac287c6faab9",
+      "md5_verified": true
+    },
+    "scripts/preview_player.gdc": {
+      "bytes": 27696,
+      "sha256": "a5f48191c4bc593fcaeddceef8779c576ee1ec0b720c28d6b9d6fba0a35c760d",
+      "md5_verified": true
+    },
+    "scripts/preview_population.gd.remap": {
+      "bytes": 53,
+      "sha256": "4262bd180deedaa5422f59f1a024148bf31d98fd76bd271318d0e796ffd9b3f8",
+      "md5_verified": true
+    },
+    "scripts/preview_population.gdc": {
+      "bytes": 6489,
+      "sha256": "55931e90d5c615ea104ba19356cca8fe840b6f323a7ad73b80d1083784f8ef7e",
+      "md5_verified": true
+    },
+    "scripts/preview_printshop_interior.gd.remap": {
+      "bytes": 61,
+      "sha256": "a21f4b1fd5c2f759ebdf38eeae493b50b9f832ef635eabc77370b59e3511a045",
+      "md5_verified": true
+    },
+    "scripts/preview_printshop_interior.gdc": {
+      "bytes": 16826,
+      "sha256": "1d3951be2e50b5b197083365da6901711faf98fd32733b0616d46bd0601d6f9d",
+      "md5_verified": true
+    },
+    "scripts/preview_static_batch.gd.remap": {
+      "bytes": 55,
+      "sha256": "69b87a8a5d152faf0f3278dfecff4c1eebb54f5a2a7a59ff4ab34424e9de7935",
+      "md5_verified": true
+    },
+    "scripts/preview_static_batch.gdc": {
+      "bytes": 14268,
+      "sha256": "2e9fe22b14b58d1a1f8942b31973a8e5f98b86ef54f13b58a7b8fa45edff998e",
+      "md5_verified": true
+    },
+    "scripts/preview_surface_materials.gd.remap": {
+      "bytes": 60,
+      "sha256": "087e26e67f6b712ed154389486dec952fac1fee44eef47e1c4edc8243d1308ea",
+      "md5_verified": true
+    },
+    "scripts/preview_surface_materials.gdc": {
+      "bytes": 5497,
+      "sha256": "595e8a95a913cafa6bcd33a940cd18111d89661d48c57f92ae9035853c06c335",
+      "md5_verified": true
+    },
+    "scripts/preview_transport.gd.remap": {
+      "bytes": 52,
+      "sha256": "831e0802786963bfa068eab3cf02c88eb40c85d1c36d8868ecb1fabf7cffcbeb",
+      "md5_verified": true
+    },
+    "scripts/preview_transport.gdc": {
+      "bytes": 24266,
+      "sha256": "b8ac87e5725b559f5854f49007b7722e9cfbfcbf82d426ee67e1ba53c73d4436",
+      "md5_verified": true
+    },
+    "scripts/preview_update_panel.gd.remap": {
+      "bytes": 55,
+      "sha256": "ae5d600a69be1328f15289a6c858330a08b78518c2406b1ea06774d5d204c69a",
+      "md5_verified": true
+    },
+    "scripts/preview_update_panel.gdc": {
+      "bytes": 5188,
+      "sha256": "825ea886756f3783b08fa511a03347dc957235c7579f8aa0aaba99e53f14430d",
+      "md5_verified": true
+    },
+    "scripts/preview_water_material.gd.remap": {
+      "bytes": 57,
+      "sha256": "7baf79dff5956022c11f5d6fe051d22c53b24123d5c446a5f2b75bfcb517f149",
+      "md5_verified": true
+    },
+    "scripts/preview_water_material.gdc": {
+      "bytes": 7669,
+      "sha256": "afc4d5d2bbe0aaac07d27dc598c2c614d71f99f0674437e3c64681c65d8e8514",
+      "md5_verified": true
+    },
+    "scripts/preview_water_surface.gd.remap": {
+      "bytes": 56,
+      "sha256": "8ca604cf88596c037a2c0f8abbba54f316241469c1cdfe1aa4e4efd0d1e3def0",
+      "md5_verified": true
+    },
+    "scripts/preview_water_surface.gdc": {
+      "bytes": 5378,
+      "sha256": "96482727e22f32557bb1f1daced033f51e6df2b0be2b0fc2cece88dcb055856d",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_access_provider.gd.remap": {
+      "bytes": 70,
+      "sha256": "70f13cf31db9f97d4bb2f9ba210dd7d80f42feb67191d1653004b177f74b4be4",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_access_provider.gdc": {
+      "bytes": 3517,
+      "sha256": "66a0e9a24d644c68a6ca53e40514821ede9972a471c9ae7707ef1dfb6d47b801",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_actor_transition.gd.remap": {
+      "bytes": 71,
+      "sha256": "18ad02e5d554dfb977de155e146668fbe7344a0fc78d75ce4303e44cf4521005",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_actor_transition.gdc": {
+      "bytes": 11585,
+      "sha256": "0ca2bd4e90ec73e1fdcce6e9c47c5392ba44512d5ebc82c0440d43106543d945",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_bootstrap_provider.gd.remap": {
+      "bytes": 73,
+      "sha256": "fed06ff637658d6e3ac18694c7f59e2d889c87660b8da22995cfd5003eeb384b",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_bootstrap_provider.gdc": {
+      "bytes": 4518,
+      "sha256": "2e2c7e843cfbedb0a95ee0c2bc475aed593c2c39d8c1fd83f04c14708d3ea0e0",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_cargo_admission.gd.remap": {
+      "bytes": 70,
+      "sha256": "5bf83f24613a67d235eaeb676aaaa562c0379c8a0a77cb55054e8fb963dd1a7c",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_cargo_admission.gdc": {
+      "bytes": 1798,
+      "sha256": "5dbc1803637c4837fd800cb0b0190cd8bdd0a7a6c458757b8e34c7248256e11b",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_cargo_evidence.gd.remap": {
+      "bytes": 69,
+      "sha256": "267666fcb838c8f0a57e491026fd74b8bdc28e09c0dddcd452fdd2e48223e438",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_cargo_evidence.gdc": {
+      "bytes": 3838,
+      "sha256": "c5c877bf39061b8ff90f09e61fa9301eac75ce4e6dee80c05c06c324f77172f6",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_descriptor_catalog.gd.remap": {
+      "bytes": 73,
+      "sha256": "0f3d1fc42a5b40389f5d8b22ae15059cbb6116e587313bf865877026a610a789",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_descriptor_catalog.gdc": {
+      "bytes": 3382,
+      "sha256": "7040a1d37470fb9ef41db300c9be041401ec47a0cc6d7202466fa8356a37aabc",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_logical_host.gd.remap": {
+      "bytes": 67,
+      "sha256": "c078dd72580a17a6799f38c01b9f15f7822e2935a5c470ce496656a3c63caf96",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_logical_host.gdc": {
+      "bytes": 10766,
+      "sha256": "47a9e4957b34fb98ec4c0c017782c68e610151a2923b5209ad640b81a48180cc",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_runtime.gd.remap": {
+      "bytes": 62,
+      "sha256": "26b67ad7cde1526512ec5d2b1837a97b46e5585a2e080c273d01a0850e2b4324",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_runtime.gdc": {
+      "bytes": 6482,
+      "sha256": "99faa6f8869ab66d7424f530e342cf4835f8273c78b6470532d497e62a92eee8",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_timing.gd.remap": {
+      "bytes": 61,
+      "sha256": "21b64ac2d71aee6ce4dc0add3c21575d0c4c2cef5311d8531f7eb4eaecde532d",
+      "md5_verified": true
+    },
+    "scripts/transport/transport_timing.gdc": {
+      "bytes": 391,
+      "sha256": "20454a89b7417800228801efe021cf6938d0337ce06137dfcf6ec8fb2d65f9e5",
+      "md5_verified": true
+    },
+    "scripts/transport/trunk/transport_trunk_cargo_store.gd.remap": {
+      "bytes": 78,
+      "sha256": "b8d031d3d3fe34d7554c9f350a9868568e4438749b71c064187a01f0e0c95830",
+      "md5_verified": true
+    },
+    "scripts/transport/trunk/transport_trunk_cargo_store.gdc": {
+      "bytes": 14228,
+      "sha256": "82ea0fdceb065da8949649d56ab47285bdac0f28e168f15280e20a165616feb0",
+      "md5_verified": true
+    },
+    "scripts/ui/walk_cursor.gd.remap": {
+      "bytes": 49,
+      "sha256": "ce6ccbc7e1ade185322a756b23b61f4a5a2b7d459a11065f575166572a5a6a33",
+      "md5_verified": true
+    },
+    "scripts/ui/walk_cursor.gdc": {
+      "bytes": 529,
+      "sha256": "2af2521391c4e4763ee682255feed58c5f36f764ba53966df524b0354de348f7",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_body_factory.gd.remap": {
+      "bytes": 71,
+      "sha256": "5a14c6870a5f2ea6b10f4c6edf6a9cf7d655ec88574d85b169e9a62608199eeb",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_body_factory.gdc": {
+      "bytes": 1840,
+      "sha256": "38e1482a7031b50e41ad75207e0a6a8988efb3a36771d6e5ef3c0afd1d20a5e1",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_contact_buffer.gd.remap": {
+      "bytes": 73,
+      "sha256": "445905399e1f5e71774e8f048cba1b4c9b479a967a7be8b4500157c91ee4fdee",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_contact_buffer.gdc": {
+      "bytes": 2347,
+      "sha256": "a5f7577befd472bceccd83a984646bc4e8dcb0e61f4a613133c59a2abe73a4a2",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_contact_ledger.gd.remap": {
+      "bytes": 73,
+      "sha256": "2f031f4847aab67adb14e6dd407ef71d42c3db9eccf5c00b2a47acfc42d0f892",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_contact_ledger.gdc": {
+      "bytes": 2052,
+      "sha256": "ca3c1ca8a345a20633b70d6c66f1e88ea1bcffa5eaea518b4bbe5751b93a8072",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_native_body.gd.remap": {
+      "bytes": 70,
+      "sha256": "cf5c73bbd03c0b04060869e7c506d0be66af608a349dffbf5d9c4e8804d4b6a4",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_native_body.gdc": {
+      "bytes": 13996,
+      "sha256": "bbf7cc3a91bbae7f4d2622bf0c1f832a68fb73f13517f6ae1f10985bacd6bbe9",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_profile.gd.remap": {
+      "bytes": 66,
+      "sha256": "d3b5c520773a063455b22e5943fe60fdfba26bf5871b6e82df70737dd72e79e8",
+      "md5_verified": true
+    },
+    "scripts/vehicle_physics/vehicle_profile.gdc": {
+      "bytes": 5129,
+      "sha256": "d5e701054961b05bff70f0ab0cf1345179cfa080f5a1519ba57e574e6be54e32",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_compartments.gd.remap": {
+      "bytes": 70,
+      "sha256": "20a1ee35603e6b7a10f0f4e4c671ed3248076bc401e9e1cbeccb5f68056fd562",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_compartments.gdc": {
+      "bytes": 5415,
+      "sha256": "2d32521de231fdd7bcc4a8fae89c77072461b322ee13188ebac88258eeea826b",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_exit_pose.gd.remap": {
+      "bytes": 67,
+      "sha256": "93c90b9e64465b52575f09b8ef5fa01c5f31fdbe9e343802677d598c54314f0f",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_exit_pose.gdc": {
+      "bytes": 7592,
+      "sha256": "82bd5f3b546bf3c7a825ca2e7e5fe2342fc4ec8f0432c8acdb825b17ac16eac9",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_exit_pose_blend.gd.remap": {
+      "bytes": 73,
+      "sha256": "0d43c45744b416b51a3c69a90e4c9eeb9394e2f2e70fd2b2ef40236be29ea990",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_exit_pose_blend.gdc": {
+      "bytes": 4523,
+      "sha256": "b88e298e449edcd413b0c229726d4c802494eea0cb9d985c21e527799452625f",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_exit_presentation.gd.remap": {
+      "bytes": 75,
+      "sha256": "3bf79b6eb5da8f34eb1f197907a6c86eb761d02a9f11b9fbe422991475f5ae23",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_exit_presentation.gdc": {
+      "bytes": 1395,
+      "sha256": "772cea8c94ec8c46106e60364219e3755c37b234457c83bbcaeaad17b09a77c7",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_occupant_pose.gd.remap": {
+      "bytes": 71,
+      "sha256": "9205f6453ab9761cdecd3404cd1424e8d61cac9b9c8701989de8694a398d7df1",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_occupant_pose.gdc": {
+      "bytes": 9071,
+      "sha256": "0cd15d52ea0fab7fda6443701f4cf42e9d2472d3d1f6ac689f4f5367e8ffb599",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_visual.gd.remap": {
+      "bytes": 64,
+      "sha256": "94137a2b927c759fa22e199f84c113c4a323ca490e9ae510603e6938bd8ed00a",
+      "md5_verified": true
+    },
+    "scripts/vehicle_visual/vehicle_visual.gdc": {
+      "bytes": 7228,
+      "sha256": "ac30be06b136fb73c82692b930b876cbd9a01d9957bcc51ea49124cccf3fe98b",
+      "md5_verified": true
+    },
+    "scripts/weapon_visual/weapon_visual.gd.remap": {
+      "bytes": 62,
+      "sha256": "673946c0f6ae17c57c6af593a5e18b610842f791b733beaca3ae0d609d1f6646",
+      "md5_verified": true
+    },
+    "scripts/weapon_visual/weapon_visual.gdc": {
+      "bytes": 2811,
+      "sha256": "873980614fc41551c9549d4be626357f082e9085f263ed87b96090c07322caab",
+      "md5_verified": true
+    },
+    "scripts/weapon_visual/weapon_visual_catalog.gd.remap": {
+      "bytes": 70,
+      "sha256": "acac49a9e728d87b1522e5e4f05730e22108518ab69bb22626451b970aa64fcc",
+      "md5_verified": true
+    },
+    "scripts/weapon_visual/weapon_visual_catalog.gdc": {
+      "bytes": 2573,
+      "sha256": "9566dd6d8e8f626a295cbf49e4903d8972d2c980b8ad0dbfd53d70c6e54b522d",
+      "md5_verified": true
+    },
+    "scripts/weapons/cargo_aim_picker.gd.remap": {
+      "bytes": 59,
+      "sha256": "58ba7c31c48d52d9da0acbe05b8e54388f6c524c46e1cce96654878cd99438e4",
+      "md5_verified": true
+    },
+    "scripts/weapons/cargo_aim_picker.gdc": {
+      "bytes": 5360,
+      "sha256": "0ef742294489ddffd9f36b8de7aebbeede7b52e762813aac8709266631ab00ac",
+      "md5_verified": true
+    },
+    "scripts/weapons/context_plate_layout.gd.remap": {
+      "bytes": 63,
+      "sha256": "dc29cf7deb711f0efe6444b8429767c9d9463a32e20428580606ad05ac8ca019",
+      "md5_verified": true
+    },
+    "scripts/weapons/context_plate_layout.gdc": {
+      "bytes": 2180,
+      "sha256": "13cdb614f9cdd39c5e68c424c6ee63ff6bf28993afdf4d67fce6bdea84458cc0",
+      "md5_verified": true
+    },
+    "scripts/weapons/ground_weapon_rules.gd.remap": {
+      "bytes": 62,
+      "sha256": "f0554a9d155e30f3539dfeb213cc8d077fcc97e269a826649f7e048f696575d6",
+      "md5_verified": true
+    },
+    "scripts/weapons/ground_weapon_rules.gdc": {
+      "bytes": 1767,
+      "sha256": "48de393f9fe225123d3a16fe4e48e33b4467508d119c698c50aa392fe20a6d08",
+      "md5_verified": true
+    },
+    "scripts/weapons/impact_mark_art.gd.remap": {
+      "bytes": 58,
+      "sha256": "0a8f9b62d1dcc6b9266d303fe7b420c1ad4be9656a54cf19f5d173e71a9a2030",
+      "md5_verified": true
+    },
+    "scripts/weapons/impact_mark_art.gdc": {
+      "bytes": 2146,
+      "sha256": "b76acf26407611aab465b8af83e0f101aad03af363d0b4585baf782dbdd5ce30",
+      "md5_verified": true
+    },
+    "scripts/weapons/player_weapon_presentation.gd.remap": {
+      "bytes": 69,
+      "sha256": "bdcd3cf2b857009960c7d2aa7efbcc85caff1b1b3984a54ddc7226d6918a8ced",
+      "md5_verified": true
+    },
+    "scripts/weapons/player_weapon_presentation.gdc": {
+      "bytes": 7468,
+      "sha256": "141a444260e1f7332599f231728407c6e1adf15d7509eaaed17e8cdf90cb36ab",
+      "md5_verified": true
+    },
+    "scripts/weapons/preview_weapon_cargo.gd.remap": {
+      "bytes": 63,
+      "sha256": "4da75f2c3c55972b0422e5aea01aae0bd23086b09ac9e8fb7f7fc373d9ab7cb5",
+      "md5_verified": true
+    },
+    "scripts/weapons/preview_weapon_cargo.gdc": {
+      "bytes": 27577,
+      "sha256": "c9f73dfb664f03703a35077998596d2ff35724b5d3e0e47da668607afdcef9f4",
+      "md5_verified": true
+    },
+    "scripts/weapons/preview_weapons.gd.remap": {
+      "bytes": 58,
+      "sha256": "86f70224d114c99e5f6e34bbfe98e7b7f72617477b8c264b39b4226c6e518f95",
+      "md5_verified": true
+    },
+    "scripts/weapons/preview_weapons.gdc": {
+      "bytes": 15670,
+      "sha256": "c418ed672240da1ec1e627e845a4f56cefcee34caf1c714326a72d2dbe916a4b",
+      "md5_verified": true
+    },
+    "scripts/weapons/rpg_effects.gd.remap": {
+      "bytes": 54,
+      "sha256": "4aa646090f4f4392959f8f37c16482b4ccb34b611b948adc7987fb25d234433c",
+      "md5_verified": true
+    },
+    "scripts/weapons/rpg_effects.gdc": {
+      "bytes": 9671,
+      "sha256": "670d9a298e2917437dd495eec1a6c513a73adb02d73cb52e01dea9c4ed344cfb",
+      "md5_verified": true
+    },
+    "scripts/weapons/rpg_flight.gd.remap": {
+      "bytes": 53,
+      "sha256": "e04a0a4c5730dd5ee083ba8549e9e14de8df8f20c740b23c7658956269831a38",
+      "md5_verified": true
+    },
+    "scripts/weapons/rpg_flight.gdc": {
+      "bytes": 8927,
+      "sha256": "c83fe420b02bfe2234eb27d783f53e766e52a21270d398ec70b04380c93b97fb",
+      "md5_verified": true
+    },
+    "scripts/weapons/scope_optic.svg.import": {
+      "bytes": 199,
+      "sha256": "6e7438d4743782830bc4a0dc4c9949b53b9db55dec399e151e1f6720ffbd4627",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_cargo_card.gd.remap": {
+      "bytes": 58,
+      "sha256": "61b029fb97601173fc2f0f3d0427dc1b9809ae81defb96675414d57777c7903c",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_cargo_card.gdc": {
+      "bytes": 6842,
+      "sha256": "12fbcf51e2cd7b6b9f0515628c055465c71f7e1a63651060d69779a5bab5dc08",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_trunk_window.gd.remap": {
+      "bytes": 60,
+      "sha256": "9375d2efcce5e209dfbb43f741c388a54f73a48a72f5cf2f3c905a41bb58e669",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_trunk_window.gdc": {
+      "bytes": 6710,
+      "sha256": "32178c6ce35e55f1b144972b7200d204de826c2470426afdf62292515a6a76a6",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_weapon_crosshair.gd.remap": {
+      "bytes": 64,
+      "sha256": "e4eab8d947b43b3cecdc9544a0549a16bee3ee887fcd778385f1330f22a91815",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_weapon_crosshair.gdc": {
+      "bytes": 1785,
+      "sha256": "952b92b8ad13a94c1dde8c453fbb0de7003e7e6e040597bc20c0e57f6ba364c0",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_weapon_ui.gd.remap": {
+      "bytes": 57,
+      "sha256": "d0302ab97cc54f001c215fc9f7d304eec0549aab285e3ee9ef85248bf02ec95f",
+      "md5_verified": true
+    },
+    "scripts/weapons/walk_weapon_ui.gdc": {
+      "bytes": 9080,
+      "sha256": "9f349f2d533974cd088253cb13107830617382c363addf692a6c2cb36dc44955",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_aim_camera.gd.remap": {
+      "bytes": 60,
+      "sha256": "ef6e8ddec6e8fc792f60946f0208110c5018ae50b66d642b47d769aa89c50325",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_aim_camera.gdc": {
+      "bytes": 6982,
+      "sha256": "a8596655bf85b5cfc72d41053cafbdde03663dda07a0be4f78ff09ac0d34e5a0",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_cargo_bridge.gd.remap": {
+      "bytes": 62,
+      "sha256": "2d7a9742031e659f9b92d0f2c79d7d462ce78fa4a8bf90bba1eaef5afe815a63",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_cargo_bridge.gdc": {
+      "bytes": 8145,
+      "sha256": "85ebccb4e07608ccf4252f0f7bdb992b7f9df2d654cf1051ee32f18068472ebc",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_cargo_sizes.gd.remap": {
+      "bytes": 61,
+      "sha256": "3bf31f0461263090db8d72c120ec21e42df63dd7c816091bbd289850911f2669",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_cargo_sizes.gdc": {
+      "bytes": 2015,
+      "sha256": "0b2ce53347ebf636808557baecd00ad00cf85bc2c374a2b2f93dd3a1fd3c9f88",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_fire.gd.remap": {
+      "bytes": 54,
+      "sha256": "b708f75fb7bd7ccca776e0ee37806acd2abfcc09ea1de30504d220702ef3767e",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_fire.gdc": {
+      "bytes": 7880,
+      "sha256": "f048f56a5afe328e8357daba571f35ae137e4dd0733e51896a0f9132aebb121b",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_fire_profiles.gd.remap": {
+      "bytes": 63,
+      "sha256": "8ccbdf741e5992c08b323e3213600d138d11a3d6187e7b988c03b257712ce486",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_fire_profiles.gdc": {
+      "bytes": 10367,
+      "sha256": "851b95330e1902eab03b361f0048e14c2451d9810bd39b767489cffca3a29a29",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_hit_rules.gd.remap": {
+      "bytes": 59,
+      "sha256": "7d922fb0e279050b3b477d40d71550714751e1cc27e04f21fa39e8ecca5be8d3",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_hit_rules.gdc": {
+      "bytes": 8256,
+      "sha256": "fe020105223fb3ee897f65111e4b3c53fd740d0c922ab4690c09da1c5c1ed5ec",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_inventory.gd.remap": {
+      "bytes": 59,
+      "sha256": "1a0caaf062a9e027f4c056890f66502aff4ee4ac1e4fa72509dcc3a53302e1b6",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_inventory.gdc": {
+      "bytes": 11772,
+      "sha256": "c6b0002fcb899e63149ff88a0823056f950810ca11de38503eab7479a8973143",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_pickup_visuals.gd.remap": {
+      "bytes": 64,
+      "sha256": "7cfc70fe13f76e1c2353c12aeaf9bac9a2bceb8718ebf8f3cfc792b84c43916b",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_pickup_visuals.gdc": {
+      "bytes": 23631,
+      "sha256": "a4d6f58e2230d2868d762e002327a5ea8f34a8346ac9ebe1ab35875606630ebf",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_pose.gd.remap": {
+      "bytes": 54,
+      "sha256": "6f68c6e66f052efc01cbaf6915f0428e4a7c495ca65159ba3fa6ab020afef056",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_pose.gdc": {
+      "bytes": 13162,
+      "sha256": "9d5758688afb3d013f77d748e324def2471879ba1484b741a212456eb239c53d",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_posture_base.gd.remap": {
+      "bytes": 62,
+      "sha256": "04e54c5bad8b2aa88d2ba272e6db2dd6ccd574a8f002359bc80b61843e4954f0",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_posture_base.gdc": {
+      "bytes": 14763,
+      "sha256": "079bddf7ecfdd8f402d4cb72f20c1e1d5dda9b4b3c82a6242826947083eb46b6",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_projectiles.gd.remap": {
+      "bytes": 61,
+      "sha256": "af4607160c9459d498a94f8cbac872d48d1f42db4b27d34d7e206dbb280330f0",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_projectiles.gdc": {
+      "bytes": 16194,
+      "sha256": "f31c44a5b8c0aab9a4c0824ff3afc8fd536b2eeec0ad47f11a2aeb0b78d3413a",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_surface_impacts.gd.remap": {
+      "bytes": 65,
+      "sha256": "50e06b338d8048c227fa532bf64fd0d1f40dc050340f36673dc015e09936333f",
+      "md5_verified": true
+    },
+    "scripts/weapons/weapon_surface_impacts.gdc": {
+      "bytes": 8411,
+      "sha256": "2e256abc7c31b591aceb3d555794a37a7abe44f86f17d020c8647b173d99c0df",
+      "md5_verified": true
+    }
+  }
+}

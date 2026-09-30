@@ -1,0 +1,215 @@
+{
+	"capture_capability_probe": {
+		"read_back": 0,
+		"requested": 2,
+		"supported": false
+	},
+	"capture_samples": [
+		{
+			"free": true,
+			"label": "GUI_LMB_release_take",
+			"mode": 0
+		},
+		{
+			"free": true,
+			"label": "hover_E_take",
+			"mode": 0
+		},
+		{
+			"free": true,
+			"label": "held_LMB_E_take",
+			"mode": 0
+		}
+	],
+	"checks": [
+		{
+			"label": "actual_main_ready",
+			"ok": true
+		},
+		{
+			"label": "real_open_trunk_rear_access",
+			"ok": true
+		},
+		{
+			"label": "real_TT_equip",
+			"ok": true
+		},
+		{
+			"label": "real_store_exact_TT",
+			"ok": true
+		},
+		{
+			"label": "F_opens_modal_through_input",
+			"ok": true
+		},
+		{
+			"label": "real_visible_take_button",
+			"ok": true
+		},
+		{
+			"label": "release_mode_take_press_does_not_fire_or_take",
+			"ok": true
+		},
+		{
+			"label": "GUI_LMB_release_take_closed_modal",
+			"ok": true
+		},
+		{
+			"label": "GUI_LMB_release_take_logical_capture",
+			"ok": true
+		},
+		{
+			"label": "GUI_LMB_release_take_same_UID_equipped",
+			"ok": true
+		},
+		{
+			"label": "GUI_LMB_release_take_ammo_unchanged",
+			"ok": true
+		},
+		{
+			"label": "GUI_LMB_release_take_no_spurious_shot_or_latch",
+			"ok": true
+		},
+		{
+			"label": "GUI_LMB_take_next_deliberate_click_fires_exactly_once",
+			"ok": true
+		},
+		{
+			"label": "real_TT_equip",
+			"ok": true
+		},
+		{
+			"label": "real_store_exact_TT",
+			"ok": true
+		},
+		{
+			"label": "F_opens_modal_through_input",
+			"ok": true
+		},
+		{
+			"label": "real_visible_take_button",
+			"ok": true
+		},
+		{
+			"label": "native_mouse_hover_exact_UID",
+			"ok": true
+		},
+		{
+			"label": "hover_E_take_closed_modal",
+			"ok": true
+		},
+		{
+			"label": "hover_E_take_logical_capture",
+			"ok": true
+		},
+		{
+			"label": "hover_E_take_same_UID_equipped",
+			"ok": true
+		},
+		{
+			"label": "hover_E_take_ammo_unchanged",
+			"ok": true
+		},
+		{
+			"label": "hover_E_take_no_spurious_shot_or_latch",
+			"ok": true
+		},
+		{
+			"label": "hover_E_take_next_deliberate_click_fires_exactly_once",
+			"ok": false
+		},
+		{
+			"label": "real_TT_equip",
+			"ok": true
+		},
+		{
+			"label": "real_store_exact_TT",
+			"ok": true
+		},
+		{
+			"label": "F_opens_modal_through_input",
+			"ok": true
+		},
+		{
+			"label": "real_visible_take_button",
+			"ok": true
+		},
+		{
+			"label": "E_take_while_LMB_held_no_shot",
+			"ok": true
+		},
+		{
+			"label": "held_LMB_E_take_closed_modal",
+			"ok": true
+		},
+		{
+			"label": "held_LMB_E_take_logical_capture",
+			"ok": true
+		},
+		{
+			"label": "held_LMB_E_take_same_UID_equipped",
+			"ok": true
+		},
+		{
+			"label": "held_LMB_E_take_ammo_unchanged",
+			"ok": true
+		},
+		{
+			"label": "held_LMB_E_take_no_spurious_shot_or_latch",
+			"ok": true
+		},
+		{
+			"label": "held_LMB_E_take_next_deliberate_click_fires_exactly_once",
+			"ok": true
+		},
+		{
+			"label": "ordinary_free_cursor_first_click_captures_without_shot",
+			"ok": true
+		},
+		{
+			"label": "ordinary_capture_next_deliberate_click_fires_exactly_once",
+			"ok": false
+		},
+		{
+			"label": "real_TT_equip",
+			"ok": true
+		},
+		{
+			"label": "real_store_exact_TT",
+			"ok": true
+		},
+		{
+			"label": "F_opens_modal_through_input",
+			"ok": true
+		},
+		{
+			"label": "real_visible_take_button",
+			"ok": true
+		},
+		{
+			"label": "stale_take_rejected",
+			"ok": true
+		},
+		{
+			"label": "failed_take_remains_modal_no_round_spent",
+			"ok": true
+		},
+		{
+			"label": "range_invalidation_releases_both_capture_owners",
+			"ok": true
+		},
+		{
+			"label": "invalidation_no_latched_trigger",
+			"ok": true
+		}
+	],
+	"count": 45,
+	"display_server": "headless",
+	"elapsed_ms": 3994,
+	"errors": [
+		"hover_E_take_next_deliberate_click_fires_exactly_once",
+		"ordinary_capture_next_deliberate_click_fires_exactly_once"
+	],
+	"native_pointer_mode_status": "SKIP: direct headless setter is a no-op; root rendered acceptance required",
+	"scope": "Actual main + scheduled physics + Input.parse_input_event GUI Take LMB/E. Logical capture and immediate shooting behavior asserted. Native pointer mode only checked if direct mode setter works. No GPU or visual/performance claim."
+}

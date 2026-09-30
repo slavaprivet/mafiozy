@@ -1,0 +1,27 @@
+{
+  "status": "CAUSE_UNRESOLVED_SCOPED_GPU_TIMERS_PREPARED_NOT_RUN",
+  "measured_prior": {
+    "TT_controller_us": 38776,
+    "Nagan_controller_us": 3469,
+    "TT_following12GPU_max_ms": 3.551,
+    "TT_following12wall_max_ms": 30.995,
+    "critical_limit": "Prior first wall interval starts AFTER synchronous controller call, excludes38.776ms. GPU counters measure renderer, not that CPU interval."
+  },
+  "source_pins": {
+    "preview_weapon_cargo.gd": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+    "weapon_pickup_visuals.gd": "4300cf77d8b67e41b05703474f9b70409d218f3374641c6bc70d4c98994b934a",
+    "cargo_aim_picker.gd": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
+    "weapon_cargo_bridge.gd": "aab6cbaef99ce38abd21b2efc189a77925badc3ffd7246ae4c44971da2832264",
+    "walk_cargo_card.gd": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
+    "context_plate_layout.gd": "ec9a6f2686ffa5b40e3d73f5e12e613f985cd227d991f19514e14f4b4e0a45ca"
+  },
+  "findings": [
+    "Weapon TriangleMesh built in _make_row during placement; _triangle_mesh caches perweapon. First hover is not first construction of all14weapon BVHs.",
+    "Real aim_context already runs for camera finder immediately before timed controller, warming at least accepted pick and intersected car triangle meshes. No proof every future car mesh is warm.",
+    "Controller _process invokes aim_context then renderer.set_hover then bridge.actions; bridge.actions independently calls evidence/_sample which invokes aim_context again and duplicates snapshots. Thus38.776ms is NOT a set_hover measurement.",
+    "_bind_ui_layout is once-bound and compact world hint ran earlier, excluding its initial scene/lid walk as the newTT-first cause.",
+    "renderer.set_hover first assigns shared depth-tested material_overlay to10TT parts. Native material/pipeline first-use may stall; no pipeline samples exist in prior run, so not confirmed.",
+    "Component timers in harness16 call original methods, preserving original materials and authoritative context. Repeated queries are disclosed. First wall interval includes synchronous cold assignments; per-pipeline counters distinguish renderer compilation evidence when available."
+  ],
+  "required_next": "Root-only rendered16 proof and readback of scoped timers. Do not accept cold first-use cost based on headless tests, warmed frame percentiles, or hypothetical shader attribution."
+}

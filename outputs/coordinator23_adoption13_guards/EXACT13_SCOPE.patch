@@ -1,0 +1,28 @@
+--- candidate12/scripts/ui/walk_cursor.gd
++++ candidate13/scripts/ui/walk_cursor.gd
+@@ -1,9 +1,8 @@
+ extends RefCounted
+-## Small hardware cursors: one installation, no per-frame UI drawing or input interception.
+-const Arrow: Texture2D = preload("res://assets/ui/cursor_arrow.svg")
+-const Hand: Texture2D = preload("res://assets/ui/cursor_hand.svg")
+-
++## Hardware cursors installed once; no per-frame drawing or retained GPU textures.
+ static func install() -> void:
+ 	if DisplayServer.get_name() == "headless": return
+-	Input.set_custom_mouse_cursor(Arrow, Input.CURSOR_ARROW, Vector2(5, 3))
+-	Input.set_custom_mouse_cursor(Hand, Input.CURSOR_POINTING_HAND, Vector2(16, 3))
++	var arrow: Texture2D = load("res://assets/ui/cursor_arrow.svg")
++	var hand: Texture2D = load("res://assets/ui/cursor_hand.svg")
++	Input.set_custom_mouse_cursor(arrow, Input.CURSOR_ARROW, Vector2(5, 3))
++	Input.set_custom_mouse_cursor(hand, Input.CURSOR_POINTING_HAND, Vector2(16, 3))
+--- candidate12/scripts/weapons/preview_weapon_cargo.gd
++++ candidate13/scripts/weapons/preview_weapon_cargo.gd
+@@ -631,7 +631,7 @@
+ func _resume_window_controls()->void:
+ 	# Normal focused gameplay resumes immediately. Synthetic offscreen QA must
+ 	# not steal the desktop cursor; losing focus also suspends logical controls.
+-	if DisplayServer.get_name()=="headless" or get_window().has_focus():weapons.player.set_mouse_captured(true)
++	if DisplayServer.get_name()=="headless" or (get_window().has_focus() and not get_window().unfocusable):weapons.player.set_mouse_captured(true)
+ 	else:weapons.player.set_mouse_captured(false)
+ 
+ func window_input(event:InputEvent)->bool:

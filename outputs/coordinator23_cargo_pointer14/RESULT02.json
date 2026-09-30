@@ -1,0 +1,5 @@
+{
+  "checks": 277,
+  "errors": [],
+  "scope": "actual hatchback/inventory/cargo/14UID+ammo+UI buttons; source scene headless, no visual/GPU/perf claim"
+}

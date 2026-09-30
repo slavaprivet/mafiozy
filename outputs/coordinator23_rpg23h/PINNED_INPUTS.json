@@ -1,0 +1,465 @@
+{
+  "created_utc": "2026-09-30T09:49:31.507649+00:00",
+  "read_only": true,
+  "project_code_or_engine_run": false,
+  "git_run": false,
+  "shared_edits": false,
+  "source_audit_sha256": "ec97762af0837f53894f6885cf43f0d88c52ee184ae883b1247dff0c1589468f",
+  "inputs": [
+    {
+      "path": "world.html",
+      "bytes": 5109059,
+      "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5"
+    },
+    {
+      "path": "mafiozi_bot.py",
+      "bytes": 2018663,
+      "sha256": "76d5f192fa42fc16a9980adefcf9fd016f125f8606bb2b5bd517a2cd2dbebcb9"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_weapon_fire.mjs",
+      "bytes": 16543,
+      "sha256": "ae1a5b821b621cd2b0699c2f403a66f6f9f4de2bdbb5534a798d5dec2f95e4d8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/weapon_effects.mjs",
+      "bytes": 30378,
+      "sha256": "4dfa7adf47309b89dd1b87bb0776abd1b2385c15c24256b749b7c71dfa9ff7ec"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/world_walk_combat.mjs",
+      "bytes": 6878,
+      "sha256": "5c63d1ae01b033d28f9a22728a3a715821cf4f70e4b74c42b42810e70a5c3851"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/world_walk_health.mjs",
+      "bytes": 8499,
+      "sha256": "0feb4a66776ba0aa9ef8d35a804434a7ef7701981494e8833724b8473c5cc1ed"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "bytes": 252219,
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/blast_response.mjs",
+      "bytes": 5933,
+      "sha256": "c21ab9ed18c9e2ec4a4cd1502f4b327b5d32f9f676d528051359bf6dfccd0a15"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/vehicle_blast_motion.mjs",
+      "bytes": 4199,
+      "sha256": "7a33713e035dc69a117bf4d884e6ec2127c0aa627dd8314d4d5de184e4a48903"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_blast_record20_source.js",
+      "bytes": 1296,
+      "sha256": "3c9469433dfbf77b1ce1d6fc3e96dccd1f5f5d5185f4a2d874bda271ea432310"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_blast_presentation20.mjs",
+      "bytes": 4743,
+      "sha256": "9dd9afc9beb231958fbd9f7cc32eae0646185ec75f7abef07fefeb4ce4120223"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "bytes": 21513,
+      "sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/rpg_flight.gd",
+      "bytes": 13595,
+      "sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/rpg_effects.gd",
+      "bytes": 12515,
+      "sha256": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_inventory.gd",
+      "bytes": 18182,
+      "sha256": "e5d2448223b1356054c26402e2b71432facbd18b9dc89450f18501a81d5a1704"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_hit_rules.gd",
+      "bytes": 11136,
+      "sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_fire.gd",
+      "bytes": 10197,
+      "sha256": "55af8a7f8be7153b0e4530dfa5a5c46a567f2e38ca34096665bfd0c2831d8cb6"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_projectiles.gd",
+      "bytes": 21504,
+      "sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "bytes": 25828,
+      "sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "bytes": 10318,
+      "sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_hit_impulse.gd",
+      "bytes": 2135,
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd",
+      "bytes": 43374,
+      "sha256": "f14976f4c2611481e1edcfbb1a8f4026a016e6eb784f4f9a7d4e661ecd74620f"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/character_physics/player_impact_host.gd",
+      "bytes": 12018,
+      "sha256": "30ac8294109c165427719a3d045a8250dfb1507df7c29de07cb3a78b68480c24"
+    },
+    {
+      "path": "docs/ai/AGENT_HUB.md",
+      "bytes": 488672,
+      "sha256": "3cadca280521c253c82d82dced906628a6f816baf4a380674586cca990cd045f"
+    },
+    {
+      "path": "docs/godot/MIGRATION_BOARD.md",
+      "bytes": 51688,
+      "sha256": "cdead94dc1b60d43fda63bf8a121952e621d910cc1de6d2814eb0da594565d38"
+    },
+    {
+      "path": "docs/ai/RPG_NATIVE_IMPACT21_HANDOFF.md",
+      "bytes": 7077,
+      "sha256": "3e00a92a375b4d6ecbdcdbdb01733f1872fa7ae008cf0bc2c1dd5e58a6d25db1"
+    },
+    {
+      "path": "docs/ai/PLAYER_RPG_SERVER_CONTRACT21_AUDIT.md",
+      "bytes": 8384,
+      "sha256": "5c0c470c6290f82ace6d600a8ef2ff0ab420ea0a75f9415bd035af2496e23b69"
+    },
+    {
+      "path": "docs/ai/NPC_BLAST_SURVIVOR_PRIORITY21_HANDOFF.md",
+      "bytes": 5554,
+      "sha256": "b601b0210e5a98bf2c7146af3178e44eda5a419bd23f21cc5796556dd1109a2b"
+    },
+    {
+      "path": "outputs/coordinator23_rpg/REVIEW.md",
+      "bytes": 7991,
+      "sha256": "c7f8b6c8a14550409c0c334a0455c2c0985584c7196c90cb553a6d758b4fce9d"
+    },
+    {
+      "path": "outputs/coordinator23_rpg/build_oracle.mjs",
+      "bytes": 2844,
+      "sha256": "e38b640747874fdd144e1128335c012a87c5e7bac65eb8e72a4f7576277fce0c"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/RECEIPT.json",
+      "bytes": 3207,
+      "sha256": "381e354dc2da07cf10a4db96b08add948f624e8e55007a5486a92269b3e56b34"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/FROZEN_STAGE_DEPENDENCIES.json",
+      "bytes": 741,
+      "sha256": "0f39343660d5a70705f0f83bf121a60d07d5281e7652ea0198a8c76fa50d48a9"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional01_RESULT.json",
+      "bytes": 3431,
+      "sha256": "76b2355ff992017079e7eaa43925b90097eb63d5336297b57e26a7b89a63b632"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional01.log",
+      "bytes": 1406,
+      "sha256": "06cf2c3fc740cd17d6a6c4d365d01638474391fcc73a57974b9c7778d3c759eb"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional02_RESULT.json",
+      "bytes": 6349,
+      "sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional02.log",
+      "bytes": 2479,
+      "sha256": "9b14adff00f56513936e68aa724a23c94be00cfb872644ec69c12f9da03e3741"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/HANDOFF.md",
+      "bytes": 6841,
+      "sha256": "acd8300e99a1dbd37155775eee935850d51a552466daa4780b72a74cc76973c2"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/npc_ordinary_hit_lifecycle.gd",
+      "bytes": 10191,
+      "sha256": "24c4dd7988055b7d121043eff34ecae2889818cd12341fae05d801c1a0b5cce2"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/npc_rpg_blast_gate.gd",
+      "bytes": 15110,
+      "sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/prepare.py",
+      "bytes": 1368,
+      "sha256": "d362ad17d500b91343190b6e28ad54127b6f52d2f491da5210ec7a6baa7e9fc4"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/recipient_seam.gd.txt",
+      "bytes": 1624,
+      "sha256": "78e72e74a054c68012d5d77762a3cc116672cdee258369d0faed2e360ae08e49"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/RESULT.json",
+      "bytes": 6349,
+      "sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/root_hooks.gd.txt",
+      "bytes": 2987,
+      "sha256": "ccba936b61f39de6c332c9d356440b33738f4d3e032912cad9c6ae3a0ca9aa14"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/rpg_flight.gd",
+      "bytes": 13595,
+      "sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/run.py",
+      "bytes": 1505,
+      "sha256": "ecf2e4d3149eda1fe868245c6fdb80ab291e86e94804b5f9a39d5317339b9599"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar.gd",
+      "bytes": 897,
+      "sha256": "9c7b4aef57f2ff00f1241dfabdb294b793cb877ff2cadaaa70c3a980cacb528f"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar01_RESULT.json",
+      "bytes": 170,
+      "sha256": "204c00ce7dcc6bc7f476a19dab47561bd63a112ccddfaa8cd19a3739cb77c636"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar01.log",
+      "bytes": 500,
+      "sha256": "29e30cd3812946c7590f36bd2f643b1bc5486f991b246ed3b9dac11a8168519a"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar02_RESULT.json",
+      "bytes": 381,
+      "sha256": "42c0c38543c0bf50e271d88a850bd61a987f2e8b65556397a2fa405cb8b2d8b3"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar02.log",
+      "bytes": 277,
+      "sha256": "e33d69d10c8458b6b27548c7154f806ba0010d1aa7a964b5d3a3c5b223e404b2"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/SOURCE_MANIFEST.json",
+      "bytes": 1454,
+      "sha256": "00fc63ea9f13f71c472164d5a7817b192d739278ed44b6e32e3dbee89ef9dbcd"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/SOURCE_PARITY.json",
+      "bytes": 17608,
+      "sha256": "ff4d88405f705ea511fdbfc036dcd2efddbcc35ead5a27b1ce78567e903ddb6d"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/source_parity.mjs",
+      "bytes": 2852,
+      "sha256": "38947f972621e7c7c0dcdbe18e18dfb068cc174fad0853ef89511dcfcc749ebb"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/test.gd",
+      "bytes": 13415,
+      "sha256": "3e5177e9b3d1d523d979e2fdcb342d7f38d6a1850821021ad73f41ab3b66dc5e"
+    }
+  ],
+  "packet_receipt_entries_verified": [
+    {
+      "path": "outputs/artist23_rpg_damage/FROZEN_STAGE_DEPENDENCIES.json",
+      "bytes": 741,
+      "sha256": "0f39343660d5a70705f0f83bf121a60d07d5281e7652ea0198a8c76fa50d48a9",
+      "receipt_sha256": "0f39343660d5a70705f0f83bf121a60d07d5281e7652ea0198a8c76fa50d48a9",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional01_RESULT.json",
+      "bytes": 3431,
+      "sha256": "76b2355ff992017079e7eaa43925b90097eb63d5336297b57e26a7b89a63b632",
+      "receipt_sha256": "76b2355ff992017079e7eaa43925b90097eb63d5336297b57e26a7b89a63b632",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional01.log",
+      "bytes": 1406,
+      "sha256": "06cf2c3fc740cd17d6a6c4d365d01638474391fcc73a57974b9c7778d3c759eb",
+      "receipt_sha256": "06cf2c3fc740cd17d6a6c4d365d01638474391fcc73a57974b9c7778d3c759eb",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional02_RESULT.json",
+      "bytes": 6349,
+      "sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a",
+      "receipt_sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/functional02.log",
+      "bytes": 2479,
+      "sha256": "9b14adff00f56513936e68aa724a23c94be00cfb872644ec69c12f9da03e3741",
+      "receipt_sha256": "9b14adff00f56513936e68aa724a23c94be00cfb872644ec69c12f9da03e3741",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/HANDOFF.md",
+      "bytes": 6841,
+      "sha256": "acd8300e99a1dbd37155775eee935850d51a552466daa4780b72a74cc76973c2",
+      "receipt_sha256": "acd8300e99a1dbd37155775eee935850d51a552466daa4780b72a74cc76973c2",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/npc_ordinary_hit_lifecycle.gd",
+      "bytes": 10191,
+      "sha256": "24c4dd7988055b7d121043eff34ecae2889818cd12341fae05d801c1a0b5cce2",
+      "receipt_sha256": "24c4dd7988055b7d121043eff34ecae2889818cd12341fae05d801c1a0b5cce2",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/npc_rpg_blast_gate.gd",
+      "bytes": 15110,
+      "sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "receipt_sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/prepare.py",
+      "bytes": 1368,
+      "sha256": "d362ad17d500b91343190b6e28ad54127b6f52d2f491da5210ec7a6baa7e9fc4",
+      "receipt_sha256": "d362ad17d500b91343190b6e28ad54127b6f52d2f491da5210ec7a6baa7e9fc4",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/recipient_seam.gd.txt",
+      "bytes": 1624,
+      "sha256": "78e72e74a054c68012d5d77762a3cc116672cdee258369d0faed2e360ae08e49",
+      "receipt_sha256": "78e72e74a054c68012d5d77762a3cc116672cdee258369d0faed2e360ae08e49",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/RESULT.json",
+      "bytes": 6349,
+      "sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a",
+      "receipt_sha256": "70f2ab0586ffade82a680ddb3d9b6f14cfa65ec1fcb7e93fbb4c979fb346ff9a",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/root_hooks.gd.txt",
+      "bytes": 2987,
+      "sha256": "ccba936b61f39de6c332c9d356440b33738f4d3e032912cad9c6ae3a0ca9aa14",
+      "receipt_sha256": "ccba936b61f39de6c332c9d356440b33738f4d3e032912cad9c6ae3a0ca9aa14",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/rpg_flight.gd",
+      "bytes": 13595,
+      "sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+      "receipt_sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/run.py",
+      "bytes": 1505,
+      "sha256": "ecf2e4d3149eda1fe868245c6fdb80ab291e86e94804b5f9a39d5317339b9599",
+      "receipt_sha256": "ecf2e4d3149eda1fe868245c6fdb80ab291e86e94804b5f9a39d5317339b9599",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar.gd",
+      "bytes": 897,
+      "sha256": "9c7b4aef57f2ff00f1241dfabdb294b793cb877ff2cadaaa70c3a980cacb528f",
+      "receipt_sha256": "9c7b4aef57f2ff00f1241dfabdb294b793cb877ff2cadaaa70c3a980cacb528f",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar01_RESULT.json",
+      "bytes": 170,
+      "sha256": "204c00ce7dcc6bc7f476a19dab47561bd63a112ccddfaa8cd19a3739cb77c636",
+      "receipt_sha256": "204c00ce7dcc6bc7f476a19dab47561bd63a112ccddfaa8cd19a3739cb77c636",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar01.log",
+      "bytes": 500,
+      "sha256": "29e30cd3812946c7590f36bd2f643b1bc5486f991b246ed3b9dac11a8168519a",
+      "receipt_sha256": "29e30cd3812946c7590f36bd2f643b1bc5486f991b246ed3b9dac11a8168519a",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar02_RESULT.json",
+      "bytes": 381,
+      "sha256": "42c0c38543c0bf50e271d88a850bd61a987f2e8b65556397a2fa405cb8b2d8b3",
+      "receipt_sha256": "42c0c38543c0bf50e271d88a850bd61a987f2e8b65556397a2fa405cb8b2d8b3",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/scalar02.log",
+      "bytes": 277,
+      "sha256": "e33d69d10c8458b6b27548c7154f806ba0010d1aa7a964b5d3a3c5b223e404b2",
+      "receipt_sha256": "e33d69d10c8458b6b27548c7154f806ba0010d1aa7a964b5d3a3c5b223e404b2",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/SOURCE_MANIFEST.json",
+      "bytes": 1454,
+      "sha256": "00fc63ea9f13f71c472164d5a7817b192d739278ed44b6e32e3dbee89ef9dbcd",
+      "receipt_sha256": "00fc63ea9f13f71c472164d5a7817b192d739278ed44b6e32e3dbee89ef9dbcd",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/SOURCE_PARITY.json",
+      "bytes": 17608,
+      "sha256": "ff4d88405f705ea511fdbfc036dcd2efddbcc35ead5a27b1ce78567e903ddb6d",
+      "receipt_sha256": "ff4d88405f705ea511fdbfc036dcd2efddbcc35ead5a27b1ce78567e903ddb6d",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/source_parity.mjs",
+      "bytes": 2852,
+      "sha256": "38947f972621e7c7c0dcdbe18e18dfb068cc174fad0853ef89511dcfcc749ebb",
+      "receipt_sha256": "38947f972621e7c7c0dcdbe18e18dfb068cc174fad0853ef89511dcfcc749ebb",
+      "matches_receipt": true
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/test.gd",
+      "bytes": 13415,
+      "sha256": "3e5177e9b3d1d523d979e2fdcb342d7f38d6a1850821021ad73f41ab3b66dc5e",
+      "receipt_sha256": "3e5177e9b3d1d523d979e2fdcb342d7f38d6a1850821021ad73f41ab3b66dc5e",
+      "matches_receipt": true
+    }
+  ],
+  "all_packet_hashes_match": true,
+  "current23g_drift_from_old_packet_inspected_manifest": [
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "package_inspected_sha256": "511400c83252762db756971b7bb061aeaccde10a1d066e56c71c57648688b2a3",
+      "current_sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "package_inspected_sha256": "3cf0ee6b6fb667884a1538b63ca69edb7a62473c30a38138892ec2234eb42643",
+      "current_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "package_inspected_sha256": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e",
+      "current_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309"
+    }
+  ],
+  "notes": [
+    "No code from packet executed; stated445/88/18 are owner evidence.",
+    "RPG gate e6f94752 remains frozen; old recipient/lifecycle require current23g reconciliation."
+  ]
+}

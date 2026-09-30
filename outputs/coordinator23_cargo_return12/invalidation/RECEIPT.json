@@ -1,0 +1,10 @@
+{
+  "base_sha256": "cdf590013e5808a32b529fd75f3cd42c03f9dc6c3526560dc01e36f6f7c51c38",
+  "proposal_sha256": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+  "scope": "Only advance interaction-denial branch; no set_menu/arsenal changes; isolated copied scripts; large immutable assets hardlinked",
+  "cargo_focus": {
+    "base_sha256": "7a2e75fd95c53a056eb89db6c8c468cd907291c1cfc4097514bb11fbd157ec84",
+    "proposal_sha256": "9277a21bdbd6059de962ba866d046bf2871542358e4af4d9179d5377eeac9bb9",
+    "tested": "headless branch unchanged; actual nofocus rendered acceptance pending"
+  }
+}

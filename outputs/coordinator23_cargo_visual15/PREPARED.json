@@ -1,0 +1,9 @@
+{
+  "status": "READY_NOT_GPU_RUN",
+  "files": {
+    "capture.gd": "39736f5797f4da78092910c571b7ed940aaff163a9f0da77deced396b8bcdcdb",
+    "run_capture.py": "19f8425836797dd1a6a5a54206230924194f8945b1964c651ef83b55818a507c",
+    "README.md": "749f7c93a0b3e195cf79dde5bc5de7d43ef24c5711a15eea823812ee41b4b038"
+  },
+  "scope": "Same exact PCK SHA/receipt invocation; candidate15 cursor cleanup expected; pointer14 window remains exact. Root only GPU."
+}

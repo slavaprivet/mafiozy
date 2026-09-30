@@ -1,0 +1,142 @@
+[
+  {
+    "path": ".godot/exported/133200997/export-3ad5c15c4f3250da0cc7c1af1770d85f-main.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 693,
+        "array_elements": 1,
+        "array_begin": 517,
+        "array_end": 521
+      },
+      {
+        "decompressed_size": 693,
+        "array_elements": 1,
+        "array_begin": 517,
+        "array_end": 521
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "34e6db4839d9b0b95a87a5cc33d4d1bace40798e7186f8b24a813bd278791fb6"
+  },
+  {
+    "path": ".godot/imported/gun_shop.e97d6fac4097.glb-8de329855b9386dafb5ee0b3672e7308.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 1247177,
+        "array_elements": 196,
+        "array_begin": 1246221,
+        "array_end": 1247005
+      },
+      {
+        "decompressed_size": 1247177,
+        "array_elements": 196,
+        "array_begin": 1246221,
+        "array_end": 1247005
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "603a72162aa5d4e46020d2e7ee7e935510e03f0f95d3cef37fb6f31d1d5ab729"
+  },
+  {
+    "path": ".godot/imported/hero.glb-60b1dda00ac356d0d41e9d312bcd657c.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 567341,
+        "array_elements": 10,
+        "array_begin": 567129,
+        "array_end": 567169
+      },
+      {
+        "decompressed_size": 567341,
+        "array_elements": 10,
+        "array_begin": 567129,
+        "array_end": 567169
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "b6441d2aed463fbd5c3501350242b9b46933bf14b82d8194745aa164f9f0f0e4"
+  },
+  {
+    "path": ".godot/imported/lamp_bellini_v1.81c8b123ded3.glb-b84d3d66ea234dfc25d9a30c2a0b6ecb.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 70160,
+        "array_elements": 9,
+        "array_begin": 69952,
+        "array_end": 69988
+      },
+      {
+        "decompressed_size": 70160,
+        "array_elements": 9,
+        "array_begin": 69952,
+        "array_end": 69988
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "b2047f5da713d42334e897bd77ae709e051df7fa848f85f4d6a0da7982944be6"
+  },
+  {
+    "path": ".godot/imported/old_town_narrow_townhouse_v1.fd0178400e60.glb-51320986262831de1d5a09cd3d619fc1.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 204997,
+        "array_elements": 14,
+        "array_begin": 204769,
+        "array_end": 204825
+      },
+      {
+        "decompressed_size": 204997,
+        "array_elements": 14,
+        "array_begin": 204769,
+        "array_end": 204825
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "721d00c1e0507e5f5bfb1e98d58f37f2774defe578c8d7dd3b1ab994c54a134d"
+  },
+  {
+    "path": ".godot/imported/pawnshop.1a95f97569d9.glb-5ae0599955c699f94c733cdcbf4fdc5f.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 1160148,
+        "array_elements": 170,
+        "array_begin": 1159296,
+        "array_end": 1159976
+      },
+      {
+        "decompressed_size": 1160148,
+        "array_elements": 170,
+        "array_begin": 1159296,
+        "array_end": 1159976
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "7ba4351d293a07e6d4d7bd62428cc2ccf07266e1f28c94bdeccdd4fcd1ae5a2e"
+  },
+  {
+    "path": ".godot/imported/print_shop.ad7b8ef7e7e4.glb-2f9796d6c00706cbe0fd06b7ad488ffd.scn",
+    "only_changed_field": "PackedScene node_ids PackedInt32Array",
+    "metadata": [
+      {
+        "decompressed_size": 885335,
+        "array_elements": 118,
+        "array_begin": 884691,
+        "array_end": 885163
+      },
+      {
+        "decompressed_size": 885335,
+        "array_elements": 118,
+        "array_begin": 884691,
+        "array_end": 885163
+      }
+    ],
+    "all_other_decompressed_bytes_identical": true,
+    "normalized_sha256": "c1a406f11d30462c4d1fc5e386d89c30d353e3b6d38ba5fd3789d4348cd02b45"
+  }
+]

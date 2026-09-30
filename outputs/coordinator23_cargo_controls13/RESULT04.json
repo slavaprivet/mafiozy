@@ -1,0 +1,12 @@
+{
+  "native": {
+    "checks": 269,
+    "errors": [],
+    "scope": "actual hatchback/inventory/cargo/14UID+ammo+UI buttons; source scene headless, no visual/GPU/perf claim"
+  },
+  "os_capture": "SKIP: headless DisplayServer ignores CAPTURED setter; observed logicalfree=true controlsblocked=false; actualmovement withoutclick PASS; focusedGPU capture not tested",
+  "base": "candidate11 plus3 overlays; actual original inventory/cargo/transport, NPC disabled for component test",
+  "gpu": "NOT_RUN",
+  "world_picker_outline": "independent equip_audit owns merged proof",
+  "earlier_runs": "native01/02 capture assertions failed due Dummy; native02/03 test close-label mojibake repaired in04. No runtime changes between01 and04."
+}

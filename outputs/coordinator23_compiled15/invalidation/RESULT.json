@@ -1,0 +1,88 @@
+{
+	"capture_capability_probe": {
+		"read_back": 0,
+		"requested": 2,
+		"supported": false
+	},
+	"capture_samples": [],
+	"checks": [
+		{
+			"label": "actual_main_ready",
+			"ok": true
+		},
+		{
+			"label": "real_open_trunk_rear_access",
+			"ok": true
+		},
+		{
+			"label": "real_TT_equip",
+			"ok": true
+		},
+		{
+			"label": "source_fire_cooldown_settled_before_store",
+			"ok": true
+		},
+		{
+			"label": "real_store_exact_TT",
+			"ok": true
+		},
+		{
+			"label": "F_opens_modal_through_input",
+			"ok": true
+		},
+		{
+			"label": "real_visible_take_button",
+			"ok": true
+		},
+		{
+			"label": "scheduled_pose_denial_closes_modal",
+			"ok": true
+		},
+		{
+			"label": "scheduled_pose_denial_releases_controls",
+			"ok": true
+		},
+		{
+			"label": "phase_handoff_preserves_inventory_no_shot",
+			"ok": true
+		},
+		{
+			"label": "F_reopens_after_valid_control_reacquire",
+			"ok": true
+		},
+		{
+			"label": "Q_cargo_close_preserves_game_control",
+			"ok": true
+		},
+		{
+			"label": "next_Q_opens_arsenal",
+			"ok": true
+		},
+		{
+			"label": "Q_arsenal_close_preserves_control",
+			"ok": true
+		},
+		{
+			"label": "modal_ready_for_direct_arsenal_handoff",
+			"ok": true
+		},
+		{
+			"label": "arsenal_public_handoff_stays_eligible",
+			"ok": true
+		},
+		{
+			"label": "arsenal_selection_equips_after_handoff",
+			"ok": true
+		},
+		{
+			"label": "arsenal_equip_returns_to_control",
+			"ok": true
+		}
+	],
+	"count": 18,
+	"display_server": "headless",
+	"elapsed_ms": 6599,
+	"errors": [],
+	"native_pointer_mode_status": "SKIP: direct headless setter is a no-op; root rendered acceptance required",
+	"scope": "Actual main + scheduled physics + Input.parse_input_event GUI Take LMB/E. Logical capture and immediate shooting behavior asserted. Native pointer mode only checked if direct mode setter works. No GPU or visual/performance claim."
+}

@@ -1,0 +1,39 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "engine_runs": 0,
+  "gpu_runs": 0,
+  "files": {
+    "capture.gd": "50aaa930184a7a0d348f1c5dd587eaae2ef421a601d220478a17df47fd981f8d",
+    "compare.py": "2f96e7fbb5337d5d06bad69851e04a9e8fbc4deebf86f0e66786fb2ad21a0108",
+    "README.md": "5cd7c5da35cab59af704ec47e8387621949923cf0331d6c9137c9ad0bdd24639",
+    "run_pair_side.py": "669caeb24911f9ce27400d1ffc929b042fa88c3d5728f46006cdc415e5c04789"
+  },
+  "baseline_pck_sha256": "ae82e44c46cf3d5f420897c7e91d8a631691dbf4180d27c45342ff428916209e",
+  "validation": "Python helpers ast.parse only; GDScript statically reviewed, not executed",
+  "requested_content": {
+    "npc": 3,
+    "buildings": 8,
+    "colliders": 377,
+    "shapes": 377,
+    "stored_original_weapons": 14,
+    "capacity_used": 100
+  },
+  "frames_per_phase": 240,
+  "phases": 3,
+  "limits": [
+    "Prepared only; no performance results",
+    "Candidate must be root final accepted frozen SHA",
+    "Native input acceptance separate",
+    "Actual first-world-hover may be SKIP at fixed attached camera"
+  ],
+  "current_candidate15_pck_sha256": "133fe8dc70af97eee15fc4a069f11d1b87fb57ad0699d08e6e4bb07d520c329b",
+  "window": {
+    "nominal_position": [
+      -32000,
+      -32000
+    ],
+    "unfocusable": true,
+    "no_focus": true,
+    "actual_position_recorded": true
+  }
+}
