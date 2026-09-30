@@ -1,0 +1,63 @@
+{
+  "status": "ASTRA6_CONFIRMED_SOURCE_DEFECT_FIXED_AND_INCLUDED_CANDIDATE31_INACTIVE_IN_CURRENT_ORDINARY_PATH",
+  "astra": 6,
+  "thread_id": "6abc30c0-6318-83ea-8ded-c7f2c5d495fb",
+  "reply": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_astra_control\\dispatch01\\astra06_reply.txt",
+  "reply_sha256": "142172b1fd85fbcc578e702a3c3d219556bbb18a6ef516c03eadc89095bfeae3",
+  "finding": "Standalone npc_bullet_marks.gd discarded the accepted incoming center and chose frontmost local rim surface. Root overlay corrects both.",
+  "uptake": {
+    "candidate": 31,
+    "revision": "s01-20260930-quality24f",
+    "applied_resource": "scripts/npc_visual/npc_bullet_marks.gd",
+    "applied_sha256": "da1cdabe4aef421ffd1a14726009629f31aee9c932da8b1770fd7a87c661bf5a",
+    "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_rear_lights31\\ASSEMBLY31.json",
+    "assembly_sha256": "3309bf75e46aab302793fab686373e4e8597ed714efb01f631117fdea0f93945",
+    "delivery_sha256": "445071d58bd1e5e3c5631726c568387a3aa5c16c9a1f9d08a49811da37087507",
+    "all_272_source_pins_verified": true,
+    "pck_sha256_verified": "0bd000e02db726dd9e7eccff565982222ce8dc0ef5b950209edf0c0f600d945e",
+    "active_ordinary_three_npc_use_this_resource": false
+  },
+  "actual_source_binding": {
+    "scene_to_main": "scenes/main.tscn -> scripts/main.gd",
+    "main_to_population": "main.gd instantiates preview_population.gd then setup()",
+    "population_to_owner": "preview_population.gd creates npc_local_preview_hit_owner.gd",
+    "owner_to_adapter": "npc_local_preview_hit_owner.gd:18 Marks=preload(npc_postmortem_hit_marks_adapter.gd); :95 Marks.new(); :243 marks.receive(id,point,normal)",
+    "adapter_to_renderer": "npc_postmortem_hit_marks_adapter.gd:3 Renderer=preload(npc_postmortem_bullet_marks.gd); :23 Renderer.new(); :64 renderer.accept with genuine incoming direction",
+    "conclusion": "Living ordinary hits already use the prior fixed postmortem renderer. da1cd is an included separate maintenance correction, not a newly active living-hit change for current three NPCs."
+  },
+  "source_pins": {
+    "scripts/main.gd": "64e6b9b63c30583128f55be760a0fdf024133c7aa2e2a21ea0e916876cd118b8",
+    "scripts/preview_population.gd": "81e5031e40cdfc3ce06d1adb8de7ceef00602e027d472f03c554e3265a11a6d7",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "114b420d34fefbab4dcf9dc7260ad09d5a99ed24fc702573fdd4a8f0fbe8ca70",
+    "scripts/npc_visual/npc_postmortem_hit_marks_adapter.gd": "024702f325f699de2d5ba61482cc567523f7309f927371666faffe8c44f1c858",
+    "scripts/npc_visual/npc_postmortem_bullet_marks.gd": "a0138134cc1220650ddda9ef1f62da81d39274ca58b12baf355c53ac0d7986f6",
+    "scripts/npc_visual/npc_hit_marks_adapter.gd": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+    "scripts/npc_visual/npc_bullet_marks.gd": "da1cdabe4aef421ffd1a14726009629f31aee9c932da8b1770fd7a87c661bf5a"
+  },
+  "geometry_proof": {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_hit_precision\\live_overlay\\geometry01\\RUN.json",
+    "sha256": "9cb81fb4317b222ffd8db9dd1d56479c61eec7a39ceed545d77eab46d1b5c1a9",
+    "checks": 41,
+    "passed": true,
+    "actual_class": "separate npc_bullet_marks RefCounted",
+    "baseline_center_error_m": 0.12,
+    "overlay_center_error_m": 0,
+    "wrong_bone_corners_before": 288,
+    "wrong_bone_corners_after": 0
+  },
+  "bounded_harness_review": {
+    "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_hit_precision\\test_uzi_precision.gd",
+    "source_sha256": "8dc9e176259a44b5f4acfe3bb419984309caf27f833081146514219c150f892c",
+    "existing_living_shots": true,
+    "headless_living_precision_hook": false,
+    "reason": "Existing harness rejects headless backend and awaits frame_post_draw; check_precision reads last_postmortem only. Root-authorized fallback source review used; no new broad harness."
+  },
+  "new_engine_runs": 0,
+  "GPU_runs": 0,
+  "production_files_changed": 0,
+  "unverified": [
+    "Compiled31 native living projectile and living precision not re-tested in this task.",
+    "Full-scene GPU/FPS not tested."
+  ],
+  "prior_report_correction": "Earlier separate-class geometry PASS must not be described as proof that current ordinary production uses that separate live class."
+}

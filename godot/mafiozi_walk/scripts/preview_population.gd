@@ -161,7 +161,7 @@ func setup_final_dead_contact(player: CharacterBody3D, measured_limits: Dictiona
 	var capabilities: Variant = residents.public_final_dead_contact_capabilities()
 	if not capabilities is Array or capabilities.is_empty():
 		return {"ok":false, "reason":"public_capabilities_missing"}
-	var script: Script = load("res://scripts/npc_visual/final_dead_contact_port.gd")
+	var script: Script = load("res://scripts/npc_visual/final_dead_contact_v2.gd")
 	if script == null: return {"ok":false, "reason":"contact_port_missing"}
 	var port: RefCounted = script.new()
 	var result: Dictionary = port.configure(player, capabilities, measured_limits)
@@ -179,3 +179,23 @@ func admit_player_final_dead_contact(request: Dictionary) -> Dictionary:
 	if _disposed or _final_dead_contact_port == null:
 		return {"ok":false, "reason":"population_contact_unbound"}
 	return _final_dead_contact_port.admit_player_final_dead_contact(request)
+
+
+## Pure cold advertisement; no owner registration or part-filter mutation.
+## Called before transport setup. V1 ports have no method and remain unchanged.
+func final_dead_contact_startup_contract() -> Dictionary:
+	if _disposed or status != "not_loaded": return {}
+	var script: Script = load("res://scripts/npc_visual/final_dead_contact_v2.gd")
+	if script == null: return {}
+	var probe: RefCounted = script.new()
+	var advertised: Variant = probe.call("player_final_dead_block_contract") if probe.has_method("player_final_dead_block_contract") else {}
+	var contract: Dictionary = advertised.duplicate(true) if advertised is Dictionary else {}
+	if probe.has_method("dispose"): probe.dispose()
+	return contract
+
+
+## Actual registered port must repeat the same negotiated static contract.
+func player_final_dead_block_contract() -> Dictionary:
+	if _disposed or _final_dead_contact_port == null or not _final_dead_contact_port.has_method("player_final_dead_block_contract"): return {}
+	var advertised: Variant = _final_dead_contact_port.call("player_final_dead_block_contract")
+	return advertised.duplicate(true) if advertised is Dictionary else {}

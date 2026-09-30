@@ -1,5 +1,145 @@
 # Координатор 24 — действующая память
 
+## 30 сентября 21:12 — actual user24f feedback, три узких исправления32 в работе
+
+Пользователь сам смотрит24f PID43856; скрин21:09 подтвердил фактическое открытие.
+Показал два дефекта: застревание снизу у прорубленного013 и отделение блоков примерно
+через1сек после вспышки. В21:12 новыйскрин: AK74, камера резко вниз вплотнуюктрупу,
+новыхдырнет. Не объяснять это разбросом и не ссылаться на старый Uzi75 как опровержение.
+Current limited3NPC/printshop признано; остальныеNPCмеханики не объявлятьготовыми.
+
+Root32 subagents: rpg_resume_audit — validated small static step (105/106mm floor lip),
+without shrinking capsule/wall/corpse collision; cargo_input_fix — real RPGimpact→queue→
+commit→debris latency. Owner подсказал compound_runtime Blocks.advance(...,1,1000)
+каквероятный bottleneck, подтвердитьtrace и boundedbudget. glass_optimization — closeAK
+actual shotterminal/markadmission, priority вышеgenericAstra7review. Все isolated32 от31,
+без shared/GPU; короткиеheadlessfunctional разрешены рядомобычной43856 безFPSclaims.
+Buildings2 по новому прямому поручению своего пользователя возвращает приоритет к
+старому хорошо видимому localblast/разлёту, сложныйsupportcollapse сохраняет isolated.
+
+Gitcheckpoint24f staged88paths, ещё НЕcommit: diffcheck обнаружил ровно один trailingtab
+в frozen imported owner/modules/convex_source.gd:117. Это известный whitespace исходного
+пакета, не runtimefailure; не менятьпроверенныеSHAрадикосметики. Индексдоstageпуст.
+Старая нулевая .git/index.lock от19:45 проверенаexclusive/noactivegitи сохранена как
+delivery24f/index.lock.stale; чужихпроцессовнеостанавливали. Shortcuts двух старых
+root/daynight + новый «Мафиози — последняя версия» ведут в unified24f; backupsсохранены.
+
+## 30 сентября 21:09 — 24f проверена с графикой, объединена и открыта пользователю
+
+Текущая ordinary игра **PID43856**, launcher session65628 с WaitForExit:
+`outputs/coordinator24_delivery24f/launch.ps1`, binary `play/MafioziPreview.exe` рядом.
+Открыто в21:08:31MSK; responding=true, MainWindowHandle19859296, readiness8buildings/3NPC,
+rear=true/daynight=true, stderr пуст. Без QA/installer. Прежняя41296 закрыта root
+последовательно после подготовки готовой24f; одна GPUигра плюс Manager45268.
+PCK `0bd000e02db726dd9e7eccff565982222ce8dc0ef5b950209edf0c0f600d945e`.
+Root применил guarded promotion8paths, все чужие source файлы сохранены.
+
+Compiled GPU31 `outputs/coordinator24_rear_lights31/gpu01`:38PASS,28.063s,0errors,
+272source/PCK unchanged. Все6настоящих кадров просмотрены: off/tail/brake/reverse
+и matchedreversebeam off/on. Исходные NPC/8зданий/коллизии сохранены; для отдельного
+сравнения света машина фиксирована, реальные driving/exitinput проверены до fixture.
+p50/p95 безновогомодуля6.956/9.875ms,reverse7.059/9.798ms; противoff-before/after
+p95 delta+.013ms, memory +53344bytes. Firstactivationmax tail9.145/brake10.671/
+reverse9.966ms. Заметнойрегрессии в тестовомквартале не выявлено,не wholecityFPS.
+GPUquiet RELEASED; ownerBuildings2 и штаб уведомлены, можно boundedheadless безFPS
+рядомordinary. Не заменять ordinary24f старой24d/daynight owner preview.
+Streetlamps ещё ownerWIP; fullcollapse owner wholehouseproof ещё pending.
+
+Передпочасовым scopedcheckpoint подготовлен exact85pathlist
+`outputs/coordinator24_delivery24f/CHECKPOINT_FILELIST.txt`, indexбылпуст.
+Новое GPU acceptance добавить перед commit. Последнийremote покаcaf5a8d…;
+остальные WIP не включать. Current actor marks alreadyfixed общийpostmortemrenderer;
+alternate Astra6file включён какsourcefix, не новый активныйNPCeffect.
+
+## 30 сентября 21:00 — готова объединённая 24f; 24e остаётся в окне до последовательного обновления
+
+Последний подтверждённый ordinary game PID41296: compiled24e PCK
+`65cc360a59e53896c9404f44ac4fcd81227ee3876de555362e130d91c6263043`,
+launcher `outputs/coordinator24_delivery24e/launch.ps1`, session5847 с WaitForExit.
+Manager45268 сохранять. Старые PID ниже исторические. В предыдущем turn пользователь
+остановил Computer Use клавишей Esc; окно не активировано, игра остаётся запущена.
+24e уже содержит разрушение стен townhouse013, physical debris, corpse28 collision/nudge,
+NPC printshop visits, день/ночь. Rear lights в 24e отсутствовали — пользователь просит
+вернуть все готовые изменения в единую обычную игру.
+
+24e promotion58paths выполнен, `outputs/coordinator24_delivery24e/PROMOTION.json`.
+Git всё ещё main/caf5a8d63e2a86d584517b2a8c255a1066449f47: новый scoped checkpoint pending.
+Несвязанные owner WIP сохранять; не git add all. Runtime58filelist в delivery24e.
+
+Готов candidate31/24f, 272pins: `outputs/coordinator24_rear_lights31/ASSEMBLY31.json`
+SHA `3309bf75e46aab302793fab686373e4e8597ed714efb01f631117fdea0f93945`.
+PCK `0bd000e02db726dd9e7eccff565982222ce8dc0ef5b950209edf0c0f600d945e`,
+`outputs/coordinator24_quality/candidate31/godot/mafiozi_walk/exports/win64/s01-20260930-quality24f`.
+DELIVERY31.json: export421resources, sourceunchanged; native02 33/33 PASS / 0errors.
+7existing+1new vs30: latest rear7scripts (onlyhooknotesblock removed), live mark precision,
+revision/5notes/export and modularhost teardown lifetimeguard. Native01 воспроизвёл
+reload crash3221226356: parented prefab ужеoutside-tree free() во время parent teardown.
+Теперь parented always queue_free; native02 reload PASS. Не утверждать этим причину
+всех прежних исчезновений окон. Combined31 GPU ещё pending; исходный ownerrear GPU35PASS.
+Source/shared promotion31 ещё НЕ выполнен. Cargo готовит guarded8path promotion/launcher.
+
+Postmortem24d precision уже в игре. Astra6 выявил тот же отдельный дефект живого renderer:
+`outputs/coordinator24_hit_precision/live_overlay`, npc_bullet_marks SHA
+`da1cdabe4aef421ffd1a14726009629f31aee9c932da8b1770fd7a87c661bf5a`.
+41geometryPASS: baseline120mm shift/288wrongbones -> 0/0; candidate31 включает.
+Audit31 уточнил: этот отдельный renderer в текущей ordinary NPC цепочке НЕ создаётся.
+Живые и мёртвые текущие NPC используют уже исправленный postmortem renderer через
+npc_local_preview_hit_owner -> npc_postmortem_hit_marks_adapter. Новый эффект от
+запасного live файла не заявлять. `outputs/coordinator24_astra_control/ASTRA6_ACCEPTANCE31.json`.
+
+Passage30 GPU02 ранее FAIL2 (third aimguard и W/Space), 2настоящих RPG, 1095checks,
+postfiremax22.377ms, p95~7.49ms, cold loading1.645s отмечено. Не переписывать FAIL.
+Followup headless run02 теперь PASS565 / 23.16s: 3native RPG и 3terminals, реальный
+потолок1.95->2.60m, W+одинSpace дал56nativejumpframes и вход1.55m. Runtime НЕ менялся.
+`outputs/coordinator24_building30/passage_diagnosis`: GPU02 aimfailure пока не воспроизведён
+и не объяснён. Между полом.105 и прежним lintel1.95 физически1.845m<капсула1.9m.
+Full collapse НЕ готов: Buildings2 support-ready013 отдельный пакет, исправляет настоящий
+межэтажный зазор1–2float32ULP, epsilon не ослабляет. Frozen013/33/root30 не менять.
+
+Астра: `outputs/coordinator24_astra_control/dispatch01/STATUS.json`: 9заданий доставлены,
+9ответов приняты; Астра8 после3timeout недоступна, не писать «работают все10».
+Полезный подтверждённый результат6 выше; неподтверждённые optimizations не включены.
+По прямому позднему разрешению пользовательских сообщений root координирует существующих
+Астра1–10. Heartbeat `astra-walk` ACTIVE15min / failed_runs_only, никаких новых чатов.
+Художник24 владеет NPC, Buildings2 геометрией/каскадом. Root принимает их отчёты из штаба.
+Последний Artist24 run13: два service canary PASS14 (shop/bank), но logic p95 8.926ms,
+max79.085ms, city287/FPS/LIVE не приняты — не включать полныйгород как готовый.
+Quickcontrols owner готовит streetlamps (ещё не приняты) поверх24e: root уведомил штаб
+о31/rear/lifetime и единственном GPU окне; не возвращать старую24d со светом отдельно.
+
+## 30 сентября 20:04 — 24d опубликована, текущая игра с днём/ночью, townhouse013 принят в работу
+
+Remote main verified `caf5a8d63e2a86d584517b2a8c255a1066449f47`: precision24d
+опубликована после actual Uzi PASS75. Текущая обычная игра PID9352: тот же PCK
+`21c0c2799589fe19b3c506fe8b3d0fc304f4a3f1701ec43013e8c9a3c506e63f` плюс
+`outputs/day_night_20260930/delivery24d/play.gd`. Владелец нового света
+`01a0f312-f657-77d2-9d75-77b6046985b2`; final RECEIPT/HANDOFF прочитаны.
+N — плавный день/ночь, T — пауза визуального времени. 38 functional GPU PASS;
+свет лица/луна/фары сохранены. Для следующей сборки шесть quick_controls файлов,
+в scene_hook удалить только локальную подмену notes.setup; root main задаёт notes.
+Субагент glass_optimization готовит pinned additive overlay для candidate30.
+Manager45268 сохранять. Не открывать второй GPU рядом9352.
+
+Glass pair06: base26/warm29 сравнение qualified, first blast176.501→63.685ms,
+rim bind116.857→.001ms; всё ещё заметный hitch/HOLD. First warm guard отказал
+из-за чужого43512, поэтому overlap не было; повтор warm02 завершён. Candidate03
+CPU742PASS, маленькое дополнение weld cache, не GPU/production PASS.
+
+Corpse28 rebased24d:227pins, startup123PASS, исправлен outside-tree lease teardown.
+Actual TT death/16original shapes проверены, физический pressure test pending.
+Не требовать all16sleep: естественно awake части имеют 0.007–0.012м/с.
+Пока пользовательская9352 НЕ включает collision/nudge28.
+
+Buildings2 сдал immutable current-townhouse013 companion RECEIPT SHA
+`437c871355cdc641e91d3d177e8454293ed94cea2d2875155e2f8b77be2dfa0a`, prefab
+`abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485`.
+116parts/1392tri/4surfaces, сохранён world frame; reuse frozen33 adc588….
+Actual root2 hulls заменить только после проверки, остальные7домов/3NPC сохранить.
+Cargo_input_fix строит candidate30 и actual RPG/W тест. Owner binder106PASS —
+лишь fixture, native gameplay ещё не проверен. 22glazing/2entry connectors pending.
+Full collapse НЕ реализован. Library78 companion930d86… — только библиотека,
+массово не включена. Root запросил точный список owner anchors/glazing для013.
+
 ## 30 сентября 19:40 — исправление попаданий24d проверено и открыто
 
 Compiled27 Uzi01 PASS75/0errors,4nativecontacts, naturaldeath +3postmortem,

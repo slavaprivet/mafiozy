@@ -6,6 +6,8 @@ const SURFACE_DATA := "res://data/weapons/surface_effect_meshes.json"
 const SURFACE_SHA := "b968eb74064b3028cdcdbce0336ac90b174e5c2c98f9d2417905a1da0dd9a0c1"
 const EXPLOSION_CAP := 6
 signal cosmetic_impact(receipt: Dictionary)
+## Observation only; the admitted world-damage bridge owns local consequences.
+signal native_impact(receipt: Dictionary)
 var _host: WeakRef
 var _root: Node3D
 var _flight: RefCounted
@@ -126,6 +128,8 @@ func _impact(receipt: Dictionary) -> void:
 	var hit: Dictionary = receipt.hit
 	if hit.get("hit",false):
 		cosmetic_impact.emit({"weaponId":"rpg","shotId":receipt.shot_id,"point":receipt.point,"normal":receipt.normal,"direction":receipt.direction,"collider":hit.get("collider"),"projectile_kind":"rocket","explosive":true,"cosmetic_only":true})
+
+	if _live(): native_impact.emit(receipt.duplicate(true))
 
 func _spawn_explosion(point: Vector3) -> void:
 	var entry: Dictionary = _explosions[_cursor%EXPLOSION_CAP]; _cursor += 1

@@ -3,6 +3,7 @@ extends Node
 ## No update loop: body parenting keeps both beams attached while driving.
 const LIGHT_RANGE_M := 22.0
 const LIGHT_ENERGY := 24.0
+const NIGHT_LIGHT_ENERGY := 7.0
 var enabled := false
 var lights: Array[SpotLight3D] = []
 var lamps: Array[MeshInstance3D] = []
@@ -107,6 +108,12 @@ func toggle() -> bool:
 		material.emission_enabled = enabled
 	return true
 
+func set_daylight(daylight: float) -> void:
+	if not is_finite(daylight): return
+	var energy := lerpf(NIGHT_LIGHT_ENERGY, LIGHT_ENERGY, clampf(daylight, 0.0, 1.0))
+	for entry: Variant in lights:
+		if is_instance_valid(entry): entry.light_energy = energy
+
 func _clear() -> void:
 	enabled = false
 	for entry: Variant in lights:
@@ -117,7 +124,8 @@ func _clear() -> void:
 			beam.queue_free()
 	lights.clear()
 	for record: Dictionary in _original_overrides:
-		if not is_instance_valid(record.get("lamp")): continue
+		if not is_instance_valid(record.get("lamp")):
+			continue
 		var lamp: MeshInstance3D = record.lamp
 		if is_instance_valid(lamp):
 			lamp.set_surface_override_material(record.surface, record.material)

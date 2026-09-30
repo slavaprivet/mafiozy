@@ -20,3 +20,5 @@ func _attach() -> void:
 		return
 	status = "ready"
 	print("QUICK_CONTROLS_READY B=look_back H=driver_horn F=driver_headlights lights=", controls.headlights.lights.size())
+	print("REAR_LIGHTS_READY ", controls.rear_lights.ready_for_play)
+	print("DAY_NIGHT_READY N=day_night T=pause day_sec_per_hour=300 night_sec_per_hour=150 hour=", controls.day_clock.hour, " lighting=", controls.day_night.enabled)

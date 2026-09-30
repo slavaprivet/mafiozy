@@ -1,0 +1,28 @@
+{
+  "status": "EXPORTED_NATIVE33PASS_READY_FOR_ROOT_OPEN",
+  "assembly_sha256": "3309bf75e46aab302793fab686373e4e8597ed714efb01f631117fdea0f93945",
+  "source_count": 272,
+  "all_source_unchanged_after_export": true,
+  "build_receipt": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate31\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24f\\build_receipt.json",
+  "build_receipt_sha256": "fa27ab4d982ce86c9d177bb66e885edb13f4c9864a9650645c063185ec7a2ad2",
+  "pck": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate31\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24f\\MafioziPreview.pck",
+  "pck_sha256": "0bd000e02db726dd9e7eccff565982222ce8dc0ef5b950209edf0c0f600d945e",
+  "exe": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate31\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24f\\MafioziPreview.exe",
+  "exe_sha256": "d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562",
+  "pack_inventory_count": 421,
+  "required_resource_names": [
+    "car_rear_lights",
+    "day_night",
+    "day_night_clock",
+    "npc_bullet_marks"
+  ],
+  "headless_run_sha256": "857a11f1f4b501ff233acb570837a4bf7bb01a474bef0153852251d19e543d65",
+  "checks": 33,
+  "engine_errors": false,
+  "runtime_ordinary_rear_verified": true,
+  "living_renderer_native_GPU_verified": false,
+  "current_combined_GPU_verified": false,
+  "lifetime_fix": "Parented modular prefab queue_free even after leaving tree; native01 reloadcrash observed, native02 noerrors",
+  "parented_before_sha256": "38c7f5bc441b7cc673848781d616a9cc5bbc9d0052f5ece69ba2236d412ca89b",
+  "parented_after_sha256": "1994f8f39bd11d714edaca0317f611287ec7f28f0c7fe8fd67d876a684a8392e"
+}

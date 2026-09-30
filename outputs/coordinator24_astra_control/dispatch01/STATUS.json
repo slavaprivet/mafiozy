@@ -1,0 +1,102 @@
+{
+  "created_utc": "2026-09-30T17:44:02.360Z",
+  "dispatched": 9,
+  "replies": 9,
+  "delivery_failed": [
+    8
+  ],
+  "production_edits": 0,
+  "GPU_runs": 0,
+  "tasks": [
+    {
+      "astra": 1,
+      "threadId": "6abc2f7c-c5d4-83ea-a87d-6b15d4123a95",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra01_prompt.txt",
+      "reply_file": "astra01_reply.txt",
+      "review": "Proposed lazy per-call MultiMesh geometry-info memo; source-valid; effect UNKNOWN, no runtime test."
+    },
+    {
+      "astra": 2,
+      "threadId": "6abc307b-8348-83ea-9676-95b4722accd5",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra02_prompt.txt",
+      "reply_file": "astra02_reply.txt",
+      "review": "DO NOT INTEGRATE generation pin: group.generation increments on every ordinary committed cut (collision_groups.gd:77), while conservative old-hull NAV map intentionally remains valid."
+    },
+    {
+      "astra": 3,
+      "threadId": "6abc30a2-ddc8-83ea-9480-4adbbbb456d1",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra03_prompt.txt",
+      "reply_file": "astra03_reply.txt",
+      "review": "No demonstrated ordinary lifecycle bug: real navigation cancel synchronously erases its records; supplied response was conditional on async/failing cancellation."
+    },
+    {
+      "astra": 4,
+      "threadId": "6abc30af-72a4-83ea-913d-457ef7394129",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra04_prompt.txt",
+      "reply_file": "astra04_reply.txt",
+      "review": "Presentation-only fitting proposal, exact two deltas; original visual node IDs/orientations/composite structure missing. NOT_READY_FOR_APPLY."
+    },
+    {
+      "astra": 5,
+      "threadId": "6abc30bc-38d8-83ea-9b0f-402fbe8f039d",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra05_prompt.txt",
+      "reply_file": "astra05_reply.txt",
+      "review": "Three integration-risk checks only. Existing Uzi75/corpse61 valid. N while RMB may intentionally be disallowed, so do not demand toggle there."
+    },
+    {
+      "astra": 6,
+      "threadId": "6abc30c0-6318-83ea-8ded-c7f2c5d495fb",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra06_prompt.txt",
+      "reply_file": "astra06_reply.txt",
+      "review": "CONFIRMED and fixed in isolated live_overlay: actual live renderer 41 geometry checks PASS, baseline120mm shift to exact0, wrongbone288 to0. Full native living gameplay NOT_RUN; root owns integration."
+    },
+    {
+      "astra": 7,
+      "threadId": "6abc30c5-6468-83ea-9f09-21a3951cd937",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra07_prompt.txt",
+      "reply_file": "astra07_reply.txt",
+      "review": "Proposed terminal attempts early-exit; current caller max257 admissions vs cap512, likely no gain in shown single setup. Does not solve path_point_off_native_map."
+    },
+    {
+      "astra": 8,
+      "threadId": "6abc30c7-3868-83e9-a47f-978b3886f344",
+      "dispatch": "FAILED_LOAD_TIMEOUT_AFTER_3_ATTEMPTS",
+      "reply": "NONE",
+      "prompt": "astra08_prompt.txt",
+      "reply_file": null,
+      "review": "DELIVERY_FAILED after three ChatGPT load timeouts, no acknowledgement/reply. No further retry yet."
+    },
+    {
+      "astra": 9,
+      "threadId": "6abc30c7-4bdc-83ea-bf3c-081ec01fdb5c",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra09_prompt.txt",
+      "reply_file": "astra09_reply.txt",
+      "review": "Pure foundation reachability validator only, no new collapse runtime. Owner design already requires this invariant. NOT_RUN."
+    },
+    {
+      "astra": 10,
+      "threadId": "6abc2d25-0460-83ea-a995-1482c8cdd336",
+      "dispatch": "ACKNOWLEDGED",
+      "reply": "SAVED",
+      "prompt": "astra10_prompt.txt",
+      "reply_file": "astra10_reply.txt",
+      "review": "Standalone PowerShell relative preload/load closure guard proposed, no auto inclusion; not parsed/run/applied yet."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+godot/mafiozi_walk/data/preview_updates.json
+godot/mafiozi_walk/export_presets.cfg
+godot/mafiozi_walk/scripts/destruction/modular30/modular30_host.gd
+godot/mafiozi_walk/scripts/main.gd
+godot/mafiozi_walk/scripts/npc_visual/npc_bullet_marks.gd
+godot/mafiozi_walk/scripts/quick_controls/car_rear_lights.gd
+godot/mafiozi_walk/scripts/quick_controls/quick_controls.gd
+godot/mafiozi_walk/scripts/quick_controls/scene_hook.gd

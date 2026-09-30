@@ -1,0 +1,5 @@
+{
+  "before_sha256": "542213915a5c139ffbc73f5af3c2ad2189b23bee4bacfa67acf55975fa2bc27f",
+  "after_sha256": "7364b6f2598576a596bf622e2eb985d70020081b279d52c9312d710aa260110f",
+  "only_change": "Remove the single GPU early quit. Original 60s watchdog, every assertion, native inputs, four lighting captures, two paired captures, fixed-car-only cost comparison retained. No installer. No engine run."
+}

@@ -75,6 +75,9 @@ var _ground_move_serial: int = 0
 var _ground_move_pose_epoch: int = -1
 var _ground_move_start := Vector3.ZERO
 var _ground_move_end := Vector3.ZERO
+var _ground_move_pressure: Dictionary = {}
+var _final_dead_block_contract: Dictionary = {}
+var _final_dead_pressure_enabled := false
 
 
 ## Only the actual completed normal movement path can publish this receipt.
@@ -86,12 +89,134 @@ func completed_ground_move_receipt() -> Dictionary:
 
 ## Optional public NPC contact owner; no queries when unbound.
 func set_final_dead_contact_owner(ready_hook: Callable, admit_hook: Callable) -> bool:
+	if _final_dead_pressure_enabled: return false
 	_corpse_contact_sampler = null
 	if not ready_hook.is_valid() or not admit_hook.is_valid(): return false
 	var sampler: RefCounted = load("res://scripts/player_corpse_contact.gd").new()
 	if not sampler.configure(ready_hook, admit_hook): return false
 	_corpse_contact_sampler = sampler
 	return true
+
+
+## Startup negotiation is read-only for physics filters. Support probes keep
+## their original world mask; activation happens after the owner is registered.
+func prepare_final_dead_block_contract(contract: Dictionary) -> bool:
+	if _final_dead_pressure_enabled or not _final_dead_block_contract.is_empty() or _ground_move_serial != 0: return false
+	if _pose_authority != &"on_foot" or collision_layer != 2 or collision_mask != 1 or not _jump.is_empty(): return false
+	if not _valid_final_dead_block_contract(contract): return false
+	_final_dead_block_contract = contract.duplicate(true)
+	return true
+
+
+func _valid_final_dead_block_contract(contract: Dictionary) -> bool:
+	var expected := {"ok":true, "schema":"npc_final_dead_contact/v2", "blocking_bit":1024, "part_layer":1280, "part_mask":257, "player_layer":2, "world_support_mask":1, "movement_mask":1025, "engine_hash":"ed1daf0bf001b61586d9930840f2f1394092c079", "physics_backend":"GodotPhysics3D"}
+	for key: String in expected:
+		if not contract.has(key) or typeof(contract[key]) != typeof(expected[key]) or contract[key] != expected[key]: return false
+	if str(Engine.get_version_info().get("hash", "")) != expected.engine_hash: return false
+	return str(ProjectSettings.get_setting("physics/3d/physics_engine", "DEFAULT")) in ["DEFAULT", "GodotPhysics3D"]
+
+
+## The NPC port reads this itself during configure; it does not trust a caller's
+## request to assert that root negotiated or activated a different movement mask.
+func final_dead_block_contract_receipt() -> Dictionary:
+	if _final_dead_block_contract.is_empty(): return {}
+	return {"contract":_final_dead_block_contract.duplicate(true), "active":_final_dead_pressure_enabled, "actor_instance_id":get_instance_id(), "actor_rid":get_rid(), "actor_layer":collision_layer, "actor_mask":collision_mask}
+
+
+func set_final_dead_pressure_owner(ready_hook: Callable, admit_hook: Callable, contract: Dictionary) -> bool:
+	# No late retry under a seat/physical authority, no partial mask commit, and
+	# no runtime v2-to-v1 fallback that could leave another owner's saved mask stale.
+	if _final_dead_pressure_enabled or _final_dead_block_contract.is_empty() or not _valid_final_dead_block_contract(contract): return false
+	for key: String in ["schema", "blocking_bit", "part_layer", "part_mask", "player_layer", "world_support_mask", "movement_mask", "engine_hash", "physics_backend"]:
+		if contract[key] != _final_dead_block_contract[key]: return false
+	if _pose_authority != &"on_foot" or not _jump.is_empty() or _source_falling or collision_layer != 2 or collision_mask != 1: return false
+	if _jump_query == null or _jump_floor_ray == null or _jump_ceiling_ray == null: return false
+	if _jump_query.collision_mask != 1 or _jump_floor_ray.collision_mask != 1 or _jump_ceiling_ray.collision_mask != 1: return false
+	var sampler: RefCounted = load("res://scripts/player_corpse_contact_v2.gd").new()
+	if not sampler.configure(ready_hook, admit_hook, contract): return false
+	# Transport/physical support queries were already built from world1. Their
+	# movement masks are saved at authority entry and now capture1025 normally.
+	collision_mask = int(contract.movement_mask)
+	platform_floor_layers = platform_floor_layers & int(contract.world_support_mask)
+	platform_wall_layers = 0
+	_corpse_contact_sampler = sampler
+	_final_dead_pressure_enabled = true
+	_ground_move_pressure.clear()
+	return true
+
+
+func _ground_pressure_controls_allowed() -> bool:
+	if not _free_mouse_look or _pose_authority != &"on_foot" or not _jump.is_empty() or _text_control_focused(): return false
+	if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return false
+	if DisplayServer.get_name() != "headless":
+		var window := get_window()
+		if not is_instance_valid(window) or not window.visible or window.mode == Window.MODE_MINIMIZED or not window.has_focus() or Input.mouse_mode != Input.MOUSE_MODE_CAPTURED: return false
+	return true
+
+
+func _capture_ground_pressure(direction: Vector3, delta: float, controls_allowed: bool) -> void:
+	if not _final_dead_pressure_enabled or not Engine.is_in_physics_frame(): return
+	if not direction.is_finite() or not velocity.is_finite() or not is_finite(delta) or delta <= 0.0 or delta > 0.1: return
+	var capsule: CollisionShape3D = get_node_or_null("PlayerCapsule")
+	if not is_instance_valid(capsule) or capsule.disabled or not capsule.shape is CapsuleShape3D: return
+	_ground_move_pressure = {"schema":"player_completed_ground_pressure/v2", "captured_frame":Engine.get_physics_frames(), "captured_epoch":_pose_epoch, "expected_serial":_ground_move_serial + 1,
+		"pre_velocity":velocity, "input_direction":direction, "grounded_before":is_on_floor(), "controls_allowed":controls_allowed and _ground_pressure_controls_allowed(), "delta":delta,
+		"actor_instance_id":get_instance_id(), "actor_rid":get_rid(), "world_rid":get_world_3d().space, "capsule_instance_id":capsule.get_instance_id(), "capsule_shape_id":capsule.shape.get_instance_id(),
+		"capsule_transform":capsule.global_transform, "capsule_local_transform":capsule.transform, "capsule_height":capsule.shape.height, "capsule_radius":capsule.shape.radius, "actor_layer":collision_layer, "actor_mask":collision_mask}
+
+
+func _seal_ground_pressure() -> void:
+	if _ground_move_pressure.is_empty(): return
+	var capsule: CollisionShape3D = get_node_or_null("PlayerCapsule")
+	if not is_instance_valid(capsule): _ground_move_pressure.clear(); return
+	_ground_move_pressure["capsule_end_transform"] = capsule.global_transform
+	_ground_move_pressure["native_position_delta"] = get_position_delta()
+	_ground_move_pressure["native_last_motion"] = get_last_motion()
+	_ground_move_pressure["native_real_velocity"] = get_real_velocity()
+	_ground_move_pressure["native_slide_count"] = get_slide_collision_count()
+
+
+## Read-only evidence from the single completed ordinary move. V1 receipt and
+## serial are unchanged. No evidence survives tick/authority/capsule replacement.
+func completed_ground_pressure_receipt() -> Dictionary:
+	var move := completed_ground_move_receipt()
+	if not _final_dead_pressure_enabled or move.is_empty() or _ground_move_pressure.is_empty() or not _ground_pressure_controls_allowed(): return {}
+	var saved := _ground_move_pressure
+	if not saved.has("capsule_end_transform") or move.frame != saved.captured_frame or move.pose_epoch != saved.captured_epoch or move.serial != saved.expected_serial or move.end != global_position: return {}
+	if collision_layer != 2 or collision_mask != 1025 or saved.actor_layer != collision_layer or saved.actor_mask != collision_mask or saved.world_rid != get_world_3d().space: return {}
+	var capsule: CollisionShape3D = get_node_or_null("PlayerCapsule")
+	if not is_instance_valid(capsule) or capsule.is_queued_for_deletion() or capsule.disabled or not capsule.shape is CapsuleShape3D: return {}
+	if capsule.get_instance_id() != saved.capsule_instance_id or capsule.shape.get_instance_id() != saved.capsule_shape_id or capsule.transform != saved.capsule_local_transform or capsule.global_transform != saved.capsule_end_transform: return {}
+	if capsule.shape.height != saved.capsule_height or capsule.shape.radius != saved.capsule_radius: return {}
+	var expected_capsule: Transform3D = saved.capsule_transform
+	expected_capsule.origin += move.end - move.start
+	if not capsule.global_transform.is_equal_approx(expected_capsule): return {}
+	if get_position_delta() != saved.native_position_delta or get_last_motion() != saved.native_last_motion or get_real_velocity() != saved.native_real_velocity or get_slide_collision_count() != saved.native_slide_count: return {}
+	if not get_position_delta().is_equal_approx(move.end - move.start): return {}
+	var current_axes := Input.get_vector(ACTION_LEFT, ACTION_RIGHT, ACTION_FORWARD, ACTION_BACK)
+	if Basis(Vector3.UP, _camera_yaw) * Vector3(current_axes.x, 0.0, current_axes.y) != saved.input_direction: return {}
+	move.merge(saved, false)
+	return move
+
+
+func completed_ground_slide_contact(slide_index: int, contact_index: int) -> Dictionary:
+	var move := completed_ground_pressure_receipt()
+	if move.is_empty() or slide_index < 0 or slide_index >= get_slide_collision_count(): return {}
+	var hit := get_slide_collision(slide_index)
+	if hit == null or contact_index < 0 or contact_index >= hit.get_collision_count(): return {}
+	var capsule: CollisionShape3D = get_node_or_null("PlayerCapsule")
+	if hit.get_local_shape(contact_index) != capsule: return {}
+	var collider := hit.get_collider(contact_index) as CollisionObject3D
+	if not is_instance_valid(collider) or collider.is_queued_for_deletion() or collider.get_world_3d() != get_world_3d(): return {}
+	if collider.get_instance_id() != hit.get_collider_id(contact_index) or collider.get_rid() != hit.get_collider_rid(contact_index): return {}
+	var point := hit.get_position(contact_index)
+	var normal := hit.get_normal(contact_index)
+	var body_velocity := hit.get_collider_velocity(contact_index)
+	var depth := hit.get_depth()
+	if not point.is_finite() or not normal.is_finite() or not body_velocity.is_finite() or not is_finite(depth) or depth < 0.0: return {}
+	return {"frame":move.frame, "serial":move.serial, "pose_epoch":move.pose_epoch, "slide_index":slide_index, "contact_index":contact_index,
+		"capsule_instance_id":capsule.get_instance_id(), "capsule_shape_id":capsule.shape.get_instance_id(), "collider_instance_id":hit.get_collider_id(contact_index),
+		"collider_rid":hit.get_collider_rid(contact_index), "shape_index":hit.get_collider_shape_index(contact_index), "point":point, "normal":normal, "body_velocity":body_velocity, "depth":depth}
 
 
 func _ready() -> void:
@@ -290,6 +415,7 @@ func _build_camera() -> void:
 
 func _physics_process(delta: float) -> void:
 	_ground_move_frame = -1
+	_ground_move_pressure.clear()
 	_jump_pose = {}
 	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
@@ -330,6 +456,7 @@ func _physics_process(delta: float) -> void:
 		var target_heading: float = atan2(-direction.x, -direction.z)
 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
+	if _final_dead_pressure_enabled: _capture_ground_pressure(direction, delta, not typing)
 	var corpse_contact_start: Dictionary = _corpse_contact_sampler.begin(self) if _corpse_contact_sampler != null and not typing else {}
 	_ground_move_start = global_position
 	move_and_slide()
@@ -337,6 +464,7 @@ func _physics_process(delta: float) -> void:
 	_ground_move_serial += 1
 	_ground_move_pose_epoch = _pose_epoch
 	_ground_move_end = global_position
+	if _final_dead_pressure_enabled: _seal_ground_pressure()
 	if _corpse_contact_sampler != null: _corpse_contact_sampler.finish(self, corpse_contact_start, delta)
 	if _source_falling:
 		if is_on_floor():
@@ -559,6 +687,8 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	_pose_authority = owner
 	if owner!=&"on_foot" and is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null: _weapon_host.aim_camera.reset(true)
 	_pose_epoch += 1
+	_ground_move_frame = -1
+	_ground_move_pressure.clear()
 	_jump.clear()
 	_jump_pose.clear()
 	_jump_event_consumed = false

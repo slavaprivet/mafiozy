@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "asset_id": "hillstep_chalet_v1",
+      "binary_bytes": 16303.0,
+      "binary_load_validate_usec": 4865,
+      "binder_usec": 584,
+      "cold_compound_admission_usec": 35047,
+      "cold_runtime_register_usec": 36918,
+      "collision_groups": 1,
+      "default_approval_rejected": true,
+      "explicit_fixture_approval_registered": true,
+      "generated_partition_used": true,
+      "mechanical_interiors_ready": false,
+      "parts": 29.0,
+      "source_id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+      "static_memory_after_load_admission_bytes": 35052451,
+      "static_memory_before_bytes": 31668499,
+      "static_memory_delta_load_admission_bytes": 3383952,
+      "surfaces": 4.0
+    }
+  ],
+  "checks": 22,
+  "damage_or_weapons_tested": false,
+  "errors": [],
+  "input_sha256": {
+    "expansion/compound_node/compound_dispatch.gd": "b53ab2fa89361e0c86c5f695be5c49af8e33dcd5c917736744cca54b2205e50f",
+    "expansion/compound_node/compound_runtime.gd": "770c328f7e9238bd8ebdfd97db96b64b921bc9e74dac982de6136b08953a6cc4",
+    "expansion/compound_render/compound_render.gd": "5fc5935a9f0e2a4d9443ac31f1ef59de2372cfd2e3fc93d9e03f23e7f13156bf",
+    "expansion/modular_buildings/export/manifest.json": "c06d35c0616fb40832c793d63fb8947aa395fa29f7d58258438a05d5d9918202",
+    "expansion/modular_buildings/export/prefab_loader.gd": "9264d7e5013ddb7d1b65e7456081b3e3d36594dd10de06ac814522d42848c80e"
+  },
+  "loaded_scene_fps_verified": false,
+  "mechanical_interiors_ready": false,
+  "passed": true,
+  "private_runtime_actual_registration": true,
+  "production_enabled": false,
+  "schema": "mafiozi.modular-prefab-private-host-binder-smoke/v1",
+  "scope": "Pinned binary prefab loader, saved selectors and generated partition admitted by the real private Compound Runtime; default versus explicit approval, collider retirement/reset/dispose and source bytes. Isolated fixture colliders only."
+}

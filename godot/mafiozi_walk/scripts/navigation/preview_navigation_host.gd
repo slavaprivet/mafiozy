@@ -5,6 +5,11 @@ const Backend = preload("res://scripts/navigation/preview_engine_navigation.gd")
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
 const Interior = preload("res://scripts/preview_printshop_interior.gd")
 const MAX_RECORDS := 128
+const MODULAR_NO_ENTRY_SOURCE := "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013"
+var _retired_nav: Dictionary = {}
+var _retired_nav_host: WeakRef
+var _retired_nav_replacement: WeakRef
+var _retired_nav_runtime_id := 0
 var _root: WeakRef
 var _interior: WeakRef
 var _backend: RefCounted
@@ -107,6 +112,67 @@ func _expected(block: Dictionary, data: Dictionary) -> Dictionary:
 			result[key] = {"size": size, "frame": Transform3D(Basis.IDENTITY, position), "kind": "box"}
 	return result
 
+
+## Explicit conservative NAV-ONLY envelope for one inactive source. Physics
+## ownership stays with Modular30Host; no hull/layer/shape is restored here.
+func _prepare_retired_navigation(scene: Node3D, block: Dictionary) -> bool:
+	var host: Variant = scene.get("preview_modular30")
+	if not is_instance_valid(host): return true
+	if host.get("status") not in ["geometry_ready_waiting_native_weapons","ready"]: return true
+	if host.get_parent()!=scene or host.get_script()==null or host.get_script().resource_path!="res://scripts/destruction/modular30/modular30_host.gd" or not host.has_method("navigation_retirement_receipt"): return _fail("unverified-modular-navigation-owner")
+	var source: Dictionary = {}
+	for row: Dictionary in block.buildings:
+		if row.get("id")==MODULAR_NO_ENTRY_SOURCE:
+			if not source.is_empty(): return _fail("duplicate-modular-navigation-source")
+			source=row
+	if source.get("assetId")!="old_town_narrow_townhouse_v1" or source.get("gameplayActive")!=false or source.get("sourceGameplayActive")!=false or source.get("gameplayId")!=null or source.get("collisionBodiesM",[]).size()!=2: return _fail("modular-navigation-no-entry-policy-required")
+	var receipt: Dictionary = host.navigation_retirement_receipt()
+	if receipt.get("ok")!=true or receipt.get("enabled")!=true or receipt.get("gameplayActive")!=false or receipt.get("sourceGameplayActive")!=false or receipt.get("schema")!="modular30_nav_no_entry/v1" or receipt.get("policy")!="conservative_original_hulls_no_entry" or receipt.get("source_id")!=MODULAR_NO_ENTRY_SOURCE or receipt.get("world_instance_id")!=scene.get_instance_id() or receipt.get("world_rid")!=scene.get_world_3d().space or receipt.get("host_instance_id")!=host.get_instance_id() or not receipt.get("retired") is Array or receipt.retired.size()!=2: return _fail("modular-navigation-retirement-receipt")
+	var indices: Dictionary = {}
+	for body: Variant in receipt.retired:
+		if not body is StaticBody3D or not is_instance_valid(body) or body.get_parent()!=scene or body.get_script()!=null or body.get_meta("source_id","")!=MODULAR_NO_ENTRY_SOURCE or body.get_child_count()!=1 or body.collision_layer!=0 or body.collision_mask!=0: return _fail("modular-navigation-retired-native-identity")
+		var index: Variant = body.get_meta("source_index",null)
+		var shape: Node = body.get_child(0)
+		if (not index is int and not index is float) or not is_finite(float(index)): return _fail("modular-navigation-source-index-type")
+		var normalized_index := int(index)
+		if float(index)!=float(normalized_index) or normalized_index not in [0,1] or indices.has(normalized_index) or not shape is CollisionShape3D or shape.disabled or not shape.shape is ConvexPolygonShape3D: return _fail("modular-navigation-original-two-shapes")
+		indices[normalized_index]=true
+		_retired_nav[body.get_instance_id()]={"body":weakref(body),"rid":body.get_rid(),"shape_node":weakref(shape),"shape":shape.shape,"points":shape.shape.points.duplicate(),"index":normalized_index}
+	_retired_nav_host=weakref(host)
+	var replacement: Variant = receipt.get("replacement_body")
+	if not replacement is StaticBody3D or not is_instance_valid(replacement): return _fail("modular-navigation-replacement-required")
+	_retired_nav_replacement=weakref(replacement); _retired_nav_runtime_id=int(receipt.get("runtime_instance_id",0))
+	# The unchanged capture below still checks exact original points, frames,
+	# uniqueness and every other source shape. No generic layer0 exception.
+	return _retired_navigation_current(scene)
+
+func _retired_navigation_current(scene: Node3D = null) -> bool:
+	if _retired_nav.is_empty(): return true
+	if scene==null: scene=_root.get_ref() if _root!=null else null
+	var host: Variant = _retired_nav_host.get_ref() if _retired_nav_host!=null else null
+	var replacement: Variant = _retired_nav_replacement.get_ref() if _retired_nav_replacement!=null else null
+	if not is_instance_valid(scene) or not scene.is_inside_tree() or not is_instance_valid(host) or host.is_queued_for_deletion() or not host.is_inside_tree() or scene.get("preview_modular30")!=host or host.get_parent()!=scene or not is_instance_valid(replacement) or not replacement.is_inside_tree() or replacement.is_queued_for_deletion(): return false
+	var receipt: Dictionary = host.navigation_retirement_receipt()
+	if receipt.get("ok")!=true or receipt.get("enabled")!=true or receipt.get("gameplayActive")!=false or receipt.get("sourceGameplayActive")!=false or receipt.get("schema")!="modular30_nav_no_entry/v1" or receipt.get("policy")!="conservative_original_hulls_no_entry" or receipt.get("source_id")!=MODULAR_NO_ENTRY_SOURCE or receipt.get("world_instance_id")!=scene.get_instance_id() or receipt.get("world_rid")!=scene.get_world_3d().space or receipt.get("host_instance_id")!=host.get_instance_id() or receipt.get("replacement_body")!=replacement or receipt.get("runtime_instance_id")!=_retired_nav_runtime_id or not receipt.get("generation") is int or receipt.generation<1 or not receipt.get("retired") is Array or receipt.retired.size()!=2: return false
+	if replacement.get_parent()==null or replacement.get_parent().get_instance_id()!=_retired_nav_runtime_id or not host.is_ancestor_of(replacement) or replacement.collision_layer!=1 or replacement.collision_mask!=1 or replacement.get_meta("source_id","")!=MODULAR_NO_ENTRY_SOURCE or replacement.get_meta("destruction_surface_body",false)!=true or replacement.get_child_count()!=1 or not replacement.global_transform.is_equal_approx(Transform3D.IDENTITY): return false
+	var native_shape: Node = replacement.get_child(0)
+	if not native_shape is CollisionShape3D or native_shape.disabled or not native_shape.shape is ConcavePolygonShape3D or not native_shape.transform.is_equal_approx(Transform3D.IDENTITY) or receipt.get("replacement_shape_id")!=native_shape.shape.get_instance_id(): return false
+	var seen: Dictionary = {}
+	for body: Variant in receipt.retired:
+		if not body is StaticBody3D or not is_instance_valid(body) or body.is_queued_for_deletion() or not _retired_nav.has(body.get_instance_id()) or seen.has(body.get_instance_id()): return false
+		seen[body.get_instance_id()]=true
+		var pinned: Dictionary = _retired_nav[body.get_instance_id()]
+		var shape: Variant = pinned.shape_node.get_ref()
+		if pinned.body.get_ref()!=body or body.get_rid()!=pinned.rid or body.get_parent()!=scene or body.collision_layer!=0 or body.collision_mask!=0 or body.get_meta("source_id","")!=MODULAR_NO_ENTRY_SOURCE or body.get_meta("source_index",-1)!=pinned.index or body.get_child_count()!=1 or not is_instance_valid(shape) or body.get_child(0)!=shape or shape.disabled or shape.shape!=pinned.shape or shape.shape.points!=pinned.points or not shape.global_transform.is_equal_approx(Transform3D.IDENTITY): return false
+	return true
+
+func _guard_retired_navigation() -> bool:
+	if _retired_navigation_current(): return true
+	if _geometry_valid:
+		_invalidate("modular-no-entry-lease-ended"); _fail("modular-no-entry-lease-ended")
+	_geometry_valid=false
+	return false
+
 ## Data must be the already-validated records used to build these exact nodes.
 ## root and interior are scene-root coordinates; physics owner remains main.
 func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: Dictionary, queue: RefCounted, authority: String, generation: int, access_version: int) -> bool:
@@ -118,6 +184,7 @@ func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: D
 	var started := Time.get_ticks_usec()
 	var expected := _expected(block, data)
 	if not _errors.is_empty() or expected.is_empty(): return false
+	if not _prepare_retired_navigation(scene,block): return false
 	var seen: Dictionary = {}
 	var candidates: Array[Node] = []
 	# No traversal of render assets, actors, sensors or arbitrary descendants.
@@ -130,7 +197,8 @@ func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: D
 				if leaf is StaticBody3D: candidates.append(leaf)
 	if candidates.size() > 512: return _capture_failed("source-shape-limit")
 	for body: StaticBody3D in candidates:
-		if body.collision_layer != 1 or body.get_child_count() != 1 or not body.get_child(0) is CollisionShape3D: return _capture_failed("unsupported-static-body")
+		var retired_navigation_only: bool = _retired_nav.has(body.get_instance_id())
+		if (body.collision_layer != 1 and not retired_navigation_only) or body.get_child_count() != 1 or not body.get_child(0) is CollisionShape3D: return _capture_failed("unsupported-static-body")
 		var node: CollisionShape3D = body.get_child(0)
 		if node.disabled or node.shape == null or not node.transform.is_equal_approx(Transform3D.IDENTITY): return _capture_failed("unsupported-collision-transform")
 		var key := ""
@@ -255,6 +323,7 @@ func update_access_version(version: int) -> bool:
 
 func pump(frame_id: int) -> void:
 	if not Thread.is_main_thread() or _disposed or _busy or _backend == null: return
+	if not _guard_retired_navigation(): return
 	var interior: Node3D = _interior.get_ref()
 	if not is_instance_valid(interior) or not interior.ready_for_use: dispose(); return
 	var settled := false
@@ -296,6 +365,7 @@ func _body_supported(body: CharacterBody3D) -> bool:
 
 func request(owner: RefCounted, body: CharacterBody3D, target: Vector3, trusted_admit: Callable) -> int:
 	if not Thread.is_main_thread() or _disposed or _busy or _backend == null or not _geometry_valid or not _transitions.is_empty() or not trusted_admit.is_valid() or not owner is Queue.Owner or owner.dead or not is_instance_valid(body) or not body.is_inside_tree(): return -1
+	if not _guard_retired_navigation(): return -1
 	if owner.source_id.is_empty() or owner.source_id.length() > 256 or owner.life_generation < 1 or body.get_world_3d().direct_space_state != _space() or not _body_supported(body): return -1
 	var owner_id := owner.get_instance_id(); var body_id := body.get_instance_id()
 	if _source_records.has(owner.source_id) and _records[int(_source_records[owner.source_id])].owner_id != owner_id: return -1
@@ -328,6 +398,7 @@ func poll(id: int) -> Dictionary:
 ## Does not override floor/safe_margin/capsule settings or create an Agent.
 func step(id: int, delta: float, speed: float, gravity: float) -> Dictionary:
 	if not Thread.is_main_thread() or _disposed or _busy or not _geometry_valid or not _transitions.is_empty() or not is_finite(delta) or delta <= 0.0 or delta > .05 or not is_finite(speed) or speed <= 0.0 or speed > 5.0 or not is_finite(gravity) or gravity < 0.0 or gravity > 30.0: return {"status": "INVALID_STEP"}
+	if not _guard_retired_navigation(): return {"status":"INVALID_GEOMETRY"}
 	var status := poll(id)
 	if status.status != "READY": return status
 	var record: Dictionary = _records[id]
@@ -376,7 +447,7 @@ func cancel(id: int) -> void:
 
 func diagnostics() -> Dictionary:
 	if not Thread.is_main_thread(): return {"state": "INVALID_THREAD"}
-	return {"state": state(), "errors": _errors.duplicate(), "stats": _stats.duplicate(), "records": _records.size(), "transitions": _transitions.size(), "disposed": _disposed, "backend": _backend.diagnostics() if _backend != null else {}}
+	return {"conservative_nav_only_retired_hulls":_retired_nav.size(), "conservative_nav_only_source":MODULAR_NO_ENTRY_SOURCE if not _retired_nav.is_empty() else "", "npc_breach_entry":false, "state": state(), "errors": _errors.duplicate(), "stats": _stats.duplicate(), "records": _records.size(), "transitions": _transitions.size(), "disposed": _disposed, "backend": _backend.diagnostics() if _backend != null else {}}
 
 func dispose() -> void:
 	if not Thread.is_main_thread() or _disposed or _busy: return
@@ -385,3 +456,4 @@ func dispose() -> void:
 	var scene: Node3D = _root.get_ref() if _root != null else null
 	if is_instance_valid(scene) and scene.tree_exiting.is_connected(dispose): scene.tree_exiting.disconnect(dispose)
 	_disposed = true; _static.clear(); _leaves.clear(); _transitions.clear(); _queue = null
+	_retired_nav.clear(); _retired_nav_host=null; _retired_nav_replacement=null

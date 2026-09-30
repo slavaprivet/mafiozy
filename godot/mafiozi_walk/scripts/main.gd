@@ -22,7 +22,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality24d"
+const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality24f"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -38,6 +38,8 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_final_dead_contact_enabled: bool = true
 const FINAL_DEAD_CONTACT_LIMITS: Dictionary = {"max_impulse_ns": 3.0, "impulse_ns_per_mps": 1.0, "max_point_delta_energy_j": 1.5, "max_linear_speed_mps": 2.5, "max_angular_speed_rps": 15.0, "cooldown_ms": 160} # Bounded per-contact limits; original masses and joint constraints preserved.
 var final_dead_contact_status := "disabled"
+var final_dead_block_contract_status := "legacy_v1"
+var _final_dead_block_requested := false
 @export var preview_resident_walk_enabled: bool = true
 @export var preview_melee_enabled: bool = true
 @export var preview_weapons_enabled: bool = true
@@ -46,6 +48,7 @@ var weapons_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_population: RefCounted
+var preview_modular30: Node
 var population_status := "disabled"
 var preview_transport: Node3D
 var preview_character_impacts: Node
@@ -131,6 +134,11 @@ func _ready() -> void:
 		_add_asset(record)
 	for record: Dictionary in _block["decor"]:
 		_add_asset(record)
+	# Cold registration before player, transport, navigation and static batching.
+	preview_modular30 = load("res://scripts/destruction/modular30/modular30_host.gd").new()
+	preview_modular30.name = "Modular30Host"
+	add_child(preview_modular30)
+	print("MODULAR30_GEOMETRY ", preview_modular30.prepare(self))
 	if (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
 		apply_preview_static_batches()
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
@@ -163,6 +171,15 @@ func _ready() -> void:
 		_show_load_error()
 		return
 	_build_hud()
+	# Negotiate before any transport/support snapshots, without changing masks.
+	# Actual resident/weapon setup retains its existing later startup order.
+	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
+		preview_population = PreviewPopulation.new()
+		if preview_final_dead_contact_enabled:
+			var contract: Dictionary = preview_population.final_dead_contact_startup_contract()
+			if not contract.is_empty():
+				_final_dead_block_requested = _player.prepare_final_dead_block_contract(contract)
+				final_dead_block_contract_status = "negotiated_before_transport" if _final_dead_block_requested else "contract_rejected_legacy_v1"
 	if preview_transport_enabled or OS.get_cmdline_user_args().has("--preview-transport"):
 		preview_transport = PreviewTransport.new()
 		preview_transport.name = "PreviewTransport"
@@ -201,11 +218,12 @@ func _ready() -> void:
 						if not cargo_result.get("ok",false):
 							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
 			else: weapon_host.queue_free()
+	if is_instance_valid(preview_modular30):
+		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
 	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
 		# Physics must see the authored colliders before source placement proofs.
 		await get_tree().physics_frame
 		await get_tree().physics_frame
-		preview_population = PreviewPopulation.new()
 		preview_population.setup(self, true, preview_resident_walk_enabled)
 		population_status = preview_population.status
 	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
@@ -435,6 +453,7 @@ func _jump_surface_point_contains(source_xz: Vector2) -> bool:
 
 func _exit_tree() -> void:
 	GameCursor.release()
+	if is_instance_valid(preview_modular30): preview_modular30.dispose(false)
 	if preview_population != null:
 		preview_population.dispose()
 	# Parent still exists here; clear host-owned mesh/material before destruction.
@@ -909,10 +928,21 @@ func _bind_final_dead_contact_port(measured_limits: Dictionary = FINAL_DEAD_CONT
 	if preview_population == null or not is_instance_valid(_player) or not _player.has_method("set_final_dead_contact_owner"):
 		final_dead_contact_status = "unavailable_player_or_population"
 		return false
-	var registered: Dictionary = preview_population.setup_final_dead_contact(_player, measured_limits)
+	var options := measured_limits.duplicate(true)
+	if _final_dead_block_requested: options["contact_schema"] = "npc_final_dead_contact/v2"
+	var registered: Dictionary = preview_population.setup_final_dead_contact(_player, options)
 	if not registered.get("ok",false):
 		final_dead_contact_status = str(registered.get("reason","owner_registration_failed"))
 		return false
+	if _final_dead_block_requested:
+		if registered.get("schema") != "npc_final_dead_contact/v2":
+			final_dead_contact_status = "v2_registration_schema_mismatch"
+			return false
+		var contract: Dictionary = preview_population.player_final_dead_block_contract()
+		var pressure_bound: bool = _player.set_final_dead_pressure_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"), contract)
+		final_dead_contact_status = "v2_bound_waiting_final_death" if pressure_bound else "v2_binding_failed_filters_unchanged"
+		final_dead_block_contract_status = "active_movement1025_support1" if pressure_bound else "activation_failed_filters_unchanged"
+		return pressure_bound
 	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
 	final_dead_contact_status = "bound_waiting_final_death" if bound else "binding_failed"
 	return bound

@@ -1,0 +1,242 @@
+{
+	"checks": 38,
+	"failures": [],
+	"gpu": true,
+	"report": {
+		"activation_capture_exclusions": {
+			"frames": 6,
+			"rule": "readback/PNG and following frame excluded; first two clean rendered frames precede each capture"
+		},
+		"brake_emission_energy": 5.40000009536743,
+		"first_activation_frames": {
+			"brake_emission": {
+				"activation_frame_ms": 9.676,
+				"frames": 30,
+				"max_ms": 10.671,
+				"next_frames_ms": [
+					3.991,
+					9.392,
+					4.43,
+					7.238,
+					9.041,
+					4.645,
+					10.671
+				],
+				"p95_ms": 9.676
+			},
+			"reverse_emission_and_beam": {
+				"activation_frame_ms": 9.481,
+				"frames": 30,
+				"max_ms": 9.966,
+				"next_frames_ms": [
+					4.52,
+					7.321,
+					9.838,
+					4.081,
+					9.966,
+					3.82,
+					9.458
+				],
+				"p95_ms": 9.901
+			},
+			"tail_emission": {
+				"activation_frame_ms": 7.554,
+				"frames": 30,
+				"max_ms": 9.145,
+				"next_frames_ms": [
+					2.666,
+					4.367,
+					4.269,
+					4.524,
+					4.39,
+					6.199,
+					3.897
+				],
+				"p95_ms": 9.088
+			}
+		},
+		"focus_lost": {
+			"accepted_brake": 1.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": 0.0,
+			"braking": true,
+			"capture": false,
+			"phase": "SEATED",
+			"reverse_beam_visible": false,
+			"reversing": false,
+			"seat": "front_left",
+			"speed_mps": -0.0459472462534904,
+			"tail_on": true
+		},
+		"forward": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": 1.0,
+			"braking": false,
+			"capture": true,
+			"phase": "SEATED",
+			"reverse_beam_visible": false,
+			"reversing": false,
+			"seat": "front_left",
+			"speed_mps": 1.1428165435791,
+			"tail_on": true
+		},
+		"forward_braking": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": -1.0,
+			"braking": true,
+			"capture": true,
+			"phase": "SEATED",
+			"reverse_beam_visible": false,
+			"reversing": false,
+			"seat": "front_left",
+			"speed_mps": 1.23522126674652,
+			"tail_on": true
+		},
+		"gpu_comparison": {
+			"feature_on_p95_delta_ms": -0.077,
+			"fixture": "same camera/car pose, frozen vehicle only; complete scene remains active",
+			"hour": 22.0,
+			"off_after": {
+				"drawcalls": 2546.0,
+				"frames": 180,
+				"max_ms": 10.824,
+				"memory_bytes": 213993037.0,
+				"p50_ms": 6.935,
+				"p95_ms": 9.934,
+				"triangles": 1003973.0
+			},
+			"off_before": {
+				"drawcalls": 2539.0,
+				"frames": 180,
+				"max_ms": 12.392,
+				"memory_bytes": 213974285.0,
+				"p50_ms": 7.132,
+				"p95_ms": 9.636,
+				"triangles": 1002975.0
+			},
+			"off_image": {
+				"road_luma": 0.345539004563954,
+				"road_samples": 9
+			},
+			"on_image": {
+				"road_luma": 0.449536219502158,
+				"road_samples": 9
+			},
+			"p95_delta_ms": 0.0129999999999999,
+			"reverse_on": {
+				"drawcalls": 2530.0,
+				"frames": 180,
+				"max_ms": 10.798,
+				"memory_bytes": 213990001.0,
+				"p50_ms": 7.059,
+				"p95_ms": 9.798,
+				"triangles": 986913.0
+			},
+			"without_rear_lamps": {
+				"drawcalls": 2530.0,
+				"frames": 180,
+				"max_ms": 10.591,
+				"memory_bytes": 213936657.0,
+				"p50_ms": 6.956,
+				"p95_ms": 9.875,
+				"triangles": 991727.0
+			}
+		},
+		"idle_off": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": 0.0,
+			"braking": false,
+			"capture": true,
+			"phase": "SEATED",
+			"reverse_beam_visible": false,
+			"reversing": false,
+			"seat": "front_left",
+			"speed_mps": -0.0000000559327588689484,
+			"tail_on": false
+		},
+		"limitations": [],
+		"native_exit_attempts": [
+			{
+				"accepted_brake": 0.0,
+				"accepted_handbrake": false,
+				"accepted_throttle": 0.0,
+				"attempt": 1,
+				"blocked_transition": false,
+				"body_frozen": false,
+				"braking": false,
+				"capture": true,
+				"error": "",
+				"phase": "ON_FOOT",
+				"physical_e": false,
+				"player_pose": "on_foot",
+				"reverse_beam_visible": false,
+				"reversing": false,
+				"seat": "",
+				"speed_mps": 0.0000000207785149086703,
+				"tail_on": true,
+				"token": ""
+			}
+		],
+		"paired_reverse_selected": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": -1.0,
+			"braking": false,
+			"capture": true,
+			"focus": true,
+			"phase": "SEATED",
+			"ready": true,
+			"reverse_beam_visible": true,
+			"reversing": true,
+			"seat": "front_left",
+			"speed_mps": -0.0000225242547458038,
+			"tail_on": false,
+			"world_dead": false,
+			"world_fault": false
+		},
+		"reverse": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": -1.0,
+			"braking": false,
+			"capture": true,
+			"phase": "SEATED",
+			"reverse_beam_visible": true,
+			"reversing": true,
+			"seat": "front_left",
+			"speed_mps": -0.381903737783432,
+			"tail_on": true
+		},
+		"reverse_braking": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": 1.0,
+			"braking": true,
+			"capture": true,
+			"phase": "SEATED",
+			"reverse_beam_visible": false,
+			"reversing": false,
+			"seat": "front_left",
+			"speed_mps": -0.931539535522461,
+			"tail_on": true
+		},
+		"reverse_coast": {
+			"accepted_brake": 0.0,
+			"accepted_handbrake": false,
+			"accepted_throttle": 0.0,
+			"braking": false,
+			"capture": true,
+			"phase": "SEATED",
+			"reverse_beam_visible": false,
+			"reversing": false,
+			"seat": "front_left",
+			"speed_mps": -0.944201827049255,
+			"tail_on": true
+		},
+		"space_input": "real Input.parse_input_event Space; no transport-control fixture",
+		"tail_emission_energy": 1.0
+	}
+}

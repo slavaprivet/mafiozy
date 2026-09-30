@@ -6,7 +6,7 @@ const Cache = preload("res://scripts/npc_visual/npc_visual_cache.gd")
 const Navigation = preload("res://scripts/navigation/preview_navigation_host.gd")
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
 const Gait = preload("res://scripts/preview_locomotion.gd")
-const Ragdoll = preload("res://scripts/npc_visual/npc_ragdoll_host.gd")
+const Ragdoll = preload("res://scripts/npc_visual/npc_ragdoll_host_v2.gd")
 const PreviewActivity = preload("res://scripts/npc_visual/npc_preview_activity.gd")
 const REJECTED_PACKET := "384f1f2d2b673bde13a49cfdff2f88b4e84469801b1f572624c53259a472901d"
 const FOOTPRINT := .738 # Source _npcBodyPassable radius .18 * native scale 4.1.
@@ -582,7 +582,14 @@ func prepare_physical(token: Dictionary, confirmed_events: Callable, options: Di
 	if _ragdolls.has(id) or not _scene_alive(): return {"ok":false,"error":"already_prepared_or_scene"}
 	_busy = true
 	var host: RefCounted = Ragdoll.new()
-	var prepared: Dictionary = host.configure(token, _scene.get_ref(), Callable(self,"physical_life_current"), confirmed_events, options)
+	var physical_options: Dictionary = options.duplicate(true)
+	var contact_player: CharacterBody3D = _scene.get_ref().get("_player") as CharacterBody3D
+	if is_instance_valid(contact_player) and contact_player.has_method("final_dead_block_contract_receipt"):
+		var negotiated: Dictionary = contact_player.final_dead_block_contract_receipt()
+		if negotiated.get("active") == false and negotiated.get("contract") == Ragdoll.blocking_contract() and negotiated.get("actor_instance_id") == contact_player.get_instance_id() and negotiated.get("actor_rid") == contact_player.get_rid() and contact_player.collision_layer == 2 and contact_player.collision_mask == 1:
+			physical_options["final_dead_blocking_bit"] = 1024
+			physical_options["blocking_player"] = contact_player
+	var prepared: Dictionary = host.configure(token, _scene.get_ref(), Callable(self,"physical_life_current"), confirmed_events, physical_options)
 	if prepared.get("ok",false) and physical_life_current(token): _ragdolls[id] = host
 	else:
 		host.dispose()
@@ -694,6 +701,7 @@ func _local_walker_current(token: Dictionary) -> bool:
 	var id: String=token.source_id
 	var record: Dictionary=_records[id]
 	var body: CharacterBody3D=record.body
+	if not body.is_inside_tree() or body.is_queued_for_deletion(): return false
 	if not _living(record) or _physical_occupied(id) or record.get("physical_failed",false) or body.collision_layer!=1 or body.collision_mask!=1 or body.get_child_count()<2:return false
 	var shape: Node=body.get_child(0)
 	return shape is CollisionShape3D and not shape.disabled and shape.shape is CapsuleShape3D and is_equal_approx(shape.shape.radius,.36) and is_equal_approx(shape.shape.height,HEIGHT)

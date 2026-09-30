@@ -1,0 +1,70 @@
+{
+  "status": "PREPARED_NOT_APPLIED_NOT_LAUNCHED",
+  "revision": "s01-20260930-quality24f",
+  "created_utc": "2026-09-30T18:03:53.363097+00:00",
+  "assembly30_sha256": "18670dcf97af806bad0d36e1f5b94bb47503affdfcc1d89c9ee19ed9e3abc7a2",
+  "assembly31_sha256": "3309bf75e46aab302793fab686373e4e8597ed714efb01f631117fdea0f93945",
+  "source30_count": 271,
+  "source31_count": 272,
+  "changes": {
+    "data/preview_updates.json": {
+      "before": "3aca5af737c01ad6b09a87e053fdf1bc2709ef9c7da831ccc848486c7b144876",
+      "after": "10aaf75db9dcadd9b67396f99431262f9c231bc4905001c3eb28fd171fa8004e"
+    },
+    "export_presets.cfg": {
+      "before": "4333b8b516f2a055c9a739282a686732c0adf9f4d74efddb59231f6ff7c04773",
+      "after": "3c4b42fd5206740cf97401c5bb174a1cddce0c5388de4dcd4623790f55d70b57"
+    },
+    "scripts/destruction/modular30/modular30_host.gd": {
+      "before": "38c7f5bc441b7cc673848781d616a9cc5bbc9d0052f5ece69ba2236d412ca89b",
+      "after": "1994f8f39bd11d714edaca0317f611287ec7f28f0c7fe8fd67d876a684a8392e"
+    },
+    "scripts/main.gd": {
+      "before": "c34f821d0bd2670c91206682520a29385563277ed4b7e796d006d32e0204cdb7",
+      "after": "64e6b9b63c30583128f55be760a0fdf024133c7aa2e2a21ea0e916876cd118b8"
+    },
+    "scripts/npc_visual/npc_bullet_marks.gd": {
+      "before": "14d769365d98603f2997ce2cf6dce40500a2a22198305fc3d15a8b7c2388c9e9",
+      "after": "da1cdabe4aef421ffd1a14726009629f31aee9c932da8b1770fd7a87c661bf5a"
+    },
+    "scripts/quick_controls/car_rear_lights.gd": {
+      "before": null,
+      "after": "f0238f8838d201d027c26db5e0a69972fafc0b0716a5a5d13512659805ab8f56"
+    },
+    "scripts/quick_controls/quick_controls.gd": {
+      "before": "61c3a9cf5b8912549cfee957275fb434a6285b58ccc0138853836f7a2417da0d",
+      "after": "2f594c25c547b261fe2740ee548cfb535735569e004c2ac9b7ea7ae6c360352e"
+    },
+    "scripts/quick_controls/scene_hook.gd": {
+      "before": "773a30c140c287fbcedd8eb9d46f44488220c8e12258da82bb210924e59737a3",
+      "after": "d7d56ffefbb77ec1485dcfec03a80e2448ba56b669bd8263b26d2657cd519a3e"
+    }
+  },
+  "source_pins_sha256": "b2d87ecc87005970fdb7faa7d63cd69a7987ad3f54db68de4b27d236b14283b9",
+  "expected_shared_revision": "s01-20260930-quality24e",
+  "shared_scoped_bytes_match24e": true,
+  "changed_existing": 7,
+  "added": 1,
+  "script_sha256": "ec7cdd85125058aaafd13169bb9f67093b7190ada9228a84b5adcac50a8c8e46",
+  "launcher_sha256": "a6bf63b8b33e8466111936703a4b101baa1bf7a7798cd25029365e9e6cd4797c",
+  "patch_sha256": "526701cf202f55134136c87bfb3c71262a9e230a41f6089db53857a4171058a8",
+  "filelist_sha256": "fddfbe5f1efece396eeed8e391b35593855c6c1ab19198551c049b852539119d",
+  "build_receipt_sha256": "fa27ab4d982ce86c9d177bb66e885edb13f4c9864a9650645c063185ec7a2ad2",
+  "pack_sha256": "0bd000e02db726dd9e7eccff565982222ce8dc0ef5b950209edf0c0f600d945e",
+  "exe_sha256": "d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562",
+  "play_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_delivery24f\\play",
+  "native33_run_sha256": "857a11f1f4b501ff233acb570837a4bf7bb01a474bef0153852251d19e543d65",
+  "native33_passed": true,
+  "combined_gpu_claim": false,
+  "living_projectile_gpu_claim": false,
+  "renderer_scope": "da1cd fixes the alternate npc_bullet_marks renderer; ordinary NPC active marks adapter already uses the corrected postmortem renderer",
+  "limitations": [
+    "Full house collapse not implemented",
+    "NPC keep original conservative no-entry navigation envelope around experimental townhouse",
+    "Original glazing and fitted native operable townhouse doors are not attached",
+    "Native04 passage stopped at actual front lintel; final3shot high-front scenario pending GPU"
+  ],
+  "source_writes_performed": false,
+  "processes_started_or_stopped": false,
+  "apply_command": "python outputs/coordinator24_rear_lights31/promote24f.py --apply"
+}

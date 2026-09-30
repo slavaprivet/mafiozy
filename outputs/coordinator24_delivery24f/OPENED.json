@@ -1,0 +1,21 @@
+{
+  "revision": "s01-20260930-quality24f",
+  "pid": 43856,
+  "session": 65628,
+  "responding": true,
+  "ordinary_no_QA": true,
+  "pck_sha256": "0bd000e02db726dd9e7eccff565982222ce8dc0ef5b950209edf0c0f600d945e",
+  "opened": "2026-09-30T21:08:31.3889521+03:00",
+  "error_log_empty": true,
+  "rear_ready": true,
+  "window_handle": 19859296,
+  "shortcuts": [
+    "Мафиози — взгляд назад и гудок.lnk",
+    "Мафиози — день и ночь.lnk",
+    "Мафиози — последняя версия.lnk"
+  ],
+  "gpu_acceptance": "outputs/coordinator24_rear_lights31/gpu01/RUN.json",
+  "gpu_checks": 38,
+  "visual_images_reviewed": 6,
+  "whole_city_acceptance": false
+}

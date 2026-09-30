@@ -1,0 +1,1280 @@
+{
+  "schema": "modular30_compiled_native_passage_followup/v1",
+  "passed": true,
+  "checks": 565,
+  "seconds": 23.15779439988546,
+  "pid": 43100,
+  "engine_released": true,
+  "assembly_sha256": "18670dcf97af806bad0d36e1f5b94bb47503affdfcc1d89c9ee19ed9e3abc7a2",
+  "pack_sha256": "65cc360a59e53896c9404f44ac4fcd81227ee3876de555362e130d91c6263043",
+  "source_count": 271,
+  "source_changed": [],
+  "native_errors": [],
+  "proof_sha256": {
+    "RUN.json": "07abf3cff613b02b24feb4653a9fb12e250fae4c60b2b288ae7714d2d4df991e",
+    "RESULT.json": "e24ad7e28e51fad4a226034c1478cb802fec49ae3188101c3417a7259bb4b8c5",
+    "AIM_TRACE.json": "22416f56b9302b19a69c2171f8e8039774e6e1693812b5f9fe90c59b9cf955f5",
+    "continue_passage.gd": "7c3578641387d71c9e44f73ead38e4405f0df3f5c6eceadc1b56f30554ede884",
+    "diagnose.gd": "bdcf838f823f093d3cc86ddd31bc5266c478541e775fd8e1451b6afe949f69df",
+    "base_native.gd": "7ad06bd2cb23f384507b2b247435bf9ce052ce202ec9771661d892dd6dba22b0"
+  },
+  "shots": [
+    {
+      "damage": 160,
+      "frame": 168,
+      "muzzle": [
+        15.5662260055542,
+        1.21170246601105,
+        7.39760684967041
+      ],
+      "planned_aim": [
+        15.8000011444092,
+        1.1049998998642,
+        2.30850005149841
+      ],
+      "sequence": 1.0,
+      "shot_id": "rpg:1"
+    },
+    {
+      "damage": 160,
+      "frame": 480,
+      "muzzle": [
+        15.5661745071411,
+        1.15436971187592,
+        7.39220237731934
+      ],
+      "planned_aim": [
+        15.8000011444092,
+        0.554999887943268,
+        2.30850005149841
+      ],
+      "sequence": 2.0,
+      "shot_id": "rpg:2"
+    },
+    {
+      "damage": 160,
+      "frame": 792,
+      "muzzle": [
+        15.5671014785767,
+        1.31491208076477,
+        7.42007207870483
+      ],
+      "planned_aim": [
+        15.8000011444092,
+        2.09999990463257,
+        2.30850005149841
+      ],
+      "sequence": 3.0,
+      "shot_id": "rpg:3"
+    }
+  ],
+  "terminals_count": 3,
+  "round_outcomes": [
+    {
+      "index": 1,
+      "outcome": {
+        "committed_parts": 1,
+        "failures": [],
+        "state": "completed"
+      }
+    },
+    {
+      "index": 2,
+      "outcome": {
+        "committed_parts": 1,
+        "failures": [],
+        "state": "completed"
+      }
+    },
+    {
+      "index": 3,
+      "outcome": {
+        "committed_parts": 1,
+        "failures": [],
+        "state": "completed"
+      }
+    }
+  ],
+  "walk": {
+    "count": 193,
+    "first": {
+      "frame": 979,
+      "jump_state": {},
+      "native_jump": false,
+      "on_floor": true,
+      "position": [
+        15.8000011444092,
+        -0.000104025937616825,
+        8.30350017547607
+      ],
+      "seconds": 0.0166666666666667,
+      "serial": 978
+    },
+    "last": {
+      "frame": 1171,
+      "jump_state": {},
+      "native_jump": false,
+      "on_floor": true,
+      "position": [
+        15.8614416122437,
+        0.104897290468216,
+        0.887849509716034
+      ],
+      "seconds": 3.21666666666666,
+      "serial": 1113
+    },
+    "end": [
+      15.8614416122437,
+      0.104897290468216,
+      0.757849454879761
+    ],
+    "inside_depth_m": 1.550650596618649,
+    "max_y": 0.787500023841858,
+    "min_y": -0.000104025937616825
+  },
+  "one_Space": {
+    "observed_native_frames": 56,
+    "pressed_frame": 1099,
+    "released": true,
+    "trigger": {
+      "ceiling_ray": {
+        "collider": "@StaticBody3D@753:<StaticBody3D#125225145278>",
+        "collider_id": 125225145278,
+        "face_index": 1410,
+        "normal": [
+          0.0,
+          -1.0,
+          0.0
+        ],
+        "position": [
+          15.8614416122437,
+          2.59999990463257,
+          2.18791055679321
+        ],
+        "rid": "RID(11467562680693)",
+        "shape": 0
+      },
+      "on_floor": true,
+      "position": [
+        15.8614416122437,
+        0.000813395017758012,
+        2.18791055679321
+      ],
+      "surface_guard": true,
+      "surfaces": {
+        "ceiling": 2.59999990463257,
+        "floor": 1.86264514923096e-09
+      }
+    }
+  },
+  "aim_trace": [
+    {
+      "label": "before_native_R",
+      "frame": 661,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0606117248535,
+        2.3929238319397,
+        12.3142862319946
+      ],
+      "camera_direction": [
+        -0.122974410653114,
+        -0.179292604327202,
+        -0.976079702377319
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.12297448515892,
+          -0.179292529821396,
+          -0.976079642772675
+        ],
+        "ejection_origin": [
+          15.5701627731323,
+          1.07179582118988,
+          7.35954761505127
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5701627731323,
+          1.07179582118988,
+          7.35954761505127
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 660,
+        "sample_serial": 653,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.4913549423218,
+          0.105000019073486,
+          -0.141308784484863
+        ],
+        "muzzle_point": [
+          15.4913549423218,
+          0.104999780654907,
+          -0.14130973815918
+        ]
+      }
+    },
+    {
+      "label": "reload_0",
+      "frame": 663,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0688285827637,
+        1.50006008148193,
+        12.3794984817505
+      ],
+      "camera_direction": [
+        -0.124930612742901,
+        0.0332939252257347,
+        -0.991606712341309
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124893769621849,
+          0.0412132553756237,
+          -0.991313755512238
+        ],
+        "ejection_origin": [
+          15.5697212219238,
+          1.20947802066803,
+          7.36660099029541
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5697212219238,
+          1.20947802066803,
+          7.36660099029541
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 662,
+        "sample_serial": 655,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 1.61666666666667,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          14.7153720855713,
+          2.12725472450256,
+          -6.30049991607666
+        ],
+        "muzzle_point": [
+          14.7153720855713,
+          2.12725472450256,
+          -6.30049991607666
+        ]
+      }
+    },
+    {
+      "label": "reload_1",
+      "frame": 664,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0682029724121,
+        1.39209234714508,
+        12.3745489120483
+      ],
+      "camera_direction": [
+        -0.124782294034958,
+        0.0590005442500114,
+        -0.990428388118744
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124639756977558,
+          0.0759131014347076,
+          -0.989293694496155
+        ],
+        "ejection_origin": [
+          15.5698099136353,
+          1.22949624061584,
+          7.37028741836548
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698099136353,
+          1.22949624061584,
+          7.37028741836548
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 663,
+        "sample_serial": 656,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 1.6,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.7999992370605,
+          1.99173426628113,
+          2.30849933624268
+        ],
+        "muzzle_point": [
+          15.7999992370605,
+          1.99173414707184,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "reload_2",
+      "frame": 665,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0678443908691,
+        1.34755313396454,
+        12.3717041015625
+      ],
+      "camera_direction": [
+        -0.124696657061577,
+        0.0696051344275475,
+        -0.989750385284424
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124397270381451,
+          0.0980759784579277,
+          -0.987373471260071
+        ],
+        "ejection_origin": [
+          15.5698833465576,
+          1.24125468730927,
+          7.37300682067871
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698833465576,
+          1.24125468730927,
+          7.37300682067871
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 664,
+        "sample_serial": 657,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 1.58333333333333,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000011444092,
+          2.05525755882263,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000011444092,
+          2.05525755882263,
+          2.30850076675415
+        ]
+      }
+    },
+    {
+      "label": "reload_3",
+      "frame": 666,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0676803588867,
+        1.3291699886322,
+        12.3703899383545
+      ],
+      "camera_direction": [
+        -0.12465725839138,
+        0.0739820227026939,
+        -0.989437818527222
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124156214296818,
+          0.115989625453949,
+          -0.985460102558136
+        ],
+        "ejection_origin": [
+          15.5699520111084,
+          1.25002205371857,
+          7.37540912628174
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5699520111084,
+          1.25002205371857,
+          7.37540912628174
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 665,
+        "sample_serial": 658,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 1.56666666666667,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000030517578,
+          2.08151531219482,
+          2.30849838256836
+        ],
+        "muzzle_point": [
+          15.8000030517578,
+          2.08151483535767,
+          2.30850076675415
+        ]
+      }
+    },
+    {
+      "label": "reload_4",
+      "frame": 667,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0676097869873,
+        1.32158041000366,
+        12.3698234558105
+      ],
+      "camera_direction": [
+        -0.124640457332134,
+        0.0757890865206718,
+        -0.989303171634674
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.123894065618515,
+          0.132721558213234,
+          -0.983379542827606
+        ],
+        "ejection_origin": [
+          15.5700244903564,
+          1.25779759883881,
+          7.37782573699951
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5700244903564,
+          1.25779759883881,
+          7.37782573699951
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 666,
+        "sample_serial": 659,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 1.55,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000020980835,
+          2.0923638343811,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000020980835,
+          2.0923638343811,
+          2.30850028991699
+        ]
+      }
+    },
+    {
+      "label": "reload_30",
+      "frame": 693,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124628007411957,
+        0.0770600140094757,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.121501781046391,
+          0.234920233488083,
+          -0.964390873908997
+        ],
+        "ejection_origin": [
+          15.5706720352173,
+          1.30291533470154,
+          7.39623737335205
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5706720352173,
+          1.30291533470154,
+          7.39623737335205
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 692,
+        "sample_serial": 685,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 1.11666666666667,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000030517578,
+          2.09999632835388,
+          2.30850028991699
+        ]
+      }
+    },
+    {
+      "label": "reload_60",
+      "frame": 723,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124627940356731,
+        0.0770600065588951,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.121501781046391,
+          0.234920233488083,
+          -0.964390873908997
+        ],
+        "ejection_origin": [
+          15.5706720352173,
+          1.30291533470154,
+          7.39623737335205
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5706720352173,
+          1.30291533470154,
+          7.39623737335205
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 722,
+        "sample_serial": 715,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 0.616666666666668,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000040054321,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000040054321,
+          2.09999632835388,
+          2.30850028991699
+        ]
+      }
+    },
+    {
+      "label": "reload_90",
+      "frame": 753,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124628014862537,
+        0.0770599991083145,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.123719356954098,
+          0.142770320177078,
+          -0.981992959976196
+        ],
+        "ejection_origin": [
+          15.5700712203979,
+          1.26248383522034,
+          7.37935447692871
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5700712203979,
+          1.26248383522034,
+          7.37935447692871
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 752,
+        "sample_serial": 745,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 0.0,
+        "reserveAmmo": 2.0,
+        "reloadRemaining": 0.116666666666667,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30850028991699
+        ]
+      }
+    },
+    {
+      "label": "settle_0",
+      "frame": 762,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124628037214279,
+        0.0770599991083145,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600587129593,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 761,
+        "sample_serial": 754,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_1",
+      "frame": 763,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675582885742,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.12462805211544,
+        0.0770600140094757,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600661635399,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 762,
+        "sample_serial": 755,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000049591064,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000049591064,
+          2.0999960899353,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_2",
+      "frame": 764,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624245643616,
+        12.3694190979004
+      ],
+      "camera_direction": [
+        -0.124628260731697,
+        0.0770600289106369,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600736141205,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 763,
+        "sample_serial": 756,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000001907349,
+          2.09999656677246,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000011444092,
+          2.09999656677246,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_3",
+      "frame": 765,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.12462804466486,
+        0.0770599991083145,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600587129593,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 764,
+        "sample_serial": 757,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_4",
+      "frame": 766,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675582885742,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124628059566021,
+        0.0770600140094757,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600661635399,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 765,
+        "sample_serial": 758,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000049591064,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000049591064,
+          2.0999960899353,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_9",
+      "frame": 771,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124628059566021,
+        0.0770599991083145,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600587129593,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 770,
+        "sample_serial": 763,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000030517578,
+          2.0999960899353,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_19",
+      "frame": 781,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675582885742,
+        1.31624233722687,
+        12.3694181442261
+      ],
+      "camera_direction": [
+        -0.124628104269505,
+        0.0770600140094757,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600661635399,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 780,
+        "sample_serial": 773,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.8000040054321,
+          2.0999960899353,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.8000040054321,
+          2.0999960899353,
+          2.30849981307983
+        ]
+      }
+    },
+    {
+      "label": "settle_29",
+      "frame": 791,
+      "aiming": true,
+      "held": false,
+      "pressed": false,
+      "reload_flag": false,
+      "camera_origin": [
+        17.0675563812256,
+        1.31624245643616,
+        12.3694190979004
+      ],
+      "camera_direction": [
+        -0.124628335237503,
+        0.0770600289106369,
+        -0.989206552505493
+      ],
+      "muzzle": {
+        "actor_id": "player",
+        "direction": [
+          -0.124627940356731,
+          0.0770600736141205,
+          -0.989206612110138
+        ],
+        "ejection_origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "equip_generation": 1,
+        "life_generation": 1,
+        "ok": true,
+        "origin": [
+          15.5698204040527,
+          1.2330310344696,
+          7.37042856216431
+        ],
+        "pose_epoch": 1,
+        "pose_revision": 790,
+        "sample_serial": 783,
+        "weapon_id": "rpg"
+      },
+      "ammo": {
+        "magazine": 1.0,
+        "reserveAmmo": 1.0,
+        "reloadRemaining": 0.0,
+        "cooldown": 0.0,
+        "sequence": 2.0
+      },
+      "sight": {
+        "ok": true,
+        "camera_point": [
+          15.7999992370605,
+          2.09999656677246,
+          2.30850028991699
+        ],
+        "muzzle_point": [
+          15.7999992370605,
+          2.09999656677246,
+          2.30849981307983
+        ]
+      }
+    }
+  ],
+  "third_guard_sight": {
+    "camera_collider": {
+      "id": 125225145278,
+      "layer": 1,
+      "mask": 1,
+      "mesh": "/root/MafioziWalkMigration/ModularBuilding/modular_body_v1",
+      "path": "/root/MafioziWalkMigration/Modular30Host/Modular30Runtime/@StaticBody3D@753",
+      "source_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013"
+    },
+    "camera_point": [
+      15.7999992370605,
+      2.09999656677246,
+      2.30850028991699
+    ],
+    "muzzle_collider": {
+      "id": 125225145278,
+      "layer": 1,
+      "mask": 1,
+      "mesh": "/root/MafioziWalkMigration/ModularBuilding/modular_body_v1",
+      "path": "/root/MafioziWalkMigration/Modular30Host/Modular30Runtime/@StaticBody3D@753",
+      "source_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013"
+    },
+    "muzzle_point": [
+      15.7999992370605,
+      2.09999656677246,
+      2.30849981307983
+    ],
+    "ok": true,
+    "planned_point": [
+      15.8000011444092,
+      2.09999990463257,
+      2.30850005149841
+    ]
+  },
+  "no_GPU_or_performance_or_OS_focus_acceptance": true,
+  "gpu02_failure_reproduced": false,
+  "fixture": "Original attached camera, one clear-floor player placement, headless free_mouse_look=true, native mouse/key/button events; no NPC teleports or geometry/physics/weapon/source edits."
+}
