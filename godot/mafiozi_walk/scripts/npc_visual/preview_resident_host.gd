@@ -372,6 +372,31 @@ func request_walk(identity: String, target: Vector3) -> int:
 	_leave_busy()
 	return id
 
+
+## Let Godot resolve a small vertical floor overlap before strict path admission.
+## A query previews the correction; source footprint and all obstacles still pass.
+func _recover_floor_contact(record: Dictionary) -> bool:
+	var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
+	var id: String = record.row.source_id
+	if body == null or not _living(record) or record.get("physical_failed",false) or _physical_occupied(id) or body.collision_layer != 1 or body.collision_mask != 1 or (body.is_on_floor() and record.status != "BLOCKED") or body.velocity.y > 0.0: return false
+	var before := body.global_transform
+	var margin := body.safe_margin
+	var snap_length := body.floor_snap_length
+	var overlap_recovery := body.move_and_collide(Vector3.ZERO, true, margin, true)
+	if overlap_recovery == null: return false
+	var correction: Vector3 = overlap_recovery.get_travel()
+	var corrected: Vector3 = before.origin + correction
+	if not correction.is_finite() or correction.y < 0.0 or correction.y > .05 or Vector2(correction.x,correction.z).length() > .0001: return false
+	if not _source_admits(corrected, record, "route"): return false
+	# The source callback may revoke or replace the physical owner synchronously.
+	if not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body or body.global_transform != before: return false
+	if body.collision_layer != 1 or body.collision_mask != 1 or record.get("physical_failed",false) or _physical_occupied(id): return false
+	if body.velocity.y > 0.0 or body.safe_margin != margin or body.floor_snap_length != snap_length: return false
+	if not _physical_clear(corrected,[body.get_rid()]) or not _owned_clear(corrected,id): return false
+	body.move_and_collide(Vector3.ZERO, false, margin, true)
+	body.apply_floor_snap()
+	return true
+
 func step(delta: float) -> void:
 	if not Thread.is_main_thread() or _busy or _disposed or not is_finite(delta) or delta <= 0 or delta > .05: return
 	_busy = true
@@ -413,8 +438,16 @@ func step(delta: float) -> void:
 			if is_instance_valid(body): body.queue_free()
 			record.body = null; record.gait = null; record.motion = null; record.status = "REMOVED"; record.attempted = true; continue
 		if not is_instance_valid(body): continue
+		if not body.is_on_floor() or record.status == "BLOCKED":
+			_recover_floor_contact(record)
+			# Recovery admission invokes source code; it may retire this actor.
+			if not _living(record) or not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body: continue
+			if record.get("physical_failed",false) or _physical_occupied(id) or body.collision_layer != 1 or body.collision_mask != 1: continue
 		var before := body.global_position
-		if record.request >= 0:
+		var walk_pause: Callable = record.get("walk_pause", Callable())
+		var paused: bool = walk_pause.is_valid() and walk_pause.call()
+		if paused: body.velocity = Vector3.ZERO
+		if record.request >= 0 and not paused:
 			# Exact healthy civilian branch of source _npcEffectiveSpeed, fixed at
 			# immutable session receipt time. No fatigue/health simulation claimed.
 			var result: Dictionary = _navigation.poll(record.request)
@@ -423,7 +456,7 @@ func step(delta: float) -> void:
 			if result.status not in ["READY", "ARRIVED"]: body.velocity = Vector3.ZERO
 		var displacement := body.global_position - before
 		var horizontal := Vector3(displacement.x, 0, displacement.z)
-		if horizontal.length_squared() > .00000001: body.rotation.y = atan2(-horizontal.x, -horizontal.z)
+		if horizontal.length_squared() > .00000001: body.basis = Basis(Vector3.UP, atan2(-horizontal.x, -horizontal.z))
 		# Source renderer interpolates the shortest yaw arc while source motion
 		# can change angle immediately. Keep the physical body/path untouched;
 		# rotate only the canonical presentation node against body heading.

@@ -97,7 +97,7 @@ func sample_ground(base:Dictionary,motion:Dictionary,aim_yaw:float,epoch:int)->D
 			_gait_rotate(poses,"thigh_"+side,stride*.56);_gait_rotate(poses,"shin_"+side,maxf(0,-stride)*.52);_gait_rotate(poses,"foot_"+side,-stride*.22)
 			_gait_rotate(poses,"upperarm_"+side,-stride*.38);_gait_rotate(poses,"forearm_"+side,-maxf(0,stride)*.12)
 	prepared.poses=poses
-	var result:=sample_locomotion(prepared,_posture_value,_gait_phase,_gait_weight,motion.actor_world,motion.actor_yaw,aim_yaw,epoch)
+	var result:=sample_locomotion(prepared,_posture_value,_gait_phase,_gait_weight,motion.actor_world,motion.actor_yaw,aim_yaw,epoch,bool(motion.get("weapon_mounted",true)))
 	if result.get("valid",false):result.weapon_posture.phase=_gait_phase;result.weapon_posture.gait=_gait_weight
 	return result
 
@@ -192,7 +192,7 @@ func _floor_binding_current()->bool:
 			node=node.get_parent()
 	return true
 
-func sample_locomotion(base:Dictionary,value:float,phase:float,gait:float,actor_world:Transform3D,actor_yaw:float,aim_yaw:float,epoch:int)->Dictionary:
+func sample_locomotion(base:Dictionary,value:float,phase:float,gait:float,actor_world:Transform3D,actor_yaw:float,aim_yaw:float,epoch:int,weapon_mounted:bool=true)->Dictionary:
 	var posture:=view(value)
 	if posture.is_empty() or not _number(phase) or not _number(gait) or gait<0 or gait>1 or not _number(actor_yaw) or not _number(aim_yaw):return _fail("posture_inputs")
 	if not _floor_live():return _fail("not_player_bound")
@@ -203,7 +203,7 @@ func sample_locomotion(base:Dictionary,value:float,phase:float,gait:float,actor_
 	prepared.visual_rotation=Quaternion(Vector3.UP,aim_yaw-actor_yaw)
 	prepared.visual_offset=Vector3(0,bob,0);prepared.scaled_offset=Vector3(0,bob,0)
 	var frame:=make_frame(actor_world,actor_yaw,prepared,_rest_rig,_rest_normalized,_bound_height,_bound_source_height)
-	return sample_posture(prepared,frame,posture,phase,gait,epoch,true)
+	return sample_posture(prepared,frame,posture,phase,gait,epoch,weapon_mounted)
 
 func sample_posture(base:Dictionary,frame:Dictionary,posture:Dictionary,phase:float,gait:float,epoch:int,weapon_mounted:bool=true)->Dictionary:
 	if not _ready or _busy or not Thread.is_main_thread() or not base.get("valid",false) or not base.get("poses") is Array or base.poses.size()!=COUNT or base.has("weapon") or base.has("weapon_posture"):return _fail("base_or_order")

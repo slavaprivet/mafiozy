@@ -2,7 +2,7 @@ extends RefCounted
 ## One externally admitted NPC life. No HP, damage-to-impulse, death decision,
 ## automatic get-up, actor movement, or vehicle collision exceptions.
 ## Root must suspend the walking/animation writer for the complete ACTIVE lease.
-const Body = preload("res://scripts/character_physics/exit_ragdoll_body.gd")
+const Body = preload("npc_body.gd")
 const IDENTITY_FIELDS := ["session_id", "source_id", "render_id", "bridge_id", "descriptor_sha256", "placement_mode", "life_generation", "rig_epoch", "body_instance_id", "body_rid", "rig_instance_id"]
 var mode := "UNBOUND"
 var _body: RefCounted
@@ -97,10 +97,12 @@ func _receipt(event_id: String) -> Dictionary:
 	for key: String in IDENTITY_FIELDS:
 		if not _same(raw.binding.get(key),_binding[key]): return {}
 	var event: Dictionary = raw.event.duplicate(true)
-	if event.get("id") != event_id or not _yes(event.get("confirmed")) or event.get("kind") not in ["final_death","vehicle_knockdown"]: return {}
+	if event.get("id") != event_id or not _yes(event.get("confirmed")) or event.get("kind") not in ["final_death","vehicle_knockdown","source_medical_down"]: return {}
 	if not event.get("already_solved_by_godot") is bool or not event.get("apply_again") is bool or event.already_solved_by_godot == event.apply_again: return {}
 	if event.kind == "final_death":
 		if not _text(event.get("death_key")): return {}
+	elif event.kind == "source_medical_down":
+		if event.get("source_id") != _binding.source_id or event.get("life_generation") != _binding.life_generation or not _yes(event.get("medical_downed")) or not event.get("local_preview_hp_revision") is int or event.local_preview_hp_revision < 1: return {}
 	else:
 		if not _yes(event.get("contact_verified")) or not _identity(event.get("vehicle_id")): return {}
 	for key: String in ["linear_velocity", "angular_velocity", "reference_point", "impulse_ns"]:

@@ -21,7 +21,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260930-npc23"
+const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23c"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -753,10 +753,10 @@ func _build_hud() -> void:
 	_stats.add_theme_font_size_override("font_size", 12)
 	stack.add_child(_stats)
 	var controls: Label = Label.new()
-	controls.text = "Клик по игре — включить управление   Esc — свободный курсор\nWASD — идти   Shift — бег   Space — прыжок   2×Space — бросок   Колесо — камера"
+	controls.text = "Клик — управление · Esc — курсор\nWASD — идти · Shift — бег · Колесо — камера\nSpace — прыжок · 2×Space — бросок · C/Z — присесть/лечь"
 	controls.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	controls.offset_left = 16
-	controls.offset_top = -46
+	controls.offset_left = 470 if preview_weapons_enabled else 16
+	controls.offset_top = -70 if preview_weapons_enabled else -46
 	controls.add_theme_font_size_override("font_size", 12)
 	controls.add_theme_color_override("font_shadow_color", Color.BLACK)
 	controls.add_theme_constant_override("shadow_offset_x", 1)

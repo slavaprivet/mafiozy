@@ -136,7 +136,10 @@ func _make_row(uid:String,weapon_id:String,parent:Node3D,transform:Transform3D)-
 	if not _live() or not _node_live(model) or model.get_parent()!=parent:
 		if is_instance_valid(model):model.free()
 		return {}
-	return {"uid":uid,"weapon_id":weapon_id,"visual":model,"parts":parts,"bounds":_native_bounds[weapon_id],"transform":transform,"parent":weakref(parent)}
+	var row: Dictionary={"uid":uid,"weapon_id":weapon_id,"visual":model,"parts":parts,"bounds":_native_bounds[weapon_id],"transform":transform,"parent":weakref(parent)}
+	# Build immutable picking geometry during placement preparation, not hover.
+	if _triangle_mesh(row)==null: model.free(); return {}
+	return row
 static func _free_rows(rows:Array)->void:
 	for row:Dictionary in rows:
 		if is_instance_valid(row.get("visual")):row.visual.free()
@@ -449,3 +452,21 @@ func _notification(what:int)->void:
 		if is_instance_valid(_ground_layer):_ground_layer.queue_free()
 		for binding:Dictionary in _trunks.values():
 			if is_instance_valid(binding.layer):binding.layer.queue_free()
+
+func ground_receipt(drop_uid: String, item_uid: String) -> Dictionary:
+	# Cheap original-mesh/UID lifetime admission, no triangle search or ownership.
+	if not _live() or not _ground.has(drop_uid): return {"ok":false}
+	var row: Dictionary=_ground[drop_uid]
+	if row.uid!=item_uid or not _model_current(row) or not row.visual.visible or not row.visual.is_visible_in_tree(): return {"ok":false}
+	return {"ok":true,"point":row.visual.global_transform*row.bounds.get_center(),"weapon_id":row.weapon_id}
+
+func ui_bounds(scope: String, uid: String, vehicle_id: String="", generation: int=0) -> Dictionary:
+	# Read-only original bounds descriptor; no triangle query/authority mutation.
+	var row: Dictionary={}
+	if scope=="ground": row=_ground.get(uid,{})
+	elif scope=="trunk":
+		var binding: Dictionary=_trunks.get(vehicle_id,{})
+		if binding.get("generation")!=generation: return {}
+		row=binding.get("items",{}).get(uid,{})
+	if row.is_empty() or not _row_live(row) or not row.visual.is_visible_in_tree(): return {}
+	return {"node":weakref(row.visual),"bounds":row.bounds}

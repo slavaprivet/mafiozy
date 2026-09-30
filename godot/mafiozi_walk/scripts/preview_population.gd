@@ -1,6 +1,9 @@
 extends RefCounted
 ## Root-owned local session wiring. Native routes never grant source access.
+# Artist23 owner integration: bounded varied preview routes and idle look.
+# Native host/staging regressions passed; source agenda/recovery stay separate.
 const Residents = preload("res://scripts/npc_visual/preview_resident_host.gd")
+const LocalHits = preload("res://scripts/npc_visual/npc_local_preview_hit_owner.gd")
 const Policy = preload("res://scripts/npc_visual/preview_resident_world_policy.gd")
 const Navigation = preload("res://scripts/navigation/preview_navigation_host.gd")
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
@@ -25,6 +28,8 @@ var status := "not_loaded"
 var error := ""
 var _disposed := false
 var _staged_preview := false
+var hit_owners: Array[RefCounted] = []
+var combat_status := "unbound"
 
 func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = true) -> bool:
 	if _disposed or status != "not_loaded": return false
@@ -63,6 +68,19 @@ func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = 
 	else:
 		for i in parsed.rows.size(): residents.admit_next()
 	status = "ready" if residents.occupants().size() == parsed.rows.size() else "pending_placement"
+	# This packet explicitly starts a new local session; it never loads saved HP.
+	if status == "ready" and staged_preview and is_instance_valid(scene.get("preview_weapons")):
+		combat_status = "new_local_session"
+		for row: Dictionary in parsed.rows:
+			var owner := LocalHits.new()
+			var token: Dictionary = residents.target_from_collider(residents._records[row.source_id].body)
+			var linked: Dictionary = owner.configure(residents, token, packet, trust, scene.preview_weapons,
+				{"marksman":0.0, "scope":"local_new_session", "session_id":SESSION})
+			if not linked.get("ok",false):
+				owner.dispose()
+				return _fail("local_hit_owner:"+str(linked))
+			hit_owners.append(owner)
+			residents._records[row.source_id]["walk_pause"] = Callable(owner,"should_pause_walk")
 	return true
 
 func _fail(reason: String) -> bool:
@@ -73,6 +91,7 @@ func _fail(reason: String) -> bool:
 
 func step(delta: float) -> void:
 	if _disposed or residents == null: return
+	for owner: RefCounted in hit_owners: owner.step()
 	navigation.pump(Engine.get_physics_frames())
 	residents.step(delta)
 	if _staged_preview: residents.preview_walk_step(delta)
@@ -99,6 +118,8 @@ func snapshot() -> Dictionary:
 func dispose() -> void:
 	if _disposed: return
 	_disposed = true
+	for owner: RefCounted in hit_owners: owner.dispose()
+	hit_owners.clear()
 	if residents != null: residents.dispose()
 	if navigation != null: navigation.dispose()
 	if _queue != null: _queue.dispose()

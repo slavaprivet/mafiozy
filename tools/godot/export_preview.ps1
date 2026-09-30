@@ -161,6 +161,12 @@ foreach ($directory in @('scripts', 'scenes', 'data', 'assets')) {
         } |
         ForEach-Object { $_.FullName })
 }
+# Build-time plugins are inputs too: frozen stages must retain receipt exporters.
+foreach ($pluginInput in @('plugin.cfg', 'plugin.gd', 'export_plugin.gd')) {
+    $pluginPath = Join-Path $projectPath ('addons/npc_source_receipts/' + $pluginInput)
+    if (-not (Test-Path -LiteralPath $pluginPath -PathType Leaf)) { throw "Missing NPC receipt export plugin: $pluginPath" }
+    $inputPaths += $pluginPath
+}
 $inputReceipts = @($inputPaths | Sort-Object -Unique | ForEach-Object {
     [ordered]@{ path = $_.Substring($projectPath.Length + 1).Replace('\', '/'); bytes = (Get-Item -LiteralPath $_).Length; sha256 = (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() }
 })
@@ -179,8 +185,14 @@ if (-not (Test-Path -LiteralPath $exePath) -or -not (Test-Path -LiteralPath $pac
     throw 'Expected executable and PCK were not both generated'
 }
 $packInventory = Read-ExportPackDirectory $packPath
+foreach ($rawReceipt in @('scripts/npc_visual/npc_visual_loader.gd', 'scripts/npc_visual/npc_float_color_bridge.gd')) {
+    if ($packInventory.paths -notcontains $rawReceipt -and $packInventory.paths -notcontains ('res://' + $rawReceipt)) {
+        throw "Raw NPC source receipt missing from PCK: $rawReceipt"
+    }
+}
 foreach ($sourceInput in $inputReceipts) {
     $relative = $sourceInput.path
+    if ($relative.StartsWith('addons/')) { continue } # Editor-only build input.
     if ($relative.EndsWith('.gd') -and
         $packInventory.paths -notcontains $relative -and
         $packInventory.paths -notcontains ([IO.Path]::ChangeExtension($relative, '.gdc').Replace('\', '/'))) {

@@ -1,4 +1,5 @@
 extends RefCounted
+const SHARED_RPG_FLIGHT := true
 ## Cosmetic source bullets/pellets, muzzle flash and spent casing pools.
 ## Caller owns accepted shots, exact mounted muzzle and collision admission.
 ## No HP/ammo/skin authority. Rockets/marks/blood/explosions are outside this port.
@@ -69,14 +70,19 @@ func configure(scene: Node3D,ray_resolver: Callable,options: Dictionary={})->Dic
 
 func _mesh(data:Dictionary)->ArrayMesh:
 	var vertices:=PackedVector3Array();var normals:=PackedVector3Array();var uv:=PackedVector2Array();var indices:=PackedInt32Array()
-	for i in range(0,data.vertices.size(),3):vertices.append(Vector3(data.vertices[i],data.vertices[i+1],data.vertices[i+2]));normals.append(Vector3(data.normals[i],data.normals[i+1],data.normals[i+2]))
+	for i in range(0,data.vertices.size(),3):
+		vertices.append(Vector3(data.vertices[i],data.vertices[i+1],data.vertices[i+2]))
+		if not data.normals.is_empty(): normals.append(Vector3(data.normals[i],data.normals[i+1],data.normals[i+2]))
 	for i in range(0,data.uv.size(),2):uv.append(Vector2(data.uv[i],data.uv[i+1]))
 	var source:Array=data.indices
 	if source.is_empty():for i in vertices.size():source.append(i)
-	for i in range(0,source.size(),3):indices.append(source[i]);indices.append(source[i+2]);indices.append(source[i+1])
-	var arrays:Array=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=normals;arrays[Mesh.ARRAY_INDEX]=indices
+	if data.get("lines",false): indices=PackedInt32Array(source)
+	else:
+		for i in range(0,source.size(),3):indices.append(source[i]);indices.append(source[i+2]);indices.append(source[i+1])
+	var arrays:Array=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_INDEX]=indices
+	if not normals.is_empty(): arrays[Mesh.ARRAY_NORMAL]=normals
 	if not uv.is_empty():arrays[Mesh.ARRAY_TEX_UV]=uv
-	var result:=ArrayMesh.new();result.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);return result
+	var result:=ArrayMesh.new();result.add_surface_from_arrays(Mesh.PRIMITIVE_LINES if data.get("lines",false) else Mesh.PRIMITIVE_TRIANGLES,arrays);return result
 func _node(data:Dictionary,meshes:Dictionary)->Node3D:
 	var node:Node3D
 	if data.mesh!=null:
@@ -87,6 +93,7 @@ func _node(data:Dictionary,meshes:Dictionary)->Node3D:
 		if m.transparent:material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
 		if not m.depthWrite:material.depth_draw_mode=BaseMaterial3D.DEPTH_DRAW_DISABLED
 		if m.additive:material.blend_mode=BaseMaterial3D.BLEND_MODE_ADD
+		if m.get("doubleSided",false):material.cull_mode=BaseMaterial3D.CULL_DISABLED
 		instance.material_override=material;instance.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_ON if str(data.name).begins_with("casing-") else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		node=instance
 	else:node=Node3D.new()
@@ -98,15 +105,22 @@ func _owner_exit()->void:dispose()
 func _live()->bool:return _configured and _owner!=null and is_instance_valid(_owner.get_ref()) and is_instance_valid(_root)
 func _take(pool:Array[Dictionary],key:String)->Dictionary:
 	var entry:Dictionary=pool[_cursor[key]%pool.size()];_cursor[key]+=1
+	# A shared slot may own source RPG flight. Evict its exact token without
+	# external callbacks or an impact, before a new projectile occupies it.
+	if entry.has("external_flight"):
+		entry.external_flight.retire_token(entry.external_token)
+		entry.erase("external_flight");entry.erase("external_token")
 	if not entry.active:entry.active=true;_active+=1;_counts[key]+=1
 	entry.root.visible=true;return entry
 func _hide(entry:Dictionary)->void:
 	if entry.active:entry.active=false;_active-=1;_counts[entry.pool]-=1
 	if is_instance_valid(entry.root):entry.root.visible=false
-func _color(part:MeshInstance3D,value:Variant)->void:
+func _color(part:MeshInstance3D,value:Variant,source_emission:bool=false)->void:
 	var m:StandardMaterial3D=part.material_override
 	var c:=Color(str(value)) if value is String else Color.hex(int(value)*256+255)
 	c.a=m.albedo_color.a;m.albedo_color=c
+	if source_emission:
+		m.emission_enabled=true;m.emission=Color(c.r*.34,c.g*.34,c.b*.34)
 func _opacity(part:MeshInstance3D,alpha:float)->void:
 	var m:StandardMaterial3D=part.material_override;var c:=m.albedo_color;c.a=alpha;m.albedo_color=c
 
@@ -168,8 +182,9 @@ func _spawn(p:Dictionary,shot:Dictionary,origin:Vector3,direction:Vector3,ray:Ca
 	var parts:Dictionary=e.parts;var core:MeshInstance3D=parts["projectile-core"];var nose:MeshInstance3D=parts["projectile-nose"];var streak:MeshInstance3D=parts["projectile-motion-streak"];var jacket:MeshInstance3D=parts["projectile-jacket-band"]
 	core.scale=Vector3(caliber*2,length,caliber*2);nose.visible=kind!="pellet";nose.scale=Vector3(caliber*1.35,length*.22,caliber*1.35);nose.position.z=length*.58
 	streak.scale=Vector3(maxf(.003,caliber*.24),trail,maxf(.003,caliber*.24));streak.position.z=-trail*.52-length*.42;_opacity(streak,.28 if kind=="pellet" else .52)
-	var color:Variant=visual.get("color",p.get("color","#caa36a"));_color(core,color);_color(nose,color);_color(streak,0xe8cc91)
+	var color:Variant=visual.get("color",p.get("color","#caa36a"));_color(core,color,true);_color(nose,color,true);_color(streak,0xe8cc91)
 	jacket.visible=kind!="pellet";jacket.scale=Vector3(caliber*2.07,length*.08,caliber*2.07);jacket.position.z=-length*.33
+	e.projectile_kind=kind
 	_rounds+=1
 func _eject(pending:Dictionary)->void:
 	var e:=_take(_casings,"casings");var casing:Dictionary=pending.casing;var shell:bool=pending.weaponId in ["shotgun","sawn_off"];var rifle:bool=pending.weaponId in ["ak74","m16","sniper"]
@@ -189,7 +204,7 @@ func advance(delta:float)->void:
 		if _pending[i].delay<=0:_eject(_pending[i]);_pending.remove_at(i)
 	if _counts.projectiles>0:
 		for e:Dictionary in _projectiles:
-			if not e.active:continue
+			if not e.active or e.has("external_flight"):continue
 			var distance:float=minf(e.remaining,e.speed*dt)
 			if distance<=0:continue
 			var origin:Vector3=e.sweep_origin if e.first else e.root.position
@@ -203,7 +218,7 @@ func advance(delta:float)->void:
 				if not _v(hit.get("point")) or not _v(hit.get("normal")) or not _finite(hit.get("distance")) or hit.distance<0 or hit.distance>sweep_range+.00001 or hit.normal.length_squared()<1e-12:_hide(e);continue
 				if (hit.point-(origin+e.direction*hit.distance)).length()>.0001:_hide(e);continue
 				e.root.position=hit.point
-				var receipt:Dictionary={"weaponId":e.weapon_id,"shotId":e.shot_id,"point":hit.point,"normal":hit.normal.normalized(),"direction":e.direction,"collider":hit.get("collider"),"cosmetic_only":true}
+				var receipt:Dictionary={"weaponId":e.weapon_id,"shotId":e.shot_id,"point":hit.point,"normal":hit.normal.normalized(),"direction":e.direction,"collider":hit.get("collider"),"projectile_kind":e.projectile_kind,"cosmetic_only":true}
 				_hide(e);cosmetic_impact.emit(receipt)
 				if not _live():_updating=false;return
 			else:
@@ -244,6 +259,10 @@ func debug_snapshot()->Dictionary:
 		if e.active:result.flashes.append({"position":e.root.position,"life":e.life,"scale":e.root.scale,"core_opacity":e.parts["muzzle-hot-core"].material_override.albedo_color.a,"cone_opacity":e.parts["muzzle-forward-flame"].material_override.albedo_color.a})
 	return result
 func dispose()->void:
+	for entry:Dictionary in _projectiles:
+		if entry.has("external_flight"):
+			entry.external_flight.retire_token(entry.external_token)
+			entry.erase("external_flight");entry.erase("external_token")
 	_configured=false;_retired=true;_pending.clear()
 	if _owner!=null:
 		var scene:Variant=_owner.get_ref()

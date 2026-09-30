@@ -526,6 +526,7 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	if is_instance_valid(_melee_practice): _melee_practice.cancel("pose_authority")
 	_invalidate_pose_receipt()
 	_pose_authority = owner
+	if owner!=&"on_foot" and is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null: _weapon_host.aim_camera.reset(true)
 	_pose_epoch += 1
 	_jump.clear()
 	_jump_pose.clear()
@@ -694,7 +695,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			var steps := button.factor if button.factor > 0.0 else 1.0
 			var direction := -1.0 if button.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0
 			camera_distance = clampf(camera_distance * exp(direction * steps * 0.12), 3.0, 16.0)
-			_spring_arm.spring_length = camera_distance
+			if not is_instance_valid(_weapon_host) or _weapon_host.aim_camera==null or not _weapon_host.aim_camera.owns_distance(): _spring_arm.spring_length = camera_distance
 			get_viewport().set_input_as_handled()
 			return
 		if button.button_index == MOUSE_BUTTON_RIGHT:
@@ -706,7 +707,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
 		if _free_mouse_look and not _text_control_focused():
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
-			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, -1.05, 0.45)
+			var pitch_limits: Vector2=_weapon_host.aim_camera.pitch_limits() if is_instance_valid(_weapon_host) and _weapon_host.aim_camera!=null else Vector2(-1.05,.45)
+			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, pitch_limits.x, pitch_limits.y)
 			_update_camera_rotation()
 			get_viewport().set_input_as_handled()
 

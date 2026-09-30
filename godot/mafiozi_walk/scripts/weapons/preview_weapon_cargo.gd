@@ -1,8 +1,25 @@
 extends Node
+const GroundRules = preload("res://scripts/weapons/ground_weapon_rules.gd")
+const GroundWater = preload("res://scripts/preview_water_surface.gd")
+var _ground_capsule := CapsuleShape3D.new()
+var _ground_query := PhysicsShapeQueryParameters3D.new()
+var _ground_water_cells: Dictionary = {}
+var _ground_water_origin := Vector3.ZERO
+var _ground_water_cell_size := 4.1
+var _ground_water_known := false
+const WalkCargoCard = preload("res://scripts/weapons/walk_cargo_card.gd")
+var _cargo_ui_revision := -1
+var _cargo_ui_names: Dictionary = {}
+var _cargo_card_scope := ""
+var _ui_control_refs: Array=[]
+var _ui_lid_bounds: Array=[]
+var _ui_layout_bound:=false
 ## Root integration: real camera pick, real trunk, prepared ownership transfers.
 const Evidence = preload("res://scripts/transport/transport_cargo_evidence.gd")
 const Store = preload("res://scripts/transport/trunk/transport_trunk_cargo_store.gd")
 const Bridge = preload("res://scripts/weapons/weapon_cargo_bridge.gd")
+const CargoAim = preload("res://scripts/weapons/cargo_aim_picker.gd")
+var _cargo_picker: RefCounted
 const Pickups = preload("res://scripts/weapons/weapon_pickup_visuals.gd")
 const Catalog = preload("res://scripts/weapon_visual/weapon_visual_catalog.gd")
 var weapons: Node
@@ -15,7 +32,7 @@ var catalogue: RefCounted
 var vehicle_id := ""
 var generation := 0
 var _ready_for_play := false
-var _hint: Label
+var _hint: PanelContainer
 var _refresh := 0.0
 var _expire := 0.0
 var _ray := PhysicsRayQueryParameters3D.new()
@@ -42,6 +59,8 @@ func configure(weapon_host: Node, vehicle_host: Node3D) -> Dictionary:
 	if not result.ok: return result
 	result=renderer.bind_trunk(vehicle_id,generation,transport.visual.root)
 	if not result.ok: return result
+	_cargo_picker=CargoAim.new()
+	_cargo_picker.configure(renderer,transport.visual.root,{"enabled":true,"scope":"trunk","vehicle_id":vehicle_id,"generation":generation,"trunk_open":true},Callable(self,"_cargo_ray_clear"))
 	evidence=Evidence.new(); result=evidence.configure(transport.visual,transport.compartments)
 	if not result.ok: return result
 	cargo=Store.new(); result=cargo.configure(transport.body,vehicle_id,generation,evidence,transport.compartments)
@@ -49,7 +68,8 @@ func configure(weapon_host: Node, vehicle_host: Node3D) -> Dictionary:
 	bridge=Bridge.new(); result=bridge.configure(weapons.inventory,cargo,generation,Callable(self,"_sample"),Callable(renderer,"prepare_placement"),Callable(self,"_cancel"))
 	if not result.ok: return result
 	_shape_query.shape=_shape; _shape_query.collision_mask=7; _shape_query.margin=.001
-	_hint=Label.new(); _hint.position=Vector2(22,154); _hint.add_theme_font_size_override("font_size",19); _hint.mouse_filter=Control.MOUSE_FILTER_IGNORE; weapons._layer.add_child(_hint)
+	_hint=WalkCargoCard.new(); weapons._layer.add_child(_hint)
+	_load_ground_water_policy()
 	_ready_for_play=true
 	return {"ok":true}
 
@@ -78,6 +98,10 @@ func _ray_hit(from: Vector3,to: Vector3,exclude_car: bool=false) -> Dictionary:
 	if exclude_car: exclusions.append(transport.body.get_rid())
 	_ray.exclude=exclusions
 	return weapons.scene.get_world_3d().direct_space_state.intersect_ray(_ray)
+
+func _cargo_ray_clear(origin: Vector3, point: Vector3) -> bool:
+	var obstacle:=_ray_hit(origin,point,true)
+	return obstacle.is_empty() or obstacle.position.distance_to(point)<.03
 
 func _near_trunk_geometry() -> bool:
 	# Proximity determines G's meaning even while speed/upright admission denies
@@ -108,17 +132,11 @@ func aim_context() -> Dictionary:
 			var obstruction:=_ray_hit(origin,point,true)
 			result.aimed_trunk=obstruction.is_empty() or obstruction.position.distance_to(point)<.03
 		if result.cargo_allowed and result.open and result.aimed_trunk:
-			var hit: Dictionary=renderer.pick(origin,direction,12.0,{"enabled":true,"scope":"trunk","vehicle_id":vehicle_id,"generation":generation,"trunk_open":true})
-			if hit.get("hit",false): result.item_uid=hit.item_uid
-		return result
-	var ground_hit: Dictionary=renderer.pick(origin,direction,12.0,{"enabled":true,"scope":"ground"})
-	if ground_hit.get("hit",false):
-		var point: Vector3=ground_hit.point
-		var offset: Vector3=point-weapons.player.global_position
-		if Vector2(offset.x,offset.z).length()<=1.65 and absf(offset.y)<=.65:
-			var obstruction:=_ray_hit(origin,point)
-			var approach:=_ray_hit(weapons.player.global_position+Vector3.UP*.2,point+Vector3.UP*.1)
-			if (obstruction.is_empty() or obstruction.position.distance_to(point)<.03) and approach.is_empty(): result.drop_uid=ground_hit.drop_uid
+			var hit: Dictionary=_cargo_picker.pick(camera)
+			if hit.get("hit",false): result.item_uid=hit.item_uid; result.point=hit.point; result.weapon_id=hit.weaponId
+		if result.cargo_allowed and result.open: return result
+	var nearby:=_nearest_ground_context()
+	if not nearby.is_empty(): result.merge(nearby,true)
 	return result
 
 func _sample() -> Dictionary:
@@ -180,6 +198,7 @@ func _apply_transfer(result: Dictionary,equip_taken: String="") -> Dictionary:
 			assert(equipped.get("ok",false),"Just-imported exact trunk item must equip")
 			result.inventory.merge(equipped,true)
 		weapons.fire_state=result.inventory.fireState
+		if is_instance_valid(weapons._walk_ui): weapons._walk_ui.invalidate_inventory()
 		weapons._profile=load("res://scripts/weapons/weapon_fire.gd").profile(str(weapons.fire_state.weaponId))
 		weapons.cancel_inputs(); weapons.presentation.equip(str(weapons.fire_state.weaponId)); weapons._refresh_ui()
 	else:
@@ -269,11 +288,14 @@ func drop_held() -> Dictionary:
 	if _near_trunk_geometry(): return {"ok":false,"reason":"near_trunk"}
 	weapons.cancel_inputs()
 	var id: String=weapons.fire_state.weaponId
-	var placement:=_placement(id,weapons.player.global_position,weapons.player._camera_yaw,[])
+	var placement:=_ground_drop_placement(id)
 	if not placement.ok: return placement
 	var item: Dictionary={"uid":weapons.inventory.get_item_uid(id),"weaponId":id,"fireState":weapons.fire_state.duplicate(true)}
-	var prepared: Dictionary=renderer.prepare_ground_drop(item,{"position":placement.position,"yaw":placement.yaw})
+	var prepared: Dictionary=placement.prepared
 	if not prepared.get("ok",false): return prepared
+	if not _allowed() or str(weapons.fire_state.weaponId)!=id or weapons.inventory.get_item_uid(id)!=item.uid:
+		renderer.cancel_placement(prepared.token)
+		return {"ok":false,"reason":"selection_changed"}
 	var result: Dictionary=weapons.inventory.drop({"position":placement.position,"yaw":placement.yaw,"fireState":weapons.fire_state})
 	if result.get("ok",false):
 		var visible: Dictionary=renderer.activate_ground_drop(prepared.token,result.drop,item.uid)
@@ -284,14 +306,43 @@ func drop_held() -> Dictionary:
 	return result
 
 func pickup_ground(uid: String) -> Dictionary:
-	if not _allowed() or aim_context().drop_uid!=uid: return {"ok":false,"reason":"aim"}
-	var result: Dictionary=weapons.inventory.pickup(uid,weapons.fire_state)
-	if result.get("ok",false):
-		weapons.fire_state=result.fireState
-		renderer.sync_ground(weapons.inventory.get_dropped(),weapons.inventory.item_identity_snapshot().dropped)
-		weapons._refresh_ui()
-	_refresh=0
+	# Real Walk host E picks up AND equips; Inventory.pickup alone only collects.
+	if not _allowed() or str(aim_context().drop_uid)!=uid: return {"ok":false,"reason":"reach"}
+	weapons.cancel_inputs()
+	var selected: Variant=weapons.inventory.get_drop_item(uid)
+	if not selected is Dictionary: _sync_ground_after_mutation(); return {"ok":false,"reason":"missing_drop"}
+	var previous: String=str(weapons.fire_state.weaponId)
+	var identity: String=str(selected.uid)
+	var target: String=str(selected.weaponId)
+	# Resource loading/mesh setup may fail. Prepare before ownership changes.
+	var prepared: Dictionary=weapons.presentation.equip(target)
+	if not prepared.get("ok",false): return prepared
+	var fresh: Variant=weapons.inventory.get_drop_item(uid)
+	if not _allowed() or not fresh is Dictionary or fresh.uid!=identity or fresh.weaponId!=target or str(aim_context().drop_uid)!=uid:
+		weapons.presentation.equip(previous)
+		return {"ok":false,"reason":"selection_changed"}
+	var current: Dictionary=weapons._inventory_state(weapons.fire_state)
+	var result: Dictionary=weapons.inventory.pickup(uid,current)
+	if not result.get("ok",false):
+		weapons.presentation.equip(previous)
+		_sync_ground_after_mutation() # expiry failure also removes its old mesh
+		return result
+	# No await/callback/resource loading between concrete inventory commits.
+	var equipped: Dictionary=weapons.inventory.equip(target,result.fireState)
+	assert(equipped.get("ok",false),"Just-collected original item must equip")
+	assert(weapons.inventory.get_item_uid(target)==identity,"Ground pickup must retain item identity")
+	result.merge(equipped,true)
+	weapons.fire_state=result.fireState
+	weapons._profile=load("res://scripts/weapons/weapon_fire.gd").profile(target)
+	_sync_ground_after_mutation()
 	return result
+
+func _sync_ground_after_mutation() -> void:
+	var synced: Dictionary=renderer.sync_ground(weapons.inventory.get_dropped(),weapons.inventory.item_identity_snapshot().dropped)
+	assert(synced.get("ok",false),"Existing ground rows must reconcile after pickup/expiry")
+	if is_instance_valid(weapons._walk_ui): weapons._walk_ui.invalidate_inventory()
+	weapons._refresh_ui()
+	_refresh=0
 
 func bind_destruction_source(source: Callable) -> bool:
 	# Only the vehicle damage owner can supply destruction events; no UI key
@@ -325,11 +376,10 @@ func consume_vehicle_destruction(event_uid: String) -> Dictionary:
 func _process(delta: float) -> void:
 	if not _ready_for_play: return
 	if renderer.has_method("update"): renderer.update(delta)
-	# Cheap lifetime/control checks clear the cache immediately, including menu,
-	# released mouse and application focus loss. Aim changes use the .15s sample.
-	if not _allowed() or not transport.compartments.is_open("trunk"):
-		transport.set_cargo_item_hint_focus(false)
-		_hint.text=""
+	# Invalidation is immediate; geometry/authority sampling remains bounded.
+	# Do not erase a ground pickup hint each frame merely because trunk is closed.
+	if not _allowed() or (_cargo_card_scope=="trunk" and not transport.compartments.is_open("trunk")):
+		_clear_cargo_ui()
 	_feedback_time=maxf(0,_feedback_time-delta)
 	_refresh-=delta; _expire-=delta
 	if _expire<=0:
@@ -338,20 +388,69 @@ func _process(delta: float) -> void:
 		if not expired.get("expired",[]).is_empty(): renderer.sync_ground(weapons.inventory.get_dropped(),weapons.inventory.item_identity_snapshot().dropped)
 	if _refresh>0: return
 	_refresh=.15
-	_hint.text=""
 	if not _allowed(): return
 	var context:=aim_context()
-	transport.set_cargo_item_hint_focus(context.cargo_allowed and context.open and not str(context.item_uid).is_empty())
+	var camera: Camera3D=weapons.player.get_preview_camera()
+	weapons.set_cargo_reticle(bool(context.near_trunk and context.open) or not str(context.drop_uid).is_empty())
 	if context.near_trunk and context.open:
 		var state: Dictionary=bridge.actions()
-		var lines: PackedStringArray=[]
-		for action: Dictionary in state.get("actions",[]): lines.append(action.key+" — "+action.label)
-		var used:=int(state.get("used_units",0))
-		lines.append("Занято %d / 100 · Свободно %d" % [used,100-used])
-		if int(state.get("selected_cost",0))>0: lines.append("Оружие займёт %d" % int(state.selected_cost))
-		_hint.text="\n".join(lines)
-	elif not str(context.drop_uid).is_empty(): _hint.text="E — Взять"
-	if _feedback_time>0 and context.open: _hint.text+="\n"+_feedback
+		if not state.get("ok",false): _clear_cargo_ui(); return
+		var summary: Dictionary=cargo.summary(generation)
+		if summary.get("ok",false) and int(summary.revision)!=_cargo_ui_revision:
+			var contents: Dictionary=cargo.snapshot(generation)
+			if contents.get("ok",false):
+				_cargo_ui_names.clear()
+				for entry: Dictionary in contents.items: _cargo_ui_names[str(entry.item.uid)]=str(entry.item.weaponId)
+				_cargo_ui_revision=int(contents.revision)
+		var actions: Array=[]
+		var has_take:=false
+		for action: Dictionary in state.get("actions",[]):
+			var id: String=str(weapons.fire_state.weaponId) if action.action=="store" else str(_cargo_ui_names.get(str(action.get("uid","")),""))
+			var name: String=weapons.LABELS.get(id,"Оружие")
+			actions.append({"key":action.key,"label":action.label+" · "+name})
+			has_take=has_take or action.action=="take"
+		# No take action: E falls through to the existing admitted transport panel.
+		# Display that existing action on this one card and suppress its duplicate.
+		if context.cargo_allowed and not has_take: actions.append({"key":"E","label":"Закрыть багажник"})
+		transport.set_cargo_item_hint_focus(bool(context.cargo_allowed))
+		var detail: String="" if has_take else "Наведите прицел на оружие в багажнике"
+		if int(state.get("selected_cost",0))>0: detail+=("\n" if not detail.is_empty() else "")+"В руках: %d ед. места" % int(state.selected_cost)
+		if _feedback_time>0: detail+=("\n" if not detail.is_empty() else "")+_feedback
+		var bounds: Dictionary=transport.compartments.cargo_bounds()
+		if bounds.is_empty(): _clear_cargo_ui(); return
+		var anchor: Vector3=transport.visual.root.to_global((bounds.min+bounds.max)*.5)+Vector3.UP*.65
+		_cargo_card_scope="trunk"
+		var targets: Array=[{"node":weakref(transport.visual.root),"bounds":AABB(bounds.min,bounds.max-bounds.min)}]
+		var item_bounds: Dictionary=renderer.ui_bounds("trunk",str(context.item_uid),vehicle_id,generation)
+		if not item_bounds.is_empty(): targets.append(item_bounds)
+		_bind_ui_layout()
+		targets.append_array(_ui_lid_bounds)
+		_hint.set_layout_context(camera,"trunk:"+vehicle_id,targets,weapons.player,_ui_control_refs)
+		_hint.present(camera,anchor,"Багажник",actions,int(state.get("used_units",0)),int(state.get("capacity_units",100)),detail)
+	elif not str(context.drop_uid).is_empty():
+		transport.set_cargo_item_hint_focus(false)
+		# Pick metadata is already present in renderer.pick; no new ray/mesh query.
+		var point: Variant=context.get("point")
+		var id: String=str(context.get("weapon_id",""))
+		if not point is Vector3:
+			for drop: Dictionary in weapons.inventory.get_dropped():
+				if str(drop.uid)==str(context.drop_uid):
+					point=Vector3(drop.position.x,drop.position.y,drop.position.z); id=str(drop.weaponId); break
+		if not point is Vector3: _clear_cargo_ui(); return
+		_cargo_card_scope="ground"
+		var target_bounds: Dictionary=renderer.ui_bounds("ground",str(context.drop_uid))
+		if target_bounds.is_empty(): _clear_cargo_ui(); return
+		_bind_ui_layout()
+		_hint.set_layout_context(camera,"ground:"+str(context.drop_uid),[target_bounds],weapons.player,_ui_control_refs)
+		_hint.present_ground(weapons.LABELS.get(id,"Оружие"),int(context.get("magazine",0)),int(context.get("reserveAmmo",0)))
+	else:
+		_clear_cargo_ui()
+
+func _clear_cargo_ui() -> void:
+	_cargo_card_scope=""
+	transport.set_cargo_item_hint_focus(false)
+	weapons.set_cargo_reticle(false)
+	_hint.clear()
 
 func _exit_tree() -> void:
 	_ready_for_play=false
@@ -361,3 +460,87 @@ func _exit_tree() -> void:
 	if evidence!=null: evidence.dispose()
 	if renderer!=null: renderer.dispose()
 	if catalogue!=null: catalogue.close()
+
+func _load_ground_water_policy() -> void:
+	# Exact currently-loaded source water crop. This is local geometry admission,
+	# not an invented authoritative water/save API. Missing evidence denies G.
+	_ground_query.shape=_ground_capsule; _ground_query.collision_mask=7; _ground_query.margin=.001
+	_ground_query.exclude=[weapons.player.get_rid()]
+	var path: Variant=weapons.scene.get("water_data_path")
+	if not path is String or not FileAccess.file_exists(path): return
+	var data: Variant=JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not GroundWater.validate(data).is_empty(): return
+	_ground_water_origin=Vector3(data.originM[0],data.originM[1],data.originM[2])
+	_ground_water_cell_size=float(data.metresPerCell)
+	for cell: Dictionary in data.native.cells: _ground_water_cells[Vector2i(int(cell.c),int(cell.r))]=true
+	_ground_water_known=true
+
+func _ground_has_water(point: Vector3) -> bool:
+	if not _ground_water_known: return true
+	var original:=point+_ground_water_origin
+	return _ground_water_cells.has(Vector2i(int(floor(original.x/_ground_water_cell_size)),int(floor(original.z/_ground_water_cell_size))))
+
+func _ground_floor(point: Vector3) -> Dictionary:
+	return _ray_hit(point+Vector3.UP*.70,point-Vector3.UP*.70)
+
+func _ground_reachable(point: Vector3, maximum_step: float) -> bool:
+	var floor:=_ground_floor(point)
+	if floor.is_empty() or floor.normal.y<.8 or absf(floor.position.y-point.y)>=maximum_step: return false
+	# Source samples pedestrianAllowed along every .12m of the short path.
+	# Native scene uses actual blocking collision and current player footprint.
+	var collider: CollisionShape3D=weapons.player.get_node("PlayerCapsule")
+	var actual: CapsuleShape3D=collider.shape
+	_ground_capsule.radius=actual.radius; _ground_capsule.height=maxf(actual.height-.012,actual.radius*2)
+	_ground_query.transform=Transform3D(Basis.IDENTITY,Vector3(point.x,floor.position.y+_ground_capsule.height*.5+.012,point.z))
+	return weapons.scene.get_world_3d().direct_space_state.intersect_shape(_ground_query,1).is_empty()
+
+func _nearest_ground_context() -> Dictionary:
+	if not _allowed(): return {}
+	var expired: Dictionary=weapons.inventory.expire_drops()
+	if not expired.get("expired",[]).is_empty(): _sync_ground_after_mutation()
+	var origin: Vector3=weapons.player.global_position
+	var candidate: Dictionary=GroundRules.nearest(weapons.inventory.get_dropped(),origin,func(point: Vector3): return _ground_reachable(point,.65))
+	if candidate.is_empty(): return {}
+	var item: Variant=weapons.inventory.get_drop_item(candidate.drop.uid)
+	if not item is Dictionary: return {}
+	var visual: Dictionary=renderer.ground_receipt(str(candidate.drop.uid),str(item.uid))
+	if not visual.get("ok",false): return {}
+	# Whole-footpath sampling prevents through-wall/floor collection without
+	# requiring a six-pixel gun to be precisely under the camera crosshair.
+	return {"drop_uid":str(candidate.drop.uid),"point":visual.point,"weapon_id":str(item.weaponId),"magazine":int(item.fireState.magazine),"reserveAmmo":int(item.fireState.reserveAmmo)}
+
+func _ground_drop_placement(id: String) -> Dictionary:
+	if not _ground_water_known: return {"ok":false,"reason":"water_contract"}
+	var origin: Vector3=weapons.player.global_position
+	var yaw: float=weapons.player._visual.global_rotation.y
+	# Source order .8/.55/.3/0 in actual hero +Z direction. No long-ring search
+	# beyond a wall. Destruction scatter retains its separate original method.
+	for proposed: Vector3 in GroundRules.drop_points(origin,yaw):
+		var floor:=_ground_floor(proposed)
+		if floor.is_empty() or floor.normal.y<.8: continue
+		var point: Vector3=floor.position
+		if _ground_has_water(point) or not GroundRules.path_clear(origin,point,func(sample: Vector3): return _ground_reachable(sample,.45)): continue
+		var item: Dictionary={"uid":weapons.inventory.get_item_uid(id),"weaponId":id,"fireState":weapons.fire_state.duplicate(true)}
+		# Source model-centred exact vertices, all footprint floor samples and
+		# collision/no-overlap checks already live in the existing renderer.
+		var prepared: Dictionary=renderer.prepare_ground_drop(item,{"position":{"x":point.x,"y":point.y,"z":point.z},"yaw":yaw})
+		if not prepared.get("ok",false): continue
+		return {"ok":true,"position":{"x":point.x,"y":point.y,"z":point.z},"yaw":yaw,"prepared":prepared}
+	return {"ok":false,"reason":"ground_space"}
+
+func _bind_ui_layout() -> void:
+	if _ui_layout_bound: return
+	_ui_layout_bound=true
+	# Once after scene construction: actual main HUD rectangles, not hardcoded size.
+	for child: Node in weapons.scene.get_children():
+		if not child is CanvasLayer: continue
+		for control: Node in child.get_children():
+			if control is Control: _ui_control_refs.append(weakref(control))
+	_ui_control_refs.append(weakref(weapons._walk_ui.launcher))
+	var panels: Dictionary=transport.compartments.get("_panels")
+	var lid: Node3D=panels.get("trunk",{}).get("lid")
+	if not is_instance_valid(lid): return
+	var meshes: Array=lid.find_children("*","MeshInstance3D",true,false)
+	if lid is MeshInstance3D: meshes.append(lid)
+	for mesh: MeshInstance3D in meshes:
+		if mesh.mesh!=null: _ui_lid_bounds.append({"node":weakref(mesh),"bounds":mesh.get_aabb()})

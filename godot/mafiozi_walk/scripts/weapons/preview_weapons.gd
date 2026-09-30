@@ -1,15 +1,24 @@
 extends Node
+const WalkWeaponUI = preload("res://scripts/weapons/walk_weapon_ui.gd")
+var _walk_ui: Control
+var cargo_reticle_requested := false
 ## Local new-session arsenal. Authenticated ownership and target HP stay separate.
+const AimCamera = preload("res://scripts/weapons/weapon_aim_camera.gd")
 const Fire = preload("res://scripts/weapons/weapon_fire.gd")
 const Inventory = preload("res://scripts/weapons/weapon_inventory.gd")
 const Presentation = preload("res://scripts/weapons/player_weapon_presentation.gd")
+const RpgEffects = preload("res://scripts/weapons/rpg_effects.gd")
 const Projectiles = preload("res://scripts/weapons/weapon_projectiles.gd")
+const SurfaceImpacts = preload("res://scripts/weapons/weapon_surface_impacts.gd")
 const Posture = preload("res://scripts/weapons/weapon_posture_base.gd")
 signal shot_emitted(shot: Dictionary, muzzle: Dictionary, camera_origin: Vector3, camera_direction: Vector3)
 const LABELS := {"none":"Без оружия", "nagan":"Наган", "tt_pistol":"ТТ", "revolver":"Револьвер", "deagle":"Desert Eagle", "golden_colt":"Золотой Colt", "sawn_off":"Обрез", "shotgun":"Дробовик", "uzi":"Uzi", "golden_uzi":"Золотой Uzi", "ak74":"АК-74", "m16":"M16", "tommy_gun":"Томпсон", "sniper":"Снайперская винтовка", "rpg":"РПГ"}
+var aim_camera: RefCounted
 var inventory: RefCounted
 var presentation: RefCounted
 var effects: RefCounted
+var rpg_effects: RefCounted
+var surface_effects: RefCounted
 var posture: RefCounted
 var player: CharacterBody3D
 var scene: Node3D
@@ -25,6 +34,7 @@ var _pending_epoch := -1
 var _pending_plan: Dictionary = {}
 var _profile: Dictionary = {}
 var _aim: Dictionary = {}
+var _combat_active := false
 var _layer: CanvasLayer
 var _hud: Label
 var _crosshair: Label
@@ -59,10 +69,20 @@ func configure(world: Node3D, actor: CharacterBody3D) -> Dictionary:
 	effects=Projectiles.new()
 	configured=effects.configure(world,Callable(self,"_projectile_ray"),{"ground_height":Callable(self,"_ground_height")})
 	if not configured.get("ok",false): posture.dispose(); presentation.dispose(); inventory.dispose(); return configured
-	effects.cosmetic_impact.connect(func(_receipt: Dictionary): cosmetic_impacts+=1)
+	surface_effects=SurfaceImpacts.new()
+	if not surface_effects.configure(world):
+		effects.dispose(); posture.dispose(); presentation.dispose(); inventory.dispose(); return {"ok":false,"reason":"surface_effects"}
+	effects.cosmetic_impact.connect(_surface_impact)
 	fire_state = Fire.create_state("none")
 	ready_for_play = true
+	rpg_effects=RpgEffects.new()
+	configured=rpg_effects.configure(self)
+	if not configured.get("ok",false):
+		rpg_effects.dispose(); surface_effects.dispose(); effects.dispose(); posture.dispose(); presentation.dispose(); inventory.dispose(); ready_for_play=false; return configured
+	rpg_effects.cosmetic_impact.connect(_surface_impact)
 	_build_ui()
+	aim_camera=AimCamera.new()
+	if not aim_camera.configure(self): return {"ok":false,"reason":"aim_camera"}
 	_refresh_ui()
 	return {"ok":true,"scope":"local_new_session", "authenticated_ownership":false}
 
@@ -112,6 +132,8 @@ func set_menu(open: bool) -> void:
 	_refresh_ui()
 
 func cancel_inputs() -> void:
+	if aim_camera!=null: aim_camera.reset()
+	_combat_active=false
 	_settle_pending(false)
 	_held = false; _pressed = false; _reload = false; _aiming = false
 	_pending_shots.clear()
@@ -174,9 +196,12 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func advance(delta: float) -> void:
+	_combat_active=false
 	if not _owner_current(): return
 	_settle_pending(false)
 	effects.advance(delta)
+	surface_effects.advance(delta)
+	rpg_effects.advance(delta)
 	_pose_delta=delta
 	if _last_pose_epoch != player._pose_epoch:
 		_last_pose_epoch = player._pose_epoch
@@ -190,10 +215,11 @@ func advance(delta: float) -> void:
 		_posture_view=posture.step_posture(delta,Callable(self,"_can_occupy_posture"),Input.is_action_pressed(player.ACTION_RUN))
 		var capsule: CollisionShape3D=player.get_node("PlayerCapsule")
 		capsule.shape.height=float(_posture_view.height); capsule.position.y=float(_posture_view.height)*.5
+	if aim_camera!=null: aim_camera.advance(delta)
 	var forward: Vector3 = -player.get_preview_camera().global_basis.z
 	_aim={"aimYaw":atan2(forward.x,forward.z),"aimPitch":asin(clampf(forward.y,-.958,.958)),"recoil":0.0,"recoilYaw":0.0,"reloadProgress":0.0}
 	if not armed(): return
-	var allowed: bool = _interaction_allowed() and not menu_open and fire_state.weaponId!="rpg"
+	var allowed: bool = _interaction_allowed() and not menu_open
 	var moving: bool = Vector2(player.velocity.x,player.velocity.z).length_squared() > .01
 	var stance: String="prone" if float(_posture_view.value)>=1.95 else "crouch" if float(_posture_view.value)>=.95 else "stand"
 	var input := {"triggerHeld":allowed and _held,"triggerPressed":allowed and _pressed,"reload":allowed and _reload,"aiming":_aiming,"posture":stance,"moving":moving,"running":moving and Input.is_action_pressed(player.ACTION_RUN)}
@@ -213,6 +239,8 @@ func advance(delta: float) -> void:
 		_pending_plan={"weapon_id":fire_state.weaponId,"uid":inventory.get_item_uid(fire_state.weaponId),"proposed":result.state,"fallback":_inventory_state(fallback.state)}
 	var pose_state: Dictionary=result.state
 	var recoil := Fire.sample_recoil(pose_state)
+	# Walk updateCombat.active: merely carrying a gun does not aim the body.
+	_combat_active=allowed and (_aiming or _held or not result.shots.is_empty() or float(recoil.normalized)>0 or float(pose_state.reloadRemaining)>0)
 	_aim = {"aimYaw":atan2(forward.x,forward.z),"aimPitch":asin(clampf(forward.y,-.958,.958)),"recoil":recoil.weaponKick,"recoilYaw":recoil.recoilYaw,"reloadProgress":1.0-float(pose_state.reloadRemaining)/float(_profile.reloadSeconds) if float(pose_state.reloadRemaining)>0.0 else 0.0}
 	_refresh_ui()
 
@@ -223,11 +251,20 @@ func decorate(selected: Dictionary) -> Dictionary:
 	var distance:=Vector2(player.global_position.x-_last_foot.x,player.global_position.z-_last_foot.z).length()
 	_last_foot=player.global_position
 	if player.is_on_floor() and player._jump.is_empty():
-		var prepared: Dictionary=posture.sample_ground(selected,{"delta":_pose_delta,"moving":actual_speed>.01,"speed":actual_speed,"distance":distance,"actor_world":player._visual.global_transform,"actor_yaw":player._visual.global_rotation.y,"standing_phase":gait._phase,"standing_gait":gait._gait,"running":Input.is_action_pressed(player.ACTION_RUN)},float(_aim.get("aimYaw",0)),player._pose_epoch)
+		# Source hero.update rotates the complete visual pivot toward aim before
+		# weapon IK. The standing posture fast path otherwise keeps travel yaw.
+		# Set an absolute relative yaw: crouch/prone may assign the same value,
+		# but never multiply it twice. Preserve unarmed movement and floor offset.
+		if _combat_active:
+			selected=selected.duplicate(); selected.visual_rotation=Quaternion(Vector3.UP,float(_aim.get("aimYaw",0))-player._visual.global_rotation.y)
+		var prepared: Dictionary=posture.sample_ground(selected,{"delta":_pose_delta,"moving":actual_speed>.01,"speed":actual_speed,"distance":distance,"actor_world":player._visual.global_transform,"actor_yaw":player._visual.global_rotation.y,"standing_phase":gait._phase,"standing_gait":gait._gait,"running":Input.is_action_pressed(player.ACTION_RUN),"weapon_mounted":armed()},float(_aim.get("aimYaw",0)) if _combat_active else player._visual.global_rotation.y,player._pose_epoch)
 		if prepared.get("valid",false): selected=prepared
 	if not armed(): return selected
 	var source_gait: Dictionary=selected.get("weapon_posture",{})
-	return presentation.decorate(selected,_aim,{"crouch":_posture_view.crouch,"prone":_posture_view.prone},float(source_gait.get("phase",gait._phase)),float(source_gait.get("gait",gait._gait)),player._pose_epoch)
+	# Source inactive hero.update receives no aimYaw/aimPitch. Reload progress
+	# remains a separate presentation input even if menu/authority blocks aim.
+	var presentation_aim: Dictionary=_aim if _combat_active else {"reloadProgress":_aim.get("reloadProgress",0.0)}
+	return presentation.decorate(selected,presentation_aim,{"crouch":_posture_view.crouch,"prone":_posture_view.prone},float(source_gait.get("phase",gait._phase)),float(source_gait.get("gait",gait._gait)),player._pose_epoch)
 
 func finish_pose(selected: Dictionary) -> Dictionary:
 	return posture.finish_ground(selected) if _owner_current() else selected
@@ -244,11 +281,21 @@ func _can_occupy_posture(height: float,_target: String) -> bool:
 
 func _projectile_ray(request: Dictionary) -> Dictionary:
 	if not _owner_current(): return {"invalid":true}
-	_shot_ray.from=request.origin; _shot_ray.to=request.origin+request.direction*float(request.range); _shot_ray.collision_mask=5; _shot_ray.exclude=[player.get_rid()]
+	_shot_ray.from=request.origin; _shot_ray.to=request.origin+request.direction*float(request.range); _shot_ray.collision_mask=5 | 256; _shot_ray.exclude=[player.get_rid()]
 	_shot_ray.hit_from_inside=true
 	var hit:=scene.get_world_3d().direct_space_state.intersect_ray(_shot_ray)
 	if hit.is_empty(): return {}
 	return {"point":hit.position,"normal":hit.normal,"distance":request.origin.distance_to(hit.position),"collider":hit.collider}
+
+func _surface_impact(receipt: Dictionary) -> void:
+	if not _owner_current(): return
+	var collider: Variant=receipt.get("collider")
+	if not is_instance_valid(collider): return
+	# Character capsules and physical limbs are contact proxies, not the skin
+	# surface. Their owner handles injury presentation; never paint masonry chips
+	# on these invisible hulls or attach a scorch to an animated rigid proxy.
+	if collider is CharacterBody3D or collider.has_meta("ragdoll_bone"): return
+	if surface_effects.hit(receipt): cosmetic_impacts+=1
 
 func _ground_height(x: float,z: float,y: float) -> float:
 	if not _owner_current(): return NAN
@@ -270,6 +317,17 @@ func after_pose_applied(selected: Dictionary) -> void:
 	var hit:=_projectile_ray({"origin":origin,"direction":direction,"range":100.0})
 	if hit.has("point"): target=hit.point
 	var pending := _pending_shots
+	if fire_state.weaponId=="rpg":
+		if pending.size()!=1: _settle_pending(false); return
+		var prepared: Dictionary=rpg_effects.prepare_shot(pending[0],receipt,target)
+		if not prepared.get("ok",false): _settle_pending(false); return
+		if not _settle_pending(true): rpg_effects.cancel_shot(prepared.ticket); return
+		# Both commits are synchronous; preflight already ran all external ports.
+		var emitted: bool=rpg_effects.commit_shot(prepared.ticket)
+		assert(emitted,"Reserved RPG launch must commit with accepted inventory")
+		shots_count+=1; _refresh_ui()
+		if _owner_current(): shot_emitted.emit(pending[0].duplicate(true),receipt.duplicate(true),origin,direction)
+		return
 	# Validate every shot before committing ammo. Pool admission below is synchronous
 	# and callback-free; notifications describe the already accepted whole batch.
 	for shot: Dictionary in pending:
@@ -290,40 +348,32 @@ func invalidate_pose() -> void:
 
 func _build_ui() -> void:
 	_layer = CanvasLayer.new(); _layer.layer = 12; add_child(_layer)
-	_hud = Label.new(); _hud.position = Vector2(22,72); _hud.add_theme_font_size_override("font_size",18); _hud.mouse_filter=Control.MOUSE_FILTER_IGNORE; _layer.add_child(_hud)
-	_crosshair = Label.new(); _crosshair.text="·"; _crosshair.add_theme_font_size_override("font_size",34); _crosshair.mouse_filter=Control.MOUSE_FILTER_IGNORE; _layer.add_child(_crosshair)
-	_crosshair.set_anchors_and_offsets_preset(Control.PRESET_CENTER); _crosshair.position=Vector2(-5,-23)
-	_menu = PanelContainer.new(); _layer.add_child(_menu); _menu.visible=false
-	_menu.set_anchors_and_offsets_preset(Control.PRESET_CENTER); _menu.position=Vector2(-285,-235); _menu.custom_minimum_size=Vector2(570,400)
-	var margin := MarginContainer.new(); for side: String in ["left","right","top","bottom"]: margin.add_theme_constant_override("margin_"+side,18)
-	_menu.add_child(margin)
-	var column := VBoxContainer.new(); margin.add_child(column)
-	var title := Label.new(); title.text="Оружие · Q — закрыть"; title.add_theme_font_size_override("font_size",22); column.add_child(title)
-	var grid := GridContainer.new(); grid.columns=3; column.add_child(grid)
-	var ids: Array = ["none"]; ids.append_array(Fire.ids())
-	for id: String in ids:
-		var button := Button.new(); button.text=LABELS[id]; button.custom_minimum_size=Vector2(170,48); button.focus_mode=Control.FOCUS_NONE
-		button.pressed.connect(func(): equip(id)); grid.add_child(button); _buttons[id]=button
+	_walk_ui = WalkWeaponUI.new(); _layer.add_child(_walk_ui)
+	var textures: Dictionary = {}
+	for id: String in LABELS:
+		var path := "res://assets/weapon_thumbnails/"+id+".png"
+		if ResourceLoader.exists(path): textures[id]=load(path)
+	_walk_ui.configure(self,textures)
+	_menu=_walk_ui.menu; _crosshair=_walk_ui.crosshair; _hud=_walk_ui.title
+	for id: String in _walk_ui.choices: _buttons[id]=_walk_ui.choices[id].button
 
 func _refresh_ui() -> void:
-	if not is_instance_valid(_hud): return
-	var id: String = fire_state.get("weaponId","none")
-	var value: String = LABELS.get(id,id) + " · Q — оружие"
-	if id != "none": value += "\n%d / %d · R — перезарядить" % [int(fire_state.magazine),int(fire_state.reserveAmmo)]
-	if float(fire_state.get("reloadRemaining",0)) > 0.0: value += "\nПерезарядка…"
-	if id=="rpg": value += "\nВыстрел РПГ ещё переносится"
-	if value != _hud_value: _hud.text=value; _hud_value=value
-	_crosshair.visible=armed() and not menu_open and player._free_mouse_look
-	if menu_open:
-		var owned: Array = inventory.get_owned_ids()
-		for key: String in _buttons: _buttons[key].disabled=key!="none" and not owned.has(key)
+	if is_instance_valid(_walk_ui): _walk_ui.refresh()
+
+func set_cargo_reticle(requested: bool) -> void:
+	if cargo_reticle_requested == requested: return
+	cargo_reticle_requested=requested
+	_refresh_ui()
 
 func snapshot() -> Dictionary:
-	return {"ready":ready_for_play,"equipped":fire_state.get("weaponId","none"),"fire_state":fire_state.duplicate(true),"menu_open":menu_open,"shots":shots_count,"inventory":inventory.snapshot() if inventory!=null else {},"muzzle":last_muzzle.duplicate(),"posture":_posture_view.duplicate(),"effects":effects.stats() if effects!=null else {},"cosmetic_impacts":cosmetic_impacts}
+	return {"ready":ready_for_play,"equipped":fire_state.get("weaponId","none"),"fire_state":fire_state.duplicate(true),"menu_open":menu_open,"shots":shots_count,"inventory":inventory.snapshot() if inventory!=null else {},"muzzle":last_muzzle.duplicate(),"posture":_posture_view.duplicate(),"effects":effects.stats() if effects!=null else {},"rpg":rpg_effects.stats() if rpg_effects!=null else {},"cosmetic_impacts":cosmetic_impacts}
 
 func _exit_tree() -> void:
+	if aim_camera!=null: aim_camera.dispose()
 	ready_for_play = false
+	if rpg_effects != null: rpg_effects.dispose()
 	if effects != null: effects.dispose()
+	if surface_effects != null: surface_effects.dispose()
 	if posture != null: posture.dispose()
 	if presentation != null: presentation.dispose()
 	if inventory != null: inventory.dispose()
