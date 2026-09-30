@@ -659,7 +659,7 @@ func window_input(event:InputEvent)->bool:
 			elif code==KEY_E:
 				var uid:String=_window.hovered_item_uid()
 				if not uid.is_empty():window_take(uid)
-			elif code==KEY_ESCAPE:close_window(false);weapons.player.set_mouse_captured(false)
+			elif code==KEY_ESCAPE:close_window()
 			elif code==KEY_G:window_store()
 		return true
 	return event is InputEventMouseButton or event is InputEventMouseMotion

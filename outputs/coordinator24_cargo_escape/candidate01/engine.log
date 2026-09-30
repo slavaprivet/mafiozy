@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+CARGO_ESCAPE_RESULT {"checks":26,"errors":[],"evidence":{"after_escape_release":{"blocked":false,"e_down":false,"forward":true,"free":true,"mouse_mode":0,"physical_w":true,"shots":0,"transport_phase":"ON_FOOT","window_focus":true,"window_open":false},"before_escape":{"blocked":true,"e_down":false,"forward":false,"free":true,"mouse_mode":0,"physical_w":true,"shots":0,"transport_phase":"ON_FOOT","window_focus":true,"window_open":true},"clicks_to_resume":0,"escape_down":{"blocked":false,"e_down":false,"forward":true,"free":true,"mouse_mode":0,"physical_w":true,"shots":0,"transport_phase":"ON_FOOT","window_focus":true,"window_open":false},"final":{"blocked":false,"e_down":false,"forward":false,"free":false,"mouse_mode":0,"physical_w":false,"shots":0,"transport_phase":"ON_FOOT","window_focus":true,"window_open":false},"movement_m":0.029998779296875,"runtime_revision":"s01-20260930-quality24b"},"expect_fixed":true,"gpu":false,"harness_sha256":"8cdc92e8ec88d0c60c52d6e07adf109f8be79d0a5a2b0cdaae6955f5847f67aa","pack_sha256":"becb595b967ca70fe31660e137a9e591a17abb2418259733fa707342ddc7a749","scope":"exact compiled pack, original3NPC/8buildings/377collision, actual F/ESC Godot input dispatch; injected key events, not manual OS-keyboard proof; no game script/camera replacement or player/transport disabling","valid":true}

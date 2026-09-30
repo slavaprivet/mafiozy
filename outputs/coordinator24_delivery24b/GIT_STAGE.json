@@ -1,0 +1,46 @@
+{
+  "parent": "a498d8bcbfcd30bc1601aed10ad86c4a7fd855d9",
+  "full_paths": [
+    "docs/ai/COORDINATOR_24_HANDOFF.md",
+    "docs/ai/COORDINATOR_24_MEMORY.md",
+    "godot/mafiozi_walk/data/preview_updates.json",
+    "godot/mafiozi_walk/scripts/main.gd",
+    "godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd",
+    "outputs/coordinator24_cargo_escape/README.md",
+    "outputs/coordinator24_cargo_escape/REVIEW.md",
+    "outputs/coordinator24_cargo_escape/baseline01/ESCAPE_RESULT.json",
+    "outputs/coordinator24_cargo_escape/baseline01/RUN.json",
+    "outputs/coordinator24_cargo_escape/baseline01/engine.log",
+    "outputs/coordinator24_cargo_escape/candidate01/ESCAPE_RESULT.json",
+    "outputs/coordinator24_cargo_escape/candidate01/RUN.json",
+    "outputs/coordinator24_cargo_escape/candidate01/engine.log",
+    "outputs/coordinator24_cargo_escape/export22.log",
+    "outputs/coordinator24_cargo_escape/focused01/ESCAPE_RESULT.json",
+    "outputs/coordinator24_cargo_escape/focused01/RUN.json",
+    "outputs/coordinator24_cargo_escape/focused01/after_modal_escape.png",
+    "outputs/coordinator24_cargo_escape/focused01/engine.log",
+    "outputs/coordinator24_cargo_escape/import22.log",
+    "outputs/coordinator24_cargo_escape/open24b.ps1",
+    "outputs/coordinator24_cargo_escape/prepare22.py",
+    "outputs/coordinator24_cargo_escape/promote24b.py",
+    "outputs/coordinator24_cargo_escape/run.py",
+    "outputs/coordinator24_cargo_escape/stage24b.py",
+    "outputs/coordinator24_cargo_escape/test_escape.gd",
+    "outputs/coordinator24_delivery24b/ACCEPTANCE.md",
+    "outputs/coordinator24_delivery24b/OPENED24B.json",
+    "outputs/coordinator24_delivery24b/PROMOTION.json",
+    "outputs/coordinator24_delivery24b/build_receipt.json",
+    "outputs/coordinator24_quality/candidate22/INTEGRATION.json"
+  ],
+  "partial_document_blocks": {
+    "docs/ai/AGENT_HUB.md": {
+      "blob": "4087a60dae3f114488fb26b62ff35714cd07c921",
+      "preserved_worktree_before_sha256": "518cede2d8efe3d8b6628575aede1796b953b029b6383733c1ff67d109b80f35"
+    },
+    "docs/godot/MIGRATION_BOARD.md": {
+      "blob": "ed254e8916f635ea99338bf3e6a1e515478d8b47",
+      "preserved_worktree_before_sha256": "317b5cfe20a2c34cfe5e58ad34d9f80c89bb11c6fd22baa22a829eeb5b239eed"
+    }
+  },
+  "scope": "Escape24b only; unrelated WIP preserved; no export binaries"
+}

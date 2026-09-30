@@ -11,10 +11,13 @@ Root23 и старых владельцев не будить. Только об
 Исходная память: `COORDINATOR_23_MEMORY.md`, `COORDINATOR_23_HANDOFF.md`.
 Они достоверны для accepted23h, но не описывают последние RPG18/GPU результаты.
 Точный read-only recovery inventory: `outputs/coordinator24_takeover/INVENTORY.md`.
-Актуальная принятая и открытая версия — cargo24a/candidate20, PCK634b9d3b…;
-два исправления багажника описаны в памяти и outputs/coordinator24_delivery24a/ACCEPTANCE.md.
-PID31528 исторический17:17, проверять свежий inventory; ярлык обновлён.
+Актуальная принятая и открытая версия — cargo24b/candidate22, PCKbecb595b…;
+Esc из содержимого теперь сразу возвращает управление без ЛКМ. Exact focused30PASS,
+headless26PASS; outputs/coordinator24_delivery24b/ACCEPTANCE.md. PID34044 исторический
+17:45, проверять свежий inventory; ярлык обновлён. Исправления24a сохранены.
+NPC21/quality24c и postmortem/corpse collision пока изолированы, ещё не доставлены;
+подробности и границы владельцев в шапке памяти24.
 RPG19 изолирован: revision исправлена, но ещё не экспортирован/принят. Перед продолжением
-перенести в него новые cargo24a fixes; не откатывать их старой передачей18.
+перенести в него новые cargo24a/24b fixes; не откатывать их старой передачей18.
 Никакого второго GPU рядом с пользовательской игрой.
 Последующие изменения и сохранённые SHA фиксировать в памяти24.

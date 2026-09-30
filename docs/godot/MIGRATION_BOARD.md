@@ -1,3 +1,14 @@
+## 30 September17:45 — modal Escape24b delivered
+
+Exact candidate22 fixes the user's F→Esc→extra-click reproduction. Existing close
+path now resumes capture/held movement; next distinct Escape outside the modal still
+releases cursor. Baseline27/headless26/focusedGPU30 PASS, injected Godot input.
+PCKbecb595b967ca70fe31660e137a9e591a17abb2418259733fa707342ddc7a749.
+Three guarded production paths;1725other source files preserved. One user game
+PID34044 responding17:45 and shortcut updated24b; always refresh inventory.
+NPC21/quality24c and corpse improvements remain isolated. Preserve24b on rebases.
+See outputs/coordinator24_delivery24b/ACCEPTANCE.md for proof scope and limitations.
+
 ## 30 September17:18 — cargo24a accepted and opened by Root24
 
 Exact candidate20 PCK634b9d3b48e4502538331da9b9e9efdb1641cfc83f04c40c65bd592bd4db7dd5.

@@ -1,0 +1,91 @@
+{
+  "side": "candidate",
+  "gpu": false,
+  "pack_sha256": "becb595b967ca70fe31660e137a9e591a17abb2418259733fa707342ddc7a749",
+  "harness_sha256": "8cdc92e8ec88d0c60c52d6e07adf109f8be79d0a5a2b0cdaae6955f5847f67aa",
+  "source_inputs": 209,
+  "seconds": 3.6522364001721144,
+  "exit_code": 0,
+  "pack_unchanged": true,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--main-pack",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate22\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24b\\MafioziPreview.pck",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_escape\\test_escape.gd",
+    "--resolution",
+    "1280x720",
+    "--headless",
+    "--fixed-fps",
+    "60",
+    "--",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_cargo_escape\\candidate01",
+    "--expected-sha=becb595b967ca70fe31660e137a9e591a17abb2418259733fa707342ddc7a749",
+    "--exact-pack=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate22\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24b\\MafioziPreview.pck",
+    "--expect-fixed"
+  ],
+  "native_errors": false,
+  "result": {
+    "checks": 26,
+    "errors": [],
+    "evidence": {
+      "after_escape_release": {
+        "blocked": false,
+        "e_down": false,
+        "forward": true,
+        "free": true,
+        "mouse_mode": 0,
+        "physical_w": true,
+        "shots": 0,
+        "transport_phase": "ON_FOOT",
+        "window_focus": true,
+        "window_open": false
+      },
+      "before_escape": {
+        "blocked": true,
+        "e_down": false,
+        "forward": false,
+        "free": true,
+        "mouse_mode": 0,
+        "physical_w": true,
+        "shots": 0,
+        "transport_phase": "ON_FOOT",
+        "window_focus": true,
+        "window_open": true
+      },
+      "clicks_to_resume": 0,
+      "escape_down": {
+        "blocked": false,
+        "e_down": false,
+        "forward": true,
+        "free": true,
+        "mouse_mode": 0,
+        "physical_w": true,
+        "shots": 0,
+        "transport_phase": "ON_FOOT",
+        "window_focus": true,
+        "window_open": false
+      },
+      "final": {
+        "blocked": false,
+        "e_down": false,
+        "forward": false,
+        "free": false,
+        "mouse_mode": 0,
+        "physical_w": false,
+        "shots": 0,
+        "transport_phase": "ON_FOOT",
+        "window_focus": true,
+        "window_open": false
+      },
+      "movement_m": 0.029998779296875,
+      "runtime_revision": "s01-20260930-quality24b"
+    },
+    "expect_fixed": true,
+    "gpu": false,
+    "harness_sha256": "8cdc92e8ec88d0c60c52d6e07adf109f8be79d0a5a2b0cdaae6955f5847f67aa",
+    "pack_sha256": "becb595b967ca70fe31660e137a9e591a17abb2418259733fa707342ddc7a749",
+    "scope": "exact compiled pack, original3NPC/8buildings/377collision, actual F/ESC Godot input dispatch; injected key events, not manual OS-keyboard proof; no game script/camera replacement or player/transport disabling",
+    "valid": true
+  }
+}
