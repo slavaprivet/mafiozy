@@ -1,0 +1,318 @@
+{
+  "checks": 834,
+  "comparison_errors": [],
+  "rows": [
+    {
+      "actor": "resident_72",
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "torque_sign": 0.17643106092367727,
+      "joint": 0.104848057031631,
+      "floor_delta": 0.0,
+      "joint_delta": 2.7120113370027177e-06
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "torque_sign": 0.17643098756997963,
+      "joint": 0.104848071932793,
+      "floor_delta": 0.0,
+      "joint_delta": 2.726912499001477e-06
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "torque_sign": 0.17640736792734263,
+      "joint": 0.114211373031139,
+      "floor_delta": 0.0,
+      "joint_delta": -0.0001327693462380014
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "torque_sign": 0.1763618901028101,
+      "joint": 0.108556866645813,
+      "floor_delta": 0.0,
+      "joint_delta": -0.0001156106591219952
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": false,
+      "torque_sign": 0.18089639487244108,
+      "joint": 0.105626612901688,
+      "floor_delta": 0.0,
+      "joint_delta": 8.821487426993735e-06
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": true,
+      "torque_sign": 0.18089592891008305,
+      "joint": 0.106347538530827,
+      "floor_delta": 0.0,
+      "joint_delta": -6.854534140010582e-07
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": false,
+      "torque_sign": 0.1808966464931126,
+      "joint": 0.105448432266712,
+      "floor_delta": 0.0,
+      "joint_delta": 7.785856723993567e-06
+    },
+    {
+      "actor": "resident_72",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": true,
+      "torque_sign": 0.18089608154571316,
+      "joint": 0.106089040637016,
+      "floor_delta": 0.0,
+      "joint_delta": 9.380280970999744e-06
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "torque_sign": 0.16688193182425468,
+      "joint": 0.105295553803444,
+      "floor_delta": 0.0,
+      "joint_delta": 2.4363398549998028e-06
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "torque_sign": 0.16688204169887594,
+      "joint": 0.105295576155186,
+      "floor_delta": 0.0,
+      "joint_delta": 2.451241016998562e-06
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "torque_sign": 0.16685918835330152,
+      "joint": 0.114666424691677,
+      "floor_delta": 0.0,
+      "joint_delta": -0.00012952834367800647
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "torque_sign": 0.16680895581616273,
+      "joint": 0.109007932245731,
+      "floor_delta": 0.0,
+      "joint_delta": -0.00011150538921399222
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": false,
+      "torque_sign": 0.17103372557577062,
+      "joint": 0.106073088943958,
+      "floor_delta": 0.0,
+      "joint_delta": 7.942318916001612e-06
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": true,
+      "torque_sign": 0.1710341704422269,
+      "joint": 0.106793567538261,
+      "floor_delta": 0.0,
+      "joint_delta": -1.6316771510038741e-06
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": false,
+      "torque_sign": 0.17103444874362575,
+      "joint": 0.105896651744843,
+      "floor_delta": 0.0,
+      "joint_delta": 8.31484794699966e-06
+    },
+    {
+      "actor": "resident_169",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": true,
+      "torque_sign": 0.1710345946124747,
+      "joint": 0.10653692483902,
+      "floor_delta": 0.0,
+      "joint_delta": 1.0289251805004063e-05
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "torque_sign": 0.46158010920798315,
+      "joint": 0.0965883359313011,
+      "floor_delta": 0.0,
+      "joint_delta": 2.540647983509392e-06
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "torque_sign": 0.4615805687715322,
+      "joint": 0.0965883359313011,
+      "floor_delta": 0.0,
+      "joint_delta": 2.548098564106316e-06
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "torque_sign": 0.46151931306398686,
+      "joint": 0.105861403048038,
+      "floor_delta": 0.0,
+      "joint_delta": -0.00012876093387700904
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "torque_sign": 0.461391547776028,
+      "joint": 0.100292332470417,
+      "floor_delta": 0.0,
+      "joint_delta": -0.00011250376701400777
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": false,
+      "torque_sign": 0.4787560444786509,
+      "joint": 0.0973603278398514,
+      "floor_delta": 0.0,
+      "joint_delta": 9.007751941694786e-06
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": true,
+      "torque_sign": 0.47875541420430395,
+      "joint": 0.0980866402387619,
+      "floor_delta": 0.0,
+      "joint_delta": 1.9371509550614174e-07
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": false,
+      "torque_sign": 0.47875636002044,
+      "joint": 0.0971795096993446,
+      "floor_delta": 0.0,
+      "joint_delta": 7.688999175997635e-06
+    },
+    {
+      "actor": "resident_252",
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": true,
+      "torque_sign": 0.4787557052894342,
+      "joint": 0.0978280156850815,
+      "floor_delta": 0.0,
+      "joint_delta": 9.611248969990105e-06
+    }
+  ]
+}

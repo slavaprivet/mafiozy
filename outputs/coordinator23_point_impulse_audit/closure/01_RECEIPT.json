@@ -1,0 +1,30 @@
+{
+  "status": "POINT_SPLIT_NATIVE_ALL_CARDINAL834_PASS; no LIVE or medical source release/getup claim",
+  "base_owner_sha256": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c",
+  "files": {
+    "npc_hit_impulse.gd": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+    "npc_local_preview_hit_owner.gd": "a1946b00be3a2f2ba9d22d035a785277eac1060800aa9f171af1067c9b574b6a",
+    "owner.patch": "f159bcf45bec5e291597acec4031abda7d47bb533a7559ffbcf0fd0778875105"
+  },
+  "test_report_sha256": "67ea4b5f7ccb8c612d45da8f1c049b70e5de217462f50dee7365c8bca86eadb1",
+  "comparison_sha256": "01f4c988a8279033c0295496f95bba7411893fa3f83b2d2725017381746f22af",
+  "tests": {
+    "checks": 834,
+    "exit": 0,
+    "engine_errors": false,
+    "paired_cases": 48,
+    "positive_torque_signs": 24,
+    "protected": true,
+    "outside_body_gap": true,
+    "replay": true
+  },
+  "limits": [
+    "not combined with new headshot policy",
+    "medical getup source release absent",
+    "full-scene solver/GPU/FPS acceptance absent",
+    "no ACTIVE final finishing kick or RPG"
+  ],
+  "shared_base_sha256": "aff6e378a23804f55886a86de53e4e59db1439f5a9471d276da0eeec91149e07",
+  "shared_diff_sha256": "a754e9fcf9ecb826fb2f687de846ca68cedfd5235259184c77ebd5e1b382d549",
+  "integration_note": "Exact tested overlay was built from cd0f; full copy over aff6 would drop its extra path _current check. Use ../integration_aff6 for a guard-preserving merge candidate and validate its new hash."
+}

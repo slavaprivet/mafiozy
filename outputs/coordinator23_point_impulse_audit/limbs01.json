@@ -1,0 +1,1398 @@
+{
+  "exit": 0,
+  "seconds": 17.10553739988245,
+  "engine_errors": false,
+  "report": {
+    "checks": 104276,
+    "errors": [],
+    "rows": [
+      {
+        "actor": "resident_72",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.097412, -0.107217, -0.071085)",
+          "lever_per_ns": 0.15540212392807,
+          "origin": "(35.81202, 0.56, -12.24089)",
+          "point": "(36.02943, 0.56, -13.05226)",
+          "preflight_bone": "hand_l",
+          "preflight_distance_m": 0.0554809054732323,
+          "target": "(36.1226, 0.56, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:11",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_72"
+        },
+        "metrics": {
+          "angular": 19.8540859222412,
+          "distance": 0.959522783756256,
+          "floor": -0.141081228852272,
+          "joint": 0.107223503291607,
+          "linear": 4.5068039894104,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "hand_l"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.097412, -0.107217, 0.070801)",
+          "lever_per_ns": 0.155348882079124,
+          "origin": "(35.81202, 0.56, -14.55911)",
+          "point": "(36.02943, 0.56, -13.74773)",
+          "preflight_bone": "hand_r",
+          "preflight_distance_m": 0.0553559145331383,
+          "target": "(36.1226, 0.56, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:21",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_72"
+        },
+        "metrics": {
+          "angular": 19.8580760955811,
+          "distance": 0.921622931957245,
+          "floor": -0.141081228852272,
+          "joint": 0.106866635382175,
+          "linear": 4.55701351165771,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "hand_r"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.076195, -0.14777, -0.086033)",
+          "lever_per_ns": 0.176142051815987,
+          "origin": "(35.81202, 0.72, -12.24089)",
+          "point": "(36.02943, 0.72, -13.05226)",
+          "preflight_bone": "forearm_l",
+          "preflight_distance_m": 0.00312681555747985,
+          "target": "(36.1226, 0.72, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:31",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_72"
+        },
+        "metrics": {
+          "angular": 19.8540859222412,
+          "distance": 0.959522783756256,
+          "floor": -0.141081228852272,
+          "joint": 0.107223503291607,
+          "linear": 4.5068039894104,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_l"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.077583, -0.1501, 0.085528)",
+          "lever_per_ns": 0.178756296634674,
+          "origin": "(35.81202, 0.72, -14.55911)",
+          "point": "(36.02943, 0.72, -13.74773)",
+          "preflight_bone": "forearm_r",
+          "preflight_distance_m": 0.00563944935798644,
+          "target": "(36.1226, 0.72, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:41",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_72"
+        },
+        "metrics": {
+          "angular": 19.8580760955811,
+          "distance": 0.921622931957245,
+          "floor": -0.141081228852272,
+          "joint": 0.106866635382175,
+          "linear": 4.55701351165771,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_r"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": false,
+        "contact": {
+          "direction": "(-0.965926, 0.0, -0.258819)",
+          "lever_m": "(0.301609, 0.268956, -0.044564)",
+          "lever_per_ns": 0.294964879751205,
+          "origin": "(37.28172, 0.32, -13.08941)",
+          "point": "(36.46819, 0.32, -13.3074)",
+          "preflight_bone": "foot_l",
+          "preflight_distance_m": 0.214435086250305,
+          "target": "(36.1226, 0.32, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:51",
+          "impulse_ns": "(-96.59258, 0.0, -25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_72"
+        },
+        "metrics": {
+          "angular": 23.3847579956055,
+          "distance": 1.45026671886444,
+          "floor": -0.141081228852272,
+          "joint": 0.104844748973846,
+          "linear": 4.74570655822754,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "foot_l"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": false,
+        "contact": {
+          "direction": "(-0.965926, 0.0, 0.258819)",
+          "lever_m": "(0.301609, 0.268956, 0.044282)",
+          "lever_per_ns": 0.294853061437607,
+          "origin": "(37.28172, 0.32, -13.71058)",
+          "point": "(36.46819, 0.32, -13.4926)",
+          "preflight_bone": "foot_r",
+          "preflight_distance_m": 0.214404270648956,
+          "target": "(36.1226, 0.32, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:61",
+          "impulse_ns": "(-96.59258, 0.0, 25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_72"
+        },
+        "metrics": {
+          "angular": 18.1107292175293,
+          "distance": 1.27484333515167,
+          "floor": -0.141081228852272,
+          "joint": 0.104845464229584,
+          "linear": 3.74280333518982,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "foot_r"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.097424, -0.110133, -0.072916)",
+          "lever_per_ns": 0.15777450799942,
+          "origin": "(35.81202, 0.56, -4.740887)",
+          "point": "(36.02943, 0.56, -5.552264)",
+          "preflight_bone": "hand_l",
+          "preflight_distance_m": 0.057851374745369,
+          "target": "(36.1226, 0.56, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:71",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_169"
+        },
+        "metrics": {
+          "angular": 19.8256759643555,
+          "distance": 0.93986701965332,
+          "floor": -0.141641192138195,
+          "joint": 0.107670977711678,
+          "linear": 4.52007055282593,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "hand_l"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.097424, -0.110133, 0.07263)",
+          "lever_per_ns": 0.157721742987633,
+          "origin": "(35.81202, 0.56, -7.059109)",
+          "point": "(36.02943, 0.56, -6.247731)",
+          "preflight_bone": "hand_r",
+          "preflight_distance_m": 0.0577216452360153,
+          "target": "(36.1226, 0.56, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:81",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_169"
+        },
+        "metrics": {
+          "angular": 19.8305797576904,
+          "distance": 0.888283967971802,
+          "floor": -0.141641192138195,
+          "joint": 0.107314094901085,
+          "linear": 4.5708475112915,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "hand_r"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.5, 0.0, -0.866025)",
+          "lever_m": "(-0.162949, -0.071561, -0.123835)",
+          "lever_per_ns": 0.215277075767517,
+          "origin": "(35.52261, 0.8, -4.860767)",
+          "point": "(35.9426, 0.8, -5.588228)",
+          "preflight_bone": "forearm_l",
+          "preflight_distance_m": 0.0525211250782013,
+          "target": "(36.1226, 0.8, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:91",
+          "impulse_ns": "(49.99991, 0.0, -86.60259)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_169"
+        },
+        "metrics": {
+          "angular": 20.602331161499,
+          "distance": 0.919362843036652,
+          "floor": -0.141641192138195,
+          "joint": 0.108459427952766,
+          "linear": 4.38087749481201,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "forearm_l"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.077522, -0.153902, 0.087479)",
+          "lever_per_ns": 0.182198613882065,
+          "origin": "(35.81202, 0.72, -7.059109)",
+          "point": "(36.02943, 0.72, -6.247731)",
+          "preflight_bone": "forearm_r",
+          "preflight_distance_m": 0.00857892692089079,
+          "target": "(36.1226, 0.72, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:101",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_169"
+        },
+        "metrics": {
+          "angular": 19.8305797576904,
+          "distance": 0.888283967971802,
+          "floor": -0.141641192138195,
+          "joint": 0.107314094901085,
+          "linear": 4.5708475112915,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "forearm_r"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": false,
+        "contact": {
+          "direction": "(-0.965926, 0.0, -0.258819)",
+          "lever_m": "(0.301418, 0.268734, -0.045165)",
+          "lever_per_ns": 0.294981390237808,
+          "origin": "(37.28172, 0.32, -5.589415)",
+          "point": "(36.46819, 0.32, -5.8074)",
+          "preflight_bone": "foot_l",
+          "preflight_distance_m": 0.213432044386864,
+          "target": "(36.1226, 0.32, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:111",
+          "impulse_ns": "(-96.59258, 0.0, -25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_169"
+        },
+        "metrics": {
+          "angular": 23.3475933074951,
+          "distance": 1.52873861789703,
+          "floor": -0.141641192138195,
+          "joint": 0.105292528867722,
+          "linear": 4.75979804992676,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "foot_l"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": false,
+        "contact": {
+          "direction": "(-1.0, 0.0, 0.0)",
+          "lever_m": "(0.31361, 0.268734, 0.137477)",
+          "lever_per_ns": 0.30185741186142,
+          "origin": "(37.32261, 0.32, -5.899998)",
+          "point": "(36.48038, 0.32, -5.899998)",
+          "preflight_bone": "foot_r",
+          "preflight_distance_m": 0.242372573018074,
+          "target": "(36.1226, 0.32, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:121",
+          "impulse_ns": "(-100.0, 0.0, 0.0)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_169"
+        },
+        "metrics": {
+          "angular": 18.2201671600342,
+          "distance": 1.25926148891449,
+          "floor": -0.141641192138195,
+          "joint": 0.105293124914169,
+          "linear": 3.77280330657959,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "foot_r"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.097061, -0.132596, -0.0368)",
+          "lever_per_ns": 0.168071821331978,
+          "origin": "(34.31202, 0.48, -18.24089)",
+          "point": "(34.52943, 0.48, -19.05226)",
+          "preflight_bone": "hand_l",
+          "preflight_distance_m": 0.0699576592445374,
+          "target": "(34.6226, 0.48, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:131",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_252"
+        },
+        "metrics": {
+          "angular": 20.1226634979248,
+          "distance": 0.856954753398895,
+          "floor": -0.130759727209806,
+          "joint": 0.0989519953727722,
+          "linear": 4.22881031036377,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "hand_l"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.097061, -0.132596, 0.036537)",
+          "lever_per_ns": 0.168029978871346,
+          "origin": "(34.31202, 0.48, -20.55911)",
+          "point": "(34.52943, 0.48, -19.74773)",
+          "preflight_bone": "hand_r",
+          "preflight_distance_m": 0.0699003344774246,
+          "target": "(34.6226, 0.48, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:141",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_252"
+        },
+        "metrics": {
+          "angular": 20.1569347381592,
+          "distance": 0.847182333469391,
+          "floor": -0.130759727209806,
+          "joint": 0.0985956788063049,
+          "linear": 4.27641534805298,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "hand_r"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.5, 0.0, -0.866025)",
+          "lever_m": "(-0.164402, -0.036731, -0.08654)",
+          "lever_per_ns": 0.189245313405991,
+          "origin": "(34.02261, 0.76, -18.36077)",
+          "point": "(34.4426, 0.76, -19.08823)",
+          "preflight_bone": "forearm_l",
+          "preflight_distance_m": 0.043755561709404,
+          "target": "(34.6226, 0.76, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:151",
+          "impulse_ns": "(49.99991, 0.0, -86.60259)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_252"
+        },
+        "metrics": {
+          "angular": 20.9885540008545,
+          "distance": 0.873835504055023,
+          "floor": -0.130759727209806,
+          "joint": 0.0997384414076805,
+          "linear": 4.09243774414063,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_l"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": false,
+        "contact": {
+          "direction": "(0.5, 0.0, 0.866025)",
+          "lever_m": "(-0.165676, -0.038871, 0.085966)",
+          "lever_per_ns": 0.190471261739731,
+          "origin": "(34.02261, 0.76, -20.43923)",
+          "point": "(34.4426, 0.76, -19.71177)",
+          "preflight_bone": "forearm_r",
+          "preflight_distance_m": 0.0467489963769913,
+          "target": "(34.6226, 0.76, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:161",
+          "impulse_ns": "(49.99991, 0.0, 86.60259)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_252"
+        },
+        "metrics": {
+          "angular": 21.3202171325684,
+          "distance": 0.847408533096313,
+          "floor": -0.130759727209806,
+          "joint": 0.0994191095232964,
+          "linear": 4.14117288589478,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_r"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": false,
+        "contact": {
+          "direction": "(-0.965926, 0.0, -0.258819)",
+          "lever_m": "(0.298672, 0.233131, -0.035091)",
+          "lever_per_ns": 0.258292198181152,
+          "origin": "(35.78172, 0.28, -19.08941)",
+          "point": "(34.96164, 0.28, -19.30915)",
+          "preflight_bone": "foot_l",
+          "preflight_distance_m": 0.202878580093384,
+          "target": "(34.6226, 0.28, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:171",
+          "impulse_ns": "(-96.59258, 0.0, -25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_252"
+        },
+        "metrics": {
+          "angular": 18.7165756225586,
+          "distance": 1.15086936950684,
+          "floor": -0.130759727209806,
+          "joint": 0.0965850502252579,
+          "linear": 3.53491139411926,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "foot_l"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": false,
+        "contact": {
+          "direction": "(-0.965926, 0.0, 0.258819)",
+          "lever_m": "(0.298672, 0.233131, 0.034828)",
+          "lever_per_ns": 0.25818282365799,
+          "origin": "(35.78172, 0.28, -19.71058)",
+          "point": "(34.96164, 0.28, -19.49084)",
+          "preflight_bone": "foot_r",
+          "preflight_distance_m": 0.202854380607605,
+          "target": "(34.6226, 0.28, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:181",
+          "impulse_ns": "(-96.59258, 0.0, 25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "reason": "final_death",
+          "source_id": "resident_252"
+        },
+        "metrics": {
+          "angular": 18.6016864776611,
+          "distance": 1.15752339363098,
+          "floor": -0.130759727209806,
+          "joint": 0.0965858474373817,
+          "linear": 3.52105569839478,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "foot_r"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.097412, -0.107217, -0.071085)",
+          "lever_per_ns": 0.15540212392807,
+          "origin": "(35.81202, 0.56, -12.24089)",
+          "point": "(36.02943, 0.56, -13.05226)",
+          "preflight_bone": "hand_l",
+          "preflight_distance_m": 0.0554809054732323,
+          "target": "(36.1226, 0.56, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:191",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.56, -13.05226)",
+          "point_lever_m": "(-0.097412, -0.107217, -0.071085)",
+          "point_ns": "(0.647044, 0.0, -2.414815)",
+          "point_result": {
+            "bone": "hand_l",
+            "distance_m": 0.0554809054732323,
+            "error": "",
+            "event_id": "resident_72:1:deagle:191:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.25891, -0.281227, 0.069374)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, -96.59262)",
+          "source_id": "resident_72",
+          "uniform_ns": "(25.23473, 0.0, -94.1778)"
+        },
+        "metrics": {
+          "angular": 19.801872253418,
+          "distance": 0.931935787200928,
+          "floor": -0.141081228852272,
+          "joint": 0.107169725000858,
+          "linear": 4.49043369293213,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "hand_l"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.097412, -0.107217, 0.070801)",
+          "lever_per_ns": 0.155348882079124,
+          "origin": "(35.81202, 0.56, -14.55911)",
+          "point": "(36.02943, 0.56, -13.74773)",
+          "preflight_bone": "hand_r",
+          "preflight_distance_m": 0.0553559145331383,
+          "target": "(36.1226, 0.56, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:201",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.56, -13.74773)",
+          "point_lever_m": "(-0.097412, -0.107217, 0.070801)",
+          "point_ns": "(0.647044, 0.0, 2.414815)",
+          "point_result": {
+            "bone": "hand_r",
+            "distance_m": 0.0553559145331383,
+            "error": "",
+            "event_id": "resident_72:1:deagle:201:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.25891, 0.281043, 0.069374)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, 96.59262)",
+          "source_id": "resident_72",
+          "uniform_ns": "(25.23473, 0.0, 94.1778)"
+        },
+        "metrics": {
+          "angular": 19.8294715881348,
+          "distance": 0.969267189502716,
+          "floor": -0.141081228852272,
+          "joint": 0.106821939349175,
+          "linear": 4.53962993621826,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "hand_r"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.076195, -0.14777, -0.086033)",
+          "lever_per_ns": 0.176142051815987,
+          "origin": "(35.81202, 0.72, -12.24089)",
+          "point": "(36.02943, 0.72, -13.05226)",
+          "preflight_bone": "forearm_l",
+          "preflight_distance_m": 0.00312681555747985,
+          "target": "(36.1226, 0.72, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:211",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.72, -13.05226)",
+          "point_lever_m": "(-0.076195, -0.14777, -0.086033)",
+          "point_ns": "(0.647044, 0.0, -2.414815)",
+          "point_result": {
+            "bone": "forearm_l",
+            "distance_m": 0.00312681555747985,
+            "error": "",
+            "event_id": "resident_72:1:deagle:211:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.356836, -0.239663, 0.095613)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, -96.59262)",
+          "source_id": "resident_72",
+          "uniform_ns": "(25.23473, 0.0, -94.1778)"
+        },
+        "metrics": {
+          "angular": 19.7549438476563,
+          "distance": 0.968721628189087,
+          "floor": -0.141081228852272,
+          "joint": 0.107065305113792,
+          "linear": 4.48202848434448,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_l"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.077583, -0.1501, 0.085528)",
+          "lever_per_ns": 0.178756296634674,
+          "origin": "(35.81202, 0.72, -14.55911)",
+          "point": "(36.02943, 0.72, -13.74773)",
+          "preflight_bone": "forearm_r",
+          "preflight_distance_m": 0.00563944935798644,
+          "target": "(36.1226, 0.72, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:221",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.72, -13.74773)",
+          "point_lever_m": "(-0.077583, -0.1501, 0.085528)",
+          "point_ns": "(0.647044, 0.0, 2.414815)",
+          "point_result": {
+            "bone": "forearm_r",
+            "distance_m": 0.00563944935798644,
+            "error": "",
+            "event_id": "resident_72:1:deagle:221:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.362464, 0.24269, 0.097121)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, 96.59262)",
+          "source_id": "resident_72",
+          "uniform_ns": "(25.23473, 0.0, 94.1778)"
+        },
+        "metrics": {
+          "angular": 19.7360763549805,
+          "distance": 0.930250823497772,
+          "floor": -0.141081228852272,
+          "joint": 0.106713950634003,
+          "linear": 4.52829217910767,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_r"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": true,
+        "contact": {
+          "direction": "(-0.965926, 0.0, -0.258819)",
+          "lever_m": "(0.301609, 0.268956, -0.044564)",
+          "lever_per_ns": 0.294964879751205,
+          "origin": "(37.28172, 0.32, -13.08941)",
+          "point": "(36.46819, 0.32, -13.3074)",
+          "preflight_bone": "foot_l",
+          "preflight_distance_m": 0.214435086250305,
+          "target": "(36.1226, 0.32, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:231",
+          "impulse_ns": "(-96.59258, 0.0, -25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.46819, 0.32, -13.3074)",
+          "point_lever_m": "(0.301609, 0.268956, -0.044564)",
+          "point_ns": "(-2.414814, 0.0, -0.647048)",
+          "point_result": {
+            "bone": "foot_l",
+            "distance_m": 0.214435086250305,
+            "error": "",
+            "event_id": "resident_72:1:deagle:231:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.174027, 0.30277, 0.649478)",
+          "reason": "final_death",
+          "requested_total_ns": "(-96.59258, 0.0, -25.88193)",
+          "source_id": "resident_72",
+          "uniform_ns": "(-94.17776, 0.0, -25.23488)"
+        },
+        "metrics": {
+          "angular": 20.0913696289063,
+          "distance": 1.25202035903931,
+          "floor": -0.141081228852272,
+          "joint": 0.104852929711342,
+          "linear": 4.29153633117676,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "foot_l"
+      },
+      {
+        "actor": "resident_72",
+        "candidate": true,
+        "contact": {
+          "direction": "(-0.965926, 0.0, 0.258819)",
+          "lever_m": "(0.301609, 0.268956, 0.044282)",
+          "lever_per_ns": 0.294853061437607,
+          "origin": "(37.28172, 0.32, -13.71058)",
+          "point": "(36.46819, 0.32, -13.4926)",
+          "preflight_bone": "foot_r",
+          "preflight_distance_m": 0.214404270648956,
+          "target": "(36.1226, 0.32, -13.4)"
+        },
+        "impulse": {
+          "event_id": "resident_72:1:deagle:241",
+          "impulse_ns": "(-96.59258, 0.0, 25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.46819, 0.32, -13.4926)",
+          "point_lever_m": "(0.301609, 0.268956, 0.044282)",
+          "point_ns": "(-2.414814, 0.0, 0.647048)",
+          "point_result": {
+            "bone": "foot_r",
+            "distance_m": 0.214404270648956,
+            "error": "",
+            "event_id": "resident_72:1:deagle:241:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.174027, -0.302088, 0.649478)",
+          "reason": "final_death",
+          "requested_total_ns": "(-96.59258, 0.0, 25.88193)",
+          "source_id": "resident_72",
+          "uniform_ns": "(-94.17776, 0.0, 25.23488)"
+        },
+        "metrics": {
+          "angular": 23.0878639221191,
+          "distance": 0.923862218856812,
+          "floor": -0.141081228852272,
+          "joint": 0.104836687445641,
+          "linear": 4.70793056488037,
+          "start": "(36.1226, -0.0, -13.4)"
+        },
+        "reachable": true,
+        "requested": "foot_r"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.097424, -0.110133, -0.072916)",
+          "lever_per_ns": 0.15777450799942,
+          "origin": "(35.81202, 0.56, -4.740887)",
+          "point": "(36.02943, 0.56, -5.552264)",
+          "preflight_bone": "hand_l",
+          "preflight_distance_m": 0.057851374745369,
+          "target": "(36.1226, 0.56, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:251",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.56, -5.552264)",
+          "point_lever_m": "(-0.097424, -0.110133, -0.072916)",
+          "point_ns": "(0.647044, 0.0, -2.414815)",
+          "point_result": {
+            "bone": "hand_l",
+            "distance_m": 0.057851374745369,
+            "error": "",
+            "event_id": "resident_169:1:deagle:251:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.26595, -0.28244, 0.071261)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, -96.59262)",
+          "source_id": "resident_169",
+          "uniform_ns": "(25.23473, 0.0, -94.1778)"
+        },
+        "metrics": {
+          "angular": 19.7715301513672,
+          "distance": 0.970475792884827,
+          "floor": -0.141641192138195,
+          "joint": 0.107616186141968,
+          "linear": 4.50355052947998,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "hand_l"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.097424, -0.110133, 0.07263)",
+          "lever_per_ns": 0.157721742987633,
+          "origin": "(35.81202, 0.56, -7.059109)",
+          "point": "(36.02943, 0.56, -6.247731)",
+          "preflight_bone": "hand_r",
+          "preflight_distance_m": 0.0577216452360153,
+          "target": "(36.1226, 0.56, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:261",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.56, -6.247731)",
+          "point_lever_m": "(-0.097424, -0.110133, 0.07263)",
+          "point_ns": "(0.647044, 0.0, 2.414815)",
+          "point_result": {
+            "bone": "hand_r",
+            "distance_m": 0.0577216452360153,
+            "error": "",
+            "event_id": "resident_169:1:deagle:261:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.265951, 0.282255, 0.071261)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, 96.59262)",
+          "source_id": "resident_169",
+          "uniform_ns": "(25.23473, 0.0, 94.1778)"
+        },
+        "metrics": {
+          "angular": 19.802318572998,
+          "distance": 0.922124743461609,
+          "floor": -0.141641192138195,
+          "joint": 0.107269383966923,
+          "linear": 4.55340385437012,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "hand_r"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.5, 0.0, -0.866025)",
+          "lever_m": "(-0.162949, -0.071561, -0.123835)",
+          "lever_per_ns": 0.215277075767517,
+          "origin": "(35.52261, 0.8, -4.860767)",
+          "point": "(35.9426, 0.8, -5.588228)",
+          "preflight_bone": "forearm_l",
+          "preflight_distance_m": 0.0525211250782013,
+          "target": "(36.1226, 0.8, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:271",
+          "impulse_ns": "(49.99991, 0.0, -86.60259)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(35.9426, 0.8, -5.588229)",
+          "point_lever_m": "(-0.162949, -0.071561, -0.123836)",
+          "point_ns": "(1.249998, 0.0, -2.165065)",
+          "point_result": {
+            "bone": "forearm_l",
+            "distance_m": 0.0525217062234878,
+            "error": "",
+            "event_id": "resident_169:1:deagle:271:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.154935, -0.507589, 0.089452)",
+          "reason": "final_death",
+          "requested_total_ns": "(49.99991, 0.0, -86.60259)",
+          "source_id": "resident_169",
+          "uniform_ns": "(48.74992, 0.0, -84.43753)"
+        },
+        "metrics": {
+          "angular": 20.4652576446533,
+          "distance": 0.940479397773743,
+          "floor": -0.141641192138195,
+          "joint": 0.108283407986164,
+          "linear": 4.35769510269165,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "forearm_l"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.077522, -0.153902, 0.087479)",
+          "lever_per_ns": 0.182198613882065,
+          "origin": "(35.81202, 0.72, -7.059109)",
+          "point": "(36.02943, 0.72, -6.247731)",
+          "preflight_bone": "forearm_r",
+          "preflight_distance_m": 0.00857892692089079,
+          "target": "(36.1226, 0.72, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:281",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.02943, 0.72, -6.247731)",
+          "point_lever_m": "(-0.077522, -0.153902, 0.087479)",
+          "point_ns": "(0.647044, 0.0, 2.414815)",
+          "point_result": {
+            "bone": "forearm_r",
+            "distance_m": 0.00857892692089079,
+            "error": "",
+            "event_id": "resident_169:1:deagle:281:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.371645, 0.243805, 0.099581)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, 96.59262)",
+          "source_id": "resident_169",
+          "uniform_ns": "(25.23473, 0.0, 94.1778)"
+        },
+        "metrics": {
+          "angular": 19.7060527801514,
+          "distance": 0.940046608448029,
+          "floor": -0.141641192138195,
+          "joint": 0.107159301638603,
+          "linear": 4.54203844070435,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "forearm_r"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": true,
+        "contact": {
+          "direction": "(-0.965926, 0.0, -0.258819)",
+          "lever_m": "(0.301418, 0.268734, -0.045165)",
+          "lever_per_ns": 0.294981390237808,
+          "origin": "(37.28172, 0.32, -5.589415)",
+          "point": "(36.46819, 0.32, -5.8074)",
+          "preflight_bone": "foot_l",
+          "preflight_distance_m": 0.213432044386864,
+          "target": "(36.1226, 0.32, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:291",
+          "impulse_ns": "(-96.59258, 0.0, -25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.46819, 0.32, -5.8074)",
+          "point_lever_m": "(0.301418, 0.268734, -0.045165)",
+          "point_ns": "(-2.414814, 0.0, -0.647048)",
+          "point_result": {
+            "bone": "foot_l",
+            "distance_m": 0.213432044386864,
+            "error": "",
+            "event_id": "resident_169:1:deagle:291:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.173884, 0.304097, 0.648943)",
+          "reason": "final_death",
+          "requested_total_ns": "(-96.59258, 0.0, -25.88193)",
+          "source_id": "resident_169",
+          "uniform_ns": "(-94.17776, 0.0, -25.23488)"
+        },
+        "metrics": {
+          "angular": 20.0574245452881,
+          "distance": 1.25674164295197,
+          "floor": -0.141641192138195,
+          "joint": 0.105300664901733,
+          "linear": 4.30343151092529,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "foot_l"
+      },
+      {
+        "actor": "resident_169",
+        "candidate": true,
+        "contact": {
+          "direction": "(-1.0, 0.0, 0.0)",
+          "lever_m": "(0.31361, 0.268734, 0.137477)",
+          "lever_per_ns": 0.30185741186142,
+          "origin": "(37.32261, 0.32, -5.899998)",
+          "point": "(36.48038, 0.32, -5.899998)",
+          "preflight_bone": "foot_r",
+          "preflight_distance_m": 0.242372573018074,
+          "target": "(36.1226, 0.32, -5.899998)"
+        },
+        "impulse": {
+          "event_id": "resident_169:1:deagle:301",
+          "impulse_ns": "(-100.0, 0.0, 0.0)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(36.48038, 0.32, -5.899998)",
+          "point_lever_m": "(0.31361, 0.268734, 0.137477)",
+          "point_ns": "(-2.5, 0.0, 0.0)",
+          "point_result": {
+            "bone": "foot_r",
+            "distance_m": 0.242372573018074,
+            "error": "",
+            "event_id": "resident_169:1:deagle:301:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.0, -0.343692, 0.671835)",
+          "reason": "final_death",
+          "requested_total_ns": "(-100.0, 0.0, 0.0)",
+          "source_id": "resident_169",
+          "uniform_ns": "(-97.5, 0.0, 0.0)"
+        },
+        "metrics": {
+          "angular": 19.7739105224609,
+          "distance": 1.53785288333893,
+          "floor": -0.141641192138195,
+          "joint": 0.105285838246346,
+          "linear": 4.09637784957886,
+          "start": "(36.1226, -0.0, -5.899998)"
+        },
+        "reachable": true,
+        "requested": "foot_r"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, -0.965926)",
+          "lever_m": "(-0.097061, -0.132596, -0.0368)",
+          "lever_per_ns": 0.168071821331978,
+          "origin": "(34.31202, 0.48, -18.24089)",
+          "point": "(34.52943, 0.48, -19.05226)",
+          "preflight_bone": "hand_l",
+          "preflight_distance_m": 0.0699576592445374,
+          "target": "(34.6226, 0.48, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:311",
+          "impulse_ns": "(25.88178, 0.0, -96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(34.52943, 0.48, -19.05227)",
+          "point_lever_m": "(-0.097061, -0.132596, -0.036802)",
+          "point_ns": "(0.647044, 0.0, -2.414815)",
+          "point_result": {
+            "bone": "hand_l",
+            "distance_m": 0.069958091378212,
+            "error": "",
+            "event_id": "resident_252:1:deagle:311:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.320195, -0.258197, 0.085795)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, -96.59262)",
+          "source_id": "resident_252",
+          "uniform_ns": "(25.23473, 0.0, -94.1778)"
+        },
+        "metrics": {
+          "angular": 20.0632362365723,
+          "distance": 0.878960311412811,
+          "floor": -0.130759727209806,
+          "joint": 0.0988983139395714,
+          "linear": 4.21181631088257,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "hand_l"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.258819, 0.0, 0.965926)",
+          "lever_m": "(-0.097061, -0.132596, 0.036537)",
+          "lever_per_ns": 0.168029978871346,
+          "origin": "(34.31202, 0.48, -20.55911)",
+          "point": "(34.52943, 0.48, -19.74773)",
+          "preflight_bone": "hand_r",
+          "preflight_distance_m": 0.0699003344774246,
+          "target": "(34.6226, 0.48, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:321",
+          "impulse_ns": "(25.88178, 0.0, 96.59262)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(34.52943, 0.48, -19.74773)",
+          "point_lever_m": "(-0.097061, -0.132596, 0.036539)",
+          "point_ns": "(0.647044, 0.0, 2.414815)",
+          "point_result": {
+            "bone": "hand_r",
+            "distance_m": 0.0699007517099381,
+            "error": "",
+            "event_id": "resident_252:1:deagle:321:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.320195, 0.258027, 0.085795)",
+          "reason": "final_death",
+          "requested_total_ns": "(25.88178, 0.0, 96.59262)",
+          "source_id": "resident_252",
+          "uniform_ns": "(25.23473, 0.0, 94.1778)"
+        },
+        "metrics": {
+          "angular": 20.1250247955322,
+          "distance": 0.899722874164581,
+          "floor": -0.130759727209806,
+          "joint": 0.0985509380698204,
+          "linear": 4.25824785232544,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "hand_r"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.5, 0.0, -0.866025)",
+          "lever_m": "(-0.164402, -0.036731, -0.08654)",
+          "lever_per_ns": 0.189245313405991,
+          "origin": "(34.02261, 0.76, -18.36077)",
+          "point": "(34.4426, 0.76, -19.08823)",
+          "preflight_bone": "forearm_l",
+          "preflight_distance_m": 0.043755561709404,
+          "target": "(34.6226, 0.76, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:331",
+          "impulse_ns": "(49.99991, 0.0, -86.60259)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(34.4426, 0.76, -19.08823)",
+          "point_lever_m": "(-0.164402, -0.036731, -0.08654)",
+          "point_ns": "(1.249998, 0.0, -2.165065)",
+          "point_result": {
+            "bone": "forearm_l",
+            "distance_m": 0.043755561709404,
+            "error": "",
+            "event_id": "resident_252:1:deagle:331:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.079526, -0.464116, 0.045914)",
+          "reason": "final_death",
+          "requested_total_ns": "(49.99991, 0.0, -86.60259)",
+          "source_id": "resident_252",
+          "uniform_ns": "(48.74992, 0.0, -84.43753)"
+        },
+        "metrics": {
+          "angular": 20.8490715026855,
+          "distance": 0.880925893783569,
+          "floor": -0.130759727209806,
+          "joint": 0.0995729565620422,
+          "linear": 4.06893157958984,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_l"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": true,
+        "contact": {
+          "direction": "(0.5, 0.0, 0.866025)",
+          "lever_m": "(-0.165676, -0.038871, 0.085966)",
+          "lever_per_ns": 0.190471261739731,
+          "origin": "(34.02261, 0.76, -20.43923)",
+          "point": "(34.4426, 0.76, -19.71177)",
+          "preflight_bone": "forearm_r",
+          "preflight_distance_m": 0.0467489963769913,
+          "target": "(34.6226, 0.76, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:341",
+          "impulse_ns": "(49.99991, 0.0, 86.60259)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(34.4426, 0.76, -19.71177)",
+          "point_lever_m": "(-0.165676, -0.038871, 0.085966)",
+          "point_ns": "(1.249998, 0.0, 2.165065)",
+          "point_result": {
+            "bone": "forearm_r",
+            "distance_m": 0.0467489963769913,
+            "error": "",
+            "event_id": "resident_252:1:deagle:341:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.084158, 0.466157, 0.048588)",
+          "reason": "final_death",
+          "requested_total_ns": "(49.99991, 0.0, 86.60259)",
+          "source_id": "resident_252",
+          "uniform_ns": "(48.74992, 0.0, 84.43753)"
+        },
+        "metrics": {
+          "angular": 21.1676654815674,
+          "distance": 0.873951196670532,
+          "floor": -0.130759727209806,
+          "joint": 0.0992582961916924,
+          "linear": 4.11383533477783,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "forearm_r"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": true,
+        "contact": {
+          "direction": "(-0.965926, 0.0, -0.258819)",
+          "lever_m": "(0.298672, 0.233131, -0.035091)",
+          "lever_per_ns": 0.258292198181152,
+          "origin": "(35.78172, 0.28, -19.08941)",
+          "point": "(34.96164, 0.28, -19.30915)",
+          "preflight_bone": "foot_l",
+          "preflight_distance_m": 0.202878580093384,
+          "target": "(34.6226, 0.28, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:351",
+          "impulse_ns": "(-96.59258, 0.0, -25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(34.96164, 0.28, -19.30915)",
+          "point_lever_m": "(0.298672, 0.233131, -0.035091)",
+          "point_ns": "(-2.414814, 0.0, -0.647048)",
+          "point_result": {
+            "bone": "foot_l",
+            "distance_m": 0.202878580093384,
+            "error": "",
+            "event_id": "resident_252:1:deagle:351:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(-0.150847, 0.277994, 0.562968)",
+          "reason": "final_death",
+          "requested_total_ns": "(-96.59258, 0.0, -25.88193)",
+          "source_id": "resident_252",
+          "uniform_ns": "(-94.17776, 0.0, -25.23488)"
+        },
+        "metrics": {
+          "angular": 20.7177448272705,
+          "distance": 1.11885011196136,
+          "floor": -0.130759727209806,
+          "joint": 0.0965932086110115,
+          "linear": 4.06988906860352,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "foot_l"
+      },
+      {
+        "actor": "resident_252",
+        "candidate": true,
+        "contact": {
+          "direction": "(-0.965926, 0.0, 0.258819)",
+          "lever_m": "(0.298672, 0.233131, 0.034828)",
+          "lever_per_ns": 0.25818282365799,
+          "origin": "(35.78172, 0.28, -19.71058)",
+          "point": "(34.96164, 0.28, -19.49084)",
+          "preflight_bone": "foot_r",
+          "preflight_distance_m": 0.202854380607605,
+          "target": "(34.6226, 0.28, -19.4)"
+        },
+        "impulse": {
+          "event_id": "resident_252:1:deagle:361",
+          "impulse_ns": "(-96.59258, 0.0, 25.88193)",
+          "life_generation": 1,
+          "phase": "initial",
+          "point": "(34.96164, 0.28, -19.49084)",
+          "point_lever_m": "(0.298672, 0.233131, 0.034828)",
+          "point_ns": "(-2.414814, 0.0, 0.647048)",
+          "point_result": {
+            "bone": "foot_r",
+            "distance_m": 0.202854380607605,
+            "error": "",
+            "event_id": "resident_252:1:deagle:361:point",
+            "ok": true
+          },
+          "point_torque_ns_m": "(0.150847, -0.277359, 0.562968)",
+          "reason": "final_death",
+          "requested_total_ns": "(-96.59258, 0.0, 25.88193)",
+          "source_id": "resident_252",
+          "uniform_ns": "(-94.17776, 0.0, 25.23488)"
+        },
+        "metrics": {
+          "angular": 20.3985557556152,
+          "distance": 1.34455490112305,
+          "floor": -0.130759727209806,
+          "joint": 0.0965767130255699,
+          "linear": 3.8768413066864,
+          "start": "(34.6226, -0.0, -19.4)"
+        },
+        "reachable": true,
+        "requested": "foot_r"
+      }
+    ],
+    "scope": "actual candidate05 native capsule contacts mapped to outgoing original segments; exact frozen e4ec vs uniform control; no collider/HP edits, no GPU"
+  }
+}

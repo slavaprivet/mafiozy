@@ -1,0 +1,11 @@
+{
+  "status": "MERGE_CANDIDATE: preserve current shared no-slide path guard; exact Root compile/native rerun required",
+  "base_sha256": "aff6e378a23804f55886a86de53e4e59db1439f5a9471d276da0eeec91149e07",
+  "tested_point_owner_sha256": "a1946b00be3a2f2ba9d22d035a785277eac1060800aa9f171af1067c9b574b6a",
+  "delta_from_tested": "only path service block preserves aff6 extra _current lease check and comments; impulse implementation unchanged",
+  "files": {
+    "npc_hit_impulse.gd": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+    "npc_local_preview_hit_owner.gd": "9e019898f91073fe51bb1076c17f8ef73b6c7289fdd4eb2372054f1bb9fbcdfd",
+    "owner.patch": "8b483cde540f8b07490fd32d8a621f05b2061cf5647529f4c84104851b2c475e"
+  }
+}

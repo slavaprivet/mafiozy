@@ -1,0 +1,464 @@
+{
+  "native_checks": 834,
+  "native_errors": [],
+  "comparison_errors": [],
+  "rows": [
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7526440691052859,
+      "delta_omega_dot_actual_point_torque": 0.17643106092367727,
+      "tenth_tick_orientation_delta_deg": 6.328783180800839,
+      "distance_baseline_m": 2.11107110977173,
+      "distance_point_m": 2.03740239143372,
+      "joint_baseline_m": 0.104845345020294,
+      "joint_point_m": 0.104848057031631,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7526437561846852,
+      "delta_omega_dot_actual_point_torque": 0.17643098756997963,
+      "tenth_tick_orientation_delta_deg": 6.294482956237582,
+      "distance_baseline_m": 0.523521482944489,
+      "distance_point_m": 0.523752391338348,
+      "joint_baseline_m": 0.104845345020294,
+      "joint_point_m": 0.104848071932793,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7525429963152652,
+      "delta_omega_dot_actual_point_torque": 0.17640736792734263,
+      "tenth_tick_orientation_delta_deg": 6.267143742355567,
+      "distance_baseline_m": 1.90426647663116,
+      "distance_point_m": 1.78609085083008,
+      "joint_baseline_m": 0.114344142377377,
+      "joint_point_m": 0.114211373031139,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7523489907798899,
+      "delta_omega_dot_actual_point_torque": 0.1763618901028101,
+      "tenth_tick_orientation_delta_deg": 6.198100750493514,
+      "distance_baseline_m": 0.0776749029755592,
+      "distance_point_m": 0.0849968940019608,
+      "joint_baseline_m": 0.108672477304935,
+      "joint_point_m": 0.108556866645813,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7990917359239592,
+      "delta_omega_dot_actual_point_torque": 0.18089639487244108,
+      "tenth_tick_orientation_delta_deg": 6.628478533339742,
+      "distance_baseline_m": 2.11117100715637,
+      "distance_point_m": 2.37882590293884,
+      "joint_baseline_m": 0.105617791414261,
+      "joint_point_m": 0.105626612901688,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7990896656896219,
+      "delta_omega_dot_actual_point_torque": 0.18089592891008305,
+      "tenth_tick_orientation_delta_deg": 6.709045064014928,
+      "distance_baseline_m": 0.729027152061462,
+      "distance_point_m": 0.707265615463257,
+      "joint_baseline_m": 0.106348223984241,
+      "joint_point_m": 0.106347538530827,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7990928410976599,
+      "delta_omega_dot_actual_point_torque": 0.1808966464931126,
+      "tenth_tick_orientation_delta_deg": 6.62836809170223,
+      "distance_baseline_m": 2.10236191749573,
+      "distance_point_m": 2.21378612518311,
+      "joint_baseline_m": 0.105440646409988,
+      "joint_point_m": 0.105448432266712,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_72",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7990903492460623,
+      "delta_omega_dot_actual_point_torque": 0.18089608154571316,
+      "tenth_tick_orientation_delta_deg": 6.711581769262073,
+      "distance_baseline_m": 0.8099205493927,
+      "distance_point_m": 0.813469648361206,
+      "joint_baseline_m": 0.106079660356045,
+      "joint_point_m": 0.106089040637016,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7695094561545724,
+      "delta_omega_dot_actual_point_torque": 0.16688193182425468,
+      "tenth_tick_orientation_delta_deg": 6.492467307469789,
+      "distance_baseline_m": 2.067387342453,
+      "distance_point_m": 1.96893739700317,
+      "joint_baseline_m": 0.105293117463589,
+      "joint_point_m": 0.105295553803444,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7695099627876222,
+      "delta_omega_dot_actual_point_torque": 0.16688204169887594,
+      "tenth_tick_orientation_delta_deg": 6.456319944498773,
+      "distance_baseline_m": 0.537318348884583,
+      "distance_point_m": 0.523789167404175,
+      "joint_baseline_m": 0.105293124914169,
+      "joint_point_m": 0.105295576155186,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7694045865199863,
+      "delta_omega_dot_actual_point_torque": 0.16685918835330152,
+      "tenth_tick_orientation_delta_deg": 6.430226137408313,
+      "distance_baseline_m": 1.74380648136139,
+      "distance_point_m": 1.73946022987366,
+      "joint_baseline_m": 0.114795953035355,
+      "joint_point_m": 0.114666424691677,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.7691729643761771,
+      "delta_omega_dot_actual_point_torque": 0.16680895581616273,
+      "tenth_tick_orientation_delta_deg": 6.354977372330914,
+      "distance_baseline_m": 0.127356231212616,
+      "distance_point_m": 0.119976207613945,
+      "joint_baseline_m": 0.109119437634945,
+      "joint_point_m": 0.109007932245731,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8181585198450533,
+      "delta_omega_dot_actual_point_torque": 0.17103372557577062,
+      "tenth_tick_orientation_delta_deg": 6.811016799200283,
+      "distance_baseline_m": 2.1222677230835,
+      "distance_point_m": 2.22140026092529,
+      "joint_baseline_m": 0.106065146625042,
+      "joint_point_m": 0.106073088943958,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8181606508001092,
+      "delta_omega_dot_actual_point_torque": 0.1710341704422269,
+      "tenth_tick_orientation_delta_deg": 6.883103569116042,
+      "distance_baseline_m": 0.783654689788818,
+      "distance_point_m": 0.726166248321533,
+      "joint_baseline_m": 0.106795199215412,
+      "joint_point_m": 0.106793567538261,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8181619661182337,
+      "delta_omega_dot_actual_point_torque": 0.17103444874362575,
+      "tenth_tick_orientation_delta_deg": 6.811362353379773,
+      "distance_baseline_m": 2.08293962478638,
+      "distance_point_m": 2.17099213600159,
+      "joint_baseline_m": 0.105888336896896,
+      "joint_point_m": 0.105896651744843,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_169",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8181626619081438,
+      "delta_omega_dot_actual_point_torque": 0.1710345946124747,
+      "tenth_tick_orientation_delta_deg": 6.890801171045358,
+      "distance_baseline_m": 0.819907188415527,
+      "distance_point_m": 0.801540911197662,
+      "joint_baseline_m": 0.106526635587215,
+      "joint_point_m": 0.10653692483902,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8196514139822743,
+      "delta_omega_dot_actual_point_torque": 0.46158010920798315,
+      "tenth_tick_orientation_delta_deg": 6.884466204402574,
+      "distance_baseline_m": 1.86414396762848,
+      "distance_point_m": 1.94662857055664,
+      "joint_baseline_m": 0.0965857952833176,
+      "joint_point_m": 0.0965883359313011,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8196522300491187,
+      "delta_omega_dot_actual_point_torque": 0.4615805687715322,
+      "tenth_tick_orientation_delta_deg": 6.9472586914034045,
+      "distance_baseline_m": 1.19298124313354,
+      "distance_point_m": 1.24207019805908,
+      "joint_baseline_m": 0.096585787832737,
+      "joint_point_m": 0.0965883359313011,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8195434555363478,
+      "delta_omega_dot_actual_point_torque": 0.46151931306398686,
+      "tenth_tick_orientation_delta_deg": 6.84986836435917,
+      "distance_baseline_m": 1.82700896263123,
+      "distance_point_m": 1.73214030265808,
+      "joint_baseline_m": 0.105990163981915,
+      "joint_point_m": 0.105861403048038,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8193165767704736,
+      "delta_omega_dot_actual_point_torque": 0.461391547776028,
+      "tenth_tick_orientation_delta_deg": 6.759783004370678,
+      "distance_baseline_m": 0.116346411406994,
+      "distance_point_m": 0.126753449440002,
+      "joint_baseline_m": 0.100404836237431,
+      "joint_point_m": 0.100292332470417,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8687753083187809,
+      "delta_omega_dot_actual_point_torque": 0.4787560444786509,
+      "tenth_tick_orientation_delta_deg": 7.202422327751592,
+      "distance_baseline_m": 2.21894097328186,
+      "distance_point_m": 2.25280618667603,
+      "joint_baseline_m": 0.0973513200879097,
+      "joint_point_m": 0.0973603278398514,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        -1.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8687741654690827,
+      "delta_omega_dot_actual_point_torque": 0.47875541420430395,
+      "tenth_tick_orientation_delta_deg": 7.298803996990173,
+      "distance_baseline_m": 0.813793778419495,
+      "distance_point_m": 0.847117841243744,
+      "joint_baseline_m": 0.0980864465236664,
+      "joint_point_m": 0.0980866402387619,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": false,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8687758857335386,
+      "delta_omega_dot_actual_point_torque": 0.47875636002044,
+      "tenth_tick_orientation_delta_deg": 7.20193791652678,
+      "distance_baseline_m": 2.27013063430786,
+      "distance_point_m": 2.16263890266418,
+      "joint_baseline_m": 0.0971718207001686,
+      "joint_point_m": 0.0971795096993446,
+      "floor_delta_m": 0.0
+    },
+    {
+      "actor": "resident_252",
+      "height": 1.7,
+      "direction": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "medical": true,
+      "bone": "head",
+      "second_tick_angular_delta_rad_s": 0.8687747133193995,
+      "delta_omega_dot_actual_point_torque": 0.4787557052894342,
+      "tenth_tick_orientation_delta_deg": 7.30224455640497,
+      "distance_baseline_m": 0.779787659645081,
+      "distance_point_m": 0.775622367858887,
+      "joint_baseline_m": 0.0978184044361115,
+      "joint_point_m": 0.0978280156850815,
+      "floor_delta_m": 0.0
+    }
+  ],
+  "source_report_sha256": "67ea4b5f7ccb8c612d45da8f1c049b70e5de217462f50dee7365c8bca86eadb1"
+}

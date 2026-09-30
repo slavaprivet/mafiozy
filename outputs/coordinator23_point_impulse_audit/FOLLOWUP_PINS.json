@@ -1,0 +1,24 @@
+{
+  "tested_owner_sha256": "e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04",
+  "helper_sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+  "files": {
+    "frozen/native_point.gd": "6a7f14a5fb5528ec2132f6810e24917a47369620b00af58b806087c311c958ca",
+    "frozen/npc_hit_impulse.gd": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+    "frozen/npc_local_preview_hit_owner.gd": "e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04",
+    "frozen/point_base.gd": "ba804c30dea23ff054544a73247dbd5f4a1ac0def13ab2f309c160226b4b5a6e",
+    "frozen/point_native_base.gd": "9fb96341fcaf9db52050d9e0ed2b99cebe7e6a6b85e581fe029717d7c0346441",
+    "frozen/uniform_owner.gd": "29b034ffe47c6a348d041088bcf6354bdec739177e4c8787b94d8bb3131495ce",
+    "test_limbs.gd": "c301af5e605b9c90a82ebc2660992220f8ae772a37fc6aba17e89601fd3c10ae",
+    "test_limb_contacts.gd": "cba45f317b012dca1197ae5ce4a539d2177fa8546b6659a67c2005180cabfc83",
+    "frozen834.json": "3b774a44aeb6c4d80ee6750aaa2728f9887b526743837ebcfb5427b8181ed18e",
+    "frozen834.log": "d0a9eb73102963802b0b410942c8e89832f09c42fb20377c565d7ca8444a3ce4",
+    "frozen834_comparison.json": "869d82d646dbfa21ddd593fdb92812c4dd7218187424c000472690dda9e02f59",
+    "limbs01.json": "10eb2e0f49b794516ff24ed15a0b3d288ba53b941dd83c4d7066be9242457842",
+    "limbs01.log": "25bb71d5e90633f48ff30119bfecb3c4170dd6f0892b0022e05572347f72dac2",
+    "limbs01_comparison.json": "163ba802c2c564261eb7220bef4b60007b964a45b8cf9f4327b6c00d4969a7e8",
+    "limb_contacts02.json": "8ef5fa5d0b51b9bf9b1c3831a760eecea25cd60493abcc3ca74fa268405f139a",
+    "limb_contacts02.log": "251b7eb147fb37aea99474f2da03818b204400bd9cd390ef2f019629398df0fa",
+    "limb_contacts02_comparison.json": "49cf26b54254d4354f0cd2e90cea3e519b4ca61c23f3dcff70aefab38d720086"
+  },
+  "dependencies": "closure/MANIFEST.json; unchanged candidate05 raw project"
+}

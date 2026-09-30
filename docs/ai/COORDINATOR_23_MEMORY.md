@@ -1,5 +1,51 @@
 # Кординатор 23 — 30 сентября 2026
 
+## 11:16 — resume after usage interruption; corrected point physics and contact integration
+
+Last remote main remains verified9f86f3216beba96009c7ded1216368b863ad1ec4.
+The previous root continuation was interrupted by account usage limits; two
+subagents errored. Do not infer hours of root progress from queued heartbeats.
+Fresh HQ read completed. Artist independently installed point owner9e019 and
+helperfe4 into shared NPC files and opened one point-only game48272, exact PCK
+ec737f864181031e574bc4eb9e179a6d70cf3be6282a6068371b388b25167179 in
+outputs/artist23_point23e/package. Fresh11:10 inventory confirms it and Manager
+45268. Root did not close either. Current shortcut/accepted23e receipt is older;
+do not identify the running Artist game as the fully accepted root23e package.
+
+Root found9e019 shotgun impulse still uses camera direction,43.152deg wrong in
+real native parallax case. Exact corrected e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04
+keeps HP camera policy but pairs physical terminal direction/point.110PASS;
+frozen834 rerun PASS;18paired real limb contacts across3originalrigs PASS,
+maxjoint.1083075m, floor minima unchanged (existing13-14cm initial intrusion is
+NOT floor-clear acceptance). See outputs/coordinator23_point_impulse_audit.
+No NPC shared overwrite by root. Artist/HQ warned to incorporate correction.
+
+Isolated candidate06 copied from197 exact accepted23e receipt inputs. Corrected
+point owner/helper installed there; actualinput20 and no-standing-slide48 PASS.
+Root optional contact wiring/player sampler added OFF, ordinary startup PASS.
+Root now adds completed_ground_move_receipt(frame,serial,pose_epoch,start,end)
+to canonical normal move path in this stage only: get_position_delta alone can
+describe an old frame. New sampler requires receipt, native proof still pending.
+INTEGRATION.json pins deltas; runtime remains internal baseline23e until a final
+reviewed feature set/notes revision is selected. No export/GPU rollout by root.
+
+Foot proposal first native run NOT accepted: car blocks one fixture shot, one
+corpse did not fully sleep; exact sleeping hand wakes but only3.9mm. Peer review
+found callback-dispose/reentry gap, repeated epoch1, old-move replay and host
+identity gaps. Author resumed corrections/tests11:10. Port/accessor proposals
+outputs-only, no direct root private-force or NPC production changes. Need real
+ordinary walking sustained contacts, exact part wake, visible movement, preserved
+HP/joints/mass, negatives and loaded GPU/performance before production enable.
+
+Latest Artist isolated wounds+blood+point grid045 PCK20b208a3d5932268f3cf4f40a4985dee91327209179cb91a20413eccf99bbeba:
+owner compiledinput23/matrix743/bounds221 PASS,39geometryhashes same. Scripted
+queryp95 2.904ms/fullfirsthit7.880ms; afterhitloadedscript1.521vs1.064ms pointonly.
+These are NOT full LIVE/GPU costs. Still isolated; root reviewing direction
+tuple/closure before merge. Anatomical always-lethal headshots, RPGdamage and
+medical recovery remain separate. Full migration unfinished. Checker packets
+remain HOLD per HQ; no root tasking/polling Astra or waking stopped pinned5.
+
+
 ## 06:04 — shared source import repaired; no-slide candidate preserved
 
 Latest verified remote save8f083583b94b4abe64fa49be837c034a4889ce32 included

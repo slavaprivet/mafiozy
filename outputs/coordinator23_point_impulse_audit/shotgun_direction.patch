@@ -1,0 +1,38 @@
+--- a/scripts/npc_visual/npc_local_preview_hit_owner.gd
++++ b/scripts/npc_visual/npc_local_preview_hit_owner.gd
+@@ -200,7 +200,7 @@
+ 		damage=first.damage; direction*=first.direction_multiplier
+ 	_apply_hit(str(impact.shotId),shot,damage,direction,impact.point,impact.normal)
+ 
+-func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3) -> void:
++func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3,physical_direction: Vector3=Vector3.ZERO) -> void:
+ 	if _current(_binding).is_empty(): return
+ 	var started_us:=Time.get_ticks_usec()
+ 	var body: CharacterBody3D=_token.body
+@@ -214,7 +214,7 @@
+ 	if not last_result.ok or not last_result.get("applied",false): return
+ 	last_contact={"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
+ 	if blood!=null: blood.receive(id,point,normal)
+-	_native_impulse_context={"event_id":id,"value":HitImpulse.bullet(shot.weapon_id,shot.muzzle.distance_to(point),damage,direction,_row.get("_invulnerable",false))}
++	_native_impulse_context={"event_id":id,"value":HitImpulse.bullet(shot.weapon_id,shot.muzzle.distance_to(point),damage,direction if physical_direction==Vector3.ZERO else physical_direction,_row.get("_invulnerable",false))}
+ 	_publish_physical(id,last_result.reason,point)
+ 	_native_impulse_context={}
+ 	_last_hit_us=Time.get_ticks_usec()-started_us
+@@ -243,7 +243,7 @@
+ 				var candidate: Variant=ref.get_ref()
+ 				if not is_instance_valid(candidate) or candidate._current(candidate._binding).is_empty() or not candidate._owns_collider(receipt.get("collider")): continue
+ 				var id: String=candidate._token.source_id
+-				if not shot.targets.has(id): shot.targets[id]={"owner":ref,"binding":candidate._binding.duplicate(true),"distances":[],"point":receipt.point,"normal":receipt.normal}
++				if not shot.targets.has(id): shot.targets[id]={"owner":ref,"binding":candidate._binding.duplicate(true),"distances":[],"point":receipt.point,"normal":receipt.normal,"physical_direction":receipt.direction}
+ 				shot.targets[id].distances.append(distance)
+ 				break
+ 	if shot.terminals.size()!=7: return
+@@ -255,7 +255,7 @@
+ 		var target: Variant=group.owner.get_ref()
+ 		if not is_instance_valid(target) or target._current(group.binding).is_empty(): continue
+ 		var damage:=Rules.shotgun_damage(group.distances,_marksman,shot.modifiers.critical,shot.modifiers.critical_multiplier)
+-		if damage.ok: target._apply_hit(str(receipt.shotId),shot,damage.damage,shot.base_direction,group.point,group.normal)
++		if damage.ok: target._apply_hit(str(receipt.shotId),shot,damage.damage,shot.base_direction,group.point,group.normal,group.physical_direction)
+ 	shot.targets.clear()
+ 
+ func _publish_physical(id: String,reason: String,point: Vector3) -> void:

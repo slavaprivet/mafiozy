@@ -1,0 +1,337 @@
+{
+  "schema": "coordinator23.evidence-checkpoint/v1",
+  "base": "9f86f3216beba96009c7ded1216368b863ad1ec4",
+  "scope": "Exact corrected point proposal/native evidence and explicit HOLD reviews. No accepted runtime change, foot enable, candidate06 export, or shared NPC edits.",
+  "files": [
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/00_npc_local_preview_hit_owner.gd",
+      "bytes": 23111,
+      "sha256": "a1946b00be3a2f2ba9d22d035a785277eac1060800aa9f171af1067c9b574b6a"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/01_RECEIPT.json",
+      "bytes": 1527,
+      "sha256": "ed797df4ed17040a7ab2be7109a34b5373b75adbcb9c887591cc9921d9535c8d"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/02_RECEIPT.json",
+      "bytes": 759,
+      "sha256": "d58b1eb28b41b1fbb4298157e29584638c061ca58b9e98cd27a41c4d8fbf9a07"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/03_native_point_cardinals01.json",
+      "bytes": 1943681,
+      "sha256": "67ea4b5f7ccb8c612d45da8f1c049b70e5de217462f50dee7365c8bca86eadb1"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/04_native_point_cardinals01_comparison.json",
+      "bytes": 14385,
+      "sha256": "01f4c988a8279033c0295496f95bba7411893fa3f83b2d2725017381746f22af"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/05_native_point.gd",
+      "bytes": 6227,
+      "sha256": "409cba5073034efe6f6157c566c9576da97838e7f570cd11f92ded2c5ee0f00f"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/06_point_native_base.gd",
+      "bytes": 7874,
+      "sha256": "9fb96341fcaf9db52050d9e0ed2b99cebe7e6a6b85e581fe029717d7c0346441"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/07_point_base.gd",
+      "bytes": 19675,
+      "sha256": "7ae8c75ac4cade19a91514fe8abac4372d55b1b5efadb44d6aa56962f9f543e8"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/08_analyze_point.py",
+      "bytes": 2193,
+      "sha256": "07dd62cac361bc3926d92d947bd282313826f185d526e295c60e16f6e6efb141"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/09_ready_base.gd",
+      "bytes": 19670,
+      "sha256": "3af5bf95289db0bdd45dd3c782f01ce1690f2642ca280da9c2f3aa25f17ff3ae"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/10_npc_local_preview_hit_owner.gd",
+      "bytes": 21925,
+      "sha256": "29b034ffe47c6a348d041088bcf6354bdec739177e4c8787b94d8bb3131495ce"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/11_npc_hit_impulse.gd",
+      "bytes": 2135,
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/12_CHECKPOINT_23E_INPUTS.json",
+      "bytes": 16146,
+      "sha256": "ee2c076ba3c1361781a83d20b6668eb949b16b47cc4d67492213a5f8fec957de"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/13_npc_ragdoll_host.gd",
+      "bytes": 17295,
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/14_npc_body.gd",
+      "bytes": 3626,
+      "sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/15_exit_ragdoll_body.gd",
+      "bytes": 26622,
+      "sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/16_npc_ordinary_hit_lifecycle.gd",
+      "bytes": 10092,
+      "sha256": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/17_preview_resident_host.gd",
+      "bytes": 40812,
+      "sha256": "f6e95a9000fa2c1c9f64aa7a66c67a3eed7e9bf2edb91a260e20f50d1367f125"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/18_weapon_projectiles.gd",
+      "bytes": 21504,
+      "sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/19_weapon_hit_rules.gd",
+      "bytes": 11136,
+      "sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/20_preview_weapons.gd",
+      "bytes": 20677,
+      "sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/21_manifest.json",
+      "bytes": 19971,
+      "sha256": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/closure/MANIFEST.json",
+      "bytes": 7103,
+      "sha256": "b1a81564fe8718d2e2103aa4375425861e8d0e4e42189642388423565edf85ed"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/corrected_owner.gd",
+      "bytes": 23331,
+      "sha256": "e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/FOLLOWUP.md",
+      "bytes": 6631,
+      "sha256": "a530c45ccfad8a98e7d96f5a92fd1832749d0d4131516b3b7bed8a7fc126afdd"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/FOLLOWUP_PINS.json",
+      "bytes": 1950,
+      "sha256": "19af3b26f22e7e9f8a1a797a9a8d549d56e5a37d1bea92ab83cf5bfb7207883b"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/from_shared_aff6.patch",
+      "bytes": 7654,
+      "sha256": "227f7c9eba846937872524e7d75d3c3932d4d47791bea2031c1925402dfde69b"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen/native_point.gd",
+      "bytes": 6194,
+      "sha256": "6a7f14a5fb5528ec2132f6810e24917a47369620b00af58b806087c311c958ca"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen/npc_hit_impulse.gd",
+      "bytes": 2135,
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen/npc_local_preview_hit_owner.gd",
+      "bytes": 23331,
+      "sha256": "e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen/point_base.gd",
+      "bytes": 19651,
+      "sha256": "ba804c30dea23ff054544a73247dbd5f4a1ac0def13ab2f309c160226b4b5a6e"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen/point_native_base.gd",
+      "bytes": 7874,
+      "sha256": "9fb96341fcaf9db52050d9e0ed2b99cebe7e6a6b85e581fe029717d7c0346441"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen/uniform_owner.gd",
+      "bytes": 21925,
+      "sha256": "29b034ffe47c6a348d041088bcf6354bdec739177e4c8787b94d8bb3131495ce"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen834.json",
+      "bytes": 1943576,
+      "sha256": "3b774a44aeb6c4d80ee6750aaa2728f9887b526743837ebcfb5427b8181ed18e"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen834.log",
+      "bytes": 775852,
+      "sha256": "d0a9eb73102963802b0b410942c8e89832f09c42fb20377c565d7ca8444a3ce4"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/frozen834_comparison.json",
+      "bytes": 7126,
+      "sha256": "869d82d646dbfa21ddd593fdb92812c4dd7218187424c000472690dda9e02f59"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/INPUT_PINS.json",
+      "bytes": 737,
+      "sha256": "b52ec78e54cf8d8b10eb1396cc32d2f82969795c865d2541f240aec418516912"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/limb_contacts02.json",
+      "bytes": 49787,
+      "sha256": "8ef5fa5d0b51b9bf9b1c3831a760eecea25cd60493abcc3ca74fa268405f139a"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/limb_contacts02.log",
+      "bytes": 33028,
+      "sha256": "251b7eb147fb37aea99474f2da03818b204400bd9cd390ef2f019629398df0fa"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/limb_contacts02_comparison.json",
+      "bytes": 10732,
+      "sha256": "49cf26b54254d4354f0cd2e90cea3e519b4ca61c23f3dcff70aefab38d720086"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/limbs01.json",
+      "bytes": 51592,
+      "sha256": "10eb2e0f49b794516ff24ed15a0b3d288ba53b941dd83c4d7066be9242457842"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/limbs01.log",
+      "bytes": 34834,
+      "sha256": "25bb71d5e90633f48ff30119bfecb3c4170dd6f0892b0022e05572347f72dac2"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/limbs01_comparison.json",
+      "bytes": 10869,
+      "sha256": "163ba802c2c564261eb7220bef4b60007b964a45b8cf9f4327b6c00d4969a7e8"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/merged_owner.gd",
+      "bytes": 23166,
+      "sha256": "9e019898f91073fe51bb1076c17f8ef73b6c7289fdd4eb2372054f1bb9fbcdfd"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/npc_hit_impulse.gd",
+      "bytes": 2135,
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/parallax.json",
+      "bytes": 3267,
+      "sha256": "1239257f9c9129d85847a19d98c0911a9d699a40bf0a5f7ac62aa602dae1affc"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/parallax.log",
+      "bytes": 2622,
+      "sha256": "54e187a014c67eb878cf6956ad9710e7ae01c6661b8dcc8d46096cb08ff6474d"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/REVIEW.md",
+      "bytes": 9618,
+      "sha256": "a336e1936f4efcf89e9b380e5547e257b817aa6e0bf401f1c302259ee50c3ad5"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/shotgun_direction.patch",
+      "bytes": 2895,
+      "sha256": "37f248f1e1860adb00852f040641b97d634264e6830a7fe5a17f5d0e9c1eea1f"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/test_limb_contacts.gd",
+      "bytes": 7200,
+      "sha256": "cba45f317b012dca1197ae5ce4a539d2177fa8546b6659a67c2005180cabfc83"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/test_limbs.gd",
+      "bytes": 6926,
+      "sha256": "c301af5e605b9c90a82ebc2660992220f8ae772a37fc6aba17e89601fd3c10ae"
+    },
+    {
+      "path": "outputs/coordinator23_point_impulse_audit/test_parallax.gd",
+      "bytes": 4759,
+      "sha256": "2cf49274e473690b6db9d3e62ec5224bed884672cd08c2222064c05f34cc622d"
+    },
+    {
+      "path": "outputs/coordinator23_head_marks_review/head_snapshot/npc_head_zone.gd",
+      "bytes": 12168,
+      "sha256": "99b61a6e0ccf394617af389dc5362c3e7052bb2a3a8db6c27a5572980f06775e"
+    },
+    {
+      "path": "outputs/coordinator23_head_marks_review/head_snapshot/npc_hit_impulse.gd",
+      "bytes": 2135,
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "outputs/coordinator23_head_marks_review/head_snapshot/npc_local_preview_hit_owner.gd",
+      "bytes": 23398,
+      "sha256": "0ebd577828e545eb510b3e6aead7354b0fee1b7c56524cf70ad2c5021b9ae620"
+    },
+    {
+      "path": "outputs/coordinator23_head_marks_review/head_snapshot/npc_ordinary_hit_lifecycle.gd",
+      "bytes": 10315,
+      "sha256": "7b01789e7213abf154c2fdfe7bfc5969160605c4cd86b8ff7a3070507aee8230"
+    },
+    {
+      "path": "outputs/coordinator23_head_marks_review/REVIEW.md",
+      "bytes": 8764,
+      "sha256": "6ddfa9eaf868d1ef741dda393df21d830eee18953f88c7ff53f27f0fc88eb067"
+    },
+    {
+      "path": "outputs/coordinator23_head_marks_review/VERIFIED_INPUTS.json",
+      "bytes": 2655,
+      "sha256": "696ad509b129a8c0f1b7f6ebbd5d9f0de2e412994173a431959e9bac5a70b5b3"
+    },
+    {
+      "path": "outputs/coordinator23_contact_port_review/PIN.json",
+      "bytes": 329,
+      "sha256": "bdbdf4525dc9191f289122fdd8421f4a6a642344498634a49586491ea0ef01cd"
+    },
+    {
+      "path": "outputs/coordinator23_contact_port_review/REVIEW.md",
+      "bytes": 9920,
+      "sha256": "4cbd9be220b60f2a7feccd873cb2b9b5d7e97a51f9059d27743ec3196b4741ef"
+    },
+    {
+      "path": "docs/ai/COORDINATOR_23_MEMORY.md",
+      "bytes": 33080,
+      "sha256": "c359ed514dd04e437c24ef94f7af4846916598187ef78d4f59f3fe4f45b91dbb"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate06_input01.log",
+      "bytes": 4115,
+      "sha256": "9e395cdc569f5fe68a7c4ed583d608462d9307703dea1af74aa782681403debd"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate06_input01/RESULT.json",
+      "bytes": 2621,
+      "sha256": "a26e4a242ccf4280707f5176f6eaddf3d9e312737e471e490b135ba9574dc93e"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate06_standing.log",
+      "bytes": 1146,
+      "sha256": "0e79b2c5e09c3bf73959663406e6c1dd1ab2778ee0c8e0b5afe5e1cf09ec2c1b"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate06_off_startup.log",
+      "bytes": 638,
+      "sha256": "f4b70fd74a7cf336ee1e8b8a4e60e5edc02251a1208cb3703f72957e08e1925d"
+    },
+    {
+      "path": "outputs/coordinator23_quality/checkpoint_point23.py",
+      "bytes": 3679,
+      "sha256": "5cf6e6e55838f143dadf1c8df70629d53690fc9b082296427632da2c080cd2af"
+    }
+  ]
+}

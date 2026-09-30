@@ -1,0 +1,133 @@
+{
+  "scope": "immutable audit copy of exact payload, evidence, test scripts and critical dependencies; not a standalone full game package",
+  "files": {
+    "00_npc_local_preview_hit_owner.gd": {
+      "original": "outputs\\artist23_hit_impulse\\ready_point_impulse\\npc_local_preview_hit_owner.gd",
+      "sha256": "a1946b00be3a2f2ba9d22d035a785277eac1060800aa9f171af1067c9b574b6a"
+    },
+    "01_RECEIPT.json": {
+      "original": "outputs\\artist23_hit_impulse\\ready_point_impulse\\RECEIPT.json",
+      "sha256": "ed797df4ed17040a7ab2be7109a34b5373b75adbcb9c887591cc9921d9535c8d"
+    },
+    "02_RECEIPT.json": {
+      "original": "outputs\\artist23_hit_impulse\\integration_aff6\\RECEIPT.json",
+      "sha256": "d58b1eb28b41b1fbb4298157e29584638c061ca58b9e98cd27a41c4d8fbf9a07"
+    },
+    "03_native_point_cardinals01.json": {
+      "original": "outputs\\artist23_hit_impulse\\native_point_cardinals01.json",
+      "sha256": "67ea4b5f7ccb8c612d45da8f1c049b70e5de217462f50dee7365c8bca86eadb1"
+    },
+    "04_native_point_cardinals01_comparison.json": {
+      "original": "outputs\\artist23_hit_impulse\\native_point_cardinals01_comparison.json",
+      "sha256": "01f4c988a8279033c0295496f95bba7411893fa3f83b2d2725017381746f22af"
+    },
+    "05_native_point.gd": {
+      "original": "outputs\\artist23_hit_impulse\\native_point.gd",
+      "sha256": "409cba5073034efe6f6157c566c9576da97838e7f570cd11f92ded2c5ee0f00f"
+    },
+    "06_point_native_base.gd": {
+      "original": "outputs\\artist23_hit_impulse\\point_native_base.gd",
+      "sha256": "9fb96341fcaf9db52050d9e0ed2b99cebe7e6a6b85e581fe029717d7c0346441"
+    },
+    "07_point_base.gd": {
+      "original": "outputs\\artist23_hit_impulse\\point_base.gd",
+      "sha256": "7ae8c75ac4cade19a91514fe8abac4372d55b1b5efadb44d6aa56962f9f543e8"
+    },
+    "08_analyze_point.py": {
+      "original": "outputs\\artist23_hit_impulse\\analyze_point.py",
+      "sha256": "07dd62cac361bc3926d92d947bd282313826f185d526e295c60e16f6e6efb141"
+    },
+    "09_ready_base.gd": {
+      "original": "outputs\\artist23_hit_impulse\\ready_base.gd",
+      "sha256": "3af5bf95289db0bdd45dd3c782f01ce1690f2642ca280da9c2f3aa25f17ff3ae"
+    },
+    "10_npc_local_preview_hit_owner.gd": {
+      "original": "outputs\\artist23_hit_impulse\\ready_impulse_only\\npc_local_preview_hit_owner.gd",
+      "sha256": "29b034ffe47c6a348d041088bcf6354bdec739177e4c8787b94d8bb3131495ce"
+    },
+    "11_npc_hit_impulse.gd": {
+      "original": "outputs\\artist23_hit_impulse\\ready_impulse_only\\npc_hit_impulse.gd",
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    "12_CHECKPOINT_23E_INPUTS.json": {
+      "original": "outputs\\coordinator23_quality\\CHECKPOINT_23E_INPUTS.json",
+      "sha256": "ee2c076ba3c1361781a83d20b6668eb949b16b47cc4d67492213a5f8fec957de"
+    },
+    "13_npc_ragdoll_host.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_ragdoll_host.gd",
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2"
+    },
+    "14_npc_body.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_body.gd",
+      "sha256": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162"
+    },
+    "15_exit_ragdoll_body.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\character_physics\\exit_ragdoll_body.gd",
+      "sha256": "822966ac0b03bbb0dbb37085fccf915fdbc11d07d8c6d05bd9035c66f26f58f8"
+    },
+    "16_npc_ordinary_hit_lifecycle.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_ordinary_hit_lifecycle.gd",
+      "sha256": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e"
+    },
+    "17_preview_resident_host.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\preview_resident_host.gd",
+      "sha256": "f6e95a9000fa2c1c9f64aa7a66c67a3eed7e9bf2edb91a260e20f50d1367f125"
+    },
+    "18_weapon_projectiles.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\weapon_projectiles.gd",
+      "sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27"
+    },
+    "19_weapon_hit_rules.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\weapon_hit_rules.gd",
+      "sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274"
+    },
+    "20_preview_weapons.gd": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\preview_weapons.gd",
+      "sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c"
+    },
+    "21_manifest.json": {
+      "original": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\session\\prepared\\manifest.json",
+      "sha256": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0"
+    },
+    "../merged_owner.gd": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\merged_owner.gd",
+      "sha256": "9e019898f91073fe51bb1076c17f8ef73b6c7289fdd4eb2372054f1bb9fbcdfd"
+    },
+    "../corrected_owner.gd": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\corrected_owner.gd",
+      "sha256": "e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04"
+    },
+    "../npc_hit_impulse.gd": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\npc_hit_impulse.gd",
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    "../test_parallax.gd": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\test_parallax.gd",
+      "sha256": "2cf49274e473690b6db9d3e62ec5224bed884672cd08c2222064c05f34cc622d"
+    },
+    "../parallax.json": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\parallax.json",
+      "sha256": "1239257f9c9129d85847a19d98c0911a9d699a40bf0a5f7ac62aa602dae1affc"
+    },
+    "../parallax.log": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\parallax.log",
+      "sha256": "54e187a014c67eb878cf6956ad9710e7ae01c6661b8dcc8d46096cb08ff6474d"
+    },
+    "../shotgun_direction.patch": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\shotgun_direction.patch",
+      "sha256": "37f248f1e1860adb00852f040641b97d634264e6830a7fe5a17f5d0e9c1eea1f"
+    },
+    "../from_shared_aff6.patch": {
+      "original": "outputs\\coordinator23_point_impulse_audit\\from_shared_aff6.patch",
+      "sha256": "227f7c9eba846937872524e7d75d3c3932d4d47791bea2031c1925402dfde69b"
+    }
+  },
+  "verified_receipts": {
+    "npc_hit_impulse.gd": true,
+    "npc_local_preview_hit_owner.gd": true,
+    "owner.patch": true,
+    "834_report": true,
+    "834_comparison": true,
+    "mutable_point_candidate_now_equals_frozen": true
+  }
+}

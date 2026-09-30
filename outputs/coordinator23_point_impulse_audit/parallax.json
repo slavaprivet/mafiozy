@@ -1,0 +1,96 @@
+{
+  "exit": 0,
+  "seconds": 3.9888021000660956,
+  "engine_errors": false,
+  "report": {
+    "checks": 110,
+    "errors": [],
+    "rows": [
+      {
+        "actor": "resident_72",
+        "camera_direction": "(-0.729537, 0.0, -0.683941)",
+        "corrected": false,
+        "degrees_from_actual_terminal": 43.1524180062777,
+        "hp": 0,
+        "physical_direction": "(-0.729537, 0.0, -0.683941)",
+        "point": "(36.4826, 1.1, -13.4)",
+        "point_ns": 2.49999976158142,
+        "reason": "final_death",
+        "selected_bone": "chest",
+        "terminal_direction": "(-1.0, 0.0, 0.0)",
+        "total_ns": 225.000015258789
+      },
+      {
+        "actor": "resident_169",
+        "camera_direction": "(-0.729537, 0.0, -0.683941)",
+        "corrected": false,
+        "degrees_from_actual_terminal": 43.1524180062777,
+        "hp": 0,
+        "physical_direction": "(-0.729537, 0.0, -0.683941)",
+        "point": "(36.4826, 1.1, -5.899998)",
+        "point_ns": 2.49999976158142,
+        "reason": "final_death",
+        "selected_bone": "chest",
+        "terminal_direction": "(-1.0, 0.0, 0.0)",
+        "total_ns": 225.000015258789
+      },
+      {
+        "actor": "resident_252",
+        "camera_direction": "(-0.729537, 0.0, -0.683941)",
+        "corrected": false,
+        "degrees_from_actual_terminal": 43.1524180062777,
+        "hp": 0,
+        "physical_direction": "(-0.729537, 0.0, -0.683941)",
+        "point": "(34.9826, 1.1, -19.4)",
+        "point_ns": 2.49999976158142,
+        "reason": "final_death",
+        "selected_bone": "chest",
+        "terminal_direction": "(-1.0, 0.0, 0.0)",
+        "total_ns": 225.000015258789
+      },
+      {
+        "actor": "resident_72",
+        "camera_direction": "(-0.729537, 0.0, -0.683941)",
+        "corrected": true,
+        "degrees_from_actual_terminal": 0.0,
+        "hp": 0,
+        "physical_direction": "(-1.0, 0.0, 0.0)",
+        "point": "(36.4826, 1.1, -13.4)",
+        "point_ns": 2.5,
+        "reason": "final_death",
+        "selected_bone": "chest",
+        "terminal_direction": "(-1.0, 0.0, 0.0)",
+        "total_ns": 225.0
+      },
+      {
+        "actor": "resident_169",
+        "camera_direction": "(-0.729537, 0.0, -0.683941)",
+        "corrected": true,
+        "degrees_from_actual_terminal": 0.0,
+        "hp": 0,
+        "physical_direction": "(-1.0, 0.0, 0.0)",
+        "point": "(36.4826, 1.1, -5.899998)",
+        "point_ns": 2.5,
+        "reason": "final_death",
+        "selected_bone": "chest",
+        "terminal_direction": "(-1.0, 0.0, 0.0)",
+        "total_ns": 225.0
+      },
+      {
+        "actor": "resident_252",
+        "camera_direction": "(-0.729537, 0.0, -0.683941)",
+        "corrected": true,
+        "degrees_from_actual_terminal": 0.0,
+        "hp": 0,
+        "physical_direction": "(-1.0, 0.0, 0.0)",
+        "point": "(34.9826, 1.1, -19.4)",
+        "point_ns": 2.5,
+        "reason": "final_death",
+        "selected_bone": "chest",
+        "terminal_direction": "(-1.0, 0.0, 0.0)",
+        "total_ns": 225.0
+      }
+    ],
+    "scope": "actual candidate05 main native source fire/ammo and ray; isolated .75m camera/muzzle fixture; no UI/GPU"
+  }
+}
