@@ -1,0 +1,1706 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:242)
+       [4] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:242)
+       [4] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:174)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Attempted to find an object of type 'StaticBody3D' into a TypedArray, which does not inherit from 'RigidBody3D'.
+   at: _internal_validate_object (./core/variant/container_type_validate.h:115)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:176)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+ERROR: Condition "!_p->typed.validate(value, "find")" is true. Returning: -1
+   at: find (core/variant/array.cpp:374)
+   GDScript backtrace (most recent call first):
+       [0] own_collider (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:142)
+       [1] sight (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:149)
+       [2] fire (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:176)
+       [3] sync (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_loaded_combat_pair/capture.gd:98)
+PAIR_FAIL second_hit: actual camera AND presented muzzle contact
+LOADED_COMBAT_PAIR candidate errors=["second_hit: actual camera AND presented muzzle contact"] seconds=12.81322

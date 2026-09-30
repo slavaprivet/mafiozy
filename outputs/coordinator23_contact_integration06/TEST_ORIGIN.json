@@ -1,0 +1,74 @@
+{
+  "status": "HEADLESS_PASS_64; scheduled player/main07_02; GPU and paired performance not run",
+  "local_extends": "outputs/artist23_combat_next/test_combined_eyes_input.gd",
+  "local_preloads": [],
+  "production_modified": false,
+  "external_runtime_required": "Complete candidate07 project/imports, explicit measured limits, root move receipt/sampler/public population binding and reviewed NPC accessor/port. A PCK lacking these methods is not a substitute.",
+  "files": [
+    {
+      "path": "outputs/coordinator23_contact_integration06/test_actual_main_integrated.gd",
+      "sha256": "311e970286358f4f1e99404e475a8b23c63fafda8c9a6fffeb06f9e40a89aa4b",
+      "bytes": 17040
+    },
+    {
+      "path": "outputs/artist23_combat_next/test_combined_eyes_input.gd",
+      "sha256": "949c94a1028fe27d81ba9d7704f373a8c95a0e7ef736077d89d9adffbfde96e4",
+      "bytes": 9898
+    },
+    {
+      "path": "outputs/coordinator23_contact_integration06/main07_01/RESULT.json",
+      "sha256": "da95b7d838bd7878ee0e6490eacec2043b725f56daa8fb75ce409a3054d55964",
+      "bytes": 1979
+    },
+    {
+      "path": "outputs/coordinator23_contact_integration06/main07_02/RESULT.json",
+      "sha256": "f3a49822e2d0ef408fc0765467d0bc48164dc1bf7dd6c9117c8cf21e21155dbf",
+      "bytes": 12832
+    },
+    {
+      "path": "outputs/coordinator23_contact_port_proposal/MEASURED_LIMITS.json",
+      "sha256": "847d104e19efaf0647857ae055a302f6da5d09c6fca1aaaaa708d46f7757bc69",
+      "bytes": 178
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/INTEGRATION.json",
+      "sha256": "1ab1f6143d0b70adfdf910096ace849af93fddb57e7989eb241173d74b7bcede",
+      "bytes": 5035
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/main.gd",
+      "sha256": "0dfc6da5e4188515bd7b23bfb6321fbfd6870cfe03817807a488820f9b3d7106",
+      "bytes": 43355
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/preview_player.gd",
+      "sha256": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06",
+      "bytes": 37708
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/player_corpse_contact.gd",
+      "sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "bytes": 6764
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/preview_population.gd",
+      "sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "bytes": 8333
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd",
+      "sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "bytes": 42243
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/npc_visual/final_dead_contact_port.gd",
+      "sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "bytes": 14255
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate07/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "sha256": "fa1c551a8501f1f731126d374c25ab07ac209137862febd5ee40ec0b7102049e",
+      "bytes": 23905
+    }
+  ]
+}

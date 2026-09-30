@@ -1,0 +1,1208 @@
+{
+  "checks": 800,
+  "errors": [],
+  "rows": [
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        18002
+      ],
+      "head_query_us": 286,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_72:1:tt_pistol:11",
+        "impulse_ns": "(-55.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.32658, 1.606234, -13.39986)",
+        "point_lever_m": "(0.192055, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:tt_pistol:11:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-55.0, 0.0, 0.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(-52.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.929608821868896,
+        "floor": -0.141081228852272,
+        "joint": 0.104848071932793,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        11152
+      ],
+      "head_query_us": 205,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_72:1:tt_pistol:21",
+        "impulse_ns": "(55.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(35.91042, 1.606234, -13.39986)",
+        "point_lever_m": "(-0.224106, 0.0, 0.0)",
+        "point_ns": "(2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:tt_pistol:21:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(55.0, 0.0, 0.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(52.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.217191591858864,
+        "floor": -0.141081228852272,
+        "joint": 0.10789255797863,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(0.0, 0.0, -1.0)",
+      "full_native_producer_hp_resident_step_us": [
+        13170
+      ],
+      "head_query_us": 161,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_72:1:tt_pistol:31",
+        "impulse_ns": "(0.0, 0.0, -55.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.13453, 1.606234, -13.18317)",
+        "point_lever_m": "(0.0, 0.0, 0.216685)",
+        "point_ns": "(0.0, 0.0, -2.5)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:tt_pistol:31:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(0.0, 0.0, -55.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(0.0, 0.0, -52.5)"
+      },
+      "metrics": {
+        "distance": 0.797105252742767,
+        "floor": -0.141081228852272,
+        "joint": 0.106340825557709,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(0.0, 0.0, 1.0)",
+      "full_native_producer_hp_resident_step_us": [
+        12945
+      ],
+      "head_query_us": 199,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_72:1:tt_pistol:41",
+        "impulse_ns": "(0.0, 0.0, 55.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.13453, 1.606234, -13.61654)",
+        "point_lever_m": "(0.0, 0.0, -0.216684)",
+        "point_ns": "(0.0, 0.0, 2.5)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:tt_pistol:41:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(0.0, 0.0, 55.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(0.0, 0.0, 52.5)"
+      },
+      "metrics": {
+        "distance": 0.780890703201294,
+        "floor": -0.141081228852272,
+        "joint": 0.106161840260029,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "head_shotgun",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        18317
+      ],
+      "head_query_us": 290,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_72:1:shotgun:51",
+        "impulse_ns": "(-225.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.32658, 1.606234, -13.39986)",
+        "point_lever_m": "(0.192055, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:shotgun:51:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-225.0, 0.0, 0.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(-222.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 2.03704786300659,
+        "floor": -0.141081228852272,
+        "joint": 0.104848057031631,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "mixed_head_shotgun",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        18338
+      ],
+      "head_query_us": 281,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_72:1:shotgun:61",
+        "impulse_ns": "(-225.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.32658, 1.606234, -13.39986)",
+        "point_lever_m": "(0.192055, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:shotgun:61:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-225.0, 0.0, 0.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(-222.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 2.03704786300659,
+        "floor": -0.141081228852272,
+        "joint": 0.104848057031631,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "torso",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        8690
+      ],
+      "head_query_us": 20,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "medical",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        11520
+      ],
+      "head_query_us": 18,
+      "hp": 1,
+      "impulse": {
+        "event_id": "resident_72:1:shotgun:81",
+        "impulse_ns": "(-75.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.4826, 1.1, -13.4)",
+        "point_lever_m": "(0.360481, 0.003313, -0.000758)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "chest",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_72:1:shotgun:81:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.001895, 0.008282)",
+        "reason": "medical_downed",
+        "requested_total_ns": "(-75.0, 0.0, 0.0)",
+        "source_id": "resident_72",
+        "uniform_ns": "(-72.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.525271356105804,
+        "floor": -0.141081228852272,
+        "joint": 0.104845106601715,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "medical_downed"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "arm",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [],
+      "head_query_us": 15,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 0,
+      "result": null
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {
+        "center_error": 1.91107028513215e-06,
+        "distance": 0.549999237060547,
+        "hit": "(36.38453, 1.606234, -13.39986)"
+      },
+      "case": "arm_cover",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        17772
+      ],
+      "head_query_us": 264,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "near_miss",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        13247
+      ],
+      "head_query_us": 22,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "invulnerable",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        751
+      ],
+      "head_query_us": 18,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 1,
+      "result": "invulnerable"
+    },
+    {
+      "actor": "resident_72",
+      "arm_witness": {},
+      "case": "wall",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [],
+      "head_query_us": 26,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -13.4)"
+      },
+      "native_hits": 0,
+      "result": null
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        17656
+      ],
+      "head_query_us": 364,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_169:1:tt_pistol:141",
+        "impulse_ns": "(-55.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.32747, 1.613253, -5.899855)",
+        "point_lever_m": "(0.192898, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_169:1:tt_pistol:141:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-55.0, 0.0, 0.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(-52.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.875332176685333,
+        "floor": -0.141641192138195,
+        "joint": 0.105295576155186,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        10908
+      ],
+      "head_query_us": 215,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_169:1:tt_pistol:151",
+        "impulse_ns": "(55.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(35.90949, 1.613253, -5.899855)",
+        "point_lever_m": "(-0.225086, 0.0, 0.0)",
+        "point_ns": "(2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_169:1:tt_pistol:151:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(55.0, 0.0, 0.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(52.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.251867234706879,
+        "floor": -0.141641192138195,
+        "joint": 0.10834339261055,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(0.0, 0.0, -1.0)",
+      "full_native_producer_hp_resident_step_us": [
+        12999
+      ],
+      "head_query_us": 159,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_169:1:tt_pistol:161",
+        "impulse_ns": "(0.0, 0.0, -55.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.13457, 1.613253, -5.700666)",
+        "point_lever_m": "(0.0, 0.0, 0.199189)",
+        "point_ns": "(0.0, 0.0, -2.5)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_169:1:tt_pistol:161:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(0.0, 0.0, -55.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(0.0, 0.0, -52.5)"
+      },
+      "metrics": {
+        "distance": 0.860003650188446,
+        "floor": -0.141641192138195,
+        "joint": 0.10678668320179,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(0.0, 0.0, 1.0)",
+      "full_native_producer_hp_resident_step_us": [
+        12622
+      ],
+      "head_query_us": 200,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_169:1:tt_pistol:171",
+        "impulse_ns": "(0.0, 0.0, 55.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.13457, 1.613253, -6.099043)",
+        "point_lever_m": "(0.0, 0.0, -0.199188)",
+        "point_ns": "(0.0, 0.0, 2.5)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_169:1:tt_pistol:171:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(0.0, 0.0, 55.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(0.0, 0.0, 52.5)"
+      },
+      "metrics": {
+        "distance": 0.847792506217957,
+        "floor": -0.141641192138195,
+        "joint": 0.106609515845776,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "head_shotgun",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        20158
+      ],
+      "head_query_us": 286,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_169:1:shotgun:181",
+        "impulse_ns": "(-225.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.32747, 1.613253, -5.899855)",
+        "point_lever_m": "(0.192898, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_169:1:shotgun:181:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-225.0, 0.0, 0.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(-222.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 1.96893739700317,
+        "floor": -0.141641192138195,
+        "joint": 0.105295553803444,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "mixed_head_shotgun",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        18901
+      ],
+      "head_query_us": 273,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_169:1:shotgun:191",
+        "impulse_ns": "(-225.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.32747, 1.613253, -5.899855)",
+        "point_lever_m": "(0.192898, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_169:1:shotgun:191:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-225.0, 0.0, 0.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(-222.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 1.96893739700317,
+        "floor": -0.141641192138195,
+        "joint": 0.105295553803444,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "torso",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        6772
+      ],
+      "head_query_us": 20,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "medical",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        10214
+      ],
+      "head_query_us": 18,
+      "hp": 1,
+      "impulse": {
+        "event_id": "resident_169:1:shotgun:211",
+        "impulse_ns": "(-75.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(36.4826, 1.1, -5.899998)",
+        "point_lever_m": "(0.369469, 0.001006, 0.00332)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "chest",
+          "distance_m": 0.00192557334899901,
+          "error": "",
+          "event_id": "resident_169:1:shotgun:211:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, -0.008301, 0.002514)",
+        "reason": "medical_downed",
+        "requested_total_ns": "(-75.0, 0.0, 0.0)",
+        "source_id": "resident_169",
+        "uniform_ns": "(-72.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.536945581436157,
+        "floor": -0.141641192138195,
+        "joint": 0.105292685329914,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "medical_downed"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "arm",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [],
+      "head_query_us": 16,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 0,
+      "result": null
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {
+        "center_error": 3.81655945602688e-06,
+        "distance": 0.549995422363281,
+        "hit": "(36.38458, 1.613253, -5.899855)"
+      },
+      "case": "arm_cover",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        16435
+      ],
+      "head_query_us": 263,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "near_miss",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        9846
+      ],
+      "head_query_us": 20,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "invulnerable",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        803
+      ],
+      "head_query_us": 18,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 1,
+      "result": "invulnerable"
+    },
+    {
+      "actor": "resident_169",
+      "arm_witness": {},
+      "case": "wall",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [],
+      "head_query_us": 18,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(36.1226, -0.0, -5.899998)"
+      },
+      "native_hits": 0,
+      "result": null
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        18517
+      ],
+      "head_query_us": 496,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_252:1:tt_pistol:271",
+        "impulse_ns": "(-55.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.80989, 1.474743, -19.39987)",
+        "point_lever_m": "(0.176334, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_252:1:tt_pistol:271:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-55.0, 0.0, 0.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(-52.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.861851274967194,
+        "floor": -0.130759727209806,
+        "joint": 0.0965883433818817,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        11408
+      ],
+      "head_query_us": 205,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_252:1:tt_pistol:281",
+        "impulse_ns": "(55.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.42779, 1.474743, -19.39987)",
+        "point_lever_m": "(-0.205761, 0.0, 0.0)",
+        "point_ns": "(2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_252:1:tt_pistol:281:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(55.0, 0.0, 0.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(52.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 0.158112466335297,
+        "floor": -0.130759727209806,
+        "joint": 0.0996332690119743,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(0.0, 0.0, -1.0)",
+      "full_native_producer_hp_resident_step_us": [
+        12552
+      ],
+      "head_query_us": 166,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_252:1:tt_pistol:291",
+        "impulse_ns": "(0.0, 0.0, -55.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.63355, 1.474743, -19.20092)",
+        "point_lever_m": "(0.0, 0.0, 0.198946)",
+        "point_ns": "(0.0, 0.0, -2.5)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_252:1:tt_pistol:291:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(0.0, 0.0, -55.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(0.0, 0.0, -52.5)"
+      },
+      "metrics": {
+        "distance": 0.697213590145111,
+        "floor": -0.130759727209806,
+        "joint": 0.0980836600065231,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "head",
+      "direction": "(0.0, 0.0, 1.0)",
+      "full_native_producer_hp_resident_step_us": [
+        12672
+      ],
+      "head_query_us": 206,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_252:1:tt_pistol:301",
+        "impulse_ns": "(0.0, 0.0, 55.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.63355, 1.474743, -19.59881)",
+        "point_lever_m": "(0.0, 0.0, -0.198946)",
+        "point_ns": "(0.0, 0.0, 2.5)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_252:1:tt_pistol:301:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(0.0, 0.0, 55.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(0.0, 0.0, 52.5)"
+      },
+      "metrics": {
+        "distance": 0.720475137233734,
+        "floor": -0.130759727209806,
+        "joint": 0.0979042947292328,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "head_shotgun",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        20303
+      ],
+      "head_query_us": 400,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_252:1:shotgun:311",
+        "impulse_ns": "(-225.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.80989, 1.474743, -19.39987)",
+        "point_lever_m": "(0.176334, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_252:1:shotgun:311:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-225.0, 0.0, 0.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(-222.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 1.94662857055664,
+        "floor": -0.130759727209806,
+        "joint": 0.0965883359313011,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "mixed_head_shotgun",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        20263
+      ],
+      "head_query_us": 288,
+      "hp": 0,
+      "impulse": {
+        "event_id": "resident_252:1:shotgun:321",
+        "impulse_ns": "(-225.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.80989, 1.474743, -19.39987)",
+        "point_lever_m": "(0.176334, 0.0, 0.0)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "head",
+          "distance_m": 0.0,
+          "error": "",
+          "event_id": "resident_252:1:shotgun:321:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.0, 0.0)",
+        "reason": "final_death",
+        "requested_total_ns": "(-225.0, 0.0, 0.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(-222.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 1.94662857055664,
+        "floor": -0.130759727209806,
+        "joint": 0.0965883359313011,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "final_death"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "torso",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        9996
+      ],
+      "head_query_us": 20,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "medical",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        15436
+      ],
+      "head_query_us": 18,
+      "hp": 1,
+      "impulse": {
+        "event_id": "resident_252:1:shotgun:341",
+        "impulse_ns": "(-75.0, 0.0, 0.0)",
+        "life_generation": 1,
+        "phase": "initial",
+        "point": "(34.9826, 1.1, -19.4)",
+        "point_lever_m": "(0.36446, 0.093091, -0.001114)",
+        "point_ns": "(-2.5, 0.0, 0.0)",
+        "point_result": {
+          "bone": "chest",
+          "distance_m": 0.0114509916305542,
+          "error": "",
+          "event_id": "resident_252:1:shotgun:341:point",
+          "ok": true
+        },
+        "point_torque_ns_m": "(0.0, 0.002785, 0.232727)",
+        "reason": "medical_downed",
+        "requested_total_ns": "(-75.0, 0.0, 0.0)",
+        "source_id": "resident_252",
+        "uniform_ns": "(-72.5, 0.0, 0.0)"
+      },
+      "metrics": {
+        "distance": 1.22623884677887,
+        "floor": -0.130759727209806,
+        "joint": 0.0965854898095131,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "medical_downed"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "arm",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [],
+      "head_query_us": 16,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 0,
+      "result": null
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {
+        "center_error": 1.19209289550781e-07,
+        "distance": 0.550003051757813,
+        "hit": "(34.88355, 1.474743, -19.39987)"
+      },
+      "case": "arm_cover",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        17015
+      ],
+      "head_query_us": 347,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "near_miss",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        11062
+      ],
+      "head_query_us": 22,
+      "hp": 30,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "hit"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "invulnerable",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [
+        1265
+      ],
+      "head_query_us": 17,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 1,
+      "result": "invulnerable"
+    },
+    {
+      "actor": "resident_252",
+      "arm_witness": {},
+      "case": "wall",
+      "direction": "(-1.0, 0.0, 0.0)",
+      "full_native_producer_hp_resident_step_us": [],
+      "head_query_us": 18,
+      "hp": 60.0,
+      "impulse": {},
+      "metrics": {
+        "distance": 0.0,
+        "floor": null,
+        "joint": 0.0,
+        "start": "(34.6226, -0.0, -19.4)"
+      },
+      "native_hits": 0,
+      "result": null
+    }
+  ],
+  "scope": "actual native head rays+exact original3rig skin; user-requested head final policy; not LIVE/UI",
+  "nonfinite_encoding_note": "Original Godot log uses 1e99999 for unmeasured floor; stored as null here, not accepted floor proof."
+}

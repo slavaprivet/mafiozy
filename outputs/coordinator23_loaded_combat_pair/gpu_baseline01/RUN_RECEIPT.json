@@ -1,0 +1,28 @@
+{
+  "pack": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\artist23_point23e\\package\\MafioziPreview.pck",
+  "pack_sha256": "ec737f864181031e574bc4eb9e179a6d70cf3be6282a6068371b388b25167179",
+  "test_sha256": "3b1d5f3f7e5c7e38a83d211beb75f52f16a69482e62c1be7f365db8b345e5c28",
+  "runner_sha256": "12e244917cf7603be6837f92f689e8c0b19a7854d6f362cec188787080d0d9ec",
+  "command": [
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--path",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\artist23_point23e\\package",
+    "--main-pack",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\artist23_point23e\\package\\MafioziPreview.pck",
+    "--script",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_loaded_combat_pair\\capture.gd",
+    "--log-file",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_loaded_combat_pair\\gpu_baseline01\\engine.log",
+    "--",
+    "--out=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_loaded_combat_pair\\gpu_baseline01",
+    "--side=baseline",
+    "--pack=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\artist23_point23e\\package\\MafioziPreview.pck"
+  ],
+  "gpu": true,
+  "other_processes_untouched": true,
+  "external_deadline_seconds": 63,
+  "exit_code": 0,
+  "elapsed_seconds": 32.09567619999871,
+  "pack_unchanged": true,
+  "test_unchanged": true
+}

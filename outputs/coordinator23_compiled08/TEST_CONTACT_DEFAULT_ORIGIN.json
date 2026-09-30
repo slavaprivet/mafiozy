@@ -1,0 +1,31 @@
+{
+  "local_extends": "outputs/artist23_combat_next/test_combined_eyes_input.gd",
+  "engine_runs": 0,
+  "status": "PREPARED_NOT_RUN",
+  "files": [
+    {
+      "path": "outputs/coordinator23_contact_integration06/test_actual_main_integrated.gd",
+      "sha256": "311e970286358f4f1e99404e475a8b23c63fafda8c9a6fffeb06f9e40a89aa4b"
+    },
+    {
+      "path": "outputs/coordinator23_compiled08/test_contact_default.gd",
+      "sha256": "cc469b212ccc22a784468bf05b69ffde49a34d0dc22079128fb26f764feaaca7"
+    },
+    {
+      "path": "outputs/artist23_combat_next/test_combined_eyes_input.gd",
+      "sha256": "949c94a1028fe27d81ba9d7704f373a8c95a0e7ef736077d89d9adffbfde96e4"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate08/godot/mafiozi_walk/scripts/main.gd",
+      "sha256": "fed81d39df9e0eb103295beda6ba033206e0a4c0afc879b618d7eaf707985ed7"
+    },
+    {
+      "path": "outputs/coordinator23_compiled08/contact01/RESULT.json",
+      "sha256": "ef68fa2dec51212534a37957479dbb4109fee5d914b929687b2f8e8b2216a78a"
+    }
+  ],
+  "change": "Replace explicit binder invocation with read-only verification of default-ON startup status, installed owner/sampler and actual population callbacks",
+  "pack": "outputs/coordinator23_quality/candidate08/godot/mafiozi_walk/exports/win64/s01-20260930-quality23f/MafioziPreview.pck",
+  "original_harness_unchanged": true,
+  "runtime_edits": 0
+}

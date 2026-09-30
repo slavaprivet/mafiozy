@@ -1,0 +1,21 @@
+--- a/scripts/npc_visual/npc_bullet_marks.gd
++++ b/scripts/npc_visual/npc_bullet_marks.gd
+@@ -75,6 +75,18 @@
+ 	var shader := Shader.new()
+ 	shader.code = "shader_type spatial; render_mode cull_disabled, depth_draw_never; void fragment(){vec3 n=normalize(cross(dFdx(VERTEX),dFdy(VERTEX))); NORMAL=faceforward(n,VERTEX,n); ALBEDO=COLOR.rgb; ROUGHNESS=1.0;}"
+ 	_material = ShaderMaterial.new(); _material.shader = shader
++	# Prepare the exact indexed/color/dynamic material pipeline before any hit.
++	# Degenerate geometry covers no pixels, does not admit a wound or HP receipt.
++	# Keep a finite bound so render-list preparation can see the surface.
++	_mesh = ArrayMesh.new()
++	var warm_arrays: Array = []; warm_arrays.resize(Mesh.ARRAY_MAX)
++	warm_arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO,Vector3.ZERO,Vector3.ZERO])
++	warm_arrays[Mesh.ARRAY_COLOR] = PackedColorArray([COLORS[0].srgb_to_linear(),COLORS[0].srgb_to_linear(),COLORS[0].srgb_to_linear()])
++	warm_arrays[Mesh.ARRAY_INDEX] = PackedInt32Array([0,1,2])
++	_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,warm_arrays,[],{},Mesh.ARRAY_FLAG_USE_DYNAMIC_UPDATE)
++	_mesh.surface_set_material(0,_material)
++	_mesh.custom_aabb = AABB(Vector3(-.05,0,-.05),Vector3(.1,.1,.1))
++	_mesh_node.mesh = _mesh
+ 	prepare_us=Time.get_ticks_usec()-prepare_start
+ 	prepare_memory_delta_bytes=int(Performance.get_monitor(Performance.MEMORY_STATIC))-prepare_memory
+ 	return true

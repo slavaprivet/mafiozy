@@ -1,0 +1,64 @@
+{
+  "scope": "Outputs-only proposal; external actual Godot runtime and imports required; runtime overlay hashes recorded below",
+  "files": [
+    {
+      "sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "path": "outputs/coordinator23_contact_port_proposal/final_dead_contact_port.gd",
+      "bytes": 14255
+    },
+    {
+      "sha256": "706a7568ee1f96ebdd8f6e70826a42b777ca535adb7fb8a0b4ea026fc5ee3e7f",
+      "path": "outputs/coordinator23_contact_port_proposal/test_three_actual_corpses.gd",
+      "bytes": 21946
+    },
+    {
+      "sha256": "949c94a1028fe27d81ba9d7704f373a8c95a0e7ef736077d89d9adffbfde96e4",
+      "path": "outputs/artist23_combat_next/test_combined_eyes_input.gd",
+      "bytes": 9898
+    },
+    {
+      "sha256": "b89da37a8846cb2ceb9a334103fe6ec28e6c9ff27123746a3dc922d72554f9f8",
+      "path": "outputs/coordinator23_contact_port_proposal/ARTIST_REVIEW_public_accessor.patch",
+      "bytes": 1850
+    },
+    {
+      "sha256": "847d104e19efaf0647857ae055a302f6da5d09c6fca1aaaaa708d46f7757bc69",
+      "path": "outputs/coordinator23_contact_port_proposal/MEASURED_LIMITS.json",
+      "bytes": 178
+    },
+    {
+      "sha256": "3efbb9abac2be0674fe53ad577803b33810b51e94dc89f07306af7684e476d23",
+      "path": "outputs/coordinator23_contact_port_proposal/native12/RESULT.json",
+      "bytes": 54773
+    },
+    {
+      "sha256": "11b9e2f763bcfe4072e113dc6dd1b5036b16e3d0e0ea0b29ae3631c20f7f4062",
+      "path": "outputs/coordinator23_quality/candidate06/SOURCE.json",
+      "bytes": 6755
+    },
+    {
+      "sha256": "8c0b00cedbea16352c9216ca92b78bbd9e1c835862345636ecfa5bef9e5a2725",
+      "path": "outputs/coordinator23_quality/candidate06/INTEGRATION.json",
+      "bytes": 3091
+    },
+    {
+      "sha256": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06",
+      "path": "outputs/coordinator23_quality/candidate06/godot/mafiozi_walk/scripts/preview_player.gd",
+      "bytes": 37708
+    },
+    {
+      "sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "path": "outputs/coordinator23_quality/candidate06/godot/mafiozi_walk/scripts/player_corpse_contact.gd",
+      "bytes": 6764
+    },
+    {
+      "sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "path": "outputs/coordinator23_quality/candidate06/godot/mafiozi_walk/scripts/npc_visual/preview_resident_host.gd",
+      "bytes": 42243
+    }
+  ],
+  "test_preloads": [
+    "outputs/coordinator23_contact_port_proposal/final_dead_contact_port.gd"
+  ],
+  "test_extends": "outputs/artist23_combat_next/test_combined_eyes_input.gd"
+}

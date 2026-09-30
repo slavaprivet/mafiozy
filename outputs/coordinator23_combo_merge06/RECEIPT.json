@@ -1,0 +1,62 @@
+{
+  "schema": "mafiozi.outputs-only.proposed-combo-merge/v1",
+  "base": "outputs/coordinator23_quality/candidate06/godot/mafiozi_walk",
+  "status": "PROPOSAL UNTESTED; do not treat grid045 743/23 as new SHA acceptance",
+  "grid045_pck_sha256": "20b208a3d5932268f3cf4f40a4985dee91327209179cb91a20413eccf99bbeba",
+  "changes": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "before_sha256": "e4ecf5b39a9d06244d51c01f9e1c4d2c8268ee90639600c690b09572d4096f04",
+      "after_sha256": "fa1c551a8501f1f731126d374c25ab07ac209137862febd5ee40ec0b7102049e",
+      "origin": "corrected e4ec + marks hooks and paired terminal direction",
+      "tested": false
+    },
+    "scripts/npc_visual/npc_bullet_marks.gd": {
+      "before_sha256": null,
+      "after_sha256": "20133717664f76f5d008060bd9238dda71da85d0c236505e23f56ac208c2e008",
+      "origin": "byte-identical frozen grid045 stage",
+      "tested": "owner grid045 evidence; see audit limits"
+    },
+    "scripts/npc_visual/npc_hit_marks_adapter.gd": {
+      "before_sha256": null,
+      "after_sha256": "0c9e195b15b46c44dbf8edfcceef678bf44c419f98e589c64035b1ff6a4b35f3",
+      "origin": "byte-identical frozen grid045 stage",
+      "tested": "owner grid045 evidence; see audit limits"
+    },
+    "scripts/npc_visual/npc_blood_renderer.gd": {
+      "before_sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "after_sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "origin": "byte-identical frozen grid045 stage",
+      "tested": "owner grid045 evidence; see audit limits"
+    },
+    "scripts/preview_population.gd": {
+      "before_sha256": "f98702f302b1b275829e43c622a3e93e02310634860cd0f77431aa056de790a7",
+      "after_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "origin": "candidate06 + only marks step; contact wiring preserved",
+      "tested": false
+    }
+  },
+  "unchanged_dependency_guards": {
+    "scripts/npc_visual/npc_hit_impulse.gd": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+    "scripts/npc_visual/npc_blood_adapter.gd": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e",
+    "scripts/npc_visual/npc_ragdoll_host.gd": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+    "scripts/npc_visual/npc_body.gd": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162",
+    "scripts/npc_visual/preview_resident_host.gd": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+    "scripts/weapons/weapon_projectiles.gd": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27",
+    "scripts/weapons/weapon_fire.gd": "55af8a7f8be7153b0e4530dfa5a5c46a567f2e38ca34096665bfd0c2831d8cb6",
+    "scripts/weapons/weapon_hit_rules.gd": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274",
+    "assets/npc_visual/session/prepared/manifest.json": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0"
+  },
+  "export_add_only": [
+    "res://scripts/npc_visual/npc_bullet_marks.gd",
+    "res://scripts/npc_visual/npc_hit_marks_adapter.gd"
+  ],
+  "guard": "Before root overlay, require every before_sha256 and dependency guard to match. Null requires absent target. If population changed for corpse port since f987, rebase only its two-line marks loop, never overwrite newer contact wiring. Do not copy stage project/export/main/player. New export entries must preserve all existing resources/addons/raw source receipts.",
+  "headshot": "NOT INCLUDED; anatomical head04 656 owner evidence is a separate unfrozen combined closure",
+  "limits": [
+    "No engine, GPU, runtime compilation or performance tests performed on this proposal.",
+    "Blood renderer contains user-requested 1.65 radius/.95 opacity adjustment, not source-exact appearance.",
+    "First grouped pellet point/normal/direction are kept together; HP direction remains source camera base_direction.",
+    "No corpse-port code change. No additional HP/point commits, particle count, force/cap, ragdoll or medical policy changes."
+  ]
+}

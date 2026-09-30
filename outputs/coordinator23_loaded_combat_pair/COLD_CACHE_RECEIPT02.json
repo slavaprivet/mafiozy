@@ -1,0 +1,38 @@
+[
+  {
+    "exit": 0,
+    "cache": "shader_cache",
+    "created": true,
+    "original_absent_at_start": true,
+    "files": 111,
+    "preserved": "C:\\Users\\Слава\\AppData\\Roaming\\MafioziGodotPreview\\shader_cache.root23_qa08_1205",
+    "case": "08"
+  },
+  {
+    "exit": 0,
+    "cache": "vulkan",
+    "created": true,
+    "original_absent_at_start": true,
+    "files": 1,
+    "preserved": "C:\\Users\\Слава\\AppData\\Roaming\\MafioziGodotPreview\\vulkan.root23_qa08_1205",
+    "case": "08"
+  },
+  {
+    "exit": 0,
+    "cache": "shader_cache",
+    "created": true,
+    "original_absent_at_start": true,
+    "files": 111,
+    "preserved": "C:\\Users\\Слава\\AppData\\Roaming\\MafioziGodotPreview\\shader_cache.root23_qa09_1205",
+    "case": "09"
+  },
+  {
+    "exit": 0,
+    "cache": "vulkan",
+    "created": true,
+    "original_absent_at_start": true,
+    "files": 1,
+    "preserved": "C:\\Users\\Слава\\AppData\\Roaming\\MafioziGodotPreview\\vulkan.root23_qa09_1205",
+    "case": "09"
+  }
+]

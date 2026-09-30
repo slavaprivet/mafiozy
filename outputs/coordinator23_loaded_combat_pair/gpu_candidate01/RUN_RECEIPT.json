@@ -1,0 +1,28 @@
+{
+  "pack": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate08\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23f\\MafioziPreview.pck",
+  "pack_sha256": "710f2d40d852c4181d874494294ef236e6bc2d215ab216b4c016ad92e82c3c72",
+  "test_sha256": "3b1d5f3f7e5c7e38a83d211beb75f52f16a69482e62c1be7f365db8b345e5c28",
+  "runner_sha256": "12e244917cf7603be6837f92f689e8c0b19a7854d6f362cec188787080d0d9ec",
+  "command": [
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--path",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate08\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23f",
+    "--main-pack",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate08\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23f\\MafioziPreview.pck",
+    "--script",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_loaded_combat_pair\\capture.gd",
+    "--log-file",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_loaded_combat_pair\\gpu_candidate01\\engine.log",
+    "--",
+    "--out=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_loaded_combat_pair\\gpu_candidate01",
+    "--side=candidate",
+    "--pack=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate08\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23f\\MafioziPreview.pck"
+  ],
+  "gpu": true,
+  "other_processes_untouched": true,
+  "external_deadline_seconds": 63,
+  "exit_code": 0,
+  "elapsed_seconds": 33.074893000070006,
+  "pack_unchanged": true,
+  "test_unchanged": true
+}

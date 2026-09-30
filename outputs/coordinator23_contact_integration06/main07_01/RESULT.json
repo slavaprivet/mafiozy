@@ -1,0 +1,47 @@
+{
+	"checks": 9.0,
+	"draws": 0.0,
+	"errors": [
+		"no_clear_supported_contact_approach",
+		"first_input_hit:camera_and_actual_muzzle_reach_actor:{ \"ok\": false, \"camera_hit\": \"{ \\\"point\\\": (33.35609, -0.0, -17.81258), \\\"normal\\\": (0.0, 1.0, 0.0), \\\"distance\\\": 8.72182750701904, \\\"collider\\\": @StaticBody3D@60:<StaticBody3D#73735867048> }\", \"muzzle_hit\": \"{ \\\"point\\\": (33.35609, 0.0, -17.81258), \\\"normal\\\": (0.0, 1.0, 0.0), \\\"distance\\\": 7.49553108215332, \\\"collider\\\": @StaticBody3D@60:<StaticBody3D#73735867048> }\", \"muzzle\": \"{ \\\"ok\\\": true, \\\"origin\\\": (35.22136, 1.121543, -10.64), \\\"ejection_origin\\\": (35.22136, 1.121543, -10.64), \\\"direction\\\": (1.0, 0.0, 0.0), \\\"weapon_id\\\": \\\"revolver\\\", \\\"pose_epoch\\\": 1, \\\"pose_revision\\\": 58, \\\"equip_generation\\\": 1, \\\"sample_serial\\\": 41, \\\"actor_id\\\": \\\"player\\\", \\\"life_generation\\\": 1 }\" }",
+		"input_hit_genuine_medical_survival",
+		"input_hit_actual_physical_fall"
+	],
+	"images": [],
+	"impacts": [],
+	"phases": [
+		{
+			"actor": "resident_72",
+			"ammo": 6.0,
+			"at_ms": 2978.0,
+			"dead": false,
+			"hp": 60.0,
+			"label": "before_hit",
+			"medical": false,
+			"physical": {},
+			"shots": 0.0
+		}
+	],
+	"public_contact": {
+		"after": {},
+		"before": {},
+		"cases": [
+			{
+				"restore_previous_supported_player_fixture": "(34.6226, -0.000008, -10.4)"
+			}
+		],
+		"completed": false,
+		"native_player_movement": true,
+		"observed_exact_part_wake_after_tick": false,
+		"observer_camera_parity": false,
+		"performance_valid": false,
+		"private_force_calls": false,
+		"records": [],
+		"root_population_registration": true,
+		"visual_GPU_accepted": false
+	},
+	"rendered": false,
+	"scope": "actual equip/input/presentation/muzzle/ammo/native ray/HP/physical lifecycle; stationary NPCs, QA camera, deterministic source survival seed",
+	"shots": [],
+	"test_sha256": "c243039e80b73f4c70fca8e48c0e7da5cd7381b5e9e5c5bd80140fa837f00926"
+}

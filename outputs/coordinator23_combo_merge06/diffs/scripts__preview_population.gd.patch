@@ -1,0 +1,11 @@
+--- a/scripts/preview_population.gd
++++ b/scripts/preview_population.gd
+@@ -98,6 +98,8 @@
+ 	for owner: RefCounted in hit_owners:
+ 		if owner.blood!=null and owner.blood.should_step(): owner.blood.step(delta)
+ 	if _staged_preview: residents.preview_walk_step(delta)
++	for owner: RefCounted in hit_owners:
++		if owner.marks!=null and owner.marks.renderer!=null and not owner.marks.renderer._marks.is_empty(): owner.marks.step()
+ 
+ func door_started(key: String, opening: bool) -> void:
+ 	if not _disposed and navigation != null:

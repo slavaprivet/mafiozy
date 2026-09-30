@@ -1,0 +1,112 @@
+{
+  "pck_path": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate08\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23f\\MafioziPreview.pck",
+  "pck_sha256": "710f2d40d852c4181d874494294ef236e6bc2d215ab216b4c016ad92e82c3c72",
+  "receipt_sha256": "db79de96f1ae53dc548d7c6fc3968c0ce765a80951b3a745a89bd8b9497e2812",
+  "pack_files_verified_md5": 308,
+  "source_inputs_verified": 203,
+  "compiled_subjects": {
+    "res://scripts/main.gd": {
+      "compiled_path": "res://scripts/main.gdc",
+      "compiled_sha256": "3ad73201c0a77c59fd7b3354b95ce706d6d2cdd51c4d6ca7575c76744c062426",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/main.gdc\"\n"
+    },
+    "res://scripts/preview_population.gd": {
+      "compiled_path": "res://scripts/preview_population.gdc",
+      "compiled_sha256": "55931e90d5c615ea104ba19356cca8fe840b6f323a7ad73b80d1083784f8ef7e",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/preview_population.gdc\"\n"
+    },
+    "res://scripts/preview_player.gd": {
+      "compiled_path": "res://scripts/preview_player.gdc",
+      "compiled_sha256": "ef85992bd5189456a5a5320a80a4658cba928bb1f1cd5fe085159391391dfe96",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/preview_player.gdc\"\n"
+    },
+    "res://scripts/player_corpse_contact.gd": {
+      "compiled_path": "res://scripts/player_corpse_contact.gdc",
+      "compiled_sha256": "1389109ac2f2de635faa1fde1d7548653c5b5428a5cd5501b56e5c9d3a3efec5",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/player_corpse_contact.gdc\"\n"
+    },
+    "res://scripts/npc_visual/final_dead_contact_port.gd": {
+      "compiled_path": "res://scripts/npc_visual/final_dead_contact_port.gdc",
+      "compiled_sha256": "a36f0d42584fb5148302a042a4f8ea8d11663d3ff2a62b93c55f89da3ff09eee",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/final_dead_contact_port.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_local_preview_hit_owner.gdc",
+      "compiled_sha256": "ba321da7d4f87677524693310b0dbca712278af1e767bffeebd9fae1a70ee99d",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_local_preview_hit_owner.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_head_zone.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_head_zone.gdc",
+      "compiled_sha256": "262fd5e13ab7984f3fae98020146f9f6b08faa9484385f2d6e7a2b4ac013372a",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_head_zone.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gdc",
+      "compiled_sha256": "4c453bda80b4d49ab743813d52a6a02fc8d4972f18c8c8be9d8a4316c973a5ab",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_hit_impulse.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_hit_impulse.gdc",
+      "compiled_sha256": "5b640f407e3a3ac31091b073963c669d59280777e9b144d245d0dcf06d4972fd",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_hit_impulse.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_hit_marks_adapter.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_hit_marks_adapter.gdc",
+      "compiled_sha256": "14ea57cf6ec4b3c01139a10bd6bf881d6b40638b02057a5b2e3058578ab6f401",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_hit_marks_adapter.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_bullet_marks.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_bullet_marks.gdc",
+      "compiled_sha256": "5783ca571c0feecae15293910b0b2174b0fd79fe3d26068b2a703ec561eea075",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_bullet_marks.gdc\"\n"
+    },
+    "res://scripts/npc_visual/npc_blood_renderer.gd": {
+      "compiled_path": "res://scripts/npc_visual/npc_blood_renderer.gdc",
+      "compiled_sha256": "24632fad81901ec1b0f49fd3240970b4a51368f597b332e572b07d29f8464dbe",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/npc_blood_renderer.gdc\"\n"
+    },
+    "res://scripts/npc_visual/preview_resident_host.gd": {
+      "compiled_path": "res://scripts/npc_visual/preview_resident_host.gdc",
+      "compiled_sha256": "766aa55c70ad6fdec40a8bea4087fbc042f9b5046870aa1c1799ee1cd57e23b1",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/npc_visual/preview_resident_host.gdc\"\n"
+    },
+    "res://scripts/weapons/weapon_projectiles.gd": {
+      "compiled_path": "res://scripts/weapons/weapon_projectiles.gdc",
+      "compiled_sha256": "f31c44a5b8c0aab9a4c0824ff3afc8fd536b2eeec0ad47f11a2aeb0b78d3413a",
+      "compiled_magic": "GDSC",
+      "source_in_pack": false,
+      "remap": "[remap]\n\npath=\"res://scripts/weapons/weapon_projectiles.gdc\"\n"
+    }
+  },
+  "runtime_revision": "s01-20260930-quality23f",
+  "limits": [
+    "Read-only PCK inspection, no engine launched",
+    "Two intentionally raw loader/bridge files remain existing export receipt mechanism; reviewed combat/player/main subjects have no source fallback"
+  ]
+}

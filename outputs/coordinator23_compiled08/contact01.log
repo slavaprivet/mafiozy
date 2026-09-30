@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL actual_root_population_public_registration
+ROOT_MAIN_CONTACT_RESULT {"accepted_receipts":[],"cases":[],"checks":2,"direct_player_physics_calls":false,"elapsed_ms":2847,"exact_part_wake":{},"external_sampler_or_force":false,"failures":["actual_root_population_public_registration"],"images":[],"impacts":[],"limits":{"cooldown_ms":160.0,"impulse_ns_per_mps":1.0,"max_angular_speed_rps":15.0,"max_impulse_ns":3.0,"max_linear_speed_mps":2.5,"max_point_delta_energy_j":1.5},"normal_scheduled_player_physics":true,"pass":false,"phases":[],"port_stats":{},"read_only_private_observation":true,"root_population_registration":false,"scope":"actual original252 medical/death then root-bound contact through scheduled player InputMap; QA observer camera, no FPS/GPU acceptance","shots":[],"test_sha256":"311e970286358f4f1e99404e475a8b23c63fafda8c9a6fffeb06f9e40a89aa4b"}

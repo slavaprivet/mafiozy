@@ -1,0 +1,44 @@
+--- a/scripts/npc_visual/npc_local_preview_hit_owner.gd
++++ b/scripts/npc_visual/npc_local_preview_hit_owner.gd
+@@ -12,6 +12,8 @@
+ ## Deferred world/social effects remain in pending_effects, not fake callbacks.
+ const Blood=preload("res://scripts/npc_visual/npc_blood_adapter.gd")
+ var blood: RefCounted
++const Marks=preload("res://scripts/npc_visual/npc_hit_marks_adapter.gd")
++var marks: RefCounted
+ const Provider=preload("res://scripts/npc_visual/npc_preview_source_provider.gd")
+ const Adapter=preload("res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd")
+ const Rules=preload("res://scripts/weapons/weapon_hit_rules.gd")
+@@ -82,6 +84,9 @@
+ 	var entry: Dictionary={}
+ 	for manifest_item: Dictionary in manifest.entries:
+ 		if manifest_item.entry.bridge_id==_token.render_id: entry=manifest_item.entry
++	marks=Marks.new()
++	if not marks.configure(_host,_token,self,weapons.scene,entry):
++		dispose(); return {"ok":false,"reason":"marks_original_binding"}
+ 	blood=Blood.new()
+ 	if not blood.configure(_host,_token,self,weapons.scene,entry):
+ 		dispose(); return {"ok":false,"reason":"blood_original_binding"}
+@@ -209,11 +214,13 @@
+ 	_serial+=1
+ 	var id: String=_token.source_id+":"+str(_serial)+":"+shot_id
+ 	_admitting={"event_id":id,"binding":_binding.duplicate(true),"hit":{"weapon_id":shot.weapon_id,"damage":damage,"dir_r":direction.z,"dir_c":direction.x,"player_r":(_last_player.z+45.1)/4.1,"player_c":(_last_player.x+395.65)/4.1,"source":{"kind":"player","uid":"local"}}}
++	var contact_actor_transform: Transform3D=body.global_transform
+ 	last_result=_adapter.hit(id,_admitting.hit)
+ 	_admitting={}
+ 	if not last_result.ok or not last_result.get("applied",false): return
+-	last_contact={"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
++	last_contact={"event_id":id,"incoming_direction":(direction if physical_direction==Vector3.ZERO else physical_direction).normalized(),"actor_transform_at_impact":contact_actor_transform,"point":point,"normal":normal,"shot_id":shot_id,"weapon_id":shot.weapon_id,"source_id":_token.source_id,"life_generation":_token.life_generation}
+ 	if blood!=null: blood.receive(id,point,normal)
++	if marks!=null: marks.receive(id,point,normal)
+ 	_native_impulse_context={"event_id":id,"value":HitImpulse.bullet(shot.weapon_id,shot.muzzle.distance_to(point),damage,direction if physical_direction==Vector3.ZERO else physical_direction,_row.get("_invulnerable",false))}
+ 	_publish_physical(id,last_result.reason,point)
+ 	_native_impulse_context={}
+@@ -327,6 +334,7 @@
+ 
+ func dispose() -> void:
+ 	if blood!=null: blood.dispose(); blood=null
++	if marks!=null: marks.dispose(); marks=null
+ 	_ready=false
+ 	if _registry_key!=0 and _registries.has(_registry_key):
+ 		var owners: Dictionary=_registries[_registry_key].owners

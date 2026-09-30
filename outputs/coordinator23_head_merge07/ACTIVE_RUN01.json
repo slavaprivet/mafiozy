@@ -1,0 +1,16 @@
+{
+  "exit_code": 0,
+  "seconds": 6.665419700089842,
+  "command": [
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_head_merge07\\stage",
+    "--fixed-fps",
+    "60",
+    "--script",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_head_merge07\\active_head_followup.gd"
+  ],
+  "test_sha256": "d44dfe857c90dcc82cac4e753f3529fd552020e2c1a3704a7625cc7e6c8c2e06",
+  "stage_pins_sha256": "e73dea234bfa77502a447a1df022b40df1ab926d5fdfdfb480b5e211b7d304b5"
+}

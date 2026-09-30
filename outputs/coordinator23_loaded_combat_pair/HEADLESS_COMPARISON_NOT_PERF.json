@@ -1,0 +1,1359 @@
+{
+  "comparable": false,
+  "errors": [
+    "one side lacks complete rendered behavior acceptance"
+  ],
+  "phases": [
+    {
+      "phase": "actual_walk_into_corpse",
+      "baseline": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "candidate": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "p95_delta_percent": {},
+      "work": {
+        "baseline": {
+          "health": {
+            "blood_emitted": 76,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8226.524,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000425857113441452,
+            "joints": 15,
+            "kinetic_energy_j": 0.00936163366960777,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.103250913321972,
+            "max_linear_speed": 0.0185780599713326,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.28637, 0.360072, -19.01893)",
+              "foot_l": "(32.62218, 0.169306, -19.10833)",
+              "foot_r": "(32.6126, 0.175625, -19.2762)",
+              "forearm_l": "(33.12156, 0.147779, -18.84936)",
+              "forearm_r": "(33.30533, 0.145469, -19.44414)",
+              "hand_l": "(32.9858, 0.106657, -18.94182)",
+              "hand_r": "(33.18322, 0.098137, -19.54552)",
+              "head": "(33.69197, 0.285654, -19.05189)",
+              "pelvis": "(32.80683, 0.249754, -19.04883)",
+              "shin_l": "(32.70292, 0.128764, -19.04321)",
+              "shin_r": "(32.71382, 0.137687, -19.24589)",
+              "spine_01": "(32.94916, 0.312805, -19.04626)",
+              "thigh_l": "(32.76659, 0.171371, -18.9276)",
+              "thigh_r": "(32.82584, 0.170277, -19.1646)",
+              "upperarm_l": "(33.29641, 0.283602, -18.8212)",
+              "upperarm_r": "(33.38476, 0.260802, -19.27218)"
+            },
+            "settled": true,
+            "sleeping": 16,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 284239603882,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 282847094960,
+                "rig_instance_id": 282847094960,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8226.524",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "present": false
+          }
+        },
+        "candidate": {
+          "health": {
+            "blood_emitted": 76,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8564.668,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 2,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.00023928856535349,
+            "joints": 15,
+            "kinetic_energy_j": 0.0134995037946146,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.206269845366478,
+            "max_linear_speed": 0.0364863239228725,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.30984, 0.355745, -18.96413)",
+              "foot_l": "(32.8241, 0.174768, -19.37451)",
+              "foot_r": "(32.64095, 0.177271, -19.46673)",
+              "forearm_l": "(33.14491, 0.148045, -18.87106)",
+              "forearm_r": "(33.29057, 0.130474, -19.28982)",
+              "hand_l": "(33.11202, 0.112545, -19.04441)",
+              "hand_r": "(33.13342, 0.10373, -19.33763)",
+              "head": "(33.69774, 0.264268, -18.85339)",
+              "pelvis": "(32.98622, 0.215912, -19.26607)",
+              "shin_l": "(32.84737, 0.129636, -19.2756)",
+              "shin_r": "(32.74681, 0.143955, -19.44682)",
+              "spine_01": "(33.0607, 0.313079, -19.16928)",
+              "thigh_l": "(32.8651, 0.168228, -19.16633)",
+              "thigh_r": "(32.99752, 0.163135, -19.35231)",
+              "upperarm_l": "(33.24405, 0.292233, -18.77294)",
+              "upperarm_r": "(33.43884, 0.225454, -19.15325)"
+            },
+            "settled": true,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 286856849579,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 285464340658,
+                "rig_instance_id": 285464340658,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8564.668",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 2,
+            "attempts": 2,
+            "last_result": {
+              "applied_body_instance_id": 292644989380,
+              "applied_impulse_ns": "(-0.001727, 0.0, 1.224608)",
+              "applied_segment": "foot_l",
+              "damage": false,
+              "event_id": "player_contact:100763963666:1:2",
+              "life_generation": 1,
+              "native_point": "(32.84357, 0.322835, -19.45132)",
+              "ok": true,
+              "owner_epoch": 294524031258,
+              "predicted": {
+                "angular_speed": 8.45145988464355,
+                "delta_energy_j": 1.49302315912836,
+                "linear_speed": 1.16806769371033
+              },
+              "sleeping_after_call": false,
+              "source_id": "resident_252",
+              "was_sleeping": false
+            },
+            "present": true
+          }
+        }
+      }
+    },
+    {
+      "phase": "cold_first_hit_and_medical_fall",
+      "baseline": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "candidate": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "p95_delta_percent": {},
+      "work": {
+        "baseline": {
+          "health": {
+            "blood_emitted": 23,
+            "blood_revision": 1,
+            "dead": false,
+            "dead_at": null,
+            "hp": 1,
+            "hp_commits": 1,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": true,
+            "revision": 1
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.00117318623233587,
+            "joints": 15,
+            "kinetic_energy_j": 21.9553761176118,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 5.66928243637085,
+            "max_linear_speed": 1.27423644065857,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.31607, 0.361872, -19.32512)",
+              "foot_l": "(32.55688, 0.169305, -19.25597)",
+              "foot_r": "(32.49192, 0.174706, -19.34678)",
+              "forearm_l": "(33.21177, 0.271832, -19.29832)",
+              "forearm_r": "(33.10619, 0.185842, -19.51938)",
+              "hand_l": "(33.2429, 0.100753, -19.24142)",
+              "hand_r": "(33.0056, 0.091707, -19.38642)",
+              "head": "(33.70848, 0.265883, -19.37583)",
+              "pelvis": "(32.83159, 0.272678, -19.25383)",
+              "shin_l": "(32.65958, 0.159888, -19.20359)",
+              "shin_r": "(32.59637, 0.172881, -19.34069)",
+              "spine_01": "(32.97749, 0.313048, -19.29058)",
+              "thigh_l": "(32.79945, 0.237511, -19.12478)",
+              "thigh_r": "(32.79496, 0.174335, -19.33924)",
+              "upperarm_l": "(33.26753, 0.459517, -19.25385)",
+              "upperarm_r": "(33.27841, 0.208818, -19.51638)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 284239603882,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 282847094960,
+                "rig_instance_id": 282847094960,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": false,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "present": false
+          }
+        },
+        "candidate": {
+          "health": {
+            "blood_emitted": 23,
+            "blood_revision": 1,
+            "dead": false,
+            "dead_at": null,
+            "hp": 1,
+            "hp_commits": 1,
+            "id": "resident_252",
+            "marks": 1,
+            "medical": true,
+            "revision": 1
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000487369223264977,
+            "joints": 15,
+            "kinetic_energy_j": 2.35092461678046,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 4.80459403991699,
+            "max_linear_speed": 0.347555845975876,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.35462, 0.374193, -19.08162)",
+              "foot_l": "(32.76057, 0.170844, -19.34612)",
+              "foot_r": "(32.6146, 0.177264, -19.47423)",
+              "forearm_l": "(33.21963, 0.164244, -18.96294)",
+              "forearm_r": "(33.23069, 0.137438, -19.36757)",
+              "hand_l": "(33.09625, 0.096371, -19.07072)",
+              "hand_r": "(33.06537, 0.129827, -19.38344)",
+              "head": "(33.75122, 0.264053, -19.02476)",
+              "pelvis": "(32.96141, 0.208204, -19.26624)",
+              "shin_l": "(32.77408, 0.166516, -19.24298)",
+              "shin_r": "(32.71556, 0.161139, -19.4861)",
+              "spine_01": "(33.05843, 0.313098, -19.20307)",
+              "thigh_l": "(32.83706, 0.167405, -19.16396)",
+              "thigh_r": "(32.97191, 0.162096, -19.36637)",
+              "upperarm_l": "(33.35506, 0.329988, -18.89021)",
+              "upperarm_r": "(33.41996, 0.227737, -19.28743)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 286856849579,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 285464340658,
+                "rig_instance_id": 285464340658,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": false,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "last_result": {},
+            "present": true
+          }
+        }
+      }
+    },
+    {
+      "phase": "natural_settle",
+      "baseline": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "candidate": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "p95_delta_percent": {},
+      "work": {
+        "baseline": {
+          "health": {
+            "blood_emitted": 76,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8226.524,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000425857113441452,
+            "joints": 15,
+            "kinetic_energy_j": 0.00936163366960777,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.103250913321972,
+            "max_linear_speed": 0.0185780599713326,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.28637, 0.360072, -19.01893)",
+              "foot_l": "(32.62218, 0.169306, -19.10833)",
+              "foot_r": "(32.6126, 0.175625, -19.2762)",
+              "forearm_l": "(33.12156, 0.147779, -18.84936)",
+              "forearm_r": "(33.30533, 0.145469, -19.44414)",
+              "hand_l": "(32.9858, 0.106657, -18.94182)",
+              "hand_r": "(33.18322, 0.098137, -19.54552)",
+              "head": "(33.69197, 0.285654, -19.05189)",
+              "pelvis": "(32.80683, 0.249754, -19.04883)",
+              "shin_l": "(32.70292, 0.128764, -19.04321)",
+              "shin_r": "(32.71382, 0.137687, -19.24589)",
+              "spine_01": "(32.94916, 0.312805, -19.04626)",
+              "thigh_l": "(32.76659, 0.171371, -18.9276)",
+              "thigh_r": "(32.82584, 0.170277, -19.1646)",
+              "upperarm_l": "(33.29641, 0.283602, -18.8212)",
+              "upperarm_r": "(33.38476, 0.260802, -19.27218)"
+            },
+            "settled": true,
+            "sleeping": 16,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 284239603882,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 282847094960,
+                "rig_instance_id": 282847094960,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8226.524",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "present": false
+          }
+        },
+        "candidate": {
+          "health": {
+            "blood_emitted": 76,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8564.668,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 2,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000146044229040854,
+            "joints": 15,
+            "kinetic_energy_j": 0.03426815950008,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.308462679386139,
+            "max_linear_speed": 0.0386848822236061,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.31302, 0.355732, -18.96715)",
+              "foot_l": "(32.84336, 0.17086, -19.35904)",
+              "foot_r": "(32.64106, 0.177269, -19.46595)",
+              "forearm_l": "(33.14763, 0.148721, -18.87614)",
+              "forearm_r": "(33.2893, 0.130589, -19.2994)",
+              "hand_l": "(33.11023, 0.111453, -19.04789)",
+              "hand_r": "(33.13754, 0.10466, -19.36258)",
+              "head": "(33.70229, 0.264082, -18.85989)",
+              "pelvis": "(32.98593, 0.215968, -19.26553)",
+              "shin_l": "(32.86013, 0.148801, -19.2572)",
+              "shin_r": "(32.74681, 0.143911, -19.44571)",
+              "spine_01": "(33.06176, 0.313096, -19.16983)",
+              "thigh_l": "(32.86523, 0.168115, -19.16513)",
+              "thigh_r": "(32.99672, 0.163163, -19.35179)",
+              "upperarm_l": "(33.2495, 0.293898, -18.77727)",
+              "upperarm_r": "(33.43639, 0.224042, -19.15633)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 286856849579,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 285464340658,
+                "rig_instance_id": 285464340658,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8564.668",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "last_result": {},
+            "present": true
+          }
+        }
+      }
+    },
+    {
+      "phase": "resting_corpse_1_other_2_alive",
+      "baseline": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "candidate": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "p95_delta_percent": {},
+      "work": {
+        "baseline": {
+          "health": {
+            "blood_emitted": 76,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8226.524,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000425857113441452,
+            "joints": 15,
+            "kinetic_energy_j": 0.00936163366960777,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.103250913321972,
+            "max_linear_speed": 0.0185780599713326,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.28637, 0.360072, -19.01893)",
+              "foot_l": "(32.62218, 0.169306, -19.10833)",
+              "foot_r": "(32.6126, 0.175625, -19.2762)",
+              "forearm_l": "(33.12156, 0.147779, -18.84936)",
+              "forearm_r": "(33.30533, 0.145469, -19.44414)",
+              "hand_l": "(32.9858, 0.106657, -18.94182)",
+              "hand_r": "(33.18322, 0.098137, -19.54552)",
+              "head": "(33.69197, 0.285654, -19.05189)",
+              "pelvis": "(32.80683, 0.249754, -19.04883)",
+              "shin_l": "(32.70292, 0.128764, -19.04321)",
+              "shin_r": "(32.71382, 0.137687, -19.24589)",
+              "spine_01": "(32.94916, 0.312805, -19.04626)",
+              "thigh_l": "(32.76659, 0.171371, -18.9276)",
+              "thigh_r": "(32.82584, 0.170277, -19.1646)",
+              "upperarm_l": "(33.29641, 0.283602, -18.8212)",
+              "upperarm_r": "(33.38476, 0.260802, -19.27218)"
+            },
+            "settled": true,
+            "sleeping": 16,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 284239603882,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 282847094960,
+                "rig_instance_id": 282847094960,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8226.524",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "present": false
+          }
+        },
+        "candidate": {
+          "health": {
+            "blood_emitted": 76,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8564.668,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 2,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000200892565771937,
+            "joints": 15,
+            "kinetic_energy_j": 0.00294942895918209,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.315317511558533,
+            "max_linear_speed": 0.0211719758808613,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.31147, 0.355762, -18.96585)",
+              "foot_l": "(32.84355, 0.17086, -19.35949)",
+              "foot_r": "(32.64112, 0.177271, -19.46607)",
+              "forearm_l": "(33.14632, 0.14854, -18.87374)",
+              "forearm_r": "(33.29102, 0.130507, -19.29451)",
+              "hand_l": "(33.11187, 0.11178, -19.04629)",
+              "hand_r": "(33.13589, 0.103812, -19.34851)",
+              "head": "(33.70012, 0.264195, -18.85529)",
+              "pelvis": "(32.98625, 0.215877, -19.26615)",
+              "shin_l": "(32.86058, 0.14886, -19.25783)",
+              "shin_r": "(32.74689, 0.143984, -19.44617)",
+              "spine_01": "(33.06139, 0.313076, -19.16993)",
+              "thigh_l": "(32.8653, 0.168184, -19.16612)",
+              "thigh_r": "(32.99734, 0.163123, -19.3522)",
+              "upperarm_l": "(33.24654, 0.293173, -18.77529)",
+              "upperarm_r": "(33.43833, 0.22482, -19.15496)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 286856849579,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 285464340658,
+                "rig_instance_id": 285464340658,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8564.668",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "last_result": {},
+            "present": true
+          }
+        }
+      }
+    },
+    {
+      "phase": "second_hit_and_final_fall",
+      "baseline": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "candidate": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "p95_delta_percent": {},
+      "work": {
+        "baseline": {
+          "health": {
+            "blood_emitted": 50,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8226.524,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000194551219465211,
+            "joints": 15,
+            "kinetic_energy_j": 0.426085137197681,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 3.36904191970825,
+            "max_linear_speed": 0.366853803396225,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.28992, 0.36085, -19.02324)",
+              "foot_l": "(32.61818, 0.169306, -19.1107)",
+              "foot_r": "(32.61389, 0.175625, -19.27838)",
+              "forearm_l": "(33.12552, 0.147887, -18.88166)",
+              "forearm_r": "(33.31056, 0.142888, -19.4435)",
+              "hand_l": "(33.01295, 0.097518, -18.99848)",
+              "hand_r": "(33.18707, 0.098137, -19.54563)",
+              "head": "(33.69744, 0.288547, -19.0364)",
+              "pelvis": "(32.81034, 0.252054, -19.05739)",
+              "shin_l": "(32.70509, 0.131263, -19.05204)",
+              "shin_r": "(32.71473, 0.137245, -19.24776)",
+              "spine_01": "(32.95375, 0.312803, -19.05858)",
+              "thigh_l": "(32.78191, 0.176183, -18.93609)",
+              "thigh_r": "(32.81937, 0.170251, -19.1722)",
+              "upperarm_l": "(33.28952, 0.288971, -18.81451)",
+              "upperarm_r": "(33.39312, 0.257445, -19.27208)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 284239603882,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 282847094960,
+                "rig_instance_id": 282847094960,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8226.524",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "present": false
+          }
+        },
+        "candidate": {
+          "health": {
+            "blood_emitted": 50,
+            "blood_revision": 2,
+            "dead": true,
+            "dead_at": 8564.668,
+            "hp": 0,
+            "hp_commits": 2,
+            "id": "resident_252",
+            "marks": 2,
+            "medical": false,
+            "revision": 2
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0.000315342273097485,
+            "joints": 15,
+            "kinetic_energy_j": 0.0878398872360811,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0.407588988542557,
+            "max_linear_speed": 0.0934998691082001,
+            "mode": "ACTIVE",
+            "paused": false,
+            "positions": {
+              "chest": "(33.32591, 0.356104, -18.97711)",
+              "foot_l": "(32.74723, 0.170861, -19.3147)",
+              "foot_r": "(32.62898, 0.177267, -19.46483)",
+              "forearm_l": "(33.16508, 0.151076, -18.90074)",
+              "forearm_r": "(33.27089, 0.133668, -19.31844)",
+              "hand_l": "(33.10846, 0.098428, -19.06122)",
+              "hand_r": "(33.1269, 0.107794, -19.39808)",
+              "head": "(33.72497, 0.264069, -18.88323)",
+              "pelvis": "(32.97574, 0.21646, -19.2504)",
+              "shin_l": "(32.79485, 0.158341, -19.21976)",
+              "shin_r": "(32.73545, 0.147035, -19.44185)",
+              "spine_01": "(33.05948, 0.313075, -19.16135)",
+              "thigh_l": "(32.86272, 0.167669, -19.13425)",
+              "thigh_r": "(32.98034, 0.163635, -19.34389)",
+              "upperarm_l": "(33.27443, 0.303347, -18.78678)",
+              "upperarm_r": "(33.42624, 0.22025, -19.17392)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 286856849579,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 285464340658,
+                "rig_instance_id": 285464340658,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "8564.668",
+              "error": "",
+              "event_id": "resident_252:1:revolver:1",
+              "final_dead": true,
+              "mode": "ACTIVE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "last_result": {},
+            "present": true
+          }
+        }
+      }
+    },
+    {
+      "phase": "walk_alive_3",
+      "baseline": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "candidate": {
+        "wall_ms": {
+          "n": 0
+        },
+        "gpu_ms": {
+          "n": 0
+        },
+        "render_cpu_ms": {
+          "n": 0
+        },
+        "static_bytes": {
+          "n": 0
+        },
+        "vram_bytes": {
+          "n": 0
+        },
+        "drawcalls": {
+          "n": 0
+        },
+        "primitives": {
+          "n": 0
+        }
+      },
+      "p95_delta_percent": {},
+      "work": {
+        "baseline": {
+          "health": {
+            "blood_emitted": 0,
+            "blood_revision": 0,
+            "dead": false,
+            "dead_at": null,
+            "hp": 60.0,
+            "hp_commits": 0,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": false,
+            "revision": 0
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0,
+            "joints": 15,
+            "kinetic_energy_j": 0,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0,
+            "max_linear_speed": 0,
+            "mode": "IDLE",
+            "paused": false,
+            "positions": {
+              "chest": "(34.60281, 0.950523, -19.39987)",
+              "foot_l": "(34.58713, 0.039597, -19.27756)",
+              "foot_r": "(34.58713, 0.039597, -19.52218)",
+              "forearm_l": "(34.60281, 0.777542, -19.01896)",
+              "forearm_r": "(34.60281, 0.777542, -19.78077)",
+              "hand_l": "(34.60979, 0.634264, -19.01546)",
+              "hand_r": "(34.60979, 0.634264, -19.78427)",
+              "head": "(34.60281, 1.446752, -19.39987)",
+              "pelvis": "(34.60281, 0.499724, -19.39987)",
+              "shin_l": "(34.60281, 0.188707, -19.27756)",
+              "shin_r": "(34.60281, 0.188707, -19.52218)",
+              "spine_01": "(34.60281, 0.639506, -19.39987)",
+              "thigh_l": "(34.60281, 0.396634, -19.27756)",
+              "thigh_r": "(34.60281, 0.396634, -19.52218)",
+              "upperarm_l": "(34.60281, 0.97848, -19.11331)",
+              "upperarm_r": "(34.60281, 0.97848, -19.68642)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 284239603882,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 282847094960,
+                "rig_instance_id": 282847094960,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "",
+              "error": "",
+              "event_id": "",
+              "final_dead": false,
+              "mode": "IDLE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "present": false
+          }
+        },
+        "candidate": {
+          "health": {
+            "blood_emitted": 0,
+            "blood_revision": 0,
+            "dead": false,
+            "dead_at": null,
+            "hp": 60.0,
+            "hp_commits": 0,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": false,
+            "revision": 0
+          },
+          "physical": {
+            "bodies": 16,
+            "joint_error": 0,
+            "joints": 15,
+            "kinetic_energy_j": 0,
+            "mass": 74.9999986886978,
+            "max_angular_speed": 0,
+            "max_linear_speed": 0,
+            "mode": "IDLE",
+            "paused": false,
+            "positions": {
+              "chest": "(34.60281, 0.950523, -19.39987)",
+              "foot_l": "(34.58713, 0.039597, -19.27756)",
+              "foot_r": "(34.58713, 0.039597, -19.52218)",
+              "forearm_l": "(34.60281, 0.777542, -19.01896)",
+              "forearm_r": "(34.60281, 0.777542, -19.78077)",
+              "hand_l": "(34.60979, 0.634264, -19.01546)",
+              "hand_r": "(34.60979, 0.634264, -19.78427)",
+              "head": "(34.60281, 1.446752, -19.39987)",
+              "pelvis": "(34.60281, 0.499724, -19.39987)",
+              "shin_l": "(34.60281, 0.188707, -19.27756)",
+              "shin_r": "(34.60281, 0.188707, -19.52218)",
+              "spine_01": "(34.60281, 0.639506, -19.39987)",
+              "thigh_l": "(34.60281, 0.396634, -19.27756)",
+              "thigh_r": "(34.60281, 0.396634, -19.52218)",
+              "upperarm_l": "(34.60281, 0.97848, -19.11331)",
+              "upperarm_r": "(34.60281, 0.97848, -19.68642)"
+            },
+            "settled": false,
+            "sleeping": 0,
+            "status": {
+              "automatic_recovery": false,
+              "binding": {
+                "body_instance_id": 286856849579,
+                "body_rid": "RID(38074885079369)",
+                "bridge_id": "npc_resident_252",
+                "descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+                "life_generation": 1,
+                "placement_mode": "PREVIEW_STAGE",
+                "render_id": "npc_resident_252",
+                "rig_epoch": 285464340658,
+                "rig_instance_id": 285464340658,
+                "session_id": "godot-preview-new-session-20260927-01",
+                "source_id": "resident_252"
+              },
+              "damage_authority": false,
+              "death_key": "",
+              "error": "",
+              "event_id": "",
+              "final_dead": false,
+              "mode": "IDLE",
+              "ok": true
+            }
+          },
+          "sampler": {
+            "accepted": 0,
+            "attempts": 0,
+            "last_result": {},
+            "present": true
+          }
+        }
+      }
+    }
+  ],
+  "limits": [
+    "One corpse / two living residents, not 3 corpse saturation.",
+    "Observer render view fixed, actual attached spring aim computations/collisions still run.",
+    "First-use input-to-hit event windows are descriptive, not exclusive CPU attribution.",
+    "Correct foot impulse changes physical trajectory and active-body work; do not divide FPS by hits.",
+    "Source clock and naturally moving actor positions can differ: phase snapshots retain exact differences."
+  ],
+  "first_use": {
+    "baseline": {
+      "input_at_us": 8306849,
+      "maximum_rendered_wall_ms": null,
+      "maximum_gpu_ms": null,
+      "event_window": [
+        {
+          "at_us": 8306849,
+          "data": {
+            "ammo": 6,
+            "label": "first_hit",
+            "target": "resident_252"
+          },
+          "draw": 0,
+          "kind": "input_LMB",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 409
+        },
+        {
+          "at_us": 8316589,
+          "data": {
+            "ammo": 5,
+            "current_pose": 409,
+            "id": "revolver:1",
+            "pose_revision": 409
+          },
+          "draw": 0,
+          "kind": "shot_committed",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 410
+        },
+        {
+          "at_us": 8351492,
+          "data": {
+            "normal": "(0.774186, 0.0, 0.632958)",
+            "owned": true,
+            "point": "(32.72213, 1.158442, -18.77908)",
+            "shot": "revolver:1"
+          },
+          "draw": 0,
+          "kind": "native_impact",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 412
+        },
+        {
+          "at_us": 8364659,
+          "data": {
+            "blood_emitted": 20,
+            "blood_revision": 1,
+            "dead": false,
+            "dead_at": null,
+            "hp": 1,
+            "hp_commits": 1,
+            "id": "resident_252",
+            "marks": 0,
+            "medical": true,
+            "revision": 1
+          },
+          "draw": 0,
+          "kind": "completed_HP",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 413
+        }
+      ],
+      "raw_render_window": []
+    },
+    "candidate": {
+      "input_at_us": 9360159,
+      "maximum_rendered_wall_ms": null,
+      "maximum_gpu_ms": null,
+      "event_window": [
+        {
+          "at_us": 9360159,
+          "data": {
+            "ammo": 6,
+            "label": "first_hit",
+            "target": "resident_252"
+          },
+          "draw": 0,
+          "kind": "input_LMB",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 409
+        },
+        {
+          "at_us": 9370196,
+          "data": {
+            "ammo": 5,
+            "current_pose": 409,
+            "id": "revolver:1",
+            "pose_revision": 409
+          },
+          "draw": 0,
+          "kind": "shot_committed",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 410
+        },
+        {
+          "at_us": 9417090,
+          "data": {
+            "normal": "(0.774185, 0.0, 0.632959)",
+            "owned": true,
+            "point": "(32.96008, 1.158459, -18.67783)",
+            "shot": "revolver:1"
+          },
+          "draw": 0,
+          "kind": "native_impact",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 412
+        },
+        {
+          "at_us": 9419306,
+          "data": {
+            "blood_emitted": 20,
+            "blood_revision": 1,
+            "dead": false,
+            "dead_at": null,
+            "hp": 1,
+            "hp_commits": 1,
+            "id": "resident_252",
+            "marks": 1,
+            "medical": true,
+            "revision": 1
+          },
+          "draw": 0,
+          "kind": "completed_HP",
+          "phase": "cold_first_hit_and_medical_fall",
+          "physics_frame": 413
+        }
+      ],
+      "raw_render_window": []
+    }
+  }
+}

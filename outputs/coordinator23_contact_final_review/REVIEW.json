@@ -1,0 +1,59 @@
+{
+  "runtime_edits": 0,
+  "limits": [
+    "No new engine/GPU/performance run",
+    "Candidate08 head merge not reviewed",
+    "Ready scans records; no O(1) claim"
+  ],
+  "critical_findings": [],
+  "engine_runs": 0,
+  "default_startup_toggle": {
+    "name": "preview_final_dead_contact_enabled",
+    "scene_override": false,
+    "value": false
+  },
+  "review_kind": "Read-only final re-review by port author; not independent author",
+  "existing_evidence": [
+    "outputs/coordinator23_contact_port_proposal/native12/RESULT.json",
+    "outputs/coordinator23_contact_integration06/main07_02/RESULT.json"
+  ],
+  "files": [
+    {
+      "sha256": "bc7c93a5028482d65fb4e1bc01c8a1f3b54449ad1f86eac91b8b49c73b490aa3",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\npc_visual\\final_dead_contact_port.gd"
+    },
+    {
+      "sha256": "a0659745eda55cfd874636ca342983bae6767736e32ac8e78fec3ba3be603122",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\player_corpse_contact.gd"
+    },
+    {
+      "sha256": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\preview_player.gd"
+    },
+    {
+      "sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\preview_population.gd"
+    },
+    {
+      "sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\npc_visual\\preview_resident_host.gd"
+    },
+    {
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_ragdoll_host.gd"
+    },
+    {
+      "sha256": "0dfc6da5e4188515bd7b23bfb6321fbfd6870cfe03817807a488820f9b3d7106",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scripts\\main.gd"
+    },
+    {
+      "sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\scenes\\main.tscn"
+    },
+    {
+      "sha256": "64211c1d8cd66482e37af4a6a15001ac66f5ed29e86df1d21b4bac0469e2baa3",
+      "path": "outputs\\coordinator23_quality\\candidate07\\godot\\mafiozi_walk\\project.godot"
+    }
+  ],
+  "status": "NO_CRITICAL_FINDINGS_IN_REVIEWED_CALL_CHAIN"
+}

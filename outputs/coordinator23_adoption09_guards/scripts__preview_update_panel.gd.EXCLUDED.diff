@@ -1,0 +1,24 @@
+--- shared/scripts/preview_update_panel.gd
++++ candidate09/scripts/preview_update_panel.gd
+@@ -55,18 +55,18 @@
+ 	style.content_margin_top = 8
+ 	style.content_margin_bottom = 8
+ 	style.border_width_top = 2
+-	style.border_color = Color("ad956c")
++	style.border_color = Color("dfb968")
+ 	add_theme_stylebox_override("panel", style)
+ 	var stack := VBoxContainer.new()
+ 	stack.add_theme_constant_override("separation", 5)
+ 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+ 	add_child(stack)
+-	var heading := _label(stack, 13, Color("bca681"))
++	var heading := _label(stack, 13, Color("ebc77f"))
+ 	heading.text = "НОВОЕ · ПОПРОБУЙ"
+ 	_title = _label(stack, 11, Color("aabec8"))
+ 	for i in range(5):
+ 		_items.append(_label(stack, 12, Color("e0e7ec")))
+-	_notice = _label(stack, 12, Color("bca681"))
++	_notice = _label(stack, 12, Color("ebc77f"))
+ 	_notice.text = RESTART_TEXT
+ 	_timer = Timer.new()
+ 	_timer.name = "NotesPoll"

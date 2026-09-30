@@ -1,0 +1,93 @@
+{
+  "exit_code": 0,
+  "command": [
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--main-pack",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_quality\\candidate08\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23f\\MafioziPreview.pck",
+    "--fixed-fps",
+    "60",
+    "--script",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_head_export08\\compiled_active.gd"
+  ],
+  "seconds": 6.297095499932766,
+  "pck_sha256": "710f2d40d852c4181d874494294ef236e6bc2d215ab216b4c016ad92e82c3c72",
+  "binding": {
+    "compiled_subjects": 14,
+    "ok": true,
+    "pck_sha256": "710f2d40d852c4181d874494294ef236e6bc2d215ab216b4c016ad92e82c3c72",
+    "revision": "s01-20260930-quality23f",
+    "source_scripts_allowed": false
+  },
+  "test": {
+    "checks": 89,
+    "errors": [],
+    "rows": [
+      {
+        "actor": "resident_72",
+        "body_ids_unchanged": true,
+        "eyes_closed": true,
+        "final_dead": true,
+        "final_hp": 0,
+        "head_contact": {
+          "direction": "(0.0, -1.0, 0.0)",
+          "distance_m": 0.366812109947205,
+          "normal": "(0.228755, 0.97347, -0.005114)",
+          "point": "(36.82013, 0.520617, -13.3709)",
+          "projectile_index": 0,
+          "proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+          "user_rule": true,
+          "zone": "head"
+        },
+        "head_movement_m": 1.13766372203827,
+        "joint_ids_unchanged": true,
+        "max_joint_error": 0.000376242736820132,
+        "medical_hp": 1
+      },
+      {
+        "actor": "resident_169",
+        "body_ids_unchanged": true,
+        "eyes_closed": true,
+        "final_dead": true,
+        "final_hp": 0,
+        "head_contact": {
+          "direction": "(0.0, -1.0, 0.0)",
+          "distance_m": 0.366450309753418,
+          "normal": "(0.21421, 0.976263, -0.032011)",
+          "point": "(36.80451, 0.519485, -5.933127)",
+          "projectile_index": 0,
+          "proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+          "user_rule": true,
+          "zone": "head"
+        },
+        "head_movement_m": 1.13746380805969,
+        "joint_ids_unchanged": true,
+        "max_joint_error": 0.000117909075925127,
+        "medical_hp": 1
+      },
+      {
+        "actor": "resident_252",
+        "body_ids_unchanged": true,
+        "eyes_closed": true,
+        "final_dead": true,
+        "final_hp": 0,
+        "head_contact": {
+          "direction": "(0.0, -1.0, 0.0)",
+          "distance_m": 0.382109135389328,
+          "normal": "(0.189774, 0.977, -0.097247)",
+          "point": "(34.26608, 0.481148, -19.64748)",
+          "projectile_index": 0,
+          "proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+          "user_rule": true,
+          "zone": "head"
+        },
+        "head_movement_m": 1.07225215435028,
+        "joint_ids_unchanged": true,
+        "max_joint_error": 0.000925307394936681,
+        "medical_hp": 1
+      }
+    ],
+    "scope": "actual native medical then moved ACTIVE anatomical head; source Fire shots but fixture muzzle, not UI/GPU"
+  },
+  "accepted": true
+}

@@ -1,0 +1,23 @@
+{
+  "status": "89_NATIVE_PASS",
+  "production_changes": false,
+  "same_frozen_three_file_overlay": true,
+  "stage_resource_hash_drift": [],
+  "proof": {
+    "active_head_followup.gd": "d44dfe857c90dcc82cac4e753f3529fd552020e2c1a3704a7625cc7e6c8c2e06",
+    "ACTIVE_RUN01.json": "53826e7b4ebc5663530d7e331d840eef48c04eb3e4074927d31023f6af277cba",
+    "ACTIVE_RESULT01.json": "0d85069ca7a2c1b8d4575fd395447529977973d7b3f8c8f43fb692d9e8cb787d",
+    "active_head01.log": "b4f792e9eb6e71f00fe88d2292117af8d36e040077310b70a927ddec2d029566",
+    "STAGE_INPUTS.json": "e73dea234bfa77502a447a1df022b40df1ab926d5fdfdfb480b5e211b7d304b5",
+    "RECEIPT.json": "5b1af270070ab1245d4ab67dca846bd03e2eec9ddcd7178fdfedf3b63f311ae1",
+    "tests/native_head_only.gd": "a4e36370ae73f467cdebffc26db2b992ec468043ebdcdb42d92b3a3ba1ed6663",
+    "tests/head_native_base.gd": "d6d34aa671a336eb848f1fbb952d585c091ea25de2fb143e6610dbe03d9e7560",
+    "tests/head_base.gd": "fee12f62a020f5bdda92fda0a1e6002c53d550f9f5007a61bf0887c59649a702"
+  },
+  "limits": [
+    "Fixture source Fire and real native projectile, not player mouse input",
+    "Car corridor and population isolation inherited from800 test",
+    "No further ACTIVE impulse feature added; existing confirm-final does not replay initial force",
+    "No GPU or loaded-scene performance measurement"
+  ]
+}

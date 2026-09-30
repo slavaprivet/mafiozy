@@ -1,0 +1,212 @@
+{
+	"checks": 25,
+	"draws": 376,
+	"elapsed_ms": 11356,
+	"errors": [
+		"real_bound_surface_mark:02_head_skin_wound"
+	],
+	"images": [
+		"01_clothing_wound.png",
+		"02_head_skin_wound.png",
+		"03_final_eyes_side_a.png",
+		"04_final_eyes_side_b.png"
+	],
+	"pack_sha256": "51892e6818d85edf4903362de225e4c71eaf262134df859c3c2a012751d5d83e",
+	"proofs": [
+		{
+			"actor": "resident_72",
+			"camera": "[X: (0.166377, 0.0, 0.986062), Y: (0.602207, 0.791848, -0.101609), Z: (-0.780811, 0.610719, 0.131745), O: (35.88855, 1.671382, -13.14253)]",
+			"camera_fov": 42.0,
+			"contact": {
+				"actor_transform_at_impact": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (36.40686, 0.000789, -13.4)]",
+				"event_id": "resident_72:1:tt_pistol:1",
+				"incoming_direction": "(0.571981, 0.067894, -0.817453)",
+				"life_generation": 1,
+				"normal": "(-0.580956, 0.0, 0.813935)",
+				"point": "(36.17585, 1.216863, -13.10698)",
+				"shot_id": "tt_pistol:1",
+				"source_id": "resident_72",
+				"weapon_id": "tt_pistol"
+			},
+			"dead": false,
+			"draws": 86,
+			"eyes_closed": false,
+			"geometry": {
+				"clothing": true,
+				"event_id": "resident_72:1:tt_pistol:1",
+				"normal": "(-0.848357, 0.509706, 0.143143)",
+				"original_material": true,
+				"point": "(36.43998, 1.240072, -13.23557)",
+				"surface": "player_male_DEMO_core_FABRIC",
+				"triangles": 35
+			},
+			"head_proof": {},
+			"hp": 36,
+			"label": "01_clothing_wound",
+			"marks": 1,
+			"observer_only": true,
+			"original_materials_unchanged": true
+		},
+		{
+			"actor": "resident_72",
+			"camera": "[X: (0.166377, 0.0, 0.986062), Y: (0.602207, 0.791848, -0.101609), Z: (-0.780811, 0.610719, 0.131745), O: (35.88855, 1.671382, -13.14253)]",
+			"camera_fov": 42.0,
+			"contact": {
+				"actor_transform_at_impact": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (36.84413, 0.00083, -13.4)]",
+				"event_id": "resident_72:2:tt_pistol:2",
+				"incoming_direction": "(0.639113, 0.180658, -0.747594)",
+				"life_generation": 1,
+				"normal": "(-0.656962, 0.398316, 0.640114)",
+				"point": "(36.69293, 1.699753, -13.24054)",
+				"projectile_index": 0,
+				"shot_id": "tt_pistol:2",
+				"source_id": "resident_72",
+				"weapon_id": "tt_pistol"
+			},
+			"dead": true,
+			"draws": 372,
+			"eyes_closed": true,
+			"geometry": {},
+			"head_proof": {
+				"direction": "(0.639113, 0.180658, -0.747594)",
+				"distance_m": 3.12477469444275,
+				"normal": "(-0.656962, 0.398316, 0.640114)",
+				"point": "(36.69293, 1.699753, -13.24054)",
+				"projectile_index": 0,
+				"proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+				"user_rule": true,
+				"zone": "head"
+			},
+			"hp": 0,
+			"label": "02_head_skin_wound",
+			"marks": 2,
+			"observer_only": true,
+			"original_materials_unchanged": true
+		},
+		{
+			"actor": "resident_72",
+			"camera": "[X: (0.765586, 0.0, 0.643333), Y: (-0.481841, 0.662597, 0.573406), Z: (-0.426271, -0.748976, 0.507275), O: (38.36965, -0.258821, -13.56685)]",
+			"camera_fov": 42.0,
+			"contact": {
+				"actor_transform_at_impact": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (36.84413, 0.00083, -13.4)]",
+				"event_id": "resident_72:2:tt_pistol:2",
+				"incoming_direction": "(0.639113, 0.180658, -0.747594)",
+				"life_generation": 1,
+				"normal": "(-0.656962, 0.398316, 0.640114)",
+				"point": "(36.69293, 1.699753, -13.24054)",
+				"projectile_index": 0,
+				"shot_id": "tt_pistol:2",
+				"source_id": "resident_72",
+				"weapon_id": "tt_pistol"
+			},
+			"dead": true,
+			"draws": 374,
+			"eyes_closed": true,
+			"geometry": {},
+			"head_proof": {
+				"direction": "(0.639113, 0.180658, -0.747594)",
+				"distance_m": 3.12477469444275,
+				"normal": "(-0.656962, 0.398316, 0.640114)",
+				"point": "(36.69293, 1.699753, -13.24054)",
+				"projectile_index": 0,
+				"proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+				"user_rule": true,
+				"zone": "head"
+			},
+			"hp": 0,
+			"label": "03_final_eyes_side_a",
+			"marks": 2,
+			"observer_only": true,
+			"original_materials_unchanged": true
+		},
+		{
+			"actor": "resident_72",
+			"camera": "[X: (-0.763335, 0.0, -0.646002), Y: (-0.544306, 0.538578, 0.643168), Z: (0.347923, 0.842575, -0.411116), O: (38.98502, 1.025717, -14.29372)]",
+			"camera_fov": 42.0,
+			"contact": {
+				"actor_transform_at_impact": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (36.84413, 0.00083, -13.4)]",
+				"event_id": "resident_72:2:tt_pistol:2",
+				"incoming_direction": "(0.639113, 0.180658, -0.747594)",
+				"life_generation": 1,
+				"normal": "(-0.656962, 0.398316, 0.640114)",
+				"point": "(36.69293, 1.699753, -13.24054)",
+				"projectile_index": 0,
+				"shot_id": "tt_pistol:2",
+				"source_id": "resident_72",
+				"weapon_id": "tt_pistol"
+			},
+			"dead": true,
+			"draws": 376,
+			"eyes_closed": true,
+			"geometry": {},
+			"head_proof": {
+				"direction": "(0.639113, 0.180658, -0.747594)",
+				"distance_m": 3.12477469444275,
+				"normal": "(-0.656962, 0.398316, 0.640114)",
+				"point": "(36.69293, 1.699753, -13.24054)",
+				"projectile_index": 0,
+				"proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+				"user_rule": true,
+				"zone": "head"
+			},
+			"hp": 0,
+			"label": "04_final_eyes_side_b",
+			"marks": 2,
+			"observer_only": true,
+			"original_materials_unchanged": true
+		}
+	],
+	"raw_native_impacts": [
+		{
+			"collider": "/root/MafioziWalkMigration/npc_resident_72",
+			"direction": "(0.571981, 0.067894, -0.817453)",
+			"normal": "(-0.580956, 0.0, 0.813935)",
+			"point": "(36.17585, 1.216863, -13.10698)",
+			"shot_id": "tt_pistol:1"
+		},
+		{
+			"collider": "/root/MafioziWalkMigration/npc_resident_72",
+			"direction": "(0.639113, 0.180658, -0.747594)",
+			"normal": "(-0.590836, 0.37603, 0.713803)",
+			"point": "(36.60956, 1.676188, -13.14303)",
+			"shot_id": "tt_pistol:2"
+		}
+	],
+	"scope": "actual equip/input/ammo/projectiles/HP, original normal moving population and collisions; detached QA aim and close observer; no materials/physics/body writes; RNG chosen noncritical for first shot; not normal camera or perf proof",
+	"shots": [
+		{
+			"ammo": 11,
+			"muzzle": {
+				"actor_id": "player",
+				"direction": "(0.488988, -0.213752, -0.845695)",
+				"ejection_origin": "(34.56148, 1.09442, -10.85325)",
+				"equip_generation": 1,
+				"life_generation": 1,
+				"ok": true,
+				"origin": "(34.64133, 1.034716, -10.9139)",
+				"pose_epoch": 1,
+				"pose_revision": 25,
+				"sample_serial": 17,
+				"weapon_id": "tt_pistol"
+			},
+			"shot_id": "tt_pistol:1"
+		},
+		{
+			"ammo": 10,
+			"muzzle": {
+				"actor_id": "player",
+				"direction": "(0.599525, -0.063693, -0.797817)",
+				"ejection_origin": "(34.60428, 1.180006, -10.84763)",
+				"equip_generation": 1,
+				"life_generation": 1,
+				"ok": true,
+				"origin": "(34.69584, 1.135237, -10.90448)",
+				"pose_epoch": 1,
+				"pose_revision": 60,
+				"sample_serial": 52,
+				"weapon_id": "tt_pistol"
+			},
+			"shot_id": "tt_pistol:2"
+		}
+	]
+}

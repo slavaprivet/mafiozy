@@ -1,0 +1,30 @@
+{
+  "scripts/main.gd": {
+    "same_as07": false,
+    "sha256": "fed81d39df9e0eb103295beda6ba033206e0a4c0afc879b618d7eaf707985ed7"
+  },
+  "scripts/preview_player.gd": {
+    "same_as07": true,
+    "sha256": "dc24cfee6e56029076d871065b99c7037e47fede62b8ec717b7c2e3cb3ad2d06"
+  },
+  "scripts/preview_population.gd": {
+    "same_as07": true,
+    "sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9"
+  },
+  "scripts/weapons/preview_weapons.gd": {
+    "same_as07": true,
+    "sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c"
+  },
+  "scripts/weapons/walk_weapon_ui.gd": {
+    "same_as07": true,
+    "sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad"
+  },
+  "project.godot": {
+    "same_as07": true,
+    "sha256": "64211c1d8cd66482e37af4a6a15001ac66f5ed29e86df1d21b4bac0469e2baa3"
+  },
+  "scenes/main.tscn": {
+    "same_as07": true,
+    "sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde"
+  }
+}

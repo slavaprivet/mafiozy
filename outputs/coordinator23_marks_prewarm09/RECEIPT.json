@@ -1,0 +1,23 @@
+{
+  "status": "OUTPUTS_ONLY_UNTESTED_PROPOSAL",
+  "before_sha256": "20133717664f76f5d008060bd9238dda71da85d0c236505e23f56ac208c2e008",
+  "after_sha256": "3235343d64754b5a2711ec43f49d9c992112e0b7ba852937903ea6d17db399b6",
+  "file": "scripts/npc_visual/npc_bullet_marks.gd",
+  "source": "candidate08 710f exported source stage",
+  "change": "configure attaches one zero-area indexed/color/dynamic warm surface to existing mesh node; existing real-hit rebuild unchanged",
+  "preserved": [
+    "exact shader code/material flags/colors",
+    "source triangle/skin sampling",
+    "original real wound topology,24marks/512receipt caps",
+    "all HP/ammo/contact authority",
+    "original mesh nodes, no added nodes"
+  ],
+  "bounded_cost": "At most one additional submitted zero-area triangle/draw per unhit resident (3 current residents); replaced by original real wound mesh at first actual hit. No pixels; no per-frame script warmup callback. Must measure actual submitted draws because culled/degenerate treatment depends on renderer.",
+  "limits": [
+    "No engine or GPU run on this proposal.",
+    "Strong pipeline-first-use hypothesis, not a measured proof of driver compilation.",
+    "Material allocation alone is not warmup; attached exact-format surface is the change.",
+    "If first-hit stall persists, perform explicit loading-time render under same viewport/features before ready; do not simplify shader or remove geometry.",
+    "Keep candidate08 immutable. Root overlays09 only after beforeSHA guard; performance acceptance requires exact09 compiled cold first-hit run."
+  ]
+}

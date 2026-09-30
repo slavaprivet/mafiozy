@@ -1,0 +1,22 @@
+--- candidate07/scripts/main.gd
++++ candidate08/scripts/main.gd
+@@ -21,7 +21,7 @@
+ 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
+ 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
+ ]
+-const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23e"
++const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23f"
+ const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
+ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
+ @export_file("*.json") var block_data_path: String = "res://data/block.json"
+@@ -34,8 +34,8 @@
+ @export var preview_transport_enabled: bool = true
+ @export var preview_start_at_vehicle: bool = true
+ @export var preview_residents_enabled: bool = true
+-@export var preview_final_dead_contact_enabled: bool = false
+-const FINAL_DEAD_CONTACT_LIMITS: Dictionary = {"max_impulse_ns": 3.0, "impulse_ns_per_mps": 1.0, "max_point_delta_energy_j": 1.5, "max_linear_speed_mps": 2.5, "max_angular_speed_rps": 15.0, "cooldown_ms": 160} # Native contact proposal119; rendered acceptance pending.
++@export var preview_final_dead_contact_enabled: bool = true
++const FINAL_DEAD_CONTACT_LIMITS: Dictionary = {"max_impulse_ns": 3.0, "impulse_ns_per_mps": 1.0, "max_point_delta_energy_j": 1.5, "max_linear_speed_mps": 2.5, "max_angular_speed_rps": 15.0, "cooldown_ms": 160} # Bounded per-contact limits; original masses and joint constraints preserved.
+ var final_dead_contact_status := "disabled"
+ @export var preview_resident_walk_enabled: bool = true
+ @export var preview_melee_enabled: bool = true

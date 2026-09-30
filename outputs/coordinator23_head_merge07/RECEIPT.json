@@ -1,0 +1,64 @@
+{
+  "status": "ISOLATED_NATIVE_800_PASS_NOT_VISUAL_OR_PERF_ACCEPTED",
+  "base_owner": "fa1c551a8501f1f731126d374c25ab07ac209137862febd5ee40ec0b7102049e",
+  "changes": {
+    "scripts/npc_visual/npc_head_zone.gd": {
+      "before": null,
+      "after": "f83544fdb13623d3f42221e94d88d93626f450972c085dac8286e988775cf2da"
+    },
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "before": "fa1c551a8501f1f731126d374c25ab07ac209137862febd5ee40ec0b7102049e",
+      "after": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225"
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": {
+      "before": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e",
+      "after": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309"
+    }
+  },
+  "artist_head_inputs": {
+    "npc_head_zone.gd": "99b61a6e0ccf394617af389dc5362c3e7052bb2a3a8db6c27a5572980f06775e",
+    "npc_hit_impulse.gd": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+    "npc_local_preview_hit_owner.gd": "0ebd577828e545eb510b3e6aead7354b0fee1b7c56524cf70ad2c5021b9ae620",
+    "npc_ordinary_hit_lifecycle.gd": "7b01789e7213abf154c2fdfe7bfc5969160605c4cd86b8ff7a3070507aee8230"
+  },
+  "tests": {
+    "head_base.gd": "fee12f62a020f5bdda92fda0a1e6002c53d550f9f5007a61bf0887c59649a702",
+    "head_native_base.gd": "d6d34aa671a336eb848f1fbb952d585c091ea25de2fb143e6610dbe03d9e7560",
+    "native_head_only.gd": "a4e36370ae73f467cdebffc26db2b992ec468043ebdcdb42d92b3a3ba1ed6663"
+  },
+  "limits": [
+    "Historical656 closure incomplete; new run exact stage bound by STAGE_INPUTS.json",
+    "Test corridor disables vehicle, manually drives native effects; not UI/GPU",
+    "Mixed body/head native producer fixture deliberately alters only projectile angles",
+    "Already-medical ACTIVE anatomical head finish remains untested",
+    "Marks visuals, export and loaded-scene performance pending"
+  ],
+  "result": {
+    "checks": 800,
+    "errors": [],
+    "rows": 39,
+    "case_counts": {
+      "head": 12,
+      "head_shotgun": 3,
+      "mixed_head_shotgun": 3,
+      "torso": 3,
+      "medical": 3,
+      "arm": 3,
+      "arm_cover": 3,
+      "near_miss": 3,
+      "invulnerable": 3,
+      "wall": 3
+    }
+  },
+  "evidence": {
+    "native01.log": "e4f4055dcb67361e1bccb81ba351916d79933c63ed5f25d9ff12b57d06191747",
+    "RUN01.json": "7dd66d9d252ae5e46782acc635b1a19369ae5a455af9be23b3626284c896675f",
+    "STAGE_INPUTS.json": "e73dea234bfa77502a447a1df022b40df1ab926d5fdfdfb480b5e211b7d304b5",
+    "RESULT01.json": "ad90e916c86c4ff6b482bbed1c60eec123b8bcbdddbeddf4e7f37f3926fa9da2",
+    "merge.patch": "78ab7280a1bcab6fd28c2ee5a94802a2e61f1ec164db6893d4ba2882f382af4a",
+    "tests/head_base.gd": "fee12f62a020f5bdda92fda0a1e6002c53d550f9f5007a61bf0887c59649a702",
+    "tests/head_native_base.gd": "d6d34aa671a336eb848f1fbb952d585c091ea25de2fb143e6610dbe03d9e7560",
+    "tests/native_head_only.gd": "a4e36370ae73f467cdebffc26db2b992ec468043ebdcdb42d92b3a3ba1ed6663"
+  },
+  "post_run_resource_hash_drift": []
+}

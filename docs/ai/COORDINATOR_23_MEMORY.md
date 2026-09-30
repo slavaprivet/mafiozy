@@ -1,5 +1,46 @@
 # Кординатор 23 — 30 сентября 2026
 
+## 12:08 — combined23f held for visual correction; trunk-window user request
+
+Published main/origin4c6d4f70fbdea70fb7c2470bb1547b7aca95fdb3. This turn resumed
+after the earlier account interruption; no progress is inferred from heartbeats.
+New direct user request: trunk models are too small to target; build a separate
+contents window with large weapon cards, ammo, Take button, capacity and storage
+from hands. Root subagent cargo_visual_audit implements outputs/coordinator23_trunk_window;
+no shared edit yet. Preserve UID/ammo and physical open/range/life checks.
+
+Combined isolated08 PCK710f2d40d852c4181d874494294ef236e6bc2d215ab216b4c016ad92e82c3c72
+contains marks, stronger blood, corrected point tuple, anatomical lethal head,
+public foot port/defaultON. Exact compiled scheduled-player contact64PASS and
+ACTIVE-head89PASS. Source head800, parallax80 and three-rig foot119 retained.
+Actual loaded3NPC/8building GPU pair passed behavior but exposed FIRST-HIT STALL:
+961.367ms wall /943.207ms renderer CPU. p95 hid it; comparator fixed to include
+frames overlapping first-use interval. No rollout.
+
+Only marks configure prewarming changed in09, PCK51892e6818d85edf4903362de225e4c71eaf262134df859c3c2a012751d5d83e.
+All203 source inputs/308 embedded payloads independently pinned. Cold application
+cache repeat02 (actual %APPDATA%/MafioziGodotPreview; originals preserved/restored)
+08 firsthit47.463ms ->09 15.576ms; GPU driver cache not reset. Repeat01 targeted
+obsolete app_userdata path and is NOT cold evidence. No deletion of user data.
+GPU photos09 actualTT show clothing mark and lethal anatomical head/closedeyes,
+but second mark is incorrectly clothing-tagged: real_bound_surface_mark:skin FAIL.
+Clothing graphic also looks like bright pinwheel. walk_ui_audit correcting these
+in isolated outputs; do not call combined package visually accepted.
+
+Artist independently delivered head-only PCK51e4dea55946d803a89f56633f3e61e1c94dcf777448b2287379eea3e817ae3e
+from outputs/artist23_head23e/package_direction. Root cold controller restored
+THIS user-approved game, current last observed PID17032, not olderpointec737.
+ProjectManager45268 preserved. Fresh inventory always required. GPU/CPU window
+RELEASED via HQ after tests; no parallel game. Root shared production not adopted.
+
+Shared owner now7e203/head99b61/lifecycle7b017 fromArtist. Read-only15path exact
+promotion09 guards saved outputs/coordinator23_adoption09_guards. Candidate adds
+tested marks/contact tuple; keeps point policy/preload. Preserve unscoped softer
+preview_update_panel palette and transport_access_provider/query+descriptor
+parking-validation WIP. Do not copy entire candidate tree over shared. New window
+package will need exact scoped merge, compiled functional/visual/GPU checks before
+notes revision and delivery. RPG blast damage/recovery/full world still unfinished.
+
 ## 11:16 — resume after usage interruption; corrected point physics and contact integration
 
 Last remote main remains verified9f86f3216beba96009c7ded1216368b863ad1ec4.

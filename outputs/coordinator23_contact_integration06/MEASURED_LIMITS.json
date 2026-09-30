@@ -1,0 +1,8 @@
+{
+  "max_impulse_ns": 3.0,
+  "impulse_ns_per_mps": 1.0,
+  "max_point_delta_energy_j": 1.5,
+  "max_linear_speed_mps": 2.5,
+  "max_angular_speed_rps": 15.0,
+  "cooldown_ms": 160
+}

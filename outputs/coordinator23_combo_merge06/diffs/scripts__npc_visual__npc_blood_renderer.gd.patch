@@ -1,0 +1,24 @@
+--- a/scripts/npc_visual/npc_blood_renderer.gd
++++ b/scripts/npc_visual/npc_blood_renderer.gd
+@@ -1,6 +1,8 @@
+ extends RefCounted
+ ## Cosmetic port of hero_artist14_surface.mjs + wound_bleeding.mjs.
+-## Fixed 112 particles and four bone anchors per actual actor; no HP writes.
++## Fixed 112 particles and four bone anchors per actual actor; no HP writes.
++## User-requested readability profile: 1.65x particle radius, opacity .95.
++## Source counts 20/32, trajectories, lifetimes, wounds, idle optimization intact.
+ const CAPACITY := 112
+ var mesh: MultiMeshInstance3D
+ var _rig: Skeleton3D
+@@ -32,9 +34,9 @@
+ 		var parent_index:=rig.get_bone_parent(i)
+ 		if parent_index>=0: _children[parent_index].append(i)
+ 	var sphere:=SphereMesh.new()
+-	sphere.radius=.028*unit; sphere.height=.056*unit; sphere.radial_segments=6; sphere.rings=3
++	sphere.radius=.028*unit*1.65; sphere.height=.056*unit*1.65; sphere.radial_segments=6; sphere.rings=3
+ 	var material:=StandardMaterial3D.new()
+-	material.albedo_color=Color("8c1524"); material.albedo_color.a=.85
++	material.albedo_color=Color("8c1524"); material.albedo_color.a=.95
+ 	material.roughness=.55; material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ 	sphere.material=material
+ 	var instances:=MultiMesh.new()

@@ -1,0 +1,18 @@
+{
+  "review_status": "HOLD first-hit render stall",
+  "engine_launched_by_review": false,
+  "gpu_launched_by_review": false,
+  "artifact_sha256": {
+    "capture.gd": "3b1d5f3f7e5c7e38a83d211beb75f52f16a69482e62c1be7f365db8b345e5c28",
+    "compare.py": "80b11db140b9c872c0daf3e6cf33f6bf6e67ccec4060f75cb76d01b2d1e1a820",
+    "GPU_COMPARISON01.json": "4fc63460e6c230242d337baec2ed2275ff76dd732e0e1c35be14616815b27dec",
+    "GPU_COMPARISON01_INTERVAL_FIXED.json": "b6b600e79a8c2b70dd32e4a8b63ba2a50cc0c34b06e96a321794807c0c813e9d",
+    "GPU_REVIEW01.md": "4b02eda4ecf78e2a05af847bab2f3bfd03d13d225445ac19474d054992c5c6e0",
+    "gpu_baseline01/RESULT.json": "4bf662154f0450c712562d64dd8a95b3956e3da96732c9d557098ee6a67b0580",
+    "gpu_baseline01/RUN_RECEIPT.json": "dfc73a157fa5f5a22e31fdac80a63cd1d8315deb9db4a84aa52657cae52c6e18",
+    "gpu_candidate01/RESULT.json": "0e6c62cccf78168ae1e417cec673f976270196a2640f0e3c0c8d048fbf06977b",
+    "gpu_candidate01/RUN_RECEIPT.json": "af823597958a88ce2ebca5099f7fbb93990949d66fa8377679d4b1e20924758b"
+  },
+  "historical_prepare_receipt_note": "RECEIPT.json pins old comparator; compare.py changed only after GPU capture to correct frame interval selection. capture.gd and raw GPU results unchanged.",
+  "proposed_fix_receipt_sha256": "27f1d0b0933958d173bc623bc123f7afd1e6dabc519aa4f639d68b7852a16ae4"
+}

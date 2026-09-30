@@ -1,0 +1,36 @@
+{
+	"actor": "resident_72",
+	"camera": "[X: (-0.763335, 0.0, -0.646002), Y: (-0.544306, 0.538578, 0.643168), Z: (0.347923, 0.842575, -0.411116), O: (38.98502, 1.025717, -14.29372)]",
+	"camera_fov": 42.0,
+	"contact": {
+		"actor_transform_at_impact": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (36.84413, 0.00083, -13.4)]",
+		"event_id": "resident_72:2:tt_pistol:2",
+		"incoming_direction": "(0.639113, 0.180658, -0.747594)",
+		"life_generation": 1,
+		"normal": "(-0.656962, 0.398316, 0.640114)",
+		"point": "(36.69293, 1.699753, -13.24054)",
+		"projectile_index": 0,
+		"shot_id": "tt_pistol:2",
+		"source_id": "resident_72",
+		"weapon_id": "tt_pistol"
+	},
+	"dead": true,
+	"draws": 376,
+	"eyes_closed": true,
+	"geometry": {},
+	"head_proof": {
+		"direction": "(0.639113, 0.180658, -0.747594)",
+		"distance_m": 3.12477469444275,
+		"normal": "(-0.656962, 0.398316, 0.640114)",
+		"point": "(36.69293, 1.699753, -13.24054)",
+		"projectile_index": 0,
+		"proof": "native_owned_hit_then_first_anatomical_skin_triangle",
+		"user_rule": true,
+		"zone": "head"
+	},
+	"hp": 0,
+	"label": "04_final_eyes_side_b",
+	"marks": 2,
+	"observer_only": true,
+	"original_materials_unchanged": true
+}

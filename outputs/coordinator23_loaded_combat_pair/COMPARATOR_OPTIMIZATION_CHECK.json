@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "candidate08 -> candidate09 accepted with before/after labels and raw candidate provenance",
+    "implicit candidate pair and reversed SHA order rejected",
+    "sha mismatch rejected",
+    "side mismatch rejected",
+    "content mismatch rejected",
+    "settings mismatch rejected",
+    "default baseline pair preserved; first-use interval includes 961.367ms stall"
+  ],
+  "raw_inputs_unchanged": true,
+  "engine_launched": false,
+  "cold_cache_claim": false,
+  "comparator_sha256": "e9093eab3de234a6645cf92e5398f874702eace06a537e43c8b0119257f9d8c6"
+}

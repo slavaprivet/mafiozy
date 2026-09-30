@@ -1,0 +1,79 @@
+--- a/scripts/npc_visual/npc_hit_marks_adapter.gd
++++ b/scripts/npc_visual/npc_hit_marks_adapter.gd
+@@ -0,0 +1,76 @@
++extends RefCounted
++## Match the completed HP receipt seam used by blood. Never accept raw rays.
++const Renderer = preload("npc_bullet_marks.gd")
++var renderer: RefCounted
++var _host: RefCounted
++var _owner: RefCounted
++var _token: Dictionary = {}
++var _binding: Dictionary = {}
++var _last_revision := 0
++var _retired := false
++var _height := 0.0
++
++func configure(host: RefCounted, token: Dictionary, owner: RefCounted, parent: Node3D, prepared_entry: Dictionary) -> bool:
++	if renderer!=null or _retired or not is_instance_valid(host) or not is_instance_valid(owner) or not host.physical_life_current(token): return false
++	if prepared_entry.get("descriptor_sha256")!=token.get("descriptor_sha256") or prepared_entry.get("bridge_id")!=token.get("render_id"): return false
++	var norm: Dictionary=prepared_entry.get("normalization",{})
++	if not norm.has("scale") or not norm.has("target_height") or not norm.has("source_height"): return false
++	var unit:=float(norm.scale); var source_height:=float(norm.source_height); var target_height:=float(norm.target_height)
++	if not is_finite(source_height) or source_height<=0 or not is_finite(unit) or not is_finite(target_height) or unit<=0 or absf(unit-target_height/source_height)>1e-10: return false
++	_host=host; _owner=owner; _token=token.duplicate(); _binding=owner._binding.duplicate(true)
++	_height=target_height
++	if _binding.get("owner_instance_id")!=owner.get_instance_id() or _binding.get("source_id")!=token.get("source_id") or _binding.get("life_generation")!=token.get("life_generation") or owner._current(_binding).is_empty(): return false
++	renderer=Renderer.new()
++	if not parent.is_ancestor_of(token.body): return false
++	return renderer.configure(token.body,token.rig,unit)
++
++func _current() -> bool:
++	if _retired or renderer==null or not is_instance_valid(_host) or not is_instance_valid(_owner): return false
++	var host:RefCounted=_host; var owner:RefCounted=_owner
++	var binding:Dictionary=_binding.duplicate(true)
++	if not host.physical_life_current(_token): return false
++	if _retired or renderer==null or _host!=host or _owner!=owner or _binding!=binding: return false
++	if owner._current(binding).is_empty(): return false
++	return not _retired and renderer!=null and _host==host and _owner==owner and _binding==binding
++
++func receive(event_id: String, point: Vector3, normal: Vector3) -> bool:
++	if not _current(): retire(); return false
++	if event_id.is_empty() or not point.is_finite() or not normal.is_finite() or normal.length_squared()<.5: return false
++	var receipt: Dictionary=_owner._adapter.receipt(event_id)
++	if receipt.is_empty() or receipt!=_owner.last_result or receipt.get("binding")!=_binding or receipt.get("event_id")!=event_id: return false
++	if not receipt.get("ok",false) or not receipt.get("applied",false) or receipt.get("reason") not in ["hit","surrender","medical_downed","final_death"]: return false
++	var revision:=int(receipt.get("revision",0)); var damage:=float(receipt.get("hit",{}).get("damage",0))
++	if revision<=_last_revision or not is_finite(damage) or damage<=0: return false
++	# Contacts must be the owner-captured native pair, never a caller-provided
++	# alternate point decorating an unrelated completed source transaction.
++	var contact: Dictionary=_owner.last_contact
++	if contact.get("event_id")!=event_id or contact.get("point")!=point or contact.get("normal")!=normal: return false
++	if contact.get("source_id")!=_token.source_id or contact.get("life_generation")!=_token.life_generation or not contact.get("actor_transform_at_impact") is Transform3D: return false
++	if not contact.get("incoming_direction") is Vector3 or not contact.incoming_direction.is_finite() or contact.incoming_direction.length_squared()<.5:return false
++	var before: Transform3D=contact.actor_transform_at_impact
++	if not before.is_finite() or absf(before.basis.determinant())<1e-9: return false
++	# Preserve contact on the original actor through the already-committed source
++	# kick. Raw native point/normal remain untouched in the owner receipt.
++	var frame: Transform3D=_token.body.global_transform*before.affine_inverse()
++	var attached_point: Vector3=frame*point
++	var attached_normal: Vector3=(frame.basis.inverse().transposed()*normal).normalized()
++	var incoming:Vector3=(frame.basis*contact.incoming_direction).normalized()
++	if not _current(): retire(); return false
++	_last_revision=revision
++	# The native CharacterBody/RigidBody capsule is intentionally a coarse shape.
++	# Narrow only this cosmetic contact against THIS actor's original triangles
++	# along the genuine incoming ray. A capsule graze missing the mesh draws no mark.
++	# This performs no additional HP or penetration beyond the already accepted hit.
++	return renderer.accept(event_id,attached_point,attached_normal,incoming,_height*1.5)
++
++func step() -> void:
++	if not _current(): retire(); return
++	if renderer._marks.is_empty(): return
++	renderer.step()
++
++func retire() -> void:
++	_retired=true
++	if renderer!=null: renderer.dispose()
++	renderer=null; _owner=null; _host=null; _token.clear(); _binding.clear()
++
++func dispose() -> void: retire()

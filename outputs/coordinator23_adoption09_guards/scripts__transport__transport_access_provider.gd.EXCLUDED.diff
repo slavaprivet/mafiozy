@@ -1,0 +1,40 @@
+--- shared/scripts/transport/transport_access_provider.gd
++++ candidate09/scripts/transport/transport_access_provider.gd
+@@ -6,10 +6,6 @@
+ 
+ var _space: PhysicsDirectSpaceState3D
+ var _collision_mask := 1
+-var _capsule: CapsuleShape3D
+-var _shape_query: PhysicsShapeQueryParameters3D
+-var _capsule_radius := -1.0
+-var _capsule_height := -1.0
+ 
+ func configure(space: PhysicsDirectSpaceState3D, collision_mask: int = 1) -> void:
+ 	_space = space
+@@ -26,22 +22,13 @@
+ 		"reachable": false, "start_clear": false, "path_clear": false, "destination_clear": false, "support_clear": false,
+ 		"distance_to_target_m": from_feet.distance_to(to_feet), "arrival_ready": from_feet.distance_to(to_feet) <= .25,
+ 	}
+-	if _space == null or source_clock < 1 or action not in ["BOARD", "EXIT"] or not is_finite(radius) or not is_finite(height) or radius <= 0 or height < radius * 2:
++	if _space == null or source_clock < 1 or action not in ["BOARD", "EXIT"] or radius <= 0 or height < radius * 2:
+ 		return receipt
+-	if _capsule == null or radius != _capsule_radius or height != _capsule_height:
+-		var fresh := CapsuleShape3D.new()
+-		if radius > fresh.radius:
+-			fresh.height = height; fresh.radius = radius
+-		else:
+-			fresh.radius = radius; fresh.height = height
+-		_capsule = fresh
+-		_capsule_radius = radius; _capsule_height = height
+-	if _shape_query == null: _shape_query = PhysicsShapeQueryParameters3D.new()
+-	var query := _shape_query
+-	query.shape = _capsule; query.collision_mask = _collision_mask; query.exclude = exclude
++	var capsule := CapsuleShape3D.new(); capsule.radius = radius; capsule.height = height
++	var query := PhysicsShapeQueryParameters3D.new()
++	query.shape = capsule; query.collision_mask = _collision_mask; query.exclude = exclude
+ 	query.collide_with_bodies = true; query.collide_with_areas = true
+ 	query.transform = Transform3D(Basis.IDENTITY, query_from + Vector3.UP * (height * .5 + FLOOR_SKIN))
+-	query.motion = Vector3.ZERO
+ 	var start_clear := _space.intersect_shape(query, 1).is_empty()
+ 	query.motion = to_feet - query_from
+ 	var cast := _space.cast_motion(query)
