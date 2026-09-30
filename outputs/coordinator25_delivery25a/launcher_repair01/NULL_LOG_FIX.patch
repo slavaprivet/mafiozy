@@ -1,0 +1,30 @@
+--- failed/launch.ps1
++++ repaired/launch.ps1
+@@ -39,19 +39,24 @@
+     $previewStarted = [ordered]@{ pid=$previewProcess.Id; revision=$previewRevision; opened_utc=[DateTime]::UtcNow.ToString('o'); pack_sha256=$previewPromotion.pack_sha256; ordinary_no_QA=$true; run_directory=$previewRun }
+     $previewStarted | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $previewRun 'STARTED.json') -Encoding UTF8
+     $previewReady = $false
+-    $previewText = ''
++    [string]$previewText = ''
+     $previewMarkers = @('MAFIOZI_PREVIEW_READY buildings=8', 'RESIDENT_POPULATION_STATUS ready', 'REAR_LIGHTS_READY true', 'STREET_LAMPS_STATUS ready', 'DAY_NIGHT_READY')
+     $previewUntil = [DateTime]::UtcNow.AddSeconds(25)
+     $previewFound = @()
+     while ([DateTime]::UtcNow -lt $previewUntil -and -not $previewProcess.HasExited) {
+         $previewProcess.Refresh()
+-        $previewText = if (Test-Path -LiteralPath $previewLog) { [string](Get-Content -LiteralPath $previewLog -Raw -Encoding UTF8) } else { '' }
++        if (Test-Path -LiteralPath $previewLog) {
++            $previewText = [string](Get-Content -LiteralPath $previewLog -Raw -Encoding UTF8)
++        } else { $previewText = '' }
+         $previewFound = @($previewMarkers | Where-Object { $previewText.Contains($_) })
+         $previewReady = $previewFound.Count -eq $previewMarkers.Count -and $previewProcess.Responding -and $previewProcess.MainWindowHandle -ne 0
+         if ($previewReady) { break }
+         Start-Sleep -Milliseconds 250
+     }
+-    $previewErrorText = if (Test-Path -LiteralPath $previewErr) { [string](Get-Content -LiteralPath $previewErr -Raw -Encoding UTF8) } else { '' }
++    [string]$previewErrorText = ''
++    if (Test-Path -LiteralPath $previewErr) {
++        $previewErrorText = [string](Get-Content -LiteralPath $previewErr -Raw -Encoding UTF8)
++    }
+     $previewRuntimeError = ($previewErrorText -match 'ERROR|Exception') -or ($previewText -match 'SCRIPT ERROR|ERROR:|Parse Error')
+     $previewOpened = [ordered]@{ pid=$previewProcess.Id; revision=$previewRevision; opened_utc=$previewStarted.opened_utc; ready=($previewReady -and -not $previewRuntimeError); markers=$previewFound; responding=(!$previewProcess.HasExited -and $previewProcess.Responding); window_handle=$previewProcess.MainWindowHandle; error_log_empty=[string]::IsNullOrWhiteSpace($previewErrorText); runtime_error=[bool]$previewRuntimeError; pack_sha256=$previewPromotion.pack_sha256; ordinary_no_QA=$true; run_directory=$previewRun; dashboard_proof='Pinned native/packed/GPU acceptance; ordinary dashboard has no dedicated readiness log marker.' }
+     $previewOpened | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $previewRun 'OPENED.json') -Encoding UTF8

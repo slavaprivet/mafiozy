@@ -2,6 +2,8 @@ extends Node
 const Horn = preload("car_horn.gd")
 const Headlights = preload("car_headlights.gd")
 const RearLights = preload("car_rear_lights.gd")
+const StreetLamps = preload("street_lamps.gd")
+const Dashboard = preload("car_dashboard.gd")
 const DayNight = preload("day_night.gd")
 const DayClock = preload("day_night_clock.gd")
 var world: Node3D
@@ -10,6 +12,9 @@ var transport: Node
 var horn: Node
 var headlights: Node
 var rear_lights: Node
+var street_lamps: Node
+var dashboard: Node
+var street_lamps_status := "unavailable"
 var day_night: Node
 var day_clock: RefCounted
 var _light_elapsed := 0.0
@@ -55,6 +60,14 @@ func configure(game: Node3D) -> bool:
 	get_tree().root.set_meta("mafiozi_visual_clock", day_clock)
 	day_night.apply_hour(day_clock.hour)
 	headlights.set_daylight(day_night.daylight)
+	street_lamps = StreetLamps.new()
+	add_child(street_lamps)
+	street_lamps_status = "ready" if street_lamps.configure(world) else "unavailable"
+	street_lamps.apply_daylight(day_night.daylight)
+	dashboard = Dashboard.new()
+	dashboard.name = "CarDashboardOwner"
+	add_child(dashboard)
+	dashboard.configure(world, player, transport, headlights)
 	_last_clock_tick = Time.get_ticks_usec()
 	var layer := CanvasLayer.new()
 	layer.layer = 2
@@ -102,6 +115,7 @@ func _advance_day(real_seconds: float) -> void:
 		_light_elapsed = 0.0
 		day_night.apply_hour(day_clock.hour)
 		headlights.set_daylight(day_night.daylight)
+		street_lamps.apply_daylight(day_night.daylight)
 	if _hint_elapsed >= 0.5:
 		_hint_elapsed = 0.0
 		_refresh_hint()

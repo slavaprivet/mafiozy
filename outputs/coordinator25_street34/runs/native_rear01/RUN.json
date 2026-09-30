@@ -1,0 +1,61 @@
+{
+  "assembly_sha256": "29153935662325aedeeab3c83ab58abeb7110a9aeead593f5e0981b466d36782",
+  "qa_sha256": "22f19557caba049a20ca148239598d00887a15df4bae02e29131c78875d4b030",
+  "mode": "native",
+  "suite": "rear",
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\candidate34\\godot\\mafiozi_walk",
+    "--headless",
+    "--resolution",
+    "1280x720",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\runs\\native_rear01\\test_rear34.gd",
+    "--",
+    "--run-id=."
+  ],
+  "inventory_before": [
+    {
+      "ProcessId": 45268,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    },
+    {
+      "ProcessId": 49836,
+      "Name": "Godot_v4.7.2-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --main-pack \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate31\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24f\\MafioziPreview.pck\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\street_lamps_20260930\\dashboard24f\\play.gd\""
+    }
+  ],
+  "source_count": 279,
+  "pck_sha256": null,
+  "pack_only_root": null,
+  "performance_accepted": false,
+  "full_city_performance_accepted": false,
+  "own_engine_pid": 36196,
+  "exit_code": 0,
+  "seconds": 12.104944700142369,
+  "inventory_after": [
+    {
+      "ProcessId": 45268,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    },
+    {
+      "ProcessId": 49836,
+      "Name": "Godot_v4.7.2-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --main-pack \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate31\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24f\\MafioziPreview.pck\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\street_lamps_20260930\\dashboard24f\\play.gd\""
+    }
+  ],
+  "source_changed": [],
+  "assembly_unchanged": true,
+  "pack_unchanged": true,
+  "qa_unchanged": true,
+  "no_loose_runtime_resources": true,
+  "native_errors": [],
+  "result_checks": 33,
+  "result_failures": [],
+  "minimum_required_checks": 33,
+  "native_physical_space_proven": true,
+  "passed": true
+}

@@ -1,0 +1,24 @@
+{
+  "pid": 53140,
+  "revision": "s01-20260930-quality25a",
+  "opened_utc": "2026-09-30T19:22:26.7110374Z",
+  "verified_utc": "2026-09-30T19:26:22.9773982Z",
+  "ready": true,
+  "markers": [
+    "MAFIOZI_PREVIEW_READY buildings=8",
+    "RESIDENT_POPULATION_STATUS ready",
+    "REAR_LIGHTS_READY true",
+    "STREET_LAMPS_STATUS ready",
+    "DAY_NIGHT_READY"
+  ],
+  "responding": true,
+  "window_handle": {
+    "value": 2623202
+  },
+  "error_log_empty": true,
+  "pack_sha256": "bfd0a99e6f740ce6581ef8d02ca0464ed73a7c4e71b6324069613e6aa1871910",
+  "ordinary_no_QA": true,
+  "run_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_delivery25a\\ordinary\\20260930T192225602Z",
+  "original_wrapper_error": "Empty initial log produced null before game became ready; repaired launcher. This observer attaches to the same preserved process.",
+  "visual_limit": "Ordinary native capture timed out; actual exact-PCK GPU fixture screenshots separately reviewed."
+}

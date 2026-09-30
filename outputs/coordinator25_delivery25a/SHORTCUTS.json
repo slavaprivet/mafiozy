@@ -1,0 +1,46 @@
+[
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\Мафиози — актуальная версия.lnk",
+    "before": {
+      "target": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24b-play\\MafioziPreview.exe",
+      "arguments": "",
+      "sha256": "31FAC7099F42E0344404A5AEA299184E3CC9AECFF736D77C79AD12DBD9839D35"
+    },
+    "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_delivery25a\\launch.ps1\"",
+    "sha256": "B6B42D74EE5D9FC355998DB3F1C4AD86D171CD0C2F49810C3FD6D6C38D6CBB32"
+  },
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози — взгляд назад и гудок.lnk",
+    "before": {
+      "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_delivery24f\\launch.ps1\"",
+      "sha256": "7B13869A25D48A53F76F46D0B9761F4CB69DBC6BFFB495232F01490F8D6E7F7F"
+    },
+    "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_delivery25a\\launch.ps1\"",
+    "sha256": "94885421109F4E7155A0E87BFF4DE443B9A405214D73BAC47B9E86828B151723"
+  },
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози — день и ночь.lnk",
+    "before": {
+      "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_delivery24f\\launch.ps1\"",
+      "sha256": "0710F72947A2BB400A58ADF49794473CB42C8AF59C420B65B782F559BA408AE6"
+    },
+    "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_delivery25a\\launch.ps1\"",
+    "sha256": "C8FAB8A9D7EEF3F94377962A2C32784E93E90BB2B72284590724BB6FA184681D"
+  },
+  {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози — последняя версия.lnk",
+    "before": {
+      "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_delivery24f\\launch.ps1\"",
+      "sha256": "59B41BFE83E990FA946261DC92BE8B571CBCF0D4792ACE6A9D16BDB701C7467D"
+    },
+    "target": "C:\\Users\\Слава\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+    "arguments": "-NoProfile -WindowStyle Hidden -File \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_delivery25a\\launch.ps1\"",
+    "sha256": "488A5938591BC99034E029654D7E9478B545ED761F23E1DEE099091552B4C838"
+  }
+]

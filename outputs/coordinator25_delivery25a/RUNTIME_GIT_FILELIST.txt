@@ -1,0 +1,12 @@
+godot/mafiozi_walk/audio/street_glass_break_01.bytes
+godot/mafiozi_walk/audio/street_glass_break_02.bytes
+godot/mafiozi_walk/audio/street_glass_break_03.bytes
+godot/mafiozi_walk/data/preview_updates.json
+godot/mafiozi_walk/export_presets.cfg
+godot/mafiozi_walk/scripts/main.gd
+godot/mafiozi_walk/scripts/quick_controls/car_dashboard.gd
+godot/mafiozi_walk/scripts/quick_controls/quick_controls.gd
+godot/mafiozi_walk/scripts/quick_controls/scene_hook.gd
+godot/mafiozi_walk/scripts/quick_controls/street_glass_sound.gd
+godot/mafiozi_walk/scripts/quick_controls/street_lamp_visual.gd
+godot/mafiozi_walk/scripts/quick_controls/street_lamps.gd

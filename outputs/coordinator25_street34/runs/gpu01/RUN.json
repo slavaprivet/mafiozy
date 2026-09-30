@@ -1,0 +1,54 @@
+{
+  "assembly_sha256": "29153935662325aedeeab3c83ab58abeb7110a9aeead593f5e0981b466d36782",
+  "qa_sha256": "21d43c1948e4b6fb52ada715fae63f974e8e6fc830b47bc8b2a3a750c5b40ccc",
+  "mode": "gpu",
+  "suite": "lamp",
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\runs\\gpu01",
+    "--main-pack",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\candidate34\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality25a\\MafioziPreview.pck",
+    "--resolution",
+    "1280x720",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\runs\\gpu01\\test_street34.gd",
+    "--",
+    "--run-id=."
+  ],
+  "inventory_before": [
+    {
+      "ProcessId": 45268,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    }
+  ],
+  "source_count": 279,
+  "pck_sha256": "bfd0a99e6f740ce6581ef8d02ca0464ed73a7c4e71b6324069613e6aa1871910",
+  "pack_only_root": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\runs\\gpu01",
+  "performance_accepted": false,
+  "full_city_performance_accepted": false,
+  "own_engine_pid": 45624,
+  "exit_code": 0,
+  "seconds": 36.187352100154385,
+  "inventory_after": [
+    {
+      "ProcessId": 45268,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    }
+  ],
+  "source_changed": [],
+  "assembly_unchanged": true,
+  "pack_unchanged": true,
+  "qa_unchanged": true,
+  "no_loose_runtime_resources": true,
+  "native_errors": [],
+  "result_checks": 122,
+  "result_failures": [],
+  "minimum_required_checks": 105,
+  "native_physical_space_proven": true,
+  "passed": true,
+  "exclusive_inventory_endpoints": true,
+  "visual_and_cost_review": "Root must inspect PNGs, cold first-metal impact, paired cadence/memory and full glass/audio lifetime; PASS is functional only."
+}

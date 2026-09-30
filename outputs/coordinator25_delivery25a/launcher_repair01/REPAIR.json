@@ -1,0 +1,16 @@
+{
+  "status": "FILE_ONLY_REPAIR_PIN_CHAIN_UPDATE_PENDING_ROOT",
+  "reason": "Empty first Get-Content -Raw produced null through conditional statement output before Contains",
+  "old_launcher_sha256": "7502b2712f0f9953b54164a6da238fc18953abe7e923527b9271f37b8629a1ef",
+  "new_launcher_sha256": "3ca03e7d1be633468b9ea2d9a89facb3602c312d574a47f0982e5c490a0f4012",
+  "preparation_before_sha256": "9dc193b6ea8ee47da21930e03a6a45392d7a7d4d084916c6d84b27485d363ff9",
+  "promotion_before_sha256": "2be1ec2640d1e64b93df41f9107c632febb163d88ba1ea09a8219d8a6a7ef69b",
+  "old_launcher_copy": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_delivery25a\\launcher_repair01\\launch_failed01.ps1",
+  "patch_sha256": "bc4f61350de585c1243561ffe80e078395f8c0eb77ce11d71887793d9c3a3826",
+  "powershell_parser": "PASS",
+  "processes_touched": false,
+  "engine_started": false,
+  "receipts_modified": false,
+  "existing_game_pid_not_accessed": 53140,
+  "watcher_added": false
+}

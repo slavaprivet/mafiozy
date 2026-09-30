@@ -1,0 +1,91 @@
+{
+  "schema": "mafiozi.root25.acceptance34/v1",
+  "accepted": true,
+  "revision": "s01-20260930-quality25a",
+  "assembly_sha256": "29153935662325aedeeab3c83ab58abeb7110a9aeead593f5e0981b466d36782",
+  "delivery_sha256": "fa6c5223ff300520ca2201320064791f210e79fbaef21ac2fcf38c6c88ab68fe",
+  "pck_sha256": "bfd0a99e6f740ce6581ef8d02ca0464ed73a7c4e71b6324069613e6aa1871910",
+  "runs": {
+    "native_lamp": {
+      "path": "outputs/coordinator25_street34/runs/native01/RUN.json",
+      "sha256": "ebe178a2813a4492958f80b7ec5afbf8042ce0db56827b278edbad5bbd0d346b"
+    },
+    "native_rear": {
+      "path": "outputs/coordinator25_street34/runs/native_rear01/RUN.json",
+      "sha256": "a25aead2bd7749e348b6f52aa2ead1c7a4c8f59d128f45a54f47c6d1aecd48ba"
+    },
+    "native_dashboard": {
+      "path": "outputs/coordinator25_street34/runs/native_dashboard01/RUN.json",
+      "sha256": "ed86082770d2f50787959232e9e691225bf139443622964549f1bdf61889a113"
+    },
+    "packed_lamp": {
+      "path": "outputs/coordinator25_street34/runs/packed01/RUN.json",
+      "sha256": "483febcd5ece2fd021bb1a43d39172ee8a7dfdde337fcaefdb100dfc73d238d4"
+    },
+    "packed_rear": {
+      "path": "outputs/coordinator25_street34/runs/packed_rear01/RUN.json",
+      "sha256": "22b2ae8112a024e91b8ce94c04be56f97bcaff7510f6bf30b5217c27fa47dc1c"
+    },
+    "packed_dashboard": {
+      "path": "outputs/coordinator25_street34/runs/packed_dashboard01/RUN.json",
+      "sha256": "42f774e49455d442416151380cc62986ae48fffb5cd8c66342fe2da2eea99728"
+    }
+  },
+  "gpu_runs": [
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu01/RUN.json",
+      "sha256": "b5c1625bd51b95262fca58de44dff9ba41b5fb3609ebfefffda06ed133a138aa"
+    },
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu_dashboard01/RUN.json",
+      "sha256": "6ff8a33f9338a8edacd7572e1e853190c7e6d34f58b128cfd73e3ff2b3ff110f"
+    }
+  ],
+  "visual_reviewed": true,
+  "visual_features": [
+    "lamp",
+    "rear",
+    "dashboard"
+  ],
+  "images": [
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu01/lamp_night_intact.png",
+      "sha256": "fbfe07a521aca37979d853a1be35b18d3976ebb049f0d8eb2f5e0c3fbe699d59"
+    },
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu01/lamp_night_broken.png",
+      "sha256": "fc4746f42c9f1b347912f29530ec5f25e217d122c48b8365673d8be57ba38b12"
+    },
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu_dashboard01/night_brake.png",
+      "sha256": "0503597e9c1ebae2b6a93a4056b2527626b62bd12f764896e3b9965b867211c6"
+    }
+  ],
+  "performance_review": {
+    "accepted": true,
+    "scenario": "Exact exported25a loaded8-building/3-resident preview; sequential native Vulkan runs with exclusive process inventories. Lamp fixed close-up off/on/off/on and driver HUD wide native camera off/on; active NPC/content retained. Owner saved wide-street optimized117/parity4894 evidence also reviewed. No full-city claim.",
+    "baseline_p95_ms": 7.1215,
+    "candidate_p95_ms": 7.150499999999999,
+    "first_impact_max_ms": 123.392,
+    "memory_delta_bytes": 1443593.2412992716,
+    "evidence": [
+      {
+        "path": "outputs/coordinator25_street34/ROOT_PERF_REVIEW34.json",
+        "sha256": "0f9e163cdc599ffbd001ffa97077ca9ccdd69586d8a45f5d30ec99b687b4945d"
+      },
+      {
+        "path": "outputs/coordinator25_street34/runs/gpu01/RESULT.json",
+        "sha256": "d9ade76ab8a1c23f2b56b8b0eecc85ab39e562bd5561ef4dd1206f4ee07ab377"
+      },
+      {
+        "path": "outputs/coordinator25_street34/runs/gpu_dashboard01/RESULT.json",
+        "sha256": "554aca78b9c227b7dde3cdfca80fb2aa61378e8329bb50e2ef1c2dfb693a2846"
+      },
+      {
+        "path": "outputs/coordinator25_street34/OWNER_PERF_REVIEW.json",
+        "sha256": "9b197c5904d9d1bdeafa3230b0510bb1d06f2a07b0c7c8256b05e2613d97c4ba"
+      }
+    ],
+    "conclusion": "Accept added lamp/dashboard scope: paired lamp p95 7.1215 to7.1505ms (+0.029ms); HUD10.144 to10.296ms (+0.152ms), median6.893 to6.892ms. Geometry, eight buildings, three residents and collision/weapon/cargo sources retained; current visual/functional/audio closure passes. This is feature acceptance with an explicit OPEN cold-first-metal123.392ms defect, previously149ms; its cause is not proven and no claim of complete latency optimization is made. Owner wider-street117 and renderer parity4894 corroborate unchanged loaded content and cheaper glass lifecycle. Full city and listening remain untested."
+  }
+}

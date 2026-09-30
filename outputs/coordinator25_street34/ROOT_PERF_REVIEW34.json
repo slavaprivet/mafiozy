@@ -1,0 +1,184 @@
+{
+  "reviewed_utc": "2026-09-30T19:21:39.707564+00:00",
+  "scope": "Exact exported25a loaded8-building/3-resident preview; sequential native Vulkan runs with exclusive process inventories. Lamp fixed close-up off/on/off/on and driver HUD wide native camera off/on; active NPC/content retained. Owner saved wide-street optimized117/parity4894 evidence also reviewed. No full-city claim.",
+  "lamp": {
+    "actual_TT_glass": {
+      "count": 369,
+      "max_ms": 7.269,
+      "p50_ms": 6.944,
+      "p95_ms": 7.114
+    },
+    "actual_TT_horizontal_metal_arm": {
+      "count": 85,
+      "max_ms": 7.207,
+      "p50_ms": 6.925,
+      "p95_ms": 7.155
+    },
+    "actual_TT_lower_pole_outer_flank": {
+      "count": 85,
+      "max_ms": 7.519,
+      "p50_ms": 6.945,
+      "p95_ms": 7.18
+    },
+    "actual_TT_metal_hood": {
+      "count": 86,
+      "max_ms": 7.229,
+      "p50_ms": 6.936,
+      "p95_ms": 7.142
+    },
+    "actual_TT_metal_pole": {
+      "count": 81,
+      "max_ms": 123.392,
+      "p50_ms": 6.956,
+      "p95_ms": 7.22
+    },
+    "night_intact_steady": {
+      "count": 218,
+      "max_ms": 7.959,
+      "p50_ms": 6.938,
+      "p95_ms": 7.13
+    },
+    "paired_with_street_lamp_feature_final": {
+      "count": 431,
+      "max_ms": 8.291,
+      "p50_ms": 6.945,
+      "p95_ms": 7.132
+    },
+    "paired_with_street_lamp_feature_night": {
+      "count": 431,
+      "max_ms": 7.945,
+      "p50_ms": 6.939,
+      "p95_ms": 7.169
+    },
+    "paired_without_street_lamp_feature_after": {
+      "count": 431,
+      "max_ms": 7.711,
+      "p50_ms": 6.938,
+      "p95_ms": 7.13
+    },
+    "paired_without_street_lamp_feature_before": {
+      "count": 431,
+      "max_ms": 7.219,
+      "p50_ms": 6.954,
+      "p95_ms": 7.113
+    }
+  },
+  "lamp_memory_mean_bytes": {
+    "paired_without_street_lamp_feature_before": 219477137.03944317,
+    "paired_with_street_lamp_feature_night": 221254682.64733177,
+    "paired_without_street_lamp_feature_after": 220145041.7726218,
+    "paired_with_street_lamp_feature_final": 221915150.18329465
+  },
+  "lamp_memory_interpolated_delta_bytes": 1443593.2412992716,
+  "lamp_memory_final_extrapolated_delta_bytes": 1102203.677494198,
+  "hud": {
+    "camera": "[X: (-0.0, 0.0, 1.0), Y: (0.237703, 0.971338, 0.0), Z: (-0.971338, 0.237703, -0.0), O: (31.70363, 2.708217, -11.78848)]",
+    "fov": 65.0,
+    "policy": "One paired HUD off/on measurement at fixed native-view camera and same1280x720/144fps,1s warmup+3s observed per state. No vehicle freeze, actor removal, scene pause or disabled residents. Active-world drift is possible; capped wall frames do not isolate CPU/GPU work. PNG capture excluded.",
+    "vehicle_displacement_m": 0.00964331906288862,
+    "viewport": "(1280, 720)",
+    "with": {
+      "drawcalls": {
+        "count": 432,
+        "max": 773.0,
+        "p50": 771.0,
+        "p95": 773.0
+      },
+      "engine_physics_ms": {
+        "count": 432,
+        "max": 5.342,
+        "p50": 3.893,
+        "p95": 5.342
+      },
+      "engine_process_ms": {
+        "count": 432,
+        "max": 3.624,
+        "p50": 2.198,
+        "p95": 3.624
+      },
+      "frame_ms": {
+        "count": 432,
+        "max": 11.226,
+        "p50": 6.892,
+        "p95": 10.296
+      },
+      "primitives": {
+        "count": 432,
+        "max": 448072.0,
+        "p50": 442990.0,
+        "p95": 448072.0
+      },
+      "static_bytes": {
+        "count": 432,
+        "max": 221738823.0,
+        "p50": 221564239.0,
+        "p95": 221722275.0
+      }
+    },
+    "without": {
+      "drawcalls": {
+        "count": 433,
+        "max": 768.0,
+        "p50": 768.0,
+        "p95": 768.0
+      },
+      "engine_physics_ms": {
+        "count": 433,
+        "max": 5.067,
+        "p50": 4.236,
+        "p95": 4.392
+      },
+      "engine_process_ms": {
+        "count": 433,
+        "max": 4.462,
+        "p50": 3.087,
+        "p95": 4.462
+      },
+      "frame_ms": {
+        "count": 433,
+        "max": 13.157,
+        "p50": 6.893,
+        "p95": 10.144
+      },
+      "primitives": {
+        "count": 433,
+        "max": 467278.0,
+        "p50": 467278.0,
+        "p95": 467278.0
+      },
+      "static_bytes": {
+        "count": 433,
+        "max": 221177559.0,
+        "p50": 220999735.0,
+        "p95": 221161011.0
+      }
+    }
+  },
+  "cold_first_metal": {
+    "max_ms": 123.392,
+    "previous_owner_max_ms": 148.914,
+    "resolved": false,
+    "cause_proven": false
+  },
+  "visual_review": "Root inspected actual PCK lamp intact/broken night and driver night brake PNGs: glass removed/light off, housing retained, NPC present; lit front beam/rear red lamp, speed and handbrake correct, notes25a end above dashboard with a visible gap. Native rear33 covers reverse/stops/driver/focus/reload.",
+  "limitations": [
+    "First cold metal shot stall reproduced123.392ms; retained OPEN for follow-up, not certified smooth or fixed.",
+    "GPU assertions inject native logical key/mouse events, not manual OS-input acceptance.",
+    "Audio payload/pool/native playback checked; listening quality not evaluated.",
+    "Vsync/capped wall-frame cadence is not isolated GPU execution time; scene continues to evolve."
+  ],
+  "evidence": [
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu01/RESULT.json",
+      "sha256": "d9ade76ab8a1c23f2b56b8b0eecc85ab39e562bd5561ef4dd1206f4ee07ab377"
+    },
+    {
+      "path": "outputs/coordinator25_street34/runs/gpu_dashboard01/RESULT.json",
+      "sha256": "554aca78b9c227b7dde3cdfca80fb2aa61378e8329bb50e2ef1c2dfb693a2846"
+    },
+    {
+      "path": "outputs/coordinator25_street34/OWNER_PERF_REVIEW.json",
+      "sha256": "9b197c5904d9d1bdeafa3230b0510bb1d06f2a07b0c7c8256b05e2613d97c4ba"
+    }
+  ]
+}

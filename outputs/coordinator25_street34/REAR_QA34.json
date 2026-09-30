@@ -1,0 +1,8 @@
+{
+  "status": "PREPARED_NOT_RUN",
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_rear_lights31\\test_rear_lights31.gd",
+  "source_sha256": "542213915a5c139ffbc73f5af3c2ad2189b23bee4bacfa67acf55975fa2bc27f",
+  "qa_sha256": "22f19557caba049a20ca148239598d00887a15df4bae02e29131c78875d4b030",
+  "only_change": "s01-20260930-quality24f -> s01-20260930-quality25a",
+  "scope": "Exact accepted native rear fixture; GPU intentionally rejected by original script."
+}

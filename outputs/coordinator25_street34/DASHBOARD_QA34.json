@@ -1,0 +1,13 @@
+{
+  "status": "PREPARED_NOT_RUN",
+  "owner_qa_sha256": "d3d15e3831fb58aadbb0b5c79ee45dc42d3a92311d784d6a1a5e955b7f64f5f3",
+  "qa_sha256": "8878fc1bc4017bea60fbe835d5bc3248efba418e50a6aa41699b8b01eaa3ccee",
+  "base_source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\rear_lights_20260930\\delivery24d\\test_rear_lights.gd",
+  "base_source_sha256": "1c595b05f900cf05ecefd739598782182021e6ac0edc26b1dd0ca94e29b971f9",
+  "base_qa_sha256": "1faaec9c729ea7d1e0a7e8ba805ac166e401b20aa08ee38009e5483d3c05786c",
+  "added_checks": 17,
+  "native_min_checks": 90,
+  "gpu_min_checks": 105,
+  "physical_space_required": true,
+  "scope": "Final owner GPU88 fixture unchanged native E/F/W/Space/driver/passenger/speed/reload and real notes-overlap checks; both external installers removed. Owner headless73 used older source and is not final-source native proof."
+}

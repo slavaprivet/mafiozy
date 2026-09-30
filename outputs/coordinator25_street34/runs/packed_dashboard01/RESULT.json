@@ -1,0 +1,177 @@
+{
+	"checks": 92,
+	"failures": [],
+	"gpu": false,
+	"report": {
+		"board_front_left": {
+			"actual_seat": "front_left",
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": false,
+				"headlights_on": false,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 9578,
+				"sampled_linear_velocity": "(0.000335, -0.000004, -0.0)",
+				"sampled_speed_mps": 0.000335339427692816,
+				"speed_kmh": 0.00120722193969414,
+				"speed_text": "00",
+				"text_update_count": 0,
+				"update_count": 1,
+				"visible": true
+			},
+			"error": "",
+			"phase": "SEATED"
+		},
+		"board_front_right": {
+			"actual_seat": "front_right",
+			"dashboard": {
+				"driving": false,
+				"handbrake_on": false,
+				"headlights_on": false,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 0,
+				"sampled_linear_velocity": "(0.0, 0.0, 0.0)",
+				"sampled_speed_mps": 0.0,
+				"speed_kmh": 0.0,
+				"speed_text": "00",
+				"text_update_count": 0,
+				"update_count": 0,
+				"visible": false
+			},
+			"error": "",
+			"phase": "SEATED"
+		},
+		"day_brake_capture": {},
+		"day_idle_capture": {},
+		"day_moving_capture": {},
+		"focus_lost": {
+			"driving": true,
+			"handbrake_on": false,
+			"headlights_on": true,
+			"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+			"ready": true,
+			"sampled_at_msec": 11175,
+			"sampled_linear_velocity": "(0.013413, 0.001508, 0.204868)",
+			"sampled_speed_mps": 0.205306723713875,
+			"speed_kmh": 0.739104205369949,
+			"speed_text": "01",
+			"text_update_count": 18,
+			"update_count": 30,
+			"visible": true
+		},
+		"limitations": [
+			"Logical native key-event fixture in the loaded8-building/3-resident preview quarter, not manual keyboard or full-city acceptance."
+		],
+		"native_exit_attempts": [
+			{
+				"accepted_brake": 0.0,
+				"accepted_handbrake": false,
+				"accepted_throttle": 0.0,
+				"attempt": 1,
+				"blocked_transition": false,
+				"body_frozen": false,
+				"braking": false,
+				"capture": true,
+				"error": "",
+				"phase": "ON_FOOT",
+				"physical_e": false,
+				"player_pose": "on_foot",
+				"reverse_beam_visible": false,
+				"reversing": false,
+				"seat": "",
+				"speed_mps": -0.000000138680320560525,
+				"tail_on": true,
+				"token": ""
+			}
+		],
+		"night_brake_capture": {},
+		"night_idle_capture": {},
+		"night_moving_capture": {},
+		"physical_space_supported": true,
+		"speed_observations": [
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": false,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 9578,
+					"sampled_linear_velocity": "(0.000335, -0.000004, -0.0)",
+					"sampled_speed_mps": 0.000335339427692816,
+					"speed_kmh": 0.00120722193969414,
+					"speed_text": "00",
+					"text_update_count": 0,
+					"update_count": 4,
+					"visible": true
+				},
+				"label": "day_idle",
+				"native_linear_velocity": "(0.000335, -0.000004, -0.0)",
+				"native_planar_kmh": 0.00120722193969414
+			},
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": true,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 9890,
+					"sampled_linear_velocity": "(0.004699, -0.001103, -1.143451)",
+					"sampled_speed_mps": 1.14346063137054,
+					"speed_kmh": 4.11645827293396,
+					"speed_text": "04",
+					"text_update_count": 3,
+					"update_count": 9,
+					"visible": true
+				},
+				"label": "day_moving",
+				"native_linear_velocity": "(0.004699, -0.001103, -1.143451)",
+				"native_planar_kmh": 4.11645827293396
+			},
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": true,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 10411,
+					"sampled_linear_velocity": "(0.000272, 0.004403, -0.000001)",
+					"sampled_speed_mps": 0.000272427772870287,
+					"speed_kmh": 0.000980739982333034,
+					"speed_text": "00",
+					"text_update_count": 8,
+					"update_count": 18,
+					"visible": true
+				},
+				"label": "night_idle",
+				"native_linear_velocity": "(0.000272, 0.004403, -0.000001)",
+				"native_planar_kmh": 0.000980739982333034
+			},
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": true,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 10710,
+					"sampled_linear_velocity": "(0.0023, -0.010169, -1.135839)",
+					"sampled_speed_mps": 1.1358414888382,
+					"speed_kmh": 4.0890293598175,
+					"speed_text": "04",
+					"text_update_count": 10,
+					"update_count": 22,
+					"visible": true
+				},
+				"label": "night_moving",
+				"native_linear_velocity": "(0.0023, -0.010169, -1.135839)",
+				"native_planar_kmh": 4.0890293598175
+			}
+		]
+	},
+	"test_sha256": "8878fc1bc4017bea60fbe835d5bc3248efba418e50a6aa41699b8b01eaa3ccee"
+}

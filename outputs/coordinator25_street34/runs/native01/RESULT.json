@@ -1,0 +1,62 @@
+{
+	"checks": 115,
+	"failures": [],
+	"gpu": false,
+	"report": {
+		"before_reload": {
+			"finite_ammo": 7,
+			"lamp_id": "LAMP-9-102",
+			"native_shots": 5,
+			"snapshot": {
+				"break_events": 1,
+				"broken": 1,
+				"debris_processing": false,
+				"debris_slots": 48,
+				"lamps": 8,
+				"lit": 7,
+				"pending_shots": 0,
+				"power": 1.0,
+				"ready": true,
+				"rejected": 4,
+				"sound": {
+					"active": 0,
+					"cache_loads": 1,
+					"capacity": 4,
+					"culled": 0,
+					"max_distance_m": 30.0,
+					"played": 1,
+					"ready": true,
+					"shared_pcm_bytes": 155520,
+					"shared_streams": 3,
+					"stolen": 0,
+					"voices": 4
+				}
+			},
+			"sound": {
+				"active": 0,
+				"cache_loads": 1,
+				"capacity": 4,
+				"culled": 0,
+				"max_distance_m": 30.0,
+				"played": 1,
+				"ready": true,
+				"shared_pcm_bytes": 155520,
+				"shared_streams": 3,
+				"stolen": 0,
+				"voices": 4
+			}
+		},
+		"fixture": {
+			"lamp_id": "LAMP-9-102",
+			"player_position": "(25.75, 0.03, 1.85)",
+			"scope": "One explicit clear-floor setup placement, residents and collision scene unchanged.",
+			"target": "(25.82, 5.605, -5.874)"
+		},
+		"frame_metrics": {},
+		"frame_policy": "First interval of each phase excluded. Actual TT glass phase begins before input and continues for 150 physics frames after release, including the first break frame, full debris/audio lifetime and cleanup. PNG readback/capture and camera changes are outside measured phases. Repeated off/on samples use the same camera/settings with active residents; compare both baselines for drift before attributing a difference to the feature. Frame intervals are observed presentation cadence, not isolated CPU/GPU execution time. Headless is not graphics performance.",
+		"limitations": [
+			"Logical native-input fixture, not manual OS-input acceptance. Loaded preview quarter only, not full-city performance."
+		]
+	},
+	"test_sha256": "21d43c1948e4b6fb52ada715fae63f974e8e6fc830b47bc8b2a3a750c5b40ccc"
+}

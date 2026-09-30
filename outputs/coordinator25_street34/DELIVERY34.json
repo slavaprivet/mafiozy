@@ -1,0 +1,21 @@
+{
+  "status": "EXPORTED_NATIVE_PASS_PACKED_AND_GPU_QA_PENDING",
+  "revision": "s01-20260930-quality25a",
+  "assembly_sha256": "29153935662325aedeeab3c83ab58abeb7110a9aeead593f5e0981b466d36782",
+  "source_count": 279,
+  "native_run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\runs\\native01\\RUN.json",
+  "native_run_sha256": "ebe178a2813a4492958f80b7ec5afbf8042ce0db56827b278edbad5bbd0d346b",
+  "build_receipt": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\candidate34\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality25a\\build_receipt.json",
+  "dashboard_native_run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\runs\\native_dashboard01\\RUN.json",
+  "dashboard_native_run_sha256": "ed86082770d2f50787959232e9e691225bf139443622964549f1bdf61889a113",
+  "build_receipt_sha256": "b7d6f65574c6bb2bcbcfbc42ca14c6233d7ad46465eb9b3b1267956f1250070a",
+  "pck": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\candidate34\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality25a\\MafioziPreview.pck",
+  "pck_sha256": "bfd0a99e6f740ce6581ef8d02ca0464ed73a7c4e71b6324069613e6aa1871910",
+  "exe": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator25_street34\\candidate34\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality25a\\MafioziPreview.exe",
+  "exe_sha256": "d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562",
+  "export_script_sha256": "707f27b055db20b8f346eae70ae0d299f12b5ccf7ab1316433b702e0e71ad648",
+  "raw_audio_exact_check": "Required in run34.py --mode packed, reading all three res://audio/*.bytes",
+  "shared_modified": false,
+  "game_opened": false,
+  "performance_accepted": false
+}

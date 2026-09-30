@@ -1,0 +1,8 @@
+{
+  "reviewed_utc": "2026-09-30T19:25:35.092046+00:00",
+  "scope": "Launcher empty initial log handling only; game53140 preserved, binaries/runtime/rootacceptance unchanged. Prior receipts backed up.",
+  "old_launcher": "7502b2712f0f9953b54164a6da238fc18953abe7e923527b9271f37b8629a1ef",
+  "new_launcher": "3ca03e7d1be633468b9ea2d9a89facb3602c312d574a47f0982e5c490a0f4012",
+  "new_preparation_sha256": "85c7e45be2d74b37a5ac289ec3a4e20761fc2353e20b677285e535c07fe2d744",
+  "new_promotion_sha256": "f23c845b5ac63cd933199f09a546b5bd6a182a358e25c292d0d28ed0c8285dda"
+}

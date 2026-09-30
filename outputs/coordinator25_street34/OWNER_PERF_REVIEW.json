@@ -1,0 +1,901 @@
+{
+  "schema": "mafiozi.root25.owner-perf-readonly-review/v1",
+  "reviewed_utc": "2026-09-30T18:47:49.131900+00:00",
+  "status": "SCOPED_CPU_GAIN_AND_GPU_PARITY_SUPPORTED_FINAL_OWNER_AND_INTEGRATED_PACK_GATES_REMAIN",
+  "method": "Read saved results and scripts, recompute arithmetic and hash files only. No engine/test/process launch, no owner/shared/script edits.",
+  "evidence_sha256": {
+    "outputs/street_lamps_20260930/perf24f/baseline01/RESULT.json": "c883464329c98a29caf27186541327c1b47e8dcd888d261885e2f1af660491e8",
+    "outputs/street_lamps_20260930/perf24f/optimized01/RESULT.json": "02ec5771fb7302ed0b43eca1fddc002d148a48f285c00d82c69c12779c312158",
+    "outputs/street_lamps_20260930/perf24f/DEBRIS_PARITY_RESULT.json": "8e636b61cf13e6d4005f7cfc99174e7fa46bd1a72140cffe0a012ab91dfa88cf",
+    "outputs/street_lamps_20260930/perf24f/debris_parity_gpu01/DEBRIS_PARITY_RESULT.json": "e8b1cb71f71b45bb34168fcdd5f747a7caa755713885ce1574063630e6c90071",
+    "outputs/street_lamps_20260930/perf24f/test_lamp_perf.gd": "ab8dd3c99ab586b7e1c2a9383adaf6e7fcf293a16057cde71440892d8ba016f1",
+    "outputs/street_lamps_20260930/perf24f/test_debris_parity.gd": "fac77a1a1df3b45b43358290490e81014d46fc42f1046b40873aa9b00bdc3d24",
+    "outputs/street_lamps_20260930/perf24f/COMPARISON.json": "b1df97787cdcc9502b2455fd53701c2a72923e4f85cb14aec4def3ed28f430f4",
+    "outputs/street_lamps_20260930/perf24f/ACCEPTANCE.txt": "e3d820d6c208a54a055638f9acc8a218593275517b8f8ea2c74ae70162392c63",
+    "outputs/street_lamps_20260930/perf24f/PARITY_CONTEXT.json": "8c8c1c0ba14a156b5b33661961f8ace4f7b0fc6cdcca8192ddec6e8a65475eaa",
+    "outputs/street_lamps_20260930/perf24f/baseline01_inventory_before.json": "1ea2b1107c51714441e206f957a8caf8364562515d0794c64c63949a957ac527",
+    "outputs/street_lamps_20260930/perf24f/optimized01_inventory_before.json": "1ea2b1107c51714441e206f957a8caf8364562515d0794c64c63949a957ac527",
+    "outputs/street_lamps_20260930/perf24f/optimized01_inventory_after.json": "1ea2b1107c51714441e206f957a8caf8364562515d0794c64c63949a957ac527",
+    "outputs/street_lamps_20260930/recovery24f/package/scripts/quick_controls/street_lamps.gd": "d7330e141e8440118fec7a9014dd3ca1371936bfb58a2be222d72712809ae43b",
+    "outputs/street_lamps_20260930/optimized24f/package/scripts/quick_controls/street_lamps.gd": "d31561e1d2d7eeed00b4afaf7586b2a91a51b5e7688ec9ca6a9edcf331da6e67",
+    "outputs/street_lamps_20260930/recovery24f/test_street_lamps.gd": "3289d0ad6566c513a2468cfbe81b5e6b203bef79e25af0a929cdcacae303b8c4"
+  },
+  "functional": {
+    "baseline_checks": 117,
+    "optimized_checks": 117,
+    "both_failures_empty": true,
+    "both_gpu": true,
+    "optimized_cold_after": {
+      "break_events": 1,
+      "broken": 1,
+      "debris_processing": false,
+      "debris_slots": 48,
+      "lamps": 8,
+      "lit": 7,
+      "pending_shots": 0,
+      "power": 1.0,
+      "ready": true,
+      "rejected": 0,
+      "sound": {
+        "active": 0,
+        "cache_loads": 1,
+        "capacity": 4,
+        "culled": 0,
+        "max_distance_m": 30.0,
+        "played": 1,
+        "ready": true,
+        "shared_pcm_bytes": 155520,
+        "shared_streams": 3,
+        "stolen": 0,
+        "voices": 4
+      }
+    },
+    "optimized_warm_after": {
+      "break_events": 1,
+      "broken": 1,
+      "debris_processing": false,
+      "debris_slots": 48,
+      "lamps": 8,
+      "lit": 7,
+      "pending_shots": 0,
+      "power": 1.0,
+      "ready": true,
+      "rejected": 0,
+      "sound": {
+        "active": 0,
+        "cache_loads": 1,
+        "capacity": 4,
+        "culled": 0,
+        "max_distance_m": 30.0,
+        "played": 1,
+        "ready": true,
+        "shared_pcm_bytes": 155520,
+        "shared_streams": 3,
+        "stolen": 0,
+        "voices": 4
+      }
+    }
+  },
+  "source_binding": {
+    "performance_test_hashes_equal_and_current": true,
+    "performance_helper_hashes_equal_and_current": true,
+    "embedded_performance_test_sha256": "ab8dd3c99ab586b7e1c2a9383adaf6e7fcf293a16057cde71440892d8ba016f1",
+    "embedded_helper_sha256": "3289d0ad6566c513a2468cfbe81b5e6b203bef79e25af0a929cdcacae303b8c4",
+    "production_source_hash_embedded_in_117_results": false,
+    "explanation": "The two117-check files embed only test_sha256 and helper_sha256. Their variant labels and matching test source select baseline/optimized subclasses at explicit relative paths. They do not embed the production street_lamps SHA or base PCK SHA; therefore these files alone cannot cryptographically prove production bytes at measurement time.",
+    "parity_embedded_baseline_sha256": "d7330e141e8440118fec7a9014dd3ca1371936bfb58a2be222d72712809ae43b",
+    "parity_embedded_optimized_sha256": "d31561e1d2d7eeed00b4afaf7586b2a91a51b5e7688ec9ca6a9edcf331da6e67",
+    "current_production_matches_parity": true,
+    "current_package_deltas": [
+      {
+        "path": "scripts/quick_controls/street_lamps.gd",
+        "baseline_sha256": "d7330e141e8440118fec7a9014dd3ca1371936bfb58a2be222d72712809ae43b",
+        "optimized_sha256": "d31561e1d2d7eeed00b4afaf7586b2a91a51b5e7688ec9ca6a9edcf331da6e67"
+      }
+    ],
+    "final_manifest_present_at_review": false,
+    "gate": "Owner final manifest/receipt must bind production pins and performance evidence; Root must verify the integrated25a PCK without external Installer swapping."
+  },
+  "comparability": {
+    "settings_equal_except_variant": true,
+    "settings": {
+      "break_observation_seconds_after_release": 3.0,
+      "buildings": 8,
+      "max_fps": 144,
+      "measure_seconds_per_street_phase": 4.0,
+      "native_shots": 2,
+      "physics_ticks_per_second": 60,
+      "resident_walk_enabled": true,
+      "residents": 3,
+      "viewport": "(1280, 720)",
+      "vsync_mode": 0,
+      "warmup_seconds_per_street_phase": 1.0
+    },
+    "street_camera_exact_match": true,
+    "fixture_exact_match": true,
+    "street_order_exact_match": true,
+    "cold_glass_camera_exact_match": false,
+    "camera_limit": "Glass camera and FOV differ by a few last decimal places; ordinary fixed street transform/FOV match exactly. Active NPC trajectories and per-frame delta schedules were not reset/identical. Same scene size, IDs, settings, native TT input sequence and target are supported; not a deterministic replay.",
+    "native_input": "Both runs use real player/weapon mouse handlers and tt_pistol:1 then tt_pistol:2 terminals on LAMP-9-102; no prior shot before cold glass. Warm fixture explicitly rearms same lamp outside timing.",
+    "inventory_limit": "Saved baseline-before and optimized-before/after contain only project manager45268; baseline-after is absent in this folder; inventory endpoints are not continuous exclusivity proof."
+  },
+  "loaded_debris_cpu": [
+    {
+      "phase": "cold_first_glass",
+      "baseline_debris_usec": {
+        "count": 288,
+        "max": 88.0,
+        "mean": 28.3576388888889,
+        "p50": 26.0,
+        "p95": 44.0,
+        "sum": 8167.0
+      },
+      "optimized_debris_usec": {
+        "count": 288,
+        "max": 73.0,
+        "mean": 21.8680555555556,
+        "p50": 20.0,
+        "p95": 40.0,
+        "sum": 6298.0
+      },
+      "mean_reduction_percent": 22.8847802130524,
+      "baseline_native_terminal_usec": {
+        "count": 1,
+        "max": 121.0,
+        "mean": 121.0,
+        "p50": 121.0,
+        "p95": 121.0,
+        "sum": 121.0
+      },
+      "optimized_native_terminal_usec": {
+        "count": 1,
+        "max": 115.0,
+        "mean": 115.0,
+        "p50": 115.0,
+        "p95": 115.0,
+        "sum": 115.0
+      },
+      "baseline_break_handler_usec": {
+        "count": 1,
+        "max": 99.0,
+        "mean": 99.0,
+        "p50": 99.0,
+        "p95": 99.0,
+        "sum": 99.0
+      },
+      "optimized_break_handler_usec": {
+        "count": 1,
+        "max": 93.0,
+        "mean": 93.0,
+        "p50": 93.0,
+        "p95": 93.0,
+        "sum": 93.0
+      },
+      "raw_cpu_sum_matches_summary": true
+    },
+    {
+      "phase": "warm_same_glass",
+      "baseline_debris_usec": {
+        "count": 288,
+        "max": 67.0,
+        "mean": 28.0034722222222,
+        "p50": 26.0,
+        "p95": 46.0,
+        "sum": 8065.0
+      },
+      "optimized_debris_usec": {
+        "count": 289,
+        "max": 58.0,
+        "mean": 17.3806228373702,
+        "p50": 16.0,
+        "p95": 22.0,
+        "sum": 5023.0
+      },
+      "mean_reduction_percent": 37.93404368056266,
+      "baseline_native_terminal_usec": {
+        "count": 1,
+        "max": 108.0,
+        "mean": 108.0,
+        "p50": 108.0,
+        "p95": 108.0,
+        "sum": 108.0
+      },
+      "optimized_native_terminal_usec": {
+        "count": 1,
+        "max": 151.0,
+        "mean": 151.0,
+        "p50": 151.0,
+        "p95": 151.0,
+        "sum": 151.0
+      },
+      "baseline_break_handler_usec": {
+        "count": 1,
+        "max": 88.0,
+        "mean": 88.0,
+        "p50": 88.0,
+        "p95": 88.0,
+        "sum": 88.0
+      },
+      "optimized_break_handler_usec": {
+        "count": 1,
+        "max": 105.0,
+        "mean": 105.0,
+        "p50": 105.0,
+        "p95": 105.0,
+        "sum": 105.0
+      },
+      "raw_cpu_sum_matches_summary": true
+    }
+  ],
+  "reported_30_percent_validation": {
+    "baseline_combined_usec": 16232.0,
+    "optimized_combined_usec": 11321.0,
+    "baseline_calls": 576,
+    "optimized_calls": 577,
+    "combined_total_reduction_percent": 30.255051749630358,
+    "weighted_mean_reduction_percent": 30.37592687658075,
+    "verdict": "Approximately30% lower measured debris-update CPU is supported across the two loaded break windows. It is not30% lower whole-game frame time; cold/warm separately differ."
+  },
+  "frame_comparison": [
+    {
+      "phase": "street_A_without_before",
+      "baseline": {
+        "frame_ms": {
+          "count": 576,
+          "max": 13.455,
+          "mean": 6.94018576388889,
+          "p50": 6.998,
+          "p95": 10.412,
+          "sum": 3997.547
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1375.0,
+          "mean": 1368.69444444444,
+          "p50": 1367.0,
+          "p95": 1374.0,
+          "sum": 788368.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 478182.0,
+          "mean": 467222.315972222,
+          "p50": 468404.0,
+          "p95": 473088.0,
+          "sum": 269120054.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 219085839.0,
+          "mean": 218731050.201389,
+          "p50": 218731667.0,
+          "p95": 219052427.0,
+          "sum": 125989084916.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331246592.0,
+          "mean": 331246592.0,
+          "p50": 331246592.0,
+          "p95": 331246592.0,
+          "sum": 190798036992.0
+        }
+      },
+      "optimized": {
+        "frame_ms": {
+          "count": 576,
+          "max": 14.131,
+          "mean": 6.93934201388889,
+          "p50": 6.989,
+          "p95": 10.434,
+          "sum": 3997.061
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1375.0,
+          "mean": 1368.57465277778,
+          "p50": 1367.0,
+          "p95": 1374.0,
+          "sum": 788299.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 478182.0,
+          "mean": 467333.697916667,
+          "p50": 470274.0,
+          "p95": 473088.0,
+          "sum": 269184210.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 221149682.0,
+          "mean": 220795269.041667,
+          "p50": 220795654.0,
+          "p95": 221116270.0,
+          "sum": 127178074968.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331265936.0,
+          "mean": 331265936.0,
+          "p50": 331265936.0,
+          "p95": 331265936.0,
+          "sum": 190809179136.0
+        }
+      },
+      "optimized_minus_baseline": {
+        "p95_ms": 0.021999999999998465,
+        "drawcalls_mean": -0.11979166665992125,
+        "static_bytes_mean": 2064218.8402779996
+      }
+    },
+    {
+      "phase": "street_B_with_first",
+      "baseline": {
+        "frame_ms": {
+          "count": 576,
+          "max": 13.787,
+          "mean": 6.94396875,
+          "p50": 6.869,
+          "p95": 10.395,
+          "sum": 3999.726
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1406.0,
+          "mean": 1403.28993055556,
+          "p50": 1403.0,
+          "p95": 1404.0,
+          "sum": 808295.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 503323.0,
+          "mean": 494796.1875,
+          "p50": 493969.0,
+          "p95": 501723.0,
+          "sum": 285002604.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 221237466.0,
+          "mean": 220877005.1875,
+          "p50": 220873882.0,
+          "p95": 221204054.0,
+          "sum": 127225154988.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331251536.0,
+          "mean": 331251536.0,
+          "p50": 331251536.0,
+          "p95": 331251536.0,
+          "sum": 190800884736.0
+        }
+      },
+      "optimized": {
+        "frame_ms": {
+          "count": 576,
+          "max": 12.966,
+          "mean": 6.94181944444444,
+          "p50": 6.968,
+          "p95": 10.643,
+          "sum": 3998.488
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1407.0,
+          "mean": 1403.33680555556,
+          "p50": 1403.0,
+          "p95": 1405.0,
+          "sum": 808322.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 503757.0,
+          "mean": 494895.027777778,
+          "p50": 493969.0,
+          "p95": 502125.0,
+          "sum": 285059536.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 223301501.0,
+          "mean": 222941114.243056,
+          "p50": 222940761.0,
+          "p95": 223268089.0,
+          "sum": 128414081804.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331270880.0,
+          "mean": 331270880.0,
+          "p50": 331270880.0,
+          "p95": 331270880.0,
+          "sum": 190812026880.0
+        }
+      },
+      "optimized_minus_baseline": {
+        "p95_ms": 0.2480000000000011,
+        "drawcalls_mean": 0.046875,
+        "static_bytes_mean": 2064109.0555559993
+      }
+    },
+    {
+      "phase": "street_A_without_after",
+      "baseline": {
+        "frame_ms": {
+          "count": 576,
+          "max": 12.573,
+          "mean": 6.93924826388889,
+          "p50": 6.924,
+          "p95": 10.12,
+          "sum": 3997.007
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1400.0,
+          "mean": 1373.29861111111,
+          "p50": 1373.0,
+          "p95": 1399.0,
+          "sum": 791020.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 498890.0,
+          "mean": 471728.644097222,
+          "p50": 471722.0,
+          "p95": 495947.0,
+          "sum": 271715699.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 220504167.0,
+          "mean": 220153635.027778,
+          "p50": 220154099.0,
+          "p95": 220470755.0,
+          "sum": 126808493776.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331246592.0,
+          "mean": 331246592.0,
+          "p50": 331246592.0,
+          "p95": 331246592.0,
+          "sum": 190798036992.0
+        }
+      },
+      "optimized": {
+        "frame_ms": {
+          "count": 576,
+          "max": 12.282,
+          "mean": 6.93857291666666,
+          "p50": 6.961,
+          "p95": 10.456,
+          "sum": 3996.618
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1402.0,
+          "mean": 1373.60243055556,
+          "p50": 1373.0,
+          "p95": 1400.0,
+          "sum": 791195.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 496363.0,
+          "mean": 471770.779513889,
+          "p50": 471722.0,
+          "p95": 496115.0,
+          "sum": 271739969.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 222571174.0,
+          "mean": 222217566.833333,
+          "p50": 222217990.0,
+          "p95": 222534574.0,
+          "sum": 127997318496.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331265936.0,
+          "mean": 331265936.0,
+          "p50": 331265936.0,
+          "p95": 331265936.0,
+          "sum": 190809179136.0
+        }
+      },
+      "optimized_minus_baseline": {
+        "p95_ms": 0.3360000000000003,
+        "drawcalls_mean": 0.30381944445002773,
+        "static_bytes_mean": 2063931.805554986
+      }
+    },
+    {
+      "phase": "street_B_with_final",
+      "baseline": {
+        "frame_ms": {
+          "count": 576,
+          "max": 12.43,
+          "mean": 6.94093923611111,
+          "p50": 6.936,
+          "p95": 10.179,
+          "sum": 3997.981
+        },
+        "drawcalls": {
+          "count": 576,
+          "max": 1402.0,
+          "mean": 1395.34722222222,
+          "p50": 1394.0,
+          "p95": 1400.0,
+          "sum": 803720.0
+        },
+        "primitives": {
+          "count": 576,
+          "max": 519605.0,
+          "mean": 494571.28125,
+          "p50": 491099.0,
+          "p95": 518805.0,
+          "sum": 284873058.0
+        },
+        "static_bytes": {
+          "count": 576,
+          "max": 222656306.0,
+          "mean": 222301422.159722,
+          "p50": 222300186.0,
+          "p95": 222619194.0,
+          "sum": 128045619164.0
+        },
+        "render_video_bytes": {
+          "count": 576,
+          "max": 331251536.0,
+          "mean": 331251536.0,
+          "p50": 331251536.0,
+          "p95": 331251536.0,
+          "sum": 190800884736.0
+        }
+      },
+      "optimized": {
+        "frame_ms": {
+          "count": 575,
+          "max": 13.41,
+          "mean": 6.94012173913043,
+          "p50": 6.967,
+          "p95": 10.544,
+          "sum": 3990.57
+        },
+        "drawcalls": {
+          "count": 575,
+          "max": 1402.0,
+          "mean": 1395.48347826087,
+          "p50": 1394.0,
+          "p95": 1400.0,
+          "sum": 802403.0
+        },
+        "primitives": {
+          "count": 575,
+          "max": 519605.0,
+          "mean": 494980.328695652,
+          "p50": 491099.0,
+          "p95": 518805.0,
+          "sum": 284613689.0
+        },
+        "static_bytes": {
+          "count": 575,
+          "max": 224719169.0,
+          "mean": 224364915.622609,
+          "p50": 224363633.0,
+          "p95": 224683077.0,
+          "sum": 129009826483.0
+        },
+        "render_video_bytes": {
+          "count": 575,
+          "max": 331270880.0,
+          "mean": 331270880.0,
+          "p50": 331270880.0,
+          "p95": 331270880.0,
+          "sum": 190480756000.0
+        }
+      },
+      "optimized_minus_baseline": {
+        "p95_ms": 0.3650000000000002,
+        "drawcalls_mean": 0.13625603865011726,
+        "static_bytes_mean": 2063493.4628869891
+      }
+    },
+    {
+      "phase": "cold_first_glass",
+      "baseline": {
+        "frame_ms": {
+          "count": 442,
+          "max": 13.327,
+          "mean": 6.94135067873303,
+          "p50": 7.024,
+          "p95": 11.122,
+          "sum": 3068.077
+        },
+        "drawcalls": {
+          "count": 442,
+          "max": 407.0,
+          "mean": 383.16742081448,
+          "p50": 384.0,
+          "p95": 401.0,
+          "sum": 169360.0
+        },
+        "primitives": {
+          "count": 442,
+          "max": 161550.0,
+          "mean": 151220.425339367,
+          "p50": 151574.0,
+          "p95": 159918.0,
+          "sum": 66839428.0
+        },
+        "static_bytes": {
+          "count": 442,
+          "max": 223758286.0,
+          "mean": 223415212.39819,
+          "p50": 223429978.0,
+          "p95": 223731906.0,
+          "sum": 98749523880.0
+        },
+        "render_video_bytes": {
+          "count": 442,
+          "max": 331437392.0,
+          "mean": 331397963.692308,
+          "p50": 331397696.0,
+          "p95": 331397696.0,
+          "sum": 146477899952.0
+        }
+      },
+      "optimized": {
+        "frame_ms": {
+          "count": 442,
+          "max": 13.829,
+          "mean": 6.94263122171946,
+          "p50": 7.0,
+          "p95": 10.974,
+          "sum": 3068.643
+        },
+        "drawcalls": {
+          "count": 442,
+          "max": 407.0,
+          "mean": 383.015837104072,
+          "p50": 384.0,
+          "p95": 401.0,
+          "sum": 169293.0
+        },
+        "primitives": {
+          "count": 442,
+          "max": 161550.0,
+          "mean": 151098.515837104,
+          "p50": 151574.0,
+          "p95": 159918.0,
+          "sum": 66785544.0
+        },
+        "static_bytes": {
+          "count": 442,
+          "max": 225821673.0,
+          "mean": 225478534.773756,
+          "p50": 225496541.0,
+          "p95": 225795149.0,
+          "sum": 99661512370.0
+        },
+        "render_video_bytes": {
+          "count": 442,
+          "max": 331456736.0,
+          "mean": 331417307.692308,
+          "p50": 331417040.0,
+          "p95": 331417040.0,
+          "sum": 146486450000.0
+        }
+      },
+      "optimized_minus_baseline": {
+        "p95_ms": -0.1479999999999997,
+        "drawcalls_mean": -0.1515837104080333,
+        "static_bytes_mean": 2063322.3755660057
+      }
+    },
+    {
+      "phase": "warm_same_glass",
+      "baseline": {
+        "frame_ms": {
+          "count": 441,
+          "max": 13.489,
+          "mean": 6.94329251700681,
+          "p50": 6.95,
+          "p95": 11.267,
+          "sum": 3061.992
+        },
+        "drawcalls": {
+          "count": 441,
+          "max": 403.0,
+          "mean": 382.460317460317,
+          "p50": 380.0,
+          "p95": 397.0,
+          "sum": 168665.0
+        },
+        "primitives": {
+          "count": 441,
+          "max": 144898.0,
+          "mean": 142085.056689342,
+          "p50": 141638.0,
+          "p95": 144898.0,
+          "sum": 62659510.0
+        },
+        "static_bytes": {
+          "count": 441,
+          "max": 224550326.0,
+          "mean": 224204821.029478,
+          "p50": 224219990.0,
+          "p95": 224524542.0,
+          "sum": 98874326074.0
+        },
+        "render_video_bytes": {
+          "count": 441,
+          "max": 331437392.0,
+          "mean": 331397964.29932,
+          "p50": 331397696.0,
+          "p95": 331397696.0,
+          "sum": 146146502256.0
+        }
+      },
+      "optimized": {
+        "frame_ms": {
+          "count": 442,
+          "max": 14.009,
+          "mean": 6.9430113122172,
+          "p50": 6.957,
+          "p95": 10.761,
+          "sum": 3068.811
+        },
+        "drawcalls": {
+          "count": 442,
+          "max": 403.0,
+          "mean": 382.425339366516,
+          "p50": 380.0,
+          "p95": 397.0,
+          "sum": 169032.0
+        },
+        "primitives": {
+          "count": 442,
+          "max": 144898.0,
+          "mean": 142083.701357466,
+          "p50": 141638.0,
+          "p95": 144898.0,
+          "sum": 62800996.0
+        },
+        "static_bytes": {
+          "count": 442,
+          "max": 226614161.0,
+          "mean": 226267546.909502,
+          "p50": 226282569.0,
+          "p95": 226588377.0,
+          "sum": 100010255734.0
+        },
+        "render_video_bytes": {
+          "count": 442,
+          "max": 331456736.0,
+          "mean": 331417307.692308,
+          "p50": 331417040.0,
+          "p95": 331417040.0,
+          "sum": 146486450000.0
+        }
+      },
+      "optimized_minus_baseline": {
+        "p95_ms": -0.5060000000000002,
+        "drawcalls_mean": -0.03497809380098715,
+        "static_bytes_mean": 2062725.880023986
+      }
+    }
+  ],
+  "feature_on_off_cost": [
+    {
+      "run": "baseline",
+      "mean_on_p95_minus_mean_off_p95_ms": 0.02099999999999902,
+      "delta": {
+        "static_bytes": {
+          "mean_on_minus_mean_off": 2146871.059027478,
+          "Bfirst_minus_interpolated_A": 1434662.5729165077,
+          "Bfinal_minus_extrapolated_A": 1436494.7187494934
+        },
+        "drawcalls": {
+          "mean_on_minus_mean_off": 28.322048611115065,
+          "Bfirst_minus_interpolated_A": 32.29340277778488,
+          "Bfinal_minus_extrapolated_A": 19.7465277777751
+        },
+        "primitives": {
+          "mean_on_minus_mean_off": 25208.254340277985,
+          "Bfirst_minus_interpolated_A": 25320.707465277985,
+          "Bfinal_minus_extrapolated_A": 20589.473090277985
+        },
+        "render_video_bytes": {
+          "mean_on_minus_mean_off": 4944.0,
+          "Bfirst_minus_interpolated_A": 4944.0,
+          "Bfinal_minus_extrapolated_A": 4944.0
+        }
+      }
+    },
+    {
+      "run": "optimized",
+      "mean_on_p95_minus_mean_off_p95_ms": 0.1485000000000012,
+      "delta": {
+        "static_bytes": {
+          "mean_on_minus_mean_off": 2146596.9953324795,
+          "Bfirst_minus_interpolated_A": 1434696.3055559993,
+          "Bfinal_minus_extrapolated_A": 1436199.8934430182
+        },
+        "drawcalls": {
+          "mean_on_minus_mean_off": 28.321600241544843,
+          "Bfirst_minus_interpolated_A": 32.248263888889824,
+          "Bfinal_minus_extrapolated_A": 19.367158816420215
+        },
+        "primitives": {
+          "mean_on_minus_mean_off": 25385.439521437045,
+          "Bfirst_minus_interpolated_A": 25342.7890625,
+          "Bfinal_minus_extrapolated_A": 20991.008383152017
+        },
+        "render_video_bytes": {
+          "mean_on_minus_mean_off": 4944.0,
+          "Bfirst_minus_interpolated_A": 4944.0,
+          "Bfinal_minus_extrapolated_A": 4944.0
+        }
+      }
+    }
+  ],
+  "feature_cost_limits": [
+    "Memory interpolation/extrapolation assumes linear temporal drift; raw unadjusted values retained above. Absolute optimized-process static memory is about2.063MB higher even without lamps, so attributing all of that to the code change is invalid.",
+    "Mean on/off draw delta is roughly28.32 calls in both runs; primitives/video-memory values are retained, with moving residents causing small variation.",
+    "Optimized street on p95 is10.643/10.544ms versus off10.434/10.456ms; no whole-scene speedup is demonstrated.144fps cap constrains cadence and monitors are not direct GPU timestamp/CPU frame traces."
+  ],
+  "parity": {
+    "headless_checks": 2639,
+    "headless_failure_count": 303,
+    "headless_benchmark_skipped": "Parity/sanity failure; performance cannot support accepting changed behavior.",
+    "headless_zero_difference_is_invalid": "Dummy MultiMesh readback sanity failed; do not cite its zero mismatch as parity PASS.",
+    "real_renderer_checks": 4894,
+    "real_renderer_failures": [],
+    "display_server": "Windows",
+    "actual_transform_comparison": {
+      "ages_seconds": [
+        0.0,
+        0.016666666666667,
+        0.1,
+        0.37,
+        0.8,
+        1.3,
+        1.54999,
+        1.55,
+        1.55001,
+        1.8,
+        1.9999,
+        2.0
+      ],
+      "burst_slots": 4,
+      "count": 3984,
+      "exact_mismatch_count": 0,
+      "max_absolute_component_difference": 0.0,
+      "pool": 48
+    },
+    "isolated_cpu_baseline_p50_usec": 53.25,
+    "isolated_cpu_optimized_p50_usec": 26.4375,
+    "isolated_cpu_p50_reduction_percent": 50.352112676056336,
+    "result_test_sha256": "27a22cb6b0c94edb89b73036c56370ffa956a385d629a290b4022b0cf8deb60c",
+    "current_test_sha256": "fac77a1a1df3b45b43358290490e81014d46fc42f1046b40873aa9b00bdc3d24",
+    "current_test_matches_result": false,
+    "description_change_note": "PARITY_CONTEXT.json documents correction of textual headless description after the successful Windows/Vulkan run. Current test source SHA differs from recorded27a22...; preserve result and historical test pin, do not silently call current source the tested bytes. Production baseline/optimized hashes do match."
+  },
+  "cold_metal_limit": {
+    "observed_original_max_ms": 148.914,
+    "second_original_spike_ms": 30.853,
+    "resolved": false,
+    "reason": "Matched117 runs deliberately fire first at glass, not metal. Glass maxima13.327/13.489ms baseline and13.829/14.009ms optimized do not test recurrence or root cause of the previous first-metal149ms event. It remains an unattributed cold-start limitation."
+  },
+  "remaining_gates": [
+    "Final owner immutable manifest, production/evidence pins and explicit RELEASED window.",
+    "Root integrated ordinary25a native/packed/GPU resource/audio/behavior verification, preserving candidate31 mechanics.",
+    "Read visual screenshots and evaluate actual full-scene cost; audio native playback is verified but listening quality remains untested.",
+    "First-metal cold-start cause remains unresolved; do not advertise it as fixed."
+  ]
+}

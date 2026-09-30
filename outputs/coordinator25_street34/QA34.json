@@ -1,0 +1,14 @@
+{
+  "status": "PREPARED_NOT_RUN",
+  "assembly_sha256": "29153935662325aedeeab3c83ab58abeb7110a9aeead593f5e0981b466d36782",
+  "owner_qa_sha256": "3289d0ad6566c513a2468cfbe81b5e6b203bef79e25af0a929cdcacae303b8c4",
+  "qa_sha256": "21d43c1948e4b6fb52ada715fae63f974e8e6fc830b47bc8b2a3a750c5b40ccc",
+  "prepare_sha256": "c1c91a21132fa733fcf50f0f1618331518a129a1b034579b5b332879886c858c",
+  "rear_qa_sha256": "22f19557caba049a20ca148239598d00887a15df4bae02e29131c78875d4b030",
+  "dashboard_qa_sha256": "8878fc1bc4017bea60fbe835d5bc3248efba418e50a6aa41699b8b01eaa3ccee",
+  "dashboard_base_sha256": "1faaec9c729ea7d1e0a7e8ba805ac166e401b20aa08ee38009e5483d3c05786c",
+  "dashboard_native_min_checks": 90,
+  "dashboard_gpu_min_checks": 105,
+  "scope": "Final owner real-TT lamp and driver dashboard suites retained; all subclass/base installers removed; real integrated revision/notes/resources/audio guarded. Dashboard native and GPU require actual accepted Space input, not fallback control fixture.",
+  "performance_accepted": false
+}

@@ -1,0 +1,69 @@
+{
+  "status": "PREPARED_NOT_APPLIED_NOT_LAUNCHED",
+  "created_utc": "2026-09-30T19:21:48.340735+00:00",
+  "revision": "s01-20260930-quality25a",
+  "changes": {
+    "audio/street_glass_break_01.bytes": {
+      "before": null,
+      "after": "6ce9ebf4036f856e42181a224d9a7a01e2783ca8a23b8f4fc51a510accaaaf56"
+    },
+    "audio/street_glass_break_02.bytes": {
+      "before": null,
+      "after": "9e92dafb70f165ac5b12581b65f95203b17ee66a43b9c5494b0af7585da71168"
+    },
+    "audio/street_glass_break_03.bytes": {
+      "before": null,
+      "after": "f05f418fb070369723b597a8a7d54a801b69aac007dcb650ee131e711b5ac22e"
+    },
+    "data/preview_updates.json": {
+      "before": "10aaf75db9dcadd9b67396f99431262f9c231bc4905001c3eb28fd171fa8004e",
+      "after": "40c5ecdd84c84d6d1a636cb878a142294632afb8aea7a15ae30a88a722e1b690"
+    },
+    "export_presets.cfg": {
+      "before": "3c4b42fd5206740cf97401c5bb174a1cddce0c5388de4dcd4623790f55d70b57",
+      "after": "9f77ada6c3b7bc9ffde8fdfb37ed40afa0983c38b8016b4e6684470b3f85ca99"
+    },
+    "scripts/main.gd": {
+      "before": "64e6b9b63c30583128f55be760a0fdf024133c7aa2e2a21ea0e916876cd118b8",
+      "after": "21ce1e910d15e59376cc14020b3ddfd55233a42b9d04084c716bb3276b31d114"
+    },
+    "scripts/quick_controls/car_dashboard.gd": {
+      "before": null,
+      "after": "35c0b127ee73e5855e4a4c22e65ee2072443d828ea8d16087532144ff8d13be5"
+    },
+    "scripts/quick_controls/quick_controls.gd": {
+      "before": "2f594c25c547b261fe2740ee548cfb535735569e004c2ac9b7ea7ae6c360352e",
+      "after": "4cd2207fd28e8941c719d566a9017b4fb81de12cb0c5919ab2fd8e6cca2a7714"
+    },
+    "scripts/quick_controls/scene_hook.gd": {
+      "before": "d7d56ffefbb77ec1485dcfec03a80e2448ba56b669bd8263b26d2657cd519a3e",
+      "after": "c057a05622ce627db6e25ca54ceb3995de950b0ce2d36f687bf3f801a86bd57d"
+    },
+    "scripts/quick_controls/street_glass_sound.gd": {
+      "before": null,
+      "after": "f7afc190e719fe06a6d93c40625f399510ff1bf413c2286d8985f6d68309e704"
+    },
+    "scripts/quick_controls/street_lamp_visual.gd": {
+      "before": null,
+      "after": "c1f04d7d67c286f84dcf047c71cce6e06bb34acc78fbd50c5562b86ed7f017ec"
+    },
+    "scripts/quick_controls/street_lamps.gd": {
+      "before": null,
+      "after": "d31561e1d2d7eeed00b4afaf7586b2a91a51b5e7688ec9ca6a9edcf331da6e67"
+    }
+  },
+  "assembly_sha256": "29153935662325aedeeab3c83ab58abeb7110a9aeead593f5e0981b466d36782",
+  "delivery_sha256": "fa6c5223ff300520ca2201320064791f210e79fbaef21ac2fcf38c6c88ab68fe",
+  "acceptance_sha256": "9507234142e48f407128bce54ed00b2faa347ff7c5c56a86ae657f0d806abe33",
+  "script_sha256": "b8955ef9013e188d4a6c664c316475f42ea2892e716788dbd3a0f7ebba3fd621",
+  "launcher_sha256": "3ca03e7d1be633468b9ea2d9a89facb3602c312d574a47f0982e5c490a0f4012",
+  "build_receipt_sha256": "b7d6f65574c6bb2bcbcfbc42ca14c6233d7ad46465eb9b3b1267956f1250070a",
+  "pck_sha256": "bfd0a99e6f740ce6581ef8d02ca0464ed73a7c4e71b6324069613e6aa1871910",
+  "exe_sha256": "d34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562",
+  "review_files": {
+    "PROMOTION.patch": "67a6b3717498a0c94e19b24a80a871e7d147bccc6d7f47d5943782bb4b8c8c2b",
+    "RUNTIME_GIT_FILELIST.txt": "6b1b84b97fc648b97c39d1a51914558a5fbc3d2bdf94695aa8034c1204b6d141",
+    "SOURCE_PINS.json": "234bccf1e8d1ed12715b118bbb28e3aa3b0b5f5479744a3b9e3f6f4dcbfc233e"
+  },
+  "shared_modified": false
+}

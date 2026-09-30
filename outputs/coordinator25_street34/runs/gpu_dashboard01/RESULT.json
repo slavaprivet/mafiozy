@@ -1,0 +1,7292 @@
+{
+	"checks": 105,
+	"failures": [],
+	"gpu": true,
+	"report": {
+		"board_front_left": {
+			"actual_seat": "front_left",
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": false,
+				"headlights_on": false,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 13478,
+				"sampled_linear_velocity": "(0.000335, -0.000003, -0.0)",
+				"sampled_speed_mps": 0.000335336080752313,
+				"speed_kmh": 0.00120720989070833,
+				"speed_text": "00",
+				"text_update_count": 0,
+				"update_count": 1,
+				"visible": true
+			},
+			"error": "",
+			"phase": "SEATED"
+		},
+		"board_front_right": {
+			"actual_seat": "front_right",
+			"dashboard": {
+				"driving": false,
+				"handbrake_on": false,
+				"headlights_on": false,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 0,
+				"sampled_linear_velocity": "(0.0, 0.0, 0.0)",
+				"sampled_speed_mps": 0.0,
+				"speed_kmh": 0.0,
+				"speed_text": "00",
+				"text_update_count": 0,
+				"update_count": 0,
+				"visible": false
+			},
+			"error": "",
+			"phase": "SEATED"
+		},
+		"day_brake_capture": {
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": true,
+				"headlights_on": true,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 14167,
+				"sampled_linear_velocity": "(0.008599, 0.006758, -0.881424)",
+				"sampled_speed_mps": 0.881465911865234,
+				"speed_kmh": 3.17327728271484,
+				"speed_text": "03",
+				"text_update_count": 7,
+				"update_count": 21,
+				"visible": true
+			},
+			"path": "day_brake.png",
+			"viewport": "(1280, 720)"
+		},
+		"day_idle_capture": {
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": false,
+				"headlights_on": false,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 13561,
+				"sampled_linear_velocity": "(0.000335, 0.000001, -0.0)",
+				"sampled_speed_mps": 0.000335330929374322,
+				"speed_kmh": 0.00120719134574756,
+				"speed_text": "00",
+				"text_update_count": 0,
+				"update_count": 7,
+				"visible": true
+			},
+			"path": "day_idle.png",
+			"viewport": "(1280, 720)"
+		},
+		"day_moving_capture": {
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": false,
+				"headlights_on": true,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 13998,
+				"sampled_linear_velocity": "(0.006796, -0.00922, -1.729844)",
+				"sampled_speed_mps": 1.72985756397247,
+				"speed_kmh": 6.2274872303009,
+				"speed_text": "06",
+				"text_update_count": 4,
+				"update_count": 16,
+				"visible": true
+			},
+			"path": "day_moving.png",
+			"viewport": "(1280, 720)"
+		},
+		"focus_lost": {
+			"driving": true,
+			"handbrake_on": false,
+			"headlights_on": true,
+			"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+			"ready": true,
+			"sampled_at_msec": 15964,
+			"sampled_linear_velocity": "(0.011868, 0.00963, 0.088605)",
+			"sampled_speed_mps": 0.0893960520625114,
+			"speed_kmh": 0.321825787425041,
+			"speed_text": "00",
+			"text_update_count": 21,
+			"update_count": 51,
+			"visible": true
+		},
+		"hud_cost": {
+			"camera": "[X: (-0.0, 0.0, 1.0), Y: (0.237703, 0.971338, 0.0), Z: (-0.971338, 0.237703, -0.0), O: (31.70363, 2.708217, -11.78848)]",
+			"fov": 65.0,
+			"policy": "One paired HUD off/on measurement at fixed native-view camera and same1280x720/144fps,1s warmup+3s observed per state. No vehicle freeze, actor removal, scene pause or disabled residents. Active-world drift is possible; capped wall frames do not isolate CPU/GPU work. PNG capture excluded.",
+			"vehicle_displacement_m": 0.00964331906288862,
+			"viewport": "(1280, 720)",
+			"with": {
+				"drawcalls": {
+					"count": 432,
+					"max": 773.0,
+					"p50": 771.0,
+					"p95": 773.0
+				},
+				"engine_physics_ms": {
+					"count": 432,
+					"max": 5.342,
+					"p50": 3.893,
+					"p95": 5.342
+				},
+				"engine_process_ms": {
+					"count": 432,
+					"max": 3.624,
+					"p50": 2.198,
+					"p95": 3.624
+				},
+				"frame_ms": {
+					"count": 432,
+					"max": 11.226,
+					"p50": 6.892,
+					"p95": 10.296
+				},
+				"primitives": {
+					"count": 432,
+					"max": 448072.0,
+					"p50": 442990.0,
+					"p95": 448072.0
+				},
+				"samples": [
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.913,
+						"primitives": 448072.0,
+						"static_bytes": 221385659.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.617,
+						"primitives": 448072.0,
+						"static_bytes": 221386527.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.686,
+						"primitives": 448072.0,
+						"static_bytes": 221387315.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.643,
+						"primitives": 448072.0,
+						"static_bytes": 221388127.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.18,
+						"primitives": 448072.0,
+						"static_bytes": 221388963.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.887,
+						"primitives": 448072.0,
+						"static_bytes": 221389751.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.859,
+						"primitives": 448072.0,
+						"static_bytes": 221390611.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.673,
+						"primitives": 448072.0,
+						"static_bytes": 221391399.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.946,
+						"primitives": 448072.0,
+						"static_bytes": 221392187.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.86,
+						"primitives": 448072.0,
+						"static_bytes": 221393071.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.992,
+						"primitives": 448072.0,
+						"static_bytes": 221393859.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.937,
+						"primitives": 448072.0,
+						"static_bytes": 221394647.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.937,
+						"primitives": 448072.0,
+						"static_bytes": 221395435.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.04,
+						"primitives": 448072.0,
+						"static_bytes": 221396367.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.844,
+						"primitives": 448072.0,
+						"static_bytes": 221397155.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.888,
+						"primitives": 448072.0,
+						"static_bytes": 221397943.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.007,
+						"primitives": 448072.0,
+						"static_bytes": 221398731.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.927,
+						"primitives": 448072.0,
+						"static_bytes": 221399519.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.339,
+						"primitives": 448072.0,
+						"static_bytes": 221400307.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.485,
+						"primitives": 448072.0,
+						"static_bytes": 221401311.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 7.097,
+						"primitives": 448072.0,
+						"static_bytes": 221402099.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.062,
+						"primitives": 448072.0,
+						"static_bytes": 221402887.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.802,
+						"primitives": 448072.0,
+						"static_bytes": 221403675.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.645,
+						"primitives": 448072.0,
+						"static_bytes": 221404463.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.115,
+						"primitives": 448072.0,
+						"static_bytes": 221405251.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.599,
+						"primitives": 448072.0,
+						"static_bytes": 221406039.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.366,
+						"primitives": 448072.0,
+						"static_bytes": 221406827.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.922,
+						"primitives": 448072.0,
+						"static_bytes": 221407615.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.337,
+						"primitives": 448072.0,
+						"static_bytes": 221408739.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.919,
+						"primitives": 448072.0,
+						"static_bytes": 221409527.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.64,
+						"primitives": 448072.0,
+						"static_bytes": 221410315.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.922,
+						"primitives": 448072.0,
+						"static_bytes": 221411103.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.813,
+						"primitives": 448072.0,
+						"static_bytes": 221411891.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.806,
+						"primitives": 448072.0,
+						"static_bytes": 221412679.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.603,
+						"primitives": 448072.0,
+						"static_bytes": 221413467.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.003,
+						"primitives": 448072.0,
+						"static_bytes": 221414255.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.421,
+						"primitives": 448072.0,
+						"static_bytes": 221415043.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.867,
+						"primitives": 448072.0,
+						"static_bytes": 221415831.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.647,
+						"primitives": 448072.0,
+						"static_bytes": 221416619.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.549,
+						"primitives": 448072.0,
+						"static_bytes": 221417407.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.371,
+						"primitives": 448072.0,
+						"static_bytes": 221418195.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.699,
+						"primitives": 448072.0,
+						"static_bytes": 221418983.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.824,
+						"primitives": 448072.0,
+						"static_bytes": 221420275.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.289,
+						"primitives": 448072.0,
+						"static_bytes": 221421063.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.616,
+						"primitives": 448072.0,
+						"static_bytes": 221421851.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 11.165,
+						"primitives": 448072.0,
+						"static_bytes": 221422639.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.392,
+						"primitives": 448072.0,
+						"static_bytes": 221423427.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 8.838,
+						"primitives": 448072.0,
+						"static_bytes": 221424215.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.439,
+						"primitives": 448072.0,
+						"static_bytes": 221425003.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.376,
+						"primitives": 448072.0,
+						"static_bytes": 221425791.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.56,
+						"primitives": 448072.0,
+						"static_bytes": 221426579.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.688,
+						"primitives": 448072.0,
+						"static_bytes": 221427367.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.709,
+						"primitives": 448072.0,
+						"static_bytes": 221428155.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.231,
+						"primitives": 448072.0,
+						"static_bytes": 221428943.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.737,
+						"primitives": 448072.0,
+						"static_bytes": 221429731.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.059,
+						"primitives": 448072.0,
+						"static_bytes": 221430519.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.889,
+						"primitives": 448072.0,
+						"static_bytes": 221431307.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.68,
+						"primitives": 448072.0,
+						"static_bytes": 221432095.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.198,
+						"primitives": 448072.0,
+						"static_bytes": 221432883.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.739,
+						"primitives": 448072.0,
+						"static_bytes": 221433671.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.13,
+						"primitives": 448072.0,
+						"static_bytes": 221434459.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.079,
+						"primitives": 448072.0,
+						"static_bytes": 221435247.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.806,
+						"primitives": 448072.0,
+						"static_bytes": 221436035.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.954,
+						"primitives": 448072.0,
+						"static_bytes": 221437567.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.019,
+						"primitives": 448072.0,
+						"static_bytes": 221438355.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.976,
+						"primitives": 448072.0,
+						"static_bytes": 221439143.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.582,
+						"primitives": 448072.0,
+						"static_bytes": 221439931.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.314,
+						"primitives": 448072.0,
+						"static_bytes": 221440719.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.796,
+						"primitives": 448072.0,
+						"static_bytes": 221441507.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.844,
+						"primitives": 448072.0,
+						"static_bytes": 221442295.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.294,
+						"primitives": 448072.0,
+						"static_bytes": 221443083.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.489,
+						"primitives": 448072.0,
+						"static_bytes": 221443871.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.295,
+						"primitives": 448072.0,
+						"static_bytes": 221444659.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.758,
+						"primitives": 448072.0,
+						"static_bytes": 221445447.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.016,
+						"primitives": 448072.0,
+						"static_bytes": 221446235.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.911,
+						"primitives": 448072.0,
+						"static_bytes": 221447023.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.785,
+						"primitives": 448072.0,
+						"static_bytes": 221447811.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.073,
+						"primitives": 448072.0,
+						"static_bytes": 221448599.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.926,
+						"primitives": 448072.0,
+						"static_bytes": 221449387.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.024,
+						"primitives": 448072.0,
+						"static_bytes": 221450175.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.847,
+						"primitives": 448072.0,
+						"static_bytes": 221450963.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.687,
+						"primitives": 448072.0,
+						"static_bytes": 221451751.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.417,
+						"primitives": 448072.0,
+						"static_bytes": 221452539.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.998,
+						"primitives": 448072.0,
+						"static_bytes": 221453327.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.756,
+						"primitives": 448072.0,
+						"static_bytes": 221454115.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.632,
+						"primitives": 448072.0,
+						"static_bytes": 221454903.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.321,
+						"primitives": 448072.0,
+						"static_bytes": 221455691.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 7.304,
+						"primitives": 448072.0,
+						"static_bytes": 221456479.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.588,
+						"primitives": 448072.0,
+						"static_bytes": 221457267.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.888,
+						"primitives": 448072.0,
+						"static_bytes": 221458055.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.791,
+						"primitives": 448072.0,
+						"static_bytes": 221458843.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.605,
+						"primitives": 448072.0,
+						"static_bytes": 221459631.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.542,
+						"primitives": 448072.0,
+						"static_bytes": 221460419.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.086,
+						"primitives": 448072.0,
+						"static_bytes": 221461207.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.089,
+						"primitives": 448072.0,
+						"static_bytes": 221463123.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.427,
+						"primitives": 448072.0,
+						"static_bytes": 221463911.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.052,
+						"primitives": 448072.0,
+						"static_bytes": 221464699.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.894,
+						"primitives": 448072.0,
+						"static_bytes": 221465487.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.441,
+						"primitives": 448072.0,
+						"static_bytes": 221466275.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.698,
+						"primitives": 448072.0,
+						"static_bytes": 221467063.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.159,
+						"primitives": 448072.0,
+						"static_bytes": 221467851.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.714,
+						"primitives": 448072.0,
+						"static_bytes": 221468639.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.181,
+						"primitives": 448072.0,
+						"static_bytes": 221470155.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.721,
+						"primitives": 448072.0,
+						"static_bytes": 221470943.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.702,
+						"primitives": 448072.0,
+						"static_bytes": 221471731.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.856,
+						"primitives": 448072.0,
+						"static_bytes": 221472519.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.307,
+						"primitives": 448072.0,
+						"static_bytes": 221473307.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.987,
+						"primitives": 448072.0,
+						"static_bytes": 221474095.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.638,
+						"primitives": 448072.0,
+						"static_bytes": 221474883.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.127,
+						"primitives": 448072.0,
+						"static_bytes": 221475671.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.911,
+						"primitives": 448072.0,
+						"static_bytes": 221476459.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.983,
+						"primitives": 448072.0,
+						"static_bytes": 221477247.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.022,
+						"primitives": 448072.0,
+						"static_bytes": 221478035.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.87,
+						"primitives": 448072.0,
+						"static_bytes": 221478823.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.017,
+						"primitives": 448072.0,
+						"static_bytes": 221479611.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.667,
+						"primitives": 448072.0,
+						"static_bytes": 221480399.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.928,
+						"primitives": 448072.0,
+						"static_bytes": 221481187.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.787,
+						"primitives": 448072.0,
+						"static_bytes": 221481975.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.402,
+						"primitives": 448072.0,
+						"static_bytes": 221482763.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.764,
+						"primitives": 448072.0,
+						"static_bytes": 221483551.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.09,
+						"primitives": 448072.0,
+						"static_bytes": 221484339.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 10.263,
+						"primitives": 448072.0,
+						"static_bytes": 221485127.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.817,
+						"primitives": 448072.0,
+						"static_bytes": 221485915.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.557,
+						"primitives": 448072.0,
+						"static_bytes": 221486703.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.911,
+						"primitives": 448072.0,
+						"static_bytes": 221487491.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.959,
+						"primitives": 448072.0,
+						"static_bytes": 221488279.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.977,
+						"primitives": 448072.0,
+						"static_bytes": 221489067.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 3.929,
+						"primitives": 448072.0,
+						"static_bytes": 221489855.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 6.984,
+						"primitives": 448072.0,
+						"static_bytes": 221490643.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 9.706,
+						"primitives": 448072.0,
+						"static_bytes": 221491431.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 5.342,
+						"engine_process_ms": 3.624,
+						"frame_ms": 4.141,
+						"primitives": 448072.0,
+						"static_bytes": 221492219.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.03,
+						"primitives": 448072.0,
+						"static_bytes": 221493007.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.957,
+						"primitives": 448072.0,
+						"static_bytes": 221493795.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.72,
+						"primitives": 448072.0,
+						"static_bytes": 221494583.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.079,
+						"primitives": 448072.0,
+						"static_bytes": 221495371.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.888,
+						"primitives": 448072.0,
+						"static_bytes": 221496159.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.972,
+						"primitives": 448072.0,
+						"static_bytes": 221496947.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.898,
+						"primitives": 448072.0,
+						"static_bytes": 221497735.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.842,
+						"primitives": 448072.0,
+						"static_bytes": 221498523.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.007,
+						"primitives": 448072.0,
+						"static_bytes": 221499311.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 7.369,
+						"primitives": 448072.0,
+						"static_bytes": 221500099.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.601,
+						"primitives": 448072.0,
+						"static_bytes": 221502567.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.944,
+						"primitives": 448072.0,
+						"static_bytes": 221503355.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.693,
+						"primitives": 448072.0,
+						"static_bytes": 221504143.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.185,
+						"primitives": 448072.0,
+						"static_bytes": 221504931.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.638,
+						"primitives": 448072.0,
+						"static_bytes": 221505719.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.354,
+						"primitives": 448072.0,
+						"static_bytes": 221506507.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.799,
+						"primitives": 448072.0,
+						"static_bytes": 221507295.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.233,
+						"primitives": 448072.0,
+						"static_bytes": 221508083.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.346,
+						"primitives": 448072.0,
+						"static_bytes": 221508871.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.821,
+						"primitives": 448072.0,
+						"static_bytes": 221509659.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.776,
+						"primitives": 448072.0,
+						"static_bytes": 221510447.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.843,
+						"primitives": 448072.0,
+						"static_bytes": 221511235.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.645,
+						"primitives": 448072.0,
+						"static_bytes": 221512023.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.051,
+						"primitives": 448072.0,
+						"static_bytes": 221512811.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.393,
+						"primitives": 448072.0,
+						"static_bytes": 221518815.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.747,
+						"primitives": 448072.0,
+						"static_bytes": 221519603.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.453,
+						"primitives": 448072.0,
+						"static_bytes": 221515175.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.166,
+						"primitives": 448072.0,
+						"static_bytes": 221515963.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.845,
+						"primitives": 448072.0,
+						"static_bytes": 221516751.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.352,
+						"primitives": 448072.0,
+						"static_bytes": 221517539.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.754,
+						"primitives": 448072.0,
+						"static_bytes": 221518327.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.984,
+						"primitives": 448072.0,
+						"static_bytes": 221519115.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.92,
+						"primitives": 448072.0,
+						"static_bytes": 221519903.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.961,
+						"primitives": 448072.0,
+						"static_bytes": 221520691.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.72,
+						"primitives": 448072.0,
+						"static_bytes": 221521479.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.12,
+						"primitives": 448072.0,
+						"static_bytes": 221522267.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.197,
+						"primitives": 448072.0,
+						"static_bytes": 221523055.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.751,
+						"primitives": 448072.0,
+						"static_bytes": 221523843.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.803,
+						"primitives": 448072.0,
+						"static_bytes": 221524631.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.703,
+						"primitives": 448072.0,
+						"static_bytes": 221525419.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.4,
+						"primitives": 448072.0,
+						"static_bytes": 221526207.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.777,
+						"primitives": 448072.0,
+						"static_bytes": 221526995.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.873,
+						"primitives": 448072.0,
+						"static_bytes": 221527783.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.733,
+						"primitives": 448072.0,
+						"static_bytes": 221528571.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.449,
+						"primitives": 448072.0,
+						"static_bytes": 221529359.0
+					},
+					{
+						"drawcalls": 773.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 7.024,
+						"primitives": 448072.0,
+						"static_bytes": 221530147.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.371,
+						"primitives": 447672.0,
+						"static_bytes": 221530935.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.09,
+						"primitives": 447672.0,
+						"static_bytes": 221531723.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.855,
+						"primitives": 447672.0,
+						"static_bytes": 221532511.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.533,
+						"primitives": 447672.0,
+						"static_bytes": 221533299.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.609,
+						"primitives": 447672.0,
+						"static_bytes": 221534087.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.935,
+						"primitives": 447672.0,
+						"static_bytes": 221534875.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.976,
+						"primitives": 447672.0,
+						"static_bytes": 221535663.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.696,
+						"primitives": 447672.0,
+						"static_bytes": 221536451.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.131,
+						"primitives": 447672.0,
+						"static_bytes": 221537239.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.233,
+						"primitives": 447672.0,
+						"static_bytes": 221538027.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.913,
+						"primitives": 447674.0,
+						"static_bytes": 221538959.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.624,
+						"primitives": 447674.0,
+						"static_bytes": 221539747.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.959,
+						"primitives": 447674.0,
+						"static_bytes": 221540535.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.302,
+						"primitives": 447674.0,
+						"static_bytes": 221541323.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.575,
+						"primitives": 447674.0,
+						"static_bytes": 221542019.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.944,
+						"primitives": 447674.0,
+						"static_bytes": 221542807.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.549,
+						"primitives": 447674.0,
+						"static_bytes": 221543687.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.582,
+						"primitives": 447674.0,
+						"static_bytes": 221544475.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.68,
+						"primitives": 447674.0,
+						"static_bytes": 221545263.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.577,
+						"primitives": 447674.0,
+						"static_bytes": 221545959.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.321,
+						"primitives": 447674.0,
+						"static_bytes": 221546747.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.578,
+						"primitives": 447674.0,
+						"static_bytes": 221547535.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.316,
+						"primitives": 447674.0,
+						"static_bytes": 221548323.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.884,
+						"primitives": 447674.0,
+						"static_bytes": 221549111.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.577,
+						"primitives": 447674.0,
+						"static_bytes": 221549899.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.494,
+						"primitives": 447674.0,
+						"static_bytes": 221550687.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.844,
+						"primitives": 447674.0,
+						"static_bytes": 221551475.0
+					},
+					{
+						"drawcalls": 772.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.866,
+						"primitives": 447674.0,
+						"static_bytes": 221552263.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.44,
+						"primitives": 442990.0,
+						"static_bytes": 221553051.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.487,
+						"primitives": 442990.0,
+						"static_bytes": 221553839.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.875,
+						"primitives": 442990.0,
+						"static_bytes": 221554627.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.549,
+						"primitives": 442990.0,
+						"static_bytes": 221555415.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.283,
+						"primitives": 442990.0,
+						"static_bytes": 221556203.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.731,
+						"primitives": 442990.0,
+						"static_bytes": 221556991.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.565,
+						"primitives": 442990.0,
+						"static_bytes": 221560299.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 7.134,
+						"primitives": 442990.0,
+						"static_bytes": 221561087.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.618,
+						"primitives": 442990.0,
+						"static_bytes": 221561875.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.238,
+						"primitives": 442990.0,
+						"static_bytes": 221562663.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.044,
+						"primitives": 442990.0,
+						"static_bytes": 221563451.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.343,
+						"primitives": 442990.0,
+						"static_bytes": 221564239.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.409,
+						"primitives": 442990.0,
+						"static_bytes": 221565027.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.9,
+						"primitives": 442990.0,
+						"static_bytes": 221565815.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.689,
+						"primitives": 442990.0,
+						"static_bytes": 221566603.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.464,
+						"primitives": 442990.0,
+						"static_bytes": 221567391.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.185,
+						"primitives": 442990.0,
+						"static_bytes": 221568179.0
+					},
+					{
+						"drawcalls": 771.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.461,
+						"primitives": 442990.0,
+						"static_bytes": 221568967.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.689,
+						"primitives": 441790.0,
+						"static_bytes": 221569755.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.944,
+						"primitives": 441790.0,
+						"static_bytes": 221570543.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.008,
+						"primitives": 441790.0,
+						"static_bytes": 221571331.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.816,
+						"primitives": 441790.0,
+						"static_bytes": 221572119.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.703,
+						"primitives": 441790.0,
+						"static_bytes": 221572907.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.131,
+						"primitives": 441790.0,
+						"static_bytes": 221573695.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.219,
+						"primitives": 441790.0,
+						"static_bytes": 221574483.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.744,
+						"primitives": 441790.0,
+						"static_bytes": 221575271.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.811,
+						"primitives": 441790.0,
+						"static_bytes": 221576059.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.324,
+						"primitives": 441790.0,
+						"static_bytes": 221576847.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.65,
+						"primitives": 441790.0,
+						"static_bytes": 221577635.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.534,
+						"primitives": 441790.0,
+						"static_bytes": 221578423.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.32,
+						"primitives": 441790.0,
+						"static_bytes": 221579211.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.892,
+						"primitives": 441790.0,
+						"static_bytes": 221579999.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.055,
+						"primitives": 441790.0,
+						"static_bytes": 221580787.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.979,
+						"primitives": 441790.0,
+						"static_bytes": 221581575.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.575,
+						"primitives": 441790.0,
+						"static_bytes": 221582363.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.245,
+						"primitives": 441790.0,
+						"static_bytes": 221583151.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.449,
+						"primitives": 441790.0,
+						"static_bytes": 221583939.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.455,
+						"primitives": 441790.0,
+						"static_bytes": 221584727.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.869,
+						"primitives": 441790.0,
+						"static_bytes": 221585515.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.533,
+						"primitives": 441790.0,
+						"static_bytes": 221586303.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.368,
+						"primitives": 441790.0,
+						"static_bytes": 221587091.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.622,
+						"primitives": 441790.0,
+						"static_bytes": 221587879.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.198,
+						"primitives": 441790.0,
+						"static_bytes": 221588667.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 7.151,
+						"primitives": 441790.0,
+						"static_bytes": 221589455.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.321,
+						"primitives": 441790.0,
+						"static_bytes": 221590243.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.407,
+						"primitives": 441790.0,
+						"static_bytes": 221591031.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.667,
+						"primitives": 441790.0,
+						"static_bytes": 221591819.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.256,
+						"primitives": 441790.0,
+						"static_bytes": 221592607.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.475,
+						"primitives": 441790.0,
+						"static_bytes": 221593395.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.415,
+						"primitives": 441790.0,
+						"static_bytes": 221594183.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.877,
+						"primitives": 441790.0,
+						"static_bytes": 221594971.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.679,
+						"primitives": 441790.0,
+						"static_bytes": 221595759.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.413,
+						"primitives": 441790.0,
+						"static_bytes": 221596547.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.333,
+						"primitives": 441790.0,
+						"static_bytes": 221597335.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.833,
+						"primitives": 441790.0,
+						"static_bytes": 221598123.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 7.282,
+						"primitives": 441790.0,
+						"static_bytes": 221598911.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.59,
+						"primitives": 441790.0,
+						"static_bytes": 221599699.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.542,
+						"primitives": 441790.0,
+						"static_bytes": 221600487.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.61,
+						"primitives": 441790.0,
+						"static_bytes": 221602311.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.221,
+						"primitives": 441790.0,
+						"static_bytes": 221603099.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.027,
+						"primitives": 441790.0,
+						"static_bytes": 221603887.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.31,
+						"primitives": 441790.0,
+						"static_bytes": 221604675.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.673,
+						"primitives": 441790.0,
+						"static_bytes": 221605463.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.603,
+						"primitives": 441790.0,
+						"static_bytes": 221606251.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.377,
+						"primitives": 441790.0,
+						"static_bytes": 221607039.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 10.028,
+						"primitives": 441790.0,
+						"static_bytes": 221607827.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 3.783,
+						"primitives": 441790.0,
+						"static_bytes": 221608615.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 6.98,
+						"primitives": 441790.0,
+						"static_bytes": 221609403.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 9.429,
+						"primitives": 441790.0,
+						"static_bytes": 221610191.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.893,
+						"engine_process_ms": 2.198,
+						"frame_ms": 4.257,
+						"primitives": 441790.0,
+						"static_bytes": 221610979.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.81,
+						"primitives": 441790.0,
+						"static_bytes": 221611767.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.725,
+						"primitives": 441790.0,
+						"static_bytes": 221612555.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.39,
+						"primitives": 441790.0,
+						"static_bytes": 221613343.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.84,
+						"primitives": 441790.0,
+						"static_bytes": 221614131.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.67,
+						"primitives": 441790.0,
+						"static_bytes": 221614919.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.822,
+						"primitives": 441790.0,
+						"static_bytes": 221615707.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.443,
+						"primitives": 441790.0,
+						"static_bytes": 221616495.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.624,
+						"primitives": 441790.0,
+						"static_bytes": 221617283.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.112,
+						"primitives": 441790.0,
+						"static_bytes": 221618071.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.927,
+						"primitives": 441790.0,
+						"static_bytes": 221618859.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.188,
+						"primitives": 441790.0,
+						"static_bytes": 221619647.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.937,
+						"primitives": 441790.0,
+						"static_bytes": 221620435.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.69,
+						"primitives": 441790.0,
+						"static_bytes": 221621223.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.054,
+						"primitives": 441790.0,
+						"static_bytes": 221622011.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.7,
+						"primitives": 441790.0,
+						"static_bytes": 221622799.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.53,
+						"primitives": 441790.0,
+						"static_bytes": 221623587.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.931,
+						"primitives": 441790.0,
+						"static_bytes": 221624375.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.995,
+						"primitives": 441790.0,
+						"static_bytes": 221625163.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.836,
+						"primitives": 441790.0,
+						"static_bytes": 221625951.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.599,
+						"primitives": 441790.0,
+						"static_bytes": 221626739.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.982,
+						"primitives": 441790.0,
+						"static_bytes": 221627527.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.227,
+						"primitives": 441790.0,
+						"static_bytes": 221628315.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.624,
+						"primitives": 441790.0,
+						"static_bytes": 221629103.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.05,
+						"primitives": 441790.0,
+						"static_bytes": 221629891.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.766,
+						"primitives": 441790.0,
+						"static_bytes": 221630679.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.481,
+						"primitives": 441790.0,
+						"static_bytes": 221631467.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.494,
+						"primitives": 441790.0,
+						"static_bytes": 221632255.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.964,
+						"primitives": 441790.0,
+						"static_bytes": 221633043.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.967,
+						"primitives": 441790.0,
+						"static_bytes": 221633831.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.272,
+						"primitives": 441790.0,
+						"static_bytes": 221634619.0
+					},
+					{
+						"drawcalls": 770.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.753,
+						"primitives": 441790.0,
+						"static_bytes": 221635407.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.842,
+						"primitives": 438130.0,
+						"static_bytes": 221636195.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.941,
+						"primitives": 438130.0,
+						"static_bytes": 221636983.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.1,
+						"primitives": 438130.0,
+						"static_bytes": 221637771.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.202,
+						"primitives": 438130.0,
+						"static_bytes": 221638559.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.661,
+						"primitives": 438130.0,
+						"static_bytes": 221639347.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.741,
+						"primitives": 438130.0,
+						"static_bytes": 221640135.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.069,
+						"primitives": 438130.0,
+						"static_bytes": 221640923.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.516,
+						"primitives": 438130.0,
+						"static_bytes": 221641711.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.31,
+						"primitives": 438130.0,
+						"static_bytes": 221642499.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.219,
+						"primitives": 438130.0,
+						"static_bytes": 221643287.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.053,
+						"primitives": 438130.0,
+						"static_bytes": 221647867.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.55,
+						"primitives": 438130.0,
+						"static_bytes": 221648655.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.682,
+						"primitives": 438130.0,
+						"static_bytes": 221649443.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.476,
+						"primitives": 438130.0,
+						"static_bytes": 221650231.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.926,
+						"primitives": 438130.0,
+						"static_bytes": 221651019.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.695,
+						"primitives": 438130.0,
+						"static_bytes": 221651807.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.101,
+						"primitives": 438130.0,
+						"static_bytes": 221652595.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.615,
+						"primitives": 438130.0,
+						"static_bytes": 221653383.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.063,
+						"primitives": 438130.0,
+						"static_bytes": 221654171.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.531,
+						"primitives": 438130.0,
+						"static_bytes": 221654959.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.383,
+						"primitives": 438130.0,
+						"static_bytes": 221655747.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.919,
+						"primitives": 438130.0,
+						"static_bytes": 221656535.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.853,
+						"primitives": 438130.0,
+						"static_bytes": 221657323.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.048,
+						"primitives": 438130.0,
+						"static_bytes": 221658111.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.446,
+						"primitives": 438130.0,
+						"static_bytes": 221658899.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.548,
+						"primitives": 438130.0,
+						"static_bytes": 221659687.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.875,
+						"primitives": 438130.0,
+						"static_bytes": 221660475.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.891,
+						"primitives": 438130.0,
+						"static_bytes": 221661263.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.902,
+						"primitives": 438130.0,
+						"static_bytes": 221662051.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.835,
+						"primitives": 438130.0,
+						"static_bytes": 221662839.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.157,
+						"primitives": 438130.0,
+						"static_bytes": 221663627.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.645,
+						"primitives": 438130.0,
+						"static_bytes": 221664415.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.208,
+						"primitives": 438130.0,
+						"static_bytes": 221665203.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.01,
+						"primitives": 438130.0,
+						"static_bytes": 221665991.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.83,
+						"primitives": 438130.0,
+						"static_bytes": 221666779.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.162,
+						"primitives": 438130.0,
+						"static_bytes": 221667567.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.57,
+						"primitives": 438130.0,
+						"static_bytes": 221668355.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.264,
+						"primitives": 438130.0,
+						"static_bytes": 221669143.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.74,
+						"primitives": 438130.0,
+						"static_bytes": 221669931.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.693,
+						"primitives": 438130.0,
+						"static_bytes": 221670719.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.79,
+						"primitives": 438130.0,
+						"static_bytes": 221671507.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.869,
+						"primitives": 438130.0,
+						"static_bytes": 221672295.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.884,
+						"primitives": 438130.0,
+						"static_bytes": 221673083.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.95,
+						"primitives": 438130.0,
+						"static_bytes": 221673871.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.601,
+						"primitives": 438130.0,
+						"static_bytes": 221674659.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.887,
+						"primitives": 438130.0,
+						"static_bytes": 221675447.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.764,
+						"primitives": 438130.0,
+						"static_bytes": 221676235.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 5.036,
+						"primitives": 438130.0,
+						"static_bytes": 221677023.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.034,
+						"primitives": 438130.0,
+						"static_bytes": 221677811.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.089,
+						"primitives": 438130.0,
+						"static_bytes": 221678599.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.856,
+						"primitives": 438130.0,
+						"static_bytes": 221679387.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.211,
+						"primitives": 438130.0,
+						"static_bytes": 221680511.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.969,
+						"primitives": 438130.0,
+						"static_bytes": 221681299.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.538,
+						"primitives": 438130.0,
+						"static_bytes": 221682087.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.221,
+						"primitives": 438130.0,
+						"static_bytes": 221682875.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.553,
+						"primitives": 438130.0,
+						"static_bytes": 221683663.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.202,
+						"primitives": 438130.0,
+						"static_bytes": 221684451.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.981,
+						"primitives": 438130.0,
+						"static_bytes": 221685239.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 11.097,
+						"primitives": 438130.0,
+						"static_bytes": 221686027.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.476,
+						"primitives": 438130.0,
+						"static_bytes": 221686815.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.103,
+						"primitives": 438130.0,
+						"static_bytes": 221687603.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.397,
+						"primitives": 438130.0,
+						"static_bytes": 221688391.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.801,
+						"primitives": 438130.0,
+						"static_bytes": 221689179.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.749,
+						"primitives": 438130.0,
+						"static_bytes": 221689967.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.906,
+						"primitives": 438130.0,
+						"static_bytes": 221690755.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.098,
+						"primitives": 438130.0,
+						"static_bytes": 221691543.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.793,
+						"primitives": 438130.0,
+						"static_bytes": 221692331.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.428,
+						"primitives": 438130.0,
+						"static_bytes": 221693119.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.458,
+						"primitives": 438130.0,
+						"static_bytes": 221693907.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.879,
+						"primitives": 438130.0,
+						"static_bytes": 221694695.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.931,
+						"primitives": 438130.0,
+						"static_bytes": 221695483.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.009,
+						"primitives": 438130.0,
+						"static_bytes": 221696271.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.561,
+						"primitives": 438130.0,
+						"static_bytes": 221697059.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.328,
+						"primitives": 438130.0,
+						"static_bytes": 221697847.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.841,
+						"primitives": 438130.0,
+						"static_bytes": 221698635.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.808,
+						"primitives": 438130.0,
+						"static_bytes": 221699423.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.411,
+						"primitives": 438130.0,
+						"static_bytes": 221700211.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.631,
+						"primitives": 438130.0,
+						"static_bytes": 221700999.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.003,
+						"primitives": 438130.0,
+						"static_bytes": 221701787.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.593,
+						"primitives": 438130.0,
+						"static_bytes": 221702575.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.456,
+						"primitives": 438130.0,
+						"static_bytes": 221703363.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.042,
+						"primitives": 438130.0,
+						"static_bytes": 221704151.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.461,
+						"primitives": 438130.0,
+						"static_bytes": 221704939.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.281,
+						"primitives": 438130.0,
+						"static_bytes": 221705727.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.591,
+						"primitives": 438130.0,
+						"static_bytes": 221706515.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.221,
+						"primitives": 438130.0,
+						"static_bytes": 221707303.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.82,
+						"primitives": 438130.0,
+						"static_bytes": 221708091.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.629,
+						"primitives": 438130.0,
+						"static_bytes": 221708879.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.512,
+						"primitives": 438130.0,
+						"static_bytes": 221709667.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 10.296,
+						"primitives": 438130.0,
+						"static_bytes": 221710455.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.137,
+						"primitives": 438130.0,
+						"static_bytes": 221711243.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.266,
+						"primitives": 438130.0,
+						"static_bytes": 221712031.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.95,
+						"primitives": 438130.0,
+						"static_bytes": 221712819.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.866,
+						"primitives": 438130.0,
+						"static_bytes": 221713607.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.683,
+						"primitives": 438130.0,
+						"static_bytes": 221714395.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.3,
+						"primitives": 438130.0,
+						"static_bytes": 221715183.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.672,
+						"primitives": 438130.0,
+						"static_bytes": 221715971.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.069,
+						"primitives": 438130.0,
+						"static_bytes": 221716759.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.992,
+						"primitives": 438130.0,
+						"static_bytes": 221717547.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.52,
+						"primitives": 438130.0,
+						"static_bytes": 221718335.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.356,
+						"primitives": 438130.0,
+						"static_bytes": 221719123.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.573,
+						"primitives": 438130.0,
+						"static_bytes": 221719911.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.348,
+						"primitives": 438130.0,
+						"static_bytes": 221720699.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.444,
+						"primitives": 438130.0,
+						"static_bytes": 221721487.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.521,
+						"primitives": 438130.0,
+						"static_bytes": 221722275.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 7.011,
+						"primitives": 438130.0,
+						"static_bytes": 221723063.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.327,
+						"primitives": 438130.0,
+						"static_bytes": 221723851.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.389,
+						"primitives": 438130.0,
+						"static_bytes": 221724639.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.889,
+						"primitives": 438130.0,
+						"static_bytes": 221725427.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 3.977,
+						"primitives": 438130.0,
+						"static_bytes": 221726215.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 6.908,
+						"primitives": 438130.0,
+						"static_bytes": 221727003.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 9.937,
+						"primitives": 438130.0,
+						"static_bytes": 221727791.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.384,
+						"engine_process_ms": 2.065,
+						"frame_ms": 4.177,
+						"primitives": 438130.0,
+						"static_bytes": 221728579.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 9.524,
+						"primitives": 438130.0,
+						"static_bytes": 221729367.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 4.225,
+						"primitives": 438130.0,
+						"static_bytes": 221730155.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 9.512,
+						"primitives": 438130.0,
+						"static_bytes": 221730943.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 4.328,
+						"primitives": 438130.0,
+						"static_bytes": 221731731.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 7.048,
+						"primitives": 438130.0,
+						"static_bytes": 221732519.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 11.226,
+						"primitives": 438130.0,
+						"static_bytes": 221733307.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 3.441,
+						"primitives": 438130.0,
+						"static_bytes": 221734095.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 8.658,
+						"primitives": 438130.0,
+						"static_bytes": 221734883.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 4.375,
+						"primitives": 438130.0,
+						"static_bytes": 221735671.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 6.937,
+						"primitives": 438130.0,
+						"static_bytes": 221736459.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 9.728,
+						"primitives": 438130.0,
+						"static_bytes": 221737247.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 4.319,
+						"primitives": 438130.0,
+						"static_bytes": 221738035.0
+					},
+					{
+						"drawcalls": 769.0,
+						"engine_physics_ms": 3.578,
+						"engine_process_ms": 2.19,
+						"frame_ms": 9.21,
+						"primitives": 438130.0,
+						"static_bytes": 221738823.0
+					}
+				],
+				"static_bytes": {
+					"count": 432,
+					"max": 221738823.0,
+					"p50": 221564239.0,
+					"p95": 221722275.0
+				}
+			},
+			"without": {
+				"drawcalls": {
+					"count": 433,
+					"max": 768.0,
+					"p50": 768.0,
+					"p95": 768.0
+				},
+				"engine_physics_ms": {
+					"count": 433,
+					"max": 5.067,
+					"p50": 4.236,
+					"p95": 4.392
+				},
+				"engine_process_ms": {
+					"count": 433,
+					"max": 4.462,
+					"p50": 3.087,
+					"p95": 4.462
+				},
+				"frame_ms": {
+					"count": 433,
+					"max": 13.157,
+					"p50": 6.893,
+					"p95": 10.144
+				},
+				"primitives": {
+					"count": 433,
+					"max": 467278.0,
+					"p50": 467278.0,
+					"p95": 467278.0
+				},
+				"samples": [
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.39,
+						"primitives": 466014.0,
+						"static_bytes": 220812927.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 8.673,
+						"primitives": 466014.0,
+						"static_bytes": 220813795.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.369,
+						"primitives": 466014.0,
+						"static_bytes": 220814583.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.989,
+						"primitives": 466014.0,
+						"static_bytes": 220815395.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.852,
+						"primitives": 466014.0,
+						"static_bytes": 220816231.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.032,
+						"primitives": 466014.0,
+						"static_bytes": 220817019.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.744,
+						"primitives": 467278.0,
+						"static_bytes": 220817879.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.062,
+						"primitives": 467278.0,
+						"static_bytes": 220818667.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.942,
+						"primitives": 467278.0,
+						"static_bytes": 220819455.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.172,
+						"primitives": 467278.0,
+						"static_bytes": 220820339.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.111,
+						"primitives": 467278.0,
+						"static_bytes": 220821127.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.296,
+						"primitives": 467278.0,
+						"static_bytes": 220821915.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.751,
+						"primitives": 467278.0,
+						"static_bytes": 220822703.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.222,
+						"primitives": 467278.0,
+						"static_bytes": 220823635.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.143,
+						"primitives": 467278.0,
+						"static_bytes": 220824423.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.959,
+						"primitives": 467278.0,
+						"static_bytes": 220825211.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.487,
+						"primitives": 467278.0,
+						"static_bytes": 220825999.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.489,
+						"primitives": 467278.0,
+						"static_bytes": 220826787.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.592,
+						"primitives": 467278.0,
+						"static_bytes": 220827575.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.124,
+						"primitives": 467278.0,
+						"static_bytes": 220828579.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.852,
+						"primitives": 467278.0,
+						"static_bytes": 220829367.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.945,
+						"primitives": 467278.0,
+						"static_bytes": 220830155.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.265,
+						"primitives": 467278.0,
+						"static_bytes": 220830943.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.032,
+						"primitives": 467278.0,
+						"static_bytes": 220831731.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.909,
+						"primitives": 467278.0,
+						"static_bytes": 220832519.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.823,
+						"primitives": 467278.0,
+						"static_bytes": 220833307.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.045,
+						"primitives": 467278.0,
+						"static_bytes": 220834095.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.67,
+						"primitives": 467278.0,
+						"static_bytes": 220834883.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.416,
+						"primitives": 467278.0,
+						"static_bytes": 220836007.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.04,
+						"primitives": 467278.0,
+						"static_bytes": 220836795.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.494,
+						"primitives": 467278.0,
+						"static_bytes": 220837583.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.94,
+						"primitives": 467278.0,
+						"static_bytes": 220838371.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.206,
+						"primitives": 467278.0,
+						"static_bytes": 220839159.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.402,
+						"primitives": 467278.0,
+						"static_bytes": 220839947.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.715,
+						"primitives": 467278.0,
+						"static_bytes": 220840735.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.41,
+						"primitives": 467278.0,
+						"static_bytes": 220841523.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.2,
+						"primitives": 467278.0,
+						"static_bytes": 220842311.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.523,
+						"primitives": 467278.0,
+						"static_bytes": 220843099.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.294,
+						"primitives": 467278.0,
+						"static_bytes": 220843887.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.623,
+						"primitives": 467278.0,
+						"static_bytes": 220844675.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.388,
+						"primitives": 467278.0,
+						"static_bytes": 220845463.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.953,
+						"primitives": 467278.0,
+						"static_bytes": 220846251.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.569,
+						"primitives": 467278.0,
+						"static_bytes": 220847543.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.15,
+						"primitives": 467278.0,
+						"static_bytes": 220848331.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.943,
+						"primitives": 467278.0,
+						"static_bytes": 220849119.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.758,
+						"primitives": 467278.0,
+						"static_bytes": 220849907.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.921,
+						"primitives": 467278.0,
+						"static_bytes": 220850695.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.748,
+						"primitives": 467278.0,
+						"static_bytes": 220851483.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.161,
+						"primitives": 467278.0,
+						"static_bytes": 220852271.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.177,
+						"primitives": 467278.0,
+						"static_bytes": 220853059.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.817,
+						"primitives": 467278.0,
+						"static_bytes": 220853847.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.797,
+						"primitives": 467278.0,
+						"static_bytes": 220854635.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.682,
+						"primitives": 467278.0,
+						"static_bytes": 220856343.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.506,
+						"primitives": 467278.0,
+						"static_bytes": 220857591.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.824,
+						"primitives": 467278.0,
+						"static_bytes": 220858379.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.045,
+						"primitives": 467278.0,
+						"static_bytes": 220859167.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.296,
+						"primitives": 467278.0,
+						"static_bytes": 220859955.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.404,
+						"primitives": 467278.0,
+						"static_bytes": 220861663.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.25,
+						"primitives": 467278.0,
+						"static_bytes": 220862451.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.25,
+						"primitives": 467278.0,
+						"static_bytes": 220866459.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.62,
+						"primitives": 467278.0,
+						"static_bytes": 220867247.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.834,
+						"primitives": 467278.0,
+						"static_bytes": 220868035.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.077,
+						"primitives": 467278.0,
+						"static_bytes": 220868823.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.169,
+						"primitives": 467278.0,
+						"static_bytes": 220870355.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.424,
+						"primitives": 467278.0,
+						"static_bytes": 220871871.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.717,
+						"primitives": 467278.0,
+						"static_bytes": 220872659.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 8.989,
+						"primitives": 467278.0,
+						"static_bytes": 220873447.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.268,
+						"primitives": 467278.0,
+						"static_bytes": 220874235.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.175,
+						"primitives": 467278.0,
+						"static_bytes": 220875023.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.656,
+						"primitives": 467278.0,
+						"static_bytes": 220876271.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.757,
+						"primitives": 467278.0,
+						"static_bytes": 220877059.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.484,
+						"primitives": 467278.0,
+						"static_bytes": 220877847.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.496,
+						"primitives": 467278.0,
+						"static_bytes": 220878635.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.157,
+						"primitives": 467278.0,
+						"static_bytes": 220879423.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.096,
+						"primitives": 467278.0,
+						"static_bytes": 220880211.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.468,
+						"primitives": 467278.0,
+						"static_bytes": 220880999.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.144,
+						"primitives": 467278.0,
+						"static_bytes": 220881787.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.289,
+						"primitives": 467278.0,
+						"static_bytes": 220882575.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.133,
+						"primitives": 467278.0,
+						"static_bytes": 220883363.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.313,
+						"primitives": 467278.0,
+						"static_bytes": 220884151.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.065,
+						"primitives": 467278.0,
+						"static_bytes": 220884939.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.25,
+						"primitives": 467278.0,
+						"static_bytes": 220885727.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.466,
+						"primitives": 467278.0,
+						"static_bytes": 220886515.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.584,
+						"primitives": 467278.0,
+						"static_bytes": 220888323.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.245,
+						"primitives": 467278.0,
+						"static_bytes": 220889111.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.65,
+						"primitives": 467278.0,
+						"static_bytes": 220891867.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.308,
+						"primitives": 467278.0,
+						"static_bytes": 220892655.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.833,
+						"primitives": 467278.0,
+						"static_bytes": 220893443.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.672,
+						"primitives": 467278.0,
+						"static_bytes": 220894455.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.32,
+						"primitives": 467278.0,
+						"static_bytes": 220895243.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 11.719,
+						"primitives": 467278.0,
+						"static_bytes": 220895939.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.362,
+						"primitives": 467278.0,
+						"static_bytes": 220896727.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 5.625,
+						"primitives": 467278.0,
+						"static_bytes": 220897515.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.521,
+						"primitives": 467278.0,
+						"static_bytes": 220898395.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.434,
+						"primitives": 467278.0,
+						"static_bytes": 220900311.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.577,
+						"primitives": 467278.0,
+						"static_bytes": 220901007.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.378,
+						"primitives": 467278.0,
+						"static_bytes": 220901795.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.417,
+						"primitives": 467278.0,
+						"static_bytes": 220902583.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.47,
+						"primitives": 467278.0,
+						"static_bytes": 220903371.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.884,
+						"primitives": 467278.0,
+						"static_bytes": 220904159.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.378,
+						"primitives": 467278.0,
+						"static_bytes": 220904947.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.482,
+						"primitives": 467278.0,
+						"static_bytes": 220905735.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.364,
+						"primitives": 467278.0,
+						"static_bytes": 220906523.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.591,
+						"primitives": 467278.0,
+						"static_bytes": 220907311.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.779,
+						"primitives": 467278.0,
+						"static_bytes": 220908099.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 8.998,
+						"primitives": 467278.0,
+						"static_bytes": 220908887.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.731,
+						"primitives": 467278.0,
+						"static_bytes": 220909675.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.805,
+						"primitives": 467278.0,
+						"static_bytes": 220910463.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.699,
+						"primitives": 467278.0,
+						"static_bytes": 220911251.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.349,
+						"primitives": 467278.0,
+						"static_bytes": 220912039.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.267,
+						"primitives": 467278.0,
+						"static_bytes": 220912827.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.827,
+						"primitives": 467278.0,
+						"static_bytes": 220913615.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.159,
+						"primitives": 467278.0,
+						"static_bytes": 220914403.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.418,
+						"primitives": 467278.0,
+						"static_bytes": 220915191.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 8.76,
+						"primitives": 467278.0,
+						"static_bytes": 220915979.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.537,
+						"primitives": 467278.0,
+						"static_bytes": 220916767.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.793,
+						"primitives": 467278.0,
+						"static_bytes": 220917555.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.498,
+						"primitives": 467278.0,
+						"static_bytes": 220918343.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.026,
+						"primitives": 467278.0,
+						"static_bytes": 220919131.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.175,
+						"primitives": 467278.0,
+						"static_bytes": 220919919.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.499,
+						"primitives": 467278.0,
+						"static_bytes": 220920707.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.873,
+						"primitives": 467278.0,
+						"static_bytes": 220921495.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.176,
+						"primitives": 467278.0,
+						"static_bytes": 220922283.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 6.852,
+						"primitives": 467278.0,
+						"static_bytes": 220923071.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 10.352,
+						"primitives": 467278.0,
+						"static_bytes": 220923859.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.785,
+						"primitives": 467278.0,
+						"static_bytes": 220924647.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.526,
+						"primitives": 467278.0,
+						"static_bytes": 220925435.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 3.85,
+						"primitives": 467278.0,
+						"static_bytes": 220926223.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 7.472,
+						"primitives": 467278.0,
+						"static_bytes": 220927011.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 9.138,
+						"primitives": 467278.0,
+						"static_bytes": 220927799.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 3.909,
+						"engine_process_ms": 4.462,
+						"frame_ms": 4.28,
+						"primitives": 467278.0,
+						"static_bytes": 220928587.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.146,
+						"primitives": 467278.0,
+						"static_bytes": 220929375.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.042,
+						"primitives": 467278.0,
+						"static_bytes": 220930163.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.124,
+						"primitives": 467278.0,
+						"static_bytes": 220930951.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.403,
+						"primitives": 467278.0,
+						"static_bytes": 220931739.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.811,
+						"primitives": 467278.0,
+						"static_bytes": 220932527.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.9,
+						"primitives": 467278.0,
+						"static_bytes": 220933315.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.288,
+						"primitives": 467278.0,
+						"static_bytes": 220934103.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.11,
+						"primitives": 467278.0,
+						"static_bytes": 220934891.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.508,
+						"primitives": 467278.0,
+						"static_bytes": 220935679.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.898,
+						"primitives": 467278.0,
+						"static_bytes": 220936467.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.031,
+						"primitives": 467278.0,
+						"static_bytes": 220938935.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.033,
+						"primitives": 467278.0,
+						"static_bytes": 220939723.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.217,
+						"primitives": 467278.0,
+						"static_bytes": 220940511.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.513,
+						"primitives": 467278.0,
+						"static_bytes": 220941299.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.485,
+						"primitives": 467278.0,
+						"static_bytes": 220942087.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.66,
+						"primitives": 467278.0,
+						"static_bytes": 220942875.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.937,
+						"primitives": 467278.0,
+						"static_bytes": 220943663.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.457,
+						"primitives": 467278.0,
+						"static_bytes": 220944451.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.281,
+						"primitives": 467278.0,
+						"static_bytes": 220945239.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.48,
+						"primitives": 467278.0,
+						"static_bytes": 220946027.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.436,
+						"primitives": 467278.0,
+						"static_bytes": 220946815.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 7.279,
+						"primitives": 467278.0,
+						"static_bytes": 220947603.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.029,
+						"primitives": 467278.0,
+						"static_bytes": 220948391.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.609,
+						"primitives": 467278.0,
+						"static_bytes": 220949179.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.64,
+						"primitives": 467278.0,
+						"static_bytes": 220949967.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.276,
+						"primitives": 467278.0,
+						"static_bytes": 220950755.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.238,
+						"primitives": 467278.0,
+						"static_bytes": 220951543.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.744,
+						"primitives": 467278.0,
+						"static_bytes": 220952331.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.772,
+						"primitives": 467278.0,
+						"static_bytes": 220953119.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.653,
+						"primitives": 467278.0,
+						"static_bytes": 220953907.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.121,
+						"primitives": 467278.0,
+						"static_bytes": 220954695.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.285,
+						"primitives": 467278.0,
+						"static_bytes": 220955483.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.666,
+						"primitives": 467278.0,
+						"static_bytes": 220956271.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.98,
+						"primitives": 467278.0,
+						"static_bytes": 220957059.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.096,
+						"primitives": 467278.0,
+						"static_bytes": 220957847.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.959,
+						"primitives": 467278.0,
+						"static_bytes": 220958635.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.372,
+						"primitives": 467278.0,
+						"static_bytes": 220959423.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.266,
+						"primitives": 467278.0,
+						"static_bytes": 220960211.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.38,
+						"primitives": 467278.0,
+						"static_bytes": 220960999.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.877,
+						"primitives": 467278.0,
+						"static_bytes": 220961787.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.812,
+						"primitives": 467278.0,
+						"static_bytes": 220962575.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.088,
+						"primitives": 467278.0,
+						"static_bytes": 220963363.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 5.224,
+						"primitives": 467278.0,
+						"static_bytes": 220964151.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.267,
+						"primitives": 467278.0,
+						"static_bytes": 220964939.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.026,
+						"primitives": 467278.0,
+						"static_bytes": 220965727.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.872,
+						"primitives": 467278.0,
+						"static_bytes": 220966515.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.428,
+						"primitives": 467278.0,
+						"static_bytes": 220967303.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.826,
+						"primitives": 467278.0,
+						"static_bytes": 220968091.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.214,
+						"primitives": 467278.0,
+						"static_bytes": 220968879.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.279,
+						"primitives": 467278.0,
+						"static_bytes": 220969667.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.271,
+						"primitives": 467278.0,
+						"static_bytes": 220970455.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.774,
+						"primitives": 467278.0,
+						"static_bytes": 220971243.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.967,
+						"primitives": 467278.0,
+						"static_bytes": 220972031.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.345,
+						"primitives": 467278.0,
+						"static_bytes": 220972819.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.754,
+						"primitives": 467278.0,
+						"static_bytes": 220973607.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.006,
+						"primitives": 467278.0,
+						"static_bytes": 220974395.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.623,
+						"primitives": 467278.0,
+						"static_bytes": 220975183.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.82,
+						"primitives": 467278.0,
+						"static_bytes": 220975971.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.7,
+						"primitives": 467278.0,
+						"static_bytes": 220976759.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.33,
+						"primitives": 467278.0,
+						"static_bytes": 220977547.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.261,
+						"primitives": 467278.0,
+						"static_bytes": 220978335.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.934,
+						"primitives": 467278.0,
+						"static_bytes": 220979123.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 8.963,
+						"primitives": 467278.0,
+						"static_bytes": 220979911.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.663,
+						"primitives": 467278.0,
+						"static_bytes": 220980699.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.743,
+						"primitives": 467278.0,
+						"static_bytes": 220981487.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.479,
+						"primitives": 467278.0,
+						"static_bytes": 220981547.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.418,
+						"primitives": 467278.0,
+						"static_bytes": 220982335.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.998,
+						"primitives": 467278.0,
+						"static_bytes": 220983123.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.081,
+						"primitives": 467278.0,
+						"static_bytes": 220983911.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.993,
+						"primitives": 467278.0,
+						"static_bytes": 220984699.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.099,
+						"primitives": 467278.0,
+						"static_bytes": 220985487.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.605,
+						"primitives": 467278.0,
+						"static_bytes": 220986275.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.53,
+						"primitives": 467278.0,
+						"static_bytes": 220987063.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.338,
+						"primitives": 467278.0,
+						"static_bytes": 220987851.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.511,
+						"primitives": 467278.0,
+						"static_bytes": 220988639.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.335,
+						"primitives": 467278.0,
+						"static_bytes": 220989427.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.9,
+						"primitives": 467278.0,
+						"static_bytes": 220990215.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.655,
+						"primitives": 467278.0,
+						"static_bytes": 220991003.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.249,
+						"primitives": 467278.0,
+						"static_bytes": 220991791.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.565,
+						"primitives": 467278.0,
+						"static_bytes": 220992579.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 5.145,
+						"primitives": 467278.0,
+						"static_bytes": 220995887.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.272,
+						"primitives": 467278.0,
+						"static_bytes": 220996675.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.66,
+						"primitives": 467278.0,
+						"static_bytes": 220997463.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.32,
+						"primitives": 467278.0,
+						"static_bytes": 220998251.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.859,
+						"primitives": 467278.0,
+						"static_bytes": 220998947.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.422,
+						"primitives": 467278.0,
+						"static_bytes": 220999735.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.189,
+						"primitives": 467278.0,
+						"static_bytes": 221000651.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.217,
+						"primitives": 467278.0,
+						"static_bytes": 221001439.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 7.114,
+						"primitives": 467278.0,
+						"static_bytes": 221002227.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 11.885,
+						"primitives": 467278.0,
+						"static_bytes": 221002887.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.433,
+						"primitives": 467278.0,
+						"static_bytes": 221003675.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 8.885,
+						"primitives": 467278.0,
+						"static_bytes": 221004463.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.887,
+						"primitives": 467278.0,
+						"static_bytes": 221005251.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.716,
+						"primitives": 467278.0,
+						"static_bytes": 221006039.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.071,
+						"primitives": 467278.0,
+						"static_bytes": 221006827.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.922,
+						"primitives": 467278.0,
+						"static_bytes": 221007615.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.137,
+						"primitives": 467278.0,
+						"static_bytes": 221008403.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.647,
+						"primitives": 467278.0,
+						"static_bytes": 221009191.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.561,
+						"primitives": 467278.0,
+						"static_bytes": 221009979.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.801,
+						"primitives": 467278.0,
+						"static_bytes": 221010767.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.794,
+						"primitives": 467278.0,
+						"static_bytes": 221011555.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.151,
+						"primitives": 467278.0,
+						"static_bytes": 221012343.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.478,
+						"primitives": 467278.0,
+						"static_bytes": 221013131.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.052,
+						"primitives": 467278.0,
+						"static_bytes": 221013919.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.833,
+						"primitives": 467278.0,
+						"static_bytes": 221014707.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.799,
+						"primitives": 467278.0,
+						"static_bytes": 221015495.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.759,
+						"primitives": 467278.0,
+						"static_bytes": 221016283.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.128,
+						"primitives": 467278.0,
+						"static_bytes": 221017071.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.724,
+						"primitives": 467278.0,
+						"static_bytes": 221017859.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.176,
+						"primitives": 467278.0,
+						"static_bytes": 221018647.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.548,
+						"primitives": 467278.0,
+						"static_bytes": 221019435.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.688,
+						"primitives": 467278.0,
+						"static_bytes": 221020223.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.579,
+						"primitives": 467278.0,
+						"static_bytes": 221021011.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.279,
+						"primitives": 467278.0,
+						"static_bytes": 221021799.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.439,
+						"primitives": 467278.0,
+						"static_bytes": 221022587.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.487,
+						"primitives": 467278.0,
+						"static_bytes": 221023375.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.492,
+						"primitives": 467278.0,
+						"static_bytes": 221024163.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 7.179,
+						"primitives": 467278.0,
+						"static_bytes": 221024951.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.192,
+						"primitives": 467278.0,
+						"static_bytes": 221025739.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.426,
+						"primitives": 467278.0,
+						"static_bytes": 221026527.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.518,
+						"primitives": 467278.0,
+						"static_bytes": 221027315.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.253,
+						"primitives": 467278.0,
+						"static_bytes": 221028103.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.027,
+						"primitives": 467278.0,
+						"static_bytes": 221028891.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.169,
+						"primitives": 467278.0,
+						"static_bytes": 221029679.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.934,
+						"primitives": 467278.0,
+						"static_bytes": 221030467.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.282,
+						"primitives": 467278.0,
+						"static_bytes": 221031255.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.634,
+						"primitives": 467278.0,
+						"static_bytes": 221032043.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.073,
+						"primitives": 467278.0,
+						"static_bytes": 221032831.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.607,
+						"primitives": 467278.0,
+						"static_bytes": 221033619.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 7.028,
+						"primitives": 467278.0,
+						"static_bytes": 221034407.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.446,
+						"primitives": 467278.0,
+						"static_bytes": 221035195.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.443,
+						"primitives": 467278.0,
+						"static_bytes": 221035983.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.927,
+						"primitives": 467278.0,
+						"static_bytes": 221036771.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.967,
+						"primitives": 467278.0,
+						"static_bytes": 221037559.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.354,
+						"primitives": 467278.0,
+						"static_bytes": 221038347.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 5.399,
+						"primitives": 467278.0,
+						"static_bytes": 221039135.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 6.222,
+						"primitives": 467278.0,
+						"static_bytes": 221039923.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.214,
+						"primitives": 467278.0,
+						"static_bytes": 221040711.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.316,
+						"primitives": 467278.0,
+						"static_bytes": 221041499.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 10.548,
+						"primitives": 467278.0,
+						"static_bytes": 221042287.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 3.704,
+						"primitives": 467278.0,
+						"static_bytes": 221043075.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 7.011,
+						"primitives": 467278.0,
+						"static_bytes": 221043863.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 9.587,
+						"primitives": 467278.0,
+						"static_bytes": 221044651.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.392,
+						"engine_process_ms": 3.087,
+						"frame_ms": 4.233,
+						"primitives": 467278.0,
+						"static_bytes": 221045439.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.388,
+						"primitives": 467278.0,
+						"static_bytes": 221046227.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.102,
+						"primitives": 467278.0,
+						"static_bytes": 221047015.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.31,
+						"primitives": 467278.0,
+						"static_bytes": 221047803.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.882,
+						"primitives": 467278.0,
+						"static_bytes": 221048591.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.893,
+						"primitives": 467278.0,
+						"static_bytes": 221049379.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.239,
+						"primitives": 467278.0,
+						"static_bytes": 221050167.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.321,
+						"primitives": 467278.0,
+						"static_bytes": 221050955.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.567,
+						"primitives": 467278.0,
+						"static_bytes": 221051743.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 5.042,
+						"primitives": 467278.0,
+						"static_bytes": 221052531.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 7.0,
+						"primitives": 467278.0,
+						"static_bytes": 221053319.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.505,
+						"primitives": 467278.0,
+						"static_bytes": 221054107.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.981,
+						"primitives": 467278.0,
+						"static_bytes": 221054895.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 8.994,
+						"primitives": 467278.0,
+						"static_bytes": 221055683.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.533,
+						"primitives": 467278.0,
+						"static_bytes": 221056471.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.528,
+						"primitives": 467278.0,
+						"static_bytes": 221057259.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 5.237,
+						"primitives": 467278.0,
+						"static_bytes": 221058047.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.325,
+						"primitives": 467278.0,
+						"static_bytes": 221058835.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.354,
+						"primitives": 467278.0,
+						"static_bytes": 221059623.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.634,
+						"primitives": 467278.0,
+						"static_bytes": 221060411.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.237,
+						"primitives": 467278.0,
+						"static_bytes": 221061199.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.377,
+						"primitives": 467278.0,
+						"static_bytes": 221061987.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.944,
+						"primitives": 467278.0,
+						"static_bytes": 221062775.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.287,
+						"primitives": 467278.0,
+						"static_bytes": 221063563.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.597,
+						"primitives": 467278.0,
+						"static_bytes": 221064351.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.386,
+						"primitives": 467278.0,
+						"static_bytes": 221065139.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.49,
+						"primitives": 467278.0,
+						"static_bytes": 221065927.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.301,
+						"primitives": 467278.0,
+						"static_bytes": 221066715.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.6,
+						"primitives": 467278.0,
+						"static_bytes": 221067503.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 7.093,
+						"primitives": 467278.0,
+						"static_bytes": 221068291.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.506,
+						"primitives": 467278.0,
+						"static_bytes": 221069079.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.227,
+						"primitives": 466598.0,
+						"static_bytes": 221069867.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.225,
+						"primitives": 466598.0,
+						"static_bytes": 221070655.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.71,
+						"primitives": 466598.0,
+						"static_bytes": 221071443.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.869,
+						"primitives": 466598.0,
+						"static_bytes": 221072231.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.696,
+						"primitives": 466598.0,
+						"static_bytes": 221073019.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.31,
+						"primitives": 466598.0,
+						"static_bytes": 221073807.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.49,
+						"primitives": 466598.0,
+						"static_bytes": 221075339.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.29,
+						"primitives": 466598.0,
+						"static_bytes": 221076127.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.265,
+						"primitives": 466598.0,
+						"static_bytes": 221077007.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.763,
+						"primitives": 466598.0,
+						"static_bytes": 221077795.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.783,
+						"primitives": 466598.0,
+						"static_bytes": 221078583.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.382,
+						"primitives": 466598.0,
+						"static_bytes": 221083071.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.542,
+						"primitives": 466598.0,
+						"static_bytes": 221083859.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.458,
+						"primitives": 466598.0,
+						"static_bytes": 221084647.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.421,
+						"primitives": 466598.0,
+						"static_bytes": 221085435.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.935,
+						"primitives": 466598.0,
+						"static_bytes": 221086223.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 10.373,
+						"primitives": 466598.0,
+						"static_bytes": 221087011.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.832,
+						"primitives": 466598.0,
+						"static_bytes": 221087799.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.952,
+						"primitives": 466598.0,
+						"static_bytes": 221088587.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.555,
+						"primitives": 467278.0,
+						"static_bytes": 221089375.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.443,
+						"primitives": 467278.0,
+						"static_bytes": 221090163.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.929,
+						"primitives": 467278.0,
+						"static_bytes": 221090951.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.761,
+						"primitives": 467278.0,
+						"static_bytes": 221091739.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.327,
+						"primitives": 467278.0,
+						"static_bytes": 221092527.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.245,
+						"primitives": 467278.0,
+						"static_bytes": 221093315.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 10.086,
+						"primitives": 467278.0,
+						"static_bytes": 221094103.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.145,
+						"primitives": 467278.0,
+						"static_bytes": 221094891.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.948,
+						"primitives": 467278.0,
+						"static_bytes": 221095679.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.378,
+						"primitives": 467278.0,
+						"static_bytes": 221097487.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.385,
+						"primitives": 467278.0,
+						"static_bytes": 221098275.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 8.99,
+						"primitives": 467278.0,
+						"static_bytes": 221100887.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.673,
+						"primitives": 467278.0,
+						"static_bytes": 221101675.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.946,
+						"primitives": 467278.0,
+						"static_bytes": 221102699.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.591,
+						"primitives": 467278.0,
+						"static_bytes": 221103487.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.451,
+						"primitives": 467278.0,
+						"static_bytes": 221104275.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 13.157,
+						"primitives": 467278.0,
+						"static_bytes": 221105063.0
+					},
+					{
+						"drawcalls": 768.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 2.989,
+						"primitives": 467278.0,
+						"static_bytes": 221105851.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 7.598,
+						"primitives": 466598.0,
+						"static_bytes": 221106639.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.041,
+						"primitives": 466598.0,
+						"static_bytes": 221107427.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.859,
+						"primitives": 466598.0,
+						"static_bytes": 221108215.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.425,
+						"primitives": 466598.0,
+						"static_bytes": 221109003.0
+					},
+					{
+						"drawcalls": 767.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.674,
+						"primitives": 466598.0,
+						"static_bytes": 221109791.0
+					},
+					{
+						"drawcalls": 766.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.631,
+						"primitives": 461914.0,
+						"static_bytes": 221110579.0
+					},
+					{
+						"drawcalls": 766.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.103,
+						"primitives": 461914.0,
+						"static_bytes": 221111367.0
+					},
+					{
+						"drawcalls": 765.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.214,
+						"primitives": 460650.0,
+						"static_bytes": 221112155.0
+					},
+					{
+						"drawcalls": 765.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.758,
+						"primitives": 460650.0,
+						"static_bytes": 221112943.0
+					},
+					{
+						"drawcalls": 765.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.894,
+						"primitives": 460650.0,
+						"static_bytes": 221113731.0
+					},
+					{
+						"drawcalls": 765.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.824,
+						"primitives": 460650.0,
+						"static_bytes": 221114519.0
+					},
+					{
+						"drawcalls": 765.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.338,
+						"primitives": 460650.0,
+						"static_bytes": 221115307.0
+					},
+					{
+						"drawcalls": 764.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.272,
+						"primitives": 459970.0,
+						"static_bytes": 221116095.0
+					},
+					{
+						"drawcalls": 764.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.556,
+						"primitives": 459970.0,
+						"static_bytes": 221116883.0
+					},
+					{
+						"drawcalls": 764.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.626,
+						"primitives": 459970.0,
+						"static_bytes": 221117671.0
+					},
+					{
+						"drawcalls": 763.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 10.645,
+						"primitives": 456662.0,
+						"static_bytes": 221118459.0
+					},
+					{
+						"drawcalls": 763.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.583,
+						"primitives": 456662.0,
+						"static_bytes": 221119247.0
+					},
+					{
+						"drawcalls": 763.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.141,
+						"primitives": 456662.0,
+						"static_bytes": 221120035.0
+					},
+					{
+						"drawcalls": 763.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.88,
+						"primitives": 456662.0,
+						"static_bytes": 221120823.0
+					},
+					{
+						"drawcalls": 762.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 10.298,
+						"primitives": 451978.0,
+						"static_bytes": 221121611.0
+					},
+					{
+						"drawcalls": 762.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.487,
+						"primitives": 451978.0,
+						"static_bytes": 221122399.0
+					},
+					{
+						"drawcalls": 762.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.62,
+						"primitives": 451978.0,
+						"static_bytes": 221123187.0
+					},
+					{
+						"drawcalls": 761.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.991,
+						"primitives": 450714.0,
+						"static_bytes": 221123975.0
+					},
+					{
+						"drawcalls": 761.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.166,
+						"primitives": 450714.0,
+						"static_bytes": 221124763.0
+					},
+					{
+						"drawcalls": 761.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.296,
+						"primitives": 450714.0,
+						"static_bytes": 221125551.0
+					},
+					{
+						"drawcalls": 761.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.3,
+						"primitives": 450714.0,
+						"static_bytes": 221126339.0
+					},
+					{
+						"drawcalls": 761.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.827,
+						"primitives": 450714.0,
+						"static_bytes": 221127127.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.871,
+						"primitives": 447406.0,
+						"static_bytes": 221127915.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.195,
+						"primitives": 447406.0,
+						"static_bytes": 221128703.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.342,
+						"primitives": 447406.0,
+						"static_bytes": 221129491.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.446,
+						"primitives": 447406.0,
+						"static_bytes": 221130279.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 10.026,
+						"primitives": 447406.0,
+						"static_bytes": 221131067.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.967,
+						"primitives": 447406.0,
+						"static_bytes": 221131855.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 7.024,
+						"primitives": 447406.0,
+						"static_bytes": 221132643.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 10.08,
+						"primitives": 447406.0,
+						"static_bytes": 221133431.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.747,
+						"primitives": 447406.0,
+						"static_bytes": 221134219.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.232,
+						"primitives": 447406.0,
+						"static_bytes": 221135007.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.521,
+						"primitives": 447406.0,
+						"static_bytes": 221135795.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 7.751,
+						"primitives": 447406.0,
+						"static_bytes": 221136583.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.044,
+						"primitives": 447406.0,
+						"static_bytes": 221137371.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.124,
+						"primitives": 447406.0,
+						"static_bytes": 221138159.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.712,
+						"primitives": 447406.0,
+						"static_bytes": 221138947.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.318,
+						"primitives": 447406.0,
+						"static_bytes": 221139735.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.623,
+						"primitives": 447406.0,
+						"static_bytes": 221140523.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.093,
+						"primitives": 447406.0,
+						"static_bytes": 221141311.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.893,
+						"primitives": 447406.0,
+						"static_bytes": 221142099.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.838,
+						"primitives": 447406.0,
+						"static_bytes": 221142887.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.339,
+						"primitives": 447406.0,
+						"static_bytes": 221143675.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.149,
+						"primitives": 447406.0,
+						"static_bytes": 221144463.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.591,
+						"primitives": 447406.0,
+						"static_bytes": 221145251.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.782,
+						"primitives": 447406.0,
+						"static_bytes": 221146039.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.852,
+						"primitives": 447406.0,
+						"static_bytes": 221146827.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.177,
+						"primitives": 447406.0,
+						"static_bytes": 221147615.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.792,
+						"primitives": 447406.0,
+						"static_bytes": 221148403.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.262,
+						"primitives": 447406.0,
+						"static_bytes": 221149191.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.093,
+						"primitives": 447406.0,
+						"static_bytes": 221149979.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.612,
+						"primitives": 447406.0,
+						"static_bytes": 221150767.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 7.238,
+						"primitives": 447406.0,
+						"static_bytes": 221151555.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.631,
+						"primitives": 447406.0,
+						"static_bytes": 221152343.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 3.969,
+						"primitives": 447406.0,
+						"static_bytes": 221153131.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.653,
+						"primitives": 447406.0,
+						"static_bytes": 221153919.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.462,
+						"primitives": 447406.0,
+						"static_bytes": 221154707.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.671,
+						"primitives": 447406.0,
+						"static_bytes": 221155495.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.624,
+						"primitives": 447406.0,
+						"static_bytes": 221156283.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.208,
+						"primitives": 447406.0,
+						"static_bytes": 221157071.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.553,
+						"primitives": 447406.0,
+						"static_bytes": 221157859.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.345,
+						"primitives": 447406.0,
+						"static_bytes": 221158647.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.217,
+						"primitives": 447406.0,
+						"static_bytes": 221159435.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.846,
+						"primitives": 447406.0,
+						"static_bytes": 221160223.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.843,
+						"primitives": 447406.0,
+						"static_bytes": 221161011.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.244,
+						"primitives": 447406.0,
+						"static_bytes": 221161799.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.579,
+						"primitives": 447406.0,
+						"static_bytes": 221162587.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.589,
+						"primitives": 447406.0,
+						"static_bytes": 221163375.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.3,
+						"primitives": 447406.0,
+						"static_bytes": 221164163.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 6.973,
+						"primitives": 447406.0,
+						"static_bytes": 221164951.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 9.275,
+						"primitives": 447406.0,
+						"static_bytes": 221165739.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 4.236,
+						"engine_process_ms": 2.963,
+						"frame_ms": 4.542,
+						"primitives": 447406.0,
+						"static_bytes": 221166527.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 10.044,
+						"primitives": 447406.0,
+						"static_bytes": 221167315.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 3.926,
+						"primitives": 447406.0,
+						"static_bytes": 221168103.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 9.201,
+						"primitives": 447406.0,
+						"static_bytes": 221168891.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 4.645,
+						"primitives": 447406.0,
+						"static_bytes": 221169679.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 7.527,
+						"primitives": 447406.0,
+						"static_bytes": 221170467.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 9.52,
+						"primitives": 447406.0,
+						"static_bytes": 221171255.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 3.966,
+						"primitives": 447406.0,
+						"static_bytes": 221172043.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 10.258,
+						"primitives": 447406.0,
+						"static_bytes": 221172831.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 3.798,
+						"primitives": 447406.0,
+						"static_bytes": 221173619.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 7.295,
+						"primitives": 447406.0,
+						"static_bytes": 221174407.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 9.234,
+						"primitives": 447406.0,
+						"static_bytes": 221175195.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 4.234,
+						"primitives": 447406.0,
+						"static_bytes": 221175983.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 9.416,
+						"primitives": 447406.0,
+						"static_bytes": 221176771.0
+					},
+					{
+						"drawcalls": 760.0,
+						"engine_physics_ms": 5.067,
+						"engine_process_ms": 2.956,
+						"frame_ms": 4.532,
+						"primitives": 447406.0,
+						"static_bytes": 221177559.0
+					}
+				],
+				"static_bytes": {
+					"count": 433,
+					"max": 221177559.0,
+					"p50": 220999735.0,
+					"p95": 221161011.0
+				}
+			}
+		},
+		"limitations": [
+			"Logical native key-event fixture in the loaded8-building/3-resident preview quarter, not manual keyboard or full-city acceptance."
+		],
+		"native_exit_attempts": [
+			{
+				"accepted_brake": 0.0,
+				"accepted_handbrake": false,
+				"accepted_throttle": 0.0,
+				"attempt": 1,
+				"blocked_transition": false,
+				"body_frozen": false,
+				"braking": false,
+				"capture": true,
+				"error": "",
+				"phase": "ON_FOOT",
+				"physical_e": false,
+				"player_pose": "on_foot",
+				"reverse_beam_visible": false,
+				"reversing": false,
+				"seat": "",
+				"speed_mps": 0.000000000000227373675443232,
+				"tail_on": true,
+				"token": ""
+			}
+		],
+		"night_brake_capture": {
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": true,
+				"headlights_on": true,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 15535,
+				"sampled_linear_velocity": "(0.00706, 0.005596, -0.85024)",
+				"sampled_speed_mps": 0.850269019603729,
+				"speed_kmh": 3.06096847057343,
+				"speed_text": "03",
+				"text_update_count": 18,
+				"update_count": 46,
+				"visible": true
+			},
+			"path": "night_brake.png",
+			"viewport": "(1280, 720)"
+		},
+		"night_idle_capture": {
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": false,
+				"headlights_on": true,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 14994,
+				"sampled_linear_velocity": "(0.000297, -0.002299, -0.000001)",
+				"sampled_speed_mps": 0.000297477527055889,
+				"speed_kmh": 0.0010709190974012,
+				"speed_text": "00",
+				"text_update_count": 11,
+				"update_count": 33,
+				"visible": true
+			},
+			"path": "night_idle.png",
+			"viewport": "(1280, 720)"
+		},
+		"night_moving_capture": {
+			"dashboard": {
+				"driving": true,
+				"handbrake_on": false,
+				"headlights_on": true,
+				"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+				"ready": true,
+				"sampled_at_msec": 15376,
+				"sampled_linear_velocity": "(0.003677, -0.012462, -1.716921)",
+				"sampled_speed_mps": 1.71692538261414,
+				"speed_kmh": 6.18093137741089,
+				"speed_text": "06",
+				"text_update_count": 14,
+				"update_count": 41,
+				"visible": true
+			},
+			"path": "night_moving.png",
+			"viewport": "(1280, 720)"
+		},
+		"physical_space_supported": true,
+		"speed_observations": [
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": false,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 13478,
+					"sampled_linear_velocity": "(0.000335, -0.000003, -0.0)",
+					"sampled_speed_mps": 0.000335336080752313,
+					"speed_kmh": 0.00120720989070833,
+					"speed_text": "00",
+					"text_update_count": 0,
+					"update_count": 4,
+					"visible": true
+				},
+				"label": "day_idle",
+				"native_linear_velocity": "(0.000335, -0.000003, -0.0)",
+				"native_planar_kmh": 0.00120720989070833
+			},
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": true,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 13893,
+					"sampled_linear_velocity": "(0.004701, -0.001106, -1.143451)",
+					"sampled_speed_mps": 1.14346063137054,
+					"speed_kmh": 4.11645827293396,
+					"speed_text": "04",
+					"text_update_count": 3,
+					"update_count": 12,
+					"visible": true
+				},
+				"label": "day_moving",
+				"native_linear_velocity": "(0.004701, -0.001106, -1.143451)",
+				"native_planar_kmh": 4.11645827293396
+			},
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": true,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 14860,
+					"sampled_linear_velocity": "(0.000237, -0.007211, -0.000001)",
+					"sampled_speed_mps": 0.000237240063142963,
+					"speed_kmh": 0.000854064227314666,
+					"speed_text": "00",
+					"text_update_count": 11,
+					"update_count": 30,
+					"visible": true
+				},
+				"label": "night_idle",
+				"native_linear_velocity": "(0.000237, -0.007211, -0.000001)",
+				"native_planar_kmh": 0.000854064227314666
+			},
+			{
+				"dashboard": {
+					"driving": true,
+					"handbrake_on": false,
+					"headlights_on": true,
+					"panel_rect": "[P: (980.0, 528.0), S: (284.0, 176.0)]",
+					"ready": true,
+					"sampled_at_msec": 15255,
+					"sampled_linear_velocity": "(0.002761, 0.001533, -1.14739)",
+					"sampled_speed_mps": 1.14739322662354,
+					"speed_kmh": 4.13061561584473,
+					"speed_text": "04",
+					"text_update_count": 13,
+					"update_count": 37,
+					"visible": true
+				},
+				"label": "night_moving",
+				"native_linear_velocity": "(0.002761, 0.001533, -1.14739)",
+				"native_planar_kmh": 4.13061561584473
+			}
+		]
+	},
+	"test_sha256": "8878fc1bc4017bea60fbe835d5bc3248efba418e50a6aa41699b8b01eaa3ccee"
+}
