@@ -15,15 +15,19 @@ step33, closeAK36/cold35 и общую приёмку. Owner39/40 не дубл�
 NPC24/Transport3/Physics/street сохраняют владение; traversal OFF, прежние Астра1–10.
 Все рабочие отчёты в штаб `01a0df67-44d3-79c0-b243-fa6a9b891fde`.
 
-Единственная ordinary Palazzo50 была заново открыта другим владельцем в ходе
-приёма26. Не закрывать и не запускать параллельный движок; fresh process/window
-inventory и явное согласование окна обязательны. Сохранённые PID исторические.
-Root26 пока не делал engine/native/GPU проверок и не промотил runtime.
+На00:40 Root26 исправил срочный пользовательский запуск. Постоянные desktop
+ярлыки «актуальная/последняя версия» и shared project F5 используют один
+`godot/current_version.json`. Принята и открыта frozen40 сC4/стеклом/опорами,
+299pins/SHA3b3544d9, native/P95 owner evidence и собственный live startup root
+сохранены. См. память26 и `CURRENT_GAME_LAUNCH.md`. PID4572 исторический:
+перед следующими действиями fresh process/window inventory. Одно окно сохранено.
+Buildings2 RELEASED; следующая41 только source. QAслот car_damage ещё не дан.
 
 Source-only37 исправляет lifetime retired panel, но runtime/GPU/perf pending.
-38 только диагностирует нырок; точный collider не доказан. Пользователь хочет
-точный пролёт вытянутым телом, а не отключение столкновений. Автообрушение39
-делает Buildings2, его C4/стекло40 также ещё не приняты.
+38 диагностирует нырок; isolated39 исправляет full-volume path, но native/perf
+ещё NOT_RUN. Пользователь хочет точный пролёт вытянутым телом. Surface41 QA
+и glass patch подготовлены, в открытую40 не включены. Автообрушение и C4/стекло40
+приняты в квартале; fullworld287perf остаётся отдельно незавершённым.
 
 Принятая база25a/main a463167683dc2e9da10f0e70291c64897bd5c5c4. Shared чужие WIP
 сохранять. CompactHUD FINAL сохранять в будущей сборке. Полный перенос, город287,

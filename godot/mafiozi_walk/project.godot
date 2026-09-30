@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Мафиози — перенос в Godot"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/current_version_launcher.tscn"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="MafioziGodotPreview"
 config/features=PackedStringArray("4.7", "Forward Plus")

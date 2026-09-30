@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "01.10 · Палаццо, стекло и C4 · версия 40",
+  "revision": "s01-20260930-palazzo-c4-glass40",
+  "assembly": "outputs/buildings2_c4_glass40/ASSEMBLY.json",
+  "assembly_sha256": "3b3544d958a87db8c74abe24101f5c9a5cfc1a71a186a6ac8d58831e6bf607ed",
+  "bootstrap": "tools/godot/current_game_bootstrap.gd",
+  "bootstrap_sha256": "0f0b3efec90d2a91fef13e18f844058f44e1310d37833d17a0b0ecde97d562d8",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "Accepted Palazzo preview with C4, glass and structural collapse; full-city migration and dive39 remain pending."
+}

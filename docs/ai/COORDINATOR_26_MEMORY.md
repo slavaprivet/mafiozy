@@ -1,5 +1,115 @@
 # Координатор26 — действующая память
 
+## 00:40 — F5 и постоянные ярлыки исправлены; открыта40
+
+Срочное прямое пользователя: «сделай так чтоб я мог сам запускать версию.
+а тут у меня старая открывается когда ф5 жму». Старый desktop shortcut вёл в
+delivery25a, F5 — shared main. Теперь `godot/current_version.json` указывает
+frozen40/299pins/SHA `3b3544d958a87db8c74abe24101f5c9a5cfc1a71a186a6ac8d58831e6bf607ed`.
+Три ярлыка (desktop актуальная/последняя + repo актуальная) ведут в постоянный
+`tools/godot/launch_current_game.ps1`. Shared main_scene — маленький forwarder:
+editor executable передаёт запуск4.7.2, выходит, затем открывается frozen40.
+Export template сохраняет обычный main. Чужие runtime/player/main не менялись.
+
+Parser4.7.2 bootstrap и4.6.3 forwarder exit0/stderr0. Нативный запуск shared
+default scene в4.6.3 headless (тот же выбор, что F5; без физического нажатияF5)
+открыл настоящую видимую4.7.2 игру. `outputs/current_game/OPENED.json`: ready=true,
+revision40, RPG1+49, responding=true, stderr0, PID4572. Root просмотрел
+`interactive/20260930T213935098Z/opened.png`: версия видна вHUD, Палаццо и новые
+подсказки присутствуют. Повторный launcher отказал поmutex, новый engine не возник.
+Одно окно ОСТАВЛЕНО пользователю; PID всегда перепроверять. Manager45268 — не игра.
+
+Buildings2 явно RELEASED после perf40_02, frozen40 больше не меняет. Root прочитал
+matched pair: камера одинакова,8buildings/3NPC, p95 9.620→9.743ms, p50 7.045→6.990ms,
+draw1374→1411, RSSpeak1.585→1.672GB. Это квартал, НЕ полная сцена287NPC.
+Owner finished40:175/0, C4native61/GPU69/0.41 anysurface/arms/hurt только ownedsource;
+player damage producer не подключён, minimal equipmentdecorator API обсуждается.
+
+Surface41 QA готов: `outputs/coordinator26_surface41_qa`, manifest SHA
+`d5ee648c1578cfaf36d125a294bc46d1cd29268e7a197cde342d147b18911d9d`.
+Новый glass patch НЕ включён, native/GPU NOT_RUN. TT сразу ломает стекло;
+искусственного intactglassmark-to-C4 fixture нет. Dive39 helper84cf8047/playerc60d5a59
+source-prepared, native NOT_RUN. Автор отдельно делает optimized_rotation40;
+physicaldriver return и loadedperformance OPEN. Нырок ещё не исправлен в игре.
+
+Быстрые введения синхронизированы сRoot26: engines OFF; отдельный car_damage
+candidate просит следующий QAслот. Пока пользовательская игра открыта, новых
+engines не запускать; следующее окно согласовать со свежим inventory.
+Ранее перекрытыйperf не принимали; pair02 измерен отдельно.
+
+`docs/ai/CURRENT_GAME_LAUNCH.md`: при следующем принятии сборки обновлять общий
+pointer, иначе ярлыки останутся на старой. Sourcepins проверяются каждый запуск.
+
+## 00:20 — подготовка root и предварительный owner40 GPU
+
+Root26 лично просмотрел owner PNG `runs/c4_glass40_gpu01/c4_timer.png` и
+`c4_afterblast.png`: текст/таймер читаемы, виден настоящий пролом после подрыва.
+Owner RESULT.status=PASS, checks69, failures[], Windows, exit0, stderr0.
+ASSEMBLY40 SHA на этом прогоне
+`3b3544d958a87db8c74abe24101f5c9a5cfc1a71a186a6ac8d58831e6bf607ed`,299pins.
+Это предварительные собственноручно прочитанные evidence, не FINAL RELEASED:
+owner ещё сравнивает perf292/40, root своих движков не запускает.
+
+`outputs/coordinator26_marks37_qa` готов, manifest
+`d07847889df86b567b8dc83eee36f04a9cd64a45dde854f86829389e9bb95747`.
+Python AST/default small pins PASS; Godot/parser/runtime NOT_RUN.
+Там primary292 negative baseline/реальный RPG orphan и extended movingfragment/
+Jreset/generichelper. Runner держит общий mutex, Manager допускает по точному
+имени/noargs/title. Не подменять292 новым40. takeOver_review теперь готовит
+НОВЫЙ `outputs/coordinator26_surface41_qa` на actual40/new glass patch.
+
+`outputs/coordinator26_surface40_fix/HANDOFF.md` готов: отдельное glass attachment
+owner/glazing/site/building/generation/bodyRID; pending pane сохраняется,
+broken/reset удаляются обычным advance. SurfaceImpacts SHA
+`4adeb69f9e118d9275f6fcdf09666ffda15b6121b87986d16e1336b6761f06bc`;
+RpgEffects как37 `f018d96c5f6feb6afc29d671d77a094bfb261e1c2ceb0990f8fe195879bc2067`.
+16 source snapshots сохранены. До интеграции REVALIDATE_OWNER40 (C4 allowed gate
+у owner менялся, lifetime contract source review сохранился). Root source diff
+прочитал; native/GPU/perf нового patch ещё NOT_RUN.
+
+Первый isolated player39 НЕ принимать: независимый review нашёл три P1:
+authority setter молча отказывал impact/vehicle приёмнику; linear centre+SLERP
+между resting endpoints проваливает промежуточную капсулу под пол (0→10°:
+2.464мм); MAX_ANGLE.002 даёт264nativequeries на10° и потенциально вечный HOLD.
+Автор dive26_design исправляет authority/recovery/controller. Отдельный
+integration26_review готовит floor-tight analytic convex helper в
+`outputs/coordinator26_dive39_review`, автору geometry не дублировать.
+Позднее root решение: dive permission = ТОЧНАЯ native capsule1.9×.6/r.30,
+полный физический объём сохранён; дополнительный.36guard обычного прыжка остаётся.
+World AABB не считать финальным точным нырком, пол/стены не исключать.
+Никаких runtime39 PASS пока нет; математические1649checks не закрывают эти P1.
+
+## 00:08–00:12 — новое GO внедрять и окно Buildings2
+
+Новое прямое пользователя: «ок. делайте и внедряйте в игру». Продолжаем actual
+проверки/внедрение, не заканчиваем одним source-prep. Buildings2 параллельно
+получил прямое «с игровым окном сделай не проблема». Сообщения о резервировании
+пересеклись; ОКОНЧАТЕЛЬНЫЙ порядок отправлен ему отдельно:
+`ROOT26-B40-20261001-0010`: единственный QA owner = Buildings2, root26 RELEASED
+без единого запуска. Сначала его39/40 native/GPU/interactive, затем exactpins и
+RELEASED, потом root37/dive. Прежнее резервирование37 отменено, не ждать его.
+Другие engines/heavyCPU/GPU HOLD. Сохранять одну игру и свежий inventory.
+
+Owner39: support39_01 839checks/0FAIL,12/12крыш реально падают, максимум8releases/
+frame. Fullmain39_native02 98checks,exit2: реальная дверь/W/S/K/J прошли,
+camera/muzzle и resetoracle ещё требуют повторнойпроверки. Не выдавать заfullPASS.
+
+Root продолжение: takeover_review делает native37fixture в новой папке,
+dive26_design получил задание довести full-volumehelper до isolated playerpatch
+с безопасными pose/rotation/recovery и native gates. Его math1649checks прошли,
+но это не физика/игра; консервативныйenvelope возлепола требует итерации.
+integration26_review нашёл новый37+40стык: glasspanes StaticBody3D переживают
+fracture,37распознаёттолькоRigidBody. Готовит новый
+`outputs/coordinator26_surface40_fix`, не меняяowner40 или старый37.
+Штаб уведомлён; будущая combinedQA должна проверить RPG/C4/glass/reset.
+
+Передача26 опубликована отдельным doc-only commit
+`dd7f4f8ec35e2a1506434ce1c4915ec11b3dde55`, remote main повторно сверён.
+Вошли только2doc26+новаясекцияAGENTS26; остальныеWIPсохранены, индекс пуст.
+Передstaging обнаружен пустой .git/index.lock от23:11. После подтверждения
+отсутствияgitпроцессов/эксклюзивногооткрытия он перенесён, не удалён,
+в `outputs/coordinator26_takeover/stale-index-lock-20260930-231139.backup`.
+
 ## 1 октября 2026, принятие работы
 
 Пользователь: «замени кординатора25 стань кординатором26 продолжи его задачу»;
