@@ -1,0 +1,94 @@
+{
+  "baseline_sha256": "88bd0604d8a09f8ea9a040802d487ea42289ede29591ed173292a7ac6b3dc970",
+  "cases": [
+    {
+      "center_error_m": 0.119999997317791,
+      "cost": {
+        "accept_us": 1150,
+        "candidate_triangles": 6,
+        "coarse_us": 46,
+        "marks": 1,
+        "probes": 37,
+        "probes_us": 632,
+        "query_us": 171,
+        "rebuild_us": 293,
+        "update_us": 0,
+        "vertices": 105
+      },
+      "fixed": false,
+      "marks": 1,
+      "max_local_anchor_z": 0.119999997317791,
+      "name": "baseline_folded",
+      "pose_follow_error_m": 0.300000011920929,
+      "wrong_part_anchor_corners": 288
+    },
+    {
+      "center_error_m": 0.0,
+      "cost": {
+        "accept_us": 1733,
+        "candidate_triangles": 6,
+        "coarse_us": 69,
+        "marks": 1,
+        "probes": 37,
+        "probes_us": 937,
+        "query_us": 198,
+        "rebuild_us": 522,
+        "update_us": 0,
+        "vertices": 105
+      },
+      "fixed": true,
+      "marks": 1,
+      "max_local_anchor_z": 0.0320937149226666,
+      "name": "fixed_folded",
+      "pose_follow_error_m": 0.0000000298023223876953,
+      "wrong_part_anchor_corners": 0
+    },
+    {
+      "center_error_m": 0.119999885559082,
+      "cost": {
+        "accept_us": 1119,
+        "candidate_triangles": 5,
+        "coarse_us": 55,
+        "marks": 1,
+        "probes": 37,
+        "probes_us": 637,
+        "query_us": 134,
+        "rebuild_us": 288,
+        "update_us": 0,
+        "vertices": 105
+      },
+      "fixed": false,
+      "marks": 1,
+      "max_local_anchor_z": 0.120000123977661,
+      "name": "baseline_lying_rotated",
+      "pose_follow_error_m": 0.300000011920929,
+      "wrong_part_anchor_corners": 288
+    },
+    {
+      "center_error_m": 0.0,
+      "cost": {
+        "accept_us": 1336,
+        "candidate_triangles": 5,
+        "coarse_us": 76,
+        "marks": 1,
+        "probes": 37,
+        "probes_us": 769,
+        "query_us": 159,
+        "rebuild_us": 326,
+        "update_us": 0,
+        "vertices": 105
+      },
+      "fixed": true,
+      "marks": 1,
+      "max_local_anchor_z": 0.0378150939941406,
+      "name": "fixed_lying_rotated",
+      "pose_follow_error_m": 0.000000329177396451996,
+      "wrong_part_anchor_corners": 0
+    }
+  ],
+  "checks": 41,
+  "errors": [],
+  "passed": true,
+  "proposed_sha256": "a0138134cc1220650ddda9ef1f62da81d39274ca58b12baf355c53ac0d7986f6",
+  "scope": "Synthetic bent/skinned competing surfaces through actual baseline/overlay renderer; no game, native HP, projectile flight, population or GPU instantiated. Does not reconstruct the user's screenshot or prove whole-scene performance."
+}

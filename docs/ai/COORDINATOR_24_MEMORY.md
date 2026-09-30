@@ -1,5 +1,233 @@
 # Координатор 24 — действующая память
 
+## 30 сентября 19:40 — исправление попаданий24d проверено и открыто
+
+Compiled27 Uzi01 PASS75/0errors,4nativecontacts, naturaldeath +3postmortem,
+actualR,995render samples. Все3markcenters lateral<.001мм относительнонастоящего
+incomingray; впередиproxy на6.6–7.6смлежитнастоящаяvisible skin. HP/deathkey/
+revision/impulseunchanged. ОбаPNGпросмотрены, samplequarterGPU,неwholecityFPS.
+Guardedpromote24dтриpaths/PCK21c0c279…6e63f,1739unscopedpreserved.
+ОткрытаОДНАобычнаяиграPID16508,session87235launcher; responding/readinessPASS,
+безQA scripts. Путь `godot/mafiozi_walk/exports/win64/s01-20260930-quality24d-play`.
+Ярлык «Мафиози — взгляд назад и гудок» теперьзапускает guarded24dlauncher,
+старыйярлыксохранёнdelivery24d/shortcut_before.lnk. Не менятьcurrentgameдляGPU
+покаuserсмотрит. Бoundedheadlessfunctionalдопускается,noFPSclaims.
+
+Rpg_resume_auditготовитisolated28corpsev2rebaseот25. Найдены protocolmismatches:
+owner coldcontractнеполный, optionschema отличается, prewarmнепередаётoptin,
+populationv1port, rawslideне возвращаетcapsule IDs. Разрешеноузкоисправитьв28
+и headlessfunctional; ownerpacket/sharedне трогать. Glassagentготовитpaired
+base26/warm29GPUтолькоscripts,не запускатьрядом16508. Buildings2frozennewhouse
+по-прежнемуждём; currentgameRPGбезbuildingdamage,необъявлятьготовность.
+
+## 30 сентября 19:35 — NPC24c опубликован, исправление точки попадания24d собрано
+
+24c promotion выполнен:22 scopedpaths (21 запись),1720 unscoped сохранены,
+восемь чужих changed inputs не тронуты. Точный25 export скопирован в
+`godot/mafiozi_walk/exports/win64/s01-20260930-quality24c-play`.
+54 scoped Git paths committed/pushed; remote main подтверждён
+`2542a1c8df1c3f152cc766f1e5af956c8d415d41`.
+
+Hitprecision geometry01 PASS41/0.878s: frozen renderer сдвигалцентр119.999997мм
+на чужую folded surface и привязывал288 anchor corners ксоседнейкости; после
+движенияошибка300мм. One-filefix сохраняет exact incoming-ray center и closest
+normal-plane rim: center0, foreignboneanchors0, deformationerror<.0004мм;
+rotatedlying/duplicate/grazenegativesPASS. Overlay SHA
+`a0138134cc1220650ddda9ef1f62da81d39274ca58b12baf355c53ac0d7986f6`.
+224inputs candidate27 frozen от25: renderer + main24d + notes, othercontentintact.
+ASSEMBLY27 SHA `06e899c3dc9d77472931bb6f4bd323f691734b925b7d1fa5e7250fe46bda750a`.
+Export27 завершён; PCK `21c0c2799589fe19b3c506fe8b3d0fc304f4a3f1701ec43013e8c9a3c506e63f`.
+ActualUzi GPUtest покаГОТОВИТСЯ; не объявлять24d включённым до проверки.
+
+Buildings26 passage03_retry01/04: оба0nativeerrors/sourceunchanged,ноFAILпрохода.
+03two high наy1.6494 + low перехвачены Security bollard004; W6.32387m/armorbelow.
+04fixedfiringline1mleft: high→displayriflebarrel003,low→Eastdisplaystonerail001,
+все4realRPG160/finiteammo; passageFAIL,большеудачныйлучнеподбирать. Ownerсообщён.
+Buildings2 прямо подтвердил fullcollapse newmodular не реализован, supportloss
+непередаётсякаркасу. Все78placementsgeometryPASS, smallestfrozenhouse+loader
+ещёWIP; rootихне копирует. Ждёмконкретнуюdelivery, не вторуюсистему.
+Glasswarm02 retainedzeroarealines/tri exactmaterials CPUparity737PASS,
+startup/GPUhitch eliminationНЕпроверены. RootGPU27 окнообъявлено.
+
+## 30 сентября 19:27 — NPC24c показан, замечание по точности следов
+
+Frozen combined25: 224 inputs, ASSEMBLY25 SHA
+`f506b940a4a3adb48263f67c9115d4843ce5429ea7944b0af96ce8c831b71770`.
+Экспорт24c PCK `fa1504583eefd212211a87ced7c2fc7805885213aa71d9211c63447f4ac74863`.
+Compiled GPU combat02 PASS60, 934 actual rendered samples: native TT death +3
+postmortem contacts/marks, real R, original three NPC preserved. Steady frame
+p95 ~7.3ms, hit max17.432ms. Это loaded test-quarter measurement, не full-city
+приёмка. Observer25 PASS51780,3590 physics frames, full printshop visit/return,
+180 resumed ticks и2.670013m ordinary walking. All224 source pins unchanged.
+
+Обычный25 открыт PID26716 без QA hooks, пользователь прислал настоящий скрин
+нового24c с множеством следов на погибшем. Позже26716 отсутствовал, свежий
+inventory толькоManager45268; root его не закрывал. Не объяснять исчезновение
+без доказательств. Пользователь: «не все попадания фиксируются в точку».
+Cargo subagent исправляет isolated contact→surface projection: первый ray hit
+перепроецировался на максимальную normal-depth поверхность и мог перескочить
+на соседнюю конечность. Пока это code diagnosis, reproducer/engine pending.
+Root weapon audit: camera target и actual bullets используют mask5|256,
+погибшие не исключены; Uzi spread отдельно, сам по себе не оправдывает mark drift.
+
+Buildings2 по прямому разрешению пользователя согласован напрямую. Frozen37
+с companion long_armory_shell_world030 (новый явный .3 WORLD gameplay profile)
+включены isolated26; 264 inputs, BASE_STAGE c9cca162…1982d. Passage03 первый
+запуск остановлен до shots из-за отсутствующего generated optic import; retry
+после копирования точного старого metadata. GPU материал стекла127ms покаHOLD.
+Owner расширяет expansion/**; root попросил smallest frozen modular house для
+видимого выпуска, не дублирует его систему.
+
+NPC24c promotion готовит rpg_resume_audit, root выполнит после pin guards.
+Shared main.tscn conflict оказался только LF/CRLF; остальные чужие изменения
+interiors/water/panel/transport сохранять. Contactv2 owner найден:
+`outputs/artist24_corpse_contact_v2/HANDOFF.md`: PREPARED_UNRUN_DEFERRED,
+это ещё не готовый физический упор. Root4-file patch также не проверен.
+
+## 30 сентября 19:10 — срочно показать NPC24c, Buildings2 согласован напрямую
+
+Последнее прямое поручение: связаться с «Взрывы зданий 2», не дублировать его пакет,
+и наконец показать видимый результат. Прямое messaging этому owner теперь явно
+разрешено пользователем (root отправил, owner ответил, narrow scope согласован).
+
+NPC SOURCE результаты: candidate21 headless11 PASS51786,3591physicsframes,
+27legs/fullprintshopentry/return/180resumedticks, resumed2.670m. WAIT72 и реальный
+floor recovery252 пройдены. Host isolated6afdb320… допускает NO_PATH recovery только
+при nativeUP correction/единственном исходном floor overlap, без teleport/guard weakening.
+Shared/Artist source ещё не изменены. Кандидат24 sourcecombat04 PASS44:4nativeTT,
+actualR11/36→12/35, naturaldeath→3postmortemmarks,marks1→4,row/revision/impulseintact;
+другие2NPC прошли3.32/2.67m. Frozen `outputs/coordinator24_npc_combat/ASSEMBLY24_LIFETIME.json`
+SHA47984eef…32c6;215inputs. Quickcontrols two teardown lifetimeguards+5notes в24.
+Пакет24c экспортирован из24, НО ещё НЕпринят/НЕдоставлен; его заменит объединённый25.
+
+rpg_resume_audit СЕЙЧАС собирает candidate25: frozen24+visit9adds/population/hostfix,
+ожидается224inputs,revision24c,mainbyteequal21/24,5notes сvisit+postmortem+F/B/H.
+Оба исходных21/24 сохраняются. Его nextaction import+combinedordinaryregression,
+затемroot export25 / compiledGPUcombat / guardedpromotion / открыть одну игру.
+cargo_input_fix готовит GPUobserver/runner в coordinator24_npc_combat, sourceR04PASS;
+GPUtest prepared SHA3816b8e7…cebc, ещёUNRUN. No GPUgame at19:08, Manager45268 только.
+Предыдущие rootrestore3052/41436 исчезли позже, root/cargo их не закрывали, причина неизвестна.
+
+Buildings2 FROZEN delivery: `outputs/building_destruction_modules2_20260930/delivery/RECEIPT.json`
+SHA c95040f1c63f205a60d6a84dc1f8f488d0907acf46a78a315e093c5541a59dc2,37files.
+Owner меняеттолько expansion/**; модульные новые корпуса массово отдельныйэтап.
+Сейчасroot scopeузкийgunshop, читать INTEGRATION.md/modules/armor75_binding.json.
+Armor75 точныйsolid.493499964m/threshold283.7625, sourcegeometry41830b2d…; reveal_material
+explicitstoneMaterial. ColliderlowcutownerPASS308, но actualRPG+wholeplayerpassage ещёНЕPASS.
+Longarmoryshell exactworldbinding НЕТ вdelivery; root запросил уowner напрямую, нельзя
+подставлятьmodel.25какworld.25. Glass_optimization subagent теперь собирает isolated26
+от23 с новымdelivery+armor75;shellHOLDдоbinding. Main/shared25не трогать.
+
+Glass CPU optimizedcandidate01 SHA37247bb6…f5a8: parity485PASS/18scenarios/7662queries,
+bitwisegeometry/material/RNG/shards/timing/reset. Profile05 exact2RPG/source225unchanged,
+но FAILwallcheck: part10plinth unsupportedslabadapter,firsthitY1.2259vs04Y1.6494 ещё
+доglassfix (causeaimdiffunknown). Geometrycompute73.594→14.023ms/3windows, first
+native material_override127.830ms остаётся. НЕполныйperfPASS. FreezeдляBuildings2
+`BUILDINGS2_FREEZE.json` SHAdd21d12b…616b6, runtimeengineнепринят.
+
+Rootcheckpoint1858 STATUS.md создан, Gitещёнеcommit. Пустойstaleindexlock17:52
+после1часа/noactiveGit/exclusiveopenперемещёнбезудалениявcoordinator24_checkpoint1858,
+STALE_LOCK.json сохранён. ПоследнийpublishedSHAa6279b2a. Неaddall/неперетиратьownerWIP.
+
+## 30 сентября 18:43 — параллельная приёмка, user LIVE quick-controls
+
+Root субагенты загружены по прямому повторному поручению пользователя. NPC функциональный
+прогон разрешён headless рядом с единственной пользовательской игрой, без FPS выводов.
+Ruflo/ToolSearch отсутствуют. Старых координаторов/остановленный traversal не будить.
+
+Игра сейчас accepted24b PCK becb595b… плюс `outputs/quick_controls_20260930/play.gd`.
+Другой пользовательский чат «Оценить готовые механики GitHub» добавил B rearview,
+H horn и F headlights; HANDOFF.txt прочитан, четыре scripts включая car_headlights.
+Последний PID11428 (42364 владелец заменил сам), точный источник/root export не менялись.
+Перед новым NPC export интегрировать frozen additive closure и убрать его отдельный
+notes.setup по HANDOFF, сохранить эти пользовательские кнопки. Владелец на18:42 idle.
+Root объявил через штаб короткое PROFILE03 GPU окно40с с восстановлением exact play;
+сначала дождаться завершения rootNPC headless и проверить свежий inventory.
+
+NPC21 native headless05: исходные218 pins/car/cargo/IDs intact, два legs ARRIVED,
+третий у машины FAIL. Точечный путь не учитывал native arrival tolerance.15m + небольшой
+реальный drift автомобиля. Исправленный северный обход x41.12/27legs в работе у
+rpg_resume_audit, без смены tolerances/коллизий/телепортаций. Failed evidence сохранять.
+После PASS он готовит отдельный postmortem candidate с owner receipt1223739c…,
+frozen21 не мутировать. Root QA `outputs/coordinator24_npc_combat/test_ordinary_postmortem.gd`
+пока UNPARSED/UNRUN: ordinary ticks/walking NPC/attached native mouse aim/finiteTT/R,
+одна явная clear-floor fixture позиции игрока, без HP/RNG/NPC overrides.
+
+Corpse v2: cargo_input_fix готовит только изолированный ROOT patch player pressure
+receipt/sampler/main/public population forwards. Artist24 через штаб запрошен frozen
+owner contact/lifecycle пакет1024bit (original bodies1280/mask257, player1025), v1 intact.
+Buildings2 также нужен exact accepted-mask контракт для rubble, old mask==1 иначе
+откажет. Не обещать готовность физического упора до настоящей проверки.
+
+Buildings23 profile02 clean2RPG PASS/source225unchanged: impact221.523ms, glass blast
+221.325ms, три glass.hit203.876ms, fracture7.173ms incl collision3.770ms. Нужна вложенная
+атрибуция profile03, уже готов `outputs/coordinator24_building_delivery/run_profile03.py`.
+Profile03 wrapper SHA8784cdec…; кандидат неизменён, performanceREJECT не снят.
+Clean passage02 FAIL после4actualRPG: W360ticks6s прошёл6.32387m, затем Ground facade armor.
+Node75 — закрытая монолитная18.2125×3.2×.4935m/28.6107m³; старый smallconvex не подходит.
+Высокие попадания также оставляют нижний.10m пояс (contact.61997). Точный owner request
+`outputs/coordinator24_building_breach/OWNER_REQUEST.json`/PEER_READ_REPORT передан штабу.
+Нельзя повышать globalcaps или подменять прочность/боезапас. New modules2 WIP владельца
+ещё не frozen delivery. Прежний весь разрушенный showcase сохранён, не равен city delivery.
+
+## 30 сентября 18:16 — пользователь ждёт NPC и взрывы, интеграция в работе
+
+Esc24b сохранён/опубликован: `a6279b2ad9bac222e54e840b26a4f0cf74380556`, origin/main
+сверен. PID34044 был responsive17:45, к17:50 отсутствовал; причина неизвестна,
+root его не закрывал. Последний inventory перед QA — только Manager45268.
+
+Пользователь передал пакет «Взрывы зданий2» и прямо поручил внедрить после проверки;
+затем указал, что на показанном превью разрушения почти нет, хотя прежний образец
+уже разрушали целиком. Ответ: сохранённый prototype действительно проходил629частей,
+а городской перенос ещё не воспроизводит его механику. Не выдавать маленькие сколы
+за доставленное разрушение. Пользователь18:13 ждёт оба результата и18:14 просит
+нагрузить субагентов — три root субагента работают параллельно, GPU последовательно.
+
+Buildings2 thread `01a0f2a0-1629-7063-a462-913fd6b939be`, source
+outputs/building_destruction_rollout_20260930. Receipt BUILDINGS2_READY SHAef97a30a…
+сверен33pins+98inputs. Candidate23 от exact22:225files (209base+16runtime), только
+rpg_effects native_impact observation изменён bbd4ec…→96084c…, main/player/notes24b
+не активируютdestroy. BASE_STAGE.json SHAa82ab5a258d358020bbd3fa48a1e91ba440d77da8e74ec9cf6c71863fd40dca3.
+Import чистый. Текущие доказательства outputs/coordinator24_building_delivery.
+
+Current24b headless baseline02/candidate01 поведениеPASS, actual2RPG160/R/8buildings/
+3NPC, INPUTS unchanged. Baseline01 enginePASS, но rootreader ошибся encodingutf8-sig;
+raw сохранён, повтор02 чистый. GPU baseline01/candidate01 comparable+behaviorPASS,
+НО performanceREJECT: firstRPG wallmax8.819→356.319ms, следующий54.034ms,
+p95 5.461→6.687ms; memory послеоседания+24.85MB. Candidate02 вновьbehaviorPASS,
+firstRPGmax233.026ms+44.999ms. Reversebaseline02 invalid:3actualshots вместо2,
+первыйвоintactidle ещёдоQAinput, второйвоreload; причинадопввода неустановлена.
+Валидность сравнения не означает приёмку скорости. Скриншот04_settled просмотрен:
+малыйbuttress пролом, основнаястенацелая. Production OFF, новогоэкспорта нет.
+
+Обычный wallkernel coldmax389us не объясняет233–356ms; стекло3панели ломается
+черезсинхронныйhit/advance/collider refresh. External profile_candidate01 завершился
+exit0 безRESULT/PROFILE, logпоследнимимеетreloadFAIL; возможноGUIзакрыли/вводмешал,
+непроверено. Агентготовитновый NO_FOCUS/offscreenпрофайлер (диагностика, неLIVEpass),
+пакет/candidate23 сохраняются. Passage01 actual4RPG затемrealW6sec:6.32387m,
+упорGround facade armor, signedfront+.67613m. Но QAпечатаетошибкуget_meta(null)
+ираннийkeyupassert — нуженчистыйpassage02, SHA f382c34c…47f0834, ещёНЕзапущен.
+АвторBuildings2 самостоятельно ведётобщиймодульныйshellперенос, sourceнеперетирать.
+
+NPC21/quality24c source собран218inputs поверхaccepted22, ASSEMBLY24C SHA
+ceb0ad700c1e88051ff0424ae1f4b4f2cd6095336034d46f8ffd8fb5fbcf1d91.
+5changes/9adds; cargo24b сохранён. Publiccancel_local_walk+RETURNING_TO_STREET,
+hostee28d9/routeportable82a595/composerd922ff frozen; normalobserver a6ef6e0f….
+Root субагент rpg_resume_audit получил GO headless import+обычныйвизит bounded100s,
+GPU запрещёнему. Полнаяnormal/GPU/compiledприёмка ещёнеполучена.
+ГотовновыйArtist24 postmortemmarksпакет: HANDOFF+RECEIPT1223739cc91eda50b8740d2c1755b6a8159d8cee680c8611c510584fc236291f,
+owner114b420d…, adapter024702f…, renderer88bd0604…; nativeCPU301PASS, all3NPC,
+skin/frayedcloth37exactmatches/cap24. ROOTтольконачалreview, в21неподключён.
+Pipelinep95 12.8ms остаётсясущественным, нуженactualinput/GPUсоставнойсцены.
+
+Corpse blocking proposal outputs/coordinator24_corpse_blocking — ещёНЕвнедрён.
+Rubbleзанимает512, proposedcorpse1024/player1025 требуетNPCv2 исовместимогоrubble
+maskguard (сейчастребуетplayer.mask==1). NPCслои1280/257 толькоfinaldead; медицинские
+иplayerexit256 нецеплять. Неускорятьзадачупростымснятиемколлизий/guard.
+
+QUIET_BUILDINGS24 черезштаб проситнепускатьтяжёлыеengineво времяrootзамеров;
+не оставлятьбезконца, сообщить RELEASEпослетекущихпроверок. Старыхвладельцевнебудить.
+
 ## 30 сентября 17:45 — Esc из багажника исправлен, cargo24b открыта
 
 Новое точное воспроизведение пользователя: открыть содержимое F, затем Esc —

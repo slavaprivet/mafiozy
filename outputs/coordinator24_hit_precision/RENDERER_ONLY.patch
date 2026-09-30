@@ -1,0 +1,55 @@
+--- frozen25/scripts/npc_visual/npc_postmortem_bullet_marks.gd
++++ overlay/scripts/npc_visual/npc_postmortem_bullet_marks.gd
+@@ -239,7 +239,9 @@
+ func _probe(query: Dictionary, point: Vector3, _normal: Vector3) -> Dictionary:
+ 	var delta: Vector3=point-query.point
+ 	var x: float=query.u.dot(delta); var y: float=query.v.dot(delta)
+-	var nearest := -INF; var anchor: Dictionary = {}
++	# Incoming-ray admission stays frontmost. Local fray projection stays
++	# closest to its exact impact tangent plane, not another folded body surface.
++	var nearest := -INF if query.depth>0 else INF; var anchor: Dictionary = {}
+ 	var candidates: Array=query.triangles
+ 	var cell:=Vector2i(floori(x/(.04*_unit)),floori(y/(.04*_unit)))
+ 	if query.depth<=0 and absi(cell.x)<=4 and absi(cell.y)<=4: candidates=query.grid.get(cell,[])
+@@ -249,11 +251,11 @@
+ 		var u: float=dx*t.ux+dy*t.uy; var v: float=dx*t.vx+dy*t.vy
+ 		if u<0 or v<0 or u+v>1: continue
+ 		var z: float=t.a.z+u*t.e1z+v*t.e2z
+-		if z<=nearest:continue
+ 		if query.depth>0:
+-			if z>.001 or z < -float(query.depth):continue
+-		elif absf(z)>=.20*_unit:continue
+-		nearest=z
++			if z<=nearest or z>.001 or z < -float(query.depth):continue
++		else:
++			if absf(z)>=.20*_unit or absf(z)>=nearest:continue
++		nearest=z if query.depth>0 else absf(z)
+ 		anchor={"s":t.s,"ids":t.ids,"weights":Vector3(1-u-v,u,v),"sign":t.sign,"world_point":query.point+query.u*x+query.v*y+query.normal*z,"world_normal":t.normal*t.sign}
+ 	return anchor
+ 
+@@ -295,6 +297,7 @@
+ 	if not _valid() or event_id.is_empty() or event_id in _receipts or not point.is_finite() or not normal.is_finite() or normal.length_squared()<.5: return false
+ 	var start := Time.get_ticks_usec(); var n := normal.normalized()
+ 	var coarse_us:=0
++	var visual: Dictionary = {}
+ 	if not _batch_active:
+ 		_query_cache.clear()
+ 		_query_bones=_bone_poses()
+@@ -302,12 +305,15 @@
+ 	if ray_depth>0:
+ 		if not incoming.is_finite() or incoming.length_squared()<.5:return false
+ 		var visual_query:=_query(point,-incoming.normalized(),ray_depth)
+-		var visual:=_probe(visual_query,point,-incoming.normalized())
++		visual=_probe(visual_query,point,-incoming.normalized())
+ 		if visual.is_empty():_query_cache.clear();return false
+ 		point=visual.world_point;n=visual.world_normal
+ 		coarse_us=Time.get_ticks_usec()-start
+ 	var query_start:=Time.get_ticks_usec()
+-	var query := _query(point,n); var center := _probe(query,point,n)
++	var query := _query(point,n)
++	# The genuine incoming ray already selected this triangle and barycentrics.
++	# Recasting its center along the surface normal can jump onto a nearby limb.
++	var center: Dictionary = visual if not visual.is_empty() else _probe(query,point,n)
+ 	var query_us:=Time.get_ticks_usec()-query_start
+ 	if not _batch_active: _query_cache.clear()
+ 	if center.is_empty(): return false

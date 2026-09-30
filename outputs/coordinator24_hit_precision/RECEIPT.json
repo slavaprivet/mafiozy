@@ -1,0 +1,27 @@
+{
+  "status": "ISOLATED_CPU_REGRESSION_PASS_NOT_INTEGRATED",
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate25\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_postmortem_bullet_marks.gd",
+  "source_sha256": "88bd0604d8a09f8ea9a040802d487ea42289ede29591ed173292a7ac6b3dc970",
+  "overlay": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_hit_precision\\files\\scripts\\npc_visual\\npc_postmortem_bullet_marks.gd",
+  "overlay_sha256": "a0138134cc1220650ddda9ef1f62da81d39274ca58b12baf355c53ac0d7986f6",
+  "patch_sha256": "abff848943dd63c6475073c2891c84c57fcc8b86772b355d95ea0d08128f9f91",
+  "source_files_changed": 0,
+  "overlay_files": 1,
+  "untouched": [
+    "native projectile and incoming direction",
+    "Uzi spread/recoil/ammo",
+    "owner receipt/HP/life/terminal guards",
+    "24 marks/512 receipts caps",
+    "original mesh/Skin/physics/ragdoll",
+    "per-frame pose update"
+  ],
+  "scope": "Retain authenticated incoming-ray center; choose nearest local normal-projection surface for rims. Synthetic folded/skinned regression pending, no claim of screenshot event reconstruction.",
+  "geometry_result_sha256": "4d140cc3d45c6c31e2098f83befde9d354bb676a614f85e747f9ee69d0a5adb6",
+  "geometry_run_sha256": "635807378ad95b1834ae9fdfad89136a293604573e5e842a8431c03b3f94dfa8",
+  "test_sha256": "aee3bdb53e3966f799c5235158efbb5415e13fc6311d480671187ef257768a5d",
+  "checks": 41,
+  "native_errors": false,
+  "frozen224_unchanged": true,
+  "actual_game_tested": false,
+  "GPU_runs": 0
+}
