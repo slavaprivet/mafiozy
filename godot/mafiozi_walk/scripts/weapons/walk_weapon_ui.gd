@@ -1,4 +1,5 @@
 extends Control
+const Crosshair = preload("res://scripts/weapons/walk_weapon_crosshair.gd")
 ## Source visual system: assets/maps/city_rebuild_v1/weapon_hud.mjs:6-20, 65-91.
 ## Root-owned proposal. UI never mutates inventory, ammo, cargo or item identity.
 var host: Node
@@ -9,7 +10,7 @@ var ammo: Label
 var count: Label
 var grid: GridContainer
 var scroll: ScrollContainer
-var crosshair: Label
+var crosshair: Control
 var photo: TextureRect
 var choices: Dictionary = {}
 var textures: Dictionary = {}
@@ -29,7 +30,7 @@ static func panel_style(background: String, border: String, radius: int = 6) -> 
 	style.shadow_color = Color(0,0,0,.42); style.shadow_size = 5; style.shadow_offset = Vector2(0,3)
 	return style
 
-static func label(value: String, pixels: int, color: String = "eeeae0") -> Label:
+static func label(value: String, pixels: int, color: String = "d6d7d2") -> Label:
 	var result := Label.new(); result.text = value
 	result.add_theme_font_size_override("font_size", pixels)
 	result.add_theme_color_override("font_color", Color(color))
@@ -44,9 +45,9 @@ static func margins(amount: int) -> MarginContainer:
 
 static func keycap(key: String, gold: bool = false) -> PanelContainer:
 	var result := PanelContainer.new(); result.custom_minimum_size = Vector2(30,30)
-	result.add_theme_stylebox_override("panel",panel_style("bd8735" if gold else "30373c", "ffe29a" if gold else "858582",4))
+	result.add_theme_stylebox_override("panel",panel_style("9c8155" if gold else "30373c", "bba783" if gold else "69706f",4))
 	result.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var text := label(key,16 if gold else 13,"241707" if gold else "eeeae0")
+	var text := label(key,16 if gold else 13,"211d17" if gold else "d6d7d2")
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; result.add_child(text)
 	return result
 
@@ -59,10 +60,10 @@ static func picture(height: float) -> TextureRect:
 func configure(weapon_host: Node, baked_textures: Dictionary = {}) -> void:
 	host = weapon_host; textures = baked_textures
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_normal = panel_style("252e35","4f595f",5); _selected = panel_style("3b3e37","c9ac6b",5)
+	_normal = panel_style("252e35","4f595f",5); _selected = panel_style("333832","ad956c",5)
 	launcher = Button.new(); launcher.focus_mode = Control.FOCUS_NONE
-	launcher.add_theme_stylebox_override("normal",panel_style("252b2f","78746a"))
-	launcher.add_theme_stylebox_override("hover",panel_style("343c41","d1b77d"))
+	launcher.add_theme_stylebox_override("normal",panel_style("252b2f","5b605f"))
+	launcher.add_theme_stylebox_override("hover",panel_style("30383d","b09a74"))
 	launcher.add_theme_stylebox_override("pressed",_selected)
 	launcher.pressed.connect(_launcher_pressed); add_child(launcher)
 	var padding := margins(10); padding.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); launcher.add_child(padding)
@@ -70,10 +71,10 @@ func configure(weapon_host: Node, baked_textures: Dictionary = {}) -> void:
 	photo = picture(58); photo.custom_minimum_size.x = 112; row.add_child(photo)
 	var copy := VBoxContainer.new(); copy.mouse_filter = Control.MOUSE_FILTER_IGNORE; copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(copy)
 	title = label("Без оружия",14); copy.add_child(title)
-	ammo = label("ОРУЖИЕ УБРАНО",12,"b8c5cd"); copy.add_child(ammo)
+	ammo = label("ОРУЖИЕ УБРАНО",12,"adb8be"); copy.add_child(ammo)
 	row.add_child(keycap("Q"))
 	menu = PanelContainer.new(); menu.visible = false; add_child(menu)
-	menu.add_theme_stylebox_override("panel",panel_style("1d2429fc","77766f",8))
+	menu.add_theme_stylebox_override("panel",panel_style("1d2429fc","555b5d",8))
 	var menu_margin := margins(15); menu.add_child(menu_margin)
 	var column := VBoxContainer.new(); column.add_theme_constant_override("separation",10); menu_margin.add_child(column)
 	var heading := HBoxContainer.new(); column.add_child(heading)
@@ -85,16 +86,16 @@ func configure(weapon_host: Node, baked_textures: Dictionary = {}) -> void:
 	grid = GridContainer.new(); grid.columns = 3; grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.add_theme_constant_override("h_separation",10); grid.add_theme_constant_override("v_separation",10); scroll.add_child(grid)
 	for id: String in FAMILIES:
 		var choice := Button.new(); choice.custom_minimum_size = Vector2(190,139); choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		choice.add_theme_stylebox_override("normal",_normal); choice.add_theme_stylebox_override("hover",panel_style("343f46","d1b77d",5)); choice.add_theme_stylebox_override("focus",panel_style("343f46","d1b77d",5))
+		choice.add_theme_stylebox_override("normal",_normal); choice.add_theme_stylebox_override("hover",panel_style("30393e","b09a74",5)); choice.add_theme_stylebox_override("focus",panel_style("30393e","b09a74",5))
 		choice.pressed.connect(func(): host.equip(id)); grid.add_child(choice)
 		var inner := margins(10); inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); choice.add_child(inner)
 		var content := VBoxContainer.new(); content.mouse_filter = Control.MOUSE_FILTER_IGNORE; inner.add_child(content)
 		var image := picture(79); image.texture = textures.get(id); content.add_child(image)
 		var name_label := label(host.LABELS[id],12); content.add_child(name_label)
-		var detail := label("",10,"9eafb9"); content.add_child(detail)
+		var detail := label("",10,"9daab1"); content.add_child(detail)
 		choices[id] = {"button":choice,"image":image,"detail":detail,"selected":false}
 	column.add_child(label("Q  арсенал     G  выбросить     E  подобрать рядом",11,"aeb7bc"))
-	crosshair = label("·",34); add_child(crosshair)
+	crosshair = Crosshair.new(); add_child(crosshair)
 	refresh()
 
 func set_thumbnail(id: String, texture: Texture2D) -> void:
@@ -117,7 +118,7 @@ func _process(_delta: float) -> void:
 	menu.position = Vector2(18,view.y-108-menu_height); menu.size = Vector2(menu_width,menu_height)
 	grid.columns = 2 if narrow else 3
 	for id: String in choices: choices[id].button.custom_minimum_size.x = (menu_width-55)/grid.columns-10
-	crosshair.position = view*.5-Vector2(5,23)
+	crosshair.position = view*.5
 
 func refresh() -> void:
 	if not is_instance_valid(host): return
@@ -131,10 +132,19 @@ func refresh() -> void:
 		if id != _previous_id:
 			_previous_id=id; title.text=host.LABELS.get(id,id); photo.texture=textures.get(id)
 		ammo.text = "ОРУЖИЕ УБРАНО" if id == "none" else ("ПЕРЕЗАРЯДКА · %.1f С" % reload if reload > 0 else ("ПУСТО · 0 / %d" % reserve if magazine == 0 else "%d / %d" % [magazine,reserve]))
-		ammo.add_theme_color_override("font_color",Color("e3c780" if reload>0 else ("f29b91" if id!="none" and magazine==0 else "b8c5cd")))
+		ammo.add_theme_color_override("font_color",Color("bda879" if reload>0 else ("d99b94" if id!="none" and magazine==0 else "adb8be")))
 	if menu.visible != host.menu_open: menu.visible = host.menu_open
-	var show_reticle: bool = not (host.aim_camera!=null and host.aim_camera.scoped()) and (host.armed() or host.cargo_reticle_requested) and not host.menu_open and host.player._free_mouse_look
+	var scoped:bool=host.aim_camera!=null and host.aim_camera.scoped()
+	var allowed:bool=host._interaction_allowed() and not host.menu_open and not host.player._text_control_focused()
+	# Walk shows ordinary crosshair only while aiming or holding the trigger.
+	var firearm_reticle:bool=allowed and host.armed() and (host._aiming or host._held) and not scoped
+	var show_reticle:bool=firearm_reticle or (allowed and host.cargo_reticle_requested and not scoped)
 	if crosshair.visible != show_reticle: crosshair.visible = show_reticle
+	if show_reticle:
+		var value:float=host._posture_view.get("value",0.0)
+		var moving:bool=Vector2(host.player.velocity.x,host.player.velocity.z).length_squared()>.01
+		var input:Dictionary={"aiming":host._aiming,"posture":"prone" if value>=1.95 else "crouch" if value>=.95 else "stand","moving":moving,"running":moving and Input.is_action_pressed(host.player.ACTION_RUN)}
+		crosshair.present(state,input,get_viewport_rect().size.y,host.player.get_preview_camera().fov,firearm_reticle)
 	if not host.menu_open:
 		_menu_signature=""
 		return
@@ -152,7 +162,7 @@ func refresh() -> void:
 		if choice.selected != selected:
 			choice.selected=selected
 			choice.button.add_theme_stylebox_override("normal",_selected if selected else _normal)
-			choice.detail.add_theme_color_override("font_color",Color("e0c58b" if selected else "9eafb9"))
+			choice.detail.add_theme_color_override("font_color",Color("bba783" if selected else "9daab1"))
 		if not available: continue
 		var rounds: Variant = state if selected else host.inventory.get_fire_state(key)
 		var detail: String = ("РУКИ СВОБОДНЫ" if selected else "УБРАТЬ ОРУЖИЕ") if key=="none" else ("В РУКАХ" if selected else FAMILIES[key])

@@ -1,4 +1,6 @@
 extends RefCounted
+const MarkArt=preload("impact_mark_art.gd")
+var _art_meshes: Array[Dictionary]=[]
 ## Original Walk surface effects; cosmetic only, never damage/ownership authority.
 ## Source: weapon_effects.mjs spawnImpact/markImpact/update, pinned exporter.
 const Geometry = preload("res://scripts/weapons/weapon_projectiles.gd")
@@ -25,11 +27,18 @@ func configure(scene: Node3D) -> bool:
 	var data: Variant=JSON.parse_string(FileAccess.get_file_as_string(DATA))
 	if not data is Dictionary or data.get("source_sha256")!=SOURCE_SHA: return false
 	var builder:=Geometry.new(); var meshes: Dictionary={}
+	_art_meshes=MarkArt.build()
 	for id: String in data.meshes: meshes[id]=builder._mesh(data.meshes[id])
 	_owner=weakref(scene); _root=Node3D.new(); _root.name="WalkSurfaceEffects"; scene.add_child(_root); _root.top_level=true
 	for i: int in MARK_CAP:
 		var mark: MeshInstance3D=builder._node(data.mark,meshes); _root.add_child(mark)
 		_marks.append({"node":mark,"edge":mark.get_child(0),"center":mark.get_child(1),"cracks":mark.get_child(2),"active":false,"life":0.0,"parent":null,"local":Transform3D.IDENTITY,"last_parent":Transform3D.IDENTITY,"glass":false})
+		_marks[-1].source_meshes=[mark.mesh,mark.get_child(0).mesh,mark.get_child(1).mesh]
+		# Prepare the normal pooled art/material features once. Keep the original
+		# meshes above for glass/explosive restores. No fake hit or hidden draw.
+		var normal_art:Dictionary=_art_meshes[i%_art_meshes.size()]
+		mark.mesh=normal_art.back; _marks[-1].edge.mesh=normal_art.rim; _marks[-1].center.mesh=normal_art.core
+		_marks[-1].edge.material_override.vertex_color_use_as_albedo=true
 	for i: int in IMPACT_CAP:
 		var impact: MeshInstance3D=builder._node(data.impact,meshes); _root.add_child(impact)
 		# The original hides only the parent's material, leaving its chips/dust.
@@ -81,6 +90,7 @@ func _mark(collider: Node3D, point: Vector3, normal: Vector3, surface: String, p
 	var entry: Dictionary=_marks[_mark_cursor%MARK_CAP]; _mark_cursor+=1
 	if not entry.active: _mark_count+=1
 	entry.active=true; entry.life=5.0; entry.glass=surface=="glass"
+	_set_mark_art(entry,surface,explosive)
 	var factor:=1.65 if explosive else .38 if pellet else .58 if entry.glass else .72
 	var orientation:=Quaternion(Vector3.BACK,normal)*Quaternion(Vector3.BACK,fmod(_total_marks*2.399963229728653,6.283)-3.1415)
 	var world:=Transform3D(Basis(orientation).scaled(Vector3.ONE*factor),point+normal*.004)
@@ -144,3 +154,13 @@ func dispose() -> void:
 	_ready=false; _owner=null; _marks.clear(); _impacts.clear(); _mark_count=0; _impact_count=0
 	if is_instance_valid(_root): _root.hide(); _root.queue_free()
 	_root=null
+
+func _set_mark_art(entry: Dictionary, surface: String, explosive: bool) -> void:
+	# Geometry swap only when a pooled mark is admitted. Original radius, normal,
+	# offset, opacity, life, movement attachment and pool cap remain unchanged.
+	var original: bool=surface=="glass" or explosive
+	var chosen: Dictionary={} if original else _art_meshes[_total_marks%_art_meshes.size()]
+	entry.node.mesh=entry.source_meshes[0] if original else chosen.back
+	entry.edge.mesh=entry.source_meshes[1] if original else chosen.rim
+	entry.center.mesh=entry.source_meshes[2] if original else chosen.core
+	entry.edge.material_override.vertex_color_use_as_albedo=not original

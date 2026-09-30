@@ -2,6 +2,9 @@ extends RefCounted
 ## Proposed on-foot presentation only. Never writes input, actor/bones, camera
 ## transform, yaw/roll, world collision layers or world health authority.
 const Fire = preload("res://scripts/weapons/weapon_fire.gd")
+const NORMAL_FOV := 45.0
+# User-requested stronger ordinary RMB zoom; Walk source uses42, scope remains14.
+const AIM_FOV := 38.0
 var _host: WeakRef
 var _camera: Camera3D
 var _arm: SpringArm3D
@@ -114,7 +117,7 @@ func advance(delta: float) -> void:
 	_arm.spring_length=distance if scope else lerpf(_arm.spring_length,distance if desired else host.player.camera_distance,rate)
 	# Walk applies45 even without a weapon.65 is restored only on ownership exit.
 	var kick: float=Fire.sample_recoil(host.fire_state).weaponKick
-	_camera.fov=(14.0 if scope else 45.0-3.0*_blend)+kick*.15
+	_camera.fov=(14.0 if scope else lerpf(NORMAL_FOV,AIM_FOV,_blend))+kick*.15
 	if scope: _scope_alpha=minf(1,_scope_alpha+delta/.1); _overlay.modulate.a=_scope_alpha
 	if not desired and _blend<.005:
 		_blend=0; _arm.spring_length=host.player.camera_distance

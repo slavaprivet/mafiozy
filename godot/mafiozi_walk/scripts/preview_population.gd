@@ -94,6 +94,8 @@ func step(delta: float) -> void:
 	for owner: RefCounted in hit_owners: owner.step()
 	navigation.pump(Engine.get_physics_frames())
 	residents.step(delta)
+	for owner: RefCounted in hit_owners:
+		if owner.blood!=null and owner.blood.should_step(): owner.blood.step(delta)
 	if _staged_preview: residents.preview_walk_step(delta)
 
 func door_started(key: String, opening: bool) -> void:

@@ -11,7 +11,7 @@ extends CharacterBody3D
 @export var acceleration: float = 18.0
 @export var jump_speed: float = 5.2
 @export var mouse_sensitivity: float = 0.003
-@export var camera_distance: float = 4.8
+@export var camera_distance: float = 5.119570294468082 # Walk world initial orbit: Vector3(3,1.1,4).length().
 
 const ACTION_LEFT: StringName = &"preview_move_left"
 const ACTION_RIGHT: StringName = &"preview_move_right"

@@ -2,7 +2,9 @@ extends RefCounted
 ## One externally admitted NPC life. No HP, damage-to-impulse, death decision,
 ## automatic get-up, actor movement, or vehicle collision exceptions.
 ## Root must suspend the walking/animation writer for the complete ACTIVE lease.
-const Body = preload("npc_body.gd")
+const Body = preload("res://scripts/npc_visual/npc_body.gd")
+const Eyes = preload("npc_death_eyes.gd")
+var _eyes:RefCounted
 const IDENTITY_FIELDS := ["session_id", "source_id", "render_id", "bridge_id", "descriptor_sha256", "placement_mode", "life_generation", "rig_epoch", "body_instance_id", "body_rid", "rig_instance_id"]
 var mode := "UNBOUND"
 var _body: RefCounted
@@ -73,6 +75,8 @@ func configure(token: Dictionary, parent: Node3D, current_binding: Callable, con
 		_names.append(str(rig.get_bone_name(i))); _parents.append(rig.get_bone_parent(i))
 	_local_frames.resize(28)
 	mode = "IDLE"
+	_eyes=Eyes.new()
+	_eyes.configure(self,token,options.get("death_eyes_asset_dir",Eyes.ASSET_DIR))
 	return _result(true)
 
 func _nodes_current() -> bool:
@@ -142,6 +146,7 @@ func activate(event_id: String) -> Dictionary:
 	_death_key = event.get("death_key","") if _final_dead else ""
 	_event_id = event_id; mode = "ACTIVE"
 	_write_pose(); _last = initial; _busy = false
+	if _final_dead and _eyes!=null:_eyes.close_after_confirmed_death()
 	return _result(true)
 
 ## A later final death never restarts or teleports an already physical body.
@@ -152,6 +157,7 @@ func confirm_final_death(event_id: String) -> Dictionary:
 	if event.is_empty() or event.kind != "final_death" or mode not in ["ACTIVE","RECOVERING"]:
 		_busy = false; return _result(false,"event_not_confirmed")
 	_final_dead = true; _death_key = event.death_key; _busy = false
+	if _eyes!=null:_eyes.close_after_confirmed_death()
 	if mode == "RECOVERING": return cancel_recovery("confirmed_final_death")
 	return _result(true)
 
@@ -272,6 +278,7 @@ func status() -> Dictionary:
 func retire(reason := "retired") -> void:
 	if not Thread.is_main_thread() or mode == "RETIRED": return
 	mode = "RETIRED"; _fault = reason
+	if _eyes!=null:_eyes.dispose();_eyes=null
 	if _body != null: _body.dispose(); _body = null
 	_current = Callable(); _events = Callable(); _last.clear()
 

@@ -81,25 +81,25 @@ static func _label(text: String, pixels: int, color: String) -> Label:
 
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE; visible=false
-	add_theme_stylebox_override("panel",_style("1d1b16f5","d7b85e",12))
+	add_theme_stylebox_override("panel",_style("202629f5","ad956c",12))
 	var margin := MarginContainer.new(); margin.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	for side: String in ["left","right"]: margin.add_theme_constant_override("margin_"+side,15)
 	for side: String in ["top","bottom"]: margin.add_theme_constant_override("margin_"+side,10)
 	add_child(margin)
 	var column := VBoxContainer.new(); column.mouse_filter=Control.MOUSE_FILTER_IGNORE; column.add_theme_constant_override("separation",6); margin.add_child(column)
-	heading=_label("Багажник",16,"fff1bd"); column.add_child(heading)
+	heading=_label("Багажник",16,"d8d1bd"); column.add_child(heading)
 	rows=VBoxContainer.new(); rows.mouse_filter=Control.MOUSE_FILTER_IGNORE; rows.add_theme_constant_override("separation",5); column.add_child(rows)
 	# Fixed two rows avoid rebuilding controls at the 150ms aim sample rate.
 	for index: int in 2:
 		var row := HBoxContainer.new(); row.mouse_filter=Control.MOUSE_FILTER_IGNORE; row.add_theme_constant_override("separation",7); rows.add_child(row)
-		var key := PanelContainer.new(); key.mouse_filter=Control.MOUSE_FILTER_IGNORE; key.custom_minimum_size=Vector2(25,25); key.add_theme_stylebox_override("panel",_style("bd8735","ffe29a",4)); row.add_child(key)
-		var letter := _label("",16,"241707"); letter.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; key.add_child(letter)
-		var action := _label("",13,"fff1bd"); row.add_child(action)
+		var key := PanelContainer.new(); key.mouse_filter=Control.MOUSE_FILTER_IGNORE; key.custom_minimum_size=Vector2(25,25); key.add_theme_stylebox_override("panel",_style("9c8155","bba783",4)); row.add_child(key)
+		var letter := _label("",16,"211d17"); letter.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER; key.add_child(letter)
+		var action := _label("",13,"d8d1bd"); row.add_child(action)
 		action_rows.append({"row":row,"key":letter,"label":action})
-	capacity=_label("",11,"dec993"); column.add_child(capacity)
+	capacity=_label("",11,"aaa38f"); column.add_child(capacity)
 	gauge=ProgressBar.new(); gauge.custom_minimum_size=Vector2(260,3); gauge.show_percentage=false
-	gauge.mouse_filter=Control.MOUSE_FILTER_IGNORE; gauge.add_theme_stylebox_override("background",_style("383225","383225",1)); gauge.add_theme_stylebox_override("fill",_style("eac867","eac867",1)); column.add_child(gauge)
-	detail=_label("",11,"dec993"); detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; detail.custom_minimum_size.x=260; column.add_child(detail)
+	gauge.mouse_filter=Control.MOUSE_FILTER_IGNORE; gauge.add_theme_stylebox_override("background",_style("303637","303637",1)); gauge.add_theme_stylebox_override("fill",_style("aa9169","aa9169",1)); column.add_child(gauge)
+	detail=_label("",11,"aaa38f"); detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART; detail.custom_minimum_size.x=260; column.add_child(detail)
 
 func clear() -> void:
 	_active=false; visible=false; _layout_signature.clear(); _last_layout_rect=Rect2()
@@ -107,7 +107,7 @@ func clear() -> void:
 func present(view_camera: Camera3D, world_anchor: Vector3, card_title: String, actions: Array, used: int = -1, maximum: int = 100, message: String = "") -> void:
 	if _fixed_ground and not _calling_ground:
 		_fixed_ground=false
-		add_theme_stylebox_override("panel",_style("1d1b16f5","d7b85e",12))
+		add_theme_stylebox_override("panel",_style("202629f5","ad956c",12))
 	camera=view_camera; anchor_world=world_anchor; _active=true
 	var signature: String=card_title+"|"+str(actions)+"|"+str(used)+":"+str(maximum)+"|"+message
 	if signature==_view_signature:
@@ -146,6 +146,6 @@ func present_ground(card_title: String, magazine: int, reserve: int) -> void:
 	_calling_ground=true
 	present(camera,Vector3.ZERO,"%s · %d / %d" % [card_title,magazine,reserve],[{"key":"E","label":"Подобрать"}],-1,100,"")
 	_calling_ground=false
-	if not _fixed_ground: add_theme_stylebox_override("panel",_style("15191df2","b9a57c",6))
+	if not _fixed_ground: add_theme_stylebox_override("panel",_style("202629f5","ad956c",6))
 	_fixed_ground=true
 	_project()

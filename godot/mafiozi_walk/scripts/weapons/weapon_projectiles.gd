@@ -4,6 +4,37 @@ const SHARED_RPG_FLIGHT := true
 ## Caller owns accepted shots, exact mounted muzzle and collision admission.
 ## No HP/ammo/skin authority. Rockets/marks/blood/explosions are outside this port.
 signal cosmetic_impact(receipt: Dictionary)
+## Native terminal observations; never HP/ammo or an independent hit authority.
+## Deferred until advance so accepted spawn batches stay callback-free.
+signal projectile_resolved(receipt: Dictionary)
+const RESOLUTION_LIMIT := 224
+var _resolutions: Array[Dictionary] = []
+var _resolution_epoch := 1
+var _resolution_overflows := 0
+
+func resolution_epoch() -> int:
+	return _resolution_epoch
+
+func _record_resolution(entry: Dictionary, status: String, hit: Dictionary = {}) -> void:
+	if not entry.get("resolution_pending",false): return
+	entry.resolution_pending=false
+	if _resolutions.size() >= RESOLUTION_LIMIT:
+		# Old incomplete aggregates must fail closed; consumers bind this epoch.
+		_resolutions.clear(); _resolution_epoch+=1; _resolution_overflows+=1
+	var receipt: Dictionary={"weaponId":entry.weapon_id,"shotId":entry.shot_id,
+		"projectileIndex":entry.projectile_index,"projectileCount":entry.projectile_count,
+		"producerEpoch":entry.producer_epoch,"status":status,"direction":entry.direction}
+	if status=="hit":
+		for key: String in ["point","normal","collider"]: receipt[key]=hit.get(key)
+	_resolutions.append(receipt)
+
+func _drain_resolutions() -> void:
+	var completed: Array[Dictionary]=_resolutions
+	_resolutions=[]
+	for receipt: Dictionary in completed:
+		if not _live(): return
+		projectile_resolved.emit(receipt)
+
 const SOURCE_SHA256 := "4dfa7adf47309b89dd1b87bb0776abd1b2385c15c24256b749b7c71dfa9ff7ec"
 const DATA_PATH := "res://data/weapons/projectile_meshes.json"
 const DATA_SHA256 := "84c1101d72a850f44149dc0be564d5d1972e9b58c60df162b53703590c52c714"
@@ -105,6 +136,7 @@ func _owner_exit()->void:dispose()
 func _live()->bool:return _configured and _owner!=null and is_instance_valid(_owner.get_ref()) and is_instance_valid(_root)
 func _take(pool:Array[Dictionary],key:String)->Dictionary:
 	var entry:Dictionary=pool[_cursor[key]%pool.size()];_cursor[key]+=1
+	if entry.active and key=="projectiles": _record_resolution(entry,"cancelled")
 	# A shared slot may own source RPG flight. Evict its exact token without
 	# external callbacks or an impact, before a new projectile occupies it.
 	if entry.has("external_flight"):
@@ -113,6 +145,7 @@ func _take(pool:Array[Dictionary],key:String)->Dictionary:
 	if not entry.active:entry.active=true;_active+=1;_counts[key]+=1
 	entry.root.visible=true;return entry
 func _hide(entry:Dictionary)->void:
+	if entry.active and entry.pool=="projectiles": _record_resolution(entry,"cancelled")
 	if entry.active:entry.active=false;_active-=1;_counts[entry.pool]-=1
 	if is_instance_valid(entry.root):entry.root.visible=false
 func _color(part:MeshInstance3D,value:Variant,source_emission:bool=false)->void:
@@ -160,10 +193,11 @@ func shoot(shot:Dictionary,muzzle:Dictionary,target:Vector3,obstacle_port:Callab
 	if casing!=null:
 		_pending.append({"delay":maxf(0,casing.get("delay",0)),"origin":ejection,"direction":direction,"casing":casing.duplicate(true),"weaponId":shot.get("weaponId","")})
 		if _pending.size()>_limits.pendingCasings:_pending.pop_front()
-	for projectile:Dictionary in projectiles:
+	for projectile_index in projectiles.size():
+		var projectile: Dictionary=projectiles[projectile_index]
 		var dir:=direction.rotated(Vector3.UP,projectile.get("yawOffset",0));var right:=dir.cross(Vector3.UP)
 		if right.length_squared()>1e-8:dir=dir.rotated(right.normalized(),projectile.get("pitchOffset",0))
-		_spawn(projectile,shot,origin,dir.normalized(),obstacle_port if obstacle_port.is_valid() else _ray)
+		_spawn(projectile,shot,origin,dir.normalized(),obstacle_port if obstacle_port.is_valid() else _ray,projectile_index,projectiles.size())
 	return true
 func _flash(origin:Vector3,direction:Vector3,kind:String)->void:
 	var e:=_take(_flashes,"flashes");e.life=.07 if kind=="pellet" else .052;e.max_life=e.life;e.strength=1.25 if kind=="pellet" else (.9 if kind=="rifle" else .65)
@@ -174,7 +208,7 @@ func _flash(origin:Vector3,direction:Vector3,kind:String)->void:
 		var petal:Node3D=children[n+2];var angle:float=_shots*2.399963+n*TAU/3
 		petal.position=Vector3(cos(angle)*.065,sin(angle)*.065,.095);petal.quaternion=Quaternion(Vector3.UP,Vector3(cos(angle)*.55,sin(angle)*.55,1).normalized());petal.scale=Vector3(1,.78+(n%2)*.3,.45)
 		_color(petal,0xffa241);_opacity(petal,.8)
-func _spawn(p:Dictionary,shot:Dictionary,origin:Vector3,direction:Vector3,ray:Callable)->void:
+func _spawn(p:Dictionary,shot:Dictionary,origin:Vector3,direction:Vector3,ray:Callable,projectile_index:int,projectile_count:int)->void:
 	var e:=_take(_projectiles,"projectiles");var visual:Dictionary=p.get("visual",{});var kind:String=visual.get("kind","round")
 	var caliber:=_positive(visual.get("caliber"),.007,.004);var length:=_positive(visual.get("length"),.065,.03);var trail:=_positive(visual.get("trail"),.08,.03)
 	e.root.position=origin+direction*.045;e.root.quaternion=Quaternion(Vector3.BACK,direction);e.direction=direction;e.speed=_positive(p.get("speed"),20,.1)*SCALE;e.remaining=_positive(p.get("range"),8,.2)*SCALE
@@ -185,6 +219,7 @@ func _spawn(p:Dictionary,shot:Dictionary,origin:Vector3,direction:Vector3,ray:Ca
 	var color:Variant=visual.get("color",p.get("color","#caa36a"));_color(core,color,true);_color(nose,color,true);_color(streak,0xe8cc91)
 	jacket.visible=kind!="pellet";jacket.scale=Vector3(caliber*2.07,length*.08,caliber*2.07);jacket.position.z=-length*.33
 	e.projectile_kind=kind
+	e.projectile_index=projectile_index;e.projectile_count=projectile_count;e.producer_epoch=_resolution_epoch;e.resolution_pending=true
 	_rounds+=1
 func _eject(pending:Dictionary)->void:
 	var e:=_take(_casings,"casings");var casing:Dictionary=pending.casing;var shell:bool=pending.weaponId in ["shotgun","sawn_off"];var rifle:bool=pending.weaponId in ["ak74","m16","sniper"]
@@ -197,7 +232,7 @@ func _eject(pending:Dictionary)->void:
 
 func advance(delta:float)->void:
 	if not _live() or _updating or not is_finite(delta) or delta<0:return
-	if _active==0 and _pending.is_empty():return
+	if _active==0 and _pending.is_empty() and _resolutions.is_empty():return
 	_updating=true;var dt:=minf(.1,delta)
 	for i in range(_pending.size()-1,-1,-1):
 		_pending[i].delay-=dt
@@ -219,11 +254,13 @@ func advance(delta:float)->void:
 				if (hit.point-(origin+e.direction*hit.distance)).length()>.0001:_hide(e);continue
 				e.root.position=hit.point
 				var receipt:Dictionary={"weaponId":e.weapon_id,"shotId":e.shot_id,"point":hit.point,"normal":hit.normal.normalized(),"direction":e.direction,"collider":hit.get("collider"),"projectile_kind":e.projectile_kind,"cosmetic_only":true}
+				_record_resolution(e,"hit",receipt)
 				_hide(e);cosmetic_impact.emit(receipt)
 				if not _live():_updating=false;return
 			else:
 				e.root.position+=e.direction*distance;e.remaining-=distance
-				if e.remaining<=1e-5:_hide(e)
+				if e.remaining<=1e-5:
+					_record_resolution(e,"miss");_hide(e)
 	if _counts.casings>0:
 		for e:Dictionary in _casings:
 			if not e.active:continue
@@ -245,6 +282,7 @@ func advance(delta:float)->void:
 			var p:float=e.life/e.max_life;e.root.scale=Vector3.ONE*e.strength*(.6+p*.5);_opacity(e.parts["muzzle-hot-core"],p)
 			for part:Node3D in e.root.get_children():
 				if part.name!="muzzle-hot-core":_opacity(part,p*p*.8)
+	_drain_resolutions()
 	_updating=false
 
 func stats()->Dictionary:
@@ -264,6 +302,7 @@ func dispose()->void:
 			entry.external_flight.retire_token(entry.external_token)
 			entry.erase("external_flight");entry.erase("external_token")
 	_configured=false;_retired=true;_pending.clear()
+	_resolutions.clear();_resolution_epoch+=1
 	if _owner!=null:
 		var scene:Variant=_owner.get_ref()
 		if is_instance_valid(scene) and scene.tree_exiting.is_connected(_owner_exit):scene.tree_exiting.disconnect(_owner_exit)

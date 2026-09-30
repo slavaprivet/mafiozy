@@ -37,7 +37,7 @@ var _aim: Dictionary = {}
 var _combat_active := false
 var _layer: CanvasLayer
 var _hud: Label
-var _crosshair: Label
+var _crosshair: Control
 var _menu: PanelContainer
 var _buttons: Dictionary = {}
 var _hud_value := ""
