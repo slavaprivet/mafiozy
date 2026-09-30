@@ -48,6 +48,7 @@ var _walking_collision_mask := 0
 var _parked_brake := true
 var compartments: RefCounted
 var _selected_panel: Dictionary = {}
+var _cargo_item_hint_focus := false
 var _dead_in_seat := false
 var _exit_pose: RefCounted
 var _exit_floor_ray: PhysicsRayQueryParameters3D
@@ -607,13 +608,23 @@ func _build_hint() -> void:
 	_hint.add_theme_font_size_override("font_size", 14)
 	row.add_child(_hint)
 
+func set_cargo_item_hint_focus(focused: bool) -> void:
+	# Presentation cache supplied by cargo's existing .15s aim sample; never
+	# runs item ray picking from the transport physics/update loop.
+	if _cargo_item_hint_focus == focused: return
+	_cargo_item_hint_focus = focused
+	if ready_for_play and is_instance_valid(_panel) and is_inside_tree(): _update_hint()
+
 func _update_hint() -> void:
 	if character_physics != null and character_physics.mode in ["FALLING", "GETTING_UP", "FAULTED"]:
 		_panel.visible = false
 		return
 	if phase == "ON_FOOT" and not _selected_panel.is_empty():
-		_panel.visible = true
 		var kind: String = _selected_panel.kind
+		if kind == "trunk" and _cargo_item_hint_focus and compartments.is_open("trunk"):
+			_panel.visible = false
+			return
+		_panel.visible = true
 		_hint.text = "  " + ("Закрыть " if compartments.is_open(kind) else "Открыть ") + ("капот" if kind == "hood" else "багажник")
 		_hint_position = _selected_panel.anchor + Vector3.UP * .45
 		_panel.reset_size()
@@ -627,7 +638,7 @@ func _update_hint() -> void:
 		_hint.text = "  Посадка…" if phase == "BOARDING" else "  Выход…"
 	if _blocked_transition:
 		_hint.text = "  Проход занят. Нажми E — вернуться" if phase == "EXITING" else "  Проход занят"
-	_hint_position = approach(seat) + Vector3.UP * 1.7
+	_hint_position = approach(seat) + Vector3.UP * 2.15
 	_panel.reset_size()
 
 func _process(_delta: float) -> void:

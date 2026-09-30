@@ -68,6 +68,7 @@ var _jump_physics_visible: bool = true
 var _source_falling: bool = false
 var _hit_pose_decorator: Callable
 var _melee_practice: Node
+var _weapon_host: Node
 
 
 func _ready() -> void:
@@ -266,6 +267,7 @@ func _build_camera() -> void:
 
 func _physics_process(delta: float) -> void:
 	_jump_pose = {}
+	if is_instance_valid(_weapon_host): _weapon_host.advance(delta)
 	if is_instance_valid(_melee_practice): _melee_practice.advance(delta)
 	if _pose_authority != &"on_foot":
 		_jump_event_consumed = false
@@ -291,12 +293,13 @@ func _physics_process(delta: float) -> void:
 	elif velocity.y < 0.0:
 		velocity.y = 0.0
 		_source_falling = false
-	var typing: bool = not _free_mouse_look or _text_control_focused()
+	var typing: bool = not _free_mouse_look or _text_control_focused() or (is_instance_valid(_weapon_host) and _weapon_host.controls_blocked())
 	var axes: Vector2 = Vector2.ZERO
 	if not typing:
 		axes = Input.get_vector(ACTION_LEFT, ACTION_RIGHT, ACTION_FORWARD, ACTION_BACK)
 	var direction: Vector3 = Basis(Vector3.UP, _camera_yaw) * Vector3(axes.x, 0.0, axes.y)
 	var speed: float = run_speed if Input.is_action_pressed(ACTION_RUN) else walk_speed
+	if is_instance_valid(_weapon_host): speed=_weapon_host.movement_speed(speed)
 	velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 	velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 	if direction.length_squared() > 0.001:
@@ -330,6 +333,7 @@ func _jump_direction() -> Vector2:
 
 
 func _request_preview_jump(now_ms: float) -> bool:
+	if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return false
 	if not _free_mouse_look or _pose_authority != &"on_foot" or _text_control_focused() or not _jump_physics_visible or _dive == null or not is_finite(now_ms):
 		return false
 	var direction := _jump_direction()
@@ -515,6 +519,9 @@ func set_preview_pose_authority(owner: StringName, new_lifetime: bool = false) -
 	# Explicit new lifetimes cover respawn/teleport even when owner is unchanged.
 	if owner == _pose_authority and not new_lifetime:
 		return
+	if is_instance_valid(_weapon_host):
+		_weapon_host.cancel_inputs()
+		_weapon_host.invalidate_pose()
 	_clear_affine_pose()
 	if is_instance_valid(_melee_practice): _melee_practice.cancel("pose_authority")
 	_invalidate_pose_receipt()
@@ -558,8 +565,12 @@ func _update_owned_pose(delta: float) -> void:
 			selected["poses"], selected["visual_offset"], _pose_authority, _pose_epoch)
 		if bool(air.get("valid", false)):
 			selected = air
-	if is_instance_valid(_melee_practice): selected = _melee_practice.decorate(selected,delta)
-	_apply_selected_pose(_decorate_hit_pose(delta, selected), expected_epoch)
+	if is_instance_valid(_weapon_host):
+		selected = _weapon_host.decorate(selected)
+	if is_instance_valid(_melee_practice) and (not is_instance_valid(_weapon_host) or not _weapon_host.armed()): selected = _melee_practice.decorate(selected,delta)
+	selected=_decorate_hit_pose(delta, selected)
+	if is_instance_valid(_weapon_host): selected=_weapon_host.finish_pose(selected)
+	_apply_selected_pose(selected, expected_epoch)
 
 
 func set_hit_pose_decorator(decorator: Callable) -> bool:
@@ -596,7 +607,7 @@ func _apply_selected_pose(selected: Dictionary, expected_epoch: int = -1) -> boo
 		if not frame is Transform3D or not frame.is_finite(): return false
 	var poses: Array[Transform3D] = []
 	poses.assign(selected["poses"])
-	var affine := selected.has("melee")
+	var affine := selected.has("melee") or selected.has("weapon") or selected.has("weapon_posture")
 	if not affine: _clear_affine_pose()
 	for bone: int in range(poses.size()):
 		_pose_skeleton.set_bone_pose(bone, poses[bone])
@@ -622,6 +633,7 @@ func _apply_selected_pose(selected: Dictionary, expected_epoch: int = -1) -> boo
 			var receipt := {"actor_id":actor_id,"life_generation":life,"pose_epoch":_pose_epoch,"pose_revision":_pose_revision,"pose_owner":String(_pose_authority)}
 			receipt.make_read_only()
 			set_meta(MELEE_POSE_RECEIPT, receipt)
+	if is_instance_valid(_weapon_host): _weapon_host.after_pose_applied(selected)
 	return true
 
 
@@ -639,6 +651,9 @@ func _clear_affine_pose() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey:
 		var key: InputEventKey = event as InputEventKey
+		if is_instance_valid(_weapon_host) and _weapon_host.input_event(event):
+			get_viewport().set_input_as_handled()
+			return
 		if key.pressed and not key.echo and (key.keycode == KEY_ESCAPE or key.physical_keycode == KEY_ESCAPE):
 			set_mouse_captured(false)
 			get_viewport().set_input_as_handled()
@@ -668,6 +683,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if not _free_mouse_look: return
+		if is_instance_valid(_weapon_host) and _weapon_host.input_event(event):
+			get_viewport().set_input_as_handled()
+			return
 		if is_instance_valid(_melee_practice) and _melee_practice.input_event(event):
 			get_viewport().set_input_as_handled()
 			return
@@ -685,6 +703,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion:
 		var motion: InputEventMouseMotion = event as InputEventMouseMotion
+		if is_instance_valid(_weapon_host) and _weapon_host.controls_blocked(): return
 		if _free_mouse_look and not _text_control_focused():
 			_camera_yaw -= motion.relative.x * mouse_sensitivity
 			_camera_pitch = clampf(_camera_pitch - motion.relative.y * mouse_sensitivity, -1.05, 0.45)
@@ -725,6 +744,7 @@ func set_mouse_captured(captured: bool) -> void:
 	if not captured and is_instance_valid(_melee_practice): _melee_practice.cancel("mouse_released")
 	_right_mouse_down = false
 	_free_mouse_look = captured
+	if not captured and is_instance_valid(_weapon_host): _weapon_host.release_controls()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if captured else Input.MOUSE_MODE_VISIBLE
 	if not captured:
 		_jump_key_down = false

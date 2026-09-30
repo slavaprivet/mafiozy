@@ -6,10 +6,14 @@ const Cache = preload("res://scripts/npc_visual/npc_visual_cache.gd")
 const Navigation = preload("res://scripts/navigation/preview_navigation_host.gd")
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
 const Gait = preload("res://scripts/preview_locomotion.gd")
+const Ragdoll = preload("res://scripts/npc_visual/npc_ragdoll_host.gd")
+const PreviewActivity = preload("res://scripts/npc_visual/npc_preview_activity.gd")
 const REJECTED_PACKET := "384f1f2d2b673bde13a49cfdff2f88b4e84469801b1f572624c53259a472901d"
 const FOOTPRINT := .738 # Source _npcBodyPassable radius .18 * native scale 4.1.
 const HEIGHT := 1.9
 const SOURCE_RENDER_YAW_SECONDS := .1 # npc_population.mjs default interpolationSeconds.
+const PREVIEW_GOAL_ATTEMPTS_PER_STEP := 2
+const PREVIEW_DIRECTIONS := [Vector3(1,0,0), Vector3(.7071067811865476,0,-.7071067811865476), Vector3(0,0,-1), Vector3(-.7071067811865476,0,-.7071067811865476), Vector3(-1,0,0), Vector3(-.7071067811865476,0,.7071067811865476), Vector3(0,0,1), Vector3(.7071067811865476,0,.7071067811865476)]
 const MAX_RESIDENTS := 3
 const PLACEMENT_CONTEXT := "a05ad020429ea8994dba534fe2d6e0886ac02975aadc7db531ea11d93a560f9c"
 const PLACEMENT_SOURCE := "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5"
@@ -32,6 +36,7 @@ var _placement_current: Callable
 var _walk_preview_enabled := false
 var _walk_preview_clock := 0.0
 var _walk_preview: Dictionary = {}
+var _ragdolls: Dictionary = {}
 var _box: BoxShape3D
 var _ray := PhysicsRayQueryParameters3D.new()
 var _overlap := PhysicsShapeQueryParameters3D.new()
@@ -63,18 +68,21 @@ func configure(scene: Node3D, navigation: RefCounted, packet: PackedByteArray, t
 		for field: String in ["dead", "_empireBoss", "_forcedCrawl", "_severMask", "_routineSpeedK", "carried", "evacuated"]:
 			if raw.get(field): return {"ok": false, "error": "unsupported_source_state"}
 		var speed := minf(minf(raw.speed * .4, 1.8 / 4.1) * (1 - raw._fatigue * .35) * (1 + raw._fear * .5), 1.8 / 4.1) * 4.1
-		checked[row.source_id] = {"row": row, "owner": owner, "generation": owner.life_generation, "speed": speed, "status": "PENDING_PLACEMENT", "reason": "", "attempted": false, "body": null, "gait": null, "motion": null, "request": -1, "origin": Vector3.ZERO}
+		checked[row.source_id] = {"row": row, "owner": owner, "generation": owner.life_generation, "speed": speed, "status": "PENDING_PLACEMENT", "reason": "", "attempted": false, "body": null, "gait": null, "activity": null, "motion": null, "request": -1, "origin": Vector3.ZERO}
 	_scene = weakref(scene); _navigation = navigation; _admit = source_admit; _support = support_height
 	_session = receipt.session_id; _records = checked; _manifest = prepared_manifest.duplicate()
 	_manifest_sha = trust.prepared_sha256; _directory = prepared_directory
 	_box = BoxShape3D.new(); _box.size = Vector3(FOOTPRINT * 2, HEIGHT, FOOTPRINT * 2)
-	_ray.collision_mask = 1; _overlap.shape = _box; _overlap.collision_mask = 1; _overlap.margin = .001
+	_ray.collision_mask = 1; _overlap.shape = _box; _overlap.collision_mask = 1 | 256; _overlap.margin = .001
 	scene.tree_exiting.connect(dispose, CONNECT_ONE_SHOT)
 	return {"ok": true, "candidates": rows.size(), "admitted": 0, "session_id": _session}
 
 func _living(record: Dictionary) -> bool:
 	var owner: RefCounted = record.owner
 	return not _disposed and not _dispose_requested and not owner.dead and owner.source_id == record.row.source_id and owner.life_generation == record.generation
+
+func _physical_occupied(id: String) -> bool:
+	return _ragdolls.has(id) and _ragdolls[id].status().mode in ["ACTIVE", "RECOVERING", "RECOVERY_HOLD"]
 
 func _scene_alive() -> bool:
 	var scene: Node3D = _scene.get_ref() if _scene != null else null
@@ -111,7 +119,14 @@ func _owned_clear(point: Vector3, identity: String) -> bool:
 		if id == identity: continue
 		var other: Dictionary = _records[id]
 		if not is_instance_valid(other.body): continue
+		var physical_lease: bool = _physical_occupied(id)
+		var physical_failed: bool = other.get("physical_failed",false)
+		if other.body.collision_layer == 0 and not physical_lease and not physical_failed: continue
+		# The freshly activated rigid pool may not yet be in the broadphase in
+		# this same frame. Reserve its latest anchor independently of the query.
 		var occupied: Vector3 = other.body.global_position
+		if physical_lease or physical_failed:
+			occupied = other.get("physical_anchor_world",occupied)
 		if absf(point.y - occupied.y) < HEIGHT and absf(point.x - occupied.x) <= FOOTPRINT * 2.0 + .001 and absf(point.z - occupied.z) <= FOOTPRINT * 2.0 + .001:
 			return false
 	return true
@@ -119,7 +134,7 @@ func _owned_clear(point: Vector3, identity: String) -> bool:
 func _route_admit(point: Vector3, identity: String, generation: int) -> bool:
 	if _disposed or not _records.has(identity): return false
 	var record: Dictionary = _records[identity]
-	if record.generation != generation or not is_instance_valid(record.body): return false
+	if record.generation != generation or record.get("physical_failed",false) or _physical_occupied(identity) or not is_instance_valid(record.body): return false
 	# Navigation invokes this during its own pump as well as our step. Close the
 	# host API against callback reentry in both cases.
 	var was_busy := _busy; _busy = true
@@ -253,7 +268,13 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage
 	var gait := Gait.new()
 	if not gait.bind(appearance.visual, motion):
 		body.free(); return _reject(record, "canonical_gait:" + str(gait.get_status().error))
-	record.body = body; record.motion = motion; record.gait = gait; record.origin = point
+	var rigs: Array[Node] = appearance.visual.find_children("*", "Skeleton3D", true, false)
+	if rigs.size() != 1:
+		body.free(); return _reject(record, "canonical_activity_rig")
+	var activity := PreviewActivity.new()
+	if not activity.bind(rigs[0] as Skeleton3D, record.row.source_id):
+		body.free(); return _reject(record, "canonical_activity_bones")
+	record.body = body; record.motion = motion; record.gait = gait; record.activity = activity; record.origin = point
 	record["display_yaw"] = body.rotation.y
 	record["turn_from"] = body.rotation.y
 	record["turn_to"] = body.rotation.y
@@ -263,7 +284,7 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage
 	record.status = "IDLE"; record.reason = ""; _stats.admissions += 1
 	return {"status": "IDLE", "source_id": record.row.source_id, "position": point}
 
-## Deterministic two-metre walking exercise, not the source NPC agenda. Every
+## Deterministic local preview circuit, not the source NPC agenda. Every
 ## goal and path is still checked by current source access and native physics.
 func enable_walk_preview() -> bool:
 	if not Thread.is_main_thread() or _busy or _disposed or _scene == null: return false
@@ -271,7 +292,8 @@ func enable_walk_preview() -> bool:
 	_walk_preview_clock = 0.0
 	_walk_preview.clear()
 	for id: String in _records:
-		_walk_preview[id] = {"awaiting":false, "next_at":0.0, "requests":0, "blocked_at":-1.0, "direction_cursor":0}
+		var suffix := int(id.trim_prefix("resident_"))
+		_walk_preview[id] = {"awaiting":false, "next_at":0.0, "requests":0, "blocked_at":-1.0, "direction_cursor":suffix % 8, "radius_m":3.25 + float(suffix % 3) * .35}
 	return true
 
 func preview_walk_step(delta: float) -> void:
@@ -279,18 +301,20 @@ func preview_walk_step(delta: float) -> void:
 	_walk_preview_clock += delta
 	for id: String in _records:
 		var record: Dictionary = _records[id]
+		if record.get("physical_failed",false) or _physical_occupied(id): continue
 		if not _living(record) or not is_instance_valid(record.body): continue
 		var exercise: Dictionary = _walk_preview[id]
 		if exercise.awaiting:
 			if record.status == "ARRIVED":
 				exercise.awaiting = false
 				exercise.blocked_at = -1.0
-				exercise.next_at = _walk_preview_clock + 1.5
+				exercise.direction_cursor = (int(exercise.direction_cursor) + 1) % 8
+				exercise.next_at = _walk_preview_clock + 1.5 + float(int(id.trim_prefix("resident_")) % 3) * .7
 			elif record.status == "BLOCKED":
 				if exercise.blocked_at < 0.0: exercise.blocked_at = _walk_preview_clock
 				if _walk_preview_clock - exercise.blocked_at < 1.0: continue
 				exercise.awaiting = false
-				exercise.direction_cursor = (exercise.direction_cursor + 1) % 4
+				exercise.direction_cursor = (int(exercise.direction_cursor) + 1) % 8
 				exercise.next_at = _walk_preview_clock
 			elif record.status in ["PENDING", "READY"]:
 				exercise.blocked_at = -1.0
@@ -300,35 +324,32 @@ func preview_walk_step(delta: float) -> void:
 				# demonstration may ask for a new route through current guards.
 				exercise.awaiting = false
 				exercise.blocked_at = -1.0
-				exercise.direction_cursor = (exercise.direction_cursor + 1) % 4
+				exercise.direction_cursor = (int(exercise.direction_cursor) + 1) % 8
 				exercise.next_at = _walk_preview_clock + 1.5
 			else:
 				# Unsupported physical bodies and destroyed owners cannot be revived.
 				continue
 		if record.status not in ["IDLE", "ARRIVED", "BLOCKED", "STALE", "NO_PATH"] or _walk_preview_clock < exercise.next_at: continue
 		var body: CharacterBody3D = record.body
-		var returning := body.global_position.distance_to(record.origin) > .5
 		var accepted := -1
-		if returning:
-			accepted = request_walk(id, record.origin)
-		else:
-			var directions := [Vector3.RIGHT, Vector3.FORWARD, Vector3.LEFT, Vector3.BACK]
-			for attempt in 4:
-				var direction: Vector3 = directions[(exercise.direction_cursor + attempt) % 4]
-				var goal: Vector3 = record.origin + direction * 2.0
-				var height: Variant = _support.call(goal, id, record.generation)
-				if not (height is float or height is int) or not is_finite(float(height)): continue
-				goal.y = float(height)
-				accepted = request_walk(id, goal)
-				if accepted >= 0:
-					exercise.direction_cursor = (exercise.direction_cursor + attempt) % 4
-					break
+		for attempt in PREVIEW_GOAL_ATTEMPTS_PER_STEP:
+			var direction: Vector3 = PREVIEW_DIRECTIONS[(int(exercise.direction_cursor) + attempt) % PREVIEW_DIRECTIONS.size()]
+			var goal: Vector3 = record.origin + direction * float(exercise.radius_m)
+			if body.global_position.distance_to(goal) > 8.0: continue
+			var height: Variant = _support.call(goal, id, record.generation)
+			if not (height is float or height is int) or not is_finite(float(height)): continue
+			goal.y = float(height)
+			accepted = request_walk(id, goal)
+			if accepted >= 0:
+				exercise.direction_cursor = (int(exercise.direction_cursor) + attempt) % PREVIEW_DIRECTIONS.size()
+				break
 		if accepted >= 0:
 			exercise.awaiting = true
 			exercise.blocked_at = -1.0
 			exercise.requests += 1
 		else:
-			exercise.next_at = _walk_preview_clock + 5.0
+			exercise.direction_cursor = (int(exercise.direction_cursor) + PREVIEW_GOAL_ATTEMPTS_PER_STEP) % PREVIEW_DIRECTIONS.size()
+			exercise.next_at = _walk_preview_clock + .25
 
 func retry_pending(identity: String) -> bool:
 	if not Thread.is_main_thread() or _busy or _disposed or not _records.has(identity) or _records[identity].status != "PENDING_PLACEMENT": return false
@@ -337,6 +358,8 @@ func retry_pending(identity: String) -> bool:
 
 func request_walk(identity: String, target: Vector3) -> int:
 	if not Thread.is_main_thread() or _busy or _disposed or not _records.has(identity) or not target.is_finite(): return -1
+	if _records[identity].get("physical_failed",false): return -1
+	if _physical_occupied(identity): return -1
 	var record: Dictionary = _records[identity]
 	if not _living(record) or not is_instance_valid(record.body) or record.body.global_position.distance_to(target) > 8.0: return -1
 	_busy = true
@@ -355,6 +378,36 @@ func step(delta: float) -> void:
 	var started := Time.get_ticks_usec()
 	for record: Dictionary in _records.values():
 		var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
+		var id: String = record.row.source_id
+		if record.get("physical_failed",false):
+			var failed_owner: RefCounted = record.owner
+			if failed_owner.source_id != id or failed_owner.life_generation != record.generation:
+				if is_instance_valid(body): body.queue_free()
+				record.body = null; record.status = "REMOVED"
+			continue
+		if _ragdolls.has(id) and _ragdolls[id].status().mode in ["IDLE", "RETIRED"]:
+			# A prewarmed pool cannot outlive the walking source generation while
+			# waiting for a confirmed event. A retired pool is also never reused.
+			if not _living(record) or _ragdolls[id].status().mode == "RETIRED":
+				_ragdolls[id].dispose(); _ragdolls.erase(id)
+		if _ragdolls.has(id) and _ragdolls[id].status().mode in ["RECOVERING", "RECOVERY_HOLD"]:
+			# Another owner may coordinate a source-approved rise. Never let the
+			# disabled walking capsule fall through to navigation or gait here.
+			if record.request >= 0: _navigation.cancel(record.request); record.request = -1
+			record.status = "PHYSICAL_RECOVERING" if _ragdolls[id].status().mode == "RECOVERING" else "PHYSICAL_HOLD"
+			continue
+		if _ragdolls.has(id) and _ragdolls[id].status().mode == "ACTIVE":
+			if record.request >= 0: _navigation.cancel(record.request); record.request = -1
+			var physical: Dictionary = _ragdolls[id].advance()
+			if physical.get("ok",false):
+				record.status = "PHYSICAL_DEAD" if physical.get("final_dead",false) else "PHYSICAL_KNOCKDOWN"
+				record["physical_anchor_world"] = physical.physical.anchor_world
+				continue
+			_ragdolls[id].retire("physical_advance_failed")
+			_ragdolls.erase(id)
+			record["physical_failed"] = true
+			record.status = "PHYSICAL_FAILED"
+			continue
 		if not _living(record):
 			if record.request >= 0: _navigation.cancel(record.request)
 			if is_instance_valid(body): body.queue_free()
@@ -383,6 +436,7 @@ func step(delta: float) -> void:
 		record.display_yaw = float(record.turn_from) + atan2(sin(float(record.turn_to) - float(record.turn_from)), cos(float(record.turn_to) - float(record.turn_from))) * (float(record.turn_elapsed) / SOURCE_RENDER_YAW_SECONDS)
 		record.motion.rotation.y = PI + atan2(sin(float(record.display_yaw) - desired_yaw), cos(float(record.display_yaw) - desired_yaw))
 		record.gait.update_pose(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
+		if _walk_preview_enabled and record.activity != null: record.activity.step(delta, horizontal.length() / delta)
 	_stats.steps += 1
 	_stats.step_us_max = maxi(_stats.step_us_max, Time.get_ticks_usec() - started)
 	_leave_busy()
@@ -394,7 +448,7 @@ func snapshot() -> Dictionary:
 	for id: String in _records:
 		var record: Dictionary = _records[id]
 		var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
-		rows.append({"source_id": id, "bridge_id": record.row.bridge_id, "descriptor_sha256": record.row.descriptor_sha256, "status": record.status, "reason": record.reason, "position": body.global_position if is_instance_valid(body) else null, "life_generation": record.generation, "speed_mps": record.speed, "placement_mode": record.get("placement_mode", "NONE")})
+		rows.append({"source_id": id, "bridge_id": record.row.bridge_id, "descriptor_sha256": record.row.descriptor_sha256, "status": record.status, "reason": record.reason, "position": body.global_position if is_instance_valid(body) else null, "physical_anchor_world": record.get("physical_anchor_world"), "life_generation": record.generation, "speed_mps": record.speed, "placement_mode": record.get("placement_mode", "NONE")})
 		if _walk_preview.has(id): walk_requests += int(_walk_preview[id].requests)
 	return {"session_id": _session, "disposed": _disposed, "rows": rows, "stats": _stats.duplicate(), "walk_preview": {"enabled":_walk_preview_enabled, "requests":walk_requests}}
 
@@ -402,8 +456,111 @@ func occupants() -> Array[Dictionary]:
 	var positions: Array[Dictionary] = []
 	if not Thread.is_main_thread() or _disposed: return positions
 	for record: Dictionary in _records.values():
-		if is_instance_valid(record.body): positions.append({"position": record.body.global_position, "radius": .36, "height": HEIGHT, "source_id": record.row.source_id, "life_generation": record.generation})
+		if is_instance_valid(record.body) and record.body.collision_layer != 0: positions.append({"position": record.body.global_position, "radius": .36, "height": HEIGHT, "source_id": record.row.source_id, "life_generation": record.generation})
 	return positions
+
+## Map an actual physics collider to the current visual/physical resident life.
+## This transient token proves identity only: it is not bullet contact, damage,
+## source hit acceptance or final-death authority.
+func target_from_collider(collider: Object) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or not collider is CharacterBody3D or not is_instance_valid(collider): return {"ok":false}
+	for id: String in _records:
+		var record: Dictionary = _records[id]
+		if not _living(record) or not is_instance_valid(record.body) or record.body != collider or not is_instance_valid(record.motion): continue
+		var body: CharacterBody3D = record.body
+		if body.get_meta("source_id", "") != id or body.get_meta("session_id", "") != _session or body.get_meta("descriptor_sha256", "") != record.row.descriptor_sha256 or body.get_child_count() < 2: return {"ok":false}
+		var shape: Node = body.get_child(0)
+		if not shape is CollisionShape3D or shape.disabled or not shape.shape is CapsuleShape3D or not is_equal_approx(shape.shape.radius, .36) or not is_equal_approx(shape.shape.height, HEIGHT): return {"ok":false}
+		if body.collision_layer != 1 or body.collision_mask != 1 or body.get_parent() != _scene.get_ref(): return {"ok":false}
+		var rigs: Array[Node] = record.motion.find_children("*", "Skeleton3D", true, false)
+		if rigs.size() != 1: return {"ok":false}
+		var rig: Skeleton3D = rigs[0] as Skeleton3D
+		return {"ok":true, "source_authority":false, "session_id":_session,
+			"source_id":id, "bridge_id":record.row.bridge_id, "render_id":record.row.bridge_id,
+			"life_generation":record.generation,
+			"descriptor_sha256":record.row.descriptor_sha256,
+			"placement_mode":record.get("placement_mode", "NONE"),
+			"body":body, "body_instance_id":body.get_instance_id(),
+			"body_rid":body.get_rid(), "rig":rig,
+			"rig_instance_id":rig.get_instance_id(), "rig_epoch":rig.get_instance_id()}
+	return {"ok":false}
+
+func target_current(token: Dictionary) -> bool:
+	if not Thread.is_main_thread() or _busy or _disposed or token.get("ok") != true or token.get("source_authority") != false: return false
+	var body: Variant = token.get("body")
+	if not body is CharacterBody3D or not is_instance_valid(body): return false
+	var fresh: Dictionary = target_from_collider(body)
+	if not fresh.get("ok", false): return false
+	for key: String in ["session_id", "source_id", "bridge_id", "render_id", "life_generation", "descriptor_sha256", "placement_mode", "body_instance_id", "body_rid", "rig", "rig_instance_id", "rig_epoch"]:
+		if token.get(key) != fresh.get(key): return false
+	return true
+
+## The articulated body keeps the same source life and rig after the walking
+## capsule is disabled, and a confirmed final death makes owner.dead true.
+## This callback deliberately does not re-use target_current(): that checks a
+## live walking collider. It still rejects a replaced actor, rig or generation.
+## It grants no damage, death, vehicle-contact or recovery authority.
+func physical_life_current(binding: Dictionary) -> bool:
+	if not Thread.is_main_thread() or _disposed or _dispose_requested or not _scene_alive() or not binding.get("source_id") is String: return false
+	var id: String = binding.source_id
+	if not _records.has(id): return false
+	var record: Dictionary = _records[id]
+	var owner: RefCounted = record.owner
+	if owner.source_id != id or owner.life_generation != record.generation or not is_instance_valid(record.body) or not is_instance_valid(record.motion): return false
+	var body: CharacterBody3D = record.body
+	if body.is_queued_for_deletion() or body.get_parent() != _scene.get_ref() or body.get_meta("source_id", "") != id or body.get_meta("session_id", "") != _session or body.get_meta("descriptor_sha256", "") != record.row.descriptor_sha256: return false
+	var rigs: Array[Node] = record.motion.find_children("*", "Skeleton3D", true, false)
+	if rigs.size() != 1: return false
+	var rig: Skeleton3D = rigs[0] as Skeleton3D
+	var expected := {"session_id":_session, "source_id":id, "bridge_id":record.row.bridge_id, "render_id":record.row.bridge_id, "life_generation":record.generation,
+		"descriptor_sha256":record.row.descriptor_sha256, "placement_mode":record.get("placement_mode", "NONE"),
+		"body_instance_id":body.get_instance_id(), "body_rid":body.get_rid(), "rig_instance_id":rig.get_instance_id(), "rig_epoch":rig.get_instance_id()}
+	for key: String in expected:
+		if binding.get(key) != expected[key]: return false
+	return true
+
+## Prewarm while this source life is still an ordinary walker. The caller's
+## event provider must later supply the completed source death or verified car
+## contact; this method itself cannot decide damage or falling.
+func prepare_physical(token: Dictionary, confirmed_events: Callable, options: Dictionary = {}) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or not confirmed_events.is_valid() or not target_current(token): return {"ok":false,"error":"current_walker_required"}
+	var id: String = token.source_id
+	if _ragdolls.has(id) or not _scene_alive(): return {"ok":false,"error":"already_prepared_or_scene"}
+	_busy = true
+	var host: RefCounted = Ragdoll.new()
+	var prepared: Dictionary = host.configure(token, _scene.get_ref(), Callable(self,"physical_life_current"), confirmed_events, options)
+	if prepared.get("ok",false) and physical_life_current(token): _ragdolls[id] = host
+	else:
+		host.dispose()
+		if prepared.get("ok",false): prepared = {"ok":false,"error":"life_changed_during_prepare"}
+	_leave_busy()
+	return prepared
+
+## Must be called after external event admission and before the next walking
+## step. The pre-hit token can remain valid when a final death set owner.dead;
+## its physical-life binding still has to match the original body and rig.
+func activate_physical(token: Dictionary, event_id: String) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or not physical_life_current(token) or not _ragdolls.has(token.source_id): return {"ok":false,"error":"physical_life_not_prepared"}
+	var id: String = token.source_id
+	var host: RefCounted = _ragdolls[id]
+	if host.status().mode != "IDLE": return {"ok":false,"error":"not_idle"}
+	_busy = true
+	var result: Dictionary = host.activate(event_id)
+	if result.get("ok",false):
+		var record: Dictionary = _records[id]
+		if record.request >= 0: _navigation.cancel(record.request); record.request = -1
+		record.status = "PHYSICAL_DEAD" if result.get("final_dead",false) else "PHYSICAL_KNOCKDOWN"
+		if _walk_preview.has(id): _walk_preview[id].awaiting = false
+	_leave_busy()
+	return result
+
+func confirm_physical_death(token: Dictionary, event_id: String) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or not physical_life_current(token) or not _ragdolls.has(token.source_id): return {"ok":false,"error":"physical_life_missing"}
+	_busy = true
+	var result: Dictionary = _ragdolls[token.source_id].confirm_final_death(event_id)
+	if result.get("ok",false): _records[token.source_id].status = "PHYSICAL_DEAD"
+	_leave_busy()
+	return result
 
 func dispose() -> void:
 	if not Thread.is_main_thread() or _disposed: return
@@ -412,8 +569,11 @@ func dispose() -> void:
 		return
 	_disposed = true
 	_dispose_requested = false
+	for host: RefCounted in _ragdolls.values(): host.dispose()
+	_ragdolls.clear()
 	for record: Dictionary in _records.values():
 		if record.request >= 0: _navigation.cancel(record.request)
+		if record.activity != null: record.activity.dispose()
 		if is_instance_valid(record.body): record.body.queue_free()
 	_records.clear(); _manifest.clear(); _admit = Callable(); _support = Callable(); _placement_current = Callable(); _placement_receipt.clear(); _navigation = null; _box = null; _overlap = null; _ray = null
 	_walk_preview.clear(); _walk_preview_enabled = false

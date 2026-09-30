@@ -21,7 +21,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260930-residents22"
+const PREVIEW_RUNTIME_REVISION := "s01-20260930-npc23"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -36,6 +36,9 @@ const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8a
 @export var preview_residents_enabled: bool = true
 @export var preview_resident_walk_enabled: bool = true
 @export var preview_melee_enabled: bool = true
+@export var preview_weapons_enabled: bool = true
+var preview_weapons: Node
+var weapons_status := "disabled"
 var preview_melee: Node
 var melee_status := "disabled"
 var preview_population: RefCounted
@@ -173,6 +176,26 @@ func _ready() -> void:
 			_capture_path = argument.trim_prefix("--preview-capture=")
 	if preview_melee_enabled or OS.get_cmdline_user_args().has("--preview-melee"):
 		_install_preview_melee_practice()
+	if preview_weapons_enabled or OS.get_cmdline_user_args().has("--preview-weapons"):
+		var weapon_script: Script = load("res://scripts/weapons/preview_weapons.gd")
+		if weapon_script != null:
+			var weapon_host: Node = weapon_script.new()
+			add_child(weapon_host)
+			var weapon_setup: Dictionary = weapon_host.configure(self, _player)
+			weapons_status = "local_arsenal" if weapon_setup.get("ok",false) else str(weapon_setup)
+			if weapon_setup.get("ok",false):
+				preview_weapons = weapon_host
+				_player._weapon_host = weapon_host
+				if is_instance_valid(preview_transport):
+					var cargo_script: Script=load("res://scripts/weapons/preview_weapon_cargo.gd")
+					if cargo_script != null:
+						var cargo_host: Node=cargo_script.new()
+						cargo_host.name="WeaponCargo"
+						weapon_host.add_child(cargo_host)
+						var cargo_result: Dictionary=cargo_host.configure(weapon_host,preview_transport)
+						if not cargo_result.get("ok",false):
+							push_error("Weapon cargo binding: "+str(cargo_result)); cargo_host.queue_free()
+			else: weapon_host.queue_free()
 	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
 		# Physics must see the authored colliders before source placement proofs.
 		await get_tree().physics_frame

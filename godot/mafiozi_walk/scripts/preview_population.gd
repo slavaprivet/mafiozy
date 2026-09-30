@@ -82,7 +82,9 @@ func door_started(key: String, opening: bool) -> void:
 		navigation.door_transition_started(key, 1.0 if opening else 0.0)
 
 func occupants() -> Array[Dictionary]:
-	return residents.occupants() if not _disposed and residents != null else []
+	if not _disposed and residents != null: return residents.occupants()
+	var empty: Array[Dictionary] = []
+	return empty
 
 func request_walk(identity: String, target: Vector3) -> int:
 	if _disposed or residents == null or navigation.state() != "READY": return -1
