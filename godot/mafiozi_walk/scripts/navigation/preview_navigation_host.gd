@@ -4,6 +4,8 @@ extends RefCounted
 const Backend = preload("res://scripts/navigation/preview_engine_navigation.gd")
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
 const Interior = preload("res://scripts/preview_printshop_interior.gd")
+const PalazzoOnly = preload("res://scripts/palazzo_only_preview.gd")
+const SOURCE_BLOCK_SHA := "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
 const MAX_RECORDS := 128
 const MODULAR_NO_ENTRY_SOURCE := "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013"
 var _retired_nav: Dictionary = {}
@@ -12,6 +14,7 @@ var _retired_nav_replacement: WeakRef
 var _retired_nav_runtime_id := 0
 var _root: WeakRef
 var _interior: WeakRef
+var _outdoor_only := false
 var _backend: RefCounted
 var _queue: RefCounted
 var _static := PackedVector3Array()
@@ -62,14 +65,14 @@ func _expected(block: Dictionary, data: Dictionary) -> Dictionary:
 			var key: String = str(record.id) + ":" + str(body.sourceIndex)
 			if result.has(key): _fail("duplicate-source-identity"); return {}
 			result[key] = {"points": points, "frame": Transform3D.IDENTITY, "kind": "convex"}
-	for body: Dictionary in data.staticBodies:
+	for body: Dictionary in data.get("staticBodies", []):
 		var points := PackedVector3Array()
 		for p: Array in body.polygonXZ:
 			points.append(Vector3(p[0], body.minY, p[1])); points.append(Vector3(p[0], body.maxY, p[1]))
 		var key := "interior:" + _points_key(points)
 		if result.has(key): _fail("duplicate-interior-collision"); return {}
 		result[key] = {"points": points, "frame": Transform3D.IDENTITY, "kind": "convex"}
-	for door: String in data.doors:
+	for door: String in data.get("doors", {}):
 		for body: Dictionary in data.doors[door].bodies:
 			var points := PackedVector3Array()
 			for p: Array in body.pointsLocal: points.append(_v(p))
@@ -78,7 +81,7 @@ func _expected(block: Dictionary, data: Dictionary) -> Dictionary:
 			result[key] = {"points": points, "kind": "door", "door": door}
 	# These CPU source arrays are also what the current interior adapter stores
 	# in its ConcavePolygonShape3D; no render resource is read back.
-	for spec: Dictionary in data.meshes:
+	for spec: Dictionary in data.get("meshes", []):
 		if not spec.floorCollision: continue
 		var source: Dictionary = data.geometry[int(spec.geometry)]
 		var values: Array = source.attributes.position.values
@@ -177,10 +180,22 @@ func _guard_retired_navigation() -> bool:
 ## root and interior are scene-root coordinates; physics owner remains main.
 func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: Dictionary, queue: RefCounted, authority: String, generation: int, access_version: int) -> bool:
 	if not Thread.is_main_thread() or _disposed or _backend != null: return false
-	if not is_instance_valid(scene) or not scene.is_inside_tree() or not is_instance_valid(interior) or not interior is Interior or not interior.ready_for_use or interior.get_parent() != scene: return _fail("missing-existing-world")
-	if not scene.global_transform.is_equal_approx(Transform3D.IDENTITY) or not interior.global_transform.is_equal_approx(Transform3D.IDENTITY): return _fail("unexpected-world-frame")
+	if not is_instance_valid(scene) or not scene.is_inside_tree(): return _fail("missing-existing-world")
+	if not scene.global_transform.is_equal_approx(Transform3D.IDENTITY): return _fail("unexpected-world-frame")
 	if not queue is Queue or authority.is_empty() or generation < 1 or access_version < 0: return _fail("invalid-authority-or-queue")
-	if block != scene.get("_block") or data != interior.get("_data"): return _fail("data-not-current-built-world")
+	if block != scene.get("_block"): return _fail("data-not-current-built-world")
+	_outdoor_only = scene.get_meta("preview_building_mode", "") == PalazzoOnly.MODE
+	if _outdoor_only:
+		# Explicit composition only: never retain a hidden/fake interior for NPCs.
+		if interior != null or scene.get("_printshop") != null or scene.get("preview_modular30") != null or not data.is_empty() or scene.get("_printshop_data") != data: return _fail("outdoor-only-owner-mismatch")
+		var source_path := str(scene.get("block_data_path"))
+		if FileAccess.get_sha256(source_path) != SOURCE_BLOCK_SHA: return _fail("outdoor-only-source-bytes")
+		var source: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(source_path))
+		if not PalazzoOnly.is_current(source, block): return _fail("outdoor-only-runtime-projection")
+	else:
+		if not is_instance_valid(interior) or not interior is Interior or not interior.ready_for_use or interior.get_parent() != scene: return _fail("missing-existing-world")
+		if not interior.global_transform.is_equal_approx(Transform3D.IDENTITY): return _fail("unexpected-world-frame")
+		if data != interior.get("_data"): return _fail("data-not-current-built-world")
 	var started := Time.get_ticks_usec()
 	var expected := _expected(block, data)
 	if not _errors.is_empty() or expected.is_empty(): return false
@@ -190,11 +205,12 @@ func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: D
 	# No traversal of render assets, actors, sensors or arbitrary descendants.
 	for child: Node in scene.get_children():
 		if child is StaticBody3D: candidates.append(child)
-	for child: Node in interior.get_children():
-		if child is StaticBody3D: candidates.append(child)
-		elif str(child.name) in ["SourceDoor_public", "SourceDoor_service"]:
-			for leaf: Node in child.get_children():
-				if leaf is StaticBody3D: candidates.append(leaf)
+	if not _outdoor_only:
+		for child: Node in interior.get_children():
+			if child is StaticBody3D: candidates.append(child)
+			elif str(child.name) in ["SourceDoor_public", "SourceDoor_service"]:
+				for leaf: Node in child.get_children():
+					if leaf is StaticBody3D: candidates.append(leaf)
 	if candidates.size() > 512: return _capture_failed("source-shape-limit")
 	for body: StaticBody3D in candidates:
 		var retired_navigation_only: bool = _retired_nav.has(body.get_instance_id())
@@ -244,7 +260,7 @@ func attach_existing(scene: Node3D, interior: Node3D, block: Dictionary, data: D
 			if not node.global_transform.is_equal_approx(spec.frame): return _capture_failed("source-static-frame-mismatch")
 			_static.append_array(node.global_transform * local); _stats.static_shapes += 1
 	if seen.size() != expected.size(): return _capture_failed("missing-source-shapes")
-	_root = weakref(scene); _interior = weakref(interior); _queue = queue
+	_root = weakref(scene); _interior = null if _outdoor_only else weakref(interior); _queue = queue
 	_authority = authority; _generation = generation; _access_version = access_version
 	_backend = Backend.new(queue, _space)
 	_stats.captures = 1; _stats.capture_us = Time.get_ticks_usec() - started
@@ -310,7 +326,7 @@ func _invalidate(reason: String) -> void:
 
 ## Invoke after an accepted request_door, BEFORE the first advance/rotation.
 func door_transition_started(key: String, target_fraction: float) -> bool:
-	if not Thread.is_main_thread() or _disposed or _busy or _backend == null or not key in ["public", "service"] or not target_fraction in [0.0, 1.0]: return false
+	if not Thread.is_main_thread() or _disposed or _busy or _backend == null or _outdoor_only or not key in ["public", "service"] or not target_fraction in [0.0, 1.0]: return false
 	_invalidate("door-transition-started")
 	_geometry_valid = false
 	_transitions[key] = target_fraction; _stats.transition_starts += 1
@@ -324,8 +340,13 @@ func update_access_version(version: int) -> bool:
 func pump(frame_id: int) -> void:
 	if not Thread.is_main_thread() or _disposed or _busy or _backend == null: return
 	if not _guard_retired_navigation(): return
-	var interior: Node3D = _interior.get_ref()
-	if not is_instance_valid(interior) or not interior.ready_for_use: dispose(); return
+	# Outdoor-only still pumps the real navigation backend on every normal
+	# population tick. There are no printshop leaves or visits to settle.
+	var interior: Node3D = _interior.get_ref() if _interior != null else null
+	if not _outdoor_only and (not is_instance_valid(interior) or not interior.ready_for_use): dispose(); return
+	if _outdoor_only:
+		var scene: Node3D = _root.get_ref() if _root != null else null
+		if not is_instance_valid(scene) or not scene.is_inside_tree() or scene.get_meta("preview_building_mode", "") != PalazzoOnly.MODE or scene.get("_printshop") != null or scene.get("preview_modular30") != null: dispose(); return
 	var settled := false
 	for key: String in _transitions.keys():
 		if is_equal_approx(interior.door_fraction(key), _transitions[key]): _transitions.erase(key); settled = true
@@ -447,7 +468,7 @@ func cancel(id: int) -> void:
 
 func diagnostics() -> Dictionary:
 	if not Thread.is_main_thread(): return {"state": "INVALID_THREAD"}
-	return {"conservative_nav_only_retired_hulls":_retired_nav.size(), "conservative_nav_only_source":MODULAR_NO_ENTRY_SOURCE if not _retired_nav.is_empty() else "", "npc_breach_entry":false, "state": state(), "errors": _errors.duplicate(), "stats": _stats.duplicate(), "records": _records.size(), "transitions": _transitions.size(), "disposed": _disposed, "backend": _backend.diagnostics() if _backend != null else {}}
+	return {"outdoor_only": _outdoor_only, "runtime_geometry_mode": PalazzoOnly.MODE if _outdoor_only else "source_block", "conservative_nav_only_retired_hulls":_retired_nav.size(), "conservative_nav_only_source":MODULAR_NO_ENTRY_SOURCE if not _retired_nav.is_empty() else "", "npc_breach_entry":false, "state": state(), "errors": _errors.duplicate(), "stats": _stats.duplicate(), "records": _records.size(), "transitions": _transitions.size(), "disposed": _disposed, "backend": _backend.diagnostics() if _backend != null else {}}
 
 func dispose() -> void:
 	if not Thread.is_main_thread() or _disposed or _busy: return

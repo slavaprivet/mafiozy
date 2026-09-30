@@ -3,6 +3,7 @@ extends RefCounted
 ## owner creation or navigation. Source map lease + current physical floor proof.
 const Loader = preload("res://scripts/npc_visual/npc_visual_loader.gd")
 const Queue = preload("res://scripts/navigation/path_job_queue.gd")
+const PalazzoOnly = preload("res://scripts/palazzo_only_preview.gd")
 const PACKET_SHA := "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096"
 const BLOCK_SHA := "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
 const SESSION := "godot-preview-new-session-20260927-01"
@@ -32,7 +33,17 @@ func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dic
 	var source_bytes := FileAccess.get_file_as_bytes(str(scene.get("block_data_path")))
 	if Loader._hash(source_bytes) != BLOCK_SHA: return {"ok": false, "error": "source_block_bytes"}
 	var block: Dictionary = JSON.parse_string(source_bytes.get_string_from_utf8())
-	if scene.get("_block") != block or scene.get("_origin") != ORIGIN: return {"ok": false, "error": "current_block"}
+	# BLOCK_SHA still authenticates the original source bytes and actor map.
+	# The local composition is a separate, exact projection; no filtered bytes
+	# or new geometry are represented as the accepted source packet.
+	var runtime_block: Variant = scene.get("_block")
+	var outdoor_only: bool = scene.get_meta("preview_building_mode", "") == PalazzoOnly.MODE
+	if not runtime_block is Dictionary or scene.get("_origin") != ORIGIN: return {"ok": false, "error": "current_block"}
+	if outdoor_only:
+		if not PalazzoOnly.is_current(block, runtime_block) or scene.get("_printshop") != null or scene.get("preview_modular30") != null or scene.get("_printshop_data") != {}: return {"ok": false, "error": "palazzo_only_projection"}
+		block = runtime_block
+	elif runtime_block != block:
+		return {"ok": false, "error": "current_block"}
 	var checked := {}
 	for row: Dictionary in packet_rows:
 		var owner: Variant = owners.get(row.source_id)
@@ -57,9 +68,9 @@ func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dic
 			var native_land: bool = bool(surface.masks.walkableMask[r][c]) or (tile == 9 and (police is int or police is float) and police == 1)
 			_land[index] = int(r >= 1 and native_land and not bool(surface.masks.roadMask[r][c]) and tile != 16 and bool(palette.solid))
 			_heights[index] = float(palette.heightM)
-	# Retain the accepted exterior-only building envelopes, including their
-	# authored public-approach gaps. Opening an interior door does not grant new
-	# visitation permission. A later interior source provider needs a new scope.
+	# Cache only envelopes present in the validated runtime composition.
+	# Palazzo-only has none here; removed source buildings cannot leave ghost
+	# no-entry polygons. Terrain/source crop and all actor leases stay exact.
 	for building: Dictionary in block.buildings:
 		for body: Dictionary in building.collisionBodiesM:
 			var polygon := PackedVector2Array()
@@ -79,7 +90,7 @@ func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dic
 	_owners = checked; _states = states.duplicate(); _version = version
 	_ray.collision_mask = 1
 	scene.tree_exiting.connect(dispose, CONNECT_ONE_SHOT)
-	return {"ok": true, "version": _version, "owners": _owners.size(), "source_floors": _floors.size()}
+	return {"ok": true, "version": _version, "owners": _owners.size(), "source_floors": _floors.size(), "runtime_geometry_mode": PalazzoOnly.MODE if outdoor_only else "source_block"}
 
 func _floor_key(size: Vector3, position: Vector3) -> String:
 	return PackedVector3Array([size, position]).to_byte_array().hex_encode()

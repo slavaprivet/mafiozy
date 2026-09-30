@@ -88,9 +88,14 @@ func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = 
 	# All three original actors and pause callbacks exist before the one-visit
 	# lease can suppress only resident_169's ordinary goal producer.
 	if status == "ready" and staged_preview and walking_preview:
-		_visits = Visits.new()
-		_visit_setup = _visits.setup(scene, residents, navigation, policy,
-			Callable(self,"door_started"), Callable(scene,"_current_door_occupants"))
+		if navigation.diagnostics().get("outdoor_only", false):
+			# No visitor lease is acquired; resident_169 keeps its ordinary outdoor
+			# goal producer alongside the other two authenticated source actors.
+			_visit_setup = {"enabled": false, "status": "DISABLED_NO_PRINTSHOP", "reason": "palazzo_only43"}
+		else:
+			_visits = Visits.new()
+			_visit_setup = _visits.setup(scene, residents, navigation, policy,
+				Callable(self,"door_started"), Callable(scene,"_current_door_occupants"))
 	return true
 
 func _fail(reason: String) -> bool:

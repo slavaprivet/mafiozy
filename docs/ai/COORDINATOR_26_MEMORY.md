@@ -1,6 +1,154 @@
 # Координатор26 — действующая память
 
+## 02:00 — Принята43, постоянный запуск переключён
+
+Финальная сцена `s01-20261001-palazzo-only43`: только Палаццо, E по взгляду в
+проём, открытие/закрытие из screenshot-позиции без сдвига игрока. Helper v5
+4dfc4a0b512dd4f0e7fe47491de12fdddfffded47c074bb31259839edbdd5f96 принят;
+live1342115d. Raw8building source сохранён, runtime buildings0; дороги/водная
+геометрия/8decor/3NPC/HP/транспорт продолжают работать.
+
+Final runs `perf_door_v5_01`, `door_v5_gpu01`, `gpu02`: exit0/stderr0.
+Scene53/0, door109/0, 4E realinput PASS. Ранее написанное52 — только ошибка
+подсчёта; фактические GPU01 и GPU02 оба содержат53 успешные проверки.
+Все4 конечных PNG просмотрены root. Door109 включает actual close/open-again,
+смещение игрока0, occupied endpoint/foreign actors/intrusion/reset/tree exit.
+
+Сравнение v3→v5: idle p95 10.011→9.942ms; motion pooled p9511.352→11.709ms,
+max12.932ms. E median1.378→3.511ms; это+2.133ms за новое полное покрытие, но
+на60.62% меньше ошибочногоv4. No sampled frame>16.667ms. Root принял этот
+ограниченный quarter tradeoff; не выдавать E за равноценный старому и не
+выдавать измеренные static allocations за RSS. Состав/камера/settings сверены.
+
+`ACCEPTANCE.json` и frozen457pins сохранены; FINAL ASSEMBLY SHA
+661a6d53fcc496532c88c69b6a8d4b2d52ac508570837c52e51245504e48228b.
+Указатель43 записан, launcher CheckOnly PASS. Обычная игра43 открыта02:03:21,
+PID15320, launcher51640, ready=true/interactive=true/RPG50, play.err0;
+opened.png просмотрен. Fresh inventory: одна игра43 и прежний manager45268.
+Путь receipt `outputs/current_game/interactive/20260930T230321129Z`.
+Перед дальнейшими действиями заново сверять PID/command/starttime, не доверять
+историческим IDs. Shared приняты23runtimeфайла+3QA, чужие8WIP сохранены.
+Git снова блокировал пустой оставшийся index.lock от00:53:13: нет gitprocess,
+exclusiveopen успешен; он сохранён в release43/stale-index-lock-20261001-005313.backup.
+ScopedGit ещё требуется.
+
+## 01:51 — Door43 v4 поведение PASS109, оптимизация v5 ещё ожидается
+
+Root собрал v4 в той же Palazzo-only43: live1342115d, helper door_close43
+ea28f3df; assembly01cd29de. Старые сцена/дверьv3 и их отчёты сохранены.
+В v4 учитываются оба направления: E close и E open из screenshot-позиции,
+без перемещения игрока. Конечная поза проверяется без исключения игрока;
+исключение только для дуги, с возвратом/очисткой при прерывании.
+
+Независимая GPU QA snapshotf9501ac4: `runs/door_v4_gpu01`, exit0/stderr0,
+109 проверок/0 ошибок,38.37s. Root просмотрел inside_arc_closed.png и
+inside_arc_open_again.png: створка действительно закрывается и открывается,
+подсказка остаётся на проёме; измеренное смещение игрока0. Проверены также
+занятый конечный проём, другие тела, вторжение во время движения, J и tree exit.
+
+Полный E-path измерен одинаковым fixture318695f9 на одной и той же сцене43:
+`perf_door_v3_02` / `perf_door_v4_01`, оба4 native toggles PASS/stderr0.
+Idle p95 10.011→10.149ms, но синхронный E dispatch1.31–1.66→8.62–9.54ms.
+Поэтому v4 пока не опубликована: Buildings3 делает отдельную optimizedv5
+с кешем валидированных частей на одну операцию и без повторного полного sweep.
+Семантика v4 и сценарии QA должны сохраниться. Engines OFF кроме root QA.
+
+Shared сохранены22 scoped файла (6 main/nav/notes/helper +16 отсутствовавших
+Palazzo/C4 deps), receipt `shared_preservation/SCOPED_FILES.json` bcf9c7b3.
+Чужие8 WIP не тронуты; их HEAD уже равен принятому frozen runtime. Shared door
+покаv3, финальный v5 и новый helper root переносит только после QA. Main уже
+получил новый нейтральный refusal «Дверь заблокирована». Stable pointer всё ещё40;
+после окончательной проверки обязательно promote43, launch и scoped Git push.
+
+## 01:33 — QA43 сцена принята, точное исправление двери ещё проверяется
+
+Import43 exit0/stderr0. Первая native01 ошибка была только в QA: 303 водные
+клетки представлены подробной водной геометрией, поэтому поверхностей-коробок
+658, а не961. Исправленный oracle проверяет каждый исходный водный треугольник.
+GPU01: 52 проверки, 0 ошибок, stderr0. Root просмотрел оба PNG: только Палаццо,
+дороги/вода/декор сохранены. Все3NPC прошли наблюдение движения и HP binding.
+Папка evidence: `outputs/coordinator26_palazzo_only43/runs`.
+
+Doorv3 runtime b903cf71 / QA0f6a34f8: native28/0. Но это НЕ окончательное
+исправление жалобы: из screenshot-позы local(1,.31,2.2) сохраняется отказ
+door_sweep_blocked. Root запросил Buildings3 v4: закрывать по E, если персонаж
+стоит лишь в дуге створки, а окончательный закрытый проём свободен. Узкое
+временное исключение только инициатора, без перемещения игрока; финальный
+проём/другие препятствия и очистка исключения остаются обязательными.
+Прежнее утверждение выше про сохранение отказа в дуге уточнено этим решением.
+
+Root43 QA остаётся эксклюзивным, car и все остальные engine OFF. Указатель
+всё ещё40, обычная40 закрыта перед проверками. После v4 QA обязательно открыть
+принятую43 через постоянный launcher. Shared main былHEAD quality25a;
+takeover_review переносит6 проверенных файлов и отсутствующие зависимости
+Palazzo/C4 из frozen40/43, чужие отличающиеся WIP не перезаписывает.
+
+## 01:00–01:20 — СРОЧНЫЕ новые пользовательские задачи43
+
+1. Удалить ВСЕ здания текущей игры кроме Палаццо. Будущие здания — коробочного
+типа как Палаццо; другие разрушаемые здания добавят позже. Декор/дороги/NPC/авто
+не удалять. Архивные модели/данные сохраняются. ART_DIRECTION_CANON дополнен.
+2. Дверь Палаццо: E при взгляде в ПРОЁМ, независимо от створки. User screenshots
+0c003185…/df657c89… показывают inside close prompt → door-sweep refusal.
+Проверить настоящий inside/outside закрыть/открыть, не просто label.
+
+Root подготовил `outputs/coordinator26_palazzo_only43`: prepare43.py/patch/main,
+helper `palazzo_only_preview.gd` (SHA7f553fbf), staged candidate456sourcefiles,
+ASSEMBLY.json revision `s01-20261001-palazzo-only43`. Sourceblock SHA1523f52e
+сохранён; deterministic runtime projection: buildings[], anchorfirstdecor,
+correctcounts, исходные terrain/decor/hero. Main не создаёт printshop/interior/
+modular30 и все8oldbuildingmodels/colliders. Убраны два скрытых printshop guards
+из `_current_door_action` и `_physics_process`, чтобы PalazzoE/NPC продолжались.
+
+`navigation_patch` (takeover_review) готов и скопированвstage: три файла
+population/policy/nav, manifest519778be…; строго sourcehash+exactderivedhelper,
+настоящийoutdoorbackendбезphantominterior. Visits отключеныдоlease; actors3/HP
+сохраняются. Native покаNOT_RUN. qa/nativefixturetest43.gd (integrationreview)
+SHA36f33209… проверяетcomposition/terrain/NPCmovement6.5sec иGPU2вида.
+Root run43.py держитобщийmutex/freshinventory/exactpins. StageещёНЕимпортирован.
+
+User заменил Buildings2 на **Взрывы зданий3** `01a0f45b-ed29-7883-b93a-1d6daca19bae`.
+Прежний2 API подтверждён idle/interrupted, не будить.3 получилdoorfix иscope.
+`outputs/buildings3_door43` v1 source существует, НЕ принимать: LOS попадает
+всобственнуюStaticBodyglasspane дверцы.3 делаетrev2: excludeONLYactualcurrent
+attachedpane, не весьglass; root дополнительно потребовалreach3м кпроёму и
+insideCENTERsafe2.6м testcase (старый2м вынуждалугадыватьsafeугол). Реальный
+playerinsidephysicalarc не должен закрыватьсясквозьтело. Ждёмexactfreezev2.
+
+Carowner новыйпакет42 остаётсяНЕпринятым. Первыйengine49380parseFAIL, затем
+bounded CAR26-FUNCTIONAL-0108 закончен6checks/1FAIL,67.624sec (AKбьётfrontapron,
+enginehitнеподтверждён), stderr0. Owner RELEASED, current40 восстановлен01:15:49
+PID4732/launcher session73298 (freshinventory переддействиями!). Rootследующий
+QA43; carsource-only, будущийrebasing/matched43baseline43+carпосле43delivery.
+Доэтогоrootсамвосстанавливал40PID668; этоужеистория. Stablepointer всёещё40.
+
+Dive return41 (draft только) playerSHA7d9c447e… в
+`outputs/coordinator26_dive39/return_admission41/HANDOFF.md`; NOT_PROMOTABLE.
+Owner synchronouspre-restorecollisionhook остаётсянужен. Егоaudit-subagent
+прерванради43slots; другиеdiveagentsзавершены, нерасходоватьnativeокнона39сейчас.
+
+## 00:53 — следующий QA car_damage
+
+После завершения launcher исправления Быстрые введения передал новый user GO
+«вводи в игру и оптимизируй сначала». Root согласовал `CAR26-20261001-0053`:
+единственный QA owner — Быстрые введения, сначала sourcecandidate40+car, потом
+gracefulexactstop текущейигры поfreshPID/command/starttime, mutex, до4мин
+native/integrated/strictmatchedperf. Все прочие engines OFF/root source-only.
+Stable pointer и bootstrap меняет только root после exactmanifest/native/perf
+review+RELEASED. Owner приFAIL/затягивании обязан вернуть прежнюю40 через
+`tools/godot/launch_current_game.ps1`, нечерез25a. Штаб иowner уведомлены.
+Не считать будущий40+car принятым до evidence. Старый40 frozen не менять.
+
 ## 00:40 — F5 и постоянные ярлыки исправлены; открыта40
+
+Launch fix9files опубликован: `27f066a97924d9ab68f0ee2c85faac72c9a6be81`,
+remote main совпал; check-only после commit PASS. Второй stale emptyindexlock
+от00:12:51 после исчезновения всехgitprocess и успешного exclusiveopen сохранён
+в `outputs/coordinator26_takeover/stale-index-lock-20261001-001251.backup`.
+От автора получен `dive39/optimized_rotation40/HANDOFF.md`: playerf76ea242,
+1345mathchecks/168source-oracleposes PASS; nativefixture готов, NOT_RUN.
+Fullpose материализуется только для acceptedendpoint до collidercommit;
+physicaldriver return по-прежнему HOLD. Старые39pins сохранены.
 
 Срочное прямое пользователя: «сделай так чтоб я мог сам запускать версию.
 а тут у меня старая открывается когда ф5 жму». Старый desktop shortcut вёл в

@@ -1,6 +1,7 @@
 extends Node3D
 ## First migration quarter: authored assets, walking and source printshop doors.
 
+const PalazzoOnlyPreview = preload("res://scripts/palazzo_only_preview.gd")
 const GameCursor = preload("res://scripts/ui/walk_cursor.gd")
 const PlayerController = preload("res://scripts/preview_player.gd")
 const BlockValidation = preload("res://scripts/preview_block_validation.gd")
@@ -22,7 +23,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality25a"
+const PREVIEW_RUNTIME_REVISION := "s01-20261001-palazzo-only43"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -49,6 +50,10 @@ var preview_melee: Node
 var melee_status := "disabled"
 var preview_population: RefCounted
 var preview_modular30: Node
+var preview_palazzo: Node
+var preview_c4: Node
+var preview_c4_blast: Node
+const PalazzoGround = preload("res://scripts/destruction/palazzo/palazzo_ground.gd")
 var population_status := "disabled"
 var preview_transport: Node3D
 var preview_character_impacts: Node
@@ -99,6 +104,16 @@ var _last_frame_usec: int = 0
 func _ready() -> void:
 	GameCursor.install()
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(block_data_path))
+	if not parsed is Dictionary:
+		validation_errors = PackedStringArray(["Invalid source block"])
+		_show_load_error()
+		return
+	validation_errors = BlockValidation.validate(parsed)
+	if not validation_errors.is_empty():
+		_show_load_error()
+		return
+	set_meta("preview_building_mode", PalazzoOnlyPreview.MODE)
+	parsed = PalazzoOnlyPreview.prepare_block(parsed)
 	var prepared: Dictionary = BlockValidation.prepare_assets(parsed)
 	validation_errors = prepared["errors"]
 	if not validation_errors.is_empty():
@@ -128,17 +143,18 @@ func _ready() -> void:
 	_build_surface()
 	var boundary := PreviewBoundary.new()
 	add_child(boundary)
-	boundary.configure(_block.surface.boundsLocalM)
-	_load_printshop_data()
-	for record: Dictionary in _block["buildings"]:
-		_add_asset(record)
+	PalazzoGround.install(self)
+	boundary.configure(PalazzoGround.bounds(_block.surface.boundsLocalM))
+	# Removed buildings are never instantiated, including their interior/colliders.
+	printshop_status = "removed_by_user"
 	for record: Dictionary in _block["decor"]:
 		_add_asset(record)
 	# Cold registration before player, transport, navigation and static batching.
-	preview_modular30 = load("res://scripts/destruction/modular30/modular30_host.gd").new()
-	preview_modular30.name = "Modular30Host"
-	add_child(preview_modular30)
-	print("MODULAR30_GEOMETRY ", preview_modular30.prepare(self))
+	# The old modular townhouse is also excluded from this composition.
+	preview_palazzo = load("res://scripts/destruction/palazzo/palazzo_host.gd").new()
+	preview_palazzo.name = "PalazzoHost"
+	add_child(preview_palazzo)
+	print("PALAZZO_GEOMETRY ", preview_palazzo.prepare(self))
 	if (preview_static_batch_enabled or OS.get_cmdline_user_args().has("--preview-static-batch")) and not OS.get_cmdline_user_args().has("--preview-static-batch-off"):
 		apply_preview_static_batches()
 	_spawn = _v3(_block["hero"]["spawnLocalM"])
@@ -193,6 +209,14 @@ func _ready() -> void:
 			_player._heading = _player._camera_yaw
 			_player._visual.rotation.y = _player._heading + PI
 			_player._update_camera_rotation()
+	# Start beside the requested building while preserving authored source spawn data.
+	if is_instance_valid(preview_palazzo.site) and not OS.get_cmdline_user_args().has("--palazzo-start-off"):
+		_player.position = preview_palazzo.site.to_global(Vector3(1,.14,6.3))
+		_player._camera_yaw = -PI/2.0
+		_player._camera_pitch = -.12
+		_player._heading = _player._camera_yaw
+		_player._visual.rotation.y = _player._heading + PI
+		_player._update_camera_rotation()
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--preview-capture="):
 			_capture_path = argument.trim_prefix("--preview-capture=")
@@ -220,6 +244,22 @@ func _ready() -> void:
 			else: weapon_host.queue_free()
 	if is_instance_valid(preview_modular30):
 		print("MODULAR30_NATIVE_BINDING ", preview_modular30.bind_weapons())
+	if is_instance_valid(preview_palazzo):
+		print("PALAZZO_NATIVE_BINDING ", preview_palazzo.bind_weapons())
+	if is_instance_valid(preview_weapons) and is_instance_valid(preview_palazzo) and preview_palazzo.status=="ready":
+		var blast: Node=load("res://scripts/destruction/palazzo/c4_building_blast.gd").new()
+		preview_c4_blast=blast
+		if blast.configure(self,Callable(self,"_c4_sites")):
+			var equipment: Node=load("res://scripts/destruction/palazzo/c4_equipment.gd").new()
+			preview_c4=equipment
+			var c4_setup: Dictionary=equipment.configure(self,Callable(blast,"detonate"))
+			print("C4_NATIVE_BINDING ",c4_setup)
+			if not c4_setup.get("ok",false):
+				if equipment.get_parent()==null: equipment.free()
+				else: equipment.dispose()
+				preview_c4=null; blast.dispose(); preview_c4_blast=null
+		else:
+			preview_c4_blast=null; blast.free(); push_error("C4 blast binding failed")
 	if preview_residents_enabled or OS.get_cmdline_user_args().has("--preview-residents"):
 		# Physics must see the authored colliders before source placement proofs.
 		await get_tree().physics_frame
@@ -228,6 +268,8 @@ func _ready() -> void:
 		population_status = preview_population.status
 	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
 	preview_ready = true
+	print("PALAZZO_READY ", is_instance_valid(preview_palazzo) and preview_palazzo.status == "ready")
+	print("PALAZZO_ONLY43_READY legacy_buildings=", _block.buildings.size(), " palazzo=", int(is_instance_valid(preview_palazzo.site)))
 	_setup_preview_perf()
 	_last_frame_usec = Time.get_ticks_usec()
 	print("MAFIOZI_PREVIEW_READY buildings=%d decor=%d source_colliders=%d renderer=%s" % [_block["counts"]["buildings"], _block["counts"]["decor"], _block["counts"]["collisionBodies"], RenderingServer.get_current_rendering_method()])
@@ -443,6 +485,7 @@ func preview_jump_surface_allowed(feet_world: Vector3, radius: float = 0.36) -> 
 	return true
 
 func _jump_surface_point_contains(source_xz: Vector2) -> bool:
+	if PalazzoGround.contains_world(to_global(Vector3(source_xz.x - _origin.x, 0, source_xz.y - _origin.z))): return true
 	var col: float = source_xz.x / _jump_surface_cell_size - float(_jump_surface_start.x)
 	var row: float = source_xz.y / _jump_surface_cell_size - float(_jump_surface_start.y)
 	# Check signed fractions before conversion: negative positions never truncate
@@ -451,9 +494,19 @@ func _jump_surface_point_contains(source_xz: Vector2) -> bool:
 		return false
 	return _jump_surface_cells[int(floor(row)) * _jump_surface_size.x + int(floor(col))] == 1
 
+func _c4_sites() -> Array:
+	if is_instance_valid(preview_palazzo) and preview_palazzo.status=="ready" and is_instance_valid(preview_palazzo.site):
+		return [preview_palazzo.site]
+	return []
+
 func _exit_tree() -> void:
+	if is_instance_valid(preview_c4): preview_c4.dispose()
+	preview_c4=null
+	if is_instance_valid(preview_c4_blast): preview_c4_blast.dispose()
+	preview_c4_blast=null
 	GameCursor.release()
 	if is_instance_valid(preview_modular30): preview_modular30.dispose(false)
+	if is_instance_valid(preview_palazzo): preview_palazzo.dispose()
 	if preview_population != null:
 		preview_population.dispose()
 	# Parent still exists here; clear host-owned mesh/material before destruction.
@@ -497,21 +550,28 @@ func _current_door_occupants() -> Array:
 	return _door_occupants
 
 func _current_door_action() -> Dictionary:
-	if not preview_ready or not is_instance_valid(_printshop) or not is_instance_valid(_player):
+	if not preview_ready or not is_instance_valid(_player):
 		return {}
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
 		return {}
-	return _printshop.nearest_action(_player.global_position)
+	if is_instance_valid(preview_palazzo):
+		var palazzo_action: Dictionary = preview_palazzo.door_action()
+		if not palazzo_action.is_empty(): return palazzo_action
+	return _printshop.nearest_action(_player.global_position) if is_instance_valid(_printshop) else {}
 
 func _update_door_hint() -> void:
 	if _door_hint == null:
 		return
 	var action: Dictionary = _current_door_action()
+	if action.get("owner", "") == "palazzo":
+		_door_hint_world = action.world
+	elif not _printshop_data.is_empty():
+		_door_hint_world = _v3(_printshop_data.doors.public.anchor) + Vector3.UP * 2.2
 	var hint: String = str(action.label) if not action.is_empty() else ""
 	_door_hint_key.visible = not action.is_empty() and _door_feedback_seconds <= 0.0
 	if not action.is_empty() and _door_feedback_seconds > 0.0:
-		hint = "Отойдите от створки двери"
+		hint = "Дверь заблокирована"
 	if _door_hint.text != hint:
 		_door_hint.text = hint
 		_door_hint_panel.reset_size()
@@ -538,6 +598,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
+	var palazzo_key: int = event.physical_keycode if event.physical_keycode != 0 else event.keycode
+	if palazzo_key in [KEY_K, KEY_J] and is_instance_valid(preview_palazzo):
+		var command: Dictionary = preview_palazzo.request_full_collapse() if palazzo_key == KEY_K else preview_palazzo.request_reset()
+		if command.get("ok", false): get_viewport().set_input_as_handled()
+		return
 	if event.physical_keycode != KEY_E and event.keycode != KEY_E:
 		return
 	if not is_instance_valid(_player) or _player._pose_authority != &"on_foot":
@@ -545,8 +610,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	var action: Dictionary = _current_door_action()
 	if action.is_empty():
 		return
-	var result: Dictionary = _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
-	if result.get("accepted", false) and preview_population != null:
+	var is_palazzo: bool = action.get("owner", "") == "palazzo"
+	var result: Dictionary = preview_palazzo.request_door() if is_palazzo else _printshop.request_door(str(action.door), not bool(action.opening), _player.global_position, _current_door_occupants())
+	if not is_palazzo and result.get("accepted", false) and preview_population != null:
 		preview_population.door_started(str(action.door), bool(result.open))
 	_door_feedback_seconds = 0.0
 	if not bool(result.get("accepted", false)) and str(result.get("reason", "")) == "door-sweep-occupied":
@@ -571,10 +637,10 @@ func install_character_impact_source(resolver: Callable, reaction_profile: Dicti
 
 
 func _physics_process(delta: float) -> void:
-	if not preview_ready or not is_instance_valid(_printshop):
+	if not preview_ready:
 		return
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
-	_printshop.advance(delta, _current_door_occupants())
+	if is_instance_valid(_printshop): _printshop.advance(delta, _current_door_occupants())
 	if preview_population != null:
 		preview_population.step(delta)
 	_update_door_hint()
