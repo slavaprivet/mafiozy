@@ -1,0 +1,7301 @@
+{
+	"actors": {
+		"resident_169": {
+			"body_instance_id": 296520526014,
+			"bridge_id": "npc_resident_169",
+			"end": [
+				10.485396385192871,
+				0.0007669316837564111,
+				3.656810760498047
+			],
+			"floor_frames": 3590,
+			"life_generation": 1,
+			"max_step_m": 0.04428862780332565,
+			"max_y": 0.391827791929245,
+			"min_y": -0.03174782544374466,
+			"moving_frames": 2809,
+			"rig_instance_id": 295128017093,
+			"row_sha256": "16973b798930a46eab16badf3e361754ca120bfcd779b3020aac964c6355b35f",
+			"start": [
+				36.122615814208984,
+				-1.4901161193847656e-08,
+				-5.899998188018799
+			],
+			"travel_m": 84.0435210429132
+		},
+		"resident_252": {
+			"body_instance_id": 300563835132,
+			"bridge_id": "npc_resident_252",
+			"end": [
+				31.430349349975586,
+				0.0008256332366727293,
+				-19.522899627685547
+			],
+			"floor_frames": 3590,
+			"life_generation": 1,
+			"max_step_m": 0.036547355353832245,
+			"max_y": 0.0009346285369247198,
+			"min_y": -0.032400138676166534,
+			"moving_frames": 2319,
+			"rig_instance_id": 299171326211,
+			"row_sha256": "5b5630b7330063fb6d6179c4f7c7df4af13bf993723f82cdf8679462a01a91b8",
+			"start": [
+				34.622589111328125,
+				-1.4901161193847656e-08,
+				-19.39999771118164
+			],
+			"travel_m": 35.395325142890215
+		},
+		"resident_72": {
+			"body_instance_id": 292477216897,
+			"bridge_id": "npc_resident_72",
+			"end": [
+				38.46953201293945,
+				0.0008049256284721196,
+				-15.57287311553955
+			],
+			"floor_frames": 3590,
+			"life_generation": 1,
+			"max_step_m": 0.021889859810471535,
+			"max_y": 0.0009345441940240562,
+			"min_y": -1.4901161193847656e-08,
+			"moving_frames": 1893,
+			"rig_instance_id": 291185371272,
+			"row_sha256": "22a9f241b1098d9d33c67fc3bfeb6937f5d6802c7f1c6b1d649e5ddf489e6f1d",
+			"start": [
+				36.122615814208984,
+				-1.4901161193847656e-08,
+				-13.399996757507324
+			],
+			"travel_m": 41.38886471092701
+		}
+	},
+	"approach": {
+		"declared_legs": 27,
+		"proposal_provenance": {
+			"admission": "Every leg must be admitted again against current source/native collision.",
+			"sha256": "f95f4a4c9008841c577c2c8d76daf053291db8ee00bc0ba1df71ef42f29dace9",
+			"source": "outputs/artist24_printshop_visit/ENTRY_RESULT.json"
+		},
+		"reroute": {
+			"authority": "local preview proposal; every leg requires current public owner/native admission",
+			"native_full_visit_proven": false,
+			"new_prefix_legs": 7.0,
+			"ordinary_diagnostic_sha256": "6b7b73697a8d1f6ba8841c45a179a35daa8d21bb741239ac058bec7d701aaf8a",
+			"ordinary_plan_sha256": "c1153489f7e76102ee749331bd045f81da9efb131100dfd480f2a73fc2bc9413",
+			"original27_sha256": "e26d19e8554e50cff620259f5c94c69b4d049c9e8d17b67160427eba8c51d6de",
+			"previous28_native_failure_sha256": "5f307785ad1267d5052c99930be61bb5981ff3da97feb31ffe380b30848a338f",
+			"previous28_sha256": "b27715e416c2f9f4d0b8fe221a5149ed5ddd9780ca188042a4461b5051cb155d",
+			"proposal_admission": "Expanded prefix proposal, not claimed physically proved by static coordinates; all actual legs require unchanged public/native admission and full ordinary observer.",
+			"reason": "Narrow proposal blocked after native .15m arrival tolerance and ordinary parked-car drift; begin northward and use x41.12 external clearance, retaining all owner guards.",
+			"replaced_original_prefix_legs": 7.0,
+			"revision": "root24c-ordinary-city-hatchback-clearance-v2"
+		},
+		"sha256": "77af8086a3ab0ed6bab2e0bb3b6fde0307bb773c1086c41268cb4d869841d8b3"
+	},
+	"captures": [],
+	"checks": 51780,
+	"completion_floor": true,
+	"completion_position": [
+		8.597416877746582,
+		0.00081570417387411,
+		5.544797897338867
+	],
+	"completion_return_distance_m": 0.0022425088100135326,
+	"errors": [],
+	"final_car": {
+		"cargo": {
+			"capacity_units": 100,
+			"destroyed": false,
+			"items": [],
+			"life_generation": 1,
+			"ok": true,
+			"pending": false,
+			"revision": 1,
+			"used_units": 0,
+			"vehicle_id": "local_vehicle_1"
+		},
+		"max_displacement_m": 0.7235278487205505,
+		"position": [
+			37.6636962890625,
+			0.0024753068573772907,
+			-9.36674976348877
+		]
+	},
+	"final_population": {
+		"error": "",
+		"local_visit": {
+			"active_seconds": 56.83333333333139,
+			"actor_transform_written": false,
+			"approach_requests": 28,
+			"approach_sha256": "77af8086a3ab0ed6bab2e0bb3b6fde0307bb773c1086c41268cb4d869841d8b3",
+			"cancellation": {
+				"cancelled_request_id": 1000004,
+				"ok": true,
+				"source_authority": false,
+				"source_id": "resident_169"
+			},
+			"cancellation_attempts": 1,
+			"clearance": {
+				"deadline_active_seconds": 22.05000000000018,
+				"history": [
+					{
+						"at": 12.050000000000178,
+						"evidence": {
+							"blockers": [
+								{
+									"body_instance_id": 292477216897,
+									"life_generation": 1,
+									"point": [
+										36.122615814208984,
+										0.0,
+										-14.899998664855957
+									],
+									"rig_instance_id": 291185371272,
+									"source_id": "resident_72"
+								}
+							],
+							"kind": "original_living_npc",
+							"microseconds": 1062,
+							"physics_frame": 725,
+							"request_id": -1,
+							"samples": 22
+						},
+						"leg": 4,
+						"reason": "native_request_refused",
+						"until": 22.05000000000018
+					}
+				],
+				"latest": {
+					"blockers": [],
+					"kind": "clear",
+					"microseconds": 920,
+					"physics_frame": 875,
+					"request_id": -1,
+					"samples": 22
+				},
+				"leg": -1,
+				"next_probe_active_seconds": 15.050000000000303,
+				"polls": 5,
+				"probe_cost": {
+					"calls": 6,
+					"first_samples_us": [
+						1062,
+						1462,
+						1468,
+						1420,
+						1368,
+						920
+					],
+					"max_us": 1468,
+					"sample_limit": 64,
+					"total_us": 7700
+				},
+				"waits": 1
+			},
+			"duplicate_step_calls_ignored": 0,
+			"history": [
+				{
+					"active_seconds": 0.0,
+					"leg": 0,
+					"phase": "WAIT_NAV",
+					"reason": "waiting_for_native_READY"
+				},
+				{
+					"active_seconds": 0.09999999999999999,
+					"leg": 0,
+					"phase": "START_DELAY",
+					"reason": "three_second_preview_pause"
+				},
+				{
+					"active_seconds": 3.1166666666666605,
+					"leg": 0,
+					"phase": "APPROACH",
+					"reason": "native_leg_1"
+				},
+				{
+					"active_seconds": 3.649999999999992,
+					"leg": 1,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 3.6666666666666585,
+					"leg": 1,
+					"phase": "APPROACH",
+					"reason": "native_leg_2"
+				},
+				{
+					"active_seconds": 6.416666666666649,
+					"leg": 2,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 6.433333333333316,
+					"leg": 2,
+					"phase": "APPROACH",
+					"reason": "native_leg_3"
+				},
+				{
+					"active_seconds": 10.300000000000091,
+					"leg": 3,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 10.316666666666759,
+					"leg": 3,
+					"phase": "APPROACH",
+					"reason": "native_leg_4"
+				},
+				{
+					"active_seconds": 12.03333333333351,
+					"leg": 4,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 12.050000000000178,
+					"leg": 4,
+					"phase": "WAIT_FOR_CLEARANCE",
+					"reason": "original_living_npc_in_current_segment"
+				},
+				{
+					"active_seconds": 14.550000000000303,
+					"leg": 4,
+					"phase": "APPROACH",
+					"reason": "native_leg_5"
+				},
+				{
+					"active_seconds": 17.3000000000003,
+					"leg": 5,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 17.316666666666965,
+					"leg": 5,
+					"phase": "APPROACH",
+					"reason": "native_leg_6"
+				},
+				{
+					"active_seconds": 18.96666666666687,
+					"leg": 6,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 18.983333333333537,
+					"leg": 6,
+					"phase": "APPROACH",
+					"reason": "native_leg_7"
+				},
+				{
+					"active_seconds": 22.300000000000015,
+					"leg": 7,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 22.31666666666668,
+					"leg": 7,
+					"phase": "APPROACH",
+					"reason": "native_leg_8"
+				},
+				{
+					"active_seconds": 25.133333333333187,
+					"leg": 8,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 25.149999999999853,
+					"leg": 8,
+					"phase": "APPROACH",
+					"reason": "native_leg_9"
+				},
+				{
+					"active_seconds": 28.46666666666633,
+					"leg": 9,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 28.483333333332997,
+					"leg": 9,
+					"phase": "APPROACH",
+					"reason": "native_leg_10"
+				},
+				{
+					"active_seconds": 29.083333333332963,
+					"leg": 10,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 29.09999999999963,
+					"leg": 10,
+					"phase": "APPROACH",
+					"reason": "native_leg_11"
+				},
+				{
+					"active_seconds": 29.63333333333293,
+					"leg": 11,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 29.649999999999597,
+					"leg": 11,
+					"phase": "APPROACH",
+					"reason": "native_leg_12"
+				},
+				{
+					"active_seconds": 30.199999999999566,
+					"leg": 12,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 30.21666666666623,
+					"leg": 12,
+					"phase": "APPROACH",
+					"reason": "native_leg_13"
+				},
+				{
+					"active_seconds": 30.7666666666662,
+					"leg": 13,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 30.783333333332866,
+					"leg": 13,
+					"phase": "APPROACH",
+					"reason": "native_leg_14"
+				},
+				{
+					"active_seconds": 31.333333333332835,
+					"leg": 14,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 31.3499999999995,
+					"leg": 14,
+					"phase": "APPROACH",
+					"reason": "native_leg_15"
+				},
+				{
+					"active_seconds": 34.68333333333265,
+					"leg": 15,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 34.699999999999314,
+					"leg": 15,
+					"phase": "APPROACH",
+					"reason": "native_leg_16"
+				},
+				{
+					"active_seconds": 36.96666666666585,
+					"leg": 16,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 36.98333333333252,
+					"leg": 16,
+					"phase": "APPROACH",
+					"reason": "native_leg_17"
+				},
+				{
+					"active_seconds": 40.299999999998995,
+					"leg": 17,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 40.31666666666566,
+					"leg": 17,
+					"phase": "APPROACH",
+					"reason": "native_leg_18"
+				},
+				{
+					"active_seconds": 42.5833333333322,
+					"leg": 18,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 42.599999999998865,
+					"leg": 18,
+					"phase": "APPROACH",
+					"reason": "native_leg_19"
+				},
+				{
+					"active_seconds": 43.13333333333217,
+					"leg": 19,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 43.14999999999883,
+					"leg": 19,
+					"phase": "APPROACH",
+					"reason": "native_leg_20"
+				},
+				{
+					"active_seconds": 43.6999999999988,
+					"leg": 20,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 43.71666666666547,
+					"leg": 20,
+					"phase": "APPROACH",
+					"reason": "native_leg_21"
+				},
+				{
+					"active_seconds": 44.26666666666544,
+					"leg": 21,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 44.2833333333321,
+					"leg": 21,
+					"phase": "APPROACH",
+					"reason": "native_leg_22"
+				},
+				{
+					"active_seconds": 44.83333333333207,
+					"leg": 22,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 44.84999999999874,
+					"leg": 22,
+					"phase": "APPROACH",
+					"reason": "native_leg_23"
+				},
+				{
+					"active_seconds": 45.399999999998705,
+					"leg": 23,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 45.41666666666537,
+					"leg": 23,
+					"phase": "APPROACH",
+					"reason": "native_leg_24"
+				},
+				{
+					"active_seconds": 45.96666666666534,
+					"leg": 24,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 45.983333333332006,
+					"leg": 24,
+					"phase": "APPROACH",
+					"reason": "native_leg_25"
+				},
+				{
+					"active_seconds": 46.533333333331974,
+					"leg": 25,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 46.54999999999864,
+					"leg": 25,
+					"phase": "APPROACH",
+					"reason": "native_leg_26"
+				},
+				{
+					"active_seconds": 47.09999999999861,
+					"leg": 26,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 47.116666666665274,
+					"leg": 26,
+					"phase": "APPROACH",
+					"reason": "native_leg_27"
+				},
+				{
+					"active_seconds": 47.59999999999858,
+					"leg": 27,
+					"phase": "APPROACH",
+					"reason": "next_native_leg"
+				},
+				{
+					"active_seconds": 47.616666666665246,
+					"leg": 27,
+					"phase": "VISIT",
+					"reason": "WALK_TO_ENTRY"
+				},
+				{
+					"active_seconds": 48.316666666665206,
+					"leg": 27,
+					"phase": "VISIT",
+					"reason": "OPENING"
+				},
+				{
+					"active_seconds": 48.983333333331835,
+					"leg": 27,
+					"phase": "VISIT",
+					"reason": "ENTERING"
+				},
+				{
+					"active_seconds": 51.14999999999838,
+					"leg": 27,
+					"phase": "VISIT",
+					"reason": "BROWSING"
+				},
+				{
+					"active_seconds": 54.48333333333152,
+					"leg": 27,
+					"phase": "VISIT",
+					"reason": "EXITING"
+				},
+				{
+					"active_seconds": 56.16666666666476,
+					"leg": 27,
+					"phase": "VISIT",
+					"reason": "RETURNING_TO_STREET"
+				},
+				{
+					"active_seconds": 56.83333333333139,
+					"leg": 27,
+					"phase": "COMPLETE",
+					"reason": "local_visit_completed_once"
+				}
+			],
+			"invalid_deltas_ignored": 0,
+			"lease_bound": false,
+			"lease_serial": 1,
+			"leg": 27,
+			"leg_attempts": 0,
+			"leg_count": 27,
+			"legs": [
+				{
+					"arrival": [
+						36.122615814208984,
+						0.0007903306395746768,
+						-5.029998779296875
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5333333333333314,
+					"from": [
+						36.122615814208984,
+						-1.4901161193847656e-08,
+						-5.899998188018799
+					],
+					"goal": [
+						36.122615814208984,
+						0.0,
+						-4.899998188018799
+					],
+					"leg": 0,
+					"request_id": 3,
+					"start_active_seconds": 3.1166666666666605,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						40.98102569580078,
+						0.0007787230424582958,
+						-4.903680324554443
+					],
+					"attempt": 1,
+					"deadline_seconds": 10.946791542900932,
+					"elapsed_seconds": 2.7499999999999907,
+					"from": [
+						36.122615814208984,
+						0.0007903306395746768,
+						-5.029998779296875
+					],
+					"goal": [
+						41.122615814208984,
+						0.0,
+						-4.899998188018799
+					],
+					"leg": 1,
+					"request_id": 4,
+					"start_active_seconds": 3.6666666666666585,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						41.12004089355469,
+						0.0007933209417387843,
+						-11.772269248962402
+					],
+					"attempt": 1,
+					"deadline_seconds": 13.719098938835991,
+					"elapsed_seconds": 3.8666666666667755,
+					"from": [
+						40.98102569580078,
+						0.0007787230424582958,
+						-4.903680324554443
+					],
+					"goal": [
+						41.122615814208984,
+						0.0,
+						-11.899998664855957
+					],
+					"leg": 2,
+					"request_id": 7,
+					"start_active_seconds": 6.433333333333316,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						41.122501373291016,
+						0.0008280744659714401,
+						-14.772260665893555
+					],
+					"attempt": 1,
+					"deadline_seconds": 8.34407028887007,
+					"elapsed_seconds": 1.716666666666752,
+					"from": [
+						41.12004089355469,
+						0.0007933209417387843,
+						-11.772269248962402
+					],
+					"goal": [
+						41.122615814208984,
+						0.0,
+						-14.899998664855957
+					],
+					"leg": 3,
+					"request_id": 9,
+					"start_active_seconds": 10.316666666666759,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						36.26410675048828,
+						0.0008196012349799275,
+						-14.896385192871094
+					],
+					"attempt": 2,
+					"deadline_seconds": 10.94655179977417,
+					"elapsed_seconds": 2.7499999999999964,
+					"from": [
+						41.122501373291016,
+						0.0008280744659714401,
+						-14.772260665893555
+					],
+					"goal": [
+						36.122615814208984,
+						0.0,
+						-14.899998664855957
+					],
+					"leg": 4,
+					"request_id": 13,
+					"start_active_seconds": 14.550000000000303,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						36.12858581542969,
+						0.000830891658551991,
+						-17.773216247558594
+					],
+					"attempt": 1,
+					"deadline_seconds": 8.176310367054409,
+					"elapsed_seconds": 1.6499999999999062,
+					"from": [
+						36.26410675048828,
+						0.0008196012349799275,
+						-14.896385192871094
+					],
+					"goal": [
+						36.122615814208984,
+						0.0,
+						-17.89999771118164
+					],
+					"leg": 5,
+					"request_id": 15,
+					"start_active_seconds": 17.316666666666965,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						30.249908447265625,
+						0.0008005195995792747,
+						-17.897315979003906
+					],
+					"attempt": 1,
+					"deadline_seconds": 12.34348334206475,
+					"elapsed_seconds": 3.316666666666478,
+					"from": [
+						36.12858581542969,
+						0.000830891658551991,
+						-17.773216247558594
+					],
+					"goal": [
+						30.122615814208984,
+						0.0,
+						-17.89999771118164
+					],
+					"leg": 6,
+					"request_id": 18,
+					"start_active_seconds": 18.983333333333537,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						25.2698974609375,
+						0.0008323510992340744,
+						-17.89990997314453
+					],
+					"attempt": 1,
+					"deadline_seconds": 11.121240430408054,
+					"elapsed_seconds": 2.8166666666665066,
+					"from": [
+						30.249908447265625,
+						0.0008005195995792747,
+						-17.897315979003906
+					],
+					"goal": [
+						25.122615814208984,
+						0.0,
+						-17.89999771118164
+					],
+					"leg": 7,
+					"request_id": 21,
+					"start_active_seconds": 22.31666666666668,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						25.1256046295166,
+						0.0008282180642709136,
+						-12.021646499633789
+					],
+					"attempt": 1,
+					"deadline_seconds": 12.335722155041164,
+					"elapsed_seconds": 3.316666666666478,
+					"from": [
+						25.2698974609375,
+						0.0008323510992340744,
+						-17.89990997314453
+					],
+					"goal": [
+						25.122615814208984,
+						0.0,
+						-11.89999771118164
+					],
+					"leg": 8,
+					"request_id": 23,
+					"start_active_seconds": 25.149999999999853,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						25.122970581054688,
+						0.0008321080240420997,
+						-11.031648635864258
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5999999999999659,
+					"from": [
+						25.1256046295166,
+						0.0008282180642709136,
+						-12.021646499633789
+					],
+					"goal": [
+						25.122615814208984,
+						0.0,
+						-10.89999771118164
+					],
+					"leg": 9,
+					"request_id": 26,
+					"start_active_seconds": 28.483333333332997,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						24.26040267944336,
+						0.0008307672687806189,
+						-10.918134689331055
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.533333333333303,
+					"from": [
+						25.122970581054688,
+						0.0008321080240420997,
+						-11.031648635864258
+					],
+					"goal": [
+						24.122615814208984,
+						0.0,
+						-10.89999771118164
+					],
+					"leg": 10,
+					"request_id": 27,
+					"start_active_seconds": 29.09999999999963,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						24.139707565307617,
+						0.0008308726828545332,
+						-10.026260375976563
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						24.26040267944336,
+						0.0008307672687806189,
+						-10.918134689331055
+					],
+					"goal": [
+						24.122615814208984,
+						0.0,
+						-9.89999771118164
+					],
+					"leg": 11,
+					"request_id": 28,
+					"start_active_seconds": 29.649999999999597,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						23.246557235717773,
+						0.0008292848942801356,
+						-9.915384292602539
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						24.139707565307617,
+						0.0008308726828545332,
+						-10.026260375976563
+					],
+					"goal": [
+						23.122615814208984,
+						0.0,
+						-9.89999771118164
+					],
+					"leg": 12,
+					"request_id": 29,
+					"start_active_seconds": 30.21666666666623,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						23.13751220703125,
+						0.0007766258786432445,
+						-9.022019386291504
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						23.246557235717773,
+						0.0008292848942801356,
+						-9.915384292602539
+					],
+					"goal": [
+						23.122615814208984,
+						0.0,
+						-8.89999771118164
+					],
+					"leg": 13,
+					"request_id": 31,
+					"start_active_seconds": 30.783333333332866,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						17.2587833404541,
+						0.0007111086742952466,
+						-8.902759552001953
+					],
+					"attempt": 1,
+					"deadline_seconds": 12.355741368399727,
+					"elapsed_seconds": 3.3333333333331474,
+					"from": [
+						23.13751220703125,
+						0.0007766258786432445,
+						-9.022019386291504
+					],
+					"goal": [
+						17.122615814208984,
+						0.0,
+						-8.89999771118164
+					],
+					"leg": 14,
+					"request_id": 32,
+					"start_active_seconds": 31.3499999999995,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						13.268776893615723,
+						0.0007640445255674422,
+						-8.900093078613281
+					],
+					"attempt": 1,
+					"deadline_seconds": 9.744678444332546,
+					"elapsed_seconds": 2.266666666666538,
+					"from": [
+						17.2587833404541,
+						0.0007111086742952466,
+						-8.902759552001953
+					],
+					"goal": [
+						13.122615814208984,
+						0.0,
+						-8.89999771118164
+					],
+					"leg": 15,
+					"request_id": 34,
+					"start_active_seconds": 34.699999999999314,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						13.12558364868164,
+						0.0007652163039892912,
+						-3.0218303203582764
+					],
+					"attempt": 1,
+					"deadline_seconds": 12.335937394036186,
+					"elapsed_seconds": 3.316666666666478,
+					"from": [
+						13.268776893615723,
+						0.0007640445255674422,
+						-8.900093078613281
+					],
+					"goal": [
+						13.122615814208984,
+						0.0,
+						-2.899998188018799
+					],
+					"leg": 16,
+					"request_id": 36,
+					"start_active_seconds": 36.98333333333252,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						13.122705459594727,
+						0.0007907270919531584,
+						0.9681878685951233
+					],
+					"attempt": 1,
+					"deadline_seconds": 9.724767843882242,
+					"elapsed_seconds": 2.266666666666538,
+					"from": [
+						13.12558364868164,
+						0.0007652163039892912,
+						-3.0218303203582764
+					],
+					"goal": [
+						13.122615814208984,
+						0.0,
+						1.1000018119812012
+					],
+					"leg": 17,
+					"request_id": 39,
+					"start_active_seconds": 40.31666666666566,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						12.260167121887207,
+						0.0008024175185710192,
+						1.0818723440170288
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.533333333333303,
+					"from": [
+						13.122705459594727,
+						0.0007907270919531584,
+						0.9681878685951233
+					],
+					"goal": [
+						12.122615814208984,
+						0.0,
+						1.1000018119812012
+					],
+					"leg": 18,
+					"request_id": 41,
+					"start_active_seconds": 42.599999999998865,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						12.139670372009277,
+						0.0008482842822559178,
+						1.9737695455551147
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						12.260167121887207,
+						0.0008024175185710192,
+						1.0818723440170288
+					],
+					"goal": [
+						12.122615814208984,
+						0.0,
+						2.100001811981201
+					],
+					"leg": 19,
+					"request_id": 43,
+					"start_active_seconds": 43.14999999999883,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						11.246522903442383,
+						0.0008075168007053435,
+						2.084623098373413
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						12.139670372009277,
+						0.0008482842822559178,
+						1.9737695455551147
+					],
+					"goal": [
+						11.122615814208984,
+						0.0,
+						2.100001811981201
+					],
+					"leg": 20,
+					"request_id": 44,
+					"start_active_seconds": 43.71666666666547,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						11.137504577636719,
+						-0.00012061605229973793,
+						2.9779958724975586
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						11.246522903442383,
+						0.0008075168007053435,
+						2.084623098373413
+					],
+					"goal": [
+						11.122615814208984,
+						0.0,
+						3.100001811981201
+					],
+					"leg": 21,
+					"request_id": 45,
+					"start_active_seconds": 44.2833333333321,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						10.243936538696289,
+						0.0008117720135487616,
+						3.0854172706604004
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						11.137504577636719,
+						-0.00012061605229973793,
+						2.9779958724975586
+					],
+					"goal": [
+						10.122615814208984,
+						0.0,
+						3.100001811981201
+					],
+					"leg": 22,
+					"request_id": 46,
+					"start_active_seconds": 44.84999999999874,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						10.137080192565918,
+						0.0008186573977582157,
+						3.979050636291504
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						10.243936538696289,
+						0.0008117720135487616,
+						3.0854172706604004
+					],
+					"goal": [
+						10.122615814208984,
+						0.0,
+						4.100001811981201
+					],
+					"leg": 23,
+					"request_id": 47,
+					"start_active_seconds": 45.41666666666537,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						9.243409156799316,
+						0.000839077983982861,
+						4.08554744720459
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						10.137080192565918,
+						0.0008186573977582157,
+						3.979050636291504
+					],
+					"goal": [
+						9.122615814208984,
+						0.0,
+						4.100001811981201
+					],
+					"leg": 24,
+					"request_id": 48,
+					"start_active_seconds": 45.983333333332006,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						9.13699722290039,
+						0.0007775492267683148,
+						4.979214668273926
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.5499999999999687,
+					"from": [
+						9.243409156799316,
+						0.000839077983982861,
+						4.08554744720459
+					],
+					"goal": [
+						9.122615814208984,
+						0.0,
+						5.100001811981201
+					],
+					"leg": 25,
+					"request_id": 51,
+					"start_active_seconds": 46.54999999999864,
+					"status": "ARRIVED"
+				},
+				{
+					"arrival": [
+						8.599650382995605,
+						0.0008058231323957443,
+						5.544597148895264
+					],
+					"attempt": 1,
+					"deadline_seconds": 6.0,
+					"elapsed_seconds": 0.48333333333330586,
+					"from": [
+						9.13699722290039,
+						0.0007775492267683148,
+						4.979214668273926
+					],
+					"goal": [
+						8.5,
+						0.0,
+						5.649446964263916
+					],
+					"leg": 26,
+					"request_id": 52,
+					"start_active_seconds": 47.116666666665274,
+					"status": "ARRIVED"
+				}
+			],
+			"local_session": "LOCAL_NPC_VISIT23:root24-printshop-once",
+			"once_per_launch": true,
+			"original_source_progress_written": false,
+			"paused": false,
+			"paused_seconds": 0.0,
+			"phase": "COMPLETE",
+			"position": [
+				10.485396385192871,
+				0.0007669316837564111,
+				3.656810760498047
+			],
+			"reason": "local_visit_completed_once",
+			"release": {
+				"ok": true,
+				"reason": "explicit_release",
+				"serial": 1,
+				"source_authority": false,
+				"source_id": "resident_169"
+			},
+			"release_attempts": 1,
+			"request_frame_limit_hits": 0,
+			"request_id": -1,
+			"requests": 32,
+			"retries": 1,
+			"scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+			"source_authority": false,
+			"source_id": "resident_169",
+			"source_row_or_HP_written": false,
+			"visit": {
+				"cycle": 0,
+				"door_id": "native:REBUILD-VISUAL-print_shop-001",
+				"life_generation": 1,
+				"local_completed": 1,
+				"local_session": "LOCAL_NPC_VISIT23:root24-printshop-once",
+				"original_agenda_completed": false,
+				"original_source_progress_written": false,
+				"phase": "COMPLETE",
+				"reason": "",
+				"scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+				"source_id": "resident_169"
+			},
+			"visit_request_id": -1
+		},
+		"local_visit_setup": {
+			"ok": true,
+			"once_per_launch": true,
+			"scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+			"source_id": "resident_169"
+		},
+		"navigation": {
+			"backend": {
+				"bake_submit_us": [
+					144,
+					141
+				],
+				"bake_wall_us": [
+					1108734,
+					305862
+				],
+				"bakes": 2,
+				"bakes_inflight": 0,
+				"epoch": 2,
+				"jobs": 3,
+				"map_iteration": 2,
+				"motion_us": [
+					131,
+					118,
+					132,
+					119,
+					132,
+					120,
+					131,
+					118,
+					145,
+					121,
+					132,
+					132,
+					129,
+					132,
+					132,
+					131,
+					149,
+					131,
+					133,
+					124,
+					188,
+					125,
+					119,
+					125,
+					119,
+					183,
+					120,
+					126,
+					121,
+					127,
+					148,
+					125,
+					119,
+					126,
+					120,
+					194,
+					192,
+					127,
+					122,
+					124,
+					120,
+					126,
+					235,
+					127,
+					123,
+					124,
+					119,
+					126,
+					121,
+					124,
+					120,
+					127,
+					121,
+					125,
+					122,
+					128,
+					122,
+					125,
+					120,
+					114,
+					118,
+					117,
+					124,
+					122,
+					120,
+					127,
+					122,
+					121,
+					126,
+					123,
+					121,
+					127,
+					123,
+					119,
+					127,
+					123,
+					119,
+					127,
+					124,
+					118,
+					127,
+					125,
+					118,
+					132,
+					123,
+					118,
+					125,
+					121,
+					117,
+					127,
+					124,
+					119,
+					127,
+					131,
+					118,
+					128,
+					129,
+					120,
+					128,
+					124,
+					123,
+					220,
+					212,
+					208,
+					129,
+					121,
+					118,
+					126,
+					123,
+					121,
+					187,
+					126,
+					120,
+					177,
+					172,
+					168,
+					189,
+					213,
+					190,
+					128,
+					123,
+					118,
+					176,
+					172,
+					168,
+					126,
+					122,
+					120,
+					129,
+					124,
+					123,
+					125,
+					123,
+					117,
+					126,
+					140,
+					119,
+					127,
+					127,
+					121,
+					128,
+					127,
+					122,
+					128,
+					124,
+					117,
+					126,
+					125,
+					120,
+					212,
+					207,
+					186,
+					130,
+					127,
+					121,
+					183,
+					134,
+					120,
+					133,
+					126,
+					120,
+					127,
+					125,
+					119,
+					127,
+					123,
+					120,
+					125,
+					123,
+					117,
+					127,
+					126,
+					120,
+					128,
+					125,
+					119,
+					128,
+					129,
+					120,
+					229,
+					188,
+					181,
+					126,
+					127,
+					118,
+					132,
+					129,
+					126,
+					128,
+					126,
+					121,
+					136,
+					124,
+					119,
+					132,
+					127,
+					121,
+					127,
+					122,
+					118,
+					132,
+					122,
+					131,
+					119,
+					131,
+					121,
+					152,
+					143,
+					130,
+					119,
+					130,
+					118,
+					133,
+					131,
+					131,
+					119,
+					130,
+					119,
+					197,
+					191,
+					132,
+					186,
+					131,
+					122,
+					130,
+					140,
+					131,
+					119,
+					132,
+					120,
+					131,
+					119,
+					143,
+					121,
+					131,
+					119,
+					135,
+					190,
+					132,
+					132,
+					131,
+					119,
+					133,
+					137,
+					146,
+					128,
+					139,
+					137,
+					136,
+					177,
+					134,
+					120,
+					132,
+					120,
+					130,
+					119
+				],
+				"nav_polygons": 794,
+				"publish_us": [
+					855,
+					910
+				],
+				"pump_us": [
+					2,
+					1,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					2,
+					2,
+					1,
+					1,
+					2,
+					1,
+					1,
+					94,
+					1963,
+					1,
+					2,
+					2,
+					1,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					3,
+					2,
+					1,
+					2,
+					2,
+					2,
+					1,
+					2,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					2,
+					2,
+					3,
+					1,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					1,
+					2,
+					2,
+					1,
+					2,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					2,
+					2,
+					2,
+					2,
+					1,
+					2,
+					2,
+					1,
+					2,
+					1,
+					1,
+					1,
+					2,
+					1,
+					1,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					2,
+					2,
+					2,
+					1,
+					2,
+					2,
+					1,
+					2,
+					2,
+					1,
+					1,
+					1,
+					2,
+					1,
+					1,
+					1,
+					2,
+					2,
+					1,
+					1,
+					1,
+					2,
+					1,
+					1,
+					2,
+					2,
+					2,
+					1,
+					1,
+					1,
+					2,
+					1,
+					2,
+					2,
+					1,
+					1,
+					1,
+					1,
+					2,
+					2,
+					1,
+					2,
+					3,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					2,
+					2,
+					1,
+					2,
+					2,
+					1,
+					1,
+					2,
+					2,
+					1,
+					1,
+					1,
+					2,
+					2,
+					2,
+					2,
+					1,
+					1,
+					2,
+					1,
+					1,
+					1,
+					1,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					2,
+					1,
+					1,
+					2,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					83,
+					1410,
+					1,
+					2,
+					1,
+					1,
+					1,
+					1,
+					1,
+					2,
+					2,
+					1,
+					2,
+					1,
+					2,
+					1,
+					2,
+					2,
+					2,
+					1,
+					1,
+					2,
+					2,
+					1,
+					1,
+					1,
+					88,
+					1401,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					1,
+					2,
+					1,
+					1,
+					2,
+					1,
+					1,
+					1,
+					2,
+					2,
+					2,
+					2,
+					2,
+					2,
+					1,
+					1,
+					1,
+					1
+				],
+				"queries": 57,
+				"query_us": [
+					105,
+					42,
+					60,
+					46,
+					57,
+					49,
+					63,
+					49,
+					56,
+					49,
+					57,
+					72,
+					48,
+					53,
+					60,
+					56,
+					48,
+					49,
+					54,
+					47,
+					48,
+					47,
+					59,
+					48,
+					56,
+					48,
+					47,
+					66,
+					58,
+					51,
+					47,
+					78,
+					53,
+					60,
+					50,
+					57,
+					49,
+					57,
+					71,
+					54,
+					50,
+					50,
+					44,
+					49,
+					56,
+					51,
+					56,
+					61,
+					46,
+					45,
+					48,
+					65,
+					50,
+					57,
+					50,
+					55,
+					61
+				],
+				"queued_snapshots": 0,
+				"rejected_motion": 220,
+				"stale_bakes": 0,
+				"stale_queries": 0,
+				"state": "READY",
+				"validated_samples": 832
+			},
+			"disposed": false,
+			"errors": [],
+			"records": 3,
+			"state": "READY",
+			"stats": {
+				"blocked_steps": 220,
+				"capture_us": 7272,
+				"captures": 1,
+				"door_shapes": 4,
+				"publications": 2,
+				"static_shapes": 300,
+				"step_us_max": 518,
+				"step_us_total": 1323440,
+				"steps": 6931,
+				"transition_starts": 1,
+				"triangles": 3758
+			},
+			"transitions": 0
+		},
+		"original_agenda": false,
+		"placement_mode": "PREVIEW_STAGE",
+		"residents": {
+			"disposed": false,
+			"rows": [
+				{
+					"bridge_id": "npc_resident_72",
+					"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+					"life_generation": 1,
+					"physical_anchor_world": null,
+					"placement_mode": "PREVIEW_STAGE",
+					"position": "(38.46953, 0.000805, -15.57287)",
+					"reason": "",
+					"source_id": "resident_72",
+					"speed_mps": 1.3118482738187358,
+					"status": "ARRIVED"
+				},
+				{
+					"bridge_id": "npc_resident_169",
+					"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+					"life_generation": 1,
+					"physical_anchor_world": null,
+					"placement_mode": "PREVIEW_STAGE",
+					"position": "(10.4854, 0.000767, 3.656811)",
+					"reason": "",
+					"source_id": "resident_169",
+					"speed_mps": 1.8,
+					"status": "READY"
+				},
+				{
+					"bridge_id": "npc_resident_252",
+					"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+					"life_generation": 1,
+					"physical_anchor_world": null,
+					"placement_mode": "PREVIEW_STAGE",
+					"position": "(31.43035, 0.000826, -19.5229)",
+					"reason": "",
+					"source_id": "resident_252",
+					"speed_mps": 0.912652391870984,
+					"status": "ARRIVED"
+				}
+			],
+			"session_id": "godot-preview-new-session-20260927-01",
+			"stats": {
+				"admissions": 3,
+				"admit_us_max": 30980,
+				"floor_recoveries": 7,
+				"last_floor_recovery": {
+					"after_native": "(32.362, -0.003372, -21.50527)",
+					"after_snap": "(32.362, -0.003372, -21.50527)",
+					"before": "(32.362, -0.032399, -21.50527)",
+					"correction": "(0.0, 0.029027, 0.0)",
+					"floor_only_no_path": false,
+					"on_floor_after": true,
+					"physics_frame": 3440,
+					"source_id": "resident_252",
+					"status": "BLOCKED"
+				},
+				"rejections": 0,
+				"step_us_max": 2756,
+				"steps": 3590
+			},
+			"walk_preview": {
+				"enabled": true,
+				"requests": 30
+			}
+		},
+		"session_id": "godot-preview-new-session-20260927-01",
+		"status": "ready"
+	},
+	"first_physics_frame": 3,
+	"floor_recovery_count": 7,
+	"floor_recovery_receipts": [
+		{
+			"after_native": [
+				34.622589111328125,
+				-1.4901161193847656e-08,
+				-19.39999771118164
+			],
+			"after_snap": [
+				34.622589111328125,
+				-1.4901161193847656e-08,
+				-19.39999771118164
+			],
+			"before": [
+				34.622589111328125,
+				-1.4901161193847656e-08,
+				-19.39999771118164
+			],
+			"correction": [
+				0.0,
+				0.0,
+				0.0
+			],
+			"floor_only_no_path": false,
+			"on_floor_after": true,
+			"physics_frame": 3,
+			"source_id": "resident_252",
+			"status": "IDLE"
+		},
+		{
+			"after_native": [
+				34.87883758544922,
+				-0.00337197445333004,
+				-17.970693588256836
+			],
+			"after_snap": [
+				34.87883758544922,
+				-0.00337197445333004,
+				-17.970693588256836
+			],
+			"before": [
+				34.87883758544922,
+				-0.032398562878370285,
+				-17.970693588256836
+			],
+			"correction": [
+				0.0,
+				0.029026588425040245,
+				0.0
+			],
+			"floor_only_no_path": true,
+			"on_floor_after": true,
+			"physics_frame": 683,
+			"source_id": "resident_252",
+			"status": "NO_PATH"
+		},
+		{
+			"after_native": [
+				21.87781524658203,
+				-0.003287624567747116,
+				-8.996467590332031
+			],
+			"after_snap": [
+				21.87781524658203,
+				-0.003287624567747116,
+				-8.996467590332031
+			],
+			"before": [
+				21.87781524658203,
+				-0.03174782544374466,
+				-8.996467590332031
+			],
+			"correction": [
+				0.0,
+				0.028460200875997543,
+				0.0
+			],
+			"floor_only_no_path": false,
+			"on_floor_after": true,
+			"physics_frame": 1928,
+			"source_id": "resident_169",
+			"status": "BLOCKED"
+		},
+		{
+			"after_native": [
+				36.45748519897461,
+				-0.0033721663057804108,
+				-17.81220054626465
+			],
+			"after_snap": [
+				36.45748519897461,
+				-0.0033721663057804108,
+				-17.81220054626465
+			],
+			"before": [
+				36.45748519897461,
+				-0.032400138676166534,
+				-17.81220054626465
+			],
+			"correction": [
+				0.0,
+				0.029027972370386124,
+				0.0
+			],
+			"floor_only_no_path": false,
+			"on_floor_after": true,
+			"physics_frame": 2313,
+			"source_id": "resident_252",
+			"status": "BLOCKED"
+		},
+		{
+			"after_native": [
+				32.361995697021484,
+				-0.003371976315975189,
+				-21.505271911621094
+			],
+			"after_snap": [
+				32.361995697021484,
+				-0.003371976315975189,
+				-21.505271911621094
+			],
+			"before": [
+				32.361995697021484,
+				-0.032398540526628494,
+				-21.505271911621094
+			],
+			"correction": [
+				0.0,
+				0.029026564210653305,
+				0.0
+			],
+			"floor_only_no_path": false,
+			"on_floor_after": true,
+			"physics_frame": 3440,
+			"source_id": "resident_252",
+			"status": "BLOCKED"
+		}
+	],
+	"freeze_compiled_remaps": [],
+	"freeze_files_checked": 224,
+	"freeze_note": "Compiled scripts/scenes are bound by whole PCK SHA; external source-root enables all source receipt pins.",
+	"harness_sha256": "263758c6afa94789319520bc045f27a1e2bbfaee028fdf93d4f734b626b11688",
+	"immutable_data_pins": {
+		"res://assets/npc_visual/local_printshop/entry.v1.json": "3bda89bb0017b2d1ee5f5fca9c066d28a8e0f11a09670be43c771a027ce3518c",
+		"res://assets/npc_visual/local_printshop/geometry.v1.json": "e1bcf7b5ba88008b17362aaedb1d0c094dd7cefd756ec0e7afec0923a2aad618",
+		"res://assets/npc_visual/session/e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096.json": "e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+		"res://assets/npc_visual/session/prepared/manifest.json": "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9aac0"
+	},
+	"initial": {
+		"guns": [
+			"ak74",
+			"deagle",
+			"golden_colt",
+			"golden_uzi",
+			"m16",
+			"nagan",
+			"revolver",
+			"rpg",
+			"sawn_off",
+			"shotgun",
+			"sniper",
+			"tommy_gun",
+			"tt_pistol",
+			"uzi"
+		],
+		"host_instance": -9223371748219541409,
+		"main_instance": 64307070410,
+		"player_instance": 112776450335,
+		"population_instance": -9223371754376780038,
+		"revision": "s01-20260930-quality24c",
+		"transport_instance": 115410473343
+	},
+	"last_physics_frame": 3592,
+	"mutations": "Only output files and optional separate QA Camera3D; no actor/player transform, input, owner stepping or runtime flags.",
+	"observed_physics_frames": 3590,
+	"original_car": {
+		"cargo": {
+			"capacity_units": 100,
+			"destroyed": false,
+			"items": [],
+			"life_generation": 1,
+			"ok": true,
+			"pending": false,
+			"revision": 1,
+			"used_units": 0,
+			"vehicle_id": "local_vehicle_1"
+		},
+		"collision_layer": 1,
+		"collision_mask": 1,
+		"instance_id": 115645354375,
+		"life_generation": 1,
+		"profile_id": "city_hatchback",
+		"start": [
+			37.05001449584961,
+			8.373518357984722e-05,
+			-9.750000953674316
+		],
+		"vehicle_id": "local_vehicle_1"
+	},
+	"packed": false,
+	"phases": [
+		{
+			"door_fraction": 0.0,
+			"leg": 0,
+			"observed_frame": 1,
+			"phase": "WAIT_NAV",
+			"physics_frame": 3,
+			"player_position": [
+				34.62260437011719,
+				0.07183333486318588,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"resident_252": [
+					34.622589111328125,
+					-1.4901161193847656e-08,
+					-19.39999771118164
+				],
+				"resident_72": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-13.399996757507324
+				]
+			},
+			"reason": "waiting_for_native_READY",
+			"transport_sequence": 2,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 0,
+			"observed_frame": 6,
+			"phase": "START_DELAY",
+			"physics_frame": 8,
+			"player_position": [
+				34.62260437011719,
+				0.0037777796387672424,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"resident_252": [
+					34.622589111328125,
+					-1.4901161193847656e-08,
+					-19.39999771118164
+				],
+				"resident_72": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-13.399996757507324
+				]
+			},
+			"reason": "three_second_preview_pause",
+			"transport_sequence": 7,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 0,
+			"observed_frame": 187,
+			"phase": "APPROACH",
+			"physics_frame": 189,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"resident_252": [
+					31.884693145751953,
+					0.0008078217506408691,
+					-19.39999771118164
+				],
+				"resident_72": [
+					39.22734069824219,
+					0.0008296708110719919,
+					-13.399996757507324
+				]
+			},
+			"reason": "native_leg_1",
+			"transport_sequence": 188,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 1,
+			"observed_frame": 219,
+			"phase": "APPROACH",
+			"physics_frame": 221,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					0.0007903306395746768,
+					-5.029998779296875
+				],
+				"resident_252": [
+					31.519638061523438,
+					0.0007884067017585039,
+					-19.39999771118164
+				],
+				"resident_72": [
+					39.22734069824219,
+					0.0008296708110719919,
+					-13.399996757507324
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 220,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 1,
+			"observed_frame": 220,
+			"phase": "APPROACH",
+			"physics_frame": 222,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					0.0007903306395746768,
+					-5.029998779296875
+				],
+				"resident_252": [
+					31.519638061523438,
+					0.0007884067017585039,
+					-19.39999771118164
+				],
+				"resident_72": [
+					39.22734069824219,
+					0.0008296708110719919,
+					-13.399996757507324
+				]
+			},
+			"reason": "native_leg_2",
+			"transport_sequence": 221,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 2,
+			"observed_frame": 385,
+			"phase": "APPROACH",
+			"physics_frame": 387,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					40.98102569580078,
+					0.0007787230424582958,
+					-4.903680324554443
+				],
+				"resident_252": [
+					32.42942810058594,
+					0.0007915275637060404,
+					-19.012897491455078
+				],
+				"resident_72": [
+					38.467010498046875,
+					0.0008172550005838275,
+					-15.56618595123291
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 386,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 2,
+			"observed_frame": 386,
+			"phase": "APPROACH",
+			"physics_frame": 388,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					40.98102569580078,
+					0.0007787230424582958,
+					-4.903680324554443
+				],
+				"resident_252": [
+					32.443424224853516,
+					0.0008147715125232935,
+					-19.006940841674805
+				],
+				"resident_72": [
+					38.467010498046875,
+					0.0008172550005838275,
+					-15.56618595123291
+				]
+			},
+			"reason": "native_leg_3",
+			"transport_sequence": 387,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 3,
+			"observed_frame": 618,
+			"phase": "APPROACH",
+			"physics_frame": 620,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.12004089355469,
+					0.0007933209417387843,
+					-11.772269248962402
+				],
+				"resident_252": [
+					34.87883758544922,
+					-0.032398562878370285,
+					-17.970693588256836
+				],
+				"resident_72": [
+					36.24428939819336,
+					0.0007761250017210841,
+					-16.5937442779541
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 619,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 3,
+			"observed_frame": 619,
+			"phase": "APPROACH",
+			"physics_frame": 621,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.12004089355469,
+					0.0007933209417387843,
+					-11.772269248962402
+				],
+				"resident_252": [
+					34.87883758544922,
+					-0.032398562878370285,
+					-17.970693588256836
+				],
+				"resident_72": [
+					36.24428939819336,
+					0.0007761250017210841,
+					-16.5937442779541
+				]
+			},
+			"reason": "native_leg_4",
+			"transport_sequence": 620,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 722,
+			"phase": "APPROACH",
+			"physics_frame": 724,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"resident_252": [
+					34.93730545043945,
+					0.0008201429154723883,
+					-18.07741355895996
+				],
+				"resident_72": [
+					36.978660583496094,
+					0.0008280733018182218,
+					-15.844032287597656
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 723,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 723,
+			"phase": "WAIT_FOR_CLEARANCE",
+			"physics_frame": 725,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"resident_252": [
+					34.94461441040039,
+					0.0008188713691197336,
+					-18.090755462646484
+				],
+				"resident_72": [
+					36.993961334228516,
+					0.0008257340523414314,
+					-15.828413009643555
+				]
+			},
+			"reason": "original_living_npc_in_current_segment",
+			"transport_sequence": 724,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 873,
+			"phase": "APPROACH",
+			"physics_frame": 875,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"resident_252": [
+					36.04081726074219,
+					0.0007510287687182426,
+					-20.091825485229492
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "native_leg_5",
+			"transport_sequence": 874,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 5,
+			"observed_frame": 1038,
+			"phase": "APPROACH",
+			"physics_frame": 1040,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.26410675048828,
+					0.0008196012349799275,
+					-14.896385192871094
+				],
+				"resident_252": [
+					36.851932525634766,
+					0.0008203141042031348,
+					-21.572595596313477
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1039,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 5,
+			"observed_frame": 1039,
+			"phase": "APPROACH",
+			"physics_frame": 1041,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.26410675048828,
+					0.0008196012349799275,
+					-14.896385192871094
+				],
+				"resident_252": [
+					36.851932525634766,
+					0.0008203141042031348,
+					-21.572595596313477
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "native_leg_6",
+			"transport_sequence": 1040,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 6,
+			"observed_frame": 1138,
+			"phase": "APPROACH",
+			"physics_frame": 1140,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.12858581542969,
+					0.000830891658551991,
+					-17.773216247558594
+				],
+				"resident_252": [
+					36.01654815673828,
+					0.0008313612197525799,
+					-21.976343154907227
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1139,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 6,
+			"observed_frame": 1139,
+			"phase": "APPROACH",
+			"physics_frame": 1141,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.12858581542969,
+					0.000830891658551991,
+					-17.773216247558594
+				],
+				"resident_252": [
+					36.00285339355469,
+					0.0008408839348703623,
+					-21.982959747314453
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "native_leg_7",
+			"transport_sequence": 1140,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 7,
+			"observed_frame": 1338,
+			"phase": "APPROACH",
+			"physics_frame": 1340,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					30.249908447265625,
+					0.0008005195995792747,
+					-17.897315979003906
+				],
+				"resident_252": [
+					34.54225158691406,
+					0.0007955565815791488,
+					-22.507049560546875
+				],
+				"resident_72": [
+					38.47441482543945,
+					0.0008036677609197795,
+					-15.5597505569458
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1339,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 7,
+			"observed_frame": 1339,
+			"phase": "APPROACH",
+			"physics_frame": 1341,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					30.249908447265625,
+					0.0008005195995792747,
+					-17.897315979003906
+				],
+				"resident_252": [
+					34.52796173095703,
+					0.0007903171936050057,
+					-22.5018367767334
+				],
+				"resident_72": [
+					38.47441482543945,
+					0.0008036677609197795,
+					-15.5597505569458
+				]
+			},
+			"reason": "native_leg_8",
+			"transport_sequence": 1340,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 8,
+			"observed_frame": 1508,
+			"phase": "APPROACH",
+			"physics_frame": 1510,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.2698974609375,
+					0.0008323510992340744,
+					-17.89990997314453
+				],
+				"resident_252": [
+					32.45581817626953,
+					0.0008299581822939217,
+					-21.746004104614258
+				],
+				"resident_72": [
+					36.252742767333984,
+					0.0007550313603132963,
+					-16.589691162109375
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1509,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 8,
+			"observed_frame": 1509,
+			"phase": "APPROACH",
+			"physics_frame": 1511,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.2698974609375,
+					0.0008323510992340744,
+					-17.89990997314453
+				],
+				"resident_252": [
+					32.45581817626953,
+					0.0008299581822939217,
+					-21.746004104614258
+				],
+				"resident_72": [
+					36.252742767333984,
+					0.0007550313603132963,
+					-16.589691162109375
+				]
+			},
+			"reason": "native_leg_9",
+			"transport_sequence": 1510,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 9,
+			"observed_frame": 1708,
+			"phase": "APPROACH",
+			"physics_frame": 1710,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.1256046295166,
+					0.0008282180642709136,
+					-12.021646499633789
+				],
+				"resident_252": [
+					31.62049102783203,
+					0.0007644157158210874,
+					-19.936878204345703
+				],
+				"resident_72": [
+					37.705142974853516,
+					0.0007926541147753596,
+					-15.104780197143555
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1709,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 9,
+			"observed_frame": 1709,
+			"phase": "APPROACH",
+			"physics_frame": 1711,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.1256046295166,
+					0.0008282180642709136,
+					-12.021646499633789
+				],
+				"resident_252": [
+					31.61411476135254,
+					0.0007522024679929018,
+					-19.92306900024414
+				],
+				"resident_72": [
+					37.720428466796875,
+					0.0007949564605951309,
+					-15.089150428771973
+				]
+			},
+			"reason": "native_leg_10",
+			"transport_sequence": 1710,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 10,
+			"observed_frame": 1745,
+			"phase": "APPROACH",
+			"physics_frame": 1747,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.122970581054688,
+					0.0008321080240420997,
+					-11.031648635864258
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					38.27079772949219,
+					0.0008324485388584435,
+					-14.526457786560059
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1746,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 10,
+			"observed_frame": 1746,
+			"phase": "APPROACH",
+			"physics_frame": 1748,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.122970581054688,
+					0.0008321080240420997,
+					-11.031648635864258
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					38.28608703613281,
+					0.0008324427180923522,
+					-14.510828018188477
+				]
+			},
+			"reason": "native_leg_11",
+			"transport_sequence": 1747,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 11,
+			"observed_frame": 1778,
+			"phase": "APPROACH",
+			"physics_frame": 1780,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					24.26040267944336,
+					0.0008307672687806189,
+					-10.918134689331055
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					38.77530288696289,
+					0.0008297711610794067,
+					-14.010659217834473
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1779,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 11,
+			"observed_frame": 1779,
+			"phase": "APPROACH",
+			"physics_frame": 1781,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					24.26040267944336,
+					0.0008307672687806189,
+					-10.918134689331055
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					38.790592193603516,
+					0.0008187469793483615,
+					-13.99502944946289
+				]
+			},
+			"reason": "native_leg_12",
+			"transport_sequence": 1780,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 12,
+			"observed_frame": 1812,
+			"phase": "APPROACH",
+			"physics_frame": 1814,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					24.139707565307617,
+					0.0008308726828545332,
+					-10.026260375976563
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1813,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 12,
+			"observed_frame": 1813,
+			"phase": "APPROACH",
+			"physics_frame": 1815,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					24.139707565307617,
+					0.0008308726828545332,
+					-10.026260375976563
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "native_leg_13",
+			"transport_sequence": 1814,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 13,
+			"observed_frame": 1846,
+			"phase": "APPROACH",
+			"physics_frame": 1848,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					23.246557235717773,
+					0.0008292848942801356,
+					-9.915384292602539
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1847,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 13,
+			"observed_frame": 1847,
+			"phase": "APPROACH",
+			"physics_frame": 1849,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					23.246557235717773,
+					0.0008292848942801356,
+					-9.915384292602539
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "native_leg_14",
+			"transport_sequence": 1848,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 14,
+			"observed_frame": 1880,
+			"phase": "APPROACH",
+			"physics_frame": 1882,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					23.13751220703125,
+					0.0007766258786432445,
+					-9.022019386291504
+				],
+				"resident_252": [
+					31.88850975036621,
+					0.0007123672985471785,
+					-19.320114135742188
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 1881,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 14,
+			"observed_frame": 1881,
+			"phase": "APPROACH",
+			"physics_frame": 1883,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					23.13751220703125,
+					0.0007766258786432445,
+					-9.022019386291504
+				],
+				"resident_252": [
+					31.902427673339844,
+					0.0008439635275863111,
+					-19.31397819519043
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "native_leg_15",
+			"transport_sequence": 1882,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 15,
+			"observed_frame": 2081,
+			"phase": "APPROACH",
+			"physics_frame": 2083,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					17.2587833404541,
+					0.0007111086742952466,
+					-8.902759552001953
+				],
+				"resident_252": [
+					34.68610763549805,
+					0.000831282464787364,
+					-18.086898803710938
+				],
+				"resident_72": [
+					38.4696159362793,
+					0.0008038791711442173,
+					-15.572668075561523
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2082,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 15,
+			"observed_frame": 2082,
+			"phase": "APPROACH",
+			"physics_frame": 2084,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					17.2587833404541,
+					0.0007111086742952466,
+					-8.902759552001953
+				],
+				"resident_252": [
+					34.70002746582031,
+					0.0008176408591680229,
+					-18.08076286315918
+				],
+				"resident_72": [
+					38.4696159362793,
+					0.0008038791711442173,
+					-15.572668075561523
+				]
+			},
+			"reason": "native_leg_16",
+			"transport_sequence": 2083,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 16,
+			"observed_frame": 2218,
+			"phase": "APPROACH",
+			"physics_frame": 2220,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.268776893615723,
+					0.0007640445255674422,
+					-8.900093078613281
+				],
+				"resident_252": [
+					36.133636474609375,
+					0.0007892526336945593,
+					-17.448833465576172
+				],
+				"resident_72": [
+					36.780643463134766,
+					0.0008174763061106205,
+					-16.347965240478516
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2219,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 16,
+			"observed_frame": 2219,
+			"phase": "APPROACH",
+			"physics_frame": 2221,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.268776893615723,
+					0.0007640445255674422,
+					-8.900093078613281
+				],
+				"resident_252": [
+					36.133636474609375,
+					0.0007892526336945593,
+					-17.448833465576172
+				],
+				"resident_72": [
+					36.780643463134766,
+					0.0008174763061106205,
+					-16.347965240478516
+				]
+			},
+			"reason": "native_leg_17",
+			"transport_sequence": 2220,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 17,
+			"observed_frame": 2418,
+			"phase": "APPROACH",
+			"physics_frame": 2420,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.12558364868164,
+					0.0007652163039892912,
+					-3.0218303203582764
+				],
+				"resident_252": [
+					37.550479888916016,
+					0.000818849541246891,
+					-19.038606643676758
+				],
+				"resident_72": [
+					38.141143798828125,
+					0.0008309829863719642,
+					-14.657312393188477
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2419,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 17,
+			"observed_frame": 2419,
+			"phase": "APPROACH",
+			"physics_frame": 2421,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.12558364868164,
+					0.0007652163039892912,
+					-3.0218303203582764
+				],
+				"resident_252": [
+					37.56060028076172,
+					0.0008311976562254131,
+					-19.049962997436523
+				],
+				"resident_72": [
+					38.15644454956055,
+					0.0008324275258928537,
+					-14.641693115234375
+				]
+			},
+			"reason": "native_leg_18",
+			"transport_sequence": 2420,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 18,
+			"observed_frame": 2555,
+			"phase": "APPROACH",
+			"physics_frame": 2557,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.122705459594727,
+					0.0007907270919531584,
+					0.9681878685951233
+				],
+				"resident_252": [
+					37.661529541015625,
+					0.0008257779409177601,
+					-19.603906631469727
+				],
+				"resident_72": [
+					39.27325439453125,
+					0.0008186338818632066,
+					-13.501447677612305
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2556,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 18,
+			"observed_frame": 2556,
+			"phase": "APPROACH",
+			"physics_frame": 2558,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.122705459594727,
+					0.0007907270919531584,
+					0.9681878685951233
+				],
+				"resident_252": [
+					37.656455993652344,
+					0.00080152228474617,
+					-19.618244171142578
+				],
+				"resident_72": [
+					39.27325439453125,
+					0.0008186338818632066,
+					-13.501447677612305
+				]
+			},
+			"reason": "native_leg_19",
+			"transport_sequence": 2557,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 19,
+			"observed_frame": 2588,
+			"phase": "APPROACH",
+			"physics_frame": 2590,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					12.260167121887207,
+					0.0008024175185710192,
+					1.0818723440170288
+				],
+				"resident_252": [
+					37.49413299560547,
+					0.0008362706867046654,
+					-20.07711410522461
+				],
+				"resident_72": [
+					39.24951934814453,
+					0.0008309912518598139,
+					-13.562596321105957
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2589,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 19,
+			"observed_frame": 2589,
+			"phase": "APPROACH",
+			"physics_frame": 2591,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					12.260167121887207,
+					0.0008024175185710192,
+					1.0818723440170288
+				],
+				"resident_252": [
+					37.48905944824219,
+					0.0008312967256642878,
+					-20.091453552246094
+				],
+				"resident_72": [
+					39.24161148071289,
+					0.0008297732565551996,
+					-13.582979202270508
+				]
+			},
+			"reason": "native_leg_20",
+			"transport_sequence": 2590,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 20,
+			"observed_frame": 2622,
+			"phase": "APPROACH",
+			"physics_frame": 2624,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					12.139670372009277,
+					0.0008482842822559178,
+					1.9737695455551147
+				],
+				"resident_252": [
+					37.321651458740234,
+					0.0008434730116277933,
+					-20.56464195251465
+				],
+				"resident_72": [
+					38.98053741455078,
+					0.0008447064901702106,
+					-14.25561809539795
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2623,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 20,
+			"observed_frame": 2623,
+			"phase": "APPROACH",
+			"physics_frame": 2625,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					12.139670372009277,
+					0.0008482842822559178,
+					1.9737695455551147
+				],
+				"resident_252": [
+					37.31657791137695,
+					0.0008423154940828681,
+					-20.578981399536133
+				],
+				"resident_72": [
+					38.97262191772461,
+					0.0008449220913462341,
+					-14.2760009765625
+				]
+			},
+			"reason": "native_leg_21",
+			"transport_sequence": 2624,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 21,
+			"observed_frame": 2656,
+			"phase": "APPROACH",
+			"physics_frame": 2658,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					11.246522903442383,
+					0.0008075168007053435,
+					2.084623098373413
+				],
+				"resident_252": [
+					37.149173736572266,
+					0.0008299660985358059,
+					-21.052196502685547
+				],
+				"resident_72": [
+					38.711544036865234,
+					0.0008309916593134403,
+					-14.948641777038574
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2657,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 21,
+			"observed_frame": 2657,
+			"phase": "APPROACH",
+			"physics_frame": 2659,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					11.246522903442383,
+					0.0008075168007053435,
+					2.084623098373413
+				],
+				"resident_252": [
+					37.14410400390625,
+					0.0008078371174633503,
+					-21.066537857055664
+				],
+				"resident_72": [
+					38.703636169433594,
+					0.0008310847915709019,
+					-14.969025611877441
+				]
+			},
+			"reason": "native_leg_22",
+			"transport_sequence": 2658,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 22,
+			"observed_frame": 2690,
+			"phase": "APPROACH",
+			"physics_frame": 2692,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					11.137504577636719,
+					-0.00012061605229973793,
+					2.9779958724975586
+				],
+				"resident_252": [
+					36.97670364379883,
+					0.0008189306827262044,
+					-21.539752960205078
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2691,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 22,
+			"observed_frame": 2691,
+			"phase": "APPROACH",
+			"physics_frame": 2693,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					11.137504577636719,
+					-0.00012061605229973793,
+					2.9779958724975586
+				],
+				"resident_252": [
+					36.97163009643555,
+					0.0008448968292213976,
+					-21.554092407226563
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "native_leg_23",
+			"transport_sequence": 2692,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 23,
+			"observed_frame": 2724,
+			"phase": "APPROACH",
+			"physics_frame": 2726,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					10.243936538696289,
+					0.0008117720135487616,
+					3.0854172706604004
+				],
+				"resident_252": [
+					36.966556549072266,
+					0.0008203332545235753,
+					-21.568431854248047
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2725,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 23,
+			"observed_frame": 2725,
+			"phase": "APPROACH",
+			"physics_frame": 2727,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					10.243936538696289,
+					0.0008117720135487616,
+					3.0854172706604004
+				],
+				"resident_252": [
+					36.966556549072266,
+					0.0008203332545235753,
+					-21.568431854248047
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "native_leg_24",
+			"transport_sequence": 2726,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 24,
+			"observed_frame": 2758,
+			"phase": "APPROACH",
+			"physics_frame": 2760,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					10.137080192565918,
+					0.0008186573977582157,
+					3.979050636291504
+				],
+				"resident_252": [
+					36.966556549072266,
+					0.0008203332545235753,
+					-21.568431854248047
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2759,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 24,
+			"observed_frame": 2759,
+			"phase": "APPROACH",
+			"physics_frame": 2761,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					10.137080192565918,
+					0.0008186573977582157,
+					3.979050636291504
+				],
+				"resident_252": [
+					36.966556549072266,
+					0.0008203332545235753,
+					-21.568431854248047
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "native_leg_25",
+			"transport_sequence": 2760,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 25,
+			"observed_frame": 2792,
+			"phase": "APPROACH",
+			"physics_frame": 2794,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					9.243409156799316,
+					0.000839077983982861,
+					4.08554744720459
+				],
+				"resident_252": [
+					36.869869232177734,
+					0.0008188579813577235,
+					-21.613040924072266
+				],
+				"resident_72": [
+					38.216365814208984,
+					0.000806196709163487,
+					-15.679652214050293
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2793,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 25,
+			"observed_frame": 2793,
+			"phase": "APPROACH",
+			"physics_frame": 2795,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					9.243409156799316,
+					0.000839077983982861,
+					4.08554744720459
+				],
+				"resident_252": [
+					36.85606002807617,
+					0.0008298709290102124,
+					-21.619413375854492
+				],
+				"resident_72": [
+					38.196529388427734,
+					0.0008049499592743814,
+					-15.688846588134766
+				]
+			},
+			"reason": "native_leg_26",
+			"transport_sequence": 2794,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 26,
+			"observed_frame": 2826,
+			"phase": "APPROACH",
+			"physics_frame": 2828,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					9.13699722290039,
+					0.0007775492267683148,
+					4.979214668273926
+				],
+				"resident_252": [
+					36.4002799987793,
+					0.0008326943498104811,
+					-21.829729080200195
+				],
+				"resident_72": [
+					37.541893005371094,
+					0.0008074143552221358,
+					-15.99223518371582
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2827,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 26,
+			"observed_frame": 2827,
+			"phase": "APPROACH",
+			"physics_frame": 2829,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					9.13699722290039,
+					0.0007775492267683148,
+					4.979214668273926
+				],
+				"resident_252": [
+					36.38646697998047,
+					0.0008436314528807998,
+					-21.836101531982422
+				],
+				"resident_72": [
+					37.522056579589844,
+					0.0008282331400550902,
+					-16.001428604125977
+				]
+			},
+			"reason": "native_leg_27",
+			"transport_sequence": 2828,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 27,
+			"observed_frame": 2856,
+			"phase": "APPROACH",
+			"physics_frame": 2858,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					8.599650382995605,
+					0.0008058231323957443,
+					5.544597148895264
+				],
+				"resident_252": [
+					35.98591995239258,
+					0.0008175496477633715,
+					-22.020925521850586
+				],
+				"resident_72": [
+					36.946781158447266,
+					0.0008022108231671154,
+					-16.268043518066406
+				]
+			},
+			"reason": "next_native_leg",
+			"transport_sequence": 2857,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 27,
+			"observed_frame": 2857,
+			"phase": "VISIT",
+			"physics_frame": 2859,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					8.569765090942383,
+					0.0008429688750766218,
+					5.547220230102539
+				],
+				"resident_252": [
+					35.972110748291016,
+					0.0008039933163672686,
+					-22.027297973632813
+				],
+				"resident_72": [
+					36.926944732666016,
+					0.0008321754867210984,
+					-16.277236938476563
+				]
+			},
+			"reason": "WALK_TO_ENTRY",
+			"transport_sequence": 2858,
+			"visit_phase": "WALK_TO_ENTRY"
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 27,
+			"observed_frame": 2899,
+			"phase": "VISIT",
+			"physics_frame": 2901,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					7.411516189575195,
+					0.022885452955961227,
+					5.648927211761475
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "OPENING",
+			"transport_sequence": 2900,
+			"visit_phase": "OPENING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 2939,
+			"phase": "VISIT",
+			"physics_frame": 2941,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					7.408110618591309,
+					0.02346082031726837,
+					5.6193132400512695
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "ENTERING",
+			"transport_sequence": 2940,
+			"visit_phase": "ENTERING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3069,
+			"phase": "VISIT",
+			"physics_frame": 3071,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					4.157835483551025,
+					0.3908447027206421,
+					5.598214149475098
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "BROWSING",
+			"transport_sequence": 3070,
+			"visit_phase": "BROWSING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3269,
+			"phase": "VISIT",
+			"physics_frame": 3271,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					4.187835216522217,
+					0.3908447325229645,
+					5.598214149475098
+				],
+				"resident_252": [
+					33.331512451171875,
+					0.0008202155004255474,
+					-21.89404296875
+				],
+				"resident_72": [
+					37.995384216308594,
+					0.0008037639781832695,
+					-14.807989120483398
+				]
+			},
+			"reason": "EXITING",
+			"transport_sequence": 3270,
+			"visit_phase": "EXITING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3370,
+			"phase": "VISIT",
+			"physics_frame": 3372,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					7.44786262512207,
+					0.01654880866408348,
+					5.648314952850342
+				],
+				"resident_252": [
+					32.465518951416016,
+					0.0008299470064230263,
+					-21.725540161132813
+				],
+				"resident_72": [
+					39.279624938964844,
+					0.0008175745024345815,
+					-13.49506950378418
+				]
+			},
+			"reason": "RETURNING_TO_STREET",
+			"transport_sequence": 3371,
+			"visit_phase": "RETURNING_TO_STREET"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3410,
+			"phase": "COMPLETE",
+			"physics_frame": 3412,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					8.597416877746582,
+					0.00081570417387411,
+					5.544797897338867
+				],
+				"resident_252": [
+					32.465518951416016,
+					0.0008299470064230263,
+					-21.725540161132813
+				],
+				"resident_72": [
+					39.279624938964844,
+					0.0008175745024345815,
+					-13.49506950378418
+				]
+			},
+			"reason": "local_visit_completed_once",
+			"transport_sequence": 3411,
+			"visit_phase": "COMPLETE"
+		}
+	],
+	"pins_manifest_sha256": "f506b940a4a3adb48263f67c9115d4843ce5429ea7944b0af96ce8c831b71770",
+	"player_tick_receipts": 3590,
+	"post_completion_frames": 180,
+	"post_completion_travel_m": 2.670013317838311,
+	"rendered": false,
+	"samples": [
+		{
+			"door_fraction": 0.0,
+			"leg": 0,
+			"observed_frame": 60,
+			"phase": "START_DELAY",
+			"physics_frame": 62,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"resident_252": [
+					33.81641387939453,
+					0.0007511172443628311,
+					-19.39999771118164
+				],
+				"resident_72": [
+					37.28142166137695,
+					0.0008158362470567226,
+					-13.399996757507324
+				]
+			},
+			"reason": "",
+			"transport_sequence": 61,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 0,
+			"observed_frame": 120,
+			"phase": "START_DELAY",
+			"physics_frame": 122,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"resident_252": [
+					32.903812408447266,
+					0.0007657918613404036,
+					-19.39999771118164
+				],
+				"resident_72": [
+					38.59326934814453,
+					0.0008199320291168988,
+					-13.399996757507324
+				]
+			},
+			"reason": "",
+			"transport_sequence": 121,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 0,
+			"observed_frame": 180,
+			"phase": "START_DELAY",
+			"physics_frame": 182,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"resident_252": [
+					31.991167068481445,
+					0.0007976696360856295,
+					-19.39999771118164
+				],
+				"resident_72": [
+					39.22734069824219,
+					0.0008296708110719919,
+					-13.399996757507324
+				]
+			},
+			"reason": "",
+			"transport_sequence": 181,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 1,
+			"observed_frame": 240,
+			"phase": "APPROACH",
+			"physics_frame": 242,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.69242477416992,
+					0.000831534038297832,
+					-5.015182971954346
+				],
+				"resident_252": [
+					31.519638061523438,
+					0.0007884067017585039,
+					-19.39999771118164
+				],
+				"resident_72": [
+					39.22734069824219,
+					0.0008296708110719919,
+					-13.399996757507324
+				]
+			},
+			"reason": "",
+			"transport_sequence": 241,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 1,
+			"observed_frame": 300,
+			"phase": "APPROACH",
+			"physics_frame": 302,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					38.491844177246094,
+					0.0008074553916230798,
+					-4.968400955200195
+				],
+				"resident_252": [
+					31.519638061523438,
+					0.0007884067017585039,
+					-19.39999771118164
+				],
+				"resident_72": [
+					38.80732727050781,
+					0.0008419725927524269,
+					-14.596555709838867
+				]
+			},
+			"reason": "",
+			"transport_sequence": 301,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 1,
+			"observed_frame": 360,
+			"phase": "APPROACH",
+			"physics_frame": 362,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					40.29124450683594,
+					0.0007900801720097661,
+					-4.921614646911621
+				],
+				"resident_252": [
+					32.079524993896484,
+					0.0008198395371437073,
+					-19.16178321838379
+				],
+				"resident_72": [
+					38.467010498046875,
+					0.0008172550005838275,
+					-15.56618595123291
+				]
+			},
+			"reason": "",
+			"transport_sequence": 361,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 2,
+			"observed_frame": 420,
+			"phase": "APPROACH",
+			"physics_frame": 422,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.001060485839844,
+					0.0008444690611213446,
+					-5.893476963043213
+				],
+				"resident_252": [
+					32.919315338134766,
+					0.0008421535603702068,
+					-18.804454803466797
+				],
+				"resident_72": [
+					38.467010498046875,
+					0.0008172550005838275,
+					-15.56618595123291
+				]
+			},
+			"reason": "",
+			"transport_sequence": 421,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 2,
+			"observed_frame": 480,
+			"phase": "APPROACH",
+			"physics_frame": 482,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.03749465942383,
+					0.0007763782050460577,
+					-7.693109035491943
+				],
+				"resident_252": [
+					33.75911331176758,
+					0.0008325192611664534,
+					-18.447132110595703
+				],
+				"resident_72": [
+					37.67316818237305,
+					0.0007949275895953178,
+					-15.933178901672363
+				]
+			},
+			"reason": "",
+			"transport_sequence": 481,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 2,
+			"observed_frame": 540,
+			"phase": "APPROACH",
+			"physics_frame": 542,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.073944091796875,
+					0.0007890076376497746,
+					-9.492734909057617
+				],
+				"resident_252": [
+					34.598915100097656,
+					0.0008326211245730519,
+					-18.089801788330078
+				],
+				"resident_72": [
+					36.48242950439453,
+					0.0008441716199740767,
+					-16.48362922668457
+				]
+			},
+			"reason": "",
+			"transport_sequence": 541,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 2,
+			"observed_frame": 600,
+			"phase": "APPROACH",
+			"physics_frame": 602,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.110347747802734,
+					0.0008159325807355344,
+					-11.292366027832031
+				],
+				"resident_252": [
+					34.87883758544922,
+					-0.032398562878370285,
+					-17.970693588256836
+				],
+				"resident_72": [
+					36.24428939819336,
+					0.0007761250017210841,
+					-16.5937442779541
+				]
+			},
+			"reason": "",
+			"transport_sequence": 601,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 3,
+			"observed_frame": 660,
+			"phase": "APPROACH",
+			"physics_frame": 662,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.12098693847656,
+					0.0008008874137885869,
+					-12.972254753112793
+				],
+				"resident_252": [
+					34.87883758544922,
+					-0.032398562878370285,
+					-17.970693588256836
+				],
+				"resident_72": [
+					36.24428939819336,
+					0.0007761250017210841,
+					-16.5937442779541
+				]
+			},
+			"reason": "",
+			"transport_sequence": 661,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 3,
+			"observed_frame": 720,
+			"phase": "APPROACH",
+			"physics_frame": 722,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"resident_252": [
+					34.922691345214844,
+					0.0008325243834406137,
+					-18.05073356628418
+				],
+				"resident_72": [
+					36.94806671142578,
+					0.0007899299962446094,
+					-15.875271797180176
+				]
+			},
+			"reason": "",
+			"transport_sequence": 721,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 780,
+			"phase": "WAIT_FOR_CLEARANCE",
+			"physics_frame": 782,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"resident_252": [
+					35.36118698120117,
+					0.000832516117952764,
+					-18.851163864135742
+				],
+				"resident_72": [
+					37.86602783203125,
+					0.0008324383525177836,
+					-14.938100814819336
+				]
+			},
+			"reason": "",
+			"transport_sequence": 781,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 840,
+			"phase": "WAIT_FOR_CLEARANCE",
+			"physics_frame": 842,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"resident_252": [
+					35.799659729003906,
+					0.0007380839670076966,
+					-19.651596069335938
+				],
+				"resident_72": [
+					38.783973693847656,
+					0.0008447006694041193,
+					-14.000933647155762
+				]
+			},
+			"reason": "",
+			"transport_sequence": 841,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 900,
+			"phase": "APPROACH",
+			"physics_frame": 902,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					40.3427619934082,
+					0.0008433284237980843,
+					-14.792182922363281
+				],
+				"resident_252": [
+					36.238128662109375,
+					0.0007478166953660548,
+					-20.4520206451416
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "",
+			"transport_sequence": 901,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 960,
+			"phase": "APPROACH",
+			"physics_frame": 962,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					38.54335403442383,
+					0.0008321062778122723,
+					-14.83814525604248
+				],
+				"resident_252": [
+					36.676551818847656,
+					0.0008423268445767462,
+					-21.252410888671875
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "",
+			"transport_sequence": 961,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 4,
+			"observed_frame": 1020,
+			"phase": "APPROACH",
+			"physics_frame": 1022,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.743953704833984,
+					0.0008046943112276495,
+					-14.88413143157959
+				],
+				"resident_252": [
+					36.851932525634766,
+					0.0008203141042031348,
+					-21.572595596313477
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1021,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 5,
+			"observed_frame": 1080,
+			"phase": "APPROACH",
+			"physics_frame": 1082,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.20759963989258,
+					0.000778705405537039,
+					-16.095050811767578
+				],
+				"resident_252": [
+					36.81084442138672,
+					0.0008312633144669235,
+					-21.592453002929688
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1081,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 6,
+			"observed_frame": 1140,
+			"phase": "APPROACH",
+			"physics_frame": 1142,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					36.12858581542969,
+					0.000830891658551991,
+					-17.773216247558594
+				],
+				"resident_252": [
+					35.989158630371094,
+					0.0008177158306352794,
+					-21.989578247070313
+				],
+				"resident_72": [
+					39.27355194091797,
+					0.0008322250796481967,
+					-13.501124382019043
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1141,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 6,
+			"observed_frame": 1200,
+			"phase": "APPROACH",
+			"physics_frame": 1202,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					34.32897186279297,
+					0.000818427768535912,
+					-17.81122398376465
+				],
+				"resident_252": [
+					35.167442321777344,
+					0.0008298669708892703,
+					-22.386688232421875
+				],
+				"resident_72": [
+					39.13113784790039,
+					0.0008186562336049974,
+					-13.86800765991211
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1201,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 6,
+			"observed_frame": 1260,
+			"phase": "APPROACH",
+			"physics_frame": 1262,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					32.529396057128906,
+					0.0007948704296723008,
+					-17.84921646118164
+				],
+				"resident_252": [
+					34.75660705566406,
+					0.0008450737223029137,
+					-22.585235595703125
+				],
+				"resident_72": [
+					38.65637969970703,
+					0.0008296446758322418,
+					-15.090959548950195
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1261,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 6,
+			"observed_frame": 1320,
+			"phase": "APPROACH",
+			"physics_frame": 1322,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					30.72980308532715,
+					0.0007698240224272013,
+					-17.887197494506836
+				],
+				"resident_252": [
+					34.75660705566406,
+					0.0008450737223029137,
+					-22.585235595703125
+				],
+				"resident_72": [
+					38.47441482543945,
+					0.0008036677609197795,
+					-15.5597505569458
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1321,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 7,
+			"observed_frame": 1380,
+			"phase": "APPROACH",
+			"physics_frame": 1382,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					29.04990005493164,
+					0.0007821101462468505,
+					-17.897932052612305
+				],
+				"resident_252": [
+					33.942054748535156,
+					0.0008200511801987886,
+					-22.288131713867188
+				],
+				"resident_72": [
+					38.39506912231445,
+					0.0008050210890360177,
+					-15.596532821655273
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1381,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 7,
+			"observed_frame": 1440,
+			"phase": "APPROACH",
+			"physics_frame": 1442,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					27.249910354614258,
+					0.000829019583761692,
+					-17.89885902404785
+				],
+				"resident_252": [
+					33.08461380004883,
+					0.0008064846624620259,
+					-21.975379943847656
+				],
+				"resident_72": [
+					37.204891204833984,
+					0.0008323710062541068,
+					-16.148290634155273
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1441,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 7,
+			"observed_frame": 1500,
+			"phase": "APPROACH",
+			"physics_frame": 1502,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.44989776611328,
+					0.000770085898693651,
+					-17.89980697631836
+				],
+				"resident_252": [
+					32.45581817626953,
+					0.0008299581822939217,
+					-21.746004104614258
+				],
+				"resident_72": [
+					36.252742767333984,
+					0.0007550313603132963,
+					-16.589691162109375
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1501,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 8,
+			"observed_frame": 1560,
+			"phase": "APPROACH",
+			"physics_frame": 1562,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.233097076416016,
+					0.0008316065068356693,
+					-16.40035629272461
+				],
+				"resident_252": [
+					32.45581817626953,
+					0.0008299581822939217,
+					-21.746004104614258
+				],
+				"resident_72": [
+					36.252742767333984,
+					0.0007550313603132963,
+					-16.589691162109375
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1561,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 8,
+			"observed_frame": 1620,
+			"phase": "APPROACH",
+			"physics_frame": 1622,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.188919067382813,
+					0.0008432227768935263,
+					-14.600898742675781
+				],
+				"resident_252": [
+					32.18162155151367,
+					0.0008323142537847161,
+					-21.15218162536621
+				],
+				"resident_72": [
+					36.35976791381836,
+					0.0007839702302590013,
+					-16.48027801513672
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1621,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 8,
+			"observed_frame": 1680,
+			"phase": "APPROACH",
+			"physics_frame": 1682,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.144746780395508,
+					0.0008172434172593057,
+					-12.801441192626953
+				],
+				"resident_252": [
+					31.79903221130371,
+					0.0008016318897716701,
+					-20.323556900024414
+				],
+				"resident_72": [
+					37.27708435058594,
+					0.0007900695200078189,
+					-15.542433738708496
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1681,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 9,
+			"observed_frame": 1740,
+			"phase": "APPROACH",
+			"physics_frame": 1742,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					25.123210906982422,
+					0.0008048542076721787,
+					-11.121648788452148
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					38.19435501098633,
+					0.0008324368391185999,
+					-14.604607582092285
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1741,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 11,
+			"observed_frame": 1800,
+			"phase": "APPROACH",
+			"physics_frame": 1802,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					24.179946899414063,
+					0.0008322192006744444,
+					-10.323552131652832
+				],
+				"resident_252": [
+					31.42919158935547,
+					0.0007767182542011142,
+					-19.5225830078125
+				],
+				"resident_72": [
+					39.11164855957031,
+					0.0008186406339518726,
+					-13.666799545288086
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1801,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 13,
+			"observed_frame": 1860,
+			"phase": "APPROACH",
+			"physics_frame": 1862,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					23.202939987182617,
+					0.0008414823678322136,
+					-9.558039665222168
+				],
+				"resident_252": [
+					31.61013412475586,
+					0.0007266746833920479,
+					-19.44281578063965
+				],
+				"resident_72": [
+					39.27981948852539,
+					0.0008323416695930064,
+					-13.494867324829102
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1861,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 14,
+			"observed_frame": 1920,
+			"phase": "APPROACH",
+			"physics_frame": 1922,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					21.99778938293457,
+					0.0008184410980902612,
+					-8.9989013671875
+				],
+				"resident_252": [
+					32.44523620605469,
+					0.0007793494150973856,
+					-19.074697494506836
+				],
+				"resident_72": [
+					39.15271759033203,
+					0.0008199494332075119,
+					-13.820792198181152
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1921,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 14,
+			"observed_frame": 1980,
+			"phase": "APPROACH",
+			"physics_frame": 1982,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					20.228179931640625,
+					0.000794728402979672,
+					-8.963006973266602
+				],
+				"resident_252": [
+					33.28034591674805,
+					0.000817658961750567,
+					-18.70657730102539
+				],
+				"resident_72": [
+					38.67611312866211,
+					0.0008310937555506825,
+					-15.04302978515625
+				]
+			},
+			"reason": "",
+			"transport_sequence": 1981,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 14,
+			"observed_frame": 2040,
+			"phase": "APPROACH",
+			"physics_frame": 2042,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					18.42854881286621,
+					0.0007477537728846073,
+					-8.926491737365723
+				],
+				"resident_252": [
+					34.11545181274414,
+					0.0008188217179849744,
+					-18.33844757080078
+				],
+				"resident_72": [
+					38.4696159362793,
+					0.0008038791711442173,
+					-15.572668075561523
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2041,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 15,
+			"observed_frame": 2100,
+			"phase": "APPROACH",
+			"physics_frame": 2102,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					16.748779296875,
+					0.0007602942059747875,
+					-8.902420043945313
+				],
+				"resident_252": [
+					34.950557708740234,
+					0.000830036005936563,
+					-17.970327377319336
+				],
+				"resident_72": [
+					38.449745178222656,
+					0.0008036727667786181,
+					-15.581789016723633
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2101,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 15,
+			"observed_frame": 2160,
+			"phase": "APPROACH",
+			"physics_frame": 2162,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					14.94878101348877,
+					0.0007564668776467443,
+					-8.901212692260742
+				],
+				"resident_252": [
+					35.78567886352539,
+					0.0008296628366224468,
+					-17.60221290588379
+				],
+				"resident_72": [
+					37.25752639770508,
+					0.0007828781963326037,
+					-16.129060745239258
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2161,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 16,
+			"observed_frame": 2220,
+			"phase": "APPROACH",
+			"physics_frame": 2222,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.268776893615723,
+					0.0007640445255674422,
+					-8.900093078613281
+				],
+				"resident_252": [
+					36.133636474609375,
+					0.0007892526336945593,
+					-17.448833465576172
+				],
+				"resident_72": [
+					36.780643463134766,
+					0.0008174763061106205,
+					-16.347965240478516
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2221,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 16,
+			"observed_frame": 2280,
+			"phase": "APPROACH",
+			"physics_frame": 2282,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.224942207336426,
+					0.0007326672784984112,
+					-7.100603103637695
+				],
+				"resident_252": [
+					36.45748519897461,
+					-0.032400138676166534,
+					-17.81220054626465
+				],
+				"resident_72": [
+					36.24412536621094,
+					0.0007474298472516239,
+					-16.594223022460938
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2281,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 16,
+			"observed_frame": 2340,
+			"phase": "APPROACH",
+			"physics_frame": 2342,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.181109428405762,
+					0.000826856994535774,
+					-5.301138401031494
+				],
+				"resident_252": [
+					36.761104583740234,
+					0.0008176283445209265,
+					-18.15287208557129
+				],
+				"resident_72": [
+					36.94785690307617,
+					0.0007889828993938863,
+					-15.875669479370117
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2341,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 16,
+			"observed_frame": 2400,
+			"phase": "APPROACH",
+			"physics_frame": 2402,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.137273788452148,
+					0.0007764935144223273,
+					-3.50168776512146
+				],
+				"resident_252": [
+					37.368316650390625,
+					0.0008325930102728307,
+					-18.834197998046875
+				],
+				"resident_72": [
+					37.86576843261719,
+					0.0008447865257039666,
+					-14.938470840454102
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2401,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 17,
+			"observed_frame": 2460,
+			"phase": "APPROACH",
+			"physics_frame": 2462,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.124711036682129,
+					0.0007797107100486755,
+					-1.821831464767456
+				],
+				"resident_252": [
+					37.77313995361328,
+					0.0008078553946688771,
+					-19.288421630859375
+				],
+				"resident_72": [
+					38.78368377685547,
+					0.0008448233129456639,
+					-14.001280784606934
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2461,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 17,
+			"observed_frame": 2520,
+			"phase": "APPROACH",
+			"physics_frame": 2522,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					13.12341022491455,
+					0.0008256980800069869,
+					-0.021832376718521118
+				],
+				"resident_252": [
+					37.77313995361328,
+					0.0008078553946688771,
+					-19.288421630859375
+				],
+				"resident_72": [
+					39.27325439453125,
+					0.0008186338818632066,
+					-13.501447677612305
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2521,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 18,
+			"observed_frame": 2580,
+			"phase": "APPROACH",
+			"physics_frame": 2582,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					12.438623428344727,
+					0.0008008778095245361,
+					1.0583515167236328
+				],
+				"resident_252": [
+					37.53470993041992,
+					0.0008319491753354669,
+					-19.962398529052734
+				],
+				"resident_72": [
+					39.27325439453125,
+					0.0008186338818632066,
+					-13.501447677612305
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2581,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 20,
+			"observed_frame": 2640,
+			"phase": "APPROACH",
+			"physics_frame": 2642,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					11.663323402404785,
+					0.0007882865029387176,
+					2.0328915119171143
+				],
+				"resident_252": [
+					37.2303466796875,
+					0.0008202196331694722,
+					-20.822763442993164
+				],
+				"resident_72": [
+					38.8381233215332,
+					0.000844688736833632,
+					-14.62251091003418
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2641,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 22,
+			"observed_frame": 2700,
+			"phase": "APPROACH",
+			"physics_frame": 2702,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					10.89922046661377,
+					0.0008070364710874856,
+					3.0066423416137695
+				],
+				"resident_252": [
+					36.966556549072266,
+					0.0008203332545235753,
+					-21.568431854248047
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2701,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 24,
+			"observed_frame": 2760,
+			"phase": "APPROACH",
+			"physics_frame": 2762,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					10.137080192565918,
+					0.0008186573977582157,
+					3.979050636291504
+				],
+				"resident_252": [
+					36.966556549072266,
+					0.0008203332545235753,
+					-21.568431854248047
+				],
+				"resident_72": [
+					38.4742546081543,
+					0.0008050271426327527,
+					-15.560134887695313
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2761,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 25,
+			"observed_frame": 2820,
+			"phase": "APPROACH",
+			"physics_frame": 2822,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					9.1511869430542,
+					0.0008033660124056041,
+					4.860056400299072
+				],
+				"resident_252": [
+					36.483154296875,
+					0.000829920347314328,
+					-21.791488647460938
+				],
+				"resident_72": [
+					37.660911560058594,
+					0.0008267870871350169,
+					-15.93707275390625
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2821,
+			"visit_phase": null
+		},
+		{
+			"door_fraction": 0.0,
+			"leg": 27,
+			"observed_frame": 2880,
+			"phase": "VISIT",
+			"physics_frame": 2882,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					7.882410526275635,
+					0.0007922635995782912,
+					5.607556343078613
+				],
+				"resident_252": [
+					35.654457092285156,
+					0.000804084469564259,
+					-22.17387580871582
+				],
+				"resident_72": [
+					36.47068786621094,
+					0.0008445477578788996,
+					-16.48870849609375
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2881,
+			"visit_phase": "WALK_TO_ENTRY"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 2940,
+			"phase": "VISIT",
+			"physics_frame": 2942,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					7.384616374969482,
+					0.027559738606214523,
+					5.61915922164917
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "",
+			"transport_sequence": 2941,
+			"visit_phase": "ENTERING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3000,
+			"phase": "VISIT",
+			"physics_frame": 3002,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					5.974817276000977,
+					0.27254655957221985,
+					5.60994291305542
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3001,
+			"visit_phase": "ENTERING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3060,
+			"phase": "VISIT",
+			"physics_frame": 3062,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					4.367830753326416,
+					0.3908308446407318,
+					5.599560260772705
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3061,
+			"visit_phase": "ENTERING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3120,
+			"phase": "VISIT",
+			"physics_frame": 3122,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					4.157835483551025,
+					0.3908447027206421,
+					5.598214149475098
+				],
+				"resident_252": [
+					35.392032623291016,
+					0.0008202202152460814,
+					-22.29496192932129
+				],
+				"resident_72": [
+					36.25246810913086,
+					0.0007954984321258962,
+					-16.589824676513672
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3121,
+			"visit_phase": "BROWSING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3180,
+			"phase": "VISIT",
+			"physics_frame": 3182,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					4.157835483551025,
+					0.3908447027206421,
+					5.598214149475098
+				],
+				"resident_252": [
+					34.660400390625,
+					0.0008041734690777957,
+					-22.152605056762695
+				],
+				"resident_72": [
+					36.634681701660156,
+					0.0008381152292713523,
+					-16.199060440063477
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3181,
+			"visit_phase": "BROWSING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3240,
+			"phase": "VISIT",
+			"physics_frame": 3242,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					4.157835483551025,
+					0.3908447027206421,
+					5.598214149475098
+				],
+				"resident_252": [
+					33.764530181884766,
+					0.0008437098003923893,
+					-21.978288650512695
+				],
+				"resident_72": [
+					37.551998138427734,
+					0.000792757433373481,
+					-15.261259078979492
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3241,
+			"visit_phase": "BROWSING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3300,
+			"phase": "VISIT",
+			"physics_frame": 3302,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					5.117834091186523,
+					0.3908500671386719,
+					5.598212718963623
+				],
+				"resident_252": [
+					32.868648529052734,
+					0.0008176463888958097,
+					-21.803979873657227
+				],
+				"resident_72": [
+					38.46934127807617,
+					0.0008324491209350526,
+					-14.32345962524414
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3301,
+			"visit_phase": "EXITING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3360,
+			"phase": "VISIT",
+			"physics_frame": 3362,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					7.173011779785156,
+					0.06433965265750885,
+					5.598202228546143
+				],
+				"resident_252": [
+					32.465518951416016,
+					0.0008299470064230263,
+					-21.725540161132813
+				],
+				"resident_72": [
+					39.279624938964844,
+					0.0008175745024345815,
+					-13.49506950378418
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3361,
+			"visit_phase": "EXITING"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3420,
+			"phase": "COMPLETE",
+			"physics_frame": 3422,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					8.597416877746582,
+					0.00081570417387411,
+					5.544797897338867
+				],
+				"resident_252": [
+					32.465518951416016,
+					0.0008299470064230263,
+					-21.725540161132813
+				],
+				"resident_72": [
+					39.279624938964844,
+					0.0008175745024345815,
+					-13.49506950378418
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3421,
+			"visit_phase": "COMPLETE"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3480,
+			"phase": "COMPLETE",
+			"physics_frame": 3482,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					8.597416877746582,
+					0.00081570417387411,
+					5.544797897338867
+				],
+				"resident_252": [
+					32.08378601074219,
+					0.0006681105587631464,
+					-20.913328170776367
+				],
+				"resident_72": [
+					39.009578704833984,
+					0.0007954247994348407,
+					-14.187665939331055
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3481,
+			"visit_phase": "COMPLETE"
+		},
+		{
+			"door_fraction": 1.0,
+			"leg": 27,
+			"observed_frame": 3540,
+			"phase": "COMPLETE",
+			"physics_frame": 3542,
+			"player_position": [
+				34.62260437011719,
+				-7.810769602656364e-06,
+				-10.39999771118164
+			],
+			"positions": {
+				"resident_169": [
+					9.424729347229004,
+					0.0007774812402203679,
+					4.71748161315918
+				],
+				"resident_252": [
+					31.69561004638672,
+					0.0007851634291000664,
+					-20.087312698364258
+				],
+				"resident_72": [
+					38.5330696105957,
+					0.000803883362095803,
+					-15.409908294677734
+				]
+			},
+			"reason": "",
+			"transport_sequence": 3541,
+			"visit_phase": "COMPLETE"
+		}
+	],
+	"scope": "Unmodified ordinary main, real physics ticks; three original residents, local printshop visit; no full-city, source-agenda or performance acceptance.",
+	"seconds": 11.559,
+	"transport_tick_receipts": 3589,
+	"valid": true,
+	"visit": {
+		"active_seconds": 56.83333333333139,
+		"actor_transform_written": false,
+		"approach_requests": 28,
+		"approach_sha256": "77af8086a3ab0ed6bab2e0bb3b6fde0307bb773c1086c41268cb4d869841d8b3",
+		"cancellation": {
+			"cancelled_request_id": 1000004,
+			"ok": true,
+			"source_authority": false,
+			"source_id": "resident_169"
+		},
+		"cancellation_attempts": 1,
+		"clearance": {
+			"deadline_active_seconds": 22.05000000000018,
+			"history": [
+				{
+					"at": 12.050000000000178,
+					"evidence": {
+						"blockers": [
+							{
+								"body_instance_id": 292477216897,
+								"life_generation": 1,
+								"point": [
+									36.122615814208984,
+									0.0,
+									-14.899998664855957
+								],
+								"rig_instance_id": 291185371272,
+								"source_id": "resident_72"
+							}
+						],
+						"kind": "original_living_npc",
+						"microseconds": 1062,
+						"physics_frame": 725,
+						"request_id": -1,
+						"samples": 22
+					},
+					"leg": 4,
+					"reason": "native_request_refused",
+					"until": 22.05000000000018
+				}
+			],
+			"latest": {
+				"blockers": [],
+				"kind": "clear",
+				"microseconds": 920,
+				"physics_frame": 875,
+				"request_id": -1,
+				"samples": 22
+			},
+			"leg": -1,
+			"next_probe_active_seconds": 15.050000000000303,
+			"polls": 5,
+			"probe_cost": {
+				"calls": 6,
+				"first_samples_us": [
+					1062,
+					1462,
+					1468,
+					1420,
+					1368,
+					920
+				],
+				"max_us": 1468,
+				"sample_limit": 64,
+				"total_us": 7700
+			},
+			"waits": 1
+		},
+		"duplicate_step_calls_ignored": 0,
+		"history": [
+			{
+				"active_seconds": 0.0,
+				"leg": 0,
+				"phase": "WAIT_NAV",
+				"reason": "waiting_for_native_READY"
+			},
+			{
+				"active_seconds": 0.09999999999999999,
+				"leg": 0,
+				"phase": "START_DELAY",
+				"reason": "three_second_preview_pause"
+			},
+			{
+				"active_seconds": 3.1166666666666605,
+				"leg": 0,
+				"phase": "APPROACH",
+				"reason": "native_leg_1"
+			},
+			{
+				"active_seconds": 3.649999999999992,
+				"leg": 1,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 3.6666666666666585,
+				"leg": 1,
+				"phase": "APPROACH",
+				"reason": "native_leg_2"
+			},
+			{
+				"active_seconds": 6.416666666666649,
+				"leg": 2,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 6.433333333333316,
+				"leg": 2,
+				"phase": "APPROACH",
+				"reason": "native_leg_3"
+			},
+			{
+				"active_seconds": 10.300000000000091,
+				"leg": 3,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 10.316666666666759,
+				"leg": 3,
+				"phase": "APPROACH",
+				"reason": "native_leg_4"
+			},
+			{
+				"active_seconds": 12.03333333333351,
+				"leg": 4,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 12.050000000000178,
+				"leg": 4,
+				"phase": "WAIT_FOR_CLEARANCE",
+				"reason": "original_living_npc_in_current_segment"
+			},
+			{
+				"active_seconds": 14.550000000000303,
+				"leg": 4,
+				"phase": "APPROACH",
+				"reason": "native_leg_5"
+			},
+			{
+				"active_seconds": 17.3000000000003,
+				"leg": 5,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 17.316666666666965,
+				"leg": 5,
+				"phase": "APPROACH",
+				"reason": "native_leg_6"
+			},
+			{
+				"active_seconds": 18.96666666666687,
+				"leg": 6,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 18.983333333333537,
+				"leg": 6,
+				"phase": "APPROACH",
+				"reason": "native_leg_7"
+			},
+			{
+				"active_seconds": 22.300000000000015,
+				"leg": 7,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 22.31666666666668,
+				"leg": 7,
+				"phase": "APPROACH",
+				"reason": "native_leg_8"
+			},
+			{
+				"active_seconds": 25.133333333333187,
+				"leg": 8,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 25.149999999999853,
+				"leg": 8,
+				"phase": "APPROACH",
+				"reason": "native_leg_9"
+			},
+			{
+				"active_seconds": 28.46666666666633,
+				"leg": 9,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 28.483333333332997,
+				"leg": 9,
+				"phase": "APPROACH",
+				"reason": "native_leg_10"
+			},
+			{
+				"active_seconds": 29.083333333332963,
+				"leg": 10,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 29.09999999999963,
+				"leg": 10,
+				"phase": "APPROACH",
+				"reason": "native_leg_11"
+			},
+			{
+				"active_seconds": 29.63333333333293,
+				"leg": 11,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 29.649999999999597,
+				"leg": 11,
+				"phase": "APPROACH",
+				"reason": "native_leg_12"
+			},
+			{
+				"active_seconds": 30.199999999999566,
+				"leg": 12,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 30.21666666666623,
+				"leg": 12,
+				"phase": "APPROACH",
+				"reason": "native_leg_13"
+			},
+			{
+				"active_seconds": 30.7666666666662,
+				"leg": 13,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 30.783333333332866,
+				"leg": 13,
+				"phase": "APPROACH",
+				"reason": "native_leg_14"
+			},
+			{
+				"active_seconds": 31.333333333332835,
+				"leg": 14,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 31.3499999999995,
+				"leg": 14,
+				"phase": "APPROACH",
+				"reason": "native_leg_15"
+			},
+			{
+				"active_seconds": 34.68333333333265,
+				"leg": 15,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 34.699999999999314,
+				"leg": 15,
+				"phase": "APPROACH",
+				"reason": "native_leg_16"
+			},
+			{
+				"active_seconds": 36.96666666666585,
+				"leg": 16,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 36.98333333333252,
+				"leg": 16,
+				"phase": "APPROACH",
+				"reason": "native_leg_17"
+			},
+			{
+				"active_seconds": 40.299999999998995,
+				"leg": 17,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 40.31666666666566,
+				"leg": 17,
+				"phase": "APPROACH",
+				"reason": "native_leg_18"
+			},
+			{
+				"active_seconds": 42.5833333333322,
+				"leg": 18,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 42.599999999998865,
+				"leg": 18,
+				"phase": "APPROACH",
+				"reason": "native_leg_19"
+			},
+			{
+				"active_seconds": 43.13333333333217,
+				"leg": 19,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 43.14999999999883,
+				"leg": 19,
+				"phase": "APPROACH",
+				"reason": "native_leg_20"
+			},
+			{
+				"active_seconds": 43.6999999999988,
+				"leg": 20,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 43.71666666666547,
+				"leg": 20,
+				"phase": "APPROACH",
+				"reason": "native_leg_21"
+			},
+			{
+				"active_seconds": 44.26666666666544,
+				"leg": 21,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 44.2833333333321,
+				"leg": 21,
+				"phase": "APPROACH",
+				"reason": "native_leg_22"
+			},
+			{
+				"active_seconds": 44.83333333333207,
+				"leg": 22,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 44.84999999999874,
+				"leg": 22,
+				"phase": "APPROACH",
+				"reason": "native_leg_23"
+			},
+			{
+				"active_seconds": 45.399999999998705,
+				"leg": 23,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 45.41666666666537,
+				"leg": 23,
+				"phase": "APPROACH",
+				"reason": "native_leg_24"
+			},
+			{
+				"active_seconds": 45.96666666666534,
+				"leg": 24,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 45.983333333332006,
+				"leg": 24,
+				"phase": "APPROACH",
+				"reason": "native_leg_25"
+			},
+			{
+				"active_seconds": 46.533333333331974,
+				"leg": 25,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 46.54999999999864,
+				"leg": 25,
+				"phase": "APPROACH",
+				"reason": "native_leg_26"
+			},
+			{
+				"active_seconds": 47.09999999999861,
+				"leg": 26,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 47.116666666665274,
+				"leg": 26,
+				"phase": "APPROACH",
+				"reason": "native_leg_27"
+			},
+			{
+				"active_seconds": 47.59999999999858,
+				"leg": 27,
+				"phase": "APPROACH",
+				"reason": "next_native_leg"
+			},
+			{
+				"active_seconds": 47.616666666665246,
+				"leg": 27,
+				"phase": "VISIT",
+				"reason": "WALK_TO_ENTRY"
+			},
+			{
+				"active_seconds": 48.316666666665206,
+				"leg": 27,
+				"phase": "VISIT",
+				"reason": "OPENING"
+			},
+			{
+				"active_seconds": 48.983333333331835,
+				"leg": 27,
+				"phase": "VISIT",
+				"reason": "ENTERING"
+			},
+			{
+				"active_seconds": 51.14999999999838,
+				"leg": 27,
+				"phase": "VISIT",
+				"reason": "BROWSING"
+			},
+			{
+				"active_seconds": 54.48333333333152,
+				"leg": 27,
+				"phase": "VISIT",
+				"reason": "EXITING"
+			},
+			{
+				"active_seconds": 56.16666666666476,
+				"leg": 27,
+				"phase": "VISIT",
+				"reason": "RETURNING_TO_STREET"
+			},
+			{
+				"active_seconds": 56.83333333333139,
+				"leg": 27,
+				"phase": "COMPLETE",
+				"reason": "local_visit_completed_once"
+			}
+		],
+		"invalid_deltas_ignored": 0,
+		"lease_bound": false,
+		"lease_serial": 1,
+		"leg": 27,
+		"leg_attempts": 0,
+		"leg_count": 27,
+		"legs": [
+			{
+				"arrival": [
+					36.122615814208984,
+					0.0007903306395746768,
+					-5.029998779296875
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5333333333333314,
+				"from": [
+					36.122615814208984,
+					-1.4901161193847656e-08,
+					-5.899998188018799
+				],
+				"goal": [
+					36.122615814208984,
+					0.0,
+					-4.899998188018799
+				],
+				"leg": 0,
+				"request_id": 3,
+				"start_active_seconds": 3.1166666666666605,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					40.98102569580078,
+					0.0007787230424582958,
+					-4.903680324554443
+				],
+				"attempt": 1,
+				"deadline_seconds": 10.946791542900932,
+				"elapsed_seconds": 2.7499999999999907,
+				"from": [
+					36.122615814208984,
+					0.0007903306395746768,
+					-5.029998779296875
+				],
+				"goal": [
+					41.122615814208984,
+					0.0,
+					-4.899998188018799
+				],
+				"leg": 1,
+				"request_id": 4,
+				"start_active_seconds": 3.6666666666666585,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					41.12004089355469,
+					0.0007933209417387843,
+					-11.772269248962402
+				],
+				"attempt": 1,
+				"deadline_seconds": 13.719098938835991,
+				"elapsed_seconds": 3.8666666666667755,
+				"from": [
+					40.98102569580078,
+					0.0007787230424582958,
+					-4.903680324554443
+				],
+				"goal": [
+					41.122615814208984,
+					0.0,
+					-11.899998664855957
+				],
+				"leg": 2,
+				"request_id": 7,
+				"start_active_seconds": 6.433333333333316,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"attempt": 1,
+				"deadline_seconds": 8.34407028887007,
+				"elapsed_seconds": 1.716666666666752,
+				"from": [
+					41.12004089355469,
+					0.0007933209417387843,
+					-11.772269248962402
+				],
+				"goal": [
+					41.122615814208984,
+					0.0,
+					-14.899998664855957
+				],
+				"leg": 3,
+				"request_id": 9,
+				"start_active_seconds": 10.316666666666759,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					36.26410675048828,
+					0.0008196012349799275,
+					-14.896385192871094
+				],
+				"attempt": 2,
+				"deadline_seconds": 10.94655179977417,
+				"elapsed_seconds": 2.7499999999999964,
+				"from": [
+					41.122501373291016,
+					0.0008280744659714401,
+					-14.772260665893555
+				],
+				"goal": [
+					36.122615814208984,
+					0.0,
+					-14.899998664855957
+				],
+				"leg": 4,
+				"request_id": 13,
+				"start_active_seconds": 14.550000000000303,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					36.12858581542969,
+					0.000830891658551991,
+					-17.773216247558594
+				],
+				"attempt": 1,
+				"deadline_seconds": 8.176310367054409,
+				"elapsed_seconds": 1.6499999999999062,
+				"from": [
+					36.26410675048828,
+					0.0008196012349799275,
+					-14.896385192871094
+				],
+				"goal": [
+					36.122615814208984,
+					0.0,
+					-17.89999771118164
+				],
+				"leg": 5,
+				"request_id": 15,
+				"start_active_seconds": 17.316666666666965,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					30.249908447265625,
+					0.0008005195995792747,
+					-17.897315979003906
+				],
+				"attempt": 1,
+				"deadline_seconds": 12.34348334206475,
+				"elapsed_seconds": 3.316666666666478,
+				"from": [
+					36.12858581542969,
+					0.000830891658551991,
+					-17.773216247558594
+				],
+				"goal": [
+					30.122615814208984,
+					0.0,
+					-17.89999771118164
+				],
+				"leg": 6,
+				"request_id": 18,
+				"start_active_seconds": 18.983333333333537,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					25.2698974609375,
+					0.0008323510992340744,
+					-17.89990997314453
+				],
+				"attempt": 1,
+				"deadline_seconds": 11.121240430408054,
+				"elapsed_seconds": 2.8166666666665066,
+				"from": [
+					30.249908447265625,
+					0.0008005195995792747,
+					-17.897315979003906
+				],
+				"goal": [
+					25.122615814208984,
+					0.0,
+					-17.89999771118164
+				],
+				"leg": 7,
+				"request_id": 21,
+				"start_active_seconds": 22.31666666666668,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					25.1256046295166,
+					0.0008282180642709136,
+					-12.021646499633789
+				],
+				"attempt": 1,
+				"deadline_seconds": 12.335722155041164,
+				"elapsed_seconds": 3.316666666666478,
+				"from": [
+					25.2698974609375,
+					0.0008323510992340744,
+					-17.89990997314453
+				],
+				"goal": [
+					25.122615814208984,
+					0.0,
+					-11.89999771118164
+				],
+				"leg": 8,
+				"request_id": 23,
+				"start_active_seconds": 25.149999999999853,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					25.122970581054688,
+					0.0008321080240420997,
+					-11.031648635864258
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5999999999999659,
+				"from": [
+					25.1256046295166,
+					0.0008282180642709136,
+					-12.021646499633789
+				],
+				"goal": [
+					25.122615814208984,
+					0.0,
+					-10.89999771118164
+				],
+				"leg": 9,
+				"request_id": 26,
+				"start_active_seconds": 28.483333333332997,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					24.26040267944336,
+					0.0008307672687806189,
+					-10.918134689331055
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.533333333333303,
+				"from": [
+					25.122970581054688,
+					0.0008321080240420997,
+					-11.031648635864258
+				],
+				"goal": [
+					24.122615814208984,
+					0.0,
+					-10.89999771118164
+				],
+				"leg": 10,
+				"request_id": 27,
+				"start_active_seconds": 29.09999999999963,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					24.139707565307617,
+					0.0008308726828545332,
+					-10.026260375976563
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					24.26040267944336,
+					0.0008307672687806189,
+					-10.918134689331055
+				],
+				"goal": [
+					24.122615814208984,
+					0.0,
+					-9.89999771118164
+				],
+				"leg": 11,
+				"request_id": 28,
+				"start_active_seconds": 29.649999999999597,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					23.246557235717773,
+					0.0008292848942801356,
+					-9.915384292602539
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					24.139707565307617,
+					0.0008308726828545332,
+					-10.026260375976563
+				],
+				"goal": [
+					23.122615814208984,
+					0.0,
+					-9.89999771118164
+				],
+				"leg": 12,
+				"request_id": 29,
+				"start_active_seconds": 30.21666666666623,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					23.13751220703125,
+					0.0007766258786432445,
+					-9.022019386291504
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					23.246557235717773,
+					0.0008292848942801356,
+					-9.915384292602539
+				],
+				"goal": [
+					23.122615814208984,
+					0.0,
+					-8.89999771118164
+				],
+				"leg": 13,
+				"request_id": 31,
+				"start_active_seconds": 30.783333333332866,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					17.2587833404541,
+					0.0007111086742952466,
+					-8.902759552001953
+				],
+				"attempt": 1,
+				"deadline_seconds": 12.355741368399727,
+				"elapsed_seconds": 3.3333333333331474,
+				"from": [
+					23.13751220703125,
+					0.0007766258786432445,
+					-9.022019386291504
+				],
+				"goal": [
+					17.122615814208984,
+					0.0,
+					-8.89999771118164
+				],
+				"leg": 14,
+				"request_id": 32,
+				"start_active_seconds": 31.3499999999995,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					13.268776893615723,
+					0.0007640445255674422,
+					-8.900093078613281
+				],
+				"attempt": 1,
+				"deadline_seconds": 9.744678444332546,
+				"elapsed_seconds": 2.266666666666538,
+				"from": [
+					17.2587833404541,
+					0.0007111086742952466,
+					-8.902759552001953
+				],
+				"goal": [
+					13.122615814208984,
+					0.0,
+					-8.89999771118164
+				],
+				"leg": 15,
+				"request_id": 34,
+				"start_active_seconds": 34.699999999999314,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					13.12558364868164,
+					0.0007652163039892912,
+					-3.0218303203582764
+				],
+				"attempt": 1,
+				"deadline_seconds": 12.335937394036186,
+				"elapsed_seconds": 3.316666666666478,
+				"from": [
+					13.268776893615723,
+					0.0007640445255674422,
+					-8.900093078613281
+				],
+				"goal": [
+					13.122615814208984,
+					0.0,
+					-2.899998188018799
+				],
+				"leg": 16,
+				"request_id": 36,
+				"start_active_seconds": 36.98333333333252,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					13.122705459594727,
+					0.0007907270919531584,
+					0.9681878685951233
+				],
+				"attempt": 1,
+				"deadline_seconds": 9.724767843882242,
+				"elapsed_seconds": 2.266666666666538,
+				"from": [
+					13.12558364868164,
+					0.0007652163039892912,
+					-3.0218303203582764
+				],
+				"goal": [
+					13.122615814208984,
+					0.0,
+					1.1000018119812012
+				],
+				"leg": 17,
+				"request_id": 39,
+				"start_active_seconds": 40.31666666666566,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					12.260167121887207,
+					0.0008024175185710192,
+					1.0818723440170288
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.533333333333303,
+				"from": [
+					13.122705459594727,
+					0.0007907270919531584,
+					0.9681878685951233
+				],
+				"goal": [
+					12.122615814208984,
+					0.0,
+					1.1000018119812012
+				],
+				"leg": 18,
+				"request_id": 41,
+				"start_active_seconds": 42.599999999998865,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					12.139670372009277,
+					0.0008482842822559178,
+					1.9737695455551147
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					12.260167121887207,
+					0.0008024175185710192,
+					1.0818723440170288
+				],
+				"goal": [
+					12.122615814208984,
+					0.0,
+					2.100001811981201
+				],
+				"leg": 19,
+				"request_id": 43,
+				"start_active_seconds": 43.14999999999883,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					11.246522903442383,
+					0.0008075168007053435,
+					2.084623098373413
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					12.139670372009277,
+					0.0008482842822559178,
+					1.9737695455551147
+				],
+				"goal": [
+					11.122615814208984,
+					0.0,
+					2.100001811981201
+				],
+				"leg": 20,
+				"request_id": 44,
+				"start_active_seconds": 43.71666666666547,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					11.137504577636719,
+					-0.00012061605229973793,
+					2.9779958724975586
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					11.246522903442383,
+					0.0008075168007053435,
+					2.084623098373413
+				],
+				"goal": [
+					11.122615814208984,
+					0.0,
+					3.100001811981201
+				],
+				"leg": 21,
+				"request_id": 45,
+				"start_active_seconds": 44.2833333333321,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					10.243936538696289,
+					0.0008117720135487616,
+					3.0854172706604004
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					11.137504577636719,
+					-0.00012061605229973793,
+					2.9779958724975586
+				],
+				"goal": [
+					10.122615814208984,
+					0.0,
+					3.100001811981201
+				],
+				"leg": 22,
+				"request_id": 46,
+				"start_active_seconds": 44.84999999999874,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					10.137080192565918,
+					0.0008186573977582157,
+					3.979050636291504
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					10.243936538696289,
+					0.0008117720135487616,
+					3.0854172706604004
+				],
+				"goal": [
+					10.122615814208984,
+					0.0,
+					4.100001811981201
+				],
+				"leg": 23,
+				"request_id": 47,
+				"start_active_seconds": 45.41666666666537,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					9.243409156799316,
+					0.000839077983982861,
+					4.08554744720459
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					10.137080192565918,
+					0.0008186573977582157,
+					3.979050636291504
+				],
+				"goal": [
+					9.122615814208984,
+					0.0,
+					4.100001811981201
+				],
+				"leg": 24,
+				"request_id": 48,
+				"start_active_seconds": 45.983333333332006,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					9.13699722290039,
+					0.0007775492267683148,
+					4.979214668273926
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.5499999999999687,
+				"from": [
+					9.243409156799316,
+					0.000839077983982861,
+					4.08554744720459
+				],
+				"goal": [
+					9.122615814208984,
+					0.0,
+					5.100001811981201
+				],
+				"leg": 25,
+				"request_id": 51,
+				"start_active_seconds": 46.54999999999864,
+				"status": "ARRIVED"
+			},
+			{
+				"arrival": [
+					8.599650382995605,
+					0.0008058231323957443,
+					5.544597148895264
+				],
+				"attempt": 1,
+				"deadline_seconds": 6.0,
+				"elapsed_seconds": 0.48333333333330586,
+				"from": [
+					9.13699722290039,
+					0.0007775492267683148,
+					4.979214668273926
+				],
+				"goal": [
+					8.5,
+					0.0,
+					5.649446964263916
+				],
+				"leg": 26,
+				"request_id": 52,
+				"start_active_seconds": 47.116666666665274,
+				"status": "ARRIVED"
+			}
+		],
+		"local_session": "LOCAL_NPC_VISIT23:root24-printshop-once",
+		"once_per_launch": true,
+		"original_source_progress_written": false,
+		"paused": false,
+		"paused_seconds": 0.0,
+		"phase": "COMPLETE",
+		"position": [
+			10.485396385192871,
+			0.0007669316837564111,
+			3.656810760498047
+		],
+		"reason": "local_visit_completed_once",
+		"release": {
+			"ok": true,
+			"reason": "explicit_release",
+			"serial": 1,
+			"source_authority": false,
+			"source_id": "resident_169"
+		},
+		"release_attempts": 1,
+		"request_frame_limit_hits": 0,
+		"request_id": -1,
+		"requests": 32,
+		"retries": 1,
+		"scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+		"source_authority": false,
+		"source_id": "resident_169",
+		"source_row_or_HP_written": false,
+		"visit": {
+			"cycle": 0,
+			"door_id": "native:REBUILD-VISUAL-print_shop-001",
+			"life_generation": 1,
+			"local_completed": 1,
+			"local_session": "LOCAL_NPC_VISIT23:root24-printshop-once",
+			"original_agenda_completed": false,
+			"original_source_progress_written": false,
+			"phase": "COMPLETE",
+			"reason": "",
+			"scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+			"source_id": "resident_169"
+		},
+		"visit_request_id": -1
+	},
+	"weapon_uids": {
+		"ak74": "local-weapon-item--9223371847205119960-10",
+		"deagle": "local-weapon-item--9223371847205119960-4",
+		"golden_colt": "local-weapon-item--9223371847205119960-5",
+		"golden_uzi": "local-weapon-item--9223371847205119960-9",
+		"m16": "local-weapon-item--9223371847205119960-11",
+		"nagan": "local-weapon-item--9223371847205119960-1",
+		"revolver": "local-weapon-item--9223371847205119960-3",
+		"rpg": "local-weapon-item--9223371847205119960-14",
+		"sawn_off": "local-weapon-item--9223371847205119960-6",
+		"shotgun": "local-weapon-item--9223371847205119960-7",
+		"sniper": "local-weapon-item--9223371847205119960-13",
+		"tommy_gun": "local-weapon-item--9223371847205119960-12",
+		"tt_pistol": "local-weapon-item--9223371847205119960-2",
+		"uzi": "local-weapon-item--9223371847205119960-8"
+	}
+}

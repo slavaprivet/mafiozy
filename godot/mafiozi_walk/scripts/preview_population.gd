@@ -2,6 +2,7 @@ extends RefCounted
 ## Root-owned local session wiring. Native routes never grant source access.
 # Artist23 owner integration: bounded varied preview routes and idle look.
 # Native host/staging regressions passed; source agenda/recovery stay separate.
+const Visits = preload("res://scripts/npc_preview_visits.gd")
 const Residents = preload("res://scripts/npc_visual/preview_resident_host.gd")
 const LocalHits = preload("res://scripts/npc_visual/npc_local_preview_hit_owner.gd")
 const Policy = preload("res://scripts/npc_visual/preview_resident_world_policy.gd")
@@ -31,6 +32,8 @@ var _staged_preview := false
 var hit_owners: Array[RefCounted] = []
 var combat_status := "unbound"
 var _final_dead_contact_port: RefCounted
+var _visits: RefCounted
+var _visit_setup: Dictionary = {}
 
 func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = true) -> bool:
 	if _disposed or status != "not_loaded": return false
@@ -82,6 +85,12 @@ func setup(scene: Node3D, staged_preview: bool = false, walking_preview: bool = 
 				return _fail("local_hit_owner:"+str(linked))
 			hit_owners.append(owner)
 			residents._records[row.source_id]["walk_pause"] = Callable(owner,"should_pause_walk")
+	# All three original actors and pause callbacks exist before the one-visit
+	# lease can suppress only resident_169's ordinary goal producer.
+	if status == "ready" and staged_preview and walking_preview:
+		_visits = Visits.new()
+		_visit_setup = _visits.setup(scene, residents, navigation, policy,
+			Callable(self,"door_started"), Callable(scene,"_current_door_occupants"))
 	return true
 
 func _fail(reason: String) -> bool:
@@ -94,6 +103,7 @@ func step(delta: float) -> void:
 	if _disposed or residents == null: return
 	for owner: RefCounted in hit_owners: owner.step()
 	navigation.pump(Engine.get_physics_frames())
+	if _visits != null: _visits.step(delta)
 	residents.step(delta)
 	for owner: RefCounted in hit_owners:
 		if owner.blood!=null and owner.blood.should_step(): owner.blood.step(delta)
@@ -118,11 +128,16 @@ func snapshot() -> Dictionary:
 	return {"status": status, "error": error, "session_id": SESSION,
 		"placement_mode": "PREVIEW_STAGE" if _staged_preview else "SOURCE_BIRTH", "original_agenda": false,
 		"residents": residents.snapshot() if residents != null else {},
-		"navigation": navigation.diagnostics() if navigation != null else {}}
+		"navigation": navigation.diagnostics() if navigation != null else {},
+		"local_visit_setup": _visit_setup.duplicate(true),
+		"local_visit": _visits.snapshot() if _visits != null else {}}
 
 func dispose() -> void:
 	if _disposed: return
 	_disposed = true
+	if _visits != null:
+		_visits.dispose()
+		_visits = null
 	if _final_dead_contact_port != null:
 		_final_dead_contact_port.dispose()
 		_final_dead_contact_port = null

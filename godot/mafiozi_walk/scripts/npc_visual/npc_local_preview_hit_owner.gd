@@ -1,7 +1,7 @@
 extends RefCounted
-const HitImpulse=preload("npc_hit_impulse.gd")
+const HitImpulse=preload("res://scripts/npc_visual/npc_hit_impulse.gd")
 const MEDICAL_IMPULSE_MAX_NS:=75.0
-const HeadZone=preload("npc_head_zone.gd")
+const HeadZone=preload("res://scripts/npc_visual/npc_head_zone.gd")
 var _head_zone: RefCounted
 var last_head_zone: Dictionary={}
 const POINT_SHARE:=0.10
@@ -15,7 +15,7 @@ var last_source_path_request: Dictionary={}
 ## Deferred world/social effects remain in pending_effects, not fake callbacks.
 const Blood=preload("res://scripts/npc_visual/npc_blood_adapter.gd")
 var blood: RefCounted
-const Marks=preload("res://scripts/npc_visual/npc_hit_marks_adapter.gd")
+const Marks=preload("npc_postmortem_hit_marks_adapter.gd")
 var marks: RefCounted
 const Provider=preload("res://scripts/npc_visual/npc_preview_source_provider.gd")
 const Adapter=preload("res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd")
@@ -45,6 +45,10 @@ var _serial:=0
 var _last_player:=Vector3.ZERO
 var _registry_key:=0
 var _last_hit_us:=0
+var _postmortem_receipt: Dictionary={}
+var last_postmortem: Dictionary={}
+var postmortem_count:=0
+var _native_terminal_batch: Array[Dictionary]=[]
 
 func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, trust: Dictionary, weapons: Node, source_player_stats: Dictionary) -> Dictionary:
 	if _ready or not is_instance_valid(host) or not host.target_current(token) or not is_instance_valid(weapons) or not weapons.is_inside_tree() or not weapons.has_signal("shot_emitted"): return {"ok":false,"reason":"current_native_owners"}
@@ -61,6 +65,7 @@ func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, tru
 	# These richer roles require their actual combat/surrender owner.
 	if candidate.source_id not in ["resident_72","resident_169","resident_252"] or _row.get("_arcKey","") not in ["housewife","student","pensioner"] or _row.get("_empireBoss",false) or _row.get("_empireCrew",false) or _row.get("_formerMercenary",false): return {"ok":false,"reason":"special_owner_required"}
 	_host=host; _token=token.duplicate(); _weapons=weapons; _effects=weapons.effects; _marksman=source_player_stats.marksman
+	_native_terminal_batch=_effects._resolutions
 	var registry_key: int=weapons.get_instance_id()
 	if not _registries.has(registry_key):
 		_rng.randomize()
@@ -139,7 +144,8 @@ func _on_shot(shot: Dictionary,muzzle: Dictionary,_camera_origin: Vector3,camera
 	if _current(_binding).is_empty() or not muzzle.get("origin") is Vector3 or not muzzle.origin.is_finite(): return
 	var pellets: bool=shot.get("weaponId") in PELLET_HIT
 	if shot.get("weaponId") not in SINGLE_HIT and not pellets and shot.get("weaponId")!="rpg": return
-	if pellets and (not _effects.has_signal("projectile_resolved") or not _effects.has_method("resolution_epoch")): return # Required native terminal proof, not a timer.
+	if (not _effects.has_signal("projectile_resolved") or not _effects.has_method("resolution_epoch")): return # Required native terminal proof, not a timer.
+	_native_terminal_batch=_effects._resolutions
 	_cleanup_shots()
 	var id: String=str(shot.get("shotId",str(shot.weaponId)+":"+str(shot.get("sequence",""))))
 	if _shots.has(id) or not shot.get("projectiles") is Array or shot.projectiles.size()!=(7 if pellets else 1): return
@@ -158,7 +164,7 @@ func _on_shot(shot: Dictionary,muzzle: Dictionary,_camera_origin: Vector3,camera
 	registry.current_damage={"marksman":_marksman,"critical":modifiers.critical,"critical_multiplier":modifiers.critical_multiplier}
 	var base_direction:=Vector3(camera_direction.x,0,camera_direction.z)
 	if base_direction.length_squared()>0.000001: base_direction=base_direction.normalized()
-	_shots[id]={"weapon_id":shot.weaponId,"muzzle":muzzle.origin,"at_ms":at,"modifiers":modifiers,"used":shot.weaponId=="rpg","pellets":pellets,"indices":indices,"terminals":{},"targets":{},"base_direction":base_direction,"cancelled":false,"producerEpoch":_effects.resolution_epoch() if pellets else -1}
+	_shots[id]={"weapon_id":shot.weaponId,"muzzle":muzzle.origin,"at_ms":at,"modifiers":modifiers,"used":shot.weaponId=="rpg","pellets":pellets,"indices":indices,"terminals":{},"targets":{},"base_direction":base_direction,"cancelled":false,"producerEpoch":_effects.resolution_epoch(),"postmortem_tickets":{},"native_terminals":{}}
 
 ## Source RPG blast reads the current accepted global modifiers at impact.
 ## A launch is context-only here; the separate RPG gate owns native blast proof.
@@ -194,6 +200,9 @@ static func _contact_shape(impact: Dictionary) -> bool:
 func _on_native_impact(impact: Dictionary) -> void:
 	if _current(_binding).is_empty() or not _shots.has(str(impact.get("shotId",""))): return
 	var shot: Dictionary=_shots[impact.shotId]
+	_native_terminal_batch=_effects._resolutions
+	_capture_postmortem_native(impact,shot)
+	if _row.get("dead",false): return
 	if shot.pellets or shot.used or _now()-shot.at_ms>15000 or impact.get("weaponId")!=shot.weapon_id: return
 	if not _contact_shape(impact) or not _owns_collider(impact.get("collider")): return
 	var distance: float=shot.muzzle.distance_to(impact.point)/4.1
@@ -212,7 +221,7 @@ func _on_native_impact(impact: Dictionary) -> void:
 	_apply_hit(str(impact.shotId),shot,damage,direction,zone.get("point",impact.point),zone.get("normal",impact.normal),zone.get("direction",Vector3.ZERO),zone)
 
 func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,point: Vector3,normal: Vector3,physical_direction: Vector3=Vector3.ZERO,zone: Dictionary={}) -> void:
-	if _current(_binding).is_empty(): return
+	if _current(_binding).is_empty() or _row.get("dead",false): return
 	var started_us:=Time.get_ticks_usec()
 	var body: CharacterBody3D=_token.body
 	_row.r=(body.global_position.z+45.1)/4.1; _row.c=(body.global_position.x+395.65)/4.1
@@ -242,6 +251,10 @@ func _apply_hit(shot_id: String,shot: Dictionary,damage: int,direction: Vector3,
 func _on_projectile_resolved(receipt: Dictionary) -> void:
 	if _current(_binding).is_empty() or not _shots.has(receipt.get("shotId","")): return
 	var shot: Dictionary=_shots[receipt.shotId]
+	_remember_native_terminal(receipt,shot)
+	if not shot.pellets:
+		_resolve_postmortem_single(receipt,shot)
+		return
 	if not shot.pellets or shot.used or _now()-shot.at_ms>15000 or receipt.get("weaponId")!=shot.weapon_id: return
 	if not receipt.get("producerEpoch") is int or receipt.producerEpoch!=shot.producerEpoch or shot.producerEpoch!=_effects.resolution_epoch():
 		shot.used=true; shot.cancelled=true; shot.targets.clear(); return
@@ -251,6 +264,7 @@ func _on_projectile_resolved(receipt: Dictionary) -> void:
 	if receipt.get("status") not in ["hit","miss","cancelled"]: return
 	if receipt.status=="hit" and not _contact_shape(receipt): return
 	shot.terminals[index]=receipt.status
+	if shot.postmortem_tickets.has(index) and shot.postmortem_tickets[index].terminal!=receipt: shot.cancelled=true
 	if receipt.status=="cancelled": shot.cancelled=true
 	if receipt.status=="hit":
 		var distance: float=shot.muzzle.distance_to(receipt.point)/4.1
@@ -263,7 +277,7 @@ func _on_projectile_resolved(receipt: Dictionary) -> void:
 				var id: String=candidate._token.source_id
 				if not shot.targets.has(id): shot.targets[id]={"owner":ref,"binding":candidate._binding.duplicate(true),"distances":[],"point":receipt.point,"normal":receipt.normal,"physical_direction":receipt.direction}
 				shot.targets[id].distances.append(distance)
-				if not shot.targets[id].has("head_zone"):
+				if not shot.targets[id].has("head_zone") and not candidate._row.get("dead",false):
 					var zone: Dictionary=candidate._head_contact(shot,receipt)
 					if zone.get("zone")=="head":
 						# One selected native pellet owns the entire refined contact tuple.
@@ -277,6 +291,14 @@ func _on_projectile_resolved(receipt: Dictionary) -> void:
 	var registry: Dictionary=_registries[_registry_key]
 	registry.pellet_closed+=1
 	if shot.cancelled: registry.pellet_cancelled+=1; shot.targets.clear(); return
+	# Preserve existing live density: one selected genuine pellet per target.
+	var cosmetic_targets: Dictionary={}
+	for ticket: Dictionary in shot.postmortem_tickets.values():
+		var cosmetic_owner: Variant=ticket.owner.get_ref()
+		if not is_instance_valid(cosmetic_owner) or cosmetic_owner.marks==null or cosmetic_targets.has(cosmetic_owner.get_instance_id()): continue
+		cosmetic_targets[cosmetic_owner.get_instance_id()]=true
+		cosmetic_owner._commit_postmortem(ticket,shot)
+	shot.postmortem_tickets.clear()
 	for group: Dictionary in shot.targets.values():
 		var target: Variant=group.owner.get_ref()
 		if not is_instance_valid(target) or target._current(group.binding).is_empty(): continue
@@ -331,6 +353,7 @@ func physical_event(request: Dictionary) -> Dictionary:
 
 func step() -> void:
 	if _current(_binding).is_empty(): return
+	_native_terminal_batch=_effects._resolutions
 	_cleanup_shots()
 	if not _row.get("_medicalDowned",false) or _row.get("dead",false) or _now()<float(_row.get("_medicalBleedoutAt",0)): return
 	_serial+=1
@@ -378,3 +401,77 @@ func _head_contact(shot: Dictionary,impact: Dictionary) -> Dictionary:
 	var zone: Dictionary=_head_zone.classify(shot.muzzle,impact.direction,float(Rules.damage_profile(shot.weapon_id).range)*4.1,physical,_weapons.scene,excluded)
 	if not zone.is_empty(): zone["projectile_index"]=impact.get("projectileIndex",0)
 	return zone
+
+## Local native cosmetic authority only. No HP service, death event, impulse or
+## source revision is called here. A disabled walking capsule is never a corpse.
+func _postmortem_context(collider: Variant) -> Dictionary:
+	if not Thread.is_main_thread() or _current(_binding).is_empty() or _row.get("dead")!=true or not Rules._finite(_row.get("hp")) or _row.hp>0 or not Rules._finite(_row.get("deadAt")): return {}
+	if not collider is RigidBody3D or not is_instance_valid(collider) or not collider.is_inside_tree() or collider.is_queued_for_deletion() or collider.collision_layer==0: return {}
+	var physical: Variant=_host._ragdolls.get(_token.source_id)
+	if not is_instance_valid(physical) or not physical._is_current(): return {}
+	var status: Dictionary=physical.status()
+	if status.get("mode")!="ACTIVE" or status.get("final_dead")!=true or str(status.get("death_key",""))!=str(_row.deadAt) or str(status.get("death_key","")).is_empty(): return {}
+	if not _host.public_final_dead_contact_current(status.binding,physical) or collider not in physical.owned_bodies(): return {}
+	# Pin identity without retaining the RefCounted host (whose event Callable
+	# references this owner). Incomplete/cancelled tickets must not form a cycle.
+	return {"physical_id":physical.get_instance_id(),"physical_binding":status.binding.duplicate(true),"death_key":status.death_key,"collider":collider,"collider_id":collider.get_instance_id(),"collider_rid":collider.get_rid(),"collider_parent":collider.get_parent(),"binding":_binding.duplicate(true)}
+
+## Native producer queues the terminal before emitting cosmetic_impact. Capture
+## that exact pending hit, so a cosmetic-only ray or invented index is insufficient.
+## This is a local trusted-code contract, not hostile-script/server authentication.
+func _capture_postmortem_native(impact: Dictionary,shot: Dictionary) -> void:
+	if shot.used or _now()-shot.at_ms>15000 or impact.get("weaponId")!=shot.weapon_id or not _contact_shape(impact) or shot.producerEpoch!=_effects.resolution_epoch(): return
+	var context:=_postmortem_context(impact.get("collider"))
+	if context.is_empty() or shot.muzzle.distance_to(impact.point)/4.1>float(Rules.damage_profile(shot.weapon_id).range)+.05: return
+	for native: Dictionary in _effects._resolutions:
+		if native.get("status")!="hit" or native.get("shotId")!=impact.shotId or native.get("weaponId")!=shot.weapon_id or native.get("producerEpoch")!=shot.producerEpoch: continue
+		if native.get("projectileCount")!=(7 if shot.pellets else 1) or not native.get("projectileIndex") is int or not shot.indices.has(native.projectileIndex): continue
+		var same:=true
+		for key: String in ["point","normal","direction","collider"]:
+			if native.get(key)!=impact.get(key): same=false
+		if not same or shot.postmortem_tickets.has(native.projectileIndex): continue
+		shot.postmortem_tickets[native.projectileIndex]={"owner":weakref(self),"context":context,"terminal":native.duplicate(true)}
+
+func _resolve_postmortem_single(terminal: Dictionary,shot: Dictionary) -> void:
+	if shot.used or shot.pellets or _now()-shot.at_ms>15000 or terminal.get("weaponId")!=shot.weapon_id or terminal.get("producerEpoch")!=shot.producerEpoch or shot.producerEpoch!=_effects.resolution_epoch(): return
+	if terminal.get("projectileIndex")!=0 or terminal.get("projectileCount")!=1 or terminal.get("status") not in ["hit","miss","cancelled"]: return
+	# Only the actual dead target captured a ticket; other owner signal listeners
+	# must not consume this shared shot first.
+	if not shot.postmortem_tickets.has(0): return
+	var ticket: Dictionary=shot.postmortem_tickets[0]
+	if ticket.owner.get_ref()!=self: return
+	shot.used=true
+	shot.terminals[0]=terminal.status
+	if terminal==ticket.terminal: _commit_postmortem(ticket,shot)
+	shot.postmortem_tickets.clear()
+
+func _commit_postmortem(ticket: Dictionary,shot: Dictionary) -> void:
+	if not _postmortem_receipt.is_empty() or ticket.owner.get_ref()!=self or not shot.used or shot.cancelled or shot.producerEpoch!=_effects.resolution_epoch(): return
+	if shot.native_terminals.size()!=(7 if shot.pellets else 1): return
+	for index: int in shot.native_terminals:
+		if shot.native_terminals[index].status!=shot.terminals.get(index): return
+	var native: Dictionary=ticket.terminal
+	if native.get("status")!="hit" or not _contact_shape(native) or _postmortem_context(native.get("collider"))!=ticket.context: return
+	var id: String="postmortem:"+_token.source_id+":"+str(_token.life_generation)+":"+str(native.shotId)+":"+str(native.projectileIndex)
+	_postmortem_receipt={"event_id":id,"kind":"authenticated_local_postmortem_cosmetic","binding":_binding.duplicate(true),"context":ticket.context.duplicate(true),"terminal":native.duplicate(true),"hp_applied":false,"server_authority":false}
+	var started:=Time.get_ticks_usec()
+	var rendered: bool=marks!=null and marks.receive_postmortem(id,native.point,native.normal)
+	postmortem_count+=1
+	last_postmortem={"event_id":id,"shot_id":native.shotId,"projectile_index":native.projectileIndex,"rendered":rendered,"cosmetic_us":Time.get_ticks_usec()-started,"death_key":ticket.context.death_key,"hp_applied":false,"server_authority":false}
+	_postmortem_receipt.clear()
+
+func postmortem_receipt(event_id: String) -> Dictionary:
+	if _postmortem_receipt.get("event_id")!=event_id: return {}
+	var native: Dictionary=_postmortem_receipt.terminal
+	if _postmortem_context(native.get("collider"))!=_postmortem_receipt.context: return {}
+	return _postmortem_receipt.duplicate(true)
+
+## Keep an alias to the current producer batch, refreshed each owner frame and
+## shot/cosmetic callback. Native drain moves that array aside and assigns a new
+## empty queue; this retained array therefore proves miss/cancel as well as hit.
+## If a nonstandard caller drains twice without owner.step, fail closed.
+func _remember_native_terminal(terminal: Dictionary,shot: Dictionary) -> void:
+	if shot.used or terminal not in _native_terminal_batch or terminal.get("producerEpoch")!=shot.producerEpoch or shot.producerEpoch!=_effects.resolution_epoch(): return
+	if terminal.get("weaponId")!=shot.weapon_id or not terminal.get("projectileIndex") is int or not shot.indices.has(terminal.projectileIndex) or terminal.get("projectileCount")!=(7 if shot.pellets else 1): return
+	if terminal.get("status") not in ["hit","miss","cancelled"]: return
+	shot.native_terminals[terminal.projectileIndex]=terminal.duplicate(true)

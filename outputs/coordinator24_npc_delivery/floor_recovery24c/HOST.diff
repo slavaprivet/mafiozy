@@ -1,0 +1,51 @@
+--- owner_ee28/scripts/npc_visual/preview_resident_host.gd
++++ root_floor_recovery/scripts/npc_visual/preview_resident_host.gd
+@@ -382,7 +382,8 @@
+ func _recover_floor_contact(record: Dictionary) -> bool:
+ 	var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
+ 	var id: String = record.row.source_id
+-	if body == null or not _living(record) or record.get("physical_failed",false) or _physical_occupied(id) or body.collision_layer != 1 or body.collision_mask != 1 or (body.is_on_floor() and record.status != "BLOCKED") or body.velocity.y > 0.0: return false
++	if body == null or not _living(record) or record.get("physical_failed",false) or _physical_occupied(id) or body.collision_layer != 1 or body.collision_mask != 1 or (body.is_on_floor() and record.status not in ["BLOCKED","NO_PATH"]) or body.velocity.y > 0.0: return false
++	var require_floor_only: bool = body.is_on_floor() and record.status == "NO_PATH"
+ 	var before := body.global_transform
+ 	var margin := body.safe_margin
+ 	var snap_length := body.floor_snap_length
+@@ -391,6 +392,18 @@
+ 	var correction: Vector3 = overlap_recovery.get_travel()
+ 	var corrected: Vector3 = before.origin + correction
+ 	if not correction.is_finite() or correction.y < 0.0 or correction.y > .05 or Vector2(correction.x,correction.z).length() > .0001: return false
++	if require_floor_only:
++		# A grounded actor can enter NO_PATH while its conservative square still
++		# clips the supporting floor. Retry only the exact native vertical floor
++		# recovery after another actor's reservation has cleared; never admit an
++		# obstacle, weaken the footprint or assign a replacement transform.
++		var floor_collider: Object = overlap_recovery.get_collider()
++		if correction.y <= 0.0 or not floor_collider is StaticBody3D or overlap_recovery.get_normal().dot(Vector3.UP) < .9999: return false
++		var excluded: Array[RID] = [body.get_rid()]
++		_overlap.exclude = excluded
++		_overlap.transform = Transform3D(Basis.IDENTITY, before.origin + Vector3.UP * (HEIGHT * .5 + .025))
++		var overlaps: Array[Dictionary] = body.get_world_3d().direct_space_state.intersect_shape(_overlap,2)
++		if overlaps.size() != 1 or overlaps[0].collider != floor_collider: return false
+ 	if not _source_admits(corrected, record, "route"): return false
+ 	# The source callback may revoke or replace the physical owner synchronously.
+ 	if not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body or body.global_transform != before: return false
+@@ -398,7 +411,10 @@
+ 	if body.velocity.y > 0.0 or body.safe_margin != margin or body.floor_snap_length != snap_length: return false
+ 	if not _physical_clear(corrected,[body.get_rid()]) or not _owned_clear(corrected,id): return false
+ 	body.move_and_collide(Vector3.ZERO, false, margin, true)
++	var after_native: Vector3 = body.global_position
+ 	body.apply_floor_snap()
++	_stats["floor_recoveries"] = int(_stats.get("floor_recoveries",0)) + 1
++	_stats["last_floor_recovery"] = {"source_id":id,"status":record.status,"floor_only_no_path":require_floor_only,"before":before.origin,"correction":correction,"after_native":after_native,"after_snap":body.global_position,"on_floor_after":body.is_on_floor(),"physics_frame":Engine.get_physics_frames()}
+ 	return true
+ 
+ func step(delta: float) -> void:
+@@ -443,7 +459,7 @@
+ 			if is_instance_valid(body): body.queue_free()
+ 			record.body = null; record.gait = null; record.motion = null; record.status = "REMOVED"; record.attempted = true; continue
+ 		if not is_instance_valid(body): continue
+-		if not body.is_on_floor() or record.status == "BLOCKED":
++		if not body.is_on_floor() or record.status in ["BLOCKED","NO_PATH"]:
+ 			_recover_floor_contact(record)
+ 			# Recovery admission invokes source code; it may retire this actor.
+ 			if not _living(record) or not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body: continue

@@ -21,6 +21,8 @@ const PLACEMENT_PHASE := "AFTER_FULL_DEFERRED_POPULATION_CALLBACK_BEFORE_ANY_SER
 const SUPPORT_OFFSETS := [Vector2.ZERO, Vector2(-FOOTPRINT, -FOOTPRINT), Vector2(-FOOTPRINT, FOOTPRINT), Vector2(FOOTPRINT, -FOOTPRINT), Vector2(FOOTPRINT, FOOTPRINT)]
 var _scene: WeakRef
 var _navigation: RefCounted
+var _local_navigation_lease := {}
+var _local_navigation_serial := 0
 var _admit: Callable
 var _support: Callable
 var _records: Dictionary = {}
@@ -297,9 +299,11 @@ func enable_walk_preview() -> bool:
 	return true
 
 func preview_walk_step(delta: float) -> void:
+	if Thread.is_main_thread() and not _busy and not _disposed: _sync_local_navigation_adapter()
 	if not _walk_preview_enabled or _busy or _disposed or not is_finite(delta) or delta <= 0.0 or delta > .05 or _navigation.state() != "READY": return
 	_walk_preview_clock += delta
 	for id: String in _records:
+		if not _local_navigation_lease.is_empty() and _local_navigation_lease.source_id==id: continue
 		var record: Dictionary = _records[id]
 		if record.get("physical_failed",false) or _physical_occupied(id): continue
 		if not _living(record) or not is_instance_valid(record.body): continue
@@ -378,7 +382,8 @@ func request_walk(identity: String, target: Vector3) -> int:
 func _recover_floor_contact(record: Dictionary) -> bool:
 	var body: CharacterBody3D = record.body if is_instance_valid(record.body) else null
 	var id: String = record.row.source_id
-	if body == null or not _living(record) or record.get("physical_failed",false) or _physical_occupied(id) or body.collision_layer != 1 or body.collision_mask != 1 or (body.is_on_floor() and record.status != "BLOCKED") or body.velocity.y > 0.0: return false
+	if body == null or not _living(record) or record.get("physical_failed",false) or _physical_occupied(id) or body.collision_layer != 1 or body.collision_mask != 1 or (body.is_on_floor() and record.status not in ["BLOCKED","NO_PATH"]) or body.velocity.y > 0.0: return false
+	var require_floor_only: bool = body.is_on_floor() and record.status == "NO_PATH"
 	var before := body.global_transform
 	var margin := body.safe_margin
 	var snap_length := body.floor_snap_length
@@ -387,6 +392,18 @@ func _recover_floor_contact(record: Dictionary) -> bool:
 	var correction: Vector3 = overlap_recovery.get_travel()
 	var corrected: Vector3 = before.origin + correction
 	if not correction.is_finite() or correction.y < 0.0 or correction.y > .05 or Vector2(correction.x,correction.z).length() > .0001: return false
+	if require_floor_only:
+		# A grounded actor can enter NO_PATH while its conservative square still
+		# clips the supporting floor. Retry only the exact native vertical floor
+		# recovery after another actor's reservation has cleared; never admit an
+		# obstacle, weaken the footprint or assign a replacement transform.
+		var floor_collider: Object = overlap_recovery.get_collider()
+		if correction.y <= 0.0 or not floor_collider is StaticBody3D or overlap_recovery.get_normal().dot(Vector3.UP) < .9999: return false
+		var excluded: Array[RID] = [body.get_rid()]
+		_overlap.exclude = excluded
+		_overlap.transform = Transform3D(Basis.IDENTITY, before.origin + Vector3.UP * (HEIGHT * .5 + .025))
+		var overlaps: Array[Dictionary] = body.get_world_3d().direct_space_state.intersect_shape(_overlap,2)
+		if overlaps.size() != 1 or overlaps[0].collider != floor_collider: return false
 	if not _source_admits(corrected, record, "route"): return false
 	# The source callback may revoke or replace the physical owner synchronously.
 	if not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body or body.global_transform != before: return false
@@ -394,10 +411,14 @@ func _recover_floor_contact(record: Dictionary) -> bool:
 	if body.velocity.y > 0.0 or body.safe_margin != margin or body.floor_snap_length != snap_length: return false
 	if not _physical_clear(corrected,[body.get_rid()]) or not _owned_clear(corrected,id): return false
 	body.move_and_collide(Vector3.ZERO, false, margin, true)
+	var after_native: Vector3 = body.global_position
 	body.apply_floor_snap()
+	_stats["floor_recoveries"] = int(_stats.get("floor_recoveries",0)) + 1
+	_stats["last_floor_recovery"] = {"source_id":id,"status":record.status,"floor_only_no_path":require_floor_only,"before":before.origin,"correction":correction,"after_native":after_native,"after_snap":body.global_position,"on_floor_after":body.is_on_floor(),"physics_frame":Engine.get_physics_frames()}
 	return true
 
 func step(delta: float) -> void:
+	if Thread.is_main_thread() and not _busy and not _disposed: _sync_local_navigation_adapter()
 	if not Thread.is_main_thread() or _busy or _disposed or not is_finite(delta) or delta <= 0 or delta > .05: return
 	_busy = true
 	var started := Time.get_ticks_usec()
@@ -438,7 +459,7 @@ func step(delta: float) -> void:
 			if is_instance_valid(body): body.queue_free()
 			record.body = null; record.gait = null; record.motion = null; record.status = "REMOVED"; record.attempted = true; continue
 		if not is_instance_valid(body): continue
-		if not body.is_on_floor() or record.status == "BLOCKED":
+		if not body.is_on_floor() or record.status in ["BLOCKED","NO_PATH"]:
 			_recover_floor_contact(record)
 			# Recovery admission invokes source code; it may retire this actor.
 			if not _living(record) or not is_instance_valid(body) or body.is_queued_for_deletion() or record.body != body: continue
@@ -600,6 +621,8 @@ func dispose() -> void:
 	if _busy:
 		_dispose_requested = true
 		return
+	if not _local_navigation_lease.is_empty():
+		_busy=true;_release_local_navigation_adapter("host_dispose",false);_busy=false
 	_disposed = true
 	_dispose_requested = false
 	for host: RefCounted in _ragdolls.values(): host.dispose()
@@ -635,3 +658,120 @@ func public_final_dead_contact_current(binding: Dictionary, expected_host: RefCo
 	if not physical_life_current(binding): return false
 	var state: Dictionary = expected_host.status()
 	return state.get("mode") == "ACTIVE" and state.get("final_dead") == true and not str(state.get("death_key", "")).is_empty()
+
+## Explicit opt-in handoff for one configured local navigation proxy. This
+## suspends only that actor's circular goal producer; step() remains sole mover.
+func bind_local_navigation_adapter(adapter: RefCounted, token: Dictionary) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested or not _scene_alive() or not _local_navigation_lease.is_empty(): return {"ok":false,"reason":"host_lifetime_or_bound"}
+	if not is_instance_valid(adapter) or not target_current(token) or not _local_walker_current(token): return {"ok":false,"reason":"current_walker_required"}
+	for method: String in ["request","poll","step","cancel","state","dispose","_current"]:
+		if not adapter.has_method(method): return {"ok":false,"reason":"adapter_interface"}
+	var properties := {}
+	for property: Dictionary in adapter.get_property_list(): properties[str(property.name)]=true
+	for property: String in ["host","base_nav","token","body","_disposed","_phase"]:
+		if not properties.has(property): return {"ok":false,"reason":"adapter_binding_interface"}
+	var id: String=token.source_id
+	var record: Dictionary=_records[id]
+	var claim: Variant=record.get("local_route_owner")
+	if not claim is WeakRef or claim.get_ref()!=adapter or adapter.get("host")!=self or adapter.get("base_nav")!=_navigation or adapter.get("body")!=token.body or adapter.get("token")!=token or adapter.get("_disposed")!=false or adapter.get("_phase")!="READY": return {"ok":false,"reason":"adapter_binding_mismatch"}
+	var base := _navigation
+	_busy=true
+	var current: Variant=adapter.call("_current")
+	if not current is bool or not current or _dispose_requested or _navigation!=base or not _local_walker_current(token) or record.get("local_route_owner")!=claim or claim.get_ref()!=adapter:
+		_leave_busy();return {"ok":false,"reason":"binding_changed"}
+	# Cancel only the selected actor's old ordinary route. Other actors retain
+	# their exact requests and their goal producer remains enabled.
+	if record.request>=0: base.cancel(record.request)
+	record.request=-1;record.status="IDLE";record.body.velocity=Vector3.ZERO
+	_local_navigation_serial+=1
+	_local_navigation_lease={"adapter":weakref(adapter),"token":token.duplicate(),"base":base,"source_id":id,"serial":_local_navigation_serial}
+	_navigation=adapter
+	_leave_busy()
+	return {"ok":not _disposed,"source_id":id,"serial":_local_navigation_serial,"automatic_preview_suspended":true,"source_authority":false}
+
+func _local_walker_current(token: Dictionary) -> bool:
+	if not physical_life_current(token): return false
+	var id: String=token.source_id
+	var record: Dictionary=_records[id]
+	var body: CharacterBody3D=record.body
+	if not _living(record) or _physical_occupied(id) or record.get("physical_failed",false) or body.collision_layer!=1 or body.collision_mask!=1 or body.get_child_count()<2:return false
+	var shape: Node=body.get_child(0)
+	return shape is CollisionShape3D and not shape.disabled and shape.shape is CapsuleShape3D and is_equal_approx(shape.shape.radius,.36) and is_equal_approx(shape.shape.height,HEIGHT)
+
+## Cancel one still-owned approach/visit request before releasing its adapter.
+## Navigation CANCELLED alone does not clear this host's request/status. The
+## exact host slot must be normalized or the circular producer waits forever.
+func cancel_local_walk(adapter: RefCounted, token: Dictionary, request_id: int) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or _dispose_requested or request_id<0:return {"ok":false,"reason":"host_lifetime_or_request"}
+	if not _local_request_owned(adapter,token,request_id):return {"ok":false,"reason":"request_owner_mismatch"}
+	_busy=true
+	adapter.cancel(request_id)
+	var result: Variant=adapter.poll(request_id)
+	if not result is Dictionary or result.get("status")!="CANCELLED" or not _local_request_owned(adapter,token,request_id):
+		_leave_busy();return {"ok":false,"reason":"cancellation_unconfirmed_or_owner_changed"}
+	var record: Dictionary=_records[token.source_id]
+	record.request=-1;record.status="IDLE";record.reason=""
+	if _walk_preview.has(token.source_id):
+		_walk_preview[token.source_id].awaiting=false;_walk_preview[token.source_id].blocked_at=-1.0
+	_leave_busy()
+	return {"ok":true,"source_id":token.source_id,"cancelled_request_id":request_id,"source_authority":false}
+
+func _local_request_owned(adapter: RefCounted, token: Dictionary, request_id: int) -> bool:
+	if _disposed or _dispose_requested or _local_navigation_lease.is_empty() or _navigation!=adapter or not is_instance_valid(adapter):return false
+	if _local_navigation_lease.adapter.get_ref()!=adapter or _local_navigation_lease.token!=token or not _local_walker_current(token):return false
+	var record: Dictionary=_records[token.source_id]
+	var claim: Variant=record.get("local_route_owner")
+	return claim is WeakRef and claim.get_ref()==adapter and record.request==request_id
+
+## The original adapter+token pair is required even if that life has since gone
+## stale. A late pair cannot release a newer lease or cancel a newer route.
+func release_local_navigation_adapter(adapter: RefCounted, token: Dictionary) -> Dictionary:
+	if not Thread.is_main_thread() or _busy or _disposed or _local_navigation_lease.is_empty():return {"ok":false,"reason":"no_releasable_lease"}
+	if _local_navigation_lease.adapter.get_ref()!=adapter or _local_navigation_lease.token!=token:return {"ok":false,"reason":"lease_mismatch"}
+	_busy=true
+	var released := _release_local_navigation_adapter("explicit_release",true)
+	_leave_busy()
+	return released
+
+func _release_local_navigation_adapter(reason: String, resume_preview: bool) -> Dictionary:
+	var lease := _local_navigation_lease
+	if lease.is_empty():return {"ok":false,"reason":"not_bound"}
+	var adapter: RefCounted=lease.adapter.get_ref()
+	var base: RefCounted=lease.base
+	var still_selected := _navigation==adapter or _navigation==base
+	var claim: Variant=_records.get(lease.source_id,{}).get("local_route_owner")
+	var claim_owned: bool=claim is WeakRef and claim.get_ref()==adapter
+	# An independently disposed exact adapter removes its own weak claim and
+	# restores base navigation before this sync. Same-life, absent-claim cleanup
+	# must still normalize READY/-1. A live replacement claim never qualifies.
+	var own_dispose_completed: bool=is_instance_valid(adapter) and adapter.get("_disposed")==true and claim==null and _navigation==base and physical_life_current(lease.token)
+	_local_navigation_lease={}
+	# Restore only our proxy; an unrelated newer navigation owner is untouched.
+	if _navigation==adapter:_navigation=base
+	if is_instance_valid(adapter):adapter.dispose()
+	if resume_preview and still_selected and (claim_owned or own_dispose_completed) and _local_walker_current(lease.token):
+		var record: Dictionary=_records[lease.source_id]
+		# A fresh ordinary request superseding a local visit survives adapter
+		# disposal. Its velocity/status/request are not cleared here.
+		if record.request<0 and record.status in ["IDLE","PENDING","READY","ARRIVED","BLOCKED","STALE","CANCELLED","NO_PATH"]:record.status="IDLE"
+		# The preview circuit starts at the real current position. This changes
+		# no immutable source row or actor transform and is never a teleport.
+		record.origin=record.body.global_position
+		if _walk_preview.has(lease.source_id):
+			var exercise: Dictionary=_walk_preview[lease.source_id]
+			exercise.awaiting=record.request>=0 and record.status in ["PENDING","READY"]
+			exercise.blocked_at=-1.0;exercise.next_at=_walk_preview_clock+1.5
+	return {"ok":true,"source_id":lease.source_id,"serial":lease.serial,"reason":reason,"source_authority":false}
+
+func _sync_local_navigation_adapter() -> void:
+	if not Thread.is_main_thread() or _busy or _disposed:return
+	if _local_navigation_lease.is_empty():return
+	var lease := _local_navigation_lease
+	var adapter: RefCounted=lease.adapter.get_ref()
+	var claim: Variant=_records.get(lease.source_id,{}).get("local_route_owner")
+	if not is_instance_valid(adapter) or adapter.get("_disposed")!=false or adapter.get("_phase")=="SUPERSEDED" or _navigation!=adapter or not claim is WeakRef or claim.get_ref()!=adapter or not _local_walker_current(lease.token):
+		_busy=true;_release_local_navigation_adapter("adapter_or_life_ended",true);_leave_busy()
+
+func local_navigation_adapter_status() -> Dictionary:
+	if _local_navigation_lease.is_empty():return {"bound":false}
+	return {"bound":true,"source_id":_local_navigation_lease.source_id,"serial":_local_navigation_lease.serial,"automatic_preview_suspended":true,"source_authority":false}

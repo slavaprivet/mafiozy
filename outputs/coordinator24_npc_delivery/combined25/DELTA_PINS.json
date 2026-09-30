@@ -1,0 +1,67 @@
+{
+  "data/preview_updates.json": {
+    "before_sha256": "d637320944d6da73eb689e9a9e6472b5bab969663195b9325e3338c599a56b4d",
+    "after_sha256": "1f5c0bd7ee6ec5a64f7ef9f33e73eb59c435aafb57db6b89dd889c23712be0ae",
+    "bytes": 1196
+  },
+  "export_presets.cfg": {
+    "before_sha256": "a1a33357e52deefe764f75d856357f24ee3e18d5713ef35f7390130780a38b4c",
+    "after_sha256": "cb48f7d24bd8e3ef4f2479b394f45602b7ef162c38286be1101f524063f14373",
+    "bytes": 10081
+  },
+  "scripts/npc_visual/preview_resident_host.gd": {
+    "before_sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+    "after_sha256": "6afdb3201c92e80403bb9af35cef1bacb9c073071489b5a754445330a3f24634",
+    "bytes": 52668
+  },
+  "scripts/preview_population.gd": {
+    "before_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+    "after_sha256": "986f7f068405679e28833c929e96d5c85bf9ebf0ac5384b7f846fc52384491ed",
+    "bytes": 9044
+  },
+  "assets/npc_visual/local_printshop/approach.v1.json": {
+    "before_sha256": null,
+    "after_sha256": "77af8086a3ab0ed6bab2e0bb3b6fde0307bb773c1086c41268cb4d869841d8b3",
+    "bytes": 3730
+  },
+  "assets/npc_visual/local_printshop/entry.v1.json": {
+    "before_sha256": null,
+    "after_sha256": "3bda89bb0017b2d1ee5f5fca9c066d28a8e0f11a09670be43c771a027ce3518c",
+    "bytes": 20738
+  },
+  "assets/npc_visual/local_printshop/geometry.v1.json": {
+    "before_sha256": null,
+    "after_sha256": "e1bcf7b5ba88008b17362aaedb1d0c094dd7cefd756ec0e7afec0923a2aad618",
+    "bytes": 174616
+  },
+  "scripts/navigation/npc_swept_footprint.gd": {
+    "before_sha256": null,
+    "after_sha256": "a06ee56f8831ca577a74b59e349672ad421ec02cb622560ce79d733b5788c6d9",
+    "bytes": 6475
+  },
+  "scripts/npc_preview_visits.gd": {
+    "before_sha256": null,
+    "after_sha256": "5008e3049b4c5b1801325d11cfff02a8589be134070715c3b49e88c135d5c69f",
+    "bytes": 21620
+  },
+  "scripts/npc_visual/npc_local_printshop_contact_sweep.gd": {
+    "before_sha256": null,
+    "after_sha256": "df9795f96a51ebb667ae9ce8239f1e2df7a1c7f7ea8a28ac9bab6e259f08aded",
+    "bytes": 3706
+  },
+  "scripts/npc_visual/npc_local_printshop_route.gd": {
+    "before_sha256": null,
+    "after_sha256": "82a595b2a8a044f67c1b3e7fa015c5f4bee376e0d4e9d1157e8323e4a8454b19",
+    "bytes": 22817
+  },
+  "scripts/npc_visual/npc_local_printshop_source_floor.gd": {
+    "before_sha256": null,
+    "after_sha256": "8a4b91557fa938f39acad37d8d35f027f055f289918939f1f9f3569a0b5a92b6",
+    "bytes": 4355
+  },
+  "scripts/npc_visual/npc_local_printshop_visit.gd": {
+    "before_sha256": null,
+    "after_sha256": "d922ff1b2840115f4daeae60098eb630c757f596153465cff78d20f862441cc5",
+    "bytes": 8441
+  }
+}

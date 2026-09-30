@@ -1,0 +1,100 @@
+{
+  "started_utc": "2026-09-30T16:22:27.783909+00:00",
+  "mode": "observer",
+  "headless": true,
+  "gpu": false,
+  "engine_timeout_seconds": 100,
+  "production_changed": false,
+  "children": [
+    {
+      "label": "observer",
+      "command": [
+        "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "--headless",
+        "--fixed-fps",
+        "60",
+        "--path",
+        "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate25\\godot\\mafiozi_walk",
+        "--script",
+        "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_npc_delivery\\test_normal_scene.gd",
+        "--",
+        "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_npc_delivery\\combined25\\observer01\\observer",
+        "--revision=s01-20260930-quality24c",
+        "--pins=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_npc_delivery\\combined25\\observer01\\PINS224.json",
+        "--source-root=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate25\\godot\\mafiozi_walk",
+        "--expected-sha=e8f917023997eef3af2d7c7643c3e8cdf48f4b9293fe379c7b760f19dc893f18"
+      ],
+      "inventory_before": [
+        {
+          "ProcessId": 45268,
+          "ParentProcessId": 3900,
+          "Name": "Godot_v4.6.3-stable_win64.exe",
+          "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+        }
+      ],
+      "started_utc": "2026-09-30T16:22:30.490102+00:00",
+      "timeout": false,
+      "pid": 46140,
+      "exit_code": 0,
+      "seconds": 11.899405700154603,
+      "finished_utc": "2026-09-30T16:22:42.390120+00:00",
+      "engine_error_lines": [],
+      "native_errors": false,
+      "pins_changed": [],
+      "harness_unchanged": true,
+      "inventory_after": [
+        {
+          "ProcessId": 45268,
+          "ParentProcessId": 3900,
+          "Name": "Godot_v4.6.3-stable_win64.exe",
+          "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+        }
+      ],
+      "own_child_stopped": true,
+      "ok": true
+    }
+  ],
+  "functional_only_with_live24b": false,
+  "authorized_parallel_combat24_cpu": true,
+  "performance_acceptance": false,
+  "pins_sha256": "f506b940a4a3adb48263f67c9115d4843ce5429ea7944b0af96ce8c831b71770",
+  "input_count": 224,
+  "harness_sha256": "263758c6afa94789319520bc045f27a1e2bbfaee028fdf93d4f734b626b11688",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "engine_version_lock": "4.7.2.stable.official.ed1daf0bf",
+  "engine_lock_sha256": "9ba68019898613d923476e3db4f184bf6372558e2f3fecb07207a8f9d125246a",
+  "allowed_live25": {
+    "pack": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator24_quality\\candidate25\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality24c\\MafioziPreview.pck",
+    "pck_sha256": "fa1504583eefd212211a87ced7c2fc7805885213aa71d9211c63447f4ac74863",
+    "commands": "Exact GUI --main-pack path or sibling release executable with no other arguments",
+    "authorization": "Root explicit functional headless beside already opened exact25 user game; no GPU/performance acceptance"
+  },
+  "inventory_before": [
+    {
+      "ProcessId": 45268,
+      "ParentProcessId": 3900,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    }
+  ],
+  "observer_result": {
+    "sha256": "36d6b01e9230c4433fdcf782d64bcc0e90a004a74163ec4996b43850c4020e3c",
+    "valid": true,
+    "checks": 51780,
+    "errors": [],
+    "phase": "COMPLETE",
+    "frames": 3590,
+    "post_completion_travel_m": 2.670013317838311
+  },
+  "valid": true,
+  "finished_utc": "2026-09-30T16:22:42.996878+00:00",
+  "inventory_final": [
+    {
+      "ProcessId": 45268,
+      "ParentProcessId": 3900,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    }
+  ],
+  "runner_sha256": "34dd8eb7d4b68d497ab9cb6f607b6419538c8756d38c2756a20749543da07374"
+}

@@ -1,0 +1,10 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+QUICK_CONTROLS_READY B=look_back H=driver_horn F=driver_headlights lights=2
+NORMAL_SCENE24 {"actors":{"resident_169":{"body_instance_id":296520526014,"bridge_id":"npc_resident_169","end":[10.4853963851929,0.000766931683756411,3.65681076049805],"floor_frames":3590,"life_generation":1,"max_step_m":0.0442886278033257,"max_y":0.391827791929245,"min_y":-0.0317478254437447,"moving_frames":2809,"rig_instance_id":295128017093,"row_sha256":"16973b798930a46eab16badf3e361754ca120bfcd779b3020aac964c6355b35f","start":[36.122615814209,-0.0000000149011611938477,-5.8999981880188],"travel_m":84.0435210429132},"resident_252":{"body_instance_id":300563835132,"bridge_id":"npc_resident_252","end":[31.4303493499756,0.000825633236672729,-19.5228996276855],"floor_frames":3590,"life_generation":1,"max_step_m":0.0365473553538322,"max_y":0.00093462853692472,"min_y":-0.0324001386761665,"moving_frames":2319,"rig_instance_id":299171326211,"row_sha256":"5b5630b7330063fb6d6179c4f7c7df4af13bf993723f82cdf8679462a01a91b8","start":[34.6225891113281,-0.0000000149011611938477,-19.3999977111816],"travel_m":35.3953251428902},"resident_72":{"body_instance_id":292477216897,"bridge_id":"npc_resident_72","end":[38.4695320129395,0.00080492562847212,-15.5728731155396],"floor_frames":3590,"life_generation":1,"max_step_m":0.0218898598104715,"max_y":0.000934544194024056,"min_y":-0.0000000149011611938477,"moving_frames":1893,"rig_instance_id":291185371272,"row_sha256":"22a9f241b1098d9d33c67fc3bfeb6937f5d6802c7f1c6b1d649e5ddf489e6f1d","start":[36.122615814209,-0.0000000149011611938477,-13.3999967575073],"travel_m":41.388864710927}},"checks":51780,"errors":[],"frames":3590,"phase":"COMPLETE","seconds":11.559,"valid":true}

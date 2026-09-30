@@ -1,0 +1,133 @@
+{
+  "status": "PREPARED_NOT_APPLIED",
+  "assembly_sha256": "f506b940a4a3adb48263f67c9115d4843ce5429ea7944b0af96ce8c831b71770",
+  "pack_sha256": "fa1504583eefd212211a87ced7c2fc7805885213aa71d9211c63447f4ac74863",
+  "base_inputs": 209,
+  "after_inputs": 224,
+  "changes": {
+    "assets/npc_visual/local_printshop/approach.v1.json": {
+      "base_sha256": null,
+      "after_sha256": "77af8086a3ab0ed6bab2e0bb3b6fde0307bb773c1086c41268cb4d869841d8b3",
+      "shared_before_sha256": null
+    },
+    "assets/npc_visual/local_printshop/entry.v1.json": {
+      "base_sha256": null,
+      "after_sha256": "3bda89bb0017b2d1ee5f5fca9c066d28a8e0f11a09670be43c771a027ce3518c",
+      "shared_before_sha256": null
+    },
+    "assets/npc_visual/local_printshop/geometry.v1.json": {
+      "base_sha256": null,
+      "after_sha256": "e1bcf7b5ba88008b17362aaedb1d0c094dd7cefd756ec0e7afec0923a2aad618",
+      "shared_before_sha256": null
+    },
+    "data/preview_updates.json": {
+      "base_sha256": "614054f8da3c245e4bb1235b99ce398e7870b19c8f24a0c7d8a6b6d4c5dca91b",
+      "after_sha256": "1f5c0bd7ee6ec5a64f7ef9f33e73eb59c435aafb57db6b89dd889c23712be0ae",
+      "shared_before_sha256": "614054f8da3c245e4bb1235b99ce398e7870b19c8f24a0c7d8a6b6d4c5dca91b"
+    },
+    "export_presets.cfg": {
+      "base_sha256": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "after_sha256": "cb48f7d24bd8e3ef4f2479b394f45602b7ef162c38286be1101f524063f14373",
+      "shared_before_sha256": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469"
+    },
+    "scenes/main.tscn": {
+      "base_sha256": "52aa1629fe38251f27ab50e3c6c102e0d0073348d6f610319d6c6b0233618bde",
+      "after_sha256": "9675320570b2776e3e8bb0f77e668a1bb4a7300171dd76e3a476de796002f38c",
+      "shared_before_sha256": "b30a6aca7fef43d24ca4027f957fc411bd0bcddd36555a03ec646cee0e2689a6"
+    },
+    "scripts/main.gd": {
+      "base_sha256": "d44bc28b1b1b671c9d9b377692e9b5783bdb9cff471ce4ccc0cc67bd23e52efb",
+      "after_sha256": "e8f917023997eef3af2d7c7643c3e8cdf48f4b9293fe379c7b760f19dc893f18",
+      "shared_before_sha256": "d44bc28b1b1b671c9d9b377692e9b5783bdb9cff471ce4ccc0cc67bd23e52efb"
+    },
+    "scripts/navigation/npc_swept_footprint.gd": {
+      "base_sha256": null,
+      "after_sha256": "a06ee56f8831ca577a74b59e349672ad421ec02cb622560ce79d733b5788c6d9",
+      "shared_before_sha256": "a06ee56f8831ca577a74b59e349672ad421ec02cb622560ce79d733b5788c6d9"
+    },
+    "scripts/npc_preview_visits.gd": {
+      "base_sha256": null,
+      "after_sha256": "5008e3049b4c5b1801325d11cfff02a8589be134070715c3b49e88c135d5c69f",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "base_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "after_sha256": "114b420d34fefbab4dcf9dc7260ad09d5a99ed24fc702573fdd4a8f0fbe8ca70",
+      "shared_before_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225"
+    },
+    "scripts/npc_visual/npc_local_printshop_contact_sweep.gd": {
+      "base_sha256": null,
+      "after_sha256": "df9795f96a51ebb667ae9ce8239f1e2df7a1c7f7ea8a28ac9bab6e259f08aded",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/npc_local_printshop_route.gd": {
+      "base_sha256": null,
+      "after_sha256": "82a595b2a8a044f67c1b3e7fa015c5f4bee376e0d4e9d1157e8323e4a8454b19",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/npc_local_printshop_source_floor.gd": {
+      "base_sha256": null,
+      "after_sha256": "8a4b91557fa938f39acad37d8d35f027f055f289918939f1f9f3569a0b5a92b6",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/npc_local_printshop_visit.gd": {
+      "base_sha256": null,
+      "after_sha256": "d922ff1b2840115f4daeae60098eb630c757f596153465cff78d20f862441cc5",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/npc_postmortem_bullet_marks.gd": {
+      "base_sha256": null,
+      "after_sha256": "88bd0604d8a09f8ea9a040802d487ea42289ede29591ed173292a7ac6b3dc970",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/npc_postmortem_hit_marks_adapter.gd": {
+      "base_sha256": null,
+      "after_sha256": "024702f325f699de2d5ba61482cc567523f7309f927371666faffe8c44f1c858",
+      "shared_before_sha256": null
+    },
+    "scripts/npc_visual/preview_resident_host.gd": {
+      "base_sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb",
+      "after_sha256": "6afdb3201c92e80403bb9af35cef1bacb9c073071489b5a754445330a3f24634",
+      "shared_before_sha256": "fca338454eff819e31946b54c5d51f06f6ece989c65c791dae79bbf2301882fb"
+    },
+    "scripts/preview_population.gd": {
+      "base_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "after_sha256": "986f7f068405679e28833c929e96d5c85bf9ebf0ac5384b7f846fc52384491ed",
+      "shared_before_sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9"
+    },
+    "scripts/quick_controls/car_headlights.gd": {
+      "base_sha256": null,
+      "after_sha256": "db545c9a33f7a3347c80f0c5180aed6d4944e3100fa1ba2b0ab5c3c3b7e59f1a",
+      "shared_before_sha256": null
+    },
+    "scripts/quick_controls/car_horn.gd": {
+      "base_sha256": null,
+      "after_sha256": "f163bd2942ed323e85bf10025e844fd72f189b18d7b19a69734f5f0fc5e60fc5",
+      "shared_before_sha256": null
+    },
+    "scripts/quick_controls/quick_controls.gd": {
+      "base_sha256": null,
+      "after_sha256": "08d74f3f94aa20016a5bfb605b753563f10f7a0d5c8914750ed3aa556150bd2f",
+      "shared_before_sha256": null
+    },
+    "scripts/quick_controls/scene_hook.gd": {
+      "base_sha256": null,
+      "after_sha256": "234d84a13be3f79e66d8688db7f06fb91a59f66ac7e20eca7c6476e872f61a24",
+      "shared_before_sha256": null
+    }
+  },
+  "unchanged_from_base_owner_wip_keep": {
+    "scripts/preview_interior_finish.gd": "f2137740ac1b31669454f18c258db3560bf3c9eb9ff35b0a00875db0ee6bb497",
+    "scripts/preview_printshop_interior.gd": "300b48c8efa0d0b953514b36e0c0319febfd6d9a2ff61450601a45e1109e37f4",
+    "scripts/preview_update_panel.gd": "bff22dbcd6ad068f59796512be2e3d9b52aca39f48f5f23ac04fa60faccf05e7",
+    "scripts/preview_water_material.gd": "51f3d2d5f6c744cc98b0131a62d2acb1e97b8327f2235702b9b1896615952d88",
+    "scripts/preview_water_surface.gd": "7d89235d93f31dd565aadf37f549a05074bec5534acfb120543228f1dba2655c",
+    "scripts/transport/transport_access_provider.gd": "d0386f508fbfedf5c9a73035ff7716d26ca02e4160bd0c7bc8d62291c1db887b",
+    "scripts/transport/transport_actor_transition.gd": "c9ed1ad7205c74d1131cfda0588f8c862fb1ae6cf64d7b42c83b25f1b0df4c6f",
+    "scripts/transport/transport_descriptor_catalog.gd": "9a6923c3eeab011946667449b8ccad1085651c0e8ee4ec86fff62fb971868f52"
+  },
+  "scene_merge": "Shared main.tscn equals exact base22 normalized CRLF to LF; frozen25 hook scene is LF and copied byte-exactly.",
+  "already_after": [
+    "scripts/navigation/npc_swept_footprint.gd"
+  ]
+}
