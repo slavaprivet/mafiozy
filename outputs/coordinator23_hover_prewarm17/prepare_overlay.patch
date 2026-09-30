@@ -1,0 +1,17 @@
+--- a/scripts/weapons/weapon_pickup_visuals.gd
++++ b/scripts/weapons/weapon_pickup_visuals.gd
+@@ -67,6 +67,14 @@
+ 	_hover_material.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA
+ 	_hover_material.albedo_color=Color(1.0,.72,.16,.48)
+ 	_hover_material.no_depth_test=false
++	# Exercise the exact first overlay binding during startup, before interaction.
++	# No mesh or tree attachment: no pixels, collision, retained node or idle pass.
++	var warm_start:=Time.get_ticks_usec()
++	var warm_instance:=MeshInstance3D.new()
++	warm_instance.material_overlay=_hover_material
++	warm_instance.material_overlay=null
++	warm_instance.free()
++	_stats.hover_material_prepare_us=Time.get_ticks_usec()-warm_start
+ 	_busy=true;_interrupted=false;_ready=true
+ 	_ground_layer=Node3D.new();_ground_layer.name="WeaponGroundItems";_ground_layer.top_level=true
+ 	world_root.add_child(_ground_layer)

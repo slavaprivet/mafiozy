@@ -221,7 +221,9 @@ func advance(delta: float) -> void:
 	if not _interaction_allowed():
 		cancel_inputs()
 		if menu_open: set_menu(false)
-		if cargo_menu_active(): cargo_menu_owner.close_window(false)
+		if cargo_menu_active():
+			cargo_menu_owner.close_window(false)
+			player.set_mouse_captured(false)
 	if not is_finite(delta) or delta < 0.0 or delta > 5.0: cancel_inputs(); return
 	if player._pose_authority==&"on_foot" and player._jump.is_empty():
 		_posture_view=posture.step_posture(delta,Callable(self,"_can_occupy_posture"),Input.is_action_pressed(player.ACTION_RUN))

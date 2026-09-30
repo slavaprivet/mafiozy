@@ -1,0 +1,6 @@
+{
+  "path": "scripts/weapons/weapon_pickup_visuals.gd",
+  "before_sha256": "4300cf77d8b67e41b05703474f9b70409d218f3374641c6bc70d4c98994b934a",
+  "after_sha256": "3430c08e980d600bd0b408a84e11197f80c6976347b29af6e67f0d7ac647eb12",
+  "base": "candidate15 PCK133fe8dc; renderer4300cf77 unchanged in GPU16 diagnostic"
+}

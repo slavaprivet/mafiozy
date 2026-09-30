@@ -61,7 +61,7 @@ func configure(weapon_host: Node, baked_textures: Dictionary = {}) -> void:
 	host = weapon_host; textures = baked_textures
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_normal = panel_style("252e35","4f595f",5); _selected = panel_style("333832","ad956c",5)
-	launcher = Button.new(); launcher.focus_mode = Control.FOCUS_NONE
+	launcher = Button.new(); launcher.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND; launcher.focus_mode = Control.FOCUS_NONE
 	launcher.add_theme_stylebox_override("normal",panel_style("252b2f","5b605f"))
 	launcher.add_theme_stylebox_override("hover",panel_style("30383d","b09a74"))
 	launcher.add_theme_stylebox_override("pressed",_selected)
@@ -81,11 +81,11 @@ func configure(weapon_host: Node, baked_textures: Dictionary = {}) -> void:
 	var heading_copy := VBoxContainer.new(); heading_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL; heading.add_child(heading_copy)
 	heading_copy.add_child(label("А Р С Е Н А Л",18))
 	count = label("",11,"a9b1b5"); heading_copy.add_child(count)
-	var close := Button.new(); close.text = "×"; close.custom_minimum_size = Vector2(30,30); close.pressed.connect(func(): host.set_menu(false)); heading.add_child(close)
+	var close := Button.new(); close.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND; close.text = "×"; close.custom_minimum_size = Vector2(30,30); close.pressed.connect(func(): host.set_menu(false)); heading.add_child(close)
 	scroll = ScrollContainer.new(); scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL; scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; column.add_child(scroll)
 	grid = GridContainer.new(); grid.columns = 3; grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; grid.add_theme_constant_override("h_separation",10); grid.add_theme_constant_override("v_separation",10); scroll.add_child(grid)
 	for id: String in FAMILIES:
-		var choice := Button.new(); choice.custom_minimum_size = Vector2(190,139); choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var choice := Button.new(); choice.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND; choice.custom_minimum_size = Vector2(190,139); choice.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		choice.add_theme_stylebox_override("normal",_normal); choice.add_theme_stylebox_override("hover",panel_style("30393e","b09a74",5)); choice.add_theme_stylebox_override("focus",panel_style("30393e","b09a74",5))
 		choice.pressed.connect(func(): host.equip(id)); grid.add_child(choice)
 		var inner := margins(10); inner.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); choice.add_child(inner)

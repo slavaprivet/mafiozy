@@ -1,0 +1,27 @@
+[
+  {
+    "path": "godot/mafiozi_walk/assets/ui/cursor_arrow.svg.import",
+    "sha256": "6dd17e8681f503b41a475307f8eb0551b3684299753c81727e7416a044cbc604",
+    "cache": false
+  },
+  {
+    "path": "godot/mafiozi_walk/assets/ui/cursor_hand.svg.import",
+    "sha256": "e3a6e78f620da98f38f9875a5a219c5d4558ef2c0b432700592125d55938c574",
+    "cache": false
+  },
+  {
+    "path": "godot/mafiozi_walk/scripts/ui/walk_cursor.gd.uid",
+    "sha256": "c34180840fba2c3670fc42d836e0501597fe1d390fec1ce74e375664e29fd8b8",
+    "cache": false
+  },
+  {
+    "path": "godot/mafiozi_walk/.godot/imported/cursor_arrow.svg-6ee71446bafd5e0a91c924d645c6d903.ctex",
+    "sha256": "b5bb68065bdf0869562a51edc427ab0f43edcd6b68c58852a7c2afb53a5288f6",
+    "cache": true
+  },
+  {
+    "path": "godot/mafiozi_walk/.godot/imported/cursor_hand.svg-ed9be3d9ea1471e7721b4e5fd737e873.ctex",
+    "sha256": "05dffc7b067371a4cce48b2ba52138ce2caa4f8f3c0dcf6d5d419b1078c22199",
+    "cache": true
+  }
+]

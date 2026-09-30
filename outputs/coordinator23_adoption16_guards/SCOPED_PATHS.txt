@@ -1,0 +1,13 @@
+scripts/weapons/preview_weapon_cargo.gd
+scripts/weapons/walk_cargo_card.gd
+scripts/weapons/walk_trunk_window.gd
+scripts/weapons/cargo_aim_picker.gd
+scripts/weapons/weapon_pickup_visuals.gd
+scripts/ui/walk_cursor.gd
+assets/ui/cursor_arrow.svg
+assets/ui/cursor_hand.svg
+scripts/main.gd
+scripts/weapons/walk_weapon_ui.gd
+export_presets.cfg
+data/preview_updates.json
+scripts/weapons/preview_weapons.gd

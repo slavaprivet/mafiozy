@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-09-30T14:19:18.4809218+03:00",
+  "revision": "s01-20260930-quality23h",
+  "pack_sha256": "8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741",
+  "pid": 27300,
+  "responding": true,
+  "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23h-play\\MafioziPreview.exe",
+  "shortcut_before": {
+    "path": "C:\\Users\\Слава\\Desktop\\Мафиози\\Мафиози — актуальная версия.lnk",
+    "target": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23g-play\\MafioziPreview.exe",
+    "arguments": "",
+    "working_directory": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23g-play"
+  },
+  "shortcut_after": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23h-play\\MafioziPreview.exe",
+  "inventory_before": {
+    "ProcessId": 45268,
+    "Name": "Godot_v4.6.3-stable_win64.exe",
+    "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+  },
+  "inventory_after": [
+    {
+      "ProcessId": 45268,
+      "Name": "Godot_v4.6.3-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\Temp\\Rar$EXa31120.24411\\Godot_v4.6.3-stable_win64.exe\" "
+    },
+    {
+      "ProcessId": 27300,
+      "Name": "MafioziPreview.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23h-play\\MafioziPreview.exe\" "
+    }
+  ]
+}

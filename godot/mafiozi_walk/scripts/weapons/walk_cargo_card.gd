@@ -149,3 +149,8 @@ func present_ground(card_title: String, magazine: int, reserve: int) -> void:
 	if not _fixed_ground: add_theme_stylebox_override("panel",_style("202629f5","ad956c",6))
 	_fixed_ground=true
 	_project()
+
+# Compact world affordance; full inventory/capacity remains in the dedicated F window.
+func present_trunk(view_camera:Camera3D,world_anchor:Vector3,card_title:String,actions:Array,message:String="")->void:
+	detail.custom_minimum_size.x=210
+	present(view_camera,world_anchor,card_title,actions,-1,100,message)

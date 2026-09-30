@@ -1,3 +1,33 @@
+## 30 September 14:19 — accepted23h delivered: cargo hover, return, game cursor
+
+Current exact export: candidate16 PCK8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741.
+One accepted game PID27300 responding; project-root «Мафиози — актуальная версия.lnk» updated.
+Fresh inventory required next turn. Shared13 scoped paths and3 cursor import/UID metadata promoted,
+all unrelated NPC/transport/palette work preserved. Ordinary shared F5 main14guns/3NPC/transport/cursor imports PASS.
+
+Latest user requests completed: camera hover on actual stored model gives depth-tested gold tint and E exactUID/ammo take;
+E with no item uses existing lid open/close. F opens contents, mouse-hover card + E or Take immediately returns
+to gameplay; activation is consumed, held release quarantined, next deliberate click shoots. Q/X return,
+Esc frees mouse; modal has close-lid action. Custom muted ivory/gold arrow and hand installed once/released on exit.
+Pointer follows actual GUI event coordinates, clears on window exit; no stale row on E. Phase/focus invalidation
+releases both logical/OS controls. No other full migration feature is claimed done.
+
+Evidence: docs/godot/WEAPONS_23H_CHECKPOINT.md; exact pack actualGPU247PASS/root viewed clear model andUI,
+joint compiled277+85+49+18 and final sole changed renderer source85PASS with full source closure. First material
+binding32.467ms→0.052ms by startup empty native instance bind/free; no extra mesh/draw/collision/retainednode.
+Sequential comparable720frames per build old11 vsfinal16: GPU p95 ~unchanged, wall p95 differences+.447/+.299/-.278ms,
+maxima improved; ~180KB RAM/~1MB VRAM added. Offscreen one-camera short sample, NOT city FPS or focused OS-input proof.
+Headless verifies logical native events, rendered backend capture/release is synchronous; offscreen NO_FOCUS is explicit.
+
+GPU QA and heavyCPU quiet RELEASED; user's sole game stays. Hourly pendingproof main36b22251693e9951018679cd26d003169f657240
+was pushed/remoteverified. Read Git/current delivery23h PUBLISHED for final accepted runtime commit.
+RPG source/HP/Industry audit begun this turn then deferred for direct cargo/cursor steering: outputs/coordinator23_rpg23h,
+already saved in36b2225; proposals not enabled. Preserve source horizontal radius11.07m/no NPCLOS/current-impact marksman,
+opaque authentic flight tickets; old lifecycle packet must not overwrite newer head/point policy. Active medical corpse
+uniform finishing impulse remains HOLD. Recent HQ Artist23 sever candidate/leg topology packets are isolated, not gameplay.
+Industry all-building rollout staysHOLD despite componentPASS; check fresh pins. Full Walk migration, RPG blastHP, native
+player HP/authority and full NPC city remain unfinished. Reports only HQ; pinned5 staysOFF; no direct Astra polling.
+
 ## 30 September 12:39 — accepted23g trunk window and combat integration
 
 User's requested trunk contents window delivered in exact PCK

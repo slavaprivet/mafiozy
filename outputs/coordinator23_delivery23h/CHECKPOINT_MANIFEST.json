@@ -1,0 +1,513 @@
+{
+  "base": "36b22251693e9951018679cd26d003169f657240",
+  "revision": "s01-20260930-quality23h",
+  "pack_sha256": "8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741",
+  "status": "ACCEPTED_AND_DELIVERED; full migration incomplete",
+  "files": [
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapon_cargo.gd",
+      "sha256": "6126dc3de6339e303a20ea37e79b32b7be54e41527d11010727d02fc99010883",
+      "bytes": 38776
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_cargo_card.gd",
+      "sha256": "298f56dd73f9265a13333e5d4041b2906593c693c8aadc5cb58b32128749191e",
+      "bytes": 8932
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_trunk_window.gd",
+      "sha256": "2dc9c14005d0afab1a6d10b2940fde60ce1aaf93300e5ac76234619dfb6fa7d0",
+      "bytes": 9792
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/cargo_aim_picker.gd",
+      "sha256": "9046edbfaf5e51d1c924f2bf93b09064c3b0bf9f2bfdd524eb9ed6099ca10731",
+      "bytes": 7078
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_pickup_visuals.gd",
+      "sha256": "3430c08e980d600bd0b408a84e11197f80c6976347b29af6e67f0d7ac647eb12",
+      "bytes": 34501
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/ui/walk_cursor.gd",
+      "sha256": "5e988ec3997682781ba3a33a81a10aa49b1df02da4195c8004419aaca2e6e0f0",
+      "bytes": 750
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/ui/cursor_arrow.svg",
+      "sha256": "a373774e72317e7cbb2901247407dbc90184b1110c90878b5c2176ef670013e9",
+      "bytes": 501
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/ui/cursor_hand.svg",
+      "sha256": "861941959710971d5a43d746b9ac360c652056a820c44fd99ae9299d492ce46b",
+      "bytes": 654
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd",
+      "sha256": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+      "bytes": 43480
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd",
+      "sha256": "4e1627e44ee4a5a5e8211c0a134136174a9ff4007aca8b92d9e01853883bdf96",
+      "bytes": 11857
+    },
+    {
+      "path": "godot/mafiozi_walk/export_presets.cfg",
+      "sha256": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "bytes": 9285
+    },
+    {
+      "path": "godot/mafiozi_walk/data/preview_updates.json",
+      "sha256": "f54b8c0be2111c3e9b97af03ec144f2458dda63b451e2b4229a8860aa207368d",
+      "bytes": 1265
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "sha256": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "bytes": 21945
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/ui/cursor_arrow.svg.import",
+      "sha256": "6dd17e8681f503b41a475307f8eb0551b3684299753c81727e7416a044cbc604",
+      "bytes": 1047
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/ui/cursor_hand.svg.import",
+      "sha256": "e3a6e78f620da98f38f9875a5a219c5d4558ef2c0b432700592125d55938c574",
+      "bytes": 1044
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/ui/walk_cursor.gd.uid",
+      "sha256": "c34180840fba2c3670fc42d836e0501597fe1d390fec1ce74e375664e29fd8b8",
+      "bytes": 19
+    },
+    {
+      "path": "docs/ai/COORDINATOR_23_MEMORY.md",
+      "sha256": "f5f96c4104c2b52ef2e79b0866456b4d0b0c8b01f2b434444d8421008ed0538c",
+      "bytes": 41053
+    },
+    {
+      "path": "docs/ai/COORDINATOR_23_HANDOFF.md",
+      "sha256": "87cef82bcfb9a5a2aa4c67ccb435362d411183cdcb5e30a00360bfa7f767b1da",
+      "bytes": 22874
+    },
+    {
+      "path": "docs/godot/MIGRATION_BOARD.md",
+      "sha256": "8373bdfd2472dc3af21fef7b5006b206ae241d1649c90f417a83e6c252ef1aac",
+      "bytes": 54521
+    },
+    {
+      "path": "docs/godot/WEAPONS_23H_CHECKPOINT.md",
+      "sha256": "3ece33ac467f44c49bcb95460a5103cc2afe3c50d9b346b74cf554f0a3048a3d",
+      "bytes": 4945
+    },
+    {
+      "path": "outputs/coordinator23_quality/prepare_candidate16.py",
+      "sha256": "735c27b23afbd5a808428885405f0249246e557817cc84a6c4b4a26828bc3cb1",
+      "bytes": 1273
+    },
+    {
+      "path": "outputs/coordinator23_quality/promote_23h.py",
+      "sha256": "4ccaba8f65c8965d03105adb86bb73c2df9b37ae506f5cc9106df5ae3b8f2299",
+      "bytes": 3118
+    },
+    {
+      "path": "outputs/coordinator23_quality/install_cursor_imports23h.py",
+      "sha256": "0daea98ebff7c11cf9d3c6e24524e3ac8ae2b699d9514f1f9fc4744f4613b7c2",
+      "bytes": 1312
+    },
+    {
+      "path": "outputs/coordinator23_quality/open_23h.ps1",
+      "sha256": "18db77e02525d9d9ab5cb6916a90066aa94b498521281c7b506e7368506d40d2",
+      "bytes": 2848
+    },
+    {
+      "path": "outputs/coordinator23_quality/test_shared_startup23h.gd",
+      "sha256": "e18ac4d348443ec75aea994d1c5d022a4d237697045d1f005c44280c3dbd13e9",
+      "bytes": 273
+    },
+    {
+      "path": "outputs/coordinator23_quality/document_23h.py",
+      "sha256": "77882d7647ea1b28e5f6d1dbdcb0bbb0844e9715a8ac2c4ecff992ecb35d78b5",
+      "bytes": 8302
+    },
+    {
+      "path": "outputs/coordinator23_quality/checkpoint_23h.py",
+      "sha256": "07fd15cd1f44ba31c19afa88d706a7f0f92c02cf696f301993f2499c84952f25",
+      "bytes": 3798
+    },
+    {
+      "path": "outputs/coordinator23_delivery23h/CURSOR_IMPORTS.json",
+      "sha256": "2fdcbb28391b98fecb4d391a5f5a1aefab12dd16e2307e4879193415ba7bbcdd",
+      "bytes": 986
+    },
+    {
+      "path": "outputs/coordinator23_delivery23h/PROMOTION.json",
+      "sha256": "f1a32ebf682f7a40498ee4c7bf1c27c36c17a9e9182a4bba496d24827d47a4bf",
+      "bytes": 241204
+    },
+    {
+      "path": "outputs/coordinator23_delivery23h/RUNNING.json",
+      "sha256": "679fea245136ff615367e60fd86fd1c8daf3c1664c6df915f8e80a611cc1d02f",
+      "bytes": 1708
+    },
+    {
+      "path": "outputs/coordinator23_delivery23h/shared_startup.log",
+      "sha256": "191f4cdb2b770e9a928be29e2ee84d5c0bf3ac75a92b2d2dd7fba7bc8b445f8b",
+      "bytes": 638
+    },
+    {
+      "path": "outputs/coordinator23_adoption16_guards/FINAL16_GUARDS.json",
+      "sha256": "f52fa78ac776b6803545ad63edecbc9110af90a0f13788c082ed36d16c97c5bf",
+      "bytes": 60520
+    },
+    {
+      "path": "outputs/coordinator23_adoption16_guards/FINAL16_PCK_ENTRIES.json",
+      "sha256": "4b493f28bf927e0aff75fda6a607c7266caae883bdbdc3c96b17b6bcd0507354",
+      "bytes": 63033
+    },
+    {
+      "path": "outputs/coordinator23_adoption16_guards/REVIEW.md",
+      "sha256": "17da94fe59323e46a2e2c2d3dcdecc20d76ecc914356c81d1476a5cb2cc5ccb0",
+      "bytes": 1147
+    },
+    {
+      "path": "outputs/coordinator23_adoption16_guards/SCOPED_PATHS.txt",
+      "sha256": "091008dbaea73af1c6c8547867b810a9b56023e15ef80ed618c10b854b207120",
+      "bytes": 411
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/BASE_GUARD.json",
+      "sha256": "bf8c7bb9235a3414315714e673b8f93bfc5e3306e9fad04e5b0f1222124cfc32",
+      "bytes": 319
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/native01.log",
+      "sha256": "6cdc8eb6031386dd0520815d99d90f7052ac09926fc36ec7504b53643ee88057",
+      "bytes": 918
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/old_picker.gd",
+      "sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0",
+      "bytes": 5570
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/prepare_overlay.patch",
+      "sha256": "12874474a0f30643b5986c31566fd6649d6f949a2706f127b2a4156d34f1d26e",
+      "bytes": 889
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/RECEIPT.json",
+      "sha256": "82aec7b4378230f8745815216b1f7d5d11451ba188ced08e3b85329cae20f652",
+      "bytes": 39697
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/RESULT01.json",
+      "sha256": "0139bc7249778365ab529306c04f5d98bae6f50f8d75cfaf2428565d580e5683",
+      "bytes": 397
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/RUN01.json",
+      "sha256": "af55a09f74b65bd490aaf8895864ff50b0579334a6cf170d202429b92b4ee3eb",
+      "bytes": 601
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/run_headless.py",
+      "sha256": "042d95db5ecf62f54c3398e0e2b24be5b58537b6f5a8dd4c8723a54641be9fe1",
+      "bytes": 766
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/test_native.gd",
+      "sha256": "f080eb13441426cdb1447a37d9984414940d314bddd5bea021a8c3029ea10939",
+      "bytes": 8570
+    },
+    {
+      "path": "outputs/coordinator23_hover_prewarm17/files/scripts/weapons/weapon_pickup_visuals.gd",
+      "sha256": "3430c08e980d600bd0b408a84e11197f80c6976347b29af6e67f0d7ac647eb12",
+      "bytes": 34501
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/capture.gd",
+      "sha256": "71356cbe390cc2b4b07b70663421b817248ba717852572038e8e5b0fe9aab28c",
+      "bytes": 31523
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/FIRST_HOVER_AUDIT.json",
+      "sha256": "4638d7693961c2cf04b06a4fd01d9e769bc6876128d16eea47a6a5c20ab851fe",
+      "bytes": 2483
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/parse.log",
+      "sha256": "83cf0b082206af2aa236c83064fbcfa76be1e00a4aa3558574b2f65965d9481c",
+      "bytes": 75
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/PREPARED.json",
+      "sha256": "9862c76019fe284ae4c522718839dd766be9e05f19a19037aac4db6fc763de30",
+      "bytes": 488
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/README.md",
+      "sha256": "6c933a70e44c4d5f1d902a2a7c7124e70ae6aef2fb3cbfa9c4d17770ef1186c2",
+      "bytes": 3079
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/run_capture.py",
+      "sha256": "19f8425836797dd1a6a5a54206230924194f8945b1964c651ef83b55818a507c",
+      "bytes": 1944
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/01_compact_world_hint_1280x720.png",
+      "sha256": "97e8006760502a51d92b728e4aae06db8bb9f4d0fa53bed30a89cdbfe90bec0d",
+      "bytes": 321055
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/02_hovered_card_1280x720.png",
+      "sha256": "7473c88461f043d1b3a75f57d56586ab7b180827dd9aeb007cd149865707e70d",
+      "bytes": 146954
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/03_hovered_card_800x600.png",
+      "sha256": "9205a035c760f93fdd7b3e8e42d7e8daef0da5809b26ca3d14e69d0b7ac85ed7",
+      "bytes": 87801
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/04_last_row_hover_800x600.png",
+      "sha256": "130869fbfadc3be6e799743028d0f7c3a65d07709f2f7028e08cbbbd46aa6594",
+      "bytes": 83188
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/05_arsenal_800x600.png",
+      "sha256": "feb55a30f6c3f093080d349410b8cadebd0f87c8cdaf7322da48a7814de09af3",
+      "bytes": 108550
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/cursor_arrow_actual_raster.png",
+      "sha256": "1b34c1123346fb7855e28316fe8ad43816de75aa8662ba372744095055b4b272",
+      "bytes": 2302
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/cursor_hand_actual_raster.png",
+      "sha256": "7dd10db9217cca2f44f2698bf0ad166f14cdfc4ca60c3f694a62df70404028ee",
+      "bytes": 1670
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/engine.log",
+      "sha256": "b6088aec54bb942a28e29b410e1fa7758f2c05a08ef6fd81d330bc4071577fe9",
+      "bytes": 489
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/RESULT.json",
+      "sha256": "382358e270190445b01c5a7fced3c9498102cc76f14375580aab40d372a0acb7",
+      "bytes": 117927
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/RUN.json",
+      "sha256": "b3e04f61f8829093787a6b200d92c867ebfe9f5b623e9afd3ed42da5867b8020",
+      "bytes": 1264
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/world_01_tt_pistol_hover.png",
+      "sha256": "cca9034774a9143656318bca7d81fb37813ef70ecaefe82be6f546ddc148d022",
+      "bytes": 325145
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu15_01/world_02_nagan_hover.png",
+      "sha256": "39936d653c47e800514e878fa94c635b1f4f4362191c992c94c1c1c62fc33b31",
+      "bytes": 326922
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/01_compact_world_hint_1280x720.png",
+      "sha256": "947f2f3b8e75cd3d3b6fd76ba085e3e06f7ca214fe6cad164721b0ab2b12b57c",
+      "bytes": 321035
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/02_hovered_card_1280x720.png",
+      "sha256": "3559f7554a5054723036776bf788dc899f337c20f267cb516ac6e871e13f5715",
+      "bytes": 147059
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/03_hovered_card_800x600.png",
+      "sha256": "5b50c4540ee56fb43c3e93eaeb840b4cb57222e7920005146f28a3c2043be6a0",
+      "bytes": 87806
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/04_last_row_hover_800x600.png",
+      "sha256": "9d1d9291c763af7553d961ac30e5c69bf7cf828421b8a952c8230ab57f6202c8",
+      "bytes": 83102
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/05_arsenal_800x600.png",
+      "sha256": "64e9ce621d9af6bb9091bb12f76590fe006dbef4529c1323fe60edeaa32006e8",
+      "bytes": 108478
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/cursor_arrow_actual_raster.png",
+      "sha256": "1b34c1123346fb7855e28316fe8ad43816de75aa8662ba372744095055b4b272",
+      "bytes": 2302
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/cursor_hand_actual_raster.png",
+      "sha256": "7dd10db9217cca2f44f2698bf0ad166f14cdfc4ca60c3f694a62df70404028ee",
+      "bytes": 1670
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/engine.log",
+      "sha256": "243ce21e23f7a5164d3d4c0ebd8fed68eda015d9b689765d462166e6e19d68f9",
+      "bytes": 489
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/RESULT.json",
+      "sha256": "2d8e8752a5ed52092cb45af7f3529b61f873f191f12ed488a4273065b9a697ca",
+      "bytes": 117943
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/RUN.json",
+      "sha256": "f271ee3e7cfb65b95fa9f42fc7d1efa76b9a9afe61897d1f1c8ef6ab9d332ea6",
+      "bytes": 1264
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/world_01_tt_pistol_hover.png",
+      "sha256": "c170886baf096dc7e2de8d1ce2b23a12e2e72f9675bc4982999ff07570a92b73",
+      "bytes": 326130
+    },
+    {
+      "path": "outputs/coordinator23_cargo_visual16/gpu16_01/world_02_nagan_hover.png",
+      "sha256": "016dbf36524afca8c8ee1bafa6f387be28d0f6339ee6b51f5495275a181919b8",
+      "bytes": 328578
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/capture.gd",
+      "sha256": "50aaa930184a7a0d348f1c5dd587eaae2ef421a601d220478a17df47fd981f8d",
+      "bytes": 12559
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/compare.py",
+      "sha256": "2f96e7fbb5337d5d06bad69851e04a9e8fbc4deebf86f0e66786fb2ad21a0108",
+      "bytes": 4347
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/COMPARISON16.json",
+      "sha256": "7df1d373dbc92b9b259abfb05cb5e6973da9045d115e2d12878e77b79fd6d3c7",
+      "bytes": 10888
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/PREPARED.json",
+      "sha256": "99820da6ce3caee81dca45217e2884ffcd4b872c42b275d6f85bee0c849547c7",
+      "bytes": 1370
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/README.md",
+      "sha256": "5cd7c5da35cab59af704ec47e8387621949923cf0331d6c9137c9ad0bdd24639",
+      "bytes": 4885
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/run_pair_side.py",
+      "sha256": "669caeb24911f9ce27400d1ffc929b042fa88c3d5728f46006cdc415e5c04789",
+      "bytes": 2304
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline01/01_closed_first_world_hover.png",
+      "sha256": "77c301c2e43bd4efd25451897bc6d72842bbe17c082b279a7a836b9126e690b6",
+      "bytes": 356286
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline01/02_open_contents.png",
+      "sha256": "dd13b317a62ba2bed1e2dbdf51c23cd38bf7672d29fd72c0748a4b3324810c92",
+      "bytes": 175813
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline01/03_closed_return.png",
+      "sha256": "58dfe5399d48aa816b26fbba8f185e450e725b09361e0f252d799b223e3e8194",
+      "bytes": 366659
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline01/engine.log",
+      "sha256": "74cd1d7e959119e87cb721563c27cfae58df7d5463b290a089221d165ad06129",
+      "bytes": 504
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline01/RESULT.json",
+      "sha256": "721c9d70f3d08f9407be9ac441c2abe12343c034d9f8ad84e4b5e522d4f457c0",
+      "bytes": 215854
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline01/RUN.json",
+      "sha256": "316cab4741135847db7c251e582e5f84bb81cc3bcd96fee8e35acbfe79e24ab0",
+      "bytes": 1683
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline02/01_closed_first_world_hover.png",
+      "sha256": "5312e05c0135eb20d2240d22c4116b51d587a43e014c2647c68ac3f1d0c1a0f2",
+      "bytes": 356455
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline02/02_open_contents.png",
+      "sha256": "02ef0db037eb0ed7d4c1775589943f758a0b3f178a0b3b7aa8c57f408b4aaa43",
+      "bytes": 175993
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline02/03_closed_return.png",
+      "sha256": "3f5c5549f257aa0e91946a5c9e83924ef2dc6be5392c3177bd56e7c67fa64ef7",
+      "bytes": 366437
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline02/engine.log",
+      "sha256": "0f1767a4107d9f92449768fdc8b76039f784facc28a161343b579fab01d73202",
+      "bytes": 504
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline02/RESULT.json",
+      "sha256": "58b5a117610962ea74b28a55813dea5f0dfc32fda3dfd6e28a0855cdff5cd97e",
+      "bytes": 216312
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/baseline02/RUN.json",
+      "sha256": "fe56b40431fa139590c75d79e2379b89241bbec251ffba84457bf5732b5c1a14",
+      "bytes": 1694
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/candidate16_01/01_closed_first_world_hover.png",
+      "sha256": "d2c4fae9eead28945012234fd6e92ea76b7373c38312ef1da3d6de5dc6b81457",
+      "bytes": 356701
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/candidate16_01/02_open_contents.png",
+      "sha256": "a4a551b3c394d4c34cd38a1df6f0aa9178596cf85df177ca3fc2f229460c4d48",
+      "bytes": 176324
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/candidate16_01/03_closed_return.png",
+      "sha256": "1ac4dff6f81a4fc77c6d7edd0d0a45aa9279cfe179e563b19f627d93100e2541",
+      "bytes": 367343
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/candidate16_01/engine.log",
+      "sha256": "35bb019d58d4a15c98a26cfea25d44736ca1614d5fcd186a1fe5c6cc507971d7",
+      "bytes": 504
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/candidate16_01/RESULT.json",
+      "sha256": "62fd0a01b07e672ec0ca96283844a3acc9c342368b5e0347918dab29da940a28",
+      "bytes": 216266
+    },
+    {
+      "path": "outputs/coordinator23_cargo_perf13/candidate16_01/RUN.json",
+      "sha256": "90d7418d6b91f6bdeab0bc43f1a527a4fb4ba26c551db340dc2eae5913703be5",
+      "bytes": 1700
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/INTEGRATION.json",
+      "sha256": "408c20c3c21087c44e15225e844e1e439b0090c7cef26cf9bc2842e80dd44428",
+      "bytes": 4076
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/exports/win64/s01-20260930-quality23h/build_receipt.json",
+      "sha256": "9e18c421b15422b667f3787b2fcc263a5ebd427402589a5c219ef107023e9472",
+      "bytes": 56848
+    }
+  ]
+}

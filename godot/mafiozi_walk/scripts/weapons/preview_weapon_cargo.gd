@@ -16,6 +16,10 @@ var _window_selected_uid:=""
 var _window_busy:=false
 var _window_snapshot:Dictionary={}
 var _window_revision:=-1
+var _modal_keys_down:Dictionary={}
+var _modal_mouse_down:Dictionary={}
+var _take_key_releases:Dictionary={}
+var _take_mouse_releases:Dictionary={}
 var _cargo_ui_revision := -1
 var _cargo_ui_names: Dictionary = {}
 var _cargo_card_scope := ""
@@ -153,19 +157,36 @@ func _sample() -> Dictionary:
 	var context:=aim_context()
 	var sample:Dictionary={"revision":1,"sample":evidence.sample(),"target_open":bool(context.open),"interaction_allowed":_allowed() and bool(context.cargo_allowed),"aimed_trunk":bool(context.aimed_trunk),"aimed_item_uid":str(context.item_uid)}
 	if _window_access():
-		sample.selection_mode="trunk_window" if window_open else "near_open_trunk"
+		sample.selection_mode="trunk_window" if window_open else ("aim" if not str(context.item_uid).is_empty() else "near_open_trunk")
 		sample.window_open=window_open;sample.window_epoch=_window_epoch;sample.selected_item_uid=_window_selected_uid
 	elif window_open:
 		sample.interaction_allowed=false
 	return sample
 
 func _input(event: InputEvent) -> void:
-	if window_open: return # Weapon host owns modal keys before transport/player shortcuts.
+	# A successful take may close the modal on key-down; its matching release
+	# still belongs to that activation, never to a seat/jump/fire action.
+	if event is InputEventKey:
+		var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
+		if _take_key_releases.has(code):
+			if not event.pressed:_take_key_releases.erase(code)
+			get_viewport().set_input_as_handled();return
+		if code in [KEY_E,KEY_ENTER,KEY_KP_ENTER,KEY_SPACE]:
+			if window_open and event.pressed:_modal_keys_down[code]=true
+			elif not event.pressed:_modal_keys_down.erase(code)
+	elif event is InputEventMouseButton:
+		if _take_mouse_releases.has(event.button_index):
+			if not event.pressed:_take_mouse_releases.erase(event.button_index)
+			get_viewport().set_input_as_handled();return
+		if event.button_index==MOUSE_BUTTON_LEFT:
+			if window_open and event.pressed:_modal_mouse_down[event.button_index]=true
+			elif not event.pressed:_modal_mouse_down.erase(event.button_index)
+	if window_open:return # Weapon host owns modal keys before transport/player shortcuts.
 	if not _allowed() or not event is InputEventKey or not event.pressed or event.echo: return
 	var key: int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
-	if key not in [KEY_G,KEY_E]: return
+	if key not in [KEY_G,KEY_E,KEY_F]: return
 	var context:=aim_context()
-	if key==KEY_E and context.near_trunk and context.open:
+	if key==KEY_F and context.near_trunk and context.open:
 		open_window();get_viewport().set_input_as_handled();return
 	if key==KEY_G and context.near_trunk:
 		# Closed cargo never falls through to a ground drop.
@@ -395,7 +416,8 @@ func consume_vehicle_destruction(event_uid: String) -> Dictionary:
 
 func _process(delta: float) -> void:
 	if not _ready_for_play: return
-	if window_open and (not _allowed() or not transport.compartments.is_open("trunk")):close_window(false)
+	if not _allowed():_take_key_releases.clear();_take_mouse_releases.clear()
+	if window_open and (not _allowed() or not transport.compartments.is_open("trunk")):_invalidate_window_controls()
 	if renderer.has_method("update"): renderer.update(delta)
 	# Invalidation is immediate; geometry/authority sampling remains bounded.
 	# Do not erase a ground pickup hint each frame merely because trunk is closed.
@@ -411,10 +433,11 @@ func _process(delta: float) -> void:
 	_refresh=.15
 	if not _allowed(): return
 	if window_open:
-		if not _window_access():close_window(false)
+		if not _window_access():_invalidate_window_controls()
 		else:_refresh_window()
 		return
 	var context:=aim_context()
+	if renderer.has_method("set_hover"):renderer.set_hover(context)
 	var camera: Camera3D=weapons.player.get_preview_camera()
 	weapons.set_cargo_reticle(bool(context.near_trunk and context.open) or not str(context.drop_uid).is_empty())
 	if context.near_trunk and context.open:
@@ -427,11 +450,10 @@ func _process(delta: float) -> void:
 				_cargo_ui_names.clear()
 				for entry: Dictionary in contents.items: _cargo_ui_names[str(entry.item.uid)]=str(entry.item.weaponId)
 				_cargo_ui_revision=int(contents.revision)
-		var actions:Array=[{"key":"E","label":"Открыть содержимое"}]
-		if weapons.armed():actions.append({"key":"G","label":"Положить оружие"})
+		var aimed_uid:String=str(context.item_uid)
+		var actions:Array=[{"key":"E","label":"Взять" if not aimed_uid.is_empty() else "Закрыть крышку"},{"key":"F","label":"Содержимое"}]
 		transport.set_cargo_item_hint_focus(bool(context.cargo_allowed))
-		var detail:String="Выберите оружие в окне багажника"
-		if int(state.get("selected_cost",0))>0: detail+=("\n" if not detail.is_empty() else "")+"В руках: %d ед. места" % int(state.selected_cost)
+		var detail:String="G — положить оружие" if weapons.armed() else ""
 		if _feedback_time>0: detail+=("\n" if not detail.is_empty() else "")+_feedback
 		var bounds: Dictionary=transport.compartments.cargo_bounds()
 		if bounds.is_empty(): _clear_cargo_ui(); return
@@ -443,7 +465,8 @@ func _process(delta: float) -> void:
 		_bind_ui_layout()
 		targets.append_array(_ui_lid_bounds)
 		_hint.set_layout_context(camera,"trunk:"+vehicle_id,targets,weapons.player,_ui_control_refs)
-		_hint.present(camera,anchor,"Багажник",actions,int(state.get("used_units",0)),int(state.get("capacity_units",100)),detail)
+		var title:String=weapons.LABELS.get(_cargo_ui_names.get(aimed_uid,""),"Багажник") if not aimed_uid.is_empty() else "Багажник"
+		_hint.present_trunk(camera,anchor,title,actions,detail)
 	elif not str(context.drop_uid).is_empty():
 		transport.set_cargo_item_hint_focus(false)
 		# Pick metadata is already present in renderer.pick; no new ray/mesh query.
@@ -464,6 +487,7 @@ func _process(delta: float) -> void:
 		_clear_cargo_ui()
 
 func _clear_cargo_ui() -> void:
+	if renderer!=null and renderer.has_method("clear_hover"):renderer.clear_hover()
 	_cargo_card_scope=""
 	transport.set_cargo_item_hint_focus(false)
 	weapons.set_cargo_reticle(false)
@@ -592,12 +616,23 @@ func open_window()->bool:
 func close_window(capture:bool=true)->void:
 	if not window_open:return
 	window_open=false;_window_epoch+=1;_window_selected_uid="";_window_snapshot.clear();_window_revision=-1
-	if is_instance_valid(_window):_window.visible=false
+	_modal_keys_down.clear();_modal_mouse_down.clear()
+	if is_instance_valid(_window):_window.clear_hover();_window.visible=false
 	if is_instance_valid(transport):transport.set_cargo_item_hint_focus(false)
 	if is_instance_valid(weapons):
 		weapons.cancel_inputs();_release_window_actions()
-		if capture and weapons._interaction_allowed():Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
+		if capture and weapons._interaction_allowed():_resume_window_controls()
 	_refresh=0
+
+func _invalidate_window_controls()->void:
+	close_window(false)
+	if is_instance_valid(weapons) and is_instance_valid(weapons.player):weapons.player.set_mouse_captured(false)
+
+func _resume_window_controls()->void:
+	# Normal focused gameplay resumes immediately. Synthetic offscreen QA must
+	# not steal the desktop cursor; losing focus also suspends logical controls.
+	if DisplayServer.get_name()=="headless" or (get_window().has_focus() and not get_window().unfocusable):weapons.player.set_mouse_captured(true)
+	else:weapons.player.set_mouse_captured(false)
 
 func window_input(event:InputEvent)->bool:
 	if not window_open:return false
@@ -605,7 +640,10 @@ func window_input(event:InputEvent)->bool:
 		_release_window_actions()
 		if event.pressed and not event.echo:
 			var code:int=event.physical_keycode if event.physical_keycode!=0 else event.keycode
-			if code in [KEY_E,KEY_Q]:close_window()
+			if code==KEY_Q:close_window()
+			elif code==KEY_E:
+				var uid:String=_window.hovered_item_uid()
+				if not uid.is_empty():window_take(uid)
 			elif code==KEY_ESCAPE:close_window(false);weapons.player.set_mouse_captured(false)
 			elif code==KEY_G:window_store()
 		return true
@@ -621,7 +659,18 @@ func window_take(uid:String)->Dictionary:
 	if _window_busy or not window_open or not _window_access():return {"ok":false,"reason":"window_access"}
 	_window_busy=true;_window_selected_uid=uid
 	var result:Dictionary=take_item(uid)
-	_window_selected_uid="";_window_busy=false;_refresh_window(true);return result
+	_window_selected_uid="";_window_busy=false
+	if result.get("ok",false):
+		# Claim the GUI activation before hiding controls. Button activation can
+		# occur on either edge; currently held activation edges are quarantined.
+		get_viewport().set_input_as_handled()
+		_take_key_releases=_modal_keys_down.duplicate();_take_mouse_releases=_modal_mouse_down.duplicate()
+		_modal_keys_down.clear();_modal_mouse_down.clear()
+		weapons.cancel_inputs();close_window()
+	else:
+		_feedback="Оружие уже недоступно" if result.get("reason")=="missing_item" else "Не удалось взять оружие"
+		_feedback_time=1.6;_refresh_window(true)
+	return result
 
 func window_close_lid()->void:
 	if not window_open or not _window_access():return
@@ -630,9 +679,9 @@ func window_close_lid()->void:
 func _refresh_window(force:bool=false)->void:
 	if not window_open:return
 	var summary:Dictionary=cargo.summary(generation)
-	if not summary.get("ok",false) or summary.destroyed:close_window(false);return
+	if not summary.get("ok",false) or summary.destroyed:_invalidate_window_controls();return
 	if force or _window_revision!=int(summary.revision):
 		_window_snapshot=cargo.snapshot(generation)
-		if not _window_snapshot.get("ok",false):close_window(false);return
+		if not _window_snapshot.get("ok",false):_invalidate_window_controls();return
 		_window_revision=int(summary.revision)
 	_window.present(_window_snapshot,weapons.fire_state,_feedback if _feedback_time>0 else "")

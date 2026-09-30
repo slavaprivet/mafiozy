@@ -1,6 +1,7 @@
 extends Node3D
 ## First migration quarter: authored assets, walking and source printshop doors.
 
+const GameCursor = preload("res://scripts/ui/walk_cursor.gd")
 const PlayerController = preload("res://scripts/preview_player.gd")
 const BlockValidation = preload("res://scripts/preview_block_validation.gd")
 const SurfaceMaterials = preload("res://scripts/preview_surface_materials.gd")
@@ -21,7 +22,7 @@ const STATIC_RENDER_OWNER_IDS := [
 	"REBUILD-VISUAL-old_town_narrow_townhouse_v1-007", "LAMP-1-83", "LAMP-15-78", "LAMP-19-97",
 	"LAMP-21-84", "LAMP-29-79", "LAMP-30-98", "LAMP-9-102", "LAMP-9-84"
 ]
-const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23g"
+const PREVIEW_RUNTIME_REVISION := "s01-20260930-quality23h"
 const PRINTSHOP_DATA_SHA256 := "958a2c2d8cbdc2b2e2e11a57e33bf9bf5a20ec334be8a8997bdad951f9f8086b"
 const WATER_DATA_SHA256 := "ac70f924e1beef0f8501c48d09535a89d47effff014bf0f32b8abc72b3e3b824"
 @export_file("*.json") var block_data_path: String = "res://data/block.json"
@@ -93,6 +94,7 @@ var _capture_path: String = ""
 var _last_frame_usec: int = 0
 
 func _ready() -> void:
+	GameCursor.install()
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(block_data_path))
 	var prepared: Dictionary = BlockValidation.prepare_assets(parsed)
 	validation_errors = prepared["errors"]
@@ -432,6 +434,7 @@ func _jump_surface_point_contains(source_xz: Vector2) -> bool:
 	return _jump_surface_cells[int(floor(row)) * _jump_surface_size.x + int(floor(col))] == 1
 
 func _exit_tree() -> void:
+	GameCursor.release()
 	if preview_population != null:
 		preview_population.dispose()
 	# Parent still exists here; clear host-owned mesh/material before destruction.
