@@ -1,0 +1,84 @@
+{
+  "schema": "root23.contact-test-closure/v1",
+  "workspace_relative_paths": true,
+  "minimal_additional_dependency_to_commit": [
+    "outputs/artist23_combat_next/test_combined_eyes_input.gd"
+  ],
+  "shared_parent": {
+    "path": "outputs/artist23_combat_next/test_combined_eyes_input.gd",
+    "sha256": "949c94a1028fe27d81ba9d7704f373a8c95a0e7ef736077d89d9adffbfde96e4",
+    "bytes": 9898,
+    "modified_by_this_task": false
+  },
+  "local_script_graph": {
+    "outputs/coordinator23_corpse_contact/test_actual_main_public_port.gd": {
+      "extends": [
+        "outputs/artist23_combat_next/test_combined_eyes_input.gd"
+      ],
+      "preload": []
+    },
+    "outputs/coordinator23_visual_harness/capture_npc_actual_input.gd": {
+      "extends": [
+        "outputs/artist23_combat_next/test_combined_eyes_input.gd"
+      ],
+      "preload": []
+    },
+    "outputs/artist23_combat_next/test_combined_eyes_input.gd": {
+      "extends": [
+        "builtin:SceneTree"
+      ],
+      "preload": []
+    },
+    "outputs/coordinator23_corpse_contact/test_native_contacts.gd": {
+      "extends": [
+        "builtin:SceneTree"
+      ],
+      "preload": [
+        "outputs/coordinator23_corpse_contact/player_corpse_contact.gd"
+      ]
+    },
+    "outputs/coordinator23_corpse_contact/player_corpse_contact.gd": {
+      "extends": [
+        "builtin:RefCounted"
+      ],
+      "preload": []
+    }
+  },
+  "external_runtime_contract": {
+    "provider": "root-approved frozen PCK or properly imported native Godot project; tests are not standalone runtime bundles",
+    "paths": [
+      "res://scenes/main.tscn",
+      "res://scripts/preview_player.gd",
+      "res://scripts/preview_population.gd"
+    ],
+    "future_required_public_port": [
+      "player.set_final_dead_contact_owner",
+      "population.player_final_dead_contact_ready",
+      "population.admit_player_final_dead_contact"
+    ],
+    "optional_contact_port": "explicit --contact-port absolute .gd delivered by NPC owner; its future local dependency closure must accompany that delivery",
+    "missing_public_API_result": "SKIP, pass:false, before main load"
+  },
+  "files": {
+    "outputs/coordinator23_corpse_contact/test_actual_main_public_port.gd": {
+      "bytes": 14608,
+      "sha256": "88bacac552776d8a6e2af69987105153fa95571c88fae53bcfd284e6299901ed"
+    },
+    "outputs/coordinator23_visual_harness/capture_npc_actual_input.gd": {
+      "bytes": 3485,
+      "sha256": "8fd584fc919ff4fc5c35cc8dd68e660c34fbc8a955040323a880a3a14f8957b9"
+    },
+    "outputs/artist23_combat_next/test_combined_eyes_input.gd": {
+      "bytes": 9898,
+      "sha256": "949c94a1028fe27d81ba9d7704f373a8c95a0e7ef736077d89d9adffbfde96e4"
+    },
+    "outputs/coordinator23_corpse_contact/test_native_contacts.gd": {
+      "bytes": 5458,
+      "sha256": "a6f471e0d7d33396e2077342a33bf485cc378c24e668a44a668c2bb605dfdb85"
+    },
+    "outputs/coordinator23_corpse_contact/player_corpse_contact.gd": {
+      "bytes": 6352,
+      "sha256": "b7fa6946cfbac69cf2d427d036f5db57dcbf99c8d8e3b3eb9c7b42a13da14a5a"
+    }
+  }
+}

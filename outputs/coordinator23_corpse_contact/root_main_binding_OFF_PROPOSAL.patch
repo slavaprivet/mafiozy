@@ -1,0 +1,35 @@
+--- a/godot/mafiozi_walk/scripts/main.gd
++++ b/godot/mafiozi_walk/scripts/main.gd
+@@ -36,6 +36,8 @@
+ @export var preview_residents_enabled: bool = true
+ @export var preview_resident_walk_enabled: bool = true
+ @export var preview_melee_enabled: bool = true
++@export var preview_final_dead_contact_enabled: bool = false # Pending public NPC-owner contract + acceptance.
++var final_dead_contact_status := "disabled"
+ @export var preview_weapons_enabled: bool = true
+ var preview_weapons: Node
+ var weapons_status := "disabled"
+@@ -203,6 +205,7 @@
+ 		preview_population = PreviewPopulation.new()
+ 		preview_population.setup(self, true, preview_resident_walk_enabled)
+ 		population_status = preview_population.status
++	if preview_final_dead_contact_enabled: _bind_final_dead_contact_port()
+ 	preview_ready = true
+ 	_setup_preview_perf()
+ 	_last_frame_usec = Time.get_ticks_usec()
+@@ -896,3 +899,15 @@
+ 	label.add_theme_font_size_override("font_size", 20)
+ 	panel.add_child(label)
+ 	push_error("Character physics stopped: " + preview_transport.character_physics.fault_reason)
++
++
++## Root-owned wiring only. Public owner methods must exist before opt-in.
++func _bind_final_dead_contact_port() -> bool:
++	if preview_population == null or not _player.has_method("set_final_dead_contact_owner"):
++		final_dead_contact_status = "unavailable_player_or_population"; return false
++	for method: String in ["player_final_dead_contact_ready", "admit_player_final_dead_contact"]:
++		if not preview_population.has_method(method):
++			final_dead_contact_status = "public_NPC_port_not_delivered"; return false
++	var bound: bool = _player.set_final_dead_contact_owner(Callable(preview_population,"player_final_dead_contact_ready"), Callable(preview_population,"admit_player_final_dead_contact"))
++	final_dead_contact_status = "bound_waiting_owner_ready" if bound else "binding_failed"
++	return bound

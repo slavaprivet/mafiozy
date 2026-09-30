@@ -1,5 +1,44 @@
 # Кординатор 23 — 30 сентября 2026
 
+## 05:53 — user requested save everything to main; completed
+
+USER: «в мейн все что мы сделали созрани. там так же взрывы зданий агент
+сделал очень крутую механику разрушений здания.» Published and remote-verified
+d9a1ea750e4ba3f0e6ca9c18ca9559117084352d after523a54eb. The first checkpoint
+saves41 exact runtime23e paths. The second saves148 scoped files,11.16MB:
+Industry approved standalone destruction16files+manifest+4PNG, root114-file
+evidence closure, current memory/handoff/board/README, and tests. No add-all,
+no reset/stash/foreign WIP. All198 accepted runtime/export inputs and16 exact
+destruction files independently match HEAD bytes: REMOTE_CONTENT_VERIFY.json.
+
+Industry user separately approved mass rollout to ALL Godot buildings, material
+strength glass<wood<concrete, preserving SEPARATE Walk glass mechanic. Work in
+outputs/building_destruction_rollout_20260930; root main/player/project/export
+seams unchanged. Saved prototype is not city-wide integration: current v3
+functional/render629PASS; earlier screenshots v2samegeometry/palette; full
+collapse133.879ms interval unresolved, no cityFPS claim. Owner froze16inputSHA.
+
+Supplemental cargo test initial172/1FAIL was a stale expectation: source forward
+drop candidates .8/.55 overlap firstNagan, .3/0 overlap actual player. TESTONLY
+now checks refusal preserves UID/ammo and first reservation, then90deg fixture
+turn without physics await. SAME23ePCK184PASS, sourceplacement unchanged.
+Resident staging including native final-death fixture PASS. Tests saved inmain.
+
+Foot contact remains OFF: root sampler54 real-query PASS; optional root binding
+and actual-main future harness gate SKIP until publicNPC owner ready/admit API
+exists. No privateforce fallback. Current generic wholebody impulse465 is HOLD:
+no pointtorque, shotgun camera-forward differs actual terminalray. Artist owns
+corrected splitpoint/alwayslethalheadshot/marks optimization; markers63 functional
+PASS but14–28ms hitcost HOLD. Root doesn't copy those unfinished candidates.
+Artist may independently install exact tested narrow no-standing-teleport fix;
+root is not staging/editing NPC concurrently. Need reviewed SHA receipt first.
+
+Fresh05:52 inventory: onlyProjectManager45268, no usergame. Original21024 ended
+by05:33, cause unknown; don't claim stillopen. Shortcut stillaccepted23ePCK.
+No rootGPU/newdemo launched during save. Next priority: publicNPCcontact API,
+actual sleeping corpse footwake/displacement/joints/negatives + same-sceneperf,
+then owner pointimpulse/headshot/marks integration before sequentialrollforward.
+
 ## 05:38 — accepted 23e published; corpse contact and wound physics in progress
 
 Published main/origin verified 523a54eb5befc133a3dfbe8e430e30e8ca1d3713.
