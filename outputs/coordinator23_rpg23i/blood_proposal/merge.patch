@@ -1,0 +1,59 @@
+--- a/scripts/npc_visual/npc_blood_adapter.gd
++++ b/scripts/npc_visual/npc_blood_adapter.gd
+@@ -48,6 +48,39 @@
+ 	renderer.accept(point,normal,now,false)
+ 	return true
+ 
++## Receipt-backed blast burst, not a skin hit or persistent bullet wound.
++## Call after applied HP but before its IDLE -> ACTIVE physical publication.
++func receive_blast(event_id: String, anchor: Vector3, outward: Vector3) -> bool:
++	if not _current(): retire(); return false
++	if event_id.is_empty() or not anchor.is_finite() or not outward.is_finite() or outward.length_squared()<.5: return false
++	var receipt: Dictionary=_owner._adapter.receipt(event_id)
++	if receipt.is_empty() or receipt!=_owner.last_result or receipt.get("binding")!=_binding or receipt.get("event_id")!=event_id: return false
++	if not receipt.get("ok",false) or not receipt.get("applied",false) or receipt.get("reason") not in ["hit","surrender","medical_downed","final_death"]: return false
++	var hit: Dictionary=receipt.get("hit",{})
++	if hit.get("weapon_id")!="rpg" or not hit.get("blast_origin_world") is Vector3 or not hit.blast_origin_world.is_finite(): return false
++	var revision:=int(receipt.get("revision",0))
++	var damage:=float(hit.get("damage",0))
++	var now:=float(receipt.get("source_now_ms",-1))*.001
++	if revision<=_last_revision or not is_finite(damage) or damage<=0 or not is_finite(now) or now<0: return false
++	var direction:=Vector3(float(hit.get("dir_c",0)),0,float(hit.get("dir_r",0)))
++	if not direction.is_finite() or absf(direction.length_squared()-1.0)>.0001 or outward.normalized().distance_to(direction)>.0001: return false
++	if not _host._ragdolls.has(_token.source_id): return false
++	var physical: RefCounted=_host._ragdolls[_token.source_id]
++	var expected: Vector3=_token.body.global_position
++	var emit_point: Vector3=anchor+Vector3.UP*renderer._height*.42
++	if physical.mode in ["ACTIVE","RECOVERING","RECOVERY_HOLD"]:
++		var sample: Dictionary=physical._body.snapshot()
++		if not sample.get("valid",false) or not sample.get("active",false) or not sample.get("anchor_world") is Vector3: return false
++		expected=sample.anchor_world
++		# Gate already supplies the current physical pelvis, not standing feet.
++		emit_point=anchor
++	elif physical.mode!="IDLE": return false
++	if not expected.is_finite() or anchor.distance_to(expected)>.001: return false
++	if not _current(): retire(); return false
++	if not renderer.accept_blast(emit_point,direction,now): return false
++	_last_revision=revision
++	return true
++
+ ## Scheduler hint only; receive/step still perform the full current lease.
+ ## A generation replacement without disposal can retain only an empty pool
+ ## for at most250ms. Ordinary owner disposal still frees the pool immediately.
+--- a/scripts/npc_visual/npc_blood_renderer.gd
++++ b/scripts/npc_visual/npc_blood_renderer.gd
+@@ -81,6 +81,14 @@
+ 	_wounds.append({"bone":nearest,"local":transform.affine_inverse()*point,"expires":now+(12 if heavy else 8),"next":now+.18,"interval":.32 if heavy else .45})
+ 	if _wounds.size()>4: _wounds.pop_front()
+ 
++## Final world emission point supplied by the current HP/pose adapter.
++## Reuses the same112-instance pool; never adds a wound or drip attachment.
++func accept_blast(point: Vector3, outward: Vector3, now: float) -> bool:
++	if not is_instance_valid(mesh) or not mesh.is_inside_tree() or not is_instance_valid(_body) or not is_instance_valid(_rig): return false
++	if not point.is_finite() or not outward.is_finite() or outward.length_squared()<.5 or not is_finite(now) or now<0: return false
++	_emit(point,32,outward)
++	return true
++
+ func update(delta: float, now: float, ground: float) -> void:
+ 	if mesh==null or not is_instance_valid(_body) or not is_instance_valid(_rig): return
+ 	if not is_finite(delta) or not is_finite(now) or not is_finite(ground): clear(); return

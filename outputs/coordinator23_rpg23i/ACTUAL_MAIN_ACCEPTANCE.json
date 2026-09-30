@@ -1,0 +1,214 @@
+{
+  "status": "SIX_ACTUAL_MAIN_CASES_PASS_GPU_NOT_RUN",
+  "checks_total": 209,
+  "cases": [
+    {
+      "folder": "floor01",
+      "case": "floor",
+      "checks": 51,
+      "seconds": 7.689,
+      "valid": true,
+      "clean_engine_log": true,
+      "source_stable": true,
+      "actual_harness_sha256": "b913f9ee214d9a75953f8e9d5017086e82c77bb06153aa42da838433f8fb94cc",
+      "original_collisions": 377,
+      "damage": [
+        {
+          "source_id": "resident_72",
+          "damage": 135,
+          "reason": "medical_downed",
+          "physical_status": "initial_uniform_applied"
+        },
+        {
+          "source_id": "resident_169",
+          "damage": 72,
+          "reason": "final_death",
+          "physical_status": "initial_uniform_applied"
+        },
+        {
+          "source_id": "resident_252",
+          "damage": 85,
+          "reason": "final_death",
+          "physical_status": "initial_uniform_applied"
+        }
+      ],
+      "unchanged_nonrecipients_readback": [],
+      "pins": {
+        "RESULT.json": "3c2f60ab91875c28d4f7ca523d7041f25b533f8a0840c27e5f9999ff7e100241",
+        "RUN.json": "a099ecca44cc4f19a87ccb17253b74037c5aff5c84f3761776e8991d079acb09",
+        "engine.log": "4f8b7fa359999e4d4cae860a738c3610844a07a2232a37ec52ca2c7871b6cc09"
+      }
+    },
+    {
+      "folder": "wall02",
+      "case": "wall",
+      "checks": 42,
+      "seconds": 6.756,
+      "valid": true,
+      "clean_engine_log": true,
+      "source_stable": true,
+      "actual_harness_sha256": "28adcbfa6feb425721c5ab4e3134e1ea685f26970418121e8f9eebea03abc7c2",
+      "original_collisions": 377,
+      "damage": [
+        {
+          "source_id": "resident_72",
+          "damage": 110,
+          "reason": "medical_downed",
+          "physical_status": "initial_uniform_applied"
+        },
+        {
+          "source_id": "resident_169",
+          "damage": 48,
+          "reason": "hit",
+          "physical_status": "standing_survivor_no_ragdoll_transition"
+        }
+      ],
+      "unchanged_nonrecipients_readback": [
+        "resident_252"
+      ],
+      "pins": {
+        "RESULT.json": "8eb4e8ac8193a07f43a835944576e6022a8387fcd57e7ad081c73a3c0b123f28",
+        "RUN.json": "65e0a3a71fbde5f7a7677d2fdd21287984d71056c98278d0788d12ff4a6ffb50",
+        "engine.log": "c19b0160d910232d317c1962ededf85f832224a507fd1db9a3f5effeb3f379cc"
+      }
+    },
+    {
+      "folder": "spread01",
+      "case": "spread",
+      "checks": 52,
+      "seconds": 6.947,
+      "valid": true,
+      "clean_engine_log": true,
+      "source_stable": true,
+      "actual_harness_sha256": "b913f9ee214d9a75953f8e9d5017086e82c77bb06153aa42da838433f8fb94cc",
+      "original_collisions": 377,
+      "damage": [
+        {
+          "source_id": "resident_72",
+          "damage": 163,
+          "reason": "medical_downed",
+          "physical_status": "initial_uniform_applied"
+        },
+        {
+          "source_id": "resident_169",
+          "damage": 91,
+          "reason": "final_death",
+          "physical_status": "initial_uniform_applied"
+        },
+        {
+          "source_id": "resident_252",
+          "damage": 100,
+          "reason": "medical_downed",
+          "physical_status": "initial_uniform_applied"
+        }
+      ],
+      "unchanged_nonrecipients_readback": [],
+      "pins": {
+        "RESULT.json": "39249a5c362595d392782ec1964de24e2377fa6b3ce100dca8e9445ae2b2e3d7",
+        "RUN.json": "cb5c3095c5e49ff688965271374f971ce6c8818830cc293dc9f48b7d901645bd",
+        "engine.log": "3b2dd2f9045c7348e5e6fb8eda246f8dc34512c34351e9637c19eb35be5f0f2b"
+      }
+    },
+    {
+      "folder": "range_end01",
+      "case": "range_end",
+      "checks": 34,
+      "seconds": 7.548,
+      "valid": true,
+      "clean_engine_log": true,
+      "source_stable": true,
+      "actual_harness_sha256": "28adcbfa6feb425721c5ab4e3134e1ea685f26970418121e8f9eebea03abc7c2",
+      "original_collisions": 377,
+      "damage": [
+        {
+          "source_id": "resident_72",
+          "damage": 120,
+          "reason": "medical_downed",
+          "physical_status": "initial_uniform_applied"
+        }
+      ],
+      "unchanged_nonrecipients_readback": [
+        "resident_169",
+        "resident_252"
+      ],
+      "pins": {
+        "RESULT.json": "8ff2ed891e746457f16ad84ba25c7c7c036efaf488fa32318275ad7cb8b75920",
+        "RUN.json": "8e9b623cda58b47ecaf791141ffcc4bf7bf587a134a50f31aab466fecd737489",
+        "engine.log": "90ce4037391cdabd42996e5aad3249cebab8ff7fef4606ead2d8786d79955205"
+      }
+    },
+    {
+      "folder": "cancel01",
+      "case": "cancel",
+      "checks": 15,
+      "seconds": 6.846,
+      "valid": true,
+      "clean_engine_log": true,
+      "source_stable": true,
+      "actual_harness_sha256": "28adcbfa6feb425721c5ab4e3134e1ea685f26970418121e8f9eebea03abc7c2",
+      "original_collisions": 377,
+      "damage": [],
+      "unchanged_nonrecipients_readback": [],
+      "pins": {
+        "RESULT.json": "09fbaf6ad2acd75b7175ea9b13aece183840bc228684c910deafd78dffa479d5",
+        "RUN.json": "928a958008bc6aed5dc557a797f04c0cc7c9a02ed22423a09ec12728bdf1f463",
+        "engine.log": "7bdbbe209cfaf3cfe91f377b4267dd567bb591fee13b500904358c81ef4c8bb0"
+      }
+    },
+    {
+      "folder": "context_dispose01",
+      "case": "context_dispose",
+      "checks": 15,
+      "seconds": 6.813,
+      "valid": true,
+      "clean_engine_log": true,
+      "source_stable": true,
+      "actual_harness_sha256": "28adcbfa6feb425721c5ab4e3134e1ea685f26970418121e8f9eebea03abc7c2",
+      "original_collisions": 377,
+      "damage": [],
+      "unchanged_nonrecipients_readback": [
+        "resident_169",
+        "resident_252",
+        "resident_72"
+      ],
+      "pins": {
+        "RESULT.json": "de07d592ccb80a8e272bc0015302622fc8056b1358e751df18101c275ab0a768",
+        "RUN.json": "20905e975cfd2efef0ad4dff2957cb1ec51ed402f5326a04ce2650987f0052a4",
+        "engine.log": "01c594986a6c53cbc1fe72ea877e06a2085dc78b449b9b92c790ddd7b54142bd"
+      }
+    }
+  ],
+  "integration_receipt_sha256": "ba785cacbb45e8ba95783b3c40f0efd5e204e4d961d30ecf589ae3978483c69f",
+  "verified7_integration_files_after_runs": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+    "scripts/npc_visual/npc_rpg_blast_gate.gd": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+    "scripts/weapons/rpg_effects.gd": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+    "scripts/weapons/preview_weapons.gd": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+    "scripts/preview_population.gd": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+    "export_presets.cfg": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb"
+  },
+  "runtime_pins_before_after_each_run": {
+    "scripts/main.gd": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+    "scripts/preview_player.gd": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+    "scripts/weapons/preview_weapons.gd": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+    "scripts/weapons/rpg_effects.gd": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+    "scripts/weapons/rpg_flight.gd": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+    "scripts/npc_visual/npc_rpg_blast_gate.gd": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88"
+  },
+  "harness_versions": {
+    "b913": "tests/actual_main_b913.gd",
+    "28ad": "tests/actual_main_28ad.gd"
+  },
+  "fixture_repair": "wall01 correctly failed: closest horizontal surface was actual car RigidBody. wall02 requires original StaticBody3D at selection and terminal; same production bytes, no new wall/collider. Failed result preserved.",
+  "limits": [
+    "Headless actual input/HP/flight/physical lifecycle only; no GPU/performance/visual/ordinary-camera claim.",
+    "Source survivors/medical/final preserved. Secondary impulse for already ACTIVE body remains separate HOLD; suite tests initial IDLE-to-ragdoll.",
+    "No blast wounds/blood/severing, self HP, vehicles, buildings, server or other future recipients accepted.",
+    "QA player placement may stand on existing elevated static geometry; not navigation acceptance.",
+    "Range-end highY explicitly verifies source horizontal NPC radius;1original target in radius, other2retained unchanged.",
+    "Positive callbacks never manufactured: actual retired Flight receipt forwarded once unchanged. Replay/disposal are explicit trusted local lifecycle probes."
+  ]
+}

@@ -1,0 +1,3034 @@
+{
+	"checks": [
+		{
+			"label": "final:actual_main_ready",
+			"ok": true
+		},
+		{
+			"label": "final:original_three_recipients",
+			"ok": true
+		},
+		{
+			"label": "final:arbitrary_gate_rejected",
+			"ok": true
+		},
+		{
+			"label": "final:authentic_gate_bound",
+			"ok": true
+		},
+		{
+			"label": "final:forged_opaque_target_rejected",
+			"ok": true
+		},
+		{
+			"label": "final:rebind_rejected",
+			"ok": true
+		},
+		{
+			"label": "final:real_RPG_equip",
+			"ok": true
+		},
+		{
+			"label": "final:one_real_source_shot",
+			"ok": true
+		},
+		{
+			"label": "final:actual_flight_prepare",
+			"ok": true
+		},
+		{
+			"label": "final:real_pre_ammo_capability",
+			"ok": true
+		},
+		{
+			"label": "final:real_inventory_commit_once",
+			"ok": true
+		},
+		{
+			"label": "final:real_effects_flight_commit",
+			"ok": true
+		},
+		{
+			"label": "final:actual_post_ammo_admitted",
+			"ok": true
+		},
+		{
+			"label": "final:one_RPG_round_spent",
+			"ok": true
+		},
+		{
+			"label": "final:native_impact_replay_rejected",
+			"ok": true
+		},
+		{
+			"label": "final:real_native_flight_impacted",
+			"ok": true
+		},
+		{
+			"label": "final:authentic_gate_delivers_current_targets",
+			"ok": true
+		},
+		{
+			"label": "final:no_fake_bullet_contact_resident_72",
+			"ok": true
+		},
+		{
+			"label": "final:original_complete_rig_mass_resident_72",
+			"ok": true
+		},
+		{
+			"label": "final:distributed_only_impulse_resident_72",
+			"ok": true
+		},
+		{
+			"label": "final:mass_partition_conserves_total_J_resident_72",
+			"ok": true
+		},
+		{
+			"label": "final:final_death_preserved_resident_72",
+			"ok": true
+		},
+		{
+			"label": "final:no_fake_bullet_contact_resident_169",
+			"ok": true
+		},
+		{
+			"label": "final:original_complete_rig_mass_resident_169",
+			"ok": true
+		},
+		{
+			"label": "final:distributed_only_impulse_resident_169",
+			"ok": true
+		},
+		{
+			"label": "final:mass_partition_conserves_total_J_resident_169",
+			"ok": true
+		},
+		{
+			"label": "final:final_death_preserved_resident_169",
+			"ok": true
+		},
+		{
+			"label": "final:no_fake_bullet_contact_resident_252",
+			"ok": true
+		},
+		{
+			"label": "final:original_complete_rig_mass_resident_252",
+			"ok": true
+		},
+		{
+			"label": "final:distributed_only_impulse_resident_252",
+			"ok": true
+		},
+		{
+			"label": "final:mass_partition_conserves_total_J_resident_252",
+			"ok": true
+		},
+		{
+			"label": "final:final_death_preserved_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical:actual_main_ready",
+			"ok": true
+		},
+		{
+			"label": "medical:original_three_recipients",
+			"ok": true
+		},
+		{
+			"label": "medical:arbitrary_gate_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical:authentic_gate_bound",
+			"ok": true
+		},
+		{
+			"label": "medical:forged_opaque_target_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical:rebind_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical:real_RPG_equip",
+			"ok": true
+		},
+		{
+			"label": "medical:one_real_source_shot",
+			"ok": true
+		},
+		{
+			"label": "medical:actual_flight_prepare",
+			"ok": true
+		},
+		{
+			"label": "medical:real_pre_ammo_capability",
+			"ok": true
+		},
+		{
+			"label": "medical:real_inventory_commit_once",
+			"ok": true
+		},
+		{
+			"label": "medical:real_effects_flight_commit",
+			"ok": true
+		},
+		{
+			"label": "medical:actual_post_ammo_admitted",
+			"ok": true
+		},
+		{
+			"label": "medical:one_RPG_round_spent",
+			"ok": true
+		},
+		{
+			"label": "medical:native_impact_replay_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical:real_native_flight_impacted",
+			"ok": true
+		},
+		{
+			"label": "medical:authentic_gate_delivers_current_targets",
+			"ok": true
+		},
+		{
+			"label": "medical:no_fake_bullet_contact_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical:original_complete_rig_mass_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical:distributed_only_impulse_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical:mass_partition_conserves_total_J_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical:medical_survival_cap_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical:no_fake_bullet_contact_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical:original_complete_rig_mass_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical:distributed_only_impulse_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical:mass_partition_conserves_total_J_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical:medical_survival_cap_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical:no_fake_bullet_contact_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical:original_complete_rig_mass_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical:distributed_only_impulse_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical:mass_partition_conserves_total_J_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical:medical_survival_cap_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:actual_main_ready",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:original_three_recipients",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:arbitrary_gate_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:authentic_gate_bound",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:forged_opaque_target_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:rebind_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_RPG_equip",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:one_real_source_shot",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:actual_flight_prepare",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_pre_ammo_capability",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_inventory_commit_once",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_effects_flight_commit",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:actual_post_ammo_admitted",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:one_RPG_round_spent",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:native_impact_replay_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_native_flight_impacted",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:authentic_gate_delivers_current_targets",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:no_fake_bullet_contact_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:original_complete_rig_mass_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:distributed_only_impulse_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:mass_partition_conserves_total_J_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:medical_survival_cap_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:no_fake_bullet_contact_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:original_complete_rig_mass_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:distributed_only_impulse_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:mass_partition_conserves_total_J_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:medical_survival_cap_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:no_fake_bullet_contact_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:original_complete_rig_mass_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:distributed_only_impulse_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:mass_partition_conserves_total_J_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:medical_survival_cap_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:actual_R_reload_completes",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:one_real_source_shot",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:actual_flight_prepare",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_pre_ammo_capability",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_inventory_commit_once",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:real_effects_flight_commit",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:actual_post_ammo_admitted",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:one_RPG_round_spent",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:native_impact_replay_rejected",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:second_real_RPG_hits_active_medical",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:medical_finisher_commits_source_final_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:active_uniform_gap_explicit_resident_72",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:medical_finisher_commits_source_final_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:active_uniform_gap_explicit_resident_169",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:medical_finisher_commits_source_final_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:active_uniform_gap_explicit_resident_252",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:no_duplicate_restart_or_fake_new_J_0",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:no_duplicate_restart_or_fake_new_J_1",
+			"ok": true
+		},
+		{
+			"label": "medical_finisher:no_duplicate_restart_or_fake_new_J_2",
+			"ok": true
+		},
+		{
+			"label": "retire_context:actual_main_ready",
+			"ok": true
+		},
+		{
+			"label": "retire_context:original_three_recipients",
+			"ok": true
+		},
+		{
+			"label": "retire_context:arbitrary_gate_rejected",
+			"ok": true
+		},
+		{
+			"label": "retire_context:authentic_gate_bound",
+			"ok": true
+		},
+		{
+			"label": "retire_context:forged_opaque_target_rejected",
+			"ok": true
+		},
+		{
+			"label": "retire_context:rebind_rejected",
+			"ok": true
+		},
+		{
+			"label": "retire_context:real_RPG_equip",
+			"ok": true
+		},
+		{
+			"label": "retire_context:one_real_source_shot",
+			"ok": true
+		},
+		{
+			"label": "retire_context:actual_flight_prepare",
+			"ok": true
+		},
+		{
+			"label": "retire_context:real_pre_ammo_capability",
+			"ok": true
+		},
+		{
+			"label": "retire_context:real_inventory_commit_once",
+			"ok": true
+		},
+		{
+			"label": "retire_context:real_effects_flight_commit",
+			"ok": true
+		},
+		{
+			"label": "retire_context:actual_post_ammo_admitted",
+			"ok": true
+		},
+		{
+			"label": "retire_context:one_RPG_round_spent",
+			"ok": true
+		},
+		{
+			"label": "retire_context:native_impact_replay_rejected",
+			"ok": true
+		},
+		{
+			"label": "retire_context:real_native_flight_impacted",
+			"ok": true
+		},
+		{
+			"label": "retire_context:retired_context_rejects_blast",
+			"ok": true
+		},
+		{
+			"label": "retire_context:retire_no_HP_or_force_0",
+			"ok": true
+		},
+		{
+			"label": "retire_context:retire_no_HP_or_force_1",
+			"ok": true
+		},
+		{
+			"label": "retire_context:retire_no_HP_or_force_2",
+			"ok": true
+		}
+	],
+	"count": 135,
+	"elapsed_ms": 9186,
+	"errors": [],
+	"impacts": [
+		{
+			"gate": {
+				"hits": [
+					{
+						"damage": 156,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371746592151380,
+								"render_id": "npc_resident_72",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_72"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_72",
+									"impulse_ns": "(160.0964, 0.0, -409.0319)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(36.23194, 0.000791, -13.4)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "final_death",
+									"requested_total_ns": "(160.0964, 0.0, -409.0319)",
+									"source_id": "resident_72",
+									"uniform_ns": "(160.0964, 0.0, -409.0319)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_72",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 156,
+								"dir_c": 0.364479213953018,
+								"dir_r": -0.931211531162262,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "final_death",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.128598039213102,
+								"_allowBeach": false,
+								"_arc": {
+									"fearDist": 6.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.0,
+									"look": {},
+									"panicMult": 2.4,
+									"phrases": [
+										"Надо купить хлеба",
+										"Муж опять задержался",
+										"Цены опять выросли",
+										"Дети достали",
+										"Скоро ужин готовить",
+										"Очередь бесконечная"
+									],
+									"speedRange": [
+										0.75,
+										1.0
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "housewife",
+								"_beach": false,
+								"_bleedSeverity": 1.6,
+								"_bleedUntil": 10068.619,
+								"_bloodDirC": 0.364479213953018,
+								"_bloodDirR": -0.931211531162262,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0914168331306428,
+								"_fear": 0.141813342575915,
+								"_forcedCrawl": false,
+								"_knockedUntil": 0,
+								"_lastHitAt": 1068.619,
+								"_lastViolentAt": 1068.492,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 0,
+								"_medicalDowned": false,
+								"_medicalDownedAt": 0,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1068.813,
+								"_relation": 1.0,
+								"_threeHitAngle": -1.19772284399491,
+								"_threeHitPower": 1.6,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.337058834913,
+								"dead": true,
+								"deadAt": 1069.034,
+								"hp": 0,
+								"id": "resident_72",
+								"idleUntil": 1318.758,
+								"life_generation": 1,
+								"look": {
+									"body": 1.0,
+									"face": 0.0,
+									"gender": 0.0,
+									"hair": 3.0,
+									"hat": 2.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"r": 7.73170810792504,
+								"source_id": "resident_72",
+								"speed": 0.771633253956679,
+								"tc": 76.5,
+								"tr": 9.5,
+								"walkPhase": 0.0,
+								"walking": false
+							},
+							"server_authority": false,
+							"source_now_ms": 1069.034
+						},
+						"source_id": "resident_72"
+					},
+					{
+						"damage": 86,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371744209786650,
+								"render_id": "npc_resident_169",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_169"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_169",
+									"impulse_ns": "(0.825931, 0.0, 240.4985)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(36.12262, -0.0, -5.899998)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "final_death",
+									"requested_total_ns": "(0.825931, 0.0, 240.4985)",
+									"source_id": "resident_169",
+									"uniform_ns": "(0.825931, 0.0, 240.4985)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_169",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 86,
+								"dir_c": 0.0034342254512012,
+								"dir_r": 0.999994099140167,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "final_death",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.146896271570586,
+								"_allowBeach": false,
+								"_arc": {
+									"fearDist": 5.0,
+									"hours": [
+										7.0,
+										23.0
+									],
+									"idleMult": 0.25,
+									"look": {
+										"hat": 0.0
+									},
+									"panicMult": 3.1,
+									"phrases": [
+										"Лекции скучные",
+										"Стипендия кончилась",
+										"Хочу спать",
+										"Сессия на носу",
+										"Чё за движ?",
+										"Здарова!"
+									],
+									"speedRange": [
+										1.2,
+										1.65
+									],
+									"weight": 14.0
+								},
+								"_arcKey": "student",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 7883.411,
+								"_bloodDirC": 0.0034342254512012,
+								"_bloodDirR": 0.999994099140167,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0806363804731518,
+								"_fear": 0.091025189019274,
+								"_forcedCrawl": false,
+								"_knockedUntil": 0,
+								"_lastHitAt": 1071.411,
+								"_lastViolentAt": 1071.286,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 0,
+								"_medicalDowned": false,
+								"_medicalDownedAt": 0,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1071.619,
+								"_relation": 1.0,
+								"_threeHitAngle": 1.56736209457981,
+								"_threeHitPower": 1.19444444444444,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.310394101027,
+								"dead": true,
+								"deadAt": 1071.842,
+								"hp": 0,
+								"id": "resident_169",
+								"idleUntil": 1321.562,
+								"life_generation": 1,
+								"look": {
+									"body": 0.0,
+									"face": 0.0,
+									"gender": 1.0,
+									"hair": 3.0,
+									"hat": 0.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"r": 9.56097605170273,
+								"source_id": "resident_169",
+								"speed": 1.35731839238433,
+								"tc": 106.5,
+								"tr": 4.5,
+								"walkPhase": 0.0,
+								"walking": false
+							},
+							"server_authority": false,
+							"source_now_ms": 1071.842
+						},
+						"source_id": "resident_169"
+					},
+					{
+						"damage": 92,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371741810644606,
+								"render_id": "npc_resident_252",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_252"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_252",
+									"impulse_ns": "(-61.52262, 0.0, -251.4872)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(34.54653, 0.000764, -19.4)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "final_death",
+									"requested_total_ns": "(-61.52262, 0.0, -251.4872)",
+									"source_id": "resident_252",
+									"uniform_ns": "(-61.52262, 0.0, -251.4872)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_252",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 92,
+								"dir_c": -0.237627893686295,
+								"dir_r": -0.971356272697449,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "final_death",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.072367109998595,
+								"_allowBeach": false,
+								"_arc": {
+									"fearDist": 7.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.8,
+									"look": {
+										"hat": 2.0
+									},
+									"panicMult": 1.7,
+									"phrases": [
+										"Эх, молодёжь…",
+										"А раньше тут было тихо",
+										"Куда спешите-то",
+										"Помогите пожилому",
+										"Ноги болят",
+										"Пенсию опять задержали"
+									],
+									"speedRange": [
+										0.42,
+										0.62
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "pensioner",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 8138.794,
+								"_bloodDirC": -0.237627893686295,
+								"_bloodDirR": -0.971356272697449,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.164256524993107,
+								"_fear": 0.0871890340000391,
+								"_forcedCrawl": false,
+								"_knockedUntil": 0,
+								"_lastHitAt": 1074.794,
+								"_lastViolentAt": 1074.665,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 0,
+								"_medicalDowned": false,
+								"_medicalDownedAt": 0,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1074.994,
+								"_relation": 1.0,
+								"_threeHitAngle": -1.8107193866007,
+								"_threeHitPower": 1.27777777777778,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 104.9259824055,
+								"dead": true,
+								"deadAt": 1075.22,
+								"hp": 0,
+								"id": "resident_252",
+								"idleUntil": 1324.937,
+								"life_generation": 1,
+								"look": {
+									"body": 2.0,
+									"face": 3.0,
+									"gender": 0.0,
+									"hair": 2.0,
+									"hat": 2.0,
+									"skin": 0.0
+								},
+								"max_hp": 60.0,
+								"r": 6.26829324117521,
+								"source_id": "resident_252",
+								"speed": 0.565774921728298,
+								"tc": 104.5,
+								"tr": 12.5,
+								"walkPhase": 0.0,
+								"walking": false
+							},
+							"server_authority": false,
+							"source_now_ms": 1075.22
+						},
+						"source_id": "resident_252"
+					}
+				],
+				"occlusion": "source_rpg_has_no_npc_LOS",
+				"ok": true,
+				"scope": "new_local_session_ordinary_rpg",
+				"source_callbacks_complete": false,
+				"token": 1
+			},
+			"mode": "final",
+			"native_receipt": {
+				"actor_id": "player",
+				"authority": "EXTERNAL_OWNER_REQUIRED",
+				"damage": 160,
+				"direction": "(0.194317, -0.123192, -0.973172)",
+				"distance_world": 2.61774403889974,
+				"explosive": true,
+				"hit": {
+					"collider": "<Freed Object>",
+					"distance": 0.294410705566406,
+					"hit": true,
+					"instance_id": 281874016377,
+					"normal": "(-0.311227, 0.0, 0.950336)",
+					"point": "(36.09803, 0.844098, -13.05788)",
+					"rid": "RID(37538014167367)",
+					"shape": 0
+				},
+				"item_uid": "local-weapon-item--9223371857791543262-14",
+				"life_generation": 1,
+				"native_rpg_impact": true,
+				"normal": "(-0.311227, 0.0, 0.950336)",
+				"origin": "(35.58936, 1.166583, -10.51036)",
+				"point": "(36.09803, 0.844098, -13.05788)",
+				"range_end": false,
+				"scene_token": "preview-scene:54307849679",
+				"sequence": 1,
+				"shot_id": "rpg:1",
+				"source_radius_cells": 2.7,
+				"token": 1
+			},
+			"records": [
+				{
+					"bodies": 16,
+					"dead": true,
+					"hp": 0,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_72",
+						"impulse_ns": "(160.0964, 0.0, -409.0319)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.23194, 0.000791, -13.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "final_death",
+						"requested_total_ns": "(160.0964, 0.0, -409.0319)",
+						"source_id": "resident_72",
+						"uniform_ns": "(160.0964, 0.0, -409.0319)"
+					},
+					"incremental_momentum": "(160.0964, 0.0, -409.0319)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 281874016377,
+							"body_rid": "RID(37538014167367)",
+							"bridge_id": "npc_resident_72",
+							"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_72",
+							"rig_epoch": 280582170752,
+							"rig_instance_id": 280582170752,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_72"
+						},
+						"damage_authority": false,
+						"death_key": "1069.034",
+						"error": "",
+						"event_id": "rpg:1:1:resident_72",
+						"final_dead": true,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "final_death",
+					"source_id": "resident_72",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": true,
+					"hp": 0,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_169",
+						"impulse_ns": "(0.825931, 0.0, 240.4985)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.12262, -0.0, -5.899998)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "final_death",
+						"requested_total_ns": "(0.825931, 0.0, 240.4985)",
+						"source_id": "resident_169",
+						"uniform_ns": "(0.825931, 0.0, 240.4985)"
+					},
+					"incremental_momentum": "(0.825931, 0.0, 240.4985)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 285917325494,
+							"body_rid": "RID(38242388803912)",
+							"bridge_id": "npc_resident_169",
+							"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_169",
+							"rig_epoch": 284524816573,
+							"rig_instance_id": 284524816573,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_169"
+						},
+						"damage_authority": false,
+						"death_key": "1071.842",
+						"error": "",
+						"event_id": "rpg:1:1:resident_169",
+						"final_dead": true,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "final_death",
+					"source_id": "resident_169",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": true,
+					"hp": 0,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_252",
+						"impulse_ns": "(-61.52262, 0.0, -251.4872)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(34.54653, 0.000764, -19.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "final_death",
+						"requested_total_ns": "(-61.52262, 0.0, -251.4872)",
+						"source_id": "resident_252",
+						"uniform_ns": "(-61.52262, 0.0, -251.4872)"
+					},
+					"incremental_momentum": "(-61.52263, 0.0, -251.4872)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 289960634612,
+							"body_rid": "RID(38946763440457)",
+							"bridge_id": "npc_resident_252",
+							"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_252",
+							"rig_epoch": 288568125691,
+							"rig_instance_id": 288568125691,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_252"
+						},
+						"damage_authority": false,
+						"death_key": "1075.22",
+						"error": "",
+						"event_id": "rpg:1:1:resident_252",
+						"final_dead": true,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "final_death",
+					"source_id": "resident_252",
+					"total_mass": 74.9999986886978
+				}
+			]
+		},
+		{
+			"gate": {
+				"hits": [
+					{
+						"damage": 156,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371511040041396,
+								"render_id": "npc_resident_72",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_72"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_72",
+									"impulse_ns": "(27.33594, 0.0, -69.84086)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(36.23194, 0.000791, -13.4)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "medical_downed",
+									"requested_total_ns": "(27.33594, 0.0, -69.84086)",
+									"source_id": "resident_72",
+									"uniform_ns": "(27.33594, 0.0, -69.84086)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_72",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 156,
+								"dir_c": 0.364479213953018,
+								"dir_r": -0.931211531162262,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "medical_downed",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.128598039213102,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 6.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.0,
+									"look": {},
+									"panicMult": 2.4,
+									"phrases": [
+										"Надо купить хлеба",
+										"Муж опять задержался",
+										"Цены опять выросли",
+										"Дети достали",
+										"Скоро ужин готовить",
+										"Очередь бесконечная"
+									],
+									"speedRange": [
+										0.75,
+										1.0
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "housewife",
+								"_beach": false,
+								"_bleedSeverity": 1.6,
+								"_bleedUntil": 10013.797,
+								"_bloodDirC": 0.364479213953018,
+								"_bloodDirR": -0.931211531162262,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0914168331306428,
+								"_fear": 0.141813342575915,
+								"_forcedCrawl": true,
+								"_knockedAt": 1014.212,
+								"_knockedUntil": 31014.212,
+								"_lastHitAt": 1013.797,
+								"_lastViolentAt": 1013.668,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 31014.212,
+								"_medicalDowned": true,
+								"_medicalDownedAt": 1014.212,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1013.991,
+								"_relation": 1.0,
+								"_threeHitAngle": -1.19772284399491,
+								"_threeHitPower": 1.6,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.337058834913,
+								"cryText": "Помогите…",
+								"cryUntil": 2814.212,
+								"hp": 1,
+								"id": "resident_72",
+								"idleUntil": 1263.935,
+								"life_generation": 1,
+								"look": {
+									"body": 1.0,
+									"face": 0.0,
+									"gender": 0.0,
+									"hair": 3.0,
+									"hat": 2.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 7.73170810792504,
+								"snitching": false,
+								"source_id": "resident_72",
+								"speed": 0.771633253956679,
+								"tc": 76.5,
+								"tr": 9.5,
+								"walkPhase": 0
+							},
+							"server_authority": false,
+							"source_now_ms": 1014.212
+						},
+						"source_id": "resident_72"
+					},
+					{
+						"damage": 86,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371508657677382,
+								"render_id": "npc_resident_169",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_169"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_169",
+									"impulse_ns": "(0.257567, 0.0, 74.99956)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(36.12262, -0.0, -5.899998)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "medical_downed",
+									"requested_total_ns": "(0.257567, 0.0, 74.99956)",
+									"source_id": "resident_169",
+									"uniform_ns": "(0.257567, 0.0, 74.99956)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_169",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 86,
+								"dir_c": 0.0034342254512012,
+								"dir_r": 0.999994099140167,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "medical_downed",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.146896271570586,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 5.0,
+									"hours": [
+										7.0,
+										23.0
+									],
+									"idleMult": 0.25,
+									"look": {
+										"hat": 0.0
+									},
+									"panicMult": 3.1,
+									"phrases": [
+										"Лекции скучные",
+										"Стипендия кончилась",
+										"Хочу спать",
+										"Сессия на носу",
+										"Чё за движ?",
+										"Здарова!"
+									],
+									"speedRange": [
+										1.2,
+										1.65
+									],
+									"weight": 14.0
+								},
+								"_arcKey": "student",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 7828.449,
+								"_bloodDirC": 0.0034342254512012,
+								"_bloodDirR": 0.999994099140167,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0806363804731518,
+								"_fear": 0.091025189019274,
+								"_forcedCrawl": true,
+								"_knockedAt": 1017.118,
+								"_knockedUntil": 31017.118,
+								"_lastHitAt": 1016.449,
+								"_lastViolentAt": 1016.323,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 31017.118,
+								"_medicalDowned": true,
+								"_medicalDownedAt": 1017.118,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1016.645,
+								"_relation": 1.0,
+								"_threeHitAngle": 1.56736209457981,
+								"_threeHitPower": 1.19444444444444,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.310394101027,
+								"cryText": "Помогите…",
+								"cryUntil": 2817.118,
+								"hp": 1,
+								"id": "resident_169",
+								"idleUntil": 1266.588,
+								"life_generation": 1,
+								"look": {
+									"body": 0.0,
+									"face": 0.0,
+									"gender": 1.0,
+									"hair": 3.0,
+									"hat": 0.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 9.56097605170273,
+								"snitching": false,
+								"source_id": "resident_169",
+								"speed": 1.35731839238433,
+								"tc": 106.5,
+								"tr": 4.5,
+								"walkPhase": 0
+							},
+							"server_authority": false,
+							"source_now_ms": 1017.118
+						},
+						"source_id": "resident_169"
+					},
+					{
+						"damage": 92,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371506258535043,
+								"render_id": "npc_resident_252",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_252"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_252",
+									"impulse_ns": "(-17.82209, 0.0, -72.85172)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(34.54653, 0.000764, -19.4)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "medical_downed",
+									"requested_total_ns": "(-17.82209, 0.0, -72.85172)",
+									"source_id": "resident_252",
+									"uniform_ns": "(-17.82209, 0.0, -72.85172)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_252",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 92,
+								"dir_c": -0.237627893686295,
+								"dir_r": -0.971356272697449,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "medical_downed",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.072367109998595,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 7.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.8,
+									"look": {
+										"hat": 2.0
+									},
+									"panicMult": 1.7,
+									"phrases": [
+										"Эх, молодёжь…",
+										"А раньше тут было тихо",
+										"Куда спешите-то",
+										"Помогите пожилому",
+										"Ноги болят",
+										"Пенсию опять задержали"
+									],
+									"speedRange": [
+										0.42,
+										0.62
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "pensioner",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 8083.491,
+								"_bloodDirC": -0.237627893686295,
+								"_bloodDirR": -0.971356272697449,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.164256524993107,
+								"_fear": 0.0871890340000391,
+								"_forcedCrawl": true,
+								"_knockedAt": 1019.924,
+								"_knockedUntil": 31019.924,
+								"_lastHitAt": 1019.491,
+								"_lastViolentAt": 1019.364,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 31019.924,
+								"_medicalDowned": true,
+								"_medicalDownedAt": 1019.924,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1019.7,
+								"_relation": 1.0,
+								"_threeHitAngle": -1.8107193866007,
+								"_threeHitPower": 1.27777777777778,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 104.9259824055,
+								"cryText": "Помогите…",
+								"cryUntil": 2819.924,
+								"hp": 1,
+								"id": "resident_252",
+								"idleUntil": 1269.632,
+								"life_generation": 1,
+								"look": {
+									"body": 2.0,
+									"face": 3.0,
+									"gender": 0.0,
+									"hair": 2.0,
+									"hat": 2.0,
+									"skin": 0.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 6.26829324117521,
+								"snitching": false,
+								"source_id": "resident_252",
+								"speed": 0.565774921728298,
+								"tc": 104.5,
+								"tr": 12.5,
+								"walkPhase": 0
+							},
+							"server_authority": false,
+							"source_now_ms": 1019.924
+						},
+						"source_id": "resident_252"
+					}
+				],
+				"occlusion": "source_rpg_has_no_npc_LOS",
+				"ok": true,
+				"scope": "new_local_session_ordinary_rpg",
+				"source_callbacks_complete": false,
+				"token": 1
+			},
+			"mode": "medical",
+			"native_receipt": {
+				"actor_id": "player",
+				"authority": "EXTERNAL_OWNER_REQUIRED",
+				"damage": 160,
+				"direction": "(0.194317, -0.123192, -0.973172)",
+				"distance_world": 2.61774403889974,
+				"explosive": true,
+				"hit": {
+					"collider": "<Freed Object>",
+					"distance": 0.294410705566406,
+					"hit": true,
+					"instance_id": 517426126031,
+					"normal": "(-0.311227, 0.0, 0.950336)",
+					"point": "(36.09803, 0.844098, -13.05788)",
+					"rid": "RID(77240691851639)",
+					"shape": 0
+				},
+				"item_uid": "local-weapon-item--9223371616686172286-14",
+				"life_generation": 1,
+				"native_rpg_impact": true,
+				"normal": "(-0.311227, 0.0, 0.950336)",
+				"origin": "(35.58936, 1.166583, -10.51036)",
+				"point": "(36.09803, 0.844098, -13.05788)",
+				"range_end": false,
+				"scene_token": "preview-scene:301721462512",
+				"sequence": 1,
+				"shot_id": "rpg:1",
+				"source_radius_cells": 2.7,
+				"token": 1
+			},
+			"records": [
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 1,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_72",
+						"impulse_ns": "(27.33594, 0.0, -69.84086)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.23194, 0.000791, -13.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(27.33594, 0.0, -69.84086)",
+						"source_id": "resident_72",
+						"uniform_ns": "(27.33594, 0.0, -69.84086)"
+					},
+					"incremental_momentum": "(27.33592, 0.0, -69.84085)",
+					"marks": 0,
+					"medical": true,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 517426126031,
+							"body_rid": "RID(77240691851639)",
+							"bridge_id": "npc_resident_72",
+							"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_72",
+							"rig_epoch": 516134280804,
+							"rig_instance_id": 516134280804,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_72"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "rpg:1:1:resident_72",
+						"final_dead": false,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "medical_downed",
+					"source_id": "resident_72",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 1,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_169",
+						"impulse_ns": "(0.257567, 0.0, 74.99956)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.12262, -0.0, -5.899998)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(0.257567, 0.0, 74.99956)",
+						"source_id": "resident_169",
+						"uniform_ns": "(0.257567, 0.0, 74.99956)"
+					},
+					"incremental_momentum": "(0.257567, 0.0, 74.99957)",
+					"marks": 0,
+					"medical": true,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 521469434636,
+							"body_rid": "RID(77945066488184)",
+							"bridge_id": "npc_resident_169",
+							"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_169",
+							"rig_epoch": 520076925771,
+							"rig_instance_id": 520076925771,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_169"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "rpg:1:1:resident_169",
+						"final_dead": false,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "medical_downed",
+					"source_id": "resident_169",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 1,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_252",
+						"impulse_ns": "(-17.82209, 0.0, -72.85172)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(34.54653, 0.000764, -19.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(-17.82209, 0.0, -72.85172)",
+						"source_id": "resident_252",
+						"uniform_ns": "(-17.82209, 0.0, -72.85172)"
+					},
+					"incremental_momentum": "(-17.82209, 0.0, -72.85174)",
+					"marks": 0,
+					"medical": true,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 525512743878,
+							"body_rid": "RID(78649441124729)",
+							"bridge_id": "npc_resident_252",
+							"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_252",
+							"rig_epoch": 524120235555,
+							"rig_instance_id": 524120235555,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_252"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "rpg:1:1:resident_252",
+						"final_dead": false,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "medical_downed",
+					"source_id": "resident_252",
+					"total_mass": 74.9999986886978
+				}
+			]
+		},
+		{
+			"gate": {
+				"hits": [
+					{
+						"damage": 156,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371276058354638,
+								"render_id": "npc_resident_72",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_72"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_72",
+									"impulse_ns": "(27.33594, 0.0, -69.84086)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(36.23194, 0.000791, -13.4)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "medical_downed",
+									"requested_total_ns": "(27.33594, 0.0, -69.84086)",
+									"source_id": "resident_72",
+									"uniform_ns": "(27.33594, 0.0, -69.84086)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_72",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 156,
+								"dir_c": 0.364479213953018,
+								"dir_r": -0.931211531162262,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "medical_downed",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.128598039213102,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 6.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.0,
+									"look": {},
+									"panicMult": 2.4,
+									"phrases": [
+										"Надо купить хлеба",
+										"Муж опять задержался",
+										"Цены опять выросли",
+										"Дети достали",
+										"Скоро ужин готовить",
+										"Очередь бесконечная"
+									],
+									"speedRange": [
+										0.75,
+										1.0
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "housewife",
+								"_beach": false,
+								"_bleedSeverity": 1.6,
+								"_bleedUntil": 10012.787,
+								"_bloodDirC": 0.364479213953018,
+								"_bloodDirR": -0.931211531162262,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0914168331306428,
+								"_fear": 0.141813342575915,
+								"_forcedCrawl": true,
+								"_knockedAt": 1013.218,
+								"_knockedUntil": 31013.218,
+								"_lastHitAt": 1012.787,
+								"_lastViolentAt": 1012.66,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 31013.218,
+								"_medicalDowned": true,
+								"_medicalDownedAt": 1013.218,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1012.997,
+								"_relation": 1.0,
+								"_threeHitAngle": -1.19772284399491,
+								"_threeHitPower": 1.6,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.337058834913,
+								"cryText": "Помогите…",
+								"cryUntil": 2813.218,
+								"hp": 1,
+								"id": "resident_72",
+								"idleUntil": 1262.938,
+								"life_generation": 1,
+								"look": {
+									"body": 1.0,
+									"face": 0.0,
+									"gender": 0.0,
+									"hair": 3.0,
+									"hat": 2.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 7.73170810792504,
+								"snitching": false,
+								"source_id": "resident_72",
+								"speed": 0.771633253956679,
+								"tc": 76.5,
+								"tr": 9.5,
+								"walkPhase": 0
+							},
+							"server_authority": false,
+							"source_now_ms": 1013.218
+						},
+						"source_id": "resident_72"
+					},
+					{
+						"damage": 86,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371273675990356,
+								"render_id": "npc_resident_169",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_169"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_169",
+									"impulse_ns": "(0.257567, 0.0, 74.99956)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(36.12262, -0.0, -5.899998)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "medical_downed",
+									"requested_total_ns": "(0.257567, 0.0, 74.99956)",
+									"source_id": "resident_169",
+									"uniform_ns": "(0.257567, 0.0, 74.99956)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_169",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 86,
+								"dir_c": 0.0034342254512012,
+								"dir_r": 0.999994099140167,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "medical_downed",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.146896271570586,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 5.0,
+									"hours": [
+										7.0,
+										23.0
+									],
+									"idleMult": 0.25,
+									"look": {
+										"hat": 0.0
+									},
+									"panicMult": 3.1,
+									"phrases": [
+										"Лекции скучные",
+										"Стипендия кончилась",
+										"Хочу спать",
+										"Сессия на носу",
+										"Чё за движ?",
+										"Здарова!"
+									],
+									"speedRange": [
+										1.2,
+										1.65
+									],
+									"weight": 14.0
+								},
+								"_arcKey": "student",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 7827.376,
+								"_bloodDirC": 0.0034342254512012,
+								"_bloodDirR": 0.999994099140167,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0806363804731518,
+								"_fear": 0.091025189019274,
+								"_forcedCrawl": true,
+								"_knockedAt": 1015.796,
+								"_knockedUntil": 31015.796,
+								"_lastHitAt": 1015.376,
+								"_lastViolentAt": 1015.25,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 31015.796,
+								"_medicalDowned": true,
+								"_medicalDownedAt": 1015.796,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1015.572,
+								"_relation": 1.0,
+								"_threeHitAngle": 1.56736209457981,
+								"_threeHitPower": 1.19444444444444,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.310394101027,
+								"cryText": "Помогите…",
+								"cryUntil": 2815.796,
+								"hp": 1,
+								"id": "resident_169",
+								"idleUntil": 1265.516,
+								"life_generation": 1,
+								"look": {
+									"body": 0.0,
+									"face": 0.0,
+									"gender": 1.0,
+									"hair": 3.0,
+									"hat": 0.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 9.56097605170273,
+								"snitching": false,
+								"source_id": "resident_169",
+								"speed": 1.35731839238433,
+								"tc": 106.5,
+								"tr": 4.5,
+								"walkPhase": 0
+							},
+							"server_authority": false,
+							"source_now_ms": 1015.796
+						},
+						"source_id": "resident_169"
+					},
+					{
+						"damage": 92,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371271276848754,
+								"render_id": "npc_resident_252",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_252"
+							},
+							"blast_physical": {
+								"applied": true,
+								"receipt": {
+									"event_id": "rpg:1:1:resident_252",
+									"impulse_ns": "(-17.82209, 0.0, -72.85172)",
+									"life_generation": 1,
+									"phase": "initial",
+									"point": "(34.54653, 0.000764, -19.4)",
+									"point_ns": "(0.0, 0.0, 0.0)",
+									"reason": "medical_downed",
+									"requested_total_ns": "(-17.82209, 0.0, -72.85172)",
+									"source_id": "resident_252",
+									"uniform_ns": "(-17.82209, 0.0, -72.85172)"
+								},
+								"status": "initial_uniform_applied"
+							},
+							"event_id": "rpg:1:1:resident_252",
+							"hit": {
+								"blast_origin_world": "(36.09803, 0.844098, -13.05788)",
+								"damage": 92,
+								"dir_c": -0.237627893686295,
+								"dir_r": -0.971356272697449,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "medical_downed",
+							"revision": 1,
+							"row": {
+								"_aggression": 0.072367109998595,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 7.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.8,
+									"look": {
+										"hat": 2.0
+									},
+									"panicMult": 1.7,
+									"phrases": [
+										"Эх, молодёжь…",
+										"А раньше тут было тихо",
+										"Куда спешите-то",
+										"Помогите пожилому",
+										"Ноги болят",
+										"Пенсию опять задержали"
+									],
+									"speedRange": [
+										0.42,
+										0.62
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "pensioner",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 8081.876,
+								"_bloodDirC": -0.237627893686295,
+								"_bloodDirR": -0.971356272697449,
+								"_deathFromDowned": false,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.164256524993107,
+								"_fear": 0.0871890340000391,
+								"_forcedCrawl": true,
+								"_knockedAt": 1018.29,
+								"_knockedUntil": 31018.29,
+								"_lastHitAt": 1017.876,
+								"_lastViolentAt": 1017.753,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 31018.29,
+								"_medicalDowned": true,
+								"_medicalDownedAt": 1018.29,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1018.071,
+								"_relation": 1.0,
+								"_threeHitAngle": -1.8107193866007,
+								"_threeHitPower": 1.27777777777778,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 104.9259824055,
+								"cryText": "Помогите…",
+								"cryUntil": 2818.29,
+								"hp": 1,
+								"id": "resident_252",
+								"idleUntil": 1268.016,
+								"life_generation": 1,
+								"look": {
+									"body": 2.0,
+									"face": 3.0,
+									"gender": 0.0,
+									"hair": 2.0,
+									"hat": 2.0,
+									"skin": 0.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 6.26829324117521,
+								"snitching": false,
+								"source_id": "resident_252",
+								"speed": 0.565774921728298,
+								"tc": 104.5,
+								"tr": 12.5,
+								"walkPhase": 0
+							},
+							"server_authority": false,
+							"source_now_ms": 1018.29
+						},
+						"source_id": "resident_252"
+					}
+				],
+				"occlusion": "source_rpg_has_no_npc_LOS",
+				"ok": true,
+				"scope": "new_local_session_ordinary_rpg",
+				"source_callbacks_complete": false,
+				"token": 1
+			},
+			"mode": "medical_finisher",
+			"native_receipt": {
+				"actor_id": "player",
+				"authority": "EXTERNAL_OWNER_REQUIRED",
+				"damage": 160,
+				"direction": "(0.194317, -0.123192, -0.973172)",
+				"distance_world": 2.61774403889974,
+				"explosive": true,
+				"hit": {
+					"collider": "<Freed Object>",
+					"distance": 0.294410705566406,
+					"hit": true,
+					"instance_id": 752407812606,
+					"normal": "(-0.311227, 0.0, 0.950336)",
+					"point": "(36.09803, 0.844098, -13.05788)",
+					"rid": "RID(116943369535812)",
+					"shape": 0
+				},
+				"item_uid": "local-weapon-item--9223371381704486541-14",
+				"life_generation": 1,
+				"native_rpg_impact": true,
+				"normal": "(-0.311227, 0.0, 0.950336)",
+				"origin": "(35.58936, 1.166583, -10.51036)",
+				"point": "(36.09803, 0.844098, -13.05788)",
+				"range_end": false,
+				"scene_token": "preview-scene:536703141327",
+				"sequence": 1,
+				"shot_id": "rpg:1",
+				"source_radius_cells": 2.7,
+				"token": 1
+			},
+			"records": [
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 1,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_72",
+						"impulse_ns": "(27.33594, 0.0, -69.84086)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.23194, 0.000791, -13.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(27.33594, 0.0, -69.84086)",
+						"source_id": "resident_72",
+						"uniform_ns": "(27.33594, 0.0, -69.84086)"
+					},
+					"incremental_momentum": "(27.33592, 0.0, -69.84085)",
+					"marks": 0,
+					"medical": true,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 752407812606,
+							"body_rid": "RID(116943369535812)",
+							"bridge_id": "npc_resident_72",
+							"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_72",
+							"rig_epoch": 751115968148,
+							"rig_instance_id": 751115968148,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_72"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "rpg:1:1:resident_72",
+						"final_dead": false,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "medical_downed",
+					"source_id": "resident_72",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 1,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_169",
+						"impulse_ns": "(0.257567, 0.0, 74.99956)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.12262, -0.0, -5.899998)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(0.257567, 0.0, 74.99956)",
+						"source_id": "resident_169",
+						"uniform_ns": "(0.257567, 0.0, 74.99956)"
+					},
+					"incremental_momentum": "(0.257567, 0.0, 74.99957)",
+					"marks": 0,
+					"medical": true,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 756451120289,
+							"body_rid": "RID(117647744172357)",
+							"bridge_id": "npc_resident_169",
+							"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_169",
+							"rig_epoch": 755058613746,
+							"rig_instance_id": 755058613746,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_169"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "rpg:1:1:resident_169",
+						"final_dead": false,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "medical_downed",
+					"source_id": "resident_169",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 1,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_252",
+						"impulse_ns": "(-17.82209, 0.0, -72.85172)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(34.54653, 0.000764, -19.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(-17.82209, 0.0, -72.85172)",
+						"source_id": "resident_252",
+						"uniform_ns": "(-17.82209, 0.0, -72.85172)"
+					},
+					"incremental_momentum": "(-17.82209, 0.0, -72.85174)",
+					"marks": 0,
+					"medical": true,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 760494430884,
+							"body_rid": "RID(118352118808902)",
+							"bridge_id": "npc_resident_252",
+							"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_252",
+							"rig_epoch": 759101921548,
+							"rig_instance_id": 759101921548,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_252"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "rpg:1:1:resident_252",
+						"final_dead": false,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "medical_downed",
+					"source_id": "resident_252",
+					"total_mass": 74.9999986886978
+				}
+			]
+		},
+		{
+			"gate": {
+				"hits": [
+					{
+						"damage": 125,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371276058354638,
+								"render_id": "npc_resident_72",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_72"
+							},
+							"blast_physical": {
+								"applied": false,
+								"physical": {
+									"damage_authority": false,
+									"death_key": "1260.853",
+									"error": "",
+									"event_id": "rpg:1:1:resident_72",
+									"final_dead": true,
+									"mode": "ACTIVE",
+									"ok": true
+								},
+								"status": "HOLD_active_uniform_port_or_activation_rejected"
+							},
+							"event_id": "rpg:1:2:resident_72",
+							"hit": {
+								"blast_origin_world": "(35.90848, 1.039195, -11.24995)",
+								"damage": 125,
+								"dir_c": 0.395460546016693,
+								"dir_r": -0.918482959270477,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "final_death",
+							"revision": 2,
+							"row": {
+								"_aggression": 0.128598039213102,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 6.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.0,
+									"look": {},
+									"panicMult": 2.4,
+									"phrases": [
+										"Надо купить хлеба",
+										"Муж опять задержался",
+										"Цены опять выросли",
+										"Дети достали",
+										"Скоро ужин готовить",
+										"Очередь бесконечная"
+									],
+									"speedRange": [
+										0.75,
+										1.0
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "housewife",
+								"_beach": false,
+								"_bleedSeverity": 1.6,
+								"_bleedUntil": 10012.787,
+								"_bloodDirC": 0.395460546016693,
+								"_bloodDirR": -0.918482959270477,
+								"_deathFromDowned": true,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0914168331306428,
+								"_fear": 0.141813342575915,
+								"_forcedCrawl": false,
+								"_knockedAt": 1013.218,
+								"_knockedUntil": 0,
+								"_lastHitAt": 1260.488,
+								"_lastViolentAt": 1260.36,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 0,
+								"_medicalDowned": false,
+								"_medicalDownedAt": 0,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1260.687,
+								"_relation": 2.0,
+								"_threeHitAngle": -1.16422710734798,
+								"_threeHitPower": 1.6,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.585699872273,
+								"cryText": "Помогите…",
+								"cryUntil": 2813.218,
+								"dead": true,
+								"deadAt": 1260.853,
+								"hp": 0,
+								"id": "resident_72",
+								"idleUntil": 1510.63,
+								"life_generation": 1,
+								"look": {
+									"body": 1.0,
+									"face": 0.0,
+									"gender": 0.0,
+									"hair": 3.0,
+									"hat": 2.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 7.49539040356148,
+								"snitching": false,
+								"source_id": "resident_72",
+								"speed": 0.771633253956679,
+								"tc": 76.5,
+								"tr": 9.5,
+								"walkPhase": 0,
+								"walking": false
+							},
+							"server_authority": false,
+							"source_now_ms": 1260.853
+						},
+						"source_id": "resident_72"
+					},
+					{
+						"damage": 97,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371273675990356,
+								"render_id": "npc_resident_169",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_169"
+							},
+							"blast_physical": {
+								"applied": false,
+								"physical": {
+									"damage_authority": false,
+									"death_key": "1262.606",
+									"error": "",
+									"event_id": "rpg:1:1:resident_169",
+									"final_dead": true,
+									"mode": "ACTIVE",
+									"ok": true
+								},
+								"status": "HOLD_active_uniform_port_or_activation_rejected"
+							},
+							"event_id": "rpg:1:2:resident_169",
+							"hit": {
+								"blast_origin_world": "(35.90848, 1.039195, -11.24995)",
+								"damage": 97,
+								"dir_c": 0.0315291583538055,
+								"dir_r": 0.999502837657928,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "final_death",
+							"revision": 2,
+							"row": {
+								"_aggression": 0.146896271570586,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 5.0,
+									"hours": [
+										7.0,
+										23.0
+									],
+									"idleMult": 0.25,
+									"look": {
+										"hat": 0.0
+									},
+									"panicMult": 3.1,
+									"phrases": [
+										"Лекции скучные",
+										"Стипендия кончилась",
+										"Хочу спать",
+										"Сессия на носу",
+										"Чё за движ?",
+										"Здарова!"
+									],
+									"speedRange": [
+										1.2,
+										1.65
+									],
+									"weight": 14.0
+								},
+								"_arcKey": "student",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 8536.238,
+								"_bloodDirC": 0.0315291583538055,
+								"_bloodDirR": 0.999502837657928,
+								"_deathFromDowned": true,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.0806363804731518,
+								"_fear": 0.091025189019274,
+								"_forcedCrawl": false,
+								"_knockedAt": 1015.796,
+								"_knockedUntil": 0,
+								"_lastHitAt": 1262.238,
+								"_lastViolentAt": 1262.11,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 0,
+								"_medicalDowned": false,
+								"_medicalDownedAt": 0,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1262.436,
+								"_relation": 2.0,
+								"_threeHitAngle": 1.53926194247347,
+								"_threeHitPower": 1.34722222222222,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 105.304883259099,
+								"cryText": "Помогите…",
+								"cryUntil": 2815.796,
+								"dead": true,
+								"deadAt": 1262.606,
+								"hp": 0,
+								"id": "resident_169",
+								"idleUntil": 1512.38,
+								"life_generation": 1,
+								"look": {
+									"body": 0.0,
+									"face": 0.0,
+									"gender": 1.0,
+									"hair": 3.0,
+									"hat": 0.0,
+									"skin": 2.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 9.73711190572599,
+								"snitching": false,
+								"source_id": "resident_169",
+								"speed": 1.35731839238433,
+								"tc": 106.5,
+								"tr": 4.5,
+								"walkPhase": 0,
+								"walking": false
+							},
+							"server_authority": false,
+							"source_now_ms": 1262.606
+						},
+						"source_id": "resident_169"
+					},
+					{
+						"damage": 68,
+						"result": {
+							"applied": true,
+							"binding": {
+								"life_generation": 1,
+								"owner_instance_id": -9223371271276848754,
+								"render_id": "npc_resident_252",
+								"scope": "local_walk_ordinary",
+								"session_id": "godot-preview-new-session-20260927-01",
+								"source_id": "resident_252"
+							},
+							"blast_physical": {
+								"applied": false,
+								"physical": {
+									"damage_authority": false,
+									"death_key": "1264.337",
+									"error": "",
+									"event_id": "rpg:1:1:resident_252",
+									"final_dead": true,
+									"mode": "ACTIVE",
+									"ok": true
+								},
+								"status": "HOLD_active_uniform_port_or_activation_rejected"
+							},
+							"event_id": "rpg:1:2:resident_252",
+							"hit": {
+								"blast_origin_world": "(35.90848, 1.039195, -11.24995)",
+								"damage": 68,
+								"dir_c": -0.236189916729927,
+								"dir_r": -0.971706926822662,
+								"player_c": 104.944537651248,
+								"player_r": 8.46341519239472,
+								"source": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"weapon_id": "rpg"
+							},
+							"ok": true,
+							"reason": "final_death",
+							"revision": 2,
+							"row": {
+								"_aggression": 0.072367109998595,
+								"_allowBeach": false,
+								"_ambulanceDispatched": false,
+								"_arc": {
+									"fearDist": 7.0,
+									"hours": [
+										8.0,
+										21.0
+									],
+									"idleMult": 2.8,
+									"look": {
+										"hat": 2.0
+									},
+									"panicMult": 1.7,
+									"phrases": [
+										"Эх, молодёжь…",
+										"А раньше тут было тихо",
+										"Куда спешите-то",
+										"Помогите пожилому",
+										"Ноги болят",
+										"Пенсию опять задержали"
+									],
+									"speedRange": [
+										0.42,
+										0.62
+									],
+									"weight": 12.0
+								},
+								"_arcKey": "pensioner",
+								"_beach": false,
+								"_bleedSeverity": 1.45,
+								"_bleedUntil": 8081.876,
+								"_bloodDirC": -0.236189916729927,
+								"_bloodDirR": -0.971706926822662,
+								"_deathFromDowned": true,
+								"_emLastAt": 0.0,
+								"_fatigue": 0.164256524993107,
+								"_fear": 0.0871890340000391,
+								"_forcedCrawl": false,
+								"_knockedAt": 1018.29,
+								"_knockedUntil": 0,
+								"_lastHitAt": 1263.897,
+								"_lastViolentAt": 1263.772,
+								"_lastViolentSource": {
+									"kind": "player",
+									"uid": "local"
+								},
+								"_medicalBleedoutAt": 0,
+								"_medicalDowned": false,
+								"_medicalDownedAt": 0,
+								"_npcInitialPlacementPending": true,
+								"_relUpdAt": 1264.166,
+								"_relation": 2.0,
+								"_threeHitAngle": -1.80923927296158,
+								"_threeHitPower": 0.944444444444444,
+								"_threeHitWeapon": "rpg",
+								"ang": 0.0,
+								"c": 104.748970217821,
+								"cryText": "Помогите…",
+								"cryUntil": 2818.29,
+								"dead": true,
+								"deadAt": 1264.337,
+								"hp": 0,
+								"id": "resident_252",
+								"idleUntil": 1514.107,
+								"life_generation": 1,
+								"look": {
+									"body": 2.0,
+									"face": 3.0,
+									"gender": 0.0,
+									"hair": 2.0,
+									"hat": 2.0,
+									"skin": 0.0
+								},
+								"max_hp": 60.0,
+								"panicSrcC": 104.944537651248,
+								"panicSrcR": 8.46341519239472,
+								"panicUntil": 0,
+								"r": 6.16123562324338,
+								"snitching": false,
+								"source_id": "resident_252",
+								"speed": 0.565774921728298,
+								"tc": 104.5,
+								"tr": 12.5,
+								"walkPhase": 0,
+								"walking": false
+							},
+							"server_authority": false,
+							"source_now_ms": 1264.337
+						},
+						"source_id": "resident_252"
+					}
+				],
+				"occlusion": "source_rpg_has_no_npc_LOS",
+				"ok": true,
+				"scope": "new_local_session_ordinary_rpg",
+				"source_callbacks_complete": false,
+				"token": 2
+			},
+			"mode": "medical_finisher",
+			"native_receipt": {
+				"actor_id": "player",
+				"authority": "EXTERNAL_OWNER_REQUIRED",
+				"damage": 160,
+				"direction": "(0.389821, -0.178366, -0.903452)",
+				"distance_world": 0.818621814250946,
+				"explosive": true,
+				"hit": {
+					"collider": "<Freed Object>",
+					"distance": 0.818621814250946,
+					"hit": true,
+					"instance_id": 587672326473,
+					"normal": "(-1.0, 0.00019, 0.0007)",
+					"point": "(35.90848, 1.039195, -11.24995)",
+					"rid": "RID(93037581566262)",
+					"shape": 0
+				},
+				"item_uid": "local-weapon-item--9223371381704486541-14",
+				"life_generation": 1,
+				"native_rpg_impact": true,
+				"normal": "(-1.0, 0.00019, 0.0007)",
+				"origin": "(35.58936, 1.185209, -10.51036)",
+				"point": "(35.90848, 1.039195, -11.24995)",
+				"range_end": false,
+				"scene_token": "preview-scene:536703141327",
+				"sequence": 2,
+				"shot_id": "rpg:2",
+				"source_radius_cells": 2.7,
+				"token": 2
+			},
+			"records": [
+				{
+					"bodies": 16,
+					"dead": true,
+					"hp": 0,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_72",
+						"impulse_ns": "(27.33594, 0.0, -69.84086)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.23194, 0.000791, -13.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(27.33594, 0.0, -69.84086)",
+						"source_id": "resident_72",
+						"uniform_ns": "(27.33594, 0.0, -69.84086)"
+					},
+					"incremental_momentum": "(-106.65, -3.386128, -2.514422)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 752407812606,
+							"body_rid": "RID(116943369535812)",
+							"bridge_id": "npc_resident_72",
+							"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_72",
+							"rig_epoch": 751115968148,
+							"rig_instance_id": 751115968148,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_72"
+						},
+						"damage_authority": false,
+						"death_key": "1260.853",
+						"error": "",
+						"event_id": "rpg:1:1:resident_72",
+						"final_dead": true,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "final_death",
+					"source_id": "resident_72",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": true,
+					"hp": 0,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_169",
+						"impulse_ns": "(0.257567, 0.0, 74.99956)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(36.12262, -0.0, -5.899998)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(0.257567, 0.0, 74.99956)",
+						"source_id": "resident_169",
+						"uniform_ns": "(0.257567, 0.0, 74.99956)"
+					},
+					"incremental_momentum": "(1.755017, 0.775399, -6.91733)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 756451120289,
+							"body_rid": "RID(117647744172357)",
+							"bridge_id": "npc_resident_169",
+							"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_169",
+							"rig_epoch": 755058613746,
+							"rig_instance_id": 755058613746,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_169"
+						},
+						"damage_authority": false,
+						"death_key": "1262.606",
+						"error": "",
+						"event_id": "rpg:1:1:resident_169",
+						"final_dead": true,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "final_death",
+					"source_id": "resident_169",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": true,
+					"hp": 0,
+					"impulse": {
+						"event_id": "rpg:1:1:resident_252",
+						"impulse_ns": "(-17.82209, 0.0, -72.85172)",
+						"life_generation": 1,
+						"phase": "initial",
+						"point": "(34.54653, 0.000764, -19.4)",
+						"point_ns": "(0.0, 0.0, 0.0)",
+						"reason": "medical_downed",
+						"requested_total_ns": "(-17.82209, 0.0, -72.85172)",
+						"source_id": "resident_252",
+						"uniform_ns": "(-17.82209, 0.0, -72.85172)"
+					},
+					"incremental_momentum": "(71.10295, 0.305202, 8.521731)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 760494430884,
+							"body_rid": "RID(118352118808902)",
+							"bridge_id": "npc_resident_252",
+							"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_252",
+							"rig_epoch": 759101921548,
+							"rig_instance_id": 759101921548,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_252"
+						},
+						"damage_authority": false,
+						"death_key": "1264.337",
+						"error": "",
+						"event_id": "rpg:1:1:resident_252",
+						"final_dead": true,
+						"mode": "ACTIVE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "final_death",
+					"source_id": "resident_252",
+					"total_mass": 74.9999986886978
+				}
+			]
+		},
+		{
+			"gate": {
+				"ok": false,
+				"reason": "current_damage_context"
+			},
+			"mode": "retire_context",
+			"native_receipt": {
+				"actor_id": "player",
+				"authority": "EXTERNAL_OWNER_REQUIRED",
+				"damage": 160,
+				"direction": "(0.194317, -0.123192, -0.973172)",
+				"distance_world": 2.61774403889974,
+				"explosive": true,
+				"hit": {
+					"collider": "<Freed Object>",
+					"distance": 0.294410705566406,
+					"hit": true,
+					"instance_id": 992623992503,
+					"normal": "(-0.311227, 0.0, 0.950336)",
+					"point": "(36.09803, 0.844098, -13.05788)",
+					"rid": "RID(156899450290548)",
+					"shape": 0
+				},
+				"item_uid": "local-weapon-item--9223371141488307879-14",
+				"life_generation": 1,
+				"native_rpg_impact": true,
+				"normal": "(-0.311227, 0.0, 0.950336)",
+				"origin": "(35.58936, 1.166583, -10.51036)",
+				"point": "(36.09803, 0.844098, -13.05788)",
+				"range_end": false,
+				"scene_token": "preview-scene:776919328496",
+				"sequence": 1,
+				"shot_id": "rpg:1",
+				"source_radius_cells": 2.7,
+				"token": 1
+			},
+			"records": [
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 60.0,
+					"impulse": {},
+					"incremental_momentum": "(0.0, 0.0, 0.0)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 992623992503,
+							"body_rid": "RID(156899450290548)",
+							"bridge_id": "npc_resident_72",
+							"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_72",
+							"rig_epoch": 991332144547,
+							"rig_instance_id": 991332144547,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_72"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "",
+						"final_dead": false,
+						"mode": "IDLE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "",
+					"source_id": "resident_72",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 60.0,
+					"impulse": {},
+					"incremental_momentum": "(0.0, 0.0, 0.0)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 996667299267,
+							"body_rid": "RID(157603824927093)",
+							"bridge_id": "npc_resident_169",
+							"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_169",
+							"rig_epoch": 995274790894,
+							"rig_instance_id": 995274790894,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_169"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "",
+						"final_dead": false,
+						"mode": "IDLE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "",
+					"source_id": "resident_169",
+					"total_mass": 74.9999986886978
+				},
+				{
+					"bodies": 16,
+					"dead": false,
+					"hp": 60.0,
+					"impulse": {},
+					"incremental_momentum": "(0.0, 0.0, 0.0)",
+					"marks": 0,
+					"medical": false,
+					"physical": {
+						"automatic_recovery": false,
+						"binding": {
+							"body_instance_id": 1000710609198,
+							"body_rid": "RID(158308199563638)",
+							"bridge_id": "npc_resident_252",
+							"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+							"life_generation": 1,
+							"placement_mode": "PREVIEW_STAGE",
+							"render_id": "npc_resident_252",
+							"rig_epoch": 999318101374,
+							"rig_instance_id": 999318101374,
+							"session_id": "godot-preview-new-session-20260927-01",
+							"source_id": "resident_252"
+						},
+						"damage_authority": false,
+						"death_key": "",
+						"error": "",
+						"event_id": "",
+						"final_dead": false,
+						"mode": "IDLE",
+						"ok": true
+					},
+					"point_events": 0,
+					"reason": "",
+					"source_id": "resident_252",
+					"total_mass": 74.9999986886978
+				}
+			]
+		}
+	],
+	"scope": "Actual original main recipients + authentic gate + real Inventory/Fire/Flight/native query. Explicit TEST root-hook callbacks/manual real commit, not ordinary input/production root-hook integration. No sever/body edits; no GPU/performance acceptance."
+}

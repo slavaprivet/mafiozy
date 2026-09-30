@@ -1,0 +1,13 @@
+{
+	"case": "floor",
+	"checks": 1,
+	"cosmetic": [],
+	"errors": [
+		"actual full main3 original NPC ready"
+	],
+	"impacts": [],
+	"scope": "Actual full main with3 original moving NPC, original8buildings/collisions; real input/equip/ammo/pose/native Flight. Detached SAME aim camera and QA player placement. Headless behavior, not visual/performance acceptance. No HP injection or positive synthetic target tickets.",
+	"seconds": 13.298,
+	"shots": [],
+	"valid": false
+}

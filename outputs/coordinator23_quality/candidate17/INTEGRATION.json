@@ -1,0 +1,41 @@
+{
+  "parent": "candidate16",
+  "status": "RPG17 isolated; authentic combined/GPU pending",
+  "changes": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "before": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "after": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+      "source": "outputs\\coordinator23_rpg23i\\npc_proposal\\npc_local_preview_hit_owner.gd"
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": {
+      "before": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "after": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+      "source": "outputs\\coordinator23_rpg23i\\npc_proposal\\npc_ordinary_hit_lifecycle.gd"
+    },
+    "scripts/npc_visual/npc_rpg_blast_gate.gd": {
+      "before": null,
+      "after": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "source": "outputs\\coordinator23_rpg23i\\npc_proposal\\npc_rpg_blast_gate.gd"
+    },
+    "scripts/weapons/rpg_effects.gd": {
+      "before": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "after": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    },
+    "scripts/weapons/preview_weapons.gd": {
+      "before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "after": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    },
+    "scripts/preview_population.gd": {
+      "before": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "after": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    },
+    "export_presets.cfg": {
+      "before": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "after": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    }
+  }
+}

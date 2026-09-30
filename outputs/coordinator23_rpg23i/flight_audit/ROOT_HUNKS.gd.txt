@@ -1,0 +1,38 @@
+# OUTPUTS-ONLY focused additions, apply against root's CURRENT work, not wholesale.
+# rpg_effects.prepare_shot: after basic state check, before accessing projectile:
+if not shot.get("projectiles") is Array or shot.projectiles.size()!=1 or not shot.projectiles[0] is Dictionary:
+	return {"ok":false,"reason":"source_projectile"}
+var projectile:Dictionary=shot.projectiles[0]
+for key:String in ["yawOffset","pitchOffset"]:
+	if not Flight._finite(projectile.get(key)):
+		return {"ok":false,"reason":"source_spread"}
+var direction:Vector3=target-receipt.origin
+if not direction.is_finite() or direction.length_squared()<0.000001:
+	return {"ok":false,"reason":"aim"}
+direction=direction.normalized().rotated(Vector3.UP,float(projectile.yawOffset))
+var right:Vector3=direction.cross(Vector3.UP)
+if right.length_squared()>1e-8:
+	direction=direction.rotated(right.normalized(),float(projectile.pitchOffset))
+# Existing prepare_launch(direction.normalized()) remains below.
+# Only for the current Fire.step path. A future world-admitted ray must arrive
+# already spread, with offsets zero, as world_walk_combat does.
+
+# rpg_effects._impact: after existing entry _live guard, before any cosmetics:
+var host:Node=_host.get_ref()
+if host.npc_rpg_gate!=null:
+	host.npc_rpg_gate.native_impact(self,receipt)
+	if not _live():return
+# Existing _impacts++, release_visual, spawn_explosion, hit-only outward signal.
+
+# preview_weapons.after_pose_applied: existing emitted assert may stay, but add
+# actual release-build handling BEFORE shots_count/UI/outward accepted signal:
+if not emitted:
+	if gate!=null:gate.cancel_ammo_commit(npc_proof.ticket)
+	# Record failure using root's diagnostics. No refund/retry/HP receipt.
+	return
+# gate here denotes the same captured instance used by before_ammo_commit.
+
+# preview_weapons._exit_tree: before rpg_effects/effects/inventory disposal:
+if npc_rpg_gate!=null:
+	npc_rpg_gate.dispose()
+	npc_rpg_gate=null

@@ -1,0 +1,57 @@
+{
+  "status": "FROZEN_READY_NATIVE118_PASS_GPU_PENDING",
+  "files": [
+    {
+      "path": "scripts/npc_visual/npc_blood_adapter.gd",
+      "before_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "after_sha256": "e9ee5668baa0ce64f3f7364497a46288966d2be35a80ad1cd88a0111c89bfb11",
+      "bytes": 6691
+    },
+    {
+      "path": "scripts/npc_visual/npc_blood_renderer.gd",
+      "before_sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "after_sha256": "143344d611c7603c65c54f6b2867401b0d947148cef69c9eb776a9d44dca7a43",
+      "bytes": 6984
+    }
+  ],
+  "checks_total": 118,
+  "proofs": [
+    {
+      "path": "floor03",
+      "checks": 103,
+      "seconds": 7.014,
+      "harness_sha256": "fb7745193be726be6ce5a8ec266ca83c3a6c060ab3d898e08a8011198c6c4c25",
+      "pins": {
+        "RESULT.json": "7f8e2540597da88402a23a92e96dd345806ae2994e2d3aad089306c3d3d8533f",
+        "RUN.json": "b15b7dee60cd230006714cbf09e963da5eceaa9c297dcadacc9cba1ad70d2dfe",
+        "engine.log": "52a55d23afcfe8b420435f8cc722385ddf05b9d252177ceb3336f4e958cb6949"
+      }
+    },
+    {
+      "path": "context_dispose01",
+      "checks": 15,
+      "seconds": 6.824,
+      "harness_sha256": "511e05c7bf0d43338e9b34a98a02f46ba4c56659900e4fee7a683175a375e9cb",
+      "pins": {
+        "RESULT.json": "6844378958025633923818c7868c5da510aab798277a828159b46a203d37c3b0",
+        "RUN.json": "60ce5f30b7d0b8b3367228fe7fa255573c96b64171e7b38dd63d6c165e8af471",
+        "engine.log": "a8dd600dc68a07fd8fd4a3250a5d2c894703c12cce3203c8fe3e94c442fece27"
+      }
+    }
+  ],
+  "ordinary_methods_unchanged": true,
+  "artist_reference": {
+    "adapter": "b7dbe62438da02582104db044e1e181e5a1a5d8f0909a3a86d79072ed368b68a",
+    "renderer": "fc80b06a46ee04fd06e2a52bb663d3079e240f2b89ff84e010bef58ca8edf9dc"
+  },
+  "test_only_owner_sha256": "882422693237faa79fb4f463d27709f9b25a39af809b911f837b0285f1a38a2c",
+  "integration_seam": "Call blood.receive_blast(event_id, accepted.target_position, Vector3(hit.dir_c,0,hit.dir_r)) only AFTER applied HP and BEFORE _publish_physical. Return false must not synthesize a bullet wound. TEST-only owner is not an adoption file.",
+  "scope": "Exactly2 additive files, no ordinary methods modified.32burst in existing112pool, no wound/drip. Latest same-life RPG HP/revision/exact current target anchor and direction checks. IDLE feet->waist once; ACTIVE/recovering current physical anchor->samepoint. No sever/physics changes.",
+  "limits": [
+    "No GPU visual/performance acceptance.",
+    "Stage includes minimal TEST-only real recipient call plus replay/remote-anchor diagnostics, not full root18 integration.",
+    "Actual source survival RNG seeded for first medical then second ACTIVE shot; HP and positions not injected.",
+    "Separate direct renderer8burst256request pool-wrap probe is component capacity proof, not additional HP admissions.",
+    "Historical floor01 parse failure preserved; fixed explicit Vector3 type in adapter before passing runs."
+  ]
+}

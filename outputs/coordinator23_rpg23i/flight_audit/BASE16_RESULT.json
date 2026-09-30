@@ -1,0 +1,89 @@
+{
+	"checks": 28,
+	"elapsed_ms": 13228,
+	"failures": [],
+	"observations": [
+		{
+			"ammo_after": {
+				"cooldown": 1.63333333333333,
+				"lastRecoilScale": 1.2,
+				"lastRecoilYaw": -0.961397491879557,
+				"magazine": 0,
+				"recoil": 6.0,
+				"reloadRemaining": 0,
+				"reserveAmmo": 3,
+				"sequence": 1.0,
+				"sprayHeat": 0.80296875,
+				"sprayRecoveryRemaining": 1.90333333333333,
+				"sprayShots": 1.0,
+				"triggerHeld": true,
+				"weaponId": "rpg"
+			},
+			"ammo_before": {
+				"cooldown": 0.0,
+				"lastRecoilScale": 1.0,
+				"lastRecoilYaw": 0.0,
+				"magazine": 1,
+				"recoil": 0.0,
+				"reloadRemaining": 0,
+				"reserveAmmo": 3,
+				"sequence": 0,
+				"sprayHeat": 0.0,
+				"sprayRecoveryRemaining": 0.0,
+				"sprayShots": 0.0,
+				"triggerHeld": false,
+				"weaponId": "rpg"
+			},
+			"current_context": {},
+			"pitch": 0.00504276544655495,
+			"shot_id": "rpg:1",
+			"source_direction_error": 0.0349076800048351,
+			"speed": 3.20000004768372,
+			"token": 1,
+			"unspread_direction_error": 0.0,
+			"yaw": 0.0391715438853178
+		},
+		{
+			"ammo_after": {
+				"cooldown": 1.63333333333333,
+				"lastRecoilScale": 1.2,
+				"lastRecoilYaw": -0.961397491879557,
+				"magazine": 0.0,
+				"recoil": 6.0,
+				"reloadRemaining": 0.0,
+				"reserveAmmo": 2.0,
+				"sequence": 2.0,
+				"sprayHeat": 0.80296875,
+				"sprayRecoveryRemaining": 1.90333333333333,
+				"sprayShots": 1.0,
+				"triggerHeld": true,
+				"weaponId": "rpg"
+			},
+			"ammo_before": {
+				"cooldown": 0.0,
+				"lastRecoilScale": 1.2,
+				"lastRecoilYaw": -0.961397491879557,
+				"magazine": 1.0,
+				"recoil": 0.0,
+				"reloadRemaining": 0.0,
+				"reserveAmmo": 2.0,
+				"sequence": 1.0,
+				"sprayHeat": 0.0,
+				"sprayRecoveryRemaining": 0.0,
+				"sprayShots": 0.0,
+				"triggerHeld": false,
+				"weaponId": "rpg"
+			},
+			"current_context": {},
+			"pitch": 0.00504276544655495,
+			"shot_id": "rpg:2",
+			"source_direction_error": 0.0154210887849331,
+			"speed": 3.20000004768372,
+			"token": 2,
+			"unspread_direction_error": 0.0,
+			"yaw": 0.0391715438853178
+		}
+	],
+	"scope": "actual root scheduled input/Fire/ammo/Flight; HEADLESS NOT performance or NPC RPG damage acceptance",
+	"strict_source_spread": false
+}

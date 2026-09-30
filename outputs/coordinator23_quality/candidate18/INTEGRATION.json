@@ -1,0 +1,57 @@
+{
+  "parent": "candidate17",
+  "status": "FROZEN18 authentic RPG + bounded receipt blood; compiled/GPU acceptance pending",
+  "changes": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": {
+      "before": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "after": "4b1827c078a31dcc1c2431daf0b25594f5e7e68e74a7ed7e2fbebeec4489f661",
+      "source": "Root18 final guarded composition + blast blood"
+    },
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": {
+      "before": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "after": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+      "source": "outputs\\coordinator23_rpg23i\\npc_proposal\\npc_ordinary_hit_lifecycle.gd"
+    },
+    "scripts/npc_visual/npc_rpg_blast_gate.gd": {
+      "before": null,
+      "after": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "source": "outputs\\coordinator23_rpg23i\\npc_proposal\\npc_rpg_blast_gate.gd"
+    },
+    "scripts/weapons/rpg_effects.gd": {
+      "before": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "after": "69487a1ae4fc8ff408f3715e2dd659a1e12ce8f6160a0528c85274266dec35d1",
+      "source": "Root18 final guarded composition + blast blood"
+    },
+    "scripts/weapons/preview_weapons.gd": {
+      "before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "after": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    },
+    "scripts/preview_population.gd": {
+      "before": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "after": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    },
+    "export_presets.cfg": {
+      "before": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "after": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb",
+      "source": "Root23 actual ammo/Flight/RPG gate composition"
+    },
+    "scripts/npc_visual/npc_blood_adapter.gd": {
+      "before": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "after": "e9ee5668baa0ce64f3f7364497a46288966d2be35a80ad1cd88a0111c89bfb11",
+      "source": "outputs\\coordinator23_rpg23i\\blood_proposal\\files\\scripts\\npc_visual\\npc_blood_adapter.gd"
+    },
+    "scripts/npc_visual/npc_blood_renderer.gd": {
+      "before": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "after": "143344d611c7603c65c54f6b2867401b0d947148cef69c9eb776a9d44dca7a43",
+      "source": "outputs\\coordinator23_rpg23i\\blood_proposal\\files\\scripts\\npc_visual\\npc_blood_renderer.gd"
+    },
+    "data/preview_updates.json": {
+      "before": "f54b8c0be2111c3e9b97af03ec144f2458dda63b451e2b4229a8860aa207368d",
+      "after": "d05e75b7cb19ee163ef7f2c19e6ebe61ded2ff4f8db8dbbc10a83fa4f1afd82f",
+      "source": "Root truthful23i runtime notes"
+    }
+  },
+  "base_accepted": "candidate16"
+}

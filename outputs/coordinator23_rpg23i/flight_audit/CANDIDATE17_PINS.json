@@ -1,0 +1,109 @@
+{
+  "utc": "2026-09-30T12:04:25.595215+00:00",
+  "stage": "candidate17",
+  "manifest_sha256": "ba785cacbb45e8ba95783b3c40f0efd5e204e4d961d30ecf589ae3978483c69f",
+  "declared_changes": [
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "before": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "after": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+      "expected_before": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "expected_after": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+      "matches": true
+    },
+    {
+      "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "before": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "after": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+      "expected_before": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "expected_after": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+      "matches": true
+    },
+    {
+      "path": "scripts/npc_visual/npc_rpg_blast_gate.gd",
+      "before": null,
+      "after": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "expected_before": null,
+      "expected_after": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "matches": true
+    },
+    {
+      "path": "scripts/weapons/rpg_effects.gd",
+      "before": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "after": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+      "expected_before": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "expected_after": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+      "matches": true
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "after": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+      "expected_before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "expected_after": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+      "matches": true
+    },
+    {
+      "path": "scripts/preview_population.gd",
+      "before": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "after": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+      "expected_before": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "expected_after": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+      "matches": true
+    },
+    {
+      "path": "export_presets.cfg",
+      "before": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "after": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb",
+      "expected_before": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "expected_after": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb",
+      "matches": true
+    }
+  ],
+  "all_declared_match": true,
+  "actual_source_diff": [
+    {
+      "path": "export_presets.cfg",
+      "before": "defd7dfd124226acf9f2adb1a1dea069b77b0c74dc6a7c1e988338f0291cc469",
+      "after": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb"
+    },
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "before": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "after": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5"
+    },
+    {
+      "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "before": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "after": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88"
+    },
+    {
+      "path": "scripts/npc_visual/npc_rpg_blast_gate.gd",
+      "before": null,
+      "after": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe"
+    },
+    {
+      "path": "scripts/preview_population.gd",
+      "before": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9",
+      "after": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad"
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "before": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c",
+      "after": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39"
+    },
+    {
+      "path": "scripts/weapons/rpg_effects.gd",
+      "before": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e",
+      "after": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126"
+    }
+  ],
+  "undeclared_source_diff": [],
+  "unchanged_test_sha256": "a9ce915d4831d5dc08d0b175ae3f379d0f0e69656c26daf41d2df11061b38df6",
+  "test_result_sha256": "e4863270003b4d413058e48a537a11d37ce138e62f8bfeb460a989cc6964b5cf",
+  "log_sha256": "9afa955269bfcd8618959169e96249cad2b8e5b9cc29c421bc80b25366ae3aba",
+  "test_exit_code": 0,
+  "checks": 32,
+  "failures": 0,
+  "no_GPU_Git_shared_runtime_edits": true
+}

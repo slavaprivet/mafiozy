@@ -1,0 +1,16 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS ready
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+FAIL one actual Nagan player-input Fire/pose/accepted signal
+FAIL Nagan actual one-round spend
+FAIL real source Nagan accepted shot replaces current context with duel multiplier1.8
+FAIL native impact reads new real context rather than launch snapshot
+FAIL real recipient damage differs from stale launch-context result resident_72
+FAIL real recipient damage differs from stale launch-context result resident_169
+FAIL real recipient damage differs from stale launch-context result resident_252
+RPG_ACTUAL_MAIN_RESULT {"case":"floor","checks":65,"errors":["one actual Nagan player-input Fire/pose/accepted signal","Nagan actual one-round spend","real source Nagan accepted shot replaces current context with duel multiplier1.8","native impact reads new real context rather than launch snapshot","real recipient damage differs from stale launch-context result resident_72","real recipient damage differs from stale launch-context result resident_169","real recipient damage differs from stale launch-context result resident_252"],"seconds":4.741}

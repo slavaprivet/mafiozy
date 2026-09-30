@@ -1,0 +1,38 @@
+{
+  "exit_code": 0,
+  "case": "context_dispose",
+  "seconds": 7.100487800082192,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate17\\godot\\mafiozi_walk",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\tests\\actual_main.gd",
+    "--",
+    "--case=context_dispose",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\context_dispose01"
+  ],
+  "before": {
+    "scripts/main.gd": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+    "scripts/preview_player.gd": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+    "scripts/weapons/preview_weapons.gd": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+    "scripts/weapons/rpg_effects.gd": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+    "scripts/weapons/rpg_flight.gd": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+    "scripts/npc_visual/npc_rpg_blast_gate.gd": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88"
+  },
+  "after": {
+    "scripts/main.gd": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc",
+    "scripts/preview_player.gd": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf",
+    "scripts/weapons/preview_weapons.gd": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+    "scripts/weapons/rpg_effects.gd": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+    "scripts/weapons/rpg_flight.gd": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f",
+    "scripts/npc_visual/npc_rpg_blast_gate.gd": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+    "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88"
+  },
+  "harness_sha256": "28adcbfa6feb425721c5ab4e3134e1ea685f26970418121e8f9eebea03abc7c2",
+  "stable_sources": true
+}

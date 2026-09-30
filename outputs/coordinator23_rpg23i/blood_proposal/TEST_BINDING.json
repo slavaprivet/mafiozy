@@ -1,0 +1,10 @@
+{
+  "base": "candidate17",
+  "stage": "outputs\\coordinator23_rpg23i\\blood_proposal\\stage",
+  "test_only_owner_sha256": "882422693237faa79fb4f463d27709f9b25a39af809b911f837b0285f1a38a2c",
+  "owner_changes": "Only post-applied/pre-physical blood call and negative/replay diagnostics; no sever/physics/genbody changes. Not an adoption file.",
+  "adapter_sha256": "e9ee5668baa0ce64f3f7364497a46288966d2be35a80ad1cd88a0111c89bfb11",
+  "renderer_sha256": "143344d611c7603c65c54f6b2867401b0d947148cef69c9eb776a9d44dca7a43",
+  "harness_sha256": "fb7745193be726be6ce5a8ec266ca83c3a6c060ab3d898e08a8011198c6c4c25",
+  "frozen_older_harness_for_context_dispose": "test_actual_blood_511e.gd"
+}

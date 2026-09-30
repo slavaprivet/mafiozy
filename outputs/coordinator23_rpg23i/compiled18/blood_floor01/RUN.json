@@ -1,0 +1,41 @@
+{
+  "exit_code": 0,
+  "label": "blood_floor",
+  "case": "floor",
+  "seconds": 6.756464699981734,
+  "pack_sha256": "9b9f502afacb1c2814782c289916d385e6676b39a856be7d8ad2594b51f677a1",
+  "pack_unchanged": true,
+  "export_receipt_sha256": "6bece19ff835f2c2e8976ae0c4c57de5fc65dad36b3c1fa1d5552ee438f81fab",
+  "integration_sha256": "5de69d7a698021fe09f4f8d8ef60f3746490d476e35839614464e85818488d60",
+  "harness_sha256": "61228de833c862609883fccf8966483a83a6eb327e2f323d37cf8b2c518d9d87",
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--main-pack",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate18\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23i\\MafioziPreview.pck",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\compiled18\\actual_blood.gd",
+    "--",
+    "--case=floor",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\compiled18\\blood_floor01"
+  ],
+  "cwd": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\compiled18\\blood_floor01",
+  "checks": 114,
+  "compiled_resources": {
+    "res://scripts/main.gd": true,
+    "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+    "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+    "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+    "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+    "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+    "res://scripts/preview_player.gd": true,
+    "res://scripts/preview_population.gd": true,
+    "res://scripts/weapons/preview_weapons.gd": true,
+    "res://scripts/weapons/rpg_effects.gd": true,
+    "res://scripts/weapons/rpg_flight.gd": true
+  },
+  "result_valid": true,
+  "errors": [],
+  "engine_clean": true,
+  "accepted": true
+}

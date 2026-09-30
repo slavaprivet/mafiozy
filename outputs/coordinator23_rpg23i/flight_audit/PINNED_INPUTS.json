@@ -1,0 +1,185 @@
+{
+  "created_utc": "2026-09-30T11:55:43.220669+00:00",
+  "base": "frozen candidate16; parent accepted main b334f890 (not independently queried Git)",
+  "expected_pck_sha256": "8051926d109704cb4f85eb46cd2af8dd5b9a84d9cc4e71480db22b699dce7741",
+  "scope": "outputs-only source review and bounded actual-main headless diagnostic; no GPU/performance/HP admission claim",
+  "inputs": [
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/project.godot",
+      "bytes": 1097,
+      "sha256": "64211c1d8cd66482e37af4a6a15001ac66f5ed29e86df1d21b4bac0469e2baa3"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/main.gd",
+      "bytes": 43480,
+      "sha256": "ae14569e61aab6b5b8144126364755254e2526665c6d7258f6c58a9b3cd8dfdc"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/preview_player.gd",
+      "bytes": 37786,
+      "sha256": "bc310147f8697945e320ad026afd92962bb9dd53822b6964fa89288f0d0663cf"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/preview_population.gd",
+      "bytes": 8333,
+      "sha256": "2c6f10825f2468912223c9443bfd863935641a1c00f719e85994d57dd24769e9"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "bytes": 21945,
+      "sha256": "104f7495ae394ce558e5b61aa0d03d82f0caf520cf4c395eeb2a930495d5020c"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/rpg_effects.gd",
+      "bytes": 12515,
+      "sha256": "bbd4ec325524afe4fea2a11ebd1343635b84bde758c25e4848ea66d6ef266a9e"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/rpg_flight.gd",
+      "bytes": 13595,
+      "sha256": "03e119d3feedcdee11415922ab391e02d4375654df76896835bb43a93497bc6f"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/weapon_fire.gd",
+      "bytes": 10197,
+      "sha256": "55af8a7f8be7153b0e4530dfa5a5c46a567f2e38ca34096665bfd0c2831d8cb6"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/weapon_projectiles.gd",
+      "bytes": 21504,
+      "sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/player_weapon_presentation.gd",
+      "bytes": 10416,
+      "sha256": "155c8ba0a9a806a399a631f7bffad0596454dd27a60fadd29d5e6d51adb75e5d"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/weapon_inventory.gd",
+      "bytes": 18182,
+      "sha256": "e5d2448223b1356054c26402e2b71432facbd18b9dc89450f18501a81d5a1704"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/weapons/weapon_hit_rules.gd",
+      "bytes": 11136,
+      "sha256": "938672fef8eb6f5f6f909107b4041af49c56b0e69bdb08cce6740c83cf37a274"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "bytes": 25828,
+      "sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "bytes": 10318,
+      "sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309"
+    },
+    {
+      "path": "outputs/coordinator23_quality/candidate16/godot/mafiozi_walk/scripts/npc_visual/npc_hit_impulse.gd",
+      "bytes": 2135,
+      "sha256": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_weapon_fire.mjs",
+      "bytes": 16543,
+      "sha256": "ae1a5b821b621cd2b0699c2f403a66f6f9f4de2bdbb5534a798d5dec2f95e4d8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/weapon_effects.mjs",
+      "bytes": 30378,
+      "sha256": "4dfa7adf47309b89dd1b87bb0776abd1b2385c15c24256b749b7c71dfa9ff7ec"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/world_walk_combat.mjs",
+      "bytes": 6878,
+      "sha256": "5c63d1ae01b033d28f9a22728a3a715821cf4f70e4b74c42b42810e70a5c3851"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/walk_preview.mjs",
+      "bytes": 252219,
+      "sha256": "e80ebf4be2d0404ad5b51d4bf28b756a9cba2b486c43c0797de748c37364dd47"
+    },
+    {
+      "path": "world.html",
+      "bytes": 5109059,
+      "sha256": "9f5cc5a1a80db37dbf3136ecab66c4cdba2bd679dbea03aa10800ac16d8a95b5"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23h/SOURCE_AUDIT.md",
+      "bytes": 15569,
+      "sha256": "ec97762af0837f53894f6885cf43f0d88c52ee184ae883b1247dff0c1589468f"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23h/PINNED_INPUTS.json",
+      "bytes": 18184,
+      "sha256": "f2edbcfb267f0ad01e7d5089e95e1cac0d2b46bdc9b8a3ff184df618336c28b8"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/npc_rpg_blast_gate.gd",
+      "bytes": 15110,
+      "sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/root_hooks.gd.txt",
+      "bytes": 2987,
+      "sha256": "ccba936b61f39de6c332c9d356440b33738f4d3e032912cad9c6ae3a0ca9aa14"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/HANDOFF.md",
+      "bytes": 6841,
+      "sha256": "acd8300e99a1dbd37155775eee935850d51a552466daa4780b72a74cc76973c2"
+    },
+    {
+      "path": "outputs/artist23_rpg_damage/test.gd",
+      "bytes": 13415,
+      "sha256": "3e5177e9b3d1d523d979e2fdcb342d7f38d6a1850821021ad73f41ab3b66dc5e"
+    }
+  ],
+  "missing": [],
+  "outputs": [
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/BASE16.log",
+      "bytes": 2074,
+      "sha256": "77fe793ca39599a6c40e6f6f2bb2f4453a0cffea002b4439e236990c74f3ab8e"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/BASE16_RESULT.json",
+      "bytes": 2184,
+      "sha256": "b2e845bdfa075618d840d654fd2adec99e2d720f2de8a2b100cd1bd788c71420"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/BASE16_STRICT.log",
+      "bytes": 2332,
+      "sha256": "f4f4a0ce82373b4194d94646819a78cd56f1f70737ba2985b8faecd7ee7ffaf6"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/BASE16_STRICT_RESULT.json",
+      "bytes": 2418,
+      "sha256": "aec6c2bccc60546ac0c7b85201ac0ffb1ded139da7cf772d32eab1811d7fdfb4"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/REVIEW.md",
+      "bytes": 10890,
+      "sha256": "334488b78e61a47b53bfea2be633e1f150b598557a419d2b71459f01a5799683"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/ROOT_HUNKS.gd.txt",
+      "bytes": 1929,
+      "sha256": "5845d57cc9936236abdca6af84aca9d2107b4a82158250f8547c463741ffdf8b"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/test_actual_flight.gd",
+      "bytes": 7001,
+      "sha256": "a9ce915d4831d5dc08d0b175ae3f379d0f0e69656c26daf41d2df11061b38df6"
+    }
+  ],
+  "final_diagnostic": {
+    "result": "BASE16_STRICT_RESULT.json",
+    "checks": 32,
+    "pass": 30,
+    "expected_fail": 2,
+    "exit_code": 1,
+    "reason": "existing current RPG yaw/pitch dropped before Flight"
+  },
+  "mutations": "only files under this output directory"
+}

@@ -1,0 +1,56 @@
+{
+  "base": "frozen candidate16 accepted23h NPC23g",
+  "files": [
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "base_sha256": "0a3e311dd08bb463088f3afb1499d74032e8e7528af8aaadda1aa9e47025f225",
+      "proposal_sha256": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5"
+    },
+    {
+      "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "base_sha256": "80f7a0cb8eb36d26912abbedac7c9ed25597c28ceeca1ac72ad47c5546c1f309",
+      "proposal_sha256": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88"
+    },
+    {
+      "path": "scripts/npc_visual/npc_rpg_blast_gate.gd",
+      "proposal_sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "unchanged_owner_packet": true
+    }
+  ],
+  "generic_body_or_sever_changed": false,
+  "tests": {
+    "native02": "135 PASS/0 errors, 9.186 seconds; actual3rig+authenticgate+Inventory/Fire/Flight, initialfinal/medical and activefinisher explicitHOLD",
+    "ordinary_existing_methods_byte_identical": [
+      "configure",
+      "_now",
+      "_current",
+      "_service",
+      "_queue",
+      "_on_shot",
+      "current_damage_context",
+      "_cleanup_shots",
+      "_owns_collider",
+      "_on_native_impact",
+      "_apply_hit",
+      "_on_projectile_resolved",
+      "physical_event",
+      "step",
+      "snapshot",
+      "should_pause_walk",
+      "_head_contact"
+    ],
+    "ordinary_changed_methods": [
+      "_publish_physical",
+      "dispose"
+    ],
+    "head_policy_occurrences_preserved": 3,
+    "GPU": "NOT RUN",
+    "root_normal_input_composition": "NOT TESTED"
+  },
+  "test_sha256": "ebc3ca1f495b9c1afa5b2d8e2acca1927b86f9ecb5fe90be50d91e0cd6ebc5d4",
+  "read_packet": {
+    "path": "outputs/artist23_rpg_sever_bridge/HANDOFF.md",
+    "sha256": "02424d918c7737a1e6d54d2a012dbcdad121c51ee0f21f9e6334c01baf6384ca",
+    "adopted": "Gate exacttype + preserve23g lifecycle guard; NO sever/leg/point split from package"
+  }
+}

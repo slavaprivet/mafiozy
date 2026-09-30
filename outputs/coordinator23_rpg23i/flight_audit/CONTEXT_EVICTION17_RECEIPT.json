@@ -1,0 +1,127 @@
+{
+  "utc": "2026-09-30T12:15:28.599704+00:00",
+  "candidate17_guards": [
+    {
+      "path": "scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "sha256": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+      "expected": "407f2650fbc2db7a2e4437e4907cd533c9103c7473cfacfd8d9260f60c7390c5",
+      "same": true
+    },
+    {
+      "path": "scripts/npc_visual/npc_ordinary_hit_lifecycle.gd",
+      "sha256": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+      "expected": "3d7c8fab1d4c9632669702c3e7479ff5ec85301fc1c7aeb45dc4bf40f1ac8e88",
+      "same": true
+    },
+    {
+      "path": "scripts/npc_visual/npc_rpg_blast_gate.gd",
+      "sha256": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "expected": "e6f94752f9609aee3d7674c58280e7016f89cebf58c68ab85462b730b4b7aebe",
+      "same": true
+    },
+    {
+      "path": "scripts/weapons/rpg_effects.gd",
+      "sha256": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+      "expected": "cd66dabb46835632cf79a9c5c0ee09171b5a60c318260e89bbabf79feffda126",
+      "same": true
+    },
+    {
+      "path": "scripts/weapons/preview_weapons.gd",
+      "sha256": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+      "expected": "ca65c4a92849dcb1197692d1c82f6755aac744844275194c8cf1fce3403bec39",
+      "same": true
+    },
+    {
+      "path": "scripts/preview_population.gd",
+      "sha256": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+      "expected": "6aaf29235d4d90cf353547c91add829af727c7e9b88bebea5dd40ddf2e1f32ad",
+      "same": true
+    },
+    {
+      "path": "export_presets.cfg",
+      "sha256": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb",
+      "expected": "393d7af829881394055f9a10b3626667d9d674ff7dd0940a710d45c33d892ebb",
+      "same": true
+    }
+  ],
+  "all_guards_unchanged": true,
+  "evidence": [
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/fixture_actual_main_frozen.gd",
+      "bytes": 15383,
+      "sha256": "28adcbfa6feb425721c5ab4e3134e1ea685f26970418121e8f9eebea03abc7c2"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/test_current_context.gd",
+      "bytes": 6441,
+      "sha256": "9ef58d4140a2c93c1748fcf617d1cc16fe9ad7e0182c88f2b152bd532fc20613"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/test_pool_eviction.gd",
+      "bytes": 5669,
+      "sha256": "dab1839e0d5188d16b12520d8d071dd93ff56d9219d509a739d738e2d80a7067"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/context17_02/test_used.gd",
+      "bytes": 6441,
+      "sha256": "9ef58d4140a2c93c1748fcf617d1cc16fe9ad7e0182c88f2b152bd532fc20613"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/context17_02/RESULT.json",
+      "bytes": 43829,
+      "sha256": "13d2f3dd103d5a1746558bc519eb8742c3b536bf83d993782308c63610693618"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/CONTEXT17_02.log",
+      "bytes": 430,
+      "sha256": "1458299147607fc2000919942ddc903fdf231a82ec2068e4a4bba388f3c8488c"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/eviction17/RESULT.json",
+      "bytes": 5314,
+      "sha256": "5e6a528ba09d8c6f4da9aafd6cb1e5a3d3b8b8da632af1582f0bb4e00007a850"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/EVICTION17.log",
+      "bytes": 430,
+      "sha256": "1407b70ef865d60666fe6466c7387dbf15af34f2a1e7fb4b2bdbc0bb174bab79"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/context17/RESULT.json",
+      "bytes": 42582,
+      "sha256": "bb484ca9905b2be8ae67f11d685ac9b4034429c501ca89bd09e950378f57a7e7"
+    },
+    {
+      "path": "outputs/coordinator23_rpg23i/flight_audit/CONTEXT17.log",
+      "bytes": 1401,
+      "sha256": "ea87d5d91a1b2461a7954728a969b802ca766b427bf61c61ce06ef34f62b7855"
+    }
+  ],
+  "context": {
+    "checks": 65,
+    "errors": [],
+    "seconds": 4.698,
+    "exit_code": 0,
+    "launch_context": {
+      "critical": false,
+      "critical_multiplier": 1.25,
+      "marksman": 0.0
+    },
+    "impact_context": {
+      "critical": true,
+      "critical_multiplier": 1.8,
+      "marksman": 0.0
+    },
+    "rng_seed": 1
+  },
+  "eviction": {
+    "checks": 26,
+    "errors": [],
+    "seconds": 3.813,
+    "exit_code": 0
+  },
+  "earlier_context_attempt": "Retained context17 failed7 because harness pose dt0 produces no fresh pose. Corrected only test pose sampling to1/60 while weapon/Flight delta stays0. Not a production failure.",
+  "gpu": false,
+  "shared_runtime_changes": false,
+  "git": false
+}

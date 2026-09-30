@@ -1,0 +1,16 @@
+{
+  "exit": 0,
+  "seconds": 8.146923700114712,
+  "command": [
+    "C:/Users/\u0421\u043b\u0430\u0432\u0430/AppData/Local/MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_rpg23i\\npc_proposal\\stage",
+    "--fixed-fps",
+    "60",
+    "--script",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_rpg23i\\npc_proposal\\test_native_recipient.gd",
+    "--",
+    "--qa-out=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator23_rpg23i\\npc_proposal\\native01"
+  ]
+}

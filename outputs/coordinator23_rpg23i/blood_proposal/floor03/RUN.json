@@ -1,0 +1,26 @@
+{
+  "exit_code": 0,
+  "seconds": 7.384775099810213,
+  "before": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "882422693237faa79fb4f463d27709f9b25a39af809b911f837b0285f1a38a2c",
+    "scripts/npc_visual/npc_blood_adapter.gd": "e9ee5668baa0ce64f3f7364497a46288966d2be35a80ad1cd88a0111c89bfb11",
+    "scripts/npc_visual/npc_blood_renderer.gd": "143344d611c7603c65c54f6b2867401b0d947148cef69c9eb776a9d44dca7a43"
+  },
+  "after": {
+    "scripts/npc_visual/npc_local_preview_hit_owner.gd": "882422693237faa79fb4f463d27709f9b25a39af809b911f837b0285f1a38a2c",
+    "scripts/npc_visual/npc_blood_adapter.gd": "e9ee5668baa0ce64f3f7364497a46288966d2be35a80ad1cd88a0111c89bfb11",
+    "scripts/npc_visual/npc_blood_renderer.gd": "143344d611c7603c65c54f6b2867401b0d947148cef69c9eb776a9d44dca7a43"
+  },
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64_console.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\blood_proposal\\stage",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\blood_proposal\\test_actual_blood.gd",
+    "--",
+    "--case=floor",
+    "--qa-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_rpg23i\\blood_proposal\\floor03"
+  ],
+  "harness_sha256": "fb7745193be726be6ce5a8ec266ca83c3a6c060ab3d898e08a8011198c6c4c25"
+}

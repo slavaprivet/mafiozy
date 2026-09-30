@@ -1,0 +1,346 @@
+{
+  "status": "EXACT_EXPORTED18_COMPILED_NATIVE_415_PASS_GPU_PENDING",
+  "checks": 415,
+  "pack_path": "outputs\\coordinator23_quality\\candidate18\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23i\\MafioziPreview.pck",
+  "pack_sha256": "9b9f502afacb1c2814782c289916d385e6676b39a856be7d8ad2594b51f677a1",
+  "export_receipt_sha256": "6bece19ff835f2c2e8976ae0c4c57de5fc65dad36b3c1fa1d5552ee438f81fab",
+  "integration_sha256": "5de69d7a698021fe09f4f8d8ef60f3746490d476e35839614464e85818488d60",
+  "cases": [
+    {
+      "case": "floor",
+      "checks": 62,
+      "seconds": 6.580160499783233,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+      "pins": {
+        "RESULT.json": "5a6d22e68d1b36e8d5a335bf857aa76bbe48251b263abb9ac7a6f0e560e7e476",
+        "RUN.json": "5559f5f5c6b45f5fed839006f443fc3d175fb93f4d01b5cd6e9806d3c03be1cc",
+        "engine.log": "a55fe2baee2be9d82124a56ba7e8f7377087c42d4427e536c50f0e0f15b61715"
+      }
+    },
+    {
+      "case": "wall",
+      "checks": 53,
+      "seconds": 6.472555999876931,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+      "pins": {
+        "RESULT.json": "d6603d7e8977cfbdd19e03b218b67045518984e00a83f331152fe2560ccc8345",
+        "RUN.json": "b2aea747334ce88e68384b7e5a2635d22b71555b44bc42241d9509d98b29ad6c",
+        "engine.log": "65d839f6cd00d4c4a1c96372ebb727b2245b4172d14f6596b1f31956444cae58"
+      }
+    },
+    {
+      "case": "spread",
+      "checks": 63,
+      "seconds": 6.745999500155449,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+      "pins": {
+        "RESULT.json": "bc05233b336510d816ca5b2f021bf2ee860c76ba3b9d00aafdb9d5666c99ed21",
+        "RUN.json": "e3b76a859143fa06b9e83a9da533b2fc9317948ce5f10d1c781183cc91568e8c",
+        "engine.log": "09f5a68b1fcea920c7a62daefd92820da20d8441aaa071cc9914dfcbb3305eb8"
+      }
+    },
+    {
+      "case": "range_end",
+      "checks": 45,
+      "seconds": 7.3183923999313265,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+      "pins": {
+        "RESULT.json": "2cca565e6055804f39f0ea20cb065aed6cd177ea84e7400d5b2c15bcf8611b03",
+        "RUN.json": "a5c0816dacad11bd853d9752a5facc57bf9c1f414da3f41a2d375b13cfc2c482",
+        "engine.log": "12323905b26306a085dbfae6230099a0546c4a292239603a67f34d9a73333ad2"
+      }
+    },
+    {
+      "case": "cancel",
+      "checks": 26,
+      "seconds": 6.480628099991009,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+      "pins": {
+        "RESULT.json": "01e1976257ac500b36d68fbf353b2df9560eb21357bf0a787b7c7e93aaefdc89",
+        "RUN.json": "40f595a3046c74c33d40ff958e413864f832d8feeddc99f62a089ec8410ad034",
+        "engine.log": "4626db245c12d9c98626f9ee5f79bf640c8ac2f3ad1b5d47b4524c295ab099d0"
+      }
+    },
+    {
+      "case": "context_dispose",
+      "checks": 26,
+      "seconds": 6.5702064000070095,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+      "pins": {
+        "RESULT.json": "f40ebf3d4e2cfb9d3d230cacfc1471c05138fb187c5cc2fc281a196352f04691",
+        "RUN.json": "282ad89bf8c4ac62856d3ea7da07c0763435f65ced6ac1f178134edc16f701b3",
+        "engine.log": "d3b6398b5068bcba7ccd769a5b33615556e12dd3fe57646544c9416bc978f99f"
+      }
+    },
+    {
+      "case": "blood_floor",
+      "checks": 114,
+      "seconds": 6.756464699981734,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "61228de833c862609883fccf8966483a83a6eb327e2f323d37cf8b2c518d9d87",
+      "pins": {
+        "RESULT.json": "a0383e89bcf1b30708a99bf5ca53ed6a86219e79a0eefcb2cc94596a278d17e1",
+        "RUN.json": "64b61cc7dd2b81f2445add979b28185efa518f930bae972daf59b75d037a2cbe",
+        "engine.log": "07ee87804529344054e0ec9c25d0eef9647b80cca584d1ba7563ba05a13e8675"
+      },
+      "original_npc_bursts": [
+        [
+          {
+            "actual_emission": "(38.06852, 0.788609, -13.4)",
+            "anchor": "(38.06852, 0.000804, -13.4)",
+            "before_mode": "IDLE",
+            "expected_emission": "(38.06852, 0.788609, -13.4)",
+            "id": "resident_72",
+            "particles_added": 32,
+            "witness": {
+              "event_id": "rpg:1:1:resident_72",
+              "first": true,
+              "mode": "IDLE",
+              "replay": false,
+              "scope": "Actual exported root recipient emitted before observer. No test-only owner metadata or call insertion.",
+              "wrong_anchor": false
+            }
+          },
+          {
+            "actual_emission": "(36.12262, 0.798713, -4.130001)",
+            "anchor": "(36.12262, 0.000768, -4.130001)",
+            "before_mode": "IDLE",
+            "expected_emission": "(36.12262, 0.798713, -4.130001)",
+            "id": "resident_169",
+            "particles_added": 32,
+            "witness": {
+              "event_id": "rpg:1:1:resident_169",
+              "first": true,
+              "mode": "IDLE",
+              "replay": false,
+              "scope": "Actual exported root recipient emitted before observer. No test-only owner metadata or call insertion.",
+              "wrong_anchor": false
+            }
+          },
+          {
+            "actual_emission": "(33.26885, 0.719268, -19.4)",
+            "anchor": "(33.26885, 0.000819, -19.4)",
+            "before_mode": "IDLE",
+            "expected_emission": "(33.26885, 0.719268, -19.4)",
+            "id": "resident_252",
+            "particles_added": 32,
+            "witness": {
+              "event_id": "rpg:1:1:resident_252",
+              "first": true,
+              "mode": "IDLE",
+              "replay": false,
+              "scope": "Actual exported root recipient emitted before observer. No test-only owner metadata or call insertion.",
+              "wrong_anchor": false
+            }
+          }
+        ],
+        [
+          {
+            "actual_emission": "(39.56523, 0.217423, -13.67009)",
+            "anchor": "(39.56523, 0.217423, -13.67009)",
+            "before_mode": "ACTIVE",
+            "expected_emission": "(39.56523, 0.217423, -13.67009)",
+            "id": "resident_72",
+            "particles_added": 32,
+            "witness": {
+              "event_id": "rpg:1:2:resident_72",
+              "first": true,
+              "mode": "ACTIVE",
+              "replay": false,
+              "scope": "Actual exported root recipient emitted before observer. No test-only owner metadata or call insertion.",
+              "wrong_anchor": false
+            }
+          },
+          {
+            "actual_emission": "(36.18538, 0.214327, -2.457747)",
+            "anchor": "(36.18538, 0.214327, -2.457747)",
+            "before_mode": "ACTIVE",
+            "expected_emission": "(36.18538, 0.214327, -2.457747)",
+            "id": "resident_169",
+            "particles_added": 32,
+            "witness": {
+              "event_id": "rpg:1:2:resident_169",
+              "first": true,
+              "mode": "ACTIVE",
+              "replay": false,
+              "scope": "Actual exported root recipient emitted before observer. No test-only owner metadata or call insertion.",
+              "wrong_anchor": false
+            }
+          },
+          {
+            "actual_emission": "(32.43378, 0.228692, -19.9809)",
+            "anchor": "(32.43378, 0.228692, -19.9809)",
+            "before_mode": "ACTIVE",
+            "expected_emission": "(32.43378, 0.228692, -19.9809)",
+            "id": "resident_252",
+            "particles_added": 32,
+            "witness": {
+              "event_id": "rpg:1:2:resident_252",
+              "first": true,
+              "mode": "ACTIVE",
+              "replay": false,
+              "scope": "Actual exported root recipient emitted before observer. No test-only owner metadata or call insertion.",
+              "wrong_anchor": false
+            }
+          }
+        ]
+      ],
+      "active_burst_count": 3,
+      "pool_component_probe": {
+        "HP_admission_claim": false,
+        "capacity": 112,
+        "direct_calls": 8,
+        "particle_requests": 256
+      }
+    },
+    {
+      "case": "blood_disposal",
+      "checks": 26,
+      "seconds": 6.5916616001632065,
+      "accepted": true,
+      "compiled_resources": {
+        "res://scripts/main.gd": true,
+        "res://scripts/npc_visual/npc_blood_adapter.gd": true,
+        "res://scripts/npc_visual/npc_blood_renderer.gd": true,
+        "res://scripts/npc_visual/npc_local_preview_hit_owner.gd": true,
+        "res://scripts/npc_visual/npc_ordinary_hit_lifecycle.gd": true,
+        "res://scripts/npc_visual/npc_rpg_blast_gate.gd": true,
+        "res://scripts/preview_player.gd": true,
+        "res://scripts/preview_population.gd": true,
+        "res://scripts/weapons/preview_weapons.gd": true,
+        "res://scripts/weapons/rpg_effects.gd": true,
+        "res://scripts/weapons/rpg_flight.gd": true
+      },
+      "harness_sha256": "61228de833c862609883fccf8966483a83a6eb327e2f323d37cf8b2c518d9d87",
+      "pins": {
+        "RESULT.json": "d38abc3c660fd65a9da6954399fe1bd5d41f79a40d97ea4184f26b2fb15db79e",
+        "RUN.json": "10290b7cfdfdf6d560505e4fbb36c4797c0a5314150feff1425b232035752949",
+        "engine.log": "6e5d50974672e8867b5eb8e5016988940592f4eb5d751d242fde8cc8f94fd1d5"
+      }
+    }
+  ],
+  "ordinary_blood_methods": {
+    "npc_blood_adapter.gd": {
+      "preserved": true,
+      "before_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "after_sha256": "e9ee5668baa0ce64f3f7364497a46288966d2be35a80ad1cd88a0111c89bfb11",
+      "same_frozen_native118_bytes": true
+    },
+    "npc_blood_renderer.gd": {
+      "preserved": true,
+      "before_sha256": "7821956ad9510ed62c55f022be03244301e675f1a79884b85056afeebef59d48",
+      "after_sha256": "143344d611c7603c65c54f6b2867401b0d947148cef69c9eb776a9d44dca7a43",
+      "same_frozen_native118_bytes": true
+    }
+  },
+  "harness_files": {
+    "actual_main.gd": "097ca5db22ee7df2b99595af4e8f650ac7a52f8fee3bdab9e6c863f90923c67a",
+    "actual_blood.gd": "61228de833c862609883fccf8966483a83a6eb327e2f323d37cf8b2c518d9d87",
+    "run_all.py": "2f624260520861be0a0821c1368925a65738df69f53631176fb8be5a9d2e4b80"
+  },
+  "source_proof": "Everycase --main-pack exactPCK, fresh empty output cwd, external harness only. All11 runtime resources load as compiled Scripts without source text. No ResourceLoader override, load_resource_pack overlay, source project --path, or test recipient replacement.",
+  "limit": "Original3NPC/8buildings/377colliders scheduled; actual input/finiteammo/nativeFlight/real HP/initialragdolls/real blood upload. Explicit QA player/camera fixture and source RNG seed for medical→ACTIVE blood. Not GPU visual/performance acceptance or secondary ACTIVE impulse/severing/self/vehicle/building/server completion.",
+  "dependency_guards": {
+    "export_input_records": true,
+    "integration_changed_files": true,
+    "pack_unchanged_all8cases": true,
+    "engine_errors_warnings_all8cases": false
+  }
+}
