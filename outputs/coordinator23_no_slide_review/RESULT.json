@@ -1,0 +1,76 @@
+{
+  "before": {
+    "checks": 45,
+    "errors": [],
+    "rows": [
+      {
+        "hp": 30,
+        "physical": "IDLE",
+        "source_id": "resident_72",
+        "source_path_request": {},
+        "standing_capsule_peak_m": 0.368999481201172
+      },
+      {
+        "hp": 30,
+        "physical": "IDLE",
+        "source_id": "resident_169",
+        "source_path_request": {},
+        "standing_capsule_peak_m": 0.368999481201172
+      },
+      {
+        "hp": 30,
+        "physical": "IDLE",
+        "source_id": "resident_252",
+        "source_path_request": {},
+        "standing_capsule_peak_m": 0.368999481201172
+      }
+    ],
+    "scope": "actual native TT hit and standing capsule displacement; deterministic source RNG, isolated native corridor; headless only"
+  },
+  "after": {
+    "checks": 48,
+    "errors": [],
+    "rows": [
+      {
+        "hp": 30,
+        "physical": "IDLE",
+        "source_id": "resident_72",
+        "source_path_request": {
+          "c": 105.220391309785,
+          "from_c": 105.310391309785,
+          "from_r": 7.73170787532155,
+          "r": 7.73170787532155
+        },
+        "standing_capsule_peak_m": 0.0
+      },
+      {
+        "hp": 30,
+        "physical": "IDLE",
+        "source_id": "resident_169",
+        "source_path_request": {
+          "c": 105.220391309785,
+          "from_c": 105.310391309785,
+          "from_r": 9.56097616800448,
+          "r": 9.56097616800448
+        },
+        "standing_capsule_peak_m": 0.0
+      },
+      {
+        "hp": 30,
+        "physical": "IDLE",
+        "source_id": "resident_252",
+        "source_path_request": {
+          "c": 104.854537651248,
+          "from_c": 104.944537651248,
+          "from_r": 6.26829324117521,
+          "r": 6.26829324117521
+        },
+        "standing_capsule_peak_m": 0.0
+      }
+    ],
+    "scope": "actual native TT hit and standing capsule displacement; deterministic source RNG, isolated native corridor; headless only"
+  },
+  "candidate_sha256": "aff6e378a23804f55886a86de53e4e59db1439f5a9471d276da0eeec91149e07",
+  "base_sha256": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c",
+  "limits": "Headless actual emitter, original three standing capsules; fixture source-shot/RNG/ray corridor. Not GPU, medical getup, foot nudging or fullscene performance. Candidate archived OFF in Git runtime; shared file belongs to Artist."
+}

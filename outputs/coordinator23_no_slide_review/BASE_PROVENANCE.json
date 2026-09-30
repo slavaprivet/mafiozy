@@ -1,0 +1,5 @@
+{
+  "source": "outputs\\artist23_hit_impulse\\native_base.gd",
+  "sha256": "ba804c30dea23ff054544a73247dbd5f4a1ac0def13ab2f309c160226b4b5a6e",
+  "change": "Only HitOwner preload rebound to tested project/PCK owner; baseline run overrides parent run. No experimental impulse dependency."
+}

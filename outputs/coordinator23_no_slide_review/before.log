@@ -1,0 +1,9 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+NO_SLIDE_STANDING {"checks":45,"errors":[],"rows":[{"hp":30,"physical":"IDLE","source_id":"resident_72","source_path_request":{},"standing_capsule_peak_m":0.368999481201172},{"hp":30,"physical":"IDLE","source_id":"resident_169","source_path_request":{},"standing_capsule_peak_m":0.368999481201172},{"hp":30,"physical":"IDLE","source_id":"resident_252","source_path_request":{},"standing_capsule_peak_m":0.368999481201172}],"scope":"actual native TT hit and standing capsule displacement; deterministic source RNG, isolated native corridor; headless only"}

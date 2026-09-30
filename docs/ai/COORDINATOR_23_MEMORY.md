@@ -1,5 +1,31 @@
 # Кординатор 23 — 30 сентября 2026
 
+## 06:04 — shared source import repaired; no-slide candidate preserved
+
+Latest verified remote save8f083583b94b4abe64fa49be837c034a4889ce32 included
+previous23e/destruction checkpoints and OFF public-contact acceptance harness.
+Artist then installed narrow shared no-slide NPCowner aff6e378a23804f55886a86de53e4e59db1439f5a9471d276da0eeec91149e07
+(basecd0f09b). Root preserves it as outputs/coordinator23_no_slide_review exact
+candidate, not accepted23e runtime. No GPU, export or interactive restart.
+
+Root discovered actual earlier shared-null-weapons cause: scope_optic.svg had
+not been imported locally. Ran one6.6s headless editor import. Import reports
+one old restored external editor tab outputs/vehicle_native_body_candidate_873976.gd
+global-class conflict; no foreign script/layout edited. Actual shared main now
+PASS withoutfixtureflags: arsenal14,3NPC hitowners,populationready,transportready,
+scopeTexture800. New test_shared_startup.gd/log saved. Editor import cache notGit.
+
+Owner native91 test rerun onshared afterimport PASS. Important measurement
+correction: its peak distance only measures ACTIVE ragdoll, so standingTT zero
+did not itself prove no-slide. Root independent real standing-capsule fixture:
+before accepted23e45PASS/all3 move0.368999481m, after48PASS/all3move0m; same
+HP30/IDLE/source requests preserved. RESULT/README contain exact limits andpins.
+Candidate still needs jointcompiled/LIVE/perf, not claimed new force/flinch.
+
+Owner reports point-torque834 headlessPASS48paired cases, exactoverlay receipt
+still pending; no root adoption yet. Headshot/marks/footowner remain separate.
+PublicNPCfoot API still absent; root actualmaincontact test honestly SKIPs.
+
 ## 05:53 — user requested save everything to main; completed
 
 USER: «в мейн все что мы сделали созрани. там так же взрывы зданий агент
