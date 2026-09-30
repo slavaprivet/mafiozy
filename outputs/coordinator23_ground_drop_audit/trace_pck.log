@@ -1,0 +1,17 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+CHECK_FAILED successive same-frame ground drop finds another free placement
+DROP_TRACE_FIRST { "ok": true, "equippedId": "none", "fireState": { "weaponId": "none", "magazine": 0, "reserveAmmo": 0, "cooldown": 0.0, "reloadRemaining": 0.0, "recoil": 0.0, "sequence": 0, "triggerHeld": false }, "drop": { "uid": "weapon-drop-1", "weaponId": "nagan", "position": { "x": 31.7999992370605, "y": -0.00000007450581, "z": -18.0 }, "yaw": 1.57079637050629, "droppedAt": 1911.519, "expiresAt": 301911.519, "fireState": { "weaponId": "nagan", "magazine": 1, "reserveAmmo": 59, "cooldown": 0.0, "reloadRemaining": 0, "recoil": 0, "sequence": 0, "triggerHeld": false, "sprayHeat": 0.0, "sprayShots": 0.0, "sprayRecoveryRemaining": 0.0, "lastRecoilYaw": 0.0, "lastRecoilScale": 1.0 } } } SECOND { "ok": false, "reason": "ground_space" } player (31.0, 0.000234, -18.0) yaw 1.57079637050629
+DROP_TRACE_REST { "local-weapon-item--9223371862136842213-1": { "weapon_id": "nagan", "position": { "x": 31.7999992370605, "y": -0.00000007450581, "z": -18.0 }, "yaw": 1.57079637050629, "world_aabb": [P: (31.61512, 0.009, -18.11371), S: (0.369766, 0.075146, 0.227424)] } }
+DROP_TRACE candidate (31.8, 0.000234, -18.0) floor (31.8, -0.0, -18.0) water false path true box [P: (31.66172, 0.009, -18.12746), S: (0.276552, 0.100942, 0.254914)] overlaps true collisions []
+DROP_TRACE candidate (31.55, 0.000234, -18.0) floor (31.55, -0.0, -18.0) water false path true box [P: (31.41172, 0.009, -18.12746), S: (0.276552, 0.100942, 0.254914)] overlaps true collisions []
+DROP_TRACE candidate (31.3, 0.000234, -18.0) floor (31.3, -0.0, -18.0) water false path true box [P: (31.16172, 0.009, -18.12746), S: (0.276552, 0.100942, 0.254914)] overlaps false collisions [{ "rid": RID(10389525889333), "collider_id": 98801029392, "collider": PreviewPlayer:<CharacterBody3D#98801029392>, "shape": 0 }]
+DROP_TRACE candidate (31.0, 0.000234, -18.0) floor (31.0, -0.0, -18.0) water false path true box [P: (30.86172, 0.009, -18.12746), S: (0.276552, 0.100942, 0.254914)] overlaps false collisions [{ "rid": RID(10389525889333), "collider_id": 98801029392, "collider": PreviewPlayer:<CharacterBody3D#98801029392>, "shape": 0 }]
+CARGO_REGRESSION_SCALE 0.19558078483263
+CARGO_REGRESSIONS {"checks":172,"failures":["successive same-frame ground drop finds another free placement"],"ok":false,"scope":"actual main hatchback, originalall14, physics/input/HUD; headless CPU only"}

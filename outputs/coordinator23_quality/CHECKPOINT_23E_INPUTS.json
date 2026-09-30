@@ -1,0 +1,294 @@
+{
+  "base": "f34c982ef3ea5d7b5548b0c9ba089d9b13a36610",
+  "pck": "023070fe6b1895cfc7571d9bb402d5c324577f84cccf74a73ec823c9e963f2bc",
+  "verified_inputs": 199,
+  "changed": [
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/assets_manifest.json",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\assets_manifest.json",
+      "sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f",
+      "git_blob": "dc2a0648cc44a9552642d92e9275335a635aaf92",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\npc_resident_169_hair_closed.res",
+      "sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1",
+      "git_blob": "cff35c60c59e39ac361525a03f5772a164ef3ff6",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\npc_resident_169_skin_closed.res",
+      "sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b",
+      "git_blob": "6606b4892dfc905f1d55e4de70a3bfe4ca51e9f8",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\npc_resident_252_hair_closed.res",
+      "sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956",
+      "git_blob": "cf1d62e6722d64d5bb603763796aeab6abe2d8ae",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\npc_resident_252_skin_closed.res",
+      "sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d",
+      "git_blob": "ce0cf66428bd36ace75e872ed77e670e9c4ea63b",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\npc_resident_72_hair_closed.res",
+      "sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5",
+      "git_blob": "0ac39af7b1bcb623bdb34db8c4e5e042ce853390",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\npc_visual\\death_eyes\\npc_resident_72_skin_closed.res",
+      "sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85",
+      "git_blob": "7235a0c3157f63df92e52371f3f69c7039d79a53",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/ak74.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\ak74.png",
+      "sha256": "ee5577850f0fd4970d4eaad5fa7fc0fa3020363f9ce8830d5d25fc914a7cba3c",
+      "git_blob": "74ce95fd7810f5bf14e4bb8c4ffe5578ba3ee4a3",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/deagle.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\deagle.png",
+      "sha256": "5904b1f2b69b73f409a644d7bc1d744dd5f456de2fb2dd52b3dac34716ac7608",
+      "git_blob": "7c9f629a7c824787f569f7901f97d906fbd5d1e0",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/golden_colt.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\golden_colt.png",
+      "sha256": "a3515e2f1e7ff7326325e04ba31b944fe4c59688cd19a3eb213a2b77032de7e8",
+      "git_blob": "1772b57bc6a4ed3b6d8bd77279d3de45f96cc6f5",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/golden_uzi.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\golden_uzi.png",
+      "sha256": "3abbc03923455286af7a66527241bf888ffbe85dfde29ccfd36a2aeacf20817f",
+      "git_blob": "a1889113ffb59abac5d3f4f7d275f61e136713e4",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/m16.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\m16.png",
+      "sha256": "07a600e5ebdecf3e2d249083d639acf083f9d2aac96df5edd8283d7b09ace0fb",
+      "git_blob": "728cd7b4ac37bff62bb7cfef8fbfef3b55ce4d98",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/nagan.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\nagan.png",
+      "sha256": "80c7b25deb5f9858867c5ae902a6f60dd1a601d9038b75378f16910fa2d10aa7",
+      "git_blob": "1bf773d856fbdaa4d41c19c76a23b3ca0577164d",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/revolver.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\revolver.png",
+      "sha256": "84527475cf79eb01ebbd5214a53bc2f12e74062ddfc46139f86f42edd1f932c3",
+      "git_blob": "fcdda69be9ae82062b8b1c444441635ed3494d63",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/rpg.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\rpg.png",
+      "sha256": "0133bfea24454ad43417dabb65899745648daf3268f3afda7569689a491bd2e7",
+      "git_blob": "5e02c53f13916c21836664356c9293fcdbad1571",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/sawn_off.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\sawn_off.png",
+      "sha256": "eec075a4f447546a12b717b7cbe26cef091b8650c6c49881935b60503d87226e",
+      "git_blob": "8fec4a60e7bc959619426ca0c57eef6fa71a03f8",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/shotgun.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\shotgun.png",
+      "sha256": "eeb33d9fd1b9d9daef997b779f20c7c12240f7a78178f4969e75af890a0e944b",
+      "git_blob": "fd7114ae45017bf45bdf1e8047e9511968d9ed16",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/sniper.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\sniper.png",
+      "sha256": "a679c42f0f0f0d63cf1f75bf5526b2caa31ff316677b77df9413759741ffa5f0",
+      "git_blob": "57c3e5357e739f71581901aca4d99871b1bd0275",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/tommy_gun.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\tommy_gun.png",
+      "sha256": "c572c9706ad2a852343f9867ebf9c607b7c86c21c719ed5b5436cab57af04817",
+      "git_blob": "51b43f7c48ad3c61095666ca4ab85f37ca96e696",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/tt_pistol.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\tt_pistol.png",
+      "sha256": "116ea2461fef5261b5ff2fe42925320b22f798bc88dd36d27271711af4a7cebb",
+      "git_blob": "da5e06a6f5d516553da278a421edc6ffa8f696d9",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/assets/weapon_thumbnails/uzi.png",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\assets\\weapon_thumbnails\\uzi.png",
+      "sha256": "a1d12626c3ea8a576b7621cc4f257ed7e51013b2391946c511a7d0a01187d3ed",
+      "git_blob": "f250bcbcabdc6efd21f644728d3147f110b07dc2",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/preview_updates.json",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\data\\preview_updates.json",
+      "sha256": "f6c7af6af79e6ea7cd5418c42077a5f9fda470cebeedabec43e5a5dd2368f274",
+      "git_blob": "534245f2a4cfda3543f91bfbe3a0325798e59fcd",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/export_presets.cfg",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\export_presets.cfg",
+      "sha256": "0a32d4d01cde8223967ce097b1f215edc37e610328d0a0acc9e5c4ab8459f804",
+      "git_blob": "d89872b9ed480c414578db2b7afa6f4cdf7f2af8",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/main.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\main.gd",
+      "sha256": "59850cd423a83223422b4c3d6a58284f559990c865cc1d9ba9fb7cee39ca1740",
+      "git_blob": "d5354cf27ebc22ebc08a0641bc32c6bcb3ffe2b0",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_blood_adapter.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_blood_adapter.gd",
+      "sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "git_blob": "75828d9ebd4507a4fd59acaf101e60c6e1b43784",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_blood_renderer.gd",
+      "sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "git_blob": "537baee18171b0629487d36666308de02945a35e",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_death_eyes.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_death_eyes.gd",
+      "sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c",
+      "git_blob": "71aeaf80e432bd4348f5abd06dcc5f4987363912",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_local_preview_hit_owner.gd",
+      "sha256": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c",
+      "git_blob": "2446df56b7691dac70df2c843b305022aab95ba7",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/npc_visual/npc_ragdoll_host.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\npc_visual\\npc_ragdoll_host.gd",
+      "sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "git_blob": "a67f271d3d1f4e7102dada7e68cf7d5fefca5cd5",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_player.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\preview_player.gd",
+      "sha256": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493",
+      "git_blob": "ae786e0fdfff2d93d6b825588eb9af99c3c1f6ad",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/preview_population.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\preview_population.gd",
+      "sha256": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366",
+      "git_blob": "770137492ae30df230974359921252c3a36c8014",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/cargo_aim_picker.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\cargo_aim_picker.gd",
+      "sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0",
+      "git_blob": "dab2d6f3b5885736c83182daf60feba48f5f75d5",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/impact_mark_art.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\impact_mark_art.gd",
+      "sha256": "3396a15b773854a34ac35dbc08abc9e6f4f00c6bc0bea9288413cd1880bda130",
+      "git_blob": "1efa21454f011a97ccbbce40c31886bcf6993ce9",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/preview_weapons.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\preview_weapons.gd",
+      "sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+      "git_blob": "76550bfc4620aa3bb0b069fcf6a0638c376acfaa",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_cargo_card.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\walk_cargo_card.gd",
+      "sha256": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413",
+      "git_blob": "0c97e698ee61e561db021d002b2a1632cc00aa4c",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_weapon_crosshair.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\walk_weapon_crosshair.gd",
+      "sha256": "c86d4c65b7dc31800ecf09596f75ee059542a5e3661980fc4a0b0099083eb8d2",
+      "git_blob": "37fb1c90f37959154820d85818736f582898d953",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/walk_weapon_ui.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\walk_weapon_ui.gd",
+      "sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+      "git_blob": "6288eaf3b17f663a4b213aec69bcf4a69af7524e",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_aim_camera.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\weapon_aim_camera.gd",
+      "sha256": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde",
+      "git_blob": "c6f20a68f4f51231ee9bc67e3f4b302751025f3c",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_projectiles.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\weapon_projectiles.gd",
+      "sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27",
+      "git_blob": "58ed28fc1f2952a7d7c1286ebf4e6cf46302dddc",
+      "mode": "100644"
+    },
+    {
+      "path": "godot/mafiozi_walk/scripts/weapons/weapon_surface_impacts.gd",
+      "source": "outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\scripts\\weapons\\weapon_surface_impacts.gd",
+      "sha256": "bc116ecee2aad8f6b394efc824706ffaf8259467655ea44ba183750aafe3b552",
+      "git_blob": "a4a9b58856746fafdfc69ad57ca71a790fa90455",
+      "mode": "100644"
+    },
+    {
+      "path": "docs/godot/WEAPONS_23E_CHECKPOINT.md",
+      "source": "docs\\godot\\WEAPONS_23E_CHECKPOINT.md",
+      "sha256": "cfb70239e42a0d8a3e828c626e99aeb48b3ea2a599a57f877afc01f5e7e275f2",
+      "git_blob": "6c6834156d6fdb389a013c22c1d1107d735d5386",
+      "mode": "100644"
+    }
+  ]
+}

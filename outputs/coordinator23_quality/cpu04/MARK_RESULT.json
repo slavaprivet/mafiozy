@@ -1,0 +1,8 @@
+{
+	"GPU_checked": false,
+	"checks": 636,
+	"failures": [],
+	"pass": true,
+	"production_changed": false,
+	"total_triangles_four_variants": 268
+}

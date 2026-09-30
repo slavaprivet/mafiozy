@@ -1,0 +1,363 @@
+{
+  "checks": 743,
+  "errors": [],
+  "hit_transaction_us": {
+    "max": 3920,
+    "p50": 1481,
+    "p95": 2849
+  },
+  "native_matrix": [
+    {
+      "damage": 30,
+      "hit_us": 1300,
+      "hp": 30,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "tt_pistol"
+    },
+    {
+      "damage": 30,
+      "hit_us": 1176,
+      "hp": 30,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "tt_pistol"
+    },
+    {
+      "damage": 30,
+      "hit_us": 1175,
+      "hp": 30,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "tt_pistol"
+    },
+    {
+      "damage": 90,
+      "hit_us": 2356,
+      "hp": 1,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "deagle"
+    },
+    {
+      "damage": 90,
+      "hit_us": 2785,
+      "hp": 1,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "deagle"
+    },
+    {
+      "damage": 90,
+      "hit_us": 3920,
+      "hp": 1,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "deagle"
+    },
+    {
+      "damage": 60,
+      "hit_us": 2345,
+      "hp": 1,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "golden_colt"
+    },
+    {
+      "damage": 60,
+      "hit_us": 2387,
+      "hp": 1,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "golden_colt"
+    },
+    {
+      "damage": 60,
+      "hit_us": 2849,
+      "hp": 1,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "golden_colt"
+    },
+    {
+      "damage": 108,
+      "hit_us": 2547,
+      "hp": 1,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "revolver"
+    },
+    {
+      "damage": 108,
+      "hit_us": 2398,
+      "hp": 1,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "revolver"
+    },
+    {
+      "damage": 108,
+      "hit_us": 2501,
+      "hp": 1,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "revolver"
+    },
+    {
+      "damage": 19,
+      "hit_us": 1266,
+      "hp": 41,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "uzi"
+    },
+    {
+      "damage": 19,
+      "hit_us": 1308,
+      "hp": 41,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "uzi"
+    },
+    {
+      "damage": 19,
+      "hit_us": 1293,
+      "hp": 41,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "uzi"
+    },
+    {
+      "damage": 19,
+      "hit_us": 1201,
+      "hp": 41,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "golden_uzi"
+    },
+    {
+      "damage": 19,
+      "hit_us": 1237,
+      "hp": 41,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "golden_uzi"
+    },
+    {
+      "damage": 19,
+      "hit_us": 2161,
+      "hp": 41,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "golden_uzi"
+    },
+    {
+      "damage": 30,
+      "hit_us": 1481,
+      "hp": 30,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "tommy_gun"
+    },
+    {
+      "damage": 30,
+      "hit_us": 1337,
+      "hp": 30,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "tommy_gun"
+    },
+    {
+      "damage": 30,
+      "hit_us": 1188,
+      "hp": 30,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "tommy_gun"
+    },
+    {
+      "damage": 32,
+      "hit_us": 1158,
+      "hp": 28,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.60885)",
+      "weapon": "nagan"
+    },
+    {
+      "damage": 32,
+      "hit_us": 1251,
+      "hp": 28,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.60885)",
+      "weapon": "nagan"
+    },
+    {
+      "damage": 32,
+      "hit_us": 1234,
+      "hp": 28,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.60885)",
+      "weapon": "nagan"
+    },
+    {
+      "damage": 42,
+      "hit_us": 1184,
+      "hp": 18,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "ak74"
+    },
+    {
+      "damage": 42,
+      "hit_us": 1225,
+      "hp": 18,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "ak74"
+    },
+    {
+      "damage": 42,
+      "hit_us": 1226,
+      "hp": 18,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "ak74"
+    },
+    {
+      "damage": 42,
+      "hit_us": 1148,
+      "hp": 18,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "m16"
+    },
+    {
+      "damage": 42,
+      "hit_us": 1172,
+      "hp": 18,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "m16"
+    },
+    {
+      "damage": 42,
+      "hit_us": 1295,
+      "hp": 18,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "m16"
+    },
+    {
+      "damage": 132,
+      "hit_us": 2721,
+      "hp": 1,
+      "source_id": "resident_72",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "sniper"
+    },
+    {
+      "damage": 132,
+      "hit_us": 2445,
+      "hp": 1,
+      "source_id": "resident_169",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "sniper"
+    },
+    {
+      "damage": 132,
+      "hit_us": 2690,
+      "hp": 1,
+      "source_id": "resident_252",
+      "terminals": 1,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "sniper"
+    },
+    {
+      "damage": 95,
+      "hit_us": 2410,
+      "hp": 1,
+      "source_id": "resident_72",
+      "terminals": 7,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "shotgun"
+    },
+    {
+      "damage": 95,
+      "hit_us": 2594,
+      "hp": 1,
+      "source_id": "resident_169",
+      "terminals": 7,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "shotgun"
+    },
+    {
+      "damage": 95,
+      "hit_us": 2643,
+      "hp": 1,
+      "source_id": "resident_252",
+      "terminals": 7,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "shotgun"
+    },
+    {
+      "damage": 95,
+      "hit_us": 2490,
+      "hp": 1,
+      "source_id": "resident_72",
+      "terminals": 7,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "sawn_off"
+    },
+    {
+      "damage": 95,
+      "hit_us": 2313,
+      "hp": 1,
+      "source_id": "resident_169",
+      "terminals": 7,
+      "travel": "(0.0, 0.0, -0.369)",
+      "weapon": "sawn_off"
+    },
+    {
+      "damage": 95,
+      "hit_us": 2566,
+      "hp": 1,
+      "source_id": "resident_252",
+      "terminals": 7,
+      "travel": "(0.0, 0.0, -0.368999)",
+      "weapon": "sawn_off"
+    }
+  ],
+  "scope": "native production ray and emitter against original 3 rigs; source Fire/ammo with fixture muzzle and RNG, not UI or LIVE"
+}

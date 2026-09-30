@@ -1,0 +1,12 @@
+{
+  "pck_sha256": "023070fe6b1895cfc7571d9bb402d5c324577f84cccf74a73ec823c9e963f2bc",
+  "exit": 0,
+  "wall_s": 2.36020140000619,
+  "engine_errors": false,
+  "report": {
+    "checks": 184,
+    "failures": [],
+    "ok": true,
+    "scope": "actual main hatchback, originalall14, physics/input/HUD; headless CPU only"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "scope": "Isolated Godot destruction prototype; not integrated into production city",
+  "revision": "v3-active-only-render-parked-pushable-rubble-repeatable-breaches",
+  "current_v3_verification": {
+    "base_and_walk_headless": "PASS: local/repeat blasts, all28panels, CCD ground collision, standing entry/return, sleeping rubble push, no push through intact wall",
+    "stress_headless": "PASS; stress_headless_final.json; all629parts; zero awake at settled checkpoint",
+    "stress_real_gpu": "PASS; stress_qa.json; Windows/Vulkan Forward+ GTX980; all629parts; one awake at settled checkpoint; render transforms checked without force repair",
+    "support_removal": "PASS: both fragments verified parked, upper centre y0.685153 before and y0.176762 after support removal",
+    "reset": "PASS: original section/pool/scene counts restored, pending collapse cancelled, live input disabled during QA",
+    "architecture": "Materials/geometry preserved. Existing PNGs are previously reviewed v2 captures, NOT new v3 screenshots."
+  },
+  "current_v3_optimization": {
+    "render": "Dirty/moving bodies only; final rest transform retained; source meshes/98MultiMesh groups unchanged",
+    "physics": "Resting rubble parks with collision shapes preserved; player and impact wake; support queries spread over ticks without silently dropping neighbours; CCD retained for all moving pieces",
+    "interaction": "Actual movement controls pushes; solid wall blocks remote push; loose debris no longer intercepts wall aiming; repeat blasts widen same pooled panel by at most4 additional fragments",
+    "settled_gpu_physics_cpu_p50_ms": 1.068,
+    "full_collapse_gpu_physics_frame_interval_p95_ms": 17.125,
+    "full_collapse_gpu_physics_frame_interval_max_ms": 133.879,
+    "performance_caveat": "Not controlled FPS comparison: other CPU workloads active; engine CPU monitors cached and may cross phase boundaries. One133.879ms full-collapse interval not isolated. Do NOT claim all hitches eliminated or city FPS guaranteed.",
+    "before_reference": "stress_before_settling.json:621 awake after settling, versus current0headless/1GPU. Activity reduction is verified; this is NOT a controlled FPS speedup ratio."
+  },
+  "local_damage": {
+    "intact_sections": 97,
+    "only_struck_wall_subdivided_into": 20,
+    "point_blast_detached_fragments": 4,
+    "entrance_passage_detached_fragments": 8,
+    "facade_modules_checked": 28,
+    "roof_and_neighbouring_walls_remain_frozen": true
+  },
+  "previous_v2_checks_not_current_measurements": {
+    "headless_batched": "PASS, no engine/script errors",
+    "headless_unbatched": "PASS, no engine/script errors",
+    "gpu_mesh_transform_parity": "PASS in short QA; concurrent main game means not performance evidence",
+    "final_palette_visual_review": "PASS: current native intact.png visually inspected; muted stone, burgundy canopy and subdued foliage, no original white blowout",
+    "comparable_gpu_performance": "Matched current pooled scene, cap60, screenshot IO excluded: unbatched/batched p95 intact16.989/17.065, local16.918/17.097, collapse17.265/17.491, rubble17.148/17.206ms. Batching reduces draw calls but does not prove FPS improvement. Old first-event peaks included screenshot IO and are invalid gameplay measurements.",
+    "entrance_button_rendered": "PASS: actual button signal exercised; partial.png shows floor-connected opening and eight loose pieces",
+    "native_walk_and_debris": "Headless and GPU PASS: actual standing capsule blocked before damage, enters and returns through opening, wakes and displaces sleeping debris, cannot be blocked by loose debris; walkthrough.png visually inspected",
+    "entry_fragments_clear_wall": "PASS: all four move outward more than0.35m after0.45s",
+    "whole_city_performance": "NOT TESTED"
+  },
+  "previous_v2_metrics_not_current_measurements": {
+    "source_meshes_including_dormant_pool": 2339,
+    "multimesh_groups_including_dormant": 98,
+    "intact_draw_calls_unbatched_batched": [236,192],
+    "local_blast_draw_calls_unbatched_batched": [264,226],
+    "local_blast_cpu_ms_batched": 1.363,
+    "max_local_frame_ms_batched": 17.206,
+    "pooled_fragment_bodies": 560,
+    "geometry_prewarmed": true,
+    "physics_enabled_only_for_detached_parts": true
+  },
+  "warning": "performance_batched.json and performance_unbatched.json are previous v2 measurements, NOT this revision. performance.json is legacy invalid evidence. Whole-city performance and production player integration NOT tested. Separate capsule walkthrough, not original player controller.",
+  "preview": "Automated GPU test exited normally. No interactive game automatically reopened; fresh inventory and owner coordination required. Project Manager untouched. Controls:1 passage,2collapse,TAB capsule/orbit,WASD walk,C crouch,RMB look,R reset."
+}

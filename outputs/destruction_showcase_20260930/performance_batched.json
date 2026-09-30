@@ -1,0 +1,45 @@
+{
+	"batch_groups": 98,
+	"batched": true,
+	"batched_meshes": 2339,
+	"clock": "Time.get_ticks_usec wall clock",
+	"engine": "4.7.2-stable (official)",
+	"fps_cap": 60,
+	"local_blast_cpu_ms": 1.363,
+	"phases": {
+		"collapse": {
+			"draw_calls_p50": 237.0,
+			"frame_ms_max": 18.553,
+			"frame_ms_p50": 16.671,
+			"frame_ms_p95": 17.491,
+			"frames": 360
+		},
+		"intact": {
+			"draw_calls_p50": 192.0,
+			"frame_ms_max": 17.622,
+			"frame_ms_p50": 16.673,
+			"frame_ms_p95": 17.065,
+			"frames": 121
+		},
+		"local_breach_including_first_split": {
+			"draw_calls_p50": 226.0,
+			"frame_ms_max": 17.206,
+			"frame_ms_p50": 16.656,
+			"frame_ms_p95": 17.097,
+			"frames": 90
+		},
+		"rubble": {
+			"draw_calls_p50": 245.0,
+			"frame_ms_max": 17.536,
+			"frame_ms_p50": 16.681,
+			"frame_ms_p95": 17.206,
+			"frames": 121
+		}
+	},
+	"renderer": "forward_plus",
+	"scope": "Isolated 97-section showcase, not city performance",
+	"screenshot_io_excluded": true,
+	"sections": 116,
+	"static_memory_bytes": 85362756.0,
+	"viewport": "(1280.0, 800.0)"
+}

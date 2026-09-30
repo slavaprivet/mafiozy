@@ -1,0 +1,24 @@
+--- a/godot/mafiozi_walk/scripts/tests/test_preview_cargo_regressions.gd
++++ b/godot/mafiozi_walk/scripts/tests/test_preview_cargo_regressions.gd
+@@ -116,7 +116,20 @@
+ 	check(weapons.equip("nagan").ok,"first ground weapon equip")
+ 	var first:Dictionary=cargo.drop_held();check(first.get("ok",false),"first actual ground drop")
+ 	check(weapons.equip("tt_pistol").ok,"second ground weapon equip")
+-	var second:Dictionary=cargo.drop_held();check(second.get("ok",false),"successive same-frame ground drop finds another free placement")
++	# Source offers only .8/.55/.3/0m forward. Nagan and TT overlap at the
++	# first two candidates; the last two intersect the real player capsule.
++	# A rejected drop must preserve ownership instead of widening placement.
++	var before_blocked_drop:Dictionary=weapons.inventory.snapshot()
++	var before_blocked_identity:Dictionary=weapons.inventory.item_identity_snapshot()
++	var before_blocked_rest:Dictionary=cargo._ground_rest.duplicate(true)
++	var blocked_drop:Dictionary=cargo.drop_held()
++	check(not blocked_drop.get("ok",false) and blocked_drop.get("reason")=="ground_space","occupied source drop candidates reject without fallback through player")
++	check(weapons.inventory.snapshot()==before_blocked_drop and weapons.inventory.item_identity_snapshot()==before_blocked_identity and weapons.inventory.get_item_uid("tt_pistol")==inventory_uids.tt_pistol,"rejected ground drop preserves exact inventory UID and ammunition")
++	check(cargo._ground_rest==before_blocked_rest and cargo.renderer.debug_snapshot().falling_count==1,"rejected ground drop preserves first falling item's settled reservation")
++	# Only fixture facing changes: no physics await, collider removal, inventory
++	# write or placement override. Exercise the same real drop path sideways.
++	player.rotate_y(PI/2)
++	var second:Dictionary=cargo.drop_held();check(second.get("ok",false),"same-frame turned ground drop finds another source placement")
+ 	if first.get("ok",false) and second.get("ok",false):
+ 		var uid1:String=weapons.inventory.get_drop_item(first.drop.uid).uid;var uid2:String=weapons.inventory.get_drop_item(second.drop.uid).uid
+ 		var row1:Dictionary=cargo.renderer.get("_ground")[first.drop.uid];var row2:Dictionary=cargo.renderer.get("_ground")[second.drop.uid]

@@ -1,0 +1,13 @@
+{
+	"accepted_damage_revision": 2,
+	"actor": "resident_72",
+	"blood_revision": 2,
+	"hp": 0,
+	"label": "03_final_death",
+	"native_camera_parity": false,
+	"observer_only": true,
+	"observer_position": "(40.59687, 2.37443, -9.54275)",
+	"size": "(1280, 720)",
+	"source": "actual root GPU viewport after two frame_post_draw events",
+	"window_position": "(-32000, -32000)"
+}

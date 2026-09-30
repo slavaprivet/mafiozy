@@ -1,0 +1,355 @@
+{
+	"camera": {
+		"attached": true,
+		"distance": 3.0,
+		"forward": [
+			-0.994228959083557,
+			-0.062790684401989,
+			0.0869838148355484
+		],
+		"fov": 45.0,
+		"pitch": -0.0628318563103676,
+		"position": [
+			32.452880859375,
+			1.82787322998047,
+			-3.11857342720032
+		],
+		"spring_length": 3.0,
+		"top_level": false,
+		"yaw": 1.6580627895499
+	},
+	"display_server": "Windows",
+	"draw_count": 1702,
+	"elapsed_ms": 16624,
+	"expected_wall": {
+		"collider": "/root/MafioziWalkMigration/@StaticBody3D@576",
+		"distance_camera": 11.1822385787964,
+		"distance_player": 7.33772087097168,
+		"normal": [
+			1.0,
+			0.0,
+			0.0
+		],
+		"path": "/root/MafioziWalkMigration/@StaticBody3D@576",
+		"point": [
+			22.4703121185303,
+			2.19998979568481,
+			-2.85625600814819
+		],
+		"source_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013"
+	},
+	"frozen": true,
+	"image": {
+		"path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\openmarks23e/far_10m_02_actual_hole_reticle_clear.png",
+		"sample_variation": 1.81176473945379,
+		"sha256": "d0358be40f552748d18348c5c974d95db6dbf9b1cb6b6255a4c7a8c1e9dfb357",
+		"size": [
+			1920,
+			1080
+		],
+		"source": "actual root viewport after two RenderingServer.frame_post_draw events"
+	},
+	"label": "far_10m_02_actual_hole_reticle_clear",
+	"logical_viewport": "[P: (0.0, 0.0), S: (1280.0, 720.0)]",
+	"mark_test": {
+		"actual_point": [
+			22.4703121185303,
+			2.19998955726624,
+			-2.85625553131104
+		],
+		"camera_distance": 9.99294567108154,
+		"distance_from_reticle_px": 102.316429138184,
+		"fixture": "far_10m",
+		"fixture_geometry": "original 013 facade x=22.47031 y=2.2 z=-2.85625; native unchanged mesh and collision",
+		"input_routes": "viewport RMB/LMB/wheel/mouse-motion; validated player fixture placements only",
+		"mark_radius_source_m": 0.0252,
+		"mesh_support": {
+			"ok": true,
+			"radius": 0.13,
+			"rows": [
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.19998955726624,
+						-2.85625553131104
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.19998955726624,
+						-2.7262556552887
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.19998955726624,
+						-2.98625564575195
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.32998943328857,
+						-2.85625553131104
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.0699896812439,
+						-2.85625553131104
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.32998943328857,
+						-2.7262556552887
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.32998943328857,
+						-2.98625564575195
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.0699896812439,
+						-2.7262556552887
+					]
+				},
+				{
+					"distance": 1.5,
+					"gap": 0.0,
+					"node": "/root/MafioziWalkMigration/REBUILD-VISUAL-old_town_narrow_townhouse_v1-013/old_town_narrow_townhouse_v1_fd0178400e60/old_town_narrow_townhouse_v1Shell",
+					"point": [
+						22.4703121185303,
+						2.0699896812439,
+						-2.98625564575195
+					]
+				}
+			]
+		},
+		"native_pixels_per_logical": 1.5,
+		"player_distance": 7.33772087097168,
+		"requested_camera_distance": 10.0,
+		"screen": [
+			693.307739257813,
+			272.667663574219
+		],
+		"source_mark_diameter_pixels_estimate": 6.57516196687526
+	},
+	"performance_valid": false,
+	"phase": "capture:far_10m_02_actual_hole_reticle_clear",
+	"physics_frame": 745,
+	"player": {
+		"free_mouse_look": true,
+		"on_floor": true,
+		"pose_authority": "on_foot",
+		"position": [
+			29.4703121185303,
+			-0.000498121604323387,
+			-2.85625004768372
+		],
+		"velocity": [
+			0.0,
+			0.0,
+			0.0
+		]
+	},
+	"render_nodes": [
+		{
+			"details": {
+				"life": 4.53333333333334
+			},
+			"in_screen": true,
+			"kind": "surface_mark",
+			"path": "/root/MafioziWalkMigration/WalkSurfaceEffects/@MeshInstance3D@1010",
+			"position": [
+				22.4743118286133,
+				2.19998955726624,
+				-2.85625553131104
+			],
+			"screen": [
+				693.298583984375,
+				272.654571533203
+			],
+			"visible": true
+		}
+	],
+	"renderer": "forward_plus",
+	"residents": {
+		"disposed": false,
+		"rows": [
+			{
+				"bridge_id": "npc_resident_72",
+				"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+				"life_generation": 1,
+				"physical_anchor_world": null,
+				"placement_mode": "PREVIEW_STAGE",
+				"position": [
+					36.9327659606934,
+					0.000813158345408738,
+					-15.8908386230469
+				],
+				"reason": "",
+				"source_id": "resident_72",
+				"speed_mps": 1.31184827381874,
+				"status": "READY"
+			},
+			{
+				"bridge_id": "npc_resident_169",
+				"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+				"life_generation": 1,
+				"physical_anchor_world": null,
+				"placement_mode": "PREVIEW_STAGE",
+				"position": [
+					39.6621208190918,
+					0.000844596768729389,
+					-5.76694488525391
+				],
+				"reason": "",
+				"source_id": "resident_169",
+				"speed_mps": 1.8,
+				"status": "ARRIVED"
+			},
+			{
+				"bridge_id": "npc_resident_252",
+				"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+				"life_generation": 1,
+				"physical_anchor_world": null,
+				"placement_mode": "PREVIEW_STAGE",
+				"position": [
+					34.8788375854492,
+					-0.0323985628783703,
+					-17.9706935882568
+				],
+				"reason": "",
+				"source_id": "resident_252",
+				"speed_mps": 0.912652391870984,
+				"status": "NO_PATH"
+			}
+		],
+		"session_id": "godot-preview-new-session-20260927-01",
+		"stats": {
+			"admissions": 3,
+			"admit_us_max": 64844,
+			"rejections": 0,
+			"step_us_max": 2176,
+			"steps": 726
+		},
+		"walk_preview": {
+			"enabled": true,
+			"requests": 11
+		}
+	},
+	"weapon": {
+		"effects": {
+			"active": 1,
+			"activeCasings": 1,
+			"activeFlashes": 0,
+			"activeProjectiles": 0,
+			"configured": true,
+			"pendingCasings": 0,
+			"rayQueries": 4,
+			"totalCases": 2,
+			"totalProjectiles": 2,
+			"totalShots": 2
+		},
+		"fire_state": {
+			"cooldown": 0.0,
+			"lastRecoilScale": 0.763,
+			"lastRecoilYaw": -0.735477131921341,
+			"magazine": 28,
+			"recoil": 0.0,
+			"reloadRemaining": 0,
+			"reserveAmmo": 90,
+			"sequence": 2.0,
+			"sprayHeat": 0.0876712328767121,
+			"sprayRecoveryRemaining": 0.213333333333333,
+			"sprayShots": 1.0,
+			"triggerHeld": false,
+			"weaponId": "ak74"
+		},
+		"id": "ak74",
+		"last_applied_receipt": {
+			"actor_id": "player",
+			"direction": [
+				1.0,
+				-0.000000135942002543743,
+				-0.000000160870328613782
+			],
+			"ejection_origin": [
+				29.8661003112793,
+				1.2100385427475,
+				-3.02829480171204
+			],
+			"equip_generation": 1,
+			"life_generation": 1,
+			"ok": true,
+			"origin": [
+				30.2453632354736,
+				1.18426334857941,
+				-2.9804265499115
+			],
+			"pose_epoch": 1,
+			"pose_revision": 727,
+			"sample_serial": 666,
+			"weapon_id": "ak74"
+		},
+		"receipt_is_passive_not_shot_admission": true,
+		"rpg": {
+			"active_explosions": 0,
+			"active_rockets": 0,
+			"explosion_capacity": 6,
+			"rocket_capacity": 112,
+			"total_explosions": 0,
+			"total_impacts": 0
+		},
+		"shots": 2,
+		"surface": {
+			"impact_capacity": 48,
+			"impacts": 0,
+			"mark_capacity": 72,
+			"marks": 1,
+			"total_impacts": 2,
+			"total_marks": 2
+		},
+		"uid": "local-weapon-item--9223371852104067038-10",
+		"visual_visible": true
+	},
+	"window_position": [
+		-32000,
+		-32000
+	],
+	"window_visible": true
+}

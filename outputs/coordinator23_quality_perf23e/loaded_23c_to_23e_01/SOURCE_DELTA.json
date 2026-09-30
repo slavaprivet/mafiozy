@@ -1,0 +1,202 @@
+[
+  {
+    "path": "res://assets/npc_visual/death_eyes/assets_manifest.json",
+    "baseline_sha256": null,
+    "candidate_sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f"
+  },
+  {
+    "path": "res://assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res",
+    "baseline_sha256": null,
+    "candidate_sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1"
+  },
+  {
+    "path": "res://assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res",
+    "baseline_sha256": null,
+    "candidate_sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b"
+  },
+  {
+    "path": "res://assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res",
+    "baseline_sha256": null,
+    "candidate_sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956"
+  },
+  {
+    "path": "res://assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res",
+    "baseline_sha256": null,
+    "candidate_sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d"
+  },
+  {
+    "path": "res://assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res",
+    "baseline_sha256": null,
+    "candidate_sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5"
+  },
+  {
+    "path": "res://assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res",
+    "baseline_sha256": null,
+    "candidate_sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/ak74.png",
+    "baseline_sha256": "466b95b162d65a3908fa3830c7bbf76319837766d80ff50aa4d117978f8d6ab2",
+    "candidate_sha256": "ee5577850f0fd4970d4eaad5fa7fc0fa3020363f9ce8830d5d25fc914a7cba3c"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/deagle.png",
+    "baseline_sha256": "7e51ef99a0a7558c8dacaa47768fb87fea25c5c7b29570772f0a1869a96c8e69",
+    "candidate_sha256": "5904b1f2b69b73f409a644d7bc1d744dd5f456de2fb2dd52b3dac34716ac7608"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/golden_colt.png",
+    "baseline_sha256": "471dfbdb25b5d6885f748a974269051c3d4f8eb104f71c7be7f2f2a6cc9595c9",
+    "candidate_sha256": "a3515e2f1e7ff7326325e04ba31b944fe4c59688cd19a3eb213a2b77032de7e8"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/golden_uzi.png",
+    "baseline_sha256": "0f6d6fa2419334ae392afc410440491bfa633888b784649a26e29b03e6979c58",
+    "candidate_sha256": "3abbc03923455286af7a66527241bf888ffbe85dfde29ccfd36a2aeacf20817f"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/m16.png",
+    "baseline_sha256": "27f2f74008f8eac04ade9a5f3067d067db22f6cb6ef70c808653dce368f4d786",
+    "candidate_sha256": "07a600e5ebdecf3e2d249083d639acf083f9d2aac96df5edd8283d7b09ace0fb"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/nagan.png",
+    "baseline_sha256": "8cb2c9746bbf472d52e66b11301042b96e95828e8d88c42d1d6fc3eea2fcae9d",
+    "candidate_sha256": "80c7b25deb5f9858867c5ae902a6f60dd1a601d9038b75378f16910fa2d10aa7"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/revolver.png",
+    "baseline_sha256": "351fad62049690e1bb874bebcb631a90f34aa10452667fe0560b6ef4e6beccf8",
+    "candidate_sha256": "84527475cf79eb01ebbd5214a53bc2f12e74062ddfc46139f86f42edd1f932c3"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/rpg.png",
+    "baseline_sha256": "a4dc9b2b76175bcb55816a6f6e0487d1cb6d36f449faad7b3063e67cc0c181a5",
+    "candidate_sha256": "0133bfea24454ad43417dabb65899745648daf3268f3afda7569689a491bd2e7"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/sawn_off.png",
+    "baseline_sha256": "470d0890bc85b78bd30b8676a119af4b711054bac418901dd8296194dd3465e8",
+    "candidate_sha256": "eec075a4f447546a12b717b7cbe26cef091b8650c6c49881935b60503d87226e"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/shotgun.png",
+    "baseline_sha256": "20ff50460b4591cf186da5cb9dfec001111cf9b3db9e492fa94430b64f82b1ad",
+    "candidate_sha256": "eeb33d9fd1b9d9daef997b779f20c7c12240f7a78178f4969e75af890a0e944b"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/sniper.png",
+    "baseline_sha256": "fd97dbb734e00c81580cbdd132b71482a592a6ceb3a83f74dd2c843b4c475e39",
+    "candidate_sha256": "a679c42f0f0f0d63cf1f75bf5526b2caa31ff316677b77df9413759741ffa5f0"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/tommy_gun.png",
+    "baseline_sha256": "0ee4fa9f273c2e2802aaa91a4006f077e199b045ec78d3bdabf283d18cf549f6",
+    "candidate_sha256": "c572c9706ad2a852343f9867ebf9c607b7c86c21c719ed5b5436cab57af04817"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/tt_pistol.png",
+    "baseline_sha256": "6648c8c11f8e2a2a4a5355fcf116155fa8f22024b8ecaf2a76b6dd446b56a4f9",
+    "candidate_sha256": "116ea2461fef5261b5ff2fe42925320b22f798bc88dd36d27271711af4a7cebb"
+  },
+  {
+    "path": "res://assets/weapon_thumbnails/uzi.png",
+    "baseline_sha256": "da36f67510118011c0b9bf355e382e0a014136c757857fc109bfe7ff1e38d81d",
+    "candidate_sha256": "a1d12626c3ea8a576b7621cc4f257ed7e51013b2391946c511a7d0a01187d3ed"
+  },
+  {
+    "path": "res://data/preview_updates.json",
+    "baseline_sha256": "05d2776922b58a99c03ddc7e74a5d38df84fbabbe74bfe353f22677000ab9bd1",
+    "candidate_sha256": "cf8a655880ef076e9ec38a0a4f1bcb06e37510d1a4d9599d398592a0c72da79e"
+  },
+  {
+    "path": "res://export_presets.cfg",
+    "baseline_sha256": "fddd459b5398112a82825a1c7375c704570c2bfd0d5437c018245c96ad6d2e4c",
+    "candidate_sha256": "0a32d4d01cde8223967ce097b1f215edc37e610328d0a0acc9e5c4ab8459f804"
+  },
+  {
+    "path": "res://scripts/main.gd",
+    "baseline_sha256": "d94e7751db913d2395117e51dcb072ccca84c5b639d50a3daa9214e7cde9f02e",
+    "candidate_sha256": "59850cd423a83223422b4c3d6a58284f559990c865cc1d9ba9fb7cee39ca1740"
+  },
+  {
+    "path": "res://scripts/npc_visual/npc_blood_adapter.gd",
+    "baseline_sha256": null,
+    "candidate_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591"
+  },
+  {
+    "path": "res://scripts/npc_visual/npc_blood_renderer.gd",
+    "baseline_sha256": null,
+    "candidate_sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873"
+  },
+  {
+    "path": "res://scripts/npc_visual/npc_death_eyes.gd",
+    "baseline_sha256": null,
+    "candidate_sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c"
+  },
+  {
+    "path": "res://scripts/npc_visual/npc_local_preview_hit_owner.gd",
+    "baseline_sha256": "3cf0ee6b6fb667884a1538b63ca69edb7a62473c30a38138892ec2234eb42643",
+    "candidate_sha256": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c"
+  },
+  {
+    "path": "res://scripts/npc_visual/npc_ragdoll_host.gd",
+    "baseline_sha256": "c8e2aba4d9c57a25e7414422fa6c42a0069cc723f66b464fcacc3719a0f484b5",
+    "candidate_sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2"
+  },
+  {
+    "path": "res://scripts/preview_player.gd",
+    "baseline_sha256": "3c5a638d5a0c677d2f37a4d533761448397f8008ec5420919f01ba437e90b560",
+    "candidate_sha256": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493"
+  },
+  {
+    "path": "res://scripts/preview_population.gd",
+    "baseline_sha256": "b6de096a67244772031375446c7e51d4aa772e636e3e39b18f1b2dc77a552e67",
+    "candidate_sha256": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366"
+  },
+  {
+    "path": "res://scripts/weapons/cargo_aim_picker.gd",
+    "baseline_sha256": "1e2e95c1e08ceee1e68b7faede873b09f9903a996aababc6f3db29594496630d",
+    "candidate_sha256": "ba6388559a486914c18eaf7b3fed360ae64fdbc3746dd017929e3e63ddad08c0"
+  },
+  {
+    "path": "res://scripts/weapons/impact_mark_art.gd",
+    "baseline_sha256": null,
+    "candidate_sha256": "3396a15b773854a34ac35dbc08abc9e6f4f00c6bc0bea9288413cd1880bda130"
+  },
+  {
+    "path": "res://scripts/weapons/preview_weapons.gd",
+    "baseline_sha256": "511400c83252762db756971b7bb061aeaccde10a1d066e56c71c57648688b2a3",
+    "candidate_sha256": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c"
+  },
+  {
+    "path": "res://scripts/weapons/walk_cargo_card.gd",
+    "baseline_sha256": "fb55cc8c35c3426fcbede4a3b5b874e9bb0129e8df4e51a760384ce9f6ee2c9a",
+    "candidate_sha256": "1ade4775f64c1e481b98e82b517f2e4edf78107b180799eef68e165ee7ad9413"
+  },
+  {
+    "path": "res://scripts/weapons/walk_weapon_crosshair.gd",
+    "baseline_sha256": null,
+    "candidate_sha256": "c86d4c65b7dc31800ecf09596f75ee059542a5e3661980fc4a0b0099083eb8d2"
+  },
+  {
+    "path": "res://scripts/weapons/walk_weapon_ui.gd",
+    "baseline_sha256": "0339b1b1d47e6f8fe10fd784a08c781887090abacaf49560751c946877457e7b",
+    "candidate_sha256": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad"
+  },
+  {
+    "path": "res://scripts/weapons/weapon_aim_camera.gd",
+    "baseline_sha256": "cc17a2e661dd1b139b13ad2324f8f47b0012ef3041c713cdab76424f594ffd0b",
+    "candidate_sha256": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde"
+  },
+  {
+    "path": "res://scripts/weapons/weapon_projectiles.gd",
+    "baseline_sha256": "073cae755074dafc4154f04357a7301869765d7e80f576c216378dca5cb01df5",
+    "candidate_sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27"
+  },
+  {
+    "path": "res://scripts/weapons/weapon_surface_impacts.gd",
+    "baseline_sha256": "0e62fcabee143110eec832430bbe9806b7b496d2bf5c7df5692815ca4512b35a",
+    "candidate_sha256": "bc116ecee2aad8f6b394efc824706ffaf8259467655ea44ba183750aafe3b552"
+  }
+]

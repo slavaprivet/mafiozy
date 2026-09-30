@@ -1,0 +1,100 @@
+{
+  "schema": "mafiozi.destruction-checkpoint/v1",
+  "scope": "Isolated user-approved local breach prototype. NOT production integration.",
+  "revision": "v3-active-only-render-parked-pushable-rubble-repeatable-breaches",
+  "dependencies": "Standalone Godot4.7.2 Forward+, all visuals procedural, no external assets/addons; res:// points at outputs/destruction_showcase_20260930",
+  "evidence": {
+    "current": "stress_qa.json Windows/Vulkan PASS; stress_headless_final.json PASS; validation_status.json caveats",
+    "visual": "User liked interactive walkable/light-debris mechanic. PNGs show prior v2 same palette/geometry. Latest v3 CPU/render optimization tested; do NOT claim dedicated interactive visual approval of every v3 detail.",
+    "limits": "Not city-wide. Full collapse one133.879ms interval, cause not isolated. Performance_batched/unbatched are v2; no stable cityFPS claim."
+  },
+  "exclude": [
+    ".godot/",
+    "*.import",
+    "interactive*.log",
+    "performance.json (invalid legacy measurement)",
+    "stress_gpu_input_contaminated.json (failed contaminated test)"
+  ],
+  "files": [
+    {
+      "path": "outputs/destruction_showcase_20260930/project.godot",
+      "bytes": 746,
+      "sha256": "c7c2b29889bb1829c9b680f4bf8409065bd360748c09a9a4ea4428e1f707a007"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/showcase.tscn",
+      "bytes": 171,
+      "sha256": "356b2cef8f997a29a67343d229e3d18fca17a682b96272aff5d6e4d8403dc1dc"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/showcase.gd",
+      "bytes": 49657,
+      "sha256": "83039cb27ad9b10e9645814a18fb8c6d9941eed1bcbabc2ebfd5a510d653252b"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/showcase.gd.uid",
+      "bytes": 19,
+      "sha256": "ab5fbfc0f3686065dd1e346217a091b6bdae91788abc5cf575ebf9e334c5484b"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/fragment_body.gd",
+      "bytes": 1662,
+      "sha256": "baa5f2f9ae41b8e98ef7ac3966eac1043f3126c6547cc647ac5a9fc58ad84062"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/stress_qa.gd",
+      "bytes": 11529,
+      "sha256": "e8ad0a4160d7852390beb8844ab5931d54cbc7ece1b6c9efcd3e1d97dd8c5c10"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/validation_status.json",
+      "bytes": 4822,
+      "sha256": "7854b37d76b96e9e0847af0c84aa7310d709790a415bb84ea918d0ed441df45e"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/stress_qa.json",
+      "bytes": 7210,
+      "sha256": "db503400f5c38676e011244838d859964f98b7007503ed397aecc7cda4631f21"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/stress_headless_final.json",
+      "bytes": 7209,
+      "sha256": "624e3b912c1a6d4c9af5a2d861957334c8f418397cf4d48cb6ea9844ba3be5c5"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/stress_before_settling.json",
+      "bytes": 5505,
+      "sha256": "9aaae9d93411f443db4599f05047fca8d8e355445b3ee95b048ce8354a13de60"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/performance_batched.json",
+      "bytes": 1031,
+      "sha256": "7646299ba79a3161637171f0f893f0dff99fe17f2b10bf9d2c20fe5975607fb3"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/performance_unbatched.json",
+      "bytes": 1026,
+      "sha256": "a013634e83d1be1fe782ee9a1182aa5ec5b1b836d2d3049153f45e1c6e848770"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/intact.png",
+      "bytes": 376670,
+      "sha256": "2e0e0f9ad2d73210ebdba730a5e7a5cde18659ea4cfa89ac51aaf97f3d78e25b"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/partial.png",
+      "bytes": 384622,
+      "sha256": "90505507b4e39be4277c52afc42c1f79858cf4eaa6b75453a376a1628b4ac1a2"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/destroyed.png",
+      "bytes": 346094,
+      "sha256": "00d7a6d9747d7efb90d03872ff1056577a1609a8f103170745fb121ddfcff815"
+    },
+    {
+      "path": "outputs/destruction_showcase_20260930/walkthrough.png",
+      "bytes": 102051,
+      "sha256": "d067285ed19673b00535914a1266af860a9e085721c5f179575074d4649216f3"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+	"GPU": false,
+	"checks": 54,
+	"elapsed_ms": 154,
+	"failures": [],
+	"pass": true,
+	"rows": [
+		{
+			"body_unchanged": true,
+			"case": "entering",
+			"commands": 1,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "continued_overlap",
+			"commands": 1,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "moving_away",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "stationary",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "wall",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "vehicle",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "jump",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "replay_epoch",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "expired_frame",
+			"commands": 0,
+			"on_floor": true
+		},
+		{
+			"body_unchanged": true,
+			"case": "same_frame_replay",
+			"commands": 1,
+			"on_floor": true
+		}
+	],
+	"scope": "actual native player capsule, sleeping RigidBody3D256, queries and proposal only; spy records/rejects, no NPC lifecycle or impulse acceptance"
+}

@@ -1,0 +1,105 @@
+{
+  "production_base": {
+    "commit_reported_by_root": "523a54eb",
+    "source_files_not_copied": 199,
+    "checkpoint_document": "docs/godot/WEAPONS_23E_CHECKPOINT.md",
+    "required_project": "godot/mafiozi_walk",
+    "engine": "4.7.2.stable.official.ed1daf0bf",
+    "all_Godot_res_paths": "resolve through --path godot/mafiozi_walk or exact external --main-pack"
+  },
+  "preserved_test_dependency_edges": [
+    {
+      "test": "outputs/coordinator23_quality_perf23e/test_comparator.py",
+      "depends_on": "outputs/coordinator23_quality_perf/loaded_pck03ready/candidate.json",
+      "status": "included as synthetic fixture, not new performance result"
+    },
+    {
+      "test": "outputs/coordinator23_visual_harness/capture_open_wall_marks.gd",
+      "depends_on": "outputs/coordinator23_visual_harness/wall_mesh_support.gd",
+      "status": "included"
+    },
+    {
+      "test": "outputs/coordinator23_corpse_contact/test_native_contacts.gd",
+      "depends_on": "outputs/coordinator23_corpse_contact/player_corpse_contact.gd",
+      "status": "included; proposal only, spy rejects all force admission"
+    },
+    {
+      "test": "outputs/coordinator23_reticle/test_root_reticle.gd",
+      "depends_on": "outputs/coordinator23_reticle/ORACLE.json",
+      "status": "included"
+    },
+    {
+      "test": "outputs/coordinator23_reticle/build_oracle.mjs",
+      "depends_on": [
+        "assets/maps/city_rebuild_v1/hero_weapon_fire.mjs",
+        "assets/maps/city_rebuild_v1/weapon_crosshair.mjs"
+      ],
+      "status": "existing repository source, not duplicated"
+    }
+  ],
+  "historical_external_packs": [
+    {
+      "source_manifest": "outputs/coordinator23_quality_perf23e/loaded_23c_to_23e_01/MANIFEST.json",
+      "baseline_pck": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23c-play\\MafioziPreview.pck",
+      "baseline_sha256": "4a2392c044eff5163e5fa4c4a95dbdcd5da8467c9fce3d3b1b7c825168bbe1bf",
+      "candidate": {
+        "pck": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23e-check\\MafioziPreview.pck",
+        "pck_sha256": "19c5061db4b6b6b80b35cf700410f7d00d48351f9980eacc325230a091ac3f1a",
+        "receipt": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate05\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23e-check\\build_receipt.json",
+        "receipt_sha256": "a37892bd075210b67a7044e2340d6108fd3a2fdc5ce138676cc2bcc3ac357e59"
+      },
+      "current": null,
+      "status": "binary packs intentionally excluded; exact historical GPU replay needs archived pack artifacts, hashes/receipts retained. A new export of checkout is a new run, not bit-identical historical proof."
+    },
+    {
+      "source_manifest": "outputs/coordinator23_quality_perf23d/cold_current_updated_01/MANIFEST.json",
+      "baseline_pck": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23c-play\\MafioziPreview.pck",
+      "baseline_sha256": "4a2392c044eff5163e5fa4c4a95dbdcd5da8467c9fce3d3b1b7c825168bbe1bf",
+      "candidate": {
+        "pck": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate04\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23d-prepared\\MafioziPreview.pck",
+        "pck_sha256": "9f5c9b171dc8657b03e2260d056e6fc1a60159ef61dd431e0a78bb2e14eb28d1",
+        "receipt": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\candidate04\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23d-prepared\\build_receipt.json",
+        "receipt_sha256": "8380617cb731909f049dd2e0580235b9fb68c46d124efcebb49ff31eb74b8a7b"
+      },
+      "current": "907f19ac5ee4cbb90350086a56137a4641a6a54f138dec2b77771682b0de9a13",
+      "status": "binary packs intentionally excluded; exact historical GPU replay needs archived pack artifacts, hashes/receipts retained. A new export of checkout is a new run, not bit-identical historical proof."
+    }
+  ],
+  "legacy_absolute_paths": [
+    {
+      "file": "outputs/coordinator23_memory_optimization/test_picker_parity.gd",
+      "read": "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_memory_optimization/cargo_aim_picker_original.gd",
+      "write": "same local output folder/PICKER_PARITY.json",
+      "resolution": "rebase these two paths in a scratch copy, retain included original reference; current candidate comes from res:// main checkpoint"
+    },
+    {
+      "file": "outputs/coordinator23_quality_perf23d/test_surface_preassign.gd",
+      "read": "local outputs/coordinator23_quality_perf23d/surface_preassign_candidate.gd",
+      "write": "same local folder/SURFACE_PREASSIGN_TEST.json",
+      "resolution": "excluded candidate duplicate equals accepted production behavior; scratch-copy test load target should be res://scripts/weapons/weapon_surface_impacts.gd; rebase output. Do not overwrite archived303result."
+    },
+    {
+      "file": "outputs/coordinator23_quality/cpu05/test_combined_matrix.gd",
+      "write": "local outputs/coordinator23_quality/cpu05/MATRIX_RESULT.json",
+      "resolution": "rebase output in scratch copy only; dependencies already res:// in accepted project."
+    }
+  ],
+  "foreign_impulse_HOLD": {
+    "receipt_source": "outputs/artist23_hit_impulse/ready_impulse_only/RECEIPT.json",
+    "receipt_sha256": "8434e80bbdd2f66b8315f07e55814ea7e60a854461bca952207929a5e080f5ff",
+    "payload_sha256": {
+      "npc_hit_impulse.gd": "fe4ddd5272e6ea0f0b746b003c8254022a561120a867b54088355ffddb53abe2",
+      "npc_local_preview_hit_owner.gd": "29b034ffe47c6a348d041088bcf6354bdec739177e4c8787b94d8bb3131495ce",
+      "owner.patch": "e5c0791c60cc947e75da7c44b738319346318fd6bdf188a41cad2bfc55241034"
+    },
+    "compatible_base": {
+      "outputs\\artist23_combat_next\\root23c_stage\\scripts\\npc_visual\\npc_local_preview_hit_owner.gd": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c",
+      "outputs\\artist23_combat_next\\root23c_stage\\scripts\\npc_visual\\npc_ragdoll_host.gd": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "outputs\\artist23_combat_next\\root23c_stage\\scripts\\npc_visual\\npc_body.gd": "1947938608f8ddb50cbfb7ee68d86d780c5e041eeb4c257bed99fc953e327162",
+      "outputs\\artist23_combat_next\\root23c_stage\\scripts\\npc_visual\\npc_ordinary_hit_lifecycle.gd": "84c09b95c4a373fe0eaa226eb42ebb960cafe460fc8fb06a7641b565c30db36e"
+    },
+    "test": "outputs/artist23_hit_impulse/native_ready.gd",
+    "status": "not copied, foreign owner package; review/results readable here, exact465rerun requires obtaining these pinned files from owner. No claim self-contained replay or ready integration."
+  },
+  "new_execution_claim": "none; inventory/hashing only, no engine/test/GPU invoked for this task"
+}

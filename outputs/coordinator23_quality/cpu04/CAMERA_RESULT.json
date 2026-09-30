@@ -1,0 +1,160 @@
+{
+	"failures": [],
+	"rows": [
+		{
+			"actual_aiming": false,
+			"arm_offset": "(0.0, 0.139, 0.0)",
+			"attached": true,
+			"camera": "(29.64977, 2.856927, -10.4)",
+			"camera_distance_from_eye": 5.11956882476807,
+			"distance_setting": 5.11957029446808,
+			"fov": 45.0,
+			"hit_length": 5.11957025527954,
+			"label": "actual_start_normal",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.0,
+				"hidden_geometry": 0,
+				"owns": true,
+				"queries": 122,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 5.11957025527954
+		},
+		{
+			"actual_aiming": true,
+			"arm_offset": "(0.749966, 0.139, 0.0)",
+			"attached": true,
+			"camera": "(30.54295, 2.638353, -9.650031)",
+			"camera_distance_from_eye": 4.26647281646729,
+			"distance_setting": 5.11957029446808,
+			"fov": 38.0000076293945,
+			"hit_length": 4.20004177093506,
+			"label": "actual_start_RMB",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.999999168471281,
+				"hidden_geometry": 0,
+				"owns": true,
+				"queries": 242,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 4.20004177093506
+		},
+		{
+			"actual_aiming": false,
+			"arm_offset": "(0.000001, 0.139, 0.0)",
+			"attached": true,
+			"camera": "(29.64977, 2.856927, -10.4)",
+			"camera_distance_from_eye": 5.11956930160522,
+			"distance_setting": 5.11957029446808,
+			"fov": 45.0,
+			"hit_length": 5.11957025527954,
+			"label": "released_normal",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.0,
+				"hidden_geometry": 0,
+				"owns": true,
+				"queries": 362,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 5.11957025527954
+		},
+		{
+			"actual_aiming": false,
+			"arm_offset": "(0.000021, 0.139, 0.0)",
+			"attached": true,
+			"camera": "(29.01575, 3.012082, -10.39998)",
+			"camera_distance_from_eye": 5.77229738235474,
+			"distance_setting": 5.77229938845206,
+			"fov": 45.0,
+			"hit_length": 5.77229928970337,
+			"label": "wheel_distance_restored",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.0,
+				"hidden_geometry": 0,
+				"owns": true,
+				"queries": 552,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 5.77229928970337
+		},
+		{
+			"actual_aiming": false,
+			"arm_offset": "(0.0, 0.0, 0.0)",
+			"attached": true,
+			"camera": "(29.01575, 2.873083, -10.4)",
+			"camera_distance_from_eye": 5.74084663391113,
+			"distance_setting": 5.77229938845206,
+			"fov": 45.0,
+			"hit_length": 5.77229928970337,
+			"label": "menu_resets_zoom",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.0,
+				"hidden_geometry": 0,
+				"owns": true,
+				"queries": 592,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 5.77229928970337
+		},
+		{
+			"actual_aiming": false,
+			"arm_offset": "(0.0, 0.0, 0.0)",
+			"attached": true,
+			"camera": "(29.01575, 2.873083, -10.4)",
+			"camera_distance_from_eye": 5.74084663391113,
+			"distance_setting": 5.77229938845206,
+			"fov": 45.0,
+			"hit_length": 5.77229928970337,
+			"label": "blur_resets_zoom",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.0,
+				"hidden_geometry": 0,
+				"owns": true,
+				"queries": 632,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 5.77229928970337
+		},
+		{
+			"actual_aiming": false,
+			"arm_offset": "(0.0, 0.0, 0.0)",
+			"attached": true,
+			"camera": "(29.01575, 2.873083, -10.4)",
+			"camera_distance_from_eye": 5.74084663391113,
+			"distance_setting": 5.77229938845206,
+			"fov": 65.0,
+			"hit_length": 5.77229928970337,
+			"label": "seat_camera_owner",
+			"module": {
+				"base_fov": 65.0,
+				"blend": 0.0,
+				"hidden_geometry": 0,
+				"owns": false,
+				"queries": 672,
+				"scope_alpha": 0.0,
+				"scoped": false
+			},
+			"player": "(34.6226, -0.000008, -10.4)",
+			"spring_length": 5.77229928970337
+		}
+	],
+	"scope": "actual full main/player input/physics/spring camera; source project intentional, NOT export validation"
+}

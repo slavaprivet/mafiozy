@@ -1,0 +1,402 @@
+{
+  "comparable": true,
+  "comparison_standard": "Matching workload AND export form required; a raw-project/PCK exploratory pair is not strict regression evidence",
+  "issues": [],
+  "notes": [
+    "Baseline source hashes resolved from exact PCK-bound build_receipt185 for quality23c-play; raw runtime export hashes retained in baseline.json. Provenance in MANIFEST.json.",
+    "Protected NPC/navigation/source geometry canonical dependencies checked: 43",
+    "Player implementation changed; camera/body geometry invariants are checked at runtime; costs include player changes."
+  ],
+  "accepted_source_changes": [
+    {
+      "path": "res://assets/npc_visual/death_eyes/assets_manifest.json",
+      "baseline_sha256": null,
+      "candidate_sha256": "90d20822a859a7a19ff5785772d0dcbde3bbfb8ff15a40636f5c290af5b4131f",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://assets/npc_visual/death_eyes/npc_resident_169_hair_closed.res",
+      "baseline_sha256": null,
+      "candidate_sha256": "49ce7b368944d9f89c13b4ba2a595a4f43ff2f2e7497da6f68b8f6c97dc4a1b1",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://assets/npc_visual/death_eyes/npc_resident_169_skin_closed.res",
+      "baseline_sha256": null,
+      "candidate_sha256": "59d3393889e4c14fbe38af5e777e0fc38372e52948c86ce65070e7225873614b",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://assets/npc_visual/death_eyes/npc_resident_252_hair_closed.res",
+      "baseline_sha256": null,
+      "candidate_sha256": "f1697dd64ba5a82886defb22e0d7c93dfae33b44368264e4651c1ca17bb70956",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://assets/npc_visual/death_eyes/npc_resident_252_skin_closed.res",
+      "baseline_sha256": null,
+      "candidate_sha256": "9a330dc9dce45b62d610cd06c274cfe50d127bee26c08a0cd0623c55405acb9d",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://assets/npc_visual/death_eyes/npc_resident_72_hair_closed.res",
+      "baseline_sha256": null,
+      "candidate_sha256": "896a894c664112760b950a4a454c810228609dfe51858a087e72d4ae10df05e5",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res",
+      "baseline_sha256": null,
+      "candidate_sha256": "7ffbbad4c0ad98bc8c636fced8d3c648cba095419d8f3edf96004a4daf4faf85",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/npc_visual/npc_blood_adapter.gd",
+      "baseline_sha256": null,
+      "candidate_sha256": "ee76e46c2a6c044814f1971c62881bee6501cab969b54b1b10db1c49e0f5b591",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/npc_visual/npc_blood_renderer.gd",
+      "baseline_sha256": null,
+      "candidate_sha256": "9c2ca54509f67302b570275fd5868c5309ac067776f0f922e4f5be90f0727873",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/npc_visual/npc_death_eyes.gd",
+      "baseline_sha256": null,
+      "candidate_sha256": "67971321ba296ba6e70a76a6f4a95ca55df3de34c2848e54b4a7e0ba552b978c",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/npc_visual/npc_local_preview_hit_owner.gd",
+      "baseline_sha256": "3cf0ee6b6fb667884a1538b63ca69edb7a62473c30a38138892ec2234eb42643",
+      "candidate_sha256": "cd0f09b407ac76fb926bb9deae13a451cd3a9d112461426dfbac1825c7bf5c4c",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/npc_visual/npc_ragdoll_host.gd",
+      "baseline_sha256": "c8e2aba4d9c57a25e7414422fa6c42a0069cc723f66b464fcacc3719a0f484b5",
+      "candidate_sha256": "59573587d7eac3c6e4911ff1279e0c683f2646be61bc2346be0c82e314850bb2",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner Artist23 exact delivered file; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/preview_population.gd",
+      "baseline_sha256": "b6de096a67244772031375446c7e51d4aa772e636e3e39b18f1b2dc77a552e67",
+      "candidate_sha256": "ec6a98758804b8d8f26fa5162e970baefedee3fa2bf8404048a0e556c8a4d366",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner root integration; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    },
+    {
+      "path": "res://scripts/weapons/weapon_projectiles.gd",
+      "baseline_sha256": "073cae755074dafc4154f04357a7301869765d7e80f576c216378dca5cb01df5",
+      "candidate_sha256": "e1a1433b1f5df9c8aea116580e1a8443279401f2e65b832756eee18923552d27",
+      "audit": "Root approved Artist23 13-gun ordinary hits/blood/death eyes integration; MERGE_PLAN SHA256 64da24098ab59d0496e1fd6ffff3f114bde5d4901e7dee595c31f0f6971acf43; owner root integration; runtime 3 NPC IDs/capsules/377 colliders remain required"
+    }
+  ],
+  "comparisons": [
+    {
+      "phase": "active_ak_ground_shots",
+      "static_memory_edges": {
+        "baseline_before": 218600903.0,
+        "baseline_after": 218752759.0,
+        "candidate_before": 176396580.0,
+        "candidate_after": 176594068.0
+      },
+      "static_p50_delta_bytes": -42171911.0,
+      "gpu_p50_delta_ms": -0.0009999275207497327,
+      "gpu_p95_delta_ms": -0.005000114440919745,
+      "wall_p50_delta_ms": 0.03500000000000014,
+      "baseline_ms": {
+        "max": 8.487,
+        "n": 1130,
+        "p50": 3.036,
+        "p95": 5.767
+      },
+      "candidate_ms": {
+        "max": 8.981,
+        "n": 1124,
+        "p50": 3.071,
+        "p95": 5.772
+      },
+      "p95_delta_ms": 0.004999999999999893,
+      "p95_ratio": 1.0008670019074042,
+      "drawcalls": {
+        "baseline": {
+          "max": 2317.0,
+          "n": 94,
+          "p50": 2194.0,
+          "p95": 2306.0
+        },
+        "candidate": {
+          "max": 2321.0,
+          "n": 93,
+          "p50": 2183.0,
+          "p95": 2310.0
+        }
+      },
+      "primitives": {
+        "baseline": {
+          "max": 899168.0,
+          "n": 94,
+          "p50": 894724.0,
+          "p95": 899012.0
+        },
+        "candidate": {
+          "max": 900608.0,
+          "n": 93,
+          "p50": 895864.0,
+          "p95": 900452.0
+        }
+      },
+      "static_memory_bytes": {
+        "baseline": {
+          "max": 218749375.0,
+          "n": 94,
+          "p50": 218712839.0,
+          "p95": 218746391.0
+        },
+        "candidate": {
+          "max": 176594068.0,
+          "n": 93,
+          "p50": 176540928.0,
+          "p95": 176594068.0
+        }
+      },
+      "vram_bytes": {
+        "baseline": {
+          "max": 286818816.0,
+          "n": 94,
+          "p50": 286818304.0,
+          "p95": 286818304.0
+        },
+        "candidate": {
+          "max": 288683296.0,
+          "n": 93,
+          "p50": 288644112.0,
+          "p95": 288683296.0
+        }
+      },
+      "gpu_ms": {
+        "baseline": {
+          "max": 2.94199991226196,
+          "n": 94,
+          "p50": 2.72000002861023,
+          "p95": 2.88700008392334
+        },
+        "candidate": {
+          "max": 3.8510000705719,
+          "n": 93,
+          "p50": 2.71900010108948,
+          "p95": 2.88199996948242
+        }
+      },
+      "shots": {
+        "baseline": 10,
+        "candidate": 10
+      }
+    },
+    {
+      "phase": "idle_loaded",
+      "static_memory_edges": {
+        "baseline_before": 216506508.0,
+        "baseline_after": 216574445.0,
+        "candidate_before": 174286433.0,
+        "candidate_after": 174354370.0
+      },
+      "static_p50_delta_bytes": -42213210.0,
+      "gpu_p50_delta_ms": -0.003000020980830076,
+      "gpu_p95_delta_ms": 0.013999938964840197,
+      "wall_p50_delta_ms": -0.009999999999999787,
+      "baseline_ms": {
+        "max": 6.265,
+        "n": 1499,
+        "p50": 2.525,
+        "p95": 3.629
+      },
+      "candidate_ms": {
+        "max": 6.921,
+        "n": 1492,
+        "p50": 2.515,
+        "p95": 3.734
+      },
+      "p95_delta_ms": 0.10499999999999998,
+      "p95_ratio": 1.0289335905208046,
+      "drawcalls": {
+        "baseline": {
+          "max": 867.0,
+          "n": 124,
+          "p50": 865.0,
+          "p95": 867.0
+        },
+        "candidate": {
+          "max": 867.0,
+          "n": 124,
+          "p50": 864.0,
+          "p95": 867.0
+        }
+      },
+      "primitives": {
+        "baseline": {
+          "max": 521948.0,
+          "n": 124,
+          "p50": 513680.0,
+          "p95": 521948.0
+        },
+        "candidate": {
+          "max": 522184.0,
+          "n": 124,
+          "p50": 516900.0,
+          "p95": 522184.0
+        }
+      },
+      "static_memory_bytes": {
+        "baseline": {
+          "max": 216574465.0,
+          "n": 124,
+          "p50": 216549144.0,
+          "p95": 216574445.0
+        },
+        "candidate": {
+          "max": 174354370.0,
+          "n": 124,
+          "p50": 174335934.0,
+          "p95": 174354370.0
+        }
+      },
+      "vram_bytes": {
+        "baseline": {
+          "max": 286177840.0,
+          "n": 124,
+          "p50": 286177840.0,
+          "p95": 286177840.0
+        },
+        "candidate": {
+          "max": 288488752.0,
+          "n": 124,
+          "p50": 288488752.0,
+          "p95": 288488752.0
+        }
+      },
+      "gpu_ms": {
+        "baseline": {
+          "max": 2.38700008392334,
+          "n": 124,
+          "p50": 2.18099999427795,
+          "p95": 2.29800009727478
+        },
+        "candidate": {
+          "max": 2.53600001335144,
+          "n": 124,
+          "p50": 2.17799997329712,
+          "p95": 2.31200003623962
+        }
+      },
+      "shots": {
+        "baseline": 0,
+        "candidate": 0
+      }
+    },
+    {
+      "phase": "open_trunk_full14",
+      "static_memory_edges": {
+        "baseline_before": 233639381.0,
+        "baseline_after": 233703501.0,
+        "candidate_before": 192023230.0,
+        "candidate_after": 192075066.0
+      },
+      "static_p50_delta_bytes": -41624119.0,
+      "gpu_p50_delta_ms": 0.011000156402579897,
+      "gpu_p95_delta_ms": -0.016999959945680043,
+      "wall_p50_delta_ms": 0.021999999999999797,
+      "baseline_ms": {
+        "max": 8.956,
+        "n": 1070,
+        "p50": 3.262,
+        "p95": 5.722
+      },
+      "candidate_ms": {
+        "max": 7.943,
+        "n": 1078,
+        "p50": 3.284,
+        "p95": 5.526
+      },
+      "p95_delta_ms": -0.19600000000000062,
+      "p95_ratio": 0.965746242572527,
+      "drawcalls": {
+        "baseline": {
+          "max": 2875.0,
+          "n": 89,
+          "p50": 2812.0,
+          "p95": 2875.0
+        },
+        "candidate": {
+          "max": 2876.0,
+          "n": 89,
+          "p50": 2812.0,
+          "p95": 2875.0
+        }
+      },
+      "primitives": {
+        "baseline": {
+          "max": 1047993.0,
+          "n": 89,
+          "p50": 1047897.0,
+          "p95": 1047959.0
+        },
+        "candidate": {
+          "max": 1048289.0,
+          "n": 89,
+          "p50": 1048221.0,
+          "p95": 1048289.0
+        }
+      },
+      "static_memory_bytes": {
+        "baseline": {
+          "max": 233703501.0,
+          "n": 89,
+          "p50": 233678073.0,
+          "p95": 233690313.0
+        },
+        "candidate": {
+          "max": 192075066.0,
+          "n": 89,
+          "p50": 192053954.0,
+          "p95": 192066230.0
+        }
+      },
+      "vram_bytes": {
+        "baseline": {
+          "max": 288369984.0,
+          "n": 89,
+          "p50": 288369984.0,
+          "p95": 288369984.0
+        },
+        "candidate": {
+          "max": 290157968.0,
+          "n": 89,
+          "p50": 290157968.0,
+          "p95": 290157968.0
+        }
+      },
+      "gpu_ms": {
+        "baseline": {
+          "max": 3.18199992179871,
+          "n": 89,
+          "p50": 2.90199995040894,
+          "p95": 3.14400005340576
+        },
+        "candidate": {
+          "max": 3.30299997329712,
+          "n": 89,
+          "p50": 2.91300010681152,
+          "p95": 3.12700009346008
+        }
+      },
+      "shots": {
+        "baseline": 0,
+        "candidate": 0
+      }
+    }
+  ],
+  "note": "Short loaded rendering benchmark; no visual acceptance and no automatic regression approval."
+}

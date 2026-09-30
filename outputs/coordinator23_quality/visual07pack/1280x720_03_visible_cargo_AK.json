@@ -1,0 +1,255 @@
+{
+	"camera": {
+		"forward": [
+			-0.291290789842606,
+			-0.564641714096069,
+			-0.772223651409149
+		],
+		"fov": 45.0,
+		"parent_path": "/root/MafioziWalkMigration/PreviewPlayer/CameraYaw/CameraSpringArm",
+		"position": [
+			38.5611686706543,
+			4.53031253814697,
+			-2.9108555316925
+		],
+		"same_parent": true,
+		"spring_length": 5.11957025527954,
+		"top_level": false
+	},
+	"cargo": {
+		"context": {
+			"aimed_trunk": true,
+			"cargo_allowed": true,
+			"drop_uid": "",
+			"item_uid": "local-weapon-item--9223371853865674725-10",
+			"near_trunk": true,
+			"open": true,
+			"point": "(36.53352, 0.482333, -8.286233)",
+			"weapon_id": "ak74"
+		},
+		"lid_open": true,
+		"summary": {
+			"capacity_units": 100,
+			"count": 1,
+			"destroyed": false,
+			"ok": true,
+			"pending": false,
+			"revision": 2,
+			"used_units": 10
+		},
+		"visual": {
+			"aabb_tests": 0,
+			"fall_updates": 0,
+			"falling_count": 0,
+			"geometry_builds": 1,
+			"geometry_cache": 1,
+			"geometry_queries": 0,
+			"ground": [],
+			"ground_count": 0,
+			"pending": false,
+			"total_count": 1
+		}
+	},
+	"draw_count": 495,
+	"elapsed_ms": 7440,
+	"frozen_for_capture_only": true,
+	"image": {
+		"height": 720,
+		"path": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator23_quality\\visual07pack/1280x720_03_visible_cargo_AK.png",
+		"sample_variation": 2.6980392113328,
+		"sha256": "2892c9ef6ff05cd33d50d4be043df822864d97dbd35b19e3ede932dcadcd2d92",
+		"width": 1280
+	},
+	"label": "1280x720_03_visible_cargo_AK",
+	"measurement": false,
+	"performance_valid": false,
+	"phase": "capture:1280x720_03_visible_cargo_AK",
+	"pickup_projection": [
+		{
+			"local_bounds": "[P: (-0.146809, -0.508774, -0.16), S: (0.346809, 0.972773, 1.570392)]",
+			"note": "Projected original mesh bounds only; not pixel visibility or occlusion acceptance",
+			"ok": true,
+			"position": [
+				626.233337402344,
+				363.897430419922
+			],
+			"rect": "[P: (626.2333, 363.8974), S: (21.53961, 41.78867)]",
+			"size": [
+				21.5396118164063,
+				41.7886657714844
+			],
+			"uid": "local-weapon-item--9223371853865674725-10",
+			"visible": true,
+			"weapon_id": "ak74",
+			"world_transform": "[X: (0.195581, -0.000037, -0.000138), Y: (0.000037, 0.195581, 0.000022), Z: (0.000138, -0.000022, 0.195581), O: (36.5319, 0.412349, -8.334584)]"
+		}
+	],
+	"player": {
+		"camera_distance": 5.11957029446808,
+		"camera_pitch": -0.6,
+		"camera_yaw": 0.360707091173853,
+		"capsule_height": 1.89999997615814,
+		"capsule_projection": {
+			"ok": true,
+			"position": [
+				570.411987304688,
+				288.815277099609
+			],
+			"rect": "[P: (570.412, 288.8153), S: (135.2513, 309.6761)]",
+			"size": [
+				135.251281738281,
+				309.676055908203
+			]
+		},
+		"controls": true,
+		"head_bones": [
+			{
+				"name": "neck",
+				"pose": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 3.28, 0.0)]"
+			},
+			{
+				"name": "head",
+				"pose": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 3.72, 0.0)]"
+			},
+			{
+				"name": "socket_head",
+				"pose": "[X: (-1.0, 0.0, 0.0), Y: (0.0, 0.0, 1.0), Z: (0.0, 1.0, 0.0), O: (0.0, 4.62, 0.0)]"
+			}
+		],
+		"pose_authority": "on_foot",
+		"position": [
+			37.0698852539063,
+			0.000234374776482582,
+			-6.86430644989014
+		],
+		"posture": {
+			"blocked": false,
+			"crawl": false,
+			"crouch": 0.0,
+			"eyeHeight": 1.64,
+			"height": 1.9,
+			"maxSpeed": 4.6,
+			"prone": 0.0,
+			"speedMultiplier": 1.0,
+			"target": "stand",
+			"value": 0.0
+		},
+		"source_visual_yaw": 1.57079637050629,
+		"velocity": [
+			0.0,
+			0.0,
+			0.0
+		]
+	},
+	"residents": {
+		"disposed": false,
+		"rows": [
+			{
+				"bridge_id": "npc_resident_72",
+				"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+				"life_generation": 1,
+				"physical_anchor_world": null,
+				"placement_mode": "PREVIEW_STAGE",
+				"position": "(39.22734, 0.00083, -13.4)",
+				"reason": "",
+				"source_id": "resident_72",
+				"speed_mps": 1.31184827381874,
+				"status": "ARRIVED"
+			},
+			{
+				"bridge_id": "npc_resident_169",
+				"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+				"life_generation": 1,
+				"physical_anchor_world": null,
+				"placement_mode": "PREVIEW_STAGE",
+				"position": "(36.12262, 0.000841, -2.420009)",
+				"reason": "",
+				"source_id": "resident_169",
+				"speed_mps": 1.8,
+				"status": "ARRIVED"
+			},
+			{
+				"bridge_id": "npc_resident_252",
+				"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+				"life_generation": 1,
+				"physical_anchor_world": null,
+				"placement_mode": "PREVIEW_STAGE",
+				"position": "(31.51964, 0.000788, -19.4)",
+				"reason": "",
+				"source_id": "resident_252",
+				"speed_mps": 0.912652391870984,
+				"status": "READY"
+			}
+		],
+		"session_id": "godot-preview-new-session-20260927-01",
+		"stats": {
+			"admissions": 3,
+			"admit_us_max": 77363,
+			"rejections": 0,
+			"step_us_max": 1272,
+			"steps": 219
+		},
+		"walk_preview": {
+			"enabled": true,
+			"requests": 3
+		}
+	},
+	"resolution": [
+		1280,
+		720
+	],
+	"ui": {
+		"context_card_rect": "[P: (525.1279, 22.54555), S: (292.0, 107.0)]",
+		"context_card_visible": true,
+		"crosshair": {
+			"arms": false,
+			"dot": "[P: (-1.0, -1.0), S: (2.0, 2.0)]",
+			"gap": 3,
+			"rects": [],
+			"redraws": 1,
+			"spread": 0.0
+		},
+		"launcher_rect": "[P: (18.0, 624.0), S: (430.0, 78.0)]",
+		"logical_viewport": "[P: (0.0, 0.0), S: (1280.0, 720.0)]",
+		"menu_rect": "[P: (18.0, 79.2), S: (690.0, 532.8)]",
+		"window_position": "(-32000, -32000)",
+		"window_visible": true
+	},
+	"weapons": {
+		"ammo": {
+			"cooldown": 0.0,
+			"magazine": 0,
+			"recoil": 0.0,
+			"reloadRemaining": 0.0,
+			"reserveAmmo": 0,
+			"sequence": 0,
+			"triggerHeld": false,
+			"weaponId": "none"
+		},
+		"equipped": "none",
+		"item_uid": null,
+		"last_applied_receipt": {},
+		"menu_open": false,
+		"owned": [
+			"nagan",
+			"tt_pistol",
+			"revolver",
+			"deagle",
+			"golden_colt",
+			"sawn_off",
+			"shotgun",
+			"uzi",
+			"golden_uzi",
+			"m16",
+			"tommy_gun",
+			"sniper",
+			"rpg"
+		],
+		"pose_epoch": 1,
+		"pose_revision": 220,
+		"receipt_is_passive_not_shot_admission": true,
+		"reticle": true,
+		"visual_exists": false,
+		"visual_visible": false
+	}
+}

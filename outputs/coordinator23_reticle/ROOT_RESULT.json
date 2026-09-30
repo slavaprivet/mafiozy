@@ -1,0 +1,16 @@
+{
+	"checks": 1784,
+	"failures": [],
+	"oracle_sha": "6920e55ea45d99030e23684a0144dc79d0ebc9ade01a03d57674450f42e7b336",
+	"passed": true,
+	"resource_root": "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator23_quality/candidate04/godot/mafiozi_walk/",
+	"runtime_sha": {
+		"scripts/main.gd": "ac43e372d05a4b549c6879202ad87d466ff423ab0c78bffd5768fb9c079b9cb1",
+		"scripts/preview_player.gd": "b3ed96670f8f0b73b14414910379971676e80d432bb014ec1bad48a2e7704493",
+		"scripts/weapons/preview_weapons.gd": "7d273a9076b85673285406ff8bfc9290344fc368bc8bde750d0062b35b9b115c",
+		"scripts/weapons/walk_weapon_crosshair.gd": "c86d4c65b7dc31800ecf09596f75ee059542a5e3661980fc4a0b0099083eb8d2",
+		"scripts/weapons/walk_weapon_ui.gd": "11e53b660057e91b90c23081cdbc0205e996dc61aaf40159cfbbafae78523cad",
+		"scripts/weapons/weapon_aim_camera.gd": "0cb56035fc702e4f558e35a29adb416736cdf45122cd236cd75caad12277dbde"
+	},
+	"scope": "Original JS oracle geometry/cone and actual candidate04 main/player input/ammo/movement/camera/UI; all modules loaded from res://, no source/module overrides; headless, no GPU acceptance"
+}

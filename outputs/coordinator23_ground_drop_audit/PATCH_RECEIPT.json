@@ -1,0 +1,5 @@
+{
+  "base_test_sha256": "1a557a00f05a24a0290f87cd85420e83799577835421648250e1a5f200c46f9d",
+  "proposed_test_sha256": "15c4607f00e72c1c1d02c0bd0dde3a8c5e1d6f31dcc4e53686dd3c90ea61c2e3",
+  "scope": "test-only source placement regression; no production changes"
+}

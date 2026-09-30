@@ -1,0 +1,1779 @@
+{
+  "scope": "Targeted timing/event evidence only, not automatic regression approval",
+  "sides": {
+    "baseline": {
+      "valid": true,
+      "errors": [],
+      "phases": [
+        {
+          "name": "idle_loaded",
+          "wall": {
+            "max": 7.262,
+            "n": 1428,
+            "p50": 2.588,
+            "p95": 4.086
+          },
+          "gpu": {
+            "max": 3.08699989318848,
+            "n": 1428,
+            "p50": 2.1949999332428,
+            "p95": 2.4210000038147
+          },
+          "shots": 0,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 1765.134,
+                "frame_index": 624,
+                "gpu_ms": 2.14800000190735,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.647,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.36,
+                "shots": 0,
+                "static_bytes": 217718739.0,
+                "wall_ms": 7.262
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1533.147,
+                "frame_index": 546,
+                "gpu_ms": 2.39499998092651,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.647,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.36,
+                "shots": 0,
+                "static_bytes": 217575843.0,
+                "wall_ms": 6.938
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1497.339,
+                "frame_index": 535,
+                "gpu_ms": 2.33599996566772,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.647,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.36,
+                "shots": 0,
+                "static_bytes": 217555599.0,
+                "wall_ms": 6.646
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1681.479,
+                "frame_index": 596,
+                "gpu_ms": 2.14299988746643,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.647,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.36,
+                "shots": 0,
+                "static_bytes": 217667443.0,
+                "wall_ms": 5.686
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1513.013,
+                "frame_index": 540,
+                "gpu_ms": 2.18300008773804,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.647,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.36,
+                "shots": 0,
+                "static_bytes": 217564851.0,
+                "wall_ms": 5.553
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            }
+          ]
+        },
+        {
+          "name": "cold_first10_ak",
+          "wall": {
+            "max": 14.014,
+            "n": 680,
+            "p50": 5.185,
+            "p95": 10.085
+          },
+          "gpu": {
+            "max": 3.15700006484985,
+            "n": 680,
+            "p50": 2.7279999256134,
+            "p95": 2.93400001525879
+          },
+          "shots": 10,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 33.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 3124.229,
+                "frame_index": 550,
+                "gpu_ms": 2.76500010490417,
+                "impacts": 8,
+                "marks": 8,
+                "physics_ms": 4.886,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 6.667,
+                "shots": 8,
+                "static_bytes": 222431882.0,
+                "wall_ms": 14.014
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1572.913,
+                "frame_index": 316,
+                "gpu_ms": 2.92400002479553,
+                "impacts": 4,
+                "marks": 4,
+                "physics_ms": 5.296,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.389,
+                "shots": 4,
+                "static_bytes": 221965346.0,
+                "wall_ms": 12.675
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 895,
+                  "render_frame": 4826,
+                  "shot_count": 5,
+                  "usec": 19769973
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 325,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 19790244,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 5,
+                    "total_impacts": 5,
+                    "total_marks": 5
+                  },
+                  "variant_index": 0
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 1759.656,
+                "frame_index": 343,
+                "gpu_ms": 2.90799999237061,
+                "impacts": 5,
+                "marks": 5,
+                "physics_ms": 5.296,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.389,
+                "shots": 5,
+                "static_bytes": 222020182.0,
+                "wall_ms": 11.695
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 3528.29,
+                "frame_index": 608,
+                "gpu_ms": 2.68099999427795,
+                "impacts": 9,
+                "marks": 9,
+                "physics_ms": 4.886,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 6.667,
+                "shots": 9,
+                "static_bytes": 222544786.0,
+                "wall_ms": 11.291
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1169.116,
+                "frame_index": 242,
+                "gpu_ms": 2.92899990081787,
+                "impacts": 3,
+                "marks": 3,
+                "physics_ms": 5.296,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 9.389,
+                "shots": 3,
+                "static_bytes": 221813102.0,
+                "wall_ms": 11.254
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 871,
+                  "render_frame": 4753,
+                  "shot_count": 4,
+                  "usec": 19365299
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 252,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 19380449,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 4,
+                    "total_impacts": 4,
+                    "total_marks": 4
+                  },
+                  "variant_index": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "warm_next10_ak",
+          "wall": {
+            "max": 16.025,
+            "n": 525,
+            "p50": 7.054,
+            "p95": 12.031
+          },
+          "gpu": {
+            "max": 3.52800011634827,
+            "n": 525,
+            "p50": 2.75600004196167,
+            "p95": 2.98200011253357
+          },
+          "shots": 10,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 1308.114,
+                "frame_index": 177,
+                "gpu_ms": 2.75799989700317,
+                "impacts": 14,
+                "marks": 14,
+                "physics_ms": 5.134,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 17.155,
+                "shots": 14,
+                "static_bytes": 223027202.0,
+                "wall_ms": 16.025
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1175,
+                  "render_frame": 5492,
+                  "shot_count": 14,
+                  "usec": 24423774
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 171,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 24449234,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 14,
+                    "total_marks": 14
+                  },
+                  "variant_index": 1
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3685.975,
+                "frame_index": 490,
+                "gpu_ms": 2.75200009346008,
+                "impacts": 20,
+                "marks": 20,
+                "physics_ms": 5.204,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 6.937,
+                "shots": 20,
+                "static_bytes": 223668570.0,
+                "wall_ms": 14.881
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1320,
+                  "render_frame": 5812,
+                  "shot_count": 20,
+                  "usec": 26856534
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 490,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 26878990,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 20,
+                    "total_marks": 20
+                  },
+                  "variant_index": 3
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3650.604,
+                "frame_index": 487,
+                "gpu_ms": 2.79900002479553,
+                "impacts": 19,
+                "marks": 19,
+                "physics_ms": 5.204,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 6.937,
+                "shots": 19,
+                "static_bytes": 223657654.0,
+                "wall_ms": 14.528
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1320,
+                  "render_frame": 5812,
+                  "shot_count": 20,
+                  "usec": 26856534
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 490,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 26878990,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 20,
+                    "total_marks": 20
+                  },
+                  "variant_index": 3
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 1573.365,
+                "frame_index": 209,
+                "gpu_ms": 2.76300001144409,
+                "impacts": 14,
+                "marks": 14,
+                "physics_ms": 5.134,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 17.155,
+                "shots": 14,
+                "static_bytes": 223085826.0,
+                "wall_ms": 14.387
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1199,
+                  "render_frame": 5539,
+                  "shot_count": 15,
+                  "usec": 24825730
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 218,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 24845760,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 15,
+                    "total_marks": 15
+                  },
+                  "variant_index": 2
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3085.56,
+                "frame_index": 420,
+                "gpu_ms": 2.72699999809265,
+                "impacts": 18,
+                "marks": 18,
+                "physics_ms": 5.204,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 38.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 6.937,
+                "shots": 18,
+                "static_bytes": 223513034.0,
+                "wall_ms": 13.878
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            }
+          ]
+        }
+      ]
+    },
+    "current": {
+      "valid": true,
+      "errors": [],
+      "phases": [
+        {
+          "name": "idle_loaded",
+          "wall": {
+            "max": 7.558,
+            "n": 1447,
+            "p50": 2.509,
+            "p95": 4.16
+          },
+          "gpu": {
+            "max": 3.35999989509583,
+            "n": 1447,
+            "p50": 2.19099998474121,
+            "p95": 2.36100006103516
+          },
+          "shots": 0,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 1892.332,
+                "frame_index": 674,
+                "gpu_ms": 2.31200003623962,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.662,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 8.542,
+                "shots": 0,
+                "static_bytes": 173963459.0,
+                "wall_ms": 7.558
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1842.28,
+                "frame_index": 659,
+                "gpu_ms": 2.36700010299683,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.662,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 8.542,
+                "shots": 0,
+                "static_bytes": 173935979.0,
+                "wall_ms": 6.987
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1672.945,
+                "frame_index": 606,
+                "gpu_ms": 2.20900011062622,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.662,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 8.542,
+                "shots": 0,
+                "static_bytes": 173838883.0,
+                "wall_ms": 6.86
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 2007.282,
+                "frame_index": 710,
+                "gpu_ms": 2.35199999809265,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 4.448,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 3.375,
+                "shots": 0,
+                "static_bytes": 174048159.0,
+                "wall_ms": 6.783
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1924.461,
+                "frame_index": 684,
+                "gpu_ms": 2.17899990081787,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 4.448,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 3.375,
+                "shots": 0,
+                "static_bytes": 173981779.0,
+                "wall_ms": 6.756
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            }
+          ]
+        },
+        {
+          "name": "cold_first10_ak",
+          "wall": {
+            "max": 42.095,
+            "n": 1151,
+            "p50": 3.055,
+            "p95": 5.408
+          },
+          "gpu": {
+            "max": 3.09400010108948,
+            "n": 1151,
+            "p50": 2.7260000705719,
+            "p95": 2.85500001907349
+          },
+          "shots": 10,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 33.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 50.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 54.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 64.722,
+                "frame_index": 6,
+                "gpu_ms": 2.6949999332428,
+                "impacts": 1,
+                "marks": 1,
+                "physics_ms": 5.497,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 3.463,
+                "shots": 1,
+                "static_bytes": 177922184.0,
+                "wall_ms": 42.095
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 800,
+                  "render_frame": 4596,
+                  "shot_count": 1,
+                  "usec": 20118342
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 6,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 20176893,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 1,
+                    "mark_capacity": 72,
+                    "marks": 1,
+                    "total_impacts": 1,
+                    "total_marks": 1
+                  },
+                  "variant_index": 0
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 72.661,
+                "frame_index": 7,
+                "gpu_ms": 2.7590000629425,
+                "impacts": 1,
+                "marks": 1,
+                "physics_ms": 5.497,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 3.463,
+                "shots": 1,
+                "static_bytes": 177935168.0,
+                "wall_ms": 7.939
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 800,
+                  "render_frame": 4596,
+                  "shot_count": 1,
+                  "usec": 20118342
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 6,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 20176893,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 1,
+                    "mark_capacity": 72,
+                    "marks": 1,
+                    "total_impacts": 1,
+                    "total_marks": 1
+                  },
+                  "variant_index": 0
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 10.175,
+                "frame_index": 1,
+                "gpu_ms": 2.7039999961853,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 5.497,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 36.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 50.0
+                },
+                "process_ms": 3.463,
+                "shots": 1,
+                "static_bytes": 177474870.0,
+                "wall_ms": 7.314
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 800,
+                  "render_frame": 4596,
+                  "shot_count": 1,
+                  "usec": 20118342
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 6,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 20176893,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 1,
+                    "mark_capacity": 72,
+                    "marks": 1,
+                    "total_impacts": 1,
+                    "total_marks": 1
+                  },
+                  "variant_index": 0
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 1207.535,
+                "frame_index": 330,
+                "gpu_ms": 2.74499988555908,
+                "impacts": 3,
+                "marks": 3,
+                "physics_ms": 39.15,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 8.954,
+                "shots": 3,
+                "static_bytes": 178602632.0,
+                "wall_ms": 6.945
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 873,
+                  "render_frame": 4930,
+                  "shot_count": 4,
+                  "usec": 21334595
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 339,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 21353147,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 4,
+                    "total_impacts": 4,
+                    "total_marks": 4
+                  },
+                  "variant_index": 3
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 741.33,
+                "frame_index": 197,
+                "gpu_ms": 2.72699999809265,
+                "impacts": 2,
+                "marks": 2,
+                "physics_ms": 5.497,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 3.463,
+                "shots": 2,
+                "static_bytes": 178325832.0,
+                "wall_ms": 6.89
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 849,
+                  "render_frame": 4815,
+                  "shot_count": 3,
+                  "usec": 20931211
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 225,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 20952044,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 3,
+                    "total_impacts": 3,
+                    "total_marks": 3
+                  },
+                  "variant_index": 2
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "warm_next10_ak",
+          "wall": {
+            "max": 9.102,
+            "n": 1083,
+            "p50": 3.129,
+            "p95": 6.059
+          },
+          "gpu": {
+            "max": 4.19299983978271,
+            "n": 1083,
+            "p50": 2.7739999294281,
+            "p95": 3.03099989891052
+          },
+          "shots": 10,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 54.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 54.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 1079.314,
+                "frame_index": 288,
+                "gpu_ms": 2.74900007247925,
+                "impacts": 13,
+                "marks": 13,
+                "physics_ms": 4.231,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 8.693,
+                "shots": 13,
+                "static_bytes": 180742608.0,
+                "wall_ms": 9.102
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 130.286,
+                "frame_index": 30,
+                "gpu_ms": 2.87700009346008,
+                "impacts": 11,
+                "marks": 11,
+                "physics_ms": 4.053,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 9.949,
+                "shots": 11,
+                "static_bytes": 180238008.0,
+                "wall_ms": 8.651
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 9,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 25174289,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 1,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 11,
+                    "total_marks": 11
+                  },
+                  "variant_index": 2
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 1040.842,
+                "frame_index": 279,
+                "gpu_ms": 2.7590000629425,
+                "impacts": 13,
+                "marks": 13,
+                "physics_ms": 4.231,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 8.693,
+                "shots": 13,
+                "static_bytes": 180725376.0,
+                "wall_ms": 8.526
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 2616.586,
+                "frame_index": 708,
+                "gpu_ms": 2.78200006484985,
+                "impacts": 17,
+                "marks": 17,
+                "physics_ms": 4.52,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 5.381,
+                "shots": 17,
+                "static_bytes": 181560436.0,
+                "wall_ms": 8.368
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 148.281,
+                "frame_index": 34,
+                "gpu_ms": 2.73000001907349,
+                "impacts": 11,
+                "marks": 11,
+                "physics_ms": 4.053,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 54.0
+                },
+                "process_ms": 9.949,
+                "shots": 11,
+                "static_bytes": 180245336.0,
+                "wall_ms": 7.965
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            }
+          ]
+        }
+      ]
+    },
+    "candidate": {
+      "valid": true,
+      "errors": [],
+      "phases": [
+        {
+          "name": "idle_loaded",
+          "wall": {
+            "max": 6.611,
+            "n": 1485,
+            "p50": 2.511,
+            "p95": 3.758
+          },
+          "gpu": {
+            "max": 3.40199995040894,
+            "n": 1485,
+            "p50": 2.19099998474121,
+            "p95": 2.32599997520447
+          },
+          "shots": 0,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 52.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 52.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 2295.387,
+                "frame_index": 852,
+                "gpu_ms": 2.20600008964539,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.734,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 2.806,
+                "shots": 0,
+                "static_bytes": 174377063.0,
+                "wall_ms": 6.611
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 370.676,
+                "frame_index": 137,
+                "gpu_ms": 2.30200004577637,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 2.78,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 9.259,
+                "shots": 0,
+                "static_bytes": 172993382.0,
+                "wall_ms": 5.248
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 1504.913,
+                "frame_index": 563,
+                "gpu_ms": 2.15700006484985,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.61,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 2.818,
+                "shots": 0,
+                "static_bytes": 173814926.0,
+                "wall_ms": 5.05
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 2738.099,
+                "frame_index": 1014,
+                "gpu_ms": 2.21900010108948,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 3.734,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 2.806,
+                "shots": 0,
+                "static_bytes": 174671563.0,
+                "wall_ms": 4.929
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 221.629,
+                "frame_index": 82,
+                "gpu_ms": 2.16899991035461,
+                "impacts": 0,
+                "marks": 0,
+                "physics_ms": 2.78,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 25.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 9.259,
+                "shots": 0,
+                "static_bytes": 172890002.0,
+                "wall_ms": 4.606
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            }
+          ]
+        },
+        {
+          "name": "cold_first10_ak",
+          "wall": {
+            "max": 6.798,
+            "n": 1173,
+            "p50": 3.046,
+            "p95": 5.059
+          },
+          "gpu": {
+            "max": 3.00600004196167,
+            "n": 1173,
+            "p50": 2.72900009155273,
+            "p95": 2.85199999809265
+          },
+          "shots": 10,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 33.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 52.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 52.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 1615.691,
+                "frame_index": 472,
+                "gpu_ms": 2.72000002861023,
+                "impacts": 4,
+                "marks": 4,
+                "physics_ms": 3.74,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 8.965,
+                "shots": 5,
+                "static_bytes": 178574225.0,
+                "wall_ms": 6.798
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 896,
+                  "render_frame": 5108,
+                  "shot_count": 5,
+                  "usec": 19642687
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 476,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 19660457,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 5,
+                    "total_impacts": 5,
+                    "total_marks": 5
+                  },
+                  "variant_index": 0
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 2832.388,
+                "frame_index": 834,
+                "gpu_ms": 2.69300007820129,
+                "impacts": 7,
+                "marks": 7,
+                "physics_ms": 3.9,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 3.344,
+                "shots": 8,
+                "static_bytes": 179295445.0,
+                "wall_ms": 6.762
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 969,
+                  "render_frame": 5470,
+                  "shot_count": 8,
+                  "usec": 20859240
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 838,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 20878201,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 8,
+                    "total_impacts": 8,
+                    "total_marks": 8
+                  },
+                  "variant_index": 3
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3083.827,
+                "frame_index": 907,
+                "gpu_ms": 2.84400010108948,
+                "impacts": 8,
+                "marks": 8,
+                "physics_ms": 3.865,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 3.557,
+                "shots": 8,
+                "static_bytes": 179427909.0,
+                "wall_ms": 6.538
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            },
+            {
+              "frame": {
+                "end_ms": 416.942,
+                "frame_index": 121,
+                "gpu_ms": 2.79399991035461,
+                "impacts": 1,
+                "marks": 1,
+                "physics_ms": 5.308,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 4.596,
+                "shots": 2,
+                "static_bytes": 177874269.0,
+                "wall_ms": 6.486
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 824,
+                  "render_frame": 4757,
+                  "shot_count": 2,
+                  "usec": 18443778
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 125,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 18461797,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 2,
+                    "total_impacts": 2,
+                    "total_marks": 2
+                  },
+                  "variant_index": 1
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3981.872,
+                "frame_index": 1166,
+                "gpu_ms": 2.74000000953674,
+                "impacts": 10,
+                "marks": 10,
+                "physics_ms": 3.893,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 3.955,
+                "shots": 10,
+                "static_bytes": 179953477.0,
+                "wall_ms": 6.438
+              },
+              "shots_within_100ms": [],
+              "mark_observations_within_100ms": []
+            }
+          ]
+        },
+        {
+          "name": "warm_next10_ak",
+          "wall": {
+            "max": 8.305,
+            "n": 1110,
+            "p50": 3.112,
+            "p95": 5.801
+          },
+          "gpu": {
+            "max": 3.18600010871887,
+            "n": 1110,
+            "p50": 2.7739999294281,
+            "p95": 2.99499988555908
+          },
+          "shots": 10,
+          "pipeline_before": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 52.0
+          },
+          "pipeline_after": {
+            "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+            "PIPELINE_COMPILATIONS_DRAW": 0.0,
+            "PIPELINE_COMPILATIONS_MESH": 31.0,
+            "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+            "PIPELINE_COMPILATIONS_SURFACE": 52.0
+          },
+          "top5": [
+            {
+              "frame": {
+                "end_ms": 1612.685,
+                "frame_index": 450,
+                "gpu_ms": 2.8199999332428,
+                "impacts": 14,
+                "marks": 14,
+                "physics_ms": 3.395,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 9.307,
+                "shots": 14,
+                "static_bytes": 180786717.0,
+                "wall_ms": 8.305
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1198,
+                  "render_frame": 6551,
+                  "shot_count": 15,
+                  "usec": 24681335
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 459,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 24701874,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 15,
+                    "total_marks": 15
+                  },
+                  "variant_index": 2
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3613.913,
+                "frame_index": 1002,
+                "gpu_ms": 2.76300001144409,
+                "impacts": 19,
+                "marks": 19,
+                "physics_ms": 3.15,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 4.199,
+                "shots": 19,
+                "static_bytes": 181867841.0,
+                "wall_ms": 8.02
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1318,
+                  "render_frame": 7102,
+                  "shot_count": 20,
+                  "usec": 26679496
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 1010,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 26699689,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 20,
+                    "total_marks": 20
+                  },
+                  "variant_index": 3
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3300.719,
+                "frame_index": 921,
+                "gpu_ms": 3.0,
+                "impacts": 19,
+                "marks": 19,
+                "physics_ms": 3.15,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 4.199,
+                "shots": 19,
+                "static_bytes": 181719449.0,
+                "wall_ms": 7.79
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1294,
+                  "render_frame": 6999,
+                  "shot_count": 19,
+                  "usec": 26278412
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 907,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 26297166,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 19,
+                    "total_marks": 19
+                  },
+                  "variant_index": 2
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 3279.093,
+                "frame_index": 916,
+                "gpu_ms": 2.82800006866455,
+                "impacts": 19,
+                "marks": 19,
+                "physics_ms": 3.15,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 4.199,
+                "shots": 19,
+                "static_bytes": 181711033.0,
+                "wall_ms": 7.78
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1294,
+                  "render_frame": 6999,
+                  "shot_count": 19,
+                  "usec": 26278412
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 907,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 26297166,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 19,
+                    "total_marks": 19
+                  },
+                  "variant_index": 2
+                }
+              ]
+            },
+            {
+              "frame": {
+                "end_ms": 1944.594,
+                "frame_index": 542,
+                "gpu_ms": 2.78099989891052,
+                "impacts": 15,
+                "marks": 15,
+                "physics_ms": 3.395,
+                "pipeline_counts": {
+                  "PIPELINE_COMPILATIONS_CANVAS": 2.0,
+                  "PIPELINE_COMPILATIONS_DRAW": 0.0,
+                  "PIPELINE_COMPILATIONS_MESH": 31.0,
+                  "PIPELINE_COMPILATIONS_SPECIALIZATION": 39.0,
+                  "PIPELINE_COMPILATIONS_SURFACE": 52.0
+                },
+                "process_ms": 9.307,
+                "shots": 15,
+                "static_bytes": 180977625.0,
+                "wall_ms": 7.765
+              },
+              "shots_within_100ms": [
+                {
+                  "physics_frame": 1222,
+                  "render_frame": 6661,
+                  "shot_count": 16,
+                  "usec": 25074325
+                }
+              ],
+              "mark_observations_within_100ms": [
+                {
+                  "frame_index": 569,
+                  "note": "Observed after draw; not exact physics impact time",
+                  "observed_usec": 25095359,
+                  "surface": {
+                    "impact_capacity": 48,
+                    "impacts": 2,
+                    "mark_capacity": 72,
+                    "marks": 10,
+                    "total_impacts": 16,
+                    "total_marks": 16
+                  },
+                  "variant_index": 3
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

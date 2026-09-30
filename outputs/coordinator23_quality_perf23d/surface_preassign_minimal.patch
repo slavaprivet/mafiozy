@@ -1,0 +1,14 @@
+--- a/godot/mafiozi_walk/scripts/weapons/weapon_surface_impacts.gd
++++ b/godot/mafiozi_walk/scripts/weapons/weapon_surface_impacts.gd
+@@ -34,6 +34,11 @@
+ 		var mark: MeshInstance3D=builder._node(data.mark,meshes); _root.add_child(mark)
+ 		_marks.append({"node":mark,"edge":mark.get_child(0),"center":mark.get_child(1),"cracks":mark.get_child(2),"active":false,"life":0.0,"parent":null,"local":Transform3D.IDENTITY,"last_parent":Transform3D.IDENTITY,"glass":false})
+ 		_marks[-1].source_meshes=[mark.mesh,mark.get_child(0).mesh,mark.get_child(1).mesh]
++		# Prepare the normal pooled art/material features once. Keep the original
++		# meshes above for glass/explosive restores. No fake hit or hidden draw.
++		var normal_art:Dictionary=_art_meshes[i%_art_meshes.size()]
++		mark.mesh=normal_art.back; _marks[-1].edge.mesh=normal_art.rim; _marks[-1].center.mesh=normal_art.core
++		_marks[-1].edge.material_override.vertex_color_use_as_albedo=true
+ 	for i: int in IMPACT_CAP:
+ 		var impact: MeshInstance3D=builder._node(data.impact,meshes); _root.add_child(impact)
+ 		# The original hides only the parent's material, leaving its chips/dust.

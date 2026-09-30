@@ -1,0 +1,68 @@
+{
+  "synthetic_only": true,
+  "gpu_launched": false,
+  "passed": true,
+  "checks": [
+    {
+      "case": "equal",
+      "passed": true,
+      "issues": []
+    },
+    {
+      "case": "wrong_baseline",
+      "passed": true,
+      "issues": [
+        "Manifest does not pin accepted quality23c-play baseline"
+      ]
+    },
+    {
+      "case": "missing_collision",
+      "passed": true,
+      "issues": [
+        "idle_loaded: candidate expected3NPC8buildings377bodies377shapes after",
+        "idle_loaded: fixture collision_shape_count differs after"
+      ]
+    },
+    {
+      "case": "cargo_short",
+      "passed": true,
+      "issues": [
+        "candidate: expected real 14 cargo/100 units"
+      ]
+    },
+    {
+      "case": "unknown_npc_hash",
+      "passed": true,
+      "issues": [
+        "NPC/navigation/source geometry dependencies differ: ['res://scripts/npc_visual/preview_resident_host.gd']"
+      ]
+    },
+    {
+      "case": "raw_form",
+      "passed": true,
+      "issues": [
+        "Build-form mismatch: baseline compiled PCK vs candidate raw project; memory/performance attribution not strictly comparable",
+        "fixture input differs or missing: res://scripts/preview_population.gd"
+      ]
+    },
+    {
+      "case": "camera_mismatch",
+      "passed": true,
+      "issues": [
+        "idle_loaded: camera_fov differs before"
+      ]
+    },
+    {
+      "case": "approved_npc_merge",
+      "passed": true,
+      "issues": []
+    },
+    {
+      "case": "altered_new_npc_asset",
+      "passed": true,
+      "issues": [
+        "NPC/navigation/source geometry dependencies differ: ['res://assets/npc_visual/death_eyes/npc_resident_72_skin_closed.res']"
+      ]
+    }
+  ]
+}

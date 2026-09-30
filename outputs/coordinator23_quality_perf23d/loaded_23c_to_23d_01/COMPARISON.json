@@ -1,0 +1,317 @@
+{
+  "comparable": true,
+  "comparison_standard": "Matching workload AND export form required; a raw-project/PCK exploratory pair is not strict regression evidence",
+  "issues": [],
+  "notes": [
+    "Baseline source hashes resolved from exact PCK-bound build_receipt185 for quality23c-play; raw runtime export hashes retained in baseline.json. Provenance in MANIFEST.json.",
+    "Protected NPC/navigation/source geometry canonical dependencies checked: 32",
+    "Player implementation changed; camera/body geometry invariants are checked at runtime; costs include player changes."
+  ],
+  "accepted_source_changes": [],
+  "comparisons": [
+    {
+      "phase": "active_ak_ground_shots",
+      "static_memory_edges": {
+        "baseline_before": 218514556.0,
+        "baseline_after": 218666340.0,
+        "candidate_before": 174281010.0,
+        "candidate_after": 174886336.0
+      },
+      "static_p50_delta_bytes": -43774604.0,
+      "gpu_p50_delta_ms": -0.01999998092651012,
+      "gpu_p95_delta_ms": 0.16100001335143999,
+      "wall_p50_delta_ms": 0.04800000000000004,
+      "baseline_ms": {
+        "max": 7.675,
+        "n": 1145,
+        "p50": 3.042,
+        "p95": 5.56
+      },
+      "candidate_ms": {
+        "max": 42.721,
+        "n": 1105,
+        "p50": 3.09,
+        "p95": 5.818
+      },
+      "p95_delta_ms": 0.258,
+      "p95_ratio": 1.0464028776978418,
+      "drawcalls": {
+        "baseline": {
+          "max": 2311.0,
+          "n": 95,
+          "p50": 2194.0,
+          "p95": 2306.0
+        },
+        "candidate": {
+          "max": 2288.0,
+          "n": 92,
+          "p50": 2166.0,
+          "p95": 2277.0
+        }
+      },
+      "primitives": {
+        "baseline": {
+          "max": 899068.0,
+          "n": 95,
+          "p50": 894596.0,
+          "p95": 899012.0
+        },
+        "candidate": {
+          "max": 898478.0,
+          "n": 92,
+          "p50": 894414.0,
+          "p95": 898322.0
+        }
+      },
+      "static_memory_bytes": {
+        "baseline": {
+          "max": 218666340.0,
+          "n": 95,
+          "p50": 218626420.0,
+          "p95": 218659972.0
+        },
+        "candidate": {
+          "max": 174886336.0,
+          "n": 92,
+          "p50": 174851816.0,
+          "p95": 174872816.0
+        }
+      },
+      "vram_bytes": {
+        "baseline": {
+          "max": 286952176.0,
+          "n": 95,
+          "p50": 286952176.0,
+          "p95": 286952176.0
+        },
+        "candidate": {
+          "max": 287039888.0,
+          "n": 92,
+          "p50": 287000192.0,
+          "p95": 287000192.0
+        }
+      },
+      "gpu_ms": {
+        "baseline": {
+          "max": 2.9760000705719,
+          "n": 95,
+          "p50": 2.72699999809265,
+          "p95": 2.83800005912781
+        },
+        "candidate": {
+          "max": 3.03399991989136,
+          "n": 92,
+          "p50": 2.70700001716614,
+          "p95": 2.99900007247925
+        }
+      },
+      "shots": {
+        "baseline": 10,
+        "candidate": 9
+      }
+    },
+    {
+      "phase": "idle_loaded",
+      "static_memory_edges": {
+        "baseline_before": 216392625.0,
+        "baseline_after": 216460562.0,
+        "candidate_before": 172177479.0,
+        "candidate_after": 172245416.0
+      },
+      "static_p50_delta_bytes": -44215218.0,
+      "gpu_p50_delta_ms": 0.017999887466429776,
+      "gpu_p95_delta_ms": -0.03299999237060991,
+      "wall_p50_delta_ms": 0.01100000000000012,
+      "baseline_ms": {
+        "max": 5.786,
+        "n": 1461,
+        "p50": 2.501,
+        "p95": 4.038
+      },
+      "candidate_ms": {
+        "max": 5.775,
+        "n": 1475,
+        "p50": 2.512,
+        "p95": 3.942
+      },
+      "p95_delta_ms": -0.09600000000000009,
+      "p95_ratio": 0.9762258543833581,
+      "drawcalls": {
+        "baseline": {
+          "max": 867.0,
+          "n": 121,
+          "p50": 865.0,
+          "p95": 867.0
+        },
+        "candidate": {
+          "max": 867.0,
+          "n": 122,
+          "p50": 865.0,
+          "p95": 867.0
+        }
+      },
+      "primitives": {
+        "baseline": {
+          "max": 521948.0,
+          "n": 121,
+          "p50": 513680.0,
+          "p95": 521948.0
+        },
+        "candidate": {
+          "max": 522078.0,
+          "n": 122,
+          "p50": 513810.0,
+          "p95": 522078.0
+        }
+      },
+      "static_memory_bytes": {
+        "baseline": {
+          "max": 216460654.0,
+          "n": 121,
+          "p50": 216435333.0,
+          "p95": 216460562.0
+        },
+        "candidate": {
+          "max": 172245416.0,
+          "n": 122,
+          "p50": 172220115.0,
+          "p95": 172245416.0
+        }
+      },
+      "vram_bytes": {
+        "baseline": {
+          "max": 286177840.0,
+          "n": 121,
+          "p50": 286177840.0,
+          "p95": 286177840.0
+        },
+        "candidate": {
+          "max": 286710960.0,
+          "n": 122,
+          "p50": 286710960.0,
+          "p95": 286710960.0
+        }
+      },
+      "gpu_ms": {
+        "baseline": {
+          "max": 3.31699991226196,
+          "n": 121,
+          "p50": 2.18099999427795,
+          "p95": 2.36800003051758
+        },
+        "candidate": {
+          "max": 2.84100008010864,
+          "n": 122,
+          "p50": 2.19899988174438,
+          "p95": 2.33500003814697
+        }
+      },
+      "shots": {
+        "baseline": 0,
+        "candidate": 0
+      }
+    },
+    {
+      "phase": "open_trunk_full14",
+      "static_memory_edges": {
+        "baseline_before": 233524186.0,
+        "baseline_after": 233581494.0,
+        "candidate_before": 190301326.0,
+        "candidate_after": 190345842.0
+      },
+      "static_p50_delta_bytes": -43223156.0,
+      "gpu_p50_delta_ms": -0.0010001659393297224,
+      "gpu_p95_delta_ms": 0.023999929428099698,
+      "wall_p50_delta_ms": 0.010000000000000231,
+      "baseline_ms": {
+        "max": 8.904,
+        "n": 1080,
+        "p50": 3.239,
+        "p95": 5.68
+      },
+      "candidate_ms": {
+        "max": 8.597,
+        "n": 1052,
+        "p50": 3.249,
+        "p95": 5.89
+      },
+      "p95_delta_ms": 0.20999999999999996,
+      "p95_ratio": 1.0369718309859155,
+      "drawcalls": {
+        "baseline": {
+          "max": 2875.0,
+          "n": 90,
+          "p50": 2812.0,
+          "p95": 2875.0
+        },
+        "candidate": {
+          "max": 2875.0,
+          "n": 87,
+          "p50": 2812.0,
+          "p95": 2875.0
+        }
+      },
+      "primitives": {
+        "baseline": {
+          "max": 1047993.0,
+          "n": 90,
+          "p50": 1047959.0,
+          "p95": 1047959.0
+        },
+        "candidate": {
+          "max": 1048181.0,
+          "n": 87,
+          "p50": 1048053.0,
+          "p95": 1048115.0
+        }
+      },
+      "static_memory_bytes": {
+        "baseline": {
+          "max": 233581494.0,
+          "n": 90,
+          "p50": 233560678.0,
+          "p95": 233572658.0
+        },
+        "candidate": {
+          "max": 190349762.0,
+          "n": 87,
+          "p50": 190337522.0,
+          "p95": 190349762.0
+        }
+      },
+      "vram_bytes": {
+        "baseline": {
+          "max": 288388944.0,
+          "n": 90,
+          "p50": 288369984.0,
+          "p95": 288369984.0
+        },
+        "candidate": {
+          "max": 288380176.0,
+          "n": 87,
+          "p50": 288380176.0,
+          "p95": 288380176.0
+        }
+      },
+      "gpu_ms": {
+        "baseline": {
+          "max": 3.14199995994568,
+          "n": 90,
+          "p50": 2.90000009536743,
+          "p95": 3.05100011825562
+        },
+        "candidate": {
+          "max": 3.29200005531311,
+          "n": 87,
+          "p50": 2.8989999294281,
+          "p95": 3.07500004768372
+        }
+      },
+      "shots": {
+        "baseline": 0,
+        "candidate": 0
+      }
+    }
+  ],
+  "note": "Short loaded rendering benchmark; no visual acceptance and no automatic regression approval."
+}

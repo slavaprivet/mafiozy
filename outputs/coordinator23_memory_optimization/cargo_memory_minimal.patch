@@ -1,0 +1,33 @@
+--- a/godot/mafiozi_walk/scripts/weapons/cargo_aim_picker.gd
++++ b/godot/mafiozi_walk/scripts/weapons/cargo_aim_picker.gd
+@@ -12,19 +12,26 @@
+ 	# Per-vehicle cache, built once. Dynamic lid transforms read on each query.
+ 	for node:Node in vehicle_visual.find_children("*","MeshInstance3D",true,false):
+ 		if node.mesh==null or node.get_meta("source_name","").is_empty():continue
+-		var mesh:=TriangleMesh.new()
+-		if mesh.create_from_faces(node.mesh.get_faces()):_parts.append({"node":weakref(node),"mesh":mesh,"bounds":node.mesh.get_aabb()})
++		_parts.append({"node":weakref(node),"mesh":null,"bounds":node.mesh.get_aabb()})
+ func car_clear(origin:Vector3,point:Vector3)->bool:
+ 	var end:=point+(origin-point).normalized()*.004
+ 	for part:Dictionary in _parts:
+ 		var node:MeshInstance3D=part.node.get_ref()
+-		if not is_instance_valid(node) or not node.is_visible_in_tree():continue
++		if not is_instance_valid(node) or not node.is_visible_in_tree() or node.mesh==null:continue
++		if not node.global_transform.is_finite() or absf(node.global_basis.determinant())<1.0e-10:return false
+ 		var inverse:=node.global_transform.affine_inverse()
+ 		var a:=inverse*origin;var b:=inverse*end
+ 		last_stats.car_aabb_tests+=1
++		# get_aabb is allocation-free metadata; observes mesh replacement/shape edits.
++		part.bounds=node.mesh.get_aabb()
+ 		if not part.bounds.intersects_segment(a,b):continue
++		# Mesh owns its lazily generated acceleration data and invalidates it on
++		# geometry changes. Never clone get_faces into a second full BVH.
++		var triangle:TriangleMesh=node.mesh.generate_triangle_mesh()
++		if triangle==null:continue
++		part.mesh=triangle
+ 		last_stats.car_triangle_tests+=1
+-		if not part.mesh.intersect_segment(a,b).is_empty():return false
++		if not triangle.intersect_segment(a,b).is_empty():return false
+ 	return true
+ func pick(camera:Camera3D)->Dictionary:
+ 	if not _renderer._start(true):return {"ok":false,"reason":"state"}

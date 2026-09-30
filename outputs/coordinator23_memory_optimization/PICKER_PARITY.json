@@ -1,0 +1,52 @@
+{
+	"capacities": {
+		"projectiles": {
+			"active": 0,
+			"activeCasings": 0,
+			"activeFlashes": 0,
+			"activeProjectiles": 0,
+			"configured": true,
+			"pendingCasings": 0,
+			"rayQueries": 0,
+			"totalCases": 0,
+			"totalProjectiles": 0,
+			"totalShots": 0
+		},
+		"rpg": {
+			"active_explosions": 0,
+			"active_rockets": 0,
+			"explosion_capacity": 6,
+			"rocket_capacity": 112,
+			"total_explosions": 0,
+			"total_impacts": 0
+		},
+		"surface": {
+			"impact_capacity": 48,
+			"impacts": 0,
+			"mark_capacity": 72,
+			"marks": 0,
+			"total_impacts": 0,
+			"total_marks": 0
+		}
+	},
+	"checks": 1770,
+	"errors": [],
+	"full_cargo": {
+		"capacity_units": 100,
+		"count": 14,
+		"destroyed": false,
+		"ok": true,
+		"pending": false,
+		"revision": 15,
+		"used_units": 100
+	},
+	"normal_camera": {
+		"built_parts": 1,
+		"max_us": 2266,
+		"p95_us": 934.0,
+		"queries": 102,
+		"retained_parts": 268,
+		"static_growth_bytes": 701396.0,
+		"unique_mesh_resources": 268
+	}
+}

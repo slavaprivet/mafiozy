@@ -116,20 +116,27 @@ func run():
 	check(weapons.equip("nagan").ok,"first ground weapon equip")
 	var first:Dictionary=cargo.drop_held();check(first.get("ok",false),"first actual ground drop")
 	check(weapons.equip("tt_pistol").ok,"second ground weapon equip")
-	# Source offers only .8/.55/.3/0m forward. Nagan and TT overlap at the
-	# first two candidates; the last two intersect the real player capsule.
-	# A rejected drop must preserve ownership instead of widening placement.
-	var before_blocked_drop:Dictionary=weapons.inventory.snapshot()
-	var before_blocked_identity:Dictionary=weapons.inventory.item_identity_snapshot()
-	var before_blocked_rest:Dictionary=cargo._ground_rest.duplicate(true)
-	var blocked_drop:Dictionary=cargo.drop_held()
-	check(not blocked_drop.get("ok",false) and blocked_drop.get("reason")=="ground_space","occupied source drop candidates reject without fallback through player")
-	check(weapons.inventory.snapshot()==before_blocked_drop and weapons.inventory.item_identity_snapshot()==before_blocked_identity and weapons.inventory.get_item_uid("tt_pistol")==inventory_uids.tt_pistol,"rejected ground drop preserves exact inventory UID and ammunition")
-	check(cargo._ground_rest==before_blocked_rest and cargo.renderer.debug_snapshot().falling_count==1,"rejected ground drop preserves first falling item's settled reservation")
-	# Only fixture facing changes: no physics await, collider removal, inventory
-	# write or placement override. Exercise the same real drop path sideways.
-	player.rotate_y(PI/2)
-	var second:Dictionary=cargo.drop_held();check(second.get("ok",false),"same-frame turned ground drop finds another source placement")
+	var second:Dictionary=cargo.drop_held();check(second.get("ok",false),"successive same-frame ground drop finds another free placement")
+	print("DROP_TRACE_FIRST ",first," SECOND ",second," player ",player.global_position," yaw ",player._visual.global_rotation.y)
+	print("DROP_TRACE_REST ",cargo._ground_rest)
+	if not second.get("ok",false):
+		var origin:Vector3=player.global_position
+		var yaw:float=player._visual.global_rotation.y
+		for proposed:Vector3 in cargo.GroundRules.drop_points(origin,yaw):
+			var floor:Dictionary=cargo._ground_floor(proposed)
+			if floor.is_empty():print("DROP_TRACE nofloor ",proposed);continue
+			var point:Vector3=floor.position
+			var clear:bool=cargo.GroundRules.path_clear(origin,point,func(sample:Vector3):return cargo._ground_reachable(sample,.45))
+			var item:Dictionary={"uid":weapons.inventory.get_item_uid("tt_pistol"),"weaponId":"tt_pistol","fireState":weapons.fire_state.duplicate(true)}
+			var placement:Dictionary={"position":{"x":point.x,"y":point.y,"z":point.z},"yaw":yaw}
+			var row:Dictionary=cargo.renderer._ground_row(item,placement)
+			var overlap:bool=false
+			for old:Dictionary in cargo._ground_rest.values():
+				if row.world_box.grow(.005).intersects(old.world_aabb):overlap=true
+			cargo._shape.size=row.world_box.size;cargo._shape_query.transform=Transform3D(Basis.IDENTITY,row.world_box.get_center());cargo._shape_query.exclude=[]
+			var collisions:Array=scene.get_world_3d().direct_space_state.intersect_shape(cargo._shape_query,8)
+			print("DROP_TRACE candidate ",proposed," floor ",point," water ",cargo._ground_has_water(point)," path ",clear," box ",row.world_box," overlaps ",overlap," collisions ",collisions)
+			cargo.renderer._free_rows([row])
 	if first.get("ok",false) and second.get("ok",false):
 		var uid1:String=weapons.inventory.get_drop_item(first.drop.uid).uid;var uid2:String=weapons.inventory.get_drop_item(second.drop.uid).uid
 		var row1:Dictionary=cargo.renderer.get("_ground")[first.drop.uid];var row2:Dictionary=cargo.renderer.get("_ground")[second.drop.uid]

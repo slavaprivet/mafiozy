@@ -1,0 +1,7 @@
+{
+	"checks": 303,
+	"errors": [],
+	"headless_only": true,
+	"scope": "pool initialization/restoration contract; no actual physics collision or GPU claim",
+	"shader_compile_proven": false
+}

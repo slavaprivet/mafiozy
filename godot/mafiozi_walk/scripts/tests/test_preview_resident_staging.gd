@@ -8,6 +8,15 @@ const MANIFEST := "3c07e72938a0918fa32de33ca442bf07cb50f21f0916b8b091b552473bd9a
 const BLOCK := "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
 const DIR := "res://assets/npc_visual/session/"
 var errors: Array[String] = []
+var physical_reference := Vector3.ZERO
+
+## TEST_ONLY accepted final-death fixture. Production must obtain this event
+## from the source/HP authority, never from a renderer or the NPC host.
+func confirmed_physical(request: Dictionary) -> Dictionary:
+	return {"known":true,"completed":true,"accepted":true,"binding":request.binding.duplicate(),
+		"event":{"id":request.event_id,"confirmed":true,"kind":"final_death","death_key":"TEST_ONLY_final_epoch_1",
+			"already_solved_by_godot":false,"apply_again":true,"linear_velocity":Vector3.ZERO,
+			"angular_velocity":Vector3.ZERO,"reference_point":physical_reference,"impulse_ns":Vector3(45,0,0)}}
 
 func check(ok: bool, label: String) -> void:
 	if not ok: errors.append(label)
@@ -57,6 +66,36 @@ func run() -> void:
 				break
 		check(found, "source+physical staging " + row.source_id)
 	check(selected.size() == 3, "three physical source IDs")
+	var target_tokens := {}
+	for row: Dictionary in selected:
+		var body: CharacterBody3D = scene.get_node("npc_" + row.id)
+		var token: Dictionary = host.target_from_collider(body)
+		check(token.get("ok", false) and token.source_id == row.id and token.placement_mode == "PREVIEW_STAGE" and token.source_authority == false, "actual physics target identity " + row.id)
+		check(host.target_current(token), "current body/rig life " + row.id)
+		target_tokens[row.id] = token
+	var forged: CharacterBody3D = CharacterBody3D.new()
+	forged.set_meta("source_id", "resident_72")
+	check(not host.target_from_collider(forged).get("ok", false), "metadata cannot forge physical target")
+	forged.free()
+	var stale: Dictionary = target_tokens["resident_72"].duplicate()
+	stale.life_generation = 2
+	check(not host.target_current(stale), "different life cannot reuse target token")
+	check(host.physical_life_current(target_tokens["resident_72"]), "actual walking rig is current physical life")
+	check(not host.physical_life_current(stale), "physical rig rejects different generation")
+	var replaced_rig: Dictionary = target_tokens["resident_72"].duplicate()
+	replaced_rig.rig_epoch = -1
+	check(not host.physical_life_current(replaced_rig), "physical rig rejects stale epoch")
+	var detached_body: Dictionary = target_tokens["resident_72"].duplicate()
+	detached_body.body_rid = RID()
+	check(not host.physical_life_current(detached_body), "physical rig rejects stale collider RID")
+	var physics_body: CharacterBody3D = target_tokens["resident_72"].body
+	physics_body.collision_layer = 0; physics_body.collision_mask = 0
+	owners["resident_72"].dead = true
+	check(host.physical_life_current(target_tokens["resident_72"]), "confirmed dead physical rig retains same source life after capsule handoff")
+	check(not host.target_current(target_tokens["resident_72"]), "disabled dead walking capsule no longer targetable")
+	owners["resident_72"].dead = false
+	physics_body.collision_layer = 1; physics_body.collision_mask = 1
+	check(host.target_current(target_tokens["resident_72"]), "walking target restored after isolated handoff probe")
 	check(host.enable_walk_preview(), "walking preview enabled")
 	var started := Time.get_ticks_msec()
 	while nav.state() != "READY" and Time.get_ticks_msec() - started < 15000:
@@ -66,12 +105,16 @@ func run() -> void:
 	for record: Dictionary in host.snapshot().rows: origin[record.source_id] = record.position; displacement[record.source_id] = 0.0
 	var timings: Array[int] = []
 	var previous_body_yaw := {}; var previous_visual_yaw := {}
+	var idle_head_base := {}; var idle_head_angle := {}
 	var largest_body_turn := 0.0; var largest_visual_turn := 0.0; var sharp_body_turns := 0
 	for row: Dictionary in selected:
 		var body: CharacterBody3D = scene.get_node("npc_" + row.id)
 		var motion: Node3D = body.get_node("ResidentVisualMotion")
 		previous_body_yaw[row.id] = body.rotation.y
 		previous_visual_yaw[row.id] = body.rotation.y + motion.rotation.y
+		var rig: Skeleton3D = body.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+		idle_head_base[row.id] = rig.get_bone_pose_rotation(rig.find_bone("head"))
+		idle_head_angle[row.id] = 0.0
 	for frame in 600:
 		await physics_frame
 		nav.pump(Engine.get_physics_frames())
@@ -85,6 +128,8 @@ func run() -> void:
 		for row: Dictionary in selected:
 			var body: CharacterBody3D = scene.get_node("npc_" + row.id)
 			var motion: Node3D = body.get_node("ResidentVisualMotion")
+			var rig: Skeleton3D = body.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+			idle_head_angle[row.id] = maxf(float(idle_head_angle[row.id]), (idle_head_base[row.id] as Quaternion).angle_to(rig.get_bone_pose_rotation(rig.find_bone("head"))))
 			var visual_yaw: float = body.rotation.y + motion.rotation.y
 			var body_turn := absf(atan2(sin(body.rotation.y - previous_body_yaw[row.id]), cos(body.rotation.y - previous_body_yaw[row.id])))
 			var visual_turn := absf(atan2(sin(visual_yaw - previous_visual_yaw[row.id]), cos(visual_yaw - previous_visual_yaw[row.id])))
@@ -96,6 +141,7 @@ func run() -> void:
 			previous_body_yaw[row.id] = body.rotation.y
 			previous_visual_yaw[row.id] = visual_yaw
 	for id: String in displacement: check(displacement[id] > .5, "actual movement " + id)
+	for id: String in idle_head_angle: check(idle_head_angle[id] > .05, "preview look around on actual source rig " + id)
 	check(sharp_body_turns > 0 and largest_visual_turn < 1.0, "shortest visual yaw tween bounds abrupt turn")
 	# A denied current source role cannot be reopened by the autonomous QA
 	# exercise. Once restored, it must create a new current-version route.
@@ -116,15 +162,61 @@ func run() -> void:
 		host.step(1.0 / 60.0); host.preview_walk_step(1.0 / 60.0)
 		if host.snapshot().rows[1].position.distance_to(denied_position) > .20: resumed = true
 	check(resumed, "new guarded route resumes after permission restored")
+	var final_token: Dictionary = target_tokens["resident_72"]
+	physical_reference = final_token.body.global_position
+	var prepared: Dictionary = host.prepare_physical(final_token, Callable(self,"confirmed_physical"))
+	check(prepared.get("ok",false), "actual main resident prewarms articulated death body: " + str(prepared))
+	owners["resident_72"].dead = true
+	var physical_start: Dictionary = host.activate_physical(final_token, "fixture-final")
+	check(physical_start.get("ok",false) and physical_start.get("final_dead",false), "confirmed final death replaces capsule with physics: " + str(physical_start))
+	check(final_token.body.collision_layer == 0 and not host.target_current(final_token) and host.physical_life_current(final_token), "dead source body remains same physical rig without walking collider")
+	var corpse_start: Vector3 = physical_reference
+	var corpse_step_us: Array[int] = []
+	for frame in 120:
+		await physics_frame; nav.pump(Engine.get_physics_frames())
+		var corpse_step_start := Time.get_ticks_usec()
+		host.step(1.0 / 60.0)
+		corpse_step_us.append(Time.get_ticks_usec() - corpse_step_start)
+	var corpse_row: Dictionary = host.snapshot().rows[0]
+	check(corpse_row.status == "PHYSICAL_DEAD" and corpse_row.physical_anchor_world is Vector3, "confirmed corpse retained through host step")
+	check(corpse_row.physical_anchor_world.distance_to(corpse_start) > .10, "actual articulated corpse moved under physics")
+	var standing_ids: Array[String] = []
+	for occupied: Dictionary in host.occupants(): standing_ids.append(occupied.source_id)
+	check(not standing_ids.has("resident_72"), "disabled walking capsule removed from standing footprints")
+	corpse_step_us.sort()
 	for body: Dictionary in selected:
 		var node: Node = scene.get_node("npc_" + body.id)
 		check(node is CharacterBody3D and node.get_meta("placement_mode", "") == "PREVIEW_STAGE", "honest staging meta " + body.id)
+	# Paired component cost on the same two actual standing rigs. This does not
+	# replace a rendered, same-camera whole-scene frame-time comparison.
+	var gait_only_us: Array[int] = []
+	var gait_activity_us: Array[int] = []
+	for sample in 530:
+		for id: String in ["resident_169", "resident_252"]:
+			var record: Dictionary = host._records[id]
+			var t := Time.get_ticks_usec()
+			record.gait.update_pose(1.0 / 60.0, Vector3.ZERO, true)
+			var baseline_us := Time.get_ticks_usec() - t
+			t = Time.get_ticks_usec()
+			record.gait.update_pose(1.0 / 60.0, Vector3.ZERO, true)
+			var applied: bool = record.activity.step(1.0 / 60.0, 0.0)
+			var activity_us := Time.get_ticks_usec() - t
+			check(applied, "actual rig preview activity step " + id)
+			if sample >= 30:
+				gait_only_us.append(baseline_us)
+				gait_activity_us.append(activity_us)
+	gait_only_us.sort(); gait_activity_us.sort()
 	timings.sort()
-	print(JSON.stringify({"errors":errors, "selected":selected, "max_displacement_m":displacement, "status":statuses,
+	print(JSON.stringify({"errors":errors, "selected":selected, "max_displacement_m":displacement, "max_head_angle_rad":idle_head_angle, "status":statuses,
+		"paired_actual_rig_idle_cpu_us":{"gait_only_p50":gait_only_us[gait_only_us.size()/2],"gait_only_p95":gait_only_us[int(gait_only_us.size()*.95)],"with_activity_p50":gait_activity_us[gait_activity_us.size()/2],"with_activity_p95":gait_activity_us[int(gait_activity_us.size()*.95)],"samples_each":gait_only_us.size()},
+		"confirmed_final_death_physics":{"source_id":"resident_72","host_status":corpse_row.status,"anchor_motion_m":corpse_row.physical_anchor_world.distance_to(corpse_start),"walking_capsule_disabled":final_token.body.collision_layer == 0,"step_us_p50":corpse_step_us[corpse_step_us.size()/2],"step_us_p95":corpse_step_us[int(corpse_step_us.size()*.95)],"source_authority":"TEST_ONLY fixture"},
 		"turns":{"sharp_body_turns":sharp_body_turns,"largest_body_rad":largest_body_turn,"largest_visual_rad":largest_visual_turn},
 		"step_us_p50":timings[timings.size()/2], "step_us_p95":timings[int(timings.size()*.95)],
-		"scope":"headless actual main, preview staged QA, not source full placement or LIVE FPS"}))
-	host.dispose(); nav.dispose(); policy.dispose(); queue.dispose(); scene.free()
+		"scope":"headless actual main, preview staged QA plus physical-death fixture; not source HP authority or LIVE FPS"}))
+	host.dispose()
+	for id: String in target_tokens: check(not host.target_current(target_tokens[id]), "disposed life rejects target " + id)
+	for id: String in target_tokens: check(not host.physical_life_current(target_tokens[id]), "disposed life rejects physical rig " + id)
+	nav.dispose(); policy.dispose(); queue.dispose(); scene.free()
 	quit(0 if errors.is_empty() else 1)
 
 func _initialize() -> void: call_deferred("run")

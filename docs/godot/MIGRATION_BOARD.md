@@ -1,3 +1,39 @@
+## 30 September 05:38 — current accepted checkpoint 23e
+
+Remote main523a54eb5befc133a3dfbe8e430e30e8ca1d3713 verified. Accepted23e
+weapon UI/aim/real-wall marks/cargo-memory improvement + Artist COMBINED13guns
+localNPC hit/blood/closedeyes. Evidence/limits: docs/godot/WEAPONS_23E_CHECKPOINT.md.
+Latest persistent wounds, point bullet impulse, always-lethal headshot and foot
+corpse nudging are IN PROGRESS, not accepted. Artist owns NPC; root player bindings.
+Current shortcut23e, PCK023070fe6b1895cfc7571d9bb402d5c324577f84cccf74a73ec823c9e963f2bc.
+User process21024 no longer present at05:36; fresh inventory before GPU. Only
+ProjectManager45268 observed. Root GPU RELEASED. Read current23 memory first;
+old first-TT-fail/noQ statuses below are historical. Full migration incomplete.
+
+## 30 September — Coordinator23 takes over; HQ-only reports
+
+User appointed Кординатор 23, 01a0ef87-7a4d-7f73-93c9-8c643602aa04.
+Read docs/ai/COORDINATOR_23_HANDOFF.md and old22 chat. Root22 stops production.
+All agent reports only to existing Общий штаб агентов, 01a0df67-44d3-79c0-b243-fa6a9b891fde.
+New root reads HQ; no direct report spam. CPU QUIET22 released at handoff.
+ActualGPU run02 baseline PASS, weapons first TT equip FAIL; candidate03 not accepted.
+New equip diagnostics pending run; main/notes revision mismatch also needs fix.
+Sole last observed accepted residents22b PID20536; always fresh inventory.
+User sees too little progress: highest priority deliver verified weapons/trunk update.
+
+## 30 September — weapon/trunk integration in progress, accepted game unchanged
+
+Published main/origin f03a44ad0a969cb29f86ccb73d76a2a5ac64da43; sole accepted
+residents22b game freshly observed PID20764. Weapons/trunk stay local OFF pending
+actual-main regression, frozen export and comparable LIVE. All14 cost100 by exact
+model volume; AK10, user15 was example only. Actualmain uses smaller hatchback,
+so the earlier .2-scale sedan packing proof is not sufficient; root fixes common
+scale from actual compartment bounds. Gun actualmain23PASS clean after atomic
+ammo/currentmuzzle/fullbatch admission. Cargo previous39PASS, destruction provider
+TEST_ONLY. Damage/blood/HP, RPG firing, cover/passenger firing remain open.
+Artist physical death peerPASS candidate; actualcar no-snag9FAIL remains HOLD.
+Do not route anything to stopped pinned5 traversal. Full migration incomplete.
+
 ## 30 September 01:12 — first residents and click control delivered
 
 Accepted residents22b PCK de2728bb, actual-main24 / compiled-click18 /

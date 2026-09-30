@@ -1,0 +1,307 @@
+{
+	"checks": [
+		"no competing showcase runner requested",
+		"showcase scene loads",
+		"all 28 architectural wall panels have a bounded fracture pool",
+		"all 28 panels split without losing or duplicating fragments",
+		"repeated local impacts allocate no new building nodes or fragment bodies",
+		"rubble remains finite, bounded, with unique body references",
+		"rubble remains finite, bounded, with unique body references",
+		"settled rubble has at most32 active bodies; no perpetual whole-pile simulation",
+		"small rubble probe is available",
+		"character passes the rubble field into the building footprint",
+		"walking wakes and displaces sleeping lightweight rubble",
+		"rubble remains finite, bounded, with unique body references",
+		"upper test fragment is genuinely supported above the ground before removal",
+		"support fixture is physically at rest before parking",
+		"support fixture is physically at rest before parking",
+		"both support fragments are parked before testing explicit support wake",
+		"moving lower support wakes upper rubble instead of leaving it floating",
+		"reset restores original section and pool counts",
+		"reset does not grow scene or building node counts",
+		"repeated reset keeps resource-pool counts bounded"
+	],
+	"clock": "Time.get_ticks_usec between physics_frame signals; includes engine frame cap and scheduler waits",
+	"display_server": "Windows",
+	"engine": "4.7.2-stable (official)",
+	"engine_max_fps": 60,
+	"expected_all_split_sections": 629,
+	"failures": [],
+	"initial_pool": 560,
+	"initial_sections": 97,
+	"largest_awake_count": 554,
+	"largest_piece_count": 629,
+	"maximum_angular_speed": 3.00000047683716,
+	"maximum_linear_speed": 7.98171520233154,
+	"passed": true,
+	"phases": {
+		"after_reset": {
+			"awake_bodies": {
+				"max": 0,
+				"p50": 0,
+				"p95": 0,
+				"samples": 30
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 1.539,
+				"p50": 1.539,
+				"p95": 1.539,
+				"samples": 30
+			},
+			"engine_process_cpu_ms": {
+				"max": 128.016,
+				"p50": 1.626,
+				"p95": 128.016,
+				"samples": 30
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 16.748,
+				"p50": 16.666,
+				"p95": 16.695,
+				"samples": 30
+			},
+			"piece_count": 97,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 87444921.0
+		},
+		"all_panels_locally_breached": {
+			"awake_bodies": {
+				"max": 116,
+				"p50": 116,
+				"p95": 116,
+				"samples": 60
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 3.032,
+				"p50": 0.836,
+				"p95": 3.032,
+				"samples": 60
+			},
+			"engine_process_cpu_ms": {
+				"max": 7.07,
+				"p50": 7.07,
+				"p95": 7.07,
+				"samples": 60
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 17.069,
+				"p50": 16.669,
+				"p95": 16.818,
+				"samples": 60
+			},
+			"piece_count": 629,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 86697605.0
+		},
+		"full_629_section_collapse": {
+			"awake_bodies": {
+				"max": 554,
+				"p50": 289,
+				"p95": 548,
+				"samples": 360
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 18.07,
+				"p50": 8.536,
+				"p95": 18.07,
+				"samples": 360
+			},
+			"engine_process_cpu_ms": {
+				"max": 9.826,
+				"p50": 6.602,
+				"p95": 9.826,
+				"samples": 360
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 133.879,
+				"p50": 16.658,
+				"p95": 17.125,
+				"samples": 360
+			},
+			"piece_count": 629,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 88324865.0
+		},
+		"intact": {
+			"awake_bodies": {
+				"max": 0,
+				"p50": 0,
+				"p95": 0,
+				"samples": 60
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 261.235,
+				"p50": 261.235,
+				"p95": 261.235,
+				"samples": 60
+			},
+			"engine_process_cpu_ms": {
+				"max": 49.392,
+				"p50": 49.392,
+				"p95": 49.392,
+				"samples": 60
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 20.167,
+				"p50": 16.664,
+				"p95": 17.375,
+				"samples": 60
+			},
+			"piece_count": 97,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 85611823.0
+		},
+		"reset_cancels_pending_collapse": {
+			"awake_bodies": {
+				"max": 0,
+				"p50": 0,
+				"p95": 0,
+				"samples": 150
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 1.009,
+				"p50": 0.635,
+				"p95": 1.009,
+				"samples": 150
+			},
+			"engine_process_cpu_ms": {
+				"max": 128.016,
+				"p50": 124.824,
+				"p95": 128.016,
+				"samples": 150
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 26.609,
+				"p50": 16.666,
+				"p95": 16.692,
+				"samples": 150
+			},
+			"piece_count": 97,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 87468641.0
+		},
+		"settling_after_full_collapse": {
+			"awake_bodies": {
+				"max": 5,
+				"p50": 2,
+				"p95": 3,
+				"samples": 300
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 1.857,
+				"p50": 1.068,
+				"p95": 1.857,
+				"samples": 300
+			},
+			"engine_process_cpu_ms": {
+				"max": 7.235,
+				"p50": 1.487,
+				"p95": 7.235,
+				"samples": 300
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 17.919,
+				"p50": 16.666,
+				"p95": 16.995,
+				"samples": 300
+			},
+			"piece_count": 629,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 88296413.0
+		},
+		"support_removal_wakes_upper": {
+			"awake_bodies": {
+				"max": 4,
+				"p50": 1,
+				"p95": 3,
+				"samples": 120
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 1.539,
+				"p50": 1.537,
+				"p95": 1.539,
+				"samples": 120
+			},
+			"engine_process_cpu_ms": {
+				"max": 6.073,
+				"p50": 6.073,
+				"p95": 6.073,
+				"samples": 120
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 16.795,
+				"p50": 16.666,
+				"p95": 16.701,
+				"samples": 120
+			},
+			"piece_count": 629,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 88280777.0
+		},
+		"support_stack_settles": {
+			"awake_bodies": {
+				"max": 48,
+				"p50": 24,
+				"p95": 48,
+				"samples": 150
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 3.076,
+				"p50": 2.066,
+				"p95": 2.132,
+				"samples": 150
+			},
+			"engine_process_cpu_ms": {
+				"max": 9.237,
+				"p50": 1.978,
+				"p95": 9.237,
+				"samples": 150
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 16.782,
+				"p50": 16.666,
+				"p95": 16.741,
+				"samples": 150
+			},
+			"piece_count": 629,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 88300005.0
+		},
+		"walking_through_dense_rubble": {
+			"awake_bodies": {
+				"max": 110,
+				"p50": 45,
+				"p95": 103,
+				"samples": 210
+			},
+			"engine_physics_process_cpu_ms": {
+				"max": 4.081,
+				"p50": 3.076,
+				"p95": 4.081,
+				"samples": 210
+			},
+			"engine_process_cpu_ms": {
+				"max": 7.014,
+				"p50": 3.241,
+				"p95": 7.014,
+				"samples": 210
+			},
+			"physics_frame_wall_interval_ms": {
+				"max": 16.928,
+				"p50": 16.664,
+				"p95": 16.757,
+				"samples": 210
+			},
+			"piece_count": 629,
+			"pooled_fragment_count": 560,
+			"static_memory_bytes": 88538477.0
+		}
+	},
+	"physics_ticks_per_second": 60,
+	"scope": "Isolated destruction showcase; physics-frame intervals and CPU, NOT city performance. display_server identifies headless versus real GPU run",
+	"settled_awake_count": 1,
+	"static_memory_bytes_end": 87469521.0,
+	"support_upper_after": "(20.0, 0.176762, 0.000176)",
+	"support_upper_before": "(20.0, 0.685153, 0.000179)",
+	"wall_panels": 28
+}

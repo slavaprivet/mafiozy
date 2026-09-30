@@ -1,0 +1,23 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: The object does not have any 'meta' values with the key 'actor_id'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] configure (res://scripts/weapons/rpg_effects.gd:42)
+       [1] configure (res://scripts/weapons/preview_weapons.gd:79)
+       [2] _ready (res://scripts/main.gd:184)
+       [3] run (C:/Users/Слава/Desktop/Мафиози/godot/mafiozi_walk/scripts/tests/test_preview_resident_staging.gd:28)
+ERROR: The object does not have any 'meta' values with the key 'life_generation'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] configure (res://scripts/weapons/rpg_effects.gd:42)
+       [1] configure (res://scripts/weapons/preview_weapons.gd:79)
+       [2] _ready (res://scripts/main.gd:184)
+       [3] run (C:/Users/Слава/Desktop/Мафиози/godot/mafiozi_walk/scripts/tests/test_preview_resident_staging.gd:28)
+MAFIOZI_PREVIEW_READY buildings=8 decor=8 source_colliders=27 renderer=forward_plus
+PRINTSHOP_INTERIOR_STATUS ready
+WATER_SURFACE_STATUS detail_ready
+STATIC_BATCH_STATUS disabled
+RESIDENT_POPULATION_STATUS disabled
+MELEE_PRACTICE_STATUS ground_practice_no_combat_targets
+{"confirmed_final_death_physics":{"anchor_motion_m":0.673373281955719,"host_status":"PHYSICAL_DEAD","source_authority":"TEST_ONLY fixture","source_id":"resident_72","step_us_p50":432,"step_us_p95":1035,"walking_capsule_disabled":true},"errors":[],"max_displacement_m":{"resident_169":3.54670262336731,"resident_252":3.1029646396637,"resident_72":3.19607377052307},"max_head_angle_rad":{"resident_169":0.239993736147881,"resident_252":0.229529812932014,"resident_72":0.239995747804642},"paired_actual_rig_idle_cpu_us":{"gait_only_p50":6,"gait_only_p95":7,"samples_each":1000,"with_activity_p50":8,"with_activity_p95":22},"scope":"headless actual main, preview staged QA plus physical-death fixture; not source HP authority or LIVE FPS","selected":[{"c":105.310391309785,"id":"resident_72","position":"(36.1226, -0.0, -13.4)","r":7.73170787532155},{"c":105.310391309785,"id":"resident_169","position":"(36.1226, -0.0, -5.899998)","r":9.56097616800448},{"c":104.944537651248,"id":"resident_252","position":"(34.6226, -0.0, -19.4)","r":6.26829324117521}],"status":{"resident_169":"READY","resident_252":"READY","resident_72":"ARRIVED"},"step_us_p50":647,"step_us_p95":910,"turns":{"largest_body_rad":3.14159256616701,"largest_visual_rad":0.523598972951071,"sharp_body_turns":5}}

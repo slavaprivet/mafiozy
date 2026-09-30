@@ -1,0 +1,14 @@
+{
+  "revision": "s01-20260930-quality23e",
+  "exe": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23e-play\\MafioziPreview.exe",
+  "pck_sha256": "023070fe6b1895cfc7571d9bb402d5c324577f84cccf74a73ec823c9e963f2bc",
+  "pid": 21024,
+  "validation": "compiled matrix743; actual NPCinput26; visual UI160; wall80; loaded23c->23e comparable; final notes-only delta verified",
+  "limits": [
+    "persistent skin/clothing wounds pending",
+    "directional bullet impulse and lethal headshots pending",
+    "corpse foot contact pending",
+    "RPG blast damage pending"
+  ],
+  "receipt": "C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\\exports\\win64\\s01-20260930-quality23e-play\\build_receipt.json"
+}

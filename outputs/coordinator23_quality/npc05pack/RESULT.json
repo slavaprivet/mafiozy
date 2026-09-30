@@ -1,0 +1,105 @@
+{
+	"checks": 26.0,
+	"draws": 303.0,
+	"errors": [],
+	"images": [
+		"01_before_hit.png",
+		"02_medical_fall.png",
+		"03_final_death.png"
+	],
+	"impacts": [
+		{
+			"collider": "/root/MafioziWalkMigration/npc_resident_72",
+			"point": "(35.96162, 1.218063, -13.078)",
+			"shot_id": "revolver:1"
+		},
+		{
+			"collider": "/root/MafioziWalkMigration/PhysicalCharacterBody/chest",
+			"point": "(36.23347, 0.546196, -13.41)",
+			"shot_id": "revolver:2"
+		}
+	],
+	"phases": [
+		{
+			"actor": "resident_72",
+			"ammo": 6.0,
+			"at_ms": 5061.0,
+			"dead": false,
+			"hp": 60.0,
+			"label": "before_hit",
+			"medical": false,
+			"physical": {},
+			"shots": 0.0
+		},
+		{
+			"actor": "resident_72",
+			"ammo": 5.0,
+			"at_ms": 5575.0,
+			"dead": false,
+			"hp": 1.0,
+			"label": "first_input_hit",
+			"medical": true,
+			"physical": {
+				"damage_authority": false,
+				"death_key": "",
+				"error": "",
+				"event_id": "resident_72:1:revolver:1",
+				"final_dead": false,
+				"mode": "ACTIVE",
+				"ok": true
+			},
+			"shots": 1.0
+		},
+		{
+			"actor": "resident_72",
+			"ammo": 4.0,
+			"at_ms": 7096.0,
+			"dead": true,
+			"hp": 0.0,
+			"label": "second_input_hit",
+			"medical": false,
+			"physical": {
+				"damage_authority": false,
+				"death_key": "1991.176",
+				"error": "",
+				"event_id": "resident_72:1:revolver:1",
+				"final_dead": true,
+				"mode": "ACTIVE",
+				"ok": true
+			},
+			"shots": 2.0
+		}
+	],
+	"rendered": true,
+	"root_capture": {
+		"NO_FOCUS": true,
+		"appearance_observer_only": true,
+		"base_harness_sha256": "949c94a1028fe27d81ba9d7704f373a8c95a0e7ef736077d89d9adffbfde96e4",
+		"deterministic_source_survival_choice": true,
+		"frozen_pack_resources": {
+			"res://data/preview_updates.json": "cf8a655880ef076e9ec38a0a4f1bcb06e37510d1a4d9599d398592a0c72da79e",
+			"res://scenes/main.tscn": "compiled_or_missing",
+			"res://scripts/npc/resident_hit_owner.gd": "compiled_or_missing"
+		},
+		"native_camera_parity": false,
+		"offscreen": true,
+		"original_checks_preserved": true,
+		"performance_valid": false,
+		"stationary_NPC_fixture": true,
+		"wall_elapsed_ms": 6384
+	},
+	"scope": "actual equip/input/presentation/muzzle/ammo/native ray/HP/physical lifecycle; stationary NPCs, QA camera, deterministic source survival seed",
+	"shots": [
+		{
+			"ammo_after_commit": 5.0,
+			"muzzle": "{ \"ok\": true, \"origin\": (34.66404, 1.055958, -11.00196), \"ejection_origin\": (34.66404, 1.055958, -11.00196), \"direction\": (0.459435, -0.210253, -0.862967), \"weapon_id\": \"revolver\", \"pose_epoch\": 1, \"pose_revision\": 27, \"equip_generation\": 1, \"sample_serial\": 9, \"actor_id\": \"player\", \"life_generation\": 1 }",
+			"shot_id": "revolver:1"
+		},
+		{
+			"ammo_after_commit": 4.0,
+			"muzzle": "{ \"ok\": true, \"origin\": (34.67794, 1.031587, -10.99541), \"ejection_origin\": (34.67794, 1.031587, -10.99541), \"direction\": (0.465763, -0.339148, -0.817339), \"weapon_id\": \"revolver\", \"pose_epoch\": 1, \"pose_revision\": 118, \"equip_generation\": 1, \"sample_serial\": 100, \"actor_id\": \"player\", \"life_generation\": 1 }",
+			"shot_id": "revolver:2"
+		}
+	],
+	"test_sha256": "8fd584fc919ff4fc5c35cc8dd68e660c34fbc8a955040323a880a3a14f8957b9"
+}
