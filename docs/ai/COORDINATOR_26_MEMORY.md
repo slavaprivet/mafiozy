@@ -1,5 +1,26 @@
 # Координатор26 — действующая память
 
+## 03:12 — Версия45 доставлена и открыта пользователю
+
+Final ASM f797214092875a9e91cd47aa30cf751b99909f089d9b3b6bb8f4be34c6336b21,
+473pins. Pointer/shared4runtime/QA6/docs сохранены и опубликованы в main
+224a3dbd4d403ca7203c294545b8838cbcdcd6dd, remote сверён. Launcher CheckOnly PASS.
+Старый пустой index.lock02:11:50 при отсутствии git процессов и успешном
+exclusive open сохранён в outputs/coordinator26_frames45/stale-index-lock-20261001-021150.backup.
+
+После C4 owner TEMP RELEASED root заново сверил только manager45268 и открыл
+обычную45. PID26180/start03:11:39.8413449+03:00, launcher27716; ready=true,
+interactive=true, RPG50, stderr0, окно отвечает. PNG opened.png просмотрен.
+Receipt outputs/current_game/interactive/20261001T001139812Z. ИсторическиеPID
+перед будущим закрытием заново проверять; mutex удерживает launcher всю жизнь.
+
+Работа продолжается source-only, пока пользователь играет: car46 current45
+rebased basef797/480pins, ещё NOT_RUN; C4surfaces revision2 component179/0 с
+двумя icons, FXrevision2 singleGPUclean, fullgame пока не принят. Независимые
+root агенты читают оба пакета бездвижков; следующее короткое окно root согласует
+после готовности. Не возвращать43 и не закрывать45 произвольно. Последние
+детали Buildings3 — в его handoff/штабе, кар46 — у владельца car_damage.
+
 ## 03:04 — Рамы45 приняты; доставка и следующий C4 слот
 
 Финальная runtime проверка45: native RPG/K/W/J61/0 (gameplay_gpu02), door109/0

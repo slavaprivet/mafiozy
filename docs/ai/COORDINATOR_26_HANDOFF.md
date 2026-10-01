@@ -12,9 +12,11 @@ unsupported mullion падает. Сопоставимый damage p9510,096→10
 
 Версию запуска определяет godot/current_version.json, открытый процесс — свежий
 outputs/current_game/OPENED.json с проверкой start/window/command. Старый PID15320
-закрыт. На момент записи финализируется45; Buildings3 получил отдельный короткий
-ROOT26-C4-NEXT-COMPONENT45 для surfaces/icons/FX. Пока owner не RELEASED,
-root engines OFF. C4 и повреждения автомобилей остаются отдельными кандидатами.
+закрыт. Финальная45 f797214092875a9e91cd47aa30cf751b99909f089d9b3b6bb8f4be34c6336b21
+доставлена через pointer и Gitmain224a3dbd. После TEMP RELEASED C4слота открыта
+пользовательская45 PID26180/start03:11:39.8413449+03:00, readyinteractive/stderr0.
+Проверить свежий receipt перед будущим перезапуском. C4 и car46 остаются отдельными
+кандидатами; сейчас source-only без второго движка рядом с пользовательской игрой.
 
 Старые43 и её результаты ниже сохранены как история и основа45.
 
