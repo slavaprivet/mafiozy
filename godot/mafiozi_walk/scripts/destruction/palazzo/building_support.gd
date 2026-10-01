@@ -1,5 +1,7 @@
 extends RefCounted
-## Gameplay support by actual collision AABB contacts, not a stress simulation.
+## Candidate44: merged AABB/grid broad phase, exact orthogonal-box SAT contacts.
+## One shape pair per work item keeps compound narrow phase resumable/bounded.
+## ConvexPolygonShape bounds remain conservative; exact convex contact is not claimed.
 ## Host: configure after site ready; mark_dirty after each committed geometry
 ## change (including door motion completion); advance once per physics frame.
 ## Ground is real native geometry. No implicit y=0 plane or detached debris anchor.
@@ -84,6 +86,7 @@ func _eligible(body: Variant, site: Node3D) -> bool:
 func _body_bounds(body: CollisionObject3D, site: Node3D) -> Dictionary:
 	var result:=AABB()
 	var found:=false
+	var contacts: Array[Dictionary]=[]
 	for node: Node in body.get_children():
 		if not node is CollisionShape3D or node.disabled or node.shape==null: continue
 		var shape: Shape3D=node.shape
@@ -101,9 +104,17 @@ func _body_bounds(body: CollisionObject3D, site: Node3D) -> Dictionary:
 		var transform: Transform3D=site.global_transform.affine_inverse()*node.global_transform
 		if not transform.is_finite() or not local.position.is_finite() or not local.size.is_finite(): return {"ok":false,"reason":"nonfinite_collision"}
 		var transformed: AABB=transform*local
+		var contact: Dictionary={"kind":"convex_bounds","bounds":transformed}
+		if shape is BoxShape3D:
+			var scale: Vector3=Vector3(transform.basis.x.length(),transform.basis.y.length(),transform.basis.z.length())
+			if scale.x<.000001 or scale.y<.000001 or scale.z<.000001: return {"ok":false,"reason":"degenerate_box_collision"}
+			var axes: Array[Vector3]=[transform.basis.x/scale.x,transform.basis.y/scale.y,transform.basis.z/scale.z]
+			if absf(axes[0].dot(axes[1]))>.00001 or absf(axes[0].dot(axes[2]))>.00001 or absf(axes[1].dot(axes[2]))>.00001: return {"ok":false,"reason":"sheared_box_collision_requires_adapter"}
+			contact={"kind":"box","bounds":transformed,"center":transform.origin,"axes":axes,"half":shape.size*scale*.5}
+		contacts.append(contact)
 		result=result.merge(transformed) if found else transformed
 		found=true
-	return {"ok":found,"bounds":result,"reason":"no_enabled_collision" if not found else ""}
+	return {"ok":found,"bounds":result,"contacts":contacts,"reason":"no_enabled_collision" if not found else ""}
 
 func _span(bounds: AABB) -> Dictionary:
 	var padded:=bounds.grow(SEAM_M)
@@ -124,8 +135,45 @@ func _next_cell(span: Dictionary) -> void:
 func _touch(a: AABB, b: AABB) -> bool:
 	return a.position.x<=b.end.x+SEAM_M and a.end.x+SEAM_M>=b.position.x and a.position.y<=b.end.y+SEAM_M and a.end.y+SEAM_M>=b.position.y and a.position.z<=b.end.z+SEAM_M and a.end.z+SEAM_M>=b.position.z
 
+func _shape_touch(a: Dictionary,b: Dictionary) -> bool:
+	if not _touch(a.bounds,b.bounds): return false
+	# This patch is exact for native BoxShape3D parts. It does not claim an exact
+	# convex-polyhedron adapter; that existing conservative policy stays explicit.
+	if a.kind!="box" or b.kind!="box": return true
+	var axes: Array[Vector3]=[]
+	axes.append_array(a.axes); axes.append_array(b.axes)
+	for first: Vector3 in a.axes:
+		for second: Vector3 in b.axes:
+			var cross: Vector3=first.cross(second)
+			if cross.length_squared()>.0000000001: axes.append(cross.normalized())
+	var delta: Vector3=b.center-a.center
+	for axis: Vector3 in axes:
+		var radius_a: float=absf(axis.dot(a.axes[0]))*a.half.x+absf(axis.dot(a.axes[1]))*a.half.y+absf(axis.dot(a.axes[2]))*a.half.z
+		var radius_b: float=absf(axis.dot(b.axes[0]))*b.half.x+absf(axis.dot(b.axes[1]))*b.half.y+absf(axis.dot(b.axes[2]))*b.half.z
+		if absf(delta.dot(axis))>radius_a+radius_b+SEAM_M: return false
+	return true
+
+func _begin_contact(a: Dictionary,b: Dictionary,target: int,anchor: bool) -> void:
+	_job.contact={"a":a.contacts,"b":b.contacts,"i":0,"j":0,"target":target,"anchor":anchor,"resume":_job.phase}
+	_job.phase="contact"
+
+func _contact_work() -> void:
+	var test: Dictionary=_job.contact
+	if test.i>=test.a.size():
+		_job.phase=test.resume; _job.erase("contact"); return
+	var a: Dictionary=test.a[test.i]
+	var b: Dictionary=test.b[test.j]
+	test.j+=1
+	if test.j>=test.b.size(): test.j=0; test.i+=1
+	_job.narrow_checks+=1
+	if not _shape_touch(a,b): return
+	if test.anchor and (b.bounds.end.y<a.bounds.position.y-SEAM_M or b.bounds.end.y>a.bounds.end.y+SEAM_M): return
+	_job.supported[test.target]=true; _job.queue.append(test.target)
+	if test.anchor: _job.anchor_entry+=1; _job.anchor_ground=0
+	_job.phase=test.resume; _job.erase("contact")
+
 func _start(site: Node3D) -> void:
-	_job={"phase":"ground","revision":_revision,"ground_cursor":0,"ground":[],"input":site.pieces.duplicate(),"cursor":0,"entries":[],"grid":{},"queue":[],"queue_cursor":0,"supported":{},"anchor_entry":0,"anchor_ground":0,"active":-1,"neighbors":[],"neighbor_cursor":0,"seen":{},"checks":0,"validate":0,"unsupported":[],"started_usec":Time.get_ticks_usec(),"advance_calls":0}
+	_job={"phase":"ground","revision":_revision,"ground_cursor":0,"ground":[],"input":site.pieces.duplicate(),"cursor":0,"entries":[],"grid":{},"queue":[],"queue_cursor":0,"supported":{},"anchor_entry":0,"anchor_ground":0,"active":-1,"neighbors":[],"neighbor_cursor":0,"seen":{},"checks":0,"narrow_checks":0,"validate":0,"unsupported":[],"started_usec":Time.get_ticks_usec(),"advance_calls":0}
 	_dirty=false; _graphs+=1
 
 func _bad(reason: String) -> void:
@@ -142,7 +190,7 @@ func _work(site: Node3D) -> void:
 		if not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion() or (body.collision_layer&1)==0: return
 		var bounds: Dictionary=_body_bounds(body,site)
 		if not bounds.ok: _bad("ground_collision_changed"); return
-		_job.ground.append({"body":weakref(body),"bounds":bounds.bounds,"frame":body.global_transform})
+		_job.ground.append({"body":weakref(body),"bounds":bounds.bounds,"contacts":bounds.contacts,"frame":body.global_transform})
 	elif phase=="collect":
 		if _job.cursor>=_job.input.size(): _job.phase="anchor"; return
 		var body: Variant=_job.input[_job.cursor]
@@ -150,7 +198,7 @@ func _work(site: Node3D) -> void:
 		if not _eligible(body,site): return
 		var bounds: Dictionary=_body_bounds(body,site)
 		if not bounds.ok: _bad("structural_collision:"+str(bounds.reason)); return
-		var entry: Dictionary={"body":weakref(body),"frame":body.global_transform,"bounds":bounds.bounds,"id":body.get_instance_id()}
+		var entry: Dictionary={"body":weakref(body),"frame":body.global_transform,"bounds":bounds.bounds,"contacts":bounds.contacts,"id":body.get_instance_id()}
 		_job.entries.append(entry)
 		_job.insert_index=_job.entries.size()-1; _job.span=_span(bounds.bounds); _job.phase="insert"
 	elif phase=="insert":
@@ -165,12 +213,14 @@ func _work(site: Node3D) -> void:
 		var i: int=_job.anchor_entry
 		var a: AABB=_job.entries[i].bounds
 		var b: AABB=_job.ground[_job.anchor_ground].bounds
+		var ground_index: int=_job.anchor_ground
 		_job.anchor_ground+=1
 		# Contact with the TOP of a real supporting ground solid, including the
 		# original source floor that slightly intersects its underlying terrain.
 		if _touch(a,b) and b.end.y>=a.position.y-SEAM_M and b.end.y<=a.end.y+SEAM_M:
-			_job.supported[i]=true; _job.queue.append(i)
-			_job.anchor_entry+=1; _job.anchor_ground=0
+			_begin_contact(_job.entries[i],_job.ground[ground_index],i,true)
+	elif phase=="contact":
+		_contact_work()
 	elif phase=="walk":
 		if _job.active<0:
 			if _job.queue_cursor>=_job.queue.size(): _job.phase="validate_ground"; _job.validate=0; return
@@ -181,7 +231,7 @@ func _work(site: Node3D) -> void:
 			var other: int=_job.neighbors[_job.neighbor_cursor]; _job.neighbor_cursor+=1
 			if _job.supported.has(other) or _job.seen.has(other): return
 			_job.seen[other]=true; _job.checks+=1
-			if _touch(_job.entries[_job.active].bounds,_job.entries[other].bounds): _job.supported[other]=true; _job.queue.append(other)
+			if _touch(_job.entries[_job.active].bounds,_job.entries[other].bounds): _begin_contact(_job.entries[_job.active],_job.entries[other],other,false)
 			return
 		if _job.span.done: _job.active=-1; return
 		_job.neighbors=_job.grid.get(_job.span.at,[]); _job.neighbor_cursor=0
@@ -193,19 +243,19 @@ func _work(site: Node3D) -> void:
 		if not is_instance_valid(body) or not body.is_inside_tree() or body.is_queued_for_deletion() or (body.collision_layer&1)==0:
 			mark_dirty(); return
 		var bounds: Dictionary=_body_bounds(body,site)
-		if not bounds.ok or bounds.bounds!=ground.bounds or body.global_transform!=ground.frame: mark_dirty(); return
+		if not bounds.ok or bounds.bounds!=ground.bounds or bounds.contacts!=ground.contacts or body.global_transform!=ground.frame: mark_dirty(); return
 	elif phase=="validate":
 		if site.pieces.size()!=_job.input.size(): mark_dirty(); return
 		if _job.validate>=_job.entries.size():
 			_pending=_job.unsupported; _pending_cursor=0
-			_last={"state":"releasing" if not _pending.is_empty() else "stable","candidates":_job.entries.size(),"supported":_job.supported.size(),"unsupported":_pending.size(),"neighbor_checks":_job.checks,"grid_cells":_job.grid.size(),"graph_advance_calls":_job.advance_calls,"graph_elapsed_usec":Time.get_ticks_usec()-int(_job.started_usec)}
+			_last={"state":"releasing" if not _pending.is_empty() else "stable","candidates":_job.entries.size(),"supported":_job.supported.size(),"unsupported":_pending.size(),"neighbor_checks":_job.checks,"shape_pair_checks":_job.narrow_checks,"grid_cells":_job.grid.size(),"graph_advance_calls":_job.advance_calls,"graph_elapsed_usec":Time.get_ticks_usec()-int(_job.started_usec)}
 			_job.clear(); return
 		var i: int=_job.validate; _job.validate+=1
 		var entry: Dictionary=_job.entries[i]
 		var body: Variant=entry.body.get_ref()
 		if not _eligible(body,site) or body.global_transform!=entry.frame: mark_dirty(); return
 		var bounds: Dictionary=_body_bounds(body,site)
-		if not bounds.ok or bounds.bounds!=entry.bounds: mark_dirty(); return
+		if not bounds.ok or bounds.bounds!=entry.bounds or bounds.contacts!=entry.contacts: mark_dirty(); return
 		if not _job.supported.has(i): _job.unsupported.append(entry)
 
 func advance(delta: float, max_items: int = 256, budget_usec: int = 1000) -> Dictionary:
@@ -239,7 +289,7 @@ func advance(delta: float, max_items: int = 256, budget_usec: int = 1000) -> Dic
 			else: _pending_cursor+=1
 			continue
 		var bounds: Dictionary=_body_bounds(body,site)
-		if body.global_transform!=entry.frame or not bounds.ok or bounds.bounds!=entry.bounds: mark_dirty(); break
+		if body.global_transform!=entry.frame or not bounds.ok or bounds.bounds!=entry.bounds or bounds.contacts!=entry.contacts: mark_dirty(); break
 		if not chunk_queue and site.has_method("_support_expand_piece"):
 			var pool: Array=body.get_meta("pooled_fragments",[])
 			if not pool.is_empty() and _expanded_this_frame>=1: break
@@ -259,7 +309,7 @@ func advance(delta: float, max_items: int = 256, budget_usec: int = 1000) -> Dic
 					seen[chunk.get_instance_id()]=true
 					var chunk_bounds: Dictionary=_body_bounds(chunk,site)
 					if not chunk_bounds.ok: _bad("support_expansion_collision"); break
-					_expanded.append({"body":weakref(chunk),"frame":chunk.global_transform,"bounds":chunk_bounds.bounds,"id":chunk.get_instance_id()})
+					_expanded.append({"body":weakref(chunk),"frame":chunk.global_transform,"bounds":chunk_bounds.bounds,"contacts":chunk_bounds.contacts,"id":chunk.get_instance_id()})
 				if not _error.is_empty(): break
 				_pending_cursor+=1; _expanded_this_frame+=1
 				continue
@@ -287,4 +337,5 @@ func diagnostics() -> Dictionary:
 	result.phase=_job.get("phase",""); result.pending=maxi(0,_pending.size()-_pending_cursor)+maxi(0,_expanded.size()-_expanded_cursor)
 	result.released_total=_released_total; result.graphs=_graphs; result.advance_calls=_advance_calls; result.max_advance_usec=_max_advance_usec
 	result.generation=_generation; result.support_model="ground_connected_collision_AABBs"; result.seam_m=SEAM_M
+	result.narrow_phase="one_shape_pair_per_work_item_box_SAT"; result.convex_policy="per_shape_conservative_bounds"
 	return result

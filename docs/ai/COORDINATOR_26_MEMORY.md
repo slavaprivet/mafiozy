@@ -1,5 +1,54 @@
 # Координатор26 — действующая память
 
+## 03:04 — Рамы45 приняты; доставка и следующий C4 слот
+
+Финальная runtime проверка45: native RPG/K/W/J61/0 (gameplay_gpu02), door109/0
+(door_gpu01), combined glass173/0. Baseline ghost7457/0; candidate8074/0,
+target падает1,194м, все6 checkpoints с сохранением настоящих опор. Причины:
+false merged-AABB support и старые независимые StaticBody/rim после потери стены.
+Два overlay support762172cb и glazing7187080b; всего4 изменённых runtime файла,
+включая main revision и5 строк notes. Сборка473pins, nativeгеометрия657/2069.
+
+Финальные perf_baseline05/candidate03: одинаковый fixture1e509a85,120warmup,
+240idle+600damage/recovery,3source-selected site.explode (не RPG-приёмка).
+Idle p959,994→10,218мс; damage p9510,096→10,457; max20,187→19,968мс,1/600
+кадров>16,667 в обеих. Peak working set1583910912→1597575168 байт (+13,03MiB).
+Оба графа завершены, прежний начальный release owned_0096 одинаков, новый
+solver отпустил ещё ровно правильную unsupported перекладину. Исходная
+геометрия/настройки/камера/3NPC совпали. Runtime ошибок нет. ACCEPTANCE.json
+и PERF_COMPARISON.json записаны. Полный город не проверен.
+
+Ранние gameplay01/perf01–04 не скрыты: исправлены post-fracture observation,
+ошибочное initial-release0, nullable metadata и числовое JSON сравнение; затем
+увеличено одинаковое окно до завершения повторного графа. Runtime ради PASS
+не меняли. Все окончательные stderr0. Root просмотрел итоговые GPU кадры.
+
+После завершения всех root engines выдан ROOT26-C4-NEXT-COMPONENT45 владельцу
+Buildings3: finite surfaces/icons/FX процессы<=60s последовательно. Root в это
+время только source/docs/Git/pointer. До его явного RELEASED не открывать игру.
+Новый C4 и car пока не входят45; только последующая отдельная интеграция.
+Исторический OPENED43 уже закрыт. Pointer/запуск финализируются следующим шагом;
+актуальный факт запуска всегда брать из нового receipt и свежего процесса.
+
+## Новый запрос — исправить оконные рамы и продолжать внедрение
+
+Пользователь: «не вижу чтоб рамки окон были исправлены продолжи без остановок
+работы много». Прежний организационный HOLD отменён этим поручением. Root26
+проверил receipt/start/window/command игры43 PID15320 и закрыл её через
+CloseMainWindow; процесс завершился, mutex свободен, manager45268 сохранён.
+Buildings3 получил ROOT26-FRAMES45-COMPONENT: последовательные tiny headless
+glass44, frames44 baseline/candidate, каждый <=60s; остальные engines OFF.
+После явного RELEASED root проводит combined45 gameplay/door/perf и доставку.
+Подготовка outputs/coordinator26_frames45 основана на exact43: два runtime
+overlay (support762172cb, glazing7187080b), main revision и notes. Doorv5/Nav/
+состав сцены сохраняются. Источники проверены; native PASS пока не заявлен.
+Нужны реальное воспроизведение ложной опоры baseline, release/drop candidate,
+сохранение всех действительно опирающихся частей, настоящие RPG/K/J и проход
+игрока, полный frame-time/memory до/после. Нельзя ограничиться cyan rim.
+Car44 остаётся отдельным source-only479 кандидатом, после принятия45 — rebase
+и короткий actual AK proof; Buildings3 C4 продолжает отдельно. Старую игру43
+не считать открытой по историческому OPENED.json. Запуск45 только после QA.
+
 ## 02:00 — Принята43, постоянный запуск переключён
 
 Финальная сцена `s01-20261001-palazzo-only43`: только Палаццо, E по взгляду в

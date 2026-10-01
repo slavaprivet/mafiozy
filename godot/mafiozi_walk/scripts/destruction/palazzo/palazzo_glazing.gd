@@ -26,6 +26,8 @@ var _configured := false
 var _disposed := false
 var _broken := 0
 var _rejected := 0
+var _support_lost := 0
+var _retired_visuals := 0
 
 func configure(site: Node3D) -> bool:
 	if _configured or _disposed or not is_instance_valid(site) or not site.is_inside_tree() or site.is_queued_for_deletion(): return false
@@ -88,7 +90,7 @@ func add_pane(parent: Node3D, local_transform: Transform3D, size: Vector2, wall:
 	var geometry:=ArrayMesh.new(); geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays); geometry.surface_set_material(0,_material)
 	mesh.mesh=geometry; body.add_child(mesh); add_child(body)
 	var id: int=body.get_instance_id()
-	var row: Dictionary={"body":body,"mesh":mesh,"collision":shape,"shape":box,"wall":weakref(wall),"wall_local":wall.global_transform.affine_inverse()*body.global_transform,"wall_frame":wall.global_transform,"size":size,"frame":body.global_transform,"pending":false,"broken":false}
+	var row: Dictionary={"body":body,"mesh":mesh,"collision":shape,"shape":box,"wall":weakref(wall),"wall_local":wall.global_transform.affine_inverse()*body.global_transform,"wall_frame":wall.global_transform,"size":size,"frame":body.global_transform,"pending":false,"broken":false,"support_lost":false,"visual_retired":false}
 	_panes[id]=row; _meshes[mesh.get_instance_id()]=id
 	if not _by_wall.has(wall.get_instance_id()): _by_wall[wall.get_instance_id()]=[]
 	_by_wall[wall.get_instance_id()].append(id)
@@ -99,7 +101,7 @@ func add_pane(parent: Node3D, local_transform: Transform3D, size: Vector2, wall:
 func owns_collider(body: Variant) -> bool:
 	if not _current() or not body is StaticBody3D or not is_instance_valid(body) or body.is_queued_for_deletion() or body.get_parent()!=self or not _panes.has(body.get_instance_id()): return false
 	var row: Dictionary=_panes[body.get_instance_id()]
-	return row.body==body and not row.broken and body.collision_layer==1 and body.get_meta("source_id","")==_source_id and body.global_transform==row.frame
+	return row.body==body and not row.broken and not row.support_lost and body.collision_layer==1 and body.get_meta("source_id","")==_source_id and body.global_transform==row.frame
 
 ## Read-only proof of the original native pane contact. Pending glass remains a
 ## valid collider until Walk completes its delayed fracture; broken/stale panes
@@ -184,7 +186,31 @@ func _hit(row: Dictionary, at: Vector3, direction: Vector3, power: float, weapon
 	var normal: Vector3=Vector3.FORWARD if local_direction.z>0.0 else Vector3.BACK
 	var result: Dictionary=_glass.hit({"object":row.mesh,"surface_index":0,"face_index":0,"position":at,"normal":normal},{"direction":direction.normalized(),"impulse":power,"weapon_id":weapon})
 	row.pending=result.get("broken",false) and not row.broken
+	# Failed presentation never restores a collider or a stationary pane after
+	# its actual supporting wall has gone. Keep the rejection observable.
+	if row.support_lost and not result.get("broken",false):
+		_rejected+=1
+		_retire_pane_visual(row)
 	return {"ok":result.get("broken",false),"pending":row.pending,"walk":result,"generation":_generation}
+
+func _retire_pane_visual(row: Dictionary) -> void:
+	if row.visual_retired: return
+	row.visual_retired=true; _retired_visuals+=1
+	# Walk deliberately retains a cyan Broken_Glass_Edges child after fracture.
+	# This pane is a separate static owner, so a falling wall cannot carry that
+	# remnant. Hide the owned mesh subtree; independent flying shards keep moving.
+	if is_instance_valid(row.mesh): row.mesh.hide()
+
+func _lose_pane_support(row: Dictionary) -> void:
+	if row.support_lost: return
+	row.support_lost=true; _support_lost+=1
+	# Stop the old fixed barrier synchronously. Deferred shape retirement is
+	# secondary; the native layer already stops admitting queries this tick.
+	row.body.collision_layer=0; row.body.collision_mask=0
+	if is_instance_valid(row.collision): row.collision.set_deferred("disabled",true)
+	# Unbroken/pending panes must remain visible until Walk admits/completes
+	# their delayed fracture. Hiding early would make Walk reject the hit.
+	if row.broken: _retire_pane_visual(row)
 
 func break_for_wall(wall: RigidBody3D) -> Dictionary:
 	if not _current() or not is_instance_valid(wall) or not _by_wall.has(wall.get_instance_id()): return {"ok":false,"reason":"wall_not_registered"}
@@ -193,6 +219,7 @@ func break_for_wall(wall: RigidBody3D) -> Dictionary:
 		var row: Dictionary=_panes[id]
 		if row.wall.get_ref()!=wall: continue
 		_sync_one(row,wall)
+		_lose_pane_support(row)
 		if _enqueue(row,row.mesh.global_position,row.mesh.global_basis.z,20.0,"wall_release"): queued+=1
 	return {"ok":true,"queued":queued}
 
@@ -201,11 +228,14 @@ func break_all() -> Dictionary:
 	sync_moving_panes()
 	var queued:=0
 	for row: Dictionary in _panes.values():
+		_lose_pane_support(row)
 		if _enqueue(row,row.mesh.global_position,row.mesh.global_basis.z,20.0,"full_house"): queued+=1
 	return {"ok":true,"queued":queued}
 
 func _sync_one(row: Dictionary, wall: RigidBody3D) -> void:
-	if row.broken or wall.get_meta("detached",false) or not wall.freeze or wall.global_transform==row.wall_frame: return
+	# A fractured pane's retained Walk rim still belongs to an intact moving
+	# door. It follows that door until structural support is explicitly lost.
+	if row.support_lost or wall.get_meta("detached",false) or not wall.freeze or wall.global_transform==row.wall_frame: return
 	if not _rigid(wall.global_transform): return
 	row.body.global_transform=wall.global_transform*row.wall_local
 	row.frame=row.body.global_transform; row.wall_frame=wall.global_transform
@@ -229,11 +259,14 @@ func _on_fractured(receipt: Dictionary) -> void:
 	row.body.collision_layer=0; row.body.collision_mask=0
 	for child: Node in row.body.get_children():
 		if child is CollisionShape3D: child.set_deferred("disabled",true)
+	if row.support_lost: _retire_pane_visual(row)
 
 func _on_rejected(receipt: Dictionary) -> void:
 	var mesh: Variant=receipt.get("object")
 	if _disposed or not is_instance_valid(mesh) or not _meshes.has(mesh.get_instance_id()): return
-	_panes[_meshes[mesh.get_instance_id()]].pending=false; _rejected+=1
+	var row: Dictionary=_panes[_meshes[mesh.get_instance_id()]]
+	row.pending=false; _rejected+=1
+	if row.support_lost: _retire_pane_visual(row)
 
 func _physics_process(dt: float) -> void:
 	if not _current():
@@ -247,13 +280,13 @@ func _physics_process(dt: float) -> void:
 	_glass.advance(dt)
 
 func stats() -> Dictionary:
-	return {"ready":_current(),"source_id":_source_id,"generation":_generation,"panes":_panes.size(),"broken":_broken,"queued":_queue.size(),"rejected":_rejected,"walk":_glass.stats() if is_instance_valid(_glass) else {},"shard_slots_per_site":SHARDS_PER_SITE,"maximum_live_helpers":MAX_HELPERS,"maximum_total_shard_slots":MAX_HELPERS*SHARDS_PER_SITE}
+	return {"ready":_current(),"source_id":_source_id,"generation":_generation,"panes":_panes.size(),"broken":_broken,"queued":_queue.size(),"rejected":_rejected,"support_lost":_support_lost,"retired_pane_visuals":_retired_visuals,"walk":_glass.stats() if is_instance_valid(_glass) else {},"shard_slots_per_site":SHARDS_PER_SITE,"maximum_live_helpers":MAX_HELPERS,"maximum_total_shard_slots":MAX_HELPERS*SHARDS_PER_SITE}
 
 func dispose() -> void:
 	if _disposed: return
 	_disposed=true; set_physics_process(false); _queue.clear()
 	for row: Dictionary in _panes.values():
-		if is_instance_valid(row.body): row.body.collision_layer=0; row.body.collision_mask=0
+		if is_instance_valid(row.body): row.body.collision_layer=0; row.body.collision_mask=0; row.body.hide()
 	if is_instance_valid(_glass): _glass.dispose()
 	_helpers.erase(get_instance_id()); _events.clear()
 	if is_inside_tree(): queue_free()
