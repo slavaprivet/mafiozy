@@ -20,6 +20,15 @@ function Resolve-CurrentFile([string]$Relative) {
 function Assert-CurrentHash([string]$Path, [string]$Expected) {
     if ((Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Expected) { throw "Verified release changed: $Path" }
 }
+function Assert-CurrentF5Route {
+    $currentProject = Resolve-CurrentFile 'godot/mafiozi_walk/project.godot'
+    $currentForwardScene = Resolve-CurrentFile 'godot/mafiozi_walk/scenes/current_version_launcher.tscn'
+    $currentForwardScript = Resolve-CurrentFile 'godot/mafiozi_walk/scripts/current_version_launcher.gd'
+    if ((Get-Content -LiteralPath $currentProject -Raw -Encoding UTF8) -notmatch '(?m)^run/main_scene="res://scenes/current_version_launcher\.tscn"\s*$') { throw 'F5 no longer points to the current-version launcher.' }
+    if ((Get-Content -LiteralPath $currentForwardScene -Raw -Encoding UTF8) -notmatch 'path="res://scripts/current_version_launcher\.gd"') { throw 'F5 forwarding scene is disconnected.' }
+    if ((Get-Content -LiteralPath $currentForwardScript -Raw -Encoding UTF8) -notmatch 'tools/godot/launch_current_game\.ps1') { throw 'F5 no longer resolves the shared current-version pointer.' }
+    return $currentProject
+}
 try {
     # F5's small forwarding scene exits before the real game is created.
     if ($FromGodotPid -gt 0) {
@@ -42,8 +51,10 @@ try {
     $currentEngine = Join-Path $env:LOCALAPPDATA 'MafioziTools/Godot-4.7.2/Godot_v4.7.2-stable_win64.exe'
     Assert-CurrentHash $currentEngine $currentRelease.engine_sha256
     if ($CheckOnly) {
+        $currentF5Project = Assert-CurrentF5Route
         foreach ($currentPin in $currentManifest.source_pins.PSObject.Properties) { Assert-CurrentHash (Join-Path $currentGameDir $currentPin.Name) $currentPin.Value }
         Write-Output ('CURRENT_READY ' + $currentRelease.revision + ' / ' + $currentRelease.title)
+        Write-Output ('F5_READY ' + $currentF5Project)
         exit 0
     }
     $currentMutex = [Threading.Mutex]::new($false, 'Local\MafioziUnifiedPreviewLaunch')
