@@ -88,7 +88,7 @@ try {
     $currentProcess.Refresh()
     $currentReady = if (Test-Path -LiteralPath $currentReadyPath) { Get-Content -LiteralPath $currentReadyPath -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
     [string]$currentErrorText = if (Test-Path -LiteralPath $currentErr) { Get-Content -LiteralPath $currentErr -Raw -Encoding UTF8 } else { '' }
-    $currentReceipt.ready = ($null -ne $currentReady -and $currentReady.ok -eq $true -and -not $currentProcess.HasExited -and $currentProcess.Responding -and [string]::IsNullOrWhiteSpace($currentErrorText))
+    $currentReceipt.ready = ($null -ne $currentReady -and $currentReady.ok -eq $true -and [string]$currentReady.revision -ceq [string]$currentRelease.revision -and -not $currentProcess.HasExited -and $currentProcess.Responding -and [string]::IsNullOrWhiteSpace($currentErrorText))
     $currentReceipt.window_handle = if ($currentProcess.HasExited) { 0 } else { $currentProcess.MainWindowHandle.ToInt64() }
     $currentReceipt.bootstrap = $currentReady
     $currentReceipt | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $currentRun 'OPENED.json') -Encoding UTF8
