@@ -1,0 +1,68 @@
+{
+  "schema": "mafiozi.checkpoint-v2-review/v1",
+  "status": "NATIVE_READONLY_PASS_NOT_RESTORE",
+  "checks": 127,
+  "run_sha256": "1481310f5a6b7d12d04eaa7868697b978e1c6a1c210e336639f4bbef35a1bcaf",
+  "result_sha256": "c4b0e0cd6f8554fa2986ca499e3722a056a458c3df5e2dc59eab42db98effdbb",
+  "helper_sha256": "217669b4fb6782e745e584dadf69aa6c7bff0af733c4924e8da6d6de4d4bb11b",
+  "fixture_sha256": "d89ce0dc22fb1fabdc7d78f229bfca1983da1799e22bb491d72e74245ac70370",
+  "native_seconds": 11.14138020016253,
+  "stderr_bytes": 0,
+  "source_pins_verified_per_game": 486,
+  "phases": [
+    {
+      "label": "initial",
+      "items": 14,
+      "ammo_total": 896.0
+    },
+    {
+      "label": "spent",
+      "items": 14,
+      "ammo_total": 895.0
+    },
+    {
+      "label": "reloading",
+      "items": 14,
+      "ammo_total": 895.0
+    },
+    {
+      "label": "settled_after_reload",
+      "items": 14,
+      "ammo_total": 895.0
+    },
+    {
+      "label": "ground",
+      "items": 14,
+      "ammo_total": 895.0
+    },
+    {
+      "label": "picked_up",
+      "items": 14,
+      "ammo_total": 895.0
+    },
+    {
+      "label": "cargo",
+      "items": 14,
+      "ammo_total": 895.0
+    },
+    {
+      "label": "taken",
+      "items": 14,
+      "ammo_total": 895.0
+    }
+  ],
+  "capture_us": [
+    3009,
+    3220,
+    3535,
+    3971,
+    3749,
+    3653,
+    3559,
+    3509
+  ],
+  "production_accepted": false,
+  "performance_accepted": false,
+  "restore_implemented": false,
+  "server_grants": 0
+}

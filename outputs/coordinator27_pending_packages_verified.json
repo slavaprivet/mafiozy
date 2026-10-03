@@ -1,0 +1,31 @@
+{
+  "production_promoted": false,
+  "packages": [
+    {
+      "package": "coordinator27_dive_cap48_native",
+      "pins_verified": 35,
+      "freeze_sha256": "1ebab8c9f4b8703f8c9623e042ce805a91319bde02eb438052a0a93bcd04dd6d"
+    },
+    {
+      "package": "coordinator27_step48_visual",
+      "pins_verified": 72,
+      "freeze_sha256": "3cecea939c0dc4f422b93272138650c1d951597ea968886f4ded8df21485389e"
+    },
+    {
+      "package": "coordinator27_c4_pose48_native",
+      "pins_verified": 37,
+      "freeze_sha256": "dbec9a601849897d345ae20e6f2153f9d9064c08bbbffd5f430ecff3a49adbe6"
+    },
+    {
+      "package": "coordinator27_weapon_checkpoint",
+      "pins_verified": 49,
+      "freeze_sha256": "f5c5b363bcf6327661b20a9f5aa7a4abf9a927cb4296e3639e8d7abb75e958ad"
+    },
+    {
+      "package": "coordinator27_weapon_checkpoint_v2",
+      "pins_verified": 79,
+      "freeze_sha256": "9bed6c38d5230ea777ba95e2f63648b8ea2d4dc3844a80bcc5e4c85af441e6ad"
+    }
+  ],
+  "dive_patch_sha256": "93a4e9fad1f5d91a57d3463ee51b7f1066a3e6dccc3acc1bfc3c61a5d11e2858"
+}

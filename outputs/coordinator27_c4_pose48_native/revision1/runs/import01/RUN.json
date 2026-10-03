@@ -1,0 +1,187 @@
+{
+  "status": "PASS",
+  "kind": "import",
+  "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\ASSEMBLY.json",
+  "assembly_sha256": "058c799f42bb457acc6628307b9d6e28d2f1288e8448ebf0fa86587d3e2905fb",
+  "runner_sha256": "e81a6bd9f16af3bfda43ab3ffdc15b64523a89be04d465559baa3e5bd146ad63",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scheduler_sha256": "6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9",
+  "source_pin_count": 489,
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game",
+    "--editor",
+    "--import",
+    "--quit"
+  ],
+  "hard_timeout_seconds": 90,
+  "inventory_before": [
+    {
+      "pid": 25808,
+      "parent_pid": 45416,
+      "creation_filetime": "134354639115733549",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+    },
+    {
+      "pid": 34540,
+      "parent_pid": 35164,
+      "creation_filetime": "134354713729615269",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+    }
+  ],
+  "external_processes_stopped": false,
+  "performance_accepted": false,
+  "gpu_used": false,
+  "lease": {
+    "id": "ed8e3eb95f904beb9956361e2c6ed61f",
+    "owner": {
+      "pid": 4416,
+      "creation_filetime": "134354742133266416"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game",
+    "access": "write",
+    "children": [
+      {
+        "pid": 18568,
+        "creation_filetime": "134354742179771739",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game --editor --import --quit",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game",
+          "--editor",
+          "--import",
+          "--quit"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1320637.3048088,
+    "ticket": 301,
+    "inventory_before": [
+      {
+        "pid": 25808,
+        "parent_pid": 45416,
+        "creation_filetime": "134354639115733549",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+      },
+      {
+        "pid": 34540,
+        "parent_pid": 35164,
+        "creation_filetime": "134354713729615269",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+      }
+    ],
+    "editor_identities": [
+      [
+        25808,
+        "134354639115733549",
+        "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+        "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe"
+      ]
+    ]
+  },
+  "inventory_at_launch": [
+    {
+      "pid": 25808,
+      "parent_pid": 45416,
+      "creation_filetime": "134354639115733549",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+    },
+    {
+      "pid": 34540,
+      "parent_pid": 35164,
+      "creation_filetime": "134354713729615269",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+    }
+  ],
+  "child": {
+    "pid": 18568,
+    "creation_filetime": "134354742179771739",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game --editor --import --quit",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game",
+      "--editor",
+      "--import",
+      "--quit"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 8.548526499886066,
+  "changed_source_files": [],
+  "added_source_files": [
+    "scripts/destruction/palazzo/blast45_plume.gdshader.uid",
+    "scripts/destruction/palazzo/blast45_wave.gdshader.uid",
+    "scripts/destruction/palazzo/blast_fx45.gd.uid",
+    "scripts/destruction/palazzo/c4_device_icon43.gd.uid",
+    "scripts/destruction/palazzo/c4_icon_cache43.gd.uid",
+    "scripts/destruction/palazzo/c4_placement_query45.gd.uid",
+    "scripts/destruction/palazzo/c4_pose44.gd.uid",
+    "scripts/destruction/palazzo/c4_surface_owner45.gd.uid",
+    "scripts/destruction/palazzo/c4_visuals.gd.uid",
+    "scripts/destruction/palazzo/icons/c4_package43.png.import",
+    "scripts/destruction/palazzo/icons/c4_remote43.png.import",
+    "scripts/destruction/palazzo/palazzo_foundation12_site.gd.uid",
+    "tests/c4_pose48/c4_base.gd.uid",
+    "tests/c4_pose48/pose_test.gd.uid"
+  ],
+  "stderr_bytes": 0,
+  "engine_errors": [],
+  "imported_assembly_sha256": "b363b9f710627327d4d39156aea5784e16820e158eb5d5dfbebf439baaab8a1b",
+  "inventory_after": [
+    {
+      "pid": 25808,
+      "parent_pid": 45416,
+      "creation_filetime": "134354639115733549",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+    },
+    {
+      "pid": 34540,
+      "parent_pid": 35164,
+      "creation_filetime": "134354713729615269",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+      "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "captures": [],
+  "inherited_boundary_errors": [
+    "bounded vertical rise 3"
+  ],
+  "post_player_physics_samples": [],
+  "rendering": "forward_plus",
+  "runtime_modified": false,
+  "sampling_assumptions": [
+    {
+      "label": "per-tick serial and native displacement 0",
+      "original_value": true
+    },
+    {
+      "label": "per-tick serial and native displacement 1",
+      "original_value": true
+    },
+    {
+      "label": "per-tick serial and native displacement 2",
+      "original_value": true
+    },
+    {
+      "label": "per-tick serial and native displacement 3",
+      "original_value": true
+    }
+  ],
+  "scope": "Actual imported hero and original player on artificial 106/120 mm component lanes. Not current-world passage, OS-input or performance acceptance."
+}

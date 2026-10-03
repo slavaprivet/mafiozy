@@ -1,0 +1,8 @@
+{
+  "base_package": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_weapon_checkpoint",
+  "base_helper_sha256": "e65542131d9988a6499faa49b40a72870f3090a8e6ab1c9c5a8c989e74caf02e",
+  "new_helper_sha256": "217669b4fb6782e745e584dadf69aa6c7bff0af733c4924e8da6d6de4d4bb11b",
+  "scope": "Read-only checkpoint codec correction; same existing private unchanged486 game; reserved float tag exclusion and safe integer domain",
+  "production_changed": false,
+  "latest_run": "runs/native05"
+}

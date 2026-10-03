@@ -1,0 +1,132 @@
+--- accepted43/scripts/preview_player.gd
++++ proposal44/scripts/preview_player.gd
+@@ -67,6 +67,13 @@
+ var _jump_physics_visible: bool = true
+ var _source_falling: bool = false
+ var _hit_pose_decorator: Callable
++signal equipment_pose_applied(receipt: Dictionary)
++const EQUIPMENT_FRAME_NAMES := ["right_socket","left_socket","right_shoulder","right_elbow","left_shoulder","left_elbow"]
++var _equipment_pose_decorator: Callable
++var _equipment_pose_pending: Dictionary={}
++var _equipment_pose_receipt: Dictionary={}
++var _equipment_pose_before_revision := -1
++var _equipment_pose_source_frame := -1
+ var _melee_practice: Node
+ var _weapon_host: Node
+ var _corpse_contact_sampler: RefCounted
+@@ -705,6 +712,7 @@
+ 
+ 
+ func _update_owned_pose(delta: float) -> void:
++	_equipment_pose_pending={}
+ 	if _pose_authority != &"on_foot" or _locomotion == null or not is_instance_valid(_pose_skeleton):
+ 		return
+ 	var expected_epoch := _pose_epoch
+@@ -730,9 +738,85 @@
+ 	if is_instance_valid(_weapon_host):
+ 		selected = _weapon_host.decorate(selected)
+ 	if is_instance_valid(_melee_practice) and (not is_instance_valid(_weapon_host) or not _weapon_host.armed()): selected = _melee_practice.decorate(selected,delta)
++	selected=_decorate_equipment_pose(delta, selected)
+ 	selected=_decorate_hit_pose(delta, selected)
+ 	if is_instance_valid(_weapon_host): selected=_weapon_host.finish_pose(selected)
+ 	_apply_selected_pose(selected, expected_epoch)
++
++
++# Root-owned proposal only. No callback runs inside the sole writer.
++func set_equipment_pose_decorator(next: Callable, expected: Callable = Callable()) -> bool:
++	if not Thread.is_main_thread(): return false
++	if not _equipment_pose_decorator.is_valid(): _equipment_pose_decorator=Callable()
++	if _equipment_pose_decorator!=expected: return false
++	_equipment_pose_decorator=next; _equipment_pose_pending={}; _equipment_pose_receipt={}
++	return true
++
++func equipment_pose_owner_is(owner: Callable) -> bool:
++	return owner.is_valid() and _equipment_pose_decorator==owner
++
++func equipment_pose_allowed() -> bool:
++	if not Thread.is_main_thread() or not is_inside_tree() or is_queued_for_deletion(): return false
++	if _pose_authority!=&"on_foot" or not is_on_floor() or _source_falling or not _jump.is_empty() or not _jump_pose.is_empty(): return false
++	if not is_instance_valid(_pose_skeleton) or not is_instance_valid(_pose_motion): return false
++	if not _pose_skeleton.is_inside_tree() or _pose_skeleton.is_queued_for_deletion() or not _pose_motion.is_inside_tree() or _pose_motion.is_queued_for_deletion(): return false
++	if not is_ancestor_of(_pose_motion) or not _pose_motion.is_ancestor_of(_pose_skeleton): return false
++	if is_instance_valid(_weapon_host) and _weapon_host.armed(): return false
++	# A post-writer engine socket cannot attest a later SkeletonModifier result.
++	# This proposal deliberately fails closed rather than claiming rendered skin.
++	for child: Node in _pose_skeleton.get_children():
++		if child is SkeletonModifier3D and child.active and child.influence>0.0: return false
++	return true
++
++func _decorate_equipment_pose(delta: float, selected: Dictionary) -> Dictionary:
++	_equipment_pose_pending={}
++	if not _equipment_pose_decorator.is_valid() or not equipment_pose_allowed() or selected.has("melee"): return selected
++	var owner: Callable=_equipment_pose_decorator
++	var result: Variant=owner.call(delta,selected)
++	if not result is Dictionary or not result.get("valid",false) or not result.get("equipment_pose") is Dictionary: return selected
++	var marker: Dictionary=result.equipment_pose
++	if not marker.is_read_only() or marker.get("owner_id")!=owner.get_object_id() or not equipment_pose_owner_is(owner): return selected
++	_equipment_pose_pending=marker
++	_equipment_pose_before_revision=_pose_revision
++	_equipment_pose_source_frame=Engine.get_physics_frames()
++	return result
++
++func _publish_equipment_pose(selected: Dictionary) -> void:
++	var pending: Dictionary=_equipment_pose_pending
++	_equipment_pose_pending={}
++	# The existing hit sink deep-copies selected dictionaries. Its copied value
++	# must be unchanged, but the published request remains the ORIGINAL marker.
++	# Only this synchronous CAS-owned sample may reach here at revision + 1.
++	if pending.is_empty() or pending!=selected.get("equipment_pose") or not equipment_pose_allowed() or selected.has("melee"): return
++	if not _equipment_pose_decorator.is_valid() or pending.get("owner_id")!=_equipment_pose_decorator.get_object_id(): return
++	if _pose_revision!=_equipment_pose_before_revision+1 or Engine.get_physics_frames()!=_equipment_pose_source_frame: return
++	var native: Variant=get_meta(MELEE_POSE_RECEIPT,null)
++	if not native is Dictionary or not native.is_read_only(): return
++	if pending.get("actor_id")!=native.actor_id or pending.get("life_generation")!=native.life_generation or pending.get("pose_epoch")!=native.pose_epoch: return
++	var frames: Dictionary={}
++	for name: String in EQUIPMENT_FRAME_NAMES:
++		var bone: Variant=pending.get(name)
++		if not bone is int or bone<0 or bone>=_pose_skeleton.get_bone_count(): return
++		var frame: Transform3D=_pose_skeleton.global_transform*_pose_skeleton.get_bone_global_pose(bone)
++		if not frame.is_finite(): return
++		frames[name]=frame
++	frames.make_read_only()
++	_equipment_pose_receipt={"request":pending,"native_receipt":native,"actor_id":native.actor_id,"life_generation":native.life_generation,"pose_epoch":_pose_epoch,"pose_revision":_pose_revision,"physics_frame":Engine.get_physics_frames(),"actor_world":global_transform,"rig_world":_pose_skeleton.global_transform,"frames":frames}
++	_equipment_pose_receipt.make_read_only()
++	# Read-only completion after stance, equipment, hit, floor and sole writer.
++	equipment_pose_applied.emit(_equipment_pose_receipt)
++
++func current_equipment_pose_receipt() -> Dictionary:
++	if _equipment_pose_receipt.is_empty() or not equipment_pose_allowed(): return {}
++	var row: Dictionary=_equipment_pose_receipt
++	var request: Dictionary=row.request
++	if not _equipment_pose_decorator.is_valid() or request.owner_id!=_equipment_pose_decorator.get_object_id(): return {}
++	if row.actor_id!=get_meta("actor_id",null) or row.life_generation!=get_meta("life_generation",null): return {}
++	if row.pose_epoch!=_pose_epoch or row.pose_revision!=_pose_revision or row.physics_frame!=Engine.get_physics_frames(): return {}
++	if not is_same(row.native_receipt,get_meta(MELEE_POSE_RECEIPT,null)) or row.actor_world!=global_transform or row.rig_world!=_pose_skeleton.global_transform: return {}
++	for name: String in EQUIPMENT_FRAME_NAMES:
++		if row.frames[name]!=_pose_skeleton.global_transform*_pose_skeleton.get_bone_global_pose(request[name]): return {}
++	return row
+ 
+ 
+ func set_hit_pose_decorator(decorator: Callable) -> bool:
+@@ -769,7 +853,7 @@
+ 		if not frame is Transform3D or not frame.is_finite(): return false
+ 	var poses: Array[Transform3D] = []
+ 	poses.assign(selected["poses"])
+-	var affine := selected.has("melee") or selected.has("weapon") or selected.has("weapon_posture")
++	var affine := selected.has("melee") or selected.has("weapon") or selected.has("weapon_posture") or selected.has("equipment_pose")
+ 	if not affine: _clear_affine_pose()
+ 	for bone: int in range(poses.size()):
+ 		_pose_skeleton.set_bone_pose(bone, poses[bone])
+@@ -796,10 +880,12 @@
+ 			receipt.make_read_only()
+ 			set_meta(MELEE_POSE_RECEIPT, receipt)
+ 	if is_instance_valid(_weapon_host): _weapon_host.after_pose_applied(selected)
++	_publish_equipment_pose(selected)
+ 	return true
+ 
+ 
+ func _invalidate_pose_receipt() -> void:
++	_equipment_pose_receipt={}
+ 	if has_meta(MELEE_POSE_RECEIPT): remove_meta(MELEE_POSE_RECEIPT)
+ 
+ 

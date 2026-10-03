@@ -1,0 +1,482 @@
+{
+	"adapter_native_headless": true,
+	"checks": 34,
+	"elapsed_usec": 12472351,
+	"evidence": {
+		"aim": {
+			"camera": "[X: (-0.0, -0.0, 1.0), Y: (0.221386, 0.975186, 0.0), Z: (-0.975186, 0.221386, -0.0), O: (39.68747, 2.864595, -3.78)]",
+			"floor": true,
+			"mouse_mode": 0,
+			"owner_target": true,
+			"player": "(44.68, 0.091191, -3.78)",
+			"ray_collider": "Facade4:<RigidBody3D#85781907966>",
+			"ray_point": "(45.33, 1.583631, -3.78)",
+			"target": "(45.33, 1.57, -3.78)"
+		},
+		"cancel_2_9": {
+			"after": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 0.0,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": false,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {},
+				"last_pose44_rejection": "",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "place",
+				"owner_killed": false,
+				"placed": [],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": -1,
+					"holding": false,
+					"last_reason": "awaiting_post_writer",
+					"left_hand_error_m": 1e99999,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 141,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 1,
+					"right_hand_error_m": 1e99999,
+					"sample_serial": 175,
+					"samples": 174,
+					"tool_angle_radians": 1e99999
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 177,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.816181123256683,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00729605043306947
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 177,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 1,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 0,
+					"rejected": 0
+				}
+			},
+			"before_count": 0,
+			"held": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 2.91666666666666,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": true,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {},
+				"last_pose44_rejection": "",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "place",
+				"owner_killed": false,
+				"placed": [],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": -1,
+					"holding": true,
+					"last_reason": "awaiting_post_writer",
+					"left_hand_error_m": 0.175088003277779,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 141,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 1,
+					"right_hand_error_m": 0.175884678959847,
+					"sample_serial": 175,
+					"samples": 174,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 177,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.816181123256683,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00729605043306947
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 177,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 0,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 0,
+					"rejected": 0
+				}
+			},
+			"release_frame": 287,
+			"seconds": 2.91666666666667,
+			"start_frame": 112
+		},
+		"complete_3s": {
+			"after": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 0.0,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": false,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {},
+				"last_pose44_rejection": "actual_hands_cannot_reach",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "place",
+				"owner_killed": false,
+				"placed": [],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": -1,
+					"holding": false,
+					"last_reason": "actual_hands_cannot_reach",
+					"left_hand_error_m": 1e99999,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 180,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 2,
+					"right_hand_error_m": 1e99999,
+					"sample_serial": 356,
+					"samples": 355,
+					"tool_angle_radians": 1e99999
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 362,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.815474510192871,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00727564143016934
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 362,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 2,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 0,
+					"rejected": 0
+				}
+			},
+			"before_count": 0,
+			"held": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 0.0,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": false,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {},
+				"last_pose44_rejection": "actual_hands_cannot_reach",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "place",
+				"owner_killed": false,
+				"placed": [],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": -1,
+					"holding": false,
+					"last_reason": "actual_hands_cannot_reach",
+					"left_hand_error_m": 1e99999,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 180,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 2,
+					"right_hand_error_m": 1e99999,
+					"sample_serial": 356,
+					"samples": 355,
+					"tool_angle_radians": 1e99999
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": true,
+				"target_query": {
+					"counts": {
+						"accepted": 362,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.815474510192871,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00727564143016934
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 362,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 2,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 0,
+					"rejected": 0
+				}
+			},
+			"release_frame": 492,
+			"seconds": 3.21666666666667,
+			"start_frame": 299
+		},
+		"final_equipment": {
+			"actor_id": "player",
+			"damage": 1920.0,
+			"damage_revision": 0,
+			"elapsed_seconds": 0.0,
+			"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+			"hold_seconds": 3.0,
+			"holding": false,
+			"icons": {
+				"assets": [
+					"res://scripts/destruction/palazzo/icons/c4_package43.png",
+					"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+				],
+				"cached_textures": 2,
+				"load_count": 2,
+				"maximum_cached_textures": 2,
+				"ready": true,
+				"runtime_viewports": 0,
+				"source": "one-time render of C4Visuals.make_device"
+			},
+			"last_placement_pose44": {},
+			"last_pose44_rejection": "actual_hands_cannot_reach",
+			"life_generation": 1,
+			"maximum_placed": 8,
+			"mode": "place",
+			"owner_killed": false,
+			"placed": [],
+			"placement_scope": "near_aimed_physical_scenery",
+			"presentation": {
+				"consumed_serial": -1,
+				"holding": false,
+				"last_reason": "actual_hands_cannot_reach",
+				"left_hand_error_m": 1e99999,
+				"loaded_scene_performance": "unverified",
+				"max_decorate_usec": 180,
+				"maximum_completion_arm_rays": 4,
+				"ready": true,
+				"rendered_skin_verified": false,
+				"request_serial": 2,
+				"right_hand_error_m": 1e99999,
+				"sample_serial": 356,
+				"samples": 355,
+				"tool_angle_radians": 1e99999
+			},
+			"radius": 3.2,
+			"ready": true,
+			"requires_release": false,
+			"target_query": {
+				"counts": {
+					"accepted": 362,
+					"actor_inside_surface": 0,
+					"actor_los_blocked": 0,
+					"actor_los_empty": 0,
+					"camera_inside_surface": 0,
+					"camera_missing": 0,
+					"different_surface_contact": 0,
+					"inactive": 0,
+					"invalid_contact": 0,
+					"invalid_query": 0,
+					"no_surface": 0,
+					"ready": 0,
+					"too_far": 0,
+					"unsupported_surface": 0
+				},
+				"horizontal_reach_m": 2.0,
+				"last": {
+					"collider_id": 85781907966,
+					"distance_m": 0.815474510192871,
+					"ray_count": 2,
+					"reason": "accepted",
+					"reticle_error_m": 0.00727564143016934
+				},
+				"maximum_history_entries": 0,
+				"maximum_rays_per_query": 2,
+				"queries": 362,
+				"reach_m": 2.5
+			},
+			"totals": {
+				"cancelled": 2,
+				"detonated": 0,
+				"disarmed": 0,
+				"placed": 0,
+				"rejected": 0
+			}
+		},
+		"scope": {
+			"GPU_skin_contact_acceptance": "NOT_RUN_MANUAL_SCREENSHOT_REVIEW_REQUIRED",
+			"all_surface_inside_outside_window": "NOT_RUN_SEPARATE_QUERY_FIXTURE",
+			"floor_or_kneel_reach": "NOT_RUN_NO_AUTHORED_LOW_POSE",
+			"native_damage_death_cancellation": "NOT_RUN_NATIVE_HP_PRODUCER_UNWIRED",
+			"occluded_limb_volume": "NOT_RUN_ONLY_CENTRE_RAY_GUARDS",
+			"real_hit_deflection": "NOT_RUN",
+			"result_claim": "Passing this fixture covers listed native receipt/input cases only. It is not full C4, combat, floor or rendered-skin acceptance.",
+			"suite": "C4_POST_WRITER44",
+			"world_performance": "NOT_RUN"
+		},
+		"screenshots": {
+			"arsenal": {
+				"reason": "--palazzo-headless or headless display",
+				"skipped": true
+			}
+		}
+	},
+	"failures": [
+		"actual held LMB creates exactly one item after actual hand reach"
+	],
+	"loaded_scene_performance_accepted": false,
+	"native_incoming_damage_death_tested": false,
+	"native_scene": "res://scenes/main.tscn",
+	"rendered_skin_contact_accepted": false,
+	"root_blast_callback_exercised": false,
+	"status": "FAIL",
+	"suite": "C4_POST_WRITER44",
+	"synthetic_positive_damage_or_hand_receipt": false
+}

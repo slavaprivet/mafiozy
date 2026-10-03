@@ -1,0 +1,792 @@
+{
+	"adapter_native_headless": true,
+	"checks": 56,
+	"elapsed_usec": 16753088,
+	"evidence": {
+		"aim": {
+			"camera": "[X: (-0.055781, -0.0, 0.998443), Y: (0.394322, 0.918709, 0.02203), Z: (-0.917278, 0.394936, -0.051246), O: (40.08698, 3.51257, -4.072976)]",
+			"floor": true,
+			"mouse_mode": 0,
+			"owner_target": true,
+			"player": "(44.78305, 0.090665, -3.810616)",
+			"ray_collider": "Facade4:<RigidBody3D#85781907966>",
+			"ray_point": "(45.33, 1.255172, -3.780059)",
+			"target": "(45.33, 1.27, -3.78)"
+		},
+		"body_after_hold48": {
+			"actor_id": "player",
+			"actor_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+			"authority": "on_foot",
+			"capsule_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.95, 0.0)]",
+			"capsule_node": 264727702567,
+			"capsule_shape": -9223371772143850458,
+			"disabled": false,
+			"epoch": 1,
+			"height": 1.89999997615814,
+			"layer": 2,
+			"life_generation": 1,
+			"mask": 1025,
+			"radius": 0.300000011920929
+		},
+		"body_before_hold48": {
+			"actor_id": "player",
+			"actor_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+			"authority": "on_foot",
+			"capsule_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.95, 0.0)]",
+			"capsule_node": 264727702567,
+			"capsule_shape": -9223371772143850458,
+			"disabled": false,
+			"epoch": 1,
+			"height": 1.89999997615814,
+			"layer": 2,
+			"life_generation": 1,
+			"mask": 1025,
+			"radius": 0.300000011920929
+		},
+		"body_crouch48": {
+			"actor_id": "player",
+			"actor_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+			"authority": "on_foot",
+			"capsule_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.845, 0.0)]",
+			"capsule_node": 264727702567,
+			"capsule_shape": -9223371772143850458,
+			"disabled": false,
+			"epoch": 1,
+			"height": 1.69000005722046,
+			"layer": 2,
+			"life_generation": 1,
+			"mask": 1025,
+			"radius": 0.300000011920929
+		},
+		"cancel_2_9": {
+			"after": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 0.0,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": false,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {},
+				"last_pose44_rejection": "",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "place",
+				"owner_killed": false,
+				"placed": [],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": -1,
+					"holding": false,
+					"last_reason": "awaiting_post_writer",
+					"left_hand_error_m": 1e99999,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 131,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 1,
+					"right_hand_error_m": 1e99999,
+					"sample_serial": 175,
+					"samples": 174,
+					"tool_angle_radians": 1e99999
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 177,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.581106245517731,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00276958453468978
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 177,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 1,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 0,
+					"rejected": 0
+				}
+			},
+			"before_count": 0,
+			"held": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 2.91666666666666,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": true,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {},
+				"last_pose44_rejection": "",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "place",
+				"owner_killed": false,
+				"placed": [],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": -1,
+					"holding": true,
+					"last_reason": "awaiting_post_writer",
+					"left_hand_error_m": 0.000000429815202096506,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 131,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 1,
+					"right_hand_error_m": 0.00674156192690134,
+					"sample_serial": 175,
+					"samples": 174,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 177,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.581106245517731,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00276958453468978
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 177,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 0,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 0,
+					"rejected": 0
+				}
+			},
+			"release_frame": 321,
+			"seconds": 2.91666666666667,
+			"start_frame": 146
+		},
+		"complete_3s": {
+			"after": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 0.0,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": false,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {
+					"actual_frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+					"left_hand_error_m": 0.000000238418579101563,
+					"ok": true,
+					"physics_frame": 515,
+					"pose_revision": 514,
+					"request_serial": 2,
+					"right_hand_error_m": 0.00666054338216782,
+					"sample_serial": 356,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"last_pose44_rejection": "",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "remote",
+				"owner_killed": false,
+				"placed": [
+					{
+						"id": "c4:435502989859:1",
+						"source_id": "PALAZZO-SHOWCASE-001",
+						"valid": true,
+						"world_position": "(45.285, 1.283483, -3.780972)"
+					}
+				],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": 2,
+					"holding": false,
+					"last_reason": "actual_reach_consumed",
+					"left_hand_error_m": 1e99999,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 131,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 2,
+					"right_hand_error_m": 1e99999,
+					"sample_serial": 356,
+					"samples": 355,
+					"tool_angle_radians": 1e99999
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 362,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.580704271793365,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00275080441497266
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 362,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 1,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 1,
+					"rejected": 0
+				}
+			},
+			"before_count": 0,
+			"held": {
+				"actor_id": "player",
+				"damage": 1920.0,
+				"damage_revision": 0,
+				"elapsed_seconds": 0.0,
+				"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+				"hold_seconds": 3.0,
+				"holding": false,
+				"icons": {
+					"assets": [
+						"res://scripts/destruction/palazzo/icons/c4_package43.png",
+						"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+					],
+					"cached_textures": 2,
+					"load_count": 2,
+					"maximum_cached_textures": 2,
+					"ready": true,
+					"runtime_viewports": 0,
+					"source": "one-time render of C4Visuals.make_device"
+				},
+				"last_placement_pose44": {
+					"actual_frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+					"left_hand_error_m": 0.000000238418579101563,
+					"ok": true,
+					"physics_frame": 515,
+					"pose_revision": 514,
+					"request_serial": 2,
+					"right_hand_error_m": 0.00666054338216782,
+					"sample_serial": 356,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"last_pose44_rejection": "",
+				"life_generation": 1,
+				"maximum_placed": 8,
+				"mode": "remote",
+				"owner_killed": false,
+				"placed": [
+					{
+						"id": "c4:435502989859:1",
+						"source_id": "PALAZZO-SHOWCASE-001",
+						"valid": true,
+						"world_position": "(45.285, 1.283483, -3.780972)"
+					}
+				],
+				"placement_scope": "near_aimed_physical_scenery",
+				"presentation": {
+					"consumed_serial": 2,
+					"holding": false,
+					"last_reason": "actual_reach_consumed",
+					"left_hand_error_m": 1e99999,
+					"loaded_scene_performance": "unverified",
+					"max_decorate_usec": 131,
+					"maximum_completion_arm_rays": 4,
+					"ready": true,
+					"rendered_skin_verified": false,
+					"request_serial": 2,
+					"right_hand_error_m": 1e99999,
+					"sample_serial": 356,
+					"samples": 355,
+					"tool_angle_radians": 1e99999
+				},
+				"radius": 3.2,
+				"ready": true,
+				"requires_release": false,
+				"target_query": {
+					"counts": {
+						"accepted": 362,
+						"actor_inside_surface": 0,
+						"actor_los_blocked": 0,
+						"actor_los_empty": 0,
+						"camera_inside_surface": 0,
+						"camera_missing": 0,
+						"different_surface_contact": 0,
+						"inactive": 0,
+						"invalid_contact": 0,
+						"invalid_query": 0,
+						"no_surface": 0,
+						"ready": 0,
+						"too_far": 0,
+						"unsupported_surface": 0
+					},
+					"horizontal_reach_m": 2.0,
+					"last": {
+						"collider_id": 85781907966,
+						"distance_m": 0.580704271793365,
+						"ray_count": 2,
+						"reason": "accepted",
+						"reticle_error_m": 0.00275080441497266
+					},
+					"maximum_history_entries": 0,
+					"maximum_rays_per_query": 2,
+					"queries": 362,
+					"reach_m": 2.5
+				},
+				"totals": {
+					"cancelled": 1,
+					"detonated": 0,
+					"disarmed": 0,
+					"placed": 1,
+					"rejected": 0
+				}
+			},
+			"release_frame": 526,
+			"seconds": 3.21666666666667,
+			"start_frame": 333
+		},
+		"final_equipment": {
+			"actor_id": "player",
+			"damage": 1920.0,
+			"damage_revision": 0,
+			"elapsed_seconds": 0.0,
+			"hand_contact_animation": "private_native_bone_pose48_not_gpu_accepted",
+			"hold_seconds": 3.0,
+			"holding": false,
+			"icons": {
+				"assets": [
+					"res://scripts/destruction/palazzo/icons/c4_package43.png",
+					"res://scripts/destruction/palazzo/icons/c4_remote43.png"
+				],
+				"cached_textures": 2,
+				"load_count": 2,
+				"maximum_cached_textures": 2,
+				"ready": true,
+				"runtime_viewports": 0,
+				"source": "one-time render of C4Visuals.make_device"
+			},
+			"last_placement_pose44": {
+				"actual_frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+				"left_hand_error_m": 0.000000238418579101563,
+				"ok": true,
+				"physics_frame": 515,
+				"pose_revision": 514,
+				"request_serial": 2,
+				"right_hand_error_m": 0.00666054338216782,
+				"sample_serial": 356,
+				"tool_angle_radians": 0.000690533954184502
+			},
+			"last_pose44_rejection": "native_pose_or_posture_changed",
+			"life_generation": 1,
+			"maximum_placed": 8,
+			"mode": "place",
+			"owner_killed": false,
+			"placed": [
+				{
+					"id": "c4:435502989859:1",
+					"source_id": "PALAZZO-SHOWCASE-001",
+					"valid": true,
+					"world_position": "(45.285, 1.283483, -3.780972)"
+				}
+			],
+			"placement_scope": "near_aimed_physical_scenery",
+			"presentation": {
+				"consumed_serial": 2,
+				"holding": false,
+				"last_reason": "awaiting_post_writer",
+				"left_hand_error_m": 1e99999,
+				"loaded_scene_performance": "unverified",
+				"max_decorate_usec": 131,
+				"maximum_completion_arm_rays": 4,
+				"ready": true,
+				"rendered_skin_verified": false,
+				"request_serial": 4,
+				"right_hand_error_m": 1e99999,
+				"sample_serial": 383,
+				"samples": 380,
+				"tool_angle_radians": 1e99999
+			},
+			"radius": 3.2,
+			"ready": true,
+			"requires_release": false,
+			"target_query": {
+				"counts": {
+					"accepted": 394,
+					"actor_inside_surface": 0,
+					"actor_los_blocked": 0,
+					"actor_los_empty": 0,
+					"camera_inside_surface": 0,
+					"camera_missing": 0,
+					"different_surface_contact": 0,
+					"inactive": 0,
+					"invalid_contact": 0,
+					"invalid_query": 0,
+					"no_surface": 0,
+					"ready": 0,
+					"too_far": 0,
+					"unsupported_surface": 0
+				},
+				"horizontal_reach_m": 2.0,
+				"last": {
+					"collider_id": 85781907966,
+					"distance_m": 0.571975886821747,
+					"ray_count": 2,
+					"reason": "accepted",
+					"reticle_error_m": 0.00277959718368948
+				},
+				"maximum_history_entries": 0,
+				"maximum_rays_per_query": 2,
+				"queries": 394,
+				"reach_m": 2.5
+			},
+			"totals": {
+				"cancelled": 3,
+				"detonated": 0,
+				"disarmed": 0,
+				"placed": 1,
+				"rejected": 0
+			}
+		},
+		"final_post_writer_samples48": [
+			{
+				"frame": 513,
+				"hold_serial": 2,
+				"left_goal": "(45.248, 1.265483, -3.865972)",
+				"motion_transform": "[X: (-0.0, 0.0, -1.0), Y: (0.0, 1.0, 0.0), Z: (1.0, 0.0, -0.0), O: (44.78305, 0.090665, -3.810616)]",
+				"native_frames": {
+					"left_elbow": "[X: (-0.158782, 0.061278, -0.326523), Y: (0.324196, 0.107649, -0.137448), Z: (0.072586, -0.346757, -0.100372), O: (44.97458, 1.180749, -3.776588)]",
+					"left_shoulder": "[X: (-0.190507, -0.265509, -0.169694), Y: (0.276477, -0.045714, -0.238861), Z: (0.151167, -0.250996, 0.22301), O: (44.77513, 1.213727, -3.604277)]",
+					"left_socket": "[X: (-0.0, -0.0, 0.368217), Y: (-0.0, 0.368217, 0.0), Z: (-0.368217, -0.0, -0.0), O: (45.248, 1.265483, -3.865972)]",
+					"right_elbow": "[X: (0.190163, 0.119244, -0.291895), Y: (0.29726, 0.045885, 0.212403), Z: (0.105159, -0.345339, -0.072568), O: (44.98676, 1.238199, -3.858014)]",
+					"right_shoulder": "[X: (0.071997, 0.329877, -0.146905), Y: (0.293355, 0.033923, 0.219946), Z: (0.210578, -0.160044, -0.256177), O: (44.77513, 1.213727, -4.01668)]",
+					"right_socket": "[X: (0.0, 0.0, 0.368217), Y: (-0.0, 0.368217, -0.0), Z: (-0.368217, -0.0, 0.0), O: (45.24266, 1.282766, -3.719887)]"
+				},
+				"native_posture": {
+					"blocked": false,
+					"crawl": false,
+					"crouch": 0.0,
+					"eyeHeight": 1.64,
+					"height": 1.9,
+					"maxSpeed": 4.6,
+					"prone": 0.0,
+					"speedMultiplier": 1.0,
+					"target": "stand",
+					"value": 0.0
+				},
+				"observed": {
+					"frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+					"left_hand_error_m": 0.000000238418579101563,
+					"ok": true,
+					"pose_revision": 512,
+					"right_hand_error_m": 0.00666054338216782,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"player_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+				"pose_revision": 512,
+				"progress": 0.994444444444443,
+				"rig_world": "[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.079618, -3.810478)]",
+				"right_goal": "(45.248, 1.283483, -3.715972)",
+				"sample_serial": 354,
+				"target_point": "(45.33, 1.283483, -3.780972)"
+			},
+			{
+				"frame": 514,
+				"hold_serial": 2,
+				"left_goal": "(45.248, 1.265482, -3.865972)",
+				"motion_transform": "[X: (-0.0, 0.0, -1.0), Y: (0.0, 1.0, 0.0), Z: (1.0, 0.0, -0.0), O: (44.78305, 0.090665, -3.810616)]",
+				"native_frames": {
+					"left_elbow": "[X: (-0.158782, 0.061278, -0.326523), Y: (0.324197, 0.107649, -0.137448), Z: (0.072586, -0.346757, -0.100373), O: (44.97458, 1.180749, -3.776588)]",
+					"left_shoulder": "[X: (-0.190507, -0.265509, -0.169694), Y: (0.276477, -0.045715, -0.23886), Z: (0.151166, -0.250996, 0.22301), O: (44.77513, 1.213727, -3.604277)]",
+					"left_socket": "[X: (-0.0, -0.0, 0.368217), Y: (-0.0, 0.368217, 0.0), Z: (-0.368217, -0.0, -0.0), O: (45.248, 1.265482, -3.865972)]",
+					"right_elbow": "[X: (0.190163, 0.119244, -0.291895), Y: (0.29726, 0.045885, 0.212403), Z: (0.105159, -0.345339, -0.072568), O: (44.98676, 1.238198, -3.858014)]",
+					"right_shoulder": "[X: (0.071998, 0.329877, -0.146906), Y: (0.293355, 0.033923, 0.219946), Z: (0.210578, -0.160045, -0.256177), O: (44.77513, 1.213727, -4.01668)]",
+					"right_socket": "[X: (0.0, 0.0, 0.368217), Y: (-0.0, 0.368217, -0.0), Z: (-0.368217, -0.0, 0.0), O: (45.24266, 1.282766, -3.719887)]"
+				},
+				"native_posture": {
+					"blocked": false,
+					"crawl": false,
+					"crouch": 0.0,
+					"eyeHeight": 1.64,
+					"height": 1.9,
+					"maxSpeed": 4.6,
+					"prone": 0.0,
+					"speedMultiplier": 1.0,
+					"target": "stand",
+					"value": 0.0
+				},
+				"observed": {
+					"frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+					"left_hand_error_m": 0.000000238418579101563,
+					"ok": true,
+					"pose_revision": 513,
+					"right_hand_error_m": 0.00666054338216782,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"player_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+				"pose_revision": 513,
+				"progress": 0.999999999999998,
+				"rig_world": "[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.079618, -3.810478)]",
+				"right_goal": "(45.248, 1.283482, -3.715972)",
+				"sample_serial": 355,
+				"target_point": "(45.33, 1.283482, -3.780972)"
+			},
+			{
+				"frame": 515,
+				"hold_serial": 2,
+				"left_goal": "(45.248, 1.265483, -3.865972)",
+				"motion_transform": "[X: (-0.0, 0.0, -1.0), Y: (0.0, 1.0, 0.0), Z: (1.0, 0.0, -0.0), O: (44.78305, 0.090665, -3.810616)]",
+				"native_frames": {
+					"left_elbow": "[X: (-0.158782, 0.061278, -0.326523), Y: (0.324196, 0.107649, -0.137448), Z: (0.072586, -0.346757, -0.100372), O: (44.97458, 1.180749, -3.776588)]",
+					"left_shoulder": "[X: (-0.190507, -0.265509, -0.169694), Y: (0.276477, -0.045714, -0.238861), Z: (0.151167, -0.250996, 0.22301), O: (44.77513, 1.213727, -3.604277)]",
+					"left_socket": "[X: (-0.0, -0.0, 0.368217), Y: (-0.0, 0.368217, 0.0), Z: (-0.368217, -0.0, -0.0), O: (45.248, 1.265483, -3.865972)]",
+					"right_elbow": "[X: (0.190163, 0.119244, -0.291895), Y: (0.29726, 0.045885, 0.212403), Z: (0.105159, -0.345339, -0.072568), O: (44.98676, 1.238199, -3.858014)]",
+					"right_shoulder": "[X: (0.071997, 0.329877, -0.146905), Y: (0.293355, 0.033923, 0.219946), Z: (0.210578, -0.160044, -0.256177), O: (44.77513, 1.213727, -4.01668)]",
+					"right_socket": "[X: (0.0, 0.0, 0.368217), Y: (-0.0, 0.368217, -0.0), Z: (-0.368217, -0.0, 0.0), O: (45.24266, 1.282766, -3.719887)]"
+				},
+				"native_posture": {
+					"blocked": false,
+					"crawl": false,
+					"crouch": 0.0,
+					"eyeHeight": 1.64,
+					"height": 1.9,
+					"maxSpeed": 4.6,
+					"prone": 0.0,
+					"speedMultiplier": 1.0,
+					"target": "stand",
+					"value": 0.0
+				},
+				"observed": {
+					"frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+					"left_hand_error_m": 0.000000238418579101563,
+					"ok": true,
+					"pose_revision": 514,
+					"right_hand_error_m": 0.00666054338216782,
+					"tool_angle_radians": 0.000690533954184502
+				},
+				"player_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+				"pose_revision": 514,
+				"progress": 1.0,
+				"rig_world": "[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.079618, -3.810478)]",
+				"right_goal": "(45.248, 1.283483, -3.715972)",
+				"sample_serial": 356,
+				"target_point": "(45.33, 1.283483, -3.780972)"
+			}
+		],
+		"last_solver_context48": {
+			"selected_rig_world": "[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.079618, -3.810478)]",
+			"selected_solver_local": [
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.0, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.2, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 1.3, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.72, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 1.06, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.44, 0.0)]",
+				"[X: (-1.0, 0.0, 0.0), Y: (0.0, 0.0, 1.0), Z: (0.0, 1.0, 0.0), O: (0.0, 0.9, 0.0)]",
+				"[X: (0.005076, -0.071066, -0.997459), Y: (-0.997459, -0.071247, -0.0), Z: (-0.071066, 0.994924, -0.071247), O: (0.0, 0.9, 0.0)]",
+				"[X: (0.569644, -0.408308, -0.713296), Y: (-0.73683, -0.638201, -0.223117), Z: (-0.364126, 0.652675, -0.664401), O: (-0.0, 0.561427, -0.0)]",
+				"[X: (0.511773, 0.230799, -0.827539), Y: (-0.494302, 0.866938, -0.063903), Z: (0.702676, 0.441758, 0.55776), O: (0.0, 0.721388, 0.0)]",
+				"[X: (0.886767, 0.373281, 0.27259), Y: (-0.417184, 0.900279, 0.124322), Z: (-0.198999, -0.223965, 0.954064), O: (0.0, 0.650308, -0.0)]",
+				"[X: (-1.0, -0.0, -0.0), Y: (0.0, 0.076696, -0.997054), Z: (0.0, -0.997055, -0.076696), O: (-0.0, 0.172567, -0.026844)]",
+				"[X: (0.005076, 0.071066, 0.997459), Y: (0.997459, -0.071247, -0.0), Z: (0.071066, 0.994924, -0.071247), O: (0.0, 0.9, 0.0)]",
+				"[X: (0.260725, 0.334122, 0.905751), Y: (0.79818, -0.602372, -0.007551), Z: (0.543076, 0.724921, -0.423743), O: (0.0, 0.561427, -0.0)]",
+				"[X: (0.707372, -0.032237, 0.706106), Y: (0.03935, 0.999206, 0.006197), Z: (-0.705745, 0.023401, 0.708079), O: (-0.0, 0.721388, 0.0)]",
+				"[X: (0.792725, -0.576841, 0.197081), Y: (0.539758, 0.814475, 0.212818), Z: (-0.28328, -0.06233, 0.95701), O: (-0.0, 0.650308, -0.0)]",
+				"[X: (-1.0, 0.0, 0.0), Y: (-0.0, 0.076696, -0.997054), Z: (-0.0, -0.997055, -0.076696), O: (0.0, 0.172567, -0.026844)]",
+				"[X: (-1.0, 0.0, 0.0), Y: (-0.0, 0.076696, -0.997055), Z: (-0.0, -0.997054, -0.076696), O: (0.0, 0.183305, -0.166431)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 0.0, -1.0), Z: (0.0, 1.0, 0.0), O: (0.0, 0.54, -0.33)]",
+				"[X: (-1.0, 0.0, 0.0), Y: (0.0, 0.0, 1.0), Z: (0.0, 1.0, 0.0), O: (-0.46, -0.04, 0.35)]",
+				"[X: (-1.0, 0.0, 0.0), Y: (0.0, 0.0, 1.0), Z: (0.0, 1.0, 0.0), O: (0.46, -0.04, 0.35)]",
+				"[X: (1.0, 0.0, -0.0), Y: (0.0, -1.0, 0.0), Z: (-0.0, 0.0, -1.0), O: (-0.35, 1.26, 0.0)]",
+				"[X: (1.0, 0.0, -0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.59, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 0.333847, -0.942627), Z: (0.0, 0.942627, 0.333847), O: (0.0, 0.6, 0.0)]",
+				"[X: (1.0, 0.0, -0.0), Y: (0.0, -1.0, 0.0), Z: (-0.0, 0.0, -1.0), O: (0.35, 1.26, 0.0)]",
+				"[X: (1.0, 0.0, -0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.59, 0.0)]",
+				"[X: (1.0, 0.0, 0.0), Y: (0.0, 0.333847, -0.942627), Z: (0.0, 0.942627, 0.333847), O: (0.0, 0.6, 0.0)]",
+				"[X: (-1.0, 0.0, 0.0), Y: (0.0, 0.0, 1.0), Z: (0.0, 1.0, 0.0), O: (0.0, 0.92, -0.05)]"
+			],
+			"selected_solver_world": [
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.079618, -3.810478)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.153262, -3.810478)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.631944, -3.810478)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 0.89706, -3.810478)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 1.28737, -3.810478)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, 0.368217, 0.0), Z: (0.368217, 0.0, -0.0), O: (44.77513, 1.449386, -3.810478)]",
+				"[X: (0.0, 0.0, 0.368217), Y: (0.368217, 0.0, -0.0), Z: (-0.0, 0.368217, -0.0), O: (44.77513, 1.780781, -3.810478)]",
+				"[X: (-0.367281, -0.026168, -0.001869), Y: (-0.0, -0.026234, 0.367281), Z: (-0.026234, 0.366348, 0.026168), O: (44.77513, 1.228456, -3.810478)]",
+				"[X: (-0.190507, -0.265509, -0.169694), Y: (0.276477, -0.045714, -0.238861), Z: (0.151167, -0.250996, 0.22301), O: (44.77513, 1.213727, -3.604277)]",
+				"[X: (-0.158782, 0.061278, -0.326523), Y: (0.324196, 0.107649, -0.137448), Z: (0.072586, -0.346757, -0.100372), O: (44.97458, 1.180749, -3.776588)]",
+				"[X: (0.0, 0.0, -0.368217), Y: (0.367132, 0.028241, 0.0), Z: (0.028241, -0.367132, 0.0), O: (45.18541, 1.250754, -3.865972)]",
+				"[X: (-0.0, -0.0, 0.368217), Y: (-0.0, 0.368217, -0.0), Z: (-0.368217, -0.0, -0.0), O: (45.248, 1.265483, -3.865972)]",
+				"[X: (0.367281, 0.026168, -0.001869), Y: (-0.0, -0.026234, -0.367281), Z: (-0.026234, 0.366348, -0.026168), O: (44.77513, 1.228456, -3.810478)]",
+				"[X: (0.071997, 0.329877, -0.146905), Y: (0.293355, 0.033923, 0.219946), Z: (0.210578, -0.160044, -0.256177), O: (44.77513, 1.213727, -4.01668)]",
+				"[X: (0.190163, 0.119244, -0.291895), Y: (0.29726, 0.045885, 0.212403), Z: (0.105159, -0.345339, -0.072569), O: (44.98676, 1.238199, -3.858014)]",
+				"[X: (-0.0, -0.0, -0.368217), Y: (0.367132, 0.028241, -0.0), Z: (0.028241, -0.367132, -0.0), O: (45.18007, 1.268038, -3.719887)]",
+				"[X: (0.0, 0.0, 0.368217), Y: (-0.0, 0.368217, 0.0), Z: (-0.368217, -0.0, 0.0), O: (45.24266, 1.282767, -3.719887)]",
+				"[X: (0.0, 0.0, 0.368217), Y: (0.0, 0.368217, 0.0), Z: (-0.368217, -0.0, 0.0), O: (45.24266, 1.334317, -3.719887)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (-0.368217, 0.0, 0.0), Z: (0.0, 0.368217, 0.0), O: (44.65362, 1.095897, -3.810478)]",
+				"[X: (0.0, 0.0, 0.368217), Y: (0.368217, 0.0, -0.0), Z: (-0.0, 0.368217, -0.0), O: (44.90401, 0.882332, -3.641098)]",
+				"[X: (0.0, 0.0, 0.368217), Y: (0.368217, 0.0, -0.0), Z: (-0.0, 0.368217, -0.0), O: (44.90401, 0.882332, -3.979858)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, -0.368217, 0.0), Z: (-0.368217, 0.0, 0.0), O: (44.77513, 0.617215, -3.681602)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, -0.368217, 0.0), Z: (-0.368217, 0.0, 0.0), O: (44.77513, 0.399967, -3.681602)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.347091, -0.122928, -0.0), Z: (-0.122928, -0.347091, 0.0), O: (44.77513, 0.179037, -3.681602)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, -0.368217, 0.0), Z: (-0.368217, 0.0, 0.0), O: (44.77513, 0.617215, -3.939354)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.0, -0.368217, 0.0), Z: (-0.368217, 0.0, 0.0), O: (44.77513, 0.399967, -3.939354)]",
+				"[X: (-0.0, 0.0, -0.368217), Y: (0.347091, -0.122928, -0.0), Z: (-0.122928, -0.347091, 0.0), O: (44.77513, 0.179037, -3.939354)]",
+				"[X: (0.0, 0.0, 0.368217), Y: (0.368217, 0.0, -0.0), Z: (-0.0, 0.368217, -0.0), O: (44.75672, 0.492021, -3.810478)]"
+			]
+		},
+		"pose44": {
+			"actual_receipt_samples": 380,
+			"damage_or_hit_fabricated": false,
+			"maximum_actor_drift_m_during_hold": 0.0,
+			"placement_proof": {
+				"actual_frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+				"left_hand_error_m": 0.000000238418579101563,
+				"ok": true,
+				"physics_frame": 515,
+				"pose_revision": 514,
+				"request_serial": 2,
+				"right_hand_error_m": 0.00666054338216782,
+				"sample_serial": 356,
+				"tool_angle_radians": 0.000690533954184502
+			},
+			"slot_owner_preserved": true
+		},
+		"scope": {
+			"GPU_skin_contact_acceptance": "NOT_RUN_MANUAL_SCREENSHOT_REVIEW_REQUIRED",
+			"all_surface_inside_outside_window": "NOT_RUN_SEPARATE_QUERY_FIXTURE",
+			"floor_or_kneel_reach": "NOT_RUN_NO_AUTHORED_LOW_POSE",
+			"native_damage_death_cancellation": "NOT_RUN_NATIVE_HP_PRODUCER_UNWIRED",
+			"occluded_limb_volume": "NOT_RUN_ONLY_CENTRE_RAY_GUARDS",
+			"reachable_subcase": "Declared closer/lower wall: actor gap .45m, requested wall Y1.27m; does NOT close archived .65m/high-wall or accepted48 floor target regression.",
+			"real_hit_deflection": "NOT_RUN",
+			"result_claim": "Passing this fixture covers listed native receipt/input cases only. It is not full C4, combat, floor or rendered-skin acceptance.",
+			"suite": "C4_POST_WRITER44",
+			"world_performance": "NOT_RUN"
+		},
+		"screenshots": {
+			"arsenal": {
+				"reason": "--palazzo-headless or headless display",
+				"skipped": true
+			},
+			"pose44_actual_crouch": {
+				"reason": "--palazzo-headless or headless display",
+				"skipped": true
+			},
+			"pose44_actual_placed": {
+				"reason": "--palazzo-headless or headless display",
+				"skipped": true
+			}
+		}
+	},
+	"failures": [
+		"same native C key restores requested standing posture"
+	],
+	"loaded_scene_performance_accepted": false,
+	"native_incoming_damage_death_tested": false,
+	"native_scene": "res://scenes/main.tscn",
+	"rendered_skin_contact_accepted": false,
+	"root_blast_callback_exercised": false,
+	"status": "FAIL",
+	"suite": "C4_POST_WRITER44",
+	"synthetic_positive_damage_or_hand_receipt": false
+}

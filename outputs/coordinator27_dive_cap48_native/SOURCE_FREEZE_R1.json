@@ -1,0 +1,12 @@
+{
+  "schema": "dive-cap48.source-freeze/v1",
+  "status": "SOURCE_ONLY_BEFORE_FIRST_NATIVE",
+  "pins": {
+    ".gitattributes": "48747480eddba024928d03be9bf83dc579e5515768647507a767e8187a85c9ab",
+    "runner.py": "a4a25aca48767d63860e5a9717bd4302b6b38b880344fbb254cf274279585857",
+    "qa/test_dive_cap48.gd": "857a9003e3f9578889137faaeca4b3c42ca264a911380c3ca1f7e64a167a4f9f"
+  },
+  "runtime_base": "32be580dbbfdc9169225e822acafb7c73c68c6e33a139c0b0970585808927ceb",
+  "runtime_candidate": "93a4e9fad1f5d91a57d3463ee51b7f1066a3e6dccc3acc1bfc3c61a5d11e2858",
+  "only_runtime_edit": "scripts/preview_dive.gd:133 CINEMATIC_FLIGHT -> FLIGHT for horizontal travel"
+}

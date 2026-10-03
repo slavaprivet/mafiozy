@@ -1,0 +1,125 @@
+--- accepted48/c4_equipment.gd
++++ private/c4_equipment.gd
+@@ -3,6 +3,7 @@
+ ## The explosion owner must synchronously consume_detonation(event) once before
+ ## applying/queuing damage. These receipts are NOT native RPG or bullet receipts.
+ const WeaponUI = preload("res://scripts/weapons/walk_weapon_ui.gd")
++const C4Pose44 = preload("c4_pose44.gd")
+ const Visuals45 = preload("c4_visuals.gd") # Model/cache only; no pose instance.
+ const PlacementQuery45 = preload("c4_placement_query45.gd")
+ const SurfaceOwner45 = preload("c4_surface_owner45.gd")
+@@ -73,6 +74,9 @@
+ var _charges: Dictionary = {}
+ var _hold: Dictionary = {}
+ var _elapsed := 0.0
++var _presentation: RefCounted
++var _last_placement_pose44: Dictionary={}
++var _last_pose44_rejection := ""
+ var _sequence := 0
+ var _dispatch: Dictionary = {}
+ var _dispatch_consumed := false
+@@ -112,6 +116,11 @@
+ 	_aim_mark=AimMark.new(); _aim_mark.visible=false; _layer.add_child(_aim_mark)
+ 	_held_root=Node3D.new(); _held_root.name="C4_EquipmentSocketVisual"; _rig.add_child(_held_root)
+ 	_charge_tool=_device(false); _remote_tool=_device(true); _held_root.add_child(_charge_tool); _held_root.add_child(_remote_tool); _held_root.visible=false
++	_presentation=C4Pose44.new()
++	var binding: Dictionary=_presentation.configure(actor)
++	if not binding.get("ok",false):
++		dispose(); return {"ok":false,"reason":"planting_pose_binding","detail":binding}
++	_presentation.pose_applied.connect(_planting_pose_applied)
+ 	_configured=true; process_priority=100; process_physics_priority=100
+ 	return {"ok":true,"scope":"local_session_virtual_c4","hold_seconds":HOLD_SECONDS,"maximum_placed":MAX_CHARGES,"damage":DAMAGE,"radius":BLAST_RADIUS_M,"native_weapon_scripts_modified":false}
+ 
+@@ -147,6 +156,10 @@
+ 	if killed:
+ 		_owner_killed=true; _leave_mode()
+ 	return {"ok":true,"interrupted":was_holding,"killed":_owner_killed,"damage_revision":_damage_revision,"charge_created":false}
++
++func _planting_pose_applied(frame: Transform3D) -> void:
++	if _current() and not _hold.is_empty() and _allowed() and frame.is_finite() and is_instance_valid(_held_root):
++		_held_root.global_transform=frame
+ 
+ func _choose(mode: String) -> Dictionary:
+ 	if not _current() or not _weapons._interaction_allowed(): return {"ok":false,"reason":"inactive"}
+@@ -230,7 +243,10 @@
+ 	var target:=_target()
+ 	if target.is_empty(): _target_failure_notice(); return
+ 	if Vector2(_player.velocity.x,_player.velocity.z).length()>.08: return
+-	_hold=target; _hold.actor_position=_player.global_position; _hold.damage_revision=_damage_revision; _elapsed=0
++	var admitted: Dictionary=_presentation.begin_hold()
++	if not admitted.get("ok",false):
++		_last_pose44_rejection=str(admitted.get("reason","pose_unavailable")); return
++	_hold=target; _hold.pose_serial=admitted.request_serial; _hold.actor_position=_player.global_position; _hold.damage_revision=_damage_revision; _elapsed=0
+ 	var shape: Shape3D=_hold.shape_binding.shape.get_ref()
+ 	shape.changed.connect(_hold_shape_changed)
+ 	_notice_until=0
+@@ -240,6 +256,7 @@
+ 	_cancel_hold(true)
+ 
+ func _cancel_hold(show_notice: bool) -> void:
++	if _presentation!=null: _presentation.cancel()
+ 	if _hold.is_empty(): return
+ 	var shape: Variant=_hold.shape_binding.shape.get_ref()
+ 	if is_instance_valid(shape) and shape.changed.is_connected(_hold_shape_changed): shape.changed.disconnect(_hold_shape_changed)
+@@ -260,11 +277,17 @@
+ 	if current.is_empty() or current.body!=_hold.body or current.owner!=_hold.owner or current.owner_generation!=_hold.owner_generation or current.body_life_generation!=_hold.body_life_generation or not SurfaceOwner45.shape_current(current.body,_hold.shape_binding) or current.local_point.distance_to(_hold.local_point)>AIM_DRIFT_M or current.normal.dot(_hold.normal)<.999 or _player.global_position.distance_to(_hold.actor_position)>ACTOR_DRIFT_M or Vector2(_player.velocity.x,_player.velocity.z).length()>.08:
+ 		_cancel_hold(true); return
+ 	_hold.point=current.point; _hold.normal=current.normal; _hold.frame=current.frame
++	# Consume the preceding final request after the real player writer, before replacing it.
++	if _hold.has("completion_frame") and Engine.get_physics_frames()>int(_hold.completion_frame):
++		_place_charge(); return
+ 	_elapsed+=delta
+-	if _elapsed>=HOLD_SECONDS:
+-		# Preserve the threshold frame for native committed-damage cancellation.
+-		if not _hold.has("completion_frame"): _hold.completion_frame=Engine.get_physics_frames()
+-		elif Engine.get_physics_frames()>int(_hold.completion_frame): _place_charge()
++	var prepared: Dictionary=_presentation.prepare_hold(delta,minf(1,_elapsed/HOLD_SECONDS),_hold)
++	if not prepared.get("ok",false): _reject_pose44(str(prepared.get("reason","pose_unavailable"))); return
++	if _elapsed>=HOLD_SECONDS: _hold.completion_frame=Engine.get_physics_frames()
++
++func _reject_pose44(reason: String) -> void:
++	_last_pose44_rejection=reason; _require_release=true
++	_cancel_hold(true)
+ 
+ func _place_charge() -> void:
+ 	if _hold.is_empty() or _charges.size()>=MAX_CHARGES or not _allowed() or _require_release or _hold.damage_revision!=_damage_revision or not is_instance_valid(_hold.get("body")) or not is_instance_valid(_hold.get("owner")): _cancel_hold(true); return
+@@ -274,6 +297,9 @@
+ 	var current: Dictionary=_target()
+ 	if _elapsed<HOLD_SECONDS or Engine.get_physics_frames()<=int(_hold.get("completion_frame",Engine.get_physics_frames())) or not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or current.is_empty() or current.body!=body or current.owner!=owner or current.owner_generation!=_hold.owner_generation or current.body_life_generation!=_hold.body_life_generation or not SurfaceOwner45.shape_current(body,_hold.shape_binding) or current.source_id!=_hold.source_id or current.local_point.distance_to(_hold.local_point)>AIM_DRIFT_M or current.normal.dot(_hold.normal)<.999 or _player.global_position.distance_to(_hold.actor_position)>ACTOR_DRIFT_M or Vector2(_player.velocity.x,_player.velocity.z).length()>.08: _cancel_hold(true); return
+ 	_hold.point=current.point; _hold.normal=current.normal
++	var completed: Dictionary=_presentation.consume_completion(_hold)
++	if not completed.get("ok",false): _reject_pose44(str(completed.get("reason","post_writer_receipt_missing"))); return
++	_last_placement_pose44=completed.duplicate(); _last_pose44_rejection=""
+ 	_sequence+=1
+ 	var id: String="c4:%d:%d"%[get_instance_id(),_sequence]
+ 	var node: Node3D=_device(false); node.name="Placed_C4_%d"%_sequence
+@@ -387,8 +413,11 @@
+ 	_aim_mark.visible=show and _mode=="place"; _aim_mark.position=size*.5
+ 	_held_root.visible=show; _charge_tool.visible=_mode=="place"; _remote_tool.visible=_mode=="remote"
+ 	if show:
+-		var socket: Transform3D=_rig.global_transform*_rig.get_bone_global_pose(_socket)
+-		_held_root.global_transform=Transform3D(socket.basis.orthonormalized(),socket.origin)
++		var pose: Dictionary=_presentation.held_frame() if not _hold.is_empty() else {}
++		if pose.get("ok",false): _held_root.global_transform=pose.frame
++		else:
++			var socket: Transform3D=_rig.global_transform*_rig.get_bone_global_pose(_socket)
++			_held_root.global_transform=Transform3D(socket.basis.orthonormalized(),socket.origin)
+ 	_card.visible=false
+ 	if not show: return
+ 	var anchor: Vector3=Vector3.ZERO
+@@ -415,11 +444,13 @@
+ 	for row: Dictionary in _charges.values():
+ 		var node: Variant=row.node.get_ref()
+ 		placed.append({"id":row.id,"source_id":row.source_id,"valid":_charge_current(row),"world_position":node.global_position if is_instance_valid(node) else null})
+-	return {"ready":_current(),"mode":_mode,"holding":not _hold.is_empty(),"elapsed_seconds":_elapsed,"placed":placed,"totals":_totals.duplicate(),"maximum_placed":MAX_CHARGES,"hold_seconds":HOLD_SECONDS,"damage":DAMAGE,"radius":BLAST_RADIUS_M,"actor_id":_actor_id,"life_generation":_life,"damage_revision":_damage_revision,"requires_release":_require_release,"owner_killed":_owner_killed,"target_query":_target_query45.snapshot(),"icons":IconCache43.snapshot(),"placement_scope":"near_aimed_physical_scenery","hand_contact_animation":"pending_pose44_root_integration"}
++	return {"ready":_current(),"mode":_mode,"holding":not _hold.is_empty(),"elapsed_seconds":_elapsed,"placed":placed,"totals":_totals.duplicate(),"maximum_placed":MAX_CHARGES,"hold_seconds":HOLD_SECONDS,"damage":DAMAGE,"radius":BLAST_RADIUS_M,"actor_id":_actor_id,"life_generation":_life,"damage_revision":_damage_revision,"requires_release":_require_release,"owner_killed":_owner_killed,"target_query":_target_query45.snapshot(),"icons":IconCache43.snapshot(),"placement_scope":"near_aimed_physical_scenery","hand_contact_animation":"private_native_bone_pose48_not_gpu_accepted","presentation":_presentation.snapshot() if _presentation!=null else {},"last_placement_pose44":_last_placement_pose44.duplicate(),"last_pose44_rejection":_last_pose44_rejection}
+ 
+ func dispose() -> void:
+ 	if _disposed: return
+-	_leave_mode(); _disposed=true; set_process(false); set_physics_process(false); set_process_input(false)
++	_leave_mode()
++	if _presentation!=null: _presentation.dispose(); _presentation=null
++	_disposed=true; set_process(false); set_physics_process(false); set_process_input(false)
+ 	for id: String in _charges.keys(): _remove_charge(id,false)
+ 	for item: Dictionary in _connections:
+ 		if is_instance_valid(item.button) and item.button.pressed.is_connected(item.callback): item.button.pressed.disconnect(item.callback)

@@ -1,0 +1,2783 @@
+{
+  "capture_us": [
+    3009,
+    3220,
+    3535,
+    3971,
+    3749,
+    3653,
+    3559,
+    3509
+  ],
+  "checks": 127,
+  "errors": [],
+  "passed": true,
+  "phases": [
+    {
+      "ammo_total": 896.0,
+      "capture_us": 3009,
+      "items": 14,
+      "label": "initial",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 12.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 36.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tt_pistol"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        }
+      ],
+      "sha256": "655a549e1a2dad4ef6de73609335fa165a618feb059dbf774d870c8a1f8c6139"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3220,
+      "items": 14,
+      "label": "spent",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.28,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 11.0,
+            "recoil": 0.526742802759933,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 36.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.298983050847457,
+            "sprayRecoveryRemaining": 0.49,
+            "sprayShots": 1.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tt_pistol"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        }
+      ],
+      "sha256": "412a27e102a4601ff8b835fab6588d474c8551aa0772bc7aae77002cb2656b04"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3535,
+      "items": 14,
+      "label": "reloading",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.246666666666667,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 11.0,
+            "recoil": 0.217439923863907,
+            "reloadRemaining": 1.36666666666667,
+            "reserveAmmo": 36.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.27864406779661,
+            "sprayRecoveryRemaining": 0.456666666666666,
+            "sprayShots": 1.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tt_pistol"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        }
+      ],
+      "sha256": "acbcbd19525ee6e586c543903df7992e26e114f63933e7afe26135ebe13fa597"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3971,
+      "items": 14,
+      "label": "settled_after_reload",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 12.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 35.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tt_pistol"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        }
+      ],
+      "sha256": "91ab3f844a3a6cdc1f5af90078566935493b9712bee8d5516dfc9cfe7a4fd56f"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3749,
+      "items": 14,
+      "label": "ground",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        },
+        {
+          "drop_uid": "weapon-drop-1",
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 12.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 35.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "ground",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "remaining_ms": 299998.064,
+          "weapon_id": "tt_pistol"
+        }
+      ],
+      "sha256": "a6e8c2985926bebc944470b39a41d7eeb620f087a2607b783159ea08704abb6c"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3653,
+      "items": 14,
+      "label": "picked_up",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 12.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 35.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tt_pistol"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        }
+      ],
+      "sha256": "6b80aa810b05222ae0cc696af4029ecd2661664c025fc5034597a6f9de0d298f"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3559,
+      "items": 14,
+      "label": "cargo",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 12.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 35.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "cargo",
+          "owner": {
+            "life_generation": 1.0,
+            "vehicle_id": "local_vehicle_1"
+          },
+          "weapon_id": "tt_pistol"
+        }
+      ],
+      "sha256": "05da030759de6a5785ed845f9ce3cf2ec5dc9a4f2fa6fc4e30483e8dc1549dd1"
+    },
+    {
+      "ammo_total": 895.0,
+      "capture_us": 3509,
+      "items": 14,
+      "label": "taken",
+      "locations": [
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "nagan"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-1",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "nagan"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 0.88,
+            "lastRecoilYaw": -0.17746242484086,
+            "magazine": 12.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 35.0,
+            "sequence": 1.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tt_pistol"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-2",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tt_pistol"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "revolver"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-3",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "revolver"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 7.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 21.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "deagle"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-4",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "deagle"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 15.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 45.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_colt"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-5",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_colt"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sawn_off"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-6",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sawn_off"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 6.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 18.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "shotgun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-7",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "shotgun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-8",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "golden_uzi"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-9",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "golden_uzi"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "ak74"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-10",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "ak74"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 30.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 90.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "m16"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-11",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "m16"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 40.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 120.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "tommy_gun"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-12",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "tommy_gun"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 5.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 15.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "sniper"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-13",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "sniper"
+        },
+        {
+          "fire_state": {
+            "cooldown": 0.0,
+            "lastRecoilScale": 1.0,
+            "lastRecoilYaw": 0.0,
+            "magazine": 1.0,
+            "recoil": 0.0,
+            "reloadRemaining": 0.0,
+            "reserveAmmo": 3.0,
+            "sequence": 0.0,
+            "sprayHeat": 0.0,
+            "sprayRecoveryRemaining": 0.0,
+            "sprayShots": 0.0,
+            "triggerHeld": false,
+            "weaponId": "rpg"
+          },
+          "item_uid": "local-weapon-item--9223371697887890663-14",
+          "location": "owned",
+          "owner": {
+            "actor_id": "player",
+            "life_generation": 1.0
+          },
+          "weapon_id": "rpg"
+        }
+      ],
+      "sha256": "412b89c81feac1683a0375947204ed271ba1fcb2df48e1c632d049a6d4d65b11"
+    }
+  ],
+  "production_accepted": false,
+  "restore_implemented": false,
+  "scope": "Actual unchanged48 main/3NPC/player/vehicle and native transfer APIs plus F/G engine input; one explicit rear player setup placement. Capture/codec/plan read-only. Private output files only. No server/auth/storage access. Headless2CPU functional; no graphics/perf acceptance.",
+  "server_grants": 0
+}

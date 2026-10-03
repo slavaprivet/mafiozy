@@ -1,0 +1,351 @@
+{
+  "schema": "coordinator27.c4-pose48.private-native/v1",
+  "created_at_utc": "2026-10-03T04:20:43.662229+00:00",
+  "status": "HOLD_NOT_PROMOTABLE",
+  "production_changed": false,
+  "gpu_started": false,
+  "gpu_skin_accepted": false,
+  "fullscene_performance_accepted": false,
+  "base_assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\ASSEMBLY.json",
+  "base_assembly_sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c",
+  "base_pins_verified": 486,
+  "archive_manifest_sha256": "4f1b2f4c138d8164eeef38934651380af6ddf95a0e68d7649385124570fa5e9a",
+  "archive_freeze_sha256": "cc7849758994646b69b69ef56cb8323602e2e89d66566afa77796aadde92224f",
+  "runtime_delta": {
+    "scripts/preview_player.gd": {
+      "base_sha256": "64707b7c6d72d863651c3ce2d277af3ed2b14facbca6bb8801f41c95a2904e70",
+      "private_sha256": "5b51a3b6dad80715ae04acac1750a6318f07b42a6dee92415a7858b1937441e3"
+    },
+    "scripts/destruction/palazzo/c4_equipment.gd": {
+      "base_sha256": "11f9c4127d27a3349bc0e1242b3661fb9637e8f2bcd267217ade9db3c4e7cd29",
+      "private_sha256": "b168b9c25f724d4f329d98c7cea57133b0b5b4901e62d951a25459b96fa081cf"
+    },
+    "scripts/destruction/palazzo/c4_pose44.gd": {
+      "base_sha256": null,
+      "private_sha256": "0a220181c98b6fd3f788c6b5e799a9d62cd63a3ec63ab54a4d4d359879c265a4"
+    }
+  },
+  "runtime_policy": "Two replacements plus one added pure helper. All other484production files remain byte-exact accepted48. query45/surface45/shared-shape referencecount/damage1920/radius3.2/currentvisuals/icons/Fire3 preserved. Three revisions change QA only; runtime frozen afterr1.",
+  "preserved_functions": [
+    "_allowed",
+    "_target",
+    "_owner_of_wall",
+    "_charge_current",
+    "_watch_charge_shape",
+    "_charge_shape_changed",
+    "_remove_charge",
+    "_detonate_all",
+    "consume_detonation",
+    "interrupt_for_damage"
+  ],
+  "revisions": [
+    {
+      "revision": 1,
+      "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision1\\ASSEMBLY_IMPORTED.json",
+      "assembly_sha256": "b363b9f710627327d4d39156aea5784e16820e158eb5d5dfbebf439baaab8a1b",
+      "all_current_source_pins_verified": 503,
+      "runtime_identical_to_r1": true,
+      "import_status": "PASS",
+      "native_result_status": "FAIL",
+      "checks": 34,
+      "failures": [
+        "actual held LMB creates exactly one item after actual hand reach"
+      ],
+      "native_exit_code": 2,
+      "native_elapsed_seconds": 13.088211599970236,
+      "stderr_bytes": 0,
+      "engine_errors": [],
+      "lease_id": "5aeb284133974f41872cb7642ba5478d",
+      "ticket": 302,
+      "result_sha256": "5291b98cab7a481ed3c14d97ab4299d79947cf89942e02578869c02c86dcc741"
+    },
+    {
+      "revision": 2,
+      "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision2\\ASSEMBLY_IMPORTED.json",
+      "assembly_sha256": "49fa27e9244d4af8ceb4b96131c5241d81a621657d88c0d28b0c8f7f2f5ec731",
+      "all_current_source_pins_verified": 503,
+      "runtime_identical_to_r1": true,
+      "import_status": "PASS",
+      "native_result_status": "FAIL",
+      "checks": 52,
+      "failures": [
+        "actual held LMB creates exactly one item after actual hand reach"
+      ],
+      "native_exit_code": 2,
+      "native_elapsed_seconds": 19.075346399797127,
+      "stderr_bytes": 0,
+      "engine_errors": [],
+      "lease_id": "d829a3a287ca422a954c874db105da30",
+      "ticket": 311,
+      "result_sha256": "111bd84cb0e9b7481e2d9123f9794495c6f0a5309e9bab5c4582f9839f29240d"
+    },
+    {
+      "revision": 3,
+      "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_pose48_native\\revision3\\ASSEMBLY_IMPORTED.json",
+      "assembly_sha256": "7469acc3602795661e516ca79a10aaf11f43545b405c3e81351c5fa12d50c7c5",
+      "all_current_source_pins_verified": 503,
+      "runtime_identical_to_r1": true,
+      "import_status": "PASS",
+      "native_result_status": "FAIL",
+      "checks": 56,
+      "failures": [
+        "same native C key restores requested standing posture"
+      ],
+      "native_exit_code": 2,
+      "native_elapsed_seconds": 17.23670140001923,
+      "stderr_bytes": 0,
+      "engine_errors": [],
+      "lease_id": "25af88d8bd20401dbe97dc970c1e3256",
+      "ticket": 323,
+      "result_sha256": "c2637d19404dc241cb7d3de075d27b4fa7fcf78876ce21d8d1df685087b7d36c"
+    }
+  ],
+  "native_partial_proofs": {
+    "actual_Q_gui_and_LMB": true,
+    "release_before_3s_no_charge": true,
+    "copied_receipt_and_foreign_CAS_rejected": true,
+    "old_receipt_not_current_after_release": true,
+    "actual_current_native_bone_frames": true,
+    "posture_change_cancels_hold": true,
+    "stable_crouch_affine_writer_receipts": true,
+    "original_case_stand_return": true,
+    "closer_case_stand_return": false,
+    "real_blast_callback_exercised": false,
+    "real_incoming_HP_or_hit_tested": false
+  },
+  "original_positive_query_target": {
+    "scope": "Archived .65m wall gap / wall targetY1.584, current48 query45 accepts in this native run. No same-case baseline placement rerun was performed.",
+    "actor": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.68, 0.091191, -3.78)]",
+    "target": "(45.33, 1.583631, -3.78)",
+    "right_goal": "(45.248, 1.583631, -3.715)",
+    "left_goal": "(45.248, 1.565631, -3.865)",
+    "final_native_frames": {
+      "left_elbow": "[X: (0.051671, -0.272721, -0.241945), Y: (0.277789, 0.187708, -0.152258), Z: (0.236108, -0.161161, 0.232086), O: (44.87292, 1.342374, -3.691161)]",
+      "left_shoulder": "[X: (0.194932, -0.3123, -0.007334), Y: (0.278408, 0.177603, -0.162881), Z: (0.141683, 0.080683, 0.330151), O: (44.67208, 1.214253, -3.573661)]",
+      "left_socket": "[X: (-0.0, -0.0, 0.368217), Y: (-0.0, 0.368217, 0.0), Z: (-0.368217, -0.0, -0.0), O: (45.11617, 1.479171, -3.790176)]",
+      "right_elbow": "[X: (-0.082822, 0.278394, -0.22632), Y: (0.277239, 0.197092, 0.140985), Z: (0.227734, -0.13869, -0.253941), O: (44.87285, 1.349353, -3.876527)]",
+      "right_shoulder": "[X: (-0.212019, 0.300515, 0.017959), Y: (0.278307, 0.187277, 0.151842), Z: (0.114789, 0.101005, -0.33497), O: (44.67208, 1.214253, -3.986064)]",
+      "right_socket": "[X: (0.0, 0.0, 0.368217), Y: (-0.0, 0.368217, -0.0), Z: (-0.368217, -0.0, 0.0), O: (45.11574, 1.492252, -3.784843)]"
+    },
+    "right_error_m": 0.175273150205612,
+    "left_error_m": 0.174510225653648,
+    "tool_angle_rad": 0.000690533954184502,
+    "limits": {
+      "right_m": 0.025,
+      "left_m": 0.035,
+      "angle_rad": 0.2
+    },
+    "max_actor_drift_m": 0.0,
+    "placement_count": 0,
+    "rejection": "actual_hands_cannot_reach"
+  },
+  "declared_reachable_subcase": {
+    "cold_setup_local": [
+      -3.78,
+      0.12,
+      3.62
+    ],
+    "requested_wall_local_point": [
+      -0.78,
+      -0.3,
+      0.17
+    ],
+    "actual_settled_actor": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+    "note": "Native collision settled the actor away from intended .45m gap to approx .547m; recorded settled transform, not nominal gap, is authoritative. This lower/closer subcase does not restore original positive target coverage.",
+    "actual_before_and_after_hold_exact": true,
+    "body_before": {
+      "actor_id": "player",
+      "actor_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+      "authority": "on_foot",
+      "capsule_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.95, 0.0)]",
+      "capsule_node": 264727702567,
+      "capsule_shape": -9223371772143850458,
+      "disabled": false,
+      "epoch": 1,
+      "height": 1.89999997615814,
+      "layer": 2,
+      "life_generation": 1,
+      "mask": 1025,
+      "radius": 0.300000011920929
+    },
+    "body_after": {
+      "actor_id": "player",
+      "actor_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+      "authority": "on_foot",
+      "capsule_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.95, 0.0)]",
+      "capsule_node": 264727702567,
+      "capsule_shape": -9223371772143850458,
+      "disabled": false,
+      "epoch": 1,
+      "height": 1.89999997615814,
+      "layer": 2,
+      "life_generation": 1,
+      "mask": 1025,
+      "radius": 0.300000011920929
+    },
+    "crouch_body": {
+      "actor_id": "player",
+      "actor_transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (44.78305, 0.090665, -3.810616)]",
+      "authority": "on_foot",
+      "capsule_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.845, 0.0)]",
+      "capsule_node": 264727702567,
+      "capsule_shape": -9223371772143850458,
+      "disabled": false,
+      "epoch": 1,
+      "height": 1.69000005722046,
+      "layer": 2,
+      "life_generation": 1,
+      "mask": 1025,
+      "radius": 0.300000011920929
+    },
+    "completion": {
+      "actual_frame": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, -0.0), Z: (-1.0, 0.0, -0.0), O: (45.27966, 1.282766, -3.784887)]",
+      "left_hand_error_m": 2.38418579101563e-07,
+      "ok": true,
+      "physics_frame": 515,
+      "pose_revision": 514,
+      "request_serial": 2,
+      "right_hand_error_m": 0.00666054338216782,
+      "sample_serial": 356,
+      "tool_angle_radians": 0.000690533954184502
+    },
+    "valid_placed_charge": [
+      {
+        "id": "c4:435502989859:1",
+        "source_id": "PALAZZO-SHOWCASE-001",
+        "valid": true,
+        "world_position": "(45.285, 1.283483, -3.780972)"
+      }
+    ],
+    "actual_receipt_samples": 380,
+    "whole_run_status": "FAIL",
+    "open_failure": "Final native C did not restore standing target; cause unassigned. No collision-clearance bypass or additional run added."
+  },
+  "required_authored_work": [
+    "Standing foot-preserving torso/chest/shoulder reach variants for current target normals/heights. At the original wall target, actual palms miss by ~175mm with current fixed shoulders; arm-only IK cannot be accepted as a replacement. Preserve bone lengths and actual post-writer evidence.",
+    "Low/kneel variant for ground and slope targets: stable native crouch height1.69m alone is not a kneeling floor-placement pose. Author pelvis/spine/legs/hands with foot support and smooth entry/cancel/return, then root reviews body clearance/stance contract before integration.",
+    "The complete current48 target set includes farther and low surfaces. No automatic step/teleport, arm stretching, reduced target range, raised palm tolerances or new capsule policy is introduced. Full coverage may require a separate root gameplay decision beyond authored lean.",
+    "Resolve the preserved closer-case C-to-stand failure using actual posture clearance/input evidence; current test does not identify its cause.",
+    "After author/runtime closure: actual floor/slope/window/authority/lifetime/hit regressions, final rendered skin/model clearance and matched fullscene performance. Native bone frames are not GPU skin acceptance."
+  ],
+  "official_api_context": [
+    {
+      "url": "https://docs.godotengine.org/en/4.5/classes/class_skeleton3d.html",
+      "note": "The documented global bone pose can be changed later by modifiers. Current native receipts plus active-modifier refusal do not establish rendered skin contact."
+    }
+  ],
+  "evidence": {
+    "outputs/coordinator27_c4_pose48_native/revision1/ASSEMBLY.json": {
+      "sha256": "058c799f42bb457acc6628307b9d6e28d2f1288e8448ebf0fa86587d3e2905fb",
+      "bytes": 122315
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/ASSEMBLY_IMPORTED.json": {
+      "sha256": "b363b9f710627327d4d39156aea5784e16820e158eb5d5dfbebf439baaab8a1b",
+      "bytes": 126185
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/import01/RUN.json": {
+      "sha256": "87d6420f5e29e632eee271348da36150c207e160d020ba04537e2c43995fbdba",
+      "bytes": 11530
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/import01/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/import01/stdout.log": {
+      "sha256": "4f5d0cc316bedfe2f4fe2f8a0256e18c00e20c5055070296e378b1a42c8981cb",
+      "bytes": 22518
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/native01/RESULT.json": {
+      "sha256": "5291b98cab7a481ed3c14d97ab4299d79947cf89942e02578869c02c86dcc741",
+      "bytes": 13377
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/native01/RUN.json": {
+      "sha256": "9d182f883d463a1276b5377282b93e09bfcf094c398ab17ec74ea6b5b3bb84cd",
+      "bytes": 11779
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/native01/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/coordinator27_c4_pose48_native/revision1/runs/native01/stdout.log": {
+      "sha256": "c8c6399789825db6b4eba552488baf62ad8e7a1c82e7d11858b812b9c5af9c08",
+      "bytes": 5696
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/ASSEMBLY.json": {
+      "sha256": "54814c6016d40c031a120d138a94fc0bcfcb1f14012c2ddc3bfce55f9190b16b",
+      "bytes": 126308
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/ASSEMBLY_DIAGNOSTIC.json": {
+      "sha256": "6130cf2bebdaced745191129260f461ea67d04fa77b6aa2895f265cf97f7d987",
+      "bytes": 126440
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/ASSEMBLY_IMPORTED.json": {
+      "sha256": "49fa27e9244d4af8ceb4b96131c5241d81a621657d88c0d28b0c8f7f2f5ec731",
+      "bytes": 125762
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/import01/RUN.json": {
+      "sha256": "a0efca2968f3983ff0bf2a3a3fe6daadfa7de4ab5ecee77badb114a177b61b81",
+      "bytes": 10728
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/import01/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/import01/stdout.log": {
+      "sha256": "4f5d0cc316bedfe2f4fe2f8a0256e18c00e20c5055070296e378b1a42c8981cb",
+      "bytes": 22518
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/native01/RESULT.json": {
+      "sha256": "111bd84cb0e9b7481e2d9123f9794495c6f0a5309e9bab5c4582f9839f29240d",
+      "bytes": 27406
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/native01/RUN.json": {
+      "sha256": "647fa24314a5a14bed2f9adc10599d46223d661e9edf09bb9c2b29656d6ee345",
+      "bytes": 13496
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/native01/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/coordinator27_c4_pose48_native/revision2/runs/native01/stdout.log": {
+      "sha256": "28c4d3b0500d5211aa1f0861ea0dd3e8a87d8674278653cea36cfe35f1fdb0c1",
+      "bytes": 5696
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/ASSEMBLY.json": {
+      "sha256": "bad266c062fbe95b622af3eb3293d76c05fdea76995f294d2dca875a5c6715c4",
+      "bytes": 125670
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/ASSEMBLY_IMPORTED.json": {
+      "sha256": "7469acc3602795661e516ca79a10aaf11f43545b405c3e81351c5fa12d50c7c5",
+      "bytes": 125797
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/import01/RUN.json": {
+      "sha256": "20eeb8533b023dee30157d089428a303ff2e38d0d497d2818cd4ddea6fdff091",
+      "bytes": 10716
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/import01/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/import01/stdout.log": {
+      "sha256": "4f5d0cc316bedfe2f4fe2f8a0256e18c00e20c5055070296e378b1a42c8981cb",
+      "bytes": 22518
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/native01/RESULT.json": {
+      "sha256": "c2637d19404dc241cb7d3de075d27b4fa7fcf78876ce21d8d1df685087b7d36c",
+      "bytes": 31372
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/native01/RUN.json": {
+      "sha256": "d2d8f0ba7a66fe5471ea90046b93cb4cd23386bb6ecdd9cc4112c59b4a6ac900",
+      "bytes": 11769
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/native01/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/coordinator27_c4_pose48_native/revision3/runs/native01/stdout.log": {
+      "sha256": "08757e5d31f8f5f777f49670c5d6d7befa822197607763a07f16a13391eb05db",
+      "bytes": 5685
+    }
+  }
+}

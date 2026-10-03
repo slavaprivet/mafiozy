@@ -1,0 +1,30 @@
+{
+  "schema": "mafiozi.test-scheduler.status/v1",
+  "registered_children": [],
+  "coexist_pids": [],
+  "perf_active": false,
+  "active": [],
+  "pending": [],
+  "inventory": [
+    {
+      "pid": 25808,
+      "parent_pid": 45416,
+      "creation_filetime": "134354639115733549",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\godot\\mafiozi_walk\"",
+      "executable": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "main.tscn - \u041c\u0430\u0444\u0438\u043e\u0437\u0438 \u2014 \u043f\u0435\u0440\u0435\u043d\u043e\u0441 \u0432 Godot - Godot Engine"
+    },
+    {
+      "pid": 34540,
+      "parent_pid": 35164,
+      "creation_filetime": "134354713729615269",
+      "name": "Godot_v4.7.2-stable_win64.exe",
+      "command_line": "\"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 \u00b7 \u0423\u0441\u0438\u043b\u0435\u043d\u043d\u044b\u0439 C4 \u00b7 \u0432\u0435\u0440\u0441\u0438\u044f48\" \"--release-revision=s01-20261003-c4-release48\"",
+      "executable": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "title": "\u041c\u0430\u0444\u0438\u043e\u0437\u0438 \u2014 03.10 \u00b7 \u0423\u0441\u0438\u043b\u0435\u043d\u043d\u044b\u0439 C4 \u00b7 \u0432\u0435\u0440\u0441\u0438\u044f48 (DEBUG)"
+    }
+  ],
+  "performance_accepted": false,
+  "state_file": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\test_scheduler\\state.json"
+}

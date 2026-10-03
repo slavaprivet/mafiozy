@@ -1,5 +1,37 @@
 # Координатор27 — рабочая память
 
+## 03.10 07:50 — checkpointv2 native127 и C4 standing57
+
+Предыдущий goal turn PROGRESS: scheduler0194 с14CPU/nativeoverlap20.245s уже
+сохранён main/origin003f6f546fde76e8be05a6553ae510f7a2333001, remoteSHAподтверждён.
+Текущий turn тоже PROGRESS: root исправил реальные codec collisions @f64/unsafeint,
+plaintext16/wire17 depth и capture input boundary. `coordinator27_weapon_checkpoint_v2`
+native05 PASS127/11.141s/std0, 486исходников48 неизменны. Same14UID across8фаз,
+actualTT12/36→11/36seq1→reloadRemaining1.36667→12/35; ammo896→895, ground/cargo
+не восполняют патрон. Helper217669b4fb6782e745e584dadf69aa6c7bff0af733c4924e8da6d6de4d4bb11b,
+freeze9bed6c38d5230ea777ba95e2f63648b8ea2d4dc3844a80bcc5e4c85af441e6ad(79files).
+Независимая проверка actual8exports+sourcepinsPASS. v2native01–03 honestQAFAIL
+(новый dot-key сталStringName),04PASS94,05final127 сохранены. Нетrestore/server/perfclaim.
+
+Rootagent step48_native реализует `coordinator27_weapon_restore49`: privatecopies48,
+реальныеtwo-process owner APIs, no duplicatebootstrap/UIDregen/serverACK, localclockfreeze,
+pendinginputs/shots/C4reject. Transportowner подтвердил отсутствиеfileconflict;
+vehiclelife/sessionbinding нужно доpreview_ready/addonconfigure. CarHP/tyremeta
+непереживаютrestartавтоматически, этотweapon-onlyproofихнепокрывает.
+
+C4runner: `coordinator27_c4_pose49/STANDING_NATIVE_FREEZE.json`18c9fccad161d0c7c0c61c92114f738afc9c2ff23b0f884050f09ad1a557f867.
+Actual original.815target57PASS, errorsR/L≈.000004м, feetshift1.49e−8м,
+segmentdelta3.77e−6м, actor0. Naturalgripsides+spine25/chest10/clavicle≤25deg.
+Low/closer-attribution/GPU идут; allREACH2.5range/perf/productionНЕприняты.
+CloseroldstandFAIL вероятнобоковойsillcontact отinitialpenetration, actualhitspending;
+не лечитьradius/margin радиQA. Accepted48неизменён.
+
+Agentperf_review послеcheckpointreview готовит private restaurantplacement49 на
+final Buildings4access MANIFEST0ec4db.../ASSEMBLY4050527a...; сначала конкретный
+site/soil/roads/NPC/car audit. Owner17doors1038PASS/artstairs12970PASS, finalGPUphase
+oracleготовится; runtimeне менять поошибочномуlatestPhysicsServerpostdraworacle.
+Production48 остаётсяПалаццо. Полная цель ACTIVE, очередной scopecheckpoint готовится.
+
 ## 03.10 07:33 — лишние ожидания тестов исправлены
 
 Новая просьба пользователя про постоянные очереди выполнена в scheduler, не

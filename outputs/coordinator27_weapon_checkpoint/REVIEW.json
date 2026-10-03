@@ -1,0 +1,57 @@
+{
+  "status": "NATIVE_FUNCTIONAL_PASS_PLAN_ONLY",
+  "checks": 87,
+  "base_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
+  "source_count": 486,
+  "runtime_patch_count": 0,
+  "helper_sha256": "e65542131d9988a6499faa49b40a72870f3090a8e6ab1c9c5a8c989e74caf02e",
+  "fixture_sha256": "d74df3679f937626f4e08d299efba226051e6bf65e06eac1a028a656d4a38b78",
+  "runner_sha256": "f488f71f2109ae2f4f94d308e78c1c8b681b942a13417a3c825636648a8941f8",
+  "accepted": false,
+  "restore_implemented": false,
+  "performance_accepted": false,
+  "actual_phases": [
+    {
+      "label": "initial",
+      "items": 14,
+      "ammo_total": 896.0,
+      "sha256": "69703d30c5a3a091a1db8d07f65a0887aadd681b2f1b51ce7d31e25cf5d1e8e4"
+    },
+    {
+      "label": "ground",
+      "items": 14,
+      "ammo_total": 896.0,
+      "sha256": "26643cfb33c0cec9ba47724c1a6af90c08003a676abe3d0d7a9137728786b6d0"
+    },
+    {
+      "label": "picked_up",
+      "items": 14,
+      "ammo_total": 896.0,
+      "sha256": "db374ac271d1277ff7bd59435152209ed0faea0ac3a6d0d28353819e87a684cc"
+    },
+    {
+      "label": "cargo",
+      "items": 14,
+      "ammo_total": 896.0,
+      "sha256": "b0511105c9c261a268ada957955a31f3583749aec6a981dde308d4ee12e91d40"
+    },
+    {
+      "label": "taken",
+      "items": 14,
+      "ammo_total": 896.0,
+      "sha256": "1f5478af4922452f8e3b6657d97223faff353dfc8771c0ffe3e203be33e064e6"
+    }
+  ],
+  "native_seconds": 9.838642300106585,
+  "capture_us": [
+    4274,
+    4357,
+    5376,
+    4881,
+    4342
+  ],
+  "real_saves_auth_DB_browser_storage": "NOT_READ",
+  "production_mutations": false,
+  "native_result": "runs/native03/RESULT.json",
+  "native_run": "runs/native03/RUN.json"
+}
