@@ -1,6 +1,34 @@
 # Координатор27 — рабочая память
 
+## 03.10 07:33 — лишние ожидания тестов исправлены
+
+Новая просьба пользователя про постоянные очереди выполнена в scheduler, не
+повышением числа тяжёлых игр. Найдены и исправлены: HOL чужого writer при свободном
+слоте; substring путей A/A-other; deadline при constructor вместо enqueue (затрагивал
+заранее созданную candidate Lease car pair). Добавлены probe/pending_diagnostics и
+queue_wait_seconds. Новый SHA0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4.
+14 CPU PASS/12.181s, независимый pure predicate review12PASS. Native дваGodot
+overlap20.244922876s, F5 predicatePASS, usergame/editor сохранены:
+`outputs/coordinator27_scheduler_native/run_20261003_072952/RESULT.json`.
+Инструкция `docs/godot/TEST_SCHEDULER.md`, owners Buildings4/NPC24/Cars/dispatcher/HQ
+уведомлены; старые6f862frozenreceipts сохранять, новыеadapterpins обновить явно.
+Лимиты прежние2headless+1graphical; freeRAM2.8–4.2GiB не оправдывает4fullscene.
+Perf всё ещё требует свободного игрового окна, probe сразу объясняет blocker;
+не ждатьручнойGO и не повторять120stimeout. Production48/F5 unchanged.
+
+Также получены, пока не опубликованы: exact short-dive48 native404+404PASS;
+stepvisual03 1590/1591 с явной component cap exception; C4pose48 HOLD (175мм
+недостаток reach исходной цели, nearercommitPASS, r3standFAIL); weaponcheckpoint
+native87PASS безrestore/servergrants. Все private proofs сохраняются. Подробности:
+`outputs/coordinator27_dive_cap48_native/HANDOFF.md`,
+`outputs/coordinator27_step48_visual/ROOT_DECISION.md`,
+`outputs/coordinator27_c4_pose48_native/HANDOFF.md`,
+`outputs/coordinator27_weapon_checkpoint/HANDOFF.md`.
+Эти пакеты ещё требуют root integration/performance по своему scope; цель ACTIVE.
+
 ## 03.10 06:57 — Step48 native и независимая приёмка доказательств car49
+
+Checkpoint07:00: `79801845981e05d34fa67d72a55067871ec47480` сохранён в main/GitHub, HEAD/ls-remote совпали.76scopedfiles: step native proofs/исходныйpatch/rootreview, carreview, актуальнаяпередача и восстановлениеGit.58stagedproofblobs совпали сfreeze. Нормальные предупреждения whitespace только внутри архивногоunifiedpatch иrawlog; их не изменяли. Краткийживойindex.lock исчез самостоятельно; boundedretrycommitуспешен, никаких новыхархивирований/удалений. Audit `outputs/coordinator27_next_integration_review.json` SHA93b807e52329ce807e9b263c78d02323b0c25a31d62bff9c12eb87c41f7891c9 появилсяпозжеstage и пока локальный. НоваяdiveQA агентомготовится, ожидаемactualрезультат.
 
 Предыдущий ход PROGRESS: публикация48/F5 сохранена f6a019ca. Текущий тоже PROGRESS: actual isolated48+exactstep33 импорт и24case native, реальный corpse regression, формальный carreview. Пользовательская48 не менялась.
 

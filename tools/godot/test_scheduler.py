@@ -126,17 +126,36 @@ def conflicts(a, b):
     return a["project"] == b["project"] and "write" in (a["access"], b["access"])
 
 
-def eligible(request, state, externally_blocked):
+def admission_reasons(request, state, externally_blocked):
+    """Work-conserving FIFO: a resource-blocked writer only reserves its project.
+
+    Keep queued perf draining all lanes, and protect writers from later readers.
+    A busy project must not reserve a free lane needed by an unrelated project.
+    """
     active = state["active"]
-    if externally_blocked(request) or any(conflicts(request, x) for x in active):
-        return False
+    reasons = []
+    if externally_blocked(request):
+        reasons.append({"code": "external_process"})
+    for item in active:
+        if conflicts(request, item):
+            reasons.append({"code": "active_resource", "ticket": item["ticket"], "project": item["project"], "mode": item["mode"]})
     limit = 2 if request["mode"] == "headless" else 1
     if sum(x["mode"] == request["mode"] for x in active) >= limit:
-        return False
+        reasons.append({"code": "lane_full", "mode": request["mode"], "limit": limit})
     # FIFO for competing lanes/resources; an externally blocked perf request
     # cannot stop functional work for the duration of the user's open game.
-    return not any(x["ticket"] < request["ticket"] and not externally_blocked(x)
-                   and (x["mode"] == request["mode"] or conflicts(request, x)) for x in state["pending"])
+    for item in state["pending"]:
+        if item["ticket"] >= request["ticket"] or externally_blocked(item):
+            continue
+        resource_conflict = conflicts(request, item)
+        ready_resource = not any(conflicts(item, current) for current in active)
+        if resource_conflict or (item["mode"] == request["mode"] and ready_resource):
+            reasons.append({"code": "earlier_request", "ticket": item["ticket"], "project": item["project"], "mode": item["mode"]})
+    return reasons
+
+
+def eligible(request, state, externally_blocked):
+    return not admission_reasons(request, state, externally_blocked)
 
 
 def same_child(row, child):
@@ -177,18 +196,62 @@ def external_rows(rows, active):
     return [r for r in rows if not any(same_child(r, c) for c in children)]
 
 
+def command_project(row):
+    """Read --path as a Windows argument, never as a substring of a sibling path."""
+    command = row.get("command_line") or ""
+    if not command:
+        return None
+    shell = ctypes.WinDLL("shell32", use_last_error=True)
+    shell.CommandLineToArgvW.argtypes = [W.LPCWSTR, ctypes.POINTER(ctypes.c_int)]
+    shell.CommandLineToArgvW.restype = ctypes.POINTER(W.LPWSTR)
+    kernel = api()
+    kernel.LocalFree.argtypes = [W.HLOCAL]
+    kernel.LocalFree.restype = W.HLOCAL
+    count = ctypes.c_int()
+    argv = shell.CommandLineToArgvW(command, ctypes.byref(count))
+    need(bool(argv), "Cannot parse external engine command")
+    try:
+        args = [argv[i] for i in range(count.value)]
+    finally:
+        kernel.LocalFree(ctypes.cast(argv, W.HLOCAL))
+    options = args[1:args.index("--")] if "--" in args else args[1:]
+    paths = [options[i + 1] for i, arg in enumerate(options[:-1]) if arg == "--path"]
+    need(options.count("--path") == len(paths), "Missing external engine project operand")
+    need(len(paths) <= 1, "Ambiguous external engine project")
+    need(not paths or Path(paths[0]).is_absolute(), "Relative external engine project cannot be resolved safely")
+    return canonical(paths[0]) if paths else None
+
+
 def blocked(request, external):
+    return bool(external_blockers(request, external))
+
+
+def external_blockers(request, external):
+    blockers = []
     for row in external:
+        same_project = request["access"] == "write" and request["project"] == command_project(row)
+        reason = None
         if is_manager(row) or is_editor(row):
-            if request["access"] == "write" and request["project"].lower() in (row.get("command_line") or "").lower().replace("/", "\\"):
-                return True
-            continue
-        if request["mode"] == "perf" or not is_interactive(row):
-            return True
+            if request["access"] == "write" and same_project:
+                reason = "project_open_in_editor"
+        elif request["mode"] == "perf":
+            reason = "perf_requires_idle_game" if is_interactive(row) else "unregistered_engine"
+        elif not is_interactive(row):
+            reason = "unregistered_engine"
         # Never mutate/import the project being used by an external user/editor.
-        if request["access"] == "write" and request["project"].lower() in (row.get("command_line") or "").lower().replace("/", "\\"):
-            return True
-    return False
+        elif request["access"] == "write" and same_project:
+            reason = "project_open_in_game"
+        if reason:
+            blockers.append({"code": reason, "pid": row.get("pid"), "creation_filetime": row.get("creation_filetime"), "title": row.get("title", "")})
+    return blockers
+
+
+def explain(request, state, rows):
+    external = external_rows(rows, state["active"])
+    reasons = admission_reasons(request, state, lambda r: blocked(r, external))
+    reasons = [r for r in reasons if r["code"] != "external_process"] + external_blockers(request, external)
+    return {"eligible_snapshot": not reasons, "reasons": reasons,
+            "scope": "Snapshot only; Lease rechecks inventory and legacy launch mutex before admission"}
 
 
 def editors(rows):
@@ -200,23 +263,28 @@ class Lease:
         need(mode in MODES and access in ("read", "write"), "Invalid lease mode/access")
         need(0 < wait_seconds <= 600, "Queue wait must be in (0,600] seconds")
         self.store = Path(_store) if _store else STORE
+        self.wait_seconds = wait_seconds
         self.request = {"id": uuid.uuid4().hex, "owner": identity(os.getpid()), "mode": mode,
-                        "project": canonical(project), "access": access, "children": [],
-                        "deadline": time.monotonic() + wait_seconds}
+                        "project": canonical(project), "access": access, "children": []}
         self.processes = []; self.acquired = False; self.perf_contaminated = False
+        self.last_wait = None
         self._legacy = None
         self._legacy_name = r"Local\MafioziUnifiedPreviewLaunch" if _store is None else "Local\\MafioziTestScheduler_TestLegacy_" + hashlib.sha256(canonical(self.store).encode()).hexdigest()[:16]
 
     def __enter__(self):
+        queued_at = time.monotonic()
+        self.request["deadline"] = queued_at + self.wait_seconds
         with state_lock(self.store) as state:
+            self.request["queued_at"] = queued_at
             self.request["ticket"] = state["next_ticket"]; state["next_ticket"] += 1
             state["pending"].append(self.request)
         try:
             while time.monotonic() < self.request["deadline"]:
                 rows = inventory()
                 with state_lock(self.store) as state:
-                    need(time.monotonic() < self.request["deadline"], "Bounded queue wait expired")
+                    need(time.monotonic() < self.request["deadline"], "Bounded queue wait expired: " + json.dumps(self.last_wait, ensure_ascii=True))
                     ext = external_rows(rows, state["active"])
+                    self.last_wait = explain(self.request, state, rows)
                     if eligible(self.request, state, lambda r: blocked(r, ext)):
                         # Retain the old mutex as a prelaunch bridge when free.
                         # A live user launcher may own it for its whole lifetime;
@@ -229,12 +297,14 @@ class Lease:
                             state["pending"] = [x for x in state["pending"] if x["id"] != self.request["id"]]
                             self.request["inventory_before"] = rows
                             self.request["editor_identities"] = editors(ext)
+                            self.request["queue_wait_seconds"] = time.monotonic() - queued_at
                             state["active"].append(self.request)
                             self.acquired = True
                             return self
                         bridge.__exit__(None, None, None)
+                        self.last_wait = {"eligible_snapshot": False, "reasons": [{"code": "legacy_launch_mutex"}]}
                 time.sleep(.25)
-            raise TimeoutError("Bounded queue wait expired; no process was stopped")
+            raise TimeoutError("Bounded queue wait expired; no process was stopped: " + json.dumps(self.last_wait, ensure_ascii=True))
         except BaseException:
             self.release()
             raise
@@ -320,7 +390,18 @@ def status(*, _store=None):
             "coexist_pids": [c["pid"] for c in children if c["mode"] in ("headless", "graphical")],
             "perf_active": any(x["mode"] == "perf" for x in snapshot["active"]),
             "active": snapshot["active"], "pending": snapshot["pending"], "inventory": rows,
+            "pending_diagnostics": [dict(ticket=r["ticket"], **explain(r, snapshot, rows)) for r in snapshot["pending"]],
+            "limits": {"headless": 2, "graphical": 1, "perf_exclusive": True},
             "performance_accepted": False, "state_file": str(directory / "state.json")}
+
+
+def probe(mode, project, access="read", *, _store=None):
+    """Diagnose admission without adding a request or waiting for a slot."""
+    need(mode in MODES and access in ("read", "write"), "Invalid mode/access")
+    snapshot = status(_store=_store)
+    tickets = [r["ticket"] for key in ("active", "pending") for r in snapshot[key]]
+    request = {"mode": mode, "project": canonical(project), "access": access, "ticket": max(tickets, default=0) + 1}
+    return dict(request=request, **explain(request, snapshot, snapshot["inventory"]), performance_accepted=False)
 
 
 def main():
@@ -328,6 +409,10 @@ def main():
     sub = parser.add_subparsers(dest="action", required=True)
     for name in ("status", "coexist"):
         sub.add_parser(name).add_argument("--json", action="store_true")
+    check = sub.add_parser("probe")
+    check.add_argument("--mode", choices=MODES, required=True)
+    check.add_argument("--project", type=Path, required=True)
+    check.add_argument("--access", choices=("read", "write"), default="read")
     run = sub.add_parser("run")
     run.add_argument("--mode", choices=MODES, required=True)
     run.add_argument("--project", type=Path, required=True)
@@ -337,6 +422,8 @@ def main():
     run.add_argument("--out", type=Path, required=True)
     run.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
+    if args.action == "probe":
+        print(json.dumps(probe(args.mode, args.project, args.access), ensure_ascii=True)); return
     if args.action != "run":
         print(json.dumps(status(), ensure_ascii=True)); return
     command = args.command[1:] if args.command[:1] == ["--"] else args.command

@@ -1,5 +1,15 @@
 # Координация проекта
 
+## Очередь проверок исправлена — 3 октября, Координатор27
+
+Актуальная инструкция: `docs/godot/TEST_SCHEDULER.md`. Functional без ручного GO:
+2 headless + 1 graphical одновременно, perf отдельно. Ожидающий writer чужой
+папки больше не блокирует независимый тест; точный `--path`, время ожидания от
+enqueue. Перед perf использовать CLI `probe`, не тратить повторные timeout на
+открытую пользовательскую игру. Scheduler SHA0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4,
+14 CPU checks PASS. Старые receipts и pinned wrappers сохранять, для новых
+прогонов обновлять только новый адаптер. Игра/editor пользователя сохраняются.
+
 ## Принята версия48 — 3 октября, Координатор27
 
 F5/current_version теперь ведёт в принятую `outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json` (486pins, SHA51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7). Усиленный C4/реальный проход/Fire3/camera/shared-shape fix и marks включены, ordinary launch readytrue; доказательства ACCEPTANCE.json/DELIVERY.json. Новые пакеты базировать на48, старые45/47a не подменять обратно. Scope текущий Палаццо/триNPC, полныйперенос и банк не приняты. На06:25 игра34540 и editor25808 были открыты: всегда свежийinventory, пользовательскиеокна сохранять. Тестовыйscheduler ниже остаётся в силе. Детали стоимости и Gitlock ограничения — память27.

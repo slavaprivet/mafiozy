@@ -67,6 +67,57 @@ class SchedulerTests(unittest.TestCase):
         self.assertFalse(s.eligible(later,{"active":[graphic],"pending":[perf,later]},lambda _:False))
         self.assertTrue(s.eligible(later,{"active":[graphic],"pending":[perf,later]},lambda r:r["mode"]=="perf"))
 
+    def test_blocked_writer_does_not_idle_an_unrelated_lane(self):
+        for active_mode, waiting_mode in (("graphical", "headless"), ("headless", "graphical")):
+            active = self.request(active_mode)
+            writer = self.request(waiting_mode, access="write", ticket=2)
+            unrelated = self.request(waiting_mode, ticket=3, project=self.store / "other")
+            state = {"active": [active], "pending": [writer, unrelated]}
+            self.assertTrue(s.eligible(unrelated, state, lambda _: False))
+            self.assertFalse(s.eligible(self.request(waiting_mode, ticket=4), state, lambda _: False))
+            # Once its project is available, the earlier writer wins its lane.
+            self.assertFalse(s.eligible(unrelated, {"active": [], "pending": [writer, unrelated]}, lambda _: False))
+
+    def test_exact_external_project_not_prefix_or_user_argument(self):
+        project = self.store / "project with space"
+        request = self.request(access="write", project=project)
+        def editor(path):
+            return {"name": "Godot.exe", "command_line": subprocess.list2cmdline(["Godot.exe", "--editor", "--path", str(path)]), "pid": 42}
+        self.assertTrue(s.blocked(request, [editor(project)]))
+        self.assertFalse(s.blocked(request, [editor(Path(str(project) + "-other"))]))
+        row = editor(self.store / "other")
+        row["command_line"] += " -- " + subprocess.list2cmdline(["--path", str(project)])
+        self.assertFalse(s.blocked(request, [row]))
+        self.assertEqual(s.command_project(editor(project)), s.canonical(project))
+        with self.assertRaisesRegex(RuntimeError, "Relative"):
+            s.blocked(request, [editor(Path("relative-project"))])
+
+    def test_probe_reports_blocker_without_wait_or_new_ticket(self):
+        game = {"name": "Godot.exe", "command_line": "Godot.exe --path C:\\UserGame", "pid": 42, "title": "User game"}
+        with patch.object(s, "inventory", return_value=[game]):
+            result = s.probe("perf", self.project, _store=self.store)
+        self.assertFalse(result["eligible_snapshot"])
+        self.assertEqual(result["reasons"][0]["code"], "perf_requires_idle_game")
+        state = json.loads((self.store / "state.json").read_text())
+        self.assertEqual(state["next_ticket"], 1)
+        self.assertEqual(state["pending"], [])
+        with patch.object(s, "inventory", return_value=[game]):
+            self.assertTrue(s.probe("headless", self.project, _store=self.store)["eligible_snapshot"])
+
+    def test_wait_records_duration_and_timeout_explains_lane(self):
+        with s.Lease("graphical", self.project, _store=self.store) as lease:
+            self.assertGreaterEqual(lease.request["queue_wait_seconds"], 0)
+            with self.assertRaisesRegex((RuntimeError, TimeoutError), "lane_full"):
+                with s.Lease("graphical", self.project, wait_seconds=.3, _store=self.store):
+                    self.fail("second graphical lease admitted")
+
+    def test_wait_budget_begins_at_enqueue_not_constructor(self):
+        lease = s.Lease("headless", self.project, wait_seconds=.2, _store=self.store)
+        time.sleep(.3)
+        with lease:
+            self.assertGreater(lease.request["deadline"], time.monotonic())
+            self.assertAlmostEqual(lease.request["deadline"] - lease.request["queued_at"], .2)
+
     def test_user_game_blocks_perf_not_functional_editor_does_not_bypass_legacy(self):
         row={"name":"Godot_v4.7.2-stable_win64.exe", "command_line":'"C:\\Godot.exe" --path "C:\\UserGame"',"title":"Game"}
         self.assertTrue(s.blocked(self.request("perf"),[row]))

@@ -1,0 +1,3 @@
+# Scheduler receipts pin exact bytes across Windows checkouts.
+test_scheduler.py -text
+test_test_scheduler.py -text

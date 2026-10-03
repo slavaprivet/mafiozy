@@ -1,0 +1,288 @@
+{
+  "passed": true,
+  "user_processes_closed": false,
+  "f5_predicate": {
+    "exit_code": 0,
+    "stdout": "{\"passed\":true,\"admitted\":[45188,15992],\"user_game_started\":false}\r\n",
+    "stderr": ""
+  },
+  "overlap_seconds": 20.244922876358032,
+  "runs": [
+    {
+      "index": 1,
+      "started": 1791001793.4476726,
+      "ended": 1791001813.7361155,
+      "child": {
+        "pid": 45188,
+        "creation_filetime": "134354753934501951",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      },
+      "exit_code": 0
+    },
+    {
+      "index": 2,
+      "started": 1791001793.4911926,
+      "ended": 1791001813.7827554,
+      "child": {
+        "pid": 15992,
+        "creation_filetime": "134354753934942509",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2
+      },
+      "exit_code": 0
+    }
+  ],
+  "status_during": {
+    "schema": "mafiozi.test-scheduler.status/v1",
+    "registered_children": [
+      {
+        "pid": 45188,
+        "creation_filetime": "134354753934501951",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2,
+        "lease_id": "bec275c463ff4c5bac592d0b520fb581"
+      },
+      {
+        "pid": 15992,
+        "creation_filetime": "134354753934942509",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+        "affinity_mask": 12,
+        "logical_cpu_limit": 2,
+        "lease_id": "87daf4b077974a33ba52de6336d44f11"
+      }
+    ],
+    "coexist_pids": [
+      45188,
+      15992
+    ],
+    "perf_active": false,
+    "active": [
+      {
+        "id": "bec275c463ff4c5bac592d0b520fb581",
+        "owner": {
+          "pid": 47208,
+          "creation_filetime": "134354753923334331"
+        },
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+        "access": "read",
+        "children": [
+          {
+            "pid": 45188,
+            "creation_filetime": "134354753934501951",
+            "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd",
+            "command": [
+              "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+              "--headless",
+              "--path",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+              "--script",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd"
+            ],
+            "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "mode": "headless",
+            "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1",
+            "affinity_mask": 3,
+            "logical_cpu_limit": 2
+          }
+        ],
+        "deadline": 1321723.653204,
+        "queued_at": 1321633.653204,
+        "ticket": 342,
+        "inventory_before": [
+          {
+            "pid": 25808,
+            "parent_pid": 45416,
+            "creation_filetime": "134354639115733549",
+            "name": "Godot_v4.7.2-stable_win64.exe",
+            "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+            "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+          },
+          {
+            "pid": 34540,
+            "parent_pid": 35164,
+            "creation_filetime": "134354713729615269",
+            "name": "Godot_v4.7.2-stable_win64.exe",
+            "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+            "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+          }
+        ],
+        "editor_identities": [
+          [
+            25808,
+            "134354639115733549",
+            "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+            "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe"
+          ]
+        ],
+        "queue_wait_seconds": 0.5588489000219852
+      },
+      {
+        "id": "87daf4b077974a33ba52de6336d44f11",
+        "owner": {
+          "pid": 47208,
+          "creation_filetime": "134354753923334331"
+        },
+        "mode": "headless",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+        "access": "read",
+        "children": [
+          {
+            "pid": 15992,
+            "creation_filetime": "134354753934942509",
+            "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd",
+            "command": [
+              "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+              "--headless",
+              "--path",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+              "--script",
+              "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd"
+            ],
+            "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+            "mode": "headless",
+            "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2",
+            "affinity_mask": 12,
+            "logical_cpu_limit": 2
+          }
+        ],
+        "deadline": 1321723.6532628,
+        "queued_at": 1321633.6532628,
+        "ticket": 343,
+        "inventory_before": [
+          {
+            "pid": 25808,
+            "parent_pid": 45416,
+            "creation_filetime": "134354639115733549",
+            "name": "Godot_v4.7.2-stable_win64.exe",
+            "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+            "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+          },
+          {
+            "pid": 34540,
+            "parent_pid": 35164,
+            "creation_filetime": "134354713729615269",
+            "name": "Godot_v4.7.2-stable_win64.exe",
+            "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+            "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+            "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+          }
+        ],
+        "editor_identities": [
+          [
+            25808,
+            "134354639115733549",
+            "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+            "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe"
+          ]
+        ],
+        "queue_wait_seconds": 0.6018986999988556
+      }
+    ],
+    "pending": [],
+    "inventory": [
+      {
+        "pid": 25808,
+        "parent_pid": 45416,
+        "creation_filetime": "134354639115733549",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+      },
+      {
+        "pid": 34540,
+        "parent_pid": 35164,
+        "creation_filetime": "134354713729615269",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\Слава\\Desktop\\Мафиози\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 · Усиленный C4 · версия48\" \"--release-revision=s01-20261003-c4-release48\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)"
+      },
+      {
+        "pid": 45188,
+        "parent_pid": 47208,
+        "creation_filetime": "134354753934501951",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\1\\qa.gd",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      },
+      {
+        "pid": 15992,
+        "parent_pid": 47208,
+        "creation_filetime": "134354753934942509",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2 --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_scheduler_native\\run_20261003_072952\\2\\qa.gd",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "pending_diagnostics": [],
+    "limits": {
+      "headless": 2,
+      "graphical": 1,
+      "perf_exclusive": true
+    },
+    "performance_accepted": false,
+    "state_file": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\test_scheduler\\state.json"
+  },
+  "scheduler_sha256": "0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4"
+}
