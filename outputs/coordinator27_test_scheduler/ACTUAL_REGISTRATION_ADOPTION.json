@@ -1,0 +1,46 @@
+{
+  "status": "ACTUAL_DELAYED_REGISTRATION_PASS",
+  "scope": "Two native headless import runs; actual pending child registration recovered without cancelling either owner",
+  "runs": [
+    {
+      "run": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_baseline_import01/RUN.json",
+      "run_sha256": "1ee95fc3022591f90846440e11d7b6af52160e9f4998ec787ed2ccbbc3aff449",
+      "valid_run": true,
+      "source_pins_unchanged": true,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "helper_sha256": "512f0e65558b095f355e41e80fa716b183f64c733721d4fbb94dbb609edd19f7",
+      "events": [
+        {
+          "status": "REGISTERED",
+          "elapsed_seconds": 1.3347744999919087,
+          "awaited": [
+            {
+              "lease_id": "1b4b0ae4183d4f7b914e28b06ccec91b",
+              "owner": {
+                "pid": 44796,
+                "creation_filetime": "134354707253966911"
+              },
+              "identity": {
+                "pid": 23476,
+                "creation_filetime": "134354707394082090"
+              },
+              "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game --headless --editor --import --quit",
+              "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_candidate_import01/RUN.json",
+      "run_sha256": "574ff3dadef9818304fee80e738e4b26e2cf8734ffce1b7c9ec404ca9085715d",
+      "valid_run": true,
+      "source_pins_unchanged": true,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "helper_sha256": "512f0e65558b095f355e41e80fa716b183f64c733721d4fbb94dbb609edd19f7",
+      "events": []
+    }
+  ]
+}

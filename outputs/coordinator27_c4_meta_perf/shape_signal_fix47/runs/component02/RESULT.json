@@ -1,0 +1,101 @@
+{
+	"checks": [
+		{
+			"label": "complete exact 500-source manifest",
+			"ok": true
+		},
+		{
+			"label": "reproduction uses distinct bound IDs",
+			"ok": true
+		},
+		{
+			"label": "native signal comparator aliases distinct bind IDs",
+			"ok": true
+		},
+		{
+			"label": "only first bound callback receives real shape changes",
+			"ok": true
+		},
+		{
+			"label": "disconnect using second bound ID removes first slot in old strategy",
+			"ok": true
+		},
+		{
+			"label": "three attachments share exactly one reference-counted resource slot",
+			"ok": true
+		},
+		{
+			"label": "removing middle attachment preserves callback for remaining charges",
+			"ok": true
+		},
+		{
+			"label": "real shape mutation immediately retires all remaining attachments",
+			"ok": true
+		},
+		{
+			"label": "mutation of final attachments leaves zero connections",
+			"ok": true
+		},
+		{
+			"label": "different resources own independent slots",
+			"ok": true
+		},
+		{
+			"label": "first resource mutation preserves other resource attachments",
+			"ok": true
+		},
+		{
+			"label": "native charge nodes reflect independent resource retirement",
+			"ok": true
+		},
+		{
+			"label": "detonating one attachment preserves remaining subscription",
+			"ok": true
+		},
+		{
+			"label": "explicit removal of last attachment releases the final slot",
+			"ok": true
+		},
+		{
+			"label": "independent active-hold cancellation handler remains connected",
+			"ok": true
+		},
+		{
+			"label": "real mutation retains hold cancellation and release requirement",
+			"ok": true
+		},
+		{
+			"label": "same mutation retires planted neighbor and releases both handlers",
+			"ok": true
+		},
+		{
+			"label": "damage and hold/drift constants unchanged",
+			"ok": true
+		},
+		{
+			"label": "complete exact 500-source manifest",
+			"ok": true
+		}
+	],
+	"engine": {
+		"build": "official",
+		"hash": "ed1daf0bf001b61586d9930840f2f1394092c079",
+		"hex": 263938,
+		"major": 4,
+		"minor": 7,
+		"patch": 2,
+		"status": "stable",
+		"string": "4.7.2-stable (official)",
+		"timestamp": 0
+	},
+	"entry_sha256": "b45644a8fb34698fd4fb4ab46768ea6befb27e40ef62573ee82ed31246d99f76",
+	"equipment_sha256": "86ec658e3c4619eb0f876d9ed3aa3420b79c788e7fdebda6cf428200ced17bb7",
+	"failures": [],
+	"manifest_sha256": "396b026306697031725c42425ff63da44eccf6286469c6fa4decb2aa40877bef",
+	"old_bound_callback_observed": [
+		"a",
+		"a"
+	],
+	"scope": "Native headless resource connection lifecycle; no claim of native player input or scene performance",
+	"status": "PASS"
+}

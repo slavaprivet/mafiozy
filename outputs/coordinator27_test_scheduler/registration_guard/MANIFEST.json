@@ -1,0 +1,23 @@
+{
+  "schema": "root27.registration-guard/v1",
+  "status": "CPU_ACCEPTED_PENDING_OWNER_ADOPTION",
+  "files": {
+    ".gitattributes": "42af531669008f1224006877ea8946676a156d90c8802b1c21c337134f5a8a92",
+    "guard.py": "512f0e65558b095f355e41e80fa716b183f64c733721d4fbb94dbb609edd19f7",
+    "test_guard.py": "12b825a95687ed3c31298fefbfa1f30aa8ceeb0752a1f37c7fa9a16fafd94a49",
+    "README.md": "b6d1c12a1625dba5207e47cc836af63fbf3ccd006845bb81afb4b2724b1dc153",
+    "CPU_TESTS.log": "0a98b9c3b0d50b7e07a6d6435c8c1e10c69e8e55f48eca59b09f5d2cce393990",
+    "CPU_RESULT.json": "b5d4da65c94b42f723bc043cb7b785fa3068833e58c2748b59e8d21120582fb0"
+  },
+  "cpu_tests_passed": 11,
+  "scheduler_sha256_unchanged": "6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9",
+  "reviewed_legacy_adapter_sha256": "c7cdb41e1075f6463b8f1f22eff2d294c2b619b8bc8d38fc17472001500adfd7",
+  "maximum_registration_wait_seconds": 16,
+  "watchdog_policy": "Earlier of original owner deadline and registration deadline; never renew either",
+  "scope": "New private owner guard helper only; no runtime/old runner/scheduler/launcher edits",
+  "actual_read_only_inventory_identity_fields_checked": true,
+  "godot_started": false,
+  "gameplay_proven": false,
+  "performance_accepted": false,
+  "known_launcher_limitation": "F5 inventory then cooperative registry lookup has analogous short registration window; launcher unchanged."
+}

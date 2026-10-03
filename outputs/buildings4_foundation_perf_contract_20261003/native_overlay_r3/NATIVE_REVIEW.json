@@ -1,0 +1,81 @@
+{
+  "status": "NATIVE_COLLECTOR_AND_STRICT_GEOMETRY_PASS",
+  "scope": "Cold intact foundation-only geometry exception; fullgame performance and production still require root acceptance",
+  "source_pins": 502,
+  "checks": 16,
+  "elapsed_s": 2.172,
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "native_errors": [],
+  "assembly_sha256": "2fc4c43835bb8199903f9089d620312ce11547ca80358f3f896e3cf629380813",
+  "collector_sha256": "d3af44da9655bbdba025973a2ede4603f0c5e8fbd95bc8dc5514b36000842085",
+  "harness_sha256": "ec84dfecd6cb299e5f3337816beebfed8989f9cfe2054e5bdd36a92a9f8d59c8",
+  "predicate_sha256": "96dadb19f75d5fafb820aa9dc840545f68a659d57f025e849ac987d683f2357c",
+  "contract_sha256": "868aa42974a0c998c4e5a18109ce01fa3a9c4185baf324169192e86d85aca3e3",
+  "run_sha256": "c39e61507ef233436cb027b0f08db0b808672c0d344d32e66f0db4aaef59ad09",
+  "result_sha256": "2eee464697403d47e9ce042aba09ff0c9f6c98dbd8ffc79b6ce33cbd42993040",
+  "before_sha256": "ffcd8432263a3a9696fddd78e842b3d9514bcc1c738c5bf15861ce649208b7df",
+  "after_sha256": "8e4759ca84e41c7449e11d1ce7d2475b11270f87f24c9eb3350bd2e19166c62f",
+  "comparison_sha256": "bf96fe16f7844ff3a13c937f8ef7c99b72b7df4a36f7e9b55c29d59dca420a0c",
+  "result": {
+    "geometry_delta_accepted": true,
+    "performance_accepted": false,
+    "required_external_gates_unchanged": [
+      "same final approved engine and complete source provenance",
+      "same renderer/window/resolution/graphics/physics settings",
+      "same camera pose/FOV and actor pose for comparable phases, including within each sample window",
+      "same NPC identities/counts/HP owners and controlled population scenario",
+      "same warmup/sample schedule/event scenario",
+      "all existing frame-time/draw/triangles/memory thresholds and native behavior checks"
+    ],
+    "signature": "04eb387f8062f41720ca87220b5129c2ac6612ddd4be117b84ba837d91f4874e",
+    "reason": "only_explicit_intact_foundation_delta",
+    "unchanged_body_records": 689,
+    "unchanged_collision_sha256": "8d4f58ce1f0d8671f57dc22fd65b01c530cb8ae927020d0223ff1c1817923d39",
+    "visual_delta": "foundation_only_bevel35.2mm_to12_flat_boxes_explicitly_declared"
+  },
+  "baseline_counts": {
+    "owned_bodies": 657,
+    "owned_shapes": 2069,
+    "static_bodies": 33,
+    "total_bodies": 690,
+    "total_shapes": 2102
+  },
+  "candidate_counts": {
+    "owned_bodies": 669,
+    "owned_shapes": 2081,
+    "static_bodies": 32,
+    "total_bodies": 701,
+    "total_shapes": 2113
+  },
+  "first_sync": {
+    "support_released_total": [
+      0,
+      0
+    ],
+    "detached": [
+      0,
+      0
+    ],
+    "damage_events": [
+      0,
+      0
+    ],
+    "generation": [
+      0,
+      0
+    ],
+    "foundation_native_bodies": [
+      1,
+      12
+    ]
+  },
+  "notes": [
+    "Capture exactly after first physics_frame and following process_frame after host/Access, before normal warmup; reject any support release/damage/detach. No support/physics disabling or actor/body repair.",
+    "Initial dust emitting is inventoried identically, not used as a warmup gate. Original full performance warmup and all external gates remain mandatory.",
+    "Earlier r2 after-warmup snapshots were correctly rejected due actual initial LobbyTable release in both versions; preserved.",
+    "One scheduler inventory failure and one55s admission timeout occurred before engine startup; final successful runner allows120s admission only, retains60s child watchdog."
+  ],
+  "performance_accepted": false,
+  "production_accepted": false
+}

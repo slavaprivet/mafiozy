@@ -1,0 +1,12 @@
+{
+  "status": "PRODUCTION_IMPORT_PASS",
+  "assembly_sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c",
+  "checked_sources": 486,
+  "source_pins_unchanged": true,
+  "run_sha256": "6c1b4c5f84c1b00232679013cf48ddb5f971083335196f7c3abddfbbb7807cc0",
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "elapsed_seconds": 6.2501823999919,
+  "performance_accepted": false,
+  "published": false
+}

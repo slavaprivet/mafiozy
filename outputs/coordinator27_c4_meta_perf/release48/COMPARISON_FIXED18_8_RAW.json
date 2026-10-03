@@ -1,0 +1,795 @@
+{
+  "status": "NOT_COMPARABLE",
+  "failures": [
+    "authored_geometry mismatch",
+    "static_geometry mismatch",
+    "pre_hold_physics: frozen_sha256 mismatch",
+    "pre_blast_physics: frozen_sha256 mismatch"
+  ],
+  "source_bindings": {
+    "baseline": {
+      "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\baseline45\\ASSEMBLY_FIXED130.json",
+      "assembly_sha256": "87a9cc51d247399418ff405ec0b5398c4fadad5be6717a10ef63b0447fb55270",
+      "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fixed130_baseline8_01",
+      "run_sha256": "c82172f7643b5cae0714f325c95a05e0fba7049a162e3becaa8d709d793f3a6f",
+      "result_sha256": "ee768ce10911cc07983b3865b42dd3594082f5c776e50becfb068b4db2ffc0f4",
+      "source_count": 483
+    },
+    "candidate": {
+      "assembly": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\ASSEMBLY_FIXED130.json",
+      "assembly_sha256": "49f99aff722f6cda21c1565d6a1f7b20982798e5b08059df578583973c37fe6f",
+      "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fixed130_candidate8_01",
+      "run_sha256": "1bf0aa66ca292f52f3023b92106ce11817bef1534608e97e5dae2ec8991de960",
+      "result_sha256": "c2bfb1265f221d02b02266823fdc6d0cda6a2af1617ed4710a1bc6c5459b4f36",
+      "source_count": 495
+    }
+  },
+  "comparison": {
+    "status": "NOT_COMPARABLE",
+    "charges": 8,
+    "failures": [
+      "authored_geometry mismatch",
+      "static_geometry mismatch",
+      "pre_hold_physics: frozen_sha256 mismatch",
+      "pre_blast_physics: frozen_sha256 mismatch"
+    ],
+    "deltas": {
+      "idle": {
+        "draw_calls": {
+          "p50": {
+            "baseline": 1362.0,
+            "candidate": 1335.0,
+            "delta": -27.0
+          },
+          "p95": {
+            "baseline": 1368.0,
+            "candidate": 1341.0,
+            "delta": -27.0
+          },
+          "max": {
+            "baseline": 1369.0,
+            "candidate": 1342.0,
+            "delta": -27.0
+          }
+        },
+        "node_count": {
+          "p50": {
+            "baseline": 8725.0,
+            "candidate": 8762.0,
+            "delta": 37.0
+          },
+          "p95": {
+            "baseline": 8725.0,
+            "candidate": 8762.0,
+            "delta": 37.0
+          },
+          "max": {
+            "baseline": 8725.0,
+            "candidate": 8762.0,
+            "delta": 37.0
+          }
+        },
+        "physics_active_objects": {
+          "p50": {
+            "baseline": 3.0,
+            "candidate": 3.0,
+            "delta": 0.0
+          },
+          "p95": {
+            "baseline": 4.0,
+            "candidate": 4.0,
+            "delta": 0.0
+          },
+          "max": {
+            "baseline": 4.0,
+            "candidate": 4.0,
+            "delta": 0.0
+          }
+        },
+        "physics_collision_pairs": {
+          "p50": {
+            "baseline": 13.0,
+            "candidate": 16.0,
+            "delta": 3.0
+          },
+          "p95": {
+            "baseline": 13.0,
+            "candidate": 16.0,
+            "delta": 3.0
+          },
+          "max": {
+            "baseline": 13.0,
+            "candidate": 16.0,
+            "delta": 3.0
+          }
+        },
+        "physics_islands": {
+          "p50": {
+            "baseline": 3.0,
+            "candidate": 3.0,
+            "delta": 0.0
+          },
+          "p95": {
+            "baseline": 4.0,
+            "candidate": 4.0,
+            "delta": 0.0
+          },
+          "max": {
+            "baseline": 4.0,
+            "candidate": 4.0,
+            "delta": 0.0
+          }
+        },
+        "render_primitives": {
+          "p50": {
+            "baseline": 680844.0,
+            "candidate": 721734.0,
+            "delta": 40890.0
+          },
+          "p95": {
+            "baseline": 683060.0,
+            "candidate": 723950.0,
+            "delta": 40890.0
+          },
+          "max": {
+            "baseline": 683228.0,
+            "candidate": 724118.0,
+            "delta": 40890.0
+          }
+        },
+        "resource_count": {
+          "p50": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          },
+          "p95": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          },
+          "max": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          }
+        },
+        "static_bytes": {
+          "p50": {
+            "baseline": 252149954.0,
+            "candidate": 255045734.0,
+            "delta": 2895780.0
+          },
+          "p95": {
+            "baseline": 252160986.0,
+            "candidate": 255056766.0,
+            "delta": 2895780.0
+          },
+          "max": {
+            "baseline": 252160986.0,
+            "candidate": 255056766.0,
+            "delta": 2895780.0
+          }
+        },
+        "static_peak_bytes": {
+          "p50": {
+            "baseline": 254197570.0,
+            "candidate": 257117160.0,
+            "delta": 2919590.0
+          },
+          "p95": {
+            "baseline": 254197570.0,
+            "candidate": 257117160.0,
+            "delta": 2919590.0
+          },
+          "max": {
+            "baseline": 254197570.0,
+            "candidate": 257117160.0,
+            "delta": 2919590.0
+          }
+        },
+        "video_bytes": {
+          "p50": {
+            "baseline": 335808400.0,
+            "candidate": 337338032.0,
+            "delta": 1529632.0
+          },
+          "p95": {
+            "baseline": 335808400.0,
+            "candidate": 337338032.0,
+            "delta": 1529632.0
+          },
+          "max": {
+            "baseline": 335808400.0,
+            "candidate": 337338032.0,
+            "delta": 1529632.0
+          }
+        },
+        "wall_frame_ms": {
+          "p50": {
+            "baseline": 6.925,
+            "candidate": 6.969,
+            "delta": 0.04400000000000048
+          },
+          "p95": {
+            "baseline": 9.855,
+            "candidate": 9.839,
+            "delta": -0.016000000000000014
+          },
+          "max": {
+            "baseline": 12.564,
+            "candidate": 12.564,
+            "delta": 0.0
+          }
+        }
+      },
+      "actual_blast_and_physics": {
+        "draw_calls": {
+          "p50": {
+            "baseline": 1510.0,
+            "candidate": 1505.0,
+            "delta": -5.0
+          },
+          "p95": {
+            "baseline": 1520.0,
+            "candidate": 1536.0,
+            "delta": 16.0
+          },
+          "max": {
+            "baseline": 1522.0,
+            "candidate": 1548.0,
+            "delta": 26.0
+          }
+        },
+        "node_count": {
+          "p50": {
+            "baseline": 8706.0,
+            "candidate": 8770.0,
+            "delta": 64.0
+          },
+          "p95": {
+            "baseline": 8706.0,
+            "candidate": 8770.0,
+            "delta": 64.0
+          },
+          "max": {
+            "baseline": 8706.0,
+            "candidate": 8770.0,
+            "delta": 64.0
+          }
+        },
+        "physics_active_objects": {
+          "p50": {
+            "baseline": 44.0,
+            "candidate": 81.0,
+            "delta": 37.0
+          },
+          "p95": {
+            "baseline": 80.0,
+            "candidate": 122.0,
+            "delta": 42.0
+          },
+          "max": {
+            "baseline": 81.0,
+            "candidate": 123.0,
+            "delta": 42.0
+          }
+        },
+        "physics_collision_pairs": {
+          "p50": {
+            "baseline": 767.0,
+            "candidate": 1597.0,
+            "delta": 830.0
+          },
+          "p95": {
+            "baseline": 1291.0,
+            "candidate": 1951.0,
+            "delta": 660.0
+          },
+          "max": {
+            "baseline": 1444.0,
+            "candidate": 1999.0,
+            "delta": 555.0
+          }
+        },
+        "physics_islands": {
+          "p50": {
+            "baseline": 5.0,
+            "candidate": 6.0,
+            "delta": 1.0
+          },
+          "p95": {
+            "baseline": 7.0,
+            "candidate": 10.0,
+            "delta": 3.0
+          },
+          "max": {
+            "baseline": 8.0,
+            "candidate": 11.0,
+            "delta": 3.0
+          }
+        },
+        "render_primitives": {
+          "p50": {
+            "baseline": 783596.0,
+            "candidate": 784436.0,
+            "delta": 840.0
+          },
+          "p95": {
+            "baseline": 793552.0,
+            "candidate": 789008.0,
+            "delta": -4544.0
+          },
+          "max": {
+            "baseline": 794416.0,
+            "candidate": 789826.0,
+            "delta": -4590.0
+          }
+        },
+        "resource_count": {
+          "p50": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          },
+          "p95": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          },
+          "max": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          }
+        },
+        "static_bytes": {
+          "p50": {
+            "baseline": 253049718.0,
+            "candidate": 257448042.0,
+            "delta": 4398324.0
+          },
+          "p95": {
+            "baseline": 254041050.0,
+            "candidate": 258074918.0,
+            "delta": 4033868.0
+          },
+          "max": {
+            "baseline": 254077850.0,
+            "candidate": 258179074.0,
+            "delta": 4101224.0
+          }
+        },
+        "static_peak_bytes": {
+          "p50": {
+            "baseline": 254197570.0,
+            "candidate": 258339026.0,
+            "delta": 4141456.0
+          },
+          "p95": {
+            "baseline": 254197570.0,
+            "candidate": 258339026.0,
+            "delta": 4141456.0
+          },
+          "max": {
+            "baseline": 254197570.0,
+            "candidate": 258339026.0,
+            "delta": 4141456.0
+          }
+        },
+        "video_bytes": {
+          "p50": {
+            "baseline": 335935488.0,
+            "candidate": 337502368.0,
+            "delta": 1566880.0
+          },
+          "p95": {
+            "baseline": 335961360.0,
+            "candidate": 337528240.0,
+            "delta": 1566880.0
+          },
+          "max": {
+            "baseline": 335965344.0,
+            "candidate": 337528368.0,
+            "delta": 1563024.0
+          }
+        },
+        "wall_frame_ms": {
+          "p50": {
+            "baseline": 6.75,
+            "candidate": 6.796,
+            "delta": 0.04600000000000026
+          },
+          "p95": {
+            "baseline": 11.387,
+            "candidate": 11.995,
+            "delta": 0.6079999999999988
+          },
+          "max": {
+            "baseline": 18.672,
+            "candidate": 21.864,
+            "delta": 3.192
+          }
+        }
+      },
+      "recovery": {
+        "draw_calls": {
+          "p50": {
+            "baseline": 1503.0,
+            "candidate": 1492.0,
+            "delta": -11.0
+          },
+          "p95": {
+            "baseline": 1504.0,
+            "candidate": 1493.0,
+            "delta": -11.0
+          },
+          "max": {
+            "baseline": 1507.0,
+            "candidate": 1496.0,
+            "delta": -11.0
+          }
+        },
+        "node_count": {
+          "p50": {
+            "baseline": 8706.0,
+            "candidate": 8770.0,
+            "delta": 64.0
+          },
+          "p95": {
+            "baseline": 8706.0,
+            "candidate": 8770.0,
+            "delta": 64.0
+          },
+          "max": {
+            "baseline": 8706.0,
+            "candidate": 8770.0,
+            "delta": 64.0
+          }
+        },
+        "physics_active_objects": {
+          "p50": {
+            "baseline": 3.0,
+            "candidate": 6.0,
+            "delta": 3.0
+          },
+          "p95": {
+            "baseline": 4.0,
+            "candidate": 77.0,
+            "delta": 73.0
+          },
+          "max": {
+            "baseline": 4.0,
+            "candidate": 80.0,
+            "delta": 76.0
+          }
+        },
+        "physics_collision_pairs": {
+          "p50": {
+            "baseline": 126.0,
+            "candidate": 147.0,
+            "delta": 21.0
+          },
+          "p95": {
+            "baseline": 127.0,
+            "candidate": 1545.0,
+            "delta": 1418.0
+          },
+          "max": {
+            "baseline": 127.0,
+            "candidate": 1624.0,
+            "delta": 1497.0
+          }
+        },
+        "physics_islands": {
+          "p50": {
+            "baseline": 3.0,
+            "candidate": 4.0,
+            "delta": 1.0
+          },
+          "p95": {
+            "baseline": 4.0,
+            "candidate": 7.0,
+            "delta": 3.0
+          },
+          "max": {
+            "baseline": 4.0,
+            "candidate": 8.0,
+            "delta": 4.0
+          }
+        },
+        "render_primitives": {
+          "p50": {
+            "baseline": 782330.0,
+            "candidate": 782956.0,
+            "delta": 626.0
+          },
+          "p95": {
+            "baseline": 782762.0,
+            "candidate": 783388.0,
+            "delta": 626.0
+          },
+          "max": {
+            "baseline": 783268.0,
+            "candidate": 783892.0,
+            "delta": 624.0
+          }
+        },
+        "resource_count": {
+          "p50": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          },
+          "p95": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          },
+          "max": {
+            "baseline": 196.0,
+            "candidate": 207.0,
+            "delta": 11.0
+          }
+        },
+        "static_bytes": {
+          "p50": {
+            "baseline": 252726434.0,
+            "candidate": 256553950.0,
+            "delta": 3827516.0
+          },
+          "p95": {
+            "baseline": 252788802.0,
+            "candidate": 257546278.0,
+            "delta": 4757476.0
+          },
+          "max": {
+            "baseline": 252788802.0,
+            "candidate": 257576562.0,
+            "delta": 4787760.0
+          }
+        },
+        "static_peak_bytes": {
+          "p50": {
+            "baseline": 254197570.0,
+            "candidate": 258339026.0,
+            "delta": 4141456.0
+          },
+          "p95": {
+            "baseline": 254197570.0,
+            "candidate": 258339026.0,
+            "delta": 4141456.0
+          },
+          "max": {
+            "baseline": 254197570.0,
+            "candidate": 258339026.0,
+            "delta": 4141456.0
+          }
+        },
+        "video_bytes": {
+          "p50": {
+            "baseline": 335935488.0,
+            "candidate": 337502368.0,
+            "delta": 1566880.0
+          },
+          "p95": {
+            "baseline": 335935488.0,
+            "candidate": 337502368.0,
+            "delta": 1566880.0
+          },
+          "max": {
+            "baseline": 335935488.0,
+            "candidate": 337502368.0,
+            "delta": 1566880.0
+          }
+        },
+        "wall_frame_ms": {
+          "p50": {
+            "baseline": 6.856,
+            "candidate": 7.022,
+            "delta": 0.16600000000000037
+          },
+          "p95": {
+            "baseline": 9.478,
+            "candidate": 10.886,
+            "delta": 1.4079999999999995
+          },
+          "max": {
+            "baseline": 11.128,
+            "candidate": 12.128,
+            "delta": 1.0
+          }
+        }
+      }
+    },
+    "bounded_additional_support_work": {
+      "baseline": {
+        "present": false,
+        "elapsed_usec": 0,
+        "summary": {},
+        "final_support": {
+          "advance_calls": 2845,
+          "busy": false,
+          "candidates": 153,
+          "convex_policy": "per_shape_conservative_bounds",
+          "error": "",
+          "generation": 0,
+          "graph_advance_calls": 48,
+          "graph_elapsed_usec": 787969,
+          "graphs": 9,
+          "grid_cells": 93,
+          "last_advance_usec": 6,
+          "last_released": 0,
+          "last_work_items": 0,
+          "max_advance_usec": 1047,
+          "narrow_phase": "one_shape_pair_per_work_item_box_SAT",
+          "neighbor_checks": 917,
+          "ok": true,
+          "pending": 0,
+          "phase": "",
+          "released_total": 1,
+          "seam_m": 0.05,
+          "shape_pair_checks": 302,
+          "state": "stable",
+          "support_model": "ground_connected_collision_AABBs",
+          "supported": 153,
+          "unsupported": 0
+        }
+      },
+      "candidate": {
+        "present": false,
+        "elapsed_usec": 0,
+        "summary": {},
+        "final_support": {
+          "advance_calls": 2846,
+          "busy": false,
+          "candidates": 142,
+          "convex_policy": "per_shape_conservative_bounds",
+          "error": "",
+          "generation": 0,
+          "graph_advance_calls": 44,
+          "graph_elapsed_usec": 720420,
+          "graphs": 5,
+          "grid_cells": 92,
+          "last_advance_usec": 6,
+          "last_released": 0,
+          "last_work_items": 0,
+          "max_advance_usec": 1275,
+          "narrow_phase": "one_shape_pair_per_work_item_box_SAT",
+          "neighbor_checks": 648,
+          "ok": true,
+          "pending": 0,
+          "phase": "",
+          "released_total": 1,
+          "seam_m": 0.05,
+          "shape_pair_checks": 224,
+          "state": "stable",
+          "support_model": "ground_connected_collision_AABBs",
+          "supported": 142,
+          "unsupported": 0
+        }
+      }
+    },
+    "performance_accepted": false,
+    "scope": "Same-count cold baseline versus candidate, real Q/LMB3s/remote. Stronger candidate intentionally performs more destruction and FX; report complete cost, never claim an optimization from fewer bodies/content.",
+    "tolerances": {
+      "camera_or_actor_m": 0.03,
+      "camera_basis_components": 0.002,
+      "aim_contact_m": 0.03,
+      "npc_position_components_m": 0.15
+    },
+    "manual_decision_required": "Root reviews p50/p95/max, full destruction/support, memory and input results. No arbitrary automatic performance PASS."
+  },
+  "engine_periodic_max_diagnostics": {
+    "semantics": "Periodic maxima, not individual frame cost or a subtractable CPU/GPU decomposition",
+    "runs": {
+      "baseline": {
+        "idle": {
+          "process_ms": {
+            "count": 291,
+            "max": 16.935,
+            "p50": 7.713,
+            "p95": 16.935
+          },
+          "physics_ms": {
+            "count": 291,
+            "max": 5.69,
+            "p50": 5.529,
+            "p95": 5.69
+          }
+        },
+        "actual_blast_and_physics": {
+          "process_ms": {
+            "count": 761,
+            "max": 7.683,
+            "p50": 7.433,
+            "p95": 7.683
+          },
+          "physics_ms": {
+            "count": 761,
+            "max": 15.498,
+            "p50": 5.065,
+            "p95": 15.498
+          }
+        },
+        "recovery": {
+          "process_ms": {
+            "count": 865,
+            "max": 7.528,
+            "p50": 7.433,
+            "p95": 7.528
+          },
+          "physics_ms": {
+            "count": 865,
+            "max": 3.945,
+            "p50": 3.485,
+            "p95": 3.945
+          }
+        }
+      },
+      "candidate": {
+        "idle": {
+          "process_ms": {
+            "count": 291,
+            "max": 16.397,
+            "p50": 7.69,
+            "p95": 16.397
+          },
+          "physics_ms": {
+            "count": 291,
+            "max": 5.677,
+            "p50": 5.557,
+            "p95": 5.677
+          }
+        },
+        "actual_blast_and_physics": {
+          "process_ms": {
+            "count": 748,
+            "max": 7.69,
+            "p50": 7.462,
+            "p95": 7.69
+          },
+          "physics_ms": {
+            "count": 748,
+            "max": 17.083,
+            "p50": 6.068,
+            "p95": 17.083
+          }
+        },
+        "recovery": {
+          "process_ms": {
+            "count": 865,
+            "max": 7.791,
+            "p50": 7.521,
+            "p95": 7.791
+          },
+          "physics_ms": {
+            "count": 865,
+            "max": 6.152,
+            "p50": 4.802,
+            "p95": 6.152
+          }
+        }
+      }
+    }
+  },
+  "external_memory": {
+    "working_set_bytes": {
+      "baseline": 1602424832,
+      "candidate": 1632129024,
+      "delta_mib": 28.328125
+    },
+    "peak_working_set_bytes": {
+      "baseline": 1618980864,
+      "candidate": 1658413056,
+      "delta_mib": 37.60546875
+    },
+    "private_bytes": {
+      "baseline": 2186612736,
+      "candidate": 2219216896,
+      "delta_mib": 31.09375
+    }
+  },
+  "assessment_scope": "Accepted45 versus exact release48 full-scene same-count pair with identical QA. Trace snapshot/signature work is restricted to placement holds. Every process frame retains one focus check plus an empty active-hold branch. Authored rows are recorded before timing. Foundation difference is NOT automatically accepted; a separately reviewed predicate is required. All other owner geometry/camera/NPC/settings gates remain unchanged.",
+  "performance_accepted": false
+}

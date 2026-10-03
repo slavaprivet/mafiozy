@@ -1,0 +1,569 @@
+{
+  "status": "FINAL48_NATIVE_INPUT_PASS_AND_MATCHED_1_8_MEASUREMENTS_READY",
+  "performance_acceptance": "ROOT_DECISION_REQUIRED",
+  "engines": "RELEASED",
+  "production48_assembly_sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c",
+  "fast8_run": "outputs/coordinator26_frames45/runs/c4_release48_fast8_03",
+  "fast8_checks": 2093,
+  "matched_pairs": {
+    "1": {
+      "comparison_raw_sha256": "6890d64133591289a2aeb0cb8615c2c4038daae3985a9025f0a3111322555e69",
+      "comparison_resolved_sha256": "a9787964c582fa5b265fc41b0f205a0cea48f533a3a5b79aa9ce2b332e94bca6",
+      "status": "COMPARABLE_WITH_DECLARED_FOUNDATION_DELTA",
+      "failures": [],
+      "wall_frame_ms": {
+        "idle": {
+          "p50": {
+            "baseline": 7.007,
+            "candidate": 7.051,
+            "delta": 0.04400000000000048
+          },
+          "p95": {
+            "baseline": 9.669,
+            "candidate": 9.704,
+            "delta": 0.03500000000000014
+          },
+          "max": {
+            "baseline": 10.561,
+            "candidate": 10.455,
+            "delta": -0.10599999999999987
+          }
+        },
+        "actual_blast_and_physics": {
+          "p50": {
+            "baseline": 7.026,
+            "candidate": 6.96,
+            "delta": -0.06599999999999984
+          },
+          "p95": {
+            "baseline": 10.274,
+            "candidate": 10.753,
+            "delta": 0.479000000000001
+          },
+          "max": {
+            "baseline": 18.201,
+            "candidate": 22.87,
+            "delta": 4.6690000000000005
+          }
+        },
+        "recovery": {
+          "p50": {
+            "baseline": 7.056,
+            "candidate": 6.963,
+            "delta": -0.09299999999999997
+          },
+          "p95": {
+            "baseline": 9.701,
+            "candidate": 9.692,
+            "delta": -0.009000000000000341
+          },
+          "max": {
+            "baseline": 11.929,
+            "candidate": 13.059,
+            "delta": 1.129999999999999
+          }
+        }
+      },
+      "external_memory": {
+        "working_set_bytes": {
+          "baseline": 1594568704,
+          "candidate": 1627643904,
+          "delta_mib": 31.54296875
+        },
+        "peak_working_set_bytes": {
+          "baseline": 1606492160,
+          "candidate": 1635860480,
+          "delta_mib": 28.0078125
+        },
+        "private_bytes": {
+          "baseline": 2176745472,
+          "candidate": 2215231488,
+          "delta_mib": 36.703125
+        }
+      },
+      "native": {
+        "baseline": {
+          "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fixed18_baseline1_01",
+          "run_sha256": "109d17558e5eb42b1906e0503af1d8b5ca865342202f0cc62c3a7ebd42d02d10",
+          "result_sha256": "73ddd52a6341c4b1c0f04faac0e12f2c3bdd47d5df39544ad06e24642f5a9830",
+          "checks": 58,
+          "elapsed_s": 29.41166,
+          "source_count": 482,
+          "first_hold": {
+            "anchor": "native scene/NPC ready",
+            "anchor_frame": 10,
+            "begin_frame": 120,
+            "relative_physics_frames": 110,
+            "required_physics_frames": 110
+          },
+          "q_wait_physics_ticks": [
+            18
+          ],
+          "phase_intervals": {
+            "idle": {
+              "samples": 290,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 10.561,
+              "max_sample_index": 65
+            },
+            "actual_blast_and_physics": {
+              "samples": 764,
+              "above_16_667_ms": 1,
+              "above_33_333_ms": 0,
+              "max_ms": 18.201,
+              "max_sample_index": 1
+            },
+            "recovery": {
+              "samples": 864,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 11.929,
+              "max_sample_index": 58
+            }
+          },
+          "pre_blast_population": {
+            "actors": [
+              {
+                "generation": 1,
+                "id": "resident_72",
+                "position": [
+                  37.6930351257324,
+                  0.000828344840556383,
+                  -15.9239730834961
+                ],
+                "status": "READY"
+              },
+              {
+                "generation": 1,
+                "id": "resident_169",
+                "position": [
+                  36.122615814209,
+                  0.000828086340334266,
+                  -2.42000222206116
+                ],
+                "status": "ARRIVED"
+              },
+              {
+                "generation": 1,
+                "id": "resident_252",
+                "position": [
+                  33.7451171875,
+                  0.000818936969153583,
+                  -18.4530868530273
+                ],
+                "status": "READY"
+              }
+            ],
+            "decor": 8,
+            "hp_owners": 3,
+            "ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "legacy_buildings": 0,
+            "live_hp_owners": 3,
+            "water_status": "detail_ready"
+          }
+        },
+        "candidate": {
+          "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fixed18_candidate1_01",
+          "run_sha256": "e24c52f3c822401e0610c7275aacd375515b8b64c26faa729d5e27970f3b2582",
+          "result_sha256": "1c7015e6d41250012e11e0c8a5da66d18e5cfc4b78305fe3d13bec2bfae79a13",
+          "checks": 1979,
+          "elapsed_s": 29.552818,
+          "source_count": 494,
+          "first_hold": {
+            "anchor": "native scene/NPC ready",
+            "anchor_frame": 10,
+            "begin_frame": 120,
+            "relative_physics_frames": 110,
+            "required_physics_frames": 110
+          },
+          "q_wait_physics_ticks": [
+            18
+          ],
+          "phase_intervals": {
+            "idle": {
+              "samples": 291,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 10.455,
+              "max_sample_index": 130
+            },
+            "actual_blast_and_physics": {
+              "samples": 763,
+              "above_16_667_ms": 1,
+              "above_33_333_ms": 0,
+              "max_ms": 22.87,
+              "max_sample_index": 0
+            },
+            "recovery": {
+              "samples": 864,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 13.059,
+              "max_sample_index": 573
+            }
+          },
+          "pre_blast_population": {
+            "actors": [
+              {
+                "generation": 1,
+                "id": "resident_72",
+                "position": [
+                  37.6930351257324,
+                  0.000828344840556383,
+                  -15.9239730834961
+                ],
+                "status": "READY"
+              },
+              {
+                "generation": 1,
+                "id": "resident_169",
+                "position": [
+                  36.122615814209,
+                  0.000828086340334266,
+                  -2.42000222206116
+                ],
+                "status": "ARRIVED"
+              },
+              {
+                "generation": 1,
+                "id": "resident_252",
+                "position": [
+                  33.7311210632324,
+                  0.000831391720566899,
+                  -18.459041595459
+                ],
+                "status": "READY"
+              }
+            ],
+            "decor": 8,
+            "hp_owners": 3,
+            "ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "legacy_buildings": 0,
+            "live_hp_owners": 3,
+            "water_status": "detail_ready"
+          }
+        }
+      },
+      "render_primitives_p50": {
+        "idle": {
+          "baseline": 680508.0,
+          "candidate": 688610.0,
+          "delta": 8102.0
+        },
+        "actual_blast_and_physics": {
+          "baseline": 779296.0,
+          "candidate": 783936.0,
+          "delta": 4640.0
+        },
+        "recovery": {
+          "baseline": 776830.0,
+          "candidate": 781470.0,
+          "delta": 4640.0
+        }
+      }
+    },
+    "8": {
+      "comparison_raw_sha256": "839ee2923998d7f2d2fcf6d79c4e1eba1289a53d2ad5cb1c7885c0811b07e87d",
+      "comparison_resolved_sha256": "28503b979572058999d127478c39c13349b93117742332f1ad45ebb552a0a659",
+      "status": "COMPARABLE_WITH_DECLARED_FOUNDATION_DELTA",
+      "failures": [],
+      "wall_frame_ms": {
+        "idle": {
+          "p50": {
+            "baseline": 6.925,
+            "candidate": 6.969,
+            "delta": 0.04400000000000048
+          },
+          "p95": {
+            "baseline": 9.855,
+            "candidate": 9.839,
+            "delta": -0.016000000000000014
+          },
+          "max": {
+            "baseline": 12.564,
+            "candidate": 12.564,
+            "delta": 0.0
+          }
+        },
+        "actual_blast_and_physics": {
+          "p50": {
+            "baseline": 6.75,
+            "candidate": 6.796,
+            "delta": 0.04600000000000026
+          },
+          "p95": {
+            "baseline": 11.387,
+            "candidate": 11.995,
+            "delta": 0.6079999999999988
+          },
+          "max": {
+            "baseline": 18.672,
+            "candidate": 21.864,
+            "delta": 3.192
+          }
+        },
+        "recovery": {
+          "p50": {
+            "baseline": 6.856,
+            "candidate": 7.022,
+            "delta": 0.16600000000000037
+          },
+          "p95": {
+            "baseline": 9.478,
+            "candidate": 10.886,
+            "delta": 1.4079999999999995
+          },
+          "max": {
+            "baseline": 11.128,
+            "candidate": 12.128,
+            "delta": 1.0
+          }
+        }
+      },
+      "external_memory": {
+        "working_set_bytes": {
+          "baseline": 1602424832,
+          "candidate": 1632129024,
+          "delta_mib": 28.328125
+        },
+        "peak_working_set_bytes": {
+          "baseline": 1618980864,
+          "candidate": 1658413056,
+          "delta_mib": 37.60546875
+        },
+        "private_bytes": {
+          "baseline": 2186612736,
+          "candidate": 2219216896,
+          "delta_mib": 31.09375
+        }
+      },
+      "native": {
+        "baseline": {
+          "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fixed130_baseline8_01",
+          "run_sha256": "c82172f7643b5cae0714f325c95a05e0fba7049a162e3becaa8d709d793f3a6f",
+          "result_sha256": "ee768ce10911cc07983b3865b42dd3594082f5c776e50becfb068b4db2ffc0f4",
+          "checks": 198,
+          "elapsed_s": 55.576939,
+          "source_count": 483,
+          "first_hold": {
+            "anchor": "native scene/NPC ready",
+            "anchor_frame": 10,
+            "begin_frame": 140,
+            "relative_physics_frames": 130,
+            "required_physics_frames": 130
+          },
+          "q_wait_physics_ticks": [
+            18,
+            18,
+            18,
+            18,
+            18,
+            18,
+            18,
+            18
+          ],
+          "phase_intervals": {
+            "idle": {
+              "samples": 291,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 12.564,
+              "max_sample_index": 187
+            },
+            "actual_blast_and_physics": {
+              "samples": 761,
+              "above_16_667_ms": 2,
+              "above_33_333_ms": 0,
+              "max_ms": 18.672,
+              "max_sample_index": 2
+            },
+            "recovery": {
+              "samples": 865,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 11.128,
+              "max_sample_index": 301
+            }
+          },
+          "pre_blast_population": {
+            "actors": [
+              {
+                "generation": 1,
+                "id": "resident_72",
+                "position": [
+                  36.2440986633301,
+                  0.000737304158974439,
+                  -16.5942573547363
+                ],
+                "status": "ARRIVED"
+              },
+              {
+                "generation": 1,
+                "id": "resident_169",
+                "position": [
+                  36.122615814209,
+                  0.000828086340334266,
+                  -2.42000222206116
+                ],
+                "status": "ARRIVED"
+              },
+              {
+                "generation": 1,
+                "id": "resident_252",
+                "position": [
+                  32.4637680053711,
+                  0.000740104354918003,
+                  -19.5035972595215
+                ],
+                "status": "READY"
+              }
+            ],
+            "decor": 8,
+            "hp_owners": 3,
+            "ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "legacy_buildings": 0,
+            "live_hp_owners": 3,
+            "water_status": "detail_ready"
+          }
+        },
+        "candidate": {
+          "run": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fixed130_candidate8_01",
+          "run_sha256": "1bf0aa66ca292f52f3023b92106ce11817bef1534608e97e5dae2ec8991de960",
+          "result_sha256": "c2bfb1265f221d02b02266823fdc6d0cda6a2af1617ed4710a1bc6c5459b4f36",
+          "checks": 2105,
+          "elapsed_s": 55.521384,
+          "source_count": 495,
+          "first_hold": {
+            "anchor": "native scene/NPC ready",
+            "anchor_frame": 10,
+            "begin_frame": 140,
+            "relative_physics_frames": 130,
+            "required_physics_frames": 130
+          },
+          "q_wait_physics_ticks": [
+            18,
+            18,
+            18,
+            18,
+            18,
+            18,
+            18,
+            18
+          ],
+          "phase_intervals": {
+            "idle": {
+              "samples": 291,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 12.564,
+              "max_sample_index": 188
+            },
+            "actual_blast_and_physics": {
+              "samples": 748,
+              "above_16_667_ms": 4,
+              "above_33_333_ms": 0,
+              "max_ms": 21.864,
+              "max_sample_index": 0
+            },
+            "recovery": {
+              "samples": 865,
+              "above_16_667_ms": 0,
+              "above_33_333_ms": 0,
+              "max_ms": 12.128,
+              "max_sample_index": 170
+            }
+          },
+          "pre_blast_population": {
+            "actors": [
+              {
+                "generation": 1,
+                "id": "resident_72",
+                "position": [
+                  36.2441825866699,
+                  0.000748862104956061,
+                  -16.5941867828369
+                ],
+                "status": "ARRIVED"
+              },
+              {
+                "generation": 1,
+                "id": "resident_169",
+                "position": [
+                  36.122615814209,
+                  0.000828086340334266,
+                  -2.42000222206116
+                ],
+                "status": "ARRIVED"
+              },
+              {
+                "generation": 1,
+                "id": "resident_252",
+                "position": [
+                  32.4789772033691,
+                  0.000796107575297356,
+                  -19.5032711029053
+                ],
+                "status": "READY"
+              }
+            ],
+            "decor": 8,
+            "hp_owners": 3,
+            "ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "legacy_buildings": 0,
+            "live_hp_owners": 3,
+            "water_status": "detail_ready"
+          }
+        }
+      },
+      "render_primitives_p50": {
+        "idle": {
+          "baseline": 680844.0,
+          "candidate": 721734.0,
+          "delta": 40890.0
+        },
+        "actual_blast_and_physics": {
+          "baseline": 783596.0,
+          "candidate": 784436.0,
+          "delta": 840.0
+        },
+        "recovery": {
+          "baseline": 782330.0,
+          "candidate": 782956.0,
+          "delta": 626.0
+        }
+      }
+    }
+  },
+  "strict_residual_failures": [],
+  "scoped_geometry_exception": "Only four known foundation-domain mismatch labels, independently checked authored/static rows, exact source-linked cold native689-record proof, and within-variant phase hash stability. This is not direct predicate replay on warm perf snapshots.",
+  "historical_peak_preserved_ms": 32.814,
+  "limitations": [
+    "One final matched pair per charge count; peak variance is visible in preserved earlier runs. No optimization or guaranteed maximum claim.",
+    "Initial held/placed C4 model complexity and stronger destruction/Fire3 are intentional workload changes; render primitives are rendered vertices/indices including passes, not authored triangle inventory.",
+    "Diagnostic tracing takes detailed snapshots only during placement holds; timed phases retain identical focus check plus empty active-hold branch.",
+    "Periodic engine TIME_PROCESS/TIME_PHYSICS_PROCESS are stored separately and are not summed/subtracted as per-frame CPU/GPU cost."
+  ],
+  "registration_proof": {
+    "run": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_baseline_import01",
+    "status": "REGISTERED",
+    "wait_seconds": 1.3347744999919087,
+    "helper_sha256": "512f0e65558b095f355e41e80fa716b183f64c733721d4fbb94dbb609edd19f7"
+  }
+}

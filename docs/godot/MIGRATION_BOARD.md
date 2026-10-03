@@ -1,3 +1,9 @@
+## 3 October 06:26 — C4 release48 delivered through F5
+
+Current accepted source: `outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json` (486 pins, SHA51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7). `godot/current_version.json` is switched to48. Ordinary launcher readytrue and screenshot personally reviewed; see ACCEPTANCE.json and DELIVERY.json in that folder. Strong1920/direct48 C4, traversable foundation breach, Fire3, charge lifecycle and camera fixes, retained marks47a. Native fastQ8 PASS2093; comparable1/8 cost accepted only for current Palazzo/three-NPC scene. Eight-charge blast p95 11.995ms/max21.864ms; recovery p95 adds1.408ms, peakRSS adds37.605MiB. No full migration/bank/standalone EXE claim.
+
+Historical observed game34540/editor25808 are preserved; refresh identity before any action. Functional tests use the shared scheduler, performance stays exclusive. Source snapshot pushed61771eb8; acceptance/pointer commit pending Git index lock. Next integrations must preserve accepted48 source, not rebase onto old45/47a. Older rows below are historical.
+
 ## 30 September17:45 — modal Escape24b delivered
 
 Exact candidate22 fixes the user's F→Esc→extra-click reproduction. Existing close
@@ -18,6 +24,7 @@ PID31528 responding at17:17; fresh inventory required. Project shortcut now24a.
 See outputs/coordinator24_delivery24a/ACCEPTANCE.md for conditional perf and proof limits.
 Intermittent extra-click complaint not fully closed; RPG19 remains isolated, rebase onto24a.
 QUIET24 RELEASED; keep only one user game. Root24 memory is current.
+
 ## 30 September16:43 — user appointed Coordinator24, accepted23h reopened
 
 Current root24 `01a0f288-91e5-7092-9d8b-ef7d725cc696`; read `docs/ai/COORDINATOR_24_MEMORY.md`.

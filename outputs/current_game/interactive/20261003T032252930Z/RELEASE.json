@@ -1,0 +1,11 @@
+{
+  "schema": "mafiozi.current-play/v1",
+  "title": "03.10 · Усиленный C4 · версия48",
+  "revision": "s01-20261003-c4-release48",
+  "assembly": "outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json",
+  "assembly_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
+  "bootstrap": "tools/godot/current_game_bootstrap.gd",
+  "bootstrap_sha256": "0f0b3efec90d2a91fef13e18f844058f44e1310d37833d17a0b0ecde97d562d8",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scope": "Accepted C4 release48 in the current Palazzo-only quarter, original three NPC IDs/owners and current vehicles; new12-piece foundation. Not full-city or standalone EXE acceptance."
+}

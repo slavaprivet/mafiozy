@@ -1,0 +1,192 @@
+{
+  "mode": "fixture",
+  "command": [
+    "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--path",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game",
+    "--script",
+    "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game\\scripts\\destruction\\palazzo\\test_release48_focus.gd",
+    "--",
+    "--qa45-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03",
+    "--qa43-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03",
+    "--charges=8",
+    "--variant=candidate",
+    "--qa-manifest=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\ASSEMBLY_CAPTURE.json",
+    "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03\\RESULT.json"
+  ],
+  "assembly_sha256": "1d9ba3a511dedd742ae5cc6d400c42c6d6e3272a4cfcc9cbded2a7ccdc6b47d7",
+  "revision": "s01-20261003-c4-release48",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "fixture_sha256": "3989dc5fc89bf092621dbfecba742fc3f6b38ce132d7d941e3a1ce8fbfb6f2d4",
+  "inventory_before": [
+    {
+      "ProcessId": 25808,
+      "Name": "Godot_v4.7.2-stable_win64.exe",
+      "ExecutablePath": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+      "MainWindowTitle": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+    }
+  ],
+  "gpu": true,
+  "diagnostic_only": true,
+  "performance_accepted": false,
+  "adapter_sha256": "8ecc8ad05dcf0dc079fd53e46152dec699a20f1332facaace768712c7758915d",
+  "runner_helper_sha256": "adb9b313b553083684479a5a14ecfedeba1733f79ddfa02125dc2a416a4ac256",
+  "editor_allowance": {
+    "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "command": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+    "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+  },
+  "timeout_seconds": 60,
+  "valid_run": true,
+  "scheduler_sha256": "6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9",
+  "scheduler_mode": "perf",
+  "lease": {
+    "id": "0384416531e741e2927632d7cc66a64b",
+    "owner": {
+      "pid": 52280,
+      "creation_filetime": "134354684949168922"
+    },
+    "mode": "perf",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game",
+    "access": "read",
+    "children": [
+      {
+        "pid": 51256,
+        "creation_filetime": "134354685133396984",
+        "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game\\scripts\\destruction\\palazzo\\test_release48_focus.gd -- --qa45-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03 --qa43-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03 --charges=8 --variant=candidate --qa-manifest=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\ASSEMBLY_CAPTURE.json --out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03\\RESULT.json",
+        "command": [
+          "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--path",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game",
+          "--script",
+          "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game\\scripts\\destruction\\palazzo\\test_release48_focus.gd",
+          "--",
+          "--qa45-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03",
+          "--qa43-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03",
+          "--charges=8",
+          "--variant=candidate",
+          "--qa-manifest=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\ASSEMBLY_CAPTURE.json",
+          "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03\\RESULT.json"
+        ],
+        "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "perf",
+        "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game"
+      }
+    ],
+    "deadline": 1314859.2077146,
+    "ticket": 109,
+    "inventory_before": [
+      {
+        "pid": 25808,
+        "parent_pid": 45416,
+        "creation_filetime": "134354639115733549",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+        "executable": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+      }
+    ],
+    "editor_identities": [
+      [
+        25808,
+        "134354639115733549",
+        "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+        "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe"
+      ]
+    ]
+  },
+  "charges": 8,
+  "entry_kind": "fast",
+  "registered_child": {
+    "pid": 51256,
+    "creation_filetime": "134354685133396984",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game\\scripts\\destruction\\palazzo\\test_release48_focus.gd -- --qa45-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03 --qa43-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03 --charges=8 --variant=candidate --qa-manifest=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\ASSEMBLY_CAPTURE.json --out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03\\RESULT.json",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game\\scripts\\destruction\\palazzo\\test_release48_focus.gd",
+      "--",
+      "--qa45-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03",
+      "--qa43-out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03",
+      "--charges=8",
+      "--variant=candidate",
+      "--qa-manifest=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\ASSEMBLY_CAPTURE.json",
+      "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator26_frames45\\runs\\c4_release48_fast8_03\\RESULT.json"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "perf",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_c4_meta_perf\\release48\\candidate48\\game"
+  },
+  "pid": 51256,
+  "exit_code": 0,
+  "elapsed_s": 55.696,
+  "inventory_checks_during_run": 34,
+  "memory_sample_count": 331,
+  "inventory_after": [
+    {
+      "ProcessId": 25808,
+      "Name": "Godot_v4.7.2-stable_win64.exe",
+      "ExecutablePath": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "CommandLine": "\"C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\Слава\\Desktop\\Мафиози\\godot\\mafiozi_walk\"",
+      "MainWindowTitle": "main.tscn - Мафиози — перенос в Godot - Godot Engine"
+    }
+  ],
+  "source_pins_unchanged": true,
+  "memory_peak": {
+    "working_set_bytes": 1636556800,
+    "peak_working_set_bytes": 1647542272,
+    "private_bytes": 2226122752
+  },
+  "stderr_bytes": 0,
+  "native_errors": [],
+  "focus_diagnostic": {
+    "after_request": {
+      "has_focus": true,
+      "mode": 0,
+      "mouse_mode": 0,
+      "mouse_passthrough": false,
+      "physics_frame": 8,
+      "process_frame": 0,
+      "root_inside_tree": true,
+      "unfocusable": false,
+      "visible": true,
+      "window_id": 0
+    },
+    "before_request": {
+      "has_focus": true,
+      "mode": 0,
+      "mouse_mode": 0,
+      "mouse_passthrough": false,
+      "physics_frame": 1,
+      "process_frame": 0,
+      "root_inside_tree": true,
+      "unfocusable": false,
+      "visible": true,
+      "window_id": 0
+    },
+    "final": {
+      "has_focus": true,
+      "mode": 0,
+      "mouse_mode": 2,
+      "mouse_passthrough": false,
+      "physics_frame": 2689,
+      "process_frame": 6381,
+      "root_inside_tree": true,
+      "unfocusable": false,
+      "visible": true,
+      "window_id": 0
+    },
+    "interrupted": false,
+    "request_count": 1,
+    "schema": "native_focus_diagnostic47/v1"
+  },
+  "diagnostic_interrupted": false,
+  "native_report_status": "PASS",
+  "perf_environment_clean": true,
+  "status": "DIAGNOSTIC_COMPLETE_REVIEW_REQUIRED"
+}

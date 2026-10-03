@@ -1,0 +1,238 @@
+{
+  "schema": "mafiozi.release-acceptance/v1",
+  "accepted": true,
+  "performance_accepted": true,
+  "revision": "s01-20261003-c4-release48",
+  "accepted_at_utc": "2026-10-03T03:20:38.701935+00:00",
+  "candidate": {
+    "path": "outputs/coordinator27_release48/ASSEMBLY.json",
+    "sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c"
+  },
+  "source_count": 486,
+  "scope": "Current Palazzo-only quarter with the existing three NPCs and current vehicles; F5 source game. Not full-city, full migration, new-bank or standalone EXE acceptance.",
+  "proofs": [
+    {
+      "path": "outputs/coordinator26_frames45/runs/c4_release48_fast8_03/RESULT.json",
+      "sha256": "886f7b24a0a1adcc2fcfd8c8abcc7524febb7a23fb4a558e5f100bbaa740fb51"
+    },
+    {
+      "path": "outputs/buildings4_strength_foundation_native_20261003/runs/foundation12_native01/RESULT.json",
+      "sha256": "f93556e5f256bf183a95d4dcae9e51377a5a518aaee6731608d2baf9b7e49450"
+    },
+    {
+      "path": "outputs/coordinator27_camera_reset/qa/run_20261003_052208/v2.RESULT.json",
+      "sha256": "6a8023c06b06c67e5ef99a631cec3297159753423a59ddd6be707e9c437efefa"
+    },
+    {
+      "path": "outputs/coordinator27_c4_meta_perf/shape_signal_fix47/runs/component02/RESULT.json",
+      "sha256": "f44776049d59b45780a684838321601c12c70569756fd2fa6dc51951e0b420a2"
+    },
+    {
+      "path": "outputs/coordinator27_release48/PREFLIGHT.json",
+      "sha256": "792fee75dca6ba543caedbccd0c459b6ffdc7fea93480efac8d2f0237950ba1f"
+    },
+    {
+      "path": "outputs/coordinator27_release48/IMPORT_SOURCE_CHECK.json",
+      "sha256": "e1ef6319e7e6733abe842d5edb97c1420fd0cc7678b3675d85fbaaa5e3c9b2db"
+    }
+  ],
+  "paired_measurements": [
+    {
+      "charges": 1,
+      "resolved": {
+        "path": "outputs/coordinator27_c4_meta_perf/release48/COMPARISON_FIXED18_1_RESOLVED.json",
+        "sha256": "a9787964c582fa5b265fc41b0f205a0cea48f533a3a5b79aa9ce2b332e94bca6"
+      },
+      "raw": {
+        "path": "outputs/coordinator27_c4_meta_perf/release48/COMPARISON_FIXED18_1_RAW.json",
+        "sha256": "6890d64133591289a2aeb0cb8615c2c4038daae3985a9025f0a3111322555e69"
+      },
+      "metrics": {
+        "baseline": {
+          "run": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed18_baseline1_01/RUN.json",
+            "sha256": "109d17558e5eb42b1906e0503af1d8b5ca865342202f0cc62c3a7ebd42d02d10"
+          },
+          "result": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed18_baseline1_01/RESULT.json",
+            "sha256": "73ddd52a6341c4b1c0f04faac0e12f2c3bdd47d5df39544ad06e24642f5a9830"
+          },
+          "phase_frames": [
+            {
+              "phase": "idle",
+              "count": 290,
+              "max": 10.561,
+              "p50": 7.007,
+              "p95": 9.669
+            },
+            {
+              "phase": "actual_blast_and_physics",
+              "count": 764,
+              "max": 18.201,
+              "p50": 7.026,
+              "p95": 10.274
+            },
+            {
+              "phase": "recovery",
+              "count": 864,
+              "max": 11.929,
+              "p50": 7.056,
+              "p95": 9.701
+            }
+          ],
+          "peak_memory": {
+            "working_set_bytes": 1594568704,
+            "peak_working_set_bytes": 1606492160,
+            "private_bytes": 2176745472
+          }
+        },
+        "candidate": {
+          "run": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed18_candidate1_01/RUN.json",
+            "sha256": "e24c52f3c822401e0610c7275aacd375515b8b64c26faa729d5e27970f3b2582"
+          },
+          "result": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed18_candidate1_01/RESULT.json",
+            "sha256": "1c7015e6d41250012e11e0c8a5da66d18e5cfc4b78305fe3d13bec2bfae79a13"
+          },
+          "phase_frames": [
+            {
+              "phase": "idle",
+              "count": 291,
+              "max": 10.455,
+              "p50": 7.051,
+              "p95": 9.704
+            },
+            {
+              "phase": "actual_blast_and_physics",
+              "count": 763,
+              "max": 22.87,
+              "p50": 6.96,
+              "p95": 10.753
+            },
+            {
+              "phase": "recovery",
+              "count": 864,
+              "max": 13.059,
+              "p50": 6.963,
+              "p95": 9.692
+            }
+          ],
+          "peak_memory": {
+            "working_set_bytes": 1627643904,
+            "peak_working_set_bytes": 1635860480,
+            "private_bytes": 2215231488
+          }
+        }
+      }
+    },
+    {
+      "charges": 8,
+      "resolved": {
+        "path": "outputs/coordinator27_c4_meta_perf/release48/COMPARISON_FIXED18_8_RESOLVED.json",
+        "sha256": "28503b979572058999d127478c39c13349b93117742332f1ad45ebb552a0a659"
+      },
+      "raw": {
+        "path": "outputs/coordinator27_c4_meta_perf/release48/COMPARISON_FIXED18_8_RAW.json",
+        "sha256": "839ee2923998d7f2d2fcf6d79c4e1eba1289a53d2ad5cb1c7885c0811b07e87d"
+      },
+      "metrics": {
+        "baseline": {
+          "run": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_baseline8_01/RUN.json",
+            "sha256": "c82172f7643b5cae0714f325c95a05e0fba7049a162e3becaa8d709d793f3a6f"
+          },
+          "result": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_baseline8_01/RESULT.json",
+            "sha256": "ee768ce10911cc07983b3865b42dd3594082f5c776e50becfb068b4db2ffc0f4"
+          },
+          "phase_frames": [
+            {
+              "phase": "idle",
+              "count": 291,
+              "max": 12.564,
+              "p50": 6.925,
+              "p95": 9.855
+            },
+            {
+              "phase": "actual_blast_and_physics",
+              "count": 761,
+              "max": 18.672,
+              "p50": 6.75,
+              "p95": 11.387
+            },
+            {
+              "phase": "recovery",
+              "count": 865,
+              "max": 11.128,
+              "p50": 6.856,
+              "p95": 9.478
+            }
+          ],
+          "peak_memory": {
+            "working_set_bytes": 1602424832,
+            "peak_working_set_bytes": 1618980864,
+            "private_bytes": 2186612736
+          }
+        },
+        "candidate": {
+          "run": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_candidate8_01/RUN.json",
+            "sha256": "1bf0aa66ca292f52f3023b92106ce11817bef1534608e97e5dae2ec8991de960"
+          },
+          "result": {
+            "path": "outputs/coordinator26_frames45/runs/c4_release48_fixed130_candidate8_01/RESULT.json",
+            "sha256": "c2bfb1265f221d02b02266823fdc6d0cda6a2af1617ed4710a1bc6c5459b4f36"
+          },
+          "phase_frames": [
+            {
+              "phase": "idle",
+              "count": 291,
+              "max": 12.564,
+              "p50": 6.969,
+              "p95": 9.839
+            },
+            {
+              "phase": "actual_blast_and_physics",
+              "count": 748,
+              "max": 21.864,
+              "p50": 6.796,
+              "p95": 11.995
+            },
+            {
+              "phase": "recovery",
+              "count": 865,
+              "max": 12.128,
+              "p50": 7.022,
+              "p95": 10.886
+            }
+          ],
+          "peak_memory": {
+            "working_set_bytes": 1632129024,
+            "peak_working_set_bytes": 1658413056,
+            "private_bytes": 2219216896
+          }
+        }
+      }
+    }
+  ],
+  "decision": "Accept the bounded C4/foundation/Fire3/camera/marks composition in the tested current scene. Final comparable pairs preserve camera, NPC, settings and timed windows; only the independently reviewed foundation domain exception is applied.",
+  "cost_review": {
+    "one_charge_blast_p95_added_ms": 0.479,
+    "eight_charge_blast_p95_added_ms": 0.608,
+    "eight_charge_recovery_p95_added_ms": 1.408,
+    "eight_charge_recovery_p50_added_ms": 0.166,
+    "eight_charge_blast_max_ms": 21.864,
+    "eight_charge_blast_frames_over_16_667_ms": 4,
+    "eight_charge_blast_sample_count": 748,
+    "eight_charge_blast_frames_over_33_333_ms": 0,
+    "eight_charge_peak_rss_added_mib": 37.60546875,
+    "assessment": "Measured additional cost is acceptable for the stronger physical destruction in this scenario: recovery p95 remains10.886ms, all phase p95 values remain below12ms. This is an explicit cost acceptance, not a claim of zero regression or a proven optimization over the earlier unpaired32.814ms peak."
+  },
+  "limitations": [
+    "Raw cross-variant frozen body row arrays were not recorded: four known hash-domain differences use a reviewed source-linked foundation exception, not a recomputed phase equality.",
+    "Old unpaired failures and timing peaks remain preserved. No full-city or standalone EXE performance claim.",
+    "Pre-existing initial LobbyTable release is shared by baseline and candidate and remains a separate issue.",
+    "Source snapshot486 already pushed in main61771eb8; acceptance/pointer commit may remain pending while Git index is locked."
+  ]
+}

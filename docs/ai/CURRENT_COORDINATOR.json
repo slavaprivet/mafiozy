@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.coordination/v1",
-  "updated_at": "2026-10-03T04:44:48.6264772+03:00",
+  "updated_at": "2026-10-03T03:27:40.182119+00:00",
   "number": 27,
   "thread_id": "01a0fed6-c1dc-75b2-8fda-194f729e8bb8",
   "title": "Координатор 27",
@@ -21,5 +21,12 @@
   "accepted_pointer": "godot/current_version.json",
   "user_authorized_continuous_work": true,
   "user_authorized_numbered_successors": true,
-  "last_inventory_note": "2026-10-03: no Godot processes observed. This is historical evidence only; refresh before every launch or close."
+  "last_inventory_note": "2026-10-03 06:25 Moscow: accepted48 game PID34540/creation_filetime134354713729615269 responding and visible; user editor25808 preserved. Historical only: refresh exact identity before action.",
+  "accepted_revision": "s01-20261003-c4-release48",
+  "accepted_assembly": "outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json",
+  "accepted_assembly_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
+  "accepted_delivery": "outputs/coordinator27_release48/DELIVERY.json",
+  "last_verified_source_commit": "61771eb8b82312849ff37739b9fb81fd4316f718",
+  "publication_commit_pending_reason": null,
+  "git_recovery": "outputs/coordinator27_git_recovery/RECOVERY.json"
 }

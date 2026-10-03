@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "tests": 11,
+  "errors": 0,
+  "failures": 0,
+  "elapsed_seconds": 23.496879099868238,
+  "guard_sha256": "512f0e65558b095f355e41e80fa716b183f64c733721d4fbb94dbb609edd19f7",
+  "test_sha256": "12b825a95687ed3c31298fefbfa1f30aa8ceeb0752a1f37c7fa9a16fafd94a49",
+  "scheduler_sha256": "6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9",
+  "scheduler_unchanged": true,
+  "actual_python_child": true,
+  "actual_private_lease_and_register_child": true,
+  "godot_started": false,
+  "gameplay_proven": false
+}

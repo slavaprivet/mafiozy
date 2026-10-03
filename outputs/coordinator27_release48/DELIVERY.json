@@ -1,0 +1,20 @@
+{
+  "schema": "mafiozi.release-delivery/v1",
+  "verified_at": "2026-10-03T06:25:37.5513876+03:00",
+  "revision": "s01-20261003-c4-release48",
+  "ready": true,
+  "pid": 34540,
+  "creation_filetime": "134354713729615269",
+  "window_title": "Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)",
+  "window_handle": 40960252,
+  "accepted_assembly_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
+  "opened_receipt": "outputs/current_game/interactive/20261003T032252930Z/OPENED.json",
+  "opened_receipt_sha256": "4c03c9d44957c79ed2bb89f19166cdc73deaefbffe3dfd10cb04577cf5325014",
+  "screenshot": "outputs/current_game/interactive/20261003T032252930Z/opened.png",
+  "screenshot_sha256": "47ac11b2f3e0d5b7a63efa5a1ac5e58f93555655dff33776c338902e1639668e",
+  "screenshot_visually_reviewed": true,
+  "route": "Same stable launcher used by Godot F5; project route CheckOnly PASS. No literal UI keypress claimed.",
+  "user_editor_preserved": true,
+  "user_processes_closed": false,
+  "full_migration_complete": false
+}

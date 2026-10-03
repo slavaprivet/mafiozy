@@ -1,0 +1,35 @@
+{
+	"c4_gameplay_proven": false,
+	"camera_sha256": "948a98ebe240990f67ed248009b0c255db49a64085dad9a2d3ff27ddaf8bb00e",
+	"checks": 27,
+	"evidence": {
+		"normal": {
+			"after13": "(0.0, -0.21, 0.0)",
+			"before": "(0.0, -0.21, 0.0)",
+			"camera_after13": "[X: (1.0, 0.0, 0.0), Y: (0.0, 0.995004, -0.099833), Z: (0.0, 0.099833, 0.995004), O: (0.0, 2.239001, 5.970025)]",
+			"camera_before": "[X: (1.0, 0.0, 0.0), Y: (0.0, 0.995004, -0.099833), Z: (0.0, 0.099833, 0.995004), O: (0.0, 2.239001, 5.970025)]",
+			"drift_after_reset": 0.0,
+			"reset": "(0.0, -0.21, 0.0)"
+		},
+		"normal_query_count": 658,
+		"occluded": {
+			"after13": "(0.0, -0.309263, 0.0)",
+			"aimed": "(0.749997, -0.649998, 0.0)",
+			"control_max_difference": 0.0000000298023223876953,
+			"control_peak_drift13": 0.00203752517700195,
+			"menu_peak_drift": 0.0,
+			"normal_desired": "(0.0, -0.65, 0.0)",
+			"normal_safe": "(0.0, -0.309766, 0.0)",
+			"overlap_count": 0,
+			"peak_drift13": 0.00203752517700195,
+			"queries": 328,
+			"reset": "(0.0, -0.309766, 0.0)"
+		}
+	},
+	"failures": [],
+	"fixture_sha256": "7f9948ecd981927ec89957cc0db6bf1bbe11162911f6fe8fa60e45a146359083",
+	"gpu": false,
+	"passed": true,
+	"performance_accepted": false,
+	"variant": "v2"
+}

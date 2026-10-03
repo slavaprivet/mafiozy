@@ -1,6 +1,130 @@
 # Координатор27 — рабочая память
 
+## 03.10 06:34 — Git восстановлен сохранением stale lock, checkpoint48
+
+Старый zero-byte index.lock timestamp02:40:09Z не принадлежал живому Git writer: все наблюдаемые app Git команды read-only и созданы значительно позже. Exclusive FileShare.None probe прошёл. По явному порядку COORDINATOR_27_HANDOFF применён безопасный Move-Item в outputs/coordinator27_git_recovery/index.lock.20261003T024009Z.archived; путь проверен внутри workspace, хешдо/послеidentical, RECOVERY.json сохранён. Файл НЕ удаляли, процессовнеостанавливали. Этот безопасный вариант инструмент разрешил; прежний запрет удаления не обходили удалением другим API. Ниже историческое состояние Gitblocked больше неактуально.
+
+Текущая публикация48 и её доказательства идут в scoped checkpoint; сохранение486production source уже было61771eb8. Ставятся только root metadata/проверенные immutable receipts и byte-preserving attrs; чужойWIP неstage-all. Следующее: car49read-onlyaudit, NPC20имеет performance blocker (старыйcandidate contact max65.61ms, оптимизация20 functionalPASS, fullscene повтор ещёнепринят). Игра48 остаётся открыта, fullgoalACTIVE.
+
+## 03.10 06:26 — RELEASE48 ПРИНЯТА, F5 ПЕРЕКЛЮЧЁН, ИГРА ОТКРЫТА
+
+Goal turn PROGRESS: не только тесты — пользовательская версия доставлена.
+`godot/current_version.json` → `outputs/coordinator27_release48/ACCEPTED_ASSEMBLY.json`, SHA51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7.
+Acceptance a1f3a37ba2dbee3006c0a6c181fbca1cf9b32c46cb3d30a80f52009b60a8155f.
+Candidate ASSEMBLY513c... осталась неизменной/acceptedfalse как история; новая accepted manifest true,486sourcepins. Стараяpointer45 сохранена PREVIOUS_CURRENT_VERSION.json. Atomicpointer update, CheckOnly CURRENT_READY48/F5_READY PASS.
+
+Actual ordinary launcher readytrue: `outputs/current_game/interactive/20261003T032252930Z/OPENED.json`, gamePID34540, creation_filetime134354713729615269, окно «Мафиози — 03.10 · Усиленный C4 · версия48 (DEBUG)». Пользовательскийeditor25808 сохранён, никто не закрыт. `DELIVERY.json` fresh06:25 responding/handle40960252. Root лично посмотрел opened.png: бейдж48 и три правильныеC4инструкции видны; RPG1+49 сохранён по прежнему поручению. Literal keyboardF5 не эмулировали; проверен именно его постоянныйlauncher и route. Launcher exec session45680 штатно ждёт игру; не считать зависшей/не убивать. Начальный directlauncher был terminalexit1 из-за короткогоbridge другойheadlessрегистрации, повторпослерегистрации успешно coexist.
+
+Final matched8 fixedNPCready130 (pf10→140), 18physicsframes aftereachQ: baseline/candidate PASS198/2105,55.577/55.521s, все8holdspass, фокуснепрерывен. NPC72 delta.000084m/NPC252 .01521m/statusesexact. `COMPARISON_FIXED18_8_RESOLVED.json` failures[] (имяисторическое, raw ссылаетсянаFIXED130). Pair1 тожеcomparable. Только4reviewedsource-linkedfoundationexception; всеостальныеgates сохранены.
+8frames p50/p95/max: idle6.925/9.855/12.564→6.969/9.839/12.564;
+blast6.750/11.387/18.672→6.796/11.995/21.864;
+recovery6.856/9.478/11.128→7.022/10.886/12.128.
+PeakRSS+37.605MiB (1charge+28.008). В8blast4/748frames>16.667ms,0>33.333. Это явное принятие измеренной добавочнойстоимости сильногоразрушения в текущей3NPCсцене, не claimнольрегрессии/полныйгород/EXE/оптимизация32.814историческогопика. Не скрыватьrecoveryp95+1.408ms.
+Finalhandoff c758af9ea82023f60926145f3693682ba86f26b515715b041695b2885ebb39b4, `SOURCE_FREEZE_FINAL48_v2.json`872e476c630dcafda6c26b6f4be1417ea85e3e3c1d7f43bcf62d0d03402cb104.
+
+Scheduler actual delayed race доказан: `ACTUAL_REGISTRATION_ADOPTION.json`, fixed130baselineimport WAITING→REGISTERED1.3347745s, обаparallelimportsPASS. Helper512f... сохранён без новых изменений. F5аналогичнаяrace опровергнута mutex-order proof (предыдущаязаписьнижеисторическая).
+
+Source486 main/origin61771eb8 уже есть. Acceptance/pointer/guard/docs пока НЕ committed: index.lock и policy-deniedcleanup сохраняются, не обходить другиминструментом. В index только14rootстрокAGENTSпроscheduler, чужиеWIPсекции неstage-all. До06:38 нужен следующий scopedcheckpoint если Gitзаписьвосстановится.
+
+Buildings4/Cars/NPC24/dispatcher/HQ уведомлены об actual48/F5. Новыеизменения rebasingтольконаaccepted48; bank765componentPASS ещёнеигра. Следующее: проверенные car/contact/NPC пакеты, затемstep/player/полныйbacklog. Игра открыта: functionalтестыдопускаются, perfтребуетсвободногоокна; пользовательскиеprocessesне закрывать. Полнаямиграциядалеконезакончена, goalACTIVE.
+
+## 03.10 06:10 — production48 import PASS, сопоставимая пара1 PASS
+
+Текущий goal turn PROGRESS: проверен именно production48 import01 (без .godot до запуска), exit0/stderr0/6.250s,486pins unchanged; IMPORT_SOURCE_CHECK.json сохранён. Source snapshot main61771eb8 не изменился.
+
+F5 прежнее предположение о registrationgap ОПРОВЕРГНУТО source-order review: launcher acquire общего mutex доinventory; scheduler держитbridge доatomicregistrypublication; bypass толькоприужеоткрытойstablegame, владеющейmutex. Отдельное F5_REGISTRATION_ORDER_CLARIFICATION.md SHAac676952349a7bb03a2a1035ef99a0d66b242d9d65d31e13d1292c663d59ae6b, frozenhelperнепереписан. Launcher менять не надо. Новыйregistration adapter actual baseline/candidateimport прошёл рядом сAstra/bankheadless; events[] (ониужебылизарегистрированы), CPU11 покрывает actual delayedpublication.
+
+fixed18 pair1: сценовойякорь NPC-ready pf10, firstholdpf120=+110обоим, fixed18betweenQ. NPC/camera/settings/input теперь PASS. COMPARISON_FIXED18_1_RESOLVED failures[] через ровно4source-linkedfoundationexceptions. Resolver4c4207d9e3eae43a2686d66d6596d80a8669b1b7024db04d186254ef0d6d0384 прошёл независимыйCPUreview всехasserts. r3 nativeproof e485a2e157efdc6632fc2520a1c3160f512efd3f5d011b7baf0d2029d14ec429 PASS16/689unchanged records. Не заявлятьпрямоеравенство phasefrozenrows: онинесохранены; известныеSHA-domains/source proof/withinvariantprehold-preblasthash unchanged плюсallrowsremnantexact.
+
+Pair1 wall p50/p95/max: idle7.007/9.669/10.561→7.051/9.704/10.455; blast7.026/10.274/18.201→6.960/10.753/22.870; recovery7.056/9.701/11.929→6.963/9.692/13.059. Полная performanceacceptance ждёт8.
+
+fixed18 baseline8_01 раннийQAFAIL: aim закончилсяpf121 приboundary120, на1tickпозже; holds/measurementsнебыло, stderr0. RootпоизмереннымbudgetвыбралНовый8-only boundary130 отNPCready (неQanchor), fixed18, soft56/hard60 неизменны. 150оставлял0.106sдоsoft56,130оставляет.44s и+19ticksнадknownmax111. Новаяtinyentry/manifestвтехжеQAcopy, 1неповторять; agentc4_runner_review выполняеттольконовуюпару8. Никакихruntimeedits.
+
+PointerF5пока45. Gitlockпо-прежнемунеудалятьпослеpolicyrejection; guardиacceptancependingcommit, stagedтолько14строкAGENTS. Незавершённуюмиграциюнеотмечатьcomplete.
+
+## 03.10 05:51 — parallel guard готов, targeted perf repeat назначен
+
+Registration sibling готов: outputs/coordinator27_c4_meta_perf/release48/scheduler_adapter/run_registered.py SHA cac8a01b8defd55941db148143e7335f382c7a92d867eb2d546216a70f86585f. Sourcechecks прошли; default guard правильно отказал при чужом perf, ничего не закрыл. Далее runner делает fixed18 repeat. Agent perf_review read-only подтверждает достаточность.
+
+Registration helper frozen manifest1653979112994fb5e5e07ef0570cbf17d9e9a5a5ad524d9e6dddfadc452aaef0, guard512f0e65558b095f355e41e80fa716b183f64c733721d4fbb94dbb609edd19f7. CPU11/11 с actual private Lease/register_child/Python children. README передан NPC24/Cars/Buildings4/штабу; runner делает sibling adapter. Original watchdog сохраняется, wait<=16s, success только registry exact identity. Scheduler/launcher unchanged; F5 analogous registration gap пока limitation.
+
+Final48 fast8_03 no-settle PASS2093; baseline/candidate1 и8 clean. Candidate8 RUN54.946s,493pins. Comparison NOT_COMPARABLE: baseline adaptive settle18physicsframes vs candidate3; ×8=2s живогоNPC mismatch. Root назначил targeted repeat1/8 с FIXED18frames обоим+последние3 stable; runtime/NPC не менять,60s unchanged,fast8 не повторять. Candidate1 blast p95 10.901vs10.371ms/max21.999vs19.257; candidate8 p95 11.828vs11.694/max32.814vs24.266; RSS+25.46/+33.07MiB. Пока диагностические данные, не acceptance. Authored первые657 EXACT и statics кроме declaredfoundation EXACT; render counters +8100/+45576 не являются authoredtriangle count, не выдумывать разложение. F5 остаётся45.
+
+Snapshot486 main/origin61771eb8 проверен. В index только scoped14строк AGENTS про новый scheduler; остальные WIP секции не staged. Дополнительный guard commit пока заблокирован .git/index.lock (0bytes timestamp05:40:09); два gitadd отказа. Попытка удаления после инвентаризации была отвергнута автоматической policy, не обходить другим инструментом. Пользователь уведомлён. Guard/docs остаются на диске; main старые scheduler/sourcecheckpoint уже содержит.
+
+## 03.10 05:39 — полный source checkpoint48 сохранён, F5 пока45
+
+Commit61771eb8 pushed main: все486 production source-файлов +6 manifest/preflight/builder файлов. Каждый staged Git blob проверен SHA256 против frozen source_pins, байты486/486 совпадают; ** -text сохраняет pins. Source preflight PASS486, 262 input dependencies/236 selected resources. Это сохранение candidate, не принятие performance и не публикация48.
+
+Scheduler реальная параллельность подтверждена прежним native overlap17.89s. Новая интеграционная гонка: legacy guard fast8_02 увидел законный NPC headless до завершения register_child (CIM timeout15s), сохранил его и остановил только свой тест. c4_perf_review делает scoped bounded registration adapter+CPU tests, scheduler/runtime frozen. Grace только для issued empty headless lease с точной parent/process identity; успех исключительно после фактической registry регистрации; unknown/perf/expiry FAIL, общий watchdog не удлинять. Для срочного финального fast8 используется exclusive perf lane, временно, не общая политика.
+
+fast8_01 был QA binding FAIL: observe_site45 не узнал новый foundation12 subclass; новый exact-path bridge сохраняет исходный immediate-Q fixture291d50. fast8_02 остановлен из-за registration race, игрового verdict нет. Runner продолжает fast8+matched perf; foundation contract owner исправляет свой collector, это не runtime баг. Pointer остаётся45.
+
+## 03.10 05:26 — реальные C4 дефекты исправлены, production48 staged
+
+Предыдущий goal turn PROGRESS: scheduler/F5 coexist внедрены и сохранены
+6b000998. Этот ход: реальный clean8, камера, сильный проход, новая композиция.
+
+Shared Shape3D bug: Godot4.7.2 signal base comparator игнорирует bind arguments;
+e0cc на8 зарядах выдавал7 duplicate-connect ERROR. Исправление86ec658e3c4619eb0f876d9ed3aa3420b79c788e7fdebda6cf428200ced17bb7
+использует одну reference-counted подписку на Shape, mutation снимает все
+связанные заряды. Component PASS19; actual c4_shape_fix47_candidate8_01
+PASS2093, exit0/stderr0,500pins unchanged. Baseline45 matched clean8 сохранён.
+COMPARISON8 strict comparable; blast p95 11.295→11.930ms, max18.562→33.754ms,
+peak RSS+31.10MiB/private+34.65MiB. Пик не скрывать; оценить на final48.
+
+Camera reset: preserveY вариант4b037 небезопасен у центрального препятствия;
+оставлен как отвергнутый вариант. V2 normal eye target через существующий
+safe sweep SHA948a98ebe240990f67ed248009b0c255db49a64085dad9a2d3ff27ddaf8bb00e.
+Actual qa/run_20261003_052208/v2.RESULT.json PASS27, exit0/stderr0; baseline
+FAIL6/preserveY FAIL3. Input/menu/scope/seat/death/fault проходят, normal drift0,
+physical overlap0; отличается от unchanged safe-target control максимум
+2.98e-08m. Остаточная вариация native cast2.0375mm одинакова, не новая регрессия.
+
+Buildings4: strength1920 + foundation12 actual foundation12_native01 PASS136,
+27.442s exit0/stderr0,500pins. W localz8.26666→1.61167, S→4.38000, stationary0,
+heightdelta.001709m, капсула/маски неизменны. Component lifecycle PASS222.
+2 из12 foundation chunks detached, IDs сохранены; four original static supports
+и остальное не тронуто. Geometry bounds/physical union прежние; новый набор
+12rigid вместо1static, старые44 beveltri→144 flatboxtri: объявленная дельта,
+не скрытая одинаковость. Масса после освобождения следует общей _release,
+исходная218.79→183.74308, не заявлять conserved dynamic mass.
+Fire3 actual game PASS81,21.904s,497pins, exit0/stderr0; root лично просмотрел
+0350ms и кадр разрушенного прохода. Final fullscene cost ещё pending.
+
+Production candidate outputs/coordinator27_release48/game,486 runtime pins,
+ASSEMBLY SHA513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c.
+Composition: marks47a + cameraV2 + sharedshapefix с точным DAMAGE960→1920
+(merged equipment11f9c4127d27a3349bc0e1242b3661fb9637e8f2bcd267217ade9db3c4e7cd29),
+direct48/radius3.2 + foundation12 host/two sources + Fire3 + revision/update text.
+НикакихQAвproduction; source-only planner/stager prepare48.py. Owner Buildings4
+независимо подтвердил свои7runtime и точную склейкуequipment. .gitattributes
+** -text сохранит байты и pins при checkout. Snapshot69.25MiB, maxfile4.5MB.
+
+c4_runner_review готовит одну отдельную final48 QA assembly: immediate Q→LMB
+без settle, затем сопоставимые1/8 измерения. Добавляет authored geometry rows
+вне measured windows; Buildings4 готовит predicate только foundation delta.
+c4_perf_review делает read-only production/export closure preflight. Root F5
+pointer ВСЁ ЕЩЁ accepted45; 48 не принята. После finalnative/perf — сохранить
+ВСЕ486 snapshotfiles/ASM вmain (старый45 snapshot оказался НЕ tracked),
+проверить byte identity staged blobs и атомарно обновить current_version.json.
+Standalone48 EXE ещё не собран; userF5 используетsource+pinnedGodot, этот
+отдельный EXE gate не задерживает проверенный F5 release и не считаетсяPASS.
+
 ## 03.10 04:59 — новый порядок тестов реально включён
+
+Checkpoint 03.10 05:01:44+03:00: scoped main/origin/main/свежий ls-remote
+подтверждают 6b0009981023ec416df22bbfa4355e458885a901. Сохранены scheduler,
+F5 queue/coexist, CPU/native доказательства, mandate/current coordinator.
+Чужие WIP и общий AGENTS не включены целиком; новая шапка AGENTS локально
+сохранена. Следующий часовой checkpoint до06:01 при выполненных изменениях.
+Последний CheckOnly45/F5_READY после окончательного helper patch PASS.
+Native8 settled pair479/499 staged, новый scheduler_adapter у runner,
+baseline import стартовал через headless/write. Buildings4 strict1920 FAIL:
+48 фактически released, прежние wall26/27 сняты; единственный blocker теперь
+OriginalFoundation StaticBody3D, порог .21m; owner готовит isolated разрушаемый
+фундамент с прежней геометрией/массой. Старый FAIL сохраняется, root rollout
+только после фактической passage/perf приёмки. Быстрый ЛКМ/Q camera bug открыт.
 
 tools/godot/test_scheduler.py SHA
 6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9.

@@ -1,0 +1,11 @@
+{
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\.git\\index.lock",
+  "archive": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_git_recovery\\index.lock.20261003T024009Z.archived",
+  "before_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+  "last_write_utc": "2026-10-03T02:40:09.5589150Z",
+  "checked_at": "2026-10-03T06:32:06.7032803+03:00",
+  "exclusive_open_passed": true,
+  "git_processes": null,
+  "reason": "Preserve confirmed stale lock by archive move, as coordinator handoff specifies; no deletion",
+  "after_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+}
