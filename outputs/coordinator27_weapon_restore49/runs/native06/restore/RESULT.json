@@ -1,0 +1,11 @@
+{
+	"checks": 20,
+	"errors": [
+		"all owners commit: { \"ok\": false, \"reason\": \"RENDERER_PREPARE:{ \\\"ok\\\": true, \\\"count\\\": 1, \\\"created\\\": 1 }{ \\\"ok\\\": false, \\\"reason\\\": \\\"ground_placement\\\" }\" }"
+	],
+	"failed_prepare_no_adoption": true,
+	"passed": false,
+	"performance_accepted": false,
+	"phase": "restore",
+	"process_id": 29728
+}

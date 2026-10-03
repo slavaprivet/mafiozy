@@ -17,6 +17,9 @@
   `Lease`. Это сохраняет полный бюджет второй половины заранее подготовленной пары.
 - В receipt добавлен `queue_wait_seconds`; status сообщает `pending_diagnostics`.
   При timeout сохраняется последняя причина ожидания, включая старый launch mutex.
+- Если процесс завершился между CIM и Get-Process, весь список перечитывается
+  заново: максимум три попытки в общем лимите15 секунд. Частичный список не
+  используется; ошибки доступа и службы не обходятся. Ошибка включает stderr.
 
 ## Перед замером производительности
 
@@ -44,16 +47,19 @@ marker после регистрации, внутри исходного child 
 ## Версия и проверка
 
 Scheduler SHA256:
-`0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4`.
+`adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373`.
 CPU suite SHA256:
-`28870cdd097ea4257c5af555dae7b79c640304710e0ef993d6a5ec9cf9cbb623`.
-14 CPU tests PASS, включая настоящие дочерние процессы, ограничение affinity,
+`4cbaccbe6a94e86fc879a7d9c5d5505410c4d59ced8900f61c45e6cae0a969ac`.
+17 CPU tests PASS (12,352с), включая настоящие дочерние процессы, ограничение affinity,
 очередь третьего процесса, очистку только своего ребёнка и perf contamination.
 Native proof: `outputs/coordinator27_scheduler_native/run_20261003_072952/RESULT.json`:
 два настоящих Godot перекрывались 20,2449 с, оба exit0/stderr0; реальный F5
 identity predicate принял оба процесса. Пользовательские окна сохранены.
+Этот двухдвижковый proof относится к0194; свежий inventory fix отдельно проверен
+на настоящем PowerShell и полном CIM inventory:
+`outputs/coordinator27_scheduler_inventory_fix/NATIVE_CHECK.json`.
 
-Старые frozen runners/receipts с SHA `6f86204f…cad9` сохранять. Для новых прогонов
+Старые frozen runners/receipts с SHA `6f86204f…cad9` и `0194f00d…cdc4` сохранять. Для новых прогонов
 создать новый адаптер с текущим проверенным SHA; нельзя молча переписать старое
 доказательство. Базовый API и лимиты совместимы с предыдущей версией, подробный
 пример — `outputs/coordinator27_test_scheduler/README.md` (исторический freeze).

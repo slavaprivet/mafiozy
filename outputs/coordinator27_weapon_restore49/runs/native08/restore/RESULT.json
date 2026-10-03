@@ -1,0 +1,43 @@
+{
+	"adoption": {
+		"bootstrap_items_minted": 0,
+		"clock_policy": "LOCAL_OFFLINE_FREEZE",
+		"items": 14,
+		"native_process": 51040,
+		"ok": true,
+		"server_grants": 0,
+		"source_process": 45772
+	},
+	"ammo_total": 894.0,
+	"checks": 32,
+	"errors": [],
+	"host_fire_state": {
+		"cooldown": 0.050000000000000044,
+		"lastRecoilScale": 1.09,
+		"lastRecoilYaw": -0.7354771319213411,
+		"magazine": 29,
+		"recoil": 0.3228511530398319,
+		"reloadRemaining": 2.0166666666666666,
+		"reserveAmmo": 90,
+		"sequence": 1,
+		"sprayHeat": 0.23835616438356141,
+		"sprayRecoveryRemaining": 0.5799999999999995,
+		"sprayShots": 1,
+		"triggerHeld": false,
+		"weaponId": "ak74"
+	},
+	"items": 14,
+	"new_player_native_id": 262160779521,
+	"new_vehicle_native_id": 265868553341,
+	"passed": true,
+	"performance_accepted": false,
+	"phase": "restore",
+	"process_id": 51040,
+	"remaining_after_ms": 298061.87,
+	"remaining_before_ms": 298062.684,
+	"session": {
+		"mode": "NEW_SESSION_BOOTSTRAP",
+		"session_generation": 1,
+		"session_id": "godot-preview-1791003856.36-3153170"
+	}
+}

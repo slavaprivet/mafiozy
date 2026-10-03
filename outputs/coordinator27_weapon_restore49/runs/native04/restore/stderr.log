@@ -1,0 +1,18 @@
+ERROR: The object does not have any 'meta' values with the key 'actor_id'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] configure (res://scripts/weapons/rpg_effects.gd:44)
+       [1] configure (res://scripts/weapons/preview_weapons.gd:81)
+       [2] _ready (res://scripts/main.gd:230)
+       [3] load_scene (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:54)
+       [4] restore_process (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:134)
+       [5] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:48)
+ERROR: The object does not have any 'meta' values with the key 'life_generation'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] configure (res://scripts/weapons/rpg_effects.gd:44)
+       [1] configure (res://scripts/weapons/preview_weapons.gd:81)
+       [2] _ready (res://scripts/main.gd:230)
+       [3] load_scene (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:54)
+       [4] restore_process (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:134)
+       [5] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:48)

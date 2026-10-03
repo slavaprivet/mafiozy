@@ -1,0 +1,16 @@
+ERROR: The object does not have any 'meta' values with the key 'private_restore49'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] setup (res://scripts/preview_transport.gd:79)
+       [1] _ready (res://scripts/main.gd:203)
+       [2] load_scene (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:54)
+       [3] save_process (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:63)
+       [4] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:47)
+ERROR: The object does not have any 'meta' values with the key 'private_restore49'.
+   at: get_meta (core/object/object.cpp:1053)
+   GDScript backtrace (most recent call first):
+       [0] configure (res://scripts/weapons/preview_weapons.gd:60)
+       [1] _ready (res://scripts/main.gd:230)
+       [2] load_scene (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:54)
+       [3] save_process (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:63)
+       [4] run (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_weapon_restore49/test_restore.gd:47)

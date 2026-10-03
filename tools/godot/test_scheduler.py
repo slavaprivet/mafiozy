@@ -78,9 +78,19 @@ def inventory(pid=None):
     pwsh = shutil.which("pwsh")
     need(pwsh, "PowerShell7 inventory unavailable")
     select = f"Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}'" if pid else "Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'Godot|Mafiozi' }"
-    code = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $rows=@(" + select + " | ForEach-Object { $p=Get-Process -Id $_.ProcessId -ErrorAction Stop; [pscustomobject]@{pid=[int]$_.ProcessId; parent_pid=[int]$_.ParentProcessId; creation_filetime=[string]$p.StartTime.ToFileTimeUtc(); name=$_.Name; command_line=$_.CommandLine; executable=$_.ExecutablePath; title=$p.MainWindowTitle} }); ConvertTo-Json -InputObject $rows -Compress -Depth 4"
-    result = subprocess.run([pwsh, "-NoProfile", "-NonInteractive", "-Command", code], capture_output=True, timeout=15, creationflags=subprocess.CREATE_NO_WINDOW)
-    need(result.returncode == 0, "Fresh process inventory failed")
+    code = "$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $rows=@(" + select + " | ForEach-Object { try { $p=Get-Process -Id $_.ProcessId -ErrorAction Stop } catch { if ($_.FullyQualifiedErrorId -like 'NoProcessFoundForGivenId,*') { exit 75 }; throw }; [pscustomobject]@{pid=[int]$_.ProcessId; parent_pid=[int]$_.ParentProcessId; creation_filetime=[string]$p.StartTime.ToFileTimeUtc(); name=$_.Name; command_line=$_.CommandLine; executable=$_.ExecutablePath; title=$p.MainWindowTitle} }); ConvertTo-Json -InputObject $rows -Compress -Depth 4"
+    # A process may exit between CIM enumeration and Get-Process. Discard that
+    # entire snapshot and query again; never admit from a partial/stale list.
+    # Retry only this identified race, not access errors or a broken CIM service.
+    deadline = time.monotonic() + 15
+    for attempt in range(3):
+        remaining = deadline - time.monotonic()
+        need(remaining > 0, "Fresh process inventory deadline expired")
+        result = subprocess.run([pwsh, "-NoProfile", "-NonInteractive", "-Command", code], capture_output=True, timeout=remaining, creationflags=subprocess.CREATE_NO_WINDOW)
+        if result.returncode != 75:
+            break
+    detail = result.stderr.decode("utf-8-sig", errors="replace").strip()[:1200]
+    need(result.returncode == 0, f"Fresh process inventory failed (exit {result.returncode}): {detail}")
     rows = json.loads(result.stdout.decode("utf-8-sig"))
     need(isinstance(rows, list), "Malformed inventory")
     return rows

@@ -1,0 +1,86 @@
+{
+	"checks": 20,
+	"errors": [
+		"all owners commit: { \"ok\": false, \"reason\": \"RENDERER_PREPARE:{ \\\"ok\\\": true, \\\"count\\\": 1, \\\"created\\\": 1 }{ \\\"ok\\\": false, \\\"reason\\\": \\\"ground_placement\\\" }\" }"
+	],
+	"failed_prepare_no_adoption": true,
+	"ground_trace": [
+		{
+			"box": {
+				"position": {
+					"x": 36.57988357543945,
+					"y": 0.008999984711408615,
+					"z": 0.8862876892089844
+				},
+				"size": {
+					"x": 0.36976638436317444,
+					"y": 0.07514560222625732,
+					"z": 0.2274239957332611
+				}
+			},
+			"owner_current": true,
+			"rays": [
+				{
+					"empty": true,
+					"normal": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					},
+					"position": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					}
+				},
+				{
+					"empty": true,
+					"normal": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					},
+					"position": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					}
+				},
+				{
+					"empty": true,
+					"normal": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					},
+					"position": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					}
+				},
+				{
+					"empty": true,
+					"normal": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					},
+					"position": {
+						"x": 0.0,
+						"y": 0.0,
+						"z": 0.0
+					}
+				}
+			],
+			"shape_colliders": [],
+			"validator": {
+				"ok": false
+			}
+		}
+	],
+	"passed": false,
+	"performance_accepted": false,
+	"phase": "restore",
+	"process_id": 20148
+}

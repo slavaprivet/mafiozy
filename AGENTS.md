@@ -6,8 +6,9 @@
 2 headless + 1 graphical одновременно, perf отдельно. Ожидающий writer чужой
 папки больше не блокирует независимый тест; точный `--path`, время ожидания от
 enqueue. Перед perf использовать CLI `probe`, не тратить повторные timeout на
-открытую пользовательскую игру. Scheduler SHA0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4,
-14 CPU checks PASS. Старые receipts и pinned wrappers сохранять, для новых
+открытую пользовательскую игру. Scheduler SHAadcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373,
+17 CPU checks PASS. Добавлен bounded fresh inventory retry при завершении процесса
+между CIM и Get-Process; частичный список не используется. Старые receipts и pinned wrappers сохранять, для новых
 прогонов обновлять только новый адаптер. Игра/editor пользователя сохраняются.
 
 ## Принята версия48 — 3 октября, Координатор27

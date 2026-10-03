@@ -1,0 +1,13 @@
+{
+  "command": [
+    "python",
+    "-B",
+    "tools/godot/test_test_scheduler.py"
+  ],
+  "tests": 17,
+  "seconds": 12.352,
+  "exit_code": 0,
+  "result": "OK",
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "suite_sha256": "4cbaccbe6a94e86fc879a7d9c5d5505410c4d59ced8900f61c45e6cae0a969ac"
+}

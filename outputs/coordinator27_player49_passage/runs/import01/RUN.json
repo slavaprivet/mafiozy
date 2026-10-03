@@ -1,0 +1,115 @@
+{
+  "passed": true,
+  "mode": "import",
+  "assembly_sha256": "a87424f432ff1d29d9a628c67f4b64aa824c571bb83388ca66d15ec8727d2f73",
+  "runner_sha256": "efa25261e562b74c2c2c5bb2a193e4fe7d8ad2f217f9d690683c38dd9bf21390",
+  "scheduler_sha256": "0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4",
+  "performance_accepted": false,
+  "production_accepted": false,
+  "lease": {
+    "id": "de8d3ff80691496db517a10e313c0edd",
+    "owner": {
+      "pid": 29996,
+      "creation_filetime": "134354769806546507"
+    },
+    "mode": "headless",
+    "project": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\desktop\\\u043c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game",
+    "access": "write",
+    "children": [
+      {
+        "pid": 24452,
+        "creation_filetime": "134354770034758027",
+        "command_line": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game --editor --import --quit",
+        "command": [
+          "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+          "--headless",
+          "--path",
+          "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game",
+          "--editor",
+          "--import",
+          "--quit"
+        ],
+        "executable": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "executable_path": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+        "mode": "headless",
+        "project": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\desktop\\\u043c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game",
+        "affinity_mask": 3,
+        "logical_cpu_limit": 2
+      }
+    ],
+    "deadline": 1323342.5266705,
+    "queued_at": 1323222.5266705,
+    "ticket": 427,
+    "inventory_before": [
+      {
+        "pid": 25808,
+        "parent_pid": 45416,
+        "creation_filetime": "134354639115733549",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\godot\\mafiozi_walk\"",
+        "executable": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "main.tscn - \u041c\u0430\u0444\u0438\u043e\u0437\u0438 \u2014 \u043f\u0435\u0440\u0435\u043d\u043e\u0441 \u0432 Godot - Godot Engine"
+      },
+      {
+        "pid": 34540,
+        "parent_pid": 35164,
+        "creation_filetime": "134354713729615269",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "\"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --path \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_release48\\game\" --script \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\tools\\godot\\current_game_bootstrap.gd\" -- \"--receipt-dir=C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\current_game\\interactive\\20261003T032252930Z\" \"--release-title=03.10 \u00b7 \u0423\u0441\u0438\u043b\u0435\u043d\u043d\u044b\u0439 C4 \u00b7 \u0432\u0435\u0440\u0441\u0438\u044f48\" \"--release-revision=s01-20261003-c4-release48\"",
+        "executable": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": "\u041c\u0430\u0444\u0438\u043e\u0437\u0438 \u2014 03.10 \u00b7 \u0423\u0441\u0438\u043b\u0435\u043d\u043d\u044b\u0439 C4 \u00b7 \u0432\u0435\u0440\u0441\u0438\u044f48 (DEBUG)"
+      },
+      {
+        "pid": 28400,
+        "parent_pid": 28420,
+        "creation_filetime": "134354769948628740",
+        "name": "Godot_v4.7.2-stable_win64.exe",
+        "command_line": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_c4_pose49\\revision4\\game --editor --import --quit",
+        "executable": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+        "title": ""
+      }
+    ],
+    "editor_identities": [
+      [
+        25808,
+        "134354639115733549",
+        "\"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe\" --editor --path \"C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\godot\\mafiozi_walk\"",
+        "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe"
+      ]
+    ],
+    "queue_wait_seconds": 21.188519899966195
+  },
+  "command": [
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+    "--headless",
+    "--path",
+    "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game",
+    "--editor",
+    "--import",
+    "--quit"
+  ],
+  "child": {
+    "pid": 24452,
+    "creation_filetime": "134354770034758027",
+    "command_line": "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game --editor --import --quit",
+    "command": [
+      "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\\u0421\u043b\u0430\u0432\u0430\\Desktop\\\u041c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game",
+      "--editor",
+      "--import",
+      "--quit"
+    ],
+    "executable": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\\u0441\u043b\u0430\u0432\u0430\\desktop\\\u043c\u0430\u0444\u0438\u043e\u0437\u0438\\outputs\\coordinator27_player49_passage\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  },
+  "exit_code": 0,
+  "source_pins_before_after": true,
+  "stderr_bytes": 0,
+  "elapsed_seconds": 32.234030899824575
+}

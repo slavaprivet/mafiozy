@@ -1,0 +1,15 @@
+{
+	"checks": 32,
+	"errors": [],
+	"failed_prepare_no_adoption": true,
+	"failure": {
+		"ok": false,
+		"reason": "RENDERER_PREPARE:{ \"ok\": false, \"reason\": \"binding_or_capacity\" }{ \"ok\": true, \"count\": 1, \"created\": 1 }"
+	},
+	"items": 0,
+	"passed": true,
+	"performance_accepted": false,
+	"phase": "reject_prepare",
+	"process_id": 32448,
+	"server_grants": 0
+}

@@ -1,0 +1,42 @@
+{
+  "status": "PRIVATE_NATIVE_WEAPON_RESTORE_PASS",
+  "production_accepted": false,
+  "performance_accepted": false,
+  "checks": 95,
+  "items": 14,
+  "ammo_before_shots": 896,
+  "ammo_after_save_restore": 894,
+  "server_grants": 0,
+  "restored_item_uid_mints": 0,
+  "clock_policy": "LOCAL_OFFLINE_FREEZE",
+  "run": "runs/native09/RUN.json",
+  "run_sha256": "b365b706c21d2778351532e393b6529b41086c9517250926ebcb9d6b0327fc17",
+  "phases": [
+    {
+      "phase": "save",
+      "checks": 22,
+      "pid": 38224,
+      "queue_wait_seconds": 0.6238491998519748,
+      "stderr_bytes": 0
+    },
+    {
+      "phase": "restore",
+      "checks": 41,
+      "pid": 9612,
+      "queue_wait_seconds": 0.6384178998414427,
+      "stderr_bytes": 0
+    },
+    {
+      "phase": "reject_prepare",
+      "checks": 32,
+      "pid": 32448,
+      "queue_wait_seconds": 0.5785015001893044,
+      "stderr_bytes": 0
+    }
+  ],
+  "scope": "weapon inventory+ground+cargo only; no full gameplay or server save adoption",
+  "base_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
+  "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "scheduler_sha256": "0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4",
+  "checkpoint_v2_upstream_sha256": "217669b4fb6782e745e584dadf69aa6c7bff0af733c4924e8da6d6de4d4bb11b"
+}

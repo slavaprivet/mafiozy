@@ -1,0 +1,130 @@
+{
+  "status": "ACTUAL_PALAZZO_PASSAGE_FUNCTIONAL_PASS",
+  "checks": 124,
+  "seconds": 24.330414100084454,
+  "assembly_sha256": "a87424f432ff1d29d9a628c67f4b64aa824c571bb83388ca66d15ec8727d2f73",
+  "run_sha256": "17537108d74345cfc0843c4187876c22b7cca3443d1989c211215cb6bb6bce68",
+  "result_sha256": "8d35da112f5395d9dbecbcdec2c0e6ed23a4811edfec8b5fa6f00ff7ef09a4ca",
+  "base_source_count": 486,
+  "candidate_source_count": 500,
+  "runtime_delta": {
+    "scripts/preview_player.gd": "b33505b2bbadcadb5754e474f1a9cbb7b218f0abcbfa7ea7b70db8facff19d6c",
+    "scripts/preview_dive.gd": "93a4e9fad1f5d91a57d3463ee51b7f1066a3e6dccc3acc1bfc3c61a5d11e2858"
+  },
+  "outcomes": {
+    "blocked_before": true,
+    "inside": true,
+    "outside": true
+  },
+  "movements": [
+    {
+      "label": "intact_W_blocked",
+      "reached": false,
+      "start": [
+        -3.0,
+        0.091191403567791,
+        4.59999847412109
+      ],
+      "end": [
+        -3.0,
+        0.091191403567791,
+        3.73333358764648
+      ],
+      "samples": 35
+    },
+    {
+      "label": "back_to_placement",
+      "reached": true,
+      "start": [
+        -3.0,
+        0.091191403567791,
+        3.73333358764648
+      ],
+      "end": [
+        -3.0,
+        0.091191403567791,
+        4.41499710083008
+      ],
+      "samples": 13
+    },
+    {
+      "label": "S_to_floor_placement_distance",
+      "reached": true,
+      "start": [
+        -3.0,
+        0.091191403567791,
+        4.41499710083008
+      ],
+      "end": [
+        -3.0,
+        0.091191403567791,
+        5.16166305541992
+      ],
+      "samples": 12
+    },
+    {
+      "label": "native_retreat_from_ground_charge",
+      "reached": true,
+      "start": [
+        -3.0,
+        0.091191403567791,
+        5.17333221435547
+      ],
+      "end": [
+        -2.99999976158142,
+        0.091191403567791,
+        8.2549934387207
+      ],
+      "samples": 58
+    },
+    {
+      "label": "through_breach_W",
+      "reached": true,
+      "start": [
+        -2.99999976158142,
+        0.091191403567791,
+        8.26666259765625
+      ],
+      "end": [
+        -3.00000023841858,
+        0.089482419192791,
+        1.61167144775391
+      ],
+      "samples": 125
+    },
+    {
+      "label": "back_through_breach_S",
+      "reached": true,
+      "start": [
+        -3.00000023841858,
+        0.089482419192791,
+        1.61167144775391
+      ],
+      "end": [
+        -3.0,
+        0.089482419192791,
+        4.38000106811523
+      ],
+      "samples": 55
+    }
+  ],
+  "same_actor_capsule_policy": {
+    "actor_id": 273686726924,
+    "capsule_id": 273904839721,
+    "disabled": false,
+    "height": 1.89999997615814,
+    "layer": 2,
+    "life": 1,
+    "local_frame": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (0.0, 0.95, 0.0)]",
+    "mask": 1025,
+    "radius": 0.300000011920929,
+    "run_speed": 5.8,
+    "shape_id": -9223371762966713304,
+    "walk_speed": 3.2
+  },
+  "production_accepted": false,
+  "performance_accepted": false,
+  "headless": true,
+  "manual_OS_input_verified": false,
+  "scope": "Actual accepted48 main with step33+short-dive runtime candidates; intact wall blocks, actual floor C4/remote callback destroys, real engine W/S crosses breach and returns. No claims that step activation was needed at this now-flat breach or that this tests dive again."
+}

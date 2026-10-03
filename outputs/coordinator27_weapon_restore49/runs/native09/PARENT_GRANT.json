@@ -1,0 +1,27 @@
+{
+  "save_sha256": "8abc7533c21472f09a51afd68792afd17452404b05beeb6853cf8cc995162f51",
+  "grant": "2655609a108f5c16e63a05985678b8123da9f959408381fc4c3dd9119586fba7",
+  "consumed": true,
+  "source_process": {
+    "pid": 38224,
+    "creation_filetime": "134354775543143580",
+    "command_line": "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe --headless --path C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_weapon_restore49\\game --script C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_weapon_restore49\\test_restore.gd -- --phase=save --out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_weapon_restore49\\runs\\native09\\save",
+    "command": [
+      "C:\\Users\\Слава\\AppData\\Local\\MafioziTools\\Godot-4.7.2\\Godot_v4.7.2-stable_win64.exe",
+      "--headless",
+      "--path",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_weapon_restore49\\game",
+      "--script",
+      "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_weapon_restore49\\test_restore.gd",
+      "--",
+      "--phase=save",
+      "--out=C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_weapon_restore49\\runs\\native09\\save"
+    ],
+    "executable": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "executable_path": "c:\\users\\слава\\appdata\\local\\mafiozitools\\godot-4.7.2\\godot_v4.7.2-stable_win64.exe",
+    "mode": "headless",
+    "project": "c:\\users\\слава\\desktop\\мафиози\\outputs\\coordinator27_weapon_restore49\\game",
+    "affinity_mask": 3,
+    "logical_cpu_limit": 2
+  }
+}

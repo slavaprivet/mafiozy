@@ -1,0 +1,10 @@
+{
+  "native_missing_process_exit": 75,
+  "fresh_inventory_pids": [
+    25808,
+    34540
+  ],
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "tests_sha256": "4cbaccbe6a94e86fc879a7d9c5d5505410c4d59ced8900f61c45e6cae0a969ac",
+  "note": "Actual Get-Process on guaranteed invalid PID exercises native race classifier; subsequent full CIM inventory succeeds. No game process stopped."
+}

@@ -1,0 +1,10 @@
+{
+	"checks": 14,
+	"errors": [
+		"all native owner bindings: transport=resume_packet:{ \"ok\": false, \"reason\": \"ORIGIN\" } weapons={ \"ok\": false, \"reason\": \"binding\" }"
+	],
+	"passed": false,
+	"performance_accepted": false,
+	"phase": "restore",
+	"process_id": 45048
+}

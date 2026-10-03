@@ -1,0 +1,22 @@
+{
+  "action": "preserve_verified_stale_lock",
+  "original": "C:\\Users\\Слава\\Desktop\\Мафиози\\.git\\index.lock",
+  "archive": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_git_recovery\\index.lock.20261003T051048Z.archived",
+  "original_mtime_utc": "2026-10-03T05:10:48.1866779Z",
+  "checked_utc": "2026-10-03T05:14:42.9434689Z",
+  "exclusive_open": true,
+  "bytes": 0,
+  "git_processes": [
+    {
+      "ProcessId": 48096,
+      "CreationDate": "2026-10-03T08:14:42.684508+03:00",
+      "CommandLine": "\"C:\\Program Files\\Git\\cmd\\git.exe\" -c attr.tree= -c core.attributesFile= -c filter.lfs.clean= -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false -c safe.bareRepository=explicit -c core.hooksPath=NUL -c core.fsmonitor= status --renames --porcelain=v1 -z --untracked-files=normal"
+    },
+    {
+      "ProcessId": 15880,
+      "CreationDate": "2026-10-03T08:14:42.769018+03:00",
+      "CommandLine": "git.exe -c attr.tree= -c core.attributesFile= -c filter.lfs.clean= -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false -c safe.bareRepository=explicit -c core.hooksPath=NUL -c core.fsmonitor= status --renames --porcelain=v1 -z --untracked-files=normal"
+    }
+  ],
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

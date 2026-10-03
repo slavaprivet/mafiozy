@@ -2,6 +2,8 @@
 
 ## 03.10 07:50 — checkpointv2 native127 и C4 standing57
 
+Checkpoint07:52: `b81a4ed2` pushed main, HEAD/origin/remote verified.285files, all283 staged evidence blobs byte-exact; raw CRLF preserved via -text, whitespace check with cr-at-eol PASS. Production48 unchanged.
+
 Предыдущий goal turn PROGRESS: scheduler0194 с14CPU/nativeoverlap20.245s уже
 сохранён main/origin003f6f546fde76e8be05a6553ae510f7a2333001, remoteSHAподтверждён.
 Текущий turn тоже PROGRESS: root исправил реальные codec collisions @f64/unsafeint,
@@ -864,3 +866,30 @@ Timeout и неполные окна не объявлять PASS. Дальше 
 На первом чтении ASTRA_CONTINUOUS_DISPATCH_20261003.md ещё отсутствовал.
 Root heartbeat godot-4 передаёт26, не создавать дубликат.
 Отчёт о приёме отправлен только в общий штаб; остановленных владельцев не будить.
+## 03.10 08:10 — автоматическая очередь, inventory race, passage49
+
+Очередь реально используется: restore49 ожидал0,624/0,638/0,579с,
+restaurant49 новый headless получил slot за0,565с. Пользовательские editor25808
+и game34540 остаются; свежий CIM подтверждён. Functional не требует root GO.
+
+У Buildings4 и restaurant49 появились prelaunch Fresh process inventory failed.
+В исходном inventory найден race: Get-Process -ErrorAction Stop после CIM падает,
+если перечисленный процесс уже завершился. Новый scheduler SHA
+adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373 повторяет весь
+snapshot только для NoProcessFoundForGivenId (максимум3/общие15с). Частичный
+snapshot не принимается, прочие ошибки failclosed и выводят диагностический stderr.
+17 CPU PASS12,352с; настоящий PowerShell classifier exit75 и полный fresh CIM PASS.
+Архив0194 и проверка: outputs/coordinator27_scheduler_inventory_fix. Docs/AGENTS
+обновлены; владельцы Buildings4/NPC24/Cars/dispatcher и текущие субагенты уведомлены.
+Frozen0194RUN не переписывать; source drift во время перехода сохранить как FAIL.
+
+Root player49 passage: actual accepted48 + step33 + короткий dive, 124PASS24,330с,
+реальная установка на землю/взрыв C4 и W внутрь/S обратно, та же капсула и NPC.
+Freeze28files c72cdcab36d62706732a57582fe720b69493b3774731d264f58fd0018d7a45d3,
+outputs/coordinator27_player49_passage/HANDOFF.md. FPS и production ещё не приняты.
+Restore49 агент сообщил95PASS (два процесса + latefailure), freeze216files
+17fe0450f6234fd961b5caf6281d43328eaf11be459152a884b4e4adab6bf9f5;
+root независимая приёмка ещё нужна. Restaurant49 actual approach/stairs PASS,
+lifecycle ещё проверяется. C4pose49 визуальный шов талии ещё HOLD; исправляется
+hip-only authoredpose без сдвига player/капсулы и без растяжения конечностей.
+Текущая принятая48 и F5 не менялись, общая цель ACTIVE.

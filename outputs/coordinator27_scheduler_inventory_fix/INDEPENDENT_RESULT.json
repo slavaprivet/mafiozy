@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "checks": [
+    "partial failed snapshots discarded; decreasing shared15s budget [15,9,1]",
+    "budget expired between attempts prevents a second launch",
+    "all tested non75 failures deny without retry despite partial JSON",
+    "subprocess timeout propagates failclosed without retry",
+    "malformed/non-list successful output denied",
+    "race retries capped at exactly three",
+    "actual two-row CIM snapshot, own child exit, exact classifier exit75, no partial JSON"
+  ],
+  "native": {
+    "captured_child_pid": 16616,
+    "captured_live_parent_pid": 30352,
+    "child_exit": 0,
+    "powershell_exit": 75,
+    "partial_json_emitted": false,
+    "stderr_bytes": 0,
+    "elapsed_seconds": 0.6692423999775201
+  },
+  "fresh_inventory_pids": [
+    25808,
+    34540
+  ],
+  "source_unchanged": true,
+  "scheduler_sha256": "adcb834390e476edd118f62d8e3e5b391c6ebc97925391e66beeb80430ba8373",
+  "before_sha256": "0194f00db580f2c54e8f2c13cbbde1002cd2429ffdf970d9799328d072cfcdc4",
+  "runner_sha256": "6209fa9b6cea8e230c0f95a6677f30a203787517dbfa6f1ba20ef2d644a0b772",
+  "powershell_sha256": "78ea40950103164173f5414e96a705d9a3477083ac87459c00f074a0cb874de7"
+}

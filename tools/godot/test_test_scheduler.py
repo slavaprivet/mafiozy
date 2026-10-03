@@ -15,6 +15,30 @@ s = importlib.util.module_from_spec(spec); spec.loader.exec_module(s)
 REAL_INVENTORY = s.inventory
 
 
+class InventoryTests(unittest.TestCase):
+    def result(self, code, stdout=b"[]", stderr=b""):
+        return subprocess.CompletedProcess([], code, stdout, stderr)
+
+    def test_exited_process_requeries_whole_snapshot(self):
+        # A failed partial snapshot must never be used for admission.
+        with patch.object(s.shutil, "which", return_value="pwsh"), patch.object(s.subprocess, "run", side_effect=[self.result(75, b"[{\"pid\":123}]"), self.result(0, b"[{\"pid\":456}]")]) as run:
+            self.assertEqual(REAL_INVENTORY(), [{"pid":456}])
+            self.assertEqual(run.call_count, 2)
+            self.assertLessEqual(run.call_args.kwargs["timeout"], 15)
+
+    def test_inventory_race_retries_are_bounded(self):
+        with patch.object(s.shutil, "which", return_value="pwsh"), patch.object(s.subprocess, "run", return_value=self.result(75)) as run:
+            with self.assertRaisesRegex(RuntimeError, "exit 75"):
+                REAL_INVENTORY()
+            self.assertEqual(run.call_count, 3)
+
+    def test_other_errors_fail_closed_without_retry(self):
+        with patch.object(s.shutil, "which", return_value="pwsh"), patch.object(s.subprocess, "run", return_value=self.result(1, stderr=b"Access denied")) as run:
+            with self.assertRaisesRegex(RuntimeError, "Access denied"):
+                REAL_INVENTORY()
+            self.assertEqual(run.call_count, 1)
+
+
 def cpu_inventory(pid=None):
     return REAL_INVENTORY(pid) if pid else []
 
