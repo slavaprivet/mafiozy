@@ -1,0 +1,17 @@
+{
+  "combat_base.gd": {
+    "source": "outputs\\coordinator25_step33\\newfixture\\combat_base.gd",
+    "sha256": "8733e988684c23dd4365d51c2c22243bfa3de205b05e9f1e28c63eefce8e347f",
+    "exact_bytes": true
+  },
+  "test_pressure_control.gd": {
+    "source": "outputs\\coordinator25_step33\\newfixture\\test_pressure_control.gd",
+    "sha256": "b86bdbdb3c3bb49a11f46f1af37cadde3b09c563ba2fcf409b9109852a949745",
+    "exact_bytes": true
+  },
+  "test_corpse_receipt.gd": {
+    "source": "outputs\\coordinator25_step33\\newfixture\\test_corpse_receipt.gd",
+    "sha256": "91ff7cca07fd4c89df0126af631bdb69af8dc5765ff0bd27e4cb0ca75355e748",
+    "exact_bytes": true
+  }
+}

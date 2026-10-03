@@ -1,0 +1,443 @@
+{
+  "status": "NATIVE_FUNCTIONAL_EVIDENCE_WITH_PRESERVED_BOUNDARY_FAIL",
+  "accepted": false,
+  "performance_accepted": false,
+  "base_sha256": "51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7",
+  "player_patch_sha256": "b33505b2bbadcadb5754e474f1a9cbb7b218f0abcbfa7ea7b70db8facff19d6c",
+  "source_count": 486,
+  "boundary": {
+    "checks": 266,
+    "errors": [
+      "bounded vertical rise 13"
+    ],
+    "case_count": 24,
+    "sampled_ticks": 2160,
+    "conditions": [
+      {
+        "kind": "106mm_static_lip",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": -3.59681391716003,
+        "max_foot_y": 0.108855411410332,
+        "helper_positive_observations": 1,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "120mm_exact_boundary",
+        "speed_mps": 3.2,
+        "height_m": 0.12,
+        "start_z": 1.20000004768372,
+        "end_z": -3.59561824798584,
+        "max_foot_y": 0.123272962868214,
+        "helper_positive_observations": 1,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "210mm_palazzo_height_component",
+        "speed_mps": 3.2,
+        "height_m": 0.21,
+        "start_z": 1.20000004768372,
+        "end_z": 0.285755306482315,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "400mm_wall",
+        "speed_mps": 3.2,
+        "height_m": 0.4,
+        "start_z": 1.20000004768372,
+        "end_z": 0.300208419561386,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_lip_under_1950mm_ceiling",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.231666743755341,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "121mm_step_over_limit",
+        "speed_mps": 3.2,
+        "height_m": 0.121,
+        "start_z": 1.20000004768372,
+        "end_z": 0.240000084042549,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_rigid_world_layer",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.231666743755341,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_animatable_world_layer",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.231666743755341,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_moving_static_surface",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.231666743755341,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "flat_ordinary_walk",
+        "speed_mps": 3.2,
+        "height_m": 0.0,
+        "start_z": 1.20000004768372,
+        "end_z": -3.59999823570251,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_controls_disabled",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 1.20000004768372,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_external_authority",
+        "speed_mps": 3.2,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 1.20000004768372,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_static_lip",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": -7.46265745162964,
+        "max_foot_y": 0.11196518689394,
+        "helper_positive_observations": 1,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "120mm_exact_boundary",
+        "speed_mps": 5.8,
+        "height_m": 0.12,
+        "start_z": 1.20000004768372,
+        "end_z": -7.46265745162964,
+        "max_foot_y": 0.125965178012848,
+        "helper_positive_observations": 1,
+        "native_ticks": 90,
+        "errors": [
+          "bounded vertical rise 13"
+        ]
+      },
+      {
+        "kind": "210mm_palazzo_height_component",
+        "speed_mps": 5.8,
+        "height_m": 0.21,
+        "start_z": 1.20000004768372,
+        "end_z": 0.285996288061142,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "400mm_wall",
+        "speed_mps": 5.8,
+        "height_m": 0.4,
+        "start_z": 1.20000004768372,
+        "end_z": 0.300097852945328,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_lip_under_1950mm_ceiling",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.228099137544632,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "121mm_step_over_limit",
+        "speed_mps": 5.8,
+        "height_m": 0.121,
+        "start_z": 1.20000004768372,
+        "end_z": 0.240000188350677,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_rigid_world_layer",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.228099137544632,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_animatable_world_layer",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.228099137544632,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_moving_static_surface",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 0.228099137544632,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "flat_ordinary_walk",
+        "speed_mps": 5.8,
+        "height_m": 0.0,
+        "start_z": 1.20000004768372,
+        "end_z": -7.4633355140686,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_controls_disabled",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 1.20000004768372,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      },
+      {
+        "kind": "106mm_external_authority",
+        "speed_mps": 5.8,
+        "height_m": 0.106,
+        "start_z": 1.20000004768372,
+        "end_z": 1.20000004768372,
+        "max_foot_y": 0.00119140557944775,
+        "helper_positive_observations": 0,
+        "native_ticks": 90,
+        "errors": []
+      }
+    ]
+  },
+  "diagnostic": {
+    "result": "same cap123mm FAIL reproduced",
+    "raw_cap_m": 0.123,
+    "cap_origin": "outputs/coordinator25_step33/test_lip.gd: check(max_y - start.y <= 0.123); historical component QA assumption; runtime tests top_height <= MAX_STEP0.12 instead",
+    "peak_120_run_y": 0.125965178012848,
+    "peak_excess_above_authored_top_m": 0.005965178012848016,
+    "native_peak_context": [
+      {
+        "contacts": [],
+        "delta": "(0.0, 0.0, -0.095)",
+        "floor_normal": "(0.0, 1.0, 0.0)",
+        "frame": 173,
+        "helper_rise": 0.120808591738343,
+        "native_delta": "(0.0, 0.0, -0.095)",
+        "on_floor": true,
+        "on_wall": false,
+        "real_velocity": "(0.0, 0.0, -5.700001)",
+        "serial": 172,
+        "slide_count": 0,
+        "velocity": "(0.0, 0.0, -5.700001)",
+        "x": 78.0,
+        "y": 0.00119140557944775,
+        "z": 0.250000178813934
+      },
+      {
+        "contacts": [],
+        "delta": "(0.0, 0.120809, -0.096667)",
+        "floor_normal": "(0.0, 0.0, 0.0)",
+        "frame": 174,
+        "helper_rise": 0.0,
+        "native_delta": "(0.0, 0.120809, -0.096667)",
+        "on_floor": false,
+        "on_wall": false,
+        "real_velocity": "(0.0, 7.248516, -5.800001)",
+        "serial": 173,
+        "slide_count": 0,
+        "velocity": "(0.0, 0.0, -5.8)",
+        "x": 78.0,
+        "y": 0.122000016272068,
+        "z": 0.153333485126495
+      },
+      {
+        "contacts": [],
+        "delta": "(0.0, -0.002722, -0.096667)",
+        "floor_normal": "(0.0, 0.0, 0.0)",
+        "frame": 175,
+        "helper_rise": 0.0,
+        "native_delta": "(0.0, -0.002722, -0.096667)",
+        "on_floor": false,
+        "on_wall": false,
+        "real_velocity": "(0.0, -0.163333, -5.8)",
+        "serial": 174,
+        "slide_count": 0,
+        "velocity": "(0.0, -0.163333, -5.8)",
+        "x": 78.0,
+        "y": 0.11927779763937,
+        "z": 0.0566668212413788
+      },
+      {
+        "contacts": [
+          {
+            "class": "StaticBody3D",
+            "collider_instance": 26591888854,
+            "contact": 0,
+            "depth": 0.00112739729229361,
+            "layer": 1,
+            "mask": 1,
+            "normal": "(0.0, 0.99369, 0.112158)",
+            "position": "(78.0, 0.12, 0.0)",
+            "remainder": "(0.0, -0.004179, -0.074199)",
+            "shape_size": "(2.0, 0.12, 5.0)",
+            "slide": 0,
+            "transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (78.0, 0.06, -2.5)]",
+            "travel": "(0.0, -0.001265, -0.022467)"
+          },
+          {
+            "class": "StaticBody3D",
+            "collider_instance": 26591888854,
+            "contact": 0,
+            "depth": 0.00106388621497899,
+            "layer": 1,
+            "mask": 1,
+            "normal": "(0.0, 0.995383, 0.095987)",
+            "position": "(78.0, 0.12, 0.0)",
+            "remainder": "(0.0, -0.003893, -0.069127)",
+            "shape_size": "(2.0, 0.12, 5.0)",
+            "slide": 1,
+            "transform": "[X: (1.0, 0.0, 0.0), Y: (0.0, 1.0, 0.0), Z: (0.0, 0.0, 1.0), O: (78.0, 0.06, -2.5)]",
+            "travel": "(0.0, 0.000563, -0.004975)"
+          }
+        ],
+        "delta": "(0.0, 0.006687, -0.09548)",
+        "floor_normal": "(0.0, 0.995383, 0.095987)",
+        "frame": 176,
+        "helper_rise": 0.0,
+        "native_delta": "(0.0, 0.006687, -0.09548)",
+        "on_floor": true,
+        "on_wall": false,
+        "real_velocity": "(0.0, 0.401243, -5.728801)",
+        "serial": 175,
+        "slide_count": 2,
+        "velocity": "(0.0, 0.0, -5.8)",
+        "x": 78.0,
+        "y": 0.125965178012848,
+        "z": -0.0388131961226463
+      },
+      {
+        "contacts": [],
+        "delta": "(0.0, -0.005371, -0.096667)",
+        "floor_normal": "(0.0, 1.0, 0.0)",
+        "frame": 177,
+        "helper_rise": 0.0,
+        "native_delta": "(0.0, -0.005371, -0.096667)",
+        "on_floor": true,
+        "on_wall": false,
+        "real_velocity": "(0.0, -0.322266, -5.8)",
+        "serial": 176,
+        "slide_count": 0,
+        "velocity": "(0.0, 0.0, -5.8)",
+        "x": 78.0,
+        "y": 0.120594084262848,
+        "z": -0.135479867458344
+      }
+    ],
+    "inference": "Admission limits authored top_height to120mm; transient foot position has native capsule corner slide overshoot after admission. At peak helper0, two StaticBody3D slide normals nearly UP, on_floor true, wall false; motion equals single native delta and same serial path. No evidence of121mm admission;121/210 blocked at both speeds. Old123mm total foot-rise bound is not the exact runtime admission contract. Acceptance decision remains root; raw failure retained."
+  },
+  "corpse": {
+    "valid": true,
+    "checks": 2804,
+    "errors": [],
+    "contact_frames": 301,
+    "blocked_frames": 149,
+    "pressure_receipt_frames": 354,
+    "max_part_shift_m": 0.0455409660935402,
+    "max_native_depth_m": 0.00164115882944316,
+    "held_frames": 234,
+    "port_stats": {
+      "accepted": 19,
+      "applied_ns": 8.42731380462646,
+      "attempted": 19,
+      "rejected": 0
+    }
+  },
+  "corpse_receipts": {
+    "errors": [],
+    "force_enabled": true,
+    "performance_acceptance": false,
+    "scope": "actual original resident72 TT death and original owner impulse; original28 inherited checks plus step33 whole-capsule native public receipt checks",
+    "verified_dead_contacts": 302,
+    "verified_pressure_frames": 354
+  },
+  "limits": [
+    "Artificial isolated lanes are not Palazzo geometry or passage proof.",
+    "Controls-disabled and external-authority are explicitly assigned fixture state, not actual Q menu or seat gameplay.",
+    "No GPU/OS input/performance acceptance; headless scheduler2CPU functional only.",
+    "Actual corpse main scene test uses original synthetic input and one clear-floor player setup placement; no corpse transforms/HP/rig overrides.",
+    "Diagnostics attempt01 was a preserved QA parse failure; attempt02 executed cleanly and retained cap failure.",
+    "No production/runtime/current pointer edits; source486 pins unchanged before/after successful native runs."
+  ]
+}

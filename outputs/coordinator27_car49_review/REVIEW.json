@@ -1,0 +1,1567 @@
+{
+  "schema": "coordinator27.car49.saved-perf-review/v1",
+  "created_at_utc": "2026-10-03T03:49:57.800271+00:00",
+  "status": "SOURCE_AND_SAVED_EVIDENCE_VERIFIED_SCOPED_REVIEW",
+  "engines_started": false,
+  "owner_files_modified": false,
+  "full_performance_accepted": false,
+  "production_accepted": false,
+  "raw_reports_modified": false,
+  "source_verification": {
+    "production48": {
+      "manifest": "outputs/coordinator27_release48/ASSEMBLY.json",
+      "manifest_sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c",
+      "revision": "s01-20261003-c4-release48",
+      "game": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_release48\\game",
+      "verified_pins": 486,
+      "mismatches": [],
+      "unmanifested_files": [
+        "scripts/destruction/palazzo/blast45_plume.gdshader.uid",
+        "scripts/destruction/palazzo/blast45_wave.gdshader.uid",
+        "scripts/destruction/palazzo/blast_fx45.gd.uid",
+        "scripts/destruction/palazzo/c4_device_icon43.gd.uid",
+        "scripts/destruction/palazzo/c4_icon_cache43.gd.uid",
+        "scripts/destruction/palazzo/c4_placement_query45.gd.uid",
+        "scripts/destruction/palazzo/c4_surface_owner45.gd.uid",
+        "scripts/destruction/palazzo/c4_visuals.gd.uid",
+        "scripts/destruction/palazzo/icons/c4_package43.png.import",
+        "scripts/destruction/palazzo/icons/c4_remote43.png.import",
+        "scripts/destruction/palazzo/palazzo_foundation12_site.gd.uid"
+      ],
+      "all_pinned_bytes_exact": true,
+      "inventory_exact": false
+    },
+    "baseline48": {
+      "manifest": "outputs/quick_improvements_20261003/rebase48_precheck/baseline48/ASSEMBLY_IMPORTED.json",
+      "manifest_sha256": "bdcdadb1866d2124cd22621cd865e97443166fba77f7f376ba730f8138dda290",
+      "revision": "s01-20261003-c4-release48",
+      "game": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\quick_improvements_20261003\\rebase48_precheck\\baseline48\\game",
+      "verified_pins": 497,
+      "mismatches": [],
+      "unmanifested_files": [],
+      "all_pinned_bytes_exact": true,
+      "inventory_exact": true
+    },
+    "candidate49": {
+      "manifest": "outputs/quick_improvements_20261003/rebase48_precheck/candidate49/ASSEMBLY_FIXED.json",
+      "manifest_sha256": "8c0118654bd45363290c6826f8429d240353c5982b1c9b15a914a5a6faadcc48",
+      "revision": "s01-20261003-c4-car-polish49",
+      "game": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\quick_improvements_20261003\\rebase48_precheck\\candidate49\\game",
+      "verified_pins": 513,
+      "mismatches": [],
+      "unmanifested_files": [],
+      "all_pinned_bytes_exact": true,
+      "inventory_exact": true
+    }
+  },
+  "baseline_import_metadata_only": [
+    "scripts/destruction/palazzo/blast45_plume.gdshader.uid",
+    "scripts/destruction/palazzo/blast45_wave.gdshader.uid",
+    "scripts/destruction/palazzo/blast_fx45.gd.uid",
+    "scripts/destruction/palazzo/c4_device_icon43.gd.uid",
+    "scripts/destruction/palazzo/c4_icon_cache43.gd.uid",
+    "scripts/destruction/palazzo/c4_placement_query45.gd.uid",
+    "scripts/destruction/palazzo/c4_surface_owner45.gd.uid",
+    "scripts/destruction/palazzo/c4_visuals.gd.uid",
+    "scripts/destruction/palazzo/icons/c4_package43.png.import",
+    "scripts/destruction/palazzo/icons/c4_remote43.png.import",
+    "scripts/destruction/palazzo/palazzo_foundation12_site.gd.uid"
+  ],
+  "runtime_source_delta": {
+    "changed": [
+      "data/preview_updates.json",
+      "scripts/main.gd",
+      "scripts/quick_controls/car_dashboard.gd",
+      "scripts/vehicle_physics/vehicle_native_body.gd",
+      "scripts/weapons/preview_weapons.gd"
+    ],
+    "added": [
+      "scripts/quick_controls/car_condition.gd",
+      "scripts/quick_controls/car_condition.gd.uid",
+      "scripts/quick_controls/car_condition_panel.gd",
+      "scripts/quick_controls/car_condition_panel.gd.uid",
+      "scripts/quick_controls/car_damage_install.gd",
+      "scripts/quick_controls/car_damage_install.gd.uid",
+      "scripts/quick_controls/car_drive_audio.gd",
+      "scripts/quick_controls/car_drive_audio.gd.uid",
+      "scripts/quick_controls/car_engine_smoke.gd",
+      "scripts/quick_controls/car_engine_smoke.gd.uid",
+      "scripts/quick_controls/car_feedback_audio.gd",
+      "scripts/quick_controls/car_feedback_audio.gd.uid",
+      "scripts/quick_controls/car_ground_dust.gd",
+      "scripts/quick_controls/car_ground_dust.gd.uid",
+      "scripts/quick_controls/car_tyre_damage.gd",
+      "scripts/quick_controls/car_tyre_damage.gd.uid"
+    ],
+    "removed": [],
+    "pins": {
+      "data/preview_updates.json": {
+        "baseline_sha256": "137a6aea0a6d000f0c135c7c143607c4dcbb3f34e5ac95d7d49c9007d9f4e19a",
+        "candidate_sha256": "bce5fd913a369e8c97b8601f09b005b01835d6847a9249c3e0c240cb2962427b"
+      },
+      "scripts/main.gd": {
+        "baseline_sha256": "d51b213f0a8862dc20130fccda27f0d0b288165387c4bf17df5a9396cb240439",
+        "candidate_sha256": "63c7658cea427cc668288bfe6ada7ec25df4f8eae6e2a831bc7fd7b6cd5f8888"
+      },
+      "scripts/quick_controls/car_dashboard.gd": {
+        "baseline_sha256": "00f3cfe3b146ecf6e20e631cc1998ba4c622b48c397f035a47b661ac457d59da",
+        "candidate_sha256": "0ad2523053d030dad068c37db152cc937341f50d4d4bbe67b0dcf4d3c3de1da5"
+      },
+      "scripts/vehicle_physics/vehicle_native_body.gd": {
+        "baseline_sha256": "ae4d67e7f931e33e3cf65404af665579498986cb307418a45989dba5e0dfe5d5",
+        "candidate_sha256": "8166897670879124a813b597135b19fe0f58b6a3f7602832c5efc94954349cfe"
+      },
+      "scripts/weapons/preview_weapons.gd": {
+        "baseline_sha256": "48998eb4207d40ff3bf6c91ba19aa026f145c7bc083bd13a743b071044b1e97c",
+        "candidate_sha256": "a3935daf923f39288a1a51f2e5d5e66cbdc34e57be4a5f79f6d8dc149dfc8a56"
+      },
+      "scripts/quick_controls/car_condition.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "c5944527a222ca7fb6ac79de450b6d28f866178dc57a1cb7b32e197be96a619a"
+      },
+      "scripts/quick_controls/car_condition.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "47a22986ed79a36a4a4b8e7596a67bb9a13309297c7ed4e55184b4dfcb0582ed"
+      },
+      "scripts/quick_controls/car_condition_panel.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "356f3b3048b5d28548601d30c4ff0d2fb714a3113a66d9eed17757a63ceb7956"
+      },
+      "scripts/quick_controls/car_condition_panel.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "fdcdf1f50147fdb1be02631120eee92a13db79b77380967bd74a948c6c353791"
+      },
+      "scripts/quick_controls/car_damage_install.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "dd63ff43cd772a9e584ce790d57b02d4a732cfa4917669e38d21817571b3d313"
+      },
+      "scripts/quick_controls/car_damage_install.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "13bfe3e12653e176f54ae46abeacdfbc528c40108b76c060c749f02b1631c62c"
+      },
+      "scripts/quick_controls/car_drive_audio.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "e8b74cad9347c61afdbe0309860214b4cddd4a2bfb030af2676aeb1d9cd89ab9"
+      },
+      "scripts/quick_controls/car_drive_audio.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "fa4e8757a5d8018a7ef2540db145c8ba46cf6e7ad6660b2e614eeb46a25476d3"
+      },
+      "scripts/quick_controls/car_engine_smoke.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "941158a10973ca0529bae79ae4fd6875c6d9e67655be99ebd3f060da871fa069"
+      },
+      "scripts/quick_controls/car_engine_smoke.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "71939d90191cb5e59d8e5047944f8b8658aafb9964ae84b80a8d477c4f035abe"
+      },
+      "scripts/quick_controls/car_feedback_audio.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "477cda38292dd4ac05846e763cdd17aa58474e0bfd35fa980798b2a628d742fd"
+      },
+      "scripts/quick_controls/car_feedback_audio.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "6ded671fcb8f32528bb2e6b80f4313e617838f6ebc0728dc547dd8c6c1aa43ac"
+      },
+      "scripts/quick_controls/car_ground_dust.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "d207182d4f37b64b2eb2e0c5732b44aa78cdb9121bad801f8cded523c5b7cfd3"
+      },
+      "scripts/quick_controls/car_ground_dust.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "a458dc29b931125155c93da5e366986aa6c3690bd649031f815deb53ee45b0bb"
+      },
+      "scripts/quick_controls/car_tyre_damage.gd": {
+        "baseline_sha256": null,
+        "candidate_sha256": "b5f28258e7c710da7d60973826af332ff5aad71dcf4af5e89099fe0bf7222333"
+      },
+      "scripts/quick_controls/car_tyre_damage.gd.uid": {
+        "baseline_sha256": null,
+        "candidate_sha256": "1f7fefcd8bfe32f929aaf2cc3b4877dcda8e1fae4f2136f920d30dca2d767fe5"
+      }
+    }
+  },
+  "engine_current_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+  "source_provenance_note": "Current baseline/candidate entire source inventories verified byte-for-byte, excluding .godot/.git/exports. Production48 every manifest pin verified; import metadata extras listed. Historical RUN records before/after source checks; pinned runner source names exact manifest/engine hashes, but RUN does not itself carry assembly or runner SHA. No claim that current source scan alone independently proves historical execution.",
+  "scenarios": {
+    "combined49_perf04": {
+      "raw_pair_status_unchanged": "MATCHED_MEASUREMENT",
+      "raw_pair_matched": true,
+      "fps_acceptance_raw": "NOT_EVALUATED",
+      "scoped_interpretation": "Existing parked measurement",
+      "recomputed_conditions": {
+        "same_start_fingerprint": true,
+        "same_end_fingerprint": true,
+        "same_editor_identity": true,
+        "start_distance_lt_0_05m": true,
+        "start_rotation_lt_0_01rad": true,
+        "start_speed_delta_lt_0_35mps": true,
+        "contiguous_scheduler_tickets": true
+      },
+      "start_distance_m": 0.00040445637104310236,
+      "end_distance_m": 0.00020217895510976427,
+      "start_rotation_rad": 0.0,
+      "start_speed_delta_mps": 1.7229467630039408e-07,
+      "wall_p95_delta_ms": 0.015000000000000568,
+      "draw_calls_p95_delta": 0.0,
+      "primitives_p95_delta": 512.0,
+      "static_memory_p95_delta_bytes": 26421814.0,
+      "sides": {
+        "baseline": {
+          "run": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/RUN.json",
+          "result": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/RESULT.json",
+          "fixture_sha256": "3d723f04d662e1c06c2a4a8452c806d745956b61612dd6b3afaee163c677c49d",
+          "lease_ticket": 143,
+          "lease_id": "bafef4b4ec564147b85aecb4ae247fc2",
+          "source_pin_count": 497,
+          "status": "MEASURED",
+          "exit_code": 0,
+          "stderr_bytes": 0,
+          "perf_environment_clean_recorded": true,
+          "source_pins_unchanged_recorded": true,
+          "fixture_unchanged_recorded": true,
+          "samples": 721,
+          "measured_interval_sum_ms": 5004.099,
+          "wall_intervals_over_16_6667_ms": 0,
+          "wall_intervals_over_33_3333_ms": 0,
+          "summary_recomputed": {
+            "frame_ms": {
+              "p50": 6.954,
+              "p95": 10.052,
+              "max": 14.311
+            },
+            "draw_calls": {
+              "p50": 891.0,
+              "p95": 893.0,
+              "max": 895.0
+            },
+            "primitives": {
+              "p50": 438254.0,
+              "p95": 447444.0,
+              "max": 448200.0
+            },
+            "static_bytes": {
+              "p50": 242121221.0,
+              "p95": 242383685.0,
+              "max": 242420573.0
+            },
+            "process_ms": {
+              "p50": 3.203,
+              "p95": 6.963,
+              "max": 6.963
+            },
+            "physics_ms": {
+              "p50": 3.954,
+              "p95": 7.205,
+              "max": 7.205
+            }
+          },
+          "fingerprint_start": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              45.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "on_foot",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "parked",
+            "seat": "",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "ON_FOOT",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "fingerprint_end": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              45.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "on_foot",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "parked",
+            "seat": "",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "ON_FOOT",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "body_start": {
+            "expected_handbrake": true,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.0121263787150383,
+            "position": [
+              37.0809059143066,
+              0.00247786985710263,
+              -9.72937488555908
+            ],
+            "quaternion": [
+              5.59616164537147e-05,
+              0.000353495881427079,
+              -9.53350681811571e-05,
+              0.999999940395355
+            ]
+          },
+          "body_end": {
+            "expected_handbrake": true,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.012128840200603,
+            "position": [
+              37.1325759887695,
+              0.00247530243359506,
+              -9.69722461700439
+            ],
+            "quaternion": [
+              5.53180761926342e-05,
+              0.000353500741766766,
+              -9.52834961935878e-05,
+              0.999999940395355
+            ]
+          },
+          "max_car_displacement_m": 0.0608558654785156,
+          "max_car_planar_speed_mps": 0.0121288746595383,
+          "max_dust_visible": null,
+          "max_skid_voice_count": null,
+          "candidate_condition_end": {},
+          "smoke_active_end": null,
+          "smoke_updates_end": null,
+          "peak_rss_bytes": null
+        },
+        "candidate": {
+          "run": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/RUN.json",
+          "result": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/RESULT.json",
+          "fixture_sha256": "3d723f04d662e1c06c2a4a8452c806d745956b61612dd6b3afaee163c677c49d",
+          "lease_ticket": 144,
+          "lease_id": "5889194e86084f6fa5b4aaa7a2080440",
+          "source_pin_count": 513,
+          "status": "MEASURED",
+          "exit_code": 0,
+          "stderr_bytes": 0,
+          "perf_environment_clean_recorded": true,
+          "source_pins_unchanged_recorded": true,
+          "fixture_unchanged_recorded": true,
+          "samples": 721,
+          "measured_interval_sum_ms": 5003.556,
+          "wall_intervals_over_16_6667_ms": 0,
+          "wall_intervals_over_33_3333_ms": 0,
+          "summary_recomputed": {
+            "frame_ms": {
+              "p50": 6.964,
+              "p95": 10.067,
+              "max": 12.781
+            },
+            "draw_calls": {
+              "p50": 891.0,
+              "p95": 893.0,
+              "max": 895.0
+            },
+            "primitives": {
+              "p50": 438766.0,
+              "p95": 447956.0,
+              "max": 448712.0
+            },
+            "static_bytes": {
+              "p50": 268543035.0,
+              "p95": 268805499.0,
+              "max": 268842387.0
+            },
+            "process_ms": {
+              "p50": 3.577,
+              "p95": 7.494,
+              "max": 7.494
+            },
+            "physics_ms": {
+              "p50": 3.732,
+              "p95": 5.832,
+              "max": 5.832
+            }
+          },
+          "fingerprint_start": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              45.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "on_foot",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "parked",
+            "seat": "",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "ON_FOOT",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "fingerprint_end": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              45.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "on_foot",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "parked",
+            "seat": "",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "ON_FOOT",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "body_start": {
+            "expected_handbrake": true,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.0121265510097146,
+            "position": [
+              37.0812492370605,
+              0.00246894592419267,
+              -9.72916126251221
+            ],
+            "quaternion": [
+              5.59616164537147e-05,
+              0.000353495881427079,
+              -9.53350681811571e-05,
+              0.999999940395355
+            ]
+          },
+          "body_end": {
+            "expected_handbrake": true,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.012128840200603,
+            "position": [
+              37.1327476501465,
+              0.00247530266642571,
+              -9.69711780548096
+            ],
+            "quaternion": [
+              5.53180761926342e-05,
+              0.000353500741766766,
+              -9.52834961935878e-05,
+              0.999999940395355
+            ]
+          },
+          "max_car_displacement_m": 0.0606536865234375,
+          "max_car_planar_speed_mps": 0.0121288746595383,
+          "max_dust_visible": null,
+          "max_skid_voice_count": null,
+          "candidate_condition_end": {
+            "engine_hp": 100.0,
+            "collision_events": 0,
+            "damage_events": 0,
+            "puncture_events": 0,
+            "last_event": {}
+          },
+          "smoke_active_end": false,
+          "smoke_updates_end": 0,
+          "peak_rss_bytes": null
+        }
+      }
+    },
+    "combined49_moving02": {
+      "raw_pair_status_unchanged": "UNVERIFIED",
+      "raw_pair_matched": false,
+      "fps_acceptance_raw": "NOT_EVALUATED",
+      "scoped_interpretation": "Clean recorded diagnostic pair; only owner ticket-adjacency gate fails. Raw UNVERIFIED retained.",
+      "recomputed_conditions": {
+        "same_start_fingerprint": true,
+        "same_end_fingerprint": true,
+        "same_editor_identity": true,
+        "start_distance_lt_0_05m": true,
+        "start_rotation_lt_0_01rad": true,
+        "start_speed_delta_lt_0_35mps": true,
+        "contiguous_scheduler_tickets": false
+      },
+      "start_distance_m": 0.0,
+      "end_distance_m": 0.011753535936498475,
+      "start_rotation_rad": 0.0001543214959323894,
+      "start_speed_delta_mps": 0.0,
+      "wall_p95_delta_ms": -0.17600000000000016,
+      "draw_calls_p95_delta": 43.0,
+      "primitives_p95_delta": 2996.0,
+      "static_memory_p95_delta_bytes": 25686479.0,
+      "sides": {
+        "baseline": {
+          "run": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/RUN.json",
+          "result": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/RESULT.json",
+          "fixture_sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+          "lease_ticket": 159,
+          "lease_id": "f9cd1e401aff41feaf3cab1288cbf885",
+          "source_pin_count": 497,
+          "status": "MEASURED",
+          "exit_code": 0,
+          "stderr_bytes": 0,
+          "perf_environment_clean_recorded": true,
+          "source_pins_unchanged_recorded": true,
+          "fixture_unchanged_recorded": true,
+          "samples": 721,
+          "measured_interval_sum_ms": 5000.419,
+          "wall_intervals_over_16_6667_ms": 0,
+          "wall_intervals_over_33_3333_ms": 0,
+          "summary_recomputed": {
+            "frame_ms": {
+              "p50": 6.998,
+              "p95": 10.413,
+              "max": 13.587
+            },
+            "draw_calls": {
+              "p50": 1197.0,
+              "p95": 1240.0,
+              "max": 1269.0
+            },
+            "primitives": {
+              "p50": 552314.0,
+              "p95": 565696.0,
+              "max": 581624.0
+            },
+            "static_bytes": {
+              "p50": 244153367.0,
+              "p95": 244435539.0,
+              "max": 244472427.0
+            },
+            "process_ms": {
+              "p50": 3.987,
+              "p95": 4.422,
+              "max": 4.422
+            },
+            "physics_ms": {
+              "p50": 4.375,
+              "p95": 9.53,
+              "max": 9.53
+            }
+          },
+          "fingerprint_start": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": false,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "fingerprint_end": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "body_start": {
+            "expected_handbrake": false,
+            "native_handbrake": false,
+            "planar_speed_mps": 3.06847786903381,
+            "position": [
+              37.075138092041,
+              0.0018624730873853,
+              -10.5506687164307
+            ],
+            "quaternion": [
+              0.0136349778622389,
+              0.000865657930262387,
+              -8.98502694326453e-05,
+              0.999906659126282
+            ]
+          },
+          "body_end": {
+            "expected_handbrake": false,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.0192819237709045,
+            "position": [
+              35.7262077331543,
+              0.00230119144544005,
+              -14.8332843780518
+            ],
+            "quaternion": [
+              0.000107589839899447,
+              -0.41517236828804,
+              -5.53755671717227e-05,
+              0.909742772579193
+            ]
+          },
+          "max_car_displacement_m": 4.51941156387329,
+          "max_car_planar_speed_mps": 6.4494194984436,
+          "max_dust_visible": 0,
+          "max_skid_voice_count": 0,
+          "candidate_condition_end": {},
+          "smoke_active_end": null,
+          "smoke_updates_end": null,
+          "peak_rss_bytes": null
+        },
+        "candidate": {
+          "run": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/RUN.json",
+          "result": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/RESULT.json",
+          "fixture_sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+          "lease_ticket": 161,
+          "lease_id": "5a36ee5cf7884ea78d382d95a8c08c79",
+          "source_pin_count": 513,
+          "status": "MEASURED",
+          "exit_code": 0,
+          "stderr_bytes": 0,
+          "perf_environment_clean_recorded": true,
+          "source_pins_unchanged_recorded": true,
+          "fixture_unchanged_recorded": true,
+          "samples": 722,
+          "measured_interval_sum_ms": 5007.912,
+          "wall_intervals_over_16_6667_ms": 0,
+          "wall_intervals_over_33_3333_ms": 0,
+          "summary_recomputed": {
+            "frame_ms": {
+              "p50": 6.977,
+              "p95": 10.237,
+              "max": 13.62
+            },
+            "draw_calls": {
+              "p50": 1248.0,
+              "p95": 1283.0,
+              "max": 1311.0
+            },
+            "primitives": {
+              "p50": 554738.0,
+              "p95": 568692.0,
+              "max": 583246.0
+            },
+            "static_bytes": {
+              "p50": 269841094.0,
+              "p95": 270122018.0,
+              "max": 270158906.0
+            },
+            "process_ms": {
+              "p50": 4.512,
+              "p95": 5.202,
+              "max": 5.202
+            },
+            "physics_ms": {
+              "p50": 3.868,
+              "p95": 7.895,
+              "max": 7.895
+            }
+          },
+          "fingerprint_start": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": false,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "fingerprint_end": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "body_start": {
+            "expected_handbrake": false,
+            "native_handbrake": false,
+            "planar_speed_mps": 3.06847786903381,
+            "position": [
+              37.075138092041,
+              0.0018624730873853,
+              -10.5506687164307
+            ],
+            "quaternion": [
+              0.0136349778622389,
+              0.000865657930262387,
+              -8.98502694326453e-05,
+              0.999906659126282
+            ]
+          },
+          "body_end": {
+            "expected_handbrake": false,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.0192511864006519,
+            "position": [
+              35.7280387878418,
+              0.00230598193593323,
+              -14.8216743469238
+            ],
+            "quaternion": [
+              9.89922846201807e-05,
+              -0.412343353033066,
+              -5.95064047956839e-05,
+              0.911028504371643
+            ]
+          },
+          "max_car_displacement_m": 4.50819063186646,
+          "max_car_planar_speed_mps": 6.4494194984436,
+          "max_dust_visible": 12,
+          "max_skid_voice_count": 3,
+          "candidate_condition_end": {
+            "engine_hp": 97.6208911829715,
+            "collision_events": 1,
+            "damage_events": 1,
+            "puncture_events": 0,
+            "last_event": {
+              "after": 0.976208911829715,
+              "before": 1.0,
+              "cause": "native_collision",
+              "delta_v_mps": 5.62049762228261,
+              "part": "engine",
+              "physics_tick": 387,
+              "point_local": "(1.157539, 0.282947, -2.148483)"
+            }
+          },
+          "smoke_active_end": false,
+          "smoke_updates_end": 0,
+          "peak_rss_bytes": null
+        }
+      }
+    },
+    "combined49_moving03": {
+      "raw_pair_status_unchanged": "UNVERIFIED",
+      "raw_pair_matched": false,
+      "fps_acceptance_raw": "NOT_EVALUATED",
+      "scoped_interpretation": "Clean recorded diagnostic pair; only owner ticket-adjacency gate fails. Raw UNVERIFIED retained.",
+      "recomputed_conditions": {
+        "same_start_fingerprint": true,
+        "same_end_fingerprint": true,
+        "same_editor_identity": true,
+        "start_distance_lt_0_05m": true,
+        "start_rotation_lt_0_01rad": true,
+        "start_speed_delta_lt_0_35mps": true,
+        "contiguous_scheduler_tickets": false
+      },
+      "start_distance_m": 0.0012115648955028059,
+      "end_distance_m": 0.015227788772242505,
+      "start_rotation_rad": 0.00012532707176405897,
+      "start_speed_delta_mps": 1.9073486297038755e-06,
+      "wall_p95_delta_ms": -0.3019999999999996,
+      "draw_calls_p95_delta": 42.0,
+      "primitives_p95_delta": 1654.0,
+      "static_memory_p95_delta_bytes": 26910967.0,
+      "sides": {
+        "baseline": {
+          "run": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/RUN.json",
+          "result": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/RESULT.json",
+          "fixture_sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+          "lease_ticket": 173,
+          "lease_id": "701b84738d494f08af4a54ea30e5fb23",
+          "source_pin_count": 497,
+          "status": "MEASURED",
+          "exit_code": 0,
+          "stderr_bytes": 0,
+          "perf_environment_clean_recorded": true,
+          "source_pins_unchanged_recorded": true,
+          "fixture_unchanged_recorded": true,
+          "samples": 722,
+          "measured_interval_sum_ms": 5005.988,
+          "wall_intervals_over_16_6667_ms": 0,
+          "wall_intervals_over_33_3333_ms": 0,
+          "summary_recomputed": {
+            "frame_ms": {
+              "p50": 6.974,
+              "p95": 10.219,
+              "max": 13.908
+            },
+            "draw_calls": {
+              "p50": 1197.0,
+              "p95": 1241.0,
+              "max": 1269.0
+            },
+            "primitives": {
+              "p50": 552900.0,
+              "p95": 567036.0,
+              "max": 581624.0
+            },
+            "static_bytes": {
+              "p50": 242927531.0,
+              "p95": 243210951.0,
+              "max": 243247839.0
+            },
+            "process_ms": {
+              "p50": 3.633,
+              "p95": 4.244,
+              "max": 4.244
+            },
+            "physics_ms": {
+              "p50": 5.414,
+              "p95": 9.944,
+              "max": 9.944
+            }
+          },
+          "fingerprint_start": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": false,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "fingerprint_end": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "body_start": {
+            "expected_handbrake": false,
+            "native_handbrake": false,
+            "planar_speed_mps": 3.06847596168518,
+            "position": [
+              37.0741081237793,
+              0.00186175352428108,
+              -10.5513067245483
+            ],
+            "quaternion": [
+              0.0136350523680449,
+              0.00086565432138741,
+              -8.98588405107148e-05,
+              0.999906659126282
+            ]
+          },
+          "body_end": {
+            "expected_handbrake": false,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.0170354079455137,
+            "position": [
+              35.7299270629883,
+              0.00230259820818901,
+              -14.8289890289307
+            ],
+            "quaternion": [
+              0.000100014454801567,
+              -0.413054674863815,
+              -5.89870251133107e-05,
+              0.910706222057343
+            ]
+          },
+          "max_car_displacement_m": 4.51126194000244,
+          "max_car_planar_speed_mps": 6.44941854476929,
+          "max_dust_visible": 0,
+          "max_skid_voice_count": 0,
+          "candidate_condition_end": {},
+          "smoke_active_end": null,
+          "smoke_updates_end": null,
+          "peak_rss_bytes": null
+        },
+        "candidate": {
+          "run": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/RUN.json",
+          "result": "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/RESULT.json",
+          "fixture_sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+          "lease_ticket": 176,
+          "lease_id": "6e3825e2c57f4ee38f3bd2de0ded5172",
+          "source_pin_count": 513,
+          "status": "MEASURED",
+          "exit_code": 0,
+          "stderr_bytes": 0,
+          "perf_environment_clean_recorded": true,
+          "source_pins_unchanged_recorded": true,
+          "fixture_unchanged_recorded": true,
+          "samples": 722,
+          "measured_interval_sum_ms": 5006.092,
+          "wall_intervals_over_16_6667_ms": 0,
+          "wall_intervals_over_33_3333_ms": 0,
+          "summary_recomputed": {
+            "frame_ms": {
+              "p50": 6.906,
+              "p95": 9.917,
+              "max": 13.529
+            },
+            "draw_calls": {
+              "p50": 1248.0,
+              "p95": 1283.0,
+              "max": 1311.0
+            },
+            "primitives": {
+              "p50": 554738.0,
+              "p95": 568690.0,
+              "max": 583246.0
+            },
+            "static_bytes": {
+              "p50": 269838498.0,
+              "p95": 270121918.0,
+              "max": 270158806.0
+            },
+            "process_ms": {
+              "p50": 3.383,
+              "p95": 3.828,
+              "max": 3.828
+            },
+            "physics_ms": {
+              "p50": 3.042,
+              "p95": 7.024,
+              "max": 7.024
+            }
+          },
+          "fingerprint_start": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": false,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "fingerprint_end": {
+            "block_sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+            "buildings": 0,
+            "camera": "[X: (0.514819, 0.0, 0.857299), Y: (0.025715, 0.99955, -0.015442), Z: (-0.856913, 0.029995, 0.514587), O: (28.61297, 1.654916, 12.63447)]",
+            "camera_optics": [
+              0,
+              65.0,
+              1.0,
+              0.0799999982118607,
+              1600.0,
+              1,
+              1048575
+            ],
+            "car_generation": 1,
+            "car_id": "local_vehicle_1",
+            "content_scale": "(1280, 720)",
+            "day_clock_running": false,
+            "day_hour": 17.5,
+            "headlights": false,
+            "max_fps": 144,
+            "native_handbrake": true,
+            "npc": 3,
+            "palazzo": {
+              "generation": 0,
+              "ready": true,
+              "source_id": "PALAZZO-SHOWCASE-001",
+              "transform": "[X: (-0.0, 0.0, 1.0), Y: (0.0, 1.0, 0.0), Z: (-1.0, 0.0, -0.0), O: (48.5, 0.0, 0.0)]"
+            },
+            "physics_ticks": 60,
+            "player_authority": "vehicle",
+            "renderer": "forward_plus",
+            "resident_ids": [
+              "resident_169",
+              "resident_252",
+              "resident_72"
+            ],
+            "scenario": "driver_moving",
+            "seat": "front_left",
+            "settings_sha256": "8c576e73841173585be418820344369732e215ef6d5ef2b3580c3ba2f8f991f1",
+            "transport_phase": "SEATED",
+            "viewport": "(1280, 720)",
+            "vsync": 0
+          },
+          "body_start": {
+            "expected_handbrake": false,
+            "native_handbrake": false,
+            "planar_speed_mps": 3.06847786903381,
+            "position": [
+              37.075138092041,
+              0.0018624730873853,
+              -10.5506687164307
+            ],
+            "quaternion": [
+              0.0136349778622389,
+              0.000865657930262387,
+              -8.98502694326453e-05,
+              0.999906659126282
+            ]
+          },
+          "body_end": {
+            "expected_handbrake": false,
+            "native_handbrake": true,
+            "planar_speed_mps": 0.0178232938051224,
+            "position": [
+              35.7318992614746,
+              0.00232035084627569,
+              -14.813889503479
+            ],
+            "quaternion": [
+              9.85478545771912e-05,
+              -0.410768032073975,
+              -5.99126906308811e-05,
+              0.911739885807037
+            ]
+          },
+          "max_car_displacement_m": 4.4980525970459,
+          "max_car_planar_speed_mps": 6.4494194984436,
+          "max_dust_visible": 12,
+          "max_skid_voice_count": 3,
+          "candidate_condition_end": {
+            "engine_hp": 97.6208911829715,
+            "collision_events": 1,
+            "damage_events": 1,
+            "puncture_events": 0,
+            "last_event": {
+              "after": 0.976208911829715,
+              "before": 1.0,
+              "cause": "native_collision",
+              "delta_v_mps": 5.62049762228261,
+              "part": "engine",
+              "physics_tick": 387,
+              "point_local": "(1.157539, 0.282947, -2.148483)"
+            }
+          },
+          "smoke_active_end": false,
+          "smoke_updates_end": 0,
+          "peak_rss_bytes": null
+        }
+      }
+    }
+  },
+  "scoped_verdict": {
+    "parked": "Stored five-second full-scene parked comparison is useful for its recorded fixed view and pristine state.",
+    "moving": "Both five-second native E/W/Space acceleration/braking pairs have clean recorded exclusive perf leases and matching recorded start/end fingerprints, editor identity, fixture and source revisions. Ticket gaps 159/161 and 173/176 show interleaved requests, not evidence of overlapping load during sampling. Preserve original UNVERIFIED and use as explicitly scoped diagnostic evidence.",
+    "repeat_solely_for_ticket_gap_required": false,
+    "no_optimization_claim": "Negative p95 deltas are observations from short sequential runs, not proof of speedup.",
+    "scope_excludes_full_acceptance": true
+  },
+  "limitations": [
+    "NPC IDs/count are recorded, but NPC positions, activity states and common simulation epoch are not; exact NPC-pose equality cannot be proven.",
+    "MEMORY_STATIC is Godot static allocation, not process RSS; peak RSS was not recorded.",
+    "All six saved windows have inactive smoke; these pairs do not establish active-smoke, punctured-tyre, critical-engine or sustained bullet-hit full-scene cost.",
+    "Moving candidate finishes with one native-collision damage event and engine HP 97.620891, so it is not literally a damage-free workload. No intentional bullet/smoke workload is accepted here.",
+    "Each native trajectory remains dynamic and differs slightly; recorded end positions are retained rather than called exact.",
+    "Startup/boarding/acceleration-to-3mps and PCM/cache construction are excluded from the five-second sample.",
+    "Fixed extra benchmark camera, frozen visual day clock and disabled player/game unhandled input bound applicability; NPC and physics remain active.",
+    "TIME_PROCESS and TIME_PHYSICS_PROCESS are cached engine monitors; authoritative frame cost here is wall interval between frame_post_draw signals. Do not subtract independent maxima or sum cached monitors as frame cost.",
+    "Per-frame candidate dust/audio diagnostics add unseparated QA overhead; this is not a pure subsystem timing.",
+    "Same editor identity does not itself certify identical editor activity; no overlap was detected by recorded periodic perf audits."
+  ],
+  "next_root_gate": "Review recorded +25-26 MiB Godot static allocation and moving +42-43 draw calls; reuse these scoped data rather than repeat solely for ticket numbering. Active-smoke/damaged workload and missing RSS/NPC-pose evidence remain separate gaps if required for full release acceptance; root retains promotion authority.",
+  "evidence": {
+    "outputs/coordinator27_release48/ASSEMBLY.json": {
+      "sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c",
+      "bytes": 62401
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/baseline48/ASSEMBLY_IMPORTED.json": {
+      "sha256": "bdcdadb1866d2124cd22621cd865e97443166fba77f7f376ba730f8138dda290",
+      "bytes": 62656
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/candidate49/ASSEMBLY_FIXED.json": {
+      "sha256": "8c0118654bd45363290c6826f8429d240353c5982b1c9b15a914a5a6faadcc48",
+      "bytes": 127398
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/HANDOFF_49B.json": {
+      "sha256": "584df1a68926b934bc77664685bc4b8a041b047f3d132d9604ab85d08b5758b5",
+      "bytes": 2743
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/import49_scheduler.py": {
+      "sha256": "e46c3e3c5d1ebe4da442feca68ec710dd14ed4a75dc16e84305377c47c07af75",
+      "bytes": 4926
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/run_perf_49_scheduler.py": {
+      "sha256": "a4e686fa42d609ab2d62df882ccd98d1eb602ca742b259d70a008107ea3ea684",
+      "bytes": 10950
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/run_perf_49_scheduler_retry.py": {
+      "sha256": "b75ebc4583a1e530800b12f475b0ebdcea48d5ce21483161f6088e7973897eb2",
+      "bytes": 957
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/run_perf_moving49_scheduler.py": {
+      "sha256": "3ba56ee15f6430bb87baa449aa38d6928ea39c14674d335d02f43423a12954ab",
+      "bytes": 11256
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/run_perf_moving49_scheduler_retry.py": {
+      "sha256": "5e82bb3dff44378710e67513f9d21eeb2d7cd6fcbe8c47231909b5f15e5d3c2c",
+      "bytes": 811
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/perf_combined.gd": {
+      "sha256": "3d723f04d662e1c06c2a4a8452c806d745956b61612dd6b3afaee163c677c49d",
+      "bytes": 18643
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/perf_moving49.gd": {
+      "sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+      "bytes": 19809
+    },
+    "tools/godot/test_scheduler.py": {
+      "sha256": "6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9",
+      "bytes": 20676
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/PAIR.json": {
+      "sha256": "f7f9e16dbace4422d7ef8ae2971ce620a2195c1de32bcc3fc18011cb467f6f35",
+      "bytes": 3230
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/SOURCE_DELTA.json": {
+      "sha256": "3ded54adb3df8ee3e633e32d63af7dbf07baeffa1af0ca02a3f7ba5c89e14316",
+      "bytes": 1117
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/RUN.json": {
+      "sha256": "30a21d2e00e2f0d17c8e5be34cd9318e58bedf9153d0ac1af0271b16b148d71a",
+      "bytes": 9324
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/RESULT.json": {
+      "sha256": "4ccf34142b1be6b45174c2d5cf47137f3f11f340682801f84b9deaf19eef310c",
+      "bytes": 121512
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/perf_combined.gd": {
+      "sha256": "3d723f04d662e1c06c2a4a8452c806d745956b61612dd6b3afaee163c677c49d",
+      "bytes": 18643
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/stdout.log": {
+      "sha256": "9b05dd4d5c53ba289139d809f65a6f654471b69c56cd7d49600c1469b7819625",
+      "bytes": 5538
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/baseline/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/RUN.json": {
+      "sha256": "3bf39afd62c034172b76835603e661b53bcafc8023a5c278ef5cd72b5dbaac51",
+      "bytes": 10192
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/RESULT.json": {
+      "sha256": "b7c59ae7b8dcee59195fa6de5fc9833827ebdc7f30f04c20023f77b04a19dc0e",
+      "bytes": 136963
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/perf_combined.gd": {
+      "sha256": "3d723f04d662e1c06c2a4a8452c806d745956b61612dd6b3afaee163c677c49d",
+      "bytes": 18643
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/stdout.log": {
+      "sha256": "53cd93502e2459f208ca1105954f7d83f3fd86a0b5fa3322a720d5c14effe5d1",
+      "bytes": 5630
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_perf04/candidate/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/PAIR.json": {
+      "sha256": "3f47e1f6e1ad8f1a4fa8b19f3962b5d7cdd6ac5ffed6474c8dc1864e00171485",
+      "bytes": 3371
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/SOURCE_DELTA.json": {
+      "sha256": "3ded54adb3df8ee3e633e32d63af7dbf07baeffa1af0ca02a3f7ba5c89e14316",
+      "bytes": 1117
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/RUN.json": {
+      "sha256": "28c7bc1507a119d205b7d60ef74a5d2c9ed887a3885dd48a5f5ed10b45e99bb8",
+      "bytes": 8812
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/RESULT.json": {
+      "sha256": "006049a412cabeea11155b58b17342e066552a82e1b3fe9f69c66f62fabff278",
+      "bytes": 122763
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/perf_moving49.gd": {
+      "sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+      "bytes": 19809
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/stdout.log": {
+      "sha256": "9b05dd4d5c53ba289139d809f65a6f654471b69c56cd7d49600c1469b7819625",
+      "bytes": 5538
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/baseline/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/RUN.json": {
+      "sha256": "f7b1a0533a137e31ab64c192eb16dff92e778de44d6301c0b90adb452a29cd86",
+      "bytes": 8851
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/RESULT.json": {
+      "sha256": "58513ca8360feeaee53677b14a57facf6977173f9e607605df04dba64db11fd8",
+      "bytes": 138666
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/perf_moving49.gd": {
+      "sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+      "bytes": 19809
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/stdout.log": {
+      "sha256": "53cd93502e2459f208ca1105954f7d83f3fd86a0b5fa3322a720d5c14effe5d1",
+      "bytes": 5630
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving02/candidate/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/PAIR.json": {
+      "sha256": "ecfc2e159b88af80195ff991f29f1767b2aafa077167ab64719c7ed676f66470",
+      "bytes": 3408
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/SOURCE_DELTA.json": {
+      "sha256": "3ded54adb3df8ee3e633e32d63af7dbf07baeffa1af0ca02a3f7ba5c89e14316",
+      "bytes": 1117
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/RUN.json": {
+      "sha256": "51538bcc5bcd59be4bc7ae75fcebad75d2e727daeccb7e6e3893fbf8b3efd574",
+      "bytes": 11440
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/RESULT.json": {
+      "sha256": "cbf385599d632c7fb921116d59211addec53d5129fb1be38c9679b6cdd603a75",
+      "bytes": 122941
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/perf_moving49.gd": {
+      "sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+      "bytes": 19809
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/stdout.log": {
+      "sha256": "9b05dd4d5c53ba289139d809f65a6f654471b69c56cd7d49600c1469b7819625",
+      "bytes": 5538
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/baseline/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/RUN.json": {
+      "sha256": "a3d123bd28feb59c9e9959060cfa8a0f7bbd77203cf4d3029d08eacb3915706b",
+      "bytes": 8854
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/RESULT.json": {
+      "sha256": "e4d4d31baeefc3c1afe02f7203480a52391c8d68f417c924555768809bd9fefb",
+      "bytes": 138501
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/perf_moving49.gd": {
+      "sha256": "127d25deda0d5a9de20751cc0fc9b7462635966f93f90a5c86c568ba247bbc9d",
+      "bytes": 19809
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/stdout.log": {
+      "sha256": "53cd93502e2459f208ca1105954f7d83f3fd86a0b5fa3322a720d5c14effe5d1",
+      "bytes": 5630
+    },
+    "outputs/quick_improvements_20261003/rebase48_precheck/runs/combined49_moving03/candidate/stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  }
+}

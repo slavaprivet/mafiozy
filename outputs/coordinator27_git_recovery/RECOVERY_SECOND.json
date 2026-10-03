@@ -1,0 +1,10 @@
+{
+  "git_writers": 0,
+  "before_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+  "exclusive_open_passed": true,
+  "source": "C:\\Users\\Слава\\Desktop\\Мафиози\\.git\\index.lock",
+  "archive": "C:\\Users\\Слава\\Desktop\\Мафиози\\outputs\\coordinator27_git_recovery\\index.lock.20261003T034005Z.archived",
+  "checked_at": "2026-10-03T06:42:47.8338861+03:00",
+  "reason": "Preserve newly stale lock; no deletion or process stop",
+  "after_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+}

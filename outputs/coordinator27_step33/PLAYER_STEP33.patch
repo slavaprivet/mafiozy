@@ -1,0 +1,112 @@
+--- accepted45/scripts/preview_player.gd
++++ step33_on45/scripts/preview_player.gd
+@@ -456,10 +456,17 @@
+ 		var target_heading: float = atan2(-direction.x, -direction.z)
+ 		_heading = lerp_angle(_heading, target_heading, minf(1.0, delta * 12.0))
+ 		_visual.rotation.y = _heading + deg_to_rad(visual_yaw_degrees)
++	var small_step_rise := 0.0
++	if is_on_floor() and not typing and not _source_falling and direction.length_squared() > 0.001 and velocity.y <= 0.001:
++		small_step_rise = _small_static_step_rise(Vector3(velocity.x, 0.0, velocity.z) * _body_motion_delta())
++		if small_step_rise > 0.0:
++			velocity.y = small_step_rise / _body_motion_delta()
+ 	if _final_dead_pressure_enabled: _capture_ground_pressure(direction, delta, not typing)
+ 	var corpse_contact_start: Dictionary = _corpse_contact_sampler.begin(self) if _corpse_contact_sampler != null and not typing else {}
+ 	_ground_move_start = global_position
+ 	move_and_slide()
++	if small_step_rise > 0.0:
++		velocity.y = minf(velocity.y, 0.0)
+ 	_ground_move_frame = Engine.get_physics_frames()
+ 	_ground_move_serial += 1
+ 	_ground_move_pose_epoch = _pose_epoch
+@@ -474,6 +481,91 @@
+ 			velocity.y = source_fall_next_velocity
+ 	_update_owned_pose(delta)
+ 
++
++## Return a bounded static step rise; the caller applies it through the single
++## ordinary move_and_slide so native displacement/contact receipts stay exact.
++func _small_static_step_rise(motion: Vector3) -> float:
++	const MAX_STEP := 0.12
++	const CLEARANCE := 0.002
++	if not motion.is_finite() or motion.length_squared() < 0.000001 or motion.length() > MAX_STEP:
++		return 0.0
++	var capsule := get_node_or_null("PlayerCapsule") as CollisionShape3D
++	if capsule == null or capsule.disabled or not capsule.shape is CapsuleShape3D:
++		return 0.0
++	var wall := KinematicCollision3D.new()
++	if not test_move(global_transform, motion, wall, safe_margin, false, 4):
++		return 0.0
++	var floor_dot := cos(floor_max_angle)
++	var blocked_bodies: Array[PhysicsBody3D] = []
++	for index: int in wall.get_collision_count():
++		if wall.get_normal(index).dot(Vector3.UP) >= floor_dot:
++			continue
++		var blocker := wall.get_collider(index) as PhysicsBody3D
++		if not _small_step_static_body(blocker):
++			return 0.0
++		if not blocked_bodies.has(blocker):
++			blocked_bodies.append(blocker)
++	if blocked_bodies.is_empty():
++		return 0.0
++	# A capsule touching a short box corner reports a rounded contact normal,
++	# not the authored top normal. Look ahead by at most one capsule radius to
++	# prove a real walkable top, without adding any horizontal displacement.
++	var ahead := motion.normalized() * maxf(motion.length(), capsule.shape.radius + CLEARANCE)
++	var excluded: Array[RID] = [get_rid()]
++	for body: PhysicsBody3D in get_collision_exceptions():
++		if is_instance_valid(body):
++			excluded.append(body.get_rid())
++	var floor_query := PhysicsRayQueryParameters3D.new()
++	floor_query.from = global_position + Vector3.UP * 0.02
++	floor_query.to = global_position - Vector3.UP * 0.02
++	floor_query.collision_mask = collision_mask
++	floor_query.exclude = excluded
++	var floor_hit := get_world_3d().direct_space_state.intersect_ray(floor_query)
++	if floor_hit.is_empty() or not _small_step_static_body(floor_hit.collider) or floor_hit.normal.dot(Vector3.UP) < floor_dot:
++		return 0.0
++	var top_query := PhysicsRayQueryParameters3D.new()
++	top_query.from = global_position + ahead + Vector3.UP * (MAX_STEP + CLEARANCE)
++	top_query.to = global_position + ahead + Vector3.UP * CLEARANCE
++	top_query.collision_mask = collision_mask
++	top_query.exclude = excluded
++	var top := get_world_3d().direct_space_state.intersect_ray(top_query)
++	if top.is_empty() or not blocked_bodies.has(top.collider) or not _small_step_static_body(top.collider):
++		return 0.0
++	if top.normal.dot(Vector3.UP) < floor_dot:
++		return 0.0
++	var top_height: float = top.position.y - floor_hit.position.y
++	if not is_finite(top_height) or top_height <= CLEARANCE or top_height > MAX_STEP:
++		return 0.0
++	var rise: float = top.position.y - global_position.y + CLEARANCE
++	# The unchanged whole native body proves upward clearance and enough room
++	# over the top. This also rejects a low ceiling before starting the step.
++	var raised := global_transform
++	if test_move(raised, Vector3.UP * rise, null, safe_margin):
++		return 0.0
++	raised.origin.y += rise
++	if test_move(raised, ahead, null, safe_margin):
++		return 0.0
++	var landing := raised
++	landing.origin += ahead
++	var support := KinematicCollision3D.new()
++	if not test_move(landing, Vector3.DOWN * (CLEARANCE * 3.0), support, safe_margin, false, 4):
++		return 0.0
++	var on_top := false
++	for index: int in support.get_collision_count():
++		if not _small_step_static_body(support.get_collider(index)) or support.get_normal(index).dot(Vector3.UP) < floor_dot:
++			return 0.0
++		on_top = on_top or blocked_bodies.has(support.get_collider(index))
++	if not on_top:
++		return 0.0
++	# The actual one-tick diagonal path must be clear too; the longer raised
++	# lookahead above is only an admission query, never a teleport or speed boost.
++	if test_move(global_transform, motion + Vector3.UP * rise, null, safe_margin):
++		return 0.0
++	return rise
++
++
++func _small_step_static_body(value: Variant) -> bool:
++	return value is StaticBody3D and not value is AnimatableBody3D and value.collision_layer == 1 and value.constant_linear_velocity.is_zero_approx() and value.constant_angular_velocity.is_zero_approx()
+ 
+ func set_preview_jump_surface_guard(guard: Callable) -> void:
+ 	_jump_surface_guard = guard

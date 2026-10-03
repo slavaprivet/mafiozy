@@ -1,5 +1,25 @@
 # Координатор27 — рабочая память
 
+## 03.10 06:57 — Step48 native и независимая приёмка доказательств car49
+
+Предыдущий ход PROGRESS: публикация48/F5 сохранена f6a019ca. Текущий тоже PROGRESS: actual isolated48+exactstep33 импорт и24case native, реальный corpse regression, формальный carreview. Пользовательская48 не менялась.
+
+`outputs/coordinator27_step48_native`: 486pins, единственный player b33505…19d6c. Import PASS11.013s. Boundary265/266,24условия/2160ticks:106/120мм проходят,121/210/400/ceiling/rigid/animatable/movingstatic/disabledcontrols блокируются. Сохранён FAIL исторического cap123мм:120run footYpeak.125965178, подъём124.774мм. Diagnostic02 показывает обычный corner slide через2тика послеadmission, helper0, дваnativeконтакта сtop.12; следующийтик.120594084. Это не admission>120мм. Runtime/epsilon не менять радиPASS. `ROOT_REVIEW.json` оставляет графическую оценку и matchedmovementperf доrelease; rawFAILсохранён.
+
+Corpse01 main48+step PASS2804/38.237s/std0:354pressureframes/302deadcontacts/19ownerimpulses, realTTdeath resident72, IDs/capsule/marksсохранены. ReviewSHA0095e515f35f5f94d21f5914dfcf6322ec34d4735c0b76bf50467b4fbcf6b6e5; freeze58files60c51317737686cba21c4c5a61f4f3ccace7e18ce124ef59ff6c81fb8d356dd7. Ownchildrenзавершены, usergame/editorсохранены.
+
+`outputs/coordinator27_car49_review/REVIEW.json` SHA303fd21ff112254bddc1bdde448a586fef0c042e643cf9154e2df2c6319293d4: всеproduction486/baseline497/candidate513pins и6RUN/RESULT/3PAIR повторносверены, статистикапересчитана. RawmovingUNVERIFIED сохраняется; ticketgap неcontamination. NPCposes/RSS/activesmokeгейт открыт. Owner car исправил matched damage drift в новом функциональном прогоне; GPUcostещёнужен. NPC24 дополнительнонашёл пропускудара поbudget — оптимизирует, не приниматьраннийPASS.
+
+Marks37/40 (surface4adeb69f/RPGf018d96c) иcameraV2 уже в48. CloseAK36/Cold35/dive39/40/41 не приняты. Начат следующий узкий root этап A3 dive cap: `outputs/coordinator27_dive_cap48_native`, exact48+однастрока CINEMATIC_FLIGHT→FLIGHT, actualviewport W/Spaceinputs, безtime/posewrites/без39geometry. Agent c4_perf_review получил разрешение на schedulerheadless; отчёт ещёожидается. Dispatcher обновляет свойреестр48 и получил следующуюграницуfullgoal: actual48 NPC начинаетnewlocalsession/no savedHP; архивные save_store предложения невыдаватьза перенос состояния. ПолнаяцельACTIVE.
+
+## 03.10 06:45 — публикация48 сохранена, очередь работает у владельцев
+
+main, origin/main и свежий ls-remote совпадают: f6a019cab77771370d40d3dc3254262d56b0d061. Коммит119 scoped файлов сохраняет accepted48/F5/приёмку и scheduler registration evidence; production486 уже в61771. Чужой WIP не включён. Повторный zero-byte index.lock03:40:05Z безопасно архивирован после отсутствия Git writers и exclusive-open: outputs/coordinator27_git_recovery/RECOVERY_SECOND.json. Ничего не удаляли и процессы не останавливали. Предыдущие строки Gitblocked исторические.
+
+Свежий06:40 inventory подтвердил одновременно два Buildings4 bankaccess headless с affinity3/12 рядом с usergame48/editor. В06:44 оба завершились, active/pending пусты, game34540/editor25808 остаются. Root GO не требуется; два headless и одна graphical/input lane, perf exclusive. Штаб уведомлён. Это реальная работа владельцев, не только scheduler unit test.
+
+Car49 audit: exact513pins, native drive10/damage109/critical73 PASS. Parked04 p95 10.052→10.067ms, moving03 10.219→9.917ms; memory+25.20/+25.66MiB. Exclusive receipts чистые, ticket gaps сами по себе не contamination; raw UNVERIFIED сохранить, actual NPC poses не записаны. Владельцу отправлен ровно оставшийся blocker: comparable active smoke/puncture/critical fullscene, прежний damage_pair matchedFalse из-за drift. Не повторять parked/moving только ради номеров очереди. После приёмки нужен CAR_DRIVE_READY. NPC24 исправляет поднятый торс, старый melee perf blocker остаётся до нового сравнения. Buildings4 bankaccess идёт изолированно; новых зданий в48 нет. Полная цель ACTIVE, не завершена.
+
 ## 03.10 06:34 — Git восстановлен сохранением stale lock, checkpoint48
 
 Старый zero-byte index.lock timestamp02:40:09Z не принадлежал живому Git writer: все наблюдаемые app Git команды read-only и созданы значительно позже. Exclusive FileShare.None probe прошёл. По явному порядку COORDINATOR_27_HANDOFF применён безопасный Move-Item в outputs/coordinator27_git_recovery/index.lock.20261003T024009Z.archived; путь проверен внутри workspace, хешдо/послеidentical, RECOVERY.json сохранён. Файл НЕ удаляли, процессовнеостанавливали. Этот безопасный вариант инструмент разрешил; прежний запрет удаления не обходили удалением другим API. Ниже историческое состояние Gitblocked больше неактуально.

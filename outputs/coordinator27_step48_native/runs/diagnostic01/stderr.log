@@ -1,0 +1,4 @@
+SCRIPT ERROR: Parse Error: Used space character for indentation instead of tab as used before in the file.
+   at: GDScript::reload (C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_step48_native/diagnostic.gd:176)
+ERROR: Failed to load script "C:/Users/Слава/Desktop/Мафиози/outputs/coordinator27_step48_native/diagnostic.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

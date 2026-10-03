@@ -1,0 +1,115 @@
+[
+  {
+    "ammo": 11,
+    "frame": 111,
+    "label": "actual_lethal_0",
+    "last_postmortem": {},
+    "marks": 1,
+    "physical": {
+      "automatic_recovery": false,
+      "binding": {
+        "body_instance_id": 448555664403,
+        "body_rid": "RID(57960583660423)",
+        "bridge_id": "npc_resident_72",
+        "descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+        "life_generation": 1,
+        "placement_mode": "PREVIEW_STAGE",
+        "render_id": "npc_resident_72",
+        "rig_epoch": 447263818778,
+        "rig_instance_id": 447263818778,
+        "session_id": "godot-preview-new-session-20260927-01",
+        "source_id": "resident_72"
+      },
+      "blocking_death_key": "2434.353",
+      "blocking_enabled": true,
+      "blocking_error": "",
+      "damage_authority": false,
+      "death_key": "2434.353",
+      "error": "",
+      "event_id": "resident_72:1:tt_pistol:1",
+      "final_dead": true,
+      "mode": "ACTIVE",
+      "ok": true
+    },
+    "player_move": {},
+    "postmortem": 0,
+    "row": {
+      "_aggression": 0.128598039213102,
+      "_allowBeach": false,
+      "_arc": {
+        "fearDist": 6.0,
+        "hours": [
+          8.0,
+          21.0
+        ],
+        "idleMult": 2.0,
+        "look": {},
+        "panicMult": 2.4,
+        "phrases": [
+          "Надо купить хлеба",
+          "Муж опять задержался",
+          "Цены опять выросли",
+          "Дети достали",
+          "Скоро ужин готовить",
+          "Очередь бесконечная"
+        ],
+        "speedRange": [
+          0.75,
+          1.0
+        ],
+        "weight": 12.0
+      },
+      "_arcKey": "housewife",
+      "_beach": false,
+      "_bleedSeverity": 0.45,
+      "_bleedUntil": 6893.984,
+      "_bloodDirC": -0.98869127035141,
+      "_bloodDirR": -0.0943156331777573,
+      "_deathFromDowned": false,
+      "_emLastAt": 0.0,
+      "_fatigue": 0.0914168331306428,
+      "_fear": 0.141813342575915,
+      "_forcedCrawl": false,
+      "_knockedUntil": 0,
+      "_lastHitAt": 2433.984,
+      "_lastViolentAt": 2433.858,
+      "_lastViolentSource": {
+        "kind": "player",
+        "uid": "local"
+      },
+      "_medicalBleedoutAt": 0,
+      "_medicalDowned": false,
+      "_medicalDownedAt": 0,
+      "_npcInitialPlacementPending": true,
+      "_relUpdAt": 2434.181,
+      "_relation": 1.0,
+      "_threeHitAngle": -3.04648602704826,
+      "_threeHitPower": 0.416666666666667,
+      "_threeHitWeapon": "tt_pistol",
+      "ang": 0.0,
+      "c": 105.705015229016,
+      "dead": true,
+      "deadAt": 2434.353,
+      "hp": 0,
+      "id": "resident_72",
+      "idleUntil": 2684.125,
+      "life_generation": 1,
+      "look": {
+        "body": 1.0,
+        "face": 0.0,
+        "gender": 0.0,
+        "hair": 3.0,
+        "hat": 2.0,
+        "skin": 2.0
+      },
+      "max_hp": 60.0,
+      "r": 7.73170810792504,
+      "source_id": "resident_72",
+      "speed": 0.771633253956679,
+      "tc": 76.5,
+      "tr": 9.5,
+      "walkPhase": 0.0,
+      "walking": false
+    }
+  }
+]

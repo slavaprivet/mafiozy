@@ -1,0 +1,23 @@
+{
+  "schema": "mafiozi.root27.step48.review/v1",
+  "status": "NATIVE_EVIDENCE_REVIEWED_NOT_RELEASED",
+  "review_sha256": "0095e515f35f5f94d21f5914dfcf6322ec34d4735c0b76bf50467b4fbcf6b6e5",
+  "evidence_freeze_sha256": "60c51317737686cba21c4c5a61f4f3ccace7e18ce124ef59ff6c81fb8d356dd7",
+  "production_accepted": false,
+  "performance_accepted": false,
+  "runtime_changed_after_test": false,
+  "raw_failure_preserved": true,
+  "findings": [
+    "Native surface admission accepts 106/120 mm and rejects 121/210/400 mm at both tested speeds. MAX_STEP is unchanged.",
+    "The inherited 123 mm total-foot-rise assertion fails at sprint over 120 mm. It is distinct from the runtime surface-height rule.",
+    "Root inspected diagnostic02 peak: helper_rise zero, two native contacts at authored top 0.12 m, floor normals y 0.993690 and 0.995383, on_floor true; peak foot Y 0.125965178 m. Next tick returns to 0.120594084 m.",
+    "This evidence supports a transient native capsule corner slide; it does not establish admission of a step above 120 mm. Do not increase the runtime limit or silently widen the old oracle.",
+    "Actual main-scene corpse regression passed 2804 assertions with original IDs, capsule filters, finite TT death and public movement/owner impulse receipts."
+  ],
+  "remaining_before_release": [
+    "Assess the transient foot rise in actual graphical movement; retain the original failed assertion as evidence and explicitly resolve its scope.",
+    "Verify current-world movement and interactions without restoring archived buildings or replacing native collisions.",
+    "Measure the full movement/contact path against accepted48 in a comparable loaded scene; preserve the open user game until an exclusive performance window is available.",
+    "Only then prepare accepted release metadata and deliver through the existing F5 pointer."
+  ]
+}
