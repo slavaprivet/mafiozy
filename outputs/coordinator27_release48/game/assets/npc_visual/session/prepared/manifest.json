@@ -1,0 +1,613 @@
+{
+	"engine": "4.7.2-stable (official)",
+	"entries": [
+		{
+			"bridge_sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662",
+			"bridge_version": "float-custom0/v1",
+			"engine": "4.7.2-stable (official)",
+			"entry": {
+				"animation_count": 0.0,
+				"appearance_application_count": 1.0,
+				"asset_bytes": 584716.0,
+				"asset_file": "e6210a186cf3bdf368e44566eb0f635b46f96b34d0fe86a38bafa51e6c2e7632.glb",
+				"asset_sha256": "e6210a186cf3bdf368e44566eb0f635b46f96b34d0fe86a38bafa51e6c2e7632",
+				"bone_count": 28.0,
+				"bone_parent_map": {
+					"chest": "spine_01",
+					"clavicle_l": "chest",
+					"clavicle_r": "chest",
+					"foot_l": "shin_l",
+					"foot_r": "shin_r",
+					"forearm_l": "upperarm_l",
+					"forearm_r": "upperarm_r",
+					"hand_l": "forearm_l",
+					"hand_r": "forearm_r",
+					"head": "neck",
+					"neck": "chest",
+					"pelvis": "root",
+					"root": null,
+					"shin_l": "thigh_l",
+					"shin_r": "thigh_r",
+					"socket_back": "chest",
+					"socket_hand_l": "hand_l",
+					"socket_hand_r": "hand_r",
+					"socket_head": "head",
+					"socket_seat": "pelvis",
+					"socket_steering_l": "chest",
+					"socket_steering_r": "chest",
+					"socket_weapon": "hand_r",
+					"spine_01": "pelvis",
+					"thigh_l": "pelvis",
+					"thigh_r": "pelvis",
+					"upperarm_l": "clavicle_l",
+					"upperarm_r": "clavicle_r"
+				},
+				"bounds": {
+					"max": [
+						0.5250388034610903,
+						1.86572021413084,
+						0.23650857804232137
+					],
+					"min": [
+						-0.5250388034547223,
+						-1.5612511283791264e-17,
+						-0.23650857804232137
+					]
+				},
+				"bridge_id": "npc_resident_72",
+				"canonical_source_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+				"catalogue_only": false,
+				"color_hdr_fidelity": "not_present",
+				"color_ranges": [
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.01986286044120788,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_FABRIC[0]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.01161224488168954,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_HAIR[1]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.06134504079818725,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_SKIN[2]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.177888423204422,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_TRIM[3]"
+					}
+				],
+				"descriptor": {
+					"browStyle": 4.0,
+					"build": 1.0,
+					"hairColor": "#76523a",
+					"hairstyle": "part",
+					"hat": "none",
+					"height": 1.8757261815480888,
+					"id": "npc_resident_72",
+					"outfit": "#334851",
+					"prisonGear": "",
+					"role": "housewife",
+					"sex": "male",
+					"shield": false,
+					"shirt": "#e2d8c7",
+					"skin": "#D4935A"
+				},
+				"descriptor_json": "{\"id\":\"npc_resident_72\",\"sex\":\"male\",\"role\":\"housewife\",\"height\":1.8757261815480888,\"build\":1,\"skin\":\"#D4935A\",\"hairColor\":\"#76523a\",\"hairstyle\":\"part\",\"browStyle\":4,\"outfit\":\"#334851\",\"shirt\":\"#e2d8c7\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+				"descriptor_sha256": "fb812a2fc447726dd30548edb34805295ac28e6970c2ca55a6abb18a5a4c39bd",
+				"hairstyle": "part",
+				"kind": "captured_appearance",
+				"label": "npc_resident_72",
+				"limits": [
+					"Neutral appearance/rest oracle, no wet/wounds/phone/cash/combat/AI/HP",
+					"All COLOR_0 numeric values are linear; native vertex_color_is_srgb=false",
+					"No native pixels or full actor runtime parity"
+				],
+				"material_fidelity": "HOLD",
+				"mesh_count": 11.0,
+				"normal_corrections": 56.0,
+				"normal_degenerate_fidelity": "HOLD",
+				"normalization": {
+					"offset": [
+						-0.00037426765245884,
+						-0.02999992517452443,
+						-0.05661511421203613
+					],
+					"offset_matrix": [
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						-0.00037426765245884,
+						-0.02999992517452443,
+						-0.05661511421203613,
+						1.0
+					],
+					"scale": 0.3806152895172772,
+					"scaled_matrix": [
+						0.3806152895172772,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.3806152895172772,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.3806152895172772,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"source_height": 4.928141966989858,
+					"target_height": 1.8757261815480888
+				},
+				"normalization_application_count": 1.0,
+				"not_live_spawn": true,
+				"oracle_bytes": 2305614.0,
+				"oracle_file": "1046bc5183af647500e77421b39d92342b7cdb387b14749371d2b0b6a254811d.json",
+				"oracle_sha256": "1046bc5183af647500e77421b39d92342b7cdb387b14749371d2b0b6a254811d",
+				"roundtrip": {
+					"color_values": 26960.0,
+					"full_normal_buffer_equality": true,
+					"max_color_error": 0.0,
+					"max_full_normal_component_error": 0.0,
+					"max_triangle_used_attribute_error": 2.9802322387695313e-08,
+					"max_unused_normal_component_error": 0.0,
+					"max_world_vertex_component_error_m": 5.8878171338427876e-08,
+					"pass": true,
+					"unused_normal_changes": [],
+					"vertices": 7566.0
+				},
+				"source_input": {
+					"appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+					"authority": "NONE: self-declared provenance is not authenticated live capture or source birth",
+					"fixture": false,
+					"input_bytes": 4194.0,
+					"input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+					"input_kind": "source_row",
+					"provenance": {
+						"label": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+						"test_only": false
+					},
+					"source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+					"tests_only": false
+				},
+				"source_provenance": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096"
+			},
+			"float_bridge": false,
+			"loader_sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54",
+			"prepared_file": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f.scn",
+			"prepared_sha256": "31795edb36aaff3d6b21108ef7ed259979cbf882898997b24c5be9c6e6b2067f",
+			"shader_bound": false
+		},
+		{
+			"bridge_sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662",
+			"bridge_version": "float-custom0/v1",
+			"engine": "4.7.2-stable (official)",
+			"entry": {
+				"animation_count": 0.0,
+				"appearance_application_count": 1.0,
+				"asset_bytes": 592008.0,
+				"asset_file": "9014e6ffd2fa25c605326057f85d790b5ebf5a339d4d569c090e95d7f34cfb38.glb",
+				"asset_sha256": "9014e6ffd2fa25c605326057f85d790b5ebf5a339d4d569c090e95d7f34cfb38",
+				"bone_count": 28.0,
+				"bone_parent_map": {
+					"chest": "spine_01",
+					"clavicle_l": "chest",
+					"clavicle_r": "chest",
+					"foot_l": "shin_l",
+					"foot_r": "shin_r",
+					"forearm_l": "upperarm_l",
+					"forearm_r": "upperarm_r",
+					"hand_l": "forearm_l",
+					"hand_r": "forearm_r",
+					"head": "neck",
+					"neck": "chest",
+					"pelvis": "root",
+					"root": null,
+					"shin_l": "thigh_l",
+					"shin_r": "thigh_r",
+					"socket_back": "chest",
+					"socket_hand_l": "hand_l",
+					"socket_hand_r": "hand_r",
+					"socket_head": "head",
+					"socket_seat": "pelvis",
+					"socket_steering_l": "chest",
+					"socket_steering_r": "chest",
+					"socket_weapon": "hand_r",
+					"spine_01": "pelvis",
+					"thigh_l": "pelvis",
+					"thigh_r": "pelvis",
+					"upperarm_l": "clavicle_l",
+					"upperarm_r": "clavicle_r"
+				},
+				"bounds": {
+					"max": [
+						0.5273330570740067,
+						1.8872063048206853,
+						0.23754203692096076
+					],
+					"min": [
+						-0.5273330570782706,
+						2.255140518769849e-17,
+						-0.2375420369209608
+					]
+				},
+				"bridge_id": "npc_resident_169",
+				"canonical_source_sha256": "298d50e6244a7f17cf9cb66530fc34645fec0f19b575fe99d1df514709e90c40",
+				"catalogue_only": false,
+				"color_hdr_fidelity": "not_present",
+				"color_ranges": [
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.02121900953352451,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_FABRIC[0]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.01161224488168954,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_HAIR[1]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.06134504079818725,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_SKIN[2]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.1441284716129303,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_female_rig[0]/player_female_DEMO_core_TRIM[3]"
+					}
+				],
+				"descriptor": {
+					"browStyle": 5.0,
+					"build": 0.94,
+					"hairColor": "#493329",
+					"hairstyle": "wavy",
+					"hat": "none",
+					"height": 1.8998691982589664,
+					"id": "npc_resident_169",
+					"outfit": "#68414b",
+					"prisonGear": "",
+					"role": "student",
+					"sex": "female",
+					"shield": false,
+					"shirt": "#b8c6be",
+					"skin": "#D4935A"
+				},
+				"descriptor_json": "{\"id\":\"npc_resident_169\",\"sex\":\"female\",\"role\":\"student\",\"height\":1.8998691982589662,\"build\":0.94,\"skin\":\"#D4935A\",\"hairColor\":\"#493329\",\"hairstyle\":\"wavy\",\"browStyle\":5,\"outfit\":\"#68414b\",\"shirt\":\"#b8c6be\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+				"descriptor_sha256": "95da9c8fd81bd5d0b9f68643a8b3309cff70bd9ec6989b8b2a49b97956a3d136",
+				"hairstyle": "wavy",
+				"kind": "captured_appearance",
+				"label": "npc_resident_169",
+				"limits": [
+					"Neutral appearance/rest oracle, no wet/wounds/phone/cash/combat/AI/HP",
+					"All COLOR_0 numeric values are linear; native vertex_color_is_srgb=false",
+					"No native pixels or full actor runtime parity"
+				],
+				"material_fidelity": "HOLD",
+				"mesh_count": 12.0,
+				"normal_corrections": 55.0,
+				"normal_degenerate_fidelity": "HOLD",
+				"normalization": {
+					"offset": [
+						-0.00037425738998531,
+						-0.02999992517452443,
+						-0.05661511421203613
+					],
+					"offset_matrix": [
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						-0.00037425738998531,
+						-0.02999992517452443,
+						-0.05661511421203613,
+						1.0
+					],
+					"scale": 0.38227844378235065,
+					"scaled_matrix": [
+						0.38227844378235065,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.38227844378235065,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.38227844378235065,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"source_height": 4.9698569960189865,
+					"target_height": 1.8998691982589664
+				},
+				"normalization_application_count": 1.0,
+				"not_live_spawn": true,
+				"oracle_bytes": 2314771.0,
+				"oracle_file": "d6382266cc31a0d8fabbd50216d3a3459796907bd353d8f708fe50714ee1cd4c.json",
+				"oracle_sha256": "d6382266cc31a0d8fabbd50216d3a3459796907bd353d8f708fe50714ee1cd4c",
+				"roundtrip": {
+					"color_values": 27044.0,
+					"full_normal_buffer_equality": true,
+					"max_color_error": 0.0,
+					"max_full_normal_component_error": 0.0,
+					"max_triangle_used_attribute_error": 1.4901161193847656e-08,
+					"max_unused_normal_component_error": 0.0,
+					"max_world_vertex_component_error_m": 5.9135448315927874e-08,
+					"pass": true,
+					"unused_normal_changes": [],
+					"vertices": 7704.0
+				},
+				"source_input": {
+					"appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+					"authority": "NONE: self-declared provenance is not authenticated live capture or source birth",
+					"fixture": false,
+					"input_bytes": 4194.0,
+					"input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+					"input_kind": "source_row",
+					"provenance": {
+						"label": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+						"test_only": false
+					},
+					"source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+					"tests_only": false
+				},
+				"source_provenance": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096"
+			},
+			"float_bridge": false,
+			"loader_sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54",
+			"prepared_file": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22.scn",
+			"prepared_sha256": "60a6809031d3d151db8ae2464c58fef48e5b853ddb607f88fe5fb1c131d33b22",
+			"shader_bound": false
+		},
+		{
+			"bridge_sha256": "bb4932772bfaae737b1e5d4d1485711060055c7de9c685918b3bd2f35b375662",
+			"bridge_version": "float-custom0/v1",
+			"engine": "4.7.2-stable (official)",
+			"entry": {
+				"animation_count": 0.0,
+				"appearance_application_count": 1.0,
+				"asset_bytes": 590288.0,
+				"asset_file": "fc502bd2919f77611ecefa24c30faf607c84f2642b452bf43a3a108d49f262af.glb",
+				"asset_sha256": "fc502bd2919f77611ecefa24c30faf607c84f2642b452bf43a3a108d49f262af",
+				"bone_count": 28.0,
+				"bone_parent_map": {
+					"chest": "spine_01",
+					"clavicle_l": "chest",
+					"clavicle_r": "chest",
+					"foot_l": "shin_l",
+					"foot_r": "shin_r",
+					"forearm_l": "upperarm_l",
+					"forearm_r": "upperarm_r",
+					"hand_l": "forearm_l",
+					"hand_r": "forearm_r",
+					"head": "neck",
+					"neck": "chest",
+					"pelvis": "root",
+					"root": null,
+					"shin_l": "thigh_l",
+					"shin_r": "thigh_r",
+					"socket_back": "chest",
+					"socket_hand_l": "hand_l",
+					"socket_hand_r": "hand_r",
+					"socket_head": "head",
+					"socket_seat": "pelvis",
+					"socket_steering_l": "chest",
+					"socket_steering_r": "chest",
+					"socket_weapon": "hand_r",
+					"spine_01": "pelvis",
+					"thigh_l": "pelvis",
+					"thigh_r": "pelvis",
+					"upperarm_l": "clavicle_l",
+					"upperarm_r": "clavicle_r"
+				},
+				"bounds": {
+					"max": [
+						0.4820576034027562,
+						1.7105921263806516,
+						0.2171472995209283
+					],
+					"min": [
+						-0.4820576033969095,
+						2.60208521396521e-17,
+						-0.21714729952092823
+					]
+				},
+				"bridge_id": "npc_resident_252",
+				"canonical_source_sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+				"catalogue_only": false,
+				"color_hdr_fidelity": "not_present",
+				"color_ranges": [
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.01986286044120788,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_FABRIC[0]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.01161224488168954,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_HAIR[1]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.2738466262817383,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_SKIN[2]"
+					},
+					{
+						"linear": true,
+						"max": 1.0,
+						"min": 0.177888423204422,
+						"outside_unit_values": 0.0,
+						"source_mesh_key": "[0]/[0]/[0]/Scene[0]/player_male_rig[0]/player_male_DEMO_core_TRIM[3]"
+					}
+				],
+				"descriptor": {
+					"browStyle": 5.0,
+					"build": 1.07,
+					"hairColor": "#b7a188",
+					"hairstyle": "crew",
+					"hat": "none",
+					"height": 1.710592126380652,
+					"id": "npc_resident_252",
+					"outfit": "#334851",
+					"prisonGear": "",
+					"role": "pensioner",
+					"sex": "male",
+					"shield": false,
+					"shirt": "#b8c6be",
+					"skin": "#FDDBB4"
+				},
+				"descriptor_json": "{\"id\":\"npc_resident_252\",\"sex\":\"male\",\"role\":\"pensioner\",\"height\":1.710592126380652,\"build\":1.07,\"skin\":\"#FDDBB4\",\"hairColor\":\"#b7a188\",\"hairstyle\":\"crew\",\"browStyle\":5,\"outfit\":\"#334851\",\"shirt\":\"#b8c6be\",\"hat\":\"none\",\"prisonGear\":\"\",\"shield\":false}",
+				"descriptor_sha256": "63013b43b2210fd997d9a57fd8b1fa315312bd2ff3e1387e115f667e6db75b55",
+				"hairstyle": "crew",
+				"kind": "captured_appearance",
+				"label": "npc_resident_252",
+				"limits": [
+					"Neutral appearance/rest oracle, no wet/wounds/phone/cash/combat/AI/HP",
+					"All COLOR_0 numeric values are linear; native vertex_color_is_srgb=false",
+					"No native pixels or full actor runtime parity"
+				],
+				"material_fidelity": "HOLD",
+				"mesh_count": 12.0,
+				"normal_corrections": 56.0,
+				"normal_degenerate_fidelity": "HOLD",
+				"normalization": {
+					"offset": [
+						-0.00037426765245884,
+						-0.02999992517452443,
+						-0.05661511421203613
+					],
+					"offset_matrix": [
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0,
+						0.0,
+						-0.00037426765245884,
+						-0.02999992517452443,
+						-0.05661511421203613,
+						1.0
+					],
+					"scale": 0.34945701741212754,
+					"scaled_matrix": [
+						0.34945701741212754,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.34945701741212754,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						0.34945701741212754,
+						0.0,
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"source_height": 4.895000074825476,
+					"target_height": 1.710592126380652
+				},
+				"normalization_application_count": 1.0,
+				"not_live_spawn": true,
+				"oracle_bytes": 2328294.0,
+				"oracle_file": "dab5621d20c3565abcfc7be2d35bb322b96f885d5d5e8fadedc70b8ea1bb37fd.json",
+				"oracle_sha256": "dab5621d20c3565abcfc7be2d35bb322b96f885d5d5e8fadedc70b8ea1bb37fd",
+				"roundtrip": {
+					"color_values": 26960.0,
+					"full_normal_buffer_equality": true,
+					"max_color_error": 0.0,
+					"max_full_normal_component_error": 0.0,
+					"max_triangle_used_attribute_error": 2.9802322387695313e-08,
+					"max_unused_normal_component_error": 0.0,
+					"max_world_vertex_component_error_m": 5.405823338966442e-08,
+					"pass": true,
+					"unused_normal_changes": [],
+					"vertices": 7683.0
+				},
+				"source_input": {
+					"appearance_module_sha256": "662f70b0e109bad0590eb2b79407e7685e5233c2245b991115fdbfcf88b63877",
+					"authority": "NONE: self-declared provenance is not authenticated live capture or source birth",
+					"fixture": false,
+					"input_bytes": 4194.0,
+					"input_file_sha256": "58f0cd368246e217b5c8a44b0e92cc65b53a62a0c3f640f1379b27e3da24217f",
+					"input_kind": "source_row",
+					"provenance": {
+						"label": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096",
+						"test_only": false
+					},
+					"source_module_sha256": "fc3c4cc243ccb7700526b6680fa7ee83e7fbad9e83798880458cb1dd8c0816ad",
+					"tests_only": false
+				},
+				"source_provenance": "NEW_SESSION_BOOTSTRAP:godot-preview-new-session-20260927-01:e9262db60404e538636274565b9a1d6d79de487804af9c7ee99646209b58e096"
+			},
+			"float_bridge": false,
+			"loader_sha256": "6e8f9c0c5e55ed0b18cdd590ad4e30141108fd73b96a93a078a70b16763bac54",
+			"prepared_file": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe.scn",
+			"prepared_sha256": "604708f30274697217d8bc0001f5610c91cb22bec68b60174bcd52b8a70053fe",
+			"shader_bound": false
+		}
+	],
+	"schema": "mafiozi.npc-prepared/v1",
+	"source_manifest_sha256": "37d56f98aeaa3f5d1152a09cdf14744223ae697e7c56ad85ea75941b74552de6"
+}

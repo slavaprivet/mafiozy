@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="palazzo_variant.gd" id="1_variant"]
+
+[node name="BrickTwoRooms" type="Node3D"]
+script = ExtResource("1_variant")
+source_id = "palazzo_brick_two_rooms_v1"
+color_scheme = "brick"
+room_layout = "two_rooms"

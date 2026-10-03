@@ -1,0 +1,181 @@
+{
+  "schema": "root27.release48-source-preflight/v1",
+  "timestamp_utc": "2026-10-03T02:29:54.726129+00:00",
+  "passed": true,
+  "scope": "Read-only staged F5 source snapshot; no engine, Git, publication or standalone EXE acceptance",
+  "assembly_sha256": "513c9165b7f00be7e6cb8967470a5513e4d37e8fd8642f528d29ec36c08dd83c",
+  "revision": "s01-20261003-c4-release48",
+  "source_count": 486,
+  "source_bytes": 72616305,
+  "pin_mismatches": [],
+  "untracked_source_files_excluding_godot_cache": [],
+  "qa_test_paths": [],
+  "added": [
+    "scripts/destruction/palazzo/palazzo_foundation12_site.gd",
+    "scripts/destruction/palazzo/palazzo_foundation12_site.tscn"
+  ],
+  "changed": [
+    "data/preview_updates.json",
+    "export_presets.cfg",
+    "scripts/destruction/palazzo/blast45_plume.gdshader",
+    "scripts/destruction/palazzo/blast45_wave.gdshader",
+    "scripts/destruction/palazzo/blast_fx45.gd",
+    "scripts/destruction/palazzo/c4_building_blast.gd",
+    "scripts/destruction/palazzo/c4_equipment.gd",
+    "scripts/destruction/palazzo/palazzo_host.gd",
+    "scripts/main.gd",
+    "scripts/weapons/weapon_aim_camera.gd"
+  ],
+  "removed": [],
+  "overlays": [
+    {
+      "path": "scripts/weapons/weapon_aim_camera.gd",
+      "origin": "outputs/coordinator27_camera_reset/runtime_v2/scripts/weapons/weapon_aim_camera.gd",
+      "origin_sha256": "948a98ebe240990f67ed248009b0c255db49a64085dad9a2d3ff27ddaf8bb00e",
+      "final_sha256": "948a98ebe240990f67ed248009b0c255db49a64085dad9a2d3ff27ddaf8bb00e"
+    },
+    {
+      "path": "scripts/destruction/palazzo/c4_equipment.gd",
+      "origin": "outputs/coordinator27_c4_meta_perf/shape_signal_fix47/patch/scripts/destruction/palazzo/c4_equipment.gd",
+      "origin_sha256": "86ec658e3c4619eb0f876d9ed3aa3420b79c788e7fdebda6cf428200ced17bb7",
+      "final_sha256": "11f9c4127d27a3349bc0e1242b3661fb9637e8f2bcd267217ade9db3c4e7cd29"
+    },
+    {
+      "path": "scripts/destruction/palazzo/c4_building_blast.gd",
+      "origin": "outputs/buildings4_c4_strength_20261003/runtime/scripts/destruction/palazzo/c4_building_blast.gd",
+      "origin_sha256": "54a39ca265a692c77456e9f1e243924fc40bf9840509fa7dd6820a1d3adf2888",
+      "final_sha256": "54a39ca265a692c77456e9f1e243924fc40bf9840509fa7dd6820a1d3adf2888"
+    },
+    {
+      "path": "scripts/destruction/palazzo/palazzo_host.gd",
+      "origin": "outputs/buildings4_strength_foundation_native_20261003/game/scripts/destruction/palazzo/palazzo_host.gd",
+      "origin_sha256": "1397680ae5de0487f2faedea1e82c96181252b38d8b8035ec117c4f3e8cc4c51",
+      "final_sha256": "1397680ae5de0487f2faedea1e82c96181252b38d8b8035ec117c4f3e8cc4c51"
+    },
+    {
+      "path": "scripts/destruction/palazzo/palazzo_foundation12_site.gd",
+      "origin": "outputs/buildings4_palazzo_foundation12_20261003/runtime/scripts/destruction/palazzo/palazzo_foundation12_site.gd",
+      "origin_sha256": "d799c2c57ef62f5249128c13f329c66f408825db05076bb2c7de0a912b208ecb",
+      "final_sha256": "d799c2c57ef62f5249128c13f329c66f408825db05076bb2c7de0a912b208ecb"
+    },
+    {
+      "path": "scripts/destruction/palazzo/palazzo_foundation12_site.tscn",
+      "origin": "outputs/buildings4_palazzo_foundation12_20261003/runtime/scripts/destruction/palazzo/palazzo_foundation12_site.tscn",
+      "origin_sha256": "dbdd690e1b7b29a0866004734b060d150573012eb55b1929097ecc8de92a69ae",
+      "final_sha256": "dbdd690e1b7b29a0866004734b060d150573012eb55b1929097ecc8de92a69ae"
+    },
+    {
+      "path": "scripts/destruction/palazzo/blast45_plume.gdshader",
+      "origin": "outputs/buildings4_fire_v3_20261003/runtime/scripts/destruction/palazzo/blast45_plume.gdshader",
+      "origin_sha256": "45f7184ad51819e06677dc9e7e3f1971cbe063a6526dd278489073931dc63eb4",
+      "final_sha256": "45f7184ad51819e06677dc9e7e3f1971cbe063a6526dd278489073931dc63eb4"
+    },
+    {
+      "path": "scripts/destruction/palazzo/blast45_wave.gdshader",
+      "origin": "outputs/buildings4_fire_v3_20261003/runtime/scripts/destruction/palazzo/blast45_wave.gdshader",
+      "origin_sha256": "5f3c8ea2c68d57ded5abd4abccfd2290c8a36eaddc312d63c1a66bb15b0f2535",
+      "final_sha256": "5f3c8ea2c68d57ded5abd4abccfd2290c8a36eaddc312d63c1a66bb15b0f2535"
+    },
+    {
+      "path": "scripts/destruction/palazzo/blast_fx45.gd",
+      "origin": "outputs/buildings4_fire_v3_20261003/runtime/scripts/destruction/palazzo/blast_fx45.gd",
+      "origin_sha256": "88c5b622faf5caad5d530095f5696272bf8e7d70d30e14f7f8ea90f08e8afae3",
+      "final_sha256": "88c5b622faf5caad5d530095f5696272bf8e7d70d30e14f7f8ea90f08e8afae3"
+    }
+  ],
+  "export": {
+    "mode": "resources",
+    "selected_count": 236,
+    "only_added": [
+      "scripts/destruction/palazzo/palazzo_foundation12_site.gd",
+      "scripts/destruction/palazzo/palazzo_foundation12_site.tscn"
+    ],
+    "dependency_edges_checked": 262,
+    "omitted": [],
+    "inherited_scope_import_coverage": true,
+    "future48_pck_or_exe_verified": false
+  },
+  "fire3": {
+    "power": 1920,
+    "radius": 3.2,
+    "maximum_direct_pieces": 48,
+    "uniforms": {
+      "plume": {
+        "written": [
+          "blast_normal",
+          "burst_age",
+          "burst_scale",
+          "burst_seed",
+          "plume_noise"
+        ],
+        "declared": [
+          "blast_normal",
+          "burst_age",
+          "burst_scale",
+          "burst_seed",
+          "depth_texture",
+          "plume_noise"
+        ]
+      },
+      "wave": {
+        "written": [
+          "burst_age",
+          "burst_scale"
+        ],
+        "declared": [
+          "burst_age",
+          "burst_scale"
+        ]
+      }
+    },
+    "authentic_receipt_caller_unchanged": true,
+    "native_shader_or_GPU_verification_by_this_review": false
+  },
+  "f5": {
+    "pointer_at_read": {
+      "schema": "mafiozi.current-play/v1",
+      "title": "01.10 · Оконные рамы · версия45",
+      "revision": "s01-20261001-palazzo-frames45",
+      "assembly": "outputs/coordinator26_frames45/ASSEMBLY.json",
+      "assembly_sha256": "f797214092875a9e91cd47aa30cf751b99909f089d9b3b6bb8f4be34c6336b21",
+      "bootstrap": "tools/godot/current_game_bootstrap.gd",
+      "bootstrap_sha256": "0f0b3efec90d2a91fef13e18f844058f44e1310d37833d17a0b0ecde97d562d8",
+      "engine_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+      "scope": "Current Palazzo-only quarter, original three NPC owners,657 native Palazzo bodies/2069 shapes; not full-city acceptance."
+    },
+    "staged_revision": "s01-20261003-c4-release48",
+    "main_and_preview_updates_match": true,
+    "bootstrap_sha256": "0f0b3efec90d2a91fef13e18f844058f44e1310d37833d17a0b0ecde97d562d8",
+    "actual_runtime_constant_gate": true,
+    "published48": false,
+    "next_step": "Root acceptance then point current_version.json at this pinned assembly; CheckOnly then ordinary F5 ready receipt."
+  },
+  "inherited_dormant_output_literals": [
+    {
+      "source": "scripts/destruction/palazzo/source/showcase.gd",
+      "output": "destroyed.png"
+    },
+    {
+      "source": "scripts/destruction/palazzo/source/showcase.gd",
+      "output": "intact.png"
+    },
+    {
+      "source": "scripts/destruction/palazzo/source/showcase.gd",
+      "output": "partial.png"
+    },
+    {
+      "source": "scripts/destruction/palazzo/source/showcase.gd",
+      "output": "walkthrough.png"
+    }
+  ],
+  "warnings": [
+    "source/showcase.gd is an inherited runtime base with dormant QA/capture methods, not a newly packaged harness; palazzo_site overrides startup/process/input. Its save_png res paths are outputs, not missing dependencies.",
+    "Assembly accepted/performance_accepted remain false. This report proves source closure only; root native/performance evidence owns release acceptance.",
+    "Previously verified pack47a is not pack48 proof. Standalone EXE48 acceptance is separate and does not gate this source-only preflight."
+  ],
+  "engine_started": false,
+  "git_invoked": false,
+  "runtime_modified": false,
+  "ready_for_scoped_snapshot_commit": true,
+  "failures": []
+}

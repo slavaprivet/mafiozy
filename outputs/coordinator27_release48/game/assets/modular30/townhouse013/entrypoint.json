@@ -1,0 +1,91 @@
+{
+  "schema": "mafiozi.townhouse013-frozen-companion-entrypoint/v1",
+  "source_id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+  "asset_id": "old_town_narrow_townhouse_v1",
+  "body_relative_path": "modular_body_v1",
+  "prefab": {
+    "path": "townhouse013.scn",
+    "source_path": "expansion/modular_buildings/export/prefabs/p_dacbf99b1117e201d9f2285a.scn",
+    "sha256": "abfc9126737481f1bed5cc4c63095115a8f756e8c21ceb9b9209fa6a21c6c485",
+    "bytes": 40381
+  },
+  "original_record": {
+    "path": "source_record.json",
+    "sha256": "20df390b734162381fd5d1b7c0fb494a2fdc70ac8836e29c91a24cd2ce50faef",
+    "bytes": 4643,
+    "start_byte": 7020,
+    "end_byte_exclusive": 11663,
+    "verbatim_object_bytes": true
+  },
+  "source_block": {
+    "path": "outputs/coordinator24_quality/candidate27/godot/mafiozi_walk/data/block.json",
+    "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e",
+    "bytes": 159703
+  },
+  "expected_native_frame_column_major": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    18.450000762939453,
+    0.10499991476535797,
+    -2.0959999561309814,
+    1
+  ],
+  "geometry_units": "world metres; unit basis; do not reapply original scale or source position",
+  "counts": {
+    "modules": 116,
+    "triangles": 1392,
+    "surfaces": 4,
+    "original_collisionBodiesM": 2
+  },
+  "frozen_closure": {
+    "receipt_path": "../modular_minimal_delivery/RECEIPT.json",
+    "receipt_sha256": "adc588b7ec0790994f722a0ab024b7d9a888379215a7813ed58b26fc30e181fb",
+    "loader": {
+      "relative_path": "../modular_minimal_delivery/expansion/modular_buildings/export/prefab_loader.gd",
+      "path": "expansion/modular_buildings/export/prefab_loader.gd",
+      "sha256": "9264d7e5013ddb7d1b65e7456081b3e3d36594dd10de06ac814522d42848c80e",
+      "bytes": 8671
+    },
+    "runtime": {
+      "relative_path": "../modular_minimal_delivery/expansion/compound_node/compound_runtime.gd",
+      "path": "expansion/compound_node/compound_runtime.gd",
+      "sha256": "770c328f7e9238bd8ebdfd97db96b64b921bc9e74dac982de6136b08953a6cc4",
+      "bytes": 31323
+    }
+  },
+  "binding": {
+    "instantiate": "Loader.instantiate_prefab(prefab_path, prefab_sha256)",
+    "bind": "Loader.bind_record(instance, original_record, collision_replacement_approved=false)",
+    "register": "Runtime.register_building(source_id, instance, caller_resolved_actual_collider_roots, bound.record)",
+    "approval": "Only actual collision owner may explicitly pass true; smoke approval applies exclusively to its isolated fixtures.",
+    "generated_partition": "Loaded mesh + prebuilt exact part selectors; no geometry rebuild or Panels census"
+  },
+  "owner_pending": {
+    "glazing": 22,
+    "entry_connectors": 2,
+    "protected_interiors_attached": false,
+    "mechanical_interiors_ready": false
+  },
+  "proof": {
+    "binder_report": "binder_report.json",
+    "binder_report_sha256": "2eb1702a420d2189437eeabb016fed1b54aeb589bce972a605e39020ff67c583",
+    "native_checks": 106,
+    "mapping_review": "townhouse013_mapping_review.json",
+    "mapping_review_sha256": "93c2b80daca36324a22ff37bb749b69e3c7cc3aa18245b7ab75876d8a2001a7e"
+  },
+  "production_enabled": false,
+  "live_colliders_replaced": false,
+  "rpg_and_W_verified": false,
+  "full_collapse_verified": false,
+  "loaded_scene_fps_verified": false
+}

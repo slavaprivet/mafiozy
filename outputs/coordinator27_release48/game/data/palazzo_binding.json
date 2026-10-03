@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "source_id": "PALAZZO-SHOWCASE-001",
+  "frame": {
+    "x": 48.5,
+    "y": 0,
+    "z": 0,
+    "yaw": -1.5707963267948966,
+    "scale": 1.0
+  }
+}

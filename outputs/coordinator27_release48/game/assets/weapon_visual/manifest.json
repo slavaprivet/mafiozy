@@ -1,0 +1,1704 @@
+{
+	"engine": "4.7.2-stable (official)",
+	"entries": [
+		{
+			"bytes": 1778,
+			"draw_surfaces": 0.0,
+			"file": "none.scn",
+			"id": "none",
+			"profile": {
+				"bounds_native": null,
+				"bounds_source": null,
+				"family": "none",
+				"id": "none",
+				"label": "Без оружия",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"ejectionPort": null,
+					"family": "none",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Без оружия",
+					"mountOffset": [
+						0.24,
+						1.07,
+						0.26
+					],
+					"muzzle": null,
+					"supportGrip": null,
+					"twoHanded": false,
+					"visualOnly": true,
+					"weaponId": "none"
+				},
+				"two_handed": false,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "c366180141509e5599c7c77564062fb7d752bf2b5dfab04efa3410695d86cfb5",
+			"source_meshes": 0.0,
+			"triangles": 0.0
+		},
+		{
+			"bytes": 107696,
+			"draw_surfaces": 9.0,
+			"file": "nagan.scn",
+			"id": "nagan",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.10211269557476044,
+						0.2775000035762787,
+						0.8424999713897705
+					],
+					"min": [
+						-0.10211269557476044,
+						-0.34052395820617676,
+						-0.16233384609222412
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.10211269820362068,
+						0.2775000000745058,
+						0.8425000008940697
+					],
+					"min": [
+						-0.10211269820362068,
+						-0.34336093758748815,
+						-0.16517083051538056
+					]
+				},
+				"family": "revolver",
+				"id": "nagan",
+				"label": "Наган",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": null,
+					"family": "revolver",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Наган",
+					"mountOffset": [
+						0.24,
+						1.07,
+						0.26
+					],
+					"muzzle": [
+						0.0,
+						0.14,
+						0.8200000000000001
+					],
+					"supportGrip": null,
+					"surfaceDetailBatches": 5.0,
+					"surfaceDetails": [
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"loading_gate_seam",
+						"loading_gate_pivot",
+						"loading_gate_pivot_slot",
+						"ejector_slide_catch",
+						"hammer_thumb_serration",
+						"hammer_thumb_serration",
+						"hammer_thumb_serration"
+					],
+					"twoHanded": false,
+					"visualOnly": true,
+					"weaponId": "nagan"
+				},
+				"two_handed": false,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "b3dd3fff18940f7c0406fbfd10c8f7773904cc9bd58d02192f3919a9e3a3473e",
+			"source_meshes": 32.0,
+			"triangles": 1512.0
+		},
+		{
+			"bytes": 120645,
+			"draw_surfaces": 10.0,
+			"file": "tt_pistol.scn",
+			"id": "tt_pistol",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1274999976158142,
+						0.35499998927116394,
+						0.63039231300354
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.33768612146377563,
+						-0.12112554907798767
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.1274999976158142,
+						0.35500000037252905,
+						0.6303923045098782
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.33950017004880884,
+						-0.12293960766540953
+					]
+				},
+				"family": "pistol",
+				"id": "tt_pistol",
+				"label": "Пистолет ТТ",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.105,
+						0.255,
+						0.34
+					],
+					"family": "pistol",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Пистолет ТТ",
+					"mountOffset": [
+						0.24,
+						1.07,
+						0.26
+					],
+					"muzzle": [
+						0.0,
+						0.15,
+						0.62
+					],
+					"supportGrip": null,
+					"surfaceDetailBatches": 6.0,
+					"surfaceDetails": [
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"slide_beveled_highlight",
+						"frame_slide_separation",
+						"frame_take_down_pin",
+						"frame_take_down_pin_slot",
+						"slide_beveled_highlight",
+						"frame_slide_separation",
+						"frame_take_down_pin",
+						"frame_take_down_pin_slot",
+						"magazine_base_seam",
+						"rear_sight_left_dot",
+						"rear_sight_right_dot",
+						"tt_grip_roundel",
+						"tt_grip_roundel"
+					],
+					"twoHanded": false,
+					"visualOnly": true,
+					"weaponId": "tt_pistol"
+				},
+				"two_handed": false,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "ba507e709df8952ae4cfc839f27a13fa6001e7921b2ae9a6b943a75f3b735bfc",
+			"source_meshes": 44.0,
+			"triangles": 1612.0
+		},
+		{
+			"bytes": 103869,
+			"draw_surfaces": 9.0,
+			"file": "revolver.scn",
+			"id": "revolver",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1141267791390419,
+						0.2775000035762787,
+						0.9424999952316284
+					],
+					"min": [
+						-0.1141267791390419,
+						-0.34052395820617676,
+						-0.16233384609222412
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.1141267791390419,
+						0.2775000000745058,
+						0.9425000008940696
+					],
+					"min": [
+						-0.1141267791390419,
+						-0.34336093758748815,
+						-0.16517083051538056
+					]
+				},
+				"family": "revolver",
+				"id": "revolver",
+				"label": "Револьвер",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": null,
+					"family": "revolver",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Револьвер",
+					"mountOffset": [
+						0.24,
+						1.07,
+						0.26
+					],
+					"muzzle": [
+						0.0,
+						0.14,
+						0.92
+					],
+					"supportGrip": null,
+					"surfaceDetailBatches": 5.0,
+					"surfaceDetails": [
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"cylinder_longitudinal_flute",
+						"loading_gate_seam",
+						"loading_gate_pivot",
+						"loading_gate_pivot_slot",
+						"ejector_slide_catch",
+						"hammer_thumb_serration",
+						"hammer_thumb_serration",
+						"hammer_thumb_serration"
+					],
+					"twoHanded": false,
+					"visualOnly": true,
+					"weaponId": "revolver"
+				},
+				"two_handed": false,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "768b900dfaa7fc5a00467f23eb5a73e62e59c0cc1c4cf9c0ad0589deda7cc078",
+			"source_meshes": 31.0,
+			"triangles": 1456.0
+		},
+		{
+			"bytes": 105638,
+			"draw_surfaces": 9.0,
+			"file": "deagle.scn",
+			"id": "deagle",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1274999976158142,
+						0.35499998927116394,
+						0.8303923010826111
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.33768612146377563,
+						-0.12112554907798767
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.1274999976158142,
+						0.35500000037252905,
+						0.8303923045098781
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.33950017004880884,
+						-0.12293960766540953
+					]
+				},
+				"family": "heavy-pistol",
+				"id": "deagle",
+				"label": "Дезерт Игл",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.105,
+						0.255,
+						0.34
+					],
+					"family": "heavy-pistol",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Дезерт Игл",
+					"mountOffset": [
+						0.24,
+						1.07,
+						0.26
+					],
+					"muzzle": [
+						0.0,
+						0.15,
+						0.82
+					],
+					"supportGrip": null,
+					"surfaceDetailBatches": 6.0,
+					"surfaceDetails": [
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"slide_beveled_highlight",
+						"frame_slide_separation",
+						"frame_take_down_pin",
+						"frame_take_down_pin_slot",
+						"slide_beveled_highlight",
+						"frame_slide_separation",
+						"frame_take_down_pin",
+						"frame_take_down_pin_slot",
+						"magazine_base_seam",
+						"rear_sight_left_dot",
+						"rear_sight_right_dot",
+						"barrel_upper_facet"
+					],
+					"twoHanded": false,
+					"visualOnly": true,
+					"weaponId": "deagle"
+				},
+				"two_handed": false,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "a983429aee530dc1290c8d263ee6ab5dbc0e61bba3c90bb2fec40adb0ac96829",
+			"source_meshes": 47.0,
+			"triangles": 1468.0
+		},
+		{
+			"bytes": 154583,
+			"draw_surfaces": 10.0,
+			"file": "golden_colt.scn",
+			"id": "golden_colt",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1274999976158142,
+						0.35499998927116394,
+						0.6903923153877258
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.33768612146377563,
+						-0.12112554907798767
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.1274999976158142,
+						0.35500000037252905,
+						0.6903923045098782
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.33950017004880884,
+						-0.12293960766540953
+					]
+				},
+				"family": "pistol",
+				"id": "golden_colt",
+				"label": "Золотой Кольт",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.105,
+						0.255,
+						0.34
+					],
+					"family": "pistol",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Золотой Кольт",
+					"mountOffset": [
+						0.24,
+						1.07,
+						0.26
+					],
+					"muzzle": [
+						0.0,
+						0.15,
+						0.68
+					],
+					"supportGrip": null,
+					"surfaceDetailBatches": 6.0,
+					"surfaceDetails": [
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"grip_diamond_checkering",
+						"slide_beveled_highlight",
+						"frame_slide_separation",
+						"frame_take_down_pin",
+						"frame_take_down_pin_slot",
+						"colt_scroll_engraving",
+						"colt_scroll_engraving",
+						"colt_scroll_engraving",
+						"slide_beveled_highlight",
+						"frame_slide_separation",
+						"frame_take_down_pin",
+						"frame_take_down_pin_slot",
+						"colt_scroll_engraving",
+						"colt_scroll_engraving",
+						"colt_scroll_engraving",
+						"magazine_base_seam",
+						"rear_sight_left_dot",
+						"rear_sight_right_dot"
+					],
+					"twoHanded": false,
+					"visualOnly": true,
+					"weaponId": "golden_colt"
+				},
+				"two_handed": false,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "af60c7fdf7d9532e90e072dfd768b7552e45ec68a4f80b0ba93b06d2222d1b79",
+			"source_meshes": 50.0,
+			"triangles": 2092.0
+		},
+		{
+			"bytes": 101671,
+			"draw_surfaces": 9.0,
+			"file": "sawn_off.scn",
+			"id": "sawn_off",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1574999988079071,
+						0.3375000059604645,
+						0.9024999737739563
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.34085968136787415,
+						-0.13647454977035522
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.15750000007450582,
+						0.3375000014901161,
+						0.9025000008940696
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.3433660917818141,
+						-0.1389809636719501
+					]
+				},
+				"family": "shotgun",
+				"id": "sawn_off",
+				"label": "Обрез",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.14,
+						0.3,
+						0.29
+					],
+					"family": "shotgun",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Обрез",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.2,
+						0.88
+					],
+					"supportGrip": [
+						0.0,
+						0.1,
+						0.42
+					],
+					"surfaceDetailBatches": 4.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"shell_loading_port",
+						"shell_lifter_edge",
+						"break_action_engraving",
+						"break_action_engraving",
+						"tang_safety"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "sawn_off"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "9be427d492513d2f5e1f93e2559cc1abe304a7fc86e9d1de0e1b333c155a8c42",
+			"source_meshes": 29.0,
+			"triangles": 1516.0
+		},
+		{
+			"bytes": 95186,
+			"draw_surfaces": 9.0,
+			"file": "shotgun.scn",
+			"id": "shotgun",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1574999988079071,
+						0.3375000059604645,
+						1.4424999952316284
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.34085968136787415,
+						-0.1599999964237213
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.15750000007450582,
+						0.3375000014901161,
+						1.4425000008940696
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.3433660917818141,
+						-0.15999999806284904
+					]
+				},
+				"family": "shotgun",
+				"id": "shotgun",
+				"label": "Дробовик",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.14,
+						0.3,
+						0.29
+					],
+					"family": "shotgun",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Дробовик",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.2,
+						1.42
+					],
+					"supportGrip": [
+						0.0,
+						0.1,
+						0.62
+					],
+					"surfaceDetailBatches": 5.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"walnut_forestock_grain",
+						"shell_loading_port",
+						"shell_lifter_edge",
+						"pump_wood_inlay",
+						"pump_wood_inlay"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "shotgun"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "a7551f16492245d0859af07de32199fec7617c23590e7bea3a3ada46c1768a41",
+			"source_meshes": 38.0,
+			"triangles": 1340.0
+		},
+		{
+			"bytes": 95630,
+			"draw_surfaces": 8.0,
+			"file": "uzi.scn",
+			"id": "uzi",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1885996013879776,
+						0.4749999940395355,
+						0.9825000166893005
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.5,
+						-0.18717294931411743
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.18859960200784243,
+						0.47500000178813934,
+						0.9825000008940696
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.49999999966472386,
+						-0.18717295356159977
+					]
+				},
+				"family": "smg",
+				"id": "uzi",
+				"label": "Узи",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.13,
+						0.3,
+						0.37
+					],
+					"family": "smg",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Узи",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.22,
+						0.96
+					],
+					"supportGrip": [
+						0.0,
+						-0.01,
+						0.5
+					],
+					"surfaceDetailBatches": 5.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"grip_safety_panel",
+						"folding_stock_pivot",
+						"folding_stock_pivot_slot",
+						"selector_marking",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"grip_safety_panel",
+						"folding_stock_pivot",
+						"folding_stock_pivot_slot",
+						"selector_marking"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "uzi"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "4a827d3e6dd05cec266a943b72dfe7619d98a290e3a7f8b559eb9ac0284a302a",
+			"source_meshes": 43.0,
+			"triangles": 1304.0
+		},
+		{
+			"bytes": 97442,
+			"draw_surfaces": 9.0,
+			"file": "golden_uzi.scn",
+			"id": "golden_uzi",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.1885996013879776,
+						0.4749999940395355,
+						0.9825000166893005
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.5,
+						-0.18717294931411743
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.18859960200784243,
+						0.47500000178813934,
+						0.9825000008940696
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.49999999966472386,
+						-0.18717295356159977
+					]
+				},
+				"family": "smg",
+				"id": "golden_uzi",
+				"label": "Золотой Узи",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.13,
+						0.3,
+						0.37
+					],
+					"family": "smg",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Золотой Узи",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.22,
+						0.96
+					],
+					"supportGrip": [
+						0.0,
+						-0.01,
+						0.5
+					],
+					"surfaceDetailBatches": 5.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"grip_safety_panel",
+						"folding_stock_pivot",
+						"folding_stock_pivot_slot",
+						"selector_marking",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"stamped_magazine_flute",
+						"grip_safety_panel",
+						"folding_stock_pivot",
+						"folding_stock_pivot_slot",
+						"selector_marking"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "golden_uzi"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "6fc21555b11e117d59068dfdaddb7c601e707bc20ceefe0f7a2773ddf575a9d8",
+			"source_meshes": 44.0,
+			"triangles": 1316.0
+		},
+		{
+			"bytes": 129287,
+			"draw_surfaces": 9.0,
+			"file": "ak74.scn",
+			"id": "ak74",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.20000000298023224,
+						0.46399998664855957,
+						1.4103922843933105
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.5087735056877136,
+						-0.1599999964237213
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.20000000074505803,
+						0.4640000003576279,
+						1.410392304509878
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.5087735056877136,
+						-0.15999999806284904
+					]
+				},
+				"family": "rifle",
+				"id": "ak74",
+				"label": "АК-74",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.13,
+						0.3,
+						0.37
+					],
+					"family": "rifle",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "АК-74",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.23,
+						1.4
+					],
+					"supportGrip": [
+						0.0,
+						0.1,
+						0.62
+					],
+					"surfaceDetailBatches": 4.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"laminated_wood_grain",
+						"laminated_wood_grain",
+						"laminated_wood_grain",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"laminated_wood_grain",
+						"laminated_wood_grain",
+						"laminated_wood_grain",
+						"safety_lever"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "ak74"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "21a0e71f26d8b590974071bdf90eb3fead00864a9e82d24aa4008d5e09e439dc",
+			"source_meshes": 42.0,
+			"triangles": 1924.0
+		},
+		{
+			"bytes": 146970,
+			"draw_surfaces": 8.0,
+			"file": "m16.scn",
+			"id": "m16",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.19509558379650116,
+						0.5090000033378601,
+						1.4103922843933105
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.5093271732330322,
+						-0.1599999964237213
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.19509558230974597,
+						0.5089999997615815,
+						1.410392304509878
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.5093271732330322,
+						-0.15999999806284904
+					]
+				},
+				"family": "rifle",
+				"id": "m16",
+				"label": "М-16",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.13,
+						0.3,
+						0.37
+					],
+					"family": "rifle",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "М-16",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.23,
+						1.4
+					],
+					"supportGrip": [
+						0.0,
+						0.1,
+						0.57
+					],
+					"surfaceDetailBatches": 3.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"magazine_stamped_channel",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"handguard_cooling_slot",
+						"magazine_release_button"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "m16"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "98167eb456466138240de0866cbe087e9c6f812f42162794082a241b930b0a33",
+			"source_meshes": 46.0,
+			"triangles": 2236.0
+		},
+		{
+			"bytes": 138012,
+			"draw_surfaces": 10.0,
+			"file": "tommy_gun.scn",
+			"id": "tommy_gun",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.14749999344348907,
+						0.4099999964237213,
+						1.402500033378601
+					],
+					"min": [
+						-0.14680862426757813,
+						-0.34323054552078247,
+						-0.1599999964237213
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.1475000000745058,
+						0.4099999991059303,
+						1.4025000008940696
+					],
+					"min": [
+						-0.1468086209712692,
+						-0.3433660917818141,
+						-0.15999999806284904
+					]
+				},
+				"family": "smg",
+				"id": "tommy_gun",
+				"label": "Томми Ган",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.13,
+						0.3,
+						0.37
+					],
+					"family": "smg",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Томми Ган",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.22,
+						1.38
+					],
+					"supportGrip": [
+						0.0,
+						-0.1,
+						0.62
+					],
+					"surfaceDetailBatches": 4.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_winding_key",
+						"foregrip_wood_grain",
+						"foregrip_wood_grain",
+						"foregrip_wood_grain",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_radial_pressing",
+						"drum_winding_key",
+						"foregrip_wood_grain",
+						"foregrip_wood_grain",
+						"foregrip_wood_grain"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "tommy_gun"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "a91f5fc14541785e2b91785d9d2bbe39cc3bf94ca1a2238dbfa18d51f0b3fded",
+			"source_meshes": 43.0,
+			"triangles": 2264.0
+		},
+		{
+			"bytes": 137507,
+			"draw_surfaces": 10.0,
+			"file": "sniper.scn",
+			"id": "sniper",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.26899999380111694,
+						0.6050000190734863,
+						1.902500033378601
+					],
+					"min": [
+						-0.2524999976158142,
+						-0.34085968136787415,
+						-0.1599999964237213
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.26899999839067457,
+						0.6050000001490116,
+						1.9025000008940696
+					],
+					"min": [
+						-0.2525000004470348,
+						-0.3433660917818141,
+						-0.15999999806284904
+					]
+				},
+				"family": "sniper",
+				"id": "sniper",
+				"label": "Снайперская винтовка",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": [
+						0.13,
+						0.3,
+						0.37
+					],
+					"family": "sniper",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Снайперская винтовка",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.18
+					],
+					"muzzle": [
+						0.0,
+						0.23,
+						1.88
+					],
+					"supportGrip": [
+						0.0,
+						0.1,
+						0.62
+					],
+					"surfaceDetailBatches": 5.0,
+					"surfaceDetails": [
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_machined_seam",
+						"receiver_service_screw",
+						"receiver_service_screw_slot",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"scope_turret_knurl",
+						"forestock_wood_grain",
+						"forestock_wood_grain",
+						"forestock_wood_grain",
+						"scope_ring_screw",
+						"scope_ring_screw_slot",
+						"scope_ring_screw",
+						"scope_ring_screw_slot",
+						"forestock_wood_grain",
+						"forestock_wood_grain",
+						"forestock_wood_grain",
+						"scope_ring_screw",
+						"scope_ring_screw_slot",
+						"scope_ring_screw",
+						"scope_ring_screw_slot",
+						"scope_zero_mark"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "sniper"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "36f908ddba87135adf0b2b2fa93fe2bea75041c49394b3a0374ee93ccc79fc36",
+			"source_meshes": 40.0,
+			"triangles": 2000.0
+		},
+		{
+			"bytes": 87021,
+			"draw_surfaces": 8.0,
+			"file": "rpg.scn",
+			"id": "rpg",
+			"profile": {
+				"bounds_native": {
+					"max": [
+						0.2070000022649765,
+						0.621999979019165,
+						1.7300000190734863
+					],
+					"min": [
+						-0.20000000298023224,
+						-0.34085968136787415,
+						-0.20999997854232788
+					]
+				},
+				"bounds_source": {
+					"max": [
+						0.20700000002980232,
+						0.6220000000298023,
+						1.729999993443489
+					],
+					"min": [
+						-0.20000000298023224,
+						-0.3433660917818141,
+						-0.20999997138977056
+					]
+				},
+				"family": "launcher",
+				"id": "rpg",
+				"label": "Базука",
+				"primary_hand_grip": [
+					0.0,
+					-0.13,
+					-0.02
+				],
+				"reload_hand_target": [
+					-0.08,
+					-0.34,
+					0.12
+				],
+				"source_forward": "+Z",
+				"source_metadata": {
+					"artRevision": "artist14-weapons-v2-ground-arsenal",
+					"ejectionPort": null,
+					"family": "launcher",
+					"frontAxis": "+Z",
+					"gripOrigin": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"label": "Базука",
+					"mountOffset": [
+						0.15,
+						1.1,
+						0.24
+					],
+					"muzzle": [
+						0.0,
+						0.23,
+						1.73
+					],
+					"supportGrip": [
+						0.0,
+						0.09,
+						0.46
+					],
+					"surfaceDetailBatches": 4.0,
+					"surfaceDetails": [
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"sight_bracket_screw",
+						"sight_bracket_screw_slot",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"launcher_heat_shield_seam",
+						"sight_bracket_screw",
+						"sight_bracket_screw_slot",
+						"warhead_inspection_mark",
+						"warhead_inspection_mark",
+						"warhead_inspection_mark",
+						"warhead_inspection_mark"
+					],
+					"twoHanded": true,
+					"visualOnly": true,
+					"weaponId": "rpg"
+				},
+				"two_handed": true,
+				"units": "unscaled_original_hero_rig"
+			},
+			"sha256": "079f109d33220696a3daa0b0439fc5fef136dedec9a7ebe40edc6b376b035166",
+			"source_meshes": 34.0,
+			"triangles": 1280.0
+		}
+	],
+	"limits": [
+		"Visual asset package only; owner/admission/ammo/HP unchanged",
+		"Shader values preserved; final GPU lighting/tone-mapping requires root render review",
+		"Host owns body/hand IK and weapon world pose; no automatic hand pose"
+	],
+	"schema": "mafiozi.weapon-native/v1",
+	"source_hash_normalization": "crlf_to_lf",
+	"source_inputs": [
+		{
+			"path": "assets/maps/city_rebuild_v1/hero_arsenal.mjs",
+			"sha256": "4ae63088a196c4037822184e2977152f763ac785b3850eb5652aa6c10cbc4989"
+		},
+		{
+			"path": "assets/maps/city_rebuild_v1/hero_walk.mjs",
+			"sha256": "cfce2f85acaf677dd3fd9f47a05efaaf90432b19680099fbe32c39fb5811c01d"
+		},
+		{
+			"path": "assets/maps/city_rebuild_v1/hero_motion_presentation.mjs",
+			"sha256": "d37b364b49e1ff0ace71f47e9a2d8a142a1f21c0fbb746d7367a8f27bfaf8f27"
+		},
+		{
+			"path": "assets/maps/city_rebuild_v1/weapon_effects.mjs",
+			"sha256": "01a621e4f6b5d145fe7ae4acfdd7ffd9a1e312e4e199e5273618e1b4eea9f130"
+		}
+	],
+	"source_manifest_sha256": "5b8e38464b20184dcca89625619c2f88b8fd1f5cf4d38b42618be1106e9d5905"
+}

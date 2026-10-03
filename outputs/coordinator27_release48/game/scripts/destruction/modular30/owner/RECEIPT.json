@@ -1,0 +1,187 @@
+{
+  "schema": "mafiozi.frozen-minimal-modular-delivery/v1",
+  "status": "FROZEN_FOR_ROOT24_NATIVE_PLAYER_AND_LOADED_PERFORMANCE_ACCEPTANCE",
+  "source_id": "REBUILD-VISUAL-hillstep_chalet_v1-002",
+  "asset_id": "hillstep_chalet_v1",
+  "runtime": "expansion/compound_node/compound_runtime.gd",
+  "loader": "expansion/modular_buildings/export/prefab_loader.gd",
+  "prefab": "expansion/modular_buildings/export/prefabs/p_bcf15753559fb291258b7b2a.scn",
+  "body_relative_path": "modular_body_v1",
+  "scope": "One actual placed new opaque modular chalet, 29 closed physical parts, 348 original triangles; includes incremental shared renderer and inherited atomic collider/rubble host.",
+  "native_prefab_registration_verified": true,
+  "new_house_four_receipt_breach_and_capsule_verified": true,
+  "whole_house_collapse_implemented": false,
+  "actual_native_player_weapon_verified": false,
+  "glazing_integrated": false,
+  "original_city_owner_connectors_integrated": false,
+  "loaded_scene_fps_verified": false,
+  "production_enabled": false,
+  "all_78_gameplay_enabled": false,
+  "files": [
+    {
+      "path": "expansion/modular_buildings/export/prefab_loader.gd",
+      "sha256": "9264d7e5013ddb7d1b65e7456081b3e3d36594dd10de06ac814522d42848c80e",
+      "bytes": 8671
+    },
+    {
+      "path": "expansion/compound_node/compound_runtime.gd",
+      "sha256": "770c328f7e9238bd8ebdfd97db96b64b921bc9e74dac982de6136b08953a6cc4",
+      "bytes": 31323
+    },
+    {
+      "path": "expansion/compound_node/compound_contact.gd",
+      "sha256": "1f71782bf5774f6f455d9718e2f182694ec3f4ebfd7f9b5e40980dd9f84e4555",
+      "bytes": 3363
+    },
+    {
+      "path": "expansion/compound_node/compound_dispatch.gd",
+      "sha256": "b53ab2fa89361e0c86c5f695be5c49af8e33dcd5c917736744cca54b2205e50f",
+      "bytes": 17089
+    },
+    {
+      "path": "expansion/compound_render/compound_render.gd",
+      "sha256": "5fc5935a9f0e2a4d9443ac31f1ef59de2372cfd2e3fc93d9e03f23e7f13156bf",
+      "bytes": 30006
+    },
+    {
+      "path": "material_strength.gd",
+      "sha256": "932135998a38232d9fd2227ce77dfd5b4dc1f15e62918276ac00026285bedaad",
+      "bytes": 2465
+    },
+    {
+      "path": "panels/source_planar_panels.gd",
+      "sha256": "77fa21aa6ec4a4ee2e37e162f31a531756a935aade0d5950479920e0131eb292",
+      "bytes": 27914
+    },
+    {
+      "path": "modules/component_dispatch.gd",
+      "sha256": "3f4a5e5f57b99da27a15240ba137232bb444bd49b6efcfdb95c6b9395daaba82",
+      "bytes": 10980
+    },
+    {
+      "path": "modules/measured_solid.gd",
+      "sha256": "9f0a98f5e84903e6da6ab0ae30542dde2c260e4adab36528aa419ca9ef798087",
+      "bytes": 5329
+    },
+    {
+      "path": "modules/convex_source.gd",
+      "sha256": "22b28e6998b2de0394450879e0997b28027133e82138fbfca343ebaea8377033",
+      "bytes": 12143
+    },
+    {
+      "path": "modules/geometry.gd",
+      "sha256": "efa3e554f162ad22033e5b86bb0925fc811ac586c83b97a1329740d9da68c925",
+      "bytes": 26165
+    },
+    {
+      "path": "modules/mesh_assembler.gd",
+      "sha256": "0802da291f965ce579da8972ad2494bd0552453826359179e8d3929c38d2b0fa",
+      "bytes": 16555
+    },
+    {
+      "path": "modules/hollow_shell.gd",
+      "sha256": "876017e62124b41af0cd9a06f9df2ef38c8afc7cc60f9880d30d4d1e230963c7",
+      "bytes": 12924
+    },
+    {
+      "path": "vendor/rubble/rubble_manager.gd",
+      "sha256": "ec9ff0b09164c6cd7ee6f5d9704e016180c973b4227feb516cc92ee6d843d652",
+      "bytes": 38305
+    },
+    {
+      "path": "vendor/rubble/parked_batch.gd",
+      "sha256": "46b07dc6f95ad2bc7ecad99b83a60834ee61b1fde67885b87810bc2d563fcc05",
+      "bytes": 3054
+    },
+    {
+      "path": "vendor/rubble/pooled_fragment.gd",
+      "sha256": "ac374ce2e1b44e9f17fb297a6e7b51086baf5c21eda53e1e97296d23dff8913c",
+      "bytes": 1837
+    },
+    {
+      "path": "vendor/blocks/convex_component_adapter.gd",
+      "sha256": "0c323452b46f880e486dff117bf05cbfbe730d2283df98454ccd09d43db4ab9e",
+      "bytes": 33492
+    },
+    {
+      "path": "vendor/material_strength.gd",
+      "sha256": "932135998a38232d9fd2227ce77dfd5b4dc1f15e62918276ac00026285bedaad",
+      "bytes": 2465
+    },
+    {
+      "path": "vendor/interior/thin_slab_adapter.gd",
+      "sha256": "f9845e8aa6831e1591698ca7468a507c21fb0d4b6d5b808089dabd5fdcb9d860",
+      "bytes": 26244
+    },
+    {
+      "path": "vendor/glass/walk_glass_breakage.gd",
+      "sha256": "c227899b3ab5dabc7abafeee48da6823572f2ae7f55b57f19befe044c4f28b66",
+      "bytes": 33502
+    },
+    {
+      "path": "vendor/chunks/closed_patch_fragments.gd",
+      "sha256": "bde106fabe00e5e49006ff615d11834691f801406ecf9f8c7b669e4e1e184588",
+      "bytes": 20798
+    },
+    {
+      "path": "vendor/collision_groups.gd",
+      "sha256": "250b2c5e46e5969405332d672bbf7c093b6ba67fbc50a8c5cec74bd85e6af187",
+      "bytes": 6079
+    },
+    {
+      "path": "compatibility/rubble_manager_1025.gd",
+      "sha256": "d1bc2802b1076172aa9a5c9da2e0da70f8cf8b605d58efa90c16c61d4cb13752",
+      "bytes": 38372
+    },
+    {
+      "path": "vendor/surface_cut.gd",
+      "sha256": "d389c7f6619232437d8cd5cdf690f3eada88fc205061b39d5f856b1775da583d",
+      "bytes": 7318
+    },
+    {
+      "path": "expansion/compound_node/runtime_report.json",
+      "sha256": "8513b9c3419b3efe177cd086acd418439adad3bd2598c1c018d1a81525a0a626",
+      "bytes": 2032
+    },
+    {
+      "path": "expansion/compound_node/contact_report.json",
+      "sha256": "d2a35d9f6d4f0f32e7a70535aa217d1969d9108c9ccd7e91bc3610745a3c3213",
+      "bytes": 663
+    },
+    {
+      "path": "expansion/compound_render/report.json",
+      "sha256": "8f8ff25e660ef0e8b4c15b6c93b4fbf6e6153a74ab9fd4cd414f2a49f5b3eedd",
+      "bytes": 20344
+    },
+    {
+      "path": "expansion/modular_buildings/export/binder_report.json",
+      "sha256": "eb9be9b11fa9a5550c4d6a6f4462ea55f03efbd81edf83713d7bb7ddedd4a6bc",
+      "bytes": 1924
+    },
+    {
+      "path": "expansion/modular_buildings/export/minimal_entrypoint.json",
+      "sha256": "8173331c900e8adbef8b735f83c63716713f8e09c0fbfd8edfed219270ba7d18",
+      "bytes": 4520
+    },
+    {
+      "path": "expansion/modular_buildings/export/MINIMAL_ENTRYPOINT.txt",
+      "sha256": "633ce60b613ccdae99f50821357b91ee59b70f4cf6e8e9092b03f982c886b6ee",
+      "bytes": 2525
+    },
+    {
+      "path": "expansion/modular_buildings/export/prefabs/p_bcf15753559fb291258b7b2a.scn",
+      "sha256": "524fb0caba7e9c6af002387369116102f47773bf898460e7e314d44001a5071b",
+      "bytes": 16303
+    },
+    {
+      "path": "expansion/modular_buildings/validation/report.json",
+      "sha256": "cad8bb354e489799001594d59ca80695a9719ca4fe396665e6451815aae7cae5",
+      "bytes": 57332
+    },
+    {
+      "path": "MODULAR_MINIMAL_README.md",
+      "sha256": "7a291b4e0a003392a0b188f0b6f808ab1555302722b56a8c96c19fada2d68cdf",
+      "bytes": 3735
+    }
+  ]
+}

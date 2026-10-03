@@ -1,0 +1,801 @@
+{
+  "schema": "mafiozi.local-printshop-resident-access/v1",
+  "scope": "NEW_LOCAL_PREVIEW_SESSION_ONE_ORIGINAL_PHYSICAL_ENTRY",
+  "source_id": "REBUILD-VISUAL-print_shop-001",
+  "door": {
+    "id": "native:REBUILD-VISUAL-print_shop-001",
+    "native": true,
+    "authored": true,
+    "residentEligible": true,
+    "instanceId": "REBUILD-VISUAL-print_shop-001",
+    "sourceKind": "native",
+    "sourceId": "REBUILD-VISUAL-print_shop-001",
+    "sourceAliases": [],
+    "r": 12.377913843951179,
+    "c": 98.30614630350254,
+    "inside": {
+      "r": 12.377913843951179,
+      "c": 97.51346337667327
+    },
+    "districtId": "old_town",
+    "assetId": "print_shop",
+    "buildingRole": "business_facade"
+  },
+  "public_approach_preview": [
+    7.405199844360425,
+    0.017727272727278816,
+    5.649446760199837
+  ],
+  "public_inside_preview": [
+    4.155199844360425,
+    0.39,
+    5.649446760199837
+  ],
+  "source_open_before": {
+    "ready": false,
+    "reason": "door-moving",
+    "door": {
+      "id": "native:REBUILD-VISUAL-print_shop-001",
+      "native": true,
+      "authored": true,
+      "residentEligible": true,
+      "instanceId": "REBUILD-VISUAL-print_shop-001",
+      "sourceKind": "native",
+      "sourceId": "REBUILD-VISUAL-print_shop-001",
+      "sourceAliases": [],
+      "r": 12.377913843951179,
+      "c": 98.30614630350254,
+      "inside": {
+        "r": 12.377913843951179,
+        "c": 97.51346337667327
+      },
+      "districtId": "old_town",
+      "assetId": "print_shop",
+      "buildingRole": "business_facade"
+    }
+  },
+  "source_open_after": {
+    "ready": true,
+    "reason": "open",
+    "door": {
+      "id": "native:REBUILD-VISUAL-print_shop-001",
+      "native": true,
+      "authored": true,
+      "residentEligible": true,
+      "instanceId": "REBUILD-VISUAL-print_shop-001",
+      "sourceKind": "native",
+      "sourceId": "REBUILD-VISUAL-print_shop-001",
+      "sourceAliases": [],
+      "r": 12.377913843951179,
+      "c": 98.30614630350254,
+      "inside": {
+        "r": 12.377913843951179,
+        "c": 97.51346337667327
+      },
+      "districtId": "old_town",
+      "assetId": "print_shop",
+      "buildingRole": "business_facade"
+    }
+  },
+  "samples": [
+    {
+      "t": 0,
+      "preview": [
+        7.405199844360425,
+        0.017727272727278816,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.016666666666666666,
+      "preview": [
+        7.3510331776937505,
+        0.027141265597152162,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.03333333333333333,
+      "preview": [
+        7.296866511027076,
+        0.03655525846702555,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.05,
+      "preview": [
+        7.242699844360402,
+        0.045969251336909024,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.06666666666666667,
+      "preview": [
+        7.188533177693785,
+        0.05538324420677232,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.08333333333333333,
+      "preview": [
+        7.13436651102711,
+        0.06479723707664571,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.1,
+      "preview": [
+        7.080199844360436,
+        0.07421122994652914,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.11666666666666667,
+      "preview": [
+        7.026033177693762,
+        0.08362522281640253,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.13333333333333333,
+      "preview": [
+        6.971866511027088,
+        0.09303921568627592,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.15,
+      "preview": [
+        6.917699844360413,
+        0.10245320855615934,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.16666666666666666,
+      "preview": [
+        6.863533177693739,
+        0.11186720142603274,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.18333333333333332,
+      "preview": [
+        6.809366511027065,
+        0.12128119429590611,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.2,
+      "preview": [
+        6.7551998443604475,
+        0.13069518716577952,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.21666666666666667,
+      "preview": [
+        6.701033177693773,
+        0.1401091800356529,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.23333333333333334,
+      "preview": [
+        6.646866511027099,
+        0.14952317290552625,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.25,
+      "preview": [
+        6.592699844360425,
+        0.1589371657754097,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.26666666666666666,
+      "preview": [
+        6.5385331776937505,
+        0.1683511586452831,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.2833333333333333,
+      "preview": [
+        6.484366511027076,
+        0.17776515151515646,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.3,
+      "preview": [
+        6.430199844360402,
+        0.18717914438502983,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.31666666666666665,
+      "preview": [
+        6.376033177693785,
+        0.1965931372549032,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.3333333333333333,
+      "preview": [
+        6.32186651102711,
+        0.20600713012477662,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.35,
+      "preview": [
+        6.267699844360436,
+        0.21542112299464994,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.36666666666666664,
+      "preview": [
+        6.213533177693762,
+        0.22483511586453342,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.38333333333333336,
+      "preview": [
+        6.159366511027088,
+        0.2342491087344068,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.4,
+      "preview": [
+        6.105199844360413,
+        0.2436631016042802,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.4166666666666667,
+      "preview": [
+        6.051033177693739,
+        0.25307709447416366,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.43333333333333335,
+      "preview": [
+        5.996866511027065,
+        0.26249108734403703,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.45,
+      "preview": [
+        5.9426998443604475,
+        0.2719050802139003,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.4666666666666667,
+      "preview": [
+        5.888533177693773,
+        0.28131907308378373,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.48333333333333334,
+      "preview": [
+        5.834366511027099,
+        0.2907330659536571,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.5,
+      "preview": [
+        5.780199844360425,
+        0.30014705882353054,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.5166666666666667,
+      "preview": [
+        5.7260331776937505,
+        0.30956105169341397,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.5333333333333333,
+      "preview": [
+        5.671866511027076,
+        0.3189750445632874,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.55,
+      "preview": [
+        5.617699844360402,
+        0.3283890374331607,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.5666666666666667,
+      "preview": [
+        5.563533177693785,
+        0.3378030303030341,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.5833333333333334,
+      "preview": [
+        5.50936651102711,
+        0.3472170231729075,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.6,
+      "preview": [
+        5.455199844360436,
+        0.3566310160427809,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.6166666666666667,
+      "preview": [
+        5.401033177693762,
+        0.3660450089126543,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.6333333333333333,
+      "preview": [
+        5.346866511027088,
+        0.3754590017825377,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.65,
+      "preview": [
+        5.292699844360413,
+        0.3848729946524111,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.6666666666666666,
+      "preview": [
+        5.238533177693739,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.6833333333333333,
+      "preview": [
+        5.184366511027065,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.7,
+      "preview": [
+        5.1301998443604475,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": false
+    },
+    {
+      "t": 0.7166666666666667,
+      "preview": [
+        5.076033177693773,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.7333333333333333,
+      "preview": [
+        5.021866511027099,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.75,
+      "preview": [
+        4.967699844360425,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.7666666666666667,
+      "preview": [
+        4.9135331776937505,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.7833333333333333,
+      "preview": [
+        4.859366511027076,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.8,
+      "preview": [
+        4.805199844360402,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.8166666666666667,
+      "preview": [
+        4.751033177693785,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.8333333333333334,
+      "preview": [
+        4.69686651102711,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.85,
+      "preview": [
+        4.642699844360436,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.8666666666666667,
+      "preview": [
+        4.588533177693762,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.8833333333333333,
+      "preview": [
+        4.534366511027088,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.9,
+      "preview": [
+        4.480199844360413,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.9166666666666666,
+      "preview": [
+        4.426033177693739,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.9333333333333333,
+      "preview": [
+        4.371866511027065,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.95,
+      "preview": [
+        4.3176998443604475,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.9666666666666667,
+      "preview": [
+        4.263533177693773,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 0.9833333333333333,
+      "preview": [
+        4.209366511027099,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    },
+    {
+      "t": 1,
+      "preview": [
+        4.155199844360425,
+        0.39,
+        5.649446760199837
+      ],
+      "containsInterior": true
+    }
+  ],
+  "sources": [
+    {
+      "path": "assets/maps/city_rebuild_v1/building_doors_glass.mjs",
+      "sha256": "5239dbbf19fde137febcdb3de9e82089ca75ff75d9b4773c020ec8c454141d9c"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_entry.mjs",
+      "sha256": "d822be6e32269d4f175a328e09c008a37e56ef2dec0e55b5ea9992ba08be3333"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_entry_profiles.mjs",
+      "sha256": "cdafc87850c0eaabf64090cd8f441c78a20bf9c4d75be7eed1bb3850a482f53b"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_floor_surface.mjs",
+      "sha256": "c2da865acc3b2cc9ee83f06bbbb0a00ab0116cfacf9f47d75513ad812cc93a67"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_garden_site_scale.mjs",
+      "sha256": "cc4369419830d65b819a0baa3197700206836261a68cd10fca7d4e2958386ad2"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_interior_design.mjs",
+      "sha256": "a0881b7b05800c2ee7fe16d3dd3a2f58d983fb0f92fb6582edc4f5e7a25a4b76"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_interior_purpose.mjs",
+      "sha256": "37c47750491dc7a935a414a625aa016077f26767d3f1a667af30e87932808791"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_models/print_shop/print_shop.ad7b8ef7e7e4.glb",
+      "sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_room_profiles.mjs",
+      "sha256": "37ab0d42239015ce40c5e78ef241bc35e57122d761c1f66702225fd06f9aaf94"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_site_collision.mjs",
+      "sha256": "656bcb9eedd815855adfe34f9836eadaf4132f12f8d1f302c2e40710e61925ae"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_site_scale.mjs",
+      "sha256": "775978bb1fc3d0915c70ce34884616ce59a376687853da6856522b4d9e5e6d70"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_size_policy.mjs",
+      "sha256": "d61a16c35a8ab73f2e6dd3a5f03e4d0f951ae9ee137feace527f2f34558d72ad"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_storey_profiles.mjs",
+      "sha256": "5246a900962dbf67a3ecef134908f20c52a4df276e289bbdb0cf6db1c26b9e6a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_storeys.mjs",
+      "sha256": "9dd183dc2712e3ab8543cebe911bc3bdc3ea4aff09aa8288bd4d1e31a4cb3223"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/building_window_integration.mjs",
+      "sha256": "bf2f0331bd544e2e7c44fd3bf79228e6d5ca70135a55af25972e820c968a2634"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/buildings_placement.v1.json",
+      "sha256": "90e0b27196b51fc1f09ccc67d4c5f8374d5c37611576106f34b30559e86ed3ca"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/detention_native_sites.mjs",
+      "sha256": "113e0e5f7c8415ed083ff7ef9e4ba373c3b4c7c5e6522b38cd2c260abb5ad0f8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/detention_road_stop_pose.mjs",
+      "sha256": "e123e09ec248aa61585d8780a3100787c270480c093f4fe269787245d543eeeb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/glass_breakage.mjs",
+      "sha256": "d5b8f7380eb716067203395808e7c94ed45cc44ff4d7cfc4bb1d278b24cecf3a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hospital_public_approach.mjs",
+      "sha256": "4a653d571cf3497c78daa8eb90691ea4fedc96c49cb44614c10533acde85ba34"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_bank_room_plan.mjs",
+      "sha256": "2ead9bea139b700e1a14709e625f38be975eb1ef3e590ac53cd6c1dc804bbf32"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_finishes.mjs",
+      "sha256": "95f5d850ba2414194d0e2982224dfe6ce9fba0b1c9f713d415dd1b74e51320dd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_functional_furnishing.mjs",
+      "sha256": "9045dd84e9e0d722d6efaf57094377e57f4f074667439cb5bfe68cff852b92c8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_interactive_safe.mjs",
+      "sha256": "7a2892501579762bad2de7684933b01682fcbcbf90742e4c8075c8b19ac5a8e5"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_mesh_pool.mjs",
+      "sha256": "6c4e585ed5b649cc03e76a9022728a17e002cf60599a5dc9b1cac982477b7ddd"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_room_doors.mjs",
+      "sha256": "7e1a786a229078b4e496324ae03f661997980b8c3029de02fd466f5d8fab156a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_safe_registry.mjs",
+      "sha256": "ca0f42714d60a24831af26549638383e6a593ffcb8a5deb020ed117022372c29"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_spacious_layout.mjs",
+      "sha256": "aaf45e3387e7a26cf9296b7488cb06622059b52fc2fc933dffb55be601dece41"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/interior_staircase.mjs",
+      "sha256": "714cf1b1b0c28ef6438c2b48daf1efd8868d6e69fa36eb7969d953de8479784d"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/native_print_shop_service_station.mjs",
+      "sha256": "2cc1e9ed809d0d0b681c83f685f7a798240590dfd5086870e96db1b6fe301280"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/npc_resident_building_access.mjs",
+      "sha256": "6aded5879a6215d3ff59f105df68cd45c6ee575ecaf55c1c54a6b1a7757a50d7"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/oriented_staircase.mjs",
+      "sha256": "6ec9285077ff34c2461546a87a68ce0748755b2fa09c993182c8f16b20ae8bf9"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/render_freeze_qa.mjs",
+      "sha256": "c2bd6b91573397c50a1387fe30b4a33e36fec61effc58620d9a5cd20a985abfb"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/residential_windows.mjs",
+      "sha256": "a9e25aa9b5a7e09ea7997ea7f0ff28ec983febc8bc43e6ff3c996f5110914d0a"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/roof_ladder.mjs",
+      "sha256": "a6a2982426053df4a6ac8b38db029ec36af97afa0fa868787c688bca8b2b1733"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/tower_public_approach.mjs",
+      "sha256": "2b100e666cfa440c01190dd8b30efa5e381a2520fbce03adb1f860ca3e091479"
+    },
+    {
+      "path": "godot/mafiozi_walk/data/block.json",
+      "sha256": "1523f52e2e859c42aec208d4acfffb9714ffb99974823098bb063e31ee61c22e"
+    },
+    {
+      "path": "THREE_VENDOR/addons/loaders/GLTFLoader.js",
+      "sha256": "67ac5551fdafa6e349bd80c8f8e5e39c136d6b2fb1ad647db9abb21dc86f9e4a"
+    },
+    {
+      "path": "THREE_VENDOR/addons/utils/BufferGeometryUtils.js",
+      "sha256": "fda7e946b8e0b5ab39b779206589e7a1079a22eb24efb89d7223e03fdfb1f751"
+    },
+    {
+      "path": "THREE_VENDOR/build/three.core.js",
+      "sha256": "eb077d2417f61d3e6d9264c317cabc4ea35769ed6b0ab533067292a550784c20"
+    },
+    {
+      "path": "THREE_VENDOR/build/three.module.js",
+      "sha256": "c8211c69345d2e9949dc7a8ac969380497aa0600a5a8ac6a459c8cd02dd9cb8a"
+    }
+  ],
+  "registered_original_session": false,
+  "original_progress_mutated": false,
+  "gpu": false,
+  "exporter_sha256": "80f5d0aba6ad6989554c5b19ebc135c8e88fc5ff8da6736b2921c43b31ff58cf"
+}

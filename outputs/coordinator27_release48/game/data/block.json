@@ -1,0 +1,9331 @@
+{
+  "schema": "mafiozi.godot.preview-block/v1",
+  "anchorId": "REBUILD-VISUAL-print_shop-001",
+  "scope": "real authored city excerpt; migration preview; gameplay not migrated",
+  "originM": [
+    395.65,
+    0,
+    45.099999999999994
+  ],
+  "metresPerCell": 4.1,
+  "coordinateContract": "RH Y-up; local X=source X-origin X, local Z=source Z-origin Z; positive yaw preserved",
+  "sources": [
+    {
+      "path": "assets/maps/city_rebuild_v1/buildings_placement.v1.json",
+      "bytes": 425058,
+      "sha256": "90e0b27196b51fc1f09ccc67d4c5f8374d5c37611576106f34b30559e86ed3ca"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/topology_for_placement.json",
+      "bytes": 477742,
+      "sha256": "11f256f20ea5f8f5387fa4829173e84cf688aa2ba554aa5b6aacdb85301d67b6"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/decor_placement.v1.json",
+      "bytes": 951936,
+      "sha256": "9bdd858e781914df73eba62d47f2df8eec7c9e3057e34f98f9c18134122036c8"
+    },
+    {
+      "path": "assets/maps/city_rebuild_v1/hero_walk.manifest.json",
+      "bytes": 926,
+      "sha256": "f59b42a8a64e97f4ca83fed0535d093fa76ce4f7a6df9439bced295f019ad4ae"
+    }
+  ],
+  "sourceStatus": {
+    "placement": "CANDIDATE_REQUIRES_LIVE_QA",
+    "topology": "ISOLATED_WALK_TOPOLOGY_PENDING_HOST",
+    "pendingHostSnapshot": true
+  },
+  "buildings": [
+    {
+      "id": "REBUILD-VISUAL-print_shop-001",
+      "assetId": "print_shop",
+      "role": "business_facade",
+      "path": "res://assets/buildings/print_shop.ad7b8ef7e7e4.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/print_shop/print_shop.ad7b8ef7e7e4.glb",
+        "sha256": "ad7b8ef7e7e4143f0e989b7a585c03bb9bd1c13d5efb8689cf67ebcb92ac4d97",
+        "bytes": 966720
+      },
+      "transform": {
+        "positionM": [
+          395.65,
+          0,
+          45.099999999999994
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.13867319894612695,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1.02,
+          1.02
+        ]
+      },
+      "positionLocalM": [
+        0.0,
+        0,
+        0.0
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                94.50975609756097,
+                8.47769593587194
+              ],
+              [
+                98.49024390243903,
+                8.47769593587194
+              ],
+              [
+                98.49024390243903,
+                11.949513843951179
+              ],
+              [
+                94.50975609756097,
+                11.949513843951179
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 12.239999622106552,
+            "rectangleRC": {
+              "minC": 94.50975609756097,
+              "maxC": 98.49024390243903,
+              "minR": 8.47769593587194,
+              "maxR": 11.949513843951179
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                94.50975609756097,
+                12.806313843951179
+              ],
+              [
+                98.49024390243903,
+                12.806313843951179
+              ],
+              [
+                98.49024390243903,
+                13.52230406412806
+              ],
+              [
+                94.50975609756097,
+                13.52230406412806
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 12.239999622106552,
+            "rectangleRC": {
+              "minC": 94.50975609756097,
+              "maxC": 98.49024390243903,
+              "minR": 12.806313843951179,
+              "maxR": 13.52230406412806
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                94.50975609756097,
+                11.949513843951179
+              ],
+              [
+                97.73270727911228,
+                11.949513843951179
+              ],
+              [
+                97.73270727911228,
+                12.806313843951179
+              ],
+              [
+                94.50975609756097,
+                12.806313843951179
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 12.239999622106552,
+            "rectangleRC": {
+              "minC": 94.50975609756097,
+              "maxC": 97.73270727911228,
+              "minR": 11.949513843951179,
+              "maxR": 12.806313843951179
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              -8.160000000000025,
+              -10.341446662925044
+            ],
+            [
+              8.160000000000025,
+              -10.341446662925044
+            ],
+            [
+              8.160000000000025,
+              3.8930067601998317
+            ],
+            [
+              -8.160000000000025,
+              3.8930067601998317
+            ]
+          ],
+          "minY": 0,
+          "maxY": 12.239999622106552
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              -8.160000000000025,
+              7.405886760199834
+            ],
+            [
+              8.160000000000025,
+              7.405886760199834
+            ],
+            [
+              8.160000000000025,
+              10.341446662925044
+            ],
+            [
+              -8.160000000000025,
+              10.341446662925044
+            ]
+          ],
+          "minY": 0,
+          "maxY": 12.239999622106552
+        },
+        {
+          "sourceIndex": 2,
+          "node": null,
+          "polygonXZ": [
+            [
+              -8.160000000000025,
+              3.8930067601998317
+            ],
+            [
+              5.054099844360337,
+              3.8930067601998317
+            ],
+            [
+              5.054099844360337,
+              7.405886760199834
+            ],
+            [
+              -8.160000000000025,
+              7.405886760199834
+            ]
+          ],
+          "minY": 0,
+          "maxY": 12.239999622106552
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "r": 12.377913843951179,
+          "c": 97.78370727911228
+        },
+        "roadProbeRC": {
+          "r": 12.377913843951179,
+          "c": 103.24024390243903
+        },
+        "authoredLocalXYZ": [
+          -5.400000095367432,
+          2.049999952316284,
+          5.159999847412109
+        ],
+        "evidence": "actual_glb_node:Burgundy entry door"
+      },
+      "footprint": {
+        "minC": 94.50975609756097,
+        "maxC": 98.49024390243903,
+        "minR": 8.47769593587194,
+        "maxR": 13.52230406412806
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-013",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "path": "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+        "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+        "bytes": 267216
+      },
+      "transform": {
+        "positionM": [
+          414.09999999999997,
+          0,
+          43.05
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.017499983310699463,
+          0.08999991416931152,
+          -0.039999961853027344
+        ],
+        "horizontalScale": [
+          2.152777777777791,
+          1.15
+        ]
+      },
+      "positionLocalM": [
+        18.44999999999999,
+        0,
+        -2.049999999999997
+      ],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "effectiveHiddenNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                100.01943597185418,
+                9.132621951219512
+              ],
+              [
+                101.98056402814582,
+                9.132621951219512
+              ],
+              [
+                101.98056402814582,
+                11.556036660264178
+              ],
+              [
+                100.01943597185418,
+                11.556036660264178
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 100.01943597185418,
+              "minR": 9.132621951219512,
+              "maxC": 101.98056402814582,
+              "maxR": 11.556036660264178
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                100.01943597185418,
+                11.556036660264178
+              ],
+              [
+                100.25466633292072,
+                11.556036660264178
+              ],
+              [
+                100.25466633292072,
+                11.867378048780488
+              ],
+              [
+                100.01943597185418,
+                11.867378048780488
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 100.01943597185418,
+              "minR": 11.556036660264178,
+              "maxC": 100.25466633292072,
+              "maxR": 11.867378048780488
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              14.429687484602141,
+              -7.65625
+            ],
+            [
+              22.470312515397836,
+              -7.65625
+            ],
+            [
+              22.470312515397836,
+              2.279750307083134
+            ],
+            [
+              14.429687484602141,
+              2.279750307083134
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              14.429687484602141,
+              2.279750307083134
+            ],
+            [
+              15.394131964974918,
+              2.279750307083134
+            ],
+            [
+              15.394131964974918,
+              3.5562499999999986
+            ],
+            [
+              14.429687484602141,
+              3.5562499999999986
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "c": 101.15883299958739,
+          "r": 11.61353666026418
+        },
+        "roadProbeRC": {
+          "c": 101.15883299958739,
+          "r": 20.117378048780488
+        },
+        "authoredLocalXYZ": [
+          0.3199999928474426,
+          0,
+          4.010000228881836
+        ],
+        "evidence": "actual_glb_node:EntranceAnchor"
+      },
+      "footprint": {
+        "minC": 100.01943597185418,
+        "minR": 9.132621951219512,
+        "maxC": 101.98056402814582,
+        "maxR": 11.867378048780488
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-005",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "path": "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+        "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+        "bytes": 267216
+      },
+      "transform": {
+        "positionM": [
+          412.54999999999995,
+          0,
+          27.65
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.017499983310699463,
+          0.08999991416931152,
+          -0.039999961853027344
+        ],
+        "horizontalScale": [
+          2.430555555555556,
+          1.0225
+        ]
+      },
+      "positionLocalM": [
+        16.899999999999977,
+        0,
+        -17.449999999999996
+      ],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "effectiveHiddenNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                99.4061737804878,
+                7.58540819217842
+              ],
+              [
+                101.83772865853659,
+                7.58540819217842
+              ],
+              [
+                101.83772865853659,
+                7.850990857898704
+              ],
+              [
+                99.4061737804878,
+                7.850990857898704
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 99.4061737804878,
+              "minR": 7.58540819217842,
+              "maxC": 101.83772865853659,
+              "maxR": 7.850990857898704
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                99.4061737804878,
+                5.6368140201500765
+              ],
+              [
+                101.56090555439926,
+                5.6368140201500765
+              ],
+              [
+                101.56090555439926,
+                7.585408192178421
+              ],
+              [
+                99.4061737804878,
+                7.585408192178421
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 99.4061737804878,
+              "minR": 5.6368140201500765,
+              "maxC": 101.56090555439926,
+              "maxR": 7.585408192178421
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              11.91531249999997,
+              -13.999826412068476
+            ],
+            [
+              21.884687499999984,
+              -13.999826412068476
+            ],
+            [
+              21.884687499999984,
+              -12.91093748261531
+            ],
+            [
+              11.91531249999997,
+              -12.91093748261531
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              11.91531249999997,
+              -21.98906251738468
+            ],
+            [
+              20.749712773036947,
+              -21.98906251738468
+            ],
+            [
+              20.749712773036947,
+              -13.999826412068472
+            ],
+            [
+              11.91531249999997,
+              -13.999826412068472
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "c": 101.61203055439925,
+          "r": 6.564574858845088
+        },
+        "roadProbeRC": {
+          "c": 107.08772865853659,
+          "r": 6.564574858845088
+        },
+        "authoredLocalXYZ": [
+          0.3199999928474426,
+          0,
+          4.010000228881836
+        ],
+        "evidence": "actual_glb_node:EntranceAnchor"
+      },
+      "footprint": {
+        "minC": 99.4061737804878,
+        "minR": 5.6368140201500765,
+        "maxC": 101.83772865853659,
+        "maxR": 7.850990857898704
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-gun_shop-001",
+      "assetId": "gun_shop",
+      "role": "business_facade",
+      "path": "res://assets/buildings/gun_shop.e97d6fac4097.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/gun_shop/gun_shop.e97d6fac4097.glb",
+        "sha256": "e97d6fac4097af61eaf45ad79d84caf5eadf5f167d3ff3acebfae72ff42d9755",
+        "bytes": 1568892
+      },
+      "transform": {
+        "positionM": [
+          395.65,
+          0,
+          69.69999999999999
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.5250000953674316,
+          0,
+          -0.8275000154972076
+        ],
+        "horizontalScale": [
+          1.175,
+          1.175
+        ]
+      },
+      "positionLocalM": [
+        0.0,
+        0,
+        24.599999999999994
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                94.07118905172115,
+                15.358582285300987
+              ],
+              [
+                98.92881094827885,
+                15.358582285300987
+              ],
+              [
+                98.92881094827885,
+                18.231600583450096
+              ],
+              [
+                94.07118905172115,
+                18.231600583450096
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 13,
+            "rectangleRC": {
+              "minC": 94.07118905172115,
+              "maxC": 98.92881094827885,
+              "minR": 15.358582285300987,
+              "maxR": 18.231600583450096
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                94.07118905172115,
+                18.231600583450096
+              ],
+              [
+                95.18256707317073,
+                18.231600583450096
+              ],
+              [
+                95.18256707317073,
+                18.641417714699013
+              ],
+              [
+                94.07118905172115,
+                18.641417714699013
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 13,
+            "rectangleRC": {
+              "minC": 94.07118905172115,
+              "maxC": 95.18256707317073,
+              "minR": 18.231600583450096,
+              "maxR": 18.641417714699013
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                96.16956707317073,
+                18.231600583450096
+              ],
+              [
+                98.92881094827885,
+                18.231600583450096
+              ],
+              [
+                98.92881094827885,
+                18.641417714699013
+              ],
+              [
+                96.16956707317073,
+                18.641417714699013
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 13,
+            "rectangleRC": {
+              "minC": 96.16956707317073,
+              "maxC": 98.92881094827885,
+              "minR": 18.231600583450096,
+              "maxR": 18.641417714699013
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              -9.958124887943313,
+              17.870187369734047
+            ],
+            [
+              9.958124887943256,
+              17.870187369734047
+            ],
+            [
+              9.958124887943256,
+              29.649562392145384
+            ],
+            [
+              -9.958124887943313,
+              29.649562392145384
+            ]
+          ],
+          "minY": 0,
+          "maxY": 13
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              -9.958124887943313,
+              29.649562392145384
+            ],
+            [
+              -5.401475000000005,
+              29.649562392145384
+            ],
+            [
+              -5.401475000000005,
+              31.32981263026595
+            ],
+            [
+              -9.958124887943313,
+              31.32981263026595
+            ]
+          ],
+          "minY": 0,
+          "maxY": 13
+        },
+        {
+          "sourceIndex": 2,
+          "node": null,
+          "polygonXZ": [
+            [
+              -1.3547750000000178,
+              29.649562392145384
+            ],
+            [
+              9.958124887943256,
+              29.649562392145384
+            ],
+            [
+              9.958124887943256,
+              31.32981263026595
+            ],
+            [
+              -1.3547750000000178,
+              31.32981263026595
+            ]
+          ],
+          "minY": 0,
+          "maxY": 13
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "r": 18.290350583450095,
+          "c": 95.67606707317073
+        },
+        "roadProbeRC": {
+          "r": 21.141417714699013,
+          "c": 95.67606707317073
+        },
+        "authoredLocalXYZ": [
+          -2.3499999046325684,
+          1.9500000476837158,
+          5.329999923706055
+        ],
+        "evidence": "actual_glb_node:Armored public door"
+      },
+      "footprint": {
+        "minC": 94.07118905172115,
+        "maxC": 98.92881094827885,
+        "minR": 15.358582285300987,
+        "maxR": 18.641417714699013
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-pawnshop-001",
+      "assetId": "pawnshop",
+      "role": "business_facade",
+      "path": "res://assets/buildings/pawnshop.1a95f97569d9.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/pawnshop/pawnshop.1a95f97569d9.glb",
+        "sha256": "1a95f97569d94d162d2d0c4217e1435a2b9e5860a49a2d140d90e4d899d6232f",
+        "bytes": 1453452
+      },
+      "transform": {
+        "positionM": [
+          395.65,
+          0,
+          20.5
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.6000000536441803,
+          0,
+          -0.6925001535564661
+        ],
+        "horizontalScale": [
+          1.105,
+          1.105
+        ]
+      },
+      "positionLocalM": [
+        0.0,
+        0,
+        -24.599999999999994
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                95.01835671721663,
+                3.126890255147364
+              ],
+              [
+                97.98164328278337,
+                3.126890255147364
+              ],
+              [
+                97.98164328278337,
+                4.697607331530932
+              ],
+              [
+                95.01835671721663,
+                4.697607331530932
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 11.475000187754631,
+            "rectangleRC": {
+              "minC": 95.01835671721663,
+              "maxC": 97.98164328278337,
+              "minR": 3.126890255147364,
+              "maxR": 4.697607331530932
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                95.01835671721663,
+                5.625807331530932
+              ],
+              [
+                97.98164328278337,
+                5.625807331530932
+              ],
+              [
+                97.98164328278337,
+                6.873109744852636
+              ],
+              [
+                95.01835671721663,
+                6.873109744852636
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 11.475000187754631,
+            "rectangleRC": {
+              "minC": 95.01835671721663,
+              "maxC": 97.98164328278337,
+              "minR": 5.625807331530932,
+              "maxR": 6.873109744852636
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                95.01835671721663,
+                4.697607331530932
+              ],
+              [
+                97.67305178788295,
+                4.697607331530932
+              ],
+              [
+                97.67305178788295,
+                5.625807331530932
+              ],
+              [
+                95.01835671721663,
+                5.625807331530932
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 11.475000187754631,
+            "rectangleRC": {
+              "minC": 95.01835671721663,
+              "maxC": 97.67305178788295,
+              "minR": 4.697607331530932,
+              "maxR": 5.625807331530932
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              -6.0747374594118355,
+              -32.2797499538958
+            ],
+            [
+              6.074737459411779,
+              -32.2797499538958
+            ],
+            [
+              6.074737459411779,
+              -25.839809940723175
+            ],
+            [
+              -6.0747374594118355,
+              -25.839809940723175
+            ]
+          ],
+          "minY": 0,
+          "maxY": 11.475000187754631
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              -6.0747374594118355,
+              -22.034189940723177
+            ],
+            [
+              6.074737459411779,
+              -22.034189940723177
+            ],
+            [
+              6.074737459411779,
+              -16.92025004610419
+            ],
+            [
+              -6.0747374594118355,
+              -16.92025004610419
+            ]
+          ],
+          "minY": 0,
+          "maxY": 11.475000187754631
+        },
+        {
+          "sourceIndex": 2,
+          "node": null,
+          "polygonXZ": [
+            [
+              -6.0747374594118355,
+              -25.839809940723175
+            ],
+            [
+              4.8095123303201035,
+              -25.839809940723175
+            ],
+            [
+              4.8095123303201035,
+              -22.034189940723177
+            ],
+            [
+              -6.0747374594118355,
+              -22.034189940723177
+            ]
+          ],
+          "minY": 0,
+          "maxY": 11.475000187754631
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "r": 5.161707331530931,
+          "c": 97.72830178788296
+        },
+        "roadProbeRC": {
+          "r": 5.161707331530931,
+          "c": 106.23164328278337
+        },
+        "authoredLocalXYZ": [
+          0,
+          1.9199999570846558,
+          5.25
+        ],
+        "evidence": "actual_glb_node:Double oak door"
+      },
+      "footprint": {
+        "minC": 95.01835671721663,
+        "maxC": 97.98164328278337,
+        "minR": 3.126890255147364,
+        "maxR": 6.873109744852636
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-004",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "path": "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+        "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+        "bytes": 267216
+      },
+      "transform": {
+        "positionM": [
+          421.86089648261526,
+          0,
+          11.013084000000003
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.017499983310699463,
+          0.08999991416931152,
+          -0.039999961853027344
+        ],
+        "horizontalScale": [
+          2.4305555555555554,
+          1.105
+        ]
+      },
+      "positionLocalM": [
+        26.210896482615283,
+        0,
+        -34.08691599999999
+      ],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "effectiveHiddenNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                101.78581316225137,
+                1.3722460975609776
+              ],
+              [
+                102.05139582797166,
+                1.3722460975609776
+              ],
+              [
+                102.05139582797166,
+                3.99999
+              ],
+              [
+                101.78581316225137,
+                3.99999
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 101.78581316225137,
+              "minR": 1.3722460975609776,
+              "maxC": 102.05139582797166,
+              "maxR": 3.99999
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                102.05139582797166,
+                1.372246097560978
+              ],
+              [
+                103.99999,
+                1.372246097560978
+              ],
+              [
+                103.99999,
+                3.7008315353821537
+              ],
+              [
+                102.05139582797166,
+                3.7008315353821537
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 102.05139582797166,
+              "minR": 1.372246097560978,
+              "maxC": 103.99999,
+              "maxR": 3.7008315353821537
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              21.671833965230633,
+              -39.473790999999984
+            ],
+            [
+              22.760722894683795,
+              -39.473790999999984
+            ],
+            [
+              22.760722894683795,
+              -28.700040999999995
+            ],
+            [
+              21.671833965230633,
+              -28.700040999999995
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              22.760722894683795,
+              -39.473790999999984
+            ],
+            [
+              30.74995899999999,
+              -39.473790999999984
+            ],
+            [
+              30.74995899999999,
+              -29.926590704933165
+            ],
+            [
+              22.760722894683795,
+              -29.926590704933165
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "c": 103.07222916130499,
+          "r": 3.756081535382154
+        },
+        "roadProbeRC": {
+          "c": 103.07222916130499,
+          "r": 7.24999
+        },
+        "authoredLocalXYZ": [
+          0.3199999928474426,
+          0,
+          4.010000228881836
+        ],
+        "evidence": "actual_glb_node:EntranceAnchor"
+      },
+      "footprint": {
+        "minC": 101.78581316225137,
+        "minR": 1.3722460975609776,
+        "maxC": 103.99999,
+        "maxR": 3.9999900000000004
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-012",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "path": "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+        "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+        "bytes": 267216
+      },
+      "transform": {
+        "positionM": [
+          332.09999999999997,
+          0,
+          32.36089648261532
+        ],
+        "yawDegrees": 270,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.017499983310699463,
+          0.08999991416931152,
+          -0.039999961853027344
+        ],
+        "horizontalScale": [
+          2.4305555555555536,
+          1.15
+        ]
+      },
+      "positionLocalM": [
+        -63.55000000000001,
+        0,
+        -12.739103517384677
+      ],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "effectiveHiddenNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                79.63262195121952,
+                6.785813162251373
+              ],
+              [
+                82.36737804878048,
+                6.785813162251373
+              ],
+              [
+                82.36737804878048,
+                7.051395827971659
+              ],
+              [
+                79.63262195121952,
+                7.051395827971659
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 79.63262195121952,
+              "minR": 6.785813162251373,
+              "maxC": 82.36737804878048,
+              "maxR": 7.051395827971659
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                79.94396333973583,
+                7.051395827971658
+              ],
+              [
+                82.36737804878048,
+                7.051395827971658
+              ],
+              [
+                82.36737804878048,
+                8.99999
+              ],
+              [
+                79.94396333973583,
+                8.99999
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 79.94396333973583,
+              "minR": 7.051395827971658,
+              "maxC": 82.36737804878048,
+              "maxR": 8.99999
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              -69.15625,
+              -17.278166034769367
+            ],
+            [
+              -57.94375000000002,
+              -17.278166034769367
+            ],
+            [
+              -57.94375000000002,
+              -16.189277105316197
+            ],
+            [
+              -69.15625,
+              -16.189277105316197
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              -67.8797503070831,
+              -16.1892771053162
+            ],
+            [
+              -57.94375000000002,
+              -16.1892771053162
+            ],
+            [
+              -57.94375000000002,
+              -8.200040999999999
+            ],
+            [
+              -67.8797503070831,
+              -8.200040999999999
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "c": 79.88646333973583,
+          "r": 8.07222916130499
+        },
+        "roadProbeRC": {
+          "c": 77.88262195121952,
+          "r": 8.07222916130499
+        },
+        "authoredLocalXYZ": [
+          0.3199999928474426,
+          0,
+          4.010000228881836
+        ],
+        "evidence": "actual_glb_node:EntranceAnchor"
+      },
+      "footprint": {
+        "minC": 79.63262195121952,
+        "minR": 6.785813162251373,
+        "maxC": 82.36737804878048,
+        "maxR": 8.99999
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-007",
+      "assetId": "old_town_narrow_townhouse_v1",
+      "role": "residence",
+      "path": "res://assets/buildings/old_town_narrow_townhouse_v1.fd0178400e60.glb",
+      "binding": {
+        "lod": 0,
+        "url": "/assets/maps/city_rebuild_v1/building_models/old_town_narrow_townhouse_v1/old_town_narrow_townhouse_v1.glb",
+        "sha256": "fd0178400e608c44f4c7c8841d9a308e0ae2ec4db4df36033f04401f9b135067",
+        "bytes": 267216
+      },
+      "transform": {
+        "positionM": [
+          401.79999999999995,
+          0,
+          110.2608964826153
+        ],
+        "yawDegrees": 90,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          -0.017499983310699463,
+          0.08999991416931152,
+          -0.039999961853027344
+        ],
+        "horizontalScale": [
+          2.4305555555555567,
+          1.15
+        ]
+      },
+      "positionLocalM": [
+        6.149999999999977,
+        0,
+        65.1608964826153
+      ],
+      "hideNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "effectiveHiddenNodeNames": [
+        "EntranceAnchor",
+        "ServiceEntranceAnchor"
+      ],
+      "collision": {
+        "method": "conservative_visual_envelope_minus_public_approach_exterior_only",
+        "worldBodies": [
+          {
+            "polygonCR": [
+              [
+                96.63262195121952,
+                27.734407334279716
+              ],
+              [
+                99.36737804878048,
+                27.734407334279716
+              ],
+              [
+                99.36737804878048,
+                27.99999
+              ],
+              [
+                96.63262195121952,
+                27.99999
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 96.63262195121952,
+              "minR": 27.734407334279716,
+              "maxC": 99.36737804878048,
+              "maxR": 27.99999
+            }
+          },
+          {
+            "polygonCR": [
+              [
+                96.63262195121952,
+                25.78581316225137
+              ],
+              [
+                99.05603666026417,
+                25.78581316225137
+              ],
+              [
+                99.05603666026417,
+                27.734407334279716
+              ],
+              [
+                96.63262195121952,
+                27.734407334279716
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 10.264999151229858,
+            "rectangleRC": {
+              "minC": 96.63262195121952,
+              "minR": 25.78581316225137,
+              "maxC": 99.05603666026417,
+              "maxR": 27.734407334279716
+            }
+          }
+        ]
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": null,
+          "polygonXZ": [
+            [
+              0.5437500000000455,
+              68.61107007054683
+            ],
+            [
+              11.756249999999966,
+              68.61107007054683
+            ],
+            [
+              11.756249999999966,
+              69.69995899999999
+            ],
+            [
+              0.5437500000000455,
+              69.69995899999999
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        },
+        {
+          "sourceIndex": 1,
+          "node": null,
+          "polygonXZ": [
+            [
+              0.5437500000000455,
+              60.62183396523061
+            ],
+            [
+              10.479750307083066,
+              60.62183396523061
+            ],
+            [
+              10.479750307083066,
+              68.61107007054683
+            ],
+            [
+              0.5437500000000455,
+              68.61107007054683
+            ]
+          ],
+          "minY": 0,
+          "maxY": 10.264999151229858
+        }
+      ],
+      "entry": {
+        "anchorRC": {
+          "c": 99.11353666026417,
+          "r": 26.713574000946377
+        },
+        "roadProbeRC": {
+          "c": 102.11737804878048,
+          "r": 26.713574000946377
+        },
+        "authoredLocalXYZ": [
+          0.3199999928474426,
+          0,
+          4.010000228881836
+        ],
+        "evidence": "actual_glb_node:EntranceAnchor"
+      },
+      "footprint": {
+        "minC": 96.63262195121952,
+        "minR": 25.78581316225137,
+        "maxC": 99.36737804878048,
+        "maxR": 27.99999
+      },
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    }
+  ],
+  "decor": [
+    {
+      "id": "LAMP-1-83",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          342.35,
+          0,
+          6.15
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        -53.299999999999955,
+        0,
+        -38.949999999999996
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                83.39756098,
+                1.39756098
+              ],
+              [
+                83.60243902,
+                1.39756098
+              ],
+              [
+                83.60243902,
+                1.60243902
+              ],
+              [
+                83.39756098,
+                1.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              -53.71999998200005,
+              -39.369999981999996
+            ],
+            [
+              -52.880000017999976,
+              -39.369999981999996
+            ],
+            [
+              -52.880000017999976,
+              -38.530000017999996
+            ],
+            [
+              -53.71999998200005,
+              -38.530000017999996
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-15-78",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          321.85,
+          0,
+          63.55
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        -73.79999999999995,
+        0,
+        18.450000000000003
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                78.39756098,
+                15.39756098
+              ],
+              [
+                78.60243902,
+                15.39756098
+              ],
+              [
+                78.60243902,
+                15.60243902
+              ],
+              [
+                78.39756098,
+                15.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              -74.21999998200005,
+              18.030000018000003
+            ],
+            [
+              -73.38000001799998,
+              18.030000018000003
+            ],
+            [
+              -73.38000001799998,
+              18.869999982000003
+            ],
+            [
+              -74.21999998200005,
+              18.869999982000003
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-19-97",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          399.75,
+          0,
+          79.95
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        4.100000000000023,
+        0,
+        34.85000000000001
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                97.39756098,
+                19.39756098
+              ],
+              [
+                97.60243902,
+                19.39756098
+              ],
+              [
+                97.60243902,
+                19.60243902
+              ],
+              [
+                97.39756098,
+                19.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              3.680000017999987,
+              34.430000018
+            ],
+            [
+              4.519999982000002,
+              34.430000018
+            ],
+            [
+              4.519999982000002,
+              35.26999998199999
+            ],
+            [
+              3.680000017999987,
+              35.26999998199999
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-21-84",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          346.45,
+          0,
+          88.15
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        -49.19999999999999,
+        0,
+        43.05000000000001
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                84.39756098,
+                21.39756098
+              ],
+              [
+                84.60243902,
+                21.39756098
+              ],
+              [
+                84.60243902,
+                21.60243902
+              ],
+              [
+                84.39756098,
+                21.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              -49.619999982000024,
+              42.630000018000004
+            ],
+            [
+              -48.78000001800001,
+              42.630000018000004
+            ],
+            [
+              -48.78000001800001,
+              43.46999998199999
+            ],
+            [
+              -49.619999982000024,
+              43.46999998199999
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-29-79",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          325.95,
+          0,
+          120.95
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        -69.69999999999999,
+        0,
+        75.85000000000001
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                79.39756098,
+                29.39756098
+              ],
+              [
+                79.60243902,
+                29.39756098
+              ],
+              [
+                79.60243902,
+                29.60243902
+              ],
+              [
+                79.39756098,
+                29.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              -70.11999998200002,
+              75.430000018
+            ],
+            [
+              -69.28000001800001,
+              75.430000018
+            ],
+            [
+              -69.28000001800001,
+              76.26999998199999
+            ],
+            [
+              -70.11999998200002,
+              76.26999998199999
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-30-98",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          403.85,
+          0,
+          125.05
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        8.200000000000045,
+        0,
+        79.95
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                98.39756098,
+                30.39756098
+              ],
+              [
+                98.60243902,
+                30.39756098
+              ],
+              [
+                98.60243902,
+                30.60243902
+              ],
+              [
+                98.39756098,
+                30.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              7.780000017999953,
+              79.530000018
+            ],
+            [
+              8.619999982000024,
+              79.530000018
+            ],
+            [
+              8.619999982000024,
+              80.36999998199998
+            ],
+            [
+              7.780000017999953,
+              80.36999998199998
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-9-102",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          420.25,
+          0,
+          38.95
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        24.600000000000023,
+        0,
+        -6.1499999999999915
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                102.39756098,
+                9.39756098
+              ],
+              [
+                102.60243902,
+                9.39756098
+              ],
+              [
+                102.60243902,
+                9.60243902
+              ],
+              [
+                102.39756098,
+                9.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              24.180000017999987,
+              -6.569999981999999
+            ],
+            [
+              25.019999982,
+              -6.569999981999999
+            ],
+            [
+              25.019999982,
+              -5.730000017999998
+            ],
+            [
+              24.180000017999987,
+              -5.730000017999998
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    },
+    {
+      "id": "LAMP-9-84",
+      "assetId": "lamp_bellini_v1",
+      "role": "roadside_lamp",
+      "path": "res://assets/decor/lamp_bellini_v1.81c8b123ded3.glb",
+      "binding": {
+        "url": "/assets/maps/city_rebuild_v1/models/street_infrastructure_clay_kit_v1/lamp_bellini_v1.glb",
+        "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5",
+        "bytes": 52124,
+        "lod": 0
+      },
+      "transform": {
+        "positionM": [
+          346.45,
+          0,
+          38.95
+        ],
+        "yawDegrees": 0,
+        "uniformScale": 1,
+        "modelLocalOffsetM": [
+          0,
+          0,
+          0
+        ],
+        "horizontalScale": [
+          1,
+          1
+        ]
+      },
+      "positionLocalM": [
+        -49.19999999999999,
+        0,
+        -6.1499999999999915
+      ],
+      "hideNodeNames": [],
+      "effectiveHiddenNodeNames": [
+        "CLEARANCE_LAMP_BELLINI",
+        "SOCKET_PLACE_LAMP_BELLINI"
+      ],
+      "collision": {
+        "policy": "authored_ground_proxy_only",
+        "sourceBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.41999998688697815
+            ],
+            "max": [
+              0.41999998688697815,
+              0.5600000023841858,
+              0.41999998688697815
+            ]
+          }
+        ],
+        "worldBodies": [
+          {
+            "node": "Lamp_Base_BELLINI",
+            "polygonCR": [
+              [
+                84.39756098,
+                9.39756098
+              ],
+              [
+                84.60243902,
+                9.39756098
+              ],
+              [
+                84.60243902,
+                9.60243902
+              ],
+              [
+                84.39756098,
+                9.60243902
+              ]
+            ],
+            "minYM": 0,
+            "maxYM": 0.56
+          }
+        ],
+        "adapter": {
+          "placementOriginGltfM": [
+            0,
+            0,
+            0
+          ],
+          "placementOriginEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "sourceSocketGltfM": [
+              31,
+              0,
+              14
+            ],
+            "reason": "Meshes already recentered; helper socket retains stale catalog translation",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "clearanceM": [
+            3.859999215602875,
+            1.559999978542328,
+            6.8
+          ],
+          "collisionEvidence": {
+            "sourceNode": "Lamp_Base_BELLINI",
+            "method": "exact POSITION accessor bounds with scene-root TRS, only ground base; no canopy AABB",
+            "sha256": "81c8b123ded3e5b9f2230cf46f91b59ad13b65583b9b9617b9d4e861c63226f5"
+          },
+          "groundBodiesGltfM": [
+            {
+              "node": "Lamp_Base_BELLINI",
+              "min": [
+                -0.41999998688697815,
+                0,
+                -0.41999998688697815
+              ],
+              "max": [
+                0.41999998688697815,
+                0.5600000023841858,
+                0.41999998688697815
+              ]
+            }
+          ],
+          "visualBoundsGltfM": {
+            "min": [
+              -0.41999998688697815,
+              0,
+              -0.47999998927116394
+            ],
+            "max": [
+              1.6299996078014374,
+              6.5,
+              0.47999998927116394
+            ]
+          }
+        },
+        "scaleApplied": 1
+      },
+      "collisionBodiesM": [
+        {
+          "sourceIndex": 0,
+          "node": "Lamp_Base_BELLINI",
+          "polygonXZ": [
+            [
+              -49.619999982000024,
+              -6.569999981999999
+            ],
+            [
+              -48.78000001800001,
+              -6.569999981999999
+            ],
+            [
+              -48.78000001800001,
+              -5.730000017999998
+            ],
+            [
+              -49.619999982000024,
+              -5.730000017999998
+            ]
+          ],
+          "minY": 0,
+          "maxY": 0.56
+        }
+      ],
+      "entry": null,
+      "footprint": null,
+      "gameplayId": null,
+      "gameplayActive": false,
+      "sourceGameplayActive": false
+    }
+  ],
+  "surface": {
+    "startRow": 0,
+    "startCol": 76,
+    "rows": 31,
+    "cols": 31,
+    "cellSize": 4.1,
+    "sourceMapRows": 200,
+    "sourceMapCols": 180,
+    "grid": [
+      [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        8,
+        9,
+        9,
+        9,
+        9,
+        9,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        9,
+        9,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        9
+      ],
+      [
+        0,
+        0,
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0
+      ],
+      [
+        0,
+        0,
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        8,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        9,
+        8
+      ],
+      [
+        0,
+        0,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        9,
+        8
+      ],
+      [
+        0,
+        0,
+        9,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        9,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        9,
+        8
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        8
+      ],
+      [
+        0,
+        0,
+        9,
+        9,
+        9,
+        9,
+        9,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        9,
+        0,
+        0,
+        9
+      ],
+      [
+        0,
+        0,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        9,
+        9,
+        9,
+        9,
+        8,
+        8,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        9
+      ],
+      [
+        0,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        8,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        9,
+        0,
+        0
+      ],
+      [
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        9,
+        0,
+        0
+      ],
+      [
+        9,
+        9,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        9,
+        9,
+        9,
+        9,
+        0,
+        0,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        9,
+        9,
+        9,
+        0,
+        0,
+        0,
+        0,
+        9,
+        8,
+        0,
+        0
+      ],
+      [
+        8,
+        8,
+        9,
+        9,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        8,
+        8,
+        0,
+        0
+      ],
+      [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        9,
+        0,
+        9,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        0,
+        0,
+        9,
+        9,
+        9,
+        9,
+        8,
+        8,
+        8,
+        0,
+        0
+      ]
+    ],
+    "masks": {
+      "roadMask": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1
+        ]
+      ],
+      "walkableMask": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "protectedMask": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "policeMask": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "bridgeDeckMask": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ]
+    },
+    "maskSemantics": {
+      "roadMask": "tile0 or19; collision/navigation not vehicle-approved",
+      "walkableMask": "land or supported deck excluding reserved police; add placed-building colliders separately",
+      "protectedMask": "exact police footprint overlap OR enabled bridge-deck polygon; do not place buildings/decor here",
+      "policeMask": "reserved actual union; tile9 is an isolated placeholder until host snapshot",
+      "bridgeDeckMask": "explicit enabled surface crossing decks; not deferred tunnels"
+    },
+    "palette": {
+      "0": {
+        "kind": "road",
+        "colorSrgb": "#525a5a",
+        "heightM": 0,
+        "solid": true
+      },
+      "8": {
+        "kind": "grass",
+        "colorSrgb": "#789274",
+        "heightM": 0,
+        "solid": true
+      },
+      "9": {
+        "kind": "sidewalk",
+        "colorSrgb": "#c4c1ab",
+        "heightM": 0,
+        "solid": true
+      },
+      "14": {
+        "kind": "sand",
+        "colorSrgb": "#d9c698",
+        "heightM": 0,
+        "solid": true
+      },
+      "16": {
+        "kind": "water",
+        "colorSrgb": "#4f9eb0",
+        "heightM": -0.18,
+        "solid": false
+      },
+      "19": {
+        "kind": "bridge",
+        "colorSrgb": "#858e89",
+        "heightM": 0,
+        "solid": true
+      }
+    },
+    "protectedColorSrgb": "#9a9990",
+    "materialDescriptors": [
+      {
+        "id": "MAT_CLAY_WARM_CONCRETE",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.4699999988079071,
+          0.4399999976158142,
+          0.3799999952316284,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_MARKING_IVORY",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.8799999952316284,
+          0.8199999928474426,
+          0.6600000262260437,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_MARKING_OCHRE",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.8999999761581421,
+          0.550000011920929,
+          0.09000000357627869,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_CLEAN",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.10499999672174454,
+          0.11500000208616257,
+          0.11999999731779099,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_WORN",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.1550000011920929,
+          0.15000000596046448,
+          0.13500000536441803,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_CURB",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.6700000166893005,
+          0.6200000047683716,
+          0.5199999809265137,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_PATCH",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.07500000298023224,
+          0.0820000022649765,
+          0.08500000089406967,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      },
+      {
+        "id": "MAT_CLAY_ASPHALT_AGED",
+        "sourceAssetId": "smooth_clay_road_rail_crossing_kit_v1",
+        "colorSpace": "linear_srgb",
+        "baseColorFactor": [
+          0.20000000298023224,
+          0.18000000715255737,
+          0.15000000596046448,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929,
+        "doubleSided": true
+      }
+    ],
+    "boundsLocalM": {
+      "min": [
+        -84.05000000000001,
+        -0.18,
+        -45.099999999999994
+      ],
+      "max": [
+        43.05000000000001,
+        0,
+        82.0
+      ]
+    },
+    "heightPolicy": "Walk native tile mesh: water -0.18m, other tiles 0m; no exterior landscape export"
+  },
+  "hero": {
+    "path": "res://assets/hero.glb",
+    "binding": {
+      "url": "/assets/maps/city_rebuild_v1/hero_models/player_male.8130dfb1f7eb.glb",
+      "sha256": "8130dfb1f7eb91bff31e932feef1717672070a6767ccc726d7cb1ee23133fd00",
+      "bytes": 652732
+    },
+    "targetHeightM": 1.9,
+    "scalePolicy": "1.9 / actual glTF rest-pose Box3 height; preserve proportions",
+    "animations": [],
+    "spawnLocalM": [
+      27.635000000000048,
+      0.05,
+      5.649446760199837
+    ],
+    "spawnClearanceRadiusM": 0.45,
+    "spawnEvidence": "authored print_shop roadProbeRC, validated against exported dry walkable tiles and static bodies"
+  },
+  "counts": {
+    "buildings": 8,
+    "decor": 8,
+    "uniqueGlbs": 6,
+    "collisionBodies": 27,
+    "surfaceCells": 961
+  },
+  "limitations": [
+    "Source gameplay IDs, ownership, interiors, doors, missions and NPC authority are not activated.",
+    "Collision bodies are the original conservative exterior proxies, not dynamic interior geometry.",
+    "Only the actual source crop is exported; no invented roads or land beyond its bounds.",
+    "Water keeps its source tile identity and has no solid land support; swimming is not migrated.",
+    "No measured Godot gameplay FPS or visual parity claim is made by this exporter."
+  ]
+}
