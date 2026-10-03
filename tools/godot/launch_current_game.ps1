@@ -29,6 +29,31 @@ function Assert-CurrentF5Route {
     if ((Get-Content -LiteralPath $currentForwardScript -Raw -Encoding UTF8) -notmatch 'tools/godot/launch_current_game\.ps1') { throw 'F5 no longer resolves the shared current-version pointer.' }
     return $currentProject
 }
+function Get-CurrentTestProcesses([string]$SchedulerPath = (Join-Path $PSScriptRoot 'test_scheduler.py')) {
+    # Only the scheduler can vouch for a cooperating, bounded diagnostic.
+    # Missing Python, an invalid registry, or a failed identity check admits none.
+    $currentScheduler = $SchedulerPath
+    $currentPython = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $currentPython -or -not (Test-Path -LiteralPath $currentScheduler -PathType Leaf)) { return @() }
+    try {
+        $currentStatusText = & $currentPython.Source $currentScheduler coexist --json 2>$null
+        if ($LASTEXITCODE -ne 0) { return @() }
+        $currentTestStatus = ($currentStatusText -join "`n") | ConvertFrom-Json
+        if ($currentTestStatus.schema -ne 'mafiozi.test-scheduler.status/v1' -or $currentTestStatus.perf_active) { return @() }
+        return @($currentTestStatus.registered_children | Where-Object { $_.pid -in $currentTestStatus.coexist_pids })
+    } catch { return @() }
+}
+function Test-CurrentCooperativeProcess($Entry, $Registered, $StartedAt) {
+    foreach ($currentTest in $Registered) {
+        # Recheck the process identity, rather than trusting a reusable PID.
+        if ([int]$currentTest.pid -eq [int]$Entry.ProcessId -and
+            [string]$currentTest.command_line -ceq [string]$Entry.CommandLine -and
+            [string]$currentTest.executable_path -ieq [string]$Entry.ExecutablePath -and
+            $null -ne $StartedAt -and
+            [string]$currentTest.creation_filetime -eq [string]$StartedAt.ToFileTimeUtc()) { return $true }
+    }
+    return $false
+}
 try {
     # F5's small forwarding scene exits before the real game is created.
     if ($FromGodotPid -gt 0) {
@@ -37,6 +62,15 @@ try {
         $currentWaitUntil = [DateTime]::UtcNow.AddSeconds(15)
         while ((Get-Process -Id $FromGodotPid -ErrorAction SilentlyContinue) -and [DateTime]::UtcNow -lt $currentWaitUntil) { Start-Sleep -Milliseconds 100 }
         if (Get-Process -Id $FromGodotPid -ErrorAction SilentlyContinue) { throw 'F5 forwarding scene has not exited; nothing else was started.' }
+    }
+    if (-not $CheckOnly) {
+        $currentMutex = [Threading.Mutex]::new($false, 'Local\MafioziUnifiedPreviewLaunch')
+        # An F5 request may arrive during a short diagnostic. Queue that request
+        # instead of dropping it. Read the release pointer only after admission,
+        # so an update accepted while waiting is the version that actually opens.
+        $currentSlotWaitMs = if ($FromGodotPid -gt 0) { 60000 } else { 0 }
+        try { $currentHeld = $currentMutex.WaitOne($currentSlotWaitMs) } catch [Threading.AbandonedMutexException] { $currentHeld = $true }
+        if (-not $currentHeld) { Show-CurrentMessage 'Игра или проверка ещё работает. Текущее окно сохранено. Если игра уже открыта, закройте её и нажмите F5 ещё раз.'; exit 2 }
     }
     $currentRelease = Get-Content -LiteralPath $currentPointerPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($currentRelease.schema -ne 'mafiozi.current-play/v1') { throw 'Unknown current release format.' }
@@ -57,15 +91,14 @@ try {
         Write-Output ('F5_READY ' + $currentF5Project)
         exit 0
     }
-    $currentMutex = [Threading.Mutex]::new($false, 'Local\MafioziUnifiedPreviewLaunch')
-    try { $currentHeld = $currentMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $currentHeld = $true }
-    if (-not $currentHeld) { Show-CurrentMessage 'Игра уже открыта или сейчас идёт проверка обновления. Второе окно не запущено.'; exit 2 }
     $currentInventory = @(Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'Godot|MafioziPreview' })
+    $currentCooperativeTests = @(Get-CurrentTestProcesses)
     foreach ($currentEntry in $currentInventory) {
         $currentWindow = Get-Process -Id $currentEntry.ProcessId -ErrorAction SilentlyContinue
         $currentPlainManager = $currentEntry.Name -match '^Godot_v4\.(6\.3|7\.2)-stable_win64(_console)?\.exe$' -and $currentEntry.CommandLine -match '^\s*("[^"]+"|[^\s]+)\s*(--project-manager)?\s*$' -and $currentWindow.MainWindowTitle -match '^Godot Engine - (Менеджер проектов|Project Manager)$'
         $currentEditor = $currentEntry.Name -match '^Godot' -and $currentEntry.CommandLine -match '(?i)(?:^|\s)(?:--editor|-e)(?:\s|$)' -and $currentEntry.CommandLine -notmatch '(?i)--headless|--script|--import|--export'
-        if (-not $currentPlainManager -and -not $currentEditor) { Show-CurrentMessage 'Другая игра или проверка ещё работает. Закройте игровое окно и снова запустите «Мафиози — актуальная версия». Текущая игра сохранена.'; exit 2 }
+        $currentCooperative = Test-CurrentCooperativeProcess $currentEntry $currentCooperativeTests $currentWindow.StartTime
+        if (-not $currentPlainManager -and -not $currentEditor -and -not $currentCooperative) { Show-CurrentMessage 'Другая игра или проверка ещё работает. Закройте игровое окно и снова запустите «Мафиози — актуальная версия». Текущая игра сохранена.'; exit 2 }
     }
     foreach ($currentPin in $currentManifest.source_pins.PSObject.Properties) { Assert-CurrentHash (Join-Path $currentGameDir $currentPin.Name) $currentPin.Value }
     $currentRun = Join-Path $currentRepo ('outputs/current_game/interactive/' + [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ'))

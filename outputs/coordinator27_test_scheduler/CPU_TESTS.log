@@ -1,0 +1,14 @@
+test_actual_registered_child_affinity_status_and_cleanup (__main__.SchedulerTests.test_actual_registered_child_affinity_status_and_cleanup) ... ok
+test_bounded_queue_wait_and_failed_request_removed (__main__.SchedulerTests.test_bounded_queue_wait_and_failed_request_removed) ... ok
+test_graphical_and_perf_lanes (__main__.SchedulerTests.test_graphical_and_perf_lanes) ... ok
+test_identity_and_command_reuse_rejected (__main__.SchedulerTests.test_identity_and_command_reuse_rejected) ... ok
+test_invalid_child_lane_is_stopped_without_touching_other_child (__main__.SchedulerTests.test_invalid_child_lane_is_stopped_without_touching_other_child) ... ok
+test_perf_contamination_is_an_exception_not_an_ignored_flag (__main__.SchedulerTests.test_perf_contamination_is_an_exception_not_an_ignored_flag) ... ok
+test_real_processes_two_slots_overlap_third_waits_distinct_affinity (__main__.SchedulerTests.test_real_processes_two_slots_overlap_third_waits_distinct_affinity) ... ok
+test_slots_fifo_and_writer_fairness (__main__.SchedulerTests.test_slots_fifo_and_writer_fairness) ... ok
+test_user_game_blocks_perf_not_functional_editor_does_not_bypass_legacy (__main__.SchedulerTests.test_user_game_blocks_perf_not_functional_editor_does_not_bypass_legacy) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 15.002s
+
+OK

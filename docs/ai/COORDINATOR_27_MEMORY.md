@@ -1,5 +1,122 @@
 # Координатор27 — рабочая память
 
+## 03.10 04:59 — новый порядок тестов реально включён
+
+tools/godot/test_scheduler.py SHA
+6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9.
+CPU tests 9/9 PASS, 15.002s; журнал coordinator27_test_scheduler/CPU_TESTS.log.
+Actual native smoke: coordinator27_scheduler_native/run_20261003_045641/RESULT.json
+passedtrue, два независимых headless Godot перекрылись17.894s, exit0/stderr0,
+разные affinity masks3/12, пользовательский editor сохранён. Настоящий F5
+predicate принял оба live PID+FILETIME+command+exe, без запуска игры.
+LauncherSHA3c35014e251a614641082cdc97fa8f6e0a458c7424f40328975f4fcb3764f629;
+7 отрицательных/положительных identity проверок PASS. CheckOnly45/F5_READY
+до последнего helper patch PASS; повторить после подключения перед commit.
+Ни UI клавиша F5, ни новая C4 версия здесь не выдаются за проверенные.
+
+NPC24, car owner, Buildings4 получили общий PASS/GO и стабильный API.
+Buildings4 adapter outputs/buildings4_strength_native_20261003/run_strength_scheduled.py.
+Owners берут слот самостоятельно: headless2 + graphic1, perfexclusive с
+фиксированной editoridentity и запретом usergame; contamination бросает ошибку.
+FIFO конфликтующих запросов, отдельные write/read locks по assembly; orphan
+child удерживает слот по фактической identity, не только TTL. Старые процессы
+и неизвестные legacy тесты не обходить. Root F5 допускает только live
+зарегистрированные functional children после двойной проверки identity.
+
+C4 focus8 причина: после Q камера сбрасывает arm.position, затем возвращает
+eyeHeight; target смещается .069019m при пороге AIM_DRIFT .065m. Это объясняет
+срыв второго hold при настоящем focus. QA ждёт bounded settle для сопоставимых
+8 зарядов; отдельно остаётся usability bug быстрого ЛКМ после Q, runtime
+пока не исправлен. Сильный1920 strict run был запущен Buildings4 старым guard;
+его результат ещё получить. Production47a всё ещё НЕ доставлена по F5.
+
+## 03.10 04:45 — убрать постоянное ручное ожидание окон тестов
+
+Пользователь прямо поручил дать всем агентам нормально тестировать без
+постоянной очереди. Новый порядок: до двух headless functional, одна graphic/
+input lane, performance exclusive; отдельная блокировка каждой сборки.
+Root GO на каждый короткий прогон больше не требуется. Старые guards до
+подключения нового scheduler сохраняются, пользовательские процессы не трогать.
+c4_perf_review реализует tools/godot/test_scheduler.py и CPU concurrency tests.
+NPC24, Buildings4, car owner уведомлены и передают свои adapters для подключения.
+Сам scheduler ещё в разработке; не объявлять параллельный native запуск готовым.
+C4 runner получил следующий старый слот после NPC poseclock: focusable import
+стартовал, далее diagnostic8 и RELEASED. Fire3 все четыре art runs завершены,
+24 PNG, native errors0; это не perf приёмка. Сильный C4 1920/3.2/48 manifest
+a880bac2bda87be032d09dc3ae63f86ba6ce0323f2d32052ccf6460c25094f3c,
+strict W/S ещё NOT_RUN. Производственная47a остаётся НЕ выпущенной.
+
+## 03.10 04:34 — срочно завершить C4; пользователь разрешил окна владельцам
+
+Пользователь: «очень долго с4», «пора бы доделать с4», затем «отдавай окна
+агентам под тесты если что». Приоритет — законченныйC4вF5, не новыйширокийscope.
+Buildings4 получил явныйGO на первый Fire3 candidate/front bounded55s, потом
+последовательные artпрогоны подmutex послеосмотра. Usereditor/game сохранять,
+точный editor exception разрешён. CarownerпослеFire3 можетзакончитьсвоитесты.
+
+Root actual diagnostic8 source479 staged/importPASS, native
+c4_diag8_editor_baseline8_01 FAIL ещёнаaim (owner_targetfalse),holds0,stderr0,
+pinsunchanged. ПоследнийWindow has_focusfalse. Конкретнаяцепочка:
+preview_player.gd148-154 _ground_pressure_controls_allowed requires has_focus;
+C4 _target→_allowed используетеё. Unfocusable QA несовместима с нормальным
+focusgate при потере фокуса; предыдущие×1 PASS держали настоящийfocustrue.
+Это НЕ доказательство поломкиигры. Старый×8 итоговыйfocustrue, причинавторого
+holdтампокаНЕустановлена. Reviewerготовит новыйregular-native-focus diagnostic,
+один grab_focus передmain, безfakefocus/измененийruntimeguards/callbacks.
+ВсеисходныеFAILсохранить; никакойperfпоэтойdiagnosticнепринимается.
+
+F5launcher улучшен: при FromGodotPid ждётзанятыйsharedmutexдо60s, затем читает
+указательверсии (не доожидания). CheckOnly45/F5_READY PASS. Настоящийqueue-test
+в isolated_repo безвалиднойassembly/безengine: mutexheld2s, pointerзаменён
+во времяожидания; childпослеосвобождениявидитновыйpointer, exit1ожидаемый.
+outputs/coordinator27_f5_20261003/queue01/RESULT.json passedtrue,3.49s.
+launcherSHAe128e0197a4e2d465a87f5e507f80f26ca4be26da96d84e2f4f9b10d006569bf.
+Этаправкаещёнеcommit; прошлыйcheckpoint04:10bfeb3457.
+
+## 03.10 04:24 — пользователь повторно требует настоящий F5 и свежую игру
+
+Скрин показывает прежний менеджер4.6.3 (28428), не editor. Root открыл
+пользовательский godot/mafiozi_walk в pinned4.7.2 --editor, PID25808; свежая
+командная строка подтверждена. Создан desktop «Мафиози — Godot F5.lnk» с
+exact4.7.2 target и --editor --path существующего проекта. Старый менеджер
+не закрыт. Computer-use skill прочитан полностью; @oai/sky initialize/list
+успешны, но get_window_state на editor дважды FrameArrived/window capture
+timeout после fresh recovery. UI input/F5 клавишу не исполняли, не заявлять.
+
+Взамен проверен настоящий project main_scene запуск тем же engine4.7.2:
+forwarderPID12936 естественно вышел, shell запустил принятую45 PID39940
+в04:20:52.8348569. outputs/current_game/interactive/20261003T012052805Z/
+OPENED.json readytrue, actual bootstrap revision45, stderrempty; скрипт
+F5 не обходит pointer. Потом39940 исчез естественно (root не закрывал).
+Свежийinventory: manager28428 +editor25808, игры нет. CheckOnly вновь
+CURRENT_READY45/F5_READY PASS. 47a НЕ доставлена: ×8 диагностика pending,
+не говорить пользователю, что новаяC4 уже вF5. Перфбезeditor нельзя смешивать
+с прогоном при editor; input diagnostic можно отдельно послеguardadmission.
+Carowner получил engineOFF на время срочного F5, затем уточнить окно.
+Reviewer runner готовит narrow diagnostic-only exact-editor exception
+без PID-only bypass; sharedmutex/sourcepins/ownchildlimits сохранить.
+
+## 03.10 04:16 — production47a EXE/PCK ресурсная приёмка PASS
+
+export_v2/export01 и packed01 actual root PASS,484pinsunchanged,stderr0.
+PCK397cf9b66d07bc2b6119a46cbabcce43064dd9745138c532b16dcb80c8c4684b,
+69294920bytes; EXEd34d36f3be1a6c49c56525ae86469b92e4f417ddf0b43cf00dd80c385c4b0562.
+Packed probe105checks PASS, scopeTexture800×800 native loaded, CTEX exact.
+Старый export01 FAIL сохранён; adapter исправил классификацию толькоSVG,
+не убрал ресурснуюпроверку. Native fullgameEXE GPU ещё НЕ проверен.
+Input diagnostic8 source ready479pins, SOURCE_READY
+85d4b63e6ee13f48b895e6bc42a70dc5ca9a1d65a8fbb487920236d2fb23609b.
+Его stage/engine покаNOT_RUN. Предыдущийturn PROGRESS: actual export+packed,
+настоящаяforwarder→receiptпроверка; большаяцельACTIVE, ниrelease47ниполный
+перенос не считать завершёнными.
+
+Git checkpoint 03.10 04:10:16+03:00: main/origin/main и свежий ls-remote
+подтвердили bfeb3457fb71907dcefe98af858592f14a1abbf1. Scoped commit только
+mandate+память27, проверенные результаты/открытые gates сохранены. Следующий
+часовой checkpoint до05:10 при наличии новых проверенных изменений.
+Активная большая цель продолжается; текущий ход PROGRESS (валидная C4×1
+пара и production import; найдены реальные stress8/pack verifier blockers).
+
 ## 03.10 04:10 — валидная пара C4 ×1, stress ×8 остановлен до замера
 
 input_isolated_v2 устраняет конкретный lifecycle дефект: flags в deferred run

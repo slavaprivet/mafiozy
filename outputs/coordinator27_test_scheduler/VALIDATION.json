@@ -1,0 +1,12 @@
+{
+  "status": "CPU_AND_ROOT_NATIVE_SCHEDULER_PASS",
+  "cpu_tests": 9,
+  "cpu_exit_code": 0,
+  "cpu_log": "outputs/coordinator27_test_scheduler/CPU_TESTS.log",
+  "native_receipt": "outputs/coordinator27_scheduler_native/run_20261003_045641/RESULT.json",
+  "native_scope": "Root ran two minimal headless fixtures; no GPU/gameplay/performance acceptance",
+  "pins": {
+    "tools/godot/test_scheduler.py": "6f86204fdb510a9f3d850792891fc9902301ad68b5a67688080d0ac888c3cad9",
+    "tools/godot/test_test_scheduler.py": "dbcb789c9258c9c41a6ee6a673c53fa23e41ba6b79e8b8dac226904b32e7d8c9"
+  }
+}

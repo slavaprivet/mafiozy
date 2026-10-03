@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "exit_code": 1,
+  "elapsed_seconds": 3.490732799982652,
+  "launcher_sha256": "e128e0197a4e2d465a87f5e507f80f26ca4be26da96d84e2f4f9b10d006569bf",
+  "queued_while_mutex_held": true,
+  "engine_started": false,
+  "stdout": "�� 㤠���� ������ ���㠫��� �����: Release file missing: deliberately_missing.json\r\n",
+  "stderr": ""
+}
