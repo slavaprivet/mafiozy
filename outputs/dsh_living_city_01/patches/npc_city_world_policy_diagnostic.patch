@@ -1,0 +1,51 @@
+--- a/scripts/city/runtime/npc_city_world_policy.gd
++++ b/scripts/city/runtime/npc_city_world_policy.gd
+@@ -32,6 +32,8 @@
+ var _box := BoxShape3D.new()
+ var _query := PhysicsShapeQueryParameters3D.new()
+ var _last_reason := ""
++var _diag_rejects := {}
++var _diag_calls := 0
+ var _counts := {"source_calls":0,"native_calls":0,"floor_rays":0,"polygon_contacts":0}
+ 
+ var _heights := PackedFloat64Array()
+@@ -160,6 +162,7 @@
+ func source_admit(point: Vector3, id: String, generation: int, radius: float, purpose: String) -> bool:
+ 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id,generation) or not is_finite(radius) or absf(radius-RADIUS)>.000001 or purpose not in ["placement","target","route"]: return false
+ 	_counts.source_calls+=1
++	_last_reason = ""
+ 	var road: bool=false
+ 	for offset: Array in [[0.0,0.0],[-RADIUS,-RADIUS],[-RADIUS,RADIUS],[RADIUS,-RADIUS],[RADIUS,RADIUS]]:
+ 		var index:=_world_index(float(point.x)+395.65+float(offset[0]),float(point.z)+45.099999999999994+float(offset[1]))
+@@ -175,6 +178,10 @@
+ 	return _source_segment(from,point,true) and _native_floor_square(token,point) and _native_segment(token,from,point,false)
+ 
+ func support_height(point: Vector3, id: String, generation: int) -> float:
++	# DSH diagnostic: _last_reason was only ever written, never cleared, so a stale
++	# value from an earlier attempt made every rejection look identical. Clear it per
++	# attempt and report which branch actually rejected this call.
++	_last_reason = ""
+ 	if not Thread.is_main_thread() or _busy or not _owner_allowed(id, generation) or not point.is_finite(): return NAN
+ 	var index := _index(point)
+ 	if index < 0: return NAN
+@@ -191,6 +198,11 @@
+ 		var shape: CollisionShape3D = floor_record.shape.get_ref()
+ 		if is_instance_valid(body) and is_instance_valid(shape) and body.get_parent() == scene and body.global_transform.is_equal_approx(floor_record.frame) and body.collision_layer == 1 and not shape.disabled and shape.transform.is_equal_approx(Transform3D.IDENTITY) and shape.shape is BoxShape3D and shape.shape.size.is_equal_approx(floor_record.size): result = hit.position.y
+ 	_busy = false
++	if not is_finite(result):
++		_diag_rejects[_last_reason if not _last_reason.is_empty() else "<branch-wrote-no-reason>"] = int(_diag_rejects.get(_last_reason if not _last_reason.is_empty() else "<branch-wrote-no-reason>", 0)) + 1
++		_diag_calls += 1
++		if _diag_calls % 32 == 0:
++			print("DSH_REJECTS ", JSON.stringify(_diag_rejects))
+ 	return result
+ 
+ func callbacks() -> Dictionary:
+@@ -389,7 +401,7 @@
+ 			if index<0 or (not purposeful and _ordinary[index]==0): _last_reason="ordinary_terrain";return false
+ 			var height:=_terrain_height(x,z)
+ 			if not is_finite(height) or absf(py-height)>.30: _last_reason="source_terrain_or_restriction";return false
+-	if not _contact.begin_segment([float(from.x)+395.65,float(from.z)+45.099999999999994],[float(to.x)+395.65,float(to.z)+45.099999999999994],RADIUS,1.9): return false
++	if not _contact.begin_segment([float(from.x)+395.65,float(from.z)+45.099999999999994],[float(to.x)+395.65,float(to.z)+45.099999999999994],RADIUS,1.9): _last_reason="contact_begin_segment";return false
+ 	var minv:=Vector2(from.x,from.z).min(Vector2(to.x,to.z))-Vector2.ONE*RADIUS
+ 	var maxv:=Vector2(from.x,from.z).max(Vector2(to.x,to.z))+Vector2.ONE*RADIUS
+ 	var seen: Dictionary={}

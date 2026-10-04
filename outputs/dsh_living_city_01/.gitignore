@@ -1,0 +1,9 @@
+﻿# build artifacts and heavy generated files of this package
+package/
+game/assets/
+*.pck
+*.exe
+*.log
+*.err
+pid.txt
+exports/

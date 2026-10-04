@@ -1,0 +1,4 @@
+﻿[application]
+config/name="dsh-head-zone-bench"
+config/features=PackedStringArray("4.7")
+
