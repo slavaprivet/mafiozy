@@ -1,5 +1,39 @@
 # Координатор27 — рабочая память
 
+## 03.10 08:26 — F5 readiness исправлен в общем launcher; return50 component
+
+Предыдущий goal turn PROGRESS: scheduler inventory fix и244proofs сохранены в
+main/origin cc2f4db28abe90076c36707710eee724183534ff,263scopedfiles. Текущий ход
+тоже PROGRESS: готовое исправление F5 применено в shared launcher после16 настоящих
+PowerShell file/process cases (58,412с/std0). Новый launcher SHA
+a092e2ca2802048c86a324d7668d4429db91c82e0876c7855029e9ae6af369e5, старыйbase
+3c35014e251a614641082cdc97fa8f6e0a458c7424f40328975f4fcb3764f629. Readiness poll
+перечитывает partial/locked файл до полного JSON в прежнем40с лимите; wrongcase/
+revision/okfalse и завершившийсяchild не принимаются. Root CheckOnly exit0:
+CURRENT_READY48/F5_READY, actualGodot/OSF5 не запускали. Evidence и ROOT_ACCEPTANCE:
+outputs/coordinator27_launcher_ready49. Source pin сохраняется -text в Git.
+
+Root начал недостающий synchronous pre-enable return contract41:
+outputs/coordinator27_return50/game/checked_return.gd. Native02 31PASS2,547с,
+настоящаяfullcapsule1,9/r0,3/floor/layer1024ceiling, restoringmask1025 блокирует
+препятствие, mask1 negativecontrol; послеубиранияпрепятствия samecapsule canonical
+LOCAL+intendedworld+filters commit, actual test_move floor normalUP. One-use ticket
+тотжепhysicsframe, owner/life/epoch/shape revision/transform/margin/replay проверки.
+Это COMPONENT, actualplayer/driver/transport integration и fullsceneperf OPEN;
+active APPROACH безdisabledinterval намереннонеподдержан. InitialparseFAIL сохранён.
+
+Transport3 и Physics12-13 ответили, что их работа остановлена/напаузе. Не отправлять
+им дальнейшие задания безновогопользовательскогоразрешения. Rootprivatehelper
+разрешёнобщимscope, sharedownerfilesнеизменены; действующий Cars49 получилread-only
+review fallback/callsites. Остановленныйtraversal не будили.
+
+C4pose49 revision7 GPU лично просмотрена: seam талии устранён. Near standing
+component пригоден, nativehead/hat proof и lowGPU/дальнийapproach ещёготовятся;
+нельзяурезатьaccepted48 range2,5/horizontal2м или выдаватьnearproofзавсюанимацию.
+Restaurant49 revision2 private93PASS/505pins, navaftercollapse/reset blocker
+исправляется revision3 с сохранёнными3NPC/IDs. Обычная production48/Palaццо и
+F5pointer неизменны; полныйперенос ACTIVE, не complete/blocked.
+
 ## 03.10 07:50 — checkpointv2 native127 и C4 standing57
 
 Checkpoint07:52: `b81a4ed2` pushed main, HEAD/origin/remote verified.285files, all283 staged evidence blobs byte-exact; raw CRLF preserved via -text, whitespace check with cr-at-eol PASS. Production48 unchanged.

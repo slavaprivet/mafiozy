@@ -6,6 +6,28 @@ const _residentShopCatalog=Object.freeze({
  gun_shop:Object.freeze({item:'cleaning_kit',label:'набор для чистки',price:12,need:'supplies'})
 });
 const _residentCommerceStats={purchases:0,spent:0,insufficientFunds:0,interrupted:0};
+// Opt-in per physical building. Until a complete station is registered, existing
+// visits retain their current checkout; an unfinished pilot cannot stop the city.
+const _residentCommerceServiceProviders=new Map();
+const _residentCommerceNoService=Object.freeze({available:true,provider:null,stamp:null});
+let _residentCommerceServiceSerial=0;
+function _residentCommerceRegisterService(buildingId,provider){
+ if(typeof buildingId!=='string'||!buildingId||typeof provider?.canServe!=='function'||typeof provider?.onPurchase!=='function')throw Error('Invalid resident service provider');
+ if(_residentCommerceServiceProviders.has(buildingId))throw Error('Resident service already registered');
+ const registration={provider,token:++_residentCommerceServiceSerial};_residentCommerceServiceProviders.set(buildingId,registration);
+ return()=>{if(_residentCommerceServiceProviders.get(buildingId)===registration)_residentCommerceServiceProviders.delete(buildingId);};
+}
+function _residentCommerceServiceGate(n,visit,now){
+ const order=visit?.commerce;if(!_residentCommerceServiceProviders.size&&!order?.serviceRegistration)return _residentCommerceNoService;
+ const buildingId=visit?.door?.instanceId||visit?.door?.id,registration=_residentCommerceServiceProviders.get(buildingId),provider=registration?.provider;
+ if(!provider)return order?.serviceRegistration?{available:false,reason:'service-unregistered'}:_residentCommerceNoService;
+ if(order&&order.serviceRegistration!==registration.token)return{available:false,reason:'service-replaced'};
+ try{
+  const access=provider.canServe({npc:n,visit,now});
+  if(access?.available!==true||typeof access.stamp!=='string'||!access.stamp||order&&order.serviceStamp!==access.stamp)return{available:false,reason:access?.reason||'employee-unavailable'};
+  return{available:true,provider,registration:registration.token,stamp:access.stamp};
+ }catch{return{available:false,reason:'service-unavailable'};}
+}
 function _residentCommerceUnit(n,salt){let h=2166136261;for(const ch of `${n.id}:${salt}`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return (h>>>0)/4294967296;}
 function _residentCommerceAccount(n){
  return n._residentWallet??=( {balance:35+Math.floor(_residentCommerceUnit(n,'wallet')*85),inventory:{},receipts:[],serial:0} );
@@ -20,7 +42,7 @@ function _residentDoorPurpose(door){
 }
 function _residentAffordableShop(n,door,now){
  const item=_residentShopCatalog[door?.assetId];if(!item)return false;
- const wallet=_residentCommerceAccount(n);return wallet.balance>=item.price&&now>=(wallet.inventory[item.item]?.nextNeedAt||0);
+ const wallet=_residentCommerceAccount(n);return Number.isSafeInteger(wallet.balance)&&wallet.balance>=item.price&&wallet.balance<=0x7fffffff&&now>=(wallet.inventory[item.item]?.nextNeedAt||0);
 }
 const _residentPlaceCatalogs=new WeakMap();
 function _residentPlaceCatalog(doors,now){
@@ -65,26 +87,50 @@ function _residentChoosePurposeDoors(n,doors,routine,now,allDoors=doors){
  // Unknown buildings remain visit destinations, never shops with invented stock.
  return matching.length?matching:available;
 }
+function _residentCommerceArrivalTarget(n,visit,now){
+ const pinned=visit?._serviceArrival,seen=visit?._serviceArrivalRegistration||pinned?.registration,buildingId=visit?.door?.instanceId||visit?.door?.id;
+ if(!_residentCommerceServiceProviders.size&&!seen)return visit?.door?.inside||null;
+ const registration=_residentCommerceServiceProviders.get(buildingId),provider=registration?.provider;
+ if(!provider||typeof provider.getServiceArrivalTarget!=='function')return seen?null:visit?.door?.inside||null;
+ if(seen&&seen!==registration.token)return null;
+ visit._serviceArrivalRegistration=registration.token;
+ try{
+  const target=provider.getServiceArrivalTarget({npc:n,visit,now});
+  if(!target||![target.r,target.c,target.y].every(Number.isFinite)||typeof target.stamp!=='string'||!target.stamp)return null;
+  if(pinned&&(pinned.stamp!==target.stamp||pinned.r!==target.r||pinned.c!==target.c||pinned.y!==target.y))return null;
+  if(!pinned)visit._serviceArrival={registration:registration.token,stamp:target.stamp,r:target.r,c:target.c,y:target.y};
+  return visit._serviceArrival;
+ }catch{return null;}
+}
 function _residentCommerceArrive(n,visit,now){
- const door=visit?.door;if(visit.commerce||!door?.inside||visit.phase!=='browsing'||Math.hypot(n.r-door.inside.r,n.c-door.inside.c)>.04)return false;
+ const door=visit?.door;if(visit.commerce||!door?.inside||visit.phase!=='browsing')return false;
+ const arrival=_residentCommerceArrivalTarget(n,visit,now);if(!arrival||Math.hypot(n.r-arrival.r,n.c-arrival.c)>.04)return false;
  const purpose=_residentDoorPurpose(door);visit.purpose=purpose;
  n._civilianPlan.purpose=purpose;
  if(purpose!=='shop'||!_residentAffordableShop(n,door,now))return false;
+ const service=_residentCommerceServiceGate(n,visit,now);if(!service.available)return false;
  const wallet=_residentCommerceAccount(n),item=_residentShopCatalog[door.assetId];
  visit.commerce={id:`${n.id}:${++wallet.serial}`,item,phase:'browse',since:now,payAt:now+1800,completeAt:now+3100,settled:false};
+ if(service.provider){visit.commerce.serviceRegistration=service.registration;visit.commerce.serviceStamp=service.stamp;}
  visit.until=Math.max(visit.until,now+3700);return true;
 }
 function _residentCommerceTick(n,visit,now){
  const order=visit?.commerce;if(!order||order.settled)return false;
- if(visit.phase!=='browsing'||n.dead||n.alive===false||Number.isFinite(n.hp)&&n.hp<=0||typeof _civilianPlanInterrupted==='function'&&_civilianPlanInterrupted(n,now)||Math.hypot(n.r-visit.door.inside.r,n.c-visit.door.inside.c)>.08){order.settled=true;order.phase='cancelled';_residentCommerceStats.interrupted++;return false;}
+ const arrival=_residentCommerceArrivalTarget(n,visit,now);
+ if(visit.phase!=='browsing'||n.dead||n.alive===false||Number.isFinite(n.hp)&&n.hp<=0||typeof _civilianPlanInterrupted==='function'&&_civilianPlanInterrupted(n,now)||!arrival||Math.hypot(n.r-arrival.r,n.c-arrival.c)>.08){order.settled=true;order.phase='cancelled';_residentCommerceStats.interrupted++;return false;}
+ const service=_residentCommerceServiceGate(n,visit,now);
+ if(!service.available){order.settled=true;order.phase='cancelled';order.serviceReason=service.reason;_residentCommerceStats.interrupted++;return false;}
  order.phase=now<order.payAt?'browse':'pay';
  if(now<order.completeAt)return true;
  const wallet=_residentCommerceAccount(n),item=order.item;order.settled=true;
- if(wallet.balance<item.price){order.phase='declined';_residentCommerceStats.insufficientFunds++;return false;}
- wallet.balance-=item.price;
+ if(!Number.isSafeInteger(wallet.balance)||wallet.balance<item.price||wallet.balance>0x7fffffff){order.phase='declined';_residentCommerceStats.insufficientFunds++;return false;}
+ const balanceBefore=wallet.balance;wallet.balance-=item.price;
  const old=wallet.inventory[item.item];wallet.inventory[item.item]={quantity:(old?.quantity||0)+1,nextNeedAt:now+300000};
- wallet.receipts.push({id:order.id,doorId:visit.door.id,item:item.item,price:item.price,at:now});if(wallet.receipts.length>8)wallet.receipts.shift();
+ const receipt={id:order.id,doorId:visit.door.id,item:item.item,price:item.price,at:now};wallet.receipts.push(receipt);if(wallet.receipts.length>8)wallet.receipts.shift();
  order.phase='complete';_residentCommerceStats.purchases++;_residentCommerceStats.spent+=item.price;
+ // Source checkout is the sole cash/inventory owner. Consume its accepted
+ // event synchronously before the next needs choice; never debit in the mirror.
+ if(service.provider)try{order.serviceResult=service.provider.onPurchase({npc:n,visit,now,receipt,balanceBefore,balanceAfter:wallet.balance});}catch{order.serviceResult={accepted:false,reason:'account-sync-required'};}
  n.cryText=`Купил${n.gender==='female'?'а':''} ${item.label}. Спасибо!`;n.cryUntil=now+2100;
  return false;
 }

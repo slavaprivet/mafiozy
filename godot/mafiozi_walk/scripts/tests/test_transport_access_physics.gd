@@ -36,6 +36,15 @@ func run() -> void:
 	provider.configure(scene.get_world_3d().direct_space_state, 1)
 	var clear: Dictionary = provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 300, Vector3(-2, 0, 0), Vector3(2, 0, 0))
 	check(clear.reachable and clear.path_clear and clear.destination_clear and clear.support_clear, "supported dry capsule exit is admitted")
+	var small: Dictionary = provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 300, Vector3(-2, 0, 0), Vector3(2, 0, 0), [], .2, .5)
+	check(small.reachable and is_equal_approx(provider.get("_capsule").radius, .2) and is_equal_approx(provider.get("_capsule").height, .5), "small valid capsule retains exact custom dimensions")
+	var large: Dictionary = provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 300, Vector3(-2, 0, 0), Vector3(2, 0, 0), [], .8, 2.2)
+	check(large.reachable and is_equal_approx(provider.get("_capsule").radius, .8) and is_equal_approx(provider.get("_capsule").height, 2.2), "large valid capsule retains exact custom dimensions")
+	check(not provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 300, Vector3(-2, 0, 0), Vector3(2, 0, 0), [], NAN, 1.9).reachable, "nonfinite custom capsule fails closed")
+	var probe_started := Time.get_ticks_usec()
+	for i in 500:
+		provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 301 + i, Vector3(-2, 0, 0), Vector3(2, 0, 0))
+	var probe_500_us := Time.get_ticks_usec() - probe_started
 	var seated_low: Dictionary = provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 325, Vector3(-2, -.016, 0), Vector3(2, 0, 0))
 	check(seated_low.reachable and absf(float(seated_low.start_floor_correction_m) - .016) < .001 and absf(float(seated_low.from_m.y) + .016) < .001, "exact seated anchor within bounded support seam uses query correction while receipt preserves actor provenance")
 	var too_low: Dictionary = provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 326, Vector3(-2, -.06, 0), Vector3(2, 0, 0))
@@ -64,7 +73,7 @@ func run() -> void:
 	var sensor_floor: Dictionary = provider.probe_access(actor_ref, vehicle_ref, "front_left", "EXIT", 550, Vector3(-2, 0, 0), Vector3(2, 0, 0))
 	check(not sensor_floor.reachable and not sensor_floor.support_clear, "Area3D sensor cannot count as physical foot support")
 	sensor.queue_free(); scene.queue_free(); await process_frame
-	print(JSON.stringify({"checks": checks, "failures": failures, "engine": Engine.get_version_info().string, "scope": "actual PhysicsDirectSpaceState3D capsule sweeps; headless fixture only"}))
+	print(JSON.stringify({"checks": checks, "failures": failures, "probe_500_us": probe_500_us, "engine": Engine.get_version_info().string, "scope": "actual PhysicsDirectSpaceState3D capsule sweeps; headless fixture only"}))
 	quit(0 if failures.is_empty() else 1)
 
 func _initialize() -> void:

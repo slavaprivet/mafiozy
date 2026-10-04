@@ -1,4 +1,21 @@
-## CURRENT Godot — 26 сентября 2026, после живой проверки
+## CURRENT — передача Координатору21, 26 сентября 2026, 20:17 UTC
+
+Пользователь разрешил преемника. Создан same-directory **Координатор 21**
+`01a0df5c-6cff-7341-a3a5-b7f8b3d00f31`, закреплён вместо20. Передача:
+docs/ai/COORDINATOR_21_HANDOFF.md. Root20 новые production правки прекращает,
+заканчивает только текущие airborne/interior subagent packages и их передачу.
+Проверщик ЧАТОВ 1-8 `01a0bbdc-edb1-7cc3-9cda-1160f3bc057b` теперь единственный
+lead14Astra, получил14направлений/ff717eb/scopes/fullbytesprotocol. Художник21
+ведёт implementation perf, старыйdispatchPAUSED. Текущийuserrelease43332/exec9305
+жив; не закрывать при переходе. GitHub последнийverifiedff717eb, сохранятьразвчас.
+
+## История Godot — 26 сентября 2026, после живой проверки
+
+SAVE: 26 сентября около20:05UTC main/origin VERIFIED
+ff717ebf20293620e500b54d2deb30f4a940a6f9, 41scopedfiles. gitpush+ls-remote совпали.
+GitHub https://github.com/slavaprivet/mafiozy/commit/ff717ebf20293620e500b54d2deb30f4a940a6f9
+Новыйperf Artist21 WIP исключён, следующий hourlycheckpoint послеего проверки.
+Release43332 всё ещёRespondingпослепубликации, не считатьlong-sessionPASS.
 
 UPDATE20:00UTC: пользователь сообщил о самозакрытии, debug48888 отсутствовал.
 Причина не доказана, crashlogпуст; прежнийRADARPRE_LEAK не доказательство.

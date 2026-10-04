@@ -6,16 +6,679 @@
     "offset": null
   },
   "bindings": 75,
-  "selected": 6,
+  "selected": 22,
   "results": [
+    {
+      "id": "REBUILD-VISUAL-civic_hall-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 605.8408077268449,
+        "y": 0.6000000238418579,
+        "z": 48.39753256740033
+      },
+      "upper": {
+        "x": 605.8408077268449,
+        "y": 9.205000004768372,
+        "z": 44.597532567400336
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        605.8408077268449,
+        2.600000023841858,
+        56.39753256740033
+      ],
+      "lookAt": [
+        606.1908076867462,
+        5.451155966467449,
+        46.3371356997924
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          605.3608077257873,
+          0.6000000020116567,
+          44.55673874272297
+        ],
+        [
+          607.0208076477052,
+          10.302311930923242,
+          48.117532656861826
+        ]
+      ],
+      "roofFloor": 9.205000004768372,
+      "roofMesh": "CivicHall_MainBody",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-hospital-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 665.0681824731818,
+        "y": 0.5199999809265136,
+        "z": 60.66818082318182
+      },
+      "upper": {
+        "x": 665.0681824731818,
+        "y": 11.024999991655353,
+        "z": 56.11818093318181
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        665.0681824731818,
+        2.5199999809265137,
+        68.66818082318181
+      ],
+      "lookAt": [
+        665.4181824788451,
+        6.32115602011163,
+        58.232784013464006
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          664.5881822794676,
+          0.5200000079721212,
+          56.077387533231736
+        ],
+        [
+          666.2481826782226,
+          12.122312032251138,
+          60.388180493696275
+        ]
+      ],
+      "roofFloor": 11.024999991655353,
+      "roofMesh": "Hospital_UpperWard",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-nightclub-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 507.58349999999996,
+        "y": 0,
+        "z": 106.71799999999999
+      },
+      "upper": {
+        "x": 507.58349999999996,
+        "y": 7.505,
+        "z": 112.01799999999999
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        507.58349999999996,
+        2,
+        98.71799999999999
+      ],
+      "lookAt": [
+        507.2335001021027,
+        4.301156210846494,
+        109.52839650925972
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          506.40350014114375,
+          4.991889013261641e-9,
+          106.99800002902745
+        ],
+        [
+          508.06350006306167,
+          8.602312416701098,
+          112.05879298949199
+        ]
+      ],
+      "roofFloor": 7.505,
+      "roofMesh": "RoofSlab",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-old_town_narrow_townhouse_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 304.09170895613096,
+        "y": 0,
+        "z": 9.61836180095736
+      },
+      "upper": {
+        "x": 300.7572089561309,
+        "y": 8.574999914169313,
+        "z": 9.61836180095736
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        312.09170895613096,
+        2,
+        9.618361800957361
+      ],
+      "lookAt": [
+        302.2640624920441,
+        4.836155823565314,
+        9.268361819501028
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          300.71641571235807,
+          -2.458691597539975e-9,
+          8.438361798937425
+        ],
+        [
+          303.8117092717301,
+          9.67231164958932,
+          10.09836184006463
+        ]
+      ],
+      "roofFloor": 8.574999914169313,
+      "roofMesh": "Storey_Walls_And_Ceilings",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_garden_walkup_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 542.5544998741149,
+        "y": 0,
+        "z": 115.89705882352939
+      },
+      "upper": {
+        "x": 545.6044998741149,
+        "y": 12.875000152587893,
+        "z": 115.89705882352939
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        534.5544998741149,
+        2,
+        115.89705882352939
+      ],
+      "lookAt": [
+        544.2398966803995,
+        6.986156038142036,
+        116.24705882747385
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          542.8345002001672,
+          -2.458691597539975e-9,
+          115.41705882181141
+        ],
+        [
+          545.6452931606318,
+          13.972312078742762,
+          117.07705883313629
+        ]
+      ],
+      "roofFloor": 12.875000152587893,
+      "roofMesh": "eastside_garden_walkup_v1ShellGeometry",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-eastside_stepped_apartment_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 506.4861392316285,
+        "y": 0,
+        "z": 33.50343128309968
+      },
+      "upper": {
+        "x": 524.1222392316284,
+        "y": 12.675000152587891,
+        "z": 33.50343128309968
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        498.4861392316285,
+        2,
+        33.50343128309968
+      ],
+      "lookAt": [
+        515.4645860788087,
+        6.886156133509467,
+        33.85343125211031
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          506.76613930942233,
+          -2.458691597539975e-9,
+          33.0234312315467
+        ],
+        [
+          524.1630328481949,
+          13.772312269477625,
+          34.683431272673914
+        ]
+      ],
+      "roofFloor": 12.675000152587891,
+      "roofMesh": "eastside_stepped_apartment_v1ShellGeometry",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-coastal_orchard_house_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 421.76949996852875,
+        "y": 0,
+        "z": 512.5
+      },
+      "upper": {
+        "x": 427.81949996852876,
+        "y": 4.085,
+        "z": 512.5
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        413.76949996852875,
+        2,
+        512.5
+      ],
+      "lookAt": [
+        424.9548967295585,
+        2.5911560581468436,
+        512.8499999925494
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          422.04950024932623,
+          -5.960464483090178e-10,
+          512.0200000017882
+        ],
+        [
+          427.86029320979077,
+          5.182312116889734,
+          513.6799999833107
+        ]
+      ],
+      "roofFloor": 4.085,
+      "roofMesh": "MainBody",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-garden_lane_house_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 555.5391078076422,
+        "y": 0,
+        "z": 20.45199996852874
+      },
+      "upper": {
+        "x": 555.5391078076422,
+        "y": 5.484999999999999,
+        "z": 26.501999968528747
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        555.5391078076422,
+        2,
+        12.451999968528739
+      ],
+      "lookAt": [
+        555.1891077905088,
+        3.2911561058305594,
+        23.637396662801294
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          554.3591077997476,
+          -5.960464483090178e-10,
+          20.731999705731866
+        ],
+        [
+          556.0191077812701,
+          6.582312212257166,
+          26.54279361987072
+        ]
+      ],
+      "roofFloor": 5.484999999999999,
+      "roofMesh": "MainBody",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-hillstep_chalet_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 21.539500152111046,
+        "y": 0,
+        "z": 32.933431062387385
+      },
+      "upper": {
+        "x": 27.589500152111047,
+        "y": 4.435,
+        "z": 32.93343106238739
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        13.539500152111046,
+        2,
+        32.933431062387385
+      ],
+      "lookAt": [
+        24.72489700850823,
+        2.7661560104631278,
+        33.283431098807654
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          21.8195000514388,
+          -5.960464483090178e-10,
+          32.453431122947535
+        ],
+        [
+          27.630293965577657,
+          5.532312021522302,
+          34.11343107466778
+        ]
+      ],
+      "roofFloor": 4.435,
+      "roofMesh": "MainRoof",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-pine_ridge_cottage_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 205.14614151993067,
+        "y": 0,
+        "z": 96.15004053842165
+      },
+      "upper": {
+        "x": 205.14614151993067,
+        "y": 4.234999999999999,
+        "z": 90.10004053842165
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        205.14614151993067,
+        2,
+        104.15004053842165
+      ],
+      "lookAt": [
+        205.4961414942268,
+        2.6661561058305594,
+        92.9646437392449
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          204.6661414736632,
+          -5.960464483090178e-10,
+          90.05924725901264
+        ],
+        [
+          206.3261415147904,
+          5.332312212257166,
+          95.87004021947718
+        ]
+      ],
+      "roofFloor": 4.234999999999999,
+      "roofMesh": "MainBody",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-veranda_bungalow_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 471.1344998636245,
+        "y": 0,
+        "z": 580.15
+      },
+      "upper": {
+        "x": 477.1844998636245,
+        "y": 3.3350000000000004,
+        "z": 580.15
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        463.1344998636245,
+        2,
+        580.15
+      ],
+      "lookAt": [
+        474.31989673909516,
+        2.2161560581468436,
+        580.499999950826
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          471.41449978202576,
+          -5.960464483090178e-10,
+          579.669999989867
+        ],
+        [
+          477.2252936961646,
+          4.432312116889734,
+          581.329999911785
+        ]
+      ],
+      "roofFloor": 3.3350000000000004,
+      "roofMesh": "MainBody",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-woodland_crosswing_house_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 191.30450004720683,
+        "y": 0,
+        "z": 112.74999999999999
+      },
+      "upper": {
+        "x": 197.35450004720687,
+        "y": 4.334999999999999,
+        "z": 112.74999999999999
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        183.30450004720683,
+        2,
+        112.74999999999999
+      ],
+      "lookAt": [
+        194.4898972087798,
+        2.7161560581468436,
+        113.10000001222309
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          191.58450072854754,
+          -5.960464483090178e-10,
+          112.27000002146181
+        ],
+        [
+          197.39529368901208,
+          5.432312116889734,
+          113.93000000298437
+        ]
+      ],
+      "roofFloor": 4.334999999999999,
+      "roofMesh": "MainBody",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
+    {
+      "id": "REBUILD-VISUAL-compact_podium_glass_tower_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 668.425925925926,
+        "y": 0,
+        "z": 115.68199974060056
+      },
+      "upper": {
+        "x": 668.425925925926,
+        "y": 27.584999997019768,
+        "z": 121.18799974060057
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        668.425925925926,
+        2,
+        107.68199974060056
+      ],
+      "lookAt": [
+        668.0759258947438,
+        14.341155635959694,
+        118.59539661225654
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          667.2459258741802,
+          -2.756714856388953e-9,
+          115.96199996799228
+        ],
+        [
+          668.9059259153074,
+          28.682311274676103,
+          121.22879325652079
+        ]
+      ],
+      "roofFloor": 27.584999997019768,
+      "roofMesh": "compact_podium_glass_tower_v1_LOD0Geometry_1",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Front",
+        "Roof_Cover_Utility_Right"
+      ],
+      "routeAudit": "landing-and-cover-only"
+    },
     {
       "id": "REBUILD-VISUAL-pawnshop-001",
       "status": "PASS",
       "bodyBlockers": [],
       "meshBlockers": [],
-      "samples": 1827,
+      "samples": 1851,
       "lower": {
-        "x": 388.78603733032,
+        "x": 388.63603733032005,
         "y": 0,
         "z": 15.939625059276818
       },
@@ -28,41 +691,98 @@
       "actualVisible": true,
       "stagedRenderMeshes": 3,
       "camera": [
-        380.78603733032,
+        380.63603733032005,
         2,
         15.939625059276816
       ],
       "lookAt": [
-        390.09528692149553,
+        389.8214342096054,
         4.586155998653958,
         16.289625083059065
       ],
       "visibleFromExterior": true,
       "stagedBounds": [
         [
-          389.0660368710663,
+          388.916037252536,
           -9.909272180586015e-9,
           15.459625122100107
         ],
         [
-          391.1245369719248,
+          390.72683116667486,
           9.172312007217188,
           17.119625044018022
         ]
       ],
       "roofFloor": 8.075000000000001,
-      "roofMesh": "Roof_slab"
+      "roofMesh": "Roof_slab",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
+    },
+    {
+      "id": "REBUILD-VISUAL-print_shop-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 386.739,
+        "y": 0,
+        "z": 39.548446662925045
+      },
+      "upper": {
+        "x": 391.039,
+        "y": 6.584999999999999,
+        "z": 39.548446662925045
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        378.739,
+        2,
+        39.548446662925045
+      ],
+      "lookAt": [
+        389.04939685639727,
+        3.8411560534902307,
+        39.89844689079361
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          387.0189998993278,
+          -9.909272180586015e-9,
+          39.06844692983465
+        ],
+        [
+          391.07979381346667,
+          7.682312116889734,
+          40.728446851752565
+        ]
+      ],
+      "roofFloor": 6.584999999999999,
+      "roofMesh": "Main_print_hall",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
     },
     {
       "id": "REBUILD-VISUAL-gun_shop-001",
       "status": "PASS",
       "bodyBlockers": [],
       "meshBlockers": [],
-      "samples": 1635,
+      "samples": 1659,
       "lower": {
         "x": 402.5687498879432,
         "y": 0,
-        "z": 62.120187481790765
+        "z": 61.97018748179077
       },
       "upper": {
         "x": 402.5687498879432,
@@ -75,37 +795,43 @@
       "camera": [
         402.5687498879432,
         2,
-        54.120187481790765
+        53.97018748179077
       ],
       "lookAt": [
         402.21874965578314,
         4.0061561345525485,
-        63.42943780729546
+        63.15558414173104
       ],
       "visibleFromExterior": true,
       "stagedBounds": [
         [
           401.3887496948242,
           -9.909272125074864e-9,
-          62.4001877568662
+          62.25018718466161
         ],
         [
           403.0487496167421,
           8.012312279014369,
-          64.45868785772471
+          64.06098109880047
         ]
       ],
       "roofFloor": 6.915,
-      "roofMesh": "Heavy_roof_slab"
+      "roofMesh": "Heavy_roof_slab",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
     },
     {
       "id": "REBUILD-VISUAL-bookmaker-001",
       "status": "PASS",
       "bodyBlockers": [],
       "meshBlockers": [],
-      "samples": 1549,
+      "samples": 1573,
       "lower": {
-        "x": 245.92200017273424,
+        "x": 245.77200017273424,
         "y": 0,
         "z": 117.56300016880033
       },
@@ -118,46 +844,154 @@
       "actualVisible": true,
       "stagedRenderMeshes": 3,
       "camera": [
-        237.92200017273424,
+        237.77200017273424,
         2,
         117.56300016880033
       ],
       "lookAt": [
-        247.23124995464457,
+        246.9573967659173,
         3.751156198925564,
         117.91300009340043
       ],
       "visibleFromExterior": true,
       "stagedBounds": [
         [
-          246.2019999042153,
+          246.05200028568504,
           -9.909272125074864e-9,
           117.08300013244147
         ],
         [
-          248.26050000507382,
+          247.86279324614958,
           7.5023124077604,
           118.74300005435938
         ]
       ],
       "roofFloor": 6.404999999999999,
-      "roofMesh": "Roof_slab"
+      "roofMesh": "Roof_slab",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
+    },
+    {
+      "id": "REBUILD-VISUAL-strip_club-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 1769,
+      "lower": {
+        "x": 334.89643697166446,
+        "y": 0,
+        "z": 176.46181235966083
+      },
+      "upper": {
+        "x": 332.84643697166445,
+        "y": 7.574999999999999,
+        "z": 176.46181235966083
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        342.89643697166446,
+        2,
+        176.46181235966083
+      ],
+      "lookAt": [
+        333.7110403269829,
+        4.336156204886028,
+        176.11181221380826
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          332.8056436083321,
+          -1.2293457973822086e-8,
+          175.2818122528493
+        ],
+        [
+          334.6164370456338,
+          8.672312422065515,
+          176.94181217476722
+        ]
+      ],
+      "roofFloor": 7.574999999999999,
+      "roofMesh": "Club_Roof_Slab",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
+    },
+    {
+      "id": "REBUILD-VISUAL-glass_pavilion_small_v1-001",
+      "status": "PASS",
+      "bodyBlockers": [],
+      "meshBlockers": [],
+      "samples": 0,
+      "lower": {
+        "x": 732.0898009859238,
+        "y": 0,
+        "z": 45.45000005364418
+      },
+      "upper": {
+        "x": 729.7898009859239,
+        "y": 8.995000047683716,
+        "z": 45.45000005364418
+      },
+      "actualRenderMeshes": 3,
+      "actualVisible": true,
+      "stagedRenderMeshes": 3,
+      "camera": [
+        740.0898009859238,
+        2,
+        45.45000005364418
+      ],
+      "lookAt": [
+        730.7794042401526,
+        5.046155885405132,
+        45.09999990016222
+      ],
+      "visibleFromExterior": true,
+      "stagedBounds": [
+        [
+          729.7490077599205,
+          -1.2293458029333237e-8,
+          44.26999993920326
+        ],
+        [
+          731.8098007203849,
+          10.092311783103723,
+          45.929999861121175
+        ]
+      ],
+      "roofFloor": 8.995000047683716,
+      "roofMesh": "Small_Roof_Slab",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "landing-and-cover-only"
     },
     {
       "id": "REBUILD-bank:large",
       "status": "PASS",
       "bodyBlockers": [],
       "meshBlockers": [],
-      "samples": 1313,
+      "samples": 1337,
       "lower": {
         "x": 227.02999999999997,
         "y": 0,
-        "z": 655.98
+        "z": 627.17
       },
       "upper": {
         "x": 227.02999999999997,
         "y": 4.995,
-        "z": 654.08
+        "z": 629.2199999999999
       },
       "actualRenderMeshes": 3,
       "actualVisible": true,
@@ -165,42 +999,48 @@
       "camera": [
         227.02999999999997,
         2,
-        663.98
+        619.17
       ],
       "lookAt": [
-        227.3799995049834,
+        226.68000024706123,
         3.0461561998196336,
-        654.6707499927841
+        628.3553964787421
       ],
       "visibleFromExterior": true,
       "stagedBounds": [
         [
-          226.54999954402444,
+          225.8499998092651,
           -3.3527612630646075e-9,
-          653.6414999721571
+          627.4499999985098
         ],
         [
-          228.20999946594236,
+          227.51000068485735,
           6.092312402992029,
-          655.700000013411
+          629.2607929589744
         ]
       ],
       "roofFloor": 4.995,
-      "roofMesh": "Bank_Roof"
+      "roofMesh": "Bank_Roof",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
     },
     {
       "id": "REBUILD-bank:medium",
       "status": "PASS",
       "bodyBlockers": [],
       "meshBlockers": [],
-      "samples": 1313,
+      "samples": 1337,
       "lower": {
-        "x": 175.33,
+        "x": 152.51999999999998,
         "y": 0,
         "z": 629.77
       },
       "upper": {
-        "x": 173.43,
+        "x": 154.57,
         "y": 4.995,
         "z": 629.77
       },
@@ -208,44 +1048,50 @@
       "actualVisible": true,
       "stagedRenderMeshes": 3,
       "camera": [
-        183.33,
+        144.51999999999998,
         2,
         629.77
       ],
       "lookAt": [
-        174.02074999278412,
+        153.70539647874216,
         3.0461561998196336,
-        629.4200000181794
+        630.1200002297759
       ],
       "visibleFromExterior": true,
       "stagedBounds": [
         [
-          172.9914999721572,
+          152.7999999985099,
           -3.3527612630646075e-9,
-          628.5899995803833
+          629.2900002688169
         ],
         [
-          175.05000001341105,
+          154.61079295897443,
           6.092312402992029,
-          630.2500004559755
+          630.9500001907348
         ]
       ],
       "roofFloor": 4.995,
-      "roofMesh": "Bank_Roof"
+      "roofMesh": "Bank_Roof",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
     },
     {
       "id": "REBUILD-bank:small",
       "status": "PASS",
       "bodyBlockers": [],
       "meshBlockers": [],
-      "samples": 1313,
+      "samples": 1337,
       "lower": {
-        "x": 225.62999999999997,
+        "x": 208.82,
         "y": 0,
         "z": 123.31999999999998
       },
       "upper": {
-        "x": 223.72999999999996,
+        "x": 210.87,
         "y": 4.995,
         "z": 123.31999999999998
       },
@@ -253,30 +1099,36 @@
       "actualVisible": true,
       "stagedRenderMeshes": 3,
       "camera": [
-        233.62999999999997,
+        200.82,
         2,
         123.31999999999998
       ],
       "lookAt": [
-        224.3207499927841,
+        210.00539647874214,
         3.0461561998196336,
-        122.96999977976083
+        123.6700002297759
       ],
       "visibleFromExterior": true,
       "stagedBounds": [
         [
-          223.29149997215717,
+          209.09999999850987,
           -3.3527612630646075e-9,
-          122.13999958038329
+          122.84000026881694
         ],
         [
-          225.35000001341103,
+          210.9107929589744,
           6.092312402992029,
-          123.79999997913836
+          124.50000019073485
         ]
       ],
       "roofFloor": 4.995,
-      "roofMesh": "Bank_Roof"
+      "roofMesh": "Bank_Roof",
+      "roofCoverBodies": 2,
+      "roofCoverIds": [
+        "Roof_Cover_Utility_Left",
+        "Roof_Cover_Utility_Front"
+      ],
+      "routeAudit": "PASS"
     }
   ]
 }

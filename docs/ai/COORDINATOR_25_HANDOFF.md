@@ -7,6 +7,27 @@
 Не будить24 для production. Файлы, незавершённые кандидаты и исходная память сохранены.
 
 Текущие факты и продолжение — `COORDINATOR_25_MEMORY.md`.
+
+Позднее23:13 пользователь прямо потребовал spawn у Palazzo. Root открыл одну
+обычную isolatedPalazzo сцену у входа42.2/.14/1: PID47436 при запуске,
+`outputs/buildings2_palazzo_live/OPENED.json`,292pins/assembly2f5e3611….
+Не перезапускать, пока пользователь проверяет; остальные engines/perf HOLD.
+Это рабочий preview, не production/GPUperformance acceptance. Старые окна и
+PID ниже исторические, свежий inventory обязателен. Launcher null-log observer
+исправлен без перезапуска, память25 содержит backup/receipt.
+
+Уточнение30сентября23:01: принятая25a опубликована в main/origin
+`a463167683dc2e9da10f0e70291c64897bd5c5c4`. Фонари повторно не интегрировать.
+По новому поручению пользователя Buildings2 сам внедряет Palazzo и временно
+ведёт scoped mainhooks/export/LIVE; root не дублирует его и держит общие
+main/player/export без собственных правок до передачи/завершения владельца.
+Root33 остаётся изолированным: step lanes73/actual0131997/corpse2738 PASS;
+closeAK29/50 PASS, но4–10мс surface query удерживает candidate на performance HOLD.
+Это headless, GPU/общий экспорт этих исправлений ещё не принят. CompactHUD
+owner GPU142 PASS/RELEASED, сохранить в следующем экспорте; historical36464
+уже отсутствовал в свежем inventory22:58, root его не закрывал. Перед любым
+запуском заново проверить процессы/окна. Подробности/пути в шапке памяти25.
+
 Подробная унаследованная история — `COORDINATOR_24_MEMORY.md` (читать полностью),
 `COORDINATOR_24_HANDOFF.md`, `COORDINATOR_24_RELEASE_24F.md`.
 

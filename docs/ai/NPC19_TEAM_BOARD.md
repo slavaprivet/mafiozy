@@ -1,4 +1,18 @@
-## CURRENT Godot — 26 сентября 2026, после живой проверки
+## CURRENT — Godot, преемник Координатор21, 26 сентября 2026, 20:17 UTC
+
+Новыйroot **Координатор 21** `01a0df5c-6cff-7341-a3a5-b7f8b3d00f31`,
+same-directory, закреплён вместо20. Передача docs/ai/COORDINATOR_21_HANDOFF.md.
+**Проверщик ЧАТОВ 1-8** `01a0bbdc-edb1-7cc3-9cda-1160f3bc057b` — lead всех14Astra,
+Художник21 — actualGodotimplementation (perf/asyncJSON). Старые lead21 указания
+отменены последним поручением пользователя. 20 передаёт только ужеидущие
+airborne/interior пакеты; новыеправкиroot принадлежат21. Release43332/exec9305
+не закрывать. main/origin ff717eb verified, GitHubсохраненияразвчас.
+
+## История Godot — 26 сентября 2026, после живой проверки
+
+SAVE20:05UTC main/origin ff717ebf20293620e500b54d2deb30f4a940a6f9 published+verified.
+41Godot/docs/export scopedfiles; Artist21perfWIP оставлен дляследующейприёмки.
+Пользовательуточнил частоту GitHub сохранения: раз в час, не каждуюправку.
 
 UPDATE20:00UTC: актуальный единственный показ standalone releasePID43332,
 package s01-20260926-review02; debug48888 завершился по неизвестнойпричине.

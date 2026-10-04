@@ -1,6 +1,8 @@
 extends RefCounted
 
 const SCHEMA := "mafiozi.transport.descriptors.v1"
+const SOURCE_PARKING_LOTS := 39
+const SOURCE_PARKING_BAYS := 59
 
 var error := ""
 var document: Dictionary = {}
@@ -34,6 +36,8 @@ func load_file(path: String = "res://data/transport/vehicle_descriptors.v1.json"
 			error = "PROFILE:%s" % id; return false
 		profiles[id] = profile
 	var parking_block: Dictionary = candidate.get("parking", {})
+	if not _valid_parking_block(parking_block):
+		error = "PARKING_CONTRACT"; return false
 	for value in parking_block.get("bays", []):
 		if not value is Dictionary:
 			error = "PARKING_TYPE"; return false
@@ -81,6 +85,46 @@ func _find_seat(profile: Dictionary, id: String) -> Dictionary:
 	for value in profile.get("seats", []):
 		if value is Dictionary and value.get("id", "") == id: return value
 	return {}
+
+func _valid_parking_block(block: Dictionary) -> bool:
+	if block.get("source_version") != 1 or block.get("metres_per_cell") != 4.1: return false
+	var stats: Variant = block.get("stats")
+	var bays: Variant = block.get("bays")
+	if not stats is Dictionary or not bays is Array: return false
+	if not _whole_positive(stats.get("lots")) or not _whole_positive(stats.get("bays")) or bays.size() != int(stats.bays): return false
+	if int(stats.lots) != SOURCE_PARKING_LOTS or int(stats.bays) != SOURCE_PARKING_BAYS: return false
+	var lots: Dictionary = {}
+	var kinds := {"hospital": 0, "residential": 0}
+	for value in bays:
+		if not value is Dictionary: return false
+		var bay: Dictionary = value
+		var id: Variant = bay.get("parking_id")
+		var lot_id: Variant = bay.get("lot_id")
+		var building_id: Variant = bay.get("building_id")
+		var kind: Variant = bay.get("kind")
+		var layout: Variant = bay.get("layout")
+		if not id is String or id.is_empty() or not lot_id is String or lot_id.is_empty() or not building_id is String or building_id.is_empty(): return false
+		if not id.begins_with(lot_id + ":bay:") or lot_id != "parking:" + building_id: return false
+		if kind not in ["hospital", "residential"] or layout not in ["parallel", "perpendicular"]: return false
+		if bay.get("exit_rule") != "yield_to_road_and_pedestrians" or not _finite_vector(bay.get("position_m")): return false
+		for number in [bay.get("yaw_rad"), bay.get("width_m"), bay.get("length_m")]:
+			if not (number is int or number is float) or not is_finite(float(number)): return false
+		if float(bay.width_m) <= 0.0 or float(bay.length_m) <= 0.0: return false
+		if lots.has(lot_id):
+			if lots[lot_id] != kind: return false
+		else:
+			lots[lot_id] = kind
+			kinds[kind] += 1
+	if lots.size() != int(stats.lots): return false
+	for kind in kinds:
+		if not _whole_nonnegative(stats.get(kind + "Lots")) or kinds[kind] != int(stats[kind + "Lots"]): return false
+	return true
+
+func _whole_positive(value: Variant) -> bool:
+	return _whole_nonnegative(value) and int(value) > 0
+
+func _whole_nonnegative(value: Variant) -> bool:
+	return (value is int or value is float) and is_finite(float(value)) and float(value) >= 0.0 and float(value) == floor(float(value))
 
 func _finite_vector(value: Variant) -> bool:
 	if not value is Dictionary: return false

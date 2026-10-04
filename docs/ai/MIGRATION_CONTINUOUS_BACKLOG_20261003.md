@@ -1,6 +1,6 @@
 # Непрерывный перенос Walk → Godot — 3 октября 2026
 
-## Актуализация root27, 07:50
+## Актуализация root27, 08:26
 
 Далее сохранён первоначальный source-аудит root26; его статусы45/47 исторические.
 Текущий accepted/F5 — release48, manifest51484885ce069970cecb234b7c016d5cc7e3b5611c3422ddeaa915a0d9c712b7.
@@ -15,21 +15,31 @@
   HOLD и closer C→stand failure сохранены, не объявлены готовой анимацией.
 - Step48: actual capsule/corpse проверки + graphical component review выполнены,
   исторический transient cap123 FAIL имеет явное component exception. Нужны
-  настоящий Palazzo passage и полный movement cost. Короткий dive48 native404+404
+  полный movement cost. Настоящий Palazzo passage с обоими изменениями PASS124,
+  outputs/coordinator27_player49_passage. Короткий dive48 native404+404
   ограничивает движение3.36м без удаления cinematic recovery; visual/perf не приняты.
 - Weapon checkpointv2: native127PASS, 14 исходныхUID через8фаз; реальный выстрел
   расходует патрон896→895, reload/ground/cargo сохраняют state. Codec collisions,
   boundary depth и pending input исправлены. Это capture/codec/plan безrestore;
-  `coordinator27_weapon_restore49` реализует отдельный two-process local restore
-  с owner APIs/fresh bindings/clock reconciliation. Server grants остаются0.
+  `coordinator27_weapon_restore49` реализовал отдельный two-process local restore
+  с owner APIs/fresh bindings/clock reconciliation:95PASS,14UID/894ammo, active
+  reload preserved, late prepare failure leaves owners empty. Durable service и
+  fullworld save integration ещё OPEN. Server grants остаются0.
 - Car49 и NPC24: функциональные результаты сохраняются, полный сопоставимый perf
   и текущие NPC contact/recovery исправления ещё не приняты. Детали у владельцев.
 - Новые здания: только private restaurant placement49 на final owner source;
-  active48 пока не меняется. Нужны реальный soil/main/player/E/stairs и perf.
+  active48 пока не меняется. Real soil/main/player/E/stairs private93PASS;
+  nav после collapse/reset исправляется revision3, общий perf ещё OPEN.
+- F5 readiness poll принят в shared launcher:16 настоящих file/process cases,
+  partial/locked CURRENT_READY больше не вызывает немедленный отказ; CheckOnly
+  CURRENT_READY48/F5_READY PASS. Literal OS F5 не эмулирован.
+- Checked return50: synchronous fullcapsule pre-enable transaction component
+  native31PASS. Нужны actual driver/transport callsites, fallback дляactive
+  APPROACH и integration/fullsceneperf. Старый player-only41 не принимается.
 - Полные NPC saves, economy/business/gangs/mercenaries/server transactions,
   полный город/редакторы/vehicle condition persistence остаются OPEN.
 
-Scheduler0194 в `docs/godot/TEST_SCHEDULER.md`: functional без rootGO, дваheadless
+Scheduleradcb в `docs/godot/TEST_SCHEDULER.md`: functional без rootGO, дваheadless
 плюсgraphical; perf требует свободного окна. Чужие immutable proofs сохранять.
 Root владеет production/pointer/Git; новый checkpoint не означает публикацию.
 

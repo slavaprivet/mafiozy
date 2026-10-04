@@ -48,6 +48,10 @@ export function assembleArtistBody(T,RoundedBox,c){
  if(bus){
   // FrontGlass belonged to the full bus shell and must not remain as a second pane.
   for(const n of sourceMeshes.filter(n=>/_FrontGlass$/.test(n.name)))remove(n);
+  // The bus keeps its authored PassengerBody instead of receiving the rebuilt
+  // passenger-car roof panel. Mark that retained physical shell as the stable
+  // roof source used by vehicle-surface and deformation contracts.
+  const roof=sourceMeshes.find(n=>/_PassengerBody$/.test(n.name));if(roof)roof.userData.vehicleRoof=true;
  }
  function sideRoofZ(z){return z>=movedCab?Math.min(z,roofFront-.06):Math.max(z,roofRear+.06)}
  for(const d of doorSpecs){

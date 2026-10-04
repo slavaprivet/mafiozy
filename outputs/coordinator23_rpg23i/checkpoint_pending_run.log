@@ -15,3 +15,196 @@ warning: in the working copy of 'outputs/coordinator23_rpg23i/blood_proposal/flo
 warning: in the working copy of 'outputs/coordinator23_rpg23i/blood_proposal/floor03/RESULT.json', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of 'outputs/coordinator23_rpg23i/cancel01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
 warning: in the working copy of 'outputs/coordinator23_rpg23i/checkpoint_pending.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/blood_disposal01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/blood_floor01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/cancel01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/context_dispose01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/floor01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/range_end01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/spread01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/compiled18/wall01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/context_dispose01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/BASE16_RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/BASE16_STRICT_RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/CANDIDATE17_RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/CANDIDATE17_REVIEW.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/CONTEXT_EVICTION17.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/REVIEW.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/ROOT_HUNKS.gd.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/context17/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/context17_02/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/context17_02/test_used.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/eviction17/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/test_actual_flight.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/test_current_context.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/flight_audit/test_pool_eviction.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/floor01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/gpu/BLOOD_DEPENDENCY_AUDIT.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/gpu/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/gpu/capture.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/gpu/compare.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/gpu/run_side.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/npc_proposal/README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/npc_proposal/native01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/npc_proposal/native01/test_used.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/npc_proposal/native02/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/npc_proposal/npc_rpg_blast_gate.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/npc_proposal/test_native_recipient.gd', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/prepare17.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/prepare18.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/range_end01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/spread01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/wall01/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'outputs/coordinator23_rpg23i/wall02/RESULT.json', LF will be replaced by CRLF the next time Git touches it
+[main 59731b44] Save isolated RPG integration and verified native proofs; GPU acceptance pending
+ 147 files changed, 48306 insertions(+)
+ create mode 100644 outputs/coordinator23_quality/candidate17/INTEGRATION.json
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/export_presets.cfg
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/scripts/npc_visual/npc_rpg_blast_gate.gd
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/scripts/preview_population.gd
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/scripts/weapons/preview_weapons.gd
+ create mode 100644 outputs/coordinator23_quality/candidate17/godot/mafiozi_walk/scripts/weapons/rpg_effects.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/INTEGRATION.json
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/data/preview_updates.json
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/export_presets.cfg
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/npc_visual/npc_blood_adapter.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/npc_visual/npc_blood_renderer.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/npc_visual/npc_local_preview_hit_owner.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/npc_visual/npc_ordinary_hit_lifecycle.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/npc_visual/npc_rpg_blast_gate.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/preview_population.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/weapons/preview_weapons.gd
+ create mode 100644 outputs/coordinator23_quality/candidate18/godot/mafiozi_walk/scripts/weapons/rpg_effects.gd
+ create mode 100644 outputs/coordinator23_rpg23i/ACTUAL_MAIN_ACCEPTANCE.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/README.md
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/RECEIPT.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/TEST_BINDING.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/context_dispose01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/context_dispose01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/context_dispose01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/files/scripts/npc_visual/npc_blood_adapter.gd
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/files/scripts/npc_visual/npc_blood_renderer.gd
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor02/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor02/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor02/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor03/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor03/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/floor03/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/merge.patch
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/parse01.log
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/run_native.py
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/test_actual_blood.gd
+ create mode 100644 outputs/coordinator23_rpg23i/blood_proposal/test_actual_blood_511e.gd
+ create mode 100644 outputs/coordinator23_rpg23i/cancel01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/cancel01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/cancel01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/checkpoint_pending.py
+ create mode 100644 outputs/coordinator23_rpg23i/checkpoint_pending_run.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/ACCEPTANCE.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/PROGRESS.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/README.md
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/actual_blood.gd
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/actual_main.gd
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/blood_disposal01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/blood_disposal01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/blood_disposal01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/blood_floor01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/blood_floor01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/blood_floor01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/cancel01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/cancel01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/cancel01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/context_dispose01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/context_dispose01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/context_dispose01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/floor01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/floor01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/floor01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/range_end01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/range_end01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/range_end01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/run_all.py
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/spread01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/spread01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/spread01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/wall01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/wall01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/compiled18/wall01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/context_dispose01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/context_dispose01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/context_dispose01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/BASE16.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/BASE16_RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/BASE16_STRICT.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/BASE16_STRICT_RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CANDIDATE17.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CANDIDATE17_PINS.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CANDIDATE17_RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CANDIDATE17_REVIEW.md
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CONTEXT17.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CONTEXT17_02.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CONTEXT_EVICTION17.md
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/CONTEXT_EVICTION17_RECEIPT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/EVICTION17.log
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/PINNED_INPUTS.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/REVIEW.md
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/ROOT_HUNKS.gd.txt
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/context17/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/context17_02/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/context17_02/test_used.gd
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/eviction17/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/fixture_actual_main_frozen.gd
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/test_actual_flight.gd
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/test_current_context.gd
+ create mode 100644 outputs/coordinator23_rpg23i/flight_audit/test_pool_eviction.gd
+ create mode 100644 outputs/coordinator23_rpg23i/floor01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/floor01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/floor01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/gpu/BLOOD_DEPENDENCY_AUDIT.md
+ create mode 100644 outputs/coordinator23_rpg23i/gpu/PREPARED.json
+ create mode 100644 outputs/coordinator23_rpg23i/gpu/README.md
+ create mode 100644 outputs/coordinator23_rpg23i/gpu/capture.gd
+ create mode 100644 outputs/coordinator23_rpg23i/gpu/compare.py
+ create mode 100644 outputs/coordinator23_rpg23i/gpu/run_side.py
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/PROPOSAL.patch
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/README.md
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/RECEIPT.json
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native01/native.log
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native01/test_used.gd
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native02/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native02/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/native02/native.log
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/npc_local_preview_hit_owner.gd
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/npc_ordinary_hit_lifecycle.gd
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/npc_rpg_blast_gate.gd
+ create mode 100644 outputs/coordinator23_rpg23i/npc_proposal/test_native_recipient.gd
+ create mode 100644 outputs/coordinator23_rpg23i/prepare17.py
+ create mode 100644 outputs/coordinator23_rpg23i/prepare18.py
+ create mode 100644 outputs/coordinator23_rpg23i/range_end01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/range_end01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/range_end01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/spread01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/spread01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/spread01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/tests/README.md
+ create mode 100644 outputs/coordinator23_rpg23i/tests/actual_main.gd
+ create mode 100644 outputs/coordinator23_rpg23i/tests/actual_main_28ad.gd
+ create mode 100644 outputs/coordinator23_rpg23i/tests/actual_main_b913.gd
+ create mode 100644 outputs/coordinator23_rpg23i/tests/parse01.log
+ create mode 100644 outputs/coordinator23_rpg23i/tests/run_case.py
+ create mode 100644 outputs/coordinator23_rpg23i/wall01/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/wall01/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/wall01/engine.log
+ create mode 100644 outputs/coordinator23_rpg23i/wall02/RESULT.json
+ create mode 100644 outputs/coordinator23_rpg23i/wall02/RUN.json
+ create mode 100644 outputs/coordinator23_rpg23i/wall02/engine.log
+To https://github.com/slavaprivet/mafiozy.git
+   b334f890..59731b44  main -> main
+Remote verified 59731b44d60ecdcdffa4b8afeea69f9b1938ae00 scoped files 147

@@ -11,6 +11,7 @@ import {explorationKeepouts} from '../../assets/maps/city_rebuild_v1/exploration
 const repositoryRoot = new URL('../../', import.meta.url);
 const cityRoot = new URL('assets/maps/city_rebuild_v1/', repositoryRoot);
 const outputUrl = new URL('godot/mafiozi_walk/data/transport/vehicle_descriptors.v1.json', repositoryRoot);
+const parkingAccessUrl = new URL('godot/mafiozi_walk/data/transport/parking_access.v1.json', repositoryRoot);
 const factoryOutputUrl = new URL('godot/mafiozi_walk/data/transport/transport_bootstrap_factory.v1.json', repositoryRoot);
 const factoryOracleUrl = new URL('godot/mafiozi_walk/data/transport/vehicle_factory_oracle.v1.json', repositoryRoot);
 const readJson = name => JSON.parse(fs.readFileSync(new URL(name, cityRoot), 'utf8'));
@@ -174,7 +175,37 @@ const document = {
 };
 
 fs.mkdirSync(new URL('.', outputUrl), {recursive: true});
-fs.writeFileSync(outputUrl, JSON.stringify(document, null, 2) + '\n');
+const descriptorBytes = Buffer.from(JSON.stringify(document, null, 2) + '\n');
+fs.writeFileSync(outputUrl, descriptorBytes);
+// Route geometry is separate from the compact bay catalog. These are the
+// source plan's existing identities and points, not new occupancy authority.
+const parkingAccess = {
+  schema: 'mafiozi.transport.parking-access.v1',
+  authority: {
+    descriptor_sha256: sha256(descriptorBytes),
+    parking_source_sha256: sources.find(row => row.path.endsWith('/city_parking_plan.mjs')).sha256,
+    static_collision_fixture_sha256: sources.find(row => row.path.endsWith('/native_static_collision19.json.gz')).sha256,
+  },
+  coordinate_system: {units: 'metres', up: '+Y', source_forward: '+Z', native_forward: '-Z', source_yaw_to_native: 'wrap(source_yaw+pi)'},
+  stats: parking.stats,
+  lots: parking.lots.map(lot => ({
+    id: lot.id, building_id: lot.buildingId, kind: lot.kind, layout: lot.layout,
+    ground_y_m: lot.groundY, bay_ids: lot.bayIds, served_building_ids: lot.servedBuildingIds,
+    entry_paths_source_m: lot.entryPaths, mouth_source_m: lot.mouth, tour_source_m: lot.tour,
+    lot_rect_source_m: lot.rect, driveway_rect_source_m: lot.driveway,
+    exit_rule: lot.exitRule,
+  })),
+  walking_routes_source_m: parking.walkingRoutes,
+  coverage: parking.coverage,
+  surface_rects_source_m: parking.surfaceRects,
+  metres_per_cell: parking.metresPerCell,
+  signs_source_m: parking.signs,
+  sign_colliders_source_grid: parking.colliders,
+};
+assert.equal(parkingAccess.lots.length, 39);
+assert.equal(parkingAccess.lots.reduce((count, lot) => count + lot.bay_ids.length, 0), 59);
+assert.equal(parkingAccess.signs_source_m.length, parkingAccess.sign_colliders_source_grid.length);
+fs.writeFileSync(parkingAccessUrl, JSON.stringify(parkingAccess, null, 2) + '\n');
 const worldBytes = fs.readFileSync(new URL('world.html', repositoryRoot));
 const bootstrapFactoryProfiles = [
   ['parked-sedan', 'sedan', 'compact_sedan'], ['parked-hatchback', 'hatch_blue', 'city_hatchback'],
@@ -197,4 +228,4 @@ const factory = {
   factory_slots: bootstrapFactoryProfiles,
 };
 fs.writeFileSync(factoryOutputUrl, JSON.stringify(factory, null, 2) + '\n');
-console.log(JSON.stringify({output: fileURLToPath(outputUrl), factory_output: fileURLToPath(factoryOutputUrl), profiles: document.profiles.length, lots: parking.lots.length, bays: document.parking.bays.length, sha256: sha256(fs.readFileSync(outputUrl)), factory_sha256: sha256(fs.readFileSync(factoryOutputUrl))}));
+console.log(JSON.stringify({output: fileURLToPath(outputUrl), factory_output: fileURLToPath(factoryOutputUrl), parking_access_output: fileURLToPath(parkingAccessUrl), profiles: document.profiles.length, lots: parking.lots.length, bays: document.parking.bays.length, sha256: sha256(fs.readFileSync(outputUrl)), factory_sha256: sha256(fs.readFileSync(factoryOutputUrl)), parking_access_sha256: sha256(fs.readFileSync(parkingAccessUrl))}));

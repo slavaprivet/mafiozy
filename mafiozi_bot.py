@@ -134,6 +134,10 @@ if _token_src != _BOT_TOKEN_FILE:
 _install_secret_log_redaction()
 
 DB_PATH = os.path.join(os.environ.get("DB_DIR", ""), "mafiozi.db")
+# Safety gate: gta_crash currently carries client-reported damage and is not a
+# server-admitted physical contact.  Keep occupant lethality inert until a
+# server-owned detonation/contact receipt is available.
+VEHICLE_EXPLOSION_OCCUPANT_LETHAL_ENABLED = False
 _SYNC_WORLD_HARNESS = contextvars.ContextVar('sync_world_harness', default=False)
 _DAMAGE_TX_DB = contextvars.ContextVar('damage_tx_db', default=None)
 
@@ -1324,6 +1328,7 @@ async def init_db():
                 exp INTEGER DEFAULT 0,
                 hp INTEGER DEFAULT 100,
                 max_hp INTEGER DEFAULT 100,
+                life_generation INTEGER DEFAULT 0,
                 mana INTEGER DEFAULT 50,
                 max_mana INTEGER DEFAULT 50,
                 attack INTEGER DEFAULT 10,
@@ -1449,6 +1454,9 @@ async def init_db():
             ("mafia_last_family",  "TEXT DEFAULT ''"),
             # Monotonic revision for authoritative body/armor snapshots.
             ("combat_version",      "INTEGER DEFAULT 0"),
+            # Changes only when a dead body becomes alive again.  Delayed
+            # server-owned hazards bind to it so they cannot hit a new life.
+            ("life_generation",     "INTEGER DEFAULT 0"),
         ]:
             try:
                 await db.execute(f"ALTER TABLE characters ADD COLUMN {col} {definition}")
@@ -2916,7 +2924,8 @@ async def get_authoritative_combat_state(telegram_id: int) -> dict | None:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
-            "SELECT hp,max_hp,armor,combat_version FROM characters WHERE telegram_id=?",
+            "SELECT hp,max_hp,armor,combat_version,life_generation "
+            "FROM characters WHERE telegram_id=?",
             (telegram_id,),
         ) as cur:
             char = await cur.fetchone()
@@ -2952,6 +2961,7 @@ async def get_authoritative_combat_state(telegram_id: int) -> dict | None:
             },
             'armor': armor,
             'combat_version': version,
+            'life_generation': max(0, int(char['life_generation'] or 0)),
         }
 
 
@@ -2962,7 +2972,8 @@ async def mutate_authoritative_body_state(
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute('BEGIN IMMEDIATE')
         async with db.execute(
-            "SELECT hp,max_hp,respawn_at FROM characters WHERE telegram_id=?",
+            "SELECT hp,max_hp,respawn_at,life_generation FROM characters "
+            "WHERE telegram_id=?",
             (telegram_id,)
         ) as cur:
             row = await cur.fetchone()
@@ -2973,15 +2984,19 @@ async def mutate_authoritative_body_state(
         maximum = max(1, int(row[1] or 100))
         after = before + int(delta or 0) if current is None else int(current or 0)
         after = max(0, min(maximum, after))
+        life_generation = max(0, int(row[3] or 0))
+        if before <= 0 < after:
+            life_generation += 1
         if respawn_at is None:
             next_respawn = (0.0 if after > 0 else
                             float(row[2] or 0) or time.time() + AUTHORITATIVE_RESPAWN_S)
         else:
             next_respawn = max(0.0, float(respawn_at or 0))
         await db.execute(
-            """UPDATE characters SET hp=?,respawn_at=?,
+            """UPDATE characters SET hp=?,respawn_at=?,life_generation=?,
                        combat_version=combat_version+1
-                 WHERE telegram_id=?""", (after, next_respawn, telegram_id))
+                 WHERE telegram_id=?""",
+            (after, next_respawn, life_generation, telegram_id))
         await db.commit()
     return await get_authoritative_combat_state(telegram_id)
 
@@ -3191,7 +3206,8 @@ class _BorrowedDamageDb:
 async def _apply_damage_transaction_once(
         telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
         pre_armor_multiplier: float = 1.0,
-        ignore_if_dead: bool = False) -> dict | None:
+        ignore_if_dead: bool = False,
+        expected_life_generation: int | None = None) -> dict | None:
     """Atomically apply one idempotent, armor-first server damage event.
 
     Career-police mitigation is composed first through
@@ -3229,13 +3245,24 @@ async def _apply_damage_transaction_once(
             return result
 
         async with db.execute(
-            "SELECT hp,max_hp,armor,combat_version,respawn_at FROM characters WHERE telegram_id=?",
+            "SELECT hp,max_hp,armor,combat_version,respawn_at,life_generation "
+            "FROM characters WHERE telegram_id=?",
             (uid,),
         ) as cur:
             char = await cur.fetchone()
         if not char:
             await db.rollback()
             raise LookupError('no character')
+
+        life_generation = max(0, int(char['life_generation'] or 0))
+        if (expected_life_generation is not None and
+                life_generation != max(0, int(expected_life_generation))):
+            await db.rollback()
+            return {
+                'event_id': stable_event_id, 'kind': kind,
+                'stale_life': True, 'life_generation': life_generation,
+                'replayed': False,
+            }
 
         body_max = max(1, int(char['max_hp'] or 100))
         body_before = min(body_max, max(0, int(char['hp'] or 0)))
@@ -3342,6 +3369,7 @@ async def _apply_damage_transaction_once(
                 'dead': body_after <= 0,
             },
             'combat_version': combat_version,
+            'life_generation': life_generation,
             'replayed': False,
         }
         await db.execute(
@@ -3359,14 +3387,16 @@ async def _apply_damage_transaction_once(
 async def apply_damage_transaction(
         telegram_id: int, event_id: str, damage_kind: str, raw_damage: int,
         pre_armor_multiplier: float = 1.0,
-        ignore_if_dead: bool = False) -> dict | None:
+        ignore_if_dead: bool = False,
+        expected_life_generation: int | None = None) -> dict | None:
     """Retry a short SQLite lock without changing the durable event identity."""
     for attempt in range(4):
         try:
             return await _apply_damage_transaction_once(
                 telegram_id, event_id, damage_kind, raw_damage,
                 pre_armor_multiplier=pre_armor_multiplier,
-                ignore_if_dead=ignore_if_dead)
+                ignore_if_dead=ignore_if_dead,
+                expected_life_generation=expected_life_generation)
         except aiosqlite.OperationalError as exc:
             locked = any(word in str(exc).lower() for word in ('locked', 'busy'))
             if not locked or attempt == 3:
@@ -18828,6 +18858,91 @@ class WorldSim:
                 pp['_input_t'] = time.time()
         return None  # nothing to send back per-tick
 
+    @staticmethod
+    def _vehicle_explosion_occupant_snapshot(qc: dict) -> tuple[str, ...]:
+        """Capture the authoritative seat roster before a wreck clears it."""
+        seen = set()
+        occupants = []
+        for raw_uid in (qc.get('driver_uid'), *(qc.get('passenger_uids') or ())):
+            occupant_uid = str(raw_uid or '')
+            if (not occupant_uid.isdigit() or len(occupant_uid) > 24 or
+                    occupant_uid in seen):
+                continue
+            seen.add(occupant_uid)
+            occupants.append(occupant_uid)
+        return tuple(occupants)
+
+    def _vehicle_explosion_event_identity(self, car_id: str) -> str:
+        """Create one server-owned ID for a live-to-wrecked transition."""
+        self._combat_event_seq += 1
+        car_hash = hashlib.sha256(str(car_id).encode('utf-8')).hexdigest()[:16]
+        return (f'vehicle-explosion:{self._combat_boot_id}:'
+                f'{car_hash}:{self._combat_event_seq}')
+
+    async def deliver_vehicle_explosion_occupants(
+            self, car_id: str, explosion_event_id: str) -> dict:
+        """Deliver durable lethal receipts to the stored server seat roster."""
+        if not VEHICLE_EXPLOSION_OCCUPANT_LETHAL_ENABLED:
+            return {
+                'accepted': False,
+                'reason': 'server-physical-admission-required',
+            }
+        qc = self.quest_cars.get(str(car_id))
+        event_id = str(explosion_event_id or '')
+        snapshot = qc.get('_vehicle_explosion_occupants') if qc else None
+        if (not qc or qc.get('_vehicle_explosion_event_id') != event_id or
+                not isinstance(snapshot, tuple)):
+            return {'accepted': False, 'reason': 'unconfirmed-explosion'}
+
+        delivered = replayed = already_dead_or_missing = 0
+        terminal = qc.setdefault('_vehicle_explosion_terminal_uids', set())
+        if not isinstance(terminal, set):
+            terminal = qc['_vehicle_explosion_terminal_uids'] = set()
+        pending = [occupant_uid for occupant_uid in snapshot
+                   if occupant_uid not in terminal]
+        skipped_terminal = len(snapshot) - len(pending)
+        # The durable damage transaction already retries SQLite locks.  This
+        # outer bounded retry also covers a transient disconnect/backend error
+        # between occupants without ever changing their receipt identities.
+        for attempt in range(3):
+            failed = []
+            for occupant_uid in pending:
+                uid_hash = hashlib.sha256(
+                    occupant_uid.encode('utf-8')).hexdigest()[:16]
+                receipt_id = f'{event_id}:{uid_hash}'[:160]
+                try:
+                    result = await self.apply_authoritative_damage_bound_projectile(
+                        occupant_uid, receipt_id, 'vehicle_explosion', 10000)
+                except Exception:
+                    failed.append(occupant_uid)
+                    continue
+                if result is None:
+                    already_dead_or_missing += 1
+                elif result.get('replayed'):
+                    replayed += 1
+                else:
+                    delivered += 1
+                # ``None`` is terminal too: a player who was already dead must
+                # not be killed by this old wreck after a later respawn.  Fresh
+                # and replayed receipts are likewise complete; only exceptions
+                # remain eligible for the bounded retry below.
+                terminal.add(occupant_uid)
+            pending = failed
+            if not pending:
+                break
+            if attempt < 2:
+                await asyncio.sleep(0.025 * (2 ** attempt))
+        if pending:
+            logger.error(
+                'vehicle explosion occupant delivery failed after retries: car=%s targets=%d',
+                car_id, len(pending))
+        return {
+            'accepted': True, 'event_id': event_id, 'targets': len(snapshot),
+            'delivered': delivered, 'replayed': replayed,
+            'already_dead_or_missing': already_dead_or_missing,
+            'skipped_terminal': skipped_terminal, 'failed': len(pending),
+        }
+
     def gta_crash(self, uid: str, car_id: str, dmg: int, kind: str) -> dict | None:
         """Игрок врезался в стену/машину. Уменьшаем hp, при 0 — wrecked.
         Возвращает {'destroyed': bool, 'x','y','hp','max_hp','owner_uid'} либо None."""
@@ -18849,6 +18964,16 @@ class WorldSim:
         new_hp = max(0, cur_hp - dmg)
         qc['hp'] = new_hp
         if new_hp <= 0 and not qc.get('wrecked'):
+            # This synchronous transition is the atomic seat boundary.  Never
+            # accept a client-supplied roster: snapshot the server-owned seats
+            # before clearing them, then let durable damage receipts own death.
+            explosion_occupants = self._vehicle_explosion_occupant_snapshot(qc)
+            explosion_event_id = self._vehicle_explosion_event_identity(car_id)
+            qc['_vehicle_explosion_occupants'] = explosion_occupants
+            qc['_vehicle_explosion_event_id'] = explosion_event_id
+            qc['_vehicle_explosion_terminal_uids'] = set()
+            qc['driver_uid'] = None
+            qc['passenger_uids'] = []
             qc['wrecked']    = True
             qc['state']      = 'wrecked'
             qc['_wrecked_at']= time.time()
@@ -18861,6 +18986,8 @@ class WorldSim:
                 'max_hp':    int(qc.get('max_hp', self.QUEST_CAR_HP)),
                 'owner_uid': str(qc.get('owner_uid') or ''),
                 'car_id':    car_id,
+                'explosion_event_id': explosion_event_id,
+                'explosion_occupant_count': len(explosion_occupants),
             }
         return {
             'destroyed': False,
@@ -34549,6 +34676,17 @@ async def _coop_http_app():
                                               d.get('dmg', 0), str(d.get('kind') or 'wall'))
                         if rep is not None:
                             if rep.get('destroyed'):
+                                # The car record, never the client packet, owns
+                                # the immutable roster.  Finish confirmed lethal
+                                # receipts before broadcasting the visual wreck.
+                                lethality = await world.deliver_vehicle_explosion_occupants(
+                                    rep['car_id'], rep['explosion_event_id'])
+                                rep['explosion_lethality'] = {
+                                    key: lethality.get(key) for key in (
+                                        'accepted', 'targets', 'delivered', 'replayed',
+                                        'already_dead_or_missing', 'skipped_terminal',
+                                        'failed')
+                                }
                                 pkt = json.dumps({'t': 'event', 'd': dict(rep,
                                     kind='quest_car_destroyed')}, ensure_ascii=False)
                             else:

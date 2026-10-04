@@ -1,4 +1,95 @@
 # Координатор 22 — приём работы 29 сентября 2026
+
+## Координатор 23 — пользовательская передача 30 сентября 2026
+
+Новый действующий **Кординатор 23** `01a0ef87-7a4d-7f73-93c9-8c643602aa04` принял root/main/player/project/export/LIVE/Git и weapon integration от22 по прямому поручению пользователя. Сначала читать `docs/ai/COORDINATOR_23_HANDOFF.md` и чат22 `01a0eec3-2733-7130-9aea-c289c76574af`. Root22 прекращает production и GPU. Все отчёты агентов — ТОЛЬКО в существующий **Общий штаб агентов** `01a0df67-44d3-79c0-b243-fa6a9b891fde`; новый координатор сам читает штаб, напрямую координаторам не слать. Старое CPU QUIET22 RELEASED; новое окно согласует23. Владельцы NPC/transport/physics сохраняются, pinned5 traversal не будить. Пять новых Астра6–10 дают проверенные материалы через сборщиков и штаб; ROOT23 внедряет. Weapon candidate03 ещё НЕ принят: actualGPU run02 TT-first-equipFAIL, новый trace pending. Срочно исправить, проверить и доставить видимое обновление. Старые строки ниже исторические.
+
+
+## 30 сентября, 02:15 — USER видимый результат + пять чатов Астра
+
+Пользователь недоволен: работает много агентов, а в окне всё ещё только3NPC.
+Приоритет Root — довезти готовое оружие/trunk, не накапливать отчёты. Также
+USER screenshot: seat enter/exit табличку немного выше головы; transport3a67a707
+поднял anchor1.7→2.15m, trunk/hoodнеизменны. Cargo61539c7 скрывает конфликтующий
+Eзакрыть при настоящемaimweapon; cachedUI безновыхperframe meshqueries.
+Actualmain181PASS, visualseatheightawaitLIVE.
+
+USER забрал новые проектные «Астра 6 (агент)»–«Астра 10 (агент)» уПроверщика:
+точныеIDs вверху AGENT_HUB. Rootsubagent selector_review собирает/проверяет6–8,
+melee_handoff_audit9–10. ТолькоROOTвнедряет; subagents/chats output-onlymaterials,
+проверенные предложения/тесты/источники. Старые одноимённыебез(агент)неиспользовать.
+Checker/HQуведомлены, Checkerподтвердилпередачу NEW_ASTRA_6_TO_10_ROOT22_HANDOFF.
+ОстальныевладельцыNPC/transport/physics сохраняются; pinned5небудить.
+
+ОружейныйLIVE ещёнебыл: endtoend13fired→store выявилStoreTYPE_INTbug; fixedStore
+007e935a acceptsfinitewholefloat exactammo/profilebounds, author5384PASS. Ещё
+rawsourceFirerelearlyreturn даётnegativecooldown, Inventoryrejects. Roothost
+a4449db6 нормализуетТОЛЬКОпросроченныйтаймерв0 наinventoryboundary; rawFire55af
+неизменён. Independent159PASS(all14rawvsnormalizedfullfuturestates/shotsidentical,
+realreload/equip/mutationreservation). Candidate03готовитсяизf03+44copies.
+Candidate01/02 НЕLIVEприняты. Actualsmokeharness27adc379 afterStorefix:
+weapons2855/base2537PASS, all14stored100; active51shots=51ammo+realRreload;
+CPUonly. Currentaccepted residents22b freshabsence→restoredPID21912 at02:06;
+historical20764gone. Freshinventoryalwayswins.
+
+## 30 сентября — latest USER: E из багажника сразу в руки
+
+Пользователь явно изменил прежнее no-autoequip правило: извлечение конкретного
+оружия из открытого багажника немедленно экипирует его; прежнее остаётся в
+инвентаре, UID/патроны сохраняются. Groundpickup source-правило не меняется.
+Cargo host9ae6447e: actualmain175+39PASS, adaptivehatchbackscale .1955807848,
+all14=100 без наложений, moving/closedG не становится grounddrop, последовательные
+grounddrops резервируют конечные места, pendingfire отменяется до измененияUID.
+Gunhost6e371c46: independent20admissionPASS,9adversarialscenarios, blocked actual
+physics destruction14PASS (TEST_ONLY damageprovider). Presentation1863PASS,
+actualmainposture367PASS (crouch/prone all13firearms; RPGdenied; lowceilingblocks
+stand; cover/passengerнеподдержаны). Population disposedoccupants5PASS.
+
+Чистый weaponcandidate outputs/coordinator22_weapons/candidate01 отpublishedf03,
+43точечныхкопии/root+weapon dependencies; NPCsmooth018published, чужойWIPнебрался.
+Importclean; actualmain23/39/175/20/5+posture367PASS. Export s01-20260930-weapons22
+создан, но ещё НЕ LIVEпринят/НЕвидимаяигра. Candidate-only mainflagtrue и WhatNew;
+working mainflagfalse до приёмки. CompiledPCKchecks/GPUcomparativepending.
+LIVEharness author melee_handoff_audit: same3NPC/camera/openhatchback, idle14cargo
+и отдельный sustainedfire13cargo+AK phase, frame_post_draw/memory/drawcalls.
+Rootсначалаготоваясборка, затемfreshinventory, одинпоследовательныйGPU/restart.
+
+## 30 сентября, оружие/багажник — актуальное уточнение после 01:12
+
+USER: АК15 был только примером, самостоятельно пересчитать размеры. Все14 по
+одному должны влезть в100 и физический багажник. Новый Sizes: Наган3,ТТ3,
+револьвер4,Deagle4,Colt4,обрез4,дробовик6,Uzi7,goldenUzi7,АК10,M1610,
+Томпсон7,sniper18,RPG13 =100. Точные AABB объёмы + largest remainders.
+Новый Store276f94cf заменяет28f22; Bridge51be8a8a; renderer e5b4ab93.
+Изолированные1819checks PASS не LIVE. Важно: proofall14scale.2 относился к
+compact_sedan; actualmain city_hatchback мельче. Selector исправляет общий
+масштаб по реальным bounds и проверяет all14 в actualmain. Стоимость неизменна.
+
+Последний опубликованный и remoteverified main f03a44ad0a969cb29f86ccb73d76a2a5ac64da43.
+Чистый checkpoint outputs/coordinator22_residents_checkpoint; frozenNPCsmooth018e0ab0
+в Git, currentArtistWIP не перезаписывался. Видимая принятая игра residents22b,
+PCK de2728bb...; свежий CIM в текущем продолжении подтвердил sole PID20764.
+Пока в ней НЕТ нового оружия/багажника/поз/HP. Старые PID ниже исторические.
+
+Root local new-session оружие mainflagOFF: inventory14 originalmodels/fire,
+Qarsenal/Rreload/Ccrouch/Zprone; локальные projectileFX без HP/крови/авторитета.
+Actualmain gun23PASS clean outputs/coordinator22_weapon_scene05.log: патроны
+фиксируются только после currentmuzzle/epoch и preflight всей серии; pool FX
+выполняются без callbacks до внешних уведомлений. Inside-wall ray failclosed.
+Projectiles disposal queue_free исправляет actualscene.free ошибку. RPG пока
+можно носить/класть, выстрел не перенесён. Cover/passengerfire не готовы.
+Cargo39PASS предыдущей версии: реальная камера/модели/UID/патроны/groundpick;
+destroy provider TEST_ONLY, actualvehicleHP destruction ещё не подключён.
+braking_liveqa проверяет atomicfire/menu/movingG/dropoverlap; selector исправляет
+движущийся багажник и занятые groundslots; melee_handoff_audit проверяет posture
+actualmain/clearance. Никаких GPU GO другим, pinned5 не будить.
+
+Artist physicaldeath host64e2ce14 peerPASS — ещё кандидат, не HP authority.
+Нефатальный hit/getup ownerArtist; medicalDowned/forcedCrawl не поднимать самовольно.
+Под машиной настоящий no-snag ещё9FAIL. Hero shadow acne screenshot передан Root,
+NPCmaterials Artist; отдельное наблюдение pending. Не смешивать новые файлы
+Artist/Physics в оружейный export без согласованного frozen package.
+
 ## 30 сентября, 01:12 — NPC+click доставлены; оружие; чат5 остановлен
 
 USER: root оружие, Artist22 NPC; подключать урон/кровь/смерть/импульс попадания.
@@ -36,7 +127,7 @@ Lastpublished d8ae1d1c7d03ba8eb87b7f3fe33a11c5c5f36a4a; checkpoint overdue under
 
 ## 30 сентября, 00:24 — оружие и пользовательский багажник; capture02 HOLD
 
-Новое прямое поручение: багажник100, АК15, модели уменьшены без пересечений,
+Исторический пример: багажник100, АК15 (позже отменён как фиксированная цена), модели уменьшены без пересечений,
 G положить при наведении на открытый багажник, E взять конкретное оружие,
 при уничтожении все вещи доступны на земле без дублей/потери. Будущий труп100,
 максимум1 и исключает оружие. План docs/game-design/TRUNK_WEAPON_CARGO_20260930.md.

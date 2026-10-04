@@ -1,11 +1,15 @@
 {
-  "status": "PREPARED_NOT_ENGINE_RUN",
+  "status": "V2_PREPARED_NOT_ENGINE_RUN",
   "python_syntax": "PASS via ast.parse only",
+  "old_evidence": "baseline01/candidate18_01 preserved; candidate V1 failure is living-vs-retained counter only",
   "files": {
     "BLOOD_DEPENDENCY_AUDIT.md": "29473fd0032cc506c694e21f2439d1fafe9e5e2a3334ca73f0f9c0894821021b",
-    "capture.gd": "802c109f5d4e4a6a6f00ef29fc07b2ee45f761b3dcb8d1b0b2a2c70843f30dc3",
-    "compare.py": "bde7dbf08658218491760c38cb4f97ddee714c82aa27a4991b5c865fb10444ef",
-    "README.md": "c505d0de6a496e23c9d8684b665e03847bde6cb317f8ce9311596e118a6c4d41",
+    "capture.gd": "729ad1343f98bd1d959967aed5e03b497229613b4d9ee5273375ebdb035c3372",
+    "capture_v1.gd": "802c109f5d4e4a6a6f00ef29fc07b2ee45f761b3dcb8d1b0b2a2c70843f30dc3",
+    "compare.py": "a78594bd1731fadbb3a22633097fdeed352e0f3c6d988595fa25492044f634a8",
+    "compare_v1.py": "bde7dbf08658218491760c38cb4f97ddee714c82aa27a4991b5c865fb10444ef",
+    "INVENTORY_BEFORE.json": "7939128441cd32ef4af579624422406ecc8e21259a8fbda5a9600d34216c9e4e",
+    "README.md": "394864b8e47d7bb0c24be4ad7856f2611d7de222b7120fe77e2dd6c5b656a5d0",
     "run_side.py": "d790e3edb5de9271540b904ab4e3e64d241c03acc61c53185ce826f49e94ee12"
   }
 }

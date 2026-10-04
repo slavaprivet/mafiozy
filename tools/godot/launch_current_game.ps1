@@ -113,13 +113,26 @@ try {
     $currentReceipt | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $currentRun 'STARTED.json') -Encoding UTF8
     $currentReadyUntil = [DateTime]::UtcNow.AddSeconds(40)
     $currentReadyPath = Join-Path $currentRun 'CURRENT_READY.json'
+    $currentReady = $null
     while ([DateTime]::UtcNow -lt $currentReadyUntil) {
         $currentProcess.Refresh()
-        if ($currentProcess.HasExited -or (Test-Path -LiteralPath $currentReadyPath)) { break }
+        if ($currentProcess.HasExited) { break }
+        if (Test-Path -LiteralPath $currentReadyPath -PathType Leaf) {
+            try {
+                $readyText = Get-Content -LiteralPath $currentReadyPath -Raw -Encoding UTF8 -ErrorAction Stop
+                if ([string]::IsNullOrWhiteSpace($readyText)) { throw [FormatException]::new('CURRENT_READY.json is incomplete') }
+                $candidateReady = $readyText | ConvertFrom-Json -ErrorAction Stop
+                if ($null -eq $candidateReady) { throw [FormatException]::new('CURRENT_READY.json parsed to null') }
+                $currentReady = $candidateReady
+                break
+            }
+            catch {
+                $currentReady = $null
+            }
+        }
         Start-Sleep -Milliseconds 200
     }
     $currentProcess.Refresh()
-    $currentReady = if (Test-Path -LiteralPath $currentReadyPath) { Get-Content -LiteralPath $currentReadyPath -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
     [string]$currentErrorText = if (Test-Path -LiteralPath $currentErr) { Get-Content -LiteralPath $currentErr -Raw -Encoding UTF8 } else { '' }
     $currentReceipt.ready = ($null -ne $currentReady -and $currentReady.ok -eq $true -and [string]$currentReady.revision -ceq [string]$currentRelease.revision -and -not $currentProcess.HasExited -and $currentProcess.Responding -and [string]::IsNullOrWhiteSpace($currentErrorText))
     $currentReceipt.window_handle = if ($currentProcess.HasExited) { 0 } else { $currentProcess.MainWindowHandle.ToInt64() }
