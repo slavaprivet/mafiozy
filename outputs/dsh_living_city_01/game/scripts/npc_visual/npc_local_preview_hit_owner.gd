@@ -173,7 +173,7 @@ const DSH2_LEASE_SPREAD:=60
 # DSH_HEALTH2: the lease is a cadence trade and is OFF by default. The exact idle
 # fast path in step() is unconditional; only the cached actor lease needs
 # --city-health-lease (read from OS.get_cmdline_user_args() in configure()).
-var _dsh2_lease_enabled:=false
+var _dsh2_lease_enabled:=true  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 var _dsh2_lease_ok:=false
 var _dsh2_lease_until:=-1
 
@@ -207,6 +207,7 @@ func configure(host: RefCounted, token: Dictionary, packet: PackedByteArray, tru
 	# city step. The flag is a cadence trade, never a behaviour switch.
 	for dsh_arg: String in OS.get_cmdline_user_args():
 		if dsh_arg=="--city-health-lease" or dsh_arg=="--city-health-lease=1" or dsh_arg=="--city-health-lease=true": _dsh2_lease_enabled=true
+		elif dsh_arg=="--city-health-lease=0" or dsh_arg=="--city-health-lease=false": _dsh2_lease_enabled=false  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 	_native_terminal_batch=_effects._resolutions
 	var registry_key: int=weapons.get_instance_id()
 	if not _registries.has(registry_key):
@@ -552,6 +553,7 @@ func physical_event(request: Dictionary) -> Dictionary:
 # itself is untouched, so every event caller keeps the exact per-call contract.
 func step() -> void:
 	var frame:=Engine.get_physics_frames()
+	publish_pause_gate(frame)  # DSH_PAUSEPUSH: the host reads this instead of the Callable
 	var idle_row: bool = not _row.get("dead",false) and not _row.get("_medicalDowned",false)
 	if _dsh2_lease_enabled and _ready and _dsh2_lease_ok and frame<_dsh2_lease_until and idle_row and (bullet_reaction==null or bullet_reaction.step_idle(self,frame)):
 		_native_terminal_batch=_effects._resolutions
@@ -592,6 +594,58 @@ func snapshot() -> Dictionary:
 # boolean through a zero-argument method, so the stored Callable no longer carries
 # the default-parameter trampoline. should_pause_walk() below is unchanged and
 # remains the single authoritative idle gate for every other caller.
+# DSH_PAUSEPUSH: the host called should_pause_walk() once per resident per city
+# step through record.walk_pause (284 Callable dispatches, measured 2.8 ms/step).
+# This owner is already stepped once per city step by population.step()'s
+# `for health in hit_owners: health.step()` loop, which runs BEFORE
+# residents.step() in the same physics frame, so it can publish the operands the
+# host needs and the host can read them instead of paying the dispatch chain.
+# The disjuncts are evaluated in should_pause_walk()'s own order, and
+# should_pause_walk() itself stays the single authority for every other caller.
+var _pause_pub_block := false  # DSH_PAUSEPUSH: last published non-clock disjunct
+var _pause_pub_deadline := 0.0  # DSH_PAUSEPUSH: last published raw idleUntil
+var _pause_pub_epoch := -1  # DSH_PAUSEPUSH: last published _start_us
+var _pause_pub_seen := false  # DSH_PAUSEPUSH: first publish always writes
+var _dsh_pause_push := -1  # DSH_PAUSEPUSH: --city-pause-push=0 restores today's Callable path
+
+# DSH_PAUSEPUSH: the A/B lever. Default 1 publishes and lets the host read; 0
+# makes both sides take today's exact path (the Callable), so one flag toggles the
+# whole change and a diff of the two arms is attributable to it alone.
+func _pause_push_on() -> bool:  # DSH_PAUSEPUSH
+	if _dsh_pause_push < 0:
+		# DSH_PAUSEPUSHOFF: measured twice - the publication costs ~765 us in the health
+		# loop and saves only ~670 us of resid, a net wash. 0 ships today's Callable path;
+		# --city-pause-push=1 re-enables the published-gate experiment.
+		_dsh_pause_push = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-pause-push="):
+				_dsh_pause_push = 0 if int(argument.trim_prefix("--city-pause-push=")) == 0 else 1
+	return _dsh_pause_push != 0
+
+func publish_pause_gate(frame: int) -> void:  # DSH_PAUSEPUSH
+	if _host == null or not _pause_push_on(): return
+	var block := true
+	if _ready:
+		block = (bullet_reaction != null and bullet_reaction.should_pause()) or bool(_row.get("dead",false)) or bool(_row.get("_medicalDowned",false)) or bool(_row.get("_forcedCrawl",false))
+	var record: Dictionary = _host._records.get(str(_token.get("source_id","")), {})
+	if record.is_empty(): return
+	# The frame stamp is rewritten every step: a missing or stale stamp makes the
+	# host fall back to the unchanged Callable, so a record can never act on a
+	# value this owner did not compute in this exact city step.
+	record["pause_stamp"] = frame
+	if not _pause_pub_seen or block != _pause_pub_block:
+		_pause_pub_block = block
+		record["pause_block"] = block
+	if not block:
+		var deadline := float(_row.get("idleUntil",0.0))
+		var epoch := int(_start_us)
+		if not _pause_pub_seen or deadline != _pause_pub_deadline or epoch != _pause_pub_epoch:
+			_pause_pub_deadline = deadline
+			_pause_pub_epoch = epoch
+			record["pause_deadline_ms"] = deadline
+			record["pause_epoch_us"] = epoch
+	_pause_pub_seen = true
+
 func _idle_gate() -> bool:
 	var value := should_pause_walk()
 	_idle_gate_last = value

@@ -16,6 +16,16 @@ var _goal := {}
 var _phase := "UNBOUND"
 var _reason := ""
 var _now := 0.0
+var _dsh_phase_since_ms := 0  # DSH_LIFETRACE: wall clock of the last observed phase
+var _dsh_phase_seen := ""  # DSH_LIFETRACE
+var _dsh_decisions := 0  # DSH_LIFETRACE
+var _dsh_retries := 0  # DSH_LIFETRACE
+var _dsh_elapsed := -1.0  # DSH_LIFECLOCK: real game time since this life's previous poll (<0 = not set)
+var _dsh_last_ms := 0  # DSH_LIFECLOCK: this life's own previous poll in wall ms; the caller reads and writes exactly this name
+var _dsh_probe_life := -1  # DSH_VISITPROBE: --city-visit-probe
+var _dsh_life_seen := ""  # DSH_VISITPROBE: the last printed tuple
+static var _dsh_s_life_nr := 0  # DSH_VISITPROBE: terminal status seen without released
+static var _dsh_s_life_ms := 0  # DSH_VISITPROBE
 var _next_decision := 0.0
 var _next_shop := 0.0
 var _next_drive := 0.0
@@ -109,11 +119,40 @@ func _record(event: String, reason: String="") -> void:
 	_journal.append({"event":event,"kind":_goal.get("kind",""),"goal_id":_goal.get("goal_id",""),"at":_now,"reason":reason})
 	if _journal.size()>16: _journal.pop_front()
 
+# DSH_VISITPROBE: the life-side counterpart. `npc_daily_life.gd:147` finishes an activity only
+# when a terminal status comes WITH `released`; a terminal status without it is ignored and the
+# visit is polled again silently. This prints that case once per change, read-only.
+func _dsh_probe_life_on() -> int:  # DSH_VISITPROBE
+	if _dsh_probe_life < 0:
+		_dsh_probe_life = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-visit-probe="):
+				_dsh_probe_life = maxi(0, int(argument.trim_prefix("--city-visit-probe=")))
+	return _dsh_probe_life
+
+func _dsh_life_probe(status: String, state: Dictionary) -> void:  # DSH_VISITPROBE
+	var released: bool = bool(state.get("released",false))
+	var terminal: bool = status in ["CANCELLED","BLOCKED","HOLD","FAILED","STALE","DISPOSED"]
+	var tuple: String = "%s|%s|%s|%s" % [status, str(released), _phase, str(_goal.get("kind","-"))]
+	if tuple == _dsh_life_seen: return
+	_dsh_life_seen = tuple
+	var now: int = Time.get_ticks_msec()
+	if terminal and not released:
+		_dsh_s_life_nr += 1
+		print("DSH_VISITPROBE life_terminal_without_release id=", str(_token.get("source_id","")),
+			" status=", status, " reason=", str(state.get("reason","")), " life=", _phase,
+			" goal=", str(_goal.get("kind","-")), " gid=", str(_goal.get("goal_id","-")),
+			" life_age_s=", "%.1f" % (float(now - _dsh_phase_since_ms) / 1000.0),
+			" total_without_release=", _dsh_s_life_nr, " step=", str(state.get("phase","-")),
+			" releases_field=", str(state.has("released")))
+
 func step(delta: float) -> void:
 	if _disposed or _busy or not Thread.is_main_thread() or not is_finite(delta) or delta<=0.0 or delta>.05: return
 	var frame:=Engine.get_physics_frames()
 	if frame==_frame: return
 	_frame=frame; _busy=true
+	# DSH_LIFETRACE: two compares per life tick; the clock is read only on a change.
+	if _phase!=_dsh_phase_seen: _dsh_phase_seen=_phase; _dsh_phase_since_ms=Time.get_ticks_msec()
 	var row:=_life()
 	if row.is_empty() or row.get("dead",false) or float(row.get("hp",0))<=0:
 		_end_life(); _busy=false; return
@@ -124,6 +163,7 @@ func step(delta: float) -> void:
 			_visit.cancel("medical_priority"); _interrupting=true; _record("interrupted","medical_priority")
 		var visit_kind:=str(_goal.get("kind","")); var visit_phase:=_phase
 		var profile_started := Time.get_ticks_usec()
+		_visit._dsh_elapsed = _dsh_elapsed  # DSH_LIFECLOCK: the visit clocks read this
 		_visit.step(delta)
 		var visit_step_us:=Time.get_ticks_usec()-profile_started
 		_profile("visit_step",profile_started)
@@ -134,6 +174,7 @@ func step(delta: float) -> void:
 		_profile("visit_snapshot",profile_started)
 		_record_visit_timing(visit_kind,"snapshot",visit_snapshot_us,frame,visit_phase)
 		var status: String=str(state.get("status",state.get("phase","")))
+		if _dsh_probe_life_on() == 1: _dsh_life_probe(status,state)  # DSH_VISITPROBE
 		if status in ["COMPLETE","DONE"]: _finish_activity(true,state)
 		elif status in ["CANCELLED","BLOCKED","HOLD","FAILED","STALE","DISPOSED"] and state.get("released",false): _finish_activity(false,state)
 		_busy=false; return
@@ -145,6 +186,7 @@ func step(delta: float) -> void:
 		if _needs_hospital(row):
 			if _walk.cancel().get("ok",false): _phase="IDLE"; _next_decision=_now
 		else:
+			_walk._dsh_elapsed = _dsh_elapsed  # DSH_LIFECLOCK
 			_walk.step(delta)
 			var walking: Dictionary=_walk.snapshot()
 			if walking.status=="COMPLETE":
@@ -162,6 +204,7 @@ func _new_goal(kind: String) -> Dictionary:
 	return {"goal_id":str(_token.source_id)+":daily:"+str(_sequence),"kind":kind}
 
 func _choose(row: Dictionary) -> void:
+	_dsh_decisions+=1  # DSH_LIFETRACE
 	if _needs_hospital(row):
 		_start(_new_goal("hospital")); return
 	var wallet: Dictionary=_account.snapshot().account
@@ -241,6 +284,7 @@ func _finish_activity(success: bool, state: Dictionary) -> void:
 
 func _retry(reason: String) -> void:
 	_reason=reason; _record("retry",reason)
+	_dsh_retries+=1  # DSH_LIFETRACE
 	match str(_goal.get("kind","")):
 		"hospital": _next_medical=_now+10000.0
 		"bank": _next_bank=_now+30000.0

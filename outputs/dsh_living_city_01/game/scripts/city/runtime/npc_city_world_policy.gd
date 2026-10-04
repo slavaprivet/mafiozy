@@ -130,9 +130,23 @@ func configure(scene: Node3D, packet_rows: Array, owners: Dictionary, trust: Dic
 
 # DSH_NAVSTEP2: --city-policy-slim=1 enables the shared-offset / deduplicated proof.
 # 0 (default) keeps today's code path.
+var _dsh_policy_leg_cache := -1.0  # DSH_POLICYLEG
+
+# DSH_POLICYLEG: --city-policy-leg-m=N is the longest single route leg this policy will
+# prove. 5.1 m is the source value: one 4.1 m cell plus margin, and exactly what the
+# daily walk's own 5 m leg was built for. Raising it is an experiment, never a default:
+# every proof below (per-cell buckets, per-tick segments) is unchanged.
+func _dsh_leg_bound() -> float:  # DSH_POLICYLEG
+	if _dsh_policy_leg_cache < 0.0:
+		_dsh_policy_leg_cache = 5.1
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-policy-leg-m="):
+				_dsh_policy_leg_cache = clampf(float(argument.trim_prefix("--city-policy-leg-m=")), 1.0, 60.0)
+	return _dsh_policy_leg_cache
+
 func _slim_flag() -> int:
 	if _dsh_slim < 0:
-		_dsh_slim = 0
+		_dsh_slim = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-policy-slim="):
 				_dsh_slim = maxi(0, int(argument.trim_prefix("--city-policy-slim=")))
@@ -422,7 +436,7 @@ func authorize_errand_path(activity_owner: RefCounted, token: Dictionary, map: R
 				return {"ok":false,"reason":"path_point_off_native_map","point_index":index,"point":point,"closest":closest,"distance_m":off_map,"is_actual_start":actual_start,"connector_reason":_last_reason}
 		if index==0: continue
 		var a: Vector3=path[index-1]
-		if a.distance_to(point)>5.1: return {"ok":false,"reason":"path_leg_exceeds_bound"}
+		if a.distance_to(point)>_dsh_leg_bound(): return {"ok":false,"reason":"path_leg_exceeds_bound"}  # DSH_POLICYLEG
 		distance+=a.distance_to(point)
 		if distance>2000.0: return {"ok":false,"reason":"path_distance_bound"}
 		var minv:=Vector2(a.x,a.z).min(Vector2(point.x,point.z))-Vector2.ONE*.36

@@ -56,11 +56,28 @@ var _dsh_report_ms := 0  # DSH_ROUND2
 # rag.status().mode read (a Dictionary plus a binding duplicate per record) for an
 # A/B of exactly that line; default 1 reads the mode field status() copies from.
 var _dsh_yaw_skip := -1
+# DSH_PAUSELAZY (H9): --city-yaw-sticky=1 skips the whole per-record yaw block of a
+# record that did not move and whose turn already reached its fixed point. 0 (default)
+# neither writes nor reads the sticky bit record["dsh_yaw_settled"].
+var _dsh_yaw_sticky := -1  # DSH_PAUSELAZY (H9): --city-yaw-sticky
 var _dsh_rag_mode := -1
+
+# DSH_PAUSELAZY (H9): --city-yaw-sticky=N, default 0. 0 is today's path: the sticky
+# bit is neither written nor read and the yaw block always runs.
+func _yaw_sticky() -> int:  # DSH_PAUSELAZY
+	if _dsh_yaw_sticky < 0:
+		_dsh_yaw_sticky = 1  # DSH_PAUSELAZYSHIP: measured together with pause-lazy, 88 skips per step
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-yaw-sticky="):
+				_dsh_yaw_sticky = maxi(0, int(argument.trim_prefix("--city-yaw-sticky=")))
+	return _dsh_yaw_sticky
 
 func _yaw_skip() -> bool:
 	if _dsh_yaw_skip < 0:
-		_dsh_yaw_skip = 0
+		# DSH_YAWFAST: measured A/B - skipping the settled-display write tail gives
+		# resid p50 -13.4% and total p50 -1208 us (-5.9%) with identical behaviour
+		# (DSH_LIVES bit-identical). --city-yaw-skip=0 restores the old path.
+		_dsh_yaw_skip = 1
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-yaw-skip="):
 				_dsh_yaw_skip = maxi(0, int(argument.trim_prefix("--city-yaw-skip=")))
@@ -115,6 +132,36 @@ var _transport_lease := {}
 var _transport_serial := 0
 var _daily_activities := {}
 var _daily_serial := 0
+var _dsh_target_fast_cache := -1  # DSH_TARGETFAST: --city-daily-target-fast, 1 = O(1) meta index (default), 0 = original scan
+var _dsh_pause_push := -1  # DSH_PAUSEPUSH: --city-pause-push, 1 = read the owner's published gate (default)
+# DSH_PAUSELAZY: --city-pause-lazy=1 resolves the per-record cadence decision BEFORE
+# the pause gate, so the gate (a Callable dispatch while --city-pause-push=0) runs
+# only for a record where `paused` can still change something. 0 (default) is today's
+# order and today's text; the honest risk of the lever sits next to the block in
+# step().
+var _dsh_pause_lazy := -1  # DSH_PAUSELAZY: --city-pause-lazy
+# DSH_WALKPOSE: --city-walk-pose=1 (default) keeps the far animation band stepping:
+# the gait's distance-locked phase is advanced on every step and a real pose is
+# committed on a travel budget, instead of freezing the legs beyond
+# ANIM_LOD_RADIUS_M while the body keeps walking. 0 = today's path exactly.
+# --city-pose-far-m is the ground travel a far record accumulates before its pose is
+# rebuilt; --city-pose-far-cap bounds those rebuilds per city step. The _dsh_walk_*
+# fields are the one-second DSH_WALK window.
+var _dsh_walk_pose := -1
+var _dsh_pose_far_m := -1.0
+var _dsh_pose_far_cap := -1
+const WALK_POSE_MAX_AGE := 8  # DSH_WALKPOSE: a moving far record rebuilds at least this often
+var _dsh_walk_ms := 0
+var _dsh_walk_near := 0
+var _dsh_walk_far := 0
+var _dsh_walk_advance := 0
+var _dsh_walk_far_us := 0
+var _dsh_walk_slip_m := 0.0
+var _dsh_walk_leg_min := -1.0
+var _dsh_walk_leg_max := -1.0
+var _dsh_walk_rad_min := -1.0
+var _dsh_walk_rad_max := -1.0
+var _dsh_walk_uncal := 0
 # --- end ported fields ---
 
 func configure(scene: Node3D, navigation: RefCounted, packet: PackedByteArray, trust: Dictionary, prepared_manifest: PackedByteArray, prepared_directory: String, owners: Dictionary, source_admit: Callable, support_height: Callable) -> Dictionary:
@@ -368,7 +415,9 @@ func _admit_record(record: Dictionary, candidate: Dictionary = {}, preview_stage
 	scene.add_child(body); body.global_position = point
 	body.rotation.y = PI / 2 - float(raw.ang) - PI
 	var gait := Gait.new()
-	if not gait.bind(appearance.visual, motion):
+	# DSH_WALKPOSE: residents only. The player and the transport share this class through
+	# preview_player._locomotion and are never calibrated; this argument is the opt-in.
+	if not gait.bind(appearance.visual, motion, true):
 		body.free(); return _reject(record, "canonical_gait:" + str(gait.get_status().error))
 	var rigs: Array[Node] = appearance.visual.find_children("*", "Skeleton3D", true, false)
 	if rigs.size() != 1:
@@ -484,7 +533,7 @@ func request_walk(identity: String, target: Vector3) -> int:
 # identical recovery; only the retry interval changes.
 func _recover_retry_ttl() -> int:
 	if _dsh_recover_ttl < 0:
-		_dsh_recover_ttl = 0
+		_dsh_recover_ttl = 3  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-recover-ttl="):
 				_dsh_recover_ttl = maxi(0, int(argument.trim_prefix("--city-recover-ttl=")))
@@ -524,7 +573,7 @@ func _sim_far_metres() -> float:
 # false (and changes nothing) unless --city-sim-lod=1.
 func _simlod_on() -> bool:
 	if _dsh_simlod < 0:
-		_dsh_simlod = 0
+		_dsh_simlod = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		_dsh_simlod_near_m = 30.0
 		_dsh_simlod_mid_m = 120.0
 		_dsh_simlod_hyst_m = 8.0
@@ -733,6 +782,10 @@ func step(delta: float) -> void:
 	# above, so one path cannot read .2 s while the other reads .1 s. A flag value > 0
 	# still wins on both paths.
 	var dsh_sim_ceiling := ((_dsh_simlod_max_delta if _dsh_simlod_max_delta > 0.0 else .1) if dsh_simlod else .05)
+	# DSH_RESIDBK: the per-record sim_cap (line 918) is this same expression for this
+	# delta; the STRIDE is clamped, not the delta.
+	var dsh_sim_cap := int(floor(dsh_sim_ceiling / delta + .000001))
+	if dsh_sim_cap < 1: dsh_sim_cap = 1
 	var dsh_tier_near := 0
 	var dsh_tier_mid := 0
 	var dsh_tier_far := 0
@@ -745,6 +798,10 @@ func step(delta: float) -> void:
 	var dsh_recover := 0  # DSH_QUERY_PROBE
 	var dsh_cadence_skip := 0  # DSH_RESID3
 	var dsh_timing := _timing_records()  # DSH_MOTION
+	var dsh_walk_pose := _walk_pose_flag()  # DSH_WALKPOSE
+	var dsh_pose_budget_m := _pose_far_m()  # DSH_WALKPOSE
+	var dsh_pose_build_cap := _pose_far_cap()  # DSH_WALKPOSE
+	var dsh_walk_far_builds := 0  # DSH_WALKPOSE: far pose rebuilds spent in this step
 	# DSH_RECORDLOOP: the animation LOD resolved the viewport camera inside every
 	# record and twice per record - up to 574 camera lookups per city step (per
 	# second: ~11k) for one value that cannot change inside this loop.
@@ -753,6 +810,28 @@ func step(delta: float) -> void:
 	var dsh_lod_limit := ANIM_LOD_RADIUS_M * ANIM_LOD_RADIUS_M
 	var dsh_yaw_skip := _yaw_skip()  # DSH_RECORDLOOP
 	var dsh_rag_mode_direct := _rag_mode_direct()  # DSH_RECORDLOOP
+	# DSH_RESIDBK: both were one GDScript call per walking record and cannot change
+	# inside this loop; _simlod_on() above already resolved every stride flag.
+	var dsh_sim_stride := _sim_stride()
+	var dsh_stride_by_tier: Array[int] = [_simlod_stride(0), _simlod_stride(1), _simlod_stride(2)]
+	var dsh_sim_far := _sim_far_metres()  # DSH_RESIDBK: only read when --city-sim-lod=0
+	# DSH_PAUSEPUSH: one frame stamp, one clock and one flag per step for the pause
+	# read below; all three are loop-invariant inside this call.
+	var dsh_pause_push := _pause_push()
+	var dsh_pause_frame := Engine.get_physics_frames()
+	var dsh_pause_now_us := Time.get_ticks_usec()
+	var dsh_pause_fast := 0  # DSH_PAUSEPUSH telemetry
+	# DSH_PAUSELAZY (H9): the one flag read and the one counter of the yaw sticky bit
+	# per city step. `yaw_sticky` counts the yaw re-tests that were skipped (0 with the
+	# default flag), which is what an A/B run reads to see the lever fire.
+	var dsh_yaw_sticky := _yaw_sticky()
+	var dsh_yaw_sticky_skips := 0
+	var dsh_pause_slow := 0  # DSH_PAUSEPUSH telemetry
+	# DSH_PAUSELAZY: the one flag read and the one counter of the lazy pause gate per
+	# city step. `pause_lazy` counts the pause gates that were NOT evaluated (0 with the
+	# default flag), which is what an A/B run reads to see the lever fire.
+	var dsh_pause_lazy := _pause_lazy()
+	var dsh_pause_lazy_skips := 0
 	# DSH_RESID4: the absent-key default for walk_pause was a freshly built Callable
 	# on every record; one empty Callable serves every miss.
 	var dsh_no_callable := Callable()
@@ -763,6 +842,12 @@ func step(delta: float) -> void:
 		var body: CharacterBody3D = record.body
 		if not is_instance_valid(body): body = null
 		var id: String = record.row.source_id
+		# DSH_RESIDBK: the five _living(record) conditions, resolved once per record from
+		# the same two lookups the inlined removal test below already reads. _living()
+		# itself is unchanged for every other caller.
+		var dsh_owner: RefCounted = record.owner
+		var dsh_living: bool = not _disposed and not _dispose_requested and not dsh_owner.dead and dsh_owner.source_id == id and dsh_owner.life_generation == record.generation
+		var dsh_nav_skipped := false  # DSH_RESIDBK: nav did not run for this record this step
 		# One ragdoll status per record per frame. It allocates a Dictionary and
 		# duplicates its binding on every call; this loop previously called it six
 		# times per record across all 287 residents, and it is now called zero times:
@@ -788,7 +873,7 @@ func step(delta: float) -> void:
 			if rag_mode == "IDLE" or rag_mode == "RETIRED":
 				# A prewarmed pool cannot outlive the walking source generation while
 				# waiting for a confirmed event. A retired pool is also never reused.
-				if not _living(record) or rag_mode == "RETIRED":
+				if not dsh_living or rag_mode == "RETIRED":  # DSH_RESIDBK
 					rag.dispose(); _ragdolls.erase(id); rag = null; rag_mode = ""
 			elif rag_mode == "RECOVERING" or rag_mode == "RECOVERY_HOLD":
 				# Another owner may coordinate a source-approved rise. Never let the
@@ -812,8 +897,9 @@ func step(delta: float) -> void:
 		# call per record and without a second nested row lookup: `id` above is exactly
 		# record.row.source_id, and record.row is never reassigned after admission.
 		# _living() itself is unchanged for every other caller.
-		var record_owner: RefCounted = record.owner
-		if _disposed or _dispose_requested or record_owner.dead or record_owner.source_id != id or record_owner.life_generation != record.generation:
+		# DSH_RESIDBK: the identical five conditions, already resolved at the top of this
+		# record's turn (no source callback runs between the two points).
+		if not dsh_living:
 			if record.request >= 0: _navigation.cancel(record.request)
 			if is_instance_valid(body): body.queue_free()
 			record.body = null; record.gait = null; record.motion = null; record.status = "REMOVED"; record.attempted = true; continue
@@ -841,8 +927,88 @@ func step(delta: float) -> void:
 		if dsh_tier == 0: dsh_tier_near += 1  # DSH_SIMLOD
 		elif dsh_tier == 1: dsh_tier_mid += 1
 		elif dsh_tier == 2: dsh_tier_far += 1
-		var walk_pause: Callable = record.get("walk_pause", dsh_no_callable)  # DSH_RESID4
-		var paused: bool = walk_pause.is_valid() and walk_pause.call()
+		# DSH_PAUSEPUSH: the health owner published the identical predicate during
+		# this city step's health loop (population.step runs hit_owners before
+		# residents.step, in the same physics frame), so read its two operands.
+		# A stale stamp, or --city-pause-push=0, falls back to the unchanged Callable.
+		# DSH_PAUSELAZY: --city-pause-lazy=1 decides whether navigation runs in this step
+		# BEFORE the pause gate, because that decision does not depend on `paused`: `paused`
+		# is consumed only by the _navigation.step call and by the body.velocity reset, so
+		# it is now resolved only when one of those consumers is reachable
+		# (`dsh_pause_needed`). The statements below are today's cadence decision over the
+		# same record keys, in the same order, with the same read-modify-writes; while this
+		# lever is on, today's copy inside `if record.request >= 0 and not paused:` is pinned
+		# inert (stride 1, sim_delta/sim_due taken from here, carry reset disabled), so the
+		# _navigation.step call and its read-modify-write sites stay exactly where they are.
+		# With the default --city-pause-lazy=0 none of this is entered.
+		#
+		# HONEST RISK of --city-pause-lazy=1, stated because it is a real behaviour change:
+		# a record that IS paused advances record["simlod_tick"] and record["sim_carry"]
+		# here, which today a paused record does not do, and its body.velocity is not zeroed
+		# on a step whose gate was skipped. After the pause is lifted the carried delta
+		# becomes one `min(sim_ceiling, delta + carry)` navigation step: a positional jump
+		# of at most sim_ceiling * speed (0.1 s * 1.8 m/s = 0.18 m) for a far, deferred,
+		# paused record. The stale velocity has two readers - the navigation host for a
+		# body that is NOT on the floor and the `body.velocity.y > 0.0` gate of
+		# _recover_floor_contact - which is why `not body.is_on_floor()` and BLOCKED/NO_PATH
+		# are part of `dsh_pause_needed` and keep their gate.
+		var dsh_pause_needed := true  # DSH_PAUSELAZY: true = the pause gate is evaluated
+		var dsh_lazy_due := false  # DSH_PAUSELAZY: would navigation run in this step?
+		var dsh_lazy_delta := delta  # DSH_PAUSELAZY: the delta navigation would receive
+		if dsh_pause_lazy != 0 and record.request >= 0:
+			dsh_lazy_due = true
+			var dsh_lazy_stride: int = dsh_sim_stride  # DSH_RESIDBK
+			var dsh_lazy_lod := dsh_simlod  # DSH_SIMLOD
+			if dsh_lazy_lod: dsh_lazy_stride = dsh_stride_by_tier[clampi(dsh_tier, 0, 2)]  # DSH_RESIDBK
+			if dsh_lazy_stride > 1:
+				var dsh_lazy_ceiling := dsh_sim_ceiling  # DSH_RESIDBK: identical to the value at line 740
+				if dsh_lazy_stride > dsh_sim_cap: dsh_lazy_stride = dsh_sim_cap
+				if dsh_lazy_stride > 1 and retaliation == null and record.get("contact_hit_reaction") == null and record.status not in DSH_STATUS_BLOCKED_OR_NO_PATH and (dsh_tier > 0 if dsh_lazy_lod else (dsh_sim_far <= 0.0 or dsh_dist_sq > dsh_sim_far * dsh_sim_far)):
+					var dsh_lazy_due_now := false
+					if dsh_lazy_lod:
+						var dsh_lazy_tick := int(record.get("simlod_tick", 0)) + 1
+						record["simlod_tick"] = dsh_lazy_tick
+						dsh_lazy_due_now = (dsh_lazy_tick + _record_phase(record)) % dsh_lazy_stride == 0
+					else:
+						dsh_lazy_due_now = (Engine.get_physics_frames() + _record_phase(record)) % dsh_lazy_stride == 0
+					if dsh_lazy_due_now:
+						dsh_lazy_delta = minf(dsh_lazy_ceiling, delta + float(record.get("sim_carry", 0.0)))
+						record["sim_carry"] = 0.0
+						if dsh_lazy_lod: dsh_sim_delta_ms = maxi(dsh_sim_delta_ms, int(dsh_lazy_delta * 1000.0))  # DSH_SIMLOD
+					else:
+						record["sim_carry"] = float(record.get("sim_carry", 0.0)) + delta
+						dsh_lazy_due = false
+						dsh_nav_skipped = true  # DSH_RESIDBK
+						dsh_cadence_skip += 1
+						if dsh_tier == 1: dsh_skip_mid += 1  # DSH_SIMLOD
+						elif dsh_tier == 2: dsh_skip_far += 1
+				elif record.has("sim_carry"):
+					record["sim_carry"] = 0.0
+			elif record.has("sim_carry"):
+				record["sim_carry"] = 0.0
+		if dsh_pause_lazy != 0:
+			# DSH_PAUSELAZY: the gate may be skipped only when every consumer of `paused` is
+			# unreachable: navigation does not run in this step, there is no retaliation to
+			# dispatch and no contact hit reaction to drive, the body is on the floor and its
+			# status is neither BLOCKED nor NO_PATH. The last two terms are the conservative
+			# extras the findings report names (they cover the two readers of the velocity
+			# that would not be zeroed); the test is a superset, never a subset.
+			dsh_pause_needed = dsh_lazy_due or retaliation != null or record.get("contact_hit_reaction") != null or not body.is_on_floor() or record.status in DSH_STATUS_BLOCKED_OR_NO_PATH
+			if not dsh_pause_needed: dsh_pause_lazy_skips += 1  # DSH_PAUSELAZY telemetry
+		var paused: bool = false
+		if (dsh_pause_lazy == 0 or dsh_pause_needed) and dsh_pause_push and int(record.get("pause_stamp", -1)) == dsh_pause_frame:
+			dsh_pause_fast += 1
+			paused = bool(record.get("pause_block", false))
+			if not paused:
+				var pause_deadline := float(record.get("pause_deadline_ms", 0.0))
+				if pause_deadline > 0.0:
+					# The identical expression should_pause_walk() uses for `now`.
+					var pause_now_ms := float(dsh_pause_now_us - int(record.get("pause_epoch_us", dsh_pause_now_us))) / 1000.0 + 1.0
+					paused = pause_now_ms < pause_deadline
+		elif dsh_pause_lazy == 0 or dsh_pause_needed:
+			dsh_pause_slow += 1
+			var walk_pause: Callable = record.get("walk_pause", dsh_no_callable)  # DSH_RESID4
+			paused = walk_pause.is_valid() and walk_pause.call()
 		var hit_paused: bool = paused
 		if retaliation != null:
 			# Existing stagger/health owner pause always wins over attack pose.
@@ -853,6 +1019,7 @@ func step(delta: float) -> void:
 				var facing: Vector3 = retaliation.target_position() - body.global_position
 				if facing.is_finite() and Vector2(facing.x,facing.z).length_squared() > .0001:
 					body.rotation.y = atan2(-facing.x,-facing.z)
+					if dsh_yaw_sticky != 0: record["dsh_yaw_settled"] = false  # DSH_PAUSELAZY (H9): the body heading moved
 		if paused: body.velocity = Vector3.ZERO
 		if retaliation != null and retaliation.engaged() and not hit_paused:
 			var defensive_velocity: Vector3 = retaliation.defensive_velocity(delta)
@@ -872,11 +1039,15 @@ func step(delta: float) -> void:
 			# staggered stride. A skipped tick keeps the request, the body, the pose and
 			# every other per-tick update intact; its delta is carried into the due tick,
 			# which is the only tick that asks the host to move the body again.
-			var sim_stride := _sim_stride()
+			# DSH_PAUSELAZY: with --city-pause-lazy=1 this decision is inert. The stride is
+			# pinned to 1 so the branch below cannot run a second time (the hoisted copy above
+			# already made the same read-modify-writes), sim_delta/sim_due carry the values it
+			# resolved, and the navigation call below is therefore the only one that runs.
+			var sim_stride: int = (dsh_sim_stride if dsh_pause_lazy == 0 else 1)  # DSH_RESIDBK
 			var sim_lod := dsh_simlod  # DSH_SIMLOD
-			if sim_lod: sim_stride = _simlod_stride(dsh_tier)  # DSH_SIMLOD
-			var sim_delta := delta
-			var sim_due := true
+			if sim_lod and dsh_pause_lazy == 0: sim_stride = dsh_stride_by_tier[clampi(dsh_tier, 0, 2)]  # DSH_RESIDBK
+			var sim_delta := (delta if dsh_pause_lazy == 0 else dsh_lazy_delta)  # DSH_PAUSELAZY
+			var sim_due := (true if dsh_pause_lazy == 0 else dsh_lazy_due)  # DSH_PAUSELAZY
 			if sim_stride > 1:
 				# DSH_SIMLOD: .05 s is the legal ceiling today; --city-sim-lod=1 raises
 				# it to --city-sim-max-delta for this per-record carried path only. The
@@ -887,11 +1058,13 @@ func step(delta: float) -> void:
 				# This class and npc_city_navigation_host both refused delta > .05, so the
 				# stride used to be capped to one legal step; that cap is what made
 				# --city-sim-cadence dead, and it is the ceiling above that lifts it.
-				var sim_ceiling := dsh_sim_ceiling if sim_lod else .05
-				var sim_cap := int(floor(sim_ceiling / delta + .000001))
-				if sim_cap < 1: sim_cap = 1
-				if sim_stride > sim_cap: sim_stride = sim_cap
-				if sim_stride > 1 and _sim_deferrable(record, rag_mode, retaliation, dsh_dist_sq):
+				var sim_ceiling := dsh_sim_ceiling  # DSH_RESIDBK: identical to the value at line 740
+				if sim_stride > dsh_sim_cap: sim_stride = dsh_sim_cap
+				# DSH_RESIDBK: the same predicate over facts this loop already resolved. Every record
+				# reaching here has passed the liveness, physical_failed and physical-ragdoll tests
+				# above (each ends in `continue`), so those three disjuncts of _sim_deferrable()
+				# are constant here. The remaining ones are textually unchanged.
+				if sim_stride > 1 and retaliation == null and record.get("contact_hit_reaction") == null and record.status not in DSH_STATUS_BLOCKED_OR_NO_PATH and (dsh_tier > 0 if sim_lod else (dsh_sim_far <= 0.0 or dsh_dist_sq > dsh_sim_far * dsh_sim_far)):
 					# DSH_SIMLOD: the due test counts THIS record's own deferrable city
 					# steps, not the physics frame. A physics-frame modulo can starve every
 					# record whose phase is not in the subgroup generated by the global
@@ -911,57 +1084,85 @@ func step(delta: float) -> void:
 					else:
 						record["sim_carry"] = float(record.get("sim_carry", 0.0)) + delta
 						sim_due = false
+						dsh_nav_skipped = true  # DSH_RESIDBK
 						dsh_cadence_skip += 1
 						if dsh_tier == 1: dsh_skip_mid += 1  # DSH_SIMLOD
 						elif dsh_tier == 2: dsh_skip_far += 1
 				elif record.has("sim_carry"):
 					# Full rate again: never apply a stale carry later.
 					record["sim_carry"] = 0.0
-			elif record.has("sim_carry"):  # DSH_SIMLOD: tier 0 is always full rate
+			elif record.has("sim_carry") and dsh_pause_lazy == 0:  # DSH_SIMLOD: tier 0 is always full rate
 				record["sim_carry"] = 0.0
 			dsh_walk += 1  # DSH_QUERY_PROBE
-			var dsh_n0 := Time.get_ticks_usec() if dsh_timing else 0  # DSH_ROUND2
 			if sim_due:
+				var dsh_n0 := Time.get_ticks_usec() if dsh_timing else 0  # DSH_RESIDBK
 				var result: Dictionary = _navigation.step(record.request, sim_delta, record.speed, 9.8)
 				if dsh_timing: record["dsh_nav_us"] = int(record.get("dsh_nav_us", 0)) + (Time.get_ticks_usec() - dsh_n0)  # DSH_ROUND2
 				record["dsh_nav_calls"] = int(record.get("dsh_nav_calls", 0)) + 1  # DSH_ROUND2
 				record.status = result.status
 				if result.status not in DSH_STATUS_READY_OR_ARRIVED: body.velocity = Vector3.ZERO  # DSH_RESID4
-		var displacement := body.global_position - before
+		var displacement := Vector3.ZERO if dsh_nav_skipped else (body.global_position - before)  # DSH_RESIDBK
 		var horizontal := Vector3(displacement.x, 0, displacement.z)
-		if horizontal.length_squared() > .00000001: body.basis = Basis(Vector3.UP, atan2(-horizontal.x, -horizontal.z))
+		if horizontal.length_squared() > .00000001:
+			body.basis = Basis(Vector3.UP, atan2(-horizontal.x, -horizontal.z))
+			if dsh_yaw_sticky != 0: record["dsh_yaw_settled"] = false  # DSH_PAUSELAZY (H9): the body heading moved
 		# Source renderer interpolates the shortest yaw arc while source motion
 		# can change angle immediately. Keep the physical body/path untouched;
 		# rotate only the canonical presentation node against body heading.
-		var desired_yaw: float = body.rotation.y
-		# DSH_RECORDLOOP: with --city-yaw-skip=1 a resident whose turn has already
-		# finished (turn_elapsed == 0.1) and whose body heading already equals
-		# turn_to has turn_from == turn_to, so display_yaw and motion.rotation.y are
-		# already exactly what this block would rewrite.
-		# DSH_RESID4: that settled test and the turn test below are the same arc of the
-		# same two values, and turn_to/turn_elapsed/turn_from/display_yaw were each
-		# fetched from the record two or three times per pass. Compute the arc once,
-		# read every stored value once, and write back exactly what the previous form
-		# wrote (turn_from keeps the stored Variant, turn_to keeps desired_yaw) with
-		# the same arithmetic in the same order. Which records enter this block, and
-		# the --city-yaw-skip decision, are unchanged.
-		var dsh_turn_to := float(record.turn_to)
-		var dsh_turn_elapsed := float(record.turn_elapsed)
-		var dsh_turn_from := float(record.turn_from)
-		var dsh_display := float(record.display_yaw)
-		var dsh_turn_shift := atan2(sin(desired_yaw - dsh_turn_to), cos(desired_yaw - dsh_turn_to))
-		if not (dsh_yaw_skip and dsh_turn_elapsed >= SOURCE_RENDER_YAW_SECONDS and absf(dsh_turn_shift) < .000001):
-			if absf(dsh_turn_shift) >= .000001:
-				record.turn_from = record.display_yaw
-				record.turn_to = desired_yaw
-				dsh_turn_from = dsh_display
-				dsh_turn_to = desired_yaw
-				dsh_turn_elapsed = 0.0
-			dsh_turn_elapsed = minf(SOURCE_RENDER_YAW_SECONDS, dsh_turn_elapsed + delta)
-			record.turn_elapsed = dsh_turn_elapsed
-		dsh_display = dsh_turn_from + atan2(sin(dsh_turn_to - dsh_turn_from), cos(dsh_turn_to - dsh_turn_from)) * (dsh_turn_elapsed / SOURCE_RENDER_YAW_SECONDS)
-		record.display_yaw = dsh_display
-		record.motion.rotation.y = PI + atan2(sin(dsh_display - desired_yaw), cos(dsh_display - desired_yaw))
+		# DSH_PAUSELAZY (H9): --city-yaw-sticky=1 skips this whole block for a record whose
+		# turn already reached its fixed point (the settled test of the second `if` below
+		# held the last time the block ran: turn_elapsed >= SOURCE_RENDER_YAW_SECONDS, the
+		# shortest arc from the body heading to turn_to is 0, and display_yaw already equals
+		# the body heading) AND whose body did not move in this step (dsh_nav_skipped: nav
+		# was deferred, so `displacement` is forced to Vector3.ZERO, the basis write cannot
+		# fire, and the deferrable test proves retaliation == null). At that fixed point
+		# every statement of the block is a no-op, so skipping it cannot change display_yaw,
+		# motion.rotation.y or turn_*. The sticky bit is set ONLY by the branch that proves
+		# the fixed point (which itself requires --city-yaw-skip=1) and is cleared by every
+		# write that can move the heading. With --city-yaw-sticky=0 (default) the bit is
+		# never written and never read, and the block below is today's text.
+		var dsh_yaw_sticky_skip: bool = dsh_yaw_sticky != 0 and dsh_nav_skipped and bool(record.get("dsh_yaw_settled", false))
+		if dsh_yaw_sticky_skip: dsh_yaw_sticky_skips += 1  # DSH_PAUSELAZY (H9) telemetry
+		if not dsh_yaw_sticky_skip:
+			var desired_yaw: float = body.rotation.y
+			# DSH_RECORDLOOP: with --city-yaw-skip=1 a resident whose turn has already
+			# finished (turn_elapsed == 0.1) and whose body heading already equals
+			# turn_to has turn_from == turn_to, so display_yaw and motion.rotation.y are
+			# already exactly what this block would rewrite.
+			# DSH_RESID4: that settled test and the turn test below are the same arc of the
+			# same two values, and turn_to/turn_elapsed/turn_from/display_yaw were each
+			# fetched from the record two or three times per pass. Compute the arc once,
+			# read every stored value once, and write back exactly what the previous form
+			# wrote (turn_from keeps the stored Variant, turn_to keeps desired_yaw) with
+			# the same arithmetic in the same order. Which records enter this block, and
+			# the --city-yaw-skip decision, are unchanged.
+			var dsh_turn_to := float(record.turn_to)
+			var dsh_turn_elapsed := float(record.turn_elapsed)
+			var dsh_turn_from := float(record.turn_from)
+			var dsh_display := float(record.display_yaw)
+			var dsh_turn_shift := atan2(sin(desired_yaw - dsh_turn_to), cos(desired_yaw - dsh_turn_to))
+			if not (dsh_yaw_skip and dsh_turn_elapsed >= SOURCE_RENDER_YAW_SECONDS and absf(dsh_turn_shift) < .000001):
+				if absf(dsh_turn_shift) >= .000001:
+					record.turn_from = record.display_yaw
+					record.turn_to = desired_yaw
+					dsh_turn_from = dsh_display
+					dsh_turn_to = desired_yaw
+					dsh_turn_elapsed = 0.0
+				dsh_turn_elapsed = minf(SOURCE_RENDER_YAW_SECONDS, dsh_turn_elapsed + delta)
+				record.turn_elapsed = dsh_turn_elapsed
+			# DSH_PAUSEPUSH (opt-in): the settled test at :954 already proves
+			# turn_elapsed == SOURCE_RENDER_YAW_SECONDS (factor 1.0) and turn_to ==
+			# desired_yaw; adding "display_yaw already equals desired_yaw" proves the
+			# three statements below write exactly the values they would recompute, so
+			# --city-yaw-skip=1 may skip them. With the default flag value (0) the
+			# condition is constantly true and the writes run exactly as today.
+			if not (dsh_yaw_skip and dsh_turn_elapsed >= SOURCE_RENDER_YAW_SECONDS and absf(dsh_turn_shift) < .000001 and absf(dsh_display - desired_yaw) < .000001):
+				dsh_display = dsh_turn_from + atan2(sin(dsh_turn_to - dsh_turn_from), cos(dsh_turn_to - dsh_turn_from)) * (dsh_turn_elapsed / SOURCE_RENDER_YAW_SECONDS)
+				record.display_yaw = dsh_display
+				record.motion.rotation.y = PI + atan2(sin(dsh_display - desired_yaw), cos(dsh_display - desired_yaw))
+				if dsh_yaw_sticky != 0: record["dsh_yaw_settled"] = false  # DSH_PAUSELAZY (H9): the display changed
+			elif dsh_yaw_sticky != 0:
+				record["dsh_yaw_settled"] = true  # DSH_PAUSELAZY (H9): the fixed point held
 		var hit_pose: RefCounted = record.get("contact_hit_reaction")
 		var hit_pose_active: bool = hit_pose != null and hit_pose.hit_pose_active()
 		if (retaliation != null and retaliation.engaged()) or hit_pose_active:
@@ -988,15 +1189,66 @@ func step(delta: float) -> void:
 				record.gait.update_pose(delta, horizontal / delta, body.is_on_floor() or record.status in ["IDLE", "ARRIVED"])
 				if dsh_timing: dsh_pose_us += Time.get_ticks_usec() - dsh_t0
 				dsh_posed += 1
+				_dsh_walk_near += 1  # DSH_WALKPOSE
+				_dsh_walk_note(record)  # DSH_WALKPOSE: measured support-foot slide of this commit
 			else:
 				dsh_lod_skip += 1
 				if bool(record.get("shadow_on", true)): _set_resident_shadows(record, false)  # DSH_RESID4
+				# DSH_WALKPOSE: today this record's legs stay frozen for as long as it is past
+				# ANIM_LOD_RADIUS_M, while the body keeps walking - that is the "skating". With
+				# the lever on the gait keeps its distance-locked phase on every step and commits
+				# a real pose on a travel budget. Nothing in this block runs at
+				# --city-walk-pose=0, and the near band above is untouched in both arms.
+				if dsh_walk_pose == 1 and record.gait != null:
+					var dsh_far_grounded: bool = body.is_on_floor() or record.status in ["IDLE", "ARRIVED"]
+					if dsh_nav_skipped:
+						# The body did not move on this step (navigation was deferred): add no
+						# metres, but do not let the amplitude decay either - the distance of
+						# the due step arrives with that step.
+						record.gait.advance_distance(0.0, dsh_far_grounded, record.speed)
+						record["walk_far_on"] = true
+						_dsh_walk_advance += 1
+					else:
+						var dsh_far_travel: float = horizontal.length()
+						if dsh_far_travel <= 0.0001 and not bool(record.get("walk_far_on", false)):
+							pass  # standing and already settled: today's frozen pose is the correct one
+						elif dsh_far_travel <= 0.0001:
+							# Just stopped: commit the decay to the standing pose, then stop paying
+							# for this record until it moves again.
+							if dsh_walk_far_builds < dsh_pose_build_cap:
+								record.gait.update_pose(delta, Vector3.ZERO, dsh_far_grounded)
+								_dsh_walk_far += 1; dsh_walk_far_builds += 1
+								_dsh_walk_note(record)
+							if record.gait.settled():
+								record["walk_far_on"] = false
+								record["walk_far_m"] = 0.0
+								record["walk_far_age"] = 0
+						else:
+							var dsh_far_m: float = float(record.get("walk_far_m", 0.0)) + dsh_far_travel
+							record["walk_far_m"] = dsh_far_m
+							record["walk_far_on"] = true
+							var dsh_far_age: int = int(record.get("walk_far_age", 0)) + 1
+							record["walk_far_age"] = dsh_far_age
+							if (dsh_far_m >= dsh_pose_budget_m or dsh_far_age >= WALK_POSE_MAX_AGE) and dsh_walk_far_builds < dsh_pose_build_cap:
+								var dsh_far_t0 := Time.get_ticks_usec() if dsh_timing else 0
+								record.gait.update_pose(delta, horizontal / delta, dsh_far_grounded)
+								if dsh_timing: _dsh_walk_far_us += Time.get_ticks_usec() - dsh_far_t0
+								_dsh_walk_note(record)
+								record["walk_far_m"] = 0.0
+								record["walk_far_age"] = 0
+								_dsh_walk_far += 1; dsh_walk_far_builds += 1
+							else:
+								# No rebuild this step: advance the phase by the metres the body
+								# really travelled, so no distance is lost and none is counted twice.
+								record.gait.advance_distance(dsh_far_travel, dsh_far_grounded, dsh_far_travel / delta)
+								_dsh_walk_advance += 1
 			if _walk_preview_enabled and record.activity != null: record.activity.step(delta, horizontal.length() / delta)
+	_dsh_walk_report()  # DSH_WALKPOSE: one DSH_WALK line per wall second
 	var dsh_frame := Engine.get_physics_frames()
 	if dsh_frame % 60 == 0:
 		var dsh_recover_skip := _dsh_recover_skips
 		_dsh_recover_skips = 0
-		print("DSH_RESID f=",dsh_frame," records=",dsh_records," posed=",dsh_posed," lod_skip=",dsh_lod_skip," walk=",dsh_walk," recover=",dsh_recover," cadence_skip=",dsh_cadence_skip," recover_skip=",dsh_recover_skip," pose_us=",dsh_pose_us," loop_us=",Time.get_ticks_usec()-started," fps=",Engine.get_frames_per_second()," simlod=",dsh_simlod," near=",dsh_tier_near," mid=",dsh_tier_mid," far=",dsh_tier_far," skip_near=",dsh_skip_near," skip_mid=",dsh_skip_mid," skip_far=",dsh_skip_far," sim_ms=",dsh_sim_delta_ms)
+		print("DSH_RESID f=",dsh_frame," records=",dsh_records," posed=",dsh_posed," lod_skip=",dsh_lod_skip," walk=",dsh_walk," recover=",dsh_recover," pause_fast=",dsh_pause_fast," pause_slow=",dsh_pause_slow," pause_lazy=",dsh_pause_lazy_skips," cadence_skip=",dsh_cadence_skip," recover_skip=",dsh_recover_skip," pose_us=",dsh_pose_us," yaw_sticky=",dsh_yaw_sticky_skips," loop_us=",Time.get_ticks_usec()-started," fps=",Engine.get_frames_per_second()," simlod=",dsh_simlod," near=",dsh_tier_near," mid=",dsh_tier_mid," far=",dsh_tier_far," skip_near=",dsh_skip_near," skip_mid=",dsh_skip_mid," skip_far=",dsh_skip_far," sim_ms=",dsh_sim_delta_ms)
 	_stats.steps += 1
 	_stats.step_us_max = maxi(_stats.step_us_max, Time.get_ticks_usec() - started)
 	_leave_busy()
@@ -1045,30 +1297,167 @@ func occupants() -> Array[Dictionary]:
 		if is_instance_valid(record.body) and record.body.collision_layer != 0: positions.append({"position": record.body.global_position, "radius": .36, "height": HEIGHT, "source_id": record.row.source_id, "life_generation": record.generation})
 	return positions
 
+# DSH_PAUSELAZY: --city-pause-lazy=N, default 0. 0 is today's path: the pause gate is
+# resolved first for every record, the cadence decision stays where it is, and the
+# lazy copy is never entered (`dsh_pause_needed` stays true). Any N != 0 turns the
+# lever on.
+func _pause_lazy() -> int:  # DSH_PAUSELAZY
+	if _dsh_pause_lazy < 0:
+		_dsh_pause_lazy = 1  # DSH_PAUSELAZYSHIP: measured -273 us mean / -489 p50, activity matched
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-pause-lazy="):
+				_dsh_pause_lazy = maxi(0, int(argument.trim_prefix("--city-pause-lazy=")))
+	return _dsh_pause_lazy
+
+# DSH_WALKPOSE: the single lever for the far-pose path, the far-band calibration and
+# the DSH_WALK line; 0 restores today's pose code exactly.
+func _walk_pose_flag() -> int:
+	if _dsh_walk_pose < 0:
+		_dsh_walk_pose = 1  # DSH_WALKPOSEON: owner's call - the far band animates again (measured +1723 us/step)  # DSH_WALKPOSEOFF: measured +1723 us/step and -10 fps p10 for the far
+		# band; --city-walk-pose=1 turns the far poses back on at that price  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-walk-pose="):
+				_dsh_walk_pose = maxi(0, int(argument.trim_prefix("--city-walk-pose=")))
+	return _dsh_walk_pose
+
+# DSH_WALKPOSE: --city-pose-far-m=0.43 (m) is the ground a far record accumulates
+# before its pose is rebuilt (~4 rebuilds/s at the measured p50 speed of 1.64 m/s, and
+# one rebuilt pose costs the measured 15-25 us, so this is the knob that caps the win).
+func _pose_far_m() -> float:
+	if _dsh_pose_far_m < 0.0:
+		_dsh_pose_far_m = 0.43
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-pose-far-m="):
+				_dsh_pose_far_m = clampf(float(argument.trim_prefix("--city-pose-far-m=")), 0.05, 5.0)
+	return _dsh_pose_far_m
+
+# DSH_WALKPOSE: --city-pose-far-cap=48 hard ceiling on far pose rebuilds per city step,
+# so a dense frame cannot grow a tail; a record the cap defers keeps its phase and is
+# rebuilt on a later step.
+func _pose_far_cap() -> int:
+	if _dsh_pose_far_cap < 0:
+		_dsh_pose_far_cap = 48
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-pose-far-cap="):
+				_dsh_pose_far_cap = clampi(int(argument.trim_prefix("--city-pose-far-cap=")), 1, 512)
+	return _dsh_pose_far_cap
+
+# DSH_WALKPOSE: one call per committed pose (near or far). Accumulates the measured
+# slide of the support boot over the ground - two consecutive commits of the SAME boot,
+# which for a non-sliding walk is ~0 while the body advances - plus the calibration the
+# gait proved for this resident. Taken in BOTH arms of --city-walk-pose, so DSH_WALK is
+# the A/B evidence and not just a marker that the lever ran.
+func _dsh_walk_note(record: Dictionary) -> void:
+	var gait: RefCounted = record.get("gait")
+	if gait == null: return
+	var dsh_leg: float = float(gait._dsh_leg_m)
+	if dsh_leg > 0.0:
+		if _dsh_walk_leg_min < 0.0 or dsh_leg < _dsh_walk_leg_min: _dsh_walk_leg_min = dsh_leg
+		if dsh_leg > _dsh_walk_leg_max: _dsh_walk_leg_max = dsh_leg
+		var dsh_rad: float = float(gait._radians_per_metre)
+		if _dsh_walk_rad_min < 0.0 or dsh_rad < _dsh_walk_rad_min: _dsh_walk_rad_min = dsh_rad
+		if dsh_rad > _dsh_walk_rad_max: _dsh_walk_rad_max = dsh_rad
+	else:
+		_dsh_walk_uncal += 1
+	var dsh_serial: int = int(gait._dsh_support_serial)
+	if dsh_serial == int(record.get("walk_foot_serial", -1)): return
+	record["walk_foot_serial"] = dsh_serial
+	var dsh_side: int = int(gait._dsh_support_side)
+	var dsh_xz: Vector2 = gait._dsh_support_xz
+	if dsh_side >= 0 and dsh_side == int(record.get("walk_foot_side", -1)) and record.has("walk_foot_xz"):
+		_dsh_walk_slip_m += dsh_xz.distance_to(record["walk_foot_xz"])
+	record["walk_foot_side"] = dsh_side
+	record["walk_foot_xz"] = dsh_xz
+
+# DSH_WALKPOSE: the proof line, one wall second. leg_m/rad_per_m are what the
+# residents' rigs actually measured; uncal counts commits whose instance could not be
+# calibrated (at --city-walk-pose=0 every instance is uncal and rad_per_m stays 2.3);
+# pose_near/pose_far count committed poses; advance_only counts O(1) phase-only
+# updates; slip_m/s is the measured support-foot slide - the "konki" number.
+func _dsh_walk_report() -> void:
+	if _dsh_walk_ms == 0:
+		_dsh_walk_ms = Time.get_ticks_msec()
+		return
+	var dsh_now := Time.get_ticks_msec()
+	if dsh_now - _dsh_walk_ms < 1000: return
+	var dsh_dt := float(dsh_now - _dsh_walk_ms) / 1000.0
+	print("DSH_WALK walk_pose=",_walk_pose_flag()," leg_m_min=","%.3f" % _dsh_walk_leg_min," leg_m_max=","%.3f" % _dsh_walk_leg_max," rad_per_m_min=","%.2f" % _dsh_walk_rad_min," rad_per_m_max=","%.2f" % _dsh_walk_rad_max," uncal=",_dsh_walk_uncal," pose_near/s=","%.1f" % (float(_dsh_walk_near)/dsh_dt)," pose_far/s=","%.1f" % (float(_dsh_walk_far)/dsh_dt)," advance_only/s=","%.1f" % (float(_dsh_walk_advance)/dsh_dt)," pose_far_us/s=",_dsh_walk_far_us," slip_m/s=","%.3f" % (_dsh_walk_slip_m/dsh_dt))
+	_dsh_walk_ms = dsh_now
+	_dsh_walk_near = 0; _dsh_walk_far = 0; _dsh_walk_advance = 0; _dsh_walk_far_us = 0; _dsh_walk_slip_m = 0.0
+	_dsh_walk_leg_min = -1.0; _dsh_walk_leg_max = -1.0; _dsh_walk_rad_min = -1.0; _dsh_walk_rad_max = -1.0
+	_dsh_walk_uncal = 0
+
+# DSH_TARGETFAST: --city-daily-target-fast=0 restores the original identity scan
+# (`for id: String in _records:` = 284 dictionary lookups + a _living() call each),
+# i.e. an exact A/B of the identity resolution alone. Resolved once, so the hot
+# path pays one int compare per check. 1 = accepted default.
+# DSH_PAUSEPUSH: --city-pause-push=0 makes this host call record.walk_pause for
+# every record exactly as before, so the change can be A/B'd with one flag
+# instead of a revert. 1 (default) reads the operands the health owner published
+# in this same city step.
+func _pause_push() -> bool:  # DSH_PAUSEPUSH
+	if _dsh_pause_push < 0:
+		# DSH_PAUSEPUSHOFF: measured twice - the publication costs ~765 us in the health
+		# loop and saves only ~670 us of resid, a net wash. 0 ships today's Callable path;
+		# --city-pause-push=1 re-enables the published-gate experiment.
+		_dsh_pause_push = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-pause-push="):
+				_dsh_pause_push = 0 if int(argument.trim_prefix("--city-pause-push=")) == 0 else 1
+	return _dsh_pause_push != 0
+
+func _dsh_target_fast() -> int:  # DSH_TARGETFAST
+	if _dsh_target_fast_cache < 0:
+		_dsh_target_fast_cache = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-target-fast="):
+				_dsh_target_fast_cache = 0 if int(argument.trim_prefix("--city-daily-target-fast=")) == 0 else 1
+	return _dsh_target_fast_cache
+
 ## Map an actual physics collider to the current visual/physical resident life.
 ## This transient token proves identity only: it is not bullet contact, damage,
 ## source hit acceptance or final-death authority.
 func target_from_collider(collider: Object) -> Dictionary:
 	if not Thread.is_main_thread() or _busy or _disposed or not collider is CharacterBody3D or not is_instance_valid(collider): return {"ok":false}
-	for id: String in _records:
-		var record: Dictionary = _records[id]
-		if not _living(record) or not is_instance_valid(record.body) or record.body != collider or not is_instance_valid(record.motion): continue
-		var body: CharacterBody3D = record.body
-		if body.get_meta("source_id", "") != id or body.get_meta("session_id", "") != _session or body.get_meta("descriptor_sha256", "") != record.row.descriptor_sha256 or body.get_child_count() < 2: return {"ok":false}
-		var shape: Node = body.get_child(0)
-		if not shape is CollisionShape3D or shape.disabled or not shape.shape is CapsuleShape3D or not is_equal_approx(shape.shape.radius, .36) or not is_equal_approx(shape.shape.height, HEIGHT): return {"ok":false}
-		if body.collision_layer != 1 or body.collision_mask != 1 or body.get_parent() != _scene.get_ref(): return {"ok":false}
-		# DSH_RIGCACHE: cached rig lookup, same single-rig requirement.
-		var rig: Skeleton3D = _current_record_rig(record)
-		if rig == null: return {"ok":false}
-		return {"ok":true, "source_authority":false, "session_id":_session,
-			"source_id":id, "bridge_id":record.row.bridge_id, "render_id":record.row.bridge_id,
-			"life_generation":record.generation,
-			"descriptor_sha256":record.row.descriptor_sha256,
-			"placement_mode":record.get("placement_mode", "NONE"),
-			"body":body, "body_instance_id":body.get_instance_id(),
-			"body_rid":body.get_rid(), "rig":rig,
-			"rig_instance_id":rig.get_instance_id(), "rig_epoch":rig.get_instance_id()}
+	# DSH_TARGETFAST: _admit_record() writes this exact source_id into the body
+	# (:358) BEFORE record.body is set (:379), inside the host's _busy section, so the
+	# record owning this collider is one Dictionary lookup away; bodies are unique, so
+	# this is the record the scan below would have found. Every check that follows is
+	# the original one, re-checked on the selected record; when the O(1) lookup cannot
+	# prove the identity (missing/foreign meta) the original scan runs verbatim.
+	var id := ""
+	if _dsh_target_fast() != 0:
+		id = str(collider.get_meta("source_id", ""))
+		if not id.is_empty():
+			if not _records.has(id): id = ""
+			else:
+				var dsh_candidate: Dictionary = _records[id]
+				if dsh_candidate.get("body") != collider: id = ""
+	if id.is_empty():
+		for scan_id: String in _records:
+			var scan_record: Dictionary = _records[scan_id]
+			if not _living(scan_record) or not is_instance_valid(scan_record.body) or scan_record.body != collider or not is_instance_valid(scan_record.motion): continue
+			id = scan_id
+			break
+	if id.is_empty(): return {"ok":false}
+	var record: Dictionary = _records[id]
+	if not _living(record) or not is_instance_valid(record.body) or record.body != collider or not is_instance_valid(record.motion): return {"ok":false}
+	var body: CharacterBody3D = record.body
+	if body.get_meta("source_id", "") != id or body.get_meta("session_id", "") != _session or body.get_meta("descriptor_sha256", "") != record.row.descriptor_sha256 or body.get_child_count() < 2: return {"ok":false}
+	var shape: Node = body.get_child(0)
+	if not shape is CollisionShape3D or shape.disabled or not shape.shape is CapsuleShape3D or not is_equal_approx(shape.shape.radius, .36) or not is_equal_approx(shape.shape.height, HEIGHT): return {"ok":false}
+	if body.collision_layer != 1 or body.collision_mask != 1 or body.get_parent() != _scene.get_ref(): return {"ok":false}
+	# DSH_RIGCACHE: cached rig lookup, same single-rig requirement.
+	var rig: Skeleton3D = _current_record_rig(record)
+	if rig == null: return {"ok":false}
+	return {"ok":true, "source_authority":false, "session_id":_session,
+		"source_id":id, "bridge_id":record.row.bridge_id, "render_id":record.row.bridge_id,
+		"life_generation":record.generation,
+		"descriptor_sha256":record.row.descriptor_sha256,
+		"placement_mode":record.get("placement_mode", "NONE"),
+		"body":body, "body_instance_id":body.get_instance_id(),
+		"body_rid":body.get_rid(), "rig":rig,
+		"rig_instance_id":rig.get_instance_id(), "rig_epoch":rig.get_instance_id()}
 	return {"ok":false}
 
 func target_current(token: Dictionary) -> bool:

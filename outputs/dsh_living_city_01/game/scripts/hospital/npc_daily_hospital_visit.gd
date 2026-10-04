@@ -21,6 +21,7 @@ var _targets: Dictionary = {}
 var _session := ""
 var _kind := "hospital"
 var _phase := "UNBOUND"
+var _dsh_elapsed := -1.0  # DSH_LIFECLOCK: real game time since the previous poll
 var _reason := ""
 var _frame := -1
 var _request := -1
@@ -40,6 +41,48 @@ var _cancelling := false
 var _entry_acquired := false
 var _profile_peaks: Array[Dictionary] = []
 var _timing_buckets: Dictionary = {}
+
+# DSH_DAILYPIN: --city-daily-pin-cache=1 proves the accepted route packet of one path ONCE
+# per process instead of on every hospital/bank start. Today every start re-reads the JSON
+# file from disk, re-hashes it and re-parses it. 0 (default) re-proves every start, exactly
+# as today. The site-bound check (targets().data_sha256) still runs on every start.
+static var _dsh_pin_flag := -1  # DSH_DAILYPIN
+static var _dsh_pin_packets: Dictionary = {}  # DSH_DAILYPIN: data_path -> {"bytes","data","accepted"}
+
+static func _dsh_pin_on() -> bool:  # DSH_DAILYPIN
+	if _dsh_pin_flag < 0:
+		_dsh_pin_flag = 1  # DSH_ACCEPTED: the pinned session constants are proven once by default; --city-daily-pin-cache=0 restores the per-start re-proof
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-pin-cache="):
+				_dsh_pin_flag = 1 if int(argument.trim_prefix("--city-daily-pin-cache=")) != 0 else 0
+	return _dsh_pin_flag == 1
+
+# DSH_STUTTER: path plus the file identity DSH_BINDFAST already uses in this project
+# (modification time and byte length of the same file).
+static func _dsh_route_stamp(path: String) -> String:  # DSH_STUTTER
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null: return "absent"
+	var size := file.get_length()
+	file.close()
+	return str(FileAccess.get_modified_time(path)) + ":" + str(size)
+
+static func _dsh_route_packet(path: String) -> Dictionary:  # DSH_DAILYPIN
+	# DSH_STUTTER: a held packet is reachable only while the file's identity is
+	# unchanged AND the verdict it holds was ACCEPTED. A rejected read is never held,
+	# so a corrupt file stays rejected exactly as long as the shipped body would keep
+	# rejecting it, and a mid-session repair is picked up by the next start.
+	if _dsh_pin_on():
+		var held: Variant=_dsh_pin_packets.get(path)
+		if held is Dictionary and bool(held.get("accepted",false)) and str(held.get("stamp",""))==_dsh_route_stamp(path): return held
+	var bytes:=FileAccess.get_file_as_bytes(path)
+	var data:Variant=JSON.parse_string(bytes.get_string_from_utf8())
+	var accepted:=false
+	if data is Dictionary:
+		var source_id: Variant=data.get("source_id")
+		accepted=EntryRoute.ACCEPTED.has(source_id) and EntryRoute._hash(bytes)==EntryRoute.ACCEPTED[source_id]
+	var packet: Dictionary={"bytes":bytes,"data":data,"accepted":accepted,"stamp":_dsh_route_stamp(path)}  # DSH_STUTTER
+	if _dsh_pin_on() and accepted: _dsh_pin_packets[path]=packet  # DSH_STUTTER: never hold a failure
+	return packet
 
 func _init() -> void:
 	for _index in 12: _profile_peaks.append({"part":"","phase":"","us":0})
@@ -96,9 +139,12 @@ func _configure(host:RefCounted,policy:RefCounted,health:RefCounted,site:Node3D,
 	if health._current(health._binding).is_empty() or not host.target_current(token) or not is_instance_valid(site) or not site.get("ready_for_use") or not is_instance_valid(scene) or not scene.has_method("_current_door_occupants"):return {"ok":false,"reason":"current_actor_loaded_site_occupants"}
 	var root_dir:String=get_script().resource_path.get_base_dir()
 	var data_path:String=root_dir+"/hospital_route_data.json" if kind=="hospital" else root_dir+"/../bank_geometry/bank_route_data.json"
-	var bytes:=FileAccess.get_file_as_bytes(data_path)
-	var data:Variant=JSON.parse_string(bytes.get_string_from_utf8())
-	if not data is Dictionary or not EntryRoute.ACCEPTED.has(data.get("source_id")) or EntryRoute._hash(bytes)!=EntryRoute.ACCEPTED[data.source_id] or site.targets().get("data_sha256")!=data.interior_sha256:return {"ok":false,"reason":"accepted_entry_packet"}
+	# DSH_DAILYPIN: the read/hash/parse proof is identical, only its caching is new; the
+	# short-circuit is preserved because "accepted" already contains "data is Dictionary".
+	var packet:Dictionary=_dsh_route_packet(data_path)
+	var bytes:PackedByteArray=packet["bytes"]
+	var data:Variant=packet["data"]
+	if not packet["accepted"] or site.targets().get("data_sha256")!=data.interior_sha256:return {"ok":false,"reason":"accepted_entry_packet"}
 	_host=host;_policy=policy;_health=health;_site=site;_scene=scene;_token=token.duplicate();_session=session;_kind=kind;_account=account;_goal=goal.duplicate(true);_route_bytes=bytes
 	_activity=weakref(activity if activity!=null else self)
 	for key:String in data.goals:_targets[key]=EntryRoute._v(data.goals[key])
@@ -255,7 +301,7 @@ func _step_impl(delta:float) -> void:
 				# exclusive controller holds the daily_entry_visit_owner claim.
 				_site.advance(delta,people)
 			_record_timing("door_update",door_started,frame,_phase)
-			_door_time+=delta
+			_door_time+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
 			if _door_time>12.0:_stop("door_sweep_or_action_timeout");return
 	elif _phase=="TREATING":
 		var treatment_started:=Time.get_ticks_usec()

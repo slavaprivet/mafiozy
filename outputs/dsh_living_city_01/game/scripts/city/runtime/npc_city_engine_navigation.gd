@@ -19,6 +19,51 @@ var _dsh_ms := 0  # DSH_QUERY_PROBE
 var _dsh_samples := 0  # DSH_QUERY_PROBE
 var _dsh_clears := 0  # DSH_QUERY_PROBE
 var _dsh_admitted := 0  # DSH_QUERY_PROBE
+# DSH_NAVDEDUPE: --city-nav-validate-dedupe=1 (default) reuses the admit answer this
+# same _validate() call already produced for the identical point; 0 runs today's two
+# calls per sample. _dsh_dedupe_skips is the proof metric of the DSH_NAVQ line below.
+var _dsh_validate_dedupe := -1
+var _dsh_dedupe_skips := 0
+# DSH_WALKFAST: --city-nav-validate-m=F is the spacing of the PRE-FLIGHT validation grid
+# that _validate() walks along a proposed path (SAMPLE_METRES = 0.25 today). It is NOT the
+# movement granularity: admit_motion() still refuses any real step > SAMPLE_METRES and still
+# runs the swept capsule + source policy per step. -1.0 = unresolved. The DSH_NAVQ line
+# prints the density and the validated metres per second.
+var _dsh_validate_m := -1.0
+# DSH_WALKFAST: the previous window's _stats.rejected_motion, so DSH_NAVQ can print the
+# per-second rate of real movement refusals (the "hole between probes" signal) for free.
+var _dsh_rejected_last := 0
+# DSH_NAVFAIR: --city-nav-fair=1 (default) serves a SLICE of each PENDING job per pump()
+# instead of letting the first one burn the whole 4000 us bucket (which is what keeps the
+# queue 154-203 deep and a leg waiting ~18 s). --city-nav-fair=0 resolves the slice to 0:
+# the loop's new break is then inert and today's run-to-deadline is exactly restored.
+# _dsh_visits counts _validate() calls (= slices served) in the window.
+var _dsh_nav_fair := -1
+var _dsh_nav_fair_slice := 0
+var _dsh_visits := 0
+# DSH_NAVFAIR: acceptance telemetry of the same window - incoming jobs, completed legs and
+# the request -> READY wait in a 256-entry integer ring, plus the unique moving residents.
+var _dsh_requests := 0
+var _dsh_ready := 0
+var _dsh_wait_ring := PackedInt32Array()
+var _dsh_wait_cursor := 0
+var _dsh_wait_filled := 0
+var _dsh_wait_max := 0
+var _dsh_moving_ids := {}
+# DSH_NAVTAIL: --city-nav-pump-tail-guard=1 (default) and --city-nav-pending-scan=1
+# (default) are the two cheaper-for-the-same-service levers inside pump(); 0 on
+# either one restores today's exact path for that lever. _dsh_tail_refused counts
+# the walk entries the tail guard skipped (each of them could only have been a
+# reserve() refusal that serves nothing) and is printed on the DSH_NAVQ line.
+# _pending_ids is the PENDING-only walk list, ascending by job id: see _terminal()
+# and _pending_forget() for why that set is exact, and _pending_compact() for how
+# the ids retired during a walk leave it.
+var _dsh_pump_tail := -1
+var _dsh_pending_scan := -1
+var _dsh_tail_refused := 0
+var _pending_ids: Array[int] = []
+var _pending_retired := 0
+var _pending_scan_active := false
 var _dsh_ttl := -1  # DSH_ROUND2: 0 = source behaviour (ask the policy every tick)
 var _dsh_reused := 0  # DSH_ROUND2
 # DSH_RESID3: start-point query cache for _physics_clear. 0 = original behaviour.
@@ -39,7 +84,7 @@ var _dsh_split_on := false
 var _dsh_hoist := -1
 var _dsh_iter_frame := -1
 var _dsh_iter := 0
-var _dsh_t := {"admit_us": 0, "clear_us": 0, "clear_shape_us": 0, "clear_cast_us": 0, "clear_entry_us": 0, "move_shape_us": 0, "move_cast_us": 0, "poll_us": 0, "mapi_us": 0, "motion_us": 0, "motion_calls": 0, "admit_calls": 0, "clear_calls": 0, "shape_calls": 0, "skip_calls": 0, "poll_calls": 0, "mapi_calls": 0, "motion_reject": 0}
+var _dsh_t := {"admit_us": 0, "clear_us": 0, "clear_shape_us": 0, "clear_cast_us": 0, "clear_entry_us": 0, "move_shape_us": 0, "move_cast_us": 0, "poll_us": 0, "mapi_us": 0, "motion_us": 0, "motion_calls": 0, "admit_calls": 0, "reused": 0, "clear_calls": 0, "shape_calls": 0, "skip_calls": 0, "poll_calls": 0, "mapi_calls": 0, "motion_reject": 0}
 const FLOOR_SKIN := 0.04
 var _queue: RefCounted
 var _space: Callable
@@ -85,7 +130,7 @@ func _record(key: String, microseconds: int) -> void:
 # Every counter behind DSH_NAVQ / DSH_NAVSTEP stays exact. Default 1.
 func _timing_records() -> bool:
 	if _dsh_timing < 0:
-		_dsh_timing = 1
+		_dsh_timing = 0  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-timing="):
 				_dsh_timing = maxi(0, int(argument.trim_prefix("--city-timing=")))
@@ -95,7 +140,7 @@ func _timing_records() -> bool:
 # 0 (default) keeps today's code path.
 func _slim_flag() -> int:
 	if _dsh_slim < 0:
-		_dsh_slim = 0
+		_dsh_slim = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-navstep-slim="):
 				_dsh_slim = maxi(0, int(argument.trim_prefix("--city-navstep-slim=")))
@@ -342,8 +387,18 @@ func _owner_valid(job: Dictionary) -> bool:
 	return owner != null and not owner.dead and owner.source_id == job.source_id and owner.life_generation == job.life_generation
 
 func _terminal(job: Dictionary, status: String, reason: String = "") -> void:
+	# DSH_NAVTAIL: this is the only place `status` is ever written, so a job leaves
+	# the pending list exactly when its status leaves PENDING; _pending_ids therefore
+	# stays equal to { id : _jobs[id].status == "PENDING" } and ascending by id.
+	var dsh_pending: bool = job.status == "PENDING"
 	job.status = status; job.reason = reason
 	if status != "READY": job.admit = Callable(); job.path = PackedVector3Array()
+	# DSH_NAVFAIR: a READY job is a leg the resident may now walk; its wait is
+	# request -> READY in whole milliseconds (256-entry integer ring, _nav_wait_push).
+	if status == "READY":
+		_dsh_ready += 1
+		_nav_wait_push(Time.get_ticks_msec() - int(job.get("created_ms", Time.get_ticks_msec())))
+	if dsh_pending: _pending_forget(int(job.get("id", 0)))
 
 ## Source identity is supplied by the host; this API never invents residents.
 ## admit(point_metres, source_id, life_generation) checks CURRENT source access.
@@ -354,8 +409,10 @@ func request_path(owner: RefCounted, start: Vector3, target: Vector3, admit: Cal
 	if _by_owner.has(identity): cancel(int(_by_owner[identity]))
 	if _jobs.size() >= MAX_JOBS: return -1
 	_next_job += 1
-	_jobs[_next_job] = {"id": _next_job, "owner": weakref(owner), "owner_instance": identity, "source_id": owner.source_id, "life_generation": owner.life_generation, "epoch": _epoch, "status": "PENDING", "phase": "QUEUED", "reason": "", "start": start, "target": target, "admit": admit, "exclude": exclude.duplicate(), "path": PackedVector3Array(), "edge": 1, "sample": 0, "iteration": 0}
+	_jobs[_next_job] = {"id": _next_job, "created_ms": Time.get_ticks_msec(), "owner": weakref(owner), "owner_instance": identity, "source_id": owner.source_id, "life_generation": owner.life_generation, "epoch": _epoch, "status": "PENDING", "phase": "QUEUED", "reason": "", "start": start, "target": target, "admit": admit, "exclude": exclude.duplicate(), "path": PackedVector3Array(), "edge": 1, "sample": 0, "iteration": 0}
 	_by_owner[identity] = _next_job
+	_dsh_requests += 1  # DSH_NAVFAIR: incoming path jobs of this window
+	if _pending_scan_flag() == 1: _pending_ids.append(_next_job)  # DSH_NAVTAIL
 	return _next_job
 
 # DSH_MOTION: status-only sibling of poll(). Identical owner/epoch/iteration checks and
@@ -401,6 +458,7 @@ func cancel(id: int) -> void:
 	var owner: RefCounted = job.owner.get_ref()
 	if owner != null: _queue.cancel(owner)
 	_by_owner.erase(job.owner_instance); _jobs.erase(id)
+	_pending_forget(id)  # DSH_NAVTAIL: cancel() is refused while _busy, so no walk runs
 
 func pump(frame_id: int) -> void:
 	if not Thread.is_main_thread() or _disposed or _busy: return
@@ -410,19 +468,74 @@ func pump(frame_id: int) -> void:
 	if current != "READY" and current != "EMPTY_MAP" and current != "LIMIT_REACHED": return
 	_busy = true; _mutation_fault = false
 	var started := Time.get_ticks_usec()
-	for job: Dictionary in _jobs.values():
-		if job.status != "PENDING" or job.phase == "QUERY_WAIT": continue
-		if not _owner_valid(job): _terminal(job, "CANCELLED", "owner-life-ended"); continue
-		if job.epoch != _epoch: _terminal(job, "STALE", "source-version-changed"); continue
-		if current == "EMPTY_MAP": _terminal(job, "NO_PATH", "empty-authoritative-map"); continue
-		if current == "LIMIT_REACHED": _terminal(job, "LIMIT_REACHED", "engine-map-polygon-limit"); continue
-		var owner: RefCounted = job.owner.get_ref()
-		if not _queue.reserve(frame_id, owner): continue
-		if job.phase == "QUEUED": _submit_query(job)
-		elif job.phase == "VALIDATING": _validate(job)
-		_queue.finish()
-		if _mutation_fault: _terminal(job, "STALE", "reentrant-authority-mutation")
-		if Time.get_ticks_usec() - started >= 4000: break
+	# DSH_NAVTAIL: two independent levers on this walk; both default to 1 and both 0
+	# is today's exact path.
+	# 1) --city-nav-pump-tail-guard=1 leaves the walk the moment the 4000 us bucket is
+	#    spent. Today the budget break at the bottom is reachable only after a
+	#    SUCCESSFUL _queue.reserve(); once the served work has spent the bucket,
+	#    reserve() refuses on its own `_used >= 4000` condition, so every remaining
+	#    entry of the walk is a refusal (~3-5 us) that cannot serve anything. The same
+	#    clock test at the TOP of the body therefore removes no service in that regime:
+	#    with the bucket spent today serves nothing either, and the owners this skips
+	#    are booked into _queue/_batch one pump later, exactly like the refused ones.
+	# 2) --city-nav-pending-scan=1 walks the maintained _pending_ids list instead of
+	#    the `_jobs.values()` copy of every job; 0 keeps today's exact walk below.
+	var dsh_tail: bool = _pump_tail_flag() == 1
+	if _pending_scan_flag() == 1:
+		# _pending_ids holds exactly the ids whose status is PENDING, ascending by id:
+		# the same jobs `for job in _jobs.values()` yields, in the same relative order.
+		# It cannot change while this walk runs - request_path()/cancel()/
+		# publish_source()/dispose() all bail out on _busy, and _terminal() defers its
+		# erase into _pending_retired while _pending_scan_active is set. Ids retired
+		# during the walk stay in the list (the status test below skips them, exactly as
+		# today's copy does) and are compacted right after it, so the composition of the
+		# served jobs is identical by construction, entry for entry and in the same order.
+		_pending_scan_active = true
+		var dsh_count := _pending_ids.size()
+		var dsh_at := 0
+		while dsh_at < dsh_count:
+			if dsh_tail and Time.get_ticks_usec() - started >= 4000:
+				_dsh_tail_refused += dsh_count - dsh_at
+				break
+			var job: Dictionary = _jobs[_pending_ids[dsh_at]]
+			dsh_at += 1
+			if job.status != "PENDING" or job.phase == "QUERY_WAIT": continue
+			if not _owner_valid(job): _terminal(job, "CANCELLED", "owner-life-ended"); continue
+			if job.epoch != _epoch: _terminal(job, "STALE", "source-version-changed"); continue
+			if current == "EMPTY_MAP": _terminal(job, "NO_PATH", "empty-authoritative-map"); continue
+			if current == "LIMIT_REACHED": _terminal(job, "LIMIT_REACHED", "engine-map-polygon-limit"); continue
+			var owner: RefCounted = job.owner.get_ref()
+			if not _queue.reserve(frame_id, owner): continue
+			if job.phase == "QUEUED": _submit_query(job)
+			elif job.phase == "VALIDATING": _validate(job)
+			_queue.finish()
+			if _mutation_fault: _terminal(job, "STALE", "reentrant-authority-mutation")
+			if Time.get_ticks_usec() - started >= 4000: break
+		_pending_scan_active = false
+		if _pending_retired > 0: _pending_compact()
+	else:
+		# --city-nav-pending-scan=0: today's exact walk - the same _jobs.values() copy,
+		# the same order, the same body, with the tail guard above it.
+		var dsh_values: Array = _jobs.values()
+		var dsh_values_size := dsh_values.size()
+		var dsh_seen := 0
+		for job: Dictionary in dsh_values:
+			if dsh_tail and Time.get_ticks_usec() - started >= 4000:
+				_dsh_tail_refused += dsh_values_size - dsh_seen
+				break
+			dsh_seen += 1
+			if job.status != "PENDING" or job.phase == "QUERY_WAIT": continue
+			if not _owner_valid(job): _terminal(job, "CANCELLED", "owner-life-ended"); continue
+			if job.epoch != _epoch: _terminal(job, "STALE", "source-version-changed"); continue
+			if current == "EMPTY_MAP": _terminal(job, "NO_PATH", "empty-authoritative-map"); continue
+			if current == "LIMIT_REACHED": _terminal(job, "LIMIT_REACHED", "engine-map-polygon-limit"); continue
+			var owner: RefCounted = job.owner.get_ref()
+			if not _queue.reserve(frame_id, owner): continue
+			if job.phase == "QUEUED": _submit_query(job)
+			elif job.phase == "VALIDATING": _validate(job)
+			_queue.finish()
+			if _mutation_fault: _terminal(job, "STALE", "reentrant-authority-mutation")
+			if Time.get_ticks_usec() - started >= 4000: break
 	_busy = false
 	_record("pump_us", Time.get_ticks_usec() - started)
 
@@ -514,11 +627,16 @@ func _admitted(job: Dictionary, point: Vector3) -> bool:
 func _validate(job: Dictionary) -> void:
 	# DSH_QUERY_PROBE (temporary): path-validation query rate.
 	if _dsh_ms == 0:
-		_dsh_ms = Time.get_ticks_msec(); _dsh_samples = 0; _dsh_clears = 0; _dsh_admitted = 0
+		_dsh_ms = Time.get_ticks_msec(); _dsh_samples = 0; _dsh_clears = 0; _dsh_admitted = 0; _dsh_rejected_last = _stats.rejected_motion
 	elif Time.get_ticks_msec() - _dsh_ms >= 1000:
 		var dsh_dt := float(Time.get_ticks_msec() - _dsh_ms) / 1000.0
-		print("DSH_NAVQ admitted/s=","%.0f" % (float(_dsh_admitted)/dsh_dt)," clears/s=","%.0f" % (float(_dsh_clears)/dsh_dt)," validate/s=","%.0f" % (float(_dsh_samples)/dsh_dt)," validated_total=",_stats.validated_samples," queries=",_stats.queries)
-		_dsh_ms = Time.get_ticks_msec(); _dsh_samples = 0; _dsh_clears = 0; _dsh_admitted = 0
+		print("DSH_NAVQ admitted/s=","%.0f" % (float(_dsh_admitted)/dsh_dt)," clears/s=","%.0f" % (float(_dsh_clears)/dsh_dt)," validate/s=","%.0f" % (float(_dsh_samples)/dsh_dt)," validated_total=",_stats.validated_samples," queries=",_stats.queries," dedupe_skips/s=","%.0f" % (float(_dsh_dedupe_skips)/dsh_dt)," tail_refused/s=","%.0f" % (float(_dsh_tail_refused)/dsh_dt)," pending_scan=",("ids" if _pending_scan_flag() == 1 else "jobs")," pending=",(_pending_ids.size() if _pending_scan_flag() == 1 else -1)," validate_m=","%.2f" % _validate_metres()," validated_m/s=","%.0f" % (float(_dsh_samples)/dsh_dt*_validate_metres())," blocked_between_probes/s=","%.0f" % (float(_stats.rejected_motion-_dsh_rejected_last)/dsh_dt))
+		# DSH_NAVFAIR: acceptance telemetry of the same one-second window. wait_ms is
+		# request -> READY (the queue rage the owner reported) from the integer ring;
+		# moving_unique counts distinct jobs whose real motion was admitted.
+		print("DSH_NAVQ fair visits/s=","%.0f" % (float(_dsh_visits)/dsh_dt)," requests/s=","%.0f" % (float(_dsh_requests)/dsh_dt)," ready/s=","%.0f" % (float(_dsh_ready)/dsh_dt)," wait_ms_p50=",_nav_wait_pct(.50)," wait_ms_p95=",_nav_wait_pct(.95)," wait_ms_max=",_dsh_wait_max," moving_unique=",_dsh_moving_ids.size()," fair_slice=",_nav_fair_slice())
+		_dsh_visits = 0; _dsh_requests = 0; _dsh_ready = 0; _dsh_wait_max = 0; _dsh_moving_ids.clear()
+		_dsh_ms = Time.get_ticks_msec(); _dsh_samples = 0; _dsh_clears = 0; _dsh_admitted = 0; _dsh_dedupe_skips = 0; _dsh_tail_refused = 0; _dsh_rejected_last = _stats.rejected_motion
 	# DSH_RESID3 (temporary): how often the start-point intersect_shape is skipped.
 	if _dsh_clear_ms == 0:
 		_dsh_clear_ms = Time.get_ticks_msec(); _dsh_clear_probes = 0; _dsh_clear_skips = 0
@@ -532,17 +650,55 @@ func _validate(job: Dictionary) -> void:
 	if path.size() == 1:
 		_terminal(job, "READY" if _admitted(job, path[0]) and _physics_clear(path[0], path[0], job.exclude) else "NO_PATH", "stationary-admission")
 		return
+	# DSH_NAVDEDUPE: `a` of the next iteration of this edge is from.lerp(to,
+	# float(job.sample+1)/count) after the increment at the bottom of the loop - the same
+	# expression with the same operands as this iteration's `b`, i.e. the same Vector3 bit
+	# for bit. Inside one synchronous _validate() call nothing can change the answer for
+	# that point (see the file header of apply_nav_validate_dedupe.py), so the answer is
+	# carried instead of re-asked. The exact `a == dsh_prev_point` test reuses only a
+	# literally identical point; everything else calls _admitted() exactly as today.
+	var dsh_dedupe := _validate_dedupe_flag()
+	# DSH_NAVFAIR: this visit spends at most dsh_slice probes and then returns the job to
+	# the queue, where the next PENDING job gets the rest of the same 4000 us bucket. The
+	# cursor IS the existing job.edge/job.sample pair, so the probe sequence of a job is
+	# exactly today's, only spread over several visits. dsh_slice == 0 (--city-nav-fair=0)
+	# leaves both new statements inert and is today's run-to-deadline.
+	var dsh_slice: int = _nav_fair_slice()
+	var dsh_probes := 0
+	_dsh_visits += 1
+	# DSH_NAVFAIR: with a slice the carried DSH_NAVDEDUPE point lives on the JOB, so the
+	# a == prev b reuse survives a visit boundary (the divisor is call-invariant, so the two
+	# points stay bit-identical). At --city-nav-fair=0 these three lines are today's
+	# call-local false / ZERO / false exactly.
+	var dsh_have_prev: bool = dsh_slice > 0 and bool(job.get("dsh_have_prev", false))
+	var dsh_prev_point: Vector3 = Vector3(job.get("dsh_prev_point", Vector3.ZERO)) if dsh_slice > 0 else Vector3.ZERO
+	var dsh_prev_ok: bool = dsh_slice > 0 and bool(job.get("dsh_prev_ok", false))
 	while job.edge < path.size() and not _queue.expired():
+		if dsh_slice > 0 and dsh_probes >= dsh_slice: break  # DSH_NAVFAIR: one slice per visit
+		dsh_probes += 1
 		var from: Vector3 = path[job.edge - 1]; var to: Vector3 = path[job.edge]
-		var count := maxi(1, int(ceil(from.distance_to(to) / SAMPLE_METRES)))
+		var count := maxi(1, int(ceil(from.distance_to(to) / _validate_metres())))  # DSH_WALKFAST
 		var a := from.lerp(to, float(job.sample) / count)
 		var b := from.lerp(to, float(job.sample + 1) / count)
 		_stats.validated_samples += 1
 		_dsh_admitted += 2; _dsh_samples += 1  # DSH_QUERY_PROBE
-		if not _admitted(job, a) or not _admitted(job, b): _terminal(job, "NO_PATH", "source-admission-refused"); return
+		# DSH_NAVDEDUPE: same point, same synchronous call - reuse the answer.
+		var dsh_ok_a: bool
+		if dsh_dedupe == 1 and dsh_have_prev and a == dsh_prev_point:
+			dsh_ok_a = dsh_prev_ok
+			_dsh_dedupe_skips += 1
+		else:
+			dsh_ok_a = _admitted(job, a)
+		if not dsh_ok_a: _terminal(job, "NO_PATH", "source-admission-refused"); return
+		var dsh_ok_b := _admitted(job, b)
+		dsh_prev_point = b; dsh_prev_ok = dsh_ok_b; dsh_have_prev = true
+		if not dsh_ok_b: _terminal(job, "NO_PATH", "source-admission-refused"); return
 		if not _physics_clear(a, b, job.exclude, job): _terminal(job, "NO_PATH", "physical-capsule-refused"); return
 		job.sample += 1
 		if job.sample == count: job.edge += 1; job.sample = 0
+	# DSH_NAVFAIR: keep the carried DSH_NAVDEDUPE point for the next visit (slice on only).
+	if dsh_slice > 0:
+		job["dsh_have_prev"] = dsh_have_prev; job["dsh_prev_point"] = dsh_prev_point; job["dsh_prev_ok"] = dsh_prev_ok
 	if job.edge == path.size(): _terminal(job, "READY")
 
 
@@ -552,11 +708,31 @@ func _validate(job: Dictionary) -> void:
 # to run every tick because bodies move. Re-ask every N ticks, staggered per job.
 func _admit_ttl() -> int:
 	if _dsh_ttl < 0:
-		_dsh_ttl = 0
+		# DSH_ADMITTTL: the TTL is counted in PHYSICS FRAMES while admit_motion() runs once
+		# per city step times the LOD stride - an effective gap of ~7 frames. A TTL below that
+		# period can never reuse for most of the cohort (measured: 9.9% instead of 62% at ttl=8),
+		# and the price of one admit call is flat (1052 us), so the bucket is pure call count.
+		# 24 covers ~3 periods; --city-admit-ttl=8 restores the accepted value.
+		_dsh_ttl = 48  # DSH_TTL48: measured -505 us/step; --city-admit-ttl=24 restores the shorter proof  # DSH_ADMITTTL: accepted default (rollback --city-admit-ttl=8)
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-admit-ttl="):
 				_dsh_ttl = maxi(0, int(argument.trim_prefix("--city-admit-ttl=")))
 	return _dsh_ttl
+
+# DSH_WALKCHEAP: --city-walk-far-ttl=N. A movement step of a FAR (sim-LOD batched) resident may
+# reuse the already proven static source geometry for N physics frames instead of the shared
+# _admit_ttl() window. The swept capsule still runs on every step (bodies move), the proof is
+# still dropped by version/proposals/geometry invalidation, and N=0 makes a far step use
+# _admit_ttl() exactly as today: `ttl = maxi(ttl, _walk_far_ttl())`.
+static var _dsh_walk_far_ttl := -1  # DSH_WALKCHEAP
+
+func _walk_far_ttl() -> int:  # DSH_WALKCHEAP
+	if _dsh_walk_far_ttl < 0:
+		_dsh_walk_far_ttl = 96  # DSH_WALKCHEAP: ~1.6 s at 60 Hz, ~3.4x the accepted DSH_ADMITTTL window
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-walk-far-ttl="):
+				_dsh_walk_far_ttl = maxi(0, int(argument.trim_prefix("--city-walk-far-ttl=")))
+	return _dsh_walk_far_ttl
 
 func _admit_phase(job: Dictionary) -> int:
 	var value := 0
@@ -575,14 +751,122 @@ const CLEAR_CACHE_EPS_M := 0.002
 
 func _clear_cache() -> int:
 	if _dsh_clear_cache < 0:
-		_dsh_clear_cache = 0
+		_dsh_clear_cache = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-clear-cache="):
 				_dsh_clear_cache = maxi(0, int(argument.trim_prefix("--city-clear-cache=")))
 	return _dsh_clear_cache
+
+# DSH_NAVDEDUPE: --city-nav-validate-dedupe=1 (default) reuses the admit answer this same
+# _validate() call already proved for the identical point; 0 keeps today's two calls per
+# sample. Cached like every other lever in this file and read once per _validate() call.
+func _validate_dedupe_flag() -> int:
+	if _dsh_validate_dedupe < 0:
+		_dsh_validate_dedupe = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-nav-validate-dedupe="):
+				_dsh_validate_dedupe = maxi(0, int(argument.trim_prefix("--city-nav-validate-dedupe=")))
+	return _dsh_validate_dedupe
+
+# DSH_WALKFAST: --city-nav-validate-m=F sets the pre-flight sample spacing. 1.0 (default)
+# walks one probe per metre instead of four. The value is clamped to at least SAMPLE_METRES,
+# so --city-nav-validate-m=0.25 returns exactly the SAMPLE_METRES constant and the pre-flight
+# grid, the swept-capsule pair and every terminal string are then the ones of today. Read
+# once per _validate() call, so the divisor is a constant inside the loop and DSH_NAVDEDUPE's
+# `a == dsh_prev_point` reuse stays exact at every density.
+func _validate_metres() -> float:  # DSH_WALKFAST
+	if _dsh_validate_m < 0.0:
+		_dsh_validate_m = 0.5  # DSH_VALIDATE05: measured knee - walking x1.8 for +6% step; =1.0 buys +303us more  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-nav-validate-m="):
+				_dsh_validate_m = maxf(SAMPLE_METRES, float(argument.trim_prefix("--city-nav-validate-m=")))
+	return _dsh_validate_m
+
+# DSH_NAVFAIR: --city-nav-fair-slice=N is how many path probes one _validate() visit may
+# spend before it returns the job to the queue (2 by default). --city-nav-fair=0 resolves
+# the slice to 0, i.e. today's run-until-the-bucket-expires. The probes themselves, their
+# order and the a/b pair inside one probe are untouched: the cursor is the existing
+# job.edge/job.sample pair, so a sliced visit resumes exactly where the last one stopped.
+func _nav_fair_slice() -> int:  # DSH_NAVFAIR
+	if _dsh_nav_fair < 0:
+		_dsh_nav_fair = 0  # DSH_NAVFAIROFF: measured -6% wait, no life gain (visits/s x3 but moving_unique 33->26)  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		_dsh_nav_fair_slice = 2
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-nav-fair="):
+				_dsh_nav_fair = maxi(0, int(argument.trim_prefix("--city-nav-fair=")))
+			elif argument.begins_with("--city-nav-fair-slice="):
+				_dsh_nav_fair_slice = maxi(1, int(argument.trim_prefix("--city-nav-fair-slice=")))
+	return _dsh_nav_fair_slice if _dsh_nav_fair == 1 else 0
+
+# DSH_NAVFAIR: one integer push per COMPLETED leg (request -> READY). No allocation after
+# the first resize; the ring is sorted only when the DSH_NAVQ line is printed.
+func _nav_wait_push(wait_ms: int) -> void:  # DSH_NAVFAIR
+	if _dsh_wait_ring.size() != 256: _dsh_wait_ring.resize(256)
+	if wait_ms < 0: wait_ms = 0
+	_dsh_wait_ring[_dsh_wait_cursor] = wait_ms
+	_dsh_wait_cursor = (_dsh_wait_cursor + 1) % 256
+	if _dsh_wait_filled < 256: _dsh_wait_filled += 1
+	if wait_ms > _dsh_wait_max: _dsh_wait_max = wait_ms
+
+# DSH_NAVFAIR: integer percentile of the filled part of the ring (0 when empty).
+func _nav_wait_pct(ratio: float) -> int:  # DSH_NAVFAIR
+	if _dsh_wait_filled <= 0: return 0
+	var dsh_sorted := _dsh_wait_ring.slice(0, _dsh_wait_filled)
+	dsh_sorted.sort()
+	return int(dsh_sorted[mini(dsh_sorted.size() - 1, int(float(dsh_sorted.size()) * ratio))])
+
+# DSH_NAVTAIL: --city-nav-pump-tail-guard=1 (default) leaves pump()'s walk as soon
+# as the 4000 us bucket is spent, instead of running the rest of the list through
+# reserve() refusals; 0 keeps today's order (the trailing break only, after a
+# successful reserve). Cached like every other lever in this file.
+func _pump_tail_flag() -> int:
+	if _dsh_pump_tail < 0:
+		_dsh_pump_tail = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-nav-pump-tail-guard="):
+				_dsh_pump_tail = maxi(0, int(argument.trim_prefix("--city-nav-pump-tail-guard=")))
+	return _dsh_pump_tail
+
+# DSH_NAVTAIL: --city-nav-pending-scan=1 (default) walks the maintained _pending_ids
+# list - one entry per PENDING job - instead of allocating the `_jobs.values()` copy
+# of every job (~284 entries), of which only the PENDING ones can be served at all;
+# 0 keeps today's exact walk. Cached like every other lever in this file.
+func _pending_scan_flag() -> int:
+	if _dsh_pending_scan < 0:
+		_dsh_pending_scan = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-nav-pending-scan="):
+				_dsh_pending_scan = maxi(0, int(argument.trim_prefix("--city-nav-pending-scan=")))
+	return _dsh_pending_scan
+
+# DSH_NAVTAIL: the only door out of _pending_ids. The list is maintained only while
+# the pending walk is enabled, so at --city-nav-pending-scan=0 it stays empty and
+# this costs one cached flag read. Erasing an id while pump() walks the list would
+# shift the entries the walk has not reached yet, so during that walk the id is only
+# counted here and _pending_compact() drops it right after the walk returns.
+func _pending_forget(id: int) -> void:
+	if id <= 0 or _pending_ids.is_empty() or _pending_scan_flag() == 0: return
+	if _pending_scan_active:
+		_pending_retired += 1
+		return
+	_pending_ids.erase(id)
+
+# DSH_NAVTAIL: drop every id _pending_forget() retired during the walk, in place and
+# without allocating. Every job whose status is no longer PENDING has left the list;
+# the compaction keeps _pending_ids ascending by id (the order the walk relies on).
+func _pending_compact() -> void:
+	_pending_retired = 0
+	var write := 0
+	for read in _pending_ids.size():
+		var dsh_id: int = _pending_ids[read]
+		var dsh_job: Dictionary = _jobs.get(dsh_id, {})
+		if not dsh_job.is_empty() and dsh_job.status == "PENDING":
+			_pending_ids[write] = dsh_id
+			write += 1
+	_pending_ids.resize(write)
 ## The movement controller must call this on each bounded proposed step, even
 ## after a READY proposal. This neither moves nor teleports an actor.
-func admit_motion(id: int, from: Vector3, to: Vector3) -> bool:
+func admit_motion(id: int, from: Vector3, to: Vector3, far: bool = false) -> bool:  # DSH_WALKCHEAP
 	var started := Time.get_ticks_usec()
 	if _dsh_split < 0: _split_flags()  # DSH_NAVSTEP3
 	var dsh_m0 := Time.get_ticks_usec() if _dsh_split_on else 0  # DSH_NAVSTEP3
@@ -600,9 +884,12 @@ func admit_motion(id: int, from: Vector3, to: Vector3) -> bool:
 	# validation when the job was created), so the source policy is asked only for the
 	# new position. The swept capsule check still spans the whole motion.
 	var allowed := false
+	# DSH_WALKCHEAP: `far` is set by the host for a batched (sim-LOD) step; with
+	# --city-walk-far-ttl=0 this line resolves to exactly _admit_ttl().
 	var ttl := _admit_ttl()
+	if far: ttl = maxi(ttl, _walk_far_ttl())
 	if ttl > 0 and bool(job.get("admit_ok", false)) and Engine.get_physics_frames() < int(job.get("admit_due", 0)):
-		_dsh_reused += 1
+		_dsh_reused += 1; _dsh_t["reused"] = _dsh_reused  # DSH_ADMITTTL
 		allowed = true
 	else:
 		var dsh_a0 := Time.get_ticks_usec() if _dsh_split_on else 0  # DSH_NAVSTEP3
@@ -634,6 +921,9 @@ func admit_motion(id: int, from: Vector3, to: Vector3) -> bool:
 	# DSH_MOTION: --city-timing=0 (default 1) skips only this per-call diagnostic sample.
 	if _timing_records(): _record("motion_us", Time.get_ticks_usec() - started)
 	if not allowed: _stats.rejected_motion += 1
+	# DSH_NAVFAIR: one distinct job whose REAL motion was admitted = one unique moving
+	# resident in this window (one live job per resident). Cleared once per DSH_NAVQ line.
+	if allowed: _dsh_moving_ids[id] = true
 	return allowed
 
 func diagnostics() -> Dictionary:

@@ -44,6 +44,144 @@ var _square := PhysicsShapeQueryParameters3D.new()
 var diagnostics := {"steps":0,"travel_m":0.0,"step_us_total":0,"step_us_max":0,"floor_queries":0,"source_sweeps":0,"reason":"","current_us_peaks":[]}
 
 static func _v(value: Array) -> Vector3: return Vector3(value[0],value[1],value[2])
+# DSH_DAILYPIN: configure() re-proves the same pinned route bytes on every hospital/bank
+# start. With --city-daily-pin-cache=1 one accepted packet per source_id is proven once and
+# reused; every source shape, polygon and the .738 m square stay untouched. 0 (default)
+# re-proves every start, exactly as today.
+static var _dsh_pin_flag := -1  # DSH_DAILYPIN
+static var _dsh_pin_data: Dictionary = {}  # DSH_DAILYPIN
+static var _dsh_pin_site := ""  # DSH_DAILYPIN
+
+static func _dsh_pin_on() -> bool:  # DSH_DAILYPIN
+	if _dsh_pin_flag < 0:
+		_dsh_pin_flag = 1  # DSH_ACCEPTED: the pinned session constants are proven once by default; --city-daily-pin-cache=0 restores the per-start re-proof
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-pin-cache="):
+				_dsh_pin_flag = 1 if int(argument.trim_prefix("--city-daily-pin-cache=")) != 0 else 0
+	return _dsh_pin_flag == 1
+
+static func _dsh_pinned_data(route_bytes: PackedByteArray, id: String) -> Variant:  # DSH_DAILYPIN
+	if _dsh_pin_on() and _dsh_pin_site==id and not _dsh_pin_data.is_empty(): return _dsh_pin_data
+	if _hash(route_bytes)!=ACCEPTED[id]: return null
+	var data: Variant=JSON.parse_string(route_bytes.get_string_from_utf8())
+	if not data is Dictionary: return null
+	if _dsh_pin_on(): _dsh_pin_data=data; _dsh_pin_site=id
+	return data
+
+# DSH_VISITCACHE: --city-visit-scene-cache=1 (default) builds the two per-configure
+# enumerations of this route once per SCENE and reuses them; 0 is today's path and
+# re-enumerates both on every configure.
+#   (a) every other block record's collision body, converted and box-filtered - a pure
+#       function of scene._block (written once, main.gd:133) and of the site's _origin;
+#   (b) interior.find_children("*","CollisionShape3D",true,false) - the same node list for
+#       every route instance of the same interior adapter.
+# The DATA lives in the metadata of the scene node and of the interior node (never in a
+# global, never in a static), so it is dropped together with the objects it describes.
+const DSH_VISIT_CACHE_KEY := "dsh_visit_scene_cache"  # DSH_VISITCACHE
+const DSH_VISIT_CACHE_SCHEMA := 1  # DSH_VISITCACHE
+const DSH_VISIT_PINS_KEY := "dsh_visit_pin_nodes"  # DSH_VISITCACHE
+const DSH_VISIT_PINS_SCHEMA := 1  # DSH_VISITCACHE
+static var _dsh_visit_cache := -1  # DSH_VISITCACHE
+
+# DSH_VISITCACHE: --city-visit-scene-cache, read once per run (the route object itself is
+# created and disposed per visit, so the flag cannot live on the instance).
+static func _dsh_visit_cache_on() -> bool:  # DSH_VISITCACHE
+	if _dsh_visit_cache < 0:
+		_dsh_visit_cache = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-visit-scene-cache="):
+				_dsh_visit_cache = 0 if int(argument.trim_prefix("--city-visit-scene-cache=")) == 0 else 1
+	return _dsh_visit_cache == 1
+
+# DSH_VISITCACHE: the scene-scoped cache dictionary, or {} when the flag is off / the scene is
+# not the one the entry was built for. Every use re-proves the block revision: the same
+# buildings/decor Array instances, the same counts and the same _origin. main.gd:133 is the
+# only writer of `_block` in the tree and nothing mutates it afterwards, so this can only fail
+# on a scene that was rebuilt - and then the entry is rebuilt from today's loops.
+func _dsh_scene_cache() -> Dictionary:  # DSH_VISITCACHE
+	if not _dsh_visit_cache_on() or not is_instance_valid(scene): return {}
+	var value: Variant=scene.get_meta(DSH_VISIT_CACHE_KEY,{})
+	var cache: Dictionary=value if value is Dictionary else {}
+	var block_value: Variant=scene.get("_block")
+	if not block_value is Dictionary: return {}
+	var block: Dictionary=block_value
+	if int(cache.get("schema",0))!=DSH_VISIT_CACHE_SCHEMA or not is_same(cache.get("buildings"),block.buildings) or not is_same(cache.get("decor"),block.decor) or cache.get("counts",{})!=block.get("counts",{}) or cache.get("origin",Vector3.INF)!=scene.get("_origin"):
+		cache={"schema":DSH_VISIT_CACHE_SCHEMA,"buildings":block.buildings,"decor":block.decor,"counts":block.get("counts",{}),"origin":scene.get("_origin"),"parts":{},"hits":int(cache.get("hits",0)),"builds":int(cache.get("builds",0)),"lookups":int(cache.get("lookups",0)),"us":int(cache.get("us",0))}
+		scene.set_meta(DSH_VISIT_CACHE_KEY,cache)
+	return cache
+
+# DSH_VISITCACHE: the trigger counters of the DSH_DAILY line in npc_city_daily.gd (lookups =
+# cache decisions, hits/builds their outcome, us = the time this cache itself spent).
+func _dsh_cache_count(cache: Dictionary,hit: bool,elapsed: int) -> void:  # DSH_VISITCACHE
+	if cache.is_empty(): return
+	cache["lookups"]=int(cache["lookups"])+1
+	if hit: cache["hits"]=int(cache["hits"])+1
+	else: cache["builds"]=int(cache["builds"])+1
+	cache["us"]=int(cache["us"])+elapsed
+
+# DSH_VISITCACHE (a): today's block enumeration of npc_daily_entry_route.gd:102-108, run once per
+# scene and part. The part is keyed by the site source_id AND re-proved against the exact _origin
+# and _data.bounds it was filtered with, because _near() reads both.
+func _dsh_site_solids(id: String) -> Array:  # DSH_VISITCACHE
+	var started:=Time.get_ticks_usec()
+	var cache: Dictionary=_dsh_scene_cache()
+	var key: String="site:"+id
+	if not cache.is_empty():
+		var parts: Dictionary=cache["parts"]
+		var entry: Variant=parts.get(key)
+		if entry is Dictionary and entry.get("origin")==_origin and entry.get("bounds")==_data.get("bounds"):
+			_dsh_cache_count(cache,true,Time.get_ticks_usec()-started)
+			return entry["solids"]
+	var kept: Array=[]
+	for building: Dictionary in scene.get("_block").buildings+scene.get("_block").decor:
+		if building.id==id: continue
+		for solid: Dictionary in building.collisionBodiesM:
+			var points: Array=[]
+			for p: Array in solid.polygonXZ: points.append([(p[0]+_origin.x)/4.1,(p[1]+_origin.z)/4.1])
+			var candidate:={"polygonCR":points,"minYM":solid.minY,"maxYM":solid.maxY,"node":building.id}
+			if _near(candidate): kept.append(candidate)
+	if not cache.is_empty():
+		var parts: Dictionary=cache["parts"]
+		parts[key]={"origin":_origin,"bounds":_data.get("bounds"),"solids":kept}
+	_dsh_cache_count(cache,false,Time.get_ticks_usec()-started)
+	return kept
+
+# DSH_VISITCACHE (b): the interior's CollisionShape3D list, cached in the INTERIOR's own
+# metadata. A hit re-proves what the list was built from with O(1) metadata plus one
+# is_instance_valid() per cached shape: the interior's identity (this metadata), the schema, the
+# interior's direct-child count, and that every cached shape is still a live instance. A freed shape (removal, container
+# removal, or a swap that freed one shape and added another) fails that test and forces a
+# rebuild, so the cached list can never hand a dangling node to the pin loop. A live route also
+# drops the entry from _child_changed(), i.e. from the watchers that already invalidate its own
+# pins. A per-container child-count stamp was read, priced and REJECTED: it costs 107/404/136
+# GDScript reads (~30-200 us) per hit, as much as the C++ traversal it would protect.
+func _dsh_pin_nodes() -> Array:  # DSH_VISITCACHE
+	var started:=Time.get_ticks_usec()
+	var cache: Dictionary=_dsh_scene_cache()
+	var held: Variant=null
+	if not cache.is_empty() and is_instance_valid(interior) and interior.ready_for_use:
+		var value: Variant=interior.get_meta(DSH_VISIT_PINS_KEY,{})
+		var entry: Dictionary=value if value is Dictionary else {}
+		if int(entry.get("schema",0))==DSH_VISIT_PINS_SCHEMA and int(entry.get("interior_children",-1))==interior.get_child_count():
+			var current:=true
+			for node: Node in entry["nodes"]:
+				if not is_instance_valid(node):current=false;break
+			if current: held=entry["nodes"]
+	if held!=null:
+		_dsh_cache_count(cache,true,Time.get_ticks_usec()-started)
+		return held
+	var nodes: Array=interior.find_children("*","CollisionShape3D",true,false)
+	if not cache.is_empty() and is_instance_valid(interior) and interior.ready_for_use:
+		interior.set_meta(DSH_VISIT_PINS_KEY,{"schema":DSH_VISIT_PINS_SCHEMA,"nodes":nodes,"interior_children":interior.get_child_count()})
+	_dsh_cache_count(cache,false,Time.get_ticks_usec()-started)
+	return nodes
+
+# DSH_VISITCACHE: a membership change under the interior drops the cached node list. Every live
+# route instance calls this from _child_changed(), i.e. from exactly the watchers that already
+# invalidate its own pins, and the cache is then rebuilt by the next configure.
+func _dsh_pins_invalidate() -> void:  # DSH_VISITCACHE
+	if is_instance_valid(interior) and interior.has_meta(DSH_VISIT_PINS_KEY):interior.remove_meta(DSH_VISIT_PINS_KEY)
+
 static func _hash(bytes: PackedByteArray) -> String:
 	var h:=HashingContext.new();h.start(HashingContext.HASH_SHA256);h.update(bytes);return h.finish().hex_encode()
 
@@ -51,8 +189,10 @@ func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, r
 	if not Thread.is_main_thread() or host!=null or _disposed or owner._navigation!=navigation or not owner.target_current(actor_token): return {"ok":false,"reason":"current_host"}
 	if not is_instance_valid(site) or not site.get("ready_for_use") or not is_instance_valid(activity_owner): return {"ok":false,"reason":"loaded_site"}
 	var targets: Dictionary=site.targets();var id: String=targets.get("source_id","")
-	if not ACCEPTED.has(id) or _hash(route_bytes)!=ACCEPTED[id]: return {"ok":false,"reason":"pinned_route_bytes"}
-	var data: Variant=JSON.parse_string(route_bytes.get_string_from_utf8())
+	# DSH_DAILYPIN: same pin, same failure label; the proof is cached when the flag is on.
+	var pinned: Variant=_dsh_pinned_data(route_bytes,id) if ACCEPTED.has(id) else null
+	if pinned==null: return {"ok":false,"reason":"pinned_route_bytes"}
+	var data: Variant=pinned
 	if not data is Dictionary or data.get("source_id")!=id or data.get("interior_sha256")!=targets.get("data_sha256") or data.get("half_extent_m")!=HALF: return {"ok":false,"reason":"source_geometry_scope"}
 	for method: String in ["access_version","_owner_allowed","_index","purposeful_entry_land_allowed","current_vehicle_clear_segment","admit_daily_handoff"]:
 		if not outdoor.has_method(method): return {"ok":false,"reason":"current_source_policy:"+method}
@@ -73,14 +213,8 @@ func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, r
 	_square.shape=box;_square.collision_mask=1|256;_square.margin=.001
 	_ray.collision_mask=1;_ray.exclude=excluded
 	_solids=data.staticBodies.duplicate(true)
-	for building: Dictionary in scene.get("_block").buildings+scene.get("_block").decor:
-		if building.id==id: continue
-		for solid: Dictionary in building.collisionBodiesM:
-			var points: Array=[]
-			for p: Array in solid.polygonXZ: points.append([(p[0]+_origin.x)/4.1,(p[1]+_origin.z)/4.1])
-			var candidate:={"polygonCR":points,"minYM":solid.minY,"maxYM":solid.maxY,"node":building.id}
-			if _near(candidate): _solids.append(candidate)
-	for node: Node in interior.find_children("*","CollisionShape3D",true,false):
+	_solids.append_array(_dsh_site_solids(id))  # DSH_VISITCACHE
+	for node: Node in _dsh_pin_nodes():  # DSH_VISITCACHE
 		var shape:=node as CollisionShape3D;var collider:=shape.get_parent() as CollisionObject3D
 		if collider==null or collider.get_meta("source_id","")!=id or shape.disabled or shape.shape==null or collider.collision_layer!=1: dispose();return {"ok":false,"reason":"native_entry_geometry"}
 		var moving:=false
@@ -107,7 +241,7 @@ func _watch_parent(parent: Node) -> void:
 	if parent in _parents:return
 	_parents.append(parent);parent.child_entered_tree.connect(_child_changed);parent.child_exiting_tree.connect(_child_changed)
 func _changed() -> void:_invalid=true
-func _child_changed(_node: Node) -> void:_invalid=true
+func _child_changed(_node: Node) -> void:_invalid=true;_dsh_pins_invalidate()
 
 func _near(solid: Dictionary) -> bool:
 	var min_x:=INF;var min_z:=INF;var max_x:=-INF;var max_z:=-INF

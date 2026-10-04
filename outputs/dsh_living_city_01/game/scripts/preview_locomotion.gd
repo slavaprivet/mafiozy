@@ -20,6 +20,20 @@ var _gait: float = 0.0
 var _speed: float = 0.0
 var _contact_offset: float = 0.0
 var _pose_active: bool = false
+# DSH_WALKPOSE: per-instance gait calibration and the support-foot probe.
+# _radians_per_metre is an INSTANCE copy of RADIANS_PER_METRE - the const stays, and
+# is what every uncalibrated instance keeps using, because this same class drives the
+# player and the transport (preview_player._locomotion).
+# _dsh_support_side/_dsh_support_xz are published by _support_minimum_y() on every
+# grounded pose build and consumed once by the resident host's DSH_WALK slip metric.
+var _dsh_walk_pose := -1
+var _dsh_gait_step_value := ""
+var _dsh_walk_calibrate := false
+var _radians_per_metre: float = RADIANS_PER_METRE
+var _dsh_leg_m := -1.0
+var _dsh_support_serial := 0
+var _dsh_support_side := -1
+var _dsh_support_xz := Vector2.ZERO
 var _support_source_count: int = 0
 var _support_hull_count: int = 0
 var _parents: PackedInt32Array = PackedInt32Array()
@@ -27,7 +41,10 @@ var _global_poses: Array[Transform3D] = []
 var _skeleton_in_parent: Transform3D
 
 
-func bind(hero_root: Node3D, visual_motion: Node3D) -> bool:
+func bind(hero_root: Node3D, visual_motion: Node3D, walk_pose_calibrate: bool = false) -> bool:
+	# DSH_WALKPOSE: the third argument is the opt-in. Default false keeps every other
+	# caller (the player binds with two arguments) on today's RADIANS_PER_METRE.
+	_dsh_walk_calibrate = walk_pose_calibrate
 	if _ready:
 		reset_pose()
 	_ready = false
@@ -72,6 +89,7 @@ func bind(hero_root: Node3D, visual_motion: Node3D) -> bool:
 	_ready = true
 	_error = ""
 	reset_pose()
+	_dsh_calibrate()  # DSH_WALKPOSE: one measurement per instance; an unprovable rig keeps 2.3
 	return true
 
 
@@ -92,6 +110,7 @@ func sample(delta: float, horizontal_velocity: Vector3, grounded: bool) -> Dicti
 		return {"valid": false}
 	if not is_finite(delta) or delta <= 0.0:
 		return {"valid": false}
+	if _dsh_walk_calibrate and _dsh_leg_m <= 0.0: _dsh_calibrate()  # DSH_WALKPOSE
 	var poses: Array[Transform3D] = _rest_poses.duplicate()
 	var offset: Vector3 = _motion_rest
 	var dt: float = minf(delta, 0.1)
@@ -101,7 +120,7 @@ func sample(delta: float, horizontal_velocity: Vector3, grounded: bool) -> Dicti
 	_gait += (target_gait - _gait) * (1.0 - exp(-10.0 * dt))
 	if not moving and _gait < 0.0001:
 		_gait = 0.0
-	_phase = fposmod(_phase + dt * (_speed * RADIANS_PER_METRE if moving else 3.0), TAU)
+	_phase = fposmod(_phase + dt * (_speed * _radians_per_metre if moving else 3.0), TAU)  # DSH_WALKPOSE: instance value
 	if _gait == 0.0:
 		_contact_offset = 0.0
 		_pose_active = false
@@ -156,6 +175,92 @@ func reset_pose() -> void:
 	reset_state()
 	if _ready and is_instance_valid(_skeleton) and is_instance_valid(_motion):
 		_restore_rest()
+
+# DSH_WALKPOSE: --city-walk-pose=1 (default) enables the far-pose path in the resident
+# host and lets an opted-in instance calibrate its own step length; 0 keeps today's
+# constant and today's pose code.
+func _dsh_walk_pose_flag() -> int:
+	if _dsh_walk_pose < 0:
+		_dsh_walk_pose = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-walk-pose="):
+				_dsh_walk_pose = maxi(0, int(argument.trim_prefix("--city-walk-pose=")))
+	return _dsh_walk_pose
+
+# DSH_WALKPOSE: --city-gait-step=auto (default) derives this instance's
+# radians-per-metre from its own rig; any number (today's 2.3) is used verbatim.
+func _dsh_gait_step() -> String:
+	if _dsh_gait_step_value.is_empty():
+		_dsh_gait_step_value = "auto"
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-gait-step="):
+				_dsh_gait_step_value = argument.trim_prefix("--city-gait-step=")
+	return _dsh_gait_step_value
+
+# DSH_WALKPOSE: the ground one full gait cycle may cover for this instance. The foot
+# travel sample()'s own rotation set can express, as a fraction of hip->ankle, is
+# 0.9285 (thigh +/-0.56 rad, knee 0.52*max(0,-step) on the back swing only, foot
+# 0.22*step). One step is half a cycle, hence TAU / (2 * ratio * leg).
+const DSH_FOOT_TRAVEL_RATIO: float = 0.9285
+
+# DSH_WALKPOSE: one measurement per instance, residents only. hip->ankle comes from the
+# rest poses bind() already read (_rest_poses through _parents), converted to world
+# metres with the skeleton's global scale. Anything unprovable (not opted in, not in
+# the tree, leg outside 0.20..2.50 m, non-finite) leaves _radians_per_metre at
+# RADIANS_PER_METRE: today's behaviour, never a guess. At --city-walk-pose=0 the
+# measurement is still taken for DSH_WALK but the calibrated value is NOT applied.
+func _dsh_calibrate() -> void:
+	if not _dsh_walk_calibrate or _dsh_leg_m > 0.0 or not _ready: return
+	if not is_instance_valid(_skeleton) or not _skeleton.is_inside_tree(): return
+	var dsh_thigh_slot: int = BONE_NAMES.find("thigh_l")
+	var dsh_foot_slot: int = BONE_NAMES.find("foot_l")
+	if dsh_thigh_slot < 0 or dsh_foot_slot < 0 or dsh_thigh_slot >= _bone_indices.size() or dsh_foot_slot >= _bone_indices.size(): return
+	var dsh_leg: float = (_dsh_global_rest(_bone_indices[dsh_thigh_slot]) - _dsh_global_rest(_bone_indices[dsh_foot_slot])).length() * absf(_skeleton.global_basis.get_scale().y)
+	if not is_finite(dsh_leg) or dsh_leg < 0.20 or dsh_leg > 2.50: return
+	_dsh_leg_m = dsh_leg
+	if _dsh_walk_pose_flag() == 0: return
+	var dsh_setting: String = _dsh_gait_step()
+	if dsh_setting == "auto":
+		_radians_per_metre = TAU / (2.0 * DSH_FOOT_TRAVEL_RATIO * dsh_leg)
+	elif dsh_setting.is_valid_float():
+		_radians_per_metre = maxf(0.05, dsh_setting.to_float())
+
+# DSH_WALKPOSE: rest position of a bone in the skeleton's own space, from the rest
+# poses this instance already holds - the same product _support_minimum_y() builds.
+func _dsh_global_rest(bone: int) -> Vector3:
+	var dsh_transform: Transform3D = _rest_poses[bone]
+	var dsh_parent: int = _parents[bone]
+	while dsh_parent >= 0:
+		dsh_transform = _rest_poses[dsh_parent] * dsh_transform
+		dsh_parent = _parents[dsh_parent]
+	return dsh_transform.origin
+
+# DSH_WALKPOSE: O(1) phase/amplitude update for a record whose pose is NOT committed
+# this step (the far animation band). No _rest_poses.duplicate(), no boot-hull scan,
+# no set_bone_pose: ~0.2 us instead of the whole pose build. `metres` is the ground the
+# body actually moved since the last commit (0.0 on a deferred step, where it did not
+# move); `speed_hint` is the record's speed, used only as the amplitude blend time, so
+# a zero-distance step changes nothing but keeps the amplitude alive.
+func advance_distance(metres: float, grounded: bool, speed_hint: float = -1.0) -> void:
+	if not _ready or not is_instance_valid(_skeleton) or not is_instance_valid(_motion): return
+	if not is_finite(metres) or metres < 0.0: return
+	if _dsh_walk_calibrate and _dsh_leg_m <= 0.0: _dsh_calibrate()
+	var dsh_speed: float = speed_hint if is_finite(speed_hint) and speed_hint > 0.05 else _speed
+	if dsh_speed > 0.0: _speed = dsh_speed
+	var dsh_dt: float = minf(metres / dsh_speed, 0.1) if dsh_speed > 0.05 else 0.0
+	var moving: bool = grounded and (metres > 0.0001 or dsh_speed > 0.02)
+	var target_gait: float = 1.0 if moving else 0.0
+	if dsh_dt > 0.0: _gait += (target_gait - _gait) * (1.0 - exp(-10.0 * dsh_dt))
+	if not moving and _gait < 0.0001: _gait = 0.0
+	# Same rule as sample(): distance-locked while moving, the idle sway otherwise (an
+	# airborne far record keeps the 3 rad/s of the pose owner instead of a stride).
+	_phase = fposmod(_phase + (metres * _radians_per_metre if moving else 3.0 * dsh_dt), TAU)
+	_pose_active = _gait > 0.0
+
+# DSH_WALKPOSE: true when the amplitude has fully decayed, i.e. the committed pose is
+# the standing one and a far record can stop paying for further builds until it moves.
+func settled() -> bool:
+	return _gait <= 0.0001
 
 
 func _cache_actual_boot_hulls(hero_root: Node3D) -> bool:
@@ -214,10 +319,21 @@ func _support_minimum_y(poses: Array[Transform3D]) -> float:
 	for bone: int in range(poses.size()):
 		_global_poses[bone] = poses[bone] if _parents[bone] < 0 else _global_poses[_parents[bone]] * poses[bone]
 	var minimum_y: float = INF
+	# DSH_WALKPOSE: the same scan also publishes which boot is the support and where its
+	# lowest point sits (_dsh_support_side/_dsh_support_xz, one serial per build), so the
+	# host can measure how far the planted foot slides over the ground between two
+	# commits without a second pose build. Two extra ops per hull point, no allocation.
+	var dsh_low: Vector3 = Vector3.ZERO
+	var dsh_low_side: int = -1
 	for side: int in range(2):
 		var bone_transform: Transform3D = _skeleton_in_parent * _global_poses[_foot_bones[side]]
 		for point: Vector3 in _foot_points[side]:
-			minimum_y = minf(minimum_y, (bone_transform * point).y)
+			var dsh_world: Vector3 = bone_transform * point
+			if dsh_world.y < minimum_y:
+				minimum_y = dsh_world.y; dsh_low = dsh_world; dsh_low_side = side
+	_dsh_support_serial += 1
+	_dsh_support_side = dsh_low_side
+	_dsh_support_xz = Vector2(dsh_low.x, dsh_low.z)
 	return minimum_y
 
 
@@ -225,4 +341,6 @@ func get_status() -> Dictionary:
 	return {"ready": _ready, "error": _error, "phase": _phase, "gait": _gait,
 		"speed_mps": _speed, "contact_offset_m": _contact_offset,
 		"support_source_vertices": _support_source_count, "support_hull_vertices": _support_hull_count,
-		"scope": "Canonical unarmed idle/walk/run; jump/combat animation not migrated"}
+		"scope": "Canonical unarmed idle/walk/run; jump/combat animation not migrated",
+		"walk_pose": _dsh_walk_pose_flag(), "radians_per_metre": _radians_per_metre,
+		"leg_m": _dsh_leg_m, "walk_calibrate": _dsh_walk_calibrate}

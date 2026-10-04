@@ -109,8 +109,29 @@ var _capture_done: bool = false
 var _capture_path: String = ""
 var _last_frame_usec: int = 0
 
+# DSH_WALKCHEAP: --city-physics-catchup and --city-walk-far-ttl, resolved once and printed so the
+# run's log names both levers and their rollback values. catchup<=0 (or >=8) leaves the engine's
+# own default of 8 steps per frame untouched.
+func _dsh_physics_catchup() -> void:  # DSH_WALKCHEAP
+	var dsh_catchup := 4
+	var dsh_far_ttl := 96
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--city-physics-catchup="):
+			dsh_catchup = int(argument.trim_prefix("--city-physics-catchup="))
+		elif argument.begins_with("--city-walk-far-ttl="):
+			dsh_far_ttl = maxi(0, int(argument.trim_prefix("--city-walk-far-ttl=")))
+	if dsh_catchup > 0 and dsh_catchup < 8:
+		Engine.max_physics_steps_per_frame = dsh_catchup
+	print("DSH_WALKCHEAP catchup=",Engine.max_physics_steps_per_frame," far_ttl=",dsh_far_ttl," default_catchup=4 default_far_ttl=96 restore_catchup=0or8 restore_far_ttl=0")
+
 func _ready() -> void:
 	GameCursor.install()
+	# DSH_WALKCHEAP: --city-physics-catchup=N caps Engine.max_physics_steps_per_frame. The city
+	# steps inside _physics_process every third tick (main.gd:764-771), so an uncapped catch-up at
+	# 6+ ticks per rendered frame multiplies one 26 ms city step into ~52 ms of the frame; the cap
+	# bounds that work and lets the world run in slow motion instead of collapsing to 8 FPS.
+	# 0 and 8 both restore today's engine default (8).
+	_dsh_physics_catchup()
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(block_data_path))
 	if not parsed is Dictionary:
 		validation_errors = PackedStringArray(["Invalid source block"])
@@ -677,10 +698,41 @@ var _dsh_one_cache := -1  # DSH_ONEPERFRAME
 var _dsh_one_drawn := -1  # DSH_ONEPERFRAME
 var _dsh_one_carry := 0.0  # DSH_ONEPERFRAME
 
+var _dsh_loadcap_cache := -1  # DSH_LOADFAST2: --city-loadcap
+var _dsh_loadcap_orig := -1  # DSH_LOADFAST2: the engine value this run must return to
+var _dsh_loadcap_reported := false  # DSH_LOADFAST2: one line of proof
+
+# DSH_LOADFAST2: while the city is still loading, one physics tick costs 36-62 ms
+# (birth 36.6 / bind 57.8 measured), so the engine spent its whole substep budget
+# (physics/common/max_physics_steps_per_frame = 8, never set by this project) inside
+# one frame: during the load DSH_PHYS printed hz=13-24 with render_fps=1-3, i.e. 6-8
+# substeps per frame and 130-550 ms frames. Capping the substeps at the accepted value
+# while city_ready is false keeps exactly the same work in exactly the same phase order
+# and the same tick count, but each frame is one tick (42-69 ms) instead of eight.
+# The only cost is the render time that used to be amortised over eight ticks.
+# --city-loadcap=0 restores the engine value untouched.
+func _dsh_loadcap() -> int:  # DSH_LOADFAST2
+	if _dsh_loadcap_cache < 0:
+		_dsh_loadcap_cache = 1
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-loadcap="):
+				_dsh_loadcap_cache = maxi(0, int(argument.trim_prefix("--city-loadcap=")))
+	return _dsh_loadcap_cache
+
+func _dsh_apply_loadcap(ready: bool) -> void:  # DSH_LOADFAST2
+	var cap := _dsh_loadcap()
+	if cap <= 0: return
+	if _dsh_loadcap_orig < 0: _dsh_loadcap_orig = Engine.max_physics_steps_per_frame
+	var target: int = _dsh_loadcap_orig if ready else cap
+	if Engine.max_physics_steps_per_frame != target: Engine.max_physics_steps_per_frame = target
+	if not _dsh_loadcap_reported:
+		_dsh_loadcap_reported = true
+		print("DSH_LOADCAP cap=", cap, " engine_default=", _dsh_loadcap_orig, " city_ready=", ready)
+
 # DSH_STRIDE: city-simulation stride. 1 = source behaviour (every physics tick).
 func _dsh_stride() -> int:
 	if _dsh_stride_cache < 0:
-		_dsh_stride_cache = 1
+		_dsh_stride_cache = 3  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-sim-stride="):
 				_dsh_stride_cache = clampi(int(argument.trim_prefix("--city-sim-stride=")), 1, 3)
@@ -701,6 +753,7 @@ func _physics_process(delta: float) -> void:
 	_door_feedback_seconds = maxf(0.0, _door_feedback_seconds - delta)
 	if is_instance_valid(_printshop): _printshop.advance(delta, _current_door_occupants())
 	if preview_population != null:
+		_dsh_apply_loadcap(bool(preview_population.get("city_ready")))  # DSH_LOADFAST2
 		var dsh_stride := _dsh_stride()  # DSH_STRIDE
 		# Only in the steady city state: the load phases advance one resident per tick
 		# on purpose, and stretching those would make loading N times longer.

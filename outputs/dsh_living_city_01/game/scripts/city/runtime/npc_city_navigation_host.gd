@@ -48,6 +48,15 @@ var _dsh_slim := -1
 var _dsh_split := -1
 var _dsh_split_on := false
 var _dsh_arrived_static := -1
+# DSH_NAVPEND: --city-nav-pending-ttl=N (default 4; N<=1 reproduces today byte for
+# byte) strides ONLY the PENDING poll of _refresh(). 95.7% of the step() calls in
+# NAVPUMP_TABLE.md end on the cached PENDING answer (end={early: 98.18%}), and every
+# one of them still paid the full _backend.poll() Dictionary build. With N>1 a
+# PENDING record is polled once per N of its own step() calls and returns its cached
+# answer on the rest.
+var _dsh_pending_ttl := -1
+var _dsh_pending_skips := 0  # DSH_NAVPEND: PENDING refreshes answered without a backend poll
+var _dsh_pending_polls := 0  # DSH_NAVPEND: PENDING refreshes that did take the backend poll
 var _dsh_p_ms := 0
 var _dsh_p_frame := -1
 var _dsh_p_steps := 0
@@ -412,6 +421,14 @@ func _refresh(record: Dictionary) -> void:
 		if dsh_accepted != "PENDING" and dsh_accepted != "READY" and dsh_accepted != "ARRIVED": return
 	elif not record.status in ["PENDING", "READY", "ARRIVED"]: return
 	if record.status == "PENDING":
+		# DSH_NAVPEND: the record is still PENDING and its own due tick has not come, so
+		# this call returns its cached answer exactly as step()'s early branch does on
+		# the ticks it does poll - and _backend.poll() is not reached at all. With
+		# --city-nav-pending-ttl<=1 _pending_defer() is false and this is today's path.
+		if _pending_defer(record):
+			_dsh_pending_skips += 1
+			return
+		_dsh_pending_polls += 1
 		# One-time handoff: the validated proposal moves onto this record exactly as
 		# before, so the full backend answer is taken here.
 		var result: Dictionary = _backend.poll(record.backend_id)
@@ -464,7 +481,7 @@ var _dsh_simlod_delta := -1.0  # DSH_SIMLOD
 func _dsh_max_delta() -> float:  # DSH_SIMLOD
 	if _dsh_simlod_delta < 0.0:
 		_dsh_simlod_delta = .05
-		var dsh_lod_on := false
+		var dsh_lod_on := true  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		# DSH_SIMLOD2: the same measured default ceiling the resident host carries, so
 		# the accepting guard and the producing host cannot disagree on the default;
 		# --city-sim-max-delta still wins when it is given. (A .1996 s call whose motion
@@ -567,7 +584,9 @@ func step(id: int, delta: float, speed: float, gravity: float) -> Dictionary:
 	if _dsh_split_on: _dsh_p_add(6, dsh_t)  # DSH_NAVSTEP3: goal/path/velocity bookkeeping
 	_busy = true
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
-	var allowed: bool = _backend.admit_motion(record.backend_id, position, position + admitted_velocity * delta)
+	# DSH_WALKCHEAP: a step whose delta exceeds the legal single city dt is a batched sim-LOD step
+	# (a near record always passes 0.0499); it may reuse the proven statics longer.
+	var allowed: bool = _backend.admit_motion(record.backend_id, position, position + admitted_velocity * delta, delta > .05)
 	if _dsh_split_on: _dsh_p_add(4, dsh_t)  # DSH_NAVSTEP3: source proof + swept capsule
 	_busy = false
 	if _dsh_split_on: dsh_t = Time.get_ticks_usec()  # DSH_NAVSTEP3
@@ -621,7 +640,7 @@ func counters() -> Dictionary:
 
 func _dsh_pump_cadence() -> int:  # DSH_NAVDAILY
 	if _dsh_pump_every < 0:
-		_dsh_pump_every = 1
+		_dsh_pump_every = 2  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-nav-pump-every="):
 				_dsh_pump_every = maxi(1, int(argument.trim_prefix("--city-nav-pump-every=")))
@@ -631,7 +650,7 @@ func _dsh_pump_cadence() -> int:  # DSH_NAVDAILY
 # refused motion is retried on every tick.
 func _motion_retry() -> int:
 	if _dsh_motion_retry < 0:
-		_dsh_motion_retry = 0
+		_dsh_motion_retry = 8  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-motion-retry="):
 				_dsh_motion_retry = maxi(0, int(argument.trim_prefix("--city-motion-retry=")))
@@ -641,7 +660,7 @@ func _motion_retry() -> int:
 # DSH_NAVSTEP's counters stay exact. Default 1.
 func _timing_records() -> bool:
 	if _dsh_timing < 0:
-		_dsh_timing = 1
+		_dsh_timing = 0  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-timing="):
 				_dsh_timing = maxi(0, int(argument.trim_prefix("--city-timing=")))
@@ -658,11 +677,48 @@ func _record_phase(record: Dictionary) -> int:
 	record["dsh_phase"] = value
 	return value
 
+# DSH_NAVPEND: --city-nav-pending-ttl=N strides ONLY the PENDING poll of _refresh().
+# HONEST TRADE-OFF, stated where the behaviour is: a PENDING record is polled once per
+# N of its own step() calls, so the PENDING->READY transition can be observed up to N
+# physics ticks late and a resident therefore starts walking up to N city steps later
+# (переход PENDING->READY может быть замечен на N тиков позже, поэтому житель позже
+# начнёт движение). Equally, a terminal transition the BACKEND raises on its own while
+# the job is still PENDING (STALE / CANCELLED / NO_PATH) is observed up to N ticks
+# late. Nothing else moves: READY / ARRIVED / BLOCKED / NO_PATH records - everything
+# that is moving or has already moved - still take the full path on EVERY call, and
+# the owner/body lifetime checks in poll_status(), the host's own cancel() and
+# _invalidate(), _body_supported() and every motion decision are untouched.
+# N <= 1 (--city-nav-pending-ttl=0 or =1) is today's path: _pending_defer() returns
+# false before it reads or writes anything, so no record key, status, reason or path
+# changes; the only added work is one cached flag read and one private counter add.
+func _pending_ttl() -> int:  # DSH_NAVPEND
+	if _dsh_pending_ttl < 0:
+		_dsh_pending_ttl = 4  # DSH_NAVPEND: conservative default; N=4 at 20 city steps/s is <=0.2 s to notice READY for a near record
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-nav-pending-ttl="):
+				_dsh_pending_ttl = maxi(0, int(argument.trim_prefix("--city-nav-pending-ttl=")))
+	return _dsh_pending_ttl
+
+# DSH_NAVPEND: TRUE means "this PENDING record may skip its backend poll on this
+# call". dsh_pend_tick counts THIS record's own PENDING refreshes, so the poll period
+# is exactly N of that record's step() calls no matter how the city scheduler maps
+# city steps onto physics frames (a physics-frame modulo can miss every residue when
+# the step stride shares a factor with N and then never poll at all - the same
+# reasoning as the motion retry above). _record_phase() is the same 31-multiplier
+# hash the engine admit TTL uses; it staggers the N residues across records, so the
+# polls do not all land on the same tick.
+func _pending_defer(record: Dictionary) -> bool:  # DSH_NAVPEND
+	var stride := _pending_ttl()
+	if stride <= 1: return false
+	var tick := int(record.get("dsh_pend_tick", 0)) + 1
+	record["dsh_pend_tick"] = tick
+	return (tick + _record_phase(record)) % stride != 0
+
 # DSH_NAVSTEP2: --city-navstep-slim=1 enables the allocation-free hot-path variants.
 # 0 (default) keeps today's code path.
 func _slim_flag() -> int:
 	if _dsh_slim < 0:
-		_dsh_slim = 0
+		_dsh_slim = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-navstep-slim="):
 				_dsh_slim = maxi(0, int(argument.trim_prefix("--city-navstep-slim=")))
@@ -726,6 +782,7 @@ func _dsh_p_report() -> void:  # DSH_NAVSTEP3
 	if _dsh_p_ms == 0 or now <= _dsh_p_ms:
 		_dsh_p_ms = now; _dsh_p_steps = 0; _dsh_p_calls = 0
 		_dsh_p_us = [0, 0, 0, 0, 0, 0, 0, 0]; _dsh_p_entry = {}; _dsh_p_end = {}
+		_dsh_pending_skips = 0; _dsh_pending_polls = 0  # DSH_NAVPEND: the same one-second window
 		_dsh_p_prev = engine_now
 		return
 	var dt := float(now - _dsh_p_ms) / 1000.0
@@ -742,6 +799,13 @@ func _dsh_p_report() -> void:  # DSH_NAVSTEP3
 	var delta := {}
 	for key: String in engine_now:
 		delta[key] = int(engine_now[key]) - int(_dsh_p_prev.get(key, 0))
+	# DSH_NAVPEND: the `1s={...}` window of the existing split marker now carries the
+	# PENDING poll stride in place, under that same marker and with no key renamed: with
+	# --city-nav-pending-ttl=N the ratio
+	# pending_skip_calls/(pending_skip_calls+pending_poll_calls) approaches (N-1)/N,
+	# and with N<=1 pending_skip_calls must stay 0.
+	delta["pending_skip_calls"] = _dsh_pending_skips
+	delta["pending_poll_calls"] = _dsh_pending_polls
 	var e_admit := int(delta.get("admit_us", 0)) / steps
 	var e_clear := int(delta.get("clear_us", 0)) / steps
 	var e_shape := int(delta.get("clear_shape_us", 0)) / steps
@@ -765,6 +829,7 @@ func _dsh_p_report() -> void:  # DSH_NAVSTEP3
 		" | 1s=", delta, " retry_skips_total=", _dsh_motion_skips)
 	_dsh_p_ms = now; _dsh_p_steps = 0; _dsh_p_calls = 0
 	_dsh_p_us = [0, 0, 0, 0, 0, 0, 0, 0]; _dsh_p_entry = {}; _dsh_p_end = {}
+	_dsh_pending_skips = 0; _dsh_pending_polls = 0  # DSH_NAVPEND: the same one-second window
 	_dsh_p_prev = engine_now
 
 func cancel(id: int) -> void:

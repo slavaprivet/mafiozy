@@ -99,7 +99,7 @@ class AuditCache:
 # of the user arguments, same pattern as _strict_verify().
 static func _audit_cache_enabled() -> bool:
 	if _audit_cache_flag < 0:
-		_audit_cache_flag = 0
+		_audit_cache_flag = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-audit-cache="):
 				_audit_cache_flag = maxi(0, int(argument.trim_prefix("--city-audit-cache=")))
@@ -111,7 +111,7 @@ static func _audit_cache_enabled() -> bool:
 # (prepared_scene_audit), same admission decision, one fewer instantiate() per resident.
 static func _audit_probe_defer() -> bool:
 	if _audit_defer_flag < 0:
-		_audit_defer_flag = 0
+		_audit_defer_flag = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-audit-probe-defer="):
 				_audit_defer_flag = maxi(0, int(argument.trim_prefix("--city-audit-probe-defer=")))
@@ -413,7 +413,7 @@ static func _localize_mesh_audited(mesh: ArrayMesh) -> ArrayMesh:
 # DSH_ADMITFAST: one cached scan of the user arguments each, same pattern as _strict_verify().
 static func _admit_reuse_own() -> bool:
 	if _admit_reuse_own_flag < 0:
-		_admit_reuse_own_flag = 0
+		_admit_reuse_own_flag = 1  # DSH_LOADFAST2: the audited instance's own resources are already private; --city-admit-reuse-own=0 restores the second deep copy
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-admit-reuse-own="):
 				_admit_reuse_own_flag = maxi(0, int(argument.trim_prefix("--city-admit-reuse-own=")))
@@ -583,7 +583,7 @@ static func _strict_verify() -> bool:
 # route unchanged.
 static func _reuse_probe() -> bool:
 	if _reuse_flag < 0:
-		_reuse_flag = 0
+		_reuse_flag = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-load-reuse-probe="):
 				_reuse_flag = maxi(0, int(argument.trim_prefix("--city-load-reuse-probe=")))

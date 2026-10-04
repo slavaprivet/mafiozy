@@ -31,10 +31,89 @@ var _frame := -1
 var _request_frame := -1
 var _busy := false
 var _elapsed := 0.0
+var _dsh_elapsed := -1.0  # DSH_LIFECLOCK: real game time since the previous poll
 var _now := 0.0
+var _dsh_probe := -1  # DSH_VISITPROBE: --city-visit-probe, 0 (default) = off
+var _dsh_seen := ""  # DSH_VISITPROBE: the last printed state tuple
+var _dsh_status := ""  # DSH_VISITPROBE: last observed record status
+var _dsh_status_ms := 0  # DSH_VISITPROBE: when that status was first seen
+var _dsh_attempts := 0  # DSH_VISITPROBE: entries into _bind_visit()
+var _dsh_counted := false  # DSH_VISITPROBE: this instance already filed its outcome
+static var _dsh_s_ids: Array = []  # DSH_VISITPROBE: --city-visit-probe-ids
+static var _dsh_s_n := -1  # DSH_VISITPROBE: --city-visit-probe-count
+static var _dsh_s_ms := 0  # DSH_VISITPROBE: the once-per-second counters line
+static var _dsh_s_visit := 0  # DSH_VISITPROBE
+static var _dsh_s_complete := 0  # DSH_VISITPROBE
+static var _dsh_s_cancel := 0  # DSH_VISITPROBE
+static var _dsh_s_refuse := 0  # DSH_VISITPROBE
+static var _dsh_s_hold := 0  # DSH_VISITPROBE
+static var _dsh_s_attempts := 0  # DSH_VISITPROBE
 var _commerce_result := {}
 var _release_result := {}
 var _timing_buckets: Dictionary = {}
+
+# DSH_DAILYPIN: --city-daily-pin-cache=1 proves the two pinned session constants ONCE per
+# process instead of on every activity start. Today every shop start re-hashes 20 738 B
+# (entry) plus 174 616 B (lane geometry) and re-parses the 174 616 B JSON, although
+# npc_city_daily holds exactly one copy of each blob for the whole scene. 0 (default)
+# re-proves every start, byte for byte as today. A pair of blobs with other sizes always
+# runs the full proof again.
+static var _dsh_pin_flag := -1  # DSH_DAILYPIN
+static var _dsh_pin_value: Dictionary = {}  # DSH_DAILYPIN
+static var _dsh_pin_sizes := ""  # DSH_DAILYPIN
+static var _dsh_pin_ok := false  # DSH_DAILYPIN
+# DSH_STUTTER: the full identity of the pair that was proven -- both file paths, both
+# pins, and the modification time and byte length of both files (the two APIs
+# DSH_BINDFAST already uses in this project) -- plus the proven bytes themselves. A
+# hold is only reachable when all of it matches, so it can never be spent on another
+# blob, on the same bytes under a rewritten file, or on a file rewritten while the
+# app ran. Failure still returns through the shipped refusal path and is never held.
+const DSH_PIN_ENTRY_PATH := "res://data/LOCAL_PRINTSHOP_ENTRY.json"  # DSH_STUTTER
+const DSH_PIN_GEOMETRY_PATH := "res://data/ENTRY_GEOMETRY.json"  # DSH_STUTTER
+static var _dsh_pin_identity := ""  # DSH_STUTTER
+static var _dsh_pin_entry := PackedByteArray()  # DSH_STUTTER: the proven entry bytes
+static var _dsh_pin_geometry_bytes := PackedByteArray()  # DSH_STUTTER
+
+static func _dsh_pin_stamp(path: String) -> String:  # DSH_STUTTER
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null: return "absent"
+	var size := file.get_length()
+	file.close()
+	return str(FileAccess.get_modified_time(path)) + ":" + str(size)
+
+static func _dsh_pin_source() -> String:  # DSH_STUTTER
+	return DSH_PIN_ENTRY_PATH + "|" + Route.ENTRY_SHA + "|" + _dsh_pin_stamp(DSH_PIN_ENTRY_PATH) + "|" + DSH_PIN_GEOMETRY_PATH + "|" + Route.GEOMETRY_SHA + "|" + _dsh_pin_stamp(DSH_PIN_GEOMETRY_PATH)
+
+static func _dsh_pin_on() -> bool:  # DSH_DAILYPIN
+	if _dsh_pin_flag < 0:
+		_dsh_pin_flag = 1  # DSH_ACCEPTED: the pinned session constants are proven once by default; --city-daily-pin-cache=0 restores the per-start re-proof
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-pin-cache="):
+				_dsh_pin_flag = 1 if int(argument.trim_prefix("--city-daily-pin-cache=")) != 0 else 0
+	return _dsh_pin_flag == 1
+
+# DSH_DAILYPIN: exactly today's two hashes and today's parse, with the verdict remembered
+# for the blob sizes that were proven. Never a weaker gate: different sizes re-prove.
+static func _dsh_pin_admit(entry_bytes: PackedByteArray, geometry_bytes: PackedByteArray) -> bool:  # DSH_DAILYPIN
+	var sizes:=str(entry_bytes.size())+":"+str(geometry_bytes.size())
+	# DSH_STUTTER: same gate, keyed by everything that can change the answer, and the
+	# bytes must still compare equal to the ones this verdict was proven against.
+	if _dsh_pin_on() and _dsh_pin_ok and _dsh_pin_sizes==sizes and _dsh_pin_identity==_dsh_pin_source() and _dsh_pin_entry==entry_bytes and _dsh_pin_geometry_bytes==geometry_bytes: return true
+	if Visit._hash(entry_bytes)!=Route.ENTRY_SHA or Visit._hash(geometry_bytes)!=Route.GEOMETRY_SHA:
+		if _dsh_pin_on(): _dsh_pin_ok=false
+		return false
+	var parsed: Variant=JSON.parse_string(geometry_bytes.get_string_from_utf8())
+	if not parsed is Dictionary: return false
+	_dsh_pin_value=parsed
+	if _dsh_pin_on():
+		_dsh_pin_ok=true
+		_dsh_pin_sizes=sizes
+		_dsh_pin_identity=_dsh_pin_source()  # DSH_STUTTER
+		_dsh_pin_entry=entry_bytes  # DSH_STUTTER: the bytes this verdict was proven against
+		_dsh_pin_geometry_bytes=geometry_bytes  # DSH_STUTTER
+	return true
+
+static func _dsh_pin_geometry() -> Dictionary: return _dsh_pin_value  # DSH_DAILYPIN
 
 func _init() -> void:
 	_ensure_timing_buckets()
@@ -68,8 +147,9 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 	if goal.get("kind")!="shop" or str(goal.get("goal_id","")).is_empty() or not scene.has_method("_current_door_occupants"): return _fail("shop_goal_or_door_occupants")
 	var population: Variant=scene.get("preview_population")
 	if not is_instance_valid(population) or not population.has_method("door_started"): return _fail("actual_door_access_owner")
-	if Visit._hash(entry_bytes)!=Route.ENTRY_SHA or Visit._hash(geometry_bytes)!=Route.GEOMETRY_SHA: return _fail("entry_geometry_pins")
-	var geometry: Dictionary=JSON.parse_string(geometry_bytes.get_string_from_utf8())
+	# DSH_DAILYPIN: the same pins and the same failure label; only the repeated proof is cached.
+	if not _dsh_pin_admit(entry_bytes,geometry_bytes): return _fail("entry_geometry_pins")
+	var geometry: Dictionary=_dsh_pin_geometry()
 	if not geometry.get("selected_lane") is Dictionary or not geometry.selected_lane.get("admitted",false): return _fail("source_lane_required")
 	var outside: Array=geometry.selected_lane.outside
 	if outside.size()!=3: return _fail("source_lane_shape")
@@ -81,7 +161,11 @@ func configure(host: RefCounted, policy: RefCounted, health: RefCounted, scene: 
 	_handoff.y=floor_y
 	if not policy.source_admit(_handoff,token.source_id,token.life_generation,.738,"target"): return _fail("current_handoff_source")
 	_host=host; _health=health; _account=account; _policy=policy; _scene=weakref(scene); _owner=weakref(activity_owner); _token=token.duplicate(); _goal=goal.duplicate(true)
-	_entry=entry_bytes.duplicate(); _geometry=geometry_bytes.duplicate()
+	# DSH_STUTTER: with the pin hold on, these are the same bytes that were just proven
+	# and PackedByteArray is copy-on-write, so the ~195 KB duplicate is not needed. With
+	# --city-daily-pin-cache=0 the shipped duplicate runs verbatim.
+	if _dsh_pin_on(): _entry=entry_bytes; _geometry=geometry_bytes
+	else: _entry=entry_bytes.duplicate(); _geometry=geometry_bytes.duplicate()
 	_walk=Walk.new()
 	var result: Dictionary=_walk.configure(host,_token,activity_owner)
 	if not result.get("ok",false): _walk=null; return result
@@ -122,7 +206,84 @@ func _same_lease() -> bool:
 	var lease: Dictionary=_host.local_navigation_adapter_status()
 	return lease.get("bound",false) and lease.get("source_id")==_token.source_id and int(lease.get("serial",-1))==_serial
 
+# DSH_VISITPROBE: read-only diagnosis of the APPROACH -> VISIT transition. It calls none of
+# the five gates again and touches no decision: it reads the fields the controller already
+# wrote and counts two entries (_step_impl, _bind_visit). 0 = off, one compare per step.
+func _dsh_probe_on() -> int:  # DSH_VISITPROBE
+	if _dsh_probe < 0:
+		_dsh_probe = 0
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-visit-probe="):
+				_dsh_probe = maxi(0, int(argument.trim_prefix("--city-visit-probe=")))
+			elif argument.begins_with("--city-visit-probe-ids="):
+				for piece: String in argument.trim_prefix("--city-visit-probe-ids=").split(",", false):
+					if not _dsh_s_ids.has(piece): _dsh_s_ids.append(piece)
+			elif argument.begins_with("--city-visit-probe-count="):
+				_dsh_s_n = maxi(1, int(argument.trim_prefix("--city-visit-probe-count=")))
+		if _dsh_s_n < 0: _dsh_s_n = 4
+	return _dsh_probe
+
+func _dsh_probe_selected(id: String) -> bool:  # DSH_VISITPROBE
+	if not _dsh_s_ids.is_empty(): return _dsh_s_ids.has(id)
+	if _dsh_s_ids.size() >= _dsh_s_n: return false
+	if _dsh_s_n > 0: _dsh_s_ids.append(id)
+	return true
+
+func _dsh_probe_line(site: String) -> void:  # DSH_VISITPROBE
+	if not _dsh_probe_selected(str(_token.get("source_id",""))): return
+	var id: String = str(_token.get("source_id",""))
+	var record: Dictionary = _host._records.get(id, {}) if _host != null else {}
+	var rstatus: String = str(record.get("status",""))
+	var now: int = Time.get_ticks_msec()
+	if rstatus != _dsh_status: _dsh_status = rstatus; _dsh_status_ms = now
+	var walk_phase: String = "-"
+	if _walk != null:
+		var walking: Dictionary = _walk.snapshot()
+		walk_phase = str(walking.get("status","-"))
+	var route_phase: String = "-"
+	if _route != null: route_phase = str(_route._phase)
+	var body: CharacterBody3D = _token.body
+	var pos: Vector3 = body.global_position if is_instance_valid(body) else Vector3.ZERO
+	var lease: Dictionary = _host.local_navigation_adapter_status() if _host != null else {}
+	var tuple: String = "%s|%s|%s|%s|%s|%s|%s|%s|%s" % [_phase, walk_phase, route_phase,
+		_terminal, _reason, str(_released), str(_request), rstatus, str(_dsh_attempts)]
+	if tuple == _dsh_seen: return
+	_dsh_seen = tuple
+	print("DSH_VISITPROBE site=", site, " id=", id, " gen=", int(_token.get("life_generation",-1)),
+		" goal=", str(_goal.get("kind","-")), " gid=", str(_goal.get("goal_id","-")),
+		" shop=", _phase, " walk=", walk_phase, " route=", route_phase,
+		" released=", _released, " terminal=", _terminal, " reason=", _reason,
+		" attempts=", _dsh_attempts, " bound=", _bound, " serial=", _serial,
+		" lease=", str(lease.get("bound",false)), "/", str(lease.get("source_id","-")), "/",
+		str(int(lease.get("serial",-1))),
+		" req=", _request, " hreq=", int(record.get("request",-1)), " rstatus=", rstatus,
+		" rage_s=", "%.1f" % (float(now - _dsh_status_ms) / 1000.0),
+		" handoff=(", "%.2f" % _handoff.x, ",", "%.2f" % _handoff.y, ",", "%.2f" % _handoff.z, ")",
+		" pos=(", "%.2f" % pos.x, ",", "%.2f" % pos.y, ",", "%.2f" % pos.z, ")",
+		" dist=", "%.2f" % pos.distance_to(_handoff), " tol=.20 floor=", body.is_on_floor() if is_instance_valid(body) else false,
+		" outside_safe=", _outside_safe())
+	if not _dsh_counted:
+		if _phase == "VISIT":
+			_dsh_counted = true; _dsh_s_visit += 1
+		elif _released:
+			_dsh_counted = true
+			if _terminal == "CANCELLED": _dsh_s_cancel += 1
+			else: _dsh_s_refuse += 1
+		elif _terminal not in ["BLOCKED","CANCELLED","HOLD"] and _dsh_attempts > 0:
+			_dsh_counted = true; _dsh_s_hold += 1
+
+func _dsh_probe_counters() -> void:  # DSH_VISITPROBE
+	var now: int = Time.get_ticks_msec()
+	if _dsh_s_ms == 0: _dsh_s_ms = now
+	if now - _dsh_s_ms < 1000: return
+	_dsh_s_ms = now
+	print("DSH_VISITPROBE counters t=", int(now / 1000), " visit=", _dsh_s_visit,
+		" cancel=", _dsh_s_cancel, " refuse=", _dsh_s_refuse, " hold_no_release=", _dsh_s_hold,
+		" gate_attempts=", _dsh_s_attempts, " approach_stuck=", maxi(0, _dsh_s_attempts - _dsh_s_visit),
+		" selected=", _dsh_s_ids.size())
+
 func _bind_visit() -> void:
+	_dsh_attempts+=1; _dsh_s_attempts+=1  # DSH_VISITPROBE
 	if not _walk.cancel().get("ok",false): _reason="approach_cancellation_pending"; return
 	_walk.dispose(); _walk=null
 	var world: Node3D=_scene.get_ref()
@@ -230,6 +391,7 @@ func _step_impl(delta: float) -> void:
 	var frame: int=Engine.get_physics_frames()
 	if frame==_frame: return
 	_frame=frame; _busy=true
+	if _dsh_probe_on() == 1: _dsh_probe_line("step"); _dsh_probe_counters()  # DSH_VISITPROBE
 	if not _current():
 		_terminal="CANCELLED"; _reason="actor_or_activity_life_ended"; _disable_checkout()
 		if _walk!=null: _walk.cancel(); _walk.dispose(); _walk=null
@@ -240,12 +402,13 @@ func _step_impl(delta: float) -> void:
 		# Both original browse and checkout clocks must receive pause samples.
 		if _phase=="VISIT" and _visit!=null: _visit.tick(_now)
 		_busy=false; return
-	_elapsed+=delta
+	_elapsed+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
 	if _elapsed>180.0 and not _cancel_requested: _cancel_requested=true; _terminal="HOLD"; _reason="bounded_shop_deadline"; _disable_checkout()
 	if _phase=="APPROACH":
 		if _cancel_requested: _finish_outside(_terminal,_reason)
 		else:
 			var walk_started:=Time.get_ticks_usec()
+			_walk._dsh_elapsed = _dsh_elapsed  # DSH_LIFECLOCK: the approach walk's clocks
 			_walk.step(delta); _record_timing("walk_step",walk_started,frame,_phase)
 			walk_started=Time.get_ticks_usec()
 			var walking: Dictionary=_walk.snapshot(); _record_timing("walk_snapshot",walk_started,frame,_phase)

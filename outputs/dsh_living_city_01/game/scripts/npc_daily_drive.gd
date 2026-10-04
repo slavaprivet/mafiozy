@@ -11,6 +11,7 @@ var _trip: RefCounted
 var _path := ""
 var _sha := ""
 var _phase := "UNBOUND"
+var _dsh_elapsed := -1.0  # DSH_LIFECLOCK: real game time since the previous poll
 var _reason := ""
 var _released := true
 var _cancelled := false
@@ -40,7 +41,7 @@ func step(delta: float) -> void:
 	if _phase in ["UNBOUND","READY","COMPLETE","CANCELLED","BLOCKED","DISPOSED"] or not is_finite(delta) or delta<=0.0 or delta>.05: return
 	var frame:=Engine.get_physics_frames()
 	if _frame==frame: return
-	_frame=frame; _time+=delta
+	_frame=frame; _time+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
 	if _trip!=null:
 		var state: Dictionary=_trip.state()
 		if state.phase=="SEATED" and not _driving and not _cancelled:

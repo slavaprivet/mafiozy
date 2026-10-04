@@ -46,6 +46,122 @@ var _door_pins := {}
 var _shape_parents: Array[Node] = []
 var diagnostics := {"steps":0,"floor_queries":0,"blocked":0,"source_sweeps":0,"max_step_m":0.0,"floor_frames":0,"travel_m":0.0,"last_reason":"","last_polygon":{},"times_us":[]}
 
+# DSH_VISITCACHE: --city-visit-scene-cache=1 (default) builds the two per-configure
+# enumerations of this route once per SCENE and reuses them; 0 is today's path and
+# re-enumerates both on every configure.
+#   (a) every other block record's collision body, converted and box-filtered - a pure
+#       function of scene._block (written once, main.gd:133) and of the site's _origin;
+#   (b) interior.find_children("*","CollisionShape3D",true,false) - the same node list for
+#       every route instance of the same interior adapter.
+# The DATA lives in the metadata of the scene node and of the interior node (never in a
+# global, never in a static), so it is dropped together with the objects it describes.
+const DSH_VISIT_CACHE_KEY := "dsh_visit_scene_cache"  # DSH_VISITCACHE
+const DSH_VISIT_CACHE_SCHEMA := 1  # DSH_VISITCACHE
+const DSH_VISIT_PINS_KEY := "dsh_visit_pin_nodes"  # DSH_VISITCACHE
+const DSH_VISIT_PINS_SCHEMA := 1  # DSH_VISITCACHE
+static var _dsh_visit_cache := -1  # DSH_VISITCACHE
+
+# DSH_VISITCACHE: --city-visit-scene-cache, read once per run (the route object itself is
+# created and disposed per visit, so the flag cannot live on the instance).
+static func _dsh_visit_cache_on() -> bool:  # DSH_VISITCACHE
+	if _dsh_visit_cache < 0:
+		_dsh_visit_cache = 1  # DSH_ACCEPTED: принятое значение по умолчанию, флаг переопределяет
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-visit-scene-cache="):
+				_dsh_visit_cache = 0 if int(argument.trim_prefix("--city-visit-scene-cache=")) == 0 else 1
+	return _dsh_visit_cache == 1
+
+# DSH_VISITCACHE: the scene-scoped cache dictionary, or {} when the flag is off / the scene is
+# not the one the entry was built for. Every use re-proves the block revision: the same
+# buildings/decor Array instances, the same counts and the same _origin. main.gd:133 is the
+# only writer of `_block` in the tree and nothing mutates it afterwards, so this can only fail
+# on a scene that was rebuilt - and then the entry is rebuilt from today's loops.
+func _dsh_scene_cache() -> Dictionary:  # DSH_VISITCACHE
+	if not _dsh_visit_cache_on() or not is_instance_valid(scene): return {}
+	var value: Variant=scene.get_meta(DSH_VISIT_CACHE_KEY,{})
+	var cache: Dictionary=value if value is Dictionary else {}
+	var block_value: Variant=scene.get("_block")
+	if not block_value is Dictionary: return {}
+	var block: Dictionary=block_value
+	if int(cache.get("schema",0))!=DSH_VISIT_CACHE_SCHEMA or not is_same(cache.get("buildings"),block.buildings) or not is_same(cache.get("decor"),block.decor) or cache.get("counts",{})!=block.get("counts",{}) or cache.get("origin",Vector3.INF)!=scene.get("_origin"):
+		cache={"schema":DSH_VISIT_CACHE_SCHEMA,"buildings":block.buildings,"decor":block.decor,"counts":block.get("counts",{}),"origin":scene.get("_origin"),"parts":{},"hits":int(cache.get("hits",0)),"builds":int(cache.get("builds",0)),"lookups":int(cache.get("lookups",0)),"us":int(cache.get("us",0))}
+		scene.set_meta(DSH_VISIT_CACHE_KEY,cache)
+	return cache
+
+# DSH_VISITCACHE: the trigger counters of the DSH_DAILY line in npc_city_daily.gd (lookups =
+# cache decisions, hits/builds their outcome, us = the time this cache itself spent).
+func _dsh_cache_count(cache: Dictionary,hit: bool,elapsed: int) -> void:  # DSH_VISITCACHE
+	if cache.is_empty(): return
+	cache["lookups"]=int(cache["lookups"])+1
+	if hit: cache["hits"]=int(cache["hits"])+1
+	else: cache["builds"]=int(cache["builds"])+1
+	cache["us"]=int(cache["us"])+elapsed
+
+# DSH_VISITCACHE (a): today's block enumeration of npc_local_printshop_route.gd:72-77 and
+# today's _nearby() filter of :78, run once per scene. The block records are only read, and the
+# returned Array is append_array()'d into this instance's own _static_solids, so sharing its
+# elements between route instances is read-only by construction (_source_segment() only reads
+# polygonCR/minYM/maxYM and stores the dictionary in diagnostics).
+const DSH_VISIT_SHOP_PART := "shop"  # DSH_VISITCACHE
+
+func _dsh_block_solids() -> Array:  # DSH_VISITCACHE
+	var started:=Time.get_ticks_usec()
+	var cache: Dictionary=_dsh_scene_cache()
+	if not cache.is_empty():
+		var parts: Dictionary=cache["parts"]
+		if parts.has(DSH_VISIT_SHOP_PART):
+			_dsh_cache_count(cache,true,Time.get_ticks_usec()-started)
+			return parts[DSH_VISIT_SHOP_PART]
+	var converted: Array=[]
+	for building: Dictionary in scene.get("_block").buildings+scene.get("_block").decor:
+		if building.id==BUILDING:continue
+		for shape: Dictionary in building.collisionBodiesM:
+			var cr: Array=[]
+			for p: Array in shape.polygonXZ:cr.append([(float(p[0])+395.65)/4.1,(float(p[1])+45.1)/4.1])
+			converted.append({"polygonCR":cr,"minYM":shape.minY,"maxYM":shape.maxY,"node":building.id})
+	var kept: Array=_nearby(converted)
+	if not cache.is_empty():
+		var parts: Dictionary=cache["parts"]
+		parts[DSH_VISIT_SHOP_PART]=kept
+	_dsh_cache_count(cache,false,Time.get_ticks_usec()-started)
+	return kept
+
+# DSH_VISITCACHE (b): the interior's CollisionShape3D list, cached in the INTERIOR's own
+# metadata. A hit re-proves what the list was built from with O(1) metadata plus one
+# is_instance_valid() per cached shape: the interior's identity (this metadata), the schema, the
+# interior's direct-child count, and that every cached shape is still a live instance. A freed shape (removal, container
+# removal, or a swap that freed one shape and added another) fails that test and forces a
+# rebuild, so the cached list can never hand a dangling node to the pin loop. A live route also
+# drops the entry from _child_changed(), i.e. from the watchers that already invalidate its own
+# pins. A per-container child-count stamp was read, priced and REJECTED: it costs 107/404/136
+# GDScript reads (~30-200 us) per hit, as much as the C++ traversal it would protect.
+func _dsh_pin_nodes() -> Array:  # DSH_VISITCACHE
+	var started:=Time.get_ticks_usec()
+	var cache: Dictionary=_dsh_scene_cache()
+	var held: Variant=null
+	if not cache.is_empty() and is_instance_valid(interior) and interior.ready_for_use:
+		var value: Variant=interior.get_meta(DSH_VISIT_PINS_KEY,{})
+		var entry: Dictionary=value if value is Dictionary else {}
+		if int(entry.get("schema",0))==DSH_VISIT_PINS_SCHEMA and int(entry.get("interior_children",-1))==interior.get_child_count():
+			var current:=true
+			for node: Node in entry["nodes"]:
+				if not is_instance_valid(node):current=false;break
+			if current: held=entry["nodes"]
+	if held!=null:
+		_dsh_cache_count(cache,true,Time.get_ticks_usec()-started)
+		return held
+	var nodes: Array=interior.find_children("*","CollisionShape3D",true,false)
+	if not cache.is_empty() and is_instance_valid(interior) and interior.ready_for_use:
+		interior.set_meta(DSH_VISIT_PINS_KEY,{"schema":DSH_VISIT_PINS_SCHEMA,"nodes":nodes,"interior_children":interior.get_child_count()})
+	_dsh_cache_count(cache,false,Time.get_ticks_usec()-started)
+	return nodes
+
+# DSH_VISITCACHE: a membership change under the interior drops the cached node list. Every live
+# route instance calls this from _child_changed(), i.e. from exactly the watchers that already
+# invalidate its own pins, and the cache is then rebuilt by the next configure.
+func _dsh_pins_invalidate() -> void:  # DSH_VISITCACHE
+	if is_instance_valid(interior) and interior.has_meta(DSH_VISIT_PINS_KEY):interior.remove_meta(DSH_VISIT_PINS_KEY)
+
 func _v(a: Array) -> Vector3: return Vector3(a[0],a[1],a[2])
 func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, root: Node3D, actor_token: Dictionary, entry_bytes: PackedByteArray, geometry_bytes: PackedByteArray) -> bool:
 	if host!=null or owner._navigation!=navigation or not owner.target_current(actor_token): return false
@@ -69,12 +185,7 @@ func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, r
 	_open_solids=geometry.openedEntryBodies.duplicate(true);_closed_solids=geometry.closedEntryBodies.duplicate(true)
 	if _open_solids.is_empty() or _closed_solids.is_empty():return false
 	_static_solids=geometry.get("stationBodies",[]).duplicate(true)
-	for building: Dictionary in scene.get("_block").buildings+scene.get("_block").decor:
-		if building.id==BUILDING:continue
-		for shape: Dictionary in building.collisionBodiesM:
-			var cr: Array=[]
-			for p: Array in shape.polygonXZ:cr.append([(float(p[0])+395.65)/4.1,(float(p[1])+45.1)/4.1])
-			_static_solids.append({"polygonCR":cr,"minYM":shape.minY,"maxYM":shape.maxY,"node":building.id})
+	_static_solids.append_array(_dsh_block_solids())  # DSH_VISITCACHE
 	_open_solids=_nearby(_open_solids);_closed_solids=_nearby(_closed_solids);_static_solids=_nearby(_static_solids)
 	_query.shape=body.get_child(0).shape;_query.collision_mask=1|256;_query.margin=.001;_query.exclude=[body.get_rid()]
 	var square:=BoxShape3D.new();square.size=Vector3(HALF*2,1.9,HALF*2)
@@ -83,7 +194,7 @@ func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, r
 	_version=policy.access_version()
 	if not _source_floor.configure(geometry.floorParameters,geometry.originM,_validated_terrain_world):return false
 	# Frozen source walls may authorize only this unchanged native geometry.
-	for node: Node in interior.find_children("*","CollisionShape3D",true,false):
+	for node: Node in _dsh_pin_nodes():  # DSH_VISITCACHE
 		_geometry_pins.append({"node":weakref(node),"parent":node.get_parent(),"shape":node.shape,"disabled":node.disabled,"frame":node.global_transform,"local":node.transform,"layer":node.get_parent().collision_layer,"door":node.get_parent().get_meta("interior_kind","").begins_with("door:")})
 		if not node.shape in _resources:_resources.append(node.shape);node.shape.changed.connect(_changed)
 		if not node.get_parent().get_rid() in _entry_rids:_entry_rids.append(node.get_parent().get_rid())
@@ -99,7 +210,7 @@ func configure(owner: RefCounted, outdoor: RefCounted, navigation: RefCounted, r
 	return true
 
 func _changed() -> void:_geometry_invalid=true
-func _child_changed(_node: Node) -> void:_geometry_invalid=true
+func _child_changed(_node: Node) -> void:_geometry_invalid=true;_dsh_pins_invalidate()
 
 func _nearby(solids: Array) -> Array:
 	var kept: Array=[]

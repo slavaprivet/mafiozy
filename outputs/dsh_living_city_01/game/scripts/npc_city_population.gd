@@ -66,6 +66,13 @@ var _dsh_fx_active_steps := 0  # DSH_DAILYFX: of those, owners with live particl
 var _dsh_fx_probe_cache := -1  # DSH_DAILYFX: --city-dailyfx-probe
 var _dsh_fx_stagger_cache := -1  # DSH_DAILYFX: --city-fx-idle-stagger
 var _dsh_fx_seeded := PackedByteArray()  # DSH_DAILYFX: owners whose idle phase was seeded
+# DSH_FXIDLE: the blood pool of an owner that never emitted a particle is empty and
+# invisible (npc_blood_renderer.gd:48 visible_instance_count=0), so the whole fx branch
+# is bypassed for it. These are locals inside the effects loop, copied into fields once
+# per city step, exactly like the DSH_DAILYFX counters above: no per-owner allocation.
+var _dsh_fx_skipped_steps := 0  # DSH_FXIDLE: blood.step() calls removed in the last step
+var _dsh_fx_bypass_steps := 0  # DSH_FXIDLE: owners whose blood branch was bypassed
+var _dsh_fx_idle_skip_cache := -1  # DSH_FXIDLE: --city-fx-idle-skip
 # DSH_STREAMLOAD: early readiness + budgeted, visibility-gated population streaming.
 # Every flag defaults to today's behaviour: with no --city-early-cohort the blocking load
 # below runs unchanged and _stream_on stays false.
@@ -148,13 +155,15 @@ func _dsh_fx_probe() -> int:  # DSH_DAILYFX
 				_dsh_fx_probe_cache = 1 if int(argument.trim_prefix("--city-dailyfx-probe=")) != 0 else 0
 	return _dsh_fx_probe_cache
 
-# DSH_DAILYFX: --city-fx-idle-stagger=1 spreads the blood adapters' 250 ms idle
-# refresh over that whole window instead of letting the whole cohort start its timer
-# inside the same city step. 0 (default) leaves every deadline byte for byte as today:
-# with 0 the seeding function is never called.
+# DSH_ACCEPTED: the blood adapters' 250 ms idle refresh is staggered BY DEFAULT.
+# --city-fx-idle-stagger=1 (default) spreads the whole cohort's refresh over that
+# window instead of letting it start its timer inside the same city step; only an
+# UNSET deadline is ever seeded, once per owner per run, so the documented 250 ms
+# refresh bound is unchanged. --city-fx-idle-stagger=0 is the rollback: the seeding
+# function is never called and every deadline stays byte for byte as before.
 func _dsh_fx_stagger() -> int:  # DSH_DAILYFX
 	if _dsh_fx_stagger_cache < 0:
-		_dsh_fx_stagger_cache = 0
+		_dsh_fx_stagger_cache = 1  # DSH_ACCEPTED: fx-idle-stagger включён по умолчанию; --city-fx-idle-stagger=0 откатывает
 		for argument in OS.get_cmdline_user_args():
 			if argument.begins_with("--city-fx-idle-stagger="):
 				_dsh_fx_stagger_cache = 1 if int(argument.trim_prefix("--city-fx-idle-stagger=")) != 0 else 0
@@ -179,6 +188,75 @@ func _dsh_fx_stagger_cohort() -> void:  # DSH_DAILYFX
 		var idle: Variant=blood.get("_idle_checked_at_usec")
 		if idle is int and int(idle)<0:
 			blood.set("_idle_checked_at_usec",now_us-int(250000.0*float(index)/float(total)))
+
+# DSH_FXSLICE: --city-fx-slice=N serves at most N IDLE blood owners per city step in a
+# rotating order, so the cohort's 250 ms idle refresh cannot land in one step. An owner
+# whose effects are live (particles or wounds) is never deferred. Accepted default 64;
+# --city-fx-slice=0 runs every due owner, exactly as before.
+var _dsh_fx_slice_cache := -1  # DSH_FXSLICE
+var _dsh_fx_cursor := 0  # DSH_FXSLICE: rotating start of the served window
+var _dsh_fx_deferred_steps := 0  # DSH_FXSLICE: idle owners deferred in the last step
+
+func _dsh_fx_slice() -> int:  # DSH_FXSLICE
+	if _dsh_fx_slice_cache < 0:
+		_dsh_fx_slice_cache = 64
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-fx-slice="):
+				_dsh_fx_slice_cache = maxi(0, int(argument.trim_prefix("--city-fx-slice=")))
+	return _dsh_fx_slice_cache
+
+func _dsh_fx_live(blood: RefCounted) -> bool:  # DSH_FXSLICE
+	var renderer: Variant=blood.get("renderer")
+	if renderer==null: return false
+	var wounds: Variant=renderer.get("_wounds")
+	return bool(renderer.get("_has_particles")) or (wounds is Array and not (wounds as Array).is_empty())
+
+# DSH_FXIDLE: --city-fx-idle-skip=1 (default) bypasses the blood branch of an owner that
+# has never emitted a particle; 0 is the exact rollback (every gate, every deadline and
+# every lease check where and when it runs today). Same cached-reader shape as every
+# other lever in this file.
+func _dsh_fx_idle_skip() -> int:  # DSH_FXIDLE
+	if _dsh_fx_idle_skip_cache < 0:
+		_dsh_fx_idle_skip_cache = 1
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-fx-idle-skip="):
+				_dsh_fx_idle_skip_cache = 0 if int(argument.trim_prefix("--city-fx-idle-skip=")) == 0 else 1
+	return _dsh_fx_idle_skip_cache
+
+# DSH_FXIDLE: the sticky "never bloodied" answer plus the ONE side effect of the
+# skipped update() that would be observable later.
+#   * "never bloodied" == renderer.emitted==0. `emitted` is incremented inside
+#     npc_blood_renderer._emit():64, which accept():68 calls before it appends any
+#     wound, and it is NOT reset by clear():149-151 or dispose():153-156. It therefore
+#     separates "never bled" from "bled and healed": _wounds empties again at :104-105
+#     and _has_particles drops back to false at :145, `emitted` never returns to 0.
+#   * update() at empty state is a no-op EXCEPT :102 (_last_root=_body.global_position),
+#     the baseline of the teleport test at :101. A resident that walks further than
+#     maxf(1.0,_height*4) since its last update is classified as teleported, and :103
+#     then does `_life.fill(0); _has_particles=false`. Without the write below the
+#     baseline would go stale for thousands of steps and the FIRST update after a wound
+#     would erase the freshly accepted burst (:68) and delay the first drip (:108).
+#     Writing the same value :102 writes makes that impossible; it is exactly what
+#     update() would have stored had it run at this step.
+#   * `_last_time` (:100) only serves the backwards-clock test, and _now() is derived
+#     from a per-owner fixed _start_us, so it cannot move backwards. _wounds is empty,
+#     _next_emission is only read when a wound exists (:109-113), `if active!=0` (:126)
+#     is false and _life is already all <=0. None of them is reproduced because none of
+#     them can be observed.
+#   * A missing body node is NOT bypassed: today's path then keeps running the lease
+#     check, so a pool whose owner died or was removed is still retired by
+#     npc_blood_adapter.retire():85-88 within the 250 ms bound.
+# Returns 0 = run today's path, 1 = bypassed (deadline not due), 2 = bypassed
+# (deadline was due: one blood.step() call removed from this city step).
+func _dsh_fx_idle_bypass(blood: RefCounted, now_us: int) -> int:  # DSH_FXIDLE
+	var renderer: Variant=blood.get("renderer")
+	if renderer==null or int(renderer.get("emitted"))!=0: return 0
+	var body: Variant=renderer.get("_body")
+	if body==null or not is_instance_valid(body): return 0
+	renderer.set("_last_root",(body as Node3D).global_position)
+	var idle: Variant=blood.get("_idle_checked_at_usec")
+	if idle is int and (int(idle)<0 or now_us-int(idle)>=250000): return 2
+	return 1
 
 func _record_timing(label: String, elapsed: int, frame: int) -> void:
 	var bucket: Dictionary=_logic_buckets[label]
@@ -1038,32 +1116,66 @@ func step(delta: float) -> void:
 	# idle refresh; --city-dailyfx-probe=1 (default 0) adds the idle/active split.
 	var dsh_fx_probe:=_dsh_fx_probe()
 	if _dsh_fx_stagger()==1: _dsh_fx_stagger_cohort()
+	# DSH_FXSLICE: at most dsh_fx_cap IDLE owners per step, rotating; live effects always run.
+	var dsh_fx_cap:=_dsh_fx_slice()
+	# DSH_FXIDLE: one flag and one clock reading per city step. With
+	# --city-fx-idle-skip=0 the ternary at the gate below never calls the bypass test, so
+	# no owner is skipped, no deadline is read and no _last_root is written: today's path.
+	var dsh_fx_idle_skip:=_dsh_fx_idle_skip()
+	var dsh_fx_now_us:=Time.get_ticks_usec()
+	var dsh_fx_total:=hit_owners.size()
+	var dsh_fx_served:=0
+	var dsh_fx_deferred:=0
+	var dsh_fx_skipped:=0  # DSH_FXIDLE: due never-bloodied owners bypassed
+	var dsh_fx_bypass:=0  # DSH_FXIDLE: every never-bloodied owner bypassed
 	var dsh_fx_blood:=0
 	var dsh_fx_marks:=0
 	var dsh_fx_active:=0
-	for health: RefCounted in hit_owners:
+	for dsh_fx_k in dsh_fx_total:
+		var dsh_fx_index: int=(_dsh_fx_cursor+dsh_fx_k)%dsh_fx_total if dsh_fx_cap>0 else dsh_fx_k
+		var health: RefCounted=hit_owners[dsh_fx_index]
 		var blood: RefCounted=health.blood
-		if blood!=null and blood.should_step():
-			blood.step(delta)
-			dsh_fx_blood+=1
-			if dsh_fx_probe==1:
-				var blood_renderer: Variant=blood.get("renderer")
-				if blood_renderer!=null:
-					var blood_wounds: Variant=blood_renderer.get("_wounds")
-					if bool(blood_renderer.get("_has_particles")) or (blood_wounds is Array and not (blood_wounds as Array).is_empty()): dsh_fx_active+=1
+		# DSH_FXIDLE: the whole blood branch - blood.should_step() (npc_blood_adapter.gd:74-78)
+		# and the blood.step() it guards (:80-83) - is bypassed for an owner that has never
+		# emitted a particle, so its idle refresh and the _current() lease chain of :28-31 are
+		# not paid at all. An owner that has ever bled reads emitted!=0 and takes the
+		# unchanged branch below, so a wound is never delayed: accept() sets _has_particles
+		# (npc_blood_renderer.gd:55, called at :68) and should_step() short-circuits on it
+		# (:77), which makes the very next city step run the full step() with the fresh
+		# _last_root written by the bypass test on the steps before the wound.
+		var dsh_fx_idle: int=_dsh_fx_idle_bypass(blood,dsh_fx_now_us) if blood!=null and dsh_fx_idle_skip==1 else 0
+		if dsh_fx_idle>0:
+			dsh_fx_bypass+=1
+			if dsh_fx_idle>1: dsh_fx_skipped+=1
+		elif blood!=null and blood.should_step():
+			if dsh_fx_cap<=0 or dsh_fx_served<dsh_fx_cap or _dsh_fx_live(blood):
+				blood.step(delta)
+				dsh_fx_served+=1
+				dsh_fx_blood+=1
+				if dsh_fx_probe==1:
+					var blood_renderer: Variant=blood.get("renderer")
+					if blood_renderer!=null:
+						var blood_wounds: Variant=blood_renderer.get("_wounds")
+						if bool(blood_renderer.get("_has_particles")) or (blood_wounds is Array and not (blood_wounds as Array).is_empty()): dsh_fx_active+=1
+			else:
+				dsh_fx_deferred+=1
 		var marks: RefCounted=health.marks
 		if marks!=null:
 			var marks_renderer: RefCounted=marks.renderer
 			if marks_renderer!=null and not marks_renderer._marks.is_empty():
 				marks.step()
 				dsh_fx_marks+=1
+	if dsh_fx_cap>0 and dsh_fx_total>0: _dsh_fx_cursor=(_dsh_fx_cursor+dsh_fx_served)%dsh_fx_total
+	_dsh_fx_deferred_steps=dsh_fx_deferred
+	_dsh_fx_skipped_steps=dsh_fx_skipped
+	_dsh_fx_bypass_steps=dsh_fx_bypass
 	var effects_us:=Time.get_ticks_usec()-phase_started
 	_dsh_fx_blood_steps=dsh_fx_blood
 	_dsh_fx_marks_steps=dsh_fx_marks
 	_dsh_fx_active_steps=dsh_fx_active
 	# DSH_TELEMETRY (temporary): where the collapsed city frame actually goes.
 	if frame%30==0:
-		print("DSH_CITY f=",frame," fps=",Engine.get_frames_per_second()," ready=",city_ready," phase=",str(_startup_progress.get("phase",""))," births=",int(_startup_progress.get("birth_attempts",0))," probes=",int(_startup_progress.get("fallback_probes",0))," bound=",int(_startup_progress.get("health_bound",0))," nav=",navigation_us," health=",health_us," daily=",daily_us," resid=",residents_us," fx=",effects_us," total=",Time.get_ticks_usec()-started," fx_blood=",_dsh_fx_blood_steps," fx_marks=",_dsh_fx_marks_steps," fx_active=",_dsh_fx_active_steps," fx_owners=",hit_owners.size())
+		print("DSH_CITY f=",frame," fps=",Engine.get_frames_per_second()," ready=",city_ready," phase=",str(_startup_progress.get("phase",""))," births=",int(_startup_progress.get("birth_attempts",0))," probes=",int(_startup_progress.get("fallback_probes",0))," bound=",int(_startup_progress.get("health_bound",0))," nav=",navigation_us," health=",health_us," daily=",daily_us," resid=",residents_us," fx=",effects_us," total=",Time.get_ticks_usec()-started," fx_blood=",_dsh_fx_blood_steps," fx_marks=",_dsh_fx_marks_steps," fx_active=",_dsh_fx_active_steps," fx_owners=",hit_owners.size()," fx_idle_deferred=",_dsh_fx_deferred_steps," fx_idle_skipped=",_dsh_fx_skipped_steps," fx_idle_bypass=",_dsh_fx_bypass_steps)
 		# DSH_TELEMETRY (temporary): attribute the frame outside city logic.
 		print("DSH_PERF f=",frame," fps=",Engine.get_frames_per_second()," process_ms=",int(Performance.get_monitor(Performance.TIME_PROCESS)*1000.0)," physics_ms=",int(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0)," draw_calls=",int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME))," prims=",int(Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME))," nodes=",int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))," bodies=",int(Performance.get_monitor(Performance.PHYSICS_3D_ACTIVE_OBJECTS))," ready=",city_ready)
 	if city_ready:

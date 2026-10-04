@@ -3,6 +3,26 @@ extends RefCounted
 ## A map path is only a proposal: every short leg uses current source + physics.
 const Detour = preload("city/runtime/npc_native_obstacle_detour.gd")
 const MAX_LEG_M := 5.0
+# DSH_DAILYLEG: --city-daily-leg-m=N is the maximum length of one requested leg.
+# The daily slice polls each life once per DAILY_SLICE city steps and a leg only
+# advances on a poll, so the leg count multiplies how long a walk - and therefore a
+# shop/hospital/bank deed - takes. Measured: 290 s of city time, completed.walk grew by
+# 16 for all 284 residents, walk_age_max_s = 2.8 s = one poll per ~4.8 s. The native
+# path, the per-tick movement and the .25 m admission cap are untouched: only the
+# number of acknowledgement points drops. 15 m at 1.8 m/s is 8.3 s, inside the 30 s
+# native-leg deadline. Source value 5.0; accepted default 15.0.
+const DSH_LEG_M_DEFAULT := 5.0  # DSH_POLICYLEG: back to the source value; the route
+# policy rejects any leg > 5.1 m, so a longer default is a regression until
+# --city-policy-leg-m is raised too.
+var _dsh_leg_cache := -1.0  # DSH_DAILYLEG
+
+func _leg_metres() -> float:  # DSH_DAILYLEG
+	if _dsh_leg_cache < 0.0:
+		_dsh_leg_cache = DSH_LEG_M_DEFAULT
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--city-daily-leg-m="):
+				_dsh_leg_cache = clampf(float(argument.trim_prefix("--city-daily-leg-m=")), 1.0, 60.0)
+	return _dsh_leg_cache
 const MAX_POINTS := 4096
 var _host: RefCounted
 var _navigation: RefCounted
@@ -18,6 +38,10 @@ var _iteration := 0
 var _phase := "UNBOUND"
 var _reason := ""
 var _frame := -1
+var _dsh_phase_since_ms := 0  # DSH_LIFETRACE: wall clock of the last observed phase
+var _dsh_phase_seen := ""  # DSH_LIFETRACE
+var _dsh_blocks := 0  # DSH_LIFETRACE: refusals since configure
+var _dsh_elapsed := -1.0  # DSH_LIFECLOCK: real game time since the previous poll
 var _active_time := 0.0
 var _leg_started := 0.0
 var _query_started := 0
@@ -113,7 +137,7 @@ func _path_ready(epoch: int, iteration: int, result: NavigationPathQueryResult3D
 	var previous: Vector3=_token.body.global_position
 	for point: Vector3 in path:
 		if not point.is_finite(): _block("nonfinite_native_path"); return
-		var count:=maxi(1,int(ceil(previous.distance_to(point)/MAX_LEG_M)))
+		var count:=maxi(1,int(ceil(previous.distance_to(point)/_leg_metres())))  # DSH_DAILYLEG
 		if count>MAX_POINTS or _points.size()+count>MAX_POINTS: _block("bounded_native_path_exceeded"); return
 		var start:=previous
 		for index in range(1,count+1):
@@ -136,12 +160,14 @@ func step(delta: float) -> void:
 	if frame==_frame: return
 	_frame=frame
 	if _phase not in ["PLANNING","WALKING","DETOUR"]: return
+	# DSH_LIFETRACE: two compares per walk tick; the clock is read only on a change.
+	if _phase!=_dsh_phase_seen: _dsh_phase_seen=_phase; _dsh_phase_since_ms=Time.get_ticks_msec()
 	if not _current(): _block("actor_or_navigation_owner_ended"); return
 	var pause: Callable=_host._records[_token.source_id].get("walk_pause",Callable())
 	var paused:=pause.is_valid() and bool(pause.call())
 	if not _current(): _block("actor_changed_during_pause_check"); return
 	if paused: return
-	_active_time+=delta
+	_active_time+=(_dsh_elapsed if _dsh_elapsed>=0.0 else delta)
 	if _active_time>900.0: _block("bounded_errand_deadline"); return
 	if _phase=="DETOUR":
 		_step_detour();return
@@ -193,6 +219,8 @@ func _cancel_request() -> bool:
 func _block(reason: String) -> void:
 	if _detour!=null: _detour.cancel()
 	_epoch+=1; _phase="BLOCKED"; _reason=reason
+	_dsh_blocks+=1  # DSH_LIFETRACE
+	if _phase!=_dsh_phase_seen: _dsh_phase_seen=_phase; _dsh_phase_since_ms=Time.get_ticks_msec()  # DSH_LIFETRACE: a BLOCKED walk is never stepped again, so stamp it here
 	_cancel_request()
 	_revoke_path()
 
