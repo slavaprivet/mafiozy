@@ -23,7 +23,8 @@ func _ready() -> void:
 func _current() -> bool:
 	if _stopped or not is_inside_tree() or not is_instance_valid(_scene) or get_parent()!=_scene:
 		return false
-	var claim: Variant = _scene.get_meta(OWNER_META, null)
+	if not _scene.has_meta(OWNER_META): return false
+	var claim: Variant = _scene.get_meta(OWNER_META)
 	return claim is WeakRef and claim.get_ref()==self
 
 ## DSH_STREAMLOAD: after early readiness the population keeps admitting residents inside
@@ -41,14 +42,22 @@ func _process(_delta: float) -> void:
 	_set_status(str(population.status),"Жители: %d" % admitted_count)
 	print("CITY_STREAMLOAD_DONE ",JSON.stringify(population.city_stream_report()))
 
+func _claim_owner() -> bool:
+	if _scene.has_meta(OWNER_META):
+		var previous: Variant = _scene.get_meta(OWNER_META)
+		if not previous is WeakRef:
+			status="failed"; error="invalid_bootstrap_owner"; return false
+		var previous_owner: Variant = previous.get_ref()
+		if is_instance_valid(previous_owner):
+			status="failed"; error="already_attached" if previous_owner==self else "existing_bootstrap"; return false
+	_scene.set_meta(OWNER_META, weakref(self))
+	return true
+
 func _attach() -> void:
 	_scene=get_parent() as Node3D
 	if not is_instance_valid(_scene):
 		status="failed"; error="scene_parent"; return
-	var previous: Variant = _scene.get_meta(OWNER_META, null)
-	if previous is WeakRef and is_instance_valid(previous.get_ref()):
-		status="failed"; error="existing_bootstrap"; return
-	_scene.set_meta(OWNER_META, weakref(self))
+	if not _claim_owner(): return
 	print("CITY_STAGE claimed")
 	for frame in WAIT_FRAMES:
 		if not _current(): return
@@ -183,8 +192,8 @@ func snapshot() -> Dictionary:
 
 func _exit_tree() -> void:
 	_stopped=true
-	if is_instance_valid(_scene):
-		var claim: Variant=_scene.get_meta(OWNER_META,null)
+	if is_instance_valid(_scene) and _scene.has_meta(OWNER_META):
+		var claim: Variant=_scene.get_meta(OWNER_META)
 		if claim is WeakRef and claim.get_ref()==self: _scene.remove_meta(OWNER_META)
 	# The original main._exit_tree remains the population disposal owner.
 	if is_instance_valid(_label): _label.queue_free()

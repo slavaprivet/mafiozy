@@ -516,7 +516,7 @@ func targets() -> Dictionary:
 		"service":anchor("service"),"street":anchor("publicStreet"),"threshold":anchor("threshold")}
 
 func contains_service(position: Vector3) -> bool:
-	if not ready_for_use or not position.is_finite() or not global_transform.is_equal_approx(Transform3D.IDENTITY): return false
+	if not is_inside_tree() or not ready_for_use or not position.is_finite() or not global_transform.is_equal_approx(Transform3D.IDENTITY): return false
 	var goal := anchor("service")
 	return Vector2(position.x-goal.x,position.z-goal.z).length() <= SERVICE_RADIUS_M and absf(position.y-goal.y) <= .06 and absf(position.y-floor_height(position)) <= .06
 

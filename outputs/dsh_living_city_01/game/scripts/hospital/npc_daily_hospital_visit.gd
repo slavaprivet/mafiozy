@@ -378,7 +378,12 @@ func cancel(reason:String="cancelled") -> Dictionary:
 	if _disposed:return {"ok":true,"status":"DISPOSED"}
 	if _busy:return {"ok":false,"reason":"controller_busy"}
 	if _phase=="COMPLETE":return {"ok":true,"status":"COMPLETE","service_result":_service_result.duplicate(true)}
-	_stop(reason);return {"ok":true,"status":_phase,"released":_released,"reason":_reason,"at_site":is_instance_valid(_site) and _token.get("body")!=null and is_instance_valid(_token.body) and _site.contains_service(_token.body.global_position)}
+	_stop(reason)
+	var at_site:=false
+	var body: Variant=_token.get("body")
+	if is_instance_valid(_site) and _site.is_inside_tree() and is_instance_valid(body) and body is Node3D and body.is_inside_tree():
+		at_site=_site.contains_service(body.global_position)
+	return {"ok":true,"status":_phase,"released":_released,"reason":_reason,"at_site":at_site}
 
 func snapshot() -> Dictionary:
 	return {"status":_phase,"reason":_reason,"kind":_kind,"released":_released,"cancelling":_cancelling,"source_id":_token.get("source_id",""),"life_generation":_token.get("life_generation",-1),"request_id":_request,"treatment_id":_treatment_id,"hp_before":_start_hp,"service_completed":not _service_result.is_empty(),"service_result":_service_result.duplicate(true),"local_route_bound":_bound,"door_owned":_door_current(),"outdoor":_daily.snapshot() if _daily!=null else {},"entry":_route.diagnostics.duplicate(true) if _route!=null else _route_stats.duplicate(true),"source_state_written":false,"actor_transform_written":false,"profile_peaks":_profile_snapshot(),"timing_buckets":_timing_buckets.duplicate(true)}
