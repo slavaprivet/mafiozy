@@ -214,8 +214,25 @@ func _release_finish_factory() -> void:
 
 
 func _sweep_clear(door: Dictionary, from: float, to: float, occupants: Array) -> bool:
-	if occupants.size() > 64:
-		return false
+	# The city passes every resident, including hundreds far from this door. A
+	# swing can only touch an occupant inside this conservative hinge radius.
+	# Keep the original exact sweep for every nearby body and the 64-body cap
+	# for a genuinely crowded door.
+	if door.bounds.is_empty(): return false
+	var basis: Basis = door.base.basis
+	var scale_x := Vector2(basis.x.x, basis.x.z).length()
+	var scale_y := Vector2(basis.y.x, basis.y.z).length()
+	var scale_z := Vector2(basis.z.x, basis.z.z).length()
+	var local_radius := 0.0
+	var local_height := 0.0
+	for bounds: AABB in door.bounds:
+		for x in [bounds.position.x, bounds.end.x]:
+			for z in [bounds.position.z, bounds.end.z]:
+				local_radius = maxf(local_radius, Vector2(x, z).length())
+		local_height = maxf(local_height, maxf(absf(bounds.position.y), absf(bounds.end.y)))
+	var swing_radius: float = local_radius * (scale_x + scale_z) + local_height * scale_y
+	var hinge: Vector3 = door.base.origin
+	var nearby := 0
 	var a: float = float(door.spec.angle) * smoothstep(0.0, 1.0, from)
 	var b: float = float(door.spec.angle) * smoothstep(0.0, 1.0, to)
 	var steps: int = maxi(1, ceili(absf(b - a) / 0.035))
@@ -227,6 +244,9 @@ func _sweep_clear(door: Dictionary, from: float, to: float, occupants: Array) ->
 		var height: float = float(occupant.get("height", 0.0))
 		if not p.is_finite() or not is_finite(radius) or not is_finite(height) or radius <= 0.0 or height <= 0.0:
 			return false
+		if Vector2(p.x - hinge.x, p.z - hinge.z).length() > swing_radius + radius + 0.03: continue
+		nearby += 1
+		if nearby > 64: return false
 		for step: int in range(steps + 1):
 			var angle: float = lerpf(a, b, float(step) / float(steps))
 			var frame: Transform3D = door.base * Transform3D(Basis(Vector3.UP, angle), Vector3.ZERO)
