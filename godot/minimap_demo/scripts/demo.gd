@@ -94,10 +94,26 @@ func _draw() -> void:
 func _capture(path: String) -> void:
 	await get_tree().create_timer(2.0).timeout
 	_ready_route()
+	map.set_expanded(false)
+	for frame in range(12):
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var small_error := get_viewport().get_texture().get_image().save_png(path.get_base_dir().path_join("small.png"))
 	map.set_expanded(true)
 	for frame in range(12):
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var error := get_viewport().get_texture().get_image().save_png(path)
-	print("DEMO_CAPTURE ", error)
-	get_tree().quit(0 if error == OK else 1)
+	var stats_before: Dictionary = map.draw_stats()
+	var waypoint: Variant = map.get_waypoint()
+	map.set_kind_enabled("shop", false)
+	for frame in range(12):
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var filter_error := get_viewport().get_texture().get_image().save_png(path.get_base_dir().path_join("filtered.png"))
+	var preserved: bool = map.get_waypoint() == waypoint
+	var result := {"schema": "mafiozi.minimap.visual/v1", "small_capture": small_error, "expanded_capture": error, "filtered_capture": filter_error, "selected_waypoint_preserved": preserved, "before": stats_before, "after": map.draw_stats(), "fixture_objects": 4, "full_city": "NOT_RUN", "gpu_performance": "NOT_RUN", "passed": small_error == OK and error == OK and filter_error == OK and preserved}
+	var receipt := FileAccess.open(path.get_base_dir().path_join("RESULT.json"), FileAccess.WRITE)
+	receipt.store_string(JSON.stringify(result, "\t"))
+	print(JSON.stringify(result))
+	get_tree().quit(0 if result.passed else 1)

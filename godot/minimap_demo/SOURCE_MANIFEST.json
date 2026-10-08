@@ -1,6 +1,6 @@
 {
   "schema": "mafiozi.minimap.source-manifest/v1",
-  "revision": "minimap_stage01_reviewfix03",
+  "revision": "minimap_stage02_r2",
   "project_subdir": "godot/minimap_demo",
   "source_pins": [
     {
@@ -46,14 +46,24 @@
       "sha256": "531d0d253cec1addb97b2cb2d144b6589ff934513eb9c9b8cf882cb49e4c0c32"
     },
     {
+      "path": "addons/walk_minimap/map_catalog.gd",
+      "bytes": 8442,
+      "sha256": "bfc7d41d9aa6b3edb653ee4f0ef1a2a452e607e720a053d642fbc16ee727e349"
+    },
+    {
+      "path": "addons/walk_minimap/map_object_index.gd",
+      "bytes": 5871,
+      "sha256": "03be231350998150971f5b41b57f7db9c369260e217cf6782a275b5af98c2efc"
+    },
+    {
       "path": "addons/walk_minimap/map_projection.gd",
       "bytes": 3844,
       "sha256": "4dd5259f393831de134e48bf29156e7061ebc23591ac84b5bdfe79bc15e45605"
     },
     {
       "path": "addons/walk_minimap/minimap_control.gd",
-      "bytes": 21437,
-      "sha256": "9d0388fc28594926a9c88ffbd51227292c6fd72b710ffbbc4d6a868bc69e0f1f"
+      "bytes": 44486,
+      "sha256": "a178ae86ec5aaeccd30166bfbc65c3558d012425da6b5a37d04f6a9de30e4360"
     },
     {
       "path": "addons/walk_minimap/waypoint_state.gd",
@@ -67,8 +77,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 7827,
-      "sha256": "748a7612af6fd4513d5ce710acc338c3e65dbf97a5ac8283b2130f971b7ea13f"
+      "bytes": 11347,
+      "sha256": "1456e1c012be747dde80c85c9c6ed533924c730a1c8ea7de52e954d07d112c96"
     },
     {
       "path": "scenes/demo.tscn",
@@ -77,21 +87,31 @@
     },
     {
       "path": "scripts/demo.gd",
-      "bytes": 5441,
-      "sha256": "bd314d9b64f9c12fcd9aae6e903cd44f8e6cb121f30730fab87c9abdd7a5df67"
+      "bytes": 6623,
+      "sha256": "a8cdb3de023075b4c01e672080590250b378c0764bb85b10e1aba589cbb1e730"
+    },
+    {
+      "path": "tests/regression_input_trains.gd",
+      "bytes": 8944,
+      "sha256": "de4322152b3325c0b626d172ae9c2234a0b7f81fd4eb421382ff245cc2e03086"
+    },
+    {
+      "path": "tests/regression_responsive.gd",
+      "bytes": 6053,
+      "sha256": "0a8fd11714a3b7266574d84e271bd285ed7233024d9eb3e6bf4f71cb88d046af"
     },
     {
       "path": "tests/smoke_minimap.gd",
       "bytes": 7423,
       "sha256": "b893498ffe78e6ec7f683af0540640a8396392ebe7b52bbb487b5b05a943d2ad"
+    },
+    {
+      "path": "tests/test_filters.gd",
+      "bytes": 5425,
+      "sha256": "21fae03a9774fa2cbc6227178b1b361937aa980fd2b60ce08f205d26433a50ed"
     }
   ],
   "current286": "NOT_RECEIVED",
-  "source_ui_full_parity": "PARTIAL",
-  "full_city_performance": "NOT_RUN",
-  "parent_source_manifest_sha256": "e7e37b66ea565b0a59fb8fdbf938fc49832bb439169e6897d97caefea58ac1b7",
-  "review_fixes": [
-    "Expanded map focus containment for Tab/Shift+Tab and external button activation",
-    "Validate train point before consuming shared marker ID"
-  ]
+  "source_ui_full_parity": "SOURCE_STRUCTURE_NATIVE_ADAPTATION_RESPONSIVE_R2_QA_PENDING",
+  "full_city_performance": "NOT_RUN"
 }
